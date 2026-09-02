@@ -1,7 +1,8 @@
 # Public Owned Data API v1
 
-Status: implementation and executable evidence authored; local and exact-head
-hosted promotion are not claimed.
+Status: implementation and nonignored regression inventory are exact-tag
+hosted green at v0.2.0; generated packages remain unpublished and formal API
+promotion is not claimed.
 
 Audience: language users, generated-SDK consumers, tool authors, and compiler
 contributors.
@@ -10,10 +11,15 @@ Public Owned Data API v1 defines one additive Project profile for calling a
 closed set of stable-ID functions from JavaScript/TypeScript and safe Rust. It
 extends the existing fixed-memory byte-data mechanism with controlled owned
 byte results. Project Manifest v8, both generated consumer routes, the
-reference-interpreter lane, and their focused evidence are authored in the
-current source tree. This document does not claim those gates were executed at
-the current head, that either package is published, or that hosted promotion is
-complete.
+reference-interpreter lane, and their focused evidence are present in the
+current source tree. The v0.2.0 tag commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` passed the complete blocking
+[release run](https://github.com/wavect/semaprax/actions/runs/33608662244),
+including the three-host Rust inventories and selected consumer/sanitizer
+jobs. This supersedes authoring-time “unrun” wording only for nonignored tests
+actually selected by that workflow. It does not publish either generated
+package, execute every separately provisioned case, or complete formal API
+promotion.
 
 The profile deliberately copies every successful owned result into host-owned
 storage before publication. It does not expose a SEMAPRAX pointer, allocator,
@@ -665,13 +671,12 @@ unexecuted repository tests do not satisfy either condition.
     Skipped, cancelled, diagnostic-only, retried, or allowed-failure jobs do
     not count.
 
-The current source tree contains the authored Project v8 implementation behind
-its exact manifest/profile and CLI routes. That source wiring is not execution
-or promotion. Until all twelve gates are executed and the applicable
-exact-head jobs are green, neither generated package is a published supported
-SDK and no completion-matrix status is promoted. The upstream baseline run
-linked by the completion matrix predates this work and supplies no Project v8
-promotion evidence.
+The v0.2.0 tag contains the Project v8 implementation behind its exact
+manifest/profile and CLI routes, and the tag workflow executed its nonignored
+regression inventory. That does not satisfy every separately provisioned part
+of the twelve-gate contract or make either generated package a published,
+supported SDK. Formal completion-matrix promotion therefore remains an
+explicit decision after the remaining gates.
 
 The frame-payload product's authored binding fixtures now reopen each real
 baseline/display-renamed Project revision and replay the exact descriptor from
@@ -837,9 +842,13 @@ deliberately broken-close calibration. Their hostile provider is a Rust ABI
 double, not the real C provider or a proof of panic traversal across C.
 All subprocess gates run under external deadlines; Linux also has container
 resource/network confinement. The separate strict Rust 1.85.1 package handoff
-is recorded above. Windows, exact Rust 1.85.0, sanitizers for this tuple corpus,
-full-profile and exact-head hosted evidence
-remain separate. No public support or release promotion follows.
+is recorded above. The exact `v0.2.0` tag matrix at
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` supplies current hosted,
+cross-platform nonignored regression coverage; see the
+[release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence). Exact Rust
+1.85.0, every opt-in sanitizer/tuple corpus, generated-crate registry
+publication, and formal public profile support remain separate. No public
+support promotion follows from the prerelease.
 
 The same lower-package boundary harness additionally covers joint host unwind
 and finalizer failure. Modes 28 and 29 inject a Rust panic immediately after

@@ -1,6 +1,7 @@
 # Windows owned npm publication v1
 
-Status: authored implementation and regressions; unrun and unpromoted.
+Status: exact-tag hosted Windows regression and selected consumer coverage at
+v0.2.0; unpromoted private full-toolchain surface.
 
 Audience: compiler contributors, Windows package consumers, and release reviewers.
 
@@ -116,5 +117,11 @@ offline full-toolchain build helper requires provisioned `SEMAPRAX_LINKER` and
 `SEMAPRAX_VCTOOLS` on Windows. The npm publication operation itself launches no
 compiler, linker, Node, npm or other process; those prerequisites belong to
 building the test's CLI, not to the filesystem publisher.
-Authoring these checks is not running them. No local test/build, hosted job,
-registry publication or production-support promotion is claimed here.
+At exact tag commit `5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`,
+the [Windows unit](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195909660),
+[integration-1](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195910249),
+[Product Acceptance](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195908639),
+and [release artifact](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100200902058)
+jobs passed. This executes the selected ordinary regression and consumer paths;
+the explicitly ignored reparse-privilege fixture remains outside that evidence.
+No registry publication or production-support promotion follows.

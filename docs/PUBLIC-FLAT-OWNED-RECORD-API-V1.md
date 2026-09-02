@@ -1,6 +1,6 @@
 # Public Flat Owned Record API v1
 
-Status: authored implementation with selected local consumer evidence;
+Status: exact-tag hosted nonignored regression coverage at v0.2.0;
 unpublished and unpromoted additive Project-v9 tranche.
 
 Audience: compiler contributors, generated-package integrators, and promotion
@@ -12,6 +12,15 @@ v1-v8 and their artifacts. Separately reviewed shared boundary corrections
 described below and in Public Owned Data API v1 intentionally change v8-v10
 Wasm/native-provider or Rust artifacts; selecting v9 never reinterprets a v8
 descriptor or selects a different profile's renderer.
+
+The v0.2.0 tag commit `5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`
+passed the complete blocking
+[release run](https://github.com/wavect/semaprax/actions/runs/33608662244),
+including Linux, macOS, Windows, Rust 1.88, and selected generated-consumer
+coverage. Statements below that a tranche was “unrun” record its authoring
+state and are superseded only for nonignored tests selected by that workflow.
+Separately provisioned/ignored gates and the explicit publication decision
+remain open.
 
 ## Fixed identifiers
 
@@ -353,9 +362,14 @@ This O0/O2 fixture passes locally on Linux/Clang 14 and macOS/Apple Clang 21.
 It does not expose those private observations as a public aggregate ABI or
 establish sanitizer coverage.
 
-These selected local results do not establish all target consumers, a hosted
-job, registry publication or release promotion. The upstream baseline at
-`4cc03820c86e70527cb65c4b10ee3841c7af167d` predates Project v9.
+The nonignored v9 regression and consumer coverage also ran in the exact
+`v0.2.0` tag matrix at
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`; see the
+[release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence). That
+hosted execution does not establish every opt-in or provisioned target
+consumer, registry publication, formal profile promotion, or public support.
+The earlier local baseline at
+`4cc03820c86e70527cb65c4b10ee3841c7af167d` remains historical evidence only.
 
 This tranche does not claim nested aggregates, variants, resources, owned
 strings, zero-copy transfer, a public native aggregate ABI, general records,

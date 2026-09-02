@@ -2,8 +2,8 @@
 
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: additive implementation and focused evidence authored; local and
-hosted promotion are not claimed.
+Status: additive implementation and focused nonignored evidence are exact-tag
+hosted green at v0.2.0; transport promotion is not claimed.
 
 ## Scope
 
@@ -108,10 +108,16 @@ notifications; zero-write inventory; independently replayed returned bytes;
 duplicate-key and string-decoy carriers; and self-consistent foreign carrier
 remints rejected by the typed descriptor binding.
 
+The focused suite ran as part of exact tag commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` in
+[release run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244).
+That execution does not supply cross-language client validation or an explicit
+transport-support decision.
+
 This profile grants no filesystem write, package materialization, source or
 workspace mutation, rename, patch, change, output selection, target selection,
 native or Rust build, publication, process launch, tool or environment access,
 target execution, network service, persistence, caching, concurrency, batch,
-recovery, provenance, approval, signature, or reusable authorization. Local or
-hosted promotion remains open until the owning gates pass at the exact claimed
-commit.
+recovery, provenance, approval, signature, or reusable authorization. Formal
+promotion remains open until the remaining owning gates and support decision
+are complete.

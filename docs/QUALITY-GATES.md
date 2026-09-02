@@ -230,6 +230,16 @@ Hosted claims require the exact workflow jobs named by the owning
 specification. A prior-head run is historical evidence only. A diagnostic or
 allowed-failure job is not a passing promotion gate.
 
+The current released baseline is annotated tag `v0.2.0` at exact commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`. All 45 jobs in
+[tag run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244)
+passed, including the blocking release aggregation, three host-built archive
+smokes, and final prerelease publication. The exact asset inventory and
+digests live in the [release evidence record](RELEASE-PROCESS.md#v020-hosted-release-evidence).
+That run promotes release evidence only where an owning gate selects it; it
+does not turn ignored, unprovisioned, multi-engine, physical-device, registry,
+or production-support requirements into passing evidence.
+
 For platform claims:
 
 - compilation or object inspection is not runtime execution;

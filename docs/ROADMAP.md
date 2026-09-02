@@ -13,115 +13,61 @@ SEMAPRAX follows risk rather than feature count. Stable semantic identity,
 sound ownership, replayable change authority, and honest target boundaries take
 priority over broad syntax or generated artifact volume.
 
-## Current priority: close exact-head promotion gates
+## Current priority: post-v0.2 promotion boundaries
 
-The approved distribution split keeps the standalone registry compiler free of
-private-host dependencies and retains those operations in an unpublished full
-toolchain. Exact-head packaging and hosted runtime evidence remain required;
-this product decision alone promotes no completion row.
+The `v0.2.0` prerelease is published from exact commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`. All 45 jobs in
+[tag run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244)
+passed, including the blocking aggregation, Linux/macOS/Windows archive smokes,
+and final publication. The exact inventory and checksums are recorded in the
+[release evidence](RELEASE-PROCESS.md#v020-hosted-release-evidence).
 
-The current codebase has a bounded multi-file calculator, Project agent
-workflow, stable-ID JavaScript/TypeScript and unpublished Rust consumers, and a
-multi-file line-filter product. The upstream baseline blocking matrix is green
-at its exact commit `4cc03820c86e70527cb65c4b10ee3841c7af167d` in
-[run 33259787886](https://github.com/wavect/semaprax/actions/runs/33259787886).
-That historical exact-head evidence predates and does not promote the later
-WP-01–WP-15, Project v8, Agent Transport v5, Project v9, or Project v10 work.
-The release exit remains open on line-filter browser/runtime breadth,
-intentional Rust publication, final tagged-artifact execution, and release
-notes.
+That closes the v0.2.0 tag/artifact milestone, not the full product objective.
+The approved distribution split still keeps private-host libraries out of the
+standalone registry package; the released full-toolchain binaries remain
+pre-alpha. Generated Rust/npm packages, Project v8-v10 profiles, transport v5,
+and private platform integrations retain their specification-owned support and
+publication boundaries.
 
-The current implementation batch hardens existing developer-preview contracts:
-doctor admits complete version tokens under injected profile-bound hosts;
-v8/v9/v10 JavaScript bounds input before copying; native owned handles reject live
-foreign-context aliases across the full slot capacity; raw Wasm excludes every
-reachable private frame from result storage. Regression evidence is authored,
-unrun, and not promotion evidence. The generated Rust facade now guards
-whole-context settlement before outward results, and the frame-payload product
-has locked/offline Rust plus explicitly provisioned TypeScript and Chromium
-fixtures. Execute these authored gates and the separate bounded doctor
-subprocess/descendant settlement fixtures before promotion. Doctor now has an
-authored native64 Linux pre-exec inherited syscall guard, with explicit ABI and
-tool-compatibility limits and real filter-rejection/descendant fixtures. Execute
-those gates too. The programme's full no-network guarantee still needs offline
-discovery and tool-input closure plus filesystem/broker and macOS/Windows
-isolation; neither environment filtering nor the Linux denylist completes it.
-The real CLI now uses explicit bounded offline-profile selection with no ambient
-fallback; production acquisition is deliberately unavailable. Next implement
-reviewed offline provisioning and platform admission before reconnecting any
-tool execution. Keep the retained lower-level probe fixtures separate from
-claims about that future profile boundary.
+The tagged workflow executed the current nonignored repository inventory and
+explicit release jobs across its selected hosts. Remaining work is therefore
+about gates the workflow deliberately does not imply:
 
-The same promotion boundary includes the authored
-[owned npm invocation failure-state correction](OWNED-NPM-INVOCATION-V1.md).
-Its real-package poison, reentry, exact failure-identity and post-consumption
-UTF-8 cases must execute before treating v8/v9/v10 lifecycle handling as proven.
-That gate includes inert export-identity rejection with same-instance recovery.
-The separate [calculator publication gate](NEW-PROJECT-PUBLICATION-V1.md) must
-also exercise staging/destination collisions before first-use publication can
-be treated as proven. Neither authored correction promotes support.
+1. run explicitly provisioned or ignored archive-consumer, browser-engine,
+   physical-device, and hostile-host cases required by each owning contract;
+2. decide whether and how generated Rust/npm builders and the Project v8-v10
+   profiles become supported or registry-published surfaces;
+3. broaden the line-filter from hosted native and Node/Core-Wasm evidence to
+   real-browser or multi-engine evidence before making that claim;
+4. implement real offline doctor profile provisioning and finish its
+   tool/input, filesystem/broker, network, and descendant closure; and
+5. preserve the exact release gate and artifact inventory for every subsequent
+   tag rather than treating v0.2.0 evidence as evidence for a later head.
 
-The additive [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
-exposes the calculator's exact four files as subject-bound, canonical,
-authority-free bytes and a stdout-only public CLI. Execute its replay,
-capacity, private-template convergence, and no-activity gates before treating
-it as product evidence. It is not a replacement for the private held-parent
-publication gate and does not widen Project v1.
-
-The shared [Unix npm publication boundary](PROJECT-MANIFEST-V2.md) also requires
-execution of its authored parent/ancestor substitution, retained-inventory,
-healthy-alias and test-hook isolation regressions. The final parent identity
-check does not establish atomic publication or change Windows support.
-
-The approved [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)
-split must next pass root/full-host route, held-filesystem hostility and real
-consumer gates for v8–v10. Its authored implementation changes command
-availability, not support status; no promotion follows from static review.
-
-Dependency integrations must preserve locked standalone consumers and exact
-validator-version evidence bindings. The wasmparser 0.258.0 and Android runner
-2.38.0 updates require current-head hosted checks before release promotion;
-they do not close a completion-matrix row.
-
-Exit outcomes:
-
-1. Confirm the line-filter product on hosted native and WebAssembly lanes and
-   add the browser/runtime breadth claimed by the release.
-2. Publish the Rust builder only through an intentionally supported entry
-   point, or keep the release claim explicitly unpublished.
-3. Publish release notes that cite the exact commit and preserve all bounded
-   non-claims.
-4. Complete WP-04 only after the tagged release artifacts, checksums, and smoke
-   paths pass at that same exact release head.
-
-The [v0.2 audit](COMPLETION-MATRIX.md#v02-product-exit-audit) is the acceptance
-checklist.
+The [v0.2 audit](COMPLETION-MATRIX.md#v02-product-exit-audit) now records the
+published milestone and its remaining product gaps.
 
 ## Developer preview: promote the authored Project v8 slice
 
-Implementation has moved ahead of the intended promotion sequence: the
+Implementation remains ahead of the intended support sequence: the
 additive [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) Project v8
 profile, npm/Wasm route, safe Rust package route, reference-interpreter lane,
 frame-payload validation product, and read-only Project Agent Transport v5 are
-now authored in the current source tree. This roadmap does not treat authored
-tests as executed evidence. Exact-head hosted promotion remains open, and
-v1–v7 compatibility is still a mandatory gate.
+present in v0.2.0 and their nonignored regressions ran in the exact tag matrix.
+That is hosted regression evidence, not an automatic support or registry
+publication decision. Explicitly provisioned/ignored gates and v1–v7
+compatibility remain mandatory where their owning specifications require them.
 
 The next outcomes are therefore validation and promotion, not another semantic
 widening:
 
-1. execute the descriptor, HIR-link, carrier, settlement, hostile-input, and
-   v1–v7 known-answer gates at one integration head, including authentic
-   correctly digested descriptor cross-replay rather than only stale-digest
-   mutation rejection;
-2. execute the identical frame-payload corpus through interpreter, native
-   C11 O0/O2, Core Wasm/Node, installed npm, and compiler-free Rust consumers;
-3. run strict TypeScript, real-browser, sanitizer, MSRV, and Linux/macOS/Windows
-   jobs without skips, retries, masks, or allowed failures;
-4. preserve the baseline/display-renamed stable-ID proof across both generated
-   consumer packages; and
-5. record the exact commit and hosted run before describing the bounded API as
-   promoted, supported, or released.
+1. map each still-ignored or separately provisioned gate to a maintained
+   blocking promotion job rather than inferring it from the general Rust suite;
+2. complete the browser/runtime breadth required by the intended support claim;
+3. preserve descriptor, HIR-link, carrier, settlement, v1–v7 known answers,
+   and baseline/display-renamed consumer identity at the promotion head; and
+4. record an explicit generated-package publication/support decision before
+   describing the bounded API as promoted or supported.
 
 The real-browser requirement includes the provisioned
 [direct-Bytes boundary fixture](../platform-tests/owned-data-browser-v1/README.md),
@@ -150,24 +96,24 @@ monomorphic result record with exactly one direct `Bytes` field and only direct
 `i64`/`bool`/`usize` siblings. Its descriptor and host projections must remain
 layout-independent. Its descriptor-bound npm/Core-Wasm and
 native-provider/safe-Rust routes are now wired while preserving the v8 target
-routes. The implementation and executable evidence are authored but unrun;
-the generated packages are unpublished, and hosted promotion remains
+routes. Their nonignored regressions ran in the v0.2.0 tag matrix; the
+generated packages are still unpublished, and explicit promotion remains
 outstanding.
 
 The authority-neutral [Project Profile Admission
 v1](PROJECT-PROFILE-ADMISSION-V1.md) dispatcher is now authored as the sole
 ordinary Phase-A profile gate. It routes the existing v9 descriptor and Wasm
 adapter through normal Project construction and Revision Store replay while
-preserving v1-v8 and v10 schemas. Its focused evidence is unrun and does not
-promote or publish any Project profile.
+preserving v1-v8 and v10 schemas. Its focused nonignored evidence ran in the
+tagged Rust inventory but does not promote or publish any Project profile.
 
 The next additive string tranche is specified by
 [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md). Project v10 is gated
 on promoted Project v9 and keeps raw `Bytes` distinct from length-delimited,
 strictly validated host strings. Its implementation and executable evidence
-are likewise authored but unrun and unpublished. Neither tranche is promoted,
-and authored generator/provider evidence is not a hosted result or a
-completion-matrix status change.
+likewise have exact-tag regression coverage while remaining unpublished.
+Neither tranche is promoted, and regression execution alone is not a
+publication or support decision.
 
 Before string promotion, execute the v10 inline Wasm ownership and derived
 arena-capacity regressions together with the native provider's physical
@@ -249,10 +195,10 @@ contracts and cross-module conformance only after that bounded evidence exists;
 operation count does not reduce the full-goal acceptance criteria.
 
 Source-backed image storage/refresh, semantic delta replay and diagnostic
-protocol v4 now have authored, unrun implementations. The integrated signature
+protocol v4 now have exact-tag nonignored regression coverage. The integrated signature
 workflow reaches separate managed `ACTIVE` publication only. Remaining exit
 conditions include warm/incremental compiler reuse, general interface operations,
-executed canonical-source publication evidence and measured task-level evidence; these additions
+separately provisioned canonical-source publication evidence and measured task-level evidence; these additions
 do not change the programme's Partial status.
 
 The complete requirement ledger is the
@@ -262,36 +208,36 @@ body-hole drafts and ordered Copy signature mapping are now authored additions,
 not verified completion. Extend those bounded forms into general operations,
 broader ownership-sensitive signature migration and incomplete-expression states.
 Expression replacement, additive contracts and conservative stable-ID
-rebase/merge now have authored, unrun implementations; broaden these alongside
+rebase/merge now have exact-tag nonignored regression coverage; broaden these alongside
 general declaration/record/interface operations and full semantic conflict coverage;
 broaden and validate the separately authorized test/build/source-commit slices; then
 establish incremental reuse, persistence, general semantic reconciliation, and representative
 task-level benchmarks without reducing the original goal.
 
 Typed function creation, immutable Copy-capture extraction and complete
-candidate recovery capsules are now authored, unrun. Extend their bounded
+candidate recovery capsules now have exact-tag nonignored regression coverage. Extend their bounded
 forms without treating source-replayed recovery as warm HIR persistence or
 complete session/draft recovery.
 
 Cross-file scalar function moves and Copy record-field migration now have
-authored, unrun paths. Continue beyond the now-authored static interface and
+exact-tag nonignored regression paths. Continue beyond the bounded static interface and
 replayable diagnostic repair slices into general conformance, repair classes
 and ownership-sensitive changes. New data-access and audit HIR
 facets still need reverse dependency indexes and candidate deltas; current
 Project unsafe admission is unchanged.
 
 Candidate test relevance/execution, rejected-attempt diagnostics and the bounded
-managed-publication bridge are authored, unrun. Execute the separate canonical
+managed-publication bridge have exact-tag nonignored coverage. Execute the separate canonical
 Git publication scenarios, then broaden general repair/interface operations and the integrated signature-evolution
 demonstration before claiming the agent workflow complete. Interpreter reports
 must not substitute for native/Wasm conformance or hosted full gates.
 
 The first [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
-foundation is authored, unrun: immutable retained Project/HIR state, canonical
+foundation has exact-tag nonignored regression coverage: immutable retained Project/HIR state, canonical
 rebuildable image bytes, typed stable-ID lookup, and bounded existing analysis.
-Canonical `.spx` remains the Git and human-review authority. Execute the
-replay, drift, capacity, compatibility, and zero-write evidence before
-promotion. Then separately specify incremental invalidation/rechecking,
+Canonical `.spx` remains the Git and human-review authority. Retain the tagged
+replay, drift, capacity, compatibility, and zero-write evidence and complete
+any separately provisioned gates before promotion. Then separately specify incremental invalidation/rechecking,
 revision-bound edit operations and deltas, typed holes, and representative
 performance/token measurements. No persistent cache or general graph mutation
 is implied by the first image, and the full programme remains Partial.
@@ -306,7 +252,7 @@ ABIs prematurely.
 - generalize unique ownership beyond the current bounded Copy, string, byte,
   resource, flat owned-byte record, and flat owned-byte variant slices;
 - use the bounded [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) as the
-  independently replayed proof foundation; the authored-but-unrun
+  independently replayed proof foundation; the exact-tag nonignored
   [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
   admits one direct `Bytes` field while deeper/general nested borrowing remains
   ahead of general lifetime inference, mutable borrowing, and escape analysis;
@@ -323,35 +269,38 @@ ABIs prematurely.
 
 ### Development-loop outcomes
 
-- execute the authored [standalone Wasm String settlement](WASM-INTERNAL-STRINGS-V1.md)
-  compiler/arena/facade and cross-backend corpus before promotion; its explicit
+- retain the tagged nonignored [standalone Wasm String settlement](WASM-INTERNAL-STRINGS-V1.md)
+  compiler/arena/facade and cross-backend corpus and complete its separately
+  provisioned gates before promotion; its explicit
   scalar boundary and bounded acyclic closure do not replace the separate
   ordinary-Wasm, general owned-value or Component Model completion gates;
-- execute the authored explicit [internal String Web package](WASM-INTERNAL-STRINGS-WEB-V1.md)
-  CLI, bounded publication and real Node/TypeScript/browser consumer gates;
+- retain the tagged nonignored explicit [internal String Web package](WASM-INTERNAL-STRINGS-WEB-V1.md)
+  CLI, bounded publication and Node/TypeScript/browser consumer coverage, then
+  complete any separately provisioned engine gates;
   this packages the selected runtime, not general String-valued public APIs,
   Project integration, browser isolation or ordinary-Wasm settlement;
-- execute the additive [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
-  conformance route and its strict report replay gates; broader interpreter
+- retain the tagged nonignored [Internal String Interpreter v1](INTERPRETER-INTERNAL-STRINGS-V1.md)
+  conformance route and strict report replay gates; broader interpreter
   entry values and Project integration require their own explicit admission
   decision rather than silently widening older profiles;
-- execute and promote the authored retained
+- complete separately provisioned gates and explicitly promote the retained
   [Prepared Project Interpreter and Source Trace v1](PROJECT-PREPARED-INTERPRETER-V1.md),
   then evolve it into incremental refresh without weakening revision binding;
-- execute the additive [same-worker revision replacement](PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md)
-  stale-base, failure-preservation, and worker-lifecycle evidence before using
+- retain the tagged nonignored [same-worker revision replacement](PROJECT-PREPARED-REVISION-REPLACEMENT-V1.md)
+  stale-base, failure-preservation, and worker-lifecycle evidence and complete
+  its remaining promotion gates before using
   it as an editor integration boundary; incremental parsing/linking and
   dependency-aware cache reuse remain separate work;
 - extend its expression-origin trace into source-level debugger and diagnostic
   mapping across target runtimes;
-- execute and mature the authored
+- mature the tagged nonignored
   [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), which persists
   exact authenticated Project inputs only through one injected trusted,
   current-euid-owned `0700` held root under an explicit host-exclusive
   same-principal, ancestor, and Darwin-ACL mutation precondition; its authored
   hardening keeps persistence fail-closed while allowing unrelated reads past
   one untraversed inert stage identity and exposes only an authority-neutral
-  locator for full-replay ambiguity resolution. An additive authored-unrun
+  locator for full-replay ambiguity resolution. The additive exact-tag nonignored
   [Windows-entry-v1 authority](PROJECT-REVISION-STORE-WINDOWS-V1.md) preserves
   ordinary Unix-v1 bytes through a separate schema and explicit APIs. It
   accepts only fixed local NTFS under exact effective-SID and
@@ -369,45 +318,49 @@ WebAssembly lanes, with stable source/graph migrations.
 
 ## 0.4: components, packages, and interoperability
 
-The first bounded offline lock is now authored as a read-only graph over an
+The first bounded offline lock is implemented as a read-only graph over an
 explicit finite set of integrity-bound Package Report subjects. It establishes
 canonical coordinates, dependency-first order, graph rejection, exact target
 intersection, and declared-capability closure without a registry, fetch,
-resolver, scripts, compilation, or publication authority. Its local gates are
-unexecuted and it is not yet the production package manager described by this
+resolver, scripts, compilation, or publication authority. Its nonignored gates
+ran in the `v0.2.0` tag matrix, and it is not yet the production package manager described by this
 milestone.
 
-An additive Semantic Package Report v2 implementation is also authored but
-unrun. It makes the report subject self-contained and source-authenticated and
+An additive Semantic Package Report v2 implementation is also covered by the
+nonignored `v0.2.0` tag matrix but remains unpromoted. It makes the report
+subject self-contained and source-authenticated and
 projects stable type, ownership, effect, structural-contract, reachable-type,
 and ternary target facts. Compatibility classification remains a subsequent
 stage and no milestone status is promoted.
 
 An additive source-authenticated Lock v2 and stable-ID-only Compatibility
-Evidence v1 are authored above Report v2. Unknown semantic closure or lock
-context drift remains indeterminate; evidence is unrun and the milestone is
-not promoted.
+Evidence v1 are authored above Report v2. Their nonignored regression coverage
+ran in the `v0.2.0` tag matrix; unknown semantic closure or lock context drift
+remains indeterminate and the milestone is not promoted.
 
 An additive Offline Deterministic Package Resolver v1 is authored above those
 exact V2 subjects. It selects a first-feasible, bounded, source-replayed graph
 under strict semantic-version, target, and declared-capability policy and emits
-one independently replayed Lock-v2 result. Its focused public evidence is
-unrun. It is not acquisition, a registry/cache, a published lock workflow, a
+one independently replayed Lock-v2 result. Its nonignored regression coverage
+ran in the `v0.2.0` tag matrix. It is not acquisition, a registry/cache, a
+published lock workflow, a
 build sandbox, target execution, trusted provenance, or runtime capability
 enforcement, so the milestone remains unpromoted.
 
 An additive Offline Published Semantic Lock Snapshot v1 now captures exact
 Resolver-v1 input, unchanged resolution evidence, and unchanged Lock-v2 bytes,
 then optionally publishes that fixed three-file inventory into one fresh local
-directory through the existing safe lower authority state machine. Its hostile
-replay, bound, and publication evidence is authored but unrun. This is not an
+directory through the existing safe lower authority state machine. Its
+nonignored hostile replay, bound, and publication evidence ran in the `v0.2.0`
+tag matrix. This is not an
 updateable package lock workflow, registry/cache, trusted provenance, build,
 target execution, or sandbox, so 0.4 remains unpromoted.
 
 Additive Subject/Lock v3 and Resolver v2 are authored as the bounded
 package-authenticated dependency-range prerequisite. They add exact, tilde,
 and caret constraint intersection and bind every selected version back to its
-authenticated requirement. Their evidence is locally unrun and unpromoted;
+authenticated requirement. Their nonignored regression evidence ran in the
+`v0.2.0` tag matrix but remains unpromoted;
 general compatibility negotiation, acquisition, registry/cache, supported
 publication, and trusted provenance remain later work.
 
@@ -417,8 +370,9 @@ one dependency-free selected Subject v2, replays the embedded canonical source,
 emits the unchanged scalar Core-Wasm profile, authenticates the exact runtime
 import/export inventory, and returns canonical manifest/evidence bytes. A
 separate safe crate provides create-new exact-inventory local publication after
-independent replay. The hostile wire, association, cross-pairing, bound, and
-publication evidence is authored but unrun. This is not multi-package source
+independent replay. Its nonignored hostile wire, association, cross-pairing,
+bound, and publication evidence ran in the `v0.2.0` tag matrix. This is not
+multi-package source
 linking, acquisition, a registry/cache, trusted provenance, runtime execution,
 capability enforcement, or a hermetic sandbox, so 0.4 remains unpromoted.
 
@@ -427,7 +381,8 @@ Resolver-v1 replay. It admits two through four effect-free scalar packages,
 requires the source-derived import graph to equal the selected Subject-v2
 dependency graph, exact-compares normalized Report-v2 interfaces, binds an
 explicit root and only its explicit exports, and retains the ordinary linked
-HIR behind a crate-private replay seam. Its focused evidence is unrun. It is
+HIR behind a crate-private replay seam. Its nonignored focused evidence ran in
+the `v0.2.0` tag matrix. It is
 not a package build, acquisition, publication, provenance, target execution,
 runtime enforcement, or hermetic sandbox, so 0.4 remains unpromoted.
 
@@ -437,8 +392,8 @@ package closure, explicit root and root-owned exports, source-set/link facts,
 and distinct canonical v2 manifest/evidence around the unchanged scalar Wasm
 emitter. The safe publisher reuses the v1 held-authority state machine rather
 than adding platform authority. Two-package, hostile cross-pair/mutation,
-fixed-point/boundary, and publication-settlement evidence is authored but
-unrun; no target conformance, acquisition, trusted provenance, or hermetic
+fixed-point/boundary, and publication-settlement evidence has nonignored
+exact-tag coverage; no target conformance, acquisition, trusted provenance, or hermetic
 sandbox is claimed, so 0.4 remains unpromoted.
 
 Goal: turn bounded reports and private host evidence into a supported,
@@ -449,8 +404,8 @@ versioned ecosystem surface.
 - interface-first manifests that carry the bounded resolver into a published
   lockfile workflow with target matrices, capability closure, provenance,
   licenses, and reproducible artifact records;
-- execute the authored source-capsule, linked-build-v2, shared-publication, and
-  build-v1 preservation evidence on the exact candidate head;
+- retain the exact-tag source-capsule, linked-build-v2, shared-publication, and
+  build-v1 preservation evidence and complete their separately provisioned gates;
 - compatibility analysis over types, effects, contracts, ownership, and target
   availability;
 - a package registry and offline cache model with explicit least authority;

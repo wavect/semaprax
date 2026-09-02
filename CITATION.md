@@ -34,9 +34,14 @@ interoperability, model-token savings, production readiness, or security.
 
 ## Releases
 
-No GitHub release or tag is created by this metadata change. Publish `v0.2.0`
-only after a clean checkout reproduces the documented installation and the
-complete required CI matrix is green. Until then, cite a full commit SHA.
+The [`v0.2.0` GitHub prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
+was published on 2026-09-02 from exact commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` after its complete blocking
+[tag workflow](https://github.com/wavect/semaprax/actions/runs/33608662244)
+passed. Cite the tag for the released source and archives; cite the full commit
+and the relevant evidence specification when making a narrower technical
+claim. The tag and archives are unsigned, and the published checksums are
+integrity facts rather than signatures or provenance.
 
 Semaprax is created and maintained by Wavect GmbH as Apache-2.0 pre-alpha
 research. This is factual project attribution, not a commercial service claim.

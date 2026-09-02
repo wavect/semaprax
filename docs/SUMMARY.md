@@ -219,7 +219,7 @@ Audience: all documentation readers.
 - [Completion matrix](COMPLETION-MATRIX.md)
 - [Architecture](ARCHITECTURE.md)
 - [Quality gates](QUALITY-GATES.md)
-- [Release process](RELEASE-PROCESS.md)
+- [Release process and v0.2.0 evidence](RELEASE-PROCESS.md)
 - [Roadmap](ROADMAP.md)
 - [Protocol migrations](MIGRATIONS.md)
 

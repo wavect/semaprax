@@ -1,10 +1,19 @@
 # Public Owned UTF-8 API v1
 
-Status: authored but unrun; unpublished and unpromoted additive Project-v10
-implementation tranche, gated on promoted Project v9.
+Status: exact-tag hosted nonignored regression coverage at v0.2.0;
+unpublished and unpromoted additive Project-v10 implementation tranche, gated
+on an explicit Project v9 promotion decision.
 
 Audience: compiler contributors, generated-package integrators, and promotion
 reviewers.
+
+The v0.2.0 tag commit `5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`
+passed the complete blocking
+[release run](https://github.com/wavect/semaprax/actions/runs/33608662244),
+including the Windows v10 generated-Rust consumer and the tagged Rust/Project
+matrices. Authoring-time “unrun” statements below are superseded only for
+nonignored cases selected by that workflow. No package publication, separate
+provisioned/ignored gate, or formal v9/v10 promotion is inferred.
 
 ## Closed identity
 
@@ -355,10 +364,12 @@ claim of LeakSanitizer coverage. None of these new gates was run in this batch.
 
 ## Non-claims
 
-The implementation and its executable evidence are authored but were not run.
-No generated package is published, and neither local nor hosted promotion is
-claimed. Project v10 remains blocked on Project v9 promotion; the upstream
-baseline at `4cc03820c86e70527cb65c4b10ee3841c7af167d` predates both profiles.
+The implementation's nonignored regression evidence ran in the v0.2.0 tag
+matrix; separately provisioned and ignored gates remain outside that claim. No
+generated package is published and formal promotion is not claimed.
+Project v10 remains blocked on an explicit Project v9 promotion decision; the
+v0.2.0 tag supplies hosted regression evidence for selected cases, not that
+decision.
 
 This profile adds no command, filesystem, process, network, daemon, recovery,
 arbitrary publication, or general text-streaming authority. It does not decode

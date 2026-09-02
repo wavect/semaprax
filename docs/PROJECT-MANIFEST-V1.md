@@ -224,21 +224,20 @@ general whole-package byte equality across arbitrary changes, a root Project
 CLI Rust target, an installed/public CLI, or
 general Project/package/import/capability/aggregate/resource support.
 
-The exact `d883ace579bfd86f723cdc6819224fde51f0677d` Project v1 matrix is
-hosted green in [run 32523952912](https://github.com/wavect/semaprax/actions/runs/32523952912),
-including [Ubuntu](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973139),
-[macOS](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973190),
-and [Windows](https://github.com/wavect/semaprax/actions/runs/32523952912/job/96901973112).
-That run predates native publication and the Project Native Rust SDK. Those
-additive lanes are exact-head hosted green at
-`4cc03820c86e70527cb65c4b10ee3841c7af167d` in the blocking
-[Ubuntu](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653326),
-[macOS](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653276),
-and [Windows](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653334)
-Project Product Acceptance jobs, including `project_native_publication_v1` and
-the Project Native Rust SDK gate. That upstream baseline run proves only the
-lanes present at its exact head; it does not execute or promote later WP or
-Project-v8/v9/v10 work. Project v1 does not
+The Project v1 matrix and its additive native publication/Project Rust SDK
+lanes are exact-tag hosted green at v0.2.0 commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`. The blocking Project Manifest jobs
+passed on [Ubuntu](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195944533),
+[macOS](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195941349),
+and [Windows](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195908281),
+and the complete Product Acceptance jobs passed on
+[Ubuntu](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195951104),
+[macOS](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195940394),
+and [Windows](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195908639),
+including `project_native_publication_v1` and
+the Project Native Rust SDK gate. This proves only the selected lanes at the
+exact tag; it does not publish or promote Project-v8/v9/v10 packages. Project
+v1 does not
 claim general packages/dependencies, registry or network access, capabilities,
 aggregate or resource composition, generics, interface/native imports or
 `use type` edges, effects, general multi-file compilation, native output

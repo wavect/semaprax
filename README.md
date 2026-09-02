@@ -43,6 +43,15 @@ agent operations.
 - Clang for native compilation
 - Node.js 22 or newer for the WebAssembly examples
 
+### Download v0.2.0
+
+The [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
+provides smoke-tested archives for Linux x86-64, Apple Silicon macOS, and
+Windows x86-64, plus `SHA256SUMS`. It is still unsigned, not notarized, and
+pre-alpha; checksums verify integrity, not publisher identity. The exact
+release evidence and archive digests are recorded in the
+[release process](docs/RELEASE-PROCESS.md#v020-hosted-release-evidence).
+
 ### Check and run a program
 
 ```sh
@@ -131,9 +140,9 @@ above exact offline resolution. [Linked Scalar Core-Wasm Package Build
 v2](docs/OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md) consumes only that
 replayed closure and retained HIR, while the separate safe publisher reuses the
 existing exact three-file authority state machine. Both surfaces and their
-hostile evidence are authored but unrun and unpromoted; they are not a package
-manager, target-conformance result, trusted-provenance system, or hermetic build
-sandbox.
+nonignored hostile evidence ran in the v0.2.0 tag matrix, but they remain
+unpromoted; they are not a package manager, target-conformance result,
+trusted-provenance system, or hermetic build sandbox.
 
 ## A small SEMAPRAX program
 
@@ -207,25 +216,26 @@ workspace, and host-integration commands are narrow protocol surfaces intended
 for tool authors; their versioned reference documents define the exact
 admission rules and non-claims.
 
-The current source tree also contains an exact Project v8
+The v0.2.0 source tree contains an exact Project v8
 `owned-data-api.v1` developer-preview route for `--target npm` and
 `--target rust`, plus the `examples/frame-payload-*` validation fixtures. Its
-implementation and executable evidence are authored, but the current
-integration head has not completed the required exact-head hosted promotion.
-The generated packages are unpublished and must not be treated as a stable or
-supported general owned-data ABI. See [Public Owned Data API
+nonignored repository regressions ran in the exact tag workflow, including the
+three-host Rust matrices and selected external-consumer jobs. This is hosted
+developer-preview evidence, not a registry publication or formal support
+decision: generated packages remain unpublished and must not be treated as a
+stable or general owned-data ABI. See [Public Owned Data API
 v1](docs/PUBLIC-OWNED-DATA-API-V1.md) and the [completion
 matrix](docs/COMPLETION-MATRIX.md).
 
-The source tree also contains authored-but-unrun Project v9 flat-owned-record
-and Project v10 owned-UTF-8 follow-ons. Their generated packages are
-unpublished, neither profile is promoted, and v10 remains gated on v9
-promotion. See [Public Flat Owned Record API v1](docs/PUBLIC-FLAT-OWNED-RECORD-API-V1.md)
+Project v9 flat-owned-record and Project v10 owned-UTF-8 follow-ons also have
+exact-tag hosted regression coverage. Their generated packages remain
+unpublished, neither profile is promoted, and v10 remains gated on an explicit
+v9 promotion decision. See [Public Flat Owned Record API v1](docs/PUBLIC-FLAT-OWNED-RECORD-API-V1.md)
 and [Public Owned UTF-8 API v1](docs/PUBLIC-OWNED-UTF8-API-V1.md).
 
 ## Project status
 
-**Release line:** v0.2 · **Maturity:** pre-alpha research · **Overall goal:**
+**Release:** [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0) · **Maturity:** pre-alpha research · **Overall goal:**
 Partial
 
 SEMAPRAX has executable vertical slices across its language, semantic graph,

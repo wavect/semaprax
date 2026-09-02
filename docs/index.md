@@ -13,6 +13,11 @@ evidence, private experiments, and repository internals live in the separate
 > contract; it does not imply that the broader feature is complete or stable.
 > The [completion matrix](COMPLETION-MATRIX.md) is the status authority.
 
+The [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
+contains smoke-tested Linux x86-64, Apple Silicon macOS, and Windows x86-64
+archives. See the [exact tagged evidence and checksums](RELEASE-PROCESS.md#v020-hosted-release-evidence);
+the release remains unsigned, not notarized, and pre-alpha.
+
 ## Choose a path
 
 | You want to… | Start with… |
@@ -74,16 +79,16 @@ targets unless its documented executable gate covers those targets.
   and byte-data profiles.
 - [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md): additive Project v8
   implementation and completion contract for copied owned-byte results in
-  JavaScript/TypeScript and safe Rust. The implementation and executable gates
-  are authored; the packages remain unpublished and exact-head hosted
-  promotion is pending.
+  JavaScript/TypeScript and safe Rust. Exact-tag regression coverage exists;
+  the generated packages remain unpublished and formal promotion is open.
 - [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md):
   additive Project v9 descriptor and physical JavaScript/safe-Rust flat-record
-  boundary. It is authored but unrun, unpublished, and unpromoted.
+  boundary. It has exact-tag regression coverage but remains unpublished and
+  unpromoted.
 - [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md): additive Project
-  v10 descriptor and physical JavaScript/safe-Rust string boundary. It is
-  authored but unrun, unpublished and unpromoted, and depends on Project v9
-  promotion.
+  v10 descriptor and physical JavaScript/safe-Rust string boundary. It has
+  exact-tag regression coverage but remains unpublished and unpromoted, and
+  depends on an explicit Project v9 promotion decision.
 
 ## Agent workflow references
 

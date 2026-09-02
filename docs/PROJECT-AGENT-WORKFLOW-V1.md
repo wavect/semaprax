@@ -2,11 +2,11 @@
 
 Audience: agent and tool authors, plus compiler contributors.
 
-Status: additive Project Agent Transport v4 is exact-head hosted green at
-`4cc03820c86e70527cb65c4b10ee3841c7af167d` in the blocking Project Product
-Acceptance jobs for [Ubuntu](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653326),
-[macOS](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653276),
-and [Windows](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653334).
+Status: additive Project Agent Transport v4 is exact-tag hosted green at
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051` in the v0.2.0 blocking Project
+Product Acceptance jobs for [Ubuntu](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195951104),
+[macOS](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195940394),
+and [Windows](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195908639).
 
 ## Scope
 

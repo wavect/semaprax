@@ -9,8 +9,8 @@ rename preservation. Exact TypeScript 5.8.3 independently compiles the real
 generated-declaration consumers for the direct, baseline Project, and
 display-renamed Project packages. The
 locked three-package Chromium loopback job is exact-head hosted green on Ubuntu
-at `4cc03820c86e70527cb65c4b10ee3841c7af167d` in
-[job 99119653271](https://github.com/wavect/semaprax/actions/runs/33259787886/job/99119653271).
+at the v0.2.0 tag commit `5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`
+in [job 100195950702](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195950702).
 It authenticates and executes the direct, baseline Project, and display-renamed
 Project fixtures with the pinned TypeScript compiler and real Chromium.
 

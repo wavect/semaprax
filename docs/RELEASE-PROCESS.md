@@ -1,6 +1,6 @@
 # Release process
 
-Status: bounded v0.2 tag-release procedure.
+Status: bounded v0.2 tag-release procedure with exact published v0.2.0 evidence.
 
 Audience: maintainers and release reviewers.
 
@@ -140,7 +140,38 @@ performed and missing prerequisites fail the selected gate:
 cargo test --locked --offline -p semaprax --test release_archive_product_v1 provisioned_archive_owned_frame_consumers_work_outside_checkout -- --ignored --exact
 ```
 
-## Local archive evidence
+## v0.2.0 hosted release evidence
+
+The annotated `v0.2.0` tag resolves to exact commit
+`5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`. Its tag-triggered
+[workflow run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244)
+completed successfully on 2026-09-02 with all 45 jobs green. That includes the
+complete release-blocking Linux, macOS, Windows, Rust 1.88, dependency,
+sanitizer, browser, Project, generated-Rust-consumer, desktop, Android, iOS,
+and Component lanes. The blocking
+[release gate](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100200871523)
+then admitted all three host-built archive jobs and the final
+[publication job](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100204458909).
+
+The published [SEMAPRAX v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
+contains exactly these release assets:
+
+| Asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `semaprax-v0.2.0-x86_64-unknown-linux-gnu.tar.gz` | 12,064,489 | `955a892dd750cf8d783df583b39b65bf456d8832b55320781166c618a3ba325c` |
+| `semaprax-v0.2.0-aarch64-apple-darwin.tar.gz` | 10,542,259 | `aaa453e5b6226afed3d2ba25df2db9e46154968342305a6a793ebf56972efe80` |
+| `semaprax-v0.2.0-x86_64-pc-windows-msvc.zip` | 12,355,475 | `879d9b825fab8cff995ec73fc41992348a8ae2db5a120fcdcb85cd5976bf76dc` |
+| `SHA256SUMS` | 333 | `2f433932cca89307441e42802527789a253e95ff6300084ff78bbd570f6c67b1` |
+
+The `SHA256SUMS` contents independently agree with the three archive digests
+reported by GitHub. Each archive job built on its advertised host, unpacked
+its own output, and ran the packaged CLI version, JSON version, `check`, and
+`run` smoke before upload. This is exact release-build and smoke evidence; it
+does not mean every opt-in or ignored archive-consumer test ran, establish
+cross-host byte reproducibility, or broaden any feature contract beyond its
+owning specification.
+
+## Historical local archive evidence
 
 A real local `aarch64-apple-darwin` archive was built offline from clean source
 commit `177fccfd5f5ab08ac2c86da77046b47f5b4c22f1`, using Rust 1.98 and the
@@ -160,10 +191,10 @@ archive lanes remain ignored unless explicitly selected. The existing ordinary
 frame suite and calibrated macOS ASan/UBSan gate pass after sharing the artifact
 oracle, and the two focused test targets pass Clippy with warnings denied.
 
-This is a retained local artifact, not a tag, upload, signature, notarization,
-Windows/Linux archive result, or current-head hosted gate. A later acceptance
-test driver can inspect that exact older archive without relabeling its source
-commit as the driver's commit. Changes to either require separate evidence.
+This older retained local artifact is distinct from the later v0.2.0 tag and
+published archives recorded above. Its local acceptance results must not be
+relabeled as evidence from the tag commit; changes to either require separate
+evidence.
 
 ## Publication boundary
 
@@ -178,6 +209,7 @@ prerelease because v0.2 remains pre-alpha.
 The archives are unsigned and are not notarized. No cross-host reproducible build is claimed.
 The deterministic manifest does not make the enclosing archive byte-reproducible.
 SHA-256 checksums are integrity facts, not signatures, provenance, or publisher authentication.
-Publication does not promote any completion-matrix row or establish production
-readiness, a stable language ABI, a stable public protocol, or safety-critical
-suitability.
+Publication completes only the v0.2.0 tagged-artifact milestone recorded as
+WP-04. Other than that bounded release record, publication does not promote any completion-matrix row
+or establish production readiness, a stable language ABI, a stable public
+protocol, or safety-critical suitability.

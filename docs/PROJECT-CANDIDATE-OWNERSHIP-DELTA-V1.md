@@ -125,7 +125,7 @@ overflow, and `SPX-G330` exact replay mismatch. Existing stale candidate, source
 compiler and plan projection diagnostics may propagate unchanged.
 
 `tests/project_candidate_ownership_delta_v1.rs` owns focused library evidence;
-`tests/image_ownership_delta_transport_v5.rs` covers the v5 surface. Cases are
+`tests/image_transport_v5/ownership_delta.rs` covers the v5 surface. Cases are
 authored and unrun. No tests, compiler checks, interpreter, target executable or
 long local quality gate was run for this batch, and no completion row is promoted.
 

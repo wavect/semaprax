@@ -135,7 +135,7 @@ The unchanged shared callable collector can also propagate its existing
 Interface Delta inventory/capacity diagnostics.
 
 `tests/project_candidate_contract_delta_v1.rs` owns focused library regression
-evidence. `tests/image_contract_delta_transport_v5.rs` covers host gating,
+evidence. `tests/image_transport_v5/contract_delta.rs` covers host gating,
 exact chunk reassembly, stale inputs and physical source drift; the discovery
 module also checks generated method helpers.
 These cases are authored and unrun: no tests, compiler checks, interpreter,

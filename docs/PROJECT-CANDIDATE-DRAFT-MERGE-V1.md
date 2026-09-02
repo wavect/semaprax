@@ -138,7 +138,7 @@ draft rebase's region/dependency diagnostics. The inline transport cap remains
 `SPX-G234`. Failure changes neither parent and grants no retry or commit authority.
 
 `tests/project_candidate_draft_merge_v1.rs` and
-`tests/image_draft_merge_transport_v5.rs` author compatible checked histories,
+`tests/image_transport_v5/draft_merge.rs` author compatible checked histories,
 mixed holes, coalescing, conflicting selections, opposing writes, recovery and
 authority-preserving protocol behavior. Tests, compiler checks and long local
 gates were not run. No completion-matrix row is promoted.

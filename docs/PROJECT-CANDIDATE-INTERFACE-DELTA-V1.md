@@ -111,7 +111,7 @@ does not mutate candidates. The
 [parallel retained-read extension](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) shares
 the same pure handler with only the selected candidate. V1–v4
 method sets remain unchanged. Transport/discovery evidence is authored in
-`tests/image_workspace_transport_v5.rs` and the v5 discovery module.
+`tests/image_transport_v5/workspace.rs` and the v5 discovery module.
 
 Reports are deterministic compact JSON with recursively lexical object keys,
 canonical array order, and one terminal LF. The report is bounded to 8 MiB;

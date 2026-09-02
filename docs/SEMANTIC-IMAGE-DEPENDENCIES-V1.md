@@ -66,6 +66,6 @@ obligation queries. It preserves this report's payload and uses no second
 source-expression reference collector.
 
 Authored evidence lives in `tests/image_declaration_dependencies_v1.rs` and
-`tests/image_declaration_dependencies_transport_v5.rs`. General package and
+`tests/image_transport_v5/declaration_dependencies.rs`. General package and
 artifact consumers, runtime obligations, and measured index benefits remain
 outstanding.

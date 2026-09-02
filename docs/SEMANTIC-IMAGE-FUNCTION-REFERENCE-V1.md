@@ -132,7 +132,7 @@ does not poison later valid reads.
 carrier shape/digest/provenance, same-image and independent-rebuild parity,
 function-only and facet resolution, stale and tampered carriers, extra and
 missing fields, unknown facets, missing targets, bounds, unchanged images and
-zero authority. [Transport regressions](../tests/image_function_reference_transport_v5.rs)
+zero authority. [Transport regressions](../tests/image_transport_v5/function_reference.rs)
 cover discovery, bundled schemas, generated TypeScript/Python/Rust clients,
 MCP, direct and batched parity, older-profile isolation, hostile inputs,
 recovery, and unchanged source bytes.

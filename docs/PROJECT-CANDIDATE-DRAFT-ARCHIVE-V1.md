@@ -143,7 +143,7 @@ transport-frame and held-source failures retain their existing diagnostics.
 
 Authored cases in
 [library evidence](../tests/project_candidate_draft_archive_v1.rs) and
-[transport evidence](../tests/image_draft_archive_transport_v5.rs) cover missing
+[transport evidence](../tests/image_transport_v5/draft_archive.rs) cover missing
 original source, partial fills, context regeneration, ready and unresolved
 drafts, altered content, host startup rules, current-base RPC recovery and
 unchanged authority. Tests and compiler checks were not run; no completion

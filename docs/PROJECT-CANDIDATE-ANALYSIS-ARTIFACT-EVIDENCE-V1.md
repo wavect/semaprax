@@ -134,7 +134,7 @@ filesystem, compiler-executable, native-compilation, target-execution or
 publication authority.
 
 Authored, unrun transport evidence lives in
-`tests/image_analysis_artifact_evidence_transport_v5.rs`. It covers exact chunk
+`tests/image_transport_v5/analysis_artifact_evidence.rs`. It covers exact chunk
 reassembly and report-hash consistency, build gating, selected closed schemas,
 all three generated clients, MCP discovery and direct-frame byte parity,
 parallel-batch rejection, hostile parameters, stale selectors, live source

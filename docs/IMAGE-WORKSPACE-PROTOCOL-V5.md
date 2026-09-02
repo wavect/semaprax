@@ -341,7 +341,7 @@ Existing source, candidate, draft, diagnostic, test, target, and publication
 codes remain intact. Invalid JSON-RPC parameters and unavailable methods use
 the existing transport error codes.
 
-`tests/image_workspace_transport_v5.rs` authors preview without state revival,
+`tests/image_transport_v5/workspace.rs` authors preview without state revival,
 absorbing-drift recovery,
 historical-candidate rebase, explicit transient invalidation, failed-refresh
 preservation, notification/parameter rejection, unchanged-image refresh,

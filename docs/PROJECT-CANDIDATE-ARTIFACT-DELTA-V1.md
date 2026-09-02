@@ -132,7 +132,7 @@ digests retain their existing owning definitions.
 carrier diagnostics can propagate unchanged.
 
 `tests/project_candidate_artifact_delta_v1.rs` owns library evidence;
-`tests/image_artifact_delta_transport_v5.rs` covers build gating, discovery and
+`tests/image_transport_v5/artifact_delta.rs` covers build gating, discovery and
 chunking. Tests are authored and unrun. No compiler/test/application executable
 or long local quality gate was run for this batch; no completion row is promoted.
 

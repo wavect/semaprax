@@ -179,7 +179,10 @@ fn apply_rebound(
         return Err(super::diagnostic_intent::rebase_conflict());
     }
     if change.intent["kind"] == "implement_interface" {
-        return Err(super::interface::rebase_conflict());
+        compare_interface_binding(
+            super::interface::rebase_fingerprint(original_revision, &change.intent)?,
+            super::interface::rebase_fingerprint(candidate.revision(), &change.intent)?,
+        )?;
     }
     if change.intent["kind"] == "replace_contract_expression" {
         let target = change.intent["target"]
@@ -727,6 +730,21 @@ fn compare_type_rename(
     Ok(())
 }
 
+fn compare_interface_binding(
+    before: Option<Value>,
+    after: Option<Value>,
+) -> Result<(), Vec<Diagnostic>> {
+    let before = before.ok_or_else(|| {
+        grammar("admitted interface implementation lacks its original binding facts")
+    })?;
+    if after.as_ref() != Some(&before) {
+        return Err(conflict(
+            "interface receiver, protocol or member binding changed concurrently",
+        ));
+    }
+    Ok(())
+}
+
 fn classify(
     old: &ProjectRevision,
     new: &ProjectRevision,
@@ -772,9 +790,6 @@ fn classify(
         let kind = change.intent["kind"]
             .as_str()
             .ok_or_else(|| grammar("candidate rebase intent lacks a kind"))?;
-        if kind == "implement_interface" {
-            return Err(super::interface::rebase_conflict());
-        }
         let additions = added_intent_ids(&change.intent)?;
         if additions
             .iter()
@@ -785,7 +800,13 @@ fn classify(
             ));
         }
         let (signature_changed, body_changed, contracts_changed, display_changed, effects_changed) =
-            if kind == "add_record_field" && !introduced.contains(target) {
+            if kind == "implement_interface" {
+                compare_interface_binding(
+                    super::interface::rebase_fingerprint(old, &change.intent)?,
+                    super::interface::rebase_fingerprint(new, &change.intent)?,
+                )?;
+                (false, false, false, false, false)
+            } else if kind == "add_record_field" && !introduced.contains(target) {
                 let before = old_records.get(target).ok_or_else(|| {
                     conflict("record addition target is absent from its original base")
                 })?;
@@ -830,7 +851,7 @@ fn classify(
             "replace_contract_expression" if signature_changed || contracts_changed || effects_changed => return Err(conflict("contract replacement conflicts with concurrent target signature, contracts or effects")),
             "add_declaration" if signature_changed || effects_changed => return Err(conflict("declaration addition conflicts with concurrent target signature or effects")),
             "move_declaration" if signature_changed || effects_changed => return Err(conflict("declaration move conflicts with concurrent target signature or effects")),
-            "rename_declaration" | "replace_function_body" | "replace_expression" | "replace_contract_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" | "add_record_field" | "move_declaration" => {},
+            "rename_declaration" | "replace_function_body" | "replace_expression" | "replace_contract_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" | "add_record_field" | "move_declaration" | "implement_interface" => {},
             _ => return Err(grammar("candidate rebase does not admit this intention kind")),
         }
         if kind == "move_declaration" {
@@ -866,7 +887,11 @@ fn classify(
                 }
             }
         }
-        report.push(json!({"target":target,"intent":kind,"concurrent_display_change":display_changed,"concurrent_signature_change":signature_changed,"concurrent_body_change":body_changed,"concurrent_contract_change":contracts_changed,"concurrent_effect_change":effects_changed,"decision":"replay_required"}));
+        let mut classification = json!({"target":target,"intent":kind,"concurrent_display_change":display_changed,"concurrent_signature_change":signature_changed,"concurrent_body_change":body_changed,"concurrent_contract_change":contracts_changed,"concurrent_effect_change":effects_changed,"decision":"replay_required"});
+        if kind == "implement_interface" {
+            classification["interface_binding_change"] = json!(false);
+        }
+        report.push(classification);
         introduced.extend(additions);
     }
     Ok(report)
@@ -918,6 +943,7 @@ fn added_intent_ids<'a>(request: &'a Value) -> Result<BTreeSet<&'a str>, Vec<Dia
         }
         Some("extract_function") => add(&request["new_id"])?,
         Some("add_record_field") => add(&request["field"]["id"])?,
+        Some("implement_interface") => add(&request["id"])?,
         _ => {}
     }
     Ok(ids)

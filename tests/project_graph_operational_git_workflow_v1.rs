@@ -1083,10 +1083,11 @@ fn published_workflow(format: &str) {
         "separate approval published one exact Git generation and preserved host files",
     );
     let trace = session.finish();
-    assert_task_report(&trace, format);
+    let report = assert_task_report(&trace, format);
+    export_task_report(format, &report);
 }
 
-fn assert_task_report(trace: &TaskTrace, format: &str) {
+fn assert_task_report(trace: &TaskTrace, format: &str) -> String {
     let text = trace.report(format);
     assert!(text.len() <= 256 * 1024);
     assert!(!text.ends_with('\n'));
@@ -1221,6 +1222,44 @@ fn assert_task_report(trace: &TaskTrace, format: &str) {
     assert_eq!(report["source_authority"], false);
     assert_eq!(report["execution_authority"], false);
     assert_eq!(report["publication_authority"], false);
+    text
+}
+
+fn export_task_report(format: &str, report: &str) {
+    let Some(directory) = std::env::var_os("SEMAPRAX_GRAPH_WORKFLOW_EVIDENCE_DIR") else {
+        return;
+    };
+    let file_name = match format {
+        "sha1" => "agent-task-economics-sha1.json",
+        "sha256" => "agent-task-economics-sha256.json",
+        _ => panic!("unsupported graph-workflow evidence format"),
+    };
+    let directory = PathBuf::from(directory);
+    assert!(
+        directory.is_absolute(),
+        "SEMAPRAX_GRAPH_WORKFLOW_EVIDENCE_DIR must be absolute"
+    );
+    fs::create_dir_all(&directory).unwrap();
+    let destination = directory.join(file_name);
+    let temporary = directory.join(format!(
+        ".{file_name}.{}.{}.tmp",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    let result = (|| -> std::io::Result<()> {
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)?;
+        file.write_all(report.as_bytes())?;
+        file.sync_all()?;
+        drop(file);
+        fs::rename(&temporary, destination)
+    })();
+    if let Err(error) = result {
+        let _ = fs::remove_file(&temporary);
+        panic!("cannot export graph-workflow evidence: {error}");
+    }
 }
 
 #[test]

@@ -100,7 +100,7 @@ consistency.
 
 ## Evidence
 
-Executable evidence lives in `tests/c_header_emission_v1.rs`,
+Executable evidence lives in `tests/offline_package/c_header_emission.rs`,
 `tests/interop_scalar_widen_v1.rs`, plus module
 tests in `src/c_header.rs`: pinned golden envelope and path-independent
 header digests over `examples/meaning.spx`, byte-identical double runs,

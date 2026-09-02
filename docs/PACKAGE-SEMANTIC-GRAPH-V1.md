@@ -106,7 +106,7 @@ publication rules are modified.
 
 ## Evidence
 
-Focused cases in [package_semantic_graph_v1.rs](../tests/package_semantic_graph_v1.rs)
+Focused cases in [semantic_graph.rs](../tests/offline_package/semantic_graph.rs)
 are authored but unrun. They exercise source/selection/interface replay,
 coordinate and revision selection, import/call distinctions, independent
 Project association, startup-only attachment, method availability and retained

@@ -407,7 +407,7 @@ Focused commands are:
 
 ```sh
 cargo test --locked -p semaprax --all-features --test semantic_workspace_transaction_v1 -- --test-threads=1
-cargo test --locked -p semaprax --all-features --test semantic_workspace_transaction_v1_hostile -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test workspace semantic_transaction_hostile:: -- --test-threads=1
 cargo test --locked -p semaprax --all-features --lib workspace::tests
 ```
 

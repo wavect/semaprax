@@ -110,7 +110,7 @@ It retains 68 independent outputs, including empty results, and checks them
 after input mutation and creation of another base facade. `None` and frozen
 `Err(-7n)` are successful language results, not checked-call failures.
 
-`tests/owned_data_browser_fixture_v1.rs` separately authenticates the checked-in
+`tests/owned_data/browser_fixture.rs` separately authenticates the checked-in
 Project subjects, selected signatures, descriptors and exact six-artifact inline
 carriers through the compiler's public APIs. Typed HIR binds variant staging to
 the unconditional Bytes initializer. It does not launch browsers or

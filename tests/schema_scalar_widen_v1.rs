@@ -469,7 +469,7 @@ fn package_report_widened_forgeries_still_fail_replay() {
 fn package_report_widened_exclusions_budget_and_determinism() {
     // By-value resource modes stay excluded beside widened admissions (the
     // unsupported_parameter_mode reason is exercised against real programs by
-    // tests/package_report_v1.rs); here the widened inventory admits five
+    // tests/offline_package/report.rs); here the widened inventory admits five
     // mixed-scalar exports while string parameters stay excluded.
     let source = r#"
 module test.widen.pr;

@@ -112,7 +112,7 @@ execution, network, dependency resolution, or target build authority.
 
 ## Evidence and remaining work
 
-[Integration evidence](../tests/semantic_workspace_image_v1.rs) is authored but
+[Integration evidence](../tests/workspace/semantic_image.rs) is authored but
 was not run in this change, as explicitly requested. It covers deterministic
 repeated/cross-root derivation, exact graph/source binding, stable-ID lookup,
 bounded context/impact delegation, exact replay, altered/reminted and

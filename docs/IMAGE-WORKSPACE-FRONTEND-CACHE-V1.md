@@ -84,7 +84,7 @@ A separate [persistent cache](PERSISTENT-SEMANTIC-CACHE-V1.md) now supplies
 selection. The constructors described above still create in-process caches;
 none implicitly opens a root or trusts submitted HIR. The persistent route
 has its own key-custody and compiler-installation trust contract.
-`tests/workspace_session_semantic_cache_cli_v1.rs` additionally authors unchanged
+`tests/workspace/session_semantic_cache_cli.rs` additionally authors unchanged
 refresh checked-HIR reuse, cold/AST/semantic image and discovery equivalence,
 old-version rejection, strict boolean/dependent selection, and RPC override
 rejection. Its direct semantic-session regression also authors absorbing source

@@ -135,7 +135,7 @@ The focused gates are:
 cargo test --lib interpreter::internal_strings::tests
 cargo test --test interpreter_internal_strings_v1
 cargo test --test interpreter_v1
-cargo test --test native_string_settlement_v1
+cargo test --test native string_settlement::
 ```
 
 The new integration fixture is split between

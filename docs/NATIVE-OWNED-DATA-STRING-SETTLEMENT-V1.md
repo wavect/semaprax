@@ -113,7 +113,7 @@ and unchanged v10, command, and private callable selectors. Contracts and
 generic-instance discovery are whole-emitter evidence, not selected SDK closure
 admission.
 
-`tests/native_owned_data_string_settlement_v1.rs` derives and replays the real standalone
+`tests/native/owned_data_string_settlement.rs` derives and replays the real standalone
 descriptor, generates the real provider, and instruments its allocations with
 the existing fixed-table test allocator. Context-close success alone is not
 the oracle. Required cases include checked failure before and after String
@@ -139,7 +139,7 @@ The consumer reuses one safe SDK object, whose context is closed and
 reinitialized between calls; this is distinct from the C fixture's reuse of one
 initialized native context.
 
-`tests/native_bytes_call_staging_v1.rs` isolates the shared native defect with
+`tests/native/bytes_call_staging.rs` isolates the shared native defect with
 eight real standalone-provider call shapes: direct allocation, owned place,
 record-field place, temporary-record projection, nested first-argument calls,
 block result, conditional result, and multiple owned arguments
@@ -168,9 +168,9 @@ Focused corrective execution gates:
 
 ```sh
 cargo test --locked -p semaprax --lib codegen::native_emit::owned_strings::tests
-cargo test --locked -p semaprax --test native_owned_data_string_settlement_v1
-cargo test --locked -p semaprax --test native_owned_data_string_settlement_v1 standalone_owned_data_strings_settle_at_o0_and_o2 -- --exact
-cargo test --locked -p semaprax --test native_bytes_call_staging_v1 bytes_call_arguments_settle_once_at_o0_and_o2 -- --exact
+cargo test --locked -p semaprax --test native owned_data_string_settlement::
+cargo test --locked -p semaprax --test native owned_data_string_settlement::standalone_owned_data_strings_settle_at_o0_and_o2 -- --exact
+cargo test --locked -p semaprax --test native bytes_call_staging::bytes_call_arguments_settle_once_at_o0_and_o2 -- --exact
 cargo test --locked -p semaprax-toolchain --test native_owned_data_string_sdk_v1 provisioned_standalone_owned_data_string_sdk_consumer -- --ignored --exact
 ```
 
@@ -194,8 +194,8 @@ For the ignored sanitizer gate, provision an absolute
 `SEMAPRAX_STRING_SANITIZER_CLANG` with ASan/UBSan runtimes and run:
 
 ```sh
-cargo test --locked -p semaprax --test native_owned_data_string_settlement_v1 provisioned_owned_data_strings_asan_ubsan -- --ignored --exact
-cargo test --locked -p semaprax --test native_bytes_call_staging_v1 provisioned_bytes_call_arguments_asan_ubsan -- --ignored --exact
+cargo test --locked -p semaprax --test native owned_data_string_settlement::provisioned_owned_data_strings_asan_ubsan -- --ignored --exact
+cargo test --locked -p semaprax --test native bytes_call_staging::provisioned_bytes_call_arguments_asan_ubsan -- --ignored --exact
 ```
 
 The fixed allocation table supplies the leak oracle even where LeakSanitizer is

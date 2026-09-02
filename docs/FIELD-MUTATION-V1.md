@@ -78,7 +78,7 @@ Unknown assignment names keep the established unknown-value diagnostic
   initializer-only equivalent (asserted modulo function names in tests). Note
   that extending `ResolvedStatement` legitimately grows the deterministic
   `HIR_EXPR_FIXED_BUNDLE` budget-model term; affected workspace budget KATs
-  were re-pinned accordingly in `tests/workspace_semantic_graph_v1.rs`.
+  were re-pinned accordingly in `tests/workspace/semantic_graph.rs`.
 - **Native C11**: plain struct-member store `local.field = value;` after full
   RHS evaluation; O0/O2 identical including failure statuses.
 - **Wasm**: aggregate lane computes the field pointer (binding frame slot +

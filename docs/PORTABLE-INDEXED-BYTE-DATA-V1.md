@@ -387,7 +387,7 @@ consumption or failure cleanup, checks preserved failure output and same-instanc
 reuse, and checks earlier-addition failure before multiplication by zero.
 Native provider failures retain their existing normalized semantic-failure
 status; this does not claim a newly exposed native arithmetic-status ABI.
-The owned-result cross-target fixture (`tests/usize_mul_owned_v1.rs`) passed
+The owned-result cross-target fixture (`tests/owned_data/usize_mul.rs`) passed
 locally on macOS arm64 with Rust 1.98, Apple Clang 21 and Node 24.3. This is
 evidence for that fixture's interpreter/native O0/O2/npm cases, not execution
 of every authored arithmetic regression or hosted validation. Formatting and

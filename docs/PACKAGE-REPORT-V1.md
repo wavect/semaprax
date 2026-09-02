@@ -103,7 +103,7 @@ unused `SPX-P3xx` family: `SPX-P301` options, `SPX-P302` budget exhaustion,
 
 ## Evidence
 
-Executable evidence lives in `tests/package_report_v1.rs` plus module tests
+Executable evidence lives in `tests/offline_package/report.rs` plus module tests
 in `src/package_report.rs`: pinned golden envelope KATs over
 `examples/calculator.spx` and `examples/meaning.spx`, byte-identical double
 runs, every exclusion reason exercised against real programs, independent

@@ -86,7 +86,7 @@ one String inside each call; direct String storage in a loop remains
 `SPX-T252`. These fixture corrections are authored and unrun, not a language
 or backend admission extension.
 
-`tests/native_string_settlement_v1.rs` generates ordinary production C and
+`tests/native/string_settlement.rs` generates ordinary production C and
 observes its actual allocations/frees with the existing fixed-table test
 allocator. It checks normalized statuses, poisoned out-slot preservation,
 scope and call transfers, contract/provisional failures, loop reuse, String
@@ -118,7 +118,7 @@ Focused execution commands for a subsequently provisioned environment (not run
 for this batch):
 
 ```sh
-cargo test --test native_string_settlement_v1
+cargo test --test native string_settlement::
 cargo test --test semantic_target_evidence_v1 string_cleanup_evidence_binds_current_production_c_and_rejects_foreign_binding
 ```
 
@@ -128,7 +128,7 @@ not a skip. To select the ignored sanitizer case, first set
 ASan/UBSan runtimes provisioned, then run:
 
 ```sh
-cargo test --test native_string_settlement_v1 provisioned_ordinary_native_string_asan_ubsan -- --ignored --exact
+cargo test --test native string_settlement::provisioned_ordinary_native_string_asan_ubsan -- --ignored --exact
 ```
 
 This cleanup correction does not itself determine String representation. The

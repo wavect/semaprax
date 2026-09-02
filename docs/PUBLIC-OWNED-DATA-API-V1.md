@@ -366,7 +366,7 @@ change, not descriptors, Wasm, or TypeScript declarations. Their record-field
 authentication, scalar validation, and consume-before-UTF-8-decoding rules
 remain in force. Real-package hostile-input regressions are authored but
 unrun, not promotion evidence; their owner is
-[`tests/project_owned_input_admission_v1.rs`](../tests/project_owned_input_admission_v1.rs),
+[`tests/project/owned_input_admission.rs`](../tests/project/owned_input_admission.rs),
 alongside the preserved v8 renderer known answers.
 
 The Node evidence requires actual shared and resizable buffers plus transfer
@@ -802,7 +802,7 @@ This is consumer-level capacity and ownership evidence, not an invocation-entry
 counter, allocation trace, or proof of persistent native-context reuse. It does
 not replace the separate sanitizer, browser, or exact-head promotion gates.
 
-The npm counterpart `tests/project_owned_tuple_npm_v1.rs` derives both real
+The npm counterpart `tests/project/owned_tuple_npm.rs` derives both real
 Project subjects and reopens each six-file publication against its verified
 inline carrier and descriptor. Its Node consumer spells the same tuple corpus
 independently, checks exact variant/record results, and retains independent
@@ -814,7 +814,7 @@ allocation, native-context lifetime, browser execution, or TypeScript checking.
 The scoped local descriptor/lifecycle batch records this fixture's Linux and
 macOS execution in [Owned npm invocation](OWNED-NPM-INVOCATION-V1.md#scoped-local-execution).
 
-`tests/native_owned_tuple_admission_v1.rs` uses the same authenticated Project
+`tests/native/owned_tuple_admission.rs` uses the same authenticated Project
 subjects to generate the actual native v8/v9 providers. Its separate C fixture
 observes the provider's existing post-validation invocation counter, owner
 slots, issuance serial, and instrumented `malloc`/`calloc`/`free` call counts.
@@ -977,7 +977,7 @@ others, and a genuine division failure after staging Bytes for a sixth.
 The extrema stay exact integers; JavaScript expectations use decimal strings
 converted to `BigInt`, never JSON numbers.
 
-`tests/project_owned_result_extrema_v1.rs` checks the retained Project HIR in
+`tests/project/owned_result_extrema.rs` checks the retained Project HIR in
 the reference interpreter, actual native providers at O0/O2, and the real
 six-file npm publication. The native and raw-Wasm observations distinguish
 successful Err status/tag/payload bits from invocation failure, calibrate real
@@ -989,7 +989,7 @@ allocator trace. Provision Clang and Node plus the existing full-toolchain
 prerequisites for Windows npm publication:
 
 ```sh
-cargo test --locked -p semaprax --test project_owned_result_extrema_v1 same_source_result_extrema_match_interpreter_native_and_npm -- --exact
+cargo test --locked -p semaprax --test project owned_result_extrema::same_source_result_extrema_match_interpreter_native_and_npm -- --exact
 ```
 
 `crates/semaprax-toolchain/tests/project_owned_result_extrema_sdk_v1.rs`
@@ -1055,7 +1055,7 @@ one SDK object retains a single physical provider context.
 Focused gates (external deadlines/resource bounds remain required):
 
 ```sh
-cargo test --locked --offline -p semaprax --test project_owned_inactive_cleanup_v1
+cargo test --locked --offline -p semaprax --test project owned_inactive_cleanup::
 cargo test --locked --offline -p semaprax-toolchain --test project_owned_inactive_cleanup_sdk_v1 provisioned_inactive_cleanup_publish_and_run -- --ignored --exact
 ```
 
@@ -1101,7 +1101,7 @@ variant results create no cleanup event. The retained descriptor, rather than
 caller-supplied metadata or discoverable HIR membership, remains the export
 authority.
 
-`tests/project_owned_mixed_arity_interpreter_v1.rs` executes arities zero through
+`tests/project/owned_mixed_arity_interpreter.rs` executes arities zero through
 eight, repeated same-type position swaps, all four argument and six result
 shapes, scalar/error extrema, `None`/`Some`, `Ok`/`Err`, language failure and
 exact active-owner cleanup. It also checks cumulative UTF-8-plus-slice sizes of
@@ -1117,7 +1117,7 @@ must yield the exact `SPX-J113` arity diagnostic. The real nine-parameter Projec
 must reject before exposing an authenticated callback and preserve its input
 files. This callback check is not a physical tool-execution counter.
 
-`tests/project_owned_mixed_arity_v1.rs` retains the same Project descriptor for
+`tests/project/owned_mixed_arity.rs` retains the same Project descriptor for
 actual native providers at O0/O2 and a verified, published six-file npm package.
 Independent C and Node consumers exercise every arity, wrong-value controls for
 each present position, same-type argument swaps and healthy recovery. The native
@@ -1137,8 +1137,8 @@ Focused gates:
 
 ```sh
 cargo test --locked -p semaprax --test public_api_descriptor_v1 mixed_arity
-cargo test --locked -p semaprax --test project_owned_mixed_arity_interpreter_v1
-cargo test --locked -p semaprax --test project_owned_mixed_arity_v1
+cargo test --locked -p semaprax --test project owned_mixed_arity_interpreter::
+cargo test --locked -p semaprax --test project owned_mixed_arity::
 cargo test --locked -p semaprax-toolchain --test project_owned_mixed_arity_sdk_v1 provisioned_mixed_arity_publish_and_run -- --ignored --exact
 ```
 

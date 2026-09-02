@@ -116,3 +116,79 @@ fn modules_of_a_harness_do_not_share_a_fixture_prefix() {
         collisions.join("\n")
     );
 }
+
+/// Modules that legitimately re-invoke the test binary, with the reason.
+///
+/// An entry is keyed by exact path, so merging the file into a harness moves it,
+/// the key stops matching, and the gate fires — which is the point.
+const SELF_INVOKING: &[(&str, &str)] = &[(
+    "tests/release_archive_product_v1/command/tests.rs",
+    "its own top-level test target, so `--exact command::tests::capture_helper` \
+     already names the right path; merging it into a harness would prefix that \
+     selector and silently stop the helper from running",
+)];
+
+/// Every `.rs` file beneath a directory, at any depth.
+fn descend(dir: &Path, found: &mut Vec<PathBuf>) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            descend(&path, found);
+        } else if path.extension().is_some_and(|ext| ext == "rs") {
+            found.push(path);
+        }
+    }
+}
+
+#[test]
+fn modules_of_a_harness_do_not_re_invoke_the_test_binary() {
+    let tests = repository_root().join("tests");
+    let mut offenders = Vec::new();
+
+    let Ok(entries) = fs::read_dir(&tests) else {
+        panic!("tests directory is readable");
+    };
+    let mut harnesses: Vec<PathBuf> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.is_dir() && path.with_extension("rs").is_file())
+        .collect();
+    harnesses.sort();
+
+    for harness in harnesses {
+        let mut modules = Vec::new();
+        descend(&harness, &mut modules);
+        modules.sort();
+        for module in modules {
+            let Ok(source) = fs::read_to_string(&module) else {
+                continue;
+            };
+            if !source.contains("current_exe") {
+                continue;
+            }
+            let relative = module
+                .strip_prefix(repository_root())
+                .unwrap_or(&module)
+                .to_string_lossy()
+                .replace('\\', "/");
+            if SELF_INVOKING.iter().any(|(who, _)| *who == relative) {
+                continue;
+            }
+            offenders.push(format!("  {relative}"));
+        }
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "these modules re-invoke their own test binary, and they now sit inside a merged harness. \
+         A self-invocation selects a test by its full path, so `--exact command::tests::helper` \
+         becomes `--exact <harness_module>::command::tests::helper` once merged: the helper never \
+         runs and the case asserts nothing while still passing. Keep such a file as its own \
+         top-level test target, or record it in SELF_INVOKING once its selector is \
+         harness-aware:\n{}",
+        offenders.join("\n")
+    );
+}

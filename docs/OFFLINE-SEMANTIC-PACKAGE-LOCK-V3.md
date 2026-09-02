@@ -53,7 +53,7 @@ bounds, not a process heap, CPU, or complete denial-of-service proof.
 ## Authored evidence
 
 `src/package_lock_v3/tests.rs` adapts the exact-coordinate hostile fixtures as
-exact-range cases. `tests/offline_package_ranges_v3.rs` adds source-replayed
+exact-range cases. `tests/offline_package/ranges.rs` adds source-replayed
 numeric selection, intersection/backtracking, requirement/selection binding,
 raw report embedding, catalog permutation, grammar, mismatch, mutation, and
 cross-input replay cases. `src/package_range.rs` owns exact/tilde/caret boundary

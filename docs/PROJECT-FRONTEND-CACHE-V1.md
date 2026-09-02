@@ -134,7 +134,7 @@ copies, and diagnostics do not echo submitted source bytes.
 
 Implementation owners are `src/project/incremental.rs`, the narrow preflight
 and graph-build seams, `src/project/build.rs`, and `src/project/image_store.rs`.
-Authored regressions in `tests/project_frontend_cache_v1.rs` compare cold and
+Authored regressions in `tests/project/frontend_cache.rs` compare cold and
 cached source/Workspace/graph/Image bytes; assert actual parser/formatter call
 counts for unchanged, leaf, and provider changes; require complete signature
 rechecking; check noncanonical/duplicate-source rejection and cache rollback;

@@ -377,7 +377,7 @@ The provenance closes the declaration stable ID, ordered argument identity keys,
 `ownership: copy`, `evidence_owner: retained_checked_hir`, `copy: true`,
 `sized: true`, `contains_resource: false`, and `needs_drop: false`. An unsupported
 signature does not acquire eligibility merely because its source type has a
-name. `tests/project_signature_catalog_v1.rs` authors nominal/generic identity,
+name. `tests/project/signature_catalog.rs` authors nominal/generic identity,
 import-alias identity equivalence, unchanged scalar/Bytes shapes, and rejection
 of owned-record or borrowed-view ordered mapping. These tests remain unrun.
 

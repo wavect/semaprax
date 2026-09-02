@@ -7,4 +7,4 @@ tests/desktop_native_ui_ci_contract.rs	src/codegen.rs	31
 tests/native_rust_interop_ci_contract.rs	crates/semaprax-native-rust-interop-builder/src/implementation.rs	4
 tests/public_api_descriptor_v1.rs	src/project/npm.rs	12
 tests/public_api_descriptor_v1.rs	src/wasm.rs	18
-tests/workspace_semantic_graph_v1.rs	src/workspace_graph.rs	3
+tests/workspace/semantic_graph.rs	src/workspace_graph.rs	3

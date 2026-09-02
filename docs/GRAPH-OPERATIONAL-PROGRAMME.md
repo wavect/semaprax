@@ -25,7 +25,7 @@ promotes a complete row, and broader validation remains outstanding.
 
 | Key | Source, specification, and executable evidence |
 | --- | --- |
-| Image | [image.rs](../src/project/image.rs), [Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md), [image evidence](../tests/semantic_workspace_image_v1.rs), [CLI evidence](../tests/project_semantic_image_cli_v1.rs) |
+| Image | [image.rs](../src/project/image.rs), [Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md), [image evidence](../tests/workspace/semantic_image.rs), [CLI evidence](../tests/project/semantic_image_cli.rs) |
 | Facets | [image_facets.rs](../src/project/image_facets.rs), [Facets v1](SEMANTIC-IMAGE-FACETS-V1.md), [facet evidence](../tests/image_protocol/facets_v1.rs) |
 | Concrete generic-function navigation | [Function Instances v1](SEMANTIC-IMAGE-FUNCTION-INSTANCES-V1.md); source-template-bound retained-instance pages and exact instance facets, callers and closure relationships, authored/unrun; no new instantiation or execution |
 | Protocol | [image_transport.rs](../src/image_transport.rs), [Image Agent Protocol v1](IMAGE-AGENT-PROTOCOL-V1.md), [protocol evidence](../tests/image_protocol/transport_v1.rs) |
@@ -74,7 +74,7 @@ promotes a complete row, and broader validation remains outstanding.
 | Focused canonical-Git execution evidence | [Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md); exact subject `474c481bf3c3561c144e077f0000460f61af55f2` passed the locked/offline local three-test selection with authenticated SHA-1/SHA-256 economics exports; managed, generated-client, MCP, target-runtime, hosted and completion dimensions remain unselected or unclaimed |
 | Same-subject Phase 0 aggregate evidence | [Phase 0 Evidence v1](GRAPH-OPERATIONAL-PHASE0-EXECUTION-EVIDENCE-V1.md); exact subject `d85566f0682df0d236f7df3023479dc0ea50d450` freshly passed the canonical-Git, generated-client/MCP v2, real Visual Studio Code host and independent Python MCP SDK 1.27.0 components under one recursively authenticated bundle; managed `ACTIVE`, exact tag, remote/later head, hosted cross-platform, target runtime, full quality and programme completion remain unclaimed |
 | Frontend reuse | [Frontend Cache v1](PROJECT-FRONTEND-CACHE-V1.md), [incremental.rs](../src/project/incremental.rs) |
-| Checked-module reuse | [Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md), [authored cases](../tests/project_semantic_cache_v1.rs); exact synthetic AST/HIR retention within one compiler process |
+| Checked-module reuse | [Semantic Cache v1](PROJECT-SEMANTIC-CACHE-V1.md), [authored cases](../tests/project/semantic_cache.rs); exact synthetic AST/HIR retention within one compiler process |
 | Persistent checked-module reuse | [Persistent Cache v1](PERSISTENT-SEMANTIC-CACHE-V1.md), [authenticated store](SEMANTIC-CACHE-STORE-V1.md); private complete codec, compiler-file/key binding before decoding, source reparse and warm full-Project replay |
 | Live frontend reuse | [Workspace Frontend Cache v1](IMAGE-WORKSPACE-FRONTEND-CACHE-V1.md), [cached session cases](../tests/image_protocol/workspace_frontend_cache_v1.rs); exact authenticated source loading and transactional cache adoption |
 | Parallel image reads | [Parallel Reads v1](IMAGE-PARALLEL-READS-V1.md), [batch cases](../tests/image_protocol/parallel_reads_v1.rs); embedding-host scoped workers, not a concurrent stdio server |
@@ -104,7 +104,7 @@ promotes a complete row, and broader validation remains outstanding.
 | Canonical Git publication | [Git Publication v1](PROJECT-CANDIDATE-GIT-PUBLICATION-V1.md), [explicit host CLI](CANDIDATE-GIT-PUBLICATION-CLI-V1.md) |
 | Store | [project_revision_store.rs](../src/project_revision_store.rs), [Store v1](PROJECT-REVISION-STORE-V1.md), [Windows-entry v1](PROJECT-REVISION-STORE-WINDOWS-V1.md), [store evidence](../src/project_revision_store/tests.rs) |
 | Analysis | [workspace_analysis.rs](../src/workspace_analysis.rs), [Workspace Analysis v1](WORKSPACE-ANALYSIS-V1.md); retained six-family typed indexes and existing Context/Impact/Review |
-| Existing mutation | [semantic workspace operations](../src/semantic_workspace_operations.rs), [Operations v1](SEMANTIC-WORKSPACE-OPERATIONS-V1.md), [operation evidence](../tests/semantic_workspace_operations_v1.rs); [Project rename](PROJECT-RENAME-TRANSACTION-V1.md) and [rename evidence](../tests/project_agent_transport_rename_v1.rs) |
+| Existing mutation | [semantic workspace operations](../src/semantic_workspace_operations.rs), [Operations v1](SEMANTIC-WORKSPACE-OPERATIONS-V1.md), [operation evidence](../tests/workspace/semantic_operations.rs); [Project rename](PROJECT-RENAME-TRANSACTION-V1.md) and [rename evidence](../tests/project/agent_transport_rename.rs) |
 | Existing evidence | [patch evidence](../src/patch_evidence.rs), [workspace change](../src/semantic_workspace_change.rs), [target evidence](../src/target_evidence.rs), their versioned specifications and focused suites |
 | Economics | [agent_economics.rs](../src/agent_economics.rs), [Agent Context Economics v1](AGENT-ECONOMICS-V1.md), [economics evidence](../tests/agent_economics.rs) |
 

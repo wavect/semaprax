@@ -171,12 +171,12 @@ stale requests, global ID/name collisions, default/type rejection, boolean
 fields, generic rejection and unused owned-record admission, unchanged source bytes, unrelated rename
 merges, and competing record-shape rejection.
 
-`tests/project_owned_record_field_addition_v1.rs` adds authored, unrun cases for
+`tests/project/owned_record_field_addition.rs` adds authored, unrun cases for
 flat owned-byte records, initializer order, owning match bindings, live field
 loans and cleanup order, imported aliases, broader checked Copy fields, and
 scalar default ranges.
 
-`tests/project_resource_free_record_evolution_v1.rs` authors broader owned
+`tests/project/resource_free_record_evolution.rs` authors broader owned
 target cases and their ordinary source-admission boundaries. These cases are
 unrun; they do not establish new runtime, matching, borrowing or ABI support.
 

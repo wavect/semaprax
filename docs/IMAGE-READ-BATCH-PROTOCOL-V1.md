@@ -114,7 +114,7 @@ persistent worker pool or cross-request concurrency claim.
 
 `tests/image_protocol/read_batch_protocol_v1.rs` authors direct protocol parity,
 least-authority, source-drift and bound cases.
-`tests/workspace_session_read_batch_cli_v1.rs` authors actual NDJSON CLI and
+`tests/workspace/session_read_batch_cli.rs` authors actual NDJSON CLI and
 closed v1-v7 startup-policy cases. Generated Rust discovery regressions retain
 the 900 KiB serialized payload bound across ordinary and batch-selected
 policies. These cases have not been executed in this change; hosted evidence,

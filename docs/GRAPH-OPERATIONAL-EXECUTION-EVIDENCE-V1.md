@@ -40,7 +40,8 @@ cargo test --locked --offline -p semaprax \
   --test-threads=1 --nocapture
 ```
 
-The runner sets `CARGO_NET_OFFLINE=true` and supplies an absolute
+The runner sets `CARGO_NET_OFFLINE=true` and `CARGO_INCREMENTAL=0`, records the
+non-incremental selection in its envelope, and supplies an absolute
 `SEMAPRAX_GRAPH_WORKFLOW_EVIDENCE_DIR` only to the test process. The two
 successful provider scenarios export their already
 validated compact economics observations as:

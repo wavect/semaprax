@@ -263,6 +263,7 @@ def main(argv=None):
     with tempfile.TemporaryDirectory(prefix="semaprax-graph-workflow-") as exported:
         exported_path = Path(exported)
         environment = os.environ.copy()
+        environment["CARGO_INCREMENTAL"] = "0"
         environment["CARGO_NET_OFFLINE"] = "true"
         environment["CARGO_TERM_COLOR"] = "never"
         environment["RUSTC"] = tools["rustc"]["executable"]
@@ -315,6 +316,7 @@ def main(argv=None):
         "runner": {
             "scope": "local_exact_commit",
             "network": "not_requested_cargo_offline_local_git_fixture",
+            "cargo_incremental": False,
             "host": {
                 "system": platform.system(),
                 "release": platform.release(),

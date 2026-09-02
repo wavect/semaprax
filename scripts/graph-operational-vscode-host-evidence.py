@@ -78,6 +78,8 @@ def main():
     cli_version=text([str(cli),"--version"],"VS Code identity").splitlines()
     if len(cli_version)!=3 or cli_version[0] != package_value.get("version"): raise Failure("VS Code version mismatch")
     node=str(Path(ns.node or tool("node")).resolve(strict=True)); cargo=tool("cargo"); rustc=tool("rustc")
+    bound_paths={"node":node,"cargo":cargo,"rustc":rustc,"code":str(code),"cli":str(cli),"product":str(product),"package":str(product_package)}
+    bound_rows={name:file_row(path) for name,path in bound_paths.items()}
     versions={"node":text([node,"--version"],"node version"),"cargo":text([cargo,"--version"],"cargo version"),"rustc":text([rustc,"--version"],"rustc version"),"vscode":cli_version}
     node_log=command([node,"--test","--test-concurrency=1","--test-reporter=tap",*NODE_TESTS],"Node controllers")
     for name,expected in ((b"tests",50),(b"pass",50),(b"fail",0),(b"skipped",0)):
@@ -122,8 +124,10 @@ def main():
     if compiler_after!=compiler_before: raise Failure("compiler binary drift")
     for recorded in inputs:
         if repo_row(recorded["path"]) != recorded: raise Failure(f"repository input drift: {recorded['path']}")
-    for recorded,path in ((file_row(node),node),(file_row(cargo),cargo),(file_row(rustc),rustc),(file_row(code),code),(file_row(cli),cli),(file_row(product),product),(file_row(product_package),product_package),(file_row(host_exec),host_exec)):
-        if file_row(path) != recorded: raise Failure(f"tool or product drift: {path}")
+    for name,path in bound_paths.items():
+        if file_row(path) != bound_rows[name]: raise Failure(f"tool or product drift: {path}")
+    host_exec_row=file_row(host_exec)
+    if file_row(host_exec) != host_exec_row: raise Failure(f"Extension Host executable drift: {host_exec}")
     logs={"controller-node.tap":node_log,"compiler-build-cargo.log":build_log,"vscode-extension-host.log":host_log,"vscode-host-observation.json":canonical(observation)}
     rows=[artifact(name,body) for name,body in logs.items()]
     domain=b"semaprax.graph-operational-vscode-host-execution-evidence.bundle.v1\0"
@@ -134,8 +138,8 @@ def main():
     evidence={"schema":SCHEMA,"bundle_id":bundle,
       "repository":{"commit":commit,"tree":tree,"current_head":True,"exact_tags":tags,"clean_before_and_after":True,"default_output_git_ignored":ignored,"inputs":inputs},
       "runner":{"path":"scripts/graph-operational-vscode-host-evidence.py","host":{"system":platform.system(),"machine":platform.machine()},"versions":versions,
-        "tools":{"node":file_row(node),"cargo":file_row(cargo),"rustc":file_row(rustc),"compiler":compiler_before},
-        "vscode":{"app":str(app),"code":file_row(code),"cli":file_row(cli),"product":file_row(product),"package":file_row(product_package),"extension_host":file_row(host_exec)}},
+        "tools":{"node":bound_rows["node"],"cargo":bound_rows["cargo"],"rustc":bound_rows["rustc"],"compiler":compiler_before},
+        "vscode":{"app":str(app),"code":bound_rows["code"],"cli":bound_rows["cli"],"product":bound_rows["product"],"package":bound_rows["package"],"extension_host":host_exec_row}},
       "executions":[{"id":"vscode_node_mock_controllers_v1","passed":50,"failed":0,"ignored":0},{"id":"vscode_extension_host_real_compiler_v1","passed":1,"failed":0,"ignored":0}],
       "observation":observation,"artifacts":rows,
       "claims":{"selected_visual_studio_code_product_extension_host":"passed","actual_compiler_mcp_typed_intent_review_invalidation":"passed","source_bytes_unchanged":"passed","node_controllers_are_extension_host":"not_claimed","marketplace_or_vsix":"not_selected","hosted_or_cross_platform":"not_observed","full_quality_or_programme_completion":"not_selected","os_network_isolation":"not_claimed"}}

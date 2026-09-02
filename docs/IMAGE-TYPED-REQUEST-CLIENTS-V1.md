@@ -1,6 +1,6 @@
 # Typed workspace request clients v1
 
-Status: implementation and regression evidence authored, unrun.
+Status: implementation plus Python, Rust, and provisioned TypeScript request-admission evidence authored; expanded gate unrun.
 
 Audience: agent client authors, editor integrators and compiler contributors.
 
@@ -97,9 +97,4 @@ process memory, runtime recursion depth or latency.
 
 Focused model/emitter regressions and `tests/image_typed_request_clients_v5.rs`
 author recursion, local-scope resolution, deterministic selected profiles,
-legacy helper preservation and nested request submission. A Python harness is
-authored to resolve recursive annotations, compare old/new frame bytes, and
-submit them to ordinary compiler admission. None of this evidence was executed.
-No compiler, generated client, interpreter or long local quality gate was run.
-Independent TypeScript/Python/Rust execution and conformance remain open, and
-no completion-matrix status is promoted.
+legacy helper preservation and nested request submission. Python, Rust, and provisioned TypeScript harnesses are authored to compile or resolve their generated public types, emit exact request frames, submit them to ordinary compiler admission, and require hostile unbound places to reject. The expanded exact-subject gate remains unrun. These selected request paths do not establish a complete SDK, every method, external package ergonomics, hosted/cross-platform behavior, or completion-matrix promotion.

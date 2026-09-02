@@ -16,7 +16,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 GIT_EXECUTABLE = shutil.which("git")
-SCHEMA = "semaprax.graph-operational-client-mcp-execution-evidence.v1"
+SCHEMA = "semaprax.graph-operational-client-mcp-execution-evidence.v2"
 MAX_LOG_BYTES = 16 * 1024 * 1024
 MAX_INPUT_BYTES = 16 * 1024 * 1024
 MAX_TOOL_BYTES = 256 * 1024 * 1024
@@ -36,6 +36,7 @@ CLIENT_TESTS = (
     "selected_recursive_request_types_are_deterministic_and_preserve_legacy_helpers",
     "read_only_clients_cannot_acquire_constructor_or_publication_helpers",
     "generated_python_resolves_recursive_types_and_submits_exact_intent_for_compiler_admission",
+    "generated_rust_resolves_recursive_types_and_submits_exact_intent_for_compiler_admission",
     "all_languages_emit_deterministic_typed_responses_for_only_selected_methods",
     "concrete_chunk_schemas_keep_required_null_distinct_from_omission_and_opaque_contexts",
     "generated_python_typed_decoders_preserve_runtime_validation_and_opaque_report_boundaries",
@@ -43,6 +44,7 @@ CLIENT_TESTS = (
     "authored_python_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values",
     "authored_rust_harness_converts_recursive_typed_repairs_after_runtime_validation",
 )
+TYPESCRIPT_REQUEST_TEST = "provisioned_typescript_submits_exact_typed_request_for_compiler_admission"
 TYPESCRIPT_TEST = (
     "provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_"
     "hostile_nested_values"
@@ -337,6 +339,11 @@ def main(argv=None):
         "--test", "image_recursive_repair_response_clients_v5",
         "--", "--test-threads=1", "--nocapture",
     )
+    typescript_request_command = (
+        cargo, "test", "--locked", "--offline", "-p", "semaprax",
+        "--test", "image_typed_request_clients_v5", TYPESCRIPT_REQUEST_TEST,
+        "--", "--exact", "--ignored", "--nocapture",
+    )
     typescript_command = (
         cargo, "test", "--locked", "--offline", "-p", "semaprax",
         "--test", "image_recursive_repair_response_clients_v5", TYPESCRIPT_TEST,
@@ -367,9 +374,15 @@ def main(argv=None):
     logs = {}
     logs["clients-cargo.log"] = execute(
         client_command, environment, CLIENT_TESTS,
-        ((3, 0, 0, 0, 0), (3, 0, 0, 0, 0), (3, 0, 1, 0, 0)),
+        ((4, 0, 1, 0, 0), (3, 0, 0, 0, 0), (3, 0, 1, 0, 0)),
         "ordinary generated-client suites",
-        (TYPESCRIPT_TEST,),
+        (TYPESCRIPT_REQUEST_TEST, TYPESCRIPT_TEST),
+    )
+    require_tool_identity(tool_bindings)
+    require_repository_identity(commit, tree, input_bodies)
+    logs["typescript-request-cargo.log"] = execute(
+        typescript_request_command, environment, (TYPESCRIPT_REQUEST_TEST,), ((1, 0, 0, 0, 4),),
+        "provisioned TypeScript request-admission suite",
     )
     require_tool_identity(tool_bindings)
     require_repository_identity(commit, tree, input_bodies)
@@ -397,7 +410,7 @@ def main(argv=None):
         for name, body in logs.items()
     ]
     bundle_seed = (
-        b"semaprax.graph-operational-client-mcp-execution-evidence.bundle.v1\0"
+        b"semaprax.graph-operational-client-mcp-execution-evidence.bundle.v2\0"
         + b"\0".join(row["sha256"].encode("ascii") for row in artifact_rows)
     )
     bundle_id = sha256(bundle_seed).split(":", 1)[1]
@@ -444,8 +457,10 @@ def main(argv=None):
         },
         "executions": [
             gate("generated_clients_ordinary_v1", "default", client_command, CLIENT_TESTS,
-                 {"selected": 10, "passed": 9, "failed": 0, "ignored": 1, "measured": 0, "filtered_out": 0}, "clients-cargo.log",
-                 (TYPESCRIPT_TEST,)),
+                 {"selected": 12, "passed": 10, "failed": 0, "ignored": 2, "measured": 0, "filtered_out": 0}, "clients-cargo.log",
+                 (TYPESCRIPT_REQUEST_TEST, TYPESCRIPT_TEST,)),
+            gate("generated_client_typescript_request_provisioned_v1", "explicit_ignored", typescript_request_command, (TYPESCRIPT_REQUEST_TEST,),
+                 {"selected": 1, "passed": 1, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 4}, "typescript-request-cargo.log"),
             gate("generated_client_typescript_provisioned_v1", "explicit_ignored", typescript_command, (TYPESCRIPT_TEST,),
                  {"selected": 1, "passed": 1, "failed": 0, "ignored": 0, "measured": 0, "filtered_out": 3}, "typescript-cargo.log"),
             gate("workspace_mcp_adapter_v1", "default", adapter_command, MCP_ADAPTER_TESTS,
@@ -456,6 +471,9 @@ def main(argv=None):
         "observations": {
             "generated_client_sources_typescript_python_rust": "passed",
             "generated_client_python_runtime": "passed",
+            "generated_client_python_request_admission": "passed",
+            "generated_client_rust_request_admission": "passed",
+            "generated_client_typescript_request_admission": "passed_provisioned_local",
             "generated_client_rust_compile_runtime": "passed",
             "generated_client_typescript_compile_runtime": "passed_provisioned_local",
             "mcp_adapter_in_process": "passed",
@@ -473,6 +491,9 @@ def main(argv=None):
         "claims": {
             "selected_generated_client_sources": "executed",
             "python_generated_client_runtime": "executed",
+            "python_generated_client_request_admission": "executed",
+            "rust_generated_client_request_admission": "executed",
+            "typescript_generated_client_request_admission": "executed_provisioned_local",
             "rust_generated_client_runtime": "executed",
             "typescript_generated_client_runtime": "executed_provisioned_local",
             "mcp_adapter": "executed_in_process",

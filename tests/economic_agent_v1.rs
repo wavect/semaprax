@@ -646,6 +646,26 @@ fn main() { clone::<EconomicRun>(); debug::<EconomicRun>(); let _=EconomicDocume
             !source[..source.find("#[cfg(test)]").unwrap()].contains(forbidden),
             "ambient authority `{forbidden}`"
         );
+        for submodule in [
+            include_str!("../src/economic_agent/address.rs"),
+            include_str!("../src/economic_agent/agent_core.rs"),
+            include_str!("../src/economic_agent/agent_execute.rs"),
+            include_str!("../src/economic_agent/agent_reconcile.rs"),
+            include_str!("../src/economic_agent/documents.rs"),
+            include_str!("../src/economic_agent/evidence.rs"),
+            include_str!("../src/economic_agent/intent.rs"),
+            include_str!("../src/economic_agent/journal.rs"),
+            include_str!("../src/economic_agent/policy.rs"),
+            include_str!("../src/economic_agent/replay.rs"),
+            include_str!("../src/economic_agent/snapshot.rs"),
+            include_str!("../src/economic_agent/transaction.rs"),
+            include_str!("../src/economic_agent/validate.rs"),
+        ] {
+            assert!(
+                !submodule.contains(forbidden),
+                "ambient authority `{forbidden}`"
+            );
+        }
     }
     fs::remove_dir_all(root).unwrap();
 }

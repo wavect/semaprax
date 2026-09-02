@@ -65,6 +65,17 @@ fn client(session: &mut VNextSession, language: &str) -> Value {
     result
 }
 
+fn test_python() -> PathBuf {
+    std::env::var_os("SEMAPRAX_TEST_PYTHON").map_or_else(
+        || PathBuf::from("python3"),
+        |value| {
+            let path = PathBuf::from(value);
+            assert!(path.is_absolute(), "SEMAPRAX_TEST_PYTHON must be absolute");
+            path
+        },
+    )
+}
+
 #[test]
 fn selected_recursive_request_types_are_deterministic_and_preserve_legacy_helpers() {
     let fixture = Fixture::new();
@@ -167,7 +178,7 @@ fn generated_python_resolves_recursive_types_and_submits_exact_intent_for_compil
     .unwrap();
     std::fs::write(fixture.0.join("params.json"), params.to_string()).unwrap();
     std::fs::write(fixture.0.join("check.py"), PYTHON_EVIDENCE).unwrap();
-    let output = Command::new("python3")
+    let output = Command::new(test_python())
         .arg("-I")
         .arg(fixture.0.join("check.py"))
         .current_dir(&fixture.0)

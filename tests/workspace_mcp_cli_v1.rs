@@ -1,11 +1,17 @@
-//! MCP CLI policy and source-authority evidence, authored and intentionally unrun.
+//! MCP CLI policy and source-authority evidence.
 use semaprax::image_transport::{VNextPolicy, VNextSession};
 use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
 use serde_json::{json, Value};
-use std::io::Write;
+use std::collections::BTreeSet;
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::process::{Child, Command, Output, Stdio};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    mpsc::{self, Receiver},
+};
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 struct Fixture(PathBuf);
 impl Fixture {
@@ -124,6 +130,116 @@ fn failed(row: &Value) -> bool {
     row.get("error").is_some() || row["result"]["isError"] == true
 }
 
+struct LiveMcp {
+    child: Child,
+    input: Option<std::process::ChildStdin>,
+    output: Receiver<Result<String, String>>,
+    output_thread: Option<JoinHandle<()>>,
+    error_thread: Option<JoinHandle<Vec<u8>>>,
+    reaped: bool,
+}
+impl LiveMcp {
+    fn start(fixture: &Fixture, policy: &Value) -> Self {
+        let policy_path = fixture.0.join("host.json");
+        std::fs::write(&policy_path, policy.to_string()).unwrap();
+        let mut child = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .arg("serve-workspace-mcp")
+            .arg(fixture.0.join("semaprax.toml"))
+            .arg(policy_path)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let input = child.stdin.take().unwrap();
+        let output = child.stdout.take().unwrap();
+        let error = child.stderr.take().unwrap();
+        let (sender, receiver) = mpsc::channel();
+        let output_thread = thread::spawn(move || {
+            let mut reader = BufReader::new(output);
+            loop {
+                let mut line = String::new();
+                match reader.read_line(&mut line) {
+                    Ok(0) => break,
+                    Ok(_) => {
+                        if sender.send(Ok(line)).is_err() {
+                            break;
+                        }
+                    }
+                    Err(error) => {
+                        let _ = sender.send(Err(error.to_string()));
+                        break;
+                    }
+                }
+            }
+        });
+        let error_thread = thread::spawn(move || {
+            let mut bytes = Vec::new();
+            BufReader::new(error).read_to_end(&mut bytes).unwrap();
+            bytes
+        });
+        Self {
+            child,
+            input: Some(input),
+            output: receiver,
+            output_thread: Some(output_thread),
+            error_thread: Some(error_thread),
+            reaped: false,
+        }
+    }
+    fn send(&mut self, frame: Value) {
+        let input = self.input.as_mut().unwrap();
+        writeln!(input, "{frame}").unwrap();
+        input.flush().unwrap();
+    }
+    fn receive(&self) -> Value {
+        let line = self
+            .output
+            .recv_timeout(Duration::from_secs(10))
+            .unwrap_or_else(|error| panic!("timed out waiting for MCP response: {error}"))
+            .unwrap();
+        assert!(line.ends_with('\n'));
+        assert!(!line.contains('\r'));
+        serde_json::from_str(line.strip_suffix('\n').unwrap()).unwrap()
+    }
+    fn finish(mut self) {
+        self.input.take();
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let status = loop {
+            if let Some(status) = self.child.try_wait().unwrap() {
+                break status;
+            }
+            if Instant::now() >= deadline {
+                self.child.kill().unwrap();
+                let _ = self.child.wait();
+                self.reaped = true;
+                panic!("MCP process did not exit after stdin EOF");
+            }
+            thread::sleep(Duration::from_millis(10));
+        };
+        self.reaped = true;
+        self.output_thread.take().unwrap().join().unwrap();
+        let stderr = self.error_thread.take().unwrap().join().unwrap();
+        assert!(status.success(), "{}", String::from_utf8_lossy(&stderr));
+        assert!(stderr.is_empty());
+        assert!(self.output.try_recv().is_err(), "unexpected MCP response");
+    }
+}
+impl Drop for LiveMcp {
+    fn drop(&mut self) {
+        if !self.reaped {
+            let _ = self.child.kill();
+            let _ = self.child.wait();
+        }
+        if let Some(thread) = self.output_thread.take() {
+            let _ = thread.join();
+        }
+        if let Some(thread) = self.error_thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
 #[test]
 fn help_pins_the_optional_mcp_command_without_replacing_v5() {
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -137,6 +253,98 @@ fn help_pins_the_optional_mcp_command_without_replacing_v5() {
     ] {
         assert_eq!(help.matches(line).count(), 1);
     }
+}
+
+#[test]
+fn real_stdio_catalogue_paging_and_notification_nonexecution_are_explicit() {
+    let fixture = Fixture::new();
+    let disk = fixture.sources();
+    let base = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        ProjectCandidate::open(snapshot.retain_revision(), snapshot.project_revision())
+    })
+    .unwrap();
+    let mut host = VNextSession::open(
+        &fixture.0.join("semaprax.toml"),
+        VNextPolicy {
+            candidate_prepare: true,
+            ..Default::default()
+        },
+    )
+    .unwrap();
+    let image = host.image_revision().to_owned();
+    host.finish().unwrap();
+
+    let mut process = LiveMcp::start(&fixture, &policy(6, true));
+    process.send(request(
+        json!("initialize"),
+        "initialize",
+        json!({"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"real-stdio-evidence","version":"1"}}),
+    ));
+    let initialized = process.receive();
+    assert_eq!(initialized["id"], "initialize");
+    assert_eq!(initialized["result"]["protocolVersion"], "2025-11-25");
+    process.send(json!({"jsonrpc":"2.0","method":"notifications/initialized"}));
+
+    let mut names = Vec::new();
+    let mut cursors = BTreeSet::new();
+    let mut cursor = None;
+    loop {
+        let params = cursor
+            .as_ref()
+            .map_or_else(|| json!({}), |cursor| json!({"cursor":cursor}));
+        let id = format!("catalogue-{}", names.len());
+        process.send(request(json!(id), "tools/list", params));
+        let page = process.receive();
+        assert_eq!(page["id"], id);
+        assert!(page.get("error").is_none(), "{page}");
+        let tools = page["result"]["tools"].as_array().unwrap();
+        assert!(!tools.is_empty());
+        assert!(tools.len() <= 8);
+        names.extend(
+            tools
+                .iter()
+                .map(|tool| tool["name"].as_str().unwrap().to_owned()),
+        );
+        cursor = page["result"]["nextCursor"].as_str().map(str::to_owned);
+        match cursor.as_ref() {
+            Some(cursor) => assert!(cursors.insert(cursor.clone())),
+            None => break,
+        }
+    }
+    assert!(names.windows(2).all(|pair| pair[0] < pair[1]));
+    for available in ["workspace__open", "candidate__open", "candidate__query"] {
+        assert!(names.iter().any(|name| name == available), "{available}");
+    }
+    for unavailable in ["candidate__build", "candidate__test", "candidate__commit"] {
+        assert!(
+            !names.iter().any(|name| name == unavailable),
+            "{unavailable}"
+        );
+    }
+
+    process.send(tool(json!("open"), "workspace__open", json!({})));
+    let opened = process.receive();
+    assert_eq!(opened["id"], "open");
+    assert!(!failed(&opened), "{opened}");
+    assert_eq!(inner(&opened)["result"]["payload"]["image_revision"], image);
+
+    process.send(tool(json!("unknown"), "not_a_tool", json!({})));
+    let unknown = process.receive();
+    assert_eq!(unknown["id"], "unknown");
+    assert_eq!(unknown["error"]["code"], -32602);
+
+    process.send(json!({"jsonrpc":"2.0","method":"tools/call","params":{"name":"candidate__open","arguments":{"image_revision":image}}}));
+    process.send(tool(
+        json!("notification-probe"),
+        "candidate__query",
+        json!({"image_revision":image,"candidate_revision":base.candidate_digest()}),
+    ));
+    let probe = process.receive();
+    assert_eq!(probe["id"], "notification-probe");
+    assert!(failed(&probe), "{probe}");
+
+    process.finish();
+    assert_eq!(fixture.sources(), disk);
 }
 
 #[test]

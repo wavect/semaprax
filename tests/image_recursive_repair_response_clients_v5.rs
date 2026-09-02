@@ -89,6 +89,15 @@ impl Drop for Fixture {
         let _ = std::fs::remove_dir_all(&self.0);
     }
 }
+
+fn selected_command(variable: &str, ordinary: &str) -> PathBuf {
+    let Some(value) = std::env::var_os(variable) else {
+        return PathBuf::from(ordinary);
+    };
+    let path = PathBuf::from(value);
+    assert!(path.is_absolute(), "{variable} must be an absolute path");
+    path
+}
 fn call(session: &mut VNextSession, method: &str, params: Value) -> Value {
     let request =
         json!({"jsonrpc":"2.0","id":"recursive-evidence","method":method,"params":params});
@@ -276,7 +285,7 @@ fn authored_python_harness_checks_actual_recursive_repair_payloads_and_hostile_n
     .unwrap();
     std::fs::write(fixture.0.join("responses.json"), responses.to_string()).unwrap();
     std::fs::write(fixture.0.join("check_recursive.py"), PYTHON).unwrap();
-    let output = Command::new("python3")
+    let output = Command::new(selected_command("SEMAPRAX_TEST_PYTHON", "python3"))
         .arg("-I")
         .arg(fixture.0.join("check_recursive.py"))
         .current_dir(&fixture.0)
@@ -339,7 +348,7 @@ incremental = false
     std::fs::write(root.join("src/client.rs"), source).unwrap();
     std::fs::write(root.join("src/main.rs"), RUST).unwrap();
     std::fs::write(root.join("responses.json"), examples.to_string()).unwrap();
-    let output = Command::new("cargo")
+    let output = Command::new(selected_command("SEMAPRAX_TEST_CARGO", "cargo"))
         .args(["run", "--offline", "--quiet", "--manifest-path"])
         .arg(root.join("Cargo.toml"))
         .env("CARGO_TARGET_DIR", root.join("target"))
@@ -355,6 +364,211 @@ incremental = false
     session.finish().unwrap();
     assert_eq!(fixture.bytes(), disk);
 }
+
+#[test]
+#[ignore = "requires provisioned absolute SEMAPRAX_TEST_TSC 5.8.3 and SEMAPRAX_TEST_NODE >=22"]
+fn provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values(
+) {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let tsc = selected_command("SEMAPRAX_TEST_TSC", "");
+    let node = selected_command("SEMAPRAX_TEST_NODE", "");
+    assert!(tsc.is_absolute(), "SEMAPRAX_TEST_TSC must be provided");
+    assert!(node.is_absolute(), "SEMAPRAX_TEST_NODE must be provided");
+
+    let tsc_version = Command::new(&tsc).arg("--version").output().unwrap();
+    assert!(
+        tsc_version.status.success(),
+        "{}",
+        String::from_utf8_lossy(&tsc_version.stderr)
+    );
+    assert_eq!(
+        String::from_utf8(tsc_version.stdout)
+            .unwrap()
+            .trim_end_matches(['\r', '\n']),
+        "Version 5.8.3"
+    );
+    let node_version = Command::new(&node).arg("--version").output().unwrap();
+    assert!(
+        node_version.status.success(),
+        "{}",
+        String::from_utf8_lossy(&node_version.stderr)
+    );
+    let node_version = String::from_utf8(node_version.stdout).unwrap();
+    let node_major = node_version
+        .trim()
+        .strip_prefix('v')
+        .and_then(|version| version.split('.').next())
+        .and_then(|major| major.parse::<u64>().ok())
+        .expect("SEMAPRAX_TEST_NODE returned an invalid version");
+    assert!(node_major >= 22, "SEMAPRAX_TEST_NODE must be Node >=22");
+
+    let mut session = fixture.session(true);
+    let generated = call(
+        &mut session,
+        "protocol/client",
+        json!({"language":"typescript"}),
+    );
+    let examples = responses(&mut session);
+    let root = fixture.0.join("typescript-client");
+    std::fs::create_dir_all(&root).unwrap();
+    let mut source = payload(&generated)["source"].as_str().unwrap().to_owned();
+    source.push_str("\nconst EVIDENCE_RESPONSES: any = ");
+    source.push_str(&examples.to_string());
+    source.push_str(";\n");
+    source.push_str(TYPESCRIPT);
+    let input = root.join("recursive.ts");
+    let output = root.join("out");
+    std::fs::write(&input, source).unwrap();
+    let compiled = Command::new(&tsc)
+        .args([
+            "--strict",
+            "--noEmitOnError",
+            "--target",
+            "ES2022",
+            "--module",
+            "NodeNext",
+            "--moduleResolution",
+            "NodeNext",
+            "--outDir",
+        ])
+        .arg(&output)
+        .arg(&input)
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(
+        compiled.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&compiled.stdout),
+        String::from_utf8_lossy(&compiled.stderr)
+    );
+    let executed = Command::new(&node)
+        .arg(output.join("recursive.js"))
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(
+        executed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&executed.stderr)
+    );
+    assert_eq!(executed.stdout, b"recursive-typescript-client-ok\n");
+    session.finish().unwrap();
+    assert_eq!(fixture.bytes(), disk);
+}
+
+const TYPESCRIPT: &str = r#"
+const evidenceResponses: any = EVIDENCE_RESPONSES;
+const evidenceDecoders = [
+  decode_request_attempt_repair_catalog,
+  decode_request_attempt_repair_catalog_typed,
+];
+
+function evidenceAccepted(response: any): void {
+  const line = JSON.stringify(response);
+  for (const decoder of evidenceDecoders) {
+    const decoded = decoder(line, "recursive-evidence");
+    if (JSON.stringify(decoded) !== JSON.stringify(response.result)) {
+      throw Error("decoded recursive repair response changed");
+    }
+  }
+}
+
+function evidenceRejected(response: any): void {
+  for (const decoder of evidenceDecoders) {
+    let rejected = false;
+    try { decoder(JSON.stringify(response), "recursive-evidence"); }
+    catch { rejected = true; }
+    if (!rejected) throw Error("accepted malformed recursive repair response");
+  }
+}
+
+for (const response of Object.values(evidenceResponses)) evidenceAccepted(response);
+for (const name of ["literal", "borrow"] as const) {
+  const original = evidenceResponses[name];
+  for (const [key, value] of [["source_authority", true], ["schema", "foreign.report"]] as const) {
+    const bad = structuredClone(original);
+    bad.result.payload[key] = value;
+    evidenceRejected(bad);
+  }
+  const authority = structuredClone(original);
+  authority.result.payload.repairs[0].invented_authority = true;
+  evidenceRejected(authority);
+  const change = structuredClone(original);
+  change.result.payload.repairs[0].change.schema = "foreign.change";
+  evidenceRejected(change);
+  const intent = structuredClone(original);
+  intent.result.payload.repairs[0].semantic_change_intent.rejected_intent.extra = 1;
+  evidenceRejected(intent);
+}
+
+const root = structuredClone(evidenceResponses.borrow);
+root.result.payload.repairs[0].change.intent.body.value.arguments[0].root = ["packet"];
+evidenceRejected(root);
+const extra = structuredClone(evidenceResponses.borrow);
+extra.result.payload.repairs[0].change.intent.body.value.arguments[0].extra = 1;
+evidenceRejected(extra);
+const replacement = structuredClone(evidenceResponses.borrow);
+replacement.result.payload.repairs[0].replacements[0].root = null;
+evidenceRejected(replacement);
+const booleanValue = structuredClone(evidenceResponses.literal);
+booleanValue.result.payload.repairs[0].change.intent.body.value = true;
+evidenceRejected(booleanValue);
+const unsafeInteger = structuredClone(evidenceResponses.literal);
+unsafeInteger.result.payload.repairs[0].change.intent.body.value = 18446744073709551616;
+evidenceRejected(unsafeInteger);
+
+const linear = structuredClone(evidenceResponses.borrow);
+let linearNode = linear.result.payload.repairs[0].change.intent.body;
+for (let index = 0; index < 10; index += 1) {
+  linearNode = {kind: "call", target: "recursive.identity", arguments: [linearNode]};
+}
+linear.result.payload.repairs[0].change.intent.body = linearNode;
+evidenceAccepted(linear);
+
+const deep = structuredClone(evidenceResponses.borrow);
+let deepNode: any = {kind: "usize", value: 0};
+for (let index = 0; index < 160; index += 1) {
+  deepNode = {
+    kind: "let",
+    name: "nested_" + index,
+    value: {kind: "usize", value: 0},
+    body: deepNode,
+  };
+}
+deep.result.payload.repairs[0].change.intent.body = deepNode;
+evidenceRejected(deep);
+
+function evidenceShapeRejected(value: unknown, schema: unknown): void {
+  let rejected = false;
+  try { check(value, schema); }
+  catch { rejected = true; }
+  if (!rejected) throw Error("accepted hostile audited shape");
+}
+
+const unique = {type: "array", items: {type: "string"}, uniqueItems: true};
+check(["left", "right"], unique);
+evidenceShapeRejected(["left", "left"], unique);
+evidenceShapeRejected(["left", false], unique);
+for (const alternative of ["anyOf", "oneOf"] as const) {
+  let workRejected = false;
+  try { check("ok", {[alternative]: [{}, {}]}, 0, {remaining: 2}); }
+  catch (error) { workRejected = error instanceof ShapeLimitError; }
+  if (!workRejected) throw Error("union swallowed a shared work-limit failure");
+  let depthRejected = false;
+  try { check("ok", {[alternative]: [{}, {[alternative]: [{}]}]}, 127); }
+  catch (error) { depthRejected = error instanceof ShapeLimitError; }
+  if (!depthRejected) throw Error("union swallowed a depth-limit failure");
+}
+let uniqueWorkRejected = false;
+try { check(["left", "right"], unique, 0, {remaining: 3}); }
+catch (error) { uniqueWorkRejected = error instanceof ShapeLimitError; }
+if (!uniqueWorkRejected) throw Error("uniqueItems did not consume shared work budget");
+
+evidenceAccepted(evidenceResponses.borrow);
+console.log("recursive-typescript-client-ok");
+"#;
 
 const RUST: &str = r#"
 #![allow(dead_code)]

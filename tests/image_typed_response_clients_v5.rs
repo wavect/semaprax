@@ -80,6 +80,17 @@ fn class(method: &str) -> String {
         .collect()
 }
 
+fn test_python() -> PathBuf {
+    std::env::var_os("SEMAPRAX_TEST_PYTHON").map_or_else(
+        || PathBuf::from("python3"),
+        |value| {
+            let path = PathBuf::from(value);
+            assert!(path.is_absolute(), "SEMAPRAX_TEST_PYTHON must be absolute");
+            path
+        },
+    )
+}
+
 #[test]
 fn all_languages_emit_deterministic_typed_responses_for_only_selected_methods() {
     let fixture = Fixture::new();
@@ -283,7 +294,7 @@ fn generated_python_typed_decoders_preserve_runtime_validation_and_opaque_report
     .unwrap();
     std::fs::write(fixture.0.join("responses.json"), fixtures.to_string()).unwrap();
     std::fs::write(fixture.0.join("check_client.py"), PYTHON_EVIDENCE).unwrap();
-    let output = Command::new("python3")
+    let output = Command::new(test_python())
         .arg("-I")
         .arg(fixture.0.join("check_client.py"))
         .current_dir(&fixture.0)

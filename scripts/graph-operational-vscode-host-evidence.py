@@ -75,12 +75,14 @@ def main():
         if not p.exists(): raise Failure(f"incomplete VS Code product: {p}")
     product_value=json.loads(product.read_text()); package_value=json.loads(product_package.read_text())
     if product_value.get("nameLong") != "Visual Studio Code": raise Failure("selected product is not Visual Studio Code")
-    cli_version=text([str(cli),"--version"],"VS Code identity").splitlines()
-    if len(cli_version)!=3 or cli_version[0] != package_value.get("version"): raise Failure("VS Code version mismatch")
+    cli_identity=text([str(cli),"--version"],"VS Code identity").splitlines()
+    if len(cli_identity)<3: raise Failure("VS Code identity is incomplete")
+    cli_version=cli_identity[-3:]
+    if cli_version[0] != package_value.get("version"): raise Failure("VS Code version mismatch")
     node=str(Path(ns.node or tool("node")).resolve(strict=True)); cargo=tool("cargo"); rustc=tool("rustc")
     bound_paths={"node":node,"cargo":cargo,"rustc":rustc,"code":str(code),"cli":str(cli),"product":str(product),"package":str(product_package)}
     bound_rows={name:file_row(path) for name,path in bound_paths.items()}
-    versions={"node":text([node,"--version"],"node version"),"cargo":text([cargo,"--version"],"cargo version"),"rustc":text([rustc,"--version"],"rustc version"),"vscode":cli_version}
+    versions={"node":text([node,"--version"],"node version"),"cargo":text([cargo,"--version"],"cargo version"),"rustc":text([rustc,"--version"],"rustc version"),"vscode":cli_version,"vscode_identity_diagnostics":cli_identity[:-3]}
     node_log=command([node,"--test","--test-concurrency=1","--test-reporter=tap",*NODE_TESTS],"Node controllers")
     for name,expected in ((b"tests",50),(b"pass",50),(b"fail",0),(b"skipped",0)):
         rows=re.findall(rb"^# "+name+rb" ([0-9]+)$",node_log,re.MULTILINE)

@@ -8,6 +8,9 @@
   managed-generation workflow. Managed fixtures now authenticate the semantic
   `ACTIVE` schema through the public graph snapshot and corroborate every
   candidate source in the immutable generation without rewriting raw source.
+  The VS Code product identity check now retains bounded launcher diagnostics
+  separately from the final three canonical identity lines, accommodating
+  current signed macOS products without weakening package-version comparison.
   Exact-subject aggregate execution and promotion remain pending.
 
 - Executed the selected Phase 0 graph-operational evidence set freshly at one

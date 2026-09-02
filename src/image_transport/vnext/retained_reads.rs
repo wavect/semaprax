@@ -28,6 +28,8 @@ pub(super) fn supports(operation: Operation) -> bool {
                 | Action::CandidateFunctionFacet
                 | Action::CandidateImpactSummary
                 | Action::CandidateImpactPage
+                | Action::FunctionReferenceExport
+                | Action::FunctionReferenceResolve
                 | Action::HoleSummary
                 | Action::HolePage
                 | Action::HoleFillSuggestions
@@ -95,6 +97,9 @@ pub(super) fn prepare(
         Operation::VNext(Action::CandidateAnalysisCoverage) => {
             analysis_coverage::for_candidate(params, candidate()?)
         }
+        Operation::VNext(
+            action @ (Action::FunctionReferenceExport | Action::FunctionReferenceResolve),
+        ) => function_reference::prepare(action, params, image),
         Operation::VNext(
             action @ (Action::HoleSummary | Action::HolePage | Action::DraftExpressionCatalog),
         ) => hole_navigation::for_draft(action, params, draft()?),

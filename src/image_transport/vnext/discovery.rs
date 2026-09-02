@@ -87,6 +87,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "image/function-reference-export")
+        {
+            instructions.push_str(" Use image/function-reference-export with the exact current image_revision, a declared-function target and optional facet to obtain a bounded canonical exact-revision reference object. Serialize that complete object as the reference argument to image/function-reference-resolve with the same exact current image_revision. Resolution reauthenticates the image, project graph and source provenance, then freshly derives the closed function summary and optional facet handle; no HIR, graph, source or handle fact is trusted from the reference. Both queries are pure immutable reads eligible for authenticated parallel batches. References are integrity and staleness bindings, not capabilities, secrets, persistent server state, migration tokens or general session recovery. They grant no source, execution, candidate-retention or publication authority, and stale references fail instead of automatically migrating.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "package/summary")
         {
             instructions.push_str(" The host attached an independently verified package graph before startup. Call package/summary with image_revision to discover its graph_revision and source-capsule bindings. Then call package/consumers with image_revision, package_revision equal to that graph_revision, provider_package, provider_version and target. The package subject is independent: project_association is none, and the session image authenticates only the live request boundary, not package linkage to this Project. Imports are declared dependencies; calls contain only authenticated cross-package direct sites, so an import can have no calls. Both closed reports are bounded to 1 MiB before the ordinary response-envelope bound and support parallel reads. No request can attach, replace, load or fetch a package graph, resolve a registry, build or execute packages, create candidates, or publish source.");

@@ -1,4 +1,4 @@
-//! Integrated managed-generation scenario. Authored, not locally executed.
+//! Integrated managed-generation scenario.
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -7,11 +7,11 @@ use semaprax::project::{
     apply_candidate_publication, prepare_candidate_publication, with_authenticated_project,
     CandidateTestPolicy, ProjectCandidate, ProjectSemanticImage, SemanticChange,
 };
-use semaprax::{semantic_workspace, workspace};
+use semaprax::{semantic_workspace, workspace_graph};
 use serde_json::{json, Value};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
-struct Fixture(PathBuf);
+struct Fixture(PathBuf, String);
 impl Fixture {
     fn new() -> Self {
         let root = std::env::temp_dir().join(format!(
@@ -40,8 +40,8 @@ impl Fixture {
             ),
         )
         .unwrap();
-        semantic_workspace::initialize(&root, &paths).unwrap();
-        Self(root)
+        let workspace_revision = semantic_workspace::initialize(&root, &paths).unwrap();
+        Self(root, workspace_revision)
     }
 }
 impl Drop for Fixture {
@@ -50,8 +50,19 @@ impl Drop for Fixture {
     }
 }
 
+fn managed_source(root: &Path, workspace_revision: &str, path: &str) -> String {
+    let revision = workspace_revision.strip_prefix("sha256:").unwrap();
+    std::fs::read_to_string(
+        root.join(".semaprax-workspace")
+            .join("generations")
+            .join(revision)
+            .join("files")
+            .join(path),
+    )
+    .unwrap()
+}
+
 #[test]
-#[ignore = "SPX-G150 wrong ACTIVE schema, needs workspace init fix"]
 fn signature_evolution_merge_reports_tests_and_separate_managed_publication() {
     let fixture = Fixture::new();
     let manifest = fixture.0.join("semaprax.toml");
@@ -130,10 +141,7 @@ fn signature_evolution_merge_reports_tests_and_separate_managed_publication() {
             competing.candidate_digest()
         )
         .is_err());
-    let base = workspace::snapshot(&fixture.0)
-        .unwrap()
-        .workspace_revision()
-        .to_owned();
+    let base = fixture.1.clone();
     let proof = prepare_candidate_publication(
         &merged,
         merged.candidate_digest(),
@@ -143,7 +151,7 @@ fn signature_evolution_merge_reports_tests_and_separate_managed_publication() {
     )
     .unwrap();
     assert_eq!(
-        workspace::snapshot(&fixture.0)
+        workspace_graph::snapshot(&fixture.0, "calculator.app")
             .unwrap()
             .workspace_revision(),
         base
@@ -160,14 +168,27 @@ fn signature_evolution_merge_reports_tests_and_separate_managed_publication() {
     let receipt: Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(receipt["result"], "managed_generation_published");
     assert_eq!(receipt["git_commit"], "not_performed");
-    let active = workspace::snapshot(&fixture.0).unwrap();
+    let active = workspace_graph::snapshot(&fixture.0, "calculator.app").unwrap();
     assert_eq!(
         active.workspace_revision(),
         proof.candidate_workspace_revision()
     );
-    for (actual, expected) in active.files().iter().zip(merged.revision().sources()) {
-        assert_eq!(actual.path(), expected.path());
-        assert_eq!(actual.source(), expected.source());
+    for actual in active.modules() {
+        let expected = merged
+            .revision()
+            .sources()
+            .iter()
+            .find(|source| source.path() == actual.path())
+            .unwrap();
+        assert_eq!(actual.source_graph_schema(), expected.source_graph_schema());
+        assert_eq!(actual.source_revision(), expected.source_revision());
+        assert_eq!(actual.source_digest(), expected.source_digest());
+    }
+    for expected in merged.revision().sources() {
+        assert_eq!(
+            managed_source(&fixture.0, active.workspace_revision(), expected.path()),
+            expected.source()
+        );
     }
     for source in revision.sources() {
         assert_eq!(
@@ -186,7 +207,7 @@ fn signature_evolution_merge_reports_tests_and_separate_managed_publication() {
     .unwrap_err();
     assert!(errors.iter().any(|error| error.code == "SPX-G247"));
     assert_eq!(
-        workspace::snapshot(&fixture.0)
+        workspace_graph::snapshot(&fixture.0, "calculator.app")
             .unwrap()
             .workspace_revision(),
         proof.candidate_workspace_revision()

@@ -96,6 +96,15 @@ preflight case, **not** a deterministic race inside the final CAS. It neither
 mocks nor claims physical lost-acknowledgment, post-pivot uncertainty, process
 crash, power failure, or hostile concurrent filesystem mutation coverage.
 
+`real_git_ref_update_with_lost_response_is_terminal_and_requires_inspection`
+wraps the real restricted Git provider. It delegates the actual compare-and-swap
+and, only after Git reports `Updated`, injects loss of that result. The test
+requires the ref to contain the new commit, `publication_uncertain` status,
+consumed approval, no commit report, and terminal rejection of both report and
+retry routes without a second compare-and-swap. This is deterministic provider
+result-loss coverage, not evidence of an operating-system crash, remote Git,
+power loss, or socket-level lost acknowledgment.
+
 All Git objects and fixture files live under a fresh temporary directory.
 `SEMAPRAX_TEST_GIT`, when explicitly set by the future runner, selects the trusted
 Git executable; otherwise the fixture uses `/usr/bin/git`. These Unix-only tests
@@ -157,6 +166,11 @@ The ignored managed-generation test is deliberately outside the runner and is
 recorded as `not_selected`. The runner likewise does not select generated-client,
 MCP, editor, native-runtime, Wasm-runtime, hosted, or complete-programme gates.
 Those dimensions remain independent even if all three selected Git tests pass.
+
+[Graph-operational Execution Evidence v2](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V2.md)
+extends that runner with the real post-CAS result-loss case, the four managed
+publication boundary regressions, and the integrated managed-generation
+workflow. Its exact-subject execution is pending.
 
 ## Task-economics observation
 

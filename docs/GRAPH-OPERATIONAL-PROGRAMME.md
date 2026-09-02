@@ -287,19 +287,20 @@ committed source objects and reject wrong approval or a stale fixed ref base.
 The scalar fixture checks preserved pre/postconditions, effects, exports and
 empty owned cleanup; it does not establish general resource behavior. Native
 and Wasm evidence is compiler emission/structural validation, not target execution.
-The scenario has a focused exact-commit runner and machine-readable evidence
-contract authored in
-[Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md). It selects
-the two real-provider scenarios plus the nonignored real stale-ref preflight and
-requires both format-specific economics artifacts. The
+The scenario has focused exact-commit runners and machine-readable evidence
+contracts. [Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md)
+selects the two real-provider scenarios plus the nonignored real stale-ref
+preflight and requires both format-specific economics artifacts. The
 [reviewed local bundle](evidence/graph-operational/474c481bf3c3561c144e077f0000460f61af55f2/5269b6acba08a197e6a8411ba95ccdec6e6a4ff724d35681344b5260087cb2e8/evidence.json)
 records all three selected tests passing for exact subject
-`474c481bf3c3561c144e077f0000460f61af55f2`. The managed-generation test remains ignored and
-`not_selected`; generated clients, MCP, hosted CI and native/Wasm runtime remain
-independent unselected or unobserved dimensions. Therefore this evidence tranche,
-despite the passing local run, does not complete the general demonstration.
+`474c481bf3c3561c144e077f0000460f61af55f2`. [Execution Evidence
+v2](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V2.md) additionally selects a real
+post-CAS result-loss case, four managed-publication boundary regressions, and
+the integrated managed workflow. Its exact-subject execution is pending;
+generated clients, MCP, hosted CI and native/Wasm runtime remain independent
+dimensions. Therefore neither tranche completes the general demonstration.
 
-An integrated managed-generation precursor is also authored in
+An integrated managed-generation precursor is selected by the v2 runner in
 `tests/project_graph_operational_workflow_v1.rs`: it combines signature migration,
 unrelated merge, competing-signature rejection, deltas, explicit test policy and
 separate managed publication with stale rejection. It is unrun and deliberately

@@ -1,4 +1,4 @@
-//! Managed publication bridge regressions authored, not locally executed.
+//! Managed publication bridge regressions.
 use std::collections::BTreeMap;
 use std::fs::{File, OpenOptions};
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ use semaprax::project::{
     apply_candidate_publication, prepare_candidate_publication, with_authenticated_project,
     ProjectCandidate, ProjectCandidatePublication, SemanticChange,
 };
-use semaprax::{semantic_workspace, workspace};
+use semaprax::{semantic_workspace, workspace_graph};
 use serde_json::{json, Value};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -54,7 +54,7 @@ impl Fixture {
         self.0.join("semaprax.toml")
     }
     fn workspace_revision(&self) -> String {
-        workspace::snapshot(&self.0)
+        workspace_graph::snapshot(&self.0, "calculator.app")
             .unwrap()
             .workspace_revision()
             .to_owned()
@@ -107,9 +107,19 @@ fn diagnostics<T>(result: Result<T, Vec<Diagnostic>>, code: &str) {
         Err(errors) => assert!(errors.iter().any(|error| error.code == code), "{errors:?}"),
     }
 }
+fn managed_source(root: &Path, workspace_revision: &str, path: &str) -> String {
+    let revision = workspace_revision.strip_prefix("sha256:").unwrap();
+    std::fs::read_to_string(
+        root.join(".semaprax-workspace")
+            .join("generations")
+            .join(revision)
+            .join("files")
+            .join(path),
+    )
+    .unwrap()
+}
 
 #[test]
-#[ignore = "SPX-G150 wrong ACTIVE schema, needs workspace init fix"]
 fn prepare_is_read_only_and_apply_changes_only_the_managed_active_generation() {
     let fixture = Fixture::new();
     let candidate = fixture.candidate();
@@ -134,15 +144,28 @@ fn prepare_is_read_only_and_apply_changes_only_the_managed_active_generation() {
     let receipt: Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(receipt["result"], "managed_generation_published");
     assert_eq!(receipt["git_commit"], "not_performed");
-    let managed = workspace::snapshot(&fixture.0).unwrap();
+    let managed = workspace_graph::snapshot(&fixture.0, "calculator.app").unwrap();
     assert_eq!(
         managed.workspace_revision(),
         proof.candidate_workspace_revision()
     );
     assert_ne!(managed.workspace_revision(), base);
-    for (managed, expected) in managed.files().iter().zip(candidate.revision().sources()) {
-        assert_eq!(managed.path(), expected.path());
-        assert_eq!(managed.source(), expected.source());
+    for module in managed.modules() {
+        let expected = candidate
+            .revision()
+            .sources()
+            .iter()
+            .find(|source| source.path() == module.path())
+            .unwrap();
+        assert_eq!(module.source_graph_schema(), expected.source_graph_schema());
+        assert_eq!(module.source_revision(), expected.source_revision());
+        assert_eq!(module.source_digest(), expected.source_digest());
+    }
+    for expected in candidate.revision().sources() {
+        assert_eq!(
+            managed_source(&fixture.0, managed.workspace_revision(), expected.path()),
+            expected.source()
+        );
         assert_eq!(
             std::fs::read(fixture.0.join(expected.path())).unwrap(),
             before[Path::new(expected.path())]
@@ -168,7 +191,6 @@ fn prepare_is_read_only_and_apply_changes_only_the_managed_active_generation() {
 }
 
 #[test]
-#[ignore = "SPX-G150 wrong ACTIVE schema, needs workspace init fix"]
 fn proof_tamper_approval_and_host_substitution_reject_before_any_generation_write() {
     let fixture = Fixture::new();
     let candidate = fixture.candidate();
@@ -217,7 +239,6 @@ fn proof_tamper_approval_and_host_substitution_reject_before_any_generation_writ
 }
 
 #[test]
-#[ignore = "SPX-G150 wrong ACTIVE schema, needs workspace init fix"]
 fn existing_exclusive_lock_is_required_before_replay_or_candidate_approval_checks() {
     let fixture = Fixture::new();
     let candidate = fixture.candidate();
@@ -247,7 +268,6 @@ fn existing_exclusive_lock_is_required_before_replay_or_candidate_approval_check
 }
 
 #[test]
-#[ignore = "SPX-G150 wrong ACTIVE schema, needs workspace init fix"]
 fn raw_source_drift_and_single_changed_file_never_pad_or_publish() {
     let fixture = Fixture::new();
     let root = fixture.root_candidate();

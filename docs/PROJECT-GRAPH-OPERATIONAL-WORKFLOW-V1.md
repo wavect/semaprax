@@ -1,6 +1,7 @@
 # Project graph-operational workflow v1
 
-Status: integrated managed-generation scenario authored; not executed or verified.
+Status: integrated managed-generation scenario selected by the authored Phase 0
+v2 evidence runner; exact-subject execution is pending.
 
 Audience: compiler contributors and agent workflow integrators.
 
@@ -15,8 +16,8 @@ signature and repeated publication against the stale managed base.
 Candidate admission owns identity and manifest preservation, complete source
 rebuilding, contract/ownership checks and native-C11/structural-Wasm projection.
 Those checks are not runtime target conformance or external ABI compatibility.
-The authored test requests interpreter execution when a future runner executes
-it; no interpreter, tests, compiler checks or target programs ran in this work.
+The test requests interpreter execution when the evidence runner executes it.
+Target programs remain outside this managed-generation scenario.
 
 Publication changes only the authenticated immutable managed generation through
 `ACTIVE`. The scenario asserts original `.spx` files remain unchanged. This is

@@ -6,19 +6,21 @@ use semaprax::image_transport::{
     GitCommitHost, VNextPolicy, VNextSession, VNEXT_PROTOCOL_SCHEMA, VNEXT_RESULT_SCHEMA,
 };
 use semaprax::project::{
-    with_authenticated_project, CandidateGitCommitMetadata, CandidateGitProcessAuthority,
-    CandidateGitTarget, CandidateTestPolicy, ProjectCandidate, ProjectRevision,
+    with_authenticated_project, CandidateGitAuthority, CandidateGitCommitMetadata,
+    CandidateGitObject, CandidateGitObjectKind, CandidateGitProcessAuthority,
+    CandidateGitRefUpdate, CandidateGitRepository, CandidateGitTarget, CandidateTestPolicy,
+    ProjectCandidate, ProjectRevision,
 };
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::io::Write;
+use std::io::{self, Write};
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const BRANCH: &str = "refs/heads/review";
@@ -42,6 +44,55 @@ const PATHS: [&str; 4] = [
     "src/core.spx",
     "src/tests.spx",
 ];
+
+struct UncertainAfterRealCas {
+    inner: CandidateGitProcessAuthority,
+    state: Arc<Mutex<LostCasState>>,
+}
+#[derive(Default)]
+struct LostCasState {
+    calls: usize,
+    new_commit: Option<String>,
+}
+impl CandidateGitAuthority for UncertainAfterRealCas {
+    fn repository(&self) -> io::Result<CandidateGitRepository> {
+        self.inner.repository()
+    }
+    fn read_ref(&mut self, reference: &str) -> io::Result<Option<String>> {
+        self.inner.read_ref(reference)
+    }
+    fn read_object(&mut self, oid: &str, max_bytes: usize) -> io::Result<CandidateGitObject> {
+        self.inner.read_object(oid, max_bytes)
+    }
+    fn write_object(
+        &mut self,
+        kind: CandidateGitObjectKind,
+        bytes: &[u8],
+        expected_oid: &str,
+    ) -> io::Result<()> {
+        self.inner.write_object(kind, bytes, expected_oid)
+    }
+    fn compare_and_swap_ref(
+        &mut self,
+        reference: &str,
+        expected_old: &str,
+        new_commit: &str,
+    ) -> io::Result<CandidateGitRefUpdate> {
+        let update = self
+            .inner
+            .compare_and_swap_ref(reference, expected_old, new_commit)?;
+        if update == CandidateGitRefUpdate::Updated {
+            let mut state = self.state.lock().unwrap();
+            state.calls += 1;
+            state.new_commit = Some(new_commit.to_owned());
+            Err(io::Error::other(
+                "injected response loss after real Git ref update",
+            ))
+        } else {
+            Ok(update)
+        }
+    }
+}
 
 struct Fixture {
     root: PathBuf,
@@ -224,9 +275,15 @@ impl Fixture {
         // Open the deadline-bound process provider only after review is finished.
         let authority =
             CandidateGitProcessAuthority::open(&self.git, &self.repo, 4096, 60_000).unwrap();
-        let target =
-            CandidateGitTarget::new(authority.repository_identity(), BRANCH, &self.base, "")
-                .unwrap();
+        self.commit_session_with_authority(digest, Box::new(authority))
+    }
+    fn commit_session_with_authority(
+        &self,
+        digest: &str,
+        authority: Box<dyn CandidateGitAuthority>,
+    ) -> (VNextSession, String) {
+        let repository = authority.repository().unwrap();
+        let target = CandidateGitTarget::new(&repository.identity, BRANCH, &self.base, "").unwrap();
         let metadata = CandidateGitCommitMetadata::new(
             "Host",
             "host@example.invalid",
@@ -234,8 +291,7 @@ impl Fixture {
             "Reviewed signature evolution\n",
         )
         .unwrap();
-        let mut host =
-            GitCommitHost::new(&self.manifest(), target, metadata, Box::new(authority)).unwrap();
+        let mut host = GitCommitHost::new(&self.manifest(), target, metadata, authority).unwrap();
         let approval = host.approve(digest).unwrap();
         let session = VNextSession::open(
             &self.manifest(),
@@ -1307,4 +1363,67 @@ fn competing_real_git_ref_consumes_approval_without_overwriting_the_other_commit
     assert_eq!(fixture.head(), competing);
     fixture.unchanged_raw_sources();
     let _ = session.finish();
+}
+
+#[test]
+fn real_git_ref_update_with_lost_response_is_terminal_and_requires_inspection() {
+    let fixture = Fixture::new("sha256");
+    let mut reviewed = review(&fixture);
+    let authority =
+        CandidateGitProcessAuthority::open(&fixture.git, &fixture.repo, 4096, 60_000).unwrap();
+    let lost = Arc::new(Mutex::new(LostCasState::default()));
+    let authority = UncertainAfterRealCas {
+        inner: authority,
+        state: Arc::clone(&lost),
+    };
+    let (session, approval) =
+        fixture.commit_session_with_authority(&reviewed.digest, Box::new(authority));
+    let mut session =
+        RecordedSession::with_trace(session, "publication", std::mem::take(&mut reviewed.trace));
+    session.trace.at(&[12]);
+    restore(&mut session, &reviewed);
+    error(
+        bound(
+            &mut session,
+            "candidate/commit",
+            json!({"candidate_revision":reviewed.digest,"approval_revision":approval}),
+        ),
+        "SPX-G267",
+    );
+    let published = fixture.head();
+    assert_ne!(published, fixture.base);
+    assert_eq!(lost.lock().unwrap().calls, 1);
+    assert_eq!(
+        lost.lock().unwrap().new_commit.as_deref(),
+        Some(published.as_str())
+    );
+    let status = payload(bound(&mut session, "source-commit/status", json!({})));
+    assert_eq!(status["state"], "publication_uncertain");
+    assert!(status["pending_approval"].is_null());
+    assert!(status["report_revision"].is_null());
+    assert!(status["last_error_codes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|code| code == "SPX-G267"));
+    error(
+        bound(
+            &mut session,
+            "candidate/commit-report",
+            json!({"report_revision":format!("sha256:{}", "0".repeat(64))}),
+        ),
+        "SPX-G286",
+    );
+    error(
+        bound(
+            &mut session,
+            "candidate/commit",
+            json!({"candidate_revision":reviewed.digest,"approval_revision":approval}),
+        ),
+        "SPX-G287",
+    );
+    assert_eq!(fixture.head(), published);
+    assert_eq!(lost.lock().unwrap().calls, 1);
+    fixture.unchanged_raw_sources();
+    session.finish();
 }

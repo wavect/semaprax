@@ -1,6 +1,7 @@
 # Project Candidate Managed Publication v1
 
-Status: Partial; implementation and regression evidence authored, unrun.
+Status: Partial; implementation and four focused regressions are selected by
+the authored Phase 0 v2 evidence runner. Exact-subject execution is pending.
 
 Audience: compiler maintainers and hosts explicitly publishing approved Project candidates.
 

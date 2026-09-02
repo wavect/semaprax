@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Authored the Phase 0 graph-operational v2 closure runner. It selects four
+  canonical-Git workflows including deterministic result loss after a real Git
+  ref update, four managed-publication boundary regressions, and the integrated
+  managed-generation workflow. Managed fixtures now authenticate the semantic
+  `ACTIVE` schema through the public graph snapshot and corroborate every
+  candidate source in the immutable generation without rewriting raw source.
+  Exact-subject aggregate execution and promotion remain pending.
+
 - Executed the selected Phase 0 graph-operational evidence set freshly at one
   exact local subject, `d85566f0682df0d236f7df3023479dc0ea50d450`.
   Aggregate bundle

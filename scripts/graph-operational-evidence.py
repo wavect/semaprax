@@ -15,8 +15,8 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parent.parent
-SCHEMA = "semaprax.graph-operational-execution-evidence.v1"
-COMMAND = (
+SCHEMA = "semaprax.graph-operational-execution-evidence.v2"
+GIT_COMMAND = (
     "cargo",
     "test",
     "--locked",
@@ -29,27 +29,39 @@ COMMAND = (
     "--test-threads=1",
     "--nocapture",
 )
-TESTS = (
+GIT_TESTS = (
     "competing_real_git_ref_consumes_approval_without_overwriting_the_other_commit",
+    "real_git_ref_update_with_lost_response_is_terminal_and_requires_inspection",
     "twelve_step_v5_review_to_real_sha1_git_commit",
     "twelve_step_v5_review_to_real_sha256_git_commit",
+)
+CANDIDATE_PUBLICATION_COMMAND = (
+    "cargo", "test", "--locked", "--offline", "-p", "semaprax",
+    "--test", "project_candidate_publication_v1", "--", "--test-threads=1", "--nocapture",
+)
+CANDIDATE_PUBLICATION_TESTS = (
+    "existing_exclusive_lock_is_required_before_replay_or_candidate_approval_checks",
+    "prepare_is_read_only_and_apply_changes_only_the_managed_active_generation",
+    "proof_tamper_approval_and_host_substitution_reject_before_any_generation_write",
+    "raw_source_drift_and_single_changed_file_never_pad_or_publish",
+)
+MANAGED_COMMAND = (
+    "cargo", "test", "--locked", "--offline", "-p", "semaprax",
+    "--test", "project_graph_operational_workflow_v1", "--", "--test-threads=1", "--nocapture",
+)
+MANAGED_TESTS = (
+    "signature_evolution_merge_reports_tests_and_separate_managed_publication",
 )
 REPORTS = {
     "sha1": "agent-task-economics-sha1.json",
     "sha256": "agent-task-economics-sha256.json",
 }
-MANAGED_TEST = "signature_evolution_merge_reports_tests_and_separate_managed_publication"
-MANAGED_REASON = "SPX-G150 wrong ACTIVE schema, needs workspace init fix"
 MAX_LOG_BYTES = 16 * 1024 * 1024
 MAX_REPORT_BYTES = 256 * 1024
 MAX_REPOSITORY_INPUT_BYTES = 16 * 1024 * 1024
 MAX_COMMAND_SECONDS = 20 * 60
 HEX_COMMIT = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 RESULT = re.compile(r"^test ([A-Za-z0-9_]+) \.\.\. (ok|FAILED|ignored)$", re.MULTILINE)
-SUMMARY = re.compile(
-    r"^test result: ok\. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [^\r\n]+$",
-    re.MULTILINE,
-)
 
 
 class EvidenceError(Exception):
@@ -153,7 +165,7 @@ def report(path, object_format):
     return body, value
 
 
-def parse_test_log(body):
+def parse_test_log(body, tests, label):
     if len(body) > MAX_LOG_BYTES:
         raise EvidenceError(f"Cargo log exceeds {MAX_LOG_BYTES} bytes")
     try:
@@ -161,11 +173,15 @@ def parse_test_log(body):
     except UnicodeDecodeError as error:
         raise EvidenceError("Cargo log is not UTF-8") from error
     rows = RESULT.findall(text)
-    expected = [(name, "ok") for name in TESTS]
+    expected = [(name, "ok") for name in tests]
     if sorted(rows) != expected:
         raise EvidenceError(f"focused Cargo run selected unexpected tests: {sorted(rows)!r}")
-    if len(SUMMARY.findall(text)) != 1:
-        raise EvidenceError("focused Cargo run lacks its exact 3/0/0 test summary")
+    summary = re.compile(
+        rf"^test result: ok\. {len(tests)} passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [^\r\n]+$",
+        re.MULTILINE,
+    )
+    if len(summary.findall(text)) != 1:
+        raise EvidenceError(f"{label} lacks its exact passing test summary")
     return text
 
 
@@ -212,14 +228,15 @@ def require_repository_identity(commit, tree, inputs):
         raise EvidenceError("repository worktree is not clean after execution")
 
 
-def write_bundle(destination, evidence, log, reports):
+def write_bundle(destination, evidence, logs, reports):
     parent = destination.parent
     parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() or destination.is_symlink():
         raise EvidenceError(f"evidence destination already exists: {destination}")
     stage = Path(tempfile.mkdtemp(prefix=".graph-operational-evidence-", dir=parent))
     try:
-        (stage / "cargo.log").write_bytes(log)
+        for name, body in logs.items():
+            (stage / name).write_bytes(body)
         for name, body in reports.items():
             (stage / name).write_bytes(body)
         (stage / "evidence.json").write_bytes(canonical(evidence))
@@ -269,13 +286,24 @@ def main(argv=None):
         environment["RUSTC"] = tools["rustc"]["executable"]
         environment["SEMAPRAX_TEST_GIT"] = tools["git"]["executable"]
         environment["SEMAPRAX_GRAPH_WORKFLOW_EVIDENCE_DIR"] = str(exported_path)
-        completed = run(
-            COMMAND, env=environment, combine=True, timeout=MAX_COMMAND_SECONDS
-        )
-        log = completed.stdout
-        if completed.returncode != 0:
-            raise EvidenceError(f"focused Cargo command failed with exit {completed.returncode}")
-        parse_test_log(log)
+        executions = []
+        for label, command_line, tests, log_name in (
+            ("canonical Git workflow", GIT_COMMAND, GIT_TESTS, "cargo.log"),
+            ("candidate managed publication", CANDIDATE_PUBLICATION_COMMAND,
+             CANDIDATE_PUBLICATION_TESTS, "candidate-publication-cargo.log"),
+            ("integrated managed workflow", MANAGED_COMMAND, MANAGED_TESTS,
+             "managed-workflow-cargo.log"),
+        ):
+            completed = run(
+                command_line, env=environment, combine=True, timeout=MAX_COMMAND_SECONDS
+            )
+            if completed.returncode != 0:
+                raise EvidenceError(
+                    f"{label} Cargo command failed with exit {completed.returncode}"
+                )
+            parse_test_log(completed.stdout, tests, label)
+            require_repository_identity(commit_before, tree_before, input_bodies)
+            executions.append((label, command_line, tests, log_name, completed))
         inventory(exported_path)
         report_bodies = {}
         for object_format, name in REPORTS.items():
@@ -284,8 +312,10 @@ def main(argv=None):
 
     require_repository_identity(commit_before, tree_before, input_bodies)
 
+    logs = {log_name: completed.stdout for _, _, _, log_name, completed in executions}
     artifact_rows = [
-        {"path": "cargo.log", "bytes": len(log), "sha256": sha256(log)},
+        {"path": name, "bytes": len(body), "sha256": sha256(body)}
+        for name, body in logs.items()
     ]
     for object_format, name in REPORTS.items():
         body = report_bodies[name]
@@ -298,7 +328,7 @@ def main(argv=None):
                 "sha256": sha256(body),
             }
         )
-    bundle_seed = b"semaprax.graph-operational-execution-evidence.bundle.v1\0" + b"\0".join(
+    bundle_seed = b"semaprax.graph-operational-execution-evidence.bundle.v2\0" + b"\0".join(
         row["sha256"].encode("ascii") for row in artifact_rows
     )
     bundle_id = sha256(bundle_seed).split(":", 1)[1]
@@ -326,37 +356,32 @@ def main(argv=None):
         },
         "gates": [
             {
-                "id": "graph_operational_git_workflow_v1",
+                "id": gate_id,
                 "selection": "default",
-                "prerequisite": "local_unix_git",
+                "prerequisite": prerequisite,
                 "provisioning": "not_required",
-                "command": list(COMMAND),
+                "command": list(command_line),
                 "outcome": "passed",
                 "exit_code": completed.returncode,
-                "counts": {
-                    "selected": 3,
-                    "passed": 3,
-                    "failed": 0,
-                    "ignored": 0,
-                    "measured": 0,
-                    "filtered_out": 0,
-                },
-                "tests": [{"name": name, "outcome": "passed"} for name in TESTS],
-            },
-            {
-                "id": "graph_operational_managed_workflow_v1",
-                "selection": "explicit_ignored_required",
-                "prerequisite": "known_fixture_correction",
-                "provisioning": "not_required",
-                "outcome": "not_selected",
-                "test": MANAGED_TEST,
-                "reason": MANAGED_REASON,
-            },
+                "counts": {"selected":len(tests),"passed":len(tests),"failed":0,
+                    "ignored":0,"measured":0,"filtered_out":0},
+                "tests": [{"name": name, "outcome": "passed"} for name in tests],
+                "log": log_name,
+            }
+            for (gate_id, prerequisite), (_, command_line, tests, log_name, completed) in zip(
+                (("graph_operational_git_workflow_v1", "local_unix_git"),
+                 ("candidate_managed_publication_v1", "local_managed_workspace"),
+                 ("graph_operational_managed_workflow_v1", "local_managed_workspace")),
+                executions,
+            )
         ],
         "artifacts": artifact_rows,
         "claims": {
             "bounded_twelve_step_git_workflow": "executed",
-            "managed_active_workflow": "not_executed",
+            "real_git_post_cas_uncertainty": "executed_injected_result_loss_after_real_ref_update",
+            "managed_publication_boundary_controls": "executed_local",
+            "bounded_twelve_step_managed_workflow": "executed_local",
+            "managed_active_workflow": "executed_local_managed_generation",
             "native_target_execution": "not_claimed",
             "wasm_target_execution": "not_claimed",
             "hosted_or_cross_platform": "not_claimed",
@@ -379,7 +404,7 @@ def main(argv=None):
         destination = args.output.expanduser()
         if not destination.is_absolute():
             destination = (Path.cwd() / destination).resolve()
-    write_bundle(destination, evidence, log, report_bodies)
+    write_bundle(destination, evidence, logs, report_bodies)
     try:
         require_repository_identity(commit_before, tree_before, input_bodies)
     except EvidenceError:

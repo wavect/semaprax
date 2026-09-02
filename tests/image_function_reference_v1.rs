@@ -99,7 +99,10 @@ fn digest(payload: &Value) -> String {
     hash.update(b"semaprax.image-function-reference.payload.v1\0");
     hash.update((bytes.len() as u64).to_le_bytes());
     hash.update(bytes);
-    format!("sha256:{:x}", hash.finalize())
+    format!(
+        "sha256:{:x}",
+        semaprax::digest_hex::LowerHex(hash.finalize())
+    )
 }
 fn canonical_reference(mut value: Value) -> String {
     value["reference_revision"] = Value::Null;
@@ -314,7 +317,7 @@ fn export_rejects_missing_targets_and_stale_expected_images_without_side_effects
     let image = fixture.image();
     code(
         image.export_function_reference(image.image_digest(), "calculator.missing", None),
-        "SPX-G363",
+        "SPX-G227",
     );
     code(
         image.export_function_reference(

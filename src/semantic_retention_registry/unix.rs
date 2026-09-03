@@ -427,7 +427,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(root.validate().unwrap_err()[0].code, "SPX-G465");
+        assert_eq!(root.validate().unwrap_err()[0].code, "SPX-G466");
 
         drop(root);
         std::fs::remove_dir_all(root_path).unwrap();

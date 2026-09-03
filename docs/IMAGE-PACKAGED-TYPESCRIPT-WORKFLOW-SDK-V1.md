@@ -1,8 +1,10 @@
 # Packaged TypeScript workflow SDK v1
 
-Status: the explicitly provisioned local Unix package installation and workflow
-gate passed 1/1 on 2026-09-03. This is focused current-tree evidence, not hosted,
-cross-platform, release, registry-publication, or full-quality evidence.
+Status: the explicitly provisioned local Unix package installation and raw-v5
+workflow gate passed 1/1 on 2026-09-03. The additive pinned-MCP transport and
+real `serve-workspace-mcp` form of that gate are authored but unrun. This is
+focused local evidence, not hosted, cross-platform, release,
+registry-publication, or full-quality evidence.
 
 Audience: generated-client consumers, embedding hosts, package reviewers, and
 evidence-runner authors.
@@ -53,12 +55,24 @@ revision must equal the constants in the live client response. Review and
 publish revisions are bound separately; equality between the two profiles is
 not assumed.
 
-The transport has one nonempty `sessionId` and one `exchange(frame)` operation.
+The base transport has one nonempty `sessionId` and one `exchange(frame)` operation.
 The frame is the complete request string and the result is the complete
 response string. A transport grants no authority merely by implementing this
 shape. The embedding host remains responsible for framing, session lifetime,
 tool selection, and every filesystem, process, network, and publication
 capability.
+
+`connectMcpWorkflowTransport` supplies the supported MCP composition. Its
+caller-owned wire has the same session identity and request/response exchange,
+plus `notify(frame)` for the response-free initialized notification. The
+package selects MCP `2025-11-25`, requires the server's tools capability, sends
+the initialized notification, maps `/` to `__` in the already selected v5
+method name, and invokes `tools/call` with the exact params object. It requires
+the Semaprax adapter's one-text-item result, checks `isError` against the inner
+v5 response, authenticates inner correlation ID zero, then restores the
+generated codec's original ID before typed decoding. It neither calls
+`tools/list` nor converts an arbitrary tool name back into a compiler method;
+the real MCP catalogue remains the host-selected admission boundary.
 
 The driver fails closed on a missing or foreign workflow, protocol or client
 revision mismatch, wrong phase/method order, malformed response, stale binding,
@@ -102,9 +116,10 @@ discovery, and selects npm offline mode. It then:
 4. installs only that local tarball through a closed lockfile and `npm ci`;
 5. proves package-name resolution selects the installed regular files and that
    their bytes equal the packed inputs;
-6. drives review through one real v5 stdio session and publication through a
-   distinct explicitly approved v5 stdio session backed by an isolated local
-   bare SHA-256 Git repository;
+6. initializes two real pinned MCP stdio sessions, drives review through the
+   first session's exact `tools/call` surface, and drives publication through a
+   distinct explicitly approved MCP session backed by an isolated local bare
+   SHA-256 Git repository;
 7. authenticates the handoff, source preservation, commit receipt and Git
    old/new/parent/tree/manifest/source objects plus the unrelated executable
    entry and mode;
@@ -128,14 +143,15 @@ cargo test --locked --offline -p semaprax \
 Missing or mismatched provisioned tools fail the selected gate; they do not
 turn it into a skip. Packing, installing, resolving, and loading the package do
 not invoke the SEMAPRAX or TypeScript compiler. The end-to-end gate separately
-spawns the provisioned SEMAPRAX binary as two `serve-workspace` hosts, and the
+spawns the provisioned SEMAPRAX binary as `serve-workspace-mcp` hosts, and the
 strict source-to-distribution and consumer checks invoke the provisioned
 TypeScript compiler.
 
-The focused gate passed on the working tree on macOS arm64 with Node 24.3.0,
+The earlier raw-v5 focused gate passed on the working tree on macOS arm64 with Node 24.3.0,
 npm 11.4.2, TypeScript 5.8.3, and Apple Git 2.50.1. This is a local development
 result rather than a clean exact-commit evidence bundle, release result, or
-transferable later-head claim.
+transferable later-head claim. The MCP replacement of that execution path has
+not yet been run and carries no passed-evidence claim.
 
 ## Authority and blind spots
 

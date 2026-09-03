@@ -1,5 +1,6 @@
 export declare const WORKFLOW_ID: "function_signature_review_publish_v1";
 export declare const PROTOCOL: "semaprax.image-agent-protocol.v5";
+export declare const MCP_PROTOCOL_VERSION: "2025-11-25";
 export type Digest = `sha256:${string}`;
 export type JsonObject = {
     readonly [key: string]: unknown;
@@ -62,6 +63,17 @@ export interface WorkflowTransport {
     readonly sessionId: string;
     exchange(frame: string): string | Promise<string>;
 }
+/** One already connected, caller-owned MCP byte transport. It grants no authority. */
+export interface McpWireTransport {
+    readonly sessionId: string;
+    exchange(frame: string): string | Promise<string>;
+    notify(frame: string): void | Promise<void>;
+}
+/**
+ * Initialize the pinned MCP protocol and adapt its exact Semaprax tools/call
+ * envelope to the generated v5 codec expected by runReview and runPublish.
+ */
+export declare function connectMcpWorkflowTransport(wire: McpWireTransport): Promise<WorkflowTransport>;
 export interface ApplicationFailure {
     readonly code: number;
     readonly message: string;

@@ -1,5 +1,6 @@
 export const WORKFLOW_ID = 'function_signature_review_publish_v1' as const;
 export const PROTOCOL = 'semaprax.image-agent-protocol.v5' as const;
+export const MCP_PROTOCOL_VERSION = '2025-11-25' as const;
 
 const REVIEW_METHODS = [
   'workspace/open',
@@ -127,6 +128,91 @@ export interface WorkflowCodec {
 export interface WorkflowTransport {
   readonly sessionId: string;
   exchange(frame: string): string | Promise<string>;
+}
+
+/** One already connected, caller-owned MCP byte transport. It grants no authority. */
+export interface McpWireTransport {
+  readonly sessionId: string;
+  exchange(frame: string): string | Promise<string>;
+  notify(frame: string): void | Promise<void>;
+}
+
+/**
+ * Initialize the pinned MCP protocol and adapt its exact Semaprax tools/call
+ * envelope to the generated v5 codec expected by runReview and runPublish.
+ */
+export async function connectMcpWorkflowTransport(wire: McpWireTransport): Promise<WorkflowTransport> {
+  const sessionId = transportSession(wire);
+  const initialized = await wire.exchange(`${JSON.stringify({
+    jsonrpc: '2.0',
+    id: 'semaprax-workflow-initialize',
+    method: 'initialize',
+    params: {
+      protocolVersion: MCP_PROTOCOL_VERSION,
+      capabilities: {},
+      clientInfo: { name: '@semaprax/agent-workflow', version: '0.1.0' },
+    },
+  })}\n`);
+  const response = parseObjectFrame(initialized, 'MCP initialize response');
+  if (response.jsonrpc !== '2.0' || response.id !== 'semaprax-workflow-initialize' ||
+      !same(Object.keys(response).sort(), ['jsonrpc', 'id', 'result'].sort())) {
+    throw new Error('MCP initialize response is not the pinned result envelope');
+  }
+  const result = record(response.result, 'MCP initialize result');
+  const capabilities = record(result.capabilities, 'MCP server capabilities');
+  const tools = record(capabilities.tools, 'MCP tools capability');
+  if (result.protocolVersion !== MCP_PROTOCOL_VERSION || tools.listChanged !== false) {
+    throw new Error('MCP server did not select the pinned tools protocol');
+  }
+  await wire.notify(`${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })}\n`);
+
+  let sequence = 0;
+  return Object.freeze({
+    sessionId,
+    exchange: async (frame: string): Promise<string> => {
+      const request = parseObjectFrame(frame, 'generated v5 request');
+      if (!same(Object.keys(request).sort(), ['jsonrpc', 'id', 'method', 'params'].sort()) ||
+          request.jsonrpc !== '2.0' || typeof request.id !== 'string' || request.id.length === 0 || request.id.length > 128 ||
+          typeof request.method !== 'string' || request.method.length === 0 || !object(request.params)) {
+        throw new Error('generated v5 request is not a closed method call');
+      }
+      const innerId = request.id;
+      sequence += 1;
+      const outerId = `semaprax-workflow-call:${sequence}`;
+      const outer = await wire.exchange(`${JSON.stringify({
+        jsonrpc: '2.0',
+        id: outerId,
+        method: 'tools/call',
+        params: {
+          name: request.method.replaceAll('/', '__'),
+          arguments: request.params,
+        },
+      })}\n`);
+      const call = parseObjectFrame(outer, 'MCP tools/call response');
+      if (!same(Object.keys(call).sort(), ['jsonrpc', 'id', 'result'].sort()) || call.jsonrpc !== '2.0' || call.id !== outerId) {
+        throw new Error('MCP tools/call response is not the exact result envelope');
+      }
+      const callResult = record(call.result, 'MCP tools/call result');
+      if (!same(Object.keys(callResult).sort(), ['content', 'isError'].sort()) ||
+          typeof callResult.isError !== 'boolean' || !Array.isArray(callResult.content) || callResult.content.length !== 1) {
+        throw new Error('MCP tools/call result is not the exact Semaprax text envelope');
+      }
+      const content = record(callResult.content[0], 'MCP tools/call content');
+      if (!same(Object.keys(content).sort(), ['type', 'text'].sort()) || content.type !== 'text' || typeof content.text !== 'string') {
+        throw new Error('MCP tools/call content is not one text item');
+      }
+      const inner = parseObjectFrame(content.text, 'MCP inner v5 response');
+      const resultResponse = Object.hasOwn(inner, 'result');
+      const errorResponse = Object.hasOwn(inner, 'error');
+      if (inner.jsonrpc !== '2.0' || inner.id !== 0 || resultResponse === errorResponse ||
+          callResult.isError !== errorResponse ||
+          !same(Object.keys(inner).sort(), ['jsonrpc', 'id', resultResponse ? 'result' : 'error'].sort())) {
+        throw new Error('MCP inner v5 response is not exactly correlated');
+      }
+      inner.id = innerId;
+      return JSON.stringify(inner);
+    },
+  });
 }
 
 export interface ApplicationFailure {
@@ -304,6 +390,20 @@ type MutableObject = { [key: string]: unknown };
 
 function object(value: unknown): value is MutableObject {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseObjectFrame(frame: string, name: string): MutableObject {
+  if (typeof frame !== 'string' || frame.length === 0) throw new Error(`${name} must be one JSON frame`);
+  const body = frame.endsWith('\n') ? frame.slice(0, -1) : frame;
+  if (body.length === 0 || body.includes('\n') || body.includes('\r')) throw new Error(`${name} must be one JSON frame`);
+  let value: unknown;
+  try {
+    value = JSON.parse(body);
+  } catch {
+    throw new Error(`${name} is not valid JSON`);
+  }
+  if (!object(value)) throw new Error(`${name} must be one object`);
+  return value;
 }
 
 function text(value: unknown, name: string): string {

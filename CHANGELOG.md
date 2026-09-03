@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added a zero-authority pinned MCP transport to the packaged TypeScript
+  workflow SDK. It initializes MCP 2025-11-25, sends the initialized
+  notification, routes the generated v5 request through the exact selected
+  `tools/call`, validates the one-text-item inner response, and restores codec
+  correlation without changing grants. The installed-package review and
+  separately approved Git publication gate now targets real
+  `serve-workspace-mcp`; that additive form is authored but unrun, while the
+  earlier raw-v5 package gate remains the only passed claim.
+
 - Added exact, authority-neutral persistent semantic-cache eviction. A host can
   remove one digest-selected derived entry under the authenticated store's
   held-root and exclusive-lock discipline, receive a bounded machine-readable

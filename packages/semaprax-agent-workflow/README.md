@@ -7,7 +7,10 @@ network, inspect Git, hold secrets, create approvals, or enlarge the codec's
 capabilities.
 
 ```js
-import { runReview, runPublish } from '@semaprax/agent-workflow';
+import { connectMcpWorkflowTransport, runReview, runPublish } from '@semaprax/agent-workflow';
+
+const reviewTransport = await connectMcpWorkflowTransport(reviewMcpWire);
+const publishTransport = await connectMcpWorkflowTransport(publishMcpWire);
 
 const review = await runReview(codec, reviewTransport, {
   target: 'calculator.add',
@@ -27,7 +30,16 @@ const inspectPublication = Object.assign(
 const published = await runPublish(codec, publishTransport, review.handoff, inspectPublication);
 ```
 
-The two transports must have different nonempty `sessionId` values. `runReview`
+`connectMcpWorkflowTransport` initializes the pinned MCP 2025-11-25 lifecycle,
+sends the initialized notification, maps each generated v5 method to its exact
+Semaprax tool name, validates the one-text-item result, and restores the inner
+codec correlation ID. Its caller-owned wire supplies `exchange` for requests
+and `notify` for the response-free initialized notification. The adapter does
+not list, infer, or enlarge tools; an unavailable host-selected tool fails at
+the real MCP boundary.
+
+The review and publish transports must have different nonempty `sessionId`
+values. `runReview`
 uses exactly the thirteen methods frozen by the workflow, reconstructs bounded
 UTF-8 chunks, requires a passing interpreter test report, and returns a
 SHA-256-bound handoff with explicitly empty `compilerRepairOptions`. The caller

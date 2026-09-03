@@ -106,6 +106,14 @@ handles and publication classifications. `isError` distinguishes an inner
 error from a successful semantic result. Unknown tools and malformed MCP
 envelopes are outer protocol errors and never reach semantic dispatch.
 
+The zero-authority `@semaprax/agent-workflow` package includes a pinned client
+composition for this exact envelope. It performs initialization, sends the
+response-free initialized notification, calls the selected tool, checks the
+one-text-item/`isError` binding and inner ID zero, then restores the generated
+v5 codec's original correlation ID. Its installed-package review and separately
+approved publication gate now targets real `serve-workspace-mcp`; that additive
+gate is authored but unrun and does not enlarge this adapter's grants.
+
 ## Authority and result publication
 
 Every forwarded method keeps its normal held-source authentication, independent

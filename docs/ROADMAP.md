@@ -214,12 +214,15 @@ typed v5 application diagnostics in all three generated clients, and a
 domain-separated generated-client contract revision. The zero-authority
 `@semaprax/agent-workflow` package composes that surface into the exact review
 and separately approved publication sequence; its explicitly provisioned local
-Unix gate passed offline pack/install, package-name import, real stdio sessions,
-and local SHA-256 Git publication. Automatic repair remains unavailable for
+Unix raw-v5 gate passed offline pack/install, package-name import, real stdio
+sessions, and local SHA-256 Git publication. A zero-authority package transport
+now composes the same generated codec through pinned MCP initialization and
+`tools/call`; the owning real `serve-workspace-mcp` review/publication gate is
+authored but unrun. Automatic repair remains unavailable for
 this signature change and is exposed as an empty typed compiler catalogue; a
 semantic rejection separately offers only the non-executing typed
-`start_new_review_with_different_intention` transition. Cancellation, session
-real Extension Host task execution, MCP Tasks or other general scheduling,
+`start_new_review_with_different_intention` transition. Real Extension Host
+task execution, MCP Tasks or other general scheduling,
 registry/hosted/cross-platform support, broader workflows, and full programme
 evidence remain open Phase 1 work. One bounded candidate-test task now supplies
 cooperative cancellation and source/session invalidation through v5, ordinary

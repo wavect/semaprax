@@ -517,13 +517,14 @@ fn publish_policy(fixture: &Fixture, candidate: &str) -> Value {
 }
 
 const STRICT_CONSUMER: &str = r#"
-import {runReview,runPublish,type FailureClassifier,type InspectPublication,type WorkflowFailureDetail,type WorkflowHandoff,type WorkflowStepObservation,type WorkflowTransport} from '@semaprax/agent-workflow';
+import {connectMcpWorkflowTransport,runReview,runPublish,type FailureClassifier,type InspectPublication,type McpWireTransport,type WorkflowFailureDetail,type WorkflowHandoff,type WorkflowStepObservation,type WorkflowTransport} from '@semaprax/agent-workflow';
 import * as review from './review-client.js';
 import * as publish from './publish-client.js';
 const classify:FailureClassifier=()=> 'semantic_review_rejection';
 const transport:WorkflowTransport={sessionId:'typed-consumer',exchange:async(_frame:string)=>'{"jsonrpc":"2.0","id":"x","error":{"code":-32603,"message":"not executed"}}'};
 const input={target:'calculator.add',parameters:[{from:'right',name:'rhs'},{from:'left',name:'lhs'},{name:'offset',type:'i64' as const,argument:{kind:'i64' as const,value:0}}],classifyFailure:classify};
 void runReview(review,transport,input);
+void connectMcpWorkflowTransport({sessionId:'typed-mcp',exchange:async()=>'{"jsonrpc":"2.0","id":"x","error":{"code":-32603,"message":"not executed"}}',notify:async()=>{}} as McpWireTransport);
 const inspect=Object.assign(async()=>true,{classifyFailure:classify}) as InspectPublication;
 void runPublish(publish,{...transport,sessionId:'typed-publish'},{} as WorkflowHandoff,inspect);
 function inspectStep(step:WorkflowStepObservation):boolean{return step.responseContract.authority.request_capability_changes===false&&step.responseContract.blind_spots.ledger_reference==='workflow.blind_spots';}
@@ -537,14 +538,14 @@ import {readFileSync} from 'node:fs';
 import {spawn,spawnSync} from 'node:child_process';
 import {createInterface} from 'node:readline';
 import {fileURLToPath} from 'node:url';
-import {runReview,runPublish} from '@semaprax/agent-workflow';
+import {connectMcpWorkflowTransport,runReview,runPublish} from '@semaprax/agent-workflow';
 import * as reviewCodec from './out/review-client.js';
 import * as publishCodec from './out/publish-client.js';
 
 class Session {
   constructor(id,compiler,manifest,policy) {
     this.sessionId=id; this.pending=[]; this.lines=[]; this.stderr='';
-    this.child=spawn(compiler,['serve-workspace',manifest,policy],{stdio:['pipe','pipe','pipe']});
+    this.child=spawn(compiler,['serve-workspace-mcp',manifest,policy],{stdio:['pipe','pipe','pipe']});
     this.child.stderr.setEncoding('utf8'); this.child.stderr.on('data',chunk=>this.stderr+=chunk);
     this.reader=createInterface({input:this.child.stdout,crlfDelay:Infinity});
     this.reader.on('line',line=>{const waiter=this.pending.shift();if(waiter)waiter.resolve(line);else this.lines.push(line);});
@@ -556,6 +557,10 @@ class Session {
     const ready=this.lines.shift(); if(ready!==undefined){this.child.stdin.write(frame);return Promise.resolve(ready);}
     const answer=new Promise((resolve,reject)=>this.pending.push({resolve,reject}));
     this.child.stdin.write(frame); return answer;
+  }
+  notify(frame) {
+    assert.ok(frame.endsWith('\n')); assert.equal(frame.slice(0,-1).includes('\n'),false);
+    this.child.stdin.write(frame);
   }
   async close(){this.child.stdin.end();const code=await new Promise(resolve=>this.child.once('exit',resolve));assert.equal(code,0,this.stderr);}
 }
@@ -603,21 +608,24 @@ if(action==='review') {
   const weakened={...reviewCodec,WORKFLOWS:structuredClone(reviewCodec.WORKFLOWS)};
   weakened.WORKFLOWS[0].phases[0].ordered_steps[0].response_contract.authority.request_capability_changes=true;
   await assert.rejects(runReview(weakened,{sessionId:'weakened-contract',exchange:()=>{throw new Error('weakened contract must fail before transport');}},{target:'calculator.add',parameters,classifyFailure:classify}),/response authority is not closed/);
-  const session=new Session('installed-review',compiler,manifest,policy);
+  const wire=new Session('installed-review-mcp',compiler,manifest,policy);
+  const session=await connectMcpWorkflowTransport(wire);
   await bindLiveProfile(session,reviewCodec,false);
   const result=await runReview(reviewCodec,session,{target:'calculator.add',parameters,classifyFailure:classify});
-  await session.close(); assert.equal(result.status,'ready'); assert.deepEqual(result.compilerRepairOptions,[]); assert.equal(result.blindRetry,false); assertTranscript(result.transcript,'review',REVIEW_METHODS);
+  await wire.close(); assert.equal(result.status,'ready'); assert.deepEqual(result.compilerRepairOptions,[]); assert.equal(result.blindRetry,false); assertTranscript(result.transcript,'review',REVIEW_METHODS);
   const malformed=await runReview(reviewCodec,{sessionId:'malformed',exchange:()=>'{not-json'},{target:'calculator.add',parameters,classifyFailure:classify});
   assert.equal(malformed.status,'failure'); assert.equal(malformed.outcome,'transport_uncertain_no_publish_claim'); assert.deepEqual(malformed.compilerRepairOptions,[]); assert.deepEqual(malformed.transitionRepairOptions,[]); assert.equal(malformed.blindRetry,false); assert.equal(Object.hasOwn(malformed,'error'),false); assert.equal(malformed.failure.kind,'transport_or_response_failure'); assert.equal(typeof malformed.failure.message,'string'); assert.ok(Object.hasOwn(malformed.failure,'opaqueCause')); assertTranscript(malformed.transcript,'review',REVIEW_METHODS.slice(0,1),true);
-  const rejectedSession=new Session('installed-structured-failure',compiler,manifest,policy);
+  const rejectedWire=new Session('installed-structured-failure-mcp',compiler,manifest,policy);
+  const rejectedSession=await connectMcpWorkflowTransport(rejectedWire);
   await bindLiveProfile(rejectedSession,reviewCodec,false);
   const rejected=await runReview(reviewCodec,rejectedSession,{target:'missing.function',parameters,classifyFailure:classify});
-  await rejectedSession.close(); assert.equal(rejected.status,'failure'); assert.equal(rejected.outcome,'review_rejected'); assert.deepEqual(rejected.compilerRepairOptions,[]); assert.deepEqual(rejected.transitionRepairOptions,['start_new_review_with_different_intention']); assert.equal(rejected.failure.kind,'application_failure'); assert.ok(rejected.failure.applicationFailure.data.diagnostics.length>0); assert.equal(Object.hasOwn(rejected.failure,'opaqueCause'),false); assertTranscript(rejected.transcript,'review',REVIEW_METHODS.slice(0,2),true);
+  await rejectedWire.close(); assert.equal(rejected.status,'failure'); assert.equal(rejected.outcome,'review_rejected'); assert.deepEqual(rejected.compilerRepairOptions,[]); assert.deepEqual(rejected.transitionRepairOptions,['start_new_review_with_different_intention']); assert.equal(rejected.failure.kind,'application_failure'); assert.ok(rejected.failure.applicationFailure.data.diagnostics.length>0); assert.equal(Object.hasOwn(rejected.failure,'opaqueCause'),false); assertTranscript(rejected.transcript,'review',REVIEW_METHODS.slice(0,2),true);
   process.stdout.write(JSON.stringify(result));
 } else if(action==='publish'||action==='publish-loss') {
   const saved=JSON.parse(readFileSync(handoffPath,'utf8')); const handoff=saved.handoff??saved;
   const expected=JSON.parse(readFileSync(inspectionPath,'utf8'));
-  const session=new Session('installed-publish',compiler,manifest,policy);
+  const wire=new Session('installed-publish-mcp',compiler,manifest,policy);
+  const session=await connectMcpWorkflowTransport(wire);
   await bindLiveProfile(session,publishCodec,true);
   const gitRun=(args,encoding)=>{
     const output=spawnSync(git,['-c','core.hooksPath=/dev/null','-c','core.logAllRefUpdates=false',`--git-dir=${repository}`,...args],{
@@ -648,7 +656,7 @@ if(action==='review') {
   const result=await runPublish(publishCodec,transport,handoff,inspect);
   if(action==='publish-loss') {
     assert.equal(result.status,'failure'); assert.equal(result.outcome,'publication_uncertain'); assert.deepEqual(result.compilerRepairOptions,[]); assert.deepEqual(result.transitionRepairOptions,[]); assert.equal(result.commitInvoked,true); assert.equal(result.blindRetry,false); assert.equal(result.failure.kind,'transport_or_response_failure'); assert.ok(Object.hasOwn(result.failure,'opaqueCause')); assertTranscript(result.transcript,'publish',PUBLISH_METHODS.slice(0,7),true);
-    await session.close(); process.stdout.write(JSON.stringify(result)); process.exit(0);
+    await wire.close(); process.stdout.write(JSON.stringify(result)); process.exit(0);
   }
   assert.equal(result.status,'published',JSON.stringify(result)); assert.equal(result.commitCalls,1); assert.equal(result.blindRetry,false); assert.equal(result.inspected,true); assertTranscript(result.transcript,'publish',PUBLISH_METHODS);
   const invalid=await runPublish(publishCodec,{sessionId:'installed-invalid-handoff',exchange:()=>{throw new Error('invalid handoff must not reach transport');}},{...handoff,schema:'foreign'},inspect);
@@ -656,7 +664,7 @@ if(action==='review') {
   const duplicate=publishCodec.request('duplicate','candidate/commit',{image_revision:handoff.imageRevision,candidate_revision:handoff.candidateRevision,approval_revision:'sha256:'+'0'.repeat(64)});
   const duplicateResponse=JSON.parse(await session.exchange(duplicate));
   assert.match(duplicateResponse.error.message,/SPX-G287/);
-  await session.close(); process.stdout.write(JSON.stringify(result));
+  await wire.close(); process.stdout.write(JSON.stringify(result));
 } else { throw new Error('unknown action'); }
 "#;
 

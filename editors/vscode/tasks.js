@@ -104,7 +104,7 @@ class CandidateTestTask {
   get state() { return this.#state; }
   get cancellationRequested() { return this.#cancelRequested; }
   requestCancel() {
-    if (this.#closed || (this.#state !== null && this.#state !== 'running')) return false;
+    if (this.#closed || (this.#state !== null && !['queued', 'running'].includes(this.#state))) return false;
     this.#cancelRequested = true; this.#wakeResolve(); return true;
   }
   #resetWake() { this.#wake = new Promise(resolve => { this.#wakeResolve = resolve; }); }

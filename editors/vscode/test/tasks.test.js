@@ -84,6 +84,21 @@ test('cancellation requested while start is pending becomes one explicit sticky 
   assert.equal(controller.requestCancel(), false);
 });
 
+test('cancellation remains available after the compiler returns queued start', async () => {
+  const server = new Server([
+    { method: METHODS[0], payload: start() },
+    { method: METHODS[2], payload: cancelled() }
+  ]);
+  const controller = new CandidateTestTask(server.call.bind(server), BINDING);
+  let accepted = false;
+  const value = await controller.run(row => {
+    if (row.state === 'queued') accepted = controller.requestCancel();
+  });
+  assert.equal(accepted, true);
+  assert.equal(value.status.state, 'cancelled');
+  assert.deepEqual(server.calls.map(row => row.method), [METHODS[0], METHODS[2]]);
+});
+
 test('failed execution returns typed diagnostics and never requests result bytes', async () => {
   const diagnostics = [{ code: 'SPX-F109', message: 'worker failed' }];
   const server = new Server([

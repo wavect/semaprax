@@ -4,6 +4,9 @@ use semaprax::project_transport::{
     PROJECT_PUBLIC_API_TRANSPORT_SCHEMA,
 };
 
+#[path = "agent_transport_v6_sdk/live_conformance.rs"]
+mod live_conformance;
+
 #[test]
 fn discovery_is_canonical_closed_and_matches_the_live_v6_inventory() {
     let source = project_public_api_transport_discovery();

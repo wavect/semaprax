@@ -26,6 +26,42 @@ not relabel structural outer validation as authentication.
 
 This artifact adds no protocol method and does not alter v2-v6 wire bytes. Its
 owning gate is the `agent_transport_v6_sdk` module in the Project integration
-harness. Generated-client compilation or execution is evidence only for this
-codec contract, not registry publication, installed-product support, daemon
-peer authentication, or Project profile promotion.
+harness.
+
+The owning executable gate generates and compiles the Python and Rust codecs,
+then runs each against a real retained v6 daemon for every Project v8-v11
+profile. The Rust consumer is built from an offline, exact-version dependency
+manifest. A separate ignored gate requires an explicitly selected TypeScript
+5.8.3 compiler and Node 22 or newer before it compiles and executes the
+TypeScript codec. In all three cases the Rust test harness owns the temporary
+files, daemon process, and bounded byte relay; the generated codec receives
+only revisions and response bytes. The relay caps requests at 1 MiB, responses
+at 16 MiB, stderr at 64 KiB, and each child wait at 30 seconds.
+
+The executable cases cover the four closed profile triples, exact LF framing,
+stale-subject rejection and recovery, local request validation, mismatched IDs,
+error envelopes, surplus keys, foreign profile/schema/digest/build bindings,
+malformed JSON, and oversized response rejection. Project fixture inventories
+are byte-identical before and after every retained session. Static authority
+token checks and zero-write inventories are regression tripwires; they are not
+an operating-system sandbox or proof of network isolation.
+
+Generated-client compilation and execution is evidence only for this codec
+contract, not registry publication, installed-product support, daemon peer
+authentication, hosted or cross-platform passage, or Project profile
+promotion. The decoder validates the closed outer transport shape; descriptor
+semantic replay and carrier authentication remain exclusively server-side.
+
+Focused local commands:
+
+```sh
+cargo test --locked -p semaprax --test project \
+  agent_transport_v6_sdk::live_conformance::generated_python_and_offline_rust_clients_drive_all_retained_v6_profiles \
+  -- --exact --test-threads=1
+
+SEMAPRAX_TEST_TSC=/absolute/typescript-5.8.3/bin/tsc \
+SEMAPRAX_TEST_NODE=/absolute/node-22-or-newer \
+cargo test --locked -p semaprax --test project \
+  agent_transport_v6_sdk::live_conformance::provisioned_typescript_client_drives_all_retained_v6_profiles \
+  -- --exact --ignored --test-threads=1
+```

@@ -119,7 +119,9 @@ fn apply(
     Ok((base.apply(base.candidate_digest(), &change)?, change))
 }
 fn code<T>(result: Result<T, Vec<Diagnostic>>, expected: &str) {
-    let errors = result.err().expect("expected rejected evolution");
+    let errors = result
+        .err()
+        .unwrap_or_else(|| panic!("expected {expected} rejection"));
     assert!(
         errors.iter().any(|error| error.code == expected),
         "{errors:?}"
@@ -459,13 +461,22 @@ fn broader_candidate_selection_accepts_nested_owned_patterns_but_keeps_unsupport
 {
     let fixture = Fixture::new();
     let original = std::fs::read_to_string(fixture.0.join("src/core.spx")).unwrap();
-    for (extra,expected) in [
-        ("@id(\"evolve.inner-bytes\") record InnerBytes { @id(\"evolve.inner-bytes.bytes\") bytes:Bytes, }\n@id(\"evolve.outer-bytes\") record OuterBytes { @id(\"evolve.outer-bytes.inner\") inner:InnerBytes, }\nfn invalid(value:own OuterBytes)->i64 {match own value {OuterBytes {inner:InnerBytes {bytes}}=>0,}}", "SPX-T268"),
+    let nested = "@id(\"evolve.inner-bytes\") record InnerBytes { @id(\"evolve.inner-bytes.bytes\") bytes:Bytes, }\n@id(\"evolve.outer-bytes\") record OuterBytes { @id(\"evolve.outer-bytes.inner\") inner:InnerBytes, }\nfn nested(value:own OuterBytes)->i64 {match own value {OuterBytes {inner:InnerBytes {bytes}}=>0,}}";
+    fixture.write("src/core.spx", &format!("{original}\n{nested}\n"));
+    with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        ProjectCandidate::open(snapshot.retain_revision(), snapshot.project_revision())
+    })
+    .unwrap();
+    for (extra, expected) in [
         ("@id(\"evolve.borrowed\") record Borrowed { @id(\"evolve.borrowed.value\") value:Slice<u8>, }", "SPX-T264"),
         ("@id(\"evolve.borrowed\") record Borrowed { @id(\"evolve.borrowed.value\") value:str, }", "SPX-O116"),
     ] {
-        fixture.write("src/core.spx",&format!("{original}\n{extra}\n"));let disk=fixture.bytes();
-        let result=with_authenticated_project(&fixture.0.join("semaprax.toml"),|snapshot|ProjectCandidate::open(snapshot.retain_revision(),snapshot.project_revision()));
-        code(result,expected);assert_eq!(fixture.bytes(),disk);
+        fixture.write("src/core.spx", &format!("{original}\n{extra}\n"));
+        let disk = fixture.bytes();
+        let result = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+            ProjectCandidate::open(snapshot.retain_revision(), snapshot.project_revision())
+        });
+        code(result, expected);
+        assert_eq!(fixture.bytes(), disk);
     }
 }

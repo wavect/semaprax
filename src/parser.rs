@@ -176,7 +176,6 @@ impl Parser {
             diagnostic
         })
     }
-
     fn module_use_inner(&mut self) -> Result<ModuleUse, Diagnostic> {
         let start = self.keyword("use")?.span;
         let kind = if self.at_keyword("function") {
@@ -233,7 +232,6 @@ impl Parser {
             span: start.merge(end),
         })
     }
-
     fn stable_id_attribute(&mut self) -> Result<Option<String>, Diagnostic> {
         if !self.take(&TokenKind::At) {
             return Ok(None);
@@ -253,7 +251,6 @@ impl Parser {
         self.expect(&TokenKind::RParen, "`)` after stable id")?;
         Ok(Some(id))
     }
-
     fn resource(
         &mut self,
         module: &str,

@@ -6,12 +6,11 @@
 use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
+mod borrowed_str;
 mod type_profiles;
 mod unsafe_scan;
-use type_profiles::{
-    resolved_type_contains_owned_bytes, resolved_type_is_flat_owned_byte_variant,
-    validate_nested_update_base_shape,
-};
+pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
+use type_profiles::{resolved_type_is_flat_owned_byte_variant, validate_nested_update_base_shape};
 use unsafe_scan::contains_unsafe_boundary;
 
 /// Validate resolved meaning without consulting attached cleanup metadata.
@@ -4557,31 +4556,7 @@ impl<'a> HirValidator<'a> {
                             )?);
                         }
                     } else if binding.ty == ResolvedType::Str {
-                        let (origin, creates_loan) = match &value.kind {
-                            ResolvedExprKind::Place(place) if place.projections.is_empty() => {
-                                let origin = self
-                                    .borrowed_str_aliases
-                                    .get(&place.root)
-                                    .cloned()
-                                    .ok_or_else(|| {
-                                        hir_error(
-                                            "borrowed-str local alias lacks authenticated root provenance",
-                                        )
-                                    })?;
-                                (origin, false)
-                            }
-                            ResolvedExprKind::BorrowPlace { operation, place }
-                                if operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
-                                    && place.projections.is_empty() =>
-                            {
-                                (place.clone(), true)
-                            }
-                            _ => {
-                                return Err(hir_error(
-                                    "borrowed-str local must be an exact alias or authenticated owning String view",
-                                ))
-                            }
-                        };
+                        let (origin, creates_loan) = self.borrowed_str_let_origin(value)?;
                         if *mutable {
                             return Err(hir_error(
                                 "borrowed-str local alias must be immutable and unprojected",
@@ -6828,34 +6803,7 @@ impl<'a> HirValidator<'a> {
                                     )?);
                                 }
                             } else if binding.ty == ResolvedType::Str {
-                                let (origin, creates_loan) = match &value.kind {
-                                    ResolvedExprKind::Place(place)
-                                        if place.projections.is_empty() =>
-                                    {
-                                        let origin = self
-                                            .borrowed_str_aliases
-                                            .get(&place.root)
-                                            .cloned()
-                                            .ok_or_else(|| {
-                                                hir_error(
-                                                    "borrowed-str local alias lacks authenticated root provenance",
-                                                )
-                                            })?;
-                                        (origin, false)
-                                    }
-                                    ResolvedExprKind::BorrowPlace { operation, place }
-                                        if operation.as_str()
-                                            == crate::byte_ops::STRING_AS_STR_ID
-                                            && place.projections.is_empty() =>
-                                    {
-                                        (place.clone(), true)
-                                    }
-                                    _ => {
-                                        return Err(hir_error(
-                                            "borrowed-str local must be an exact alias or authenticated owning String view",
-                                        ))
-                                    }
-                                };
+                                let (origin, creates_loan) = self.borrowed_str_let_origin(value)?;
                                 if *mutable {
                                     return Err(hir_error(
                                         "borrowed-str local alias must be immutable and unprojected",

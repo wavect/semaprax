@@ -2,7 +2,7 @@
 
 use super::*;
 
-pub(super) fn resolved_type_contains_owned_bytes(
+pub(crate) fn resolved_type_contains_owned_bytes(
     program: &ResolvedProgram,
     ty: &ResolvedType,
 ) -> bool {

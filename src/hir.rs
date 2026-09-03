@@ -185,6 +185,7 @@ pub(crate) use inspection::{
 };
 
 pub(crate) use type_reachability::reachable_authored_types;
+pub(crate) use validation::resolved_type_contains_owned_bytes;
 pub(crate) use validation::validate_core;
 #[cfg(test)]
 use validation::HirValidator;

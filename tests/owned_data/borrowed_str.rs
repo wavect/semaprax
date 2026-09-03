@@ -123,6 +123,25 @@ fn alias(value: borrow str) -> i64 {
     hir::validate(&resolved).unwrap();
 }
 
+#[test]
+fn command_argument_utf8_can_form_an_authenticated_local_borrow() {
+    let source = r#"
+module test.command_argument_str;
+permit { process.args.read }
+@id("command.run")
+fn run() -> i64 uses { process.args.read } {
+    let argument = arg_utf8(0usize);
+    str_len_bytes(argument)
+}
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+    let program = parse(source, Path::new("command-argument-str.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+}
+
 fn temporary_source(source: &str) -> PathBuf {
     let ordinal = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     let path = std::env::temp_dir().join(format!(

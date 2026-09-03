@@ -427,6 +427,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         if !self.is_exact_record(ty)? {
             return Ok(false);
         }
+        if !crate::hir::resolved_type_contains_owned_bytes(self.program, ty) {
+            return Ok(false);
+        }
         self.classify_owned_record(ty)
     }
 

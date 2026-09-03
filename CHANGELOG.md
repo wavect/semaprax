@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Fixed the combined current-main regression batch: command UTF-8 results now
+  retain authenticated borrowed-string provenance through immutable locals,
+  nested owned-record backends distinguish records that actually contain
+  owned bytes from other resource-free records, and Project cache/signature
+  regressions track the current compiler-owned function and borrowed-view
+  contracts. Oversized implementation and test roots were split into audited
+  sibling modules without raising any module-size budget.
+
 - Added a getting-started layer over the existing references: a
   [language tour](docs/LANGUAGE-TOUR.md) whose every code block is a gated
   verbatim excerpt of a committed example, an [examples

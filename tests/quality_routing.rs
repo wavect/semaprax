@@ -690,7 +690,8 @@ mod first_contribution {
     fn the_walkthrough_states_the_owning_gates_module_size_facts() {
         let gate = read("tests/module_size.rs");
         let walkthrough = prose(&read(WALKTHROUGH));
-        let regenerate = "cargo test --locked -p semaprax --test module_size -- --ignored regenerate";
+        let regenerate =
+            "cargo test --locked -p semaprax --test module_size -- --ignored regenerate";
 
         assert!(
             gate.contains("const LIMIT: usize = 1500;"),

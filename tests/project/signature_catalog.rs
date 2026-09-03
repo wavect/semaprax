@@ -39,7 +39,7 @@ tests = ["catalog.tests"]
 @id("catalog.owned") record Owned { @id("catalog.owned.bytes") bytes: Bytes, }
 @id("catalog.select") fn select(pair: Pair, boxed: Box<i64>, flag: bool) -> i64 { pair.value + boxed.value }
 @id("catalog.owned-select") fn owned_select(value: own Owned) -> i64 { 0 }
-@id("catalog.borrowed") fn borrowed(value: borrow Slice<u8>, text: borrow str, flag: i64) -> i64 { byte_len(value) + str_len_bytes(text) + flag }
+@id("catalog.borrowed") fn borrowed(value: borrow Slice<u8>, text: borrow str, flag: i64) -> i64 { if byte_len(value)>0usize {flag}else{if str_len_bytes(text)>0 {flag}else{0}} }
 @id("catalog.borrowed-call") fn borrowed_call(value: borrow Slice<u8>, text: borrow str) -> i64 { borrowed(value, text, 1) }
 @id("catalog.bytes") fn bytes(value: own Bytes) -> Bytes { value }
 @id("catalog.evaluate") fn evaluate(input: i64) -> i64 { select(Pair { value: input }, Box<i64> { value: 2 }, true) }
@@ -259,7 +259,7 @@ fn borrowed_slice_and_text_parameters_reorder_rename_and_replay() {
         .unwrap()
         .source();
     assert!(core.contains("fn borrowed(label: borrow str, flag: i64, bytes: borrow Slice<u8>)"));
-    assert!(core.contains("byte_len(bytes) + str_len_bytes(label) + flag"));
+    assert!(core.contains("if byte_len(bytes) > 0usize { flag } else { if str_len_bytes(label) > 0 { flag } else { 0 } }"));
     assert!(core.contains("let spx_sig_stage_0 = value; let spx_sig_stage_1 = text; let spx_sig_stage_2 = 1; borrowed(spx_sig_stage_1, spx_sig_stage_2, spx_sig_stage_0)"));
     let replayed = semaprax::project::ProjectCandidate::replay(
         Arc::clone(base.base_revision()),
@@ -377,20 +377,26 @@ fn owned_bytes_catalogue_exposes_only_exact_replacement_and_no_external_migratio
         mapping["owner_to_borrowed_slice_fields"],
         json!(["name", "borrow_slice_from_owner"])
     );
-    let lane = &mapping["owner_to_borrowed_slice"];
-    assert_eq!(lane["maximum_replacements"], 8);
-    assert_eq!(lane["result"], "borrow Slice<u8>");
-    assert_eq!(lane["owner_cleanup"], "caller_owned_ordinary_cleanup");
-    assert_eq!(lane["full_project_replay"], true);
-    assert!(lane["excludes"]
+    assert_eq!(
+        mapping["owner_to_borrowed_slice"]["result"],
+        "borrow Slice<u8>"
+    );
+    let shared_lane = &mapping["owner_to_borrowed_view"];
+    assert_eq!(shared_lane["maximum_replacements"], 8);
+    assert_eq!(
+        shared_lane["owner_cleanup"],
+        "caller_owned_ordinary_cleanup"
+    );
+    assert_eq!(shared_lane["full_project_replay"], true);
+    assert!(shared_lane["excludes"]
         .as_array()
         .unwrap()
         .contains(&json!("external_package_source_rewrite")));
-    assert!(lane["excludes"]
+    assert!(shared_lane["excludes"]
         .as_array()
         .unwrap()
         .contains(&json!("additive_owner_alias")));
-    assert!(lane["excludes"]
+    assert!(shared_lane["excludes"]
         .as_array()
         .unwrap()
         .contains(&json!("more_than_eight_owner_conversions")));

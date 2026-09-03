@@ -11,9 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{Map, Value};
 
 use crate::ast::{
-    BinaryOp, Expr, ExprKind, FieldInitializer, Function, MatchArm, MatchMode, MatchPattern,
-    MatchPatternField, ModuleUseKind, Param, ParamMode, Program, Span, Statement, Type,
-    TypeDeclarationKind, UnaryOp,
+    BinaryOp, Expr, ExprKind, FieldInitializer, MatchArm, MatchMode, MatchPattern,
+    MatchPatternField, ModuleUseKind, Param, ParamMode, Program, Span, Statement, Type, UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -34,6 +33,8 @@ mod builtin;
 mod field_place;
 #[path = "signature.rs"]
 mod signature;
+#[path = "intent/walk.rs"]
+mod walk;
 
 pub(super) use aggregate::{
     aggregate_constructors, aggregate_dependency_fingerprint,
@@ -49,6 +50,7 @@ pub(super) use builtin::{
 };
 pub(super) use field_place::{parameter_nominal_scope, NominalScope};
 pub(super) use signature::{ordered_signature_parameters, validate_computed_signature};
+pub(super) use walk::{function as walk_function, program as walk_program};
 
 /// Invocation-local reuse for an explicitly supplied offline package corpus.
 /// The caller must independently rebuild and authenticate every resulting
@@ -1438,156 +1440,6 @@ fn grammar(message: &'static str) -> Vec<Diagnostic> {
 
 fn capacity(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G226", message)]
-}
-
-pub(super) fn walk_program(
-    program: &mut Program,
-    nodes: &mut usize,
-    visit: &mut impl FnMut(&mut Expr) -> Result<()>,
-) -> Result<()> {
-    for function in &mut program.functions {
-        walk_function(function, nodes, visit)?;
-    }
-    for declaration in &mut program.types {
-        if let TypeDeclarationKind::Class { methods, .. } = &mut declaration.kind {
-            for method in methods {
-                walk_function(method, nodes, visit)?;
-            }
-        }
-    }
-    Ok(())
-}
-
-pub(super) fn walk_function(
-    function: &mut Function,
-    nodes: &mut usize,
-    visit: &mut impl FnMut(&mut Expr) -> Result<()>,
-) -> Result<()> {
-    for expression in function
-        .requires
-        .iter_mut()
-        .chain(function.ensures.iter_mut())
-        .chain(std::iter::once(&mut function.body))
-    {
-        walk(expression, 0, nodes, visit)?;
-    }
-    Ok(())
-}
-
-/// Exhaustive child traversal; generic bodies, contracts, guards and loops are
-/// included. Unknown future AST variants cause a compiler error, not omission.
-fn walk(
-    expression: &mut Expr,
-    depth: usize,
-    nodes: &mut usize,
-    visit: &mut impl FnMut(&mut Expr) -> Result<()>,
-) -> Result<()> {
-    *nodes += 1;
-    if depth > MAX_WALK_DEPTH || *nodes > MAX_WALK_NODES {
-        return Err(capacity(
-            "candidate call migration exceeds its traversal bound",
-        ));
-    }
-    let next = depth + 1;
-    match &mut expression.kind {
-        ExprKind::Call { args, .. } | ExprKind::SuperMethod { args, .. } => {
-            for arg in args {
-                walk(arg, next, nodes, visit)?;
-            }
-        }
-        ExprKind::MethodCall { receiver, args, .. } => {
-            walk(receiver, next, nodes, visit)?;
-            for arg in args {
-                walk(arg, next, nodes, visit)?;
-            }
-        }
-        ExprKind::Unary { value, .. }
-        | ExprKind::Try { operand: value }
-        | ExprKind::Project { base: value, .. } => walk(value, next, nodes, visit)?,
-        ExprKind::Binary { left, right, .. } => {
-            walk(left, next, nodes, visit)?;
-            walk(right, next, nodes, visit)?;
-        }
-        ExprKind::Block { statements, tail } => {
-            for statement in statements {
-                match statement {
-                    Statement::Let { value, .. } | Statement::Assign { value, .. } => {
-                        walk(value, next, nodes, visit)?
-                    }
-                    Statement::Unsafe { body, .. } => walk(body, next, nodes, visit)?,
-                    Statement::While {
-                        condition, body, ..
-                    } => {
-                        walk(condition, next, nodes, visit)?;
-                        walk(body, next, nodes, visit)?;
-                    }
-                }
-            }
-            walk(tail, next, nodes, visit)?;
-        }
-        ExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            walk(condition, next, nodes, visit)?;
-            walk(then_branch, next, nodes, visit)?;
-            walk(else_branch, next, nodes, visit)?;
-        }
-        ExprKind::ConstructRecord { fields, .. } | ExprKind::ConstructVariant { fields, .. } => {
-            for field in fields {
-                walk(&mut field.value, next, nodes, visit)?;
-            }
-        }
-        ExprKind::Match {
-            scrutinee, arms, ..
-        } => {
-            walk(scrutinee, next, nodes, visit)?;
-            for arm in arms {
-                if let Some(guard) = &mut arm.guard {
-                    walk(guard, next, nodes, visit)?;
-                }
-                walk(&mut arm.value, next, nodes, visit)?;
-            }
-        }
-        ExprKind::UpdateRecord { base, fields } => {
-            walk(base, next, nodes, visit)?;
-            for field in fields {
-                walk(&mut field.value, next, nodes, visit)?;
-            }
-        }
-        ExprKind::Int(_)
-        | ExprKind::Int32(_)
-        | ExprKind::Char(_)
-        | ExprKind::Uint8(_)
-        | ExprKind::Usize(_)
-        | ExprKind::ArrayU8(_)
-        | ExprKind::RepeatArrayU8 { .. }
-        | ExprKind::Float32(_)
-        | ExprKind::Float64(_)
-        | ExprKind::Bool(_)
-        | ExprKind::String(_)
-        | ExprKind::Var(_) => {}
-    }
-    let previous_arity = match &expression.kind {
-        ExprKind::Call { args, .. } => args.len(),
-        _ => 0,
-    };
-    visit(expression)?;
-    if let ExprKind::Call { args, .. } = &expression.kind {
-        // The sole growth admitted by migration is direct literal arguments;
-        // charge them even though traversal deliberately did not revisit them.
-        let added = args.get(previous_arity..).ok_or_else(|| {
-            grammar("candidate migration unexpectedly reduced a caller argument inventory")
-        })?;
-        *nodes += added.iter().map(literal_nodes).sum::<usize>();
-        if *nodes > MAX_WALK_NODES {
-            return Err(capacity(
-                "candidate migrated arguments exceed the node bound",
-            ));
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]

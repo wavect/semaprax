@@ -3,11 +3,6 @@
 //! Kept as the differential reference the iterative resolver is
 //! checked against; never used by a production build.
 
-use std::collections::BTreeMap;
-
-use crate::ast::{BinaryOp, Expr, ExprKind, MatchPattern, Statement, TypeDeclarationKind, UnaryOp};
-use crate::diagnostic::Diagnostic;
-
 use super::expr_nodes::{
     PatternValue, ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer, ResolvedMatchArm,
     ResolvedMatchPattern, ResolvedMatchPatternField, ResolvedStatement,
@@ -20,6 +15,9 @@ use super::nodes::{
     ResolvedMatchMode, ResolvedNativeRustImportCall, ResolvedType,
 };
 use super::{Binding, Place, PlaceProjection, Resolver};
+use crate::ast::{BinaryOp, Expr, ExprKind, MatchPattern, Statement, TypeDeclarationKind, UnaryOp};
+use crate::diagnostic::Diagnostic;
+use std::collections::BTreeMap;
 
 impl Resolver<'_> {
     #[cfg(test)]

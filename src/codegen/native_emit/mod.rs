@@ -29,6 +29,7 @@ use super::{
 mod expression;
 mod nested_owned;
 mod owned_strings;
+mod string_views;
 
 use nested_owned::{borrowed_aggregate_byte_paths, borrowed_aggregate_path_suffix};
 
@@ -466,11 +467,11 @@ fn emit_native_prelude_inner(
         // reachability gate so every pre-text native projection is byte exact.
         output.push_str(NATIVE_BORROWED_STR_RUNTIME_C);
     }
-    if program_uses_string_as_str(program, strings.include_instances) {
+    if string_views::program_uses_string_as_str(program, strings.include_instances) {
         output.push_str(if strings.length_delimited {
-            NATIVE_LENGTH_DELIMITED_STRING_VIEW_RUNTIME_C
+            string_views::LENGTH_DELIMITED_RUNTIME_C
         } else {
-            NATIVE_TERMINATED_STRING_VIEW_RUNTIME_C
+            string_views::TERMINATED_RUNTIME_C
         });
     }
     if program_uses_byte_data(program) || strings.provider_carriers {
@@ -621,24 +622,6 @@ fn program_uses_borrowed_str(program: &ResolvedProgram, include_instances: bool)
             if crate::str_ops::by_id(callee.as_str()).is_some() {
                 return true;
             }
-        }
-        pending.extend(resolved_expr_children(expression));
-    }
-    false
-}
-
-fn program_uses_string_as_str(program: &ResolvedProgram, include_instances: bool) -> bool {
-    let mut pending = Vec::new();
-    for function in string_runtime_functions(program, include_instances) {
-        pending.push(&function.body);
-        pending.extend(function.requires.iter().chain(&function.ensures));
-    }
-    while let Some(expression) = pending.pop() {
-        if matches!(&expression.kind,
-            ResolvedExprKind::BorrowPlace { operation, .. }
-                if operation.as_str() == crate::byte_ops::STRING_AS_STR_ID)
-        {
-            return true;
         }
         pending.extend(resolved_expr_children(expression));
     }
@@ -1377,20 +1360,6 @@ static __attribute__((unused)) bool spx_string_eq(const char *a, const char *b) 
 }
 static __attribute__((unused)) void spx_string_drop(char *spx_value) {
     free(spx_string_header_v10(spx_value));
-}
-"#;
-
-const NATIVE_TERMINATED_STRING_VIEW_RUNTIME_C: &str = r#"static __attribute__((unused)) spx_str_v1 spx_string_as_str(const char *value) {
-    spx_str_v1 view = { .data = (const uint8_t *)value, .len = (uint64_t)strlen(value) };
-    spx_str_require_valid(view);
-    return view;
-}
-"#;
-
-const NATIVE_LENGTH_DELIMITED_STRING_VIEW_RUNTIME_C: &str = r#"static __attribute__((unused)) spx_str_v1 spx_string_as_str(const char *value) {
-    spx_str_v1 view = { .data = (const uint8_t *)value, .len = spx_string_length_v10(value) };
-    spx_str_require_valid(view);
-    return view;
 }
 "#;
 

@@ -460,7 +460,7 @@ fn export_contracts_and_cross_module_option_signatures_remain_closed() {
 }
 
 #[test]
-fn owning_nominals_must_be_retained_and_borrows_and_new_aggregate_defaults_stay_closed() {
+fn owning_nominals_and_exact_borrowed_views_are_retained_while_borrowed_nominals_stay_closed() {
     let fixture = Fixture::new();
     fixture.append(
         r#"
@@ -501,15 +501,32 @@ fn owning_nominals_must_be_retained_and_borrows_and_new_aggregate_defaults_stay_
         "{errors:?}"
     );
 
-    for target in ["named.borrow-owned", "named.borrow"] {
-        let errors = evolve(&base, target, json!([{"from":"value"}]))
-            .err()
-            .expect("unsupported mode admitted");
-        assert!(
-            errors.iter().any(|error| error.code == "SPX-G225"),
-            "{errors:?}"
-        );
-    }
+    let errors = evolve(&base, "named.borrow-owned", json!([{"from":"value"}]))
+        .err()
+        .expect("borrowed nominal admitted");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G225"),
+        "{errors:?}"
+    );
+    let (borrowed, borrowed_change) = evolve(
+        &base,
+        "named.borrow",
+        json!([{"from":"value","name":"view"}]),
+    )
+    .unwrap();
+    let borrowed_program = program(&borrowed, "src/core.spx");
+    let borrowed_function = function(&borrowed_program, "named.borrow");
+    assert_eq!(borrowed_function.params[0].name, "view");
+    assert_eq!(borrowed_function.params[0].mode, ParamMode::Borrow);
+    assert_eq!(borrowed_function.params[0].ty, Type::SliceU8);
+    let replayed = ProjectCandidate::replay(
+        Arc::clone(base.base_revision()),
+        base.base_revision().project_revision(),
+        &[borrowed_change],
+        borrowed.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replayed.to_json(), borrowed.to_json());
     let guessed = json!([{"from":"left"},{"from":"right"},{"from":"unused"},{"name":"new_record","type":"Pair","argument":{"kind":"i64","value":0}}]);
     assert!(evolve(&base, "named.select", guessed).is_err());
     assert_eq!(base.to_json(), unchanged);

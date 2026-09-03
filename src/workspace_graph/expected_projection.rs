@@ -17,39 +17,13 @@ use super::{
     WorkspaceEdge, HIR_FIXED_EXPANSION_FACTOR, HIR_IDENTITY_COPY_FACTOR, MAX_DEPENDENCY_DEPTH,
 };
 
+#[path = "expected_projection/cost.rs"]
+mod cost;
+use cost::{ExpandedDefaultCost, GenericInstanceCost, StructuralCost};
+
 pub(super) struct SyntheticBuilderCosts {
     pub(super) raw_clone_and_hir: usize,
     pub(super) runtime: usize,
-}
-
-#[derive(Clone, Copy)]
-struct ExpandedDefaultCost {
-    bytes: usize,
-    identity_slots: usize,
-}
-
-#[derive(Clone, Copy)]
-struct GenericInstanceCost {
-    bytes: usize,
-    identity_slots: usize,
-}
-
-struct StructuralCost(usize);
-
-impl StructuralCost {
-    fn add(&mut self, bytes: usize) -> Result<(), Vec<Diagnostic>> {
-        self.0 = checked_usage(self.0, bytes, "builder_bytes", active_builder_limit())?;
-        Ok(())
-    }
-
-    fn value<T>(&mut self, value: &T) -> Result<(), Vec<Diagnostic>> {
-        self.add(std::mem::size_of_val(value))
-    }
-
-    fn string(&mut self, value: &str) -> Result<(), Vec<Diagnostic>> {
-        self.add(std::mem::size_of::<String>())?;
-        self.add(value.len())
-    }
 }
 
 pub(super) fn synthetic_builder_bytes(

@@ -31,7 +31,6 @@ src/native_settlement/tests.rs	1667
 src/parser.rs	2250
 src/patch.rs	3311
 src/patch_evidence.rs	1914
-src/project/candidate/intent.rs	1577
 src/properties.rs	1550
 src/repair.rs	1636
 src/semantic_workspace_change.rs	3043

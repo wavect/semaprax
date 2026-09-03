@@ -21,6 +21,9 @@ pub(super) fn record_contains_owned_bytes(
     if !is_exact_record(program, root)? {
         return Ok(false);
     }
+    if !crate::hir::resolved_type_contains_owned_bytes(program, root) {
+        return Ok(false);
+    }
     let mut pending = vec![Frame::Enter(root.clone(), 1)];
     let mut active = BTreeSet::new();
     let mut visited_fields = 0usize;

@@ -136,7 +136,6 @@ pub(crate) struct PrivateScratchCapacity {
     pattern_slots: usize,
     bytes: usize,
 }
-
 #[allow(dead_code)]
 impl PrivateScratchCapacity {
     pub(crate) fn bytes(self) -> usize {

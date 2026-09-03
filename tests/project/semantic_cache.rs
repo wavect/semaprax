@@ -186,14 +186,21 @@ fn other() -> i64 { 7 }
     );
     let manifest = fixture.manifest();
     let mut cache = ProjectFrontendCache::new_with_semantic_cache();
-    cache.build(&manifest, &fixture.sources()).unwrap();
+    let cold = cache.build(&manifest, &fixture.sources()).unwrap();
+    let function_count = work(&cold, 4, 0)["work"]["monomorphic_functions_resolved"]
+        .as_u64()
+        .unwrap();
 
     fixture.replace("src/spare.spx", "input + 1", "input + 2");
     let body = cache.build(&manifest, &fixture.sources()).unwrap();
     let report = work(&body, 1, 3);
     assert_eq!(report["work"]["monomorphic_functions_resolved"], 1);
-    // `other` and the synthetic entry point have exact AST and environment.
-    assert_eq!(report["work"]["monomorphic_function_HIR_reused"], 2);
+    // Every other authored or compiler-owned monomorphic function has exact
+    // AST and environment and must reuse its checked HIR.
+    assert_eq!(
+        report["work"]["monomorphic_function_HIR_reused"],
+        function_count - 1
+    );
     assert_eq!(report["work"]["full_source_verification"], true);
     assert_eq!(report["work"]["full_HIR_validation"], true);
     same(body.revision(), fixture.cold().unwrap());
@@ -201,8 +208,13 @@ fn other() -> i64 { 7 }
     fixture.replace("src/spare.spx", "input >= 0", "input >= 1");
     let contract = cache.build(&manifest, &fixture.sources()).unwrap();
     let report = work(&contract, 1, 3);
+    // Changing a contract invalidates all three monomorphic functions in the
+    // owning module, while the other checked modules remain reusable.
     assert_eq!(report["work"]["monomorphic_functions_resolved"], 3);
-    assert_eq!(report["work"]["monomorphic_function_HIR_reused"], 0);
+    assert_eq!(
+        report["work"]["monomorphic_function_HIR_reused"],
+        function_count - 3
+    );
     same(contract.revision(), fixture.cold().unwrap());
 }
 

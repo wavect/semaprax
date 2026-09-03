@@ -341,7 +341,9 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
 #[test]
 fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root() {
     let root = include_str!("../../src/workspace_graph.rs");
-    let projection = include_str!("../../src/workspace_graph/expected_projection.rs");
+    let projection_root = include_str!("../../src/workspace_graph/expected_projection.rs");
+    let projection_cost = include_str!("../../src/workspace_graph/expected_projection/cost.rs");
+    let projection = format!("{projection_root}\n{projection_cost}");
 
     assert!(root.contains("mod expected_projection;"));
     assert!(!projection.contains("use super::*;"));
@@ -357,7 +359,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         "pub(super) fn verify_resolved_call_edges(",
     ];
     assert_eq!(
-        projection
+        projection_root
             .lines()
             .filter_map(|line| {
                 let trimmed = line.trim();

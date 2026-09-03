@@ -177,6 +177,62 @@ pub fn load(
     }
 }
 
+/// Registry-only persistence through an already authenticated, held metadata
+/// directory. This does not expose a reusable path or handle outside the crate.
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
+pub(crate) fn persist_held(
+    root: impl std::os::fd::AsFd,
+    checkpoint: &RetentionCheckpoint,
+    expected_checkpoint: &str,
+    expected_previous: Option<&str>,
+    plan: &RetentionGarbageCollectionPlan,
+    expected_plan: &str,
+) -> Result<RetentionMetadataStoreReceipt> {
+    let (bytes, receipt) = prepare(
+        checkpoint,
+        expected_checkpoint,
+        expected_previous,
+        plan,
+        expected_plan,
+    )?;
+    unix::persist_held(root, expected_checkpoint, expected_plan, &bytes)?;
+    Ok(receipt)
+}
+
+/// Registry-only exact restoration through the same held metadata directory.
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
+pub(crate) fn load_held(
+    root: impl std::os::fd::AsFd,
+    expected_checkpoint: &str,
+    expected_previous: Option<&str>,
+    expected_plan: &str,
+) -> Result<StoredRetentionMetadata> {
+    validate_digest(expected_checkpoint)?;
+    validate_digest(expected_plan)?;
+    if let Some(previous) = expected_previous {
+        validate_digest(previous)?;
+    }
+    unix::load_held(root, expected_checkpoint, expected_plan, |bytes| {
+        decode(bytes, expected_checkpoint, expected_previous, expected_plan)
+    })
+}
+
 fn prepare(
     checkpoint: &RetentionCheckpoint,
     expected_checkpoint: &str,

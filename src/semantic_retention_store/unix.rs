@@ -67,7 +67,7 @@ impl FileFact {
 }
 
 struct Root {
-    path: PathBuf,
+    path: Option<PathBuf>,
     chain: Vec<(OwnedFd, Identity)>,
     names: Vec<Vec<u8>>,
 }
@@ -114,7 +114,7 @@ impl Root {
             chain.push((child, fact));
         }
         let root = Self {
-            path: path.to_owned(),
+            path: Some(path.to_owned()),
             chain,
             names,
         };
@@ -126,6 +126,22 @@ impl Root {
         }
         root.check_chain()?;
         Ok(root)
+    }
+
+    fn held(fd: impl AsFd) -> Result<Self> {
+        let fd =
+            rustix::io::dup(fd).map_err(|_| io("cannot duplicate held retention metadata root"))?;
+        let fact = identity(&fd)?;
+        if fact.uid != rustix::process::geteuid().as_raw() || fact.mode & 0o7777 != 0o700 {
+            return Err(binding(
+                "held retention metadata root must be current-euid-owned exact 0700",
+            ));
+        }
+        Ok(Self {
+            path: None,
+            chain: vec![(fd, fact)],
+            names: Vec::new(),
+        })
     }
 
     fn fd(&self) -> &OwnedFd {
@@ -158,16 +174,18 @@ impl Root {
 
     fn recheck(&self) -> Result<()> {
         self.check_chain()?;
-        let rebound = Self::open(&self.path)?;
-        if self
-            .chain
-            .iter()
-            .map(|entry| entry.1)
-            .ne(rebound.chain.iter().map(|entry| entry.1))
-        {
-            return Err(binding(
-                "retention metadata absolute path no longer names the held root",
-            ));
+        if let Some(path) = &self.path {
+            let rebound = Self::open(path)?;
+            if self
+                .chain
+                .iter()
+                .map(|entry| entry.1)
+                .ne(rebound.chain.iter().map(|entry| entry.1))
+            {
+                return Err(binding(
+                    "retention metadata absolute path no longer names the held root",
+                ));
+            }
         }
         Ok(())
     }
@@ -338,7 +356,19 @@ fn selected(
 }
 
 pub(super) fn persist(root_path: &Path, checkpoint: &str, plan: &str, bytes: &[u8]) -> Result<()> {
-    let root = Root::open(root_path)?;
+    persist_root(Root::open(root_path)?, checkpoint, plan, bytes)
+}
+
+pub(super) fn persist_held(
+    root_fd: impl AsFd,
+    checkpoint: &str,
+    plan: &str,
+    bytes: &[u8],
+) -> Result<()> {
+    persist_root(Root::held(root_fd)?, checkpoint, plan, bytes)
+}
+
+fn persist_root(root: Root, checkpoint: &str, plan: &str, bytes: &[u8]) -> Result<()> {
     let lock = root.lock(true)?;
     let initial = inventory(&root, false)?;
     if initial.len() >= MAX_RETENTION_METADATA_STORE_ENTRIES {
@@ -425,7 +455,24 @@ pub(super) fn load<T>(
     plan: &str,
     restore: impl FnOnce(&[u8]) -> Result<T>,
 ) -> Result<T> {
-    let root = Root::open(root_path)?;
+    load_root(Root::open(root_path)?, checkpoint, plan, restore)
+}
+
+pub(super) fn load_held<T>(
+    root_fd: impl AsFd,
+    checkpoint: &str,
+    plan: &str,
+    restore: impl FnOnce(&[u8]) -> Result<T>,
+) -> Result<T> {
+    load_root(Root::held(root_fd)?, checkpoint, plan, restore)
+}
+
+fn load_root<T>(
+    root: Root,
+    checkpoint: &str,
+    plan: &str,
+    restore: impl FnOnce(&[u8]) -> Result<T>,
+) -> Result<T> {
     let lock = root.lock(false)?;
     let initial = inventory(&root, true)?;
     let name = pair_name(checkpoint, plan)?;

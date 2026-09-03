@@ -61,6 +61,49 @@ fn exact_root_initializes_recovers_and_cas_advances_without_deleting_subjects() 
     let recovered = recover(&temporary).unwrap();
     assert_eq!(recovered.cursor_digest(), initial.cursor_digest());
 
+    std::fs::write(temporary.join(".CURRENT-stage"), b"interrupted cursor").unwrap();
+    std::fs::set_permissions(
+        temporary.join(".CURRENT-stage"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
+    assert_eq!(recover(&temporary).unwrap_err()[0].code, "SPX-G464");
+    std::fs::remove_file(temporary.join(".CURRENT-stage")).unwrap();
+
+    std::fs::write(temporary.join(".CURRENT-stage"), initial.cursor_json()).unwrap();
+    std::fs::set_permissions(
+        temporary.join(".CURRENT-stage"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
+    assert_eq!(recover(&temporary).unwrap_err()[0].code, "SPX-G466");
+    std::fs::remove_file(temporary.join(".CURRENT-stage")).unwrap();
+
+    let mut foreign = Cursor {
+        sequence: 2,
+        checkpoint: digest('e'),
+        previous: Some(
+            initial
+                .metadata()
+                .checkpoint()
+                .checkpoint_digest()
+                .to_owned(),
+        ),
+        plan: digest('f'),
+        policy,
+        json: String::new(),
+        digest: String::new(),
+    };
+    foreign.json = foreign.render().unwrap();
+    std::fs::write(temporary.join(".CURRENT-stage"), &foreign.json).unwrap();
+    std::fs::set_permissions(
+        temporary.join(".CURRENT-stage"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .unwrap();
+    assert_eq!(recover(&temporary).unwrap_err()[0].code, "SPX-G429");
+    std::fs::remove_file(temporary.join(".CURRENT-stage")).unwrap();
+
     let second = receipt('2', 20);
     let derived = checkpoint_receipts(
         Some(initial.metadata().checkpoint()),
@@ -79,7 +122,8 @@ fn exact_root_initializes_recovers_and_cas_advances_without_deleting_subjects() 
         derived.plan_digest(),
     )
     .unwrap();
-    std::fs::write(temporary.join(".CURRENT-stage"), b"interrupted cursor").unwrap();
+    let staged = Cursor::new(derived.checkpoint(), derived.plan()).unwrap();
+    std::fs::write(temporary.join(".CURRENT-stage"), staged.json).unwrap();
     std::fs::set_permissions(
         temporary.join(".CURRENT-stage"),
         std::fs::Permissions::from_mode(0o600),

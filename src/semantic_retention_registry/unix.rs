@@ -3,12 +3,13 @@
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::fd::{AsFd, OwnedFd};
 use std::os::unix::ffi::OsStrExt;
-use std::path::{Component, Path, PathBuf};
+use std::path::{Component, Path};
 
 use rustix::fs::{self, AtFlags, Dir, FileType, Mode, OFlags, RenameFlags, Stat, CWD};
 
 use super::{
-    binding, capacity, io, post_pivot, stale, Result, MAX_RETENTION_REGISTRY_CURSOR_BYTES,
+    binding, capacity, io, post_pivot, stale, validate_stage_relationship, Result,
+    MAX_RETENTION_REGISTRY_CURSOR_BYTES,
 };
 
 const CURRENT: &[u8] = b"CURRENT";
@@ -43,7 +44,6 @@ impl Identity {
 struct Root {
     chain: Vec<(OwnedFd, Identity)>,
     names: Vec<Vec<u8>>,
-    metadata: PathBuf,
     metadata_fd: OwnedFd,
     metadata_identity: Identity,
 }
@@ -82,13 +82,11 @@ impl Root {
             let fact = identity(&child)?;
             chain.push((child, fact));
         }
-        let metadata = path.join("metadata");
         let metadata_fd = open_dir(&chain.last().expect("root held").0, METADATA)?;
         let metadata_identity = identity(&metadata_fd)?;
         let root = Self {
             chain,
             names,
-            metadata,
             metadata_fd,
             metadata_identity,
         };
@@ -173,13 +171,14 @@ impl Drop for Lock {
 
 pub(super) fn read<T>(
     root_path: &Path,
-    operation: impl FnOnce(&[u8], &Path) -> Result<T>,
+    operation: impl FnOnce(&[u8], &OwnedFd) -> Result<T>,
 ) -> Result<T> {
     let root = Root::open(root_path)?;
     let lock = root.lock(false)?;
     let current =
         read_current(&root)?.ok_or_else(|| stale("retention registry is not initialized"))?;
-    let result = operation(&current, &root.metadata)?;
+    validate_stage(&root, Some(&current), false)?;
+    let result = operation(&current, &root.metadata_fd)?;
     if read_current(&root)?.as_deref() != Some(current.as_slice()) {
         return Err(stale("retention registry CURRENT changed during recovery"));
     }
@@ -190,13 +189,18 @@ pub(super) fn read<T>(
 
 pub(super) fn transaction<T>(
     root_path: &Path,
-    operation: impl FnOnce(Option<&[u8]>, &Path) -> Result<(Vec<u8>, T)>,
+    operation: impl FnOnce(Option<&[u8]>, &OwnedFd) -> Result<(Vec<u8>, T)>,
 ) -> Result<T> {
     let root = Root::open(root_path)?;
     let lock = root.lock(true)?;
-    clear_stage(&root)?;
     let current = read_current(&root)?;
-    let (next, result) = operation(current.as_deref(), &root.metadata)?;
+    validate_stage(&root, current.as_deref(), true)?;
+    if read_current(&root)? != current {
+        return Err(stale(
+            "retention registry CURRENT changed during stage recovery",
+        ));
+    }
+    let (next, result) = operation(current.as_deref(), &root.metadata_fd)?;
     if next.is_empty() || next.len() > MAX_RETENTION_REGISTRY_CURSOR_BYTES {
         return Err(capacity(
             "retention registry CURRENT bytes exceed their bound",
@@ -288,24 +292,45 @@ fn inventory(root: &Root) -> Result<()> {
     Ok(())
 }
 
-fn clear_stage(root: &Root) -> Result<()> {
+fn validate_stage(root: &Root, current: Option<&[u8]>, remove: bool) -> Result<()> {
     match fs::statat(root.fd(), STAGE, AtFlags::SYMLINK_NOFOLLOW) {
         Ok(stat) => {
             if !FileType::from_raw_mode(stat.st_mode).is_file()
                 || stat.st_nlink != 1
                 || stat.st_uid != rustix::process::geteuid().as_raw()
                 || stat.st_mode & 0o7777 != 0o600
-                || stat.st_size < 0
+                || stat.st_size <= 0
                 || stat.st_size as usize > MAX_RETENTION_REGISTRY_CURSOR_BYTES
             {
                 return Err(binding(
                     "interrupted retention registry CURRENT stage facts disagree",
                 ));
             }
-            fs::unlinkat(root.fd(), STAGE, AtFlags::empty())
-                .map_err(|_| io("cannot remove interrupted retention registry CURRENT stage"))?;
-            fs::fsync(root.fd())
-                .map_err(|_| io("cannot settle interrupted retention registry stage cleanup"))?;
+            let expected = Identity::from_stat(&stat);
+            let stage = read_file(root, STAGE)?;
+            validate_stage_relationship(&root.metadata_fd, current, &stage)?;
+            if !remove {
+                return Ok(());
+            }
+            let rebound = fs::statat(root.fd(), STAGE, AtFlags::SYMLINK_NOFOLLOW)
+                .map_err(|_| binding("interrupted retention registry stage disappeared"))?;
+            if !FileType::from_raw_mode(rebound.st_mode).is_file()
+                || rebound.st_nlink != 1
+                || rebound.st_uid != rustix::process::geteuid().as_raw()
+                || rebound.st_mode & 0o7777 != 0o600
+                || rebound.st_size != stat.st_size
+                || Identity::from_stat(&rebound) != expected
+            {
+                return Err(binding(
+                    "interrupted retention registry stage identity changed before cleanup",
+                ));
+            }
+            fs::unlinkat(root.fd(), STAGE, AtFlags::empty()).map_err(|_| {
+                io("cannot remove authenticated interrupted retention registry CURRENT stage")
+            })?;
+            fs::fsync(root.fd()).map_err(|_| {
+                io("cannot settle authenticated interrupted retention registry stage cleanup")
+            })?;
             root.validate()
         }
         Err(error) if error == rustix::io::Errno::NOENT => Ok(()),

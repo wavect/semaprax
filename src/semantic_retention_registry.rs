@@ -106,7 +106,7 @@ pub fn recover(root: &Path) -> Result<RetentionRegistryState> {
     supported(|| {
         unix::read(root, |current, metadata_root| {
             let cursor = Cursor::parse(current)?;
-            let metadata = semantic_retention_store::load(
+            let metadata = semantic_retention_store::load_held(
                 metadata_root,
                 &cursor.checkpoint,
                 cursor.previous.as_deref(),
@@ -135,7 +135,7 @@ pub fn advance(
             if cursor.digest != expected_cursor_digest {
                 return Err(stale("retention registry CURRENT selector is stale"));
             }
-            let previous = semantic_retention_store::load(
+            let previous = semantic_retention_store::load_held(
                 metadata_root,
                 &cursor.checkpoint,
                 cursor.previous.as_deref(),
@@ -170,12 +170,12 @@ fn require_receipts(receipts: &[&dyn RetentionReceipt]) -> Result<()> {
 }
 
 fn settle_transition(
-    root: &Path,
+    root: &std::os::fd::OwnedFd,
     transition: &crate::semantic_retention::RetentionTransition,
 ) -> Result<StoredRetentionMetadata> {
     let checkpoint = transition.checkpoint();
     let load = || {
-        semantic_retention_store::load(
+        semantic_retention_store::load_held(
             root,
             checkpoint.checkpoint_digest(),
             checkpoint.previous_checkpoint_digest(),
@@ -192,7 +192,7 @@ fn settle_transition(
         }
         return Ok(existing);
     }
-    semantic_retention_store::persist(
+    semantic_retention_store::persist_held(
         root,
         checkpoint,
         checkpoint.checkpoint_digest(),
@@ -352,6 +352,48 @@ impl Cursor {
     fn render(&self) -> Result<String> {
         render(self.value())
     }
+}
+
+fn validate_stage_relationship(
+    metadata_root: &std::os::fd::OwnedFd,
+    current: Option<&[u8]>,
+    stage: &[u8],
+) -> Result<()> {
+    let stage = Cursor::parse(stage)?;
+    let metadata = semantic_retention_store::load_held(
+        metadata_root,
+        &stage.checkpoint,
+        stage.previous.as_deref(),
+        &stage.plan,
+    )?;
+    validate_metadata(&stage, &metadata)?;
+    let Some(current) = current else {
+        if stage.sequence == 1 && stage.previous.is_none() {
+            return Ok(());
+        }
+        return Err(binding(
+            "retention registry initial stage is not an exact generation-one cursor",
+        ));
+    };
+    let current = Cursor::parse(current)?;
+    let stage_is_next = current
+        .sequence
+        .checked_add(1)
+        .is_some_and(|sequence| sequence == stage.sequence)
+        && stage.previous.as_deref() == Some(current.checkpoint.as_str())
+        && stage.policy == current.policy;
+    let stage_is_predecessor = stage
+        .sequence
+        .checked_add(1)
+        .is_some_and(|sequence| sequence == current.sequence)
+        && current.previous.as_deref() == Some(stage.checkpoint.as_str())
+        && stage.policy == current.policy;
+    if !stage_is_next && !stage_is_predecessor {
+        return Err(binding(
+            "retention registry stage is neither the consecutive next cursor nor CURRENT's exact predecessor",
+        ));
+    }
+    Ok(())
 }
 
 fn policy_number(value: &Value, field: &str) -> Result<u64> {

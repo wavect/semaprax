@@ -211,7 +211,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         }
         CommandId::SemanticCacheInit
         | CommandId::SemanticCachePersist
-        | CommandId::SemanticCacheLoad => {
+        | CommandId::SemanticCacheLoad
+        | CommandId::SemanticCacheEvict => {
             let arity = if command == "semantic-cache-init" {
                 2
             } else {
@@ -230,7 +231,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 "semantic-cache-persist" => {
                     cli::semantic_cache::persist(Path::new(&args[1]), Path::new(&args[2]))
                 }
-                _ => cli::semantic_cache::load(Path::new(&args[1]), &args[2]),
+                "semantic-cache-load" => cli::semantic_cache::load(Path::new(&args[1]), &args[2]),
+                _ => cli::semantic_cache::evict(Path::new(&args[1]), &args[2]),
             }
             .map_err(|errors| report(&errors, false))?;
             print!("{output}");

@@ -52,6 +52,27 @@ pub struct SemanticCacheReceipt {
     compiler: String,
     payload_bytes: usize,
 }
+
+/// Receipt for removal of one exact derived cache entry. It proves only the
+/// selected store mutation; it carries no source, compiler, or publication
+/// authority.
+#[derive(Debug)]
+pub struct SemanticCacheEvictionReceipt {
+    entry: String,
+    envelope_bytes: usize,
+    entries_remaining: usize,
+}
+impl SemanticCacheEvictionReceipt {
+    pub fn entry_digest(&self) -> &str {
+        &self.entry
+    }
+    pub fn envelope_bytes(&self) -> usize {
+        self.envelope_bytes
+    }
+    pub fn entries_remaining(&self) -> usize {
+        self.entries_remaining
+    }
+}
 impl SemanticCacheReceipt {
     pub fn entry_digest(&self) -> &str {
         &self.entry
@@ -152,6 +173,41 @@ pub fn load(root: &Path, expected_digest: &str) -> Result<ProjectFrontendCache> 
     ))]
     {
         unix::load(root, expected_digest)
+    }
+    #[cfg(not(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )))]
+    {
+        let _ = root;
+        Err(io(
+            "semantic cache store requires supported Unix filesystem authority",
+        ))
+    }
+}
+
+/// Remove one exact derived entry under the store's ordinary exclusive lock.
+/// The key, other entries, canonical source, and host policy are unchanged.
+/// A failure after the namespace pivot is reported as uncertainty and must not
+/// be retried blindly.
+pub fn evict(root: &Path, expected_digest: &str) -> Result<SemanticCacheEvictionReceipt> {
+    digest_hex(expected_digest)?;
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    ))]
+    {
+        unix::evict(root, expected_digest)
     }
     #[cfg(not(all(
         unix,

@@ -125,6 +125,14 @@ impl Fixture {
             .output()
             .unwrap()
     }
+    fn evict(&self, digest: &str) -> Output {
+        Command::new(&self.compiler)
+            .arg("semantic-cache-evict")
+            .arg(&self.store)
+            .arg(digest)
+            .output()
+            .unwrap()
+    }
     fn image(&self) -> ProjectSemanticImage {
         with_authenticated_project(&self.root.join("semaprax.toml"), |snapshot| {
             let revision = snapshot.retain_revision();
@@ -254,6 +262,48 @@ fn separate_process_load_reuses_hir_and_live_startup_rechecks_edited_source() {
         ),
     ));
     assert_eq!(cold[0], observed[0]);
+}
+
+#[test]
+fn exact_eviction_preserves_source_and_rebuilds_the_same_warm_entry() {
+    let fixture = Fixture::new();
+    fixture.initialize();
+    let paths = [
+        "semaprax.toml",
+        "src/app.spx",
+        "src/core.spx",
+        "src/tests.spx",
+    ];
+    let source_before = paths.map(|path| std::fs::read(fixture.root.join(path)).unwrap());
+    let first = fixture.persist();
+    let digest = first["entry_digest"].as_str().unwrap();
+    warm(&value(fixture.load(digest)));
+
+    let removed = value(fixture.evict(digest));
+    assert_eq!(removed["schema"], "semaprax.semantic-cache-eviction.v1");
+    assert_eq!(removed["entry_digest"], digest);
+    assert!(removed["envelope_bytes"].as_u64().unwrap() > first["payload_bytes"].as_u64().unwrap());
+    assert_eq!(removed["entries_remaining"], 0);
+    assert_eq!(removed["source_authority"], false);
+    assert_eq!(removed["canonical_source_mutation"], false);
+    assert_eq!(removed["publication_authority"], false);
+    assert_eq!(removed["cache_management_effect"], "selected_entry_removed");
+    let absent = fixture.load(digest);
+    assert!(!absent.status.success());
+    assert!(String::from_utf8_lossy(&absent.stderr).contains("SPX-G308"));
+    let repeated = fixture.evict(digest);
+    assert!(!repeated.status.success());
+    assert!(String::from_utf8_lossy(&repeated.stderr).contains("SPX-G308"));
+    assert_eq!(
+        source_before,
+        paths.map(|path| std::fs::read(fixture.root.join(path)).unwrap())
+    );
+
+    let rebuilt = fixture.persist();
+    assert_eq!(rebuilt["entry_digest"], digest);
+    assert_eq!(rebuilt["compiler_digest"], first["compiler_digest"]);
+    assert_eq!(rebuilt["payload_bytes"], first["payload_bytes"]);
+    warm(&value(fixture.load(digest)));
 }
 
 #[test]

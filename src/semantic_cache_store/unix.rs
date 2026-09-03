@@ -11,8 +11,8 @@ use sha2::{Digest, Sha256};
 
 use super::{
     binding, canonical_hex, capacity, digest_hex, invalid, io, post_pivot, Result,
-    SemanticCacheReceipt, MAX_ENVELOPE_BYTES, MAX_SEMANTIC_CACHE_COMPILER_BYTES,
-    MAX_SEMANTIC_CACHE_STORE_ENTRIES,
+    SemanticCacheEvictionReceipt, SemanticCacheReceipt, MAX_ENVELOPE_BYTES,
+    MAX_SEMANTIC_CACHE_COMPILER_BYTES, MAX_SEMANTIC_CACHE_STORE_ENTRIES,
 };
 use crate::project::ProjectFrontendCache;
 const MAX_SEMANTIC_CACHE_STORE_PATH_BYTES: usize = 4096;
@@ -523,6 +523,59 @@ pub(super) fn load(root_path: &Path, expected_digest: &str) -> Result<ProjectFro
     compiler.recheck()?;
     lock.release()?;
     Ok(cache)
+}
+
+pub(super) fn evict(
+    root_path: &Path,
+    expected_digest: &str,
+) -> Result<SemanticCacheEvictionReceipt> {
+    let root = Root::open(root_path)?;
+    let lock = root.lock(true)?;
+    let initial = inventory(&root, false)?;
+    if !initial.contains_key(KEY) {
+        return Err(binding("semantic cache root is not initialized"));
+    }
+    let name = format!("{}.bin", digest_hex(expected_digest)?);
+    let expected = *initial
+        .get(&name)
+        .ok_or_else(|| binding("selected semantic cache is absent from the store"))?;
+    unchanged(&root, &initial)?;
+    let mut file = open_file(&root, &name)?;
+    let bytes = read_exact(&mut file, expected)?;
+    if super::hash(&bytes) != expected_digest {
+        return Err(binding(
+            "selected semantic cache bytes do not match the requested digest",
+        ));
+    }
+    selected(&root, &name, &mut file, expected, &bytes)?;
+    let entries_remaining = initial
+        .keys()
+        .filter(|entry| entry.ends_with(".bin"))
+        .count()
+        - 1;
+    fs::unlinkat(root.fd(), name.as_bytes(), AtFlags::empty())
+        .map_err(|_| io("cannot remove selected semantic cache entry"))?;
+    // Everything after successful unlink is uncertainty on failure. The exact
+    // held bytes and namespace identity were authenticated immediately before
+    // the pivot; unlink necessarily changes the held file's link count.
+    let final_check = (|| -> Result<()> {
+        fs::fsync(root.fd()).map_err(|_| io("cannot settle semantic cache eviction"))?;
+        let mut final_inventory = initial;
+        final_inventory.remove(&name);
+        unchanged(&root, &final_inventory)?;
+        lock.release()?;
+        Ok(())
+    })();
+    final_check.map_err(|_| {
+        post_pivot(
+            "semantic cache eviction may have occurred; inspect the selected identity without blind retry or cleanup",
+        )
+    })?;
+    Ok(SemanticCacheEvictionReceipt {
+        entry: expected_digest.to_owned(),
+        envelope_bytes: bytes.len(),
+        entries_remaining,
+    })
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]

@@ -55,3 +55,19 @@ pub(crate) fn load(root: &Path, expected: &str) -> Result<String, Vec<Diagnostic
         )]
     })
 }
+
+pub(crate) fn evict(root: &Path, expected: &str) -> Result<String, Vec<Diagnostic>> {
+    let receipt = semantic_cache_store::evict(root, expected)?;
+    let mut value = json!({
+        "schema":"semaprax.semantic-cache-eviction.v1",
+        "entry_digest":receipt.entry_digest(),
+        "envelope_bytes":receipt.envelope_bytes(),
+        "entries_remaining":receipt.entries_remaining(),
+        "source_authority":false,
+        "canonical_source_mutation":false,
+        "publication_authority":false,
+        "cache_management_effect":"selected_entry_removed",
+    });
+    value.sort_all_objects();
+    Ok(format!("{value}\n"))
+}

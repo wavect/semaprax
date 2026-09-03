@@ -25,6 +25,7 @@ The explicit CLI adapters are:
 semaprax semantic-cache-init <store-root>
 semaprax semantic-cache-persist <manifest> <store-root>
 semaprax semantic-cache-load <store-root> <entry-digest>
+semaprax semantic-cache-evict <store-root> <entry-digest>
 ```
 
 Initialization emits `semaprax.semantic-cache-initialized.v1`; persistence emits
@@ -33,6 +34,18 @@ Initialization emits `semaprax.semantic-cache-initialized.v1`; persistence emits
 admission, or commit approval. Load emits the existing
 `semaprax.project-semantic-cache-work.v1` report. Each command can run in a fresh
 process using the same compiler executable and host-protected store.
+
+Eviction removes one exact digest-selected entry under the same held-root and
+exclusive-lock discipline. It emits
+`semaprax.semantic-cache-eviction.v1`, binding the removed digest and envelope
+byte count plus the remaining completed-entry count. The operation hashes the
+held bytes before unlink, rejects absence or digest disagreement, settles the
+directory, and reports post-unlink failures as `SPX-I363` uncertainty. It does
+not remove the store key, another entry, canonical source, host policy, or any
+publication state. Because eviction does not require the selected envelope to
+match the running compiler, a host can remove an obsolete but exactly selected
+entry after an upgrade. Persisting an unchanged admitted project again rebuilds
+the same deterministic entry; a changed project produces a different entry.
 
 Workspace host policy `semaprax.workspace-host-policy.v5` preserves the v4
 fields and requires `semantic_cache_entry`, either null or the closed object
@@ -47,9 +60,10 @@ workspace from that cache still authenticates the host-bound manifest and all
 current source files. Edited inputs invalidate the affected module and reverse
 import closure through the ordinary cache path. A historical cache cannot
 restore old source into a live workspace or suppress held-input drift checks.
-Deleting the store leaves canonical source intact; explicit cold startup remains
-available. A selected corrupt cache fails closed rather than silently falling
-back to a differently authenticated state.
+Deleting the store or explicitly evicting an entry leaves canonical source
+intact; explicit cold startup and source-derived rebuild remain available. A
+selected corrupt cache fails closed rather than silently falling back to a
+differently authenticated state.
 
 ## Authentication and trust boundary
 
@@ -110,7 +124,8 @@ cache, and rebuilt linked representations may coexist.
 use `SPX-G306` for invalid requests, `SPX-G307` for capacity, `SPX-G308` for
 binding/compiler mismatch, and `SPX-G309` for failed MAC authentication.
 Filesystem failures retain `SPX-I362`; `SPX-I363` represents publication
-uncertainty and must not be presented as proof that no cache entry was installed.
+uncertainty and must not be presented as proof that no cache entry was installed
+or removed.
 Ordinary source and Project diagnostics propagate.
 
 ## Authored evidence
@@ -118,7 +133,8 @@ Ordinary source and Project diagnostics propagate.
 `tests/semantic_cache_store_cli_v1.rs` authors separate-process warm load with
 three checked-HIR hits and zero resolver calls; historical loading after source
 edits; live startup admission and unchanged refresh; request-level cache and
-commit authority rejection; explicit cold startup after deletion; reminted
+commit authority rejection; exact entry eviction, source preservation and
+deterministic warm rebuild; explicit cold startup after deletion; reminted
 public digest with invalid MAC; exact compiler mismatch; and closed older/new
 startup policy validation. The compiler-mismatch case applies only when both
 executables satisfy the supported 256 MiB bound.

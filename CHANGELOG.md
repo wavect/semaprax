@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Added exact, authority-neutral persistent semantic-cache eviction. A host can
+  remove one digest-selected derived entry under the authenticated store's
+  held-root and exclusive-lock discipline, receive a bounded machine-readable
+  receipt, and rebuild the identical warm entry from unchanged canonical
+  source. Absence and digest drift fail before unlink; failures after unlink
+  remain explicit uncertainty. Automatic retention, eviction policy, GC, and
+  measured cold/warm performance remain open.
+
 - Carried a real Rust import selection through the authenticated Project
   Native Rust SDK route, and taught the `ScalarV1` workspace linker to retain
   the interfaces that declare those callbacks. The Project subject's `imports`

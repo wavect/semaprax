@@ -179,6 +179,36 @@ observation at 64 artifacts and 64 MiB total authenticated evidence. This
 keeps the checked summarizer read-only and bounded; source, candidate, cache,
 publication and network authority remain outside it.
 
+## Incremental observation audit
+
+One available task/lane/trial can be checked before the complete paired matrix
+exists:
+
+```sh
+python3 scripts/agent-task-comparison.py audit \
+  --manifest benchmarks/agent-task-comparison-v1/manifest.json \
+  --observation evidence/task-lane-trial/observation.json \
+  --task owned-signature-migration-v1 \
+  --lane semaprax-graph-operational \
+  --trial 1 \
+  --output /absolute/path/to/audit.json
+```
+
+The command invokes the same complete observation and evidence-artifact
+validator as `report`, including plan, prompt, available-lane, metric,
+acceptance, outcome, path, byte and digest checks. It then requires the
+validated tuple to equal the explicit selectors. The bounded 512 KiB
+`semaprax.agent-task-comparison-audit.v1` result binds the exact plan and
+repository head, exact observation-file digest and canonicalized observation
+digest, eligibility basis, outcome, complete metric objects and ordered
+acceptance rows.
+
+An audit is one incremental eligibility record. It does not require or imply a
+complete matrix, invoke an agent, compare lanes, aggregate productivity, rank a
+result, infer statistical significance, or observe/estimate the external Zero
+lane. Only `report` can describe the complete available-lane matrix, and its
+existing limitations remain unchanged.
+
 ## Descriptive report
 
 After collecting the complete two-lane matrix, produce a canonical report:

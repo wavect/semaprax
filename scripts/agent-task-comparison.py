@@ -18,12 +18,14 @@ PLAN_SCHEMA = "semaprax.agent-task-comparison-plan.v1"
 TRIAL_SCHEMA = "semaprax.agent-task-comparison-trial.v1"
 MATRIX_SCHEMA = "semaprax.agent-task-comparison-matrix.v1"
 REPORT_SCHEMA = "semaprax.agent-task-comparison-report.v1"
+AUDIT_SCHEMA = "semaprax.agent-task-comparison-audit.v1"
 MAX_JSON = 1024 * 1024
 MAX_EVIDENCE = 32 * 1024 * 1024
 MAX_EVIDENCE_TOTAL = 64 * 1024 * 1024
 MAX_ARTIFACTS = 64
 MAX_LEDGER = 8 * 1024 * 1024
 MAX_LEDGER_EVENTS = 65536
+MAX_AUDIT = 512 * 1024
 LEDGER_ARTIFACT_ID = "typed-event-ledger"
 METRICS = (
     "model_input_tokens",
@@ -648,7 +650,7 @@ def make_observation(manifest_path, ledger_path, output):
     }
 
 
-def load_observation(path, plan, manifest):
+def load_observation(path, plan, manifest, include_document=False):
     body = relative_file(ROOT, path, MAX_JSON, "observation")
     value = object_json(body, f"observation {path}")
     exact_keys(
@@ -735,7 +737,7 @@ def load_observation(path, plan, manifest):
     acceptance_passed = all(row["outcome"] == "passed" for row in acceptance)
     if (value["outcome"] == "completed") != acceptance_passed:
         raise Failure(f"observation {path} outcome disagrees with acceptance")
-    return {
+    validated = {
         "path": path,
         "sha256": digest(body),
         "task": value["task"],
@@ -752,6 +754,9 @@ def load_observation(path, plan, manifest):
         "acceptance_passed": acceptance_passed,
         "metrics": totals,
     }
+    if include_document:
+        return validated, value
+    return validated
 
 
 def make_report(manifest_path, observation_paths):
@@ -826,6 +831,60 @@ def make_report(manifest_path, observation_paths):
     }
 
 
+def make_audit(manifest_path, observation_path, task_id, lane_id, trial):
+    plan = make_plan(manifest_path)
+    manifest, _, _ = load_manifest(manifest_path)
+    # This is the same complete observation and evidence-artifact validation
+    # used by the full-matrix report. Audit changes only matrix cardinality.
+    validated, observation = load_observation(
+        observation_path, plan, manifest, include_document=True
+    )
+    selected = (validated["task"], validated["lane"], validated["trial"])
+    requested = (task_id, lane_id, trial)
+    if selected != requested:
+        raise Failure(
+            "audit observation tuple disagrees with --task, --lane, and --trial"
+        )
+
+    audit = {
+        "schema": AUDIT_SCHEMA,
+        "plan_sha256": digest(canonical(plan)),
+        "repository_head": plan["repository_head"],
+        "manifest": plan["manifest"],
+        "observation": {
+            "path": observation_path,
+            "sha256": validated["sha256"],
+            "canonical_json_sha256": digest(canonical(observation)),
+            "task": validated["task"],
+            "lane": validated["lane"],
+            "trial": validated["trial"],
+            "state": validated["state"],
+        },
+        "eligibility": {
+            "status": "eligible_single_observation",
+            "basis": "complete_observation_and_evidence_artifact_validation",
+            "available_task_lane_trial": True,
+            "complete_matrix_required": False,
+            "complete_matrix_present": False,
+        },
+        "outcome": observation["outcome"],
+        "metrics": observation["metrics"],
+        "acceptance": observation["acceptance"],
+        "claims": {
+            "agent_execution": "not_performed_by_audit",
+            "available_lane_comparison": "not_claimed",
+            "causal_productivity": "not_claimed",
+            "statistical_significance": "not_claimed",
+            "zero": "not_observed_or_inferred",
+            "scope": "one_validated_observation_only",
+            "publication_authority": False,
+        },
+    }
+    if len(canonical(audit)) + 1 > MAX_AUDIT:
+        raise Failure(f"audit exceeds {MAX_AUDIT} bytes")
+    return audit
+
+
 def write(value, output):
     body = canonical(value) + b"\n"
     if output is None:
@@ -842,7 +901,9 @@ def write(value, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("plan", "matrix", "trial", "observation", "report"))
+    parser.add_argument(
+        "command", choices=("plan", "matrix", "trial", "observation", "audit", "report")
+    )
     parser.add_argument("--manifest", default="benchmarks/agent-task-comparison-v1/manifest.json")
     parser.add_argument("--observation", action="append", default=[])
     parser.add_argument("--task")
@@ -871,6 +932,20 @@ def main():
         if arguments.ledger is None:
             raise Failure("observation requires --ledger")
         value = make_observation(arguments.manifest, arguments.ledger, arguments.output)
+    elif arguments.command == "audit":
+        if arguments.ledger:
+            raise Failure("audit does not accept a ledger")
+        if len(arguments.observation) != 1:
+            raise Failure("audit requires exactly one --observation")
+        if arguments.task is None or arguments.lane is None or arguments.trial is None:
+            raise Failure("audit requires --task, --lane, and --trial")
+        value = make_audit(
+            arguments.manifest,
+            arguments.observation[0],
+            arguments.task,
+            arguments.lane,
+            arguments.trial,
+        )
     else:
         if arguments.task or arguments.lane or arguments.trial is not None or arguments.ledger:
             raise Failure("report does not accept trial selectors")

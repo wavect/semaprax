@@ -67,10 +67,14 @@ The example prints `42`.
 Install the development CLI locally if you prefer shorter commands:
 
 ```sh
-cargo install --path .
+cargo install --locked --path .
 semaprax check examples/meaning.spx
 semaprax run examples/meaning.spx
 ```
+
+Use `semaprax <command> --help` for the exact accepted command shape, or see
+the [CLI user guide](docs/CLI-GUIDE.md) for common source, project, formatting,
+and automation workflows.
 
 Private-host commands require the unpublished full toolchain, not the
 standalone crates.io compiler package. Install it from the same checkout to

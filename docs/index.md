@@ -23,6 +23,7 @@ the release remains unsigned, not notarized, and pre-alpha.
 | You want to… | Start with… |
 | --- | --- |
 | Try the language | Follow the executable [quickstart](QUICKSTART.md), then explore the root [README](../README.md) |
+| Find or automate a compiler command | [Using the SEMAPRAX CLI](CLI-GUIDE.md) |
 | Understand the language design | [RFC 0001](RFC-0001.md) |
 | Work with records, variants, matching, `Option`, or `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
 | Understand ownership and cleanup | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |

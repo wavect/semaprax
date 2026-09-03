@@ -141,7 +141,7 @@ fn appends_one_owned_bytes_case_without_rewriting_existing_constructors() {
         .iter()
         .any(|entry| {
             entry["id"] == "variant.choice.data.bytes"
-            && entry["kind"] == "case_field"
+                && entry["kind"] == "case_field"
                 && entry["owner"] == "variant.choice.data"
         }));
     let replay = ProjectCandidate::replay(

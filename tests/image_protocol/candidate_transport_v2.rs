@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use semaprax::image_transport::{
     ImageHostCapability, ImageSession, CANDIDATE_PROTOCOL_SCHEMA, PROTOCOL_SCHEMA,
 };
+use semaprax::project::SemanticChange;
 use serde_json::{json, Value};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);

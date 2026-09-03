@@ -280,6 +280,15 @@ transition; Graph v28/v29 distinguish destructuring without and with an
 authenticated nested projected loan. The interpreter, native C11 and Core Wasm
 remain fieldwise, while variants, mutation and every public ABI stay closed.
 
+The successor [Acyclic Nested Owned-Record Immutable Update
+v1](NESTED-OWNED-RECORD-UPDATE-V1.md) admits only top-level immutable
+reconstruction of that same closed record tree. CleanupPlan v9 authenticates
+unchanged descendant transfers, replaced-old settlement, replacement-prefix
+completion and one result commit; Graph v30/v31 distinguish reconstruction
+without and with universally authenticated nested loans. Interpreter, native
+C11 and Core Wasm remain fieldwise. Dotted mutation, resources, variants,
+generics and public ABI surfaces remain closed.
+
 ### Semantic graph
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup

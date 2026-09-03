@@ -39,6 +39,13 @@ one atomic whole-source recursive destructure, exact descendant transfers, and
 borrowed patterns with no new owner or cleanup action. It does not reinterpret
 v2-v7 or grant target, resource, FFI, Project, or publication authority.
 
+The successor [Acyclic Nested Owned-Record Immutable Update
+v1](NESTED-OWNED-RECORD-UPDATE-V1.md) uses CleanupPlan v9 to authenticate one
+base evaluation, left-to-right top-level replacements, unchanged descendant
+transfers, replaced-old settlement, replacement-prefix cleanup and atomic
+result commit. It does not reinterpret v2-v8 or grant mutation, resource, FFI,
+Project, ABI, or publication authority.
+
 ## Safety contract
 
 For every execution in the safe language profile:

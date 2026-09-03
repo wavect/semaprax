@@ -335,7 +335,7 @@ fn forged_nested_stable_field_paths_fail_hir_replay() {
 }
 
 #[test]
-fn nested_record_updates_remain_closed_without_regressing_flat_updates() {
+fn exact_named_nested_record_updates_and_flat_legacy_updates_are_admitted() {
     let nested = r#"
 module test.nested_update_closed;
 @id("update.leaf") record Leaf {
@@ -352,13 +352,10 @@ module test.nested_update_closed;
 "#;
     let errors = diagnostics(nested);
     assert!(
-        errors.iter().any(|diagnostic| {
-            diagnostic.code == "SPX-O117"
-                && diagnostic
-                    .message
-                    .contains("record updates over nested owned-Bytes records remain closed")
-        }),
-        "nested update must fail with the closed-profile diagnostic: {errors:?}"
+        errors
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
+        "exact named nested owned-record updates are admitted: {errors:?}"
     );
 
     let flat = r#"

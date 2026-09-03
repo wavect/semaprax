@@ -288,6 +288,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         else {
             unreachable!("non-UpdateRecord expression reached emit_update_record_expr")
         };
+        if self.record_is_nested_owned(&expr.ty)? {
+            return self.emit_nested_update_record(expr, base, record, fields);
+        }
         let base = self.emit_expr(base)?;
         self.require_type(&base.ty, &expr.ty, "record update base")?;
         let layout = self.record_layout(&expr.ty)?;
@@ -338,6 +341,85 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         Ok(value)
     }
 
+    fn emit_nested_update_record(
+        &mut self,
+        expr: &ResolvedExpr,
+        base_expr: &ResolvedExpr,
+        record: &DeclarationId,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+    ) -> Result<CValue, Diagnostic> {
+        let base = self.emit_expr(base_expr)?;
+        self.require_type(&base.ty, &expr.ty, "nested record update base")?;
+        let layout = self.record_layout(&expr.ty)?;
+        if layout.record != *record {
+            return Err(backend_error("nested record update identity changed"));
+        }
+        let destination = self.temporary(&expr.ty)?;
+        self.zero_owned_record_bytes(&destination, &expr.ty)?;
+        let mut seen = BTreeSet::new();
+        for replacement in fields {
+            let field = layout.field(&replacement.field).cloned().ok_or_else(|| {
+                backend_error(format!(
+                    "native record `{record}` has no update field `{}`",
+                    replacement.field
+                ))
+            })?;
+            if !seen.insert(field.field.clone()) {
+                return Err(backend_error("nested record update repeats a field"));
+            }
+            let value = self.emit_expr(&replacement.value)?;
+            self.require_type(&value.ty, &field.ty, "nested record update field")?;
+            if field.size == 0 || field.ty == ResolvedType::Bytes {
+                continue;
+            }
+            let target = format!("{destination}.{}", c_field_symbol(&field.field));
+            if self.record_contains_owned_bytes(&field.ty)? {
+                self.move_owned_record_fields(&target, &value.code, &field.ty)?;
+            } else {
+                self.line(&format!("{target} = {};", value.code));
+            }
+        }
+        let preflight = self
+            .bytes_plan
+            .ok_or_else(|| backend_error("nested record update has no cleanup plan"))?
+            .authenticate_transfers_at(&expr.id)?;
+        for line in preflight.lines() {
+            self.line(line);
+        }
+        for field in &layout.fields {
+            if seen.contains(&field.field) || field.size == 0 || field.ty == ResolvedType::Bytes {
+                continue;
+            }
+            let source = format!("({}).{}", base.code, c_field_symbol(&field.field));
+            let target = format!("{destination}.{}", c_field_symbol(&field.field));
+            if self.record_contains_owned_bytes(&field.ty)? {
+                self.move_owned_record_fields(&target, &source, &field.ty)?;
+            } else {
+                self.line(&format!("{target} = {source};"));
+            }
+        }
+        let transitions = self
+            .bytes_plan
+            .expect("nested update plan checked above")
+            .apply_at(&expr.id)?;
+        for line in transitions.lines() {
+            self.line(line);
+        }
+        let cleanup = self
+            .bytes_plan
+            .expect("nested update plan checked above")
+            .scope_exit(&BTreeSet::from([
+                crate::cleanup_plan::StorageId::Temporary(base_expr.id.clone()),
+            ]))?;
+        for line in cleanup.lines() {
+            self.line(line);
+        }
+        Ok(CValue {
+            code: destination,
+            ty: expr.ty.clone(),
+        })
+    }
+
     pub(crate) fn record_contains_owned_bytes(
         &self,
         ty: &ResolvedType,
@@ -346,6 +428,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             return Ok(false);
         }
         self.classify_owned_record(ty)
+    }
+
+    fn record_is_nested_owned(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+        if !self.record_contains_owned_bytes(ty)? {
+            return Ok(false);
+        }
+        for field in &self.record_layout(ty)?.fields {
+            if self.record_contains_owned_bytes(&field.ty)? {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     pub(crate) fn move_owned_record_fields(

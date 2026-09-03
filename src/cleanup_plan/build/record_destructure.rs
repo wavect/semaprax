@@ -11,6 +11,8 @@ use crate::hir::{
     ResolvedRecordMatchPatternField, ResolvedType,
 };
 
+pub(super) mod update;
+
 const MAX_DEPTH: usize = 64;
 const MAX_OWNED_LEAVES: usize = 256;
 const MAX_VISITED_FIELDS: usize = 4_096;

@@ -783,13 +783,16 @@ pub(super) fn check_expr(
                 return None;
             }
 
-            if types.is_nested_owned_byte_record(&base_value.ty)
-                && !types.is_flat_owned_byte_record(&base_value.ty)
+            let nested_update = types.is_nested_owned_byte_record(&base_value.ty)
+                && !types.is_flat_owned_byte_record(&base_value.ty);
+            if nested_update
+                && source_place(base, variables, types)
+                    .is_none_or(|place| !place.projections.is_empty())
             {
                 diagnostics.push(error(
                     program,
                     "SPX-O117",
-                    "record updates over nested owned-Bytes records remain closed",
+                    "nested owned-record update requires an exact named owned base place",
                     expr.span,
                 ));
             }

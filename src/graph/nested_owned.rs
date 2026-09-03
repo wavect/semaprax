@@ -1,5 +1,7 @@
 use crate::cleanup::FieldLivenessShape;
-use crate::cleanup_plan::{StorageId, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8};
+use crate::cleanup_plan::{
+    StorageId, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{PlaceProjection, ResolvedFunction, ResolvedProgram};
 
@@ -9,9 +11,13 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
     has_native_import: bool,
 ) -> Result<Option<&'static str>, Diagnostic> {
     let functions = functions.into_iter().collect::<Vec<_>>();
-    let has_nested_destructure = functions
+    let has_nested_update = functions
         .iter()
-        .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V8);
+        .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V9);
+    let has_nested_destructure = has_nested_update
+        || functions
+            .iter()
+            .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V8);
     let has_nested_cleanup = has_nested_destructure
         || functions
             .iter()
@@ -43,7 +49,7 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
             if loan.origin.projections.len() < 2
                 || !matches!(
                     function.cleanup_plan.schema,
-                    CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8
+                    CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8 | CLEANUP_PLAN_SCHEMA_V9
                 )
                 || !loan_origin_is_nested_owned_leaf(function, loan)
                 || program.is_some_and(|program| {
@@ -60,7 +66,11 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
         }
     }
     Ok(Some(
-        if has_nested_destructure && has_authenticated_nested_projected_loan {
+        if has_nested_update && has_authenticated_nested_projected_loan {
+            "semaprax.graph.v31"
+        } else if has_nested_update {
+            "semaprax.graph.v30"
+        } else if has_nested_destructure && has_authenticated_nested_projected_loan {
             "semaprax.graph.v29"
         } else if has_nested_destructure {
             "semaprax.graph.v28"
@@ -201,20 +211,26 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v27"
             | "semaprax.graph.v28"
             | "semaprax.graph.v29"
+            | "semaprax.graph.v30"
+            | "semaprax.graph.v31"
     )
 }
 
 pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
     matches!(
         schema,
-        "semaprax.graph.v23" | "semaprax.graph.v24" | "semaprax.graph.v27" | "semaprax.graph.v29"
+        "semaprax.graph.v23"
+            | "semaprax.graph.v24"
+            | "semaprax.graph.v27"
+            | "semaprax.graph.v29"
+            | "semaprax.graph.v31"
     )
 }
 
 pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
     matches!(
         schema,
-        "semaprax.graph.v24" | "semaprax.graph.v27" | "semaprax.graph.v29"
+        "semaprax.graph.v24" | "semaprax.graph.v27" | "semaprax.graph.v29" | "semaprax.graph.v31"
     )
 }
 
@@ -224,6 +240,8 @@ pub(super) fn rejected_evidence_schema(schema: &str) -> Option<Diagnostic> {
         "semaprax.graph.v26" => "nested owned-record programs select `semaprax.graph.v26`, which is outside this evidence flow's admission",
         "semaprax.graph.v29" => "nested owned-record destructuring composed with authenticated projected loans selects `semaprax.graph.v29`, which is outside this evidence flow's admission",
         "semaprax.graph.v28" => "nested owned-record destructuring selects `semaprax.graph.v28`, which is outside this evidence flow's admission",
+        "semaprax.graph.v31" => "nested owned-record update composed with authenticated projected loans selects `semaprax.graph.v31`, which is outside this evidence flow's admission",
+        "semaprax.graph.v30" => "nested owned-record update selects `semaprax.graph.v30`, which is outside this evidence flow's admission",
         _ => return None,
     };
     Some(Diagnostic::io("SPX-G410", message))
@@ -236,7 +254,7 @@ pub(super) fn reject_nested_native_flags(
     if has_nested_cleanup && has_native_import {
         return Err(Diagnostic::io(
             "SPX-G410",
-            "native Rust import Graph v25 cannot mask nested owned-record Graph v26-v29 semantics",
+            "native Rust import Graph v25 cannot mask nested owned-record Graph v26-v31 semantics",
         ));
     }
     Ok(())

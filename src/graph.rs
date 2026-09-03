@@ -1520,16 +1520,23 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             function.cleanup_plan.schema,
             crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V7
                 | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V8
+                | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9
         )
     }) && native_import::declares_native_rust_import(interfaces)
     {
         return Err(Diagnostic::io(
             "SPX-G410",
-            "native Rust import Graph v25 cannot mask nested owned-record Graph v26-v29 semantics",
+            "native Rust import Graph v25 cannot mask nested owned-record Graph v26-v31 semantics",
         ));
     }
     if native_import::declares_native_rust_import(interfaces) {
         return Ok(native_import::NATIVE_RUST_IMPORT_SCHEMA);
+    }
+    if functions
+        .iter()
+        .any(|function| function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9)
+    {
+        return Ok("semaprax.graph.v30");
     }
     if functions
         .iter()

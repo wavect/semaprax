@@ -7,84 +7,11 @@
 use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
-fn resolved_type_contains_owned_bytes(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
-    let mut pending = vec![ty.clone()];
-    let mut visited = BTreeSet::new();
-    while let Some(ty) = pending.pop() {
-        match ty {
-            ResolvedType::Bytes => return true,
-            ResolvedType::Nominal {
-                declaration,
-                arguments,
-            } => {
-                pending.extend(arguments);
-                if !visited.insert(declaration.clone()) {
-                    continue;
-                }
-                let Some(item) = program
-                    .types
-                    .iter()
-                    .find(|candidate| candidate.id == declaration)
-                else {
-                    continue;
-                };
-                match &item.kind {
-                    ResolvedTypeDeclarationKind::Record { fields }
-                    | ResolvedTypeDeclarationKind::Class { fields, .. } => {
-                        pending.extend(fields.iter().map(|field| field.ty.clone()));
-                    }
-                    ResolvedTypeDeclarationKind::Variant { cases } => pending.extend(
-                        cases
-                            .iter()
-                            .flat_map(|case| &case.fields)
-                            .map(|field| field.ty.clone()),
-                    ),
-                    ResolvedTypeDeclarationKind::Resource { .. } => {}
-                }
-            }
-            ResolvedType::Unit
-            | ResolvedType::I64
-            | ResolvedType::I32
-            | ResolvedType::Char
-            | ResolvedType::U8
-            | ResolvedType::Usize
-            | ResolvedType::ArrayU8(_)
-            | ResolvedType::F32
-            | ResolvedType::F64
-            | ResolvedType::Bool
-            | ResolvedType::String
-            | ResolvedType::Str
-            | ResolvedType::SliceU8
-            | ResolvedType::TypeParameter { .. } => {}
-        }
-    }
-    false
-}
-
-fn resolved_type_is_flat_owned_byte_variant(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        return false;
-    };
-    if admitted_owned_byte_prelude_instance(declaration, arguments) {
-        return true;
-    }
-    if !arguments.is_empty() {
-        return false;
-    }
-    program.types.iter().any(|item| {
-        item.id == *declaration
-            && item.type_parameters.is_empty()
-            && matches!(&item.kind, ResolvedTypeDeclarationKind::Variant { cases }
-                if cases.iter().flat_map(|case| &case.fields).any(|field| field.ty == ResolvedType::Bytes)
-                    && cases.iter().flat_map(|case| &case.fields).all(|field|
-                        field.ty == ResolvedType::Bytes
-                            || super::type_reachability::nested_record_copy_scalar_is_admitted(&field.ty)))
-    })
-}
+mod type_profiles;
+use type_profiles::{
+    resolved_type_contains_owned_bytes, resolved_type_is_flat_owned_byte_variant,
+    validate_nested_update_base_shape,
+};
 
 /// Validate resolved meaning without consulting attached cleanup metadata.
 /// Independent cleanup-plan replayers use this boundary to avoid circularly
@@ -2308,6 +2235,7 @@ impl<'a> HirValidator<'a> {
                 instance: &'a ResolvedType,
                 fields: &'a [ResolvedRecordMatchPatternField],
                 path: String,
+                mode: ResolvedMatchMode,
             },
             Fields {
                 expected: ResolvedType,
@@ -2317,6 +2245,7 @@ impl<'a> HirValidator<'a> {
                 index: usize,
                 seen: BTreeSet<DeclarationId>,
                 path: String,
+                mode: ResolvedMatchMode,
             },
         }
         let mut frames = vec![Frame::Enter {
@@ -2325,6 +2254,7 @@ impl<'a> HirValidator<'a> {
             instance,
             fields,
             path: path.to_owned(),
+            mode,
         }];
         while let Some(frame) = frames.pop() {
             match frame {
@@ -2334,6 +2264,7 @@ impl<'a> HirValidator<'a> {
                     instance,
                     fields,
                     path,
+                    mode,
                 } => {
                     if instance != &expected {
                         return Err(hir_error(
@@ -2400,6 +2331,7 @@ impl<'a> HirValidator<'a> {
                         index: 0,
                         seen: BTreeSet::new(),
                         path,
+                        mode,
                     });
                 }
                 Frame::Fields {
@@ -2410,6 +2342,7 @@ impl<'a> HirValidator<'a> {
                     index,
                     mut seen,
                     path,
+                    mode,
                 } => {
                     let Some(field) = fields.get(index) else {
                         if seen.len() != declared_fields.len() {
@@ -2444,6 +2377,7 @@ impl<'a> HirValidator<'a> {
                         index: index + 1,
                         seen,
                         path,
+                        mode,
                     });
                     match &field.pattern {
                         ResolvedRecordMatchFieldPattern::Binding(binding) => {
@@ -2523,13 +2457,26 @@ impl<'a> HirValidator<'a> {
                             record,
                             instance,
                             fields,
-                        } => frames.push(Frame::Enter {
-                            expected: field_ty,
-                            record,
-                            instance,
-                            fields,
-                            path: format!("{field_path}.record"),
-                        }),
+                        } => {
+                            let nested_mode = if self
+                                .program
+                                .declarations
+                                .type_facts(&field_ty)
+                                .is_some_and(|facts| facts.copy && !facts.needs_drop)
+                            {
+                                ResolvedMatchMode::Value
+                            } else {
+                                mode
+                            };
+                            frames.push(Frame::Enter {
+                                expected: field_ty,
+                                record,
+                                instance,
+                                fields,
+                                path: format!("{field_path}.record"),
+                                mode: nested_mode,
+                            });
+                        }
                     }
                 }
             }
@@ -5100,14 +5047,7 @@ impl<'a> HirValidator<'a> {
                             "record update for `{record}` has an invalid concrete instance"
                         )));
                     }
-                    if super::type_reachability::is_nested_nonflat_owned_byte_record(
-                        &self.program.declarations,
-                        &base.ty,
-                    ) {
-                        return Err(hir_error(
-                            "SPX-O117: record updates over nested owned-Bytes records remain closed",
-                        ));
-                    }
+                    validate_nested_update_base_shape(self.program, base)?;
                     let ownership = self.expected_ownership(&base.ty, OwnershipMode::Own)?;
                     if base.ownership != ownership {
                         return Err(hir_error(format!(
@@ -8194,14 +8134,7 @@ impl<'a> HirValidator<'a> {
                         "record update for `{record}` has an invalid concrete instance"
                     )));
                 }
-                if super::type_reachability::is_nested_nonflat_owned_byte_record(
-                    &self.program.declarations,
-                    &ty,
-                ) {
-                    return Err(hir_error(
-                        "SPX-O117: record updates over nested owned-Bytes records remain closed",
-                    ));
-                }
+                validate_nested_update_base_shape(self.program, base)?;
                 self.require_type(&base.ty, &ty, "record update base")?;
                 let ownership = self.expected_ownership(&ty, OwnershipMode::Own)?;
                 if base.ownership != ownership {

@@ -2763,6 +2763,7 @@ impl Emitter<'_> {
             }
         ) {
             self.apply_post_transitions(&expr.id, &value)?;
+            nested_owned::emit_update_scope_cleanup(self, expr)?;
         }
         if self.owned_utf8_literals.is_some() {
             let escape = match &value {
@@ -4419,6 +4420,9 @@ impl Emitter<'_> {
                 fields,
             } => {
                 let base = self.emit_expr(base)?;
+                if nested_owned::record_is_nested_owned(self.program, &expr.ty)? {
+                    return self.emit_nested_update_record(expr, &base, record, fields);
+                }
                 let destination = Value::Aggregate {
                     pointer: self.plan.expr_pointer(expr)?,
                     ty: expr.ty.clone(),
@@ -4458,6 +4462,52 @@ impl Emitter<'_> {
                 Ok(destination)
             }
         }
+    }
+
+    fn emit_nested_update_record(
+        &mut self,
+        expr: &ResolvedExpr,
+        base: &Value,
+        record: &DeclarationId,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+    ) -> Result<Value, Diagnostic> {
+        require_type(value_type(base), &expr.ty, "nested record update base")?;
+        let record_layout = layout(self.program, &expr.ty)?;
+        if record_layout.record != *record {
+            return Err(error("nested record update identity changed"));
+        }
+        let destination = Value::Aggregate {
+            pointer: self.plan.expr_pointer(expr)?,
+            ty: expr.ty.clone(),
+        };
+        let mut seen = std::collections::BTreeSet::new();
+        for replacement in fields {
+            let field = record_layout
+                .field(&replacement.field)
+                .cloned()
+                .ok_or_else(|| error("nested record update field is absent"))?;
+            if !seen.insert(field.field.clone()) {
+                return Err(error("nested record update repeats a field"));
+            }
+            let value = self.emit_expr(&replacement.value)?;
+            require_type(value_type(&value), &field.ty, "nested record update field")?;
+            let target = self.project_value(&destination, &field.field)?;
+            // CleanupPlan transfers replacement authority at the initializer's
+            // successful completion. Materialize that exact field immediately,
+            // before a later initializer can fail and invoke partial-result
+            // cleanup against the destination epoch.
+            self.copy_value(&target, &value, "nested record update replacement")?;
+        }
+        self.authenticate_record_match_transfers(&expr.id)?;
+        for field in &record_layout.fields {
+            if seen.contains(&field.field) {
+                continue;
+            }
+            let source = self.project_value(base, &field.field)?;
+            let target = self.project_value(&destination, &field.field)?;
+            self.copy_value(&target, &source, "nested record update retained field")?;
+        }
+        Ok(destination)
     }
 
     fn materialize(&mut self, expr: &ResolvedExpr, source: &Value) -> Result<Value, Diagnostic> {

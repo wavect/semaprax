@@ -8,6 +8,7 @@ use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::CheckedValue;
 use crate::source_verify::diagnostics::{error, reject_native_unit_value};
 use crate::source_verify::loans::mark_value_sources_moved;
+use crate::source_verify::place::source_place;
 use crate::source_verify::scope::VerifierFrame;
 use crate::source_verify::type_table::{effective_record_fields, TypeTable};
 use crate::source_verify::IterativeVerifier;
@@ -337,13 +338,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             self.values.push(None);
             return Ok(());
         };
-        if self.types.is_nested_owned_byte_record(&base_value.ty)
-            && !self.types.is_flat_owned_byte_record(&base_value.ty)
+        let nested_update = self.types.is_nested_owned_byte_record(&base_value.ty)
+            && !self.types.is_flat_owned_byte_record(&base_value.ty);
+        if nested_update
+            && source_place(base, &self.scopes[scope].bindings, self.types)
+                .is_none_or(|place| !place.projections.is_empty())
         {
             self.diagnostics.push(error(
                 self.program,
                 "SPX-O117",
-                "record updates over nested owned-Bytes records remain closed",
+                "nested owned-record update requires an exact named owned base place",
                 expression.span,
             ));
         }

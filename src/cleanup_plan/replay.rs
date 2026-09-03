@@ -29,7 +29,7 @@ use super::{
     ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
     StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
     CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
-    CLEANUP_PLAN_SCHEMA_V8,
+    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 
 mod nested_shape;
@@ -338,7 +338,11 @@ fn validate_structure_with_budget(
                     .map(|profile| nested || profile.has_nested_owned_bytes)
             })?;
     let has_nested_record_destructure = record_destructure::function_contains(function);
-    let expected_schema = if has_nested_record_destructure {
+    let has_nested_record_update =
+        record_destructure::update::function_contains(program, function)?;
+    let expected_schema = if has_nested_record_update {
+        CLEANUP_PLAN_SCHEMA_V9
+    } else if has_nested_record_destructure {
         CLEANUP_PLAN_SCHEMA_V8
     } else if has_nested_owned_bytes {
         CLEANUP_PLAN_SCHEMA_V7
@@ -2685,7 +2689,10 @@ fn validate_blocks_and_edges(
                 if !matches!(plan.edges[edge.0 as usize].condition, EdgeCondition::Always)
                     && !(matches!(
                         function.cleanup_plan.schema,
-                        CLEANUP_PLAN_SCHEMA_V6 | CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8
+                        CLEANUP_PLAN_SCHEMA_V6
+                            | CLEANUP_PLAN_SCHEMA_V7
+                            | CLEANUP_PLAN_SCHEMA_V8
+                            | CLEANUP_PLAN_SCHEMA_V9
                     ) && matches!(
                         plan.edges[edge.0 as usize].condition,
                         EdgeCondition::VariantCase { matches: true, .. }

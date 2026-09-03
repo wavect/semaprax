@@ -3,7 +3,9 @@
 use std::collections::BTreeSet;
 
 use crate::diagnostic::Diagnostic;
-use crate::hir::{DeclarationId, DeclarationKind, ResolvedProgram, ResolvedType};
+use crate::hir::{
+    DeclarationId, DeclarationKind, ResolvedExpr, ResolvedExprKind, ResolvedProgram, ResolvedType,
+};
 
 use super::{error, is_aggregate, layout, require_type, value_type, Emitter, Pointer, Value};
 
@@ -95,6 +97,77 @@ pub(super) fn record_contains_owned_bytes(
         }
     }
     Ok(contains)
+}
+
+pub(super) fn record_is_nested_owned(
+    program: &ResolvedProgram,
+    root: &ResolvedType,
+) -> Result<bool, Diagnostic> {
+    if !record_contains_owned_bytes(program, root)? {
+        return Ok(false);
+    }
+    let ResolvedType::Nominal { declaration, .. } = root else {
+        return Ok(false);
+    };
+    let fields = program
+        .declarations
+        .record_fields(declaration)
+        .ok_or_else(|| super::error("nested update record inventory is absent"))?;
+    for field in fields {
+        if record_contains_owned_bytes(program, &field.ty)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+pub(super) fn emit_update_scope_cleanup(
+    emitter: &mut super::Emitter<'_>,
+    expression: &ResolvedExpr,
+) -> Result<(), Diagnostic> {
+    let ResolvedExprKind::UpdateRecord { base, .. } = &expression.kind else {
+        return Ok(());
+    };
+    if !record_is_nested_owned(emitter.program, &expression.ty)? {
+        return Ok(());
+    }
+    if emitter.cleanup_plan.schema != crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9 {
+        return Err(super::error(
+            "nested record update cleanup requires CleanupPlan v9",
+        ));
+    }
+    let anchor = crate::cleanup_plan::StorageId::Temporary(base.id.clone());
+    let mut regions = emitter
+        .cleanup_plan
+        .regions
+        .iter()
+        .filter(|region| region.slots.contains(&anchor));
+    let region = regions
+        .next()
+        .cloned()
+        .ok_or_else(|| super::error("nested record update has no cleanup region"))?;
+    if regions.next().is_some() || region.parent.is_none() {
+        return Err(super::error(
+            "nested record update cleanup region is not exact",
+        ));
+    }
+    let exit = emitter
+        .cleanup_plan
+        .exits
+        .get(region.normal_scope_end.0 as usize)
+        .filter(|exit| exit.id == region.normal_scope_end)
+        .cloned()
+        .ok_or_else(|| super::error("nested record update region has no normal exit"))?;
+    if !matches!(
+        exit.continuation,
+        crate::cleanup_plan::ExitContinuation::Continue(_)
+    ) || exit.leaves_regions.as_slice() != [region.id]
+    {
+        return Err(super::error(
+            "nested record update cleanup exit is not canonical",
+        ));
+    }
+    emitter.emit_cleanup_actions(&exit.finalize_in_order)
 }
 
 fn is_exact_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {

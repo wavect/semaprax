@@ -39,6 +39,12 @@ v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) owns the bounded successor profile
 for recursive `match own` and `match borrow`. It does not reinterpret this
 contract's v7/v26/v27 bytes or widen its public boundaries.
 
+The separately versioned [Acyclic Nested Owned-Record Immutable Update
+v1](NESTED-OWNED-RECORD-UPDATE-V1.md) owns the bounded successor profile for
+top-level `base with { ... }` reconstruction. It does not reinterpret this
+contract's v7/v26/v27 bytes or admit dotted mutation, resources, variants,
+generics, Project exports, Components, or public aggregate ABIs.
+
 ## Stable places and type facts
 
 Every transitive leaf is addressed by one root `ValueId` and the complete

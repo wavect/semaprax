@@ -2,9 +2,10 @@ use std::path::Path;
 
 use super::validate_structure;
 use crate::cleanup_plan::{
-    CleanupTransition, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8,
+    CleanupTransition, StorageId, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V7,
+    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
-use crate::{hir, parse};
+use crate::{hir, hir::ResolvedExprKind, parse};
 
 const SOURCE: &str = r#"
 module test.cleanup_nested_destructure;
@@ -12,6 +13,7 @@ module test.cleanup_nested_destructure;
   @id("leaf.payload") payload: Bytes,
   @id("leaf.marker") marker: i64,
 }
+
 @id("branch.type") record Branch {
   @id("branch.leaf") leaf: Leaf,
   @id("branch.enabled") enabled: bool,
@@ -153,6 +155,7 @@ module test.cleanup_flat_destructure;
 @id("packet.take") fn take(packet: own Packet) -> i64 {
   match own packet { Packet { payload } => 0, }
 }
+
 @id("app.main") fn main() -> i64 { 0 }
 "#;
     let flat = hir::resolve(
@@ -163,4 +166,83 @@ module test.cleanup_flat_destructure;
         function(&flat, "packet.take").cleanup_plan.schema,
         CLEANUP_PLAN_SCHEMA_V5
     );
+}
+
+#[test]
+fn v9_nested_update_replays_subtrees_and_rejects_mutation() {
+    let source = r#"
+module test.cleanup_nested_update;
+@id("update.leaf") record Leaf { @id("update.leaf.payload") payload: Bytes, }
+@id("update.pair") record Pair {
+  @id("update.pair.left") left: Leaf,
+  @id("update.pair.right") right: Leaf,
+  @id("update.pair.sequence") sequence: i64,
+}
+@id("update.apply") fn apply(value: own Pair, replacement: own Leaf) -> Pair {
+  value with { left: replacement, sequence: 7 }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let program = hir::resolve(
+        &parse(source, Path::new("cleanup-nested-update.spx")).expect("update source parses"),
+    )
+    .expect("nested update resolves");
+    let original = function(&program, "update.apply");
+    assert_eq!(original.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V9);
+    validate_structure(&program, original).expect("canonical v9 independently replays");
+    let ResolvedExprKind::Block { tail, .. } = &original.body.kind else {
+        panic!()
+    };
+    let ResolvedExprKind::UpdateRecord { base, .. } = &tail.kind else {
+        panic!()
+    };
+    let base_stage = StorageId::Temporary(base.id.clone());
+    let result_stage = StorageId::Temporary(tail.id.clone());
+    let transfers = original
+        .cleanup_plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions);
+    assert_eq!(transfers.clone().filter(|transition| matches!(transition,
+        CleanupTransition::Transfer { source, destination, .. }
+            if source.storage == base_stage
+                && source.projections.iter().map(|id| id.as_str()).collect::<Vec<_>>() == ["update.pair.right"]
+                && destination.storage == result_stage
+    )).count(), 1);
+    assert_eq!(transfers.filter(|transition| matches!(transition,
+        CleanupTransition::Transfer { destination, .. }
+            if destination.storage == result_stage
+                && destination.projections.iter().map(|id| id.as_str()).collect::<Vec<_>>() == ["update.pair.left"]
+    )).count(), 1);
+    assert_eq!(
+        original
+            .cleanup_plan
+            .exits
+            .iter()
+            .flat_map(|exit| &exit.finalize_in_order)
+            .filter(|action| action.source.storage == base_stage
+                && action
+                    .source
+                    .projections
+                    .iter()
+                    .map(|id| id.as_str())
+                    .collect::<Vec<_>>()
+                    == ["update.pair.left", "update.leaf.payload"])
+            .count(),
+        1
+    );
+
+    let mut missing = original.clone();
+    let (transitions, position) = missing.cleanup_plan.blocks.iter_mut().find_map(|block| {
+        block.transitions.iter().position(|transition| matches!(transition,
+            CleanupTransition::Transfer { source, .. }
+                if source.storage == base_stage
+                    && source.projections.iter().map(|id| id.as_str()).collect::<Vec<_>>() == ["update.pair.right"]
+        )).map(|position| (&mut block.transitions, position))
+    }).unwrap();
+    transitions.remove(position);
+    assert!(validate_structure(&program, &missing).is_err());
+    let mut downgraded = original.clone();
+    downgraded.cleanup_plan.schema = CLEANUP_PLAN_SCHEMA_V8;
+    assert!(validate_structure(&program, &downgraded).is_err());
 }

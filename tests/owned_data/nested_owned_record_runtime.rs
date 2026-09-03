@@ -24,8 +24,65 @@ module test.nested_owned_record_runtime;
     @id("runtime.envelope.sequence") sequence: i64,
 }
 
+@id("runtime.metadata") record Metadata {
+    @id("runtime.metadata.marker") marker: i64,
+}
+@id("runtime.direct-envelope") record DirectEnvelope {
+    @id("runtime.direct-envelope.payload") payload: Bytes,
+    @id("runtime.direct-envelope.metadata") metadata: Metadata,
+}
+
 @id("runtime.identity")
 fn identity(packet: own Envelope) -> Envelope { packet }
+
+@id("runtime.update")
+fn update(packet: own Envelope) -> Envelope {
+    let replacement = [21u8, 22u8, 23u8];
+    packet with {
+        right: Branch {
+            leaf: Leaf { payload: bytes_copy(array_as_slice(replacement)), marker: 2 },
+            enabled: false,
+        },
+    }
+}
+
+@id("runtime.update-failure")
+fn update_failure(packet: own Envelope) -> Envelope {
+    let replacement = [31u8, 32u8, 33u8, 34u8];
+    packet with {
+        right: Branch {
+            leaf: Leaf { payload: bytes_copy(array_as_slice(replacement)), marker: 4 },
+            enabled: true,
+        },
+        sequence: 9223372036854775807 + 1,
+    }
+}
+
+@id("runtime.update-direct-bytes-copy-subtree")
+fn update_direct_bytes_copy_subtree(packet: own DirectEnvelope) -> DirectEnvelope {
+    packet with { metadata: Metadata { marker: 9 } }
+}
+
+@id("runtime.run-direct-bytes-copy-subtree")
+fn run_direct_bytes_copy_subtree() -> i64 {
+    let input = [31u8, 32u8];
+    let packet = DirectEnvelope {
+        payload: bytes_copy(array_as_slice(input)),
+        metadata: Metadata { marker: 1 },
+    };
+    let retained_metadata = packet.metadata;
+    let updated = update_direct_bytes_copy_subtree(packet);
+    match own updated {
+        DirectEnvelope { payload, metadata: Metadata { marker } } =>
+            if byte_len(bytes_as_slice(payload)) == 2usize { marker } else { 0 },
+    }
+}
+
+@id("runtime.copy-only-construction-closed")
+fn copy_only_construction_closed() -> i64 {
+    let metadata = Metadata { marker: 1 };
+    0
+}
 
 @id("runtime.inspect")
 fn inspect(packet: own Envelope) -> i64 {
@@ -45,7 +102,7 @@ fn destructure_borrow(packet: borrow Envelope) -> i64 {
             let left = bytes_as_slice(left_payload);
             let left_again = byte_range(left, 0usize, byte_len(left));
             let right = bytes_as_slice(right_payload);
-            if byte_len(left_again) == 1usize && byte_len(right) == 2usize { 5 } else { 0 }
+            if byte_len(left_again) == 1usize && byte_len(right) == 3usize { 5 } else { 0 }
         },
     }
 }
@@ -58,7 +115,7 @@ fn destructure_own(packet: own Envelope) -> i64 {
             right: Branch { leaf: Leaf { payload: right_payload, marker: right_marker }, enabled: _ },
             sequence,
         } => if byte_len(bytes_as_slice(left_payload)) == 1usize
-            && byte_len(bytes_as_slice(right_payload)) == 2usize
+            && byte_len(bytes_as_slice(right_payload)) == 3usize
             && left_marker + right_marker + sequence == 6 {
                 37
             } else {
@@ -82,12 +139,25 @@ fn run() -> i64 {
         },
         sequence: 3,
     };
-    let borrowed = destructure_borrow(packet);
-    let moved = identity(packet);
+    let updated = update(packet);
+    let borrowed = destructure_borrow(updated);
+    let moved = identity(updated);
     borrowed + destructure_own(moved)
 }
 
 @id("app.main") fn main() -> i64 { run() }
+
+@id("runtime.fail")
+fn fail() -> i64 {
+    let left = [11u8];
+    let right = [12u8, 13u8];
+    let packet = Envelope {
+        left: Branch { leaf: Leaf { payload: bytes_copy(array_as_slice(left)), marker: 1 }, enabled: true },
+        right: Branch { leaf: Leaf { payload: bytes_copy(array_as_slice(right)), marker: 2 }, enabled: false },
+        sequence: 3,
+    };
+    destructure_own(update_failure(packet))
+}
 "#;
 
 fn symbol(id: &str) -> String {
@@ -118,19 +188,94 @@ fn interpreter_executes_nested_own_and_borrow_destructuring_repeatedly() {
 }
 
 #[test]
+fn interpreter_update_failure_settles_without_publication() {
+    let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-nested-update-failure-{}-{serial}.spx",
+        std::process::id()
+    ));
+    std::fs::write(&path, SOURCE).unwrap();
+    let result =
+        interpreter::interpret(&path, "runtime.fail", &[], &InterpreterOptions::default()).unwrap();
+    assert!(!result.returned);
+    assert!(result
+        .envelope
+        .contains("\"domain_id\":\"semaprax.arithmetic.v1\""));
+    assert!(result.envelope.contains("\"code\":1"));
+    interpreter::verify_envelope(&result.envelope).unwrap();
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
+fn interpreter_updates_direct_bytes_records_with_copy_only_nested_subtrees() {
+    let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-nested-update-direct-bytes-{}-{serial}.spx",
+        std::process::id()
+    ));
+    std::fs::write(&path, SOURCE).unwrap();
+    let result = interpreter::interpret(
+        &path,
+        "runtime.run-direct-bytes-copy-subtree",
+        &[],
+        &InterpreterOptions::default(),
+    )
+    .unwrap();
+    let _ = std::fs::remove_file(path);
+    let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
+    assert_eq!(envelope["payload"]["outcome"]["value"], "9");
+    interpreter::verify_envelope(&result.envelope).unwrap();
+}
+
+#[test]
+fn interpreter_does_not_globally_admit_copy_only_record_construction() {
+    let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-copy-only-record-construction-{}-{serial}.spx",
+        std::process::id()
+    ));
+    std::fs::write(&path, SOURCE).unwrap();
+    let errors = interpreter::interpret(
+        &path,
+        "runtime.copy-only-construction-closed",
+        &[],
+        &InterpreterOptions::default(),
+    )
+    .expect_err("standalone Copy-only record construction remains outside the interpreter profile");
+    let _ = std::fs::remove_file(path);
+    assert!(
+        errors.iter().any(|diagnostic| {
+            diagnostic.code == "SPX-F102" && diagnostic.message.contains("record_construction")
+        }),
+        "{errors:?}"
+    );
+}
+
+#[test]
 fn native_moves_nested_carriers_fieldwise_at_o0_and_o2() {
     if Command::new("clang").arg("--version").output().is_err() {
         return;
     }
     let parsed = parse(SOURCE, Path::new("nested-owned-record-native-v1.spx")).unwrap();
-    assert!(verify::verify(&parsed)
-        .iter()
-        .all(|diagnostic| !diagnostic.severity.is_error()));
+    let diagnostics = verify::verify(&parsed);
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
+        "{diagnostics:?}"
+    );
     let generated = codegen::emit_c(&parsed).unwrap();
     assert_eq!(generated, codegen::emit_c(&parsed).unwrap());
     assert!(!generated.contains("memcpy(&"));
     assert!(!generated.contains("spx_result = spx_local_"));
     assert!(generated.contains("spx_bytes_move"));
+    let tracked_generated = generated
+        .replace(
+            "uint8_t *payload = (uint8_t *)malloc(",
+            "uint8_t *payload = (uint8_t *)spx_test_malloc(",
+        )
+        .replace("free(value->ptr);", "spx_test_free(value->ptr);");
+    assert_ne!(tracked_generated, generated);
 
     let probe = format!(
         r#"
@@ -142,11 +287,15 @@ int main(void) {{
     for (uint32_t iteration = UINT32_C(0); iteration < UINT32_C(4); ++iteration) {{
         if ({main}(&context, &result) != SPX_STATUS_SUCCESS) return 11;
         if (result != INT64_C(42)) return 12;
+        if (spx_test_live_allocations != UINT64_C(0)) return 14;
     }}
+    if ({fail}(&context, &result) == SPX_STATUS_SUCCESS) return 13;
+    if (spx_test_live_allocations != UINT64_C(0)) return 15;
     return 0;
 }}
 "#,
         main = symbol("app.main"),
+        fail = symbol("runtime.fail"),
     );
     for optimization in ["-O0", "-O2"] {
         let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
@@ -156,7 +305,29 @@ int main(void) {{
         ));
         let c = root.with_extension("c");
         let executable = root.with_extension(std::env::consts::EXE_EXTENSION);
-        std::fs::write(&c, format!("{generated}\n{probe}")).unwrap();
+        let allocator_probe = r#"
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+static uint64_t spx_test_live_allocations = UINT64_C(0);
+static void *spx_test_malloc(size_t size) {
+    void *allocation = malloc(size);
+    if (allocation != NULL) spx_test_live_allocations += UINT64_C(1);
+    return allocation;
+}
+static void spx_test_free(void *allocation) {
+    if (allocation != NULL) {
+        if (spx_test_live_allocations == UINT64_C(0)) abort();
+        spx_test_live_allocations -= UINT64_C(1);
+    }
+    free(allocation);
+}
+"#;
+        std::fs::write(
+            &c,
+            format!("{allocator_probe}\n{tracked_generated}\n{probe}"),
+        )
+        .unwrap();
         let output = Command::new("clang")
             .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror"])
             .arg("-DSPX_NO_ENTRY_WRAPPER")
@@ -207,8 +378,13 @@ fn wasm_executes_nested_views_repeatedly_without_owner_growth() {
         root.join("probe.mjs"),
         r#"import {readFile} from 'node:fs/promises';
 import {instantiateBytes} from './semaprax.js';
-const {instance}=await instantiateBytes(await readFile('./app.wasm'),{maxOwnedByteEntries:2});
-for(let i=0;i<4;i+=1){const value=instance.exports.semaprax_main();if(value!==42n)throw Error(`nested-owned:${value}`);}
+	const bytes=await readFile('./app.wasm');
+	const limited=await instantiateBytes(bytes,{maxOwnedByteEntries:2});
+	let capacityRejected=false;
+	try{limited.instance.exports.semaprax_main();}catch(error){capacityRejected=String(error).includes('live entry limit exceeded');}
+	if(!capacityRejected)throw Error('nested-owned update did not require its exact transient third owner');
+	const {instance}=await instantiateBytes(bytes,{maxOwnedByteEntries:3});
+	for(let i=0;i<4;i+=1){const value=instance.exports.semaprax_main();if(value!==42n)throw Error(`nested-owned:${value}`);}
 "#,
     )
     .unwrap();

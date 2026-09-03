@@ -19,4 +19,7 @@ fn trace_path_v1_rejects_every_cleanup_schema_with_conditional_or_nested_ownersh
     assert!(!trace_path_schema_is_admitted(
         crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V8
     ));
+    assert!(!trace_path_schema_is_admitted(
+        crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9
+    ));
 }

@@ -13,6 +13,168 @@ pub(super) fn is_admitted_owned_byte_record(
     classify_record(declarations, ty).is_some_and(|profile| profile.has_bytes)
 }
 
+pub(super) fn record_construction_is_admitted(
+    declarations: &hir::DeclarationIndex,
+    ty: &ResolvedType,
+    allow_copy_subtree: bool,
+) -> bool {
+    classify_record(declarations, ty).is_some_and(|profile| profile.has_bytes || allow_copy_subtree)
+}
+
+pub(super) fn record_update_is_admitted(
+    declarations: &hir::DeclarationIndex,
+    result: &ResolvedType,
+    record: &hir::DeclarationId,
+    fields: &[hir::ResolvedFieldInitializer],
+) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = result
+    else {
+        return false;
+    };
+    if declaration != record
+        || !arguments.is_empty()
+        || !classify_record(declarations, result).is_some_and(|profile| profile.has_bytes)
+    {
+        return false;
+    }
+    let Some(declared) = declarations.record_fields(record) else {
+        return false;
+    };
+    // This route is for every admitted non-flat record, not only records whose
+    // nested child contains the owned byte leaf. A direct Bytes field plus an
+    // admitted Copy-only nested record is equally non-flat and is admitted by
+    // the independent source/HIR classifiers.
+    if !declared.iter().any(|field| {
+        matches!(&field.ty, ResolvedType::Nominal { .. })
+            && classify_record(declarations, &field.ty).is_some()
+    }) {
+        return false;
+    }
+    let mut seen = BTreeSet::new();
+    fields.iter().all(|replacement| {
+        seen.insert(replacement.field.clone())
+            && declared
+                .iter()
+                .any(|field| field.id == replacement.field && field.ty == replacement.value.ty)
+    })
+}
+
+pub(super) fn update_owned_record(
+    declarations: &hir::DeclarationIndex,
+    expected: &ResolvedType,
+    record: Arc<OwnedRecordValue>,
+    replacements: Vec<(hir::DeclarationId, Value)>,
+) -> Result<Value, Flow> {
+    validate_runtime_record(declarations, expected, &record, true)?;
+    let ResolvedType::Nominal { declaration, .. } = expected else {
+        return Err(Flow::Guard("record update result is not nominal"));
+    };
+    let declared = declarations
+        .record_fields(declaration)
+        .ok_or(Flow::Guard("record update has no field inventory"))?;
+    let mut seen = BTreeSet::new();
+    for (field, value) in &replacements {
+        if !seen.insert(field.clone()) {
+            return Err(Flow::Guard("record update repeats a replacement field"));
+        }
+        let ty = declared
+            .iter()
+            .find(|candidate| candidate.id == *field)
+            .map(|candidate| &candidate.ty)
+            .ok_or(Flow::Guard("record update replaces an unknown field"))?;
+        validate_runtime_value(declarations, ty, value, true)?;
+    }
+    let mut record = Arc::try_unwrap(record)
+        .map_err(|_| Flow::Guard("record update base still has a live alias"))?;
+    for (field, value) in replacements {
+        let old = record
+            .fields
+            .insert(field, value)
+            .ok_or(Flow::Guard("record update replacement field is absent"))?;
+        drop(old);
+    }
+    Ok(Value::Record(Arc::new(record)))
+}
+
+fn validate_runtime_record(
+    declarations: &hir::DeclarationIndex,
+    expected: &ResolvedType,
+    root: &Arc<OwnedRecordValue>,
+    require_unique: bool,
+) -> Result<(), Flow> {
+    let mut pending = vec![(expected.clone(), root, 1usize)];
+    let mut visited = 0usize;
+    while let Some((ty, record, depth)) = pending.pop() {
+        let owns_bytes = classify_record(declarations, &ty)
+            .ok_or(Flow::Guard(
+                "record update carrier is outside its bounded profile",
+            ))?
+            .has_bytes;
+        if depth > crate::cleanup::MAX_CLEANUP_SHAPE_DEPTH
+            || (require_unique && owns_bytes && Arc::strong_count(record) != 1)
+        {
+            return Err(Flow::Guard(
+                "record update carrier is aliased or over-depth",
+            ));
+        }
+        let ResolvedType::Nominal { declaration, .. } = ty else {
+            return Err(Flow::Guard("record update carrier has a non-record type"));
+        };
+        let declared = declarations
+            .record_fields(&declaration)
+            .ok_or(Flow::Guard("record update carrier type is not a record"))?;
+        if record.record != declaration || record.fields.len() != declared.len() {
+            return Err(Flow::Guard("record update carrier shape is inconsistent"));
+        }
+        visited = visited
+            .checked_add(declared.len())
+            .ok_or(Flow::Guard("record update field work overflowed"))?;
+        if visited > crate::cleanup::MAX_CLEANUP_VISITED_FIELDS {
+            return Err(Flow::Guard("record update exceeds its field-work bound"));
+        }
+        for field in declared {
+            let value = record
+                .fields
+                .get(&field.id)
+                .ok_or(Flow::Guard("record update carrier omits a field"))?;
+            if let (ResolvedType::Nominal { .. }, Value::Record(nested)) = (&field.ty, value) {
+                pending.push((field.ty.clone(), nested, depth + 1));
+            } else {
+                validate_runtime_value(declarations, &field.ty, value, require_unique)?;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_runtime_value(
+    declarations: &hir::DeclarationIndex,
+    expected: &ResolvedType,
+    value: &Value,
+    require_unique: bool,
+) -> Result<(), Flow> {
+    match (expected, value) {
+        (ResolvedType::I64, Value::Int(_))
+        | (ResolvedType::I32, Value::Int32(_))
+        | (ResolvedType::U8, Value::Uint8(_))
+        | (ResolvedType::Usize, Value::Usize(_))
+        | (ResolvedType::Char, Value::Char(_))
+        | (ResolvedType::F32, Value::Float32(_))
+        | (ResolvedType::F64, Value::Float64(_))
+        | (ResolvedType::Bool, Value::Bool(_))
+        | (ResolvedType::Bytes, Value::Bytes(_)) => Ok(()),
+        (ResolvedType::Nominal { .. }, Value::Record(record)) => {
+            validate_runtime_record(declarations, expected, record, require_unique)
+        }
+        _ => Err(Flow::Guard(
+            "record update value has the wrong runtime type",
+        )),
+    }
+}
+
 /// Authenticate every stable field identity in a projected place. The first
 /// field identifies the root nominal; every subsequent field must belong to
 /// the exact nominal selected by its predecessor.
@@ -67,63 +229,114 @@ pub(super) fn take_owned_place(environment: &mut Environment, place: &hir::Place
 }
 
 pub(super) fn bind_owned_pattern(
+    declarations: &hir::DeclarationIndex,
+    root_type: &ResolvedType,
     record: Arc<OwnedRecordValue>,
     fields: &[hir::ResolvedRecordMatchPatternField],
     bindings: &mut Vec<(ValueId, Value)>,
 ) -> Result<(), Flow> {
-    validate_runtime_pattern(&record, fields, true)?;
+    validate_runtime_pattern(declarations, root_type, &record, fields, true)?;
     enum Action<'a> {
         Record(
             Arc<OwnedRecordValue>,
+            ResolvedType,
             &'a [hir::ResolvedRecordMatchPatternField],
         ),
         Bind(ValueId, Value),
     }
-    let mut pending = vec![Action::Record(record, fields)];
+    let mut pending = vec![Action::Record(record, root_type.clone(), fields)];
     while let Some(action) = pending.pop() {
-        let (record, fields) = match action {
-            Action::Record(record, fields) => (record, fields),
+        let (record, ty, fields) = match action {
+            Action::Record(record, ty, fields) => (record, ty, fields),
             Action::Bind(id, value) => {
                 bindings.push((id, value));
                 continue;
             }
         };
-        let mut record = Arc::try_unwrap(record)
-            .map_err(|_| Flow::Guard("owned-byte record still has a live alias at transfer"))?;
-        for field in fields.iter().rev() {
-            let value = record.fields.remove(&field.field).ok_or(Flow::Guard(
-                "owned-byte record pattern references an absent field",
-            ))?;
-            match &field.pattern {
-                hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
-                    pending.push(Action::Bind(binding.id.clone(), value));
-                }
-                hir::ResolvedRecordMatchFieldPattern::Wildcard => drop(value),
-                hir::ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
-                    let Value::Record(nested) = value else {
-                        return Err(Flow::Guard(
-                            "nested owned pattern reached a non-record carrier",
-                        ));
-                    };
-                    pending.push(Action::Record(nested, fields));
+        let owns_bytes = classify_record(declarations, &ty)
+            .ok_or(Flow::Guard(
+                "owned record pattern is outside its bounded profile",
+            ))?
+            .has_bytes;
+        let ResolvedType::Nominal { declaration, .. } = &ty else {
+            return Err(Flow::Guard("owned record pattern has a non-record type"));
+        };
+        let declared = declarations
+            .record_fields(declaration)
+            .ok_or(Flow::Guard("owned record pattern type has no fields"))?;
+        if owns_bytes {
+            let mut record = Arc::try_unwrap(record)
+                .map_err(|_| Flow::Guard("owned-byte record still has a live alias at transfer"))?;
+            for field in fields.iter().rev() {
+                let field_ty = declared
+                    .iter()
+                    .find(|candidate| candidate.id == field.field)
+                    .map(|candidate| candidate.ty.clone())
+                    .ok_or(Flow::Guard("owned record pattern field is not declared"))?;
+                let value = record.fields.remove(&field.field).ok_or(Flow::Guard(
+                    "owned-byte record pattern references an absent field",
+                ))?;
+                match &field.pattern {
+                    hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                        pending.push(Action::Bind(binding.id.clone(), value));
+                    }
+                    hir::ResolvedRecordMatchFieldPattern::Wildcard => drop(value),
+                    hir::ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
+                        let Value::Record(nested) = value else {
+                            return Err(Flow::Guard(
+                                "nested owned pattern reached a non-record carrier",
+                            ));
+                        };
+                        pending.push(Action::Record(nested, field_ty, fields));
+                    }
                 }
             }
-        }
-        if !record.fields.is_empty() {
-            return Err(Flow::Guard(
-                "owned-byte record transfer left unauthenticated fields",
-            ));
+            if !record.fields.is_empty() {
+                return Err(Flow::Guard(
+                    "owned-byte record transfer left unauthenticated fields",
+                ));
+            }
+        } else {
+            for field in fields.iter().rev() {
+                let field_ty = declared
+                    .iter()
+                    .find(|candidate| candidate.id == field.field)
+                    .map(|candidate| candidate.ty.clone())
+                    .ok_or(Flow::Guard("Copy record pattern field is not declared"))?;
+                let value = record.fields.get(&field.field).ok_or(Flow::Guard(
+                    "Copy record pattern references an absent field",
+                ))?;
+                match &field.pattern {
+                    hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                        pending.push(Action::Bind(binding.id.clone(), borrow_alias(value)?));
+                    }
+                    hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+                    hir::ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
+                        let Value::Record(nested) = value else {
+                            return Err(Flow::Guard(
+                                "nested Copy pattern reached a non-record carrier",
+                            ));
+                        };
+                        pending.push(Action::Record(Arc::clone(nested), field_ty, fields));
+                    }
+                }
+            }
         }
     }
     Ok(())
 }
 
 pub(super) fn bind_borrowed_pattern(
+    declarations: &hir::DeclarationIndex,
     record: &Arc<OwnedRecordValue>,
     fields: &[hir::ResolvedRecordMatchPatternField],
     bindings: &mut Vec<(ValueId, Value)>,
 ) -> Result<(), Flow> {
-    validate_runtime_pattern(record, fields, false)?;
+    let root_type = ResolvedType::Nominal {
+        declaration: record.record.clone(),
+        arguments: Vec::new(),
+    };
+    validate_runtime_pattern(declarations, &root_type, record, fields, false)?;
     enum Action<'a> {
         Record(
             &'a Arc<OwnedRecordValue>,
@@ -164,15 +377,20 @@ pub(super) fn bind_borrowed_pattern(
 }
 
 fn validate_runtime_pattern(
+    declarations: &hir::DeclarationIndex,
+    root_type: &ResolvedType,
     root: &Arc<OwnedRecordValue>,
     fields: &[hir::ResolvedRecordMatchPatternField],
     require_unique: bool,
 ) -> Result<(), Flow> {
-    let mut pending = vec![(root, fields, 1usize)];
+    let mut pending = vec![(root_type.clone(), root, fields, 1usize)];
     let mut visited_fields = 0usize;
-    while let Some((record, fields, depth)) = pending.pop() {
+    while let Some((ty, record, fields, depth)) = pending.pop() {
+        let owns_bytes = classify_record(declarations, &ty)
+            .ok_or(Flow::Guard("record pattern is outside its bounded profile"))?
+            .has_bytes;
         if depth > crate::cleanup::MAX_CLEANUP_SHAPE_DEPTH
-            || (require_unique && Arc::strong_count(record) != 1)
+            || (require_unique && owns_bytes && Arc::strong_count(record) != 1)
             || fields.len() != record.fields.len()
         {
             return Err(Flow::Guard(
@@ -202,6 +420,7 @@ fn validate_runtime_pattern(
                 }
                 hir::ResolvedRecordMatchFieldPattern::Record {
                     record: expected,
+                    instance,
                     fields,
                     ..
                 } => {
@@ -215,7 +434,7 @@ fn validate_runtime_pattern(
                             "nested pattern record identity disagrees with its runtime carrier",
                         ));
                     }
-                    pending.push((nested, fields, depth + 1));
+                    pending.push((instance.clone(), nested, fields, depth + 1));
                 }
             }
         }
@@ -411,7 +630,9 @@ fn pattern_is_exact(
                     instance,
                     fields,
                 } => {
-                    if !owns || declared.ty == ResolvedType::Bytes {
+                    if declared.ty == ResolvedType::Bytes
+                        || classify_record(declarations, &declared.ty).is_none()
+                    {
                         return false;
                     }
                     pending.push(Frame::Enter {

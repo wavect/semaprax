@@ -299,8 +299,10 @@ ABIs prematurely.
   v1](NESTED-OWNED-BYTE-RECORDS-V1.md) is the next internal movement/cleanup
   tranche; the additive [Nested Exact Destructuring
   v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) extends it with bounded recursive
-  `match own`/`match borrow`. Both remain unpromoted until their complete
-  three-engine gates run;
+  `match own`/`match borrow`; the additive [Nested Immutable Update
+  v1](NESTED-OWNED-RECORD-UPDATE-V1.md) then adds bounded top-level
+  reconstruction without admitting mutation or public layout. All remain
+  unpromoted until their complete three-engine gates run;
 - use the bounded [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) as the
   independently replayed proof foundation; the exact-tag nonignored
   [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)

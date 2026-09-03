@@ -129,13 +129,17 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/resolve_program.rs"),
         include_str!("../../../../../src/hir/resolve_statement.rs"),
     );
-    let hir_validator = include_str!("../../../../../src/hir/validation.rs");
+    let hir_validator = concat!(
+        include_str!("../../../../../src/hir/validation.rs"),
+        include_str!("../../../../../src/hir/validation/type_profiles.rs"),
+    );
     let verifier = include_str!("../../../../../src/source_verify.rs");
     let cleanup = include_str!("../../../../../src/cleanup.rs");
     let lower = concat!(
         include_str!("../../../../../src/cleanup_plan/build.rs"),
         include_str!("../../../../../src/cleanup_plan/build/schema.rs"),
         include_str!("../../../../../src/cleanup_plan/build/record_destructure.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/record_destructure/update.rs"),
     );
     let calls = include_str!("../../../../../src/call_index.rs");
     for (source, expected) in [

@@ -9,6 +9,8 @@ use crate::hir::{
     ResolvedRecordMatchFieldPattern, ResolvedRecordMatchPatternField, ResolvedType, ValueId,
 };
 
+pub(super) mod update;
+
 const DEPTH_LIMIT: usize = 64;
 const OWNED_LEAF_LIMIT: usize = 256;
 const FIELD_WORK_LIMIT: usize = 4_096;

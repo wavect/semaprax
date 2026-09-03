@@ -58,9 +58,12 @@
 //! persistence, no hot reload, no debugger mapping, executes no target, and
 //! changes no source.
 
+mod expression_children;
 pub mod internal_strings;
 mod nested_owned;
 mod prepared;
+
+use expression_children::child_expressions;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -2508,7 +2511,8 @@ fn is_admitted_scalar(ty: &Type) -> bool {
 
 use nested_owned::{
     admitted_owned_record_field, bind_borrowed_pattern, bind_owned_pattern,
-    is_admitted_owned_byte_record, record_pattern_is_admitted, take_owned_place,
+    is_admitted_owned_byte_record, record_construction_is_admitted, record_pattern_is_admitted,
+    record_update_is_admitted, take_owned_place, update_owned_record,
 };
 
 /// Exact non-Copy sum profile admitted by Owned Byte Variant Algebra v1.
@@ -2766,12 +2770,17 @@ fn scan_closure(
         admitted: &BTreeMap<&'a str, &'a ResolvedFunction>,
         declarations: &hir::DeclarationIndex,
         root_types: &BTreeMap<ValueId, ResolvedType>,
-        visited: &mut BTreeSet<&'a str>,
-        queue: &mut Vec<&'a str>,
+        visited: &mut BTreeMap<&'a str, bool>,
+        queue: &mut Vec<(&'a str, bool)>,
+        allow_copy_record_constructor: bool,
     ) -> Result<(), Vec<Diagnostic>> {
         match &expression.kind {
             ResolvedExprKind::ConstructRecord { .. }
-                if is_admitted_owned_byte_record(declarations, &expression.ty) =>
+                if record_construction_is_admitted(
+                    declarations,
+                    &expression.ty,
+                    allow_copy_record_constructor,
+                ) =>
             {
                 Ok(())
             }
@@ -2785,6 +2794,11 @@ fn scan_closure(
             }
             ResolvedExprKind::ConstructVariant { .. } => {
                 Err(reject_scan(expression, REASON_VARIANT_CONSTRUCTION))
+            }
+            ResolvedExprKind::UpdateRecord { record, fields, .. }
+                if record_update_is_admitted(declarations, &expression.ty, record, fields) =>
+            {
+                Ok(())
             }
             ResolvedExprKind::UpdateRecord { .. } => {
                 Err(reject_scan(expression, REASON_RECORD_UPDATE))
@@ -2900,28 +2914,97 @@ fn scan_closure(
             }
             _ => Ok(()),
         }?;
-        for child in child_expressions(expression) {
-            scan(child, admitted, declarations, root_types, visited, queue)?;
+        let mut children = Vec::new();
+        match &expression.kind {
+            ResolvedExprKind::ConstructRecord { fields, .. } => {
+                children.extend(fields.iter().map(|field| {
+                    (
+                        &field.value,
+                        record_construction_is_admitted(declarations, &field.value.ty, true),
+                    )
+                }));
+            }
+            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
+                children.push((base.as_ref(), false));
+                children.extend(fields.iter().map(|field| {
+                    (
+                        &field.value,
+                        record_construction_is_admitted(declarations, &field.value.ty, true),
+                    )
+                }));
+            }
+            ResolvedExprKind::Block { statements, tail } => {
+                for statement in statements {
+                    for index in 0..statement.child_count() {
+                        if let Some(child) = statement.child(index) {
+                            children.push((child, false));
+                        }
+                    }
+                }
+                children.push((tail.as_ref(), allow_copy_record_constructor));
+            }
+            ResolvedExprKind::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                children.push((condition.as_ref(), false));
+                children.push((then_branch.as_ref(), allow_copy_record_constructor));
+                children.push((else_branch.as_ref(), allow_copy_record_constructor));
+            }
+            ResolvedExprKind::Match {
+                scrutinee, arms, ..
+            } => {
+                children.push((scrutinee.as_ref(), false));
+                for arm in arms {
+                    if let Some(guard) = &arm.guard {
+                        children.push((guard.as_ref(), false));
+                    }
+                    children.push((&arm.value, allow_copy_record_constructor));
+                }
+            }
+            _ => children.extend(
+                child_expressions(expression)
+                    .into_iter()
+                    .map(|child| (child, false)),
+            ),
+        }
+        for (child, child_copy_context) in children {
+            scan(
+                child,
+                admitted,
+                declarations,
+                root_types,
+                visited,
+                queue,
+                child_copy_context,
+            )?;
         }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             // Callee bodies are enqueued once; the monotone `visited` set
             // makes recursive call cycles terminate.
-            if admitted.contains_key(callee.as_str()) && visited.insert(callee.as_str()) {
-                queue.push(callee.as_str());
+            if admitted.contains_key(callee.as_str()) {
+                let copy_result = allow_copy_record_constructor
+                    && record_construction_is_admitted(declarations, &expression.ty, true);
+                let prior = visited.get(callee.as_str()).copied();
+                if prior.is_none() || (copy_result && prior == Some(false)) {
+                    visited.insert(callee.as_str(), copy_result);
+                    queue.push((callee.as_str(), copy_result));
+                }
             }
         }
         Ok(())
     }
 
-    let mut visited = BTreeSet::new();
-    visited.insert(entry_id);
-    let mut frontier: Vec<&str> = vec![entry_id];
-    while let Some(id) = frontier.pop() {
+    let mut visited = BTreeMap::new();
+    visited.insert(entry_id, false);
+    let mut frontier: Vec<(&str, bool)> = vec![(entry_id, false)];
+    while let Some((id, copy_result_context)) = frontier.pop() {
         let Some(function) = admitted.get(id) else {
             continue;
         };
         let root_types = resolved_function_value_types(function);
-        let mut queue: Vec<&str> = Vec::new();
+        let mut queue: Vec<(&str, bool)> = Vec::new();
         for clause in function.requires.iter().chain(&function.ensures) {
             scan(
                 clause,
@@ -2930,6 +3013,7 @@ fn scan_closure(
                 &root_types,
                 &mut visited,
                 &mut queue,
+                false,
             )?;
         }
         scan(
@@ -2939,10 +3023,11 @@ fn scan_closure(
             &root_types,
             &mut visited,
             &mut queue,
+            copy_result_context,
         )?;
         frontier.extend(queue);
     }
-    Ok(visited.into_iter().map(str::to_owned).collect())
+    Ok(visited.keys().map(|id| (*id).to_owned()).collect())
 }
 
 fn resolved_function_value_types(function: &ResolvedFunction) -> BTreeMap<ValueId, ResolvedType> {
@@ -3382,79 +3467,6 @@ fn reject_scan(expression: &ResolvedExpr, reason: &'static str) -> Vec<Diagnosti
         reason,
         format!("expression `{}`", expression.id),
     )]
-}
-
-/// Every directly nested evaluated expression, in deterministic order.
-fn child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
-    match &expression.kind {
-        ResolvedExprKind::Call { args, .. } => args.iter().collect(),
-        ResolvedExprKind::NativeRustImportCall(call) => call.args.iter().collect(),
-        ResolvedExprKind::HostCommandCall(call) => call.args.iter().collect(),
-        ResolvedExprKind::Unary { value, .. }
-        | ResolvedExprKind::Try { operand: value, .. }
-        | ResolvedExprKind::TryOption { operand: value, .. }
-        | ResolvedExprKind::Project { base: value, .. }
-        | ResolvedExprKind::Upcast { source: value } => vec![value.as_ref()],
-        ResolvedExprKind::Binary { left, right, .. } => vec![left.as_ref(), right.as_ref()],
-        ResolvedExprKind::ByteRange {
-            source, start, end, ..
-        } => vec![source.as_ref(), start.as_ref(), end.as_ref()],
-        ResolvedExprKind::Block { statements, tail } => {
-            let mut collected = Vec::new();
-            for statement in statements {
-                for index in 0..statement.child_count() {
-                    if let Some(child) = statement.child(index) {
-                        collected.push(child);
-                    }
-                }
-            }
-            collected.push(tail.as_ref());
-            collected
-        }
-        ResolvedExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => vec![
-            condition.as_ref(),
-            then_branch.as_ref(),
-            else_branch.as_ref(),
-        ],
-        ResolvedExprKind::ConstructRecord { fields, .. }
-        | ResolvedExprKind::ConstructVariant { fields, .. } => {
-            fields.iter().map(|field| &field.value).collect()
-        }
-        ResolvedExprKind::Match {
-            scrutinee, arms, ..
-        } => {
-            let mut collected = vec![scrutinee.as_ref()];
-            for arm in arms {
-                if let Some(guard) = &arm.guard {
-                    collected.push(guard.as_ref());
-                }
-                collected.push(&arm.value);
-            }
-            collected
-        }
-        ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-            let mut collected = vec![base.as_ref()];
-            collected.extend(fields.iter().map(|field| &field.value));
-            collected
-        }
-        ResolvedExprKind::Int(_)
-        | ResolvedExprKind::Int32(_)
-        | ResolvedExprKind::Char(_)
-        | ResolvedExprKind::Uint8(_)
-        | ResolvedExprKind::Usize(_)
-        | ResolvedExprKind::ArrayU8(_)
-        | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::Float32(_)
-        | ResolvedExprKind::Float64(_)
-        | ResolvedExprKind::Bool(_)
-        | ResolvedExprKind::String(_)
-        | ResolvedExprKind::Place(_)
-        | ResolvedExprKind::BorrowPlace { .. } => Vec::new(),
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -4970,10 +4982,21 @@ impl Evaluator<'_> {
                     let mut bindings = Vec::new();
                     match mode {
                         hir::ResolvedMatchMode::Own => {
-                            bind_owned_pattern(record, fields, &mut bindings)?;
+                            bind_owned_pattern(
+                                self.declarations,
+                                &scrutinee.ty,
+                                record,
+                                fields,
+                                &mut bindings,
+                            )?;
                         }
                         hir::ResolvedMatchMode::Borrow => {
-                            bind_borrowed_pattern(&record, fields, &mut bindings)?;
+                            bind_borrowed_pattern(
+                                self.declarations,
+                                &record,
+                                fields,
+                                &mut bindings,
+                            )?;
                         }
                         hir::ResolvedMatchMode::Value => {
                             return Err(Flow::Guard(
@@ -5208,8 +5231,26 @@ impl Evaluator<'_> {
                 }
                 Err(Flow::Guard("refutable match selected no arm"))
             }
-            ResolvedExprKind::UpdateRecord { .. }
-            | ResolvedExprKind::Project { .. }
+            ResolvedExprKind::UpdateRecord {
+                base,
+                record,
+                fields,
+            } => {
+                let base = self.evaluate(base, environment, depth)?;
+                let Value::Record(base) = base else {
+                    return Err(Flow::Guard("record update base is not a record carrier"));
+                };
+                if &base.record != record {
+                    return Err(Flow::Guard("record update base identity is inconsistent"));
+                }
+                let mut replacements = Vec::with_capacity(fields.len());
+                for field in fields {
+                    let value = self.evaluate(&field.value, environment, depth)?;
+                    replacements.push((field.field.clone(), value));
+                }
+                update_owned_record(self.declarations, &expression.ty, base, replacements)
+            }
+            ResolvedExprKind::Project { .. }
             | ResolvedExprKind::Upcast { .. }
             | ResolvedExprKind::Try { .. }
             | ResolvedExprKind::TryOption { .. }

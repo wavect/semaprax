@@ -440,8 +440,6 @@ fn resolved_param_owned_capacity(param: &crate::hir::ResolvedParam) -> usize {
     param.id.as_str().len() + param.name.capacity() + resolved_type_owned_capacity(&param.ty)
 }
 
-/// Build the one canonical cleanup plan for a validated resolved function.
-///
 /// The routine is pure: identifiers and ordering derive exclusively from HIR
 /// identities, declaration order, and the independently checked inventory.
 pub(crate) fn build_plan(
@@ -3189,6 +3187,7 @@ impl<'a> PlanBuilder<'a> {
                         record,
                         fields,
                     } => {
+                        record_destructure::update::authenticate(self, expression)?;
                         let destination = self.expression_slot(expression, active_region)?;
                         let (entry, update_region) = if destination.is_some() {
                             let update_region = self.new_region(active_region)?;
@@ -6647,6 +6646,7 @@ impl<'a> PlanBuilder<'a> {
                 "record-update lowering received another expression",
             ));
         };
+        record_destructure::update::authenticate(self, expression)?;
         let destination = self.expression_slot(expression, region)?;
 
         // A record without droppable leaves has no cleanup state. Evaluation

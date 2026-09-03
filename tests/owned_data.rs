@@ -45,6 +45,8 @@ mod interpreter;
 mod nested_owned_record_frontend_hir;
 #[path = "owned_data/nested_owned_record_runtime.rs"]
 mod nested_owned_record_runtime;
+#[path = "owned_data/nested_owned_record_update_frontend_hir.rs"]
+mod nested_owned_record_update_frontend_hir;
 #[path = "owned_data/projected_bytes_borrowed_call_native.rs"]
 mod projected_bytes_borrowed_call_native;
 #[path = "owned_data/public_utf8_api.rs"]

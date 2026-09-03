@@ -43,6 +43,7 @@ Audience: all documentation readers.
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
 - [Acyclic Nested Owned-Byte Records](NESTED-OWNED-BYTE-RECORDS-V1.md)
 - [Acyclic Nested Owned-Record Exact Destructuring](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md)
+- [Acyclic Nested Owned-Record Immutable Update](NESTED-OWNED-RECORD-UPDATE-V1.md)
 - [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md)
 - [Shared Loan Plan](SHARED-LOAN-PLAN-V1.md)
 - [Projected Owned-Byte Field Shared Borrow](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)

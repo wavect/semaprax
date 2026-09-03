@@ -303,7 +303,7 @@ module test.owned_byte_borrow_argument;
 }
 
 #[test]
-fn validation_rejects_a_forged_nested_owned_byte_record_update() {
+fn validation_rejects_a_forged_nested_update_field_type_mismatch() {
     let source = r#"
 module test.nested_update_hostile;
 @id("update.inner") record Inner { @id("update.inner.marker") marker: i64, }
@@ -338,12 +338,10 @@ module test.nested_update_hostile;
     let diagnostic = HirValidator::new(&program)
         .expect("hostile identities remain indexed")
         .validate_function(&function, &execution)
-        .expect_err("forged nested update must fail closed");
+        .expect_err("forged nested update field type must fail closed");
     assert_eq!(diagnostic.code, "SPX-H006");
     assert!(
-        diagnostic
-            .message
-            .contains("SPX-O117: record updates over nested owned-Bytes records remain closed"),
+        diagnostic.message.contains("record replacement"),
         "{diagnostic:?}"
     );
 }
@@ -567,6 +565,55 @@ fn validation_rejects_a_borrow_wildcard_concealing_an_owned_subtree() {
         diagnostic
             .message
             .contains("resolved exact owned-record pattern wildcards a droppable field"),
+        "{diagnostic:?}"
+    );
+}
+
+#[test]
+fn nested_update_base_shape_rejects_a_well_typed_nonplace_before_lowering() {
+    let source = r#"
+module test.hostile_nested_update_base;
+@id("update.leaf") record Leaf { @id("update.leaf.payload") payload: Bytes, }
+@id("update.root") record Root {
+  @id("update.root.leaf") leaf: Leaf,
+  @id("update.root.marker") marker: i64,
+}
+@id("update.apply") fn apply(value: own Root) -> Root {
+  value with { marker: 1 }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = crate::parse(
+        source,
+        std::path::Path::new("hostile-nested-update-base.spx"),
+    )
+    .expect("nested update fixture parses");
+    let program = crate::hir::resolve(&parsed).expect("valid nested update resolves");
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "update.apply")
+        .expect("update function");
+    let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+        panic!("update function body remains a block")
+    };
+    let ResolvedExprKind::UpdateRecord { base, .. } = &tail.kind else {
+        panic!("update function tail remains an update")
+    };
+    let mut hostile = (**base).clone();
+    hostile.kind = ResolvedExprKind::Call {
+        callee: DeclarationId::new("update.apply"),
+        type_arguments: Vec::new(),
+        instance: None,
+        args: Vec::new(),
+    };
+    let diagnostic = validate_nested_update_base_shape(&program, &hostile)
+        .expect_err("well-typed non-place update base must fail the exact-shape boundary");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert!(
+        diagnostic
+            .message
+            .contains("nested owned-record update requires an exact named owned base place"),
         "{diagnostic:?}"
     );
 }

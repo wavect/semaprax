@@ -343,6 +343,13 @@ CleanupPlan v8 and Graph v28/v29 preserve complete stable field-ID paths and
 keep variants, generics, mutation, resources, non-Copy arm results and public
 ABIs closed.
 
+The additive [Acyclic Nested Owned-Record Immutable Update
+v1](NESTED-OWNED-RECORD-UPDATE-V1.md) admits top-level `base with { ... }`
+reconstruction only for the same bounded record tree. CleanupPlan v9 and Graph
+v30/v31 retain exact stable field paths, left-to-right replacement completion,
+replaced-old settlement and one atomic result commit. Dotted update, in-place
+mutation, variants, generics, resources and public ABIs remain closed.
+
 ## Exhaustiveness
 
 Use a constructor-pattern matrix:

@@ -34,6 +34,8 @@ fn nested_cleanup_versions_are_closed_and_legacy_selection_is_unchanged() {
         "semaprax.graph.v27",
         "semaprax.graph.v28",
         "semaprax.graph.v29",
+        "semaprax.graph.v30",
+        "semaprax.graph.v31",
     ] {
         assert!(graph_schema_includes_modern_composite_facts(schema));
     }
@@ -41,6 +43,8 @@ fn nested_cleanup_versions_are_closed_and_legacy_selection_is_unchanged() {
     assert!(graph_schema_includes_loans("semaprax.graph.v27"));
     assert!(!graph_schema_includes_loans("semaprax.graph.v28"));
     assert!(graph_schema_includes_loans("semaprax.graph.v29"));
+    assert!(!graph_schema_includes_loans("semaprax.graph.v30"));
+    assert!(graph_schema_includes_loans("semaprax.graph.v31"));
     assert!(!graph_schema_includes_projected_provenance(
         "semaprax.graph.v26"
     ));
@@ -53,9 +57,15 @@ fn nested_cleanup_versions_are_closed_and_legacy_selection_is_unchanged() {
     assert!(graph_schema_includes_projected_provenance(
         "semaprax.graph.v29"
     ));
+    assert!(!graph_schema_includes_projected_provenance(
+        "semaprax.graph.v30"
+    ));
+    assert!(graph_schema_includes_projected_provenance(
+        "semaprax.graph.v31"
+    ));
     for schema in [
         "semaprax.graph.v25",
-        "semaprax.graph.v30",
+        "semaprax.graph.v30 ",
         "semaprax.graph.v27 ",
     ] {
         assert!(!graph_schema_includes_modern_composite_facts(schema));
@@ -241,4 +251,47 @@ fn native_v25_cannot_mask_v28_or_v29() {
     .unwrap();
     program.interfaces = native.interfaces;
     assert_eq!(super::graph_schema(&program).unwrap_err().code, "SPX-G410");
+}
+
+#[test]
+fn nested_update_selects_v30_or_universally_authenticated_v31() {
+    let source = r#"
+module test.graph_nested_update;
+@id("update.leaf") record Leaf { @id("update.leaf.payload") payload: Bytes, }
+@id("update.pair") record Pair {
+  @id("update.pair.left") left: Leaf,
+  @id("update.pair.right") right: Leaf,
+}
+@id("update.apply") fn apply(value: own Pair, replacement: own Leaf) -> Pair {
+  value with { left: replacement }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let plain = destructure_program(source);
+    assert_eq!(super::graph_schema(&plain).unwrap(), "semaprax.graph.v30");
+    let with_loan = source.replace(
+        "@id(\"app.main\")",
+        r#"@id("update.inspect") fn inspect(value: own Pair) -> usize {
+  let view = bytes_as_slice(value.right.payload);
+  byte_len(view)
+}
+@id("app.main")"#,
+    );
+    let mut with_loan = destructure_program(&with_loan);
+    assert_eq!(
+        super::graph_schema(&with_loan).unwrap(),
+        "semaprax.graph.v31"
+    );
+    let function = with_loan
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "update.inspect")
+        .expect("loan-bearing update companion exists");
+    let mut invalid = function.loan_plan.loans[0].clone();
+    invalid.origin.projections.clear();
+    function.loan_plan.loans.push(invalid);
+    assert_eq!(
+        super::graph_schema(&with_loan).unwrap_err().code,
+        "SPX-G410"
+    );
 }

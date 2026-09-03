@@ -5,10 +5,13 @@ use crate::hir::{
 };
 
 use super::{replay_error, type_needs_drop};
-use crate::cleanup_plan::{CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8};
+use crate::cleanup_plan::{CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9};
 
 fn nested_schema(schema: &str) -> bool {
-    matches!(schema, CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8)
+    matches!(
+        schema,
+        CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8 | CLEANUP_PLAN_SCHEMA_V9
+    )
 }
 
 #[derive(Default)]

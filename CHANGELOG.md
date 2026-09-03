@@ -44,6 +44,14 @@
   denying or rolling back prior immutable-store success. It grants no subject
   restore, deletion, GC, source, approval or publication authority. Regressions
   are authored and unrun.
+- Added bounded top-level immutable reconstruction for the existing acyclic
+  monomorphic owned-`Bytes` record profile. Independent source/HIR admission,
+  CleanupPlan v9, Graph v30/v31, interpreter, native C11 and Core Wasm retain
+  exact stable field paths, left-to-right replacement completion, unchanged
+  descendant transfers, replaced-old settlement and one atomic result commit.
+  Dotted mutation, variants, generics, resources and public aggregate ABIs
+  remain closed, and affected completion rows remain Partial pending the full
+  promotion corpus.
 
 - Added one candidate environment-consumer review that joins the complete
   source/environment review to an explicitly host-attached, authenticated

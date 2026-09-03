@@ -61,11 +61,11 @@ fn execute() -> Result<(), Error> {
     let page = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
     let page = usize::try_from(page).map_err(|_| Error::Invalid)?;
     let root = offline_root::Plan::prepare(&bundle, page).map_err(|_| Error::Invalid)?;
-    let guard = guard::Guard::prepare()?;
     let mut tools = Vec::new();
     tools.try_reserve_exact(3).map_err(|_| Error::Allocation)?;
     for (role, tool) in request.roles() {
         let file = bundle.tool(tool).ok_or(Error::Invalid)?;
+        let guard = guard::Guard::prepare(role, tool)?;
         let mut path = Vec::new();
         path.try_reserve_exact(file.path().len() + 2)
             .map_err(|_| Error::Allocation)?;
@@ -77,14 +77,14 @@ fn execute() -> Result<(), Error> {
         output
             .try_reserve_exact(65_536)
             .map_err(|_| Error::Allocation)?;
-        tools.push((role, path, output));
+        tools.push((role, guard, path, output));
     }
     let mut rows = Vec::new();
     rows.try_reserve_exact(3).map_err(|_| Error::Allocation)?;
     // No input descriptors enter a tool. Snapshot storage stays immutable.
     close_owned(3);
     close_owned(4);
-    for (role, path, mut output) in tools {
+    for (role, guard, path, mut output) in tools {
         let outcome = capture::run(&root, &guard, &path, &mut output);
         rows.push((role, outcome.map(|()| output)));
     }

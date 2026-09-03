@@ -160,6 +160,16 @@ Its separate private binary consumes an already provisioned process, preserving
 parenthood while transferring the collector's fixed inventory; it neither
 bootstraps namespaces nor authenticates image/loader provenance. See
 [Provisioned offline doctor launcher v1](DOCTOR-OFFLINE-LAUNCHER-V1.md).
+The outer `doctor/offline_provisioner` sys component now supplies the first
+bounded Linux bootstrap around that launcher. Its dedicated private binary
+admits one signed release capsule and exact sealed request/bundle/static-image
+inventory, creates private user/mount/network/IPC/UTS namespaces, places the
+child atomically into one authenticated delegated cgroup-v2 scope, and retains
+pidfd plus cgroup authority until reap and `populated 0`. The worker selects one
+closed default-deny syscall table per authenticated tool role. This boundary
+does not activate ordinary CLI profile discovery, prove hostile binfmt/kernel
+policy absent, package a signed production profile, or supply macOS/Windows
+confinement. See [Linux production offline doctor provisioner v1](DOCTOR-PRODUCTION-PROVISIONER-V1.md).
 The collector's lifetime state owns authentication, the irreversible reap transition and
 fixed handle closure; only the native adapter performs pidfd and descriptor
 operations. The separate report-delivery module owns bounded writes and final

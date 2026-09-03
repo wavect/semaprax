@@ -15,9 +15,16 @@ path = "src/bin/doctor_worker.rs"
 name = "semaprax-doctor-launcher"
 path = "src/bin/doctor_launcher.rs"
 
+[[bin]]
+name = "semaprax-doctor-provisioner"
+path = "src/bin/doctor_provisioner.rs"
+
 [target.'cfg(unix)'.dependencies]
 libc = "=0.2.189"
 sha2 = "=0.11.0"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["std"] }
 
 [target.'cfg(windows)'.dependencies]
 sha2 = "=0.11.0"

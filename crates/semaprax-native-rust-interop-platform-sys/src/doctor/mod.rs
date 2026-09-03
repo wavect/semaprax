@@ -7,11 +7,13 @@ mod offline_bundle;
 mod offline_collector;
 mod offline_input;
 mod offline_launcher;
+mod offline_provisioner;
 pub use offline_collector::{
     collect_provisioned_doctor_worker, finish_provisioned_doctor_report, DoctorOfflineTarget,
     SettledDoctorObservation, SettledDoctorTool,
 };
 pub use offline_launcher::provisioned_doctor_launcher_entry;
+pub use offline_provisioner::provisioned_doctor_provisioner_entry;
 // The private worker requires an externally provisioned clean process context;
 // it is not an ordinary CLI subprocess or profile admission route.
 #[cfg(all(

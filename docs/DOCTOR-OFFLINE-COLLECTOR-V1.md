@@ -30,6 +30,10 @@ single-threaded collector with these exclusively transferred live descriptors:
 The separate [private launcher](DOCTOR-OFFLINE-LAUNCHER-V1.md) now authors this
 worker-start/collector-exec wiring for an already provisioned process. It does
 not remove the external image, loader, namespace or cgroup prerequisites below.
+The outer [Linux production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
+now authors one signed static-image, private-namespace and cgroup-owned handoff,
+but its physical distribution and real-tool gates remain unrun and it does not
+activate ordinary CLI acquisition.
 
 There are no other inherited descriptors, competing readers/writers, foreign
 reapers or signal/descriptor mutators. The provisioner authenticates endpoint

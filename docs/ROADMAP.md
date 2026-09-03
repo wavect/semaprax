@@ -39,8 +39,10 @@ about gates the workflow deliberately does not imply:
    profiles become supported or registry-published surfaces;
 3. broaden the line-filter from hosted native and Node/Core-Wasm evidence to
    real-browser or multi-engine evidence before making that claim;
-4. implement real offline doctor profile provisioning and finish its
-   tool/input, filesystem/broker, network, and descendant closure; and
+4. execute and distribute the authored signed Linux offline-doctor provisioner,
+   close its real-tool, binfmt/kernel-policy and hostile settlement gates, then
+   implement equivalent tool/input, filesystem/broker, network and descendant
+   closure for macOS and Windows; and
 5. preserve the exact release gate and artifact inventory for every subsequent
    tag rather than treating v0.2.0 evidence as evidence for a later head.
 

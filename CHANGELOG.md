@@ -98,6 +98,18 @@
   callers with left-to-right staging and complete Project replay. New borrowed
   parameters, borrowed Bytes/nominal/storage migration, and external consumers
   remain outside this authored, unrun slice.
+- Added an authored Linux production offline-doctor provisioner around the
+  existing launcher/worker/collector chain. A strict build-time Ed25519 trust
+  anchor verifies one canonical capsule binding the exact sealed request,
+  bundle and static role images; the dedicated supervisor authenticates its
+  fixed pipes/procfs/cgroup2 descriptors, creates private user/mount/network/
+  IPC/UTS namespaces, atomically places the child under fixed cgroup limits,
+  and withholds bounded report bytes until exact reap and whole-cgroup
+  `populated 0`. Worker seccomp admission is now selected by exact authenticated
+  Clang/Node/Rust role with a shared deny floor and no union fallback. Portable
+  checks and Linux cross-compilation passed locally, but real packaged tools,
+  hostile kernel/settlement evidence, ordinary CLI activation and macOS/Windows
+  routes remain unrun or unavailable; WP-05 is not promoted.
 
 - Added an authored Phase 0 aggregate evidence v3 contract. It upgrades the
   real VS Code child to the closed task-control v2 schema and bundle domain and

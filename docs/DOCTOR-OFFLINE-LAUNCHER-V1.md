@@ -14,6 +14,14 @@ lives in the existing sys quarantine, with no safe embedding facade and no
 ordinary `doctor` discovery or activation. It installs no service, configures no
 host policy, and performs no namespace bootstrap or image-path lookup.
 
+The separate [Linux production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
+now authors the signed outer fixed-descriptor, namespace, cgroup and settlement
+boundary that this launcher previously required entirely from an external host.
+It admits only static launcher/worker/collector ELF images and leaves hostile
+binfmt/kernel policy as an explicit trusted-launch precondition. Its physical
+distribution and real-tool gates remain unrun, so this launcher is still not an
+ordinary CLI or promoted profile route.
+
 A trusted provisioner must supply a dedicated single-threaded process with
 exclusively transferred descriptors exactly as follows:
 

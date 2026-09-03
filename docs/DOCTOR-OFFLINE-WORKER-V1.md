@@ -37,6 +37,14 @@ address-space, descriptor and core limits are additional defenses, not a claim
 to bound total kernel memory. No deployment or compatibility support is claimed
 without real selected-tool and hostile-worker execution evidence.
 
+The outer [Linux production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
+now authors signed static-image admission, private namespace creation, atomic
+cgroup placement and whole-cgroup quiescence. The worker also derives a closed
+default-deny syscall policy independently for each authenticated Clang, Node or
+Rust role; the initial role-local additions are empty rather than a compatibility
+union. These changes remain unrun on Linux and do not make a selector, digest or
+ordinary CLI request authoritative.
+
 ## Closed request and result
 
 Request bytes are a separate sealed memory file, at most 149 bytes, with no

@@ -19,6 +19,7 @@ Audience: all documentation readers.
 - [Provisioned offline doctor worker](DOCTOR-OFFLINE-WORKER-V1.md)
 - [Provisioned offline doctor collector](DOCTOR-OFFLINE-COLLECTOR-V1.md)
 - [Provisioned offline doctor launcher](DOCTOR-OFFLINE-LAUNCHER-V1.md)
+- [Linux production offline doctor provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
 - [Native compiler scratch](NATIVE-SCRATCH-V1.md)
 
 ## Language contract

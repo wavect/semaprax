@@ -9,10 +9,12 @@ Audience: CLI/platform contributors and reviewers.
 The unpublished `semaprax-full doctor` now requires an explicitly selected
 offline tool profile instead of ambient PATH/home discovery. Selection is not
 authority: a platform backend must admit the complete offline execution/input
-closure before any tool lookup or version probe. **No production profile
-backend or provisioning route is implemented yet.** Consequently, the real CLI
-currently reports unavailable required checks (exit 1), even for a syntactically
-valid selector. It never falls back to the retained installed-tool probe.
+closure before any tool lookup or version probe. The separate signed
+[Linux production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md) now authors
+that dedicated-process boundary, but it is not packaged, physically executed,
+or connected to ordinary CLI acquisition. Consequently, the real CLI still
+reports unavailable required checks (exit 1), even for a syntactically valid
+selector. It never falls back to the retained installed-tool probe.
 
 The standalone crates.io CLI rejects `doctor` without invoking tools. Report
 policy and version parsing live in `crates/semaprax-toolchain`. The retained safe
@@ -20,9 +22,10 @@ platform facade/sys quarantine probe is described below, but is no longer
 connected to the real CLI. Its partial isolation is not profile admission.
 
 The safe platform facade owns no policy for general commands. Its existing
-platform-sys quarantine owns the Linux/macOS and Windows OS operations. No
-unsafe code enters the root compiler, no external dependency is added, and
-the authenticated build runner is unchanged.
+platform-sys quarantine owns the Linux/macOS and Windows OS operations. The
+private Linux provisioner adds pinned Ed25519 verification only in that sys
+quarantine; no unsafe code enters the root compiler and the authenticated build
+runner is unchanged.
 
 ## Offline profile selection
 
@@ -54,12 +57,14 @@ web requests Node >=22, and all requests Clang, Node, then Rust.
 
 The production acquisition currently returns unavailable using compile-time
 platform facts only: no PATH, HOME, cwd, filesystem, registry or tool access.
-This fail-closed gate does not claim an implemented executable sandbox, profile
-provenance, or protection of process startup before doctor dispatch. Future
-backends require independent review of offline provisioning/bootstrap, immutable
-tool/loader/configuration inputs, OS filesystem/IPC/network boundaries, and
-owned descendant settlement before returning an admitted host. An identifier,
-digest, or declared “local” path alone cannot establish those properties.
+This fail-closed ordinary route does not infer profile authority from the
+separate provisioner. That Linux component verifies a signed fixed inventory,
+creates private namespaces, and retains cgroup settlement, but its real packaged
+tool and hostile-host gates remain unrun and no `AdmittedProfile` conversion is
+exposed. Future supported backends still require complete immutable tool/input
+closure, OS filesystem/IPC/network boundaries, and owned descendant settlement.
+An identifier, digest, or declared “local” path alone cannot establish those
+properties.
 
 The separate [sealed input primitive](DOCTOR-SEALED-INPUT-V1.md) now authors the
 Linux borrowed-file acquisition boundary: seals before metadata/read, no
@@ -73,7 +78,9 @@ The separate [provisioned worker](DOCTOR-OFFLINE-WORKER-V1.md) and
 [live collector](DOCTOR-OFFLINE-COLLECTOR-V1.md) now connect controlled execution
 to this library's shared version/report policy without activating ordinary CLI
 discovery. The collector requires an actual exclusively owned worker invocation,
-not caller-supplied reply bytes. Both paths remain authored and unrun.
+not caller-supplied reply bytes. Both paths remain authored and unrun. The outer
+production provisioner now authors their signed Linux bootstrap and aggregate
+settlement without changing that evidence state or activating discovery.
 
 ## Retained lower-level probe invocation bounds
 

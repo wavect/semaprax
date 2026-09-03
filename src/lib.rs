@@ -95,6 +95,7 @@ pub mod runtime_status;
 pub mod scoped_tasks;
 pub mod semantic_cache_store;
 pub mod semantic_retention;
+pub mod semantic_retention_lifecycle;
 pub mod semantic_retention_registry;
 pub mod semantic_retention_store;
 pub mod semantic_trace;

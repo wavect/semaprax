@@ -18,6 +18,9 @@ use semaprax::semantic_retention::{
     checkpoint_receipts, RetentionAuthority, RetentionPolicy, RetentionReceipt,
     MAX_RETENTION_TOTAL_BYTES,
 };
+use semaprax::semantic_retention_lifecycle::{
+    RetentionLifecycleCoordinator, SuccessfulRetentionReceipt,
+};
 use serde_json::json;
 use std::fs;
 use std::os::unix::fs::{symlink, PermissionsExt};
@@ -317,6 +320,42 @@ fn real_image_candidate_and_draft_receipts_share_one_authority_neutral_checkpoin
 
     let receipts: [&dyn RetentionReceipt; 3] = [&image_receipt, &candidate_receipt, &draft_receipt];
     let policy = RetentionPolicy::new(2, MAX_RETENTION_TOTAL_BYTES, 0).unwrap();
+    let registry = fixture.root.join("retention-registry");
+    fs::create_dir(&registry).unwrap();
+    fs::create_dir(registry.join("metadata")).unwrap();
+    fs::set_permissions(&registry, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(registry.join("metadata"), fs::Permissions::from_mode(0o700)).unwrap();
+    let mut lifecycle = RetentionLifecycleCoordinator::open(&registry, policy, None).unwrap();
+    let mut stale_lifecycle = RetentionLifecycleCoordinator::open(&registry, policy, None).unwrap();
+    let typed_receipts = [
+        SuccessfulRetentionReceipt::Image(&image_receipt),
+        SuccessfulRetentionReceipt::Candidate(&candidate_receipt),
+        SuccessfulRetentionReceipt::Draft(&draft_receipt),
+    ];
+    let lifecycle_report = lifecycle.checkpoint(&typed_receipts);
+    assert!(lifecycle_report.registry_advanced());
+    assert_eq!(lifecycle_report.sequence(), Some(1));
+    assert!(lifecycle_report.diagnostics().is_empty());
+    let lifecycle_json: serde_json::Value =
+        serde_json::from_str(lifecycle_report.to_json()).unwrap();
+    assert_eq!(lifecycle_json["successful_receipt_count"], 3);
+    assert_eq!(
+        lifecycle_json["subject_store_status"],
+        "successful_receipts_precede_registry_attempt"
+    );
+    assert_eq!(lifecycle_json["registry_cursor_status"], "advanced");
+    let stale_report = stale_lifecycle.checkpoint(&typed_receipts);
+    assert!(!stale_report.registry_advanced());
+    assert_eq!(stale_report.diagnostics()[0].code, "SPX-G467");
+    let stale_json: serde_json::Value = serde_json::from_str(stale_report.to_json()).unwrap();
+    assert_eq!(
+        stale_json["subject_store_status"],
+        "successful_receipts_precede_registry_attempt"
+    );
+    assert_eq!(
+        stale_json["registry_cursor_status"],
+        "registry_cursor_not_advanced_stale"
+    );
     let transition = checkpoint_receipts(None, None, 1, policy, &receipts).unwrap();
     let reversed = checkpoint_receipts(
         None,

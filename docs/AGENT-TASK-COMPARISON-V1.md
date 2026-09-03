@@ -243,8 +243,11 @@ Partial.
 canonical `semaprax.agent-task-comparison-observation-set.v1` byte string and
 its SHA-256. The set binds the plan digest, repository head, task, corpus and
 model. It requires exactly one `semaprax-graph-operational` and one
-`semaprax-source-first` lane. `zero-graph-native` is admitted only when supplied
-explicitly. Duplicate, missing or unknown lanes fail.
+`semaprax-source-first` lane. The checked v1 manifest marks
+`zero-graph-native` `external_unrun`, and this aggregate does not replay a plan
+or availability document, so it rejects a caller-supplied Zero observation and
+always emits the Zero comparison as `not_assessed_missing_observation`.
+Duplicate, missing, unavailable or unknown lanes fail.
 
 Each lane uses the distinct closed wrapper
 `semaprax.agent-task-comparison-embedded-observation.v1`. The paired observations
@@ -262,9 +265,19 @@ evidence-reference closure and acceptance/outcome consistency. It does not read
 or re-hash referenced artifact files; the external Python validator remains the
 evidence-file authentication owner.
 
-The library input bound is 7,340,032 bytes, retaining worst-case JSON string
-escaping room for three existing 1 MiB documents and wrappers. Each embedded
-document retains the 1 MiB bound. The normalized report retains each embedded
+The Rust normalizer is a versioned bounded subset of the Python v1 observation
+validator. It admits UTF-8 identifiers and other checked text through the
+Python contract's 65,536-byte ceiling, but represents natural-number fields as
+unsigned 64-bit integers rather than Python's arbitrary-precision integers.
+It also applies the aggregate and report bounds below. Boundary regressions pin
+the 65,536-byte text ceiling, reject the next byte, admit `u64::MAX`, and reject
+the next natural number. The Rust route does not broaden or replace the Python
+validator's plan, manifest, task, availability, or artifact-file replay.
+
+The library input bound is 7,340,032 bytes. It leaves worst-case JSON string
+escaping room for the two required existing 1 MiB documents, their wrappers,
+and bounded future envelope headroom; that headroom does not admit a third v1
+lane. Each embedded document retains the 1 MiB bound. The normalized report retains each embedded
 document's digest and parsed metric/acceptance facts, not a second copy of its
 raw string. It is bounded to 8 MiB and has a domain-separated revision.
 It emits signed left-minus-right differences only when the derived existing

@@ -13,7 +13,7 @@ pub const AGENT_TASK_COMPARISON_NORMALIZED_REPORT_SCHEMA: &str =
     "semaprax.agent-task-comparison-normalized-report.v1";
 pub const MAX_AGENT_TASK_COMPARISON_INPUT_BYTES: usize = 7 * 1024 * 1024;
 pub const MAX_AGENT_TASK_COMPARISON_REPORT_BYTES: usize = 8 * 1024 * 1024;
-pub const MAX_AGENT_TASK_COMPARISON_IDENTIFIER_BYTES: usize = 256;
+pub const MAX_AGENT_TASK_COMPARISON_IDENTIFIER_BYTES: usize = 65_536;
 
 const REPORT_DOMAIN: &[u8] = b"semaprax.agent-task-comparison-normalized-report.v1\0";
 const REQUIRED_LANES: [&str; 2] = ["semaprax-graph-operational", "semaprax-source-first"];
@@ -83,13 +83,13 @@ pub fn normalize_task_comparison_observations(
     require_commit(identifier(root, "repository_head")?)?;
     let rows = root["observations"]
         .as_array()
-        .filter(|rows| (2..=3).contains(&rows.len()))
-        .ok_or_else(|| lanes("task comparison requires two or three observation lanes"))?;
+        .filter(|rows| rows.len() == REQUIRED_LANES.len())
+        .ok_or_else(|| lanes("task comparison requires exactly two available observation lanes"))?;
     let mut by_lane = BTreeMap::new();
     for row in rows {
         let row = validate_row(row, root, task, corpus, model)?;
         let lane = row["lane"].as_str().expect("validated lane").to_owned();
-        if !REQUIRED_LANES.contains(&lane.as_str()) && lane != ZERO_LANE {
+        if !REQUIRED_LANES.contains(&lane.as_str()) {
             return Err(lanes("task comparison observation lane is unsupported"));
         }
         if by_lane.insert(lane, row).is_some() {
@@ -119,6 +119,7 @@ pub fn normalize_task_comparison_observations(
             "model_configuration",
             "harness",
             "host",
+            "toolchain",
             "prompt_sha256",
         ] {
             if semantic[field] != right[field] {
@@ -664,6 +665,17 @@ mod tests {
         }))
     }
 
+    fn with_toolchain(mut row: Value, toolchain: &str) -> Value {
+        let mut observation: Value =
+            serde_json::from_str(row["observation"].as_str().unwrap()).unwrap();
+        observation["toolchain"] = json!(toolchain);
+        let observation = canonical(observation);
+        row["tool"] = json!(toolchain);
+        row["observation_sha256"] = json!(sha256(observation.as_bytes()));
+        row["observation"] = json!(observation);
+        row
+    }
+
     #[test]
     fn exact_existing_observations_are_descriptive_and_zero_is_not_inferred() {
         let input = input(vec![
@@ -717,5 +729,73 @@ mod tests {
             "not_assessed_outcomes_differ"
         );
         assert!(report["comparisons"][0]["normalized_deltas"].is_null());
+    }
+
+    #[test]
+    fn unavailable_zero_and_mismatched_paired_toolchains_are_rejected() {
+        let zero = input(vec![
+            row(REQUIRED_LANES[0], "completed", 1),
+            row(REQUIRED_LANES[1], "completed", 1),
+            row(ZERO_LANE, "completed", 1),
+        ]);
+        assert_eq!(
+            normalize_task_comparison_observations(&zero.as_bytes(), &sha256(zero.as_bytes()))
+                .unwrap_err()[0]
+                .code,
+            "SPX-G488"
+        );
+
+        let mismatched = input(vec![
+            row(REQUIRED_LANES[0], "completed", 1),
+            with_toolchain(
+                row(REQUIRED_LANES[1], "completed", 1),
+                "different-shared-toolchain:v1",
+            ),
+        ]);
+        assert_eq!(
+            normalize_task_comparison_observations(
+                mismatched.as_bytes(),
+                &sha256(mismatched.as_bytes()),
+            )
+            .unwrap_err()[0]
+                .code,
+            "SPX-G487"
+        );
+    }
+
+    #[test]
+    fn rust_subset_pins_text_and_unsigned_integer_boundaries() {
+        let mut exact = Map::new();
+        exact.insert(
+            "id".to_owned(),
+            json!("x".repeat(MAX_AGENT_TASK_COMPARISON_IDENTIFIER_BYTES)),
+        );
+        assert_eq!(
+            identifier(&exact, "id").unwrap().len(),
+            MAX_AGENT_TASK_COMPARISON_IDENTIFIER_BYTES
+        );
+        exact.insert(
+            "id".to_owned(),
+            json!("x".repeat(MAX_AGENT_TASK_COMPARISON_IDENTIFIER_BYTES + 1)),
+        );
+        assert_eq!(identifier(&exact, "id").unwrap_err()[0].code, "SPX-G485");
+
+        let maximum = input(vec![
+            row(REQUIRED_LANES[0], "completed", u64::MAX),
+            row(REQUIRED_LANES[1], "completed", u64::MAX),
+        ]);
+        normalize_task_comparison_observations(maximum.as_bytes(), &sha256(maximum.as_bytes()))
+            .unwrap();
+        let beyond = maximum.replacen(
+            &format!("\"wall_time_ms\":{}", u64::MAX),
+            "\"wall_time_ms\":18446744073709551616",
+            1,
+        );
+        assert_eq!(
+            normalize_task_comparison_observations(&beyond.as_bytes(), &sha256(beyond.as_bytes()))
+                .unwrap_err()[0]
+                .code,
+            "SPX-G485"
+        );
     }
 }

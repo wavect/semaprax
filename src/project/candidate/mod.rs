@@ -12,6 +12,7 @@ use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOpti
 
 use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
+mod abi_delta;
 mod analysis_artifact_evidence;
 mod analysis_boundary_bundle;
 mod analysis_coverage;
@@ -62,6 +63,10 @@ mod type_declaration;
 mod type_rename;
 mod wire;
 
+pub use abi_delta::{
+    MAX_PROJECT_CANDIDATE_ABI_DELTA_BYTES, PROJECT_CANDIDATE_ABI_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_ABI_DELTA_VERIFICATION_SCHEMA,
+};
 pub use analysis_artifact_evidence::{
     MAX_PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_BYTES,
     PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_SCHEMA,

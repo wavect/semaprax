@@ -209,6 +209,10 @@ pub(super) fn transaction<T>(
     if read_current(&root)? != current {
         return Err(stale("retention registry CURRENT changed before pivot"));
     }
+    // The held metadata fd prevents nested store operations from being
+    // redirected, but CURRENT must never select a pair stranded in a displaced
+    // child. Rebind the child immediately before the cursor pivot.
+    root.validate()?;
     publish(&root, current.as_deref(), &next)?;
     let final_check = (|| -> Result<()> {
         fs::fsync(root.fd()).map_err(|_| io("cannot settle retention registry root"))?;
@@ -455,6 +459,39 @@ mod tests {
         assert_eq!(root.validate().unwrap_err()[0].code, "SPX-G466");
 
         drop(root);
+        std::fs::remove_dir_all(root_path).unwrap();
+    }
+
+    #[test]
+    fn transaction_rejects_metadata_replacement_before_current_pivot() {
+        let root_path = std::env::temp_dir().join(format!(
+            "semaprax-retention-registry-pre-pivot-swap-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root_path);
+        std::fs::create_dir(&root_path).unwrap();
+        std::fs::create_dir(root_path.join("metadata")).unwrap();
+        std::fs::set_permissions(&root_path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        std::fs::set_permissions(
+            root_path.join("metadata"),
+            std::fs::Permissions::from_mode(0o700),
+        )
+        .unwrap();
+
+        let errors = transaction(&root_path, |_current, _held_metadata| {
+            std::fs::rename(root_path.join("metadata"), root_path.join("displaced")).unwrap();
+            std::fs::create_dir(root_path.join("metadata")).unwrap();
+            std::fs::set_permissions(
+                root_path.join("metadata"),
+                std::fs::Permissions::from_mode(0o700),
+            )
+            .unwrap();
+            Ok((b"cursor bytes never published".to_vec(), ()))
+        })
+        .unwrap_err();
+
+        assert_eq!(errors[0].code, "SPX-G466");
+        assert!(!root_path.join("CURRENT").exists());
         std::fs::remove_dir_all(root_path).unwrap();
     }
 }

@@ -412,6 +412,7 @@ impl FrontendPass {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn resolved_module(
         &mut self,
         path: &str,

@@ -114,6 +114,8 @@ interface HostEcho permits { host.echo } {
     let resolver = Resolver {
         program: &parsed,
         declarations: DeclarationIndex::from_verified(&parsed).unwrap(),
+        reuse: None,
+        function_work: FunctionResolutionWork::default(),
     };
     for source_function in &parsed.functions {
         let Some(resolved_function) = resolved

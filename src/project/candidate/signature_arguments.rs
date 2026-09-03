@@ -83,12 +83,12 @@ pub(in crate::project::candidate) fn validate_computed_signature(
             let source_name = text(mapping, "borrow_from")?;
             let mut source = None;
             for (source_mapping, source_parameter) in parameters.iter().zip(&function.params) {
-                if source_mapping.get("from").and_then(Value::as_str) == Some(source_name) {
-                    if source.replace(source_parameter).is_some() {
-                        return Err(grammar(
-                            "rebuilt borrowed parameter source is retained ambiguously",
-                        ));
-                    }
+                if source_mapping.get("from").and_then(Value::as_str) == Some(source_name)
+                    && source.replace(source_parameter).is_some()
+                {
+                    return Err(grammar(
+                        "rebuilt borrowed parameter source is retained ambiguously",
+                    ));
                 }
             }
             let source = source.ok_or_else(|| {

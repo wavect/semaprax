@@ -306,6 +306,16 @@ fn candidate_read_grant_selects_closed_schema_generated_clients_and_mcp_tool() {
         }
     }
     assert!(names.contains(&"candidate__analysis-deployment-contract-evidence".to_owned()));
+    // The MCP host keeps its own candidate registry and `McpSession::new`
+    // requires a pristine session, so the handle has to be opened through the
+    // tool surface. The digest is content addressed, so both sessions agree.
+    let opened = json!({"jsonrpc":"2.0","id":9,"method":"tools/call","params":{
+        "name":"candidate__open","arguments":{"image_revision":image}}});
+    let opened: Value =
+        serde_json::from_slice(&mcp.handle_frame(opened.to_string().as_bytes()).unwrap()).unwrap();
+    let opened: Value =
+        serde_json::from_str(opened["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(opened["result"]["payload"]["candidate_revision"], candidate);
     let arguments = json!({"image_revision":image,"candidate_revision":candidate,
         "declaration":declaration,"declaration_digest":declaration_digest,
         "offset":0,"chunk_bytes":1024});

@@ -101,9 +101,11 @@ identities are private. Before executing the held launcher, the child overmounts
 `/` with one fixed 64 KiB tmpfs, pivots into it without creating a pathname in the
 inherited tree, detaches the old root, fixes both root and current directory,
 remounts it read-only, and authenticates an empty
-`readonly,nosuid,nodev,noexec` tmpfs. No old-root path or
-descriptor survives. The existing worker later materializes and enters the
-independently authenticated bundle root before executing an inspected tool.
+`readonly,nosuid,nodev,noexec` tmpfs. No old-root pathname or directory/traversal
+descriptor survives. The fixed non-directory request, image, report, procfs and
+cgroup descriptors retain only their separately admitted authorities. The
+existing worker later materializes and enters the independently authenticated
+bundle root before executing an inspected tool.
 
 Before releasing the child setup barrier, the supervisor uses the authenticated
 procfs root and pinned child identity to install exact one-ID UID/GID maps and a
@@ -193,6 +195,19 @@ already supplied artifacts;
 it is not a reproducible compiler-build claim and does not establish that the
 provisioner was compiled with the matching release trust anchor. Only the
 required executable gate can establish that association.
+
+The helper's portability boundary cannot hold or descriptor-execute arbitrary
+host utilities. The release caller must therefore supply a trusted `/bin/sh`, a
+trusted physical `/usr/bin/env`, and immutable physical absolute release, tar,
+gzip, mkdir, copy, chmod and touch tool paths whose files and ancestor
+directories cannot change from admission through completion (the fixed
+physical `pwd` utility is subject to the same condition). Lexical checks do
+not prove that precondition. Every external invocation after admission uses the
+explicit `/usr/bin/env -i` identity with only fixed locale/timezone state (and
+the fixed archive metadata switch where required); inherited `PATH`, shell
+startup, tar, gzip, temporary-directory and dynamic-loader controls do not
+reach those tools. This is not held-image execution, tool provenance, or
+concurrent host-mutation resistance.
 
 The authority-free capsule/parser/policy/lifecycle tests and strict workspace
 Clippy are necessary but not promotion evidence. WP-05 remains Partial until the

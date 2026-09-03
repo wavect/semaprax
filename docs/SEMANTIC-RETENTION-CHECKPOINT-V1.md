@@ -93,6 +93,10 @@ The APIs do not choose where or how metadata is durably stored. Retaining an
 old selector is host responsibility; checkpoint bytes alone cannot establish
 that they are the newest bytes ever created.
 
+Restored checkpoints and plans expose `authority()` as the closed
+`RetentionAuthority::None` value. This makes the absence of action authority an
+API fact; no variant can name a store, mutate source, approve or publish.
+
 ## Applying garbage collection
 
 The returned plan has effect `none_metadata_plan_only`. It performs no delete,
@@ -116,11 +120,13 @@ make any survivor fresh, current, approved or publishable.
 | `SPX-G422` | Immutable identity, accounting, canonical bytes or plan/checkpoint binding disagrees. |
 | `SPX-G423` | Expected predecessor, sequence or companion plan is stale. |
 
-The library target compiled locked and offline after authoring. Tests and long
-quality gates were intentionally not run. Required follow-up evidence includes
-input-order determinism, cap and protection boundaries, exact rollback and
-plan-substitution rejection, store-specific idempotent cleanup, interruption at
-every durable/effect boundary, image/candidate/draft replay after survival,
-absence after cleanup, parallel-coordinator serialization, and measured
-checkpoint/recovery cost. Cross-platform filesystem support remains owned by
+Authored unit regressions cover input-order determinism and eviction order,
+protected-capacity failure, stale predecessor and rollback selectors, tampered
+checkpoint/plan rejection, and the explicit no-authority API result. They were
+not executed. The library target compiled locked and offline after authoring;
+tests and long quality gates were intentionally not run. Required follow-up
+evidence includes store-specific idempotent cleanup, interruption at every
+durable/effect boundary, image/candidate/draft replay after survival, absence
+after cleanup, parallel-coordinator serialization, measured checkpoint/recovery
+cost and hosted execution. Cross-platform filesystem support remains owned by
 the underlying stores.

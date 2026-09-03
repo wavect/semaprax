@@ -12,6 +12,9 @@ use sha2::{Digest, Sha256};
 
 use crate::diagnostic::Diagnostic;
 
+#[cfg(test)]
+mod tests;
+
 pub const SEMANTIC_RETENTION_CHECKPOINT_SCHEMA: &str = "semaprax.semantic-retention-checkpoint.v1";
 pub const SEMANTIC_RETENTION_PLAN_SCHEMA: &str = "semaprax.semantic-retention-plan.v1";
 pub const MAX_RETENTION_SUBJECTS: usize = 96;
@@ -36,6 +39,13 @@ const NONCLAIMS: &[&str] = &[
 ];
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
+
+/// Explicit type-level statement carried by restored metadata. There is no
+/// variant that can name a store, mutate source, approve, or publish.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RetentionAuthority {
+    None,
+}
 
 /// Closed identity of one disposable derived subject.
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -439,6 +449,9 @@ pub struct RetentionCheckpoint {
 }
 
 impl RetentionCheckpoint {
+    pub const fn authority(&self) -> RetentionAuthority {
+        RetentionAuthority::None
+    }
     pub const fn sequence(&self) -> u64 {
         self.sequence
     }
@@ -506,6 +519,9 @@ pub struct RetentionGarbageCollectionPlan {
 }
 
 impl RetentionGarbageCollectionPlan {
+    pub const fn authority(&self) -> RetentionAuthority {
+        RetentionAuthority::None
+    }
     pub fn predecessor_checkpoint_digest(&self) -> Option<&str> {
         self.predecessor.as_deref()
     }

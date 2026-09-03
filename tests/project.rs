@@ -163,6 +163,8 @@ mod signature_owned_values;
 mod v10_recipe_consumer;
 #[path = "project/v1_ci_contract.rs"]
 mod v1_ci_contract;
+#[path = "project/v8_promotion_receipt.rs"]
+mod v8_promotion_receipt;
 #[path = "project/v9_recipe_consumer.rs"]
 mod v9_recipe_consumer;
 #[path = "project/v9_recipe_identity.rs"]

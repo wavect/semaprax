@@ -37,6 +37,7 @@ mod scaffold;
 mod scalar_wit;
 mod semantic;
 mod target_cache;
+mod v8_promotion;
 #[cfg(test)]
 mod tests;
 
@@ -235,6 +236,13 @@ pub use cxx_owned_data::{
 pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,
     ProjectExecutionRole, PROJECT_EXECUTION_SCHEMA,
+};
+pub use v8_promotion::{
+    derive_project_v8_promotion_receipt, parse_project_v8_promotion_receipt,
+    replay_project_v8_promotion_receipt, ProjectV8PromotionArtifact,
+    ProjectV8PromotionGateObservation, ProjectV8PromotionGateOutcome,
+    ProjectV8PromotionReceipt, ProjectV8PromotionSubject,
+    MAX_PROJECT_V8_PROMOTION_RECEIPT_BYTES, PROJECT_V8_PROMOTION_RECEIPT_SCHEMA,
 };
 pub use flat_owned_record::{
     derive_flat_owned_record_api_descriptor, render_flat_owned_record_metadata,

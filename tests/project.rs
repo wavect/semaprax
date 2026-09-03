@@ -36,6 +36,8 @@ mod native_rust_cargo;
 mod owned_mixed_arity_product;
 #[path = "support/owned_npm_publication.rs"]
 mod owned_npm_publication;
+#[path = "support/owned_result_product.rs"]
+mod owned_result_product;
 
 #[path = "project/agent_transport_rename.rs"]
 mod agent_transport_rename;

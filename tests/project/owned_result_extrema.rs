@@ -11,8 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::owned_npm_publication;
-#[path = "../support/owned_result_product.rs"]
-mod subject;
+use crate::owned_result_product as subject;
 
 fn native(root: &Path, provider: &str) {
     let source = format!(

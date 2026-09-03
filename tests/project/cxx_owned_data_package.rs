@@ -5,8 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::project::{with_authenticated_project, MAX_CXX_OWNED_DATA_PACKAGE_BYTES};
 
-#[path = "../support/owned_result_product.rs"]
-mod result_subject;
+use crate::owned_result_product as result_subject;
 
 struct Temporary(PathBuf);
 impl Temporary {

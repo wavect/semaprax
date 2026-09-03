@@ -15,6 +15,7 @@ use semaprax::project_transport::{
 use serde_json::{json, Value};
 
 #[rustfmt::skip]
+#[allow(clippy::needless_lifetimes, clippy::possible_missing_else)]
 mod generated_rust {
     include!("generated_rust.txt");
 }

@@ -34,6 +34,7 @@ mod revision;
 mod scaffold;
 mod scalar_wit;
 mod semantic;
+mod target_cache;
 #[cfg(test)]
 mod tests;
 
@@ -240,6 +241,10 @@ pub use prepared_interpreter::{
     ProjectSourceTraceEvent, DEFAULT_PROJECT_SOURCE_TRACE_BYTES,
     DEFAULT_PROJECT_SOURCE_TRACE_EVENTS, MAX_PROJECT_SOURCE_TRACE_BYTES,
     MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
+};
+pub use target_cache::{
+    ProjectTargetBuild, ProjectTargetCache, MAX_PROJECT_TARGET_CACHE_REPORT_BYTES,
+    PROJECT_TARGET_CACHE_COMPATIBILITY, PROJECT_TARGET_CACHE_SCHEMA,
 };
 
 /// Prepare the additive WP-10/WP-11 owned-data package from held HIR and the

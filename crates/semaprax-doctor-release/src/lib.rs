@@ -7,6 +7,8 @@
 
 mod directory;
 mod elf;
+#[cfg(unix)]
+mod install;
 
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
@@ -19,6 +21,11 @@ use sha2::{Digest as _, Sha256};
 use elf::{verify_static_elf64, ExpectedArchitecture};
 
 pub use directory::{verify_release_directory, ReleaseExpectation};
+#[cfg(unix)]
+pub use install::{
+    activate, inspect_active, install_from_verified_directory, open_store, recover, rollback,
+    DoctorStore, GenerationId, InstallReceipt, RecoveryReceipt, StoreExpectation,
+};
 
 pub const CAPSULE_FILE: &str = "semaprax-doctor-release.capsule";
 pub const MANIFEST_FILE: &str = "semaprax-doctor-release-manifest.json";

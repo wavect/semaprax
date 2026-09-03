@@ -42,31 +42,71 @@ pub fn verify_release_directory(
     directory: &Path,
     expected: &ReleaseExpectation,
 ) -> Result<(), String> {
-    validate_expectation(expected)?;
     require_exact_inventory(directory)?;
+    let paths = [
+        (BUNDLE_FILE, MAX_ARTIFACT_BYTES, false),
+        (COLLECTOR_FILE, MAX_ARTIFACT_BYTES, true),
+        (LAUNCHER_FILE, MAX_ARTIFACT_BYTES, true),
+        (PROVISIONER_FILE, MAX_ARTIFACT_BYTES, true),
+        (MANIFEST_FILE, MAX_MANIFEST_BYTES, false),
+        (MANIFEST_SIGNATURE_FILE, 64, false),
+        (CAPSULE_FILE, 341, false),
+        (REQUEST_FILE, MAX_ARTIFACT_BYTES, false),
+        (WORKER_FILE, MAX_ARTIFACT_BYTES, true),
+    ];
+    let loaded = paths
+        .map(|(name, maximum, executable)| {
+            read_once(&directory.join(name), maximum, executable, false)
+                .map(|bytes| (name, bytes, executable))
+        })
+        .into_iter()
+        .collect::<Result<Vec<_>, String>>()?;
+    let borrowed: Vec<_> = loaded
+        .iter()
+        .map(|(name, bytes, executable)| (*name, bytes.as_slice(), *executable))
+        .collect();
+    verify_release_bytes(&borrowed, expected)
+}
 
-    let capsule = read_once(&directory.join(CAPSULE_FILE), 341, false, false)?;
-    let manifest = read_once(
-        &directory.join(MANIFEST_FILE),
-        MAX_MANIFEST_BYTES,
-        false,
-        false,
-    )?;
-    let signature = read_once(&directory.join(MANIFEST_SIGNATURE_FILE), 64, false, false)?;
-    if signature.len() != 64 {
-        return Err("manifest signature length is invalid".into());
+/// Replays one already handle-authenticated exact inventory. The caller owns
+/// file identity and mutation checks; this function performs no filesystem IO.
+pub(crate) fn verify_release_bytes(
+    files: &[(&str, &[u8], bool)],
+    expected: &ReleaseExpectation,
+) -> Result<(), String> {
+    validate_expectation(expected)?;
+    if files.len() != INVENTORY.len() {
+        return Err("release artifact inventory is not exact".into());
     }
-    verify_outputs(&capsule, &manifest, &signature, &expected.public_key_hex)?;
+    for expected_name in INVENTORY {
+        if files.iter().filter(|row| row.0 == expected_name).count() != 1 {
+            return Err("release artifact inventory is not exact".into());
+        }
+    }
+    let get = |name: &str| {
+        files
+            .iter()
+            .find(|row| row.0 == name)
+            .map(|row| row.1)
+            .ok_or_else(|| "release artifact inventory is not exact".to_owned())
+    };
+    let capsule = get(CAPSULE_FILE)?;
+    let manifest = get(MANIFEST_FILE)?;
+    let signature = get(MANIFEST_SIGNATURE_FILE)?;
+    if capsule.len() > 341 || manifest.len() > MAX_MANIFEST_BYTES as usize || signature.len() != 64
+    {
+        return Err("release signed metadata length is invalid".into());
+    }
+    verify_outputs(capsule, manifest, signature, &expected.public_key_hex)?;
     let public = parse_public_key(&expected.public_key_hex)?;
-    let parsed = parse_signed(&capsule, &public).map_err(|_| "signed capsule replay failed")?;
+    let parsed = parse_signed(capsule, &public).map_err(|_| "signed capsule replay failed")?;
     if parsed.architecture != expected.architecture
         || parsed.target != expected.target
         || parsed.selector != expected.selector
     {
         return Err("capsule disagrees with the independent release identity".into());
     }
-
-    let paths = [
+    let roles = [
         ("request", REQUEST_FILE, false),
         ("bundle", BUNDLE_FILE, false),
         ("launcher", LAUNCHER_FILE, true),
@@ -74,26 +114,31 @@ pub fn verify_release_directory(
         ("collector", COLLECTOR_FILE, true),
         ("provisioner", PROVISIONER_FILE, true),
     ];
-    let loaded = paths
-        .map(|(role, file, executable)| {
-            let bytes = read_once(&directory.join(file), MAX_ARTIFACT_BYTES, executable, false)?;
-            if executable {
-                validate_static_elf(&bytes, expected.architecture)?;
-            }
-            let length = u64::try_from(bytes.len()).map_err(|_| "artifact length overflow")?;
-            let artifact = Artifact {
-                length,
-                digest: Sha256::digest(&bytes).into(),
-            };
-            Ok(InputArtifact {
-                role,
-                bytes,
-                artifact,
-            })
+    let loaded = roles.map(|(role, name, executable)| {
+        let bytes = get(name)?;
+        let stated_executable = files
+            .iter()
+            .find(|row| row.0 == name)
+            .map(|row| row.2)
+            .ok_or_else(|| "release artifact inventory is not exact".to_owned())?;
+        if executable != stated_executable {
+            return Err("release artifact mode classification disagrees".into());
+        }
+        if executable {
+            validate_static_elf(bytes, expected.architecture)?;
+        }
+        Ok(InputArtifact {
+            role,
+            bytes: bytes.to_vec(),
+            artifact: Artifact {
+                length: u64::try_from(bytes.len()).map_err(|_| "artifact length overflow")?,
+                digest: Sha256::digest(bytes).into(),
+            },
         })
-        .into_iter()
-        .collect::<Result<Vec<_>, String>>()?;
+    });
     let artifacts: [InputArtifact; 6] = loaded
+        .into_iter()
+        .collect::<Result<Vec<_>, String>>()?
         .try_into()
         .map_err(|_| "release artifact inventory is not exact")?;
     for (actual, capsule_artifact) in artifacts[..5].iter().zip(parsed.artifacts) {
@@ -103,8 +148,7 @@ pub fn verify_release_directory(
             return Err("actual artifact disagrees with the signed capsule".into());
         }
     }
-
-    let expected_manifest = render_manifest_exact(
+    let canonical = render_manifest_exact(
         &expected.release_version,
         &expected.release_commit,
         &expected.target_triple,
@@ -113,11 +157,11 @@ pub fn verify_release_directory(
         &expected.selector,
         &artifacts,
         capsule.len(),
-        &digest(&capsule),
+        &digest(capsule),
         &digest(&public.to_bytes()),
         &expected.public_key_hex,
     );
-    if manifest != expected_manifest.as_bytes() {
+    if manifest != canonical.as_bytes() {
         return Err("manifest is not the exact canonical release binding".into());
     }
     Ok(())

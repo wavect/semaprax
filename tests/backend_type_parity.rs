@@ -66,8 +66,10 @@ const RECORDED: &[(&str, bool, bool, bool)] = &[
     // widenings deliberately left it outside the exported Copy-scalar surface.
     ("usize", true, true, false),
     // Owned and borrowed data lower on both backends but carry no export ABI
-    // until the owned-data programme provides one.
-    ("string", true, false, false),
+    // until the owned-data programme provides one. `string` lowers into a core
+    // module here; it is the legacy Web *package* wrapper that rejects it,
+    // for want of the String runtime imports, not the backend.
+    ("string", true, true, false),
     ("bytes", true, true, false),
     ("str", true, true, false),
     ("slice_u8", true, true, false),

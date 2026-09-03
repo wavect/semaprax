@@ -138,7 +138,7 @@ def main():
     if file_row(host_exec) != host_exec_row: raise Failure(f"Extension Host executable drift: {host_exec}")
     logs={"controller-node.tap":node_log,"compiler-build-cargo.log":build_log,"vscode-extension-host.log":host_log,"vscode-host-observation.json":canonical(observation)}
     rows=[artifact(name,body) for name,body in logs.items()]
-    domain=b"semaprax.graph-operational-vscode-host-execution-evidence.bundle.v1\0"
+    domain=b"semaprax.graph-operational-vscode-host-execution-evidence.bundle.v2\0"
     bundle=hashlib.sha256(domain+b"".join(bytes.fromhex(row["sha256"][7:]) for row in rows)).hexdigest()
     default=ROOT/".semaprax/evidence/graph-operational-vscode-host"/commit/bundle
     destination=Path(ns.output).resolve() if ns.output else default

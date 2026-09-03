@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use semaprax::{format, graph, hir, parse, verify};
 
@@ -58,6 +58,49 @@ fn meaning_revision_matches_the_domain_separated_sha256_contract() {
         graph::revision(&program),
         "sha256:42aeae2650d15b1e44b8fd6d8a7ce6018d61f43e0e7988a58da2426b2f0c1657"
     );
+}
+
+/// Every example in a project subdirectory is canonical too.
+///
+/// `every_committed_example_is_canonical_and_verified` reads only the top of
+/// `examples/`, so a project module could sit in the tree unformatted: this
+/// gate found `owned-data-rust/owned_data.spx` written with brace-on-the-same-
+/// line bodies. A module inside a manifest closure resolves only against its
+/// siblings, so this walk asserts what a single file can own on its own -- it
+/// parses, and its text already is its canonical formatting.
+#[test]
+fn every_example_below_the_top_level_is_canonical() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples");
+    let mut paths = Vec::new();
+    collect_sources(&root, &mut paths);
+    paths.retain(|path| path.parent() != Some(root.as_path()));
+    paths.sort();
+    assert!(
+        !paths.is_empty(),
+        "the project fixtures under examples/ carry .spx modules"
+    );
+
+    for path in paths {
+        let source = std::fs::read_to_string(&path).unwrap();
+        let program = parse(&source, &path).unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            format::canonical(&program),
+            source,
+            "{} is not canonical; run `semaprax fmt` on it",
+            path.display()
+        );
+    }
+}
+
+fn collect_sources(directory: &Path, output: &mut Vec<PathBuf>) {
+    for entry in std::fs::read_dir(directory).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            collect_sources(&path, output);
+        } else if path.extension().is_some_and(|extension| extension == "spx") {
+            output.push(path);
+        }
+    }
 }
 
 mod readme_index {

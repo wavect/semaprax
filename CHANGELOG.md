@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Extended the `example-checks` and `example-fmt` quality gates to the
+  bidirectional Native Rust interoperability example
+  `examples/calculator-rust/callback.spx`, which declares an `import rust fn`
+  callback and the export that calls it. That source was previously outside
+  both loops, so its verification and canonical formatting were ungated.
+  Documented the already emitted `SPX-B112` SDK admission and `SPX-I233` SDK
+  publication diagnostics in
+  [Native Rust Interoperability v1](docs/NATIVE-RUST-INTEROP-V1.md), whose
+  owned-diagnostic list had omitted both. No admitted source form, type, ABI,
+  descriptor, manifest, or generated-artifact byte changed.
+
 - Added closed v5 application-error diagnostic data while preserving ordinary
   JSON-RPC code/message and generic grammar/overflow failures. Generated
   TypeScript, Python, and Rust clients now retain structured compiler failures

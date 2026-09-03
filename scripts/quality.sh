@@ -108,11 +108,13 @@ while IFS="$tab" read -r kind gate _rest; do
             for source in meaning ownership lifecycle control_flow records native_callable chars integers_i32 bytes_u8 explicit_mutation string_ops field_mutation while_loops inheritance; do
                 cargo run --locked -p semaprax -- check "examples/$source.spx"
             done
+            cargo run --locked -p semaprax -- check examples/calculator-rust/callback.spx
             ;;
         example-fmt)
             for source in meaning effects ownership lifecycle control_flow records native_callable chars integers_i32 bytes_u8 explicit_mutation string_ops field_mutation while_loops inheritance; do
                 cargo run --locked -p semaprax -- fmt "examples/$source.spx" --check
             done
+            cargo run --locked -p semaprax -- fmt examples/calculator-rust/callback.spx --check
             ;;
         *) echo "validated quality gate changed during dispatch: $gate" >&2; exit 2 ;;
     esac

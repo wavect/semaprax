@@ -206,6 +206,7 @@ fn capture_plan(
     let mut pending = vec![(selection.expression, 0usize)];
     let mut nodes = Vec::new();
     let mut extended = false;
+    let mut selected_result_owned = false;
     let mut conditional = false;
     while let Some((node, depth)) = pending.pop() {
         if depth > MAX_DEPTH || nodes.len() >= MAX_NODES {
@@ -216,7 +217,12 @@ fn capture_plan(
                 && external.get(place.root.as_str()).is_some_and(|binding|
                     binding.ownership == OwnershipMode::Own));
         if !external_owner_place {
-            extended |= types.internal(&node.ty, node.ownership)?;
+            let owns = types.internal(&node.ty, node.ownership)?;
+            if node.id == selection.expression.id {
+                selected_result_owned = owns;
+            } else {
+                extended |= owns;
+            }
         }
         conditional |= matches!(
             &node.kind,
@@ -371,6 +377,8 @@ fn capture_plan(
             ));
         }
         authenticate_owner_cleanup(revision, target, owner, selection.expression, conditional)?;
+    } else {
+        extended |= selected_result_owned;
     }
     if extended
         && (selection.path.is_empty()

@@ -490,6 +490,58 @@ fn one_whole_local_bytes_or_string_owner_transfers_at_the_original_expression() 
 }
 
 #[test]
+fn owning_capture_can_publish_one_existing_whole_owned_result() {
+    let fixture = Fixture::new("Bytes", None, 2);
+    let core = std::fs::read_to_string(fixture.0.join("src/core.spx")).unwrap();
+    fixture.write(
+        "src/core.spx",
+        &(core
+            + r#"
+@id("block.owner-pass") fn owner_pass(input:own Bytes)->Bytes {input}
+@id("block.owner-return") fn owner_return()->Bytes {let held=make_bytes();owner_pass(held)}
+@id("block.owner-return-use") fn owner_return_use()->i64 {consume(owner_return())}
+"#),
+    );
+    fixture.write(
+        "src/app.spx",
+        r#"module block.app;
+use function @id("block.owner-return-use") from block.core as owner_return_use;
+@id("block.main") fn main()->i64 {owner_return_use()}
+"#,
+    );
+    let disk = fixture.bytes();
+    let base = fixture.candidate();
+    let (candidate, change) =
+        extract(&base, "block.owner-return", "owner_pass(held)", false).unwrap();
+    let helper = function(&candidate, "block.helper");
+    assert_eq!(helper.params[0].mode, ParamMode::Own);
+    assert_eq!(helper.return_type, Type::Bytes);
+    let checked = candidate
+        .revision()
+        .entry_program()
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "block.helper")
+        .unwrap();
+    assert_eq!(checked.body.ownership, OwnershipMode::Own);
+    assert_eq!(
+        checked.cleanup_plan.entry_state.live_owned_parameters.len(),
+        1
+    );
+    assert!(checked.cleanup_plan.exits.iter().any(|exit| matches!(
+        &exit.continuation,
+        ExitContinuation::CommitResult {
+            source: CleanupResultSource::Owned { storage }
+        } if storage.storage == StorageId::ProvisionalResult && storage.projections.is_empty()
+    )));
+    replay(&base, &candidate, &change);
+    same_outcome(&base, &candidate, ProjectExecutionOutcome::Returned(1));
+    semaprax::codegen::emit_hir_c(candidate.revision().entry_program()).unwrap();
+    semaprax::wasm::emit_resolved_module(candidate.revision().entry_program()).unwrap();
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
 fn owning_capture_rejects_parameters_projections_conditions_and_multiple_roots_atomically() {
     let fixture = Fixture::new("Bytes", None, 2);
     let core = std::fs::read_to_string(fixture.0.join("src/core.spx")).unwrap();

@@ -7,17 +7,20 @@ fail() {
     exit 2
 }
 
-[ "$#" -eq 15 ] || fail "expected TOOL TAG COMMIT TARGET SELECTOR PROFILE PUBLIC_KEY SIGNING_KEY REQUEST BUNDLE LAUNCHER WORKER COLLECTOR PROVISIONER OUTPUT_ROOT"
+[ "$#" -eq 17 ] || fail "expected RELEASE_TOOL TAR_TOOL GZIP_TOOL TAG COMMIT TARGET SELECTOR PROFILE PUBLIC_KEY SIGNING_KEY REQUEST BUNDLE LAUNCHER WORKER COLLECTOR PROVISIONER OUTPUT_ROOT"
 tool=$1
-tag=$2
-commit=$3
-target=$4
-selector=$5
-profile=$6
-public_key=$7
-signing_key=$8
-request=$9
+tar_tool=$2
+gzip_tool=$3
+tag=$4
+commit=$5
+target=$6
+selector=$7
+profile=$8
+public_key=$9
 shift 9
+signing_key=$1
+request=$2
+shift 2
 bundle=$1
 launcher=$2
 worker=$3
@@ -27,6 +30,10 @@ output_root=$6
 
 case "$tool" in /*) ;; *) fail "release tool path must be absolute" ;; esac
 [ -f "$tool" ] && [ ! -L "$tool" ] && [ -x "$tool" ] || fail "release tool must be one physical executable"
+for archive_tool in "$tar_tool" "$gzip_tool"; do
+    case "$archive_tool" in /*) ;; *) fail "archive tool paths must be absolute" ;; esac
+    [ -f "$archive_tool" ] && [ ! -L "$archive_tool" ] && [ -x "$archive_tool" ] || fail "archive tools must be physical executables"
+done
 case "$tag" in v[0-9]*) ;; *) fail "tag must begin with v and a decimal version" ;; esac
 version=${tag#v}
 [ "${#version}" -le 64 ] || fail "release version is too long"
@@ -58,8 +65,9 @@ output_root=$(CDPATH= cd -P "$output_root" && pwd -P) || fail "output root canno
 package_name="semaprax-doctor-$tag-$target"
 package_root="$output_root/$package_name"
 archive="$output_root/$package_name.tar.gz"
+tar_archive="$output_root/$package_name.tar"
 verify_root="$output_root/verify-$target"
-for output in "$package_root" "$archive" "$verify_root"; do
+for output in "$package_root" "$tar_archive" "$archive" "$verify_root"; do
     [ ! -e "$output" ] && [ ! -L "$output" ] || fail "output path already exists"
 done
 mkdir "$package_root" || fail "package staging directory cannot be created"
@@ -93,6 +101,33 @@ copy_artifact "$worker" "$package_root/semaprax-doctor-worker"
 copy_artifact "$collector" "$package_root/semaprax-doctor-collector"
 copy_artifact "$provisioner" "$package_root/semaprax-doctor-provisioner"
 
+# Canonical archive metadata is release data, not inherited input metadata.
+# The signed verifier replays file bytes; these fixed modes and timestamps make
+# two archives of the same exact inputs byte-identical across release users.
+chmod 700 "$package_root" || fail "package directory mode cannot be fixed"
+chmod 600 \
+    "$package_root/semaprax-doctor-bundle.bin" \
+    "$package_root/semaprax-doctor-release-manifest.json" \
+    "$package_root/semaprax-doctor-release-manifest.sig" \
+    "$package_root/semaprax-doctor-release.capsule" \
+    "$package_root/semaprax-doctor-request.bin" || fail "data artifact modes cannot be fixed"
+chmod 500 \
+    "$package_root/semaprax-doctor-collector" \
+    "$package_root/semaprax-doctor-launcher" \
+    "$package_root/semaprax-doctor-provisioner" \
+    "$package_root/semaprax-doctor-worker" || fail "executable artifact modes cannot be fixed"
+TZ=UTC0 touch -t 200001010000.00 \
+    "$package_root" \
+    "$package_root/semaprax-doctor-bundle.bin" \
+    "$package_root/semaprax-doctor-collector" \
+    "$package_root/semaprax-doctor-launcher" \
+    "$package_root/semaprax-doctor-provisioner" \
+    "$package_root/semaprax-doctor-release-manifest.json" \
+    "$package_root/semaprax-doctor-release-manifest.sig" \
+    "$package_root/semaprax-doctor-release.capsule" \
+    "$package_root/semaprax-doctor-request.bin" \
+    "$package_root/semaprax-doctor-worker" || fail "archive timestamps cannot be fixed"
+
 verify_directory() {
     directory=$1
     "$tool" verify \
@@ -108,8 +143,27 @@ verify_directory() {
 verify_directory "$package_root" || fail "staged distribution replay failed"
 
 set -C
-tar -czf - -C "$output_root" "$package_name" > "$archive" || fail "archive creation failed"
+# `--no-recursion` plus the explicit sorted inventory prevents filesystem
+# enumeration order from entering the archive. ustar excludes ambient xattrs;
+# numeric ownership and gzip -n exclude release-user and wall-clock metadata.
+COPYFILE_DISABLE=1 "$tar_tool" \
+    --format ustar \
+    --uid 0 --gid 0 --uname root --gname root \
+    --no-recursion \
+    -cf - -C "$output_root" \
+    "$package_name" \
+    "$package_name/semaprax-doctor-bundle.bin" \
+    "$package_name/semaprax-doctor-collector" \
+    "$package_name/semaprax-doctor-launcher" \
+    "$package_name/semaprax-doctor-provisioner" \
+    "$package_name/semaprax-doctor-release-manifest.json" \
+    "$package_name/semaprax-doctor-release-manifest.sig" \
+    "$package_name/semaprax-doctor-release.capsule" \
+    "$package_name/semaprax-doctor-request.bin" \
+    "$package_name/semaprax-doctor-worker" > "$tar_archive" || fail "canonical tar creation failed"
+"$gzip_tool" -n "$tar_archive" || fail "deterministic compression failed"
+[ -f "$archive" ] && [ ! -L "$archive" ] || fail "deterministic archive is unavailable"
 mkdir "$verify_root" || fail "verification root cannot be created"
-tar -xzf "$archive" -C "$verify_root" || fail "archive extraction failed"
+"$tar_tool" -xzf "$archive" -C "$verify_root" || fail "archive extraction failed"
 verify_directory "$verify_root/$package_name" || fail "unpacked distribution replay failed"
 printf '%s\n' "$archive"

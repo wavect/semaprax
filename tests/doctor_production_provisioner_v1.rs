@@ -299,7 +299,21 @@ fn provisioner_source_tripwires(sources: &Sources) -> Result<(), String> {
     require(
         &sources.linux_child,
         "held launcher child",
-        &["libc::SYS_execveat", "libc::AT_EMPTY_PATH"],
+        &[
+            "libc::MS_REC | libc::MS_PRIVATE",
+            "libc::MS_NOSUID | libc::MS_NODEV | libc::MS_NOEXEC",
+            "size=65536,nr_inodes=1,mode=0500",
+            "libc::SYS_pivot_root",
+            "libc::MNT_DETACH",
+            "libc::MS_REMOUNT",
+            "libc::MS_RDONLY",
+            "libc::TMPFS_MAGIC",
+            "Some(1..=65_536)",
+            "filesystem.f_flags & 15 != 15",
+            "empty_directory(c\"/\")",
+            "libc::SYS_execveat",
+            "libc::AT_EMPTY_PATH",
+        ],
     )?;
 
     forbid(
@@ -370,6 +384,13 @@ fn source_layout_tripwire_rejects_representative_widening_and_role_swap() {
             "{}\nstd::process::Command::new(\"git\");",
             checked_in.linux_child
         ),
+        "linux_child",
+    ));
+    mutations.push((
+        "launcher inherited host root",
+        checked_in
+            .linux_child
+            .replacen("libc::SYS_pivot_root", "libc::SYS_getpid", 1),
         "linux_child",
     ));
     mutations.push((

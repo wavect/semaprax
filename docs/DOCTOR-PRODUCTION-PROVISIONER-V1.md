@@ -97,11 +97,13 @@ The supervisor remains outside the tool cgroup and retains its pidfd and cgroup
 directory for the complete invocation. It creates one child with fresh user,
 mount, network, IPC, and UTS namespaces, a private descriptor table, and direct
 placement into the admitted cgroup. Network, IPC, hostname, and mount-propagation
-identities are private. The trusted launcher initially inherits a view of the
-host mount tree; it has no pathname-selected input and must proceed directly to
-the existing worker path, which materializes and enters the authenticated
-bundle root before executing any inspected tool. This tranche does not claim an
-empty initial root for the trusted launcher.
+identities are private. Before executing the held launcher, the child overmounts
+`/` with one fixed 64 KiB tmpfs, pivots into it without creating a pathname in the
+inherited tree, detaches the old root, fixes both root and current directory,
+remounts it read-only, and authenticates an empty
+`readonly,nosuid,nodev,noexec` tmpfs. No old-root path or
+descriptor survives. The existing worker later materializes and enters the
+independently authenticated bundle root before executing an inspected tool.
 
 Before releasing the child setup barrier, the supervisor uses the authenticated
 procfs root and pinned child identity to install exact one-ID UID/GID maps and a
@@ -179,6 +181,18 @@ plus-one output; timeout; supervisor/launcher/worker/collector death; cgroup
 limit and controller disagreement; post-leader descendants; close/kill/reap/
 empty-cgroup uncertainty; and immutable request/bundle reacquisition. Missing
 namespace, cgroup, sealing, or kernel prerequisites fail rather than skip.
+
+The local packaging helper accepts only explicit absolute release, tar and gzip
+tools plus artifact paths, builds a fresh no-clobber directory, verifies it,
+then emits one ustar archive with an explicit sorted inventory, fixed modes, a
+fixed 2000-01-01 timestamp, numeric root ownership and timestamp-free gzip
+framing. It unpacks into a fresh directory and repeats verification against the
+caller-supplied release identity and public key. Two invocations over identical
+bytes must produce identical archive bytes. This is deterministic packaging of
+already supplied artifacts;
+it is not a reproducible compiler-build claim and does not establish that the
+provisioner was compiled with the matching release trust anchor. Only the
+required executable gate can establish that association.
 
 The authority-free capsule/parser/policy/lifecycle tests and strict workspace
 Clippy are necessary but not promotion evidence. WP-05 remains Partial until the

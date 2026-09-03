@@ -276,8 +276,12 @@ fn packaging_script_replays_staged_and_independently_unpacked_bytes_no_clobber()
     let tool = env!("CARGO_BIN_EXE_semaprax-doctor-release");
     let script =
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../scripts/package-doctor-release.sh");
+    let tar = fs::canonicalize("/usr/bin/tar").expect("resolve explicit tar tool");
+    let gzip = fs::canonicalize("/usr/bin/gzip").expect("resolve explicit gzip tool");
     let arguments = [
         tool.into(),
+        tar.display().to_string(),
+        gzip.display().to_string(),
         "v0.2.0".into(),
         values.release_commit.clone(),
         values.target_triple.clone(),
@@ -294,7 +298,7 @@ fn packaging_script_replays_staged_and_independently_unpacked_bytes_no_clobber()
         fixture.0.display().to_string(),
     ];
     let mut hostile_arguments = arguments.clone();
-    hostile_arguments[1] = "v1/../../escape".into();
+    hostile_arguments[3] = "v1/../../escape".into();
     let hostile = Command::new("/bin/sh")
         .arg(&script)
         .args(&hostile_arguments)
@@ -322,6 +326,45 @@ fn packaging_script_replays_staged_and_independently_unpacked_bytes_no_clobber()
         .join("verify-x86_64-unknown-linux-musl")
         .join("semaprax-doctor-v0.2.0-x86_64-unknown-linux-musl");
     verify_release_directory(&unpacked, &expectation(&values)).unwrap();
+
+    let replica_root = fixture.0.join("replica");
+    fs::create_dir(&replica_root).unwrap();
+    let mut replica_arguments = arguments.clone();
+    replica_arguments[16] = replica_root.display().to_string();
+    let replica = Command::new("/bin/sh")
+        .arg(&script)
+        .args(&replica_arguments)
+        .env("TZ", "Pacific/Kiritimati")
+        .output()
+        .unwrap();
+    assert!(
+        replica.status.success(),
+        "{}",
+        String::from_utf8_lossy(&replica.stderr)
+    );
+    assert_eq!(
+        fs::read(replica_root.join("semaprax-doctor-v0.2.0-x86_64-unknown-linux-musl.tar.gz"))
+            .unwrap(),
+        before,
+        "canonical archive changed across physical output roots"
+    );
+
+    let wrong_key_root = fixture.0.join("wrong-key");
+    fs::create_dir(&wrong_key_root).unwrap();
+    let wrong_fixture = Fixture::new();
+    let wrong_values = inputs(&wrong_fixture, 53);
+    let mut wrong_arguments = arguments.clone();
+    wrong_arguments[8] = public_key(&wrong_values);
+    wrong_arguments[16] = wrong_key_root.display().to_string();
+    let wrong = Command::new("/bin/sh")
+        .arg(&script)
+        .args(&wrong_arguments)
+        .output()
+        .unwrap();
+    assert!(!wrong.status.success());
+    assert!(!wrong_key_root
+        .join("semaprax-doctor-v0.2.0-x86_64-unknown-linux-musl.tar.gz")
+        .exists());
 
     let second = Command::new("/bin/sh")
         .arg(&script)

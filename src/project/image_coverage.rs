@@ -202,7 +202,7 @@ fn areas(has_imports: bool) -> Vec<Value> {
             },
             &[
                 "declarations_are_not_external_implementation_evidence",
-                "native_rust_imports_are_rejected_by_current_semantic_graph_schemas",
+                "native_rust_import_declarations_are_not_host_implementation_evidence",
                 "zero_imports_does_not_prove_no_external_or_network_dependencies",
             ],
             &["independently_authenticated_provider_contracts_and_implementations"],

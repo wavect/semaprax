@@ -12,7 +12,8 @@ use crate::hir;
 
 use super::{
     budgeted_edge_clone, graph_error, limit_error, push_edge, reserve_builder_structure,
-    visit_ast_call_sites, CallOccurrenceKey, WorkspaceEdge, WorkspaceResolvedModule, MAX_CALLS,
+    visit_ast_call_sites, CallOccurrenceKey, WorkspaceDeclarationFact, WorkspaceEdge,
+    WorkspaceResolvedModule, MAX_CALLS,
 };
 
 pub(super) fn validate_retained_facts(
@@ -1121,6 +1122,173 @@ fn collect_resolved_record_pattern_type_sites(
             imported,
             out,
         )?;
+    }
+    Ok(())
+}
+
+/// Exact Native Rust interfaces one scalar Project closure retains, with the
+/// union of their imports' declared effects.
+///
+/// The scalar linker profile has no callable ABI for an ordinary interface
+/// import, so this inventory is empty for every other Project profile and the
+/// admission and linking of those profiles is unchanged.
+pub(super) struct ScalarNativeImports {
+    interfaces: Vec<hir::ResolvedInterface>,
+    effects: BTreeSet<String>,
+}
+
+/// Select the Native Rust import inventory the scalar Project profile retains
+/// beside its linked closure.
+pub(super) fn scalar_native_imports<'a>(
+    profile: crate::project::ProjectProfile,
+    interfaces: impl IntoIterator<Item = &'a hir::ResolvedInterface>,
+) -> ScalarNativeImports {
+    if profile != crate::project::ProjectProfile::ScalarV1 {
+        return ScalarNativeImports {
+            interfaces: Vec::new(),
+            effects: BTreeSet::new(),
+        };
+    }
+    let interfaces = interfaces.into_iter().cloned().collect::<Vec<_>>();
+    let effects = interfaces
+        .iter()
+        .flat_map(|interface| &interface.imports)
+        .filter(|import| import.native_rust)
+        .flat_map(|import| import.effects.iter().cloned())
+        .collect();
+    ScalarNativeImports {
+        interfaces,
+        effects,
+    }
+}
+
+impl ScalarNativeImports {
+    /// Whether every one of these declared effects or module permits is
+    /// carried by a retained Native Rust import. With nothing retained only
+    /// the empty declaration is admitted, which is the historical rule.
+    pub(super) fn effects_admitted(&self, declared: &[String]) -> bool {
+        declared.iter().all(|effect| self.effects.contains(effect))
+    }
+
+    /// Link one scalar closure, retaining the selected interfaces and their
+    /// imports in the linked declaration index. With nothing retained this is
+    /// the unchanged pure scalar linker.
+    pub(super) fn link(
+        self,
+        module: String,
+        entrypoint: hir::DeclarationId,
+        functions: Vec<hir::LinkedScalarFunction>,
+        declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
+    ) -> Result<hir::ResolvedProgram, Diagnostic> {
+        if self.interfaces.is_empty() {
+            return hir::link_scalar_workspace(module, entrypoint, functions);
+        }
+        let mut declaration_facts = BTreeMap::new();
+        for linked in &functions {
+            retain_linked_fact(
+                declarations,
+                &mut declaration_facts,
+                &linked.function.id,
+                hir::DeclarationKind::Function,
+                None,
+            )?;
+        }
+        for interface in &self.interfaces {
+            retain_linked_fact(
+                declarations,
+                &mut declaration_facts,
+                &interface.id,
+                hir::DeclarationKind::Interface,
+                None,
+            )?;
+            for import in &interface.imports {
+                retain_linked_fact(
+                    declarations,
+                    &mut declaration_facts,
+                    &import.id,
+                    hir::DeclarationKind::Import,
+                    Some(&interface.id),
+                )?;
+            }
+        }
+        hir::link_scalar_native_rust_workspace(
+            module,
+            entrypoint,
+            functions,
+            hir::LinkedScalarNatives {
+                interfaces: self.interfaces,
+                declaration_facts,
+            },
+        )
+    }
+}
+
+/// Whether one retained module's declared permits stay inside the Project
+/// profile's admitted authority.
+pub(super) fn permits_admitted(
+    profile: crate::project::ProjectProfile,
+    module: &WorkspaceResolvedModule,
+    entry_module: &str,
+    natives: &ScalarNativeImports,
+) -> bool {
+    module.permits.is_empty()
+        || natives.effects_admitted(&module.permits)
+        || (matches!(
+            profile,
+            crate::project::ProjectProfile::UsefulDataCommandV1
+                | crate::project::ProjectProfile::UsefulDataCommandV2
+        ) && module.module == entry_module
+            && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
+        || (matches!(
+            profile,
+            crate::project::ProjectProfile::LanguageCommandIoV1
+                | crate::project::ProjectProfile::LineCommandIoV1
+        ) && module.module == entry_module
+            && module.permits
+                == [
+                    crate::command_io_ops::ARGS_READ_EFFECT,
+                    crate::command_io_ops::STDERR_WRITE_EFFECT,
+                    crate::command_io_ops::STDIN_READ_EFFECT,
+                    crate::host_io_ops::STDOUT_WRITE_EFFECT,
+                ])
+}
+
+/// Bind one retained declaration to its authenticated Phase-A fact. Both an
+/// absent fact and a disagreeing or repeated one fail closed.
+fn retain_linked_fact(
+    authenticated: &BTreeMap<String, WorkspaceDeclarationFact>,
+    selected: &mut BTreeMap<hir::DeclarationId, hir::LinkedDeclarationFact>,
+    id: &hir::DeclarationId,
+    kind: hir::DeclarationKind,
+    owner: Option<&hir::DeclarationId>,
+) -> Result<(), Diagnostic> {
+    let Some(fact) = authenticated.get(id.as_str()) else {
+        return Err(graph_error(
+            "SPX-G173",
+            format!("scalar Native Rust declaration `{id}` has no Phase-A fact"),
+        ));
+    };
+    if fact.kind != kind || fact.owner.as_deref() != owner.map(hir::DeclarationId::as_str) {
+        return Err(graph_error(
+            "SPX-G173",
+            format!("scalar Native Rust declaration `{id}` disagrees with its Phase-A fact"),
+        ));
+    }
+    if selected
+        .insert(
+            id.clone(),
+            hir::LinkedDeclarationFact {
+                kind: fact.kind,
+                origin: fact.origin,
+                owner: owner.cloned(),
+            },
+        )
+        .is_some()
+    {
+        return Err(graph_error(
+            "SPX-G173",
+            format!("scalar Native Rust declaration `{id}` is selected more than once"),
+        ));
     }
     Ok(())
 }

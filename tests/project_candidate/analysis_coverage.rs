@@ -308,21 +308,26 @@ fn declared_external_contract_stays_partial_and_local_lookalike_is_not_provider_
 }
 
 #[test]
-fn native_import_admission_still_fails_before_any_candidate_can_claim_coverage() {
+fn native_import_admission_now_produces_a_candidate_without_host_evidence() {
     let fixture = Fixture::new(ImportFixture::Native);
-    let disk = fixture.bytes();
-    let errors = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+    let candidate = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
         ProjectCandidate::open(snapshot.retain_revision(), snapshot.project_revision())
     })
-    .err()
-    .expect("Native Rust import unexpectedly produced a candidate");
+    .expect("Graph v25 represents native Rust import declarations");
+    let value: serde_json::Value = serde_json::from_str(
+        &candidate
+            .analysis_coverage(candidate.candidate_digest())
+            .unwrap(),
+    )
+    .unwrap();
+    let external = area(&value, "declared_external_contracts");
+    assert_eq!(external["status"], "partial");
     assert!(
-        errors
-            .iter()
-            .any(|diagnostic| diagnostic.code == "SPX-G218"),
-        "{errors:?}"
+        external["limitations"].as_array().unwrap().contains(&json!(
+            "native_rust_import_declarations_are_not_host_implementation_evidence"
+        )),
+        "{external:?}"
     );
-    assert_eq!(fixture.bytes(), disk);
 }
 
 #[test]

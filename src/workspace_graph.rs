@@ -1262,6 +1262,17 @@ impl WorkspaceGraphBuild {
             )]);
         }
 
+        // Native Rust callbacks are the only interface the scalar Project
+        // profile retains, and their declared effects are the only authority a
+        // retained module or function may carry.
+        let natives = retained_validation::scalar_native_imports(
+            profile,
+            self.hir
+                .modules
+                .iter()
+                .filter(|module| reachable_paths.contains(module.path.as_str()))
+                .flat_map(|module| &module.interfaces),
+        );
         let mut functions = Vec::new();
         let mut entrypoints = Vec::new();
         let mut retained_modules = 0usize;
@@ -1270,25 +1281,8 @@ impl WorkspaceGraphBuild {
                 continue;
             }
             retained_modules += 1;
-            let permits_admitted = module.permits.is_empty()
-                || (matches!(
-                    profile,
-                    crate::project::ProjectProfile::UsefulDataCommandV1
-                        | crate::project::ProjectProfile::UsefulDataCommandV2
-                ) && module.module == entry_module
-                    && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
-                || (matches!(
-                    profile,
-                    crate::project::ProjectProfile::LanguageCommandIoV1
-                        | crate::project::ProjectProfile::LineCommandIoV1
-                ) && module.module == entry_module
-                    && module.permits
-                        == [
-                            crate::command_io_ops::ARGS_READ_EFFECT,
-                            crate::command_io_ops::STDERR_WRITE_EFFECT,
-                            crate::command_io_ops::STDIN_READ_EFFECT,
-                            crate::host_io_ops::STDOUT_WRITE_EFFECT,
-                        ]);
+            let permits_admitted =
+                retained_validation::permits_admitted(profile, module, entry_module, &natives);
             let project_shape_admitted = profile.is_owned_api()
                 || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
@@ -1378,9 +1372,12 @@ impl WorkspaceGraphBuild {
             )]);
         }
         match profile {
-            crate::project::ProjectProfile::ScalarV1 => {
-                hir::link_scalar_workspace(entry_module.to_owned(), entrypoint, functions)
-            }
+            crate::project::ProjectProfile::ScalarV1 => natives.link(
+                entry_module.to_owned(),
+                entrypoint,
+                functions,
+                &self.hir.declarations,
+            ),
             crate::project::ProjectProfile::UsefulTextConsumerV1 => {
                 hir::link_useful_text_workspace(entry_module.to_owned(), entrypoint, functions)
             }
@@ -1441,6 +1438,7 @@ impl WorkspaceGraphBuild {
         if additional_roots.is_empty() {
             return Ok(base);
         }
+        let natives = retained_validation::scalar_native_imports(profile, base.interfaces.iter());
 
         let mut available = BTreeMap::<hir::DeclarationId, hir::LinkedScalarFunction>::new();
         for module in &self.hir.modules {
@@ -1524,9 +1522,12 @@ impl WorkspaceGraphBuild {
             })
             .collect::<Result<Vec<_>, _>>()?;
         match profile {
-            crate::project::ProjectProfile::ScalarV1 => {
-                hir::link_scalar_workspace(base.module, base.entrypoint, functions)
-            }
+            crate::project::ProjectProfile::ScalarV1 => natives.link(
+                base.module,
+                base.entrypoint,
+                functions,
+                &self.hir.declarations,
+            ),
             crate::project::ProjectProfile::UsefulTextConsumerV1 => {
                 hir::link_useful_text_workspace(base.module, base.entrypoint, functions)
             }
@@ -2121,26 +2122,16 @@ impl WorkspaceGraphBuild {
         validate_entry_module(entry_module)?;
         validate_entry_module(test_module)?;
         let roots = BTreeSet::from([entry_module, test_module]);
+        let natives = retained_validation::scalar_native_imports(
+            profile,
+            self.hir
+                .modules
+                .iter()
+                .flat_map(|module| &module.interfaces),
+        );
         for module in &self.hir.modules {
-            let permits_admitted = module.permits.is_empty()
-                || (matches!(
-                    profile,
-                    crate::project::ProjectProfile::UsefulDataCommandV1
-                        | crate::project::ProjectProfile::UsefulDataCommandV2
-                ) && module.module == entry_module
-                    && module.permits == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
-                || (matches!(
-                    profile,
-                    crate::project::ProjectProfile::LanguageCommandIoV1
-                        | crate::project::ProjectProfile::LineCommandIoV1
-                ) && module.module == entry_module
-                    && module.permits
-                        == [
-                            crate::command_io_ops::ARGS_READ_EFFECT,
-                            crate::command_io_ops::STDERR_WRITE_EFFECT,
-                            crate::command_io_ops::STDIN_READ_EFFECT,
-                            crate::host_io_ops::STDOUT_WRITE_EFFECT,
-                        ]);
+            let permits_admitted =
+                retained_validation::permits_admitted(profile, module, entry_module, &natives);
             let project_shape_admitted = profile.is_owned_api()
                 || matches!(profile, crate::project::ProjectProfile::ScalarV1)
                 || (module.types.is_empty()
@@ -2227,6 +2218,7 @@ impl WorkspaceGraphBuild {
                     }
                 };
                 let effects_admitted = function.effects.is_empty()
+                    || natives.effects_admitted(&function.effects)
                     || (matches!(
                         profile,
                         crate::project::ProjectProfile::UsefulDataCommandV1

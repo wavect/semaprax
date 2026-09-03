@@ -37,6 +37,8 @@ pub(super) struct ProjectSdkSubject {
     pub(super) graph_digest: String,
     pub(super) sources: Vec<ProjectSourceFact>,
     pub(super) exports: Vec<ProjectExportFact>,
+    pub(super) imports: Vec<String>,
+    pub(super) capabilities: Vec<String>,
 }
 
 /// Builds one fresh Native Rust SDK from the exact authenticated linked entry
@@ -89,6 +91,25 @@ impl ProjectSdkSubject {
                 path: export.path().to_owned(),
             })
             .collect::<Vec<_>>();
+        // Every native Rust import the authenticated entry program declares is
+        // selected, and the capabilities are exactly the union of their
+        // declared effects. Phase A independently re-derives the reached set
+        // and rejects any disagreement.
+        let mut imports = Vec::new();
+        let mut effects = BTreeSet::new();
+        for interface in &input.program().interfaces {
+            for import in &interface.imports {
+                if !import.native_rust {
+                    continue;
+                }
+                imports.push(import.id.as_str().to_owned());
+                for effect in &import.effects {
+                    effects.insert(effect.as_str());
+                }
+            }
+        }
+        imports.sort();
+        let capabilities = effects.into_iter().map(str::to_owned).collect::<Vec<_>>();
         if sources.len() > semaprax::project::MAX_SOURCES
             || sources
                 .windows(2)
@@ -98,6 +119,14 @@ impl ProjectSdkSubject {
             || exports
                 .windows(2)
                 .any(|rows| rows[0].id.as_bytes() >= rows[1].id.as_bytes())
+            || imports.len() > MAX_IMPORTS
+            || imports
+                .windows(2)
+                .any(|rows| rows[0].as_bytes() >= rows[1].as_bytes())
+            || capabilities.len() > MAX_EFFECTS
+            || capabilities
+                .windows(2)
+                .any(|rows| rows[0].as_bytes() >= rows[1].as_bytes())
         {
             return Err(vec![sdk_error(
                 "Native Rust Project SDK subject facts are not canonical",
@@ -117,6 +146,8 @@ impl ProjectSdkSubject {
             graph_digest,
             sources,
             exports,
+            imports,
+            capabilities,
         };
         subject.canonical = render_project_subject(&subject)?;
         subject.digest = domain_digest(PROJECT_SUBJECT_DOMAIN, subject.canonical.as_bytes());
@@ -183,7 +214,11 @@ fn render_project_subject(subject: &ProjectSdkSubject) -> Result<String, Vec<Dia
         json_string(&mut output, &export.path);
         output.push('}');
     }
-    output.push_str("],\"imports\":[],\"capabilities\":[]}\n");
+    output.push_str("],\"imports\":");
+    string_array(&mut output, &subject.imports);
+    output.push_str(",\"capabilities\":");
+    string_array(&mut output, &subject.capabilities);
+    output.push_str("}\n");
     if output.len() > MAX_PROJECT_SUBJECT_BYTES {
         return Err(vec![sdk_error(
             "Native Rust Project SDK subject exceeds its bound",
@@ -227,19 +262,11 @@ pub(super) fn verify_project_subject(
         || graph.get("schema").and_then(Value::as_str)
             != Some(semaprax::project::PROJECT_SEMANTIC_GRAPH_SCHEMA)
         || graph.get("digest").and_then(Value::as_str) != Some(expected.graph_digest.as_str())
-        || root
-            .get("imports")
-            .and_then(Value::as_array)
-            .filter(|rows| rows.is_empty())
-            .is_none()
-        || root
-            .get("capabilities")
-            .and_then(Value::as_array)
-            .filter(|rows| rows.is_empty())
-            .is_none()
     {
         return Err(sdk_error("Native Rust Project SDK subject replay failed"));
     }
+    project_string_array(root, "imports", &expected.imports)?;
+    project_string_array(root, "capabilities", &expected.capabilities)?;
     let sources = root
         .get("sources")
         .and_then(Value::as_array)
@@ -308,6 +335,27 @@ pub(super) fn verify_project_subject(
     Ok(())
 }
 
+/// Replays one canonical string array against its exact expected elements.
+fn project_string_array(
+    root: &Map<String, Value>,
+    key: &str,
+    expected: &[String],
+) -> Result<(), Diagnostic> {
+    let rows = root
+        .get(key)
+        .and_then(Value::as_array)
+        .filter(|rows| rows.len() == expected.len())
+        .ok_or_else(|| sdk_error("Native Rust Project SDK subject replay failed"))?;
+    if rows
+        .iter()
+        .zip(expected)
+        .any(|(row, expected)| row.as_str() != Some(expected.as_str()))
+    {
+        return Err(sdk_error("Native Rust Project SDK subject replay failed"));
+    }
+    Ok(())
+}
+
 fn project_object<'a>(value: &'a Value, key: &str) -> Result<&'a Map<String, Value>, Diagnostic> {
     value
         .get(key)
@@ -365,6 +413,8 @@ mod tests {
                 module: "calculator.math".to_owned(),
                 path: "src/math.spx".to_owned(),
             }],
+            imports: Vec::new(),
+            capabilities: Vec::new(),
         };
         subject.canonical = render_project_subject(&subject).unwrap();
         subject.digest = domain_digest(PROJECT_SUBJECT_DOMAIN, subject.canonical.as_bytes());

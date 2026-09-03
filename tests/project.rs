@@ -85,6 +85,8 @@ mod manifest_v8;
 mod native_publication;
 #[path = "project/native_rust_owned_data.rs"]
 mod native_rust_owned_data;
+#[path = "project/native_rust_scalar_callback.rs"]
+mod native_rust_scalar_callback;
 #[path = "project/owned_bytes_npm.rs"]
 mod owned_bytes_npm;
 #[path = "project/owned_failure_fsm.rs"]

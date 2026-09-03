@@ -126,8 +126,8 @@ fn prepare_native_rust_interop_from_input<'a>(
             source_revision: None,
             target: current_target().ok_or_else(|| b107("unsupported target"))?,
             exports,
-            imports: Vec::new(),
-            capabilities: Vec::new(),
+            imports: subject.imports.clone(),
+            capabilities: subject.capabilities.clone(),
         };
         let spec_authority = reserve_temporary_exact(
             checked_spec_owned_capacity(&spec)
@@ -211,13 +211,16 @@ fn prepare_native_rust_interop_from_input<'a>(
             identifier_gate(effect)?;
             selected_effects.insert(effect.as_str());
         }
+        // A Project closure function may carry the declared effects of the
+        // native Rust imports it reaches; the generic per-function rule below
+        // still requires those effects to equal the effects of the reachable
+        // selected imports exactly.
         if is_project
-            && (!function.effects.is_empty()
-                || resolved
-                    .declarations
-                    .declaration(&function.id)
-                    .map(|declaration| declaration.identity_origin)
-                    != Some(crate::hir::IdentityOrigin::Explicit))
+            && resolved
+                .declarations
+                .declaration(&function.id)
+                .map(|declaration| declaration.identity_origin)
+                != Some(crate::hir::IdentityOrigin::Explicit)
         {
             return Err(b107(
                 "Project closure requires explicit effect-free declarations",

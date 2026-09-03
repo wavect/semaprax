@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- Carried a real Rust import selection through the authenticated Project
+  Native Rust SDK route, and taught the `ScalarV1` workspace linker to retain
+  the interfaces that declare those callbacks. The Project subject's `imports`
+  and `capabilities` arrays are now the sorted native Rust imports declared by
+  the authenticated entry program and the sorted union of their effects; both
+  render as `[]` when empty, so an import-free Project's subject bytes are
+  unchanged. Phase A independently re-derives the reached import set and still
+  rejects any disagreement.
+
+  The scalar linker previously dropped every interface and rejected every
+  effectful function, so a Project could not express a callback at all. It now
+  retains interfaces whose imports are all native Rust, admits a function whose
+  declared effects are covered by those imports' declared effects, and rejects
+  an ordinary non-native import that has no scalar calling convention. With no
+  retained interfaces the linked program is identical to before.
+
+  This is not yet reachable end to end. `ScalarV1` Project admission derives
+  its target through the WebAssembly emitter, which rejects module permits,
+  interfaces, and native Rust imports by design. A Project carrying a callback
+  therefore still fails admission with `SPX-W115`, and a regression pins that
+  exact boundary rather than weakening it. Closing it needs a Project
+  admission route that does not compile through WebAssembly, which is a
+  profile decision this change deliberately does not make.
+
 - Recorded the public Wasm export surface per profile instead of per backend.
   `tests/backend_type_parity.rs` had one `wasm export` column measured only
   against the Copy-scalar profile, so `usize`, `str`, and `Slice<u8>` read as

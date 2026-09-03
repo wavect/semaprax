@@ -533,6 +533,33 @@ fn project_subject_usize(
         .ok_or_else(b106)
 }
 
+/// Parses one bounded, strictly ascending array of canonical identifier
+/// strings out of a Project subject object.
+fn project_subject_identifiers(
+    object: &serde_json::Map<String, Value>,
+    name: &str,
+    maximum: usize,
+    field: &'static str,
+) -> Result<Vec<String>, Diagnostic> {
+    let values = object
+        .get(name)
+        .and_then(Value::as_array)
+        .ok_or_else(b106)?;
+    if values.len() > maximum {
+        return Err(b109(field, maximum));
+    }
+    let mut parsed = Vec::with_capacity(values.len());
+    for value in values {
+        let value = value.as_str().ok_or_else(b106)?;
+        identifier_gate(value)?;
+        parsed.push(value.to_owned());
+    }
+    if !sorted_unique(&parsed) {
+        return Err(b106());
+    }
+    Ok(parsed)
+}
+
 fn project_subject_owned_capacity(subject: &ProjectSubject) -> Result<usize, Diagnostic> {
     let strings = [
         &subject.name,
@@ -585,6 +612,21 @@ fn project_subject_owned_capacity(subject: &ProjectSubject) -> Result<usize, Dia
                 .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
         }
     }
+    for values in [&subject.imports, &subject.capabilities] {
+        bytes = bytes
+            .checked_add(
+                values
+                    .capacity()
+                    .checked_mul(std::mem::size_of::<String>())
+                    .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?,
+            )
+            .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+        for value in values {
+            bytes = bytes
+                .checked_add(value.capacity())
+                .ok_or_else(|| b109("max_builder_bytes", MAX_BUILDER_BYTES))?;
+        }
+    }
     Ok(bytes)
 }
 
@@ -611,19 +653,12 @@ pub(super) fn parse_project_subject(
     if object.len() != 12
         || object.get("schema").and_then(Value::as_str) != Some(PROJECT_SUBJECT_SCHEMA)
         || object.get("project_schema").and_then(Value::as_str) != Some(PROJECT_SCHEMA)
-        || object
-            .get("imports")
-            .and_then(Value::as_array)
-            .map(Vec::len)
-            != Some(0)
-        || object
-            .get("capabilities")
-            .and_then(Value::as_array)
-            .map(Vec::len)
-            != Some(0)
     {
         return Err(b106());
     }
+    let imports = project_subject_identifiers(object, "imports", MAX_IMPORTS, "max_imports")?;
+    let capabilities =
+        project_subject_identifiers(object, "capabilities", MAX_EFFECTS, "max_effects")?;
     let name = project_subject_string(object, "name")?;
     let project_revision = project_subject_string(object, "project_revision")?;
     let workspace_revision = project_subject_string(object, "workspace_revision")?;
@@ -740,6 +775,8 @@ pub(super) fn parse_project_subject(
         entry_module,
         sources,
         exports,
+        imports,
+        capabilities,
     };
     let canonical = render_project_subject(&subject);
     if canonical.as_bytes() != bytes {
@@ -823,7 +860,11 @@ fn write_project_subject(
         write_json_string(output, &export.path)?;
         output.write_char('}')?;
     }
-    output.write_str("],\"imports\":[],\"capabilities\":[]}\n")
+    output.write_str("],\"imports\":")?;
+    write_spec_string_array(output, &subject.imports)?;
+    output.write_str(",\"capabilities\":")?;
+    write_spec_string_array(output, &subject.capabilities)?;
+    output.write_str("}\n")
 }
 
 pub(super) fn parse_spec_with_source(

@@ -43,6 +43,8 @@ fn main() -> i64
             module: "project.entry".to_owned(),
             path: "src/entry.spx".to_owned(),
         }],
+        imports: Vec::new(),
+        capabilities: Vec::new(),
     };
     let canonical = render_project_subject(&subject);
     let (prepared, overflowed) = crate::bounded_output::with_limit(MAX_BUILDER_BYTES, || {
@@ -924,4 +926,46 @@ fn closure_effect_and_identifier_limits_are_exact() {
         error[0].message,
         "Native Rust Interop declaration set is unsupported: selected closure is cyclic"
     );
+}
+
+#[test]
+fn project_subject_carries_a_real_sorted_import_and_capability_selection() {
+    let manifest = "schema = \"semaprax.project.v1\"\nname = \"project\"\n";
+    let subject = ProjectSubject {
+        name: "project".to_owned(),
+        manifest_bytes: manifest.len(),
+        manifest_digest: raw_digest(manifest.as_bytes()),
+        manifest_canonical: manifest.to_owned(),
+        project_revision: format!("sha256:{}", "1".repeat(64)),
+        workspace_revision: format!("sha256:{}", "2".repeat(64)),
+        project_graph_digest: format!("sha256:{}", "3".repeat(64)),
+        entry_module: "project.entry".to_owned(),
+        sources: vec![ProjectSubjectSource {
+            path: "src/entry.spx".to_owned(),
+            source_graph_schema: "semaprax.graph.v25".to_owned(),
+            source_revision: format!("sha256:{}", "4".repeat(64)),
+            source_digest: format!("sha256:{}", "5".repeat(64)),
+            bytes: 42,
+        }],
+        exports: vec![ProjectSubjectExport {
+            stable_id: "project.add".to_owned(),
+            module: "project.entry".to_owned(),
+            path: "src/entry.spx".to_owned(),
+        }],
+        imports: vec!["host.add".to_owned(), "host.sub".to_owned()],
+        capabilities: vec!["host.math".to_owned()],
+    };
+    let canonical = render_project_subject(&subject);
+    assert!(canonical
+        .ends_with("\"imports\":[\"host.add\",\"host.sub\"],\"capabilities\":[\"host.math\"]}\n"));
+    let (parsed, _budget) = parse_project_subject(canonical.as_bytes()).unwrap();
+    assert_eq!(parsed.imports, subject.imports);
+    assert_eq!(parsed.capabilities, subject.capabilities);
+    assert_eq!(render_project_subject(&parsed), canonical);
+    let unsorted = canonical.replacen(
+        "[\"host.add\",\"host.sub\"]",
+        "[\"host.sub\",\"host.add\"]",
+        1,
+    );
+    assert!(parse_project_subject(unsorted.as_bytes()).is_err());
 }

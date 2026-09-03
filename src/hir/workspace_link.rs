@@ -16,7 +16,21 @@ pub(crate) fn link_scalar_workspace(
     entrypoint: DeclarationId,
     linked_functions: Vec<LinkedScalarFunction>,
 ) -> Result<ResolvedProgram, Diagnostic> {
-    link_scalar_workspace_impl(module, entrypoint, linked_functions, true)
+    link_scalar_workspace_impl(module, entrypoint, linked_functions, true, None)
+}
+
+/// Assemble one scalar program that additionally retains the authenticated
+/// Native Rust import interfaces its closure calls. The scalar linker has no
+/// callable ABI for an ordinary interface import, so every retained import
+/// must be a native Rust callback; the retained imports' declared effects are
+/// the only effects a retained function may itself declare.
+pub(crate) fn link_scalar_native_rust_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+    natives: LinkedScalarNatives,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_scalar_workspace_impl(module, entrypoint, linked_functions, true, Some(natives))
 }
 
 /// Package builds need an internal `fn() -> i64` HIR anchor, but package
@@ -27,7 +41,13 @@ pub(crate) fn link_package_scalar_workspace(
     entrypoint: DeclarationId,
     linked_functions: Vec<LinkedScalarFunction>,
 ) -> Result<ResolvedProgram, Diagnostic> {
-    link_scalar_workspace_impl(module, entrypoint, linked_functions, false)
+    link_scalar_workspace_impl(module, entrypoint, linked_functions, false, None)
+}
+
+/// Exact Native Rust interface inventory retained beside one scalar closure.
+pub(crate) struct LinkedScalarNatives {
+    pub(crate) interfaces: Vec<ResolvedInterface>,
+    pub(crate) declaration_facts: BTreeMap<DeclarationId, LinkedDeclarationFact>,
 }
 
 fn link_scalar_workspace_impl(
@@ -35,11 +55,29 @@ fn link_scalar_workspace_impl(
     entrypoint: DeclarationId,
     mut linked_functions: Vec<LinkedScalarFunction>,
     require_main_display_name: bool,
+    natives: Option<LinkedScalarNatives>,
 ) -> Result<ResolvedProgram, Diagnostic> {
     if linked_functions.is_empty() {
         return Err(link_error("workspace scalar closure has no functions"));
     }
     linked_functions.sort_by(|left, right| left.function.id.cmp(&right.function.id));
+
+    // Native Rust callbacks are the only authority this profile can retain.
+    // Their declared effects are exactly the effects an admitted function may
+    // declare, so a closure with no retained interface stays effect-free and
+    // links byte-identically to the original pure scalar profile.
+    let mut import_effects = BTreeSet::new();
+    for interface in natives.iter().flat_map(|natives| &natives.interfaces) {
+        for import in &interface.imports {
+            if !import.native_rust {
+                return Err(link_error(format!(
+                    "workspace interface import `{}` is outside the pure scalar linker profile",
+                    import.id
+                )));
+            }
+            import_effects.extend(import.effects.iter().cloned());
+        }
+    }
 
     let mut seen = BTreeSet::new();
     let mut entry_origin = None;
@@ -51,7 +89,10 @@ fn link_scalar_workspace_impl(
                 function.id
             )));
         }
-        if !function.effects.is_empty()
+        if !function
+            .effects
+            .iter()
+            .all(|effect| import_effects.contains(effect))
             || function
                 .params
                 .iter()
@@ -82,17 +123,39 @@ fn link_scalar_workspace_impl(
         ));
     }
 
+    let origins = linked_functions
+        .iter()
+        .map(|linked| (linked.function.id.clone(), linked.origin))
+        .collect::<BTreeMap<_, _>>();
+    let functions = linked_functions
+        .drain(..)
+        .map(|linked| linked.function)
+        .collect::<Vec<_>>();
     let mut declarations = DeclarationIndex::default();
-    for linked in &linked_functions {
-        declarations.insert_top_level(
-            linked.function.name.clone(),
-            linked.function.id.clone(),
-            DeclarationKind::Function,
-            linked.origin,
-        );
-        declarations
-            .type_parameters
-            .insert(linked.function.id.clone(), Vec::new());
+    match &natives {
+        Some(natives) => declarations.extend_linked_owned_data(
+            &[],
+            &natives.interfaces,
+            &functions,
+            &natives.declaration_facts,
+        )?,
+        None => {
+            for function in &functions {
+                let origin = origins
+                    .get(&function.id)
+                    .copied()
+                    .ok_or_else(|| link_error("workspace scalar function origin is absent"))?;
+                declarations.insert_top_level(
+                    function.name.clone(),
+                    function.id.clone(),
+                    DeclarationKind::Function,
+                    origin,
+                );
+                declarations
+                    .type_parameters
+                    .insert(function.id.clone(), Vec::new());
+            }
+        }
     }
     if !declarations.populate_type_facts() {
         return Err(link_error(
@@ -101,16 +164,13 @@ fn link_scalar_workspace_impl(
     }
     let mut linked = ResolvedProgram {
         module,
-        permits: Vec::new(),
+        permits: import_effects.into_iter().collect(),
         entrypoint,
         declarations,
         types: Vec::new(),
-        interfaces: Vec::new(),
+        interfaces: natives.map_or_else(Vec::new, |natives| natives.interfaces),
         function_templates: Vec::new(),
-        functions: linked_functions
-            .drain(..)
-            .map(|linked| linked.function)
-            .collect(),
+        functions,
         function_instances: Vec::new(),
     };
     rebuild_cleanup_metadata(&mut linked)?;
@@ -692,4 +752,121 @@ fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnos
         function.cleanup_plan = cleanup_plan;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use crate::workspace_graph::{build_owned, WorkspaceSource};
+
+    const HOST_EFFECT: &str = "host.adjust";
+
+    fn source(path: &str, text: &str) -> WorkspaceSource {
+        let program = crate::parse(text, Path::new(path)).expect("fixture source must parse");
+        WorkspaceSource {
+            path: path.to_owned(),
+            source: crate::format::canonical(&program),
+        }
+    }
+
+    fn test_module() -> WorkspaceSource {
+        source(
+            "src/tests.spx",
+            "module test.main;\n\n@id(\"test.main\")\nfn main() -> i64 { 0 }\n",
+        )
+    }
+
+    #[test]
+    fn scalar_project_closure_retains_native_rust_imports_and_their_effectful_callers() {
+        let app = source(
+            "src/app.spx",
+            r#"
+module app.main;
+
+permit { host.adjust }
+
+@id("app.host.interface")
+interface AppHost permits { host.adjust } {
+    @id("app.host.adjust")
+    import rust fn adjust(value: i64) -> i64
+        effects { host.adjust }
+        failure status "app.host.v1";
+}
+
+@id("app.apply")
+fn apply(value: i64) -> i64 uses { host.adjust } { adjust(value) }
+
+@id("app.main")
+fn main() -> i64 uses { host.adjust } { apply(41) }
+"#,
+        );
+        let (entry, test) = build_owned(vec![app, test_module()])
+            .expect("workspace graph must build")
+            .into_linked_scalar_programs("app.main", "test.main")
+            .expect("scalar project closure must link");
+
+        let [interface] = entry.interfaces.as_slice() else {
+            panic!("the linked entry closure must retain exactly one interface");
+        };
+        assert_eq!(interface.id.as_str(), "app.host.interface");
+        let [import] = interface.imports.as_slice() else {
+            panic!("the retained interface must keep its one import");
+        };
+        assert!(import.native_rust);
+        assert_eq!(import.id.as_str(), "app.host.adjust");
+        assert_eq!(import.effects, [HOST_EFFECT.to_owned()]);
+        assert_eq!(
+            entry.declarations.native_rust_import_id("adjust"),
+            Some(&import.id)
+        );
+        assert_eq!(entry.permits, [HOST_EFFECT.to_owned()]);
+        let apply = entry
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "app.apply")
+            .expect("the reachable effectful caller must stay admitted");
+        assert_eq!(apply.effects, [HOST_EFFECT.to_owned()]);
+
+        // An unrelated closure keeps the historical effect-free shape exactly.
+        assert!(test.interfaces.is_empty());
+        assert!(test.permits.is_empty());
+    }
+
+    #[test]
+    fn scalar_project_closure_rejects_an_ordinary_interface_import() {
+        let app = source(
+            "src/app.spx",
+            r#"
+module app.main;
+
+@id("app.token")
+resource Token {
+    @id("app.token.drop")
+    drop import "app.host.release";
+}
+
+@id("app.host.interface")
+interface AppHost permits {  } {
+    @id("app.host.release")
+    import fn release(token: own Token) -> unit
+        effects {  }
+        failure infallible
+        consumes token always;
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#,
+        );
+        let error = build_owned(vec![app, test_module()])
+            .expect("workspace graph must build")
+            .into_linked_scalar_programs("app.main", "test.main")
+            .expect_err("the scalar linker has no ABI for an ordinary import");
+        assert_eq!(error[0].code, "SPX-H006");
+        assert_eq!(
+            error[0].message,
+            "workspace interface import `app.host.release` is outside the pure scalar linker profile"
+        );
+    }
 }

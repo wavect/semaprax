@@ -60,9 +60,12 @@ initialization and does not publish an immutable generation.
 
 Project v1 additionally admits only the complete pure-scalar authenticated set:
 
-- every module is effect-free and permit-free;
-- there are no authored types, interface declarations, interface/native
-  imports, generic templates or instances, or `use type` edges;
+- a module is permit-free and its functions effect-free, unless every one of
+  those permits and effects is declared by a retained Native Rust import;
+- there are no authored types, generic templates or instances, or `use type`
+  edges, and the only admitted interface declaration is one whose imports are
+  all `import rust fn` callbacks; an ordinary interface import has no scalar
+  calling convention and is rejected;
 - each executable function has only by-value `i64`/`bool` parameters and an
   `i64`/`bool` result;
 - the entry and sole test modules each define exactly one explicitly identified
@@ -77,6 +80,13 @@ synthetic `main` declarations. Display-name duplicates across modules are valid
 because linkage and calls use stable IDs. The linker reconstructs cleanup
 inventory and cleanup plans over each linked closure and finally validates HIR
 before any backend is invoked.
+
+Retaining a callback is a semantic admission only. Project v1 target admission
+still derives the scalar Web module, which admits neither module permits nor
+interfaces, so a Project that declares a callback has no admitted target and
+fails with `SPX-W115` before any artifact exists. Giving it one needs a Project
+admission route that does not compile through WebAssembly, which this version
+does not define.
 
 ## CLI and artifacts
 
@@ -239,8 +249,9 @@ the Project Native Rust SDK gate. This proves only the selected lanes at the
 exact tag; it does not publish or promote Project-v8/v9/v10 packages. Project
 v1 does not
 claim general packages/dependencies, registry or network access, capabilities,
-aggregate or resource composition, generics, interface/native imports or
-`use type` edges, effects, general multi-file compilation, native output
+aggregate or resource composition, generics, ordinary interface imports, an
+admitted target for a declared Native Rust callback, or
+`use type` edges, general multi-file compilation, native output
 confinement or hostile-window no-clobber publication, cross-build executable
 byte determinism, test discovery, component output, target execution through
 the in-process runner, repository analysis, provenance, approval, or

@@ -192,25 +192,45 @@ fn no_imports_still_explicitly_leave_external_generated_deployment_and_runtime_a
 }
 
 #[test]
-fn native_interface_remains_outside_image_admission_and_cannot_claim_coverage() {
+fn native_interface_is_admitted_and_represented_without_claiming_host_evidence() {
     let fixture = Fixture::new(true);
     let disk = fixture.bytes();
-    let errors = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+    let image = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
         ProjectSemanticImage::derive(snapshot.retain_revision(), snapshot.project_revision())
     })
-    .err()
-    .expect("native imports must not enter the current semantic Graph schemas");
+    .expect("Graph v25 represents native Rust import declarations");
+    let json = image.to_json();
+
+    // The declaring source selects the schema that can represent it, and the
+    // declaration is retained rather than dropped.
     assert!(
-        errors.iter().any(|error| error.code == "SPX-G218"),
-        "{errors:?}"
+        json.contains("\"source_graph_schema\":\"semaprax.graph.v25\""),
+        "{json}"
     );
-    let errors = VNextSession::open(&fixture.0.join("semaprax.toml"), VNextPolicy::default())
-        .err()
-        .expect("coverage transport must not bypass image admission");
+    assert!(json.contains("\"id\":\"coverage.host.echo\""), "{json}");
+
+    let coverage: serde_json::Value =
+        serde_json::from_str(&image.analysis_coverage(image.image_digest()).unwrap()).unwrap();
+    let external = area(&coverage, "declared_external_contracts");
+    assert_eq!(external["status"], "partial");
+    let limitations = external["limitations"].as_array().unwrap();
+
+    // Retaining the declaration is not evidence that a Rust host implements it.
     assert!(
-        errors.iter().any(|error| error.code == "SPX-G218"),
-        "{errors:?}"
+        limitations.contains(&json!(
+            "native_rust_import_declarations_are_not_host_implementation_evidence"
+        )),
+        "{limitations:?}"
     );
+    assert!(
+        !limitations.contains(&json!(
+            "native_rust_imports_are_rejected_by_current_semantic_graph_schemas"
+        )),
+        "{limitations:?}"
+    );
+
+    VNextSession::open(&fixture.0.join("semaprax.toml"), VNextPolicy::default())
+        .expect("coverage transport follows image admission");
     assert_eq!(fixture.bytes(), disk);
 }
 

@@ -242,6 +242,8 @@ struct ProjectSubject {
     entry_module: String,
     sources: Vec<ProjectSubjectSource>,
     exports: Vec<ProjectSubjectExport>,
+    imports: Vec<String>,
+    capabilities: Vec<String>,
 }
 
 #[derive(Clone, Copy)]

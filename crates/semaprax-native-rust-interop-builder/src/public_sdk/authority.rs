@@ -564,8 +564,8 @@ pub(super) fn build_project_native_rust_sdk_inner(
 ) -> Result<NativeRustSdkBundle, PublicBuildError> {
     let options = NativeRustSdkOptions {
         exports: subject.exports.iter().map(|fact| fact.id.clone()).collect(),
-        imports: Vec::new(),
-        capabilities: Vec::new(),
+        imports: subject.imports.clone(),
+        capabilities: subject.capabilities.clone(),
     };
     build_sdk_inner(SdkInput::Project { program, subject }, options, output)
 }

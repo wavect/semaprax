@@ -232,6 +232,16 @@ from unittest.mock import patch
 # Exercise Windows text translation even on Unix; forward asserted bytes below.
 sys.stdout.reconfigure(newline="\r\n")
 router = runpy.run_path('scripts/ci-msrv.py')
+fallback_env = router['cargo_environment']({}, sys.executable)
+assert fallback_env == {'SEMAPRAX_TEST_PYTHON': sys.executable}
+explicit_env = router['cargo_environment']({'SEMAPRAX_TEST_PYTHON': sys.executable}, '/ignored')
+assert explicit_env == {'SEMAPRAX_TEST_PYTHON': sys.executable}
+try:
+    router['cargo_environment']({'SEMAPRAX_TEST_PYTHON': 'python3'}, sys.executable)
+except ValueError as error:
+    assert 'absolute Python file' in str(error), str(error)
+else:
+    raise AssertionError('relative explicit Python was accepted')
 def target(kind, name):
     return {'kind': [kind], 'name': name}
 metadata = {'workspace_members': ['one', 'two'], 'packages': [
@@ -286,6 +296,8 @@ with patch('subprocess.run', side_effect=[
         assert router['main'](['--shard', 'integration-0']) == 101
     assert run.call_count == 2
     assert run.call_args_list[0].kwargs['check'] is True
+    assert run.call_args_list[0].kwargs['env']['SEMAPRAX_TEST_PYTHON'] == sys.executable
     assert run.call_args_list[1].args[0] == plan['shards'][1]['command']
+    assert run.call_args_list[1].kwargs['env']['SEMAPRAX_TEST_PYTHON'] == sys.executable
 sys.stdout.buffer.write(router_log.getvalue().encode('utf-8'))
 "#;

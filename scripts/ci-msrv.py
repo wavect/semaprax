@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -10,6 +11,18 @@ import sys
 ROOT = Path(__file__).resolve().parent.parent
 SHARDS = ("unit", "integration-0", "integration-1", "integration-2")
 TEST = ["cargo", "test", "--locked", "--workspace", "--all-features"]
+
+
+def cargo_environment(environment=None, executable=None):
+    environment = dict(os.environ if environment is None else environment)
+    selected = environment.get("SEMAPRAX_TEST_PYTHON")
+    if selected is None:
+        selected = sys.executable if executable is None else executable
+    path = Path(selected)
+    if not path.is_absolute() or not path.is_file():
+        raise ValueError("SEMAPRAX_TEST_PYTHON must select an absolute Python file")
+    environment["SEMAPRAX_TEST_PYTHON"] = str(path)
+    return environment
 
 
 def plan(metadata, excluded_packages=()):
@@ -74,9 +87,10 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.shard is None and not args.plan_only:
         parser.error("--shard is required unless --plan-only is selected")
+    cargo_env = cargo_environment()
     metadata = subprocess.run(
         ["cargo", "metadata", "--locked", "--no-deps", "--all-features", "--format-version", "1"],
-        cwd=ROOT, capture_output=True, text=True, check=True,
+        cwd=ROOT, env=cargo_env, capture_output=True, text=True, check=True,
     )
     selected_plan = plan(json.loads(metadata.stdout), args.exclude_package)
     if args.plan_only:
@@ -85,7 +99,9 @@ def main(argv=None):
     shard = next(shard for shard in selected_plan["shards"] if shard["name"] == args.shard)
     print(f"{args.label} {args.shard}: {len(shard['targets'])} workspace targets", flush=True)
     # One Cargo invocation; preserve its first failure and exact exit status.
-    return subprocess.run(shard["command"], cwd=ROOT, check=False).returncode
+    return subprocess.run(
+        shard["command"], cwd=ROOT, env=cargo_env, check=False
+    ).returncode
 
 
 if __name__ == "__main__":

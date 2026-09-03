@@ -748,6 +748,10 @@ separately digest-bound GC plans from caller-supplied inventories. Recovery
 authenticates predecessor and policy bytes and returns
 `RetentionAuthority::None`; the module never reads storage, deletes an object,
 establishes freshness, restores approval, or publishes a generation.
+`candidate_archive_store.rs` can translate only successful candidate/draft
+publication receipts into that inventory. Those receipts retain exact stored
+byte counts and identities but no path or store handle; planning still performs
+no discovery, checkpoint persistence, deletion, replay, approval or publication.
 
 `candidate/git_publication.rs` authenticates Git object identities and original
 Project source before constructing canonical replacement blobs, trees and a
@@ -876,6 +880,10 @@ original argument once, left-to-right, before retaining, reordering or removing
 Copy parameters; admitted byte, String and resource-free nominal owners must
 all be retained once. Source String parameters resolve to owning HIR even
 without an explicit source `own` modifier.
+An additive borrowed-alias form accepts only an original `borrow str` or
+`borrow Slice<u8>` parameter that remains exactly once. It derives the new
+parameter type/root from checked HIR and reuses the original staged view;
+ordinary post-rebuild loan and provenance validation rejects any unsafe alias.
 `candidate/signature_arguments.rs` constructs explicit computed-argument
 templates against each caller's bindings and reuses scope-aware substitution
 to select staged original values. The signature engine appends typed computed
@@ -1561,7 +1569,7 @@ a supported language, CLI, ABI, or runtime surface.
 | HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `validation.rs` owns core validation |
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
 | Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs` |
-| Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/` |
+| Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
@@ -1571,7 +1579,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Interpreter | `src/interpreter.rs`, `src/interpreter/prepared.rs`, `src/hosted_interpreter.rs`, `src/project/prepared_interpreter/`, `src/project/prepared_interpreter/trace/` |
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
-| Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules |
+| Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules; candidate replay/conflict projection in `src/project/candidate/package_consumer_replay.rs` |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |

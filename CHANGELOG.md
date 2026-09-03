@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+- Added canonical per-trial contracts to the agent-task comparison harness.
+  Each contract binds the exact plan, repository head, task, prompt, fixtures,
+  drift, lane, workspace state, acceptance rubric and metric inventory for one
+  available tuple. Generation performs no agent run or validation and rejects
+  the explicitly external, unrun Zero lane; observations and comparative
+  results remain absent.
+
+- Connected successful candidate and draft archive-store receipts to the pure
+  semantic-retention policy. Receipts now retain exact stored-byte accounting
+  and can form one bounded deterministic mixed checkpoint/GC plan without
+  carrying a path or store handle. The adapter performs no discovery,
+  persistence or deletion and grants no source, approval or publication
+  authority. Regressions are authored and unrun.
+
+- Added a conservative package signature-consumer conflict report over one
+  explicitly supplied authenticated baseline package corpus. Exact retained
+  base/candidate scalar signatures determine changed facets; known imports and
+  static calls are marked for separate candidate-era replay. This is neither
+  installed-consumer discovery nor migration, acceptance, runtime, ABI or
+  behavioral compatibility evidence. Regressions are authored and unrun.
+
+- Extended ordered signature evolution with fresh parameters derived from an
+  authenticated original `borrow str` or `borrow Slice<u8>` view. The source
+  view must remain exactly once, its compiler-derived type/root is reused from
+  the original left-to-right staged argument, and complete Project replay still
+  owns admission. Owner-to-view conversion, new roots/lifetimes, `borrow Bytes`,
+  nominal/storage/shared/mutable borrowing and external migration remain
+  excluded. Regressions are authored and unrun.
+
 - Added a caller-owned exact scalar-Web target cache for already admitted
   immutable Project revisions. The key binds canonical manifest, Project,
   workspace and graph identities, entry/exports, compiler compatibility and the

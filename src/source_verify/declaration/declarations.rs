@@ -24,7 +24,26 @@ pub(super) fn check_byte_data_declarations<'p>(
 ) {
     for declaration in &program.types {
         match &declaration.kind {
-            TypeDeclarationKind::Record { fields: _ } => {
+            TypeDeclarationKind::Record { fields } => {
+                // The nested owned-Bytes profile is monomorphic, and a generic
+                // declaration has no arguments to substitute into its fields.
+                // Classify only its own directly declared `Bytes`, exactly as
+                // the variant arm below does; concrete instances are admitted
+                // through HIR type reachability.
+                if !declaration.type_parameters.is_empty() {
+                    if fields.iter().any(|field| field.ty == Type::Bytes) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T268",
+                            format!(
+                                "owned-Bytes record `{}` must be monomorphic in this tranche",
+                                declaration.name
+                            ),
+                            declaration.span,
+                        ));
+                    }
+                    continue;
+                }
                 let root = Type::Named {
                     name: declaration.name.clone(),
                     arguments: Vec::new(),

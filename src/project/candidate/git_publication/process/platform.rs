@@ -326,12 +326,12 @@ fn spawn_linux(
             default_action.sa_sigaction = libc::SIG_DFL;
             default_action.sa_mask = empty_mask.assume_init();
             for signal in 1..=signal_limit {
-                if signal != libc::SIGKILL && signal != libc::SIGSTOP {
-                    if libc::sigaction(signal, &default_action, std::ptr::null_mut()) != 0
-                        && *libc::__errno_location() != libc::EINVAL
-                    {
-                        libc::_exit(126);
-                    }
+                if signal != libc::SIGKILL
+                    && signal != libc::SIGSTOP
+                    && libc::sigaction(signal, &default_action, std::ptr::null_mut()) != 0
+                    && *libc::__errno_location() != libc::EINVAL
+                {
+                    libc::_exit(126);
                 }
             }
             libc::umask(0o077);

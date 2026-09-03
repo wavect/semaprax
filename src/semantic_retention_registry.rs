@@ -5,6 +5,22 @@
 //! before atomically pivoting `CURRENT`. It never resolves or deletes a retained
 //! subject and never restores source, candidates, drafts, approval, or authority.
 
+#![cfg_attr(
+    not(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )),
+    allow(
+        unused_imports,
+        reason = "unsupported hosts expose only fail-closed registry APIs; the held-transition imports are not invoked"
+    )
+)]
+
 use std::path::Path;
 
 use serde_json::{json, Map, Value};
@@ -351,6 +367,15 @@ fn require_receipts(receipts: &[&dyn RetentionReceipt]) -> Result<()> {
     Ok(())
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn settle_transition(
     root: &std::os::fd::OwnedFd,
     transition: &crate::semantic_retention::RetentionTransition,
@@ -536,6 +561,15 @@ impl Cursor {
     }
 }
 
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
 fn validate_stage_relationship(
     metadata_root: &std::os::fd::OwnedFd,
     current: Option<&[u8]>,

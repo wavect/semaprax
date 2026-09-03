@@ -109,9 +109,13 @@ pub(super) fn check_argument_ownership(
             )
             .with_help("create or receive an explicitly shared resource before this call"),
         ),
+        // A bare `Bytes` leaf classifies as an admitted owned-byte record, so
+        // exclude it here; the `param.ty == Type::Bytes` arm below owns it and
+        // admits exact Bytes field paths of an admitted owned record.
         ParamMode::Borrow
-            if types.is_nested_owned_byte_record(&param.ty)
-                || types.is_flat_owned_byte_variant(&param.ty) =>
+            if param.ty != Type::Bytes
+                && (types.is_nested_owned_byte_record(&param.ty)
+                    || types.is_flat_owned_byte_variant(&param.ty)) =>
         {
             if !matches!(actual.mode, ParamMode::Own | ParamMode::Borrow)
                 || !source_place(arg, variables, types)

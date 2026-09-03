@@ -139,9 +139,12 @@ module test.cleanup_flat_owned;
         .find(|function| function.id.as_str() == "packet.consume")
         .unwrap();
     assert_eq!(function.cleanup_plan.schema, CLEANUP_PLAN_SCHEMA_V2);
+    // `Bytes` carries portable usize and byte-view facts, so the legacy
+    // selection for a flat owned record is v17, not the v10 floor. The point
+    // is that it stays below the nested owned-record schema.
     assert_eq!(
         crate::graph::graph_schema(&program).unwrap(),
-        "semaprax.graph.v10"
+        "semaprax.graph.v17"
     );
 }
 

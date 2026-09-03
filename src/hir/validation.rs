@@ -1149,11 +1149,12 @@ impl<'a> HirValidator<'a> {
     fn template_ownership(ty: &ResolvedType) -> OwnershipMode {
         // Template parameters have no concrete type facts until substitution;
         // both admitted substitutions (i64/bool) are Copy. A concrete String
-        // slot retains the resolver's canonical owned classification.
-        if *ty == ResolvedType::String {
-            OwnershipMode::Own
-        } else {
-            OwnershipMode::Value
+        // slot retains the resolver's canonical owned classification, and a
+        // rooted `str` view keeps the borrow the resolver gave it.
+        match ty {
+            ResolvedType::String => OwnershipMode::Own,
+            ResolvedType::Str => OwnershipMode::Borrow,
+            _ => OwnershipMode::Value,
         }
     }
 
@@ -1247,10 +1248,11 @@ impl<'a> HirValidator<'a> {
                 template.id
             )));
         }
-        // Char is an admitted body literal (for string_from_char), but not a
+        // Char is an admitted body literal (for string_from_char) and Str is an
+        // admitted rooted body view (for string_as_str), but neither is a
         // generic signature slot or concrete type argument. Every scalar
         // substitution still passes the ordinary expression validator below.
-        if expression.ty != ResolvedType::Char {
+        if expression.ty != ResolvedType::Char && expression.ty != ResolvedType::Str {
             self.validate_function_template_type(template, &expression.ty)?;
         }
         match &expression.kind {

@@ -103,6 +103,22 @@ The APIs do not choose where or how metadata is durably stored. Retaining an
 old selector is host responsibility; checkpoint bytes alone cannot establish
 that they are the newest bytes ever created.
 
+An additive supported-Unix `semantic_retention_store` accepts one already
+authenticated checkpoint/plan pair and publishes a fixed binary envelope
+through one immutable no-replace pivot, avoiding a half-published pair. The
+explicit absolute root must already exist with private ownership/mode; held
+nofollow ancestor, directory-lock and file identities guard bounded inventory,
+staging, fsync, rename and load. Entries are current-euid, single-link `0600`
+files under a `0700` root. Load requires independently supplied checkpoint,
+predecessor and plan selectors and repeats the ordinary canonical restorers
+while the exact entry remains held.
+
+The store never creates or discovers roots, adopts interrupted stages,
+overwrites entries, selects a newest pair, applies cleanup or restores a
+retained subject. A post-pivot failure is explicit uncertainty resolved only by
+an exact selected load. Its receipt carries selector/digest/byte accounting and
+`RetentionAuthority::None`, never a root or handle.
+
 Restored checkpoints and plans expose `authority()` as the closed
 `RetentionAuthority::None` value. This makes the absence of action authority an
 API fact; no variant can name a store, mutate source, approve or publish.

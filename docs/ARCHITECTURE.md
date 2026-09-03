@@ -719,7 +719,9 @@ configuration declaration to one exact candidate and its complete explicit
 manifest-export inventory. It accepts only sorted key/type/required shapes and
 changes the deployment row to partial; it never reads environment values,
 secrets, paths, URLs or provider locators and does not verify or perform a
-deployment.
+deployment. The candidate-only v5 adapter exposes the same pure derivation as a
+bounded chunked read and generates its client/MCP surface from the selected
+catalogue; declaration bytes remain request data rather than a path or grant.
 
 The v5 discovery catalogue generates its granted methods, schemas, instructions
 and typed client helpers together. Opaque nested payload references remain
@@ -758,13 +760,14 @@ selector, then requires one unique explicit identity and exact source/module
 facts before exporting a fresh destination selector. Provenance classification
 does not infer revision ancestry, semantic equivalence or compatibility.
 
-`project/target_cache.rs` owns separate caller-scoped exact scalar-Web and
-pathless native-C11 target entries. Their keys bind the admitted immutable
+`project/target_cache.rs` owns separate caller-scoped exact scalar-Web,
+pathless native-C11 and pathless npm target entries. Their keys bind the admitted immutable
 Project/workspace/graph identities, canonical manifest, target selectors,
 compiler compatibility and byte bound. Every hit independently verifies its
 retained carrier; the C lane replays artifact and embedded header-envelope
-bindings without invoking an emitter. Reuse skips only target emission and
-grants no persistence, filesystem, compilation, execution or publication
+bindings, while npm replays its closed semantic recipe and ordered file bytes.
+Reuse skips only target emission and grants no persistence, filesystem,
+package-manager, compilation, execution or publication
 authority. See [Project Target Cache v1](PROJECT-TARGET-CACHE-V1.md).
 
 `src/semantic_retention.rs` owns a pure bounded metadata policy for exact image,
@@ -778,6 +781,12 @@ successful image/candidate/draft publication receipts into that inventory.
 Those receipts retain exact logical byte counts and identities but no path or
 store handle; heterogeneous planning still performs no discovery, checkpoint
 persistence, deletion, replay, approval or publication.
+`src/semantic_retention_store.rs` separately persists one already authenticated
+checkpoint/plan pair as a fixed immutable envelope through a single no-replace
+Unix pivot. Held private root/file identities and independently supplied
+checkpoint/predecessor/plan selectors guard ordinary restoration. This store
+persists metadata only: it cannot apply the plan, enumerate/delete subjects,
+infer newest state or restore any source/image/candidate authority.
 
 `candidate/git_publication.rs` authenticates Git object identities and original
 Project source before constructing canonical replacement blobs, trees and a
@@ -1596,6 +1605,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
 | Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs` |
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
+| Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/` |
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |

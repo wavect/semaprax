@@ -32,6 +32,17 @@ deployment and publication authority. Caller-declared key shapes are not
 environment observation, freshness, drift, artifact/runtime/API/consumer
 verification or proof that the declared configuration is present or used.
 
+Candidate-enabled v5 sessions expose the same derivation through
+`candidate/analysis-deployment-contract-evidence`. Requests bind the live image,
+candidate, exact canonical declaration string and digest; the compiler
+regenerates the complete report on every chunk request. Responses use the
+closed `semaprax.image-candidate-deployment-contract-evidence-chunk.v1` schema,
+1 through 64 KiB UTF-8 chunks, a 2 MiB report cap and one invariant report
+SHA-256. Discovery, generated TypeScript/Python/Rust clients and MCP expose the
+method only with the existing candidate read grant. It is deliberately absent
+from parallel-read batches and adds no filesystem, environment, network,
+secret, provider or deployment capability.
+
 ## API and exact composition
 
 ```rust

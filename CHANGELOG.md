@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+- Added typed event-ledger derivation to the paired agent-task benchmark. Exact
+  plan/task/lane/model bindings, authenticated stream evidence and closed
+  per-event token/context/tool/failure/stale/timing/intervention records produce
+  the existing observation schema and authenticate the ledger itself. Zero
+  streams still require evidence; no agent trial or comparative result is
+  claimed.
+
+- Added an explicit immutable retention metadata store that publishes one
+  already authenticated checkpoint/GC-plan pair through a single no-replace
+  Unix pivot. Exact selector-bound load repeats ordinary checkpoint and plan
+  restoration under held private roots/files. The store cannot discover or
+  delete retained subjects, infer freshness, apply GC, restore source, or grant
+  approval/publication authority. Regressions are authored and unrun.
+
+- Extended exact caller-owned target reuse to pathless npm carriers. Hits invoke
+  no generator and replay the carrier's closed schema, semantic recipe, ordered
+  files/bytes/digests and private trusted binding against the exact manifest,
+  source, Project, Workspace and graph key. No package manager, installation,
+  runtime, materialization, persistence or publication authority is added.
+  Regressions are authored and unrun.
+
+- Exposed exact candidate deployment-contract declarations through the v5
+  candidate protocol, discovery, generated TypeScript/Python/Rust clients and
+  MCP catalogue. The candidate-read method regenerates the report and returns
+  bounded UTF-8 chunks; it remains outside parallel reads and grants no
+  filesystem, environment, secret, network or deployment authority. Regressions
+  are authored and unrun.
+
 - Added a complete canonical benchmark execution matrix over every available
   task, lane and repetition. Each ordered row binds the exact repository plan
   and SHA-256 digest of its independently generated trial contract. Matrix

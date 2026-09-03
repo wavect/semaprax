@@ -240,6 +240,38 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
+        CommandId::RetentionMetadataPersist | CommandId::RetentionMetadataLoad => {
+            let arity = if command == "retention-metadata-persist" {
+                7
+            } else {
+                5
+            };
+            if args.len() != arity
+                || args[1..]
+                    .iter()
+                    .any(|argument| argument.is_empty() || argument.starts_with('-'))
+            {
+                eprintln!("{command} requires its exact positional operands; see --help");
+                return Err(2);
+            }
+            let previous = (args[4] != "none").then_some(args[4].as_str());
+            let output = if command == "retention-metadata-persist" {
+                cli::retention_metadata::persist(
+                    Path::new(&args[1]),
+                    Path::new(&args[2]),
+                    &args[3],
+                    previous,
+                    Path::new(&args[5]),
+                    &args[6],
+                )
+            } else {
+                let previous = (args[3] != "none").then_some(args[3].as_str());
+                cli::retention_metadata::load(Path::new(&args[1]), &args[2], previous, &args[4])
+            }
+            .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
         CommandId::ProjectDraftPersist | CommandId::ProjectDraftLoad => {
             if args.len() != 4
                 || args[1..]

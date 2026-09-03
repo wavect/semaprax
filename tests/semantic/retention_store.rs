@@ -19,6 +19,7 @@ use semaprax::semantic_retention_store::{load, persist};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -209,4 +210,67 @@ fn interrupted_stage_is_retained_and_never_adopted_cleaned_or_loaded() {
     );
     assert_eq!(fs::read(&stage).unwrap(), b"interrupted metadata stage");
     assert!(!fixture.pair_path(&transition).exists());
+}
+
+#[test]
+fn cli_requires_explicit_files_root_and_exact_pair_selectors() {
+    let fixture = Fixture::new();
+    let transition = transition();
+    let checkpoint = transition.checkpoint();
+    let input = fixture.0.with_extension("inputs");
+    fs::create_dir(&input).unwrap();
+    let checkpoint_path = input.join("checkpoint.json");
+    let plan_path = input.join("plan.json");
+    fs::write(&checkpoint_path, checkpoint.to_json()).unwrap();
+    fs::write(&plan_path, transition.plan().to_json()).unwrap();
+
+    let persisted = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("retention-metadata-persist")
+        .arg(&fixture.0)
+        .arg(&checkpoint_path)
+        .arg(checkpoint.checkpoint_digest())
+        .arg("none")
+        .arg(&plan_path)
+        .arg(transition.plan_digest())
+        .output()
+        .unwrap();
+    assert!(
+        persisted.status.success(),
+        "{}",
+        String::from_utf8_lossy(&persisted.stderr)
+    );
+    let receipt: serde_json::Value = serde_json::from_slice(&persisted.stdout).unwrap();
+    assert_eq!(receipt["authority"], "none");
+    assert_eq!(receipt["gc_execution"], false);
+    assert_eq!(receipt["publication_authority"], false);
+
+    let loaded = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("retention-metadata-load")
+        .arg(&fixture.0)
+        .arg(checkpoint.checkpoint_digest())
+        .arg("none")
+        .arg(transition.plan_digest())
+        .output()
+        .unwrap();
+    assert!(
+        loaded.status.success(),
+        "{}",
+        String::from_utf8_lossy(&loaded.stderr)
+    );
+    let restored: serde_json::Value = serde_json::from_slice(&loaded.stdout).unwrap();
+    assert_eq!(restored["checkpoint_json"], checkpoint.to_json());
+    assert_eq!(restored["plan_json"], transition.plan().to_json());
+    assert_eq!(restored["authority"], "none");
+
+    let wrong_plan = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("retention-metadata-load")
+        .arg(&fixture.0)
+        .arg(checkpoint.checkpoint_digest())
+        .arg("none")
+        .arg(digest('f'))
+        .output()
+        .unwrap();
+    assert!(!wrong_plan.status.success());
+    assert!(fixture.pair_path(&transition).is_file());
+    fs::remove_dir_all(input).unwrap();
 }

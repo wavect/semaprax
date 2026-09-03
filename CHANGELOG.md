@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Closed the `graph <file>` command grammar. Unknown options and extra operands
+  now reject with status 2 before the compiler reads or verifies the source.
+
 - Closed the `fmt <file> [--check]` command grammar. Unknown options, duplicate
   `--check`, misplaced flags, and extra operands now reject with status 2
   before the formatter reads or rewrites the source file.

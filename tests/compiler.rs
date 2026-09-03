@@ -59,6 +59,31 @@ fn revision_is_a_canonical_sha256_content_address() {
 }
 
 #[test]
+fn malformed_graph_invocations_reject_before_loading_source() {
+    let missing = format!("semaprax-graph-missing-{}.spx", std::process::id());
+    assert!(!Path::new(&missing).exists());
+    for arguments in [
+        vec!["graph", missing.as_str(), "extra"],
+        vec!["graph", missing.as_str(), "--unknown"],
+        vec!["graph", "--unknown"],
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .args(&arguments)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2), "{arguments:?}");
+        assert!(output.stdout.is_empty(), "{arguments:?}");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            stderr.starts_with("graph requires exactly")
+                || stderr.starts_with("unknown graph option"),
+            "{arguments:?}: {stderr}"
+        );
+        assert!(!stderr.contains("cannot read"), "{arguments:?}: {stderr}");
+    }
+}
+
+#[test]
 fn context_slice_follows_calls() {
     let program = parse(VALID, Path::new("valid.spx")).unwrap();
     let by_id = graph::context_json(&program, "app.main", 1)

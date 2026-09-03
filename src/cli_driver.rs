@@ -420,7 +420,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             Ok(())
         }
         CommandId::Graph => {
-            let path = required_path(&args, 1)?;
+            let path = cli::graph::parse(&args[1..])?;
             let program = checked(&path)?;
             let output = graph::to_json(&program).map_err(|errors| report(&errors, false))?;
             println!("{output}");

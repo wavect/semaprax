@@ -116,6 +116,11 @@ fn alias(value: borrow str) -> i64 {
     let local = value;
     str_len_bytes(local)
 }
+@id("app.main")
+fn main() -> i64 {
+    let owned = "aé";
+    alias(string_as_str(owned))
+}
 "#;
     let program = parse(source, Path::new("borrowed-str-alias.spx")).unwrap();
     assert!(verify::verify(&program).is_empty());

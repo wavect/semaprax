@@ -1,5 +1,5 @@
 //! Real bare-Git publication and host-lease regressions.
-#![cfg(unix)]
+#![cfg(any(target_os = "linux", target_os = "macos"))]
 use semaprax::project::{
     apply_candidate_git_publication, with_authenticated_project, CandidateGitCommitMetadata,
     CandidateGitProcessAuthority, CandidateGitTarget, GitObjectFormat, ProjectCandidate,
@@ -8,6 +8,8 @@ use semaprax::project::{
 use serde_json::{json, Value};
 use std::fs;
 use std::io::Write;
+#[cfg(target_os = "linux")]
+use std::os::unix::fs::MetadataExt;
 use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -160,39 +162,76 @@ impl Fixture {
     fn authority(&self) -> CandidateGitProcessAuthority {
         CandidateGitProcessAuthority::open(&self.git, &self.repo, 4096, 60_000).unwrap()
     }
-    fn publish(&self, base: &str) -> Result<String, Vec<semaprax::diagnostic::Diagnostic>> {
-        let mut authority = self.authority();
-        let target = CandidateGitTarget::new(
+    fn target(&self, authority: &CandidateGitProcessAuthority, base: &str) -> CandidateGitTarget {
+        CandidateGitTarget::new(
             authority.repository_identity(),
             "refs/heads/review",
             base,
             "",
         )
-        .unwrap();
-        let metadata = CandidateGitCommitMetadata::new(
+        .unwrap()
+    }
+    fn metadata() -> CandidateGitCommitMetadata {
+        CandidateGitCommitMetadata::new(
             "Host reviewer",
             "review@example.invalid",
             2,
             "Approved semantic candidate\n",
         )
-        .unwrap();
+        .unwrap()
+    }
+    fn publish_with(
+        &self,
+        base: &str,
+        authority: &mut CandidateGitProcessAuthority,
+    ) -> Result<String, Vec<semaprax::diagnostic::Diagnostic>> {
+        let target = self.target(authority, base);
         apply_candidate_git_publication(
             &self.candidate,
             self.candidate.candidate_digest(),
             &self.root.join("semaprax.toml"),
             &target,
-            &metadata,
-            &mut authority,
+            &Self::metadata(),
+            authority,
         )
     }
+    fn publish(&self, base: &str) -> Result<String, Vec<semaprax::diagnostic::Diagnostic>> {
+        let mut authority = self.authority();
+        self.publish_with(base, &mut authority)
+    }
     fn current(&self) -> String {
-        String::from_utf8(self.run(
-            &["show-ref", "--verify", "--hash", "refs/heads/review"],
-            &[],
-        ))
-        .unwrap()
-        .trim_end()
-        .to_owned()
+        self.current_in(&self.repo)
+    }
+    fn current_in(&self, repository: &Path) -> String {
+        self.ref_in(repository).expect("review ref must exist")
+    }
+    fn ref_in(&self, repository: &Path) -> Option<String> {
+        let output = Command::new(&self.git)
+            .env_clear()
+            .env("GIT_CONFIG_NOSYSTEM", "1")
+            .env("GIT_CONFIG_GLOBAL", "/dev/null")
+            .arg(format!("--git-dir={}", repository.display()))
+            .args(["show-ref", "--verify", "--hash", "refs/heads/review"])
+            .output()
+            .unwrap();
+        if !output.status.success() {
+            return None;
+        }
+        Some(
+            String::from_utf8(output.stdout)
+                .unwrap()
+                .trim_end()
+                .to_owned(),
+        )
+    }
+    #[cfg(target_os = "linux")]
+    fn install_git_at(&mut self, relative: &str) {
+        let installed = self.root.join(relative);
+        fs::create_dir_all(installed.parent().unwrap()).unwrap();
+        fs::copy(&self.git, &installed).unwrap();
+        let mode = fs::metadata(&self.git).unwrap().permissions().mode();
+        fs::set_permissions(&installed, fs::Permissions::from_mode(mode)).unwrap();
+        self.git = installed.canonicalize().unwrap();
     }
 }
 impl Drop for Fixture {
@@ -200,6 +239,19 @@ impl Drop for Fixture {
         let _ = fs::remove_dir_all(&self.root);
     }
 }
+
+#[cfg(target_os = "linux")]
+fn assert_held_publication_outcome(
+    fixture: &Fixture,
+    repository: &Path,
+    result: Result<String, Vec<semaprax::diagnostic::Diagnostic>>,
+) {
+    let receipt: Value = serde_json::from_str(&result.unwrap()).unwrap();
+    let published = fixture.current_in(repository);
+    assert_eq!(receipt["published_commit"], published);
+    assert_ne!(published, fixture.base);
+}
+
 #[test]
 fn actual_ref_publication_preserves_unrelated_tree_and_raw_project_and_disables_hooks() {
     let fixture = Fixture::new(false);
@@ -374,4 +426,99 @@ fn sha1_host_rejects_sha256_target_and_accepts_explicit_format_one_sha1() {
     )
     .unwrap();
     assert!(CandidateGitProcessAuthority::open(&fixture.git, &fixture.repo, 100, 60_000).is_err());
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn held_git_executable_ignores_same_byte_path_substitution() {
+    let mut fixture = Fixture::new(false);
+    fixture.install_git_at("trusted/bin/git");
+    let executable_path = fixture.git.clone();
+    let retained_executable = fixture.root.join("retained-same-byte-git");
+    let mut authority = fixture.authority();
+
+    fs::rename(&executable_path, &retained_executable).unwrap();
+    fs::copy(&retained_executable, &executable_path).unwrap();
+    let mode = fs::metadata(&retained_executable)
+        .unwrap()
+        .permissions()
+        .mode();
+    fs::set_permissions(&executable_path, fs::Permissions::from_mode(mode)).unwrap();
+    assert_ne!(
+        fs::metadata(&retained_executable).unwrap().ino(),
+        fs::metadata(&executable_path).unwrap().ino()
+    );
+
+    // Use the retained pathname only for independent result inspection. The
+    // already-open authority must execute the held file, not either pathname.
+    fixture.git = retained_executable;
+    let result = fixture.publish_with(&fixture.base, &mut authority);
+    assert_held_publication_outcome(&fixture, &fixture.repo, result);
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn held_git_executable_ignores_different_byte_path_substitution() {
+    let mut fixture = Fixture::new(false);
+    fixture.install_git_at("trusted/bin/git");
+    let executable_path = fixture.git.clone();
+    let retained_executable = fixture.root.join("retained-real-git");
+    let mut authority = fixture.authority();
+
+    fs::rename(&executable_path, &retained_executable).unwrap();
+    fs::copy("/usr/bin/false", &executable_path).unwrap();
+    fs::set_permissions(&executable_path, fs::Permissions::from_mode(0o755)).unwrap();
+    assert_ne!(
+        fs::read(&retained_executable).unwrap(),
+        fs::read(&executable_path).unwrap()
+    );
+
+    fixture.git = retained_executable;
+    let result = fixture.publish_with(&fixture.base, &mut authority);
+    assert_held_publication_outcome(&fixture, &fixture.repo, result);
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn held_git_executable_ignores_ancestor_directory_substitution() {
+    let mut fixture = Fixture::new(false);
+    fixture.install_git_at("trusted/current/git");
+    let current = fixture.root.join("trusted/current");
+    let retained = fixture.root.join("trusted/retained");
+    let mut authority = fixture.authority();
+
+    fs::rename(&current, &retained).unwrap();
+    fs::create_dir(&current).unwrap();
+    fs::copy("/usr/bin/false", current.join("git")).unwrap();
+    fs::set_permissions(current.join("git"), fs::Permissions::from_mode(0o755)).unwrap();
+    let foreign_bytes = fs::read(current.join("git")).unwrap();
+
+    fixture.git = retained.join("git");
+    let result = fixture.publish_with(&fixture.base, &mut authority);
+    assert_held_publication_outcome(&fixture, &fixture.repo, result);
+    assert_eq!(fs::read(current.join("git")).unwrap(), foreign_bytes);
+}
+
+#[test]
+fn held_git_repository_ignores_same_path_directory_substitution() {
+    let fixture = Fixture::new(false);
+    let original_path = fixture.repo.clone();
+    let retained_repository = fixture.root.join("retained-published.git");
+    let mut authority = fixture.authority();
+
+    fs::rename(&original_path, &retained_repository).unwrap();
+    fs::create_dir(&original_path).unwrap();
+    fs::write(original_path.join("foreign"), b"foreign repository bytes\n").unwrap();
+
+    let receipt: Value =
+        serde_json::from_str(&fixture.publish_with(&fixture.base, &mut authority).unwrap())
+            .unwrap();
+    let published = fixture.current_in(&retained_repository);
+    assert_eq!(receipt["published_commit"], published);
+    assert_ne!(published, fixture.base);
+    assert_eq!(
+        fs::read(original_path.join("foreign")).unwrap(),
+        b"foreign repository bytes\n"
+    );
+    assert!(fixture.ref_in(&original_path).is_none());
 }

@@ -178,10 +178,15 @@ for this v5 batch; the full programme stays Partial.
 
 Actual source-exact parse/format reuse, expression holes, owning-Bytes parameter
 mapping and typed diagnostic repair history now have authored implementations.
-Separate canonical Git publication now has bounded Unix bare SHA1/SHA256 routes;
-validate both formats, exact readback/content bindings and ref-race failures
-before promotion, then extend host/checkout interoperability without granting
-process or publication authority to query sessions. Full incremental semantic checking, warm cross-process HIR,
+Separate canonical Git publication now has bounded Linux/macOS bare SHA1/SHA256
+routes; Linux executes the held image in the held repository, while macOS admits
+only a suspended launch that attests the held executable vnode and cwd before
+resume. Both close ambient descriptors/environment and prove leader reap and
+group quiescence before ordinary return. Validate both formats, exact readback/content bindings,
+substitution/settlement hostility and ref-race failures before promotion, then
+extend host/checkout interoperability without granting process or publication
+authority to query sessions. Same-principal repository-content mutation remains
+outside this boundary. Full incremental semantic checking, warm cross-process HIR,
 general interfaces and measured complete workflows remain exit conditions.
 
 All eleven requested operation classes now have bounded authored slices. The new

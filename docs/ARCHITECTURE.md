@@ -730,14 +730,22 @@ the resulting canonical source. Neither cache nor draft owns source authority.
 `candidate/git_publication.rs` authenticates Git object identities and original
 Project source before constructing canonical replacement blobs, trees and a
 commit. Its explicit host authority owns one expected-old Git ref update. The
-Unix process adapter selects a bounded bare SHA1 or SHA256 repository, executable
-and lease; it disables inherited config, hooks and Git transports and never
-rewrites a checkout. Target OID width must match the held repository format.
+Unix process adapter selects a bounded bare SHA1 or SHA256 repository,
+executable and lease. It launches from held executable and repository handles,
+gives the child only its exact standard-pipe descriptor inventory and a fixed
+safety environment with no inherited entries, and settles the owned process
+group before ordinary return.
+Linux uses descriptor execution and handle-relative cwd selection; macOS derives
+a path from the held executable, starts suspended, and attests executable-vnode
+and cwd identity before resume, failing closed on disagreement. The
+adapter disables inherited config, hooks and Git transports and never rewrites
+a checkout. Target OID width must match the held repository format.
 SHA1 is legacy Git compatibility: exact original-source comparisons, staged-object
 readback and an independent SHA256 content binding do not constitute SHA1
 collision detection or a signature. The trusted host owns the executable and
-repository; the cooperative lease and pathname rechecks are not protection
-against a malicious same-UID namespace race or an OS network sandbox.
+repository. Held execution closes the same-byte pathname-substitution gap, but
+the cooperative lease and object scan do not make a same-UID writer to the
+repository's contents trustworthy or form an OS network sandbox.
 This authority remains separate from managed Workspace `ACTIVE` and ordinary
 image/candidate reasoning. V5 can hold it only through an explicit startup host
 extension with independently supplied exact candidate approval. `candidate/diagnostic_intent.rs` rederives a selected repair

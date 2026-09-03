@@ -108,6 +108,20 @@
   blind spots, and permitted runtime updates. The overall graph-operational
   programme remains Partial pending real Extension Host task execution,
   hosted/cross-platform evidence, broader workflows, and representative gates.
+- Hardened candidate Git publication around a held-process authority. Linux
+  launches now use the already authenticated executable image and repository
+  directory rather than reopening their pathnames; macOS launches suspended and
+  fails closed unless its executable vnode and held cwd attest before resume.
+  Both use a fixed safety environment, close every non-protocol descriptor,
+  bound synchronous pipe traffic under the one
+  adapter deadline, and return only after leader reap and owned process-group
+  quiescence, with a separate bounded fail-stop settlement allowance after an
+  operation deadline. Hostile regressions cover same-byte executable
+  replacement, ancestor and repository substitution, descriptor/environment
+  isolation, output and
+  deadline failure, and descendant settlement. This closes the namespace
+  check/use gap without claiming safety against a same-UID writer who can mutate
+  the held repository's contents.
 
 - Recorded the public Wasm export surface per profile instead of per backend.
   `tests/backend_type_parity.rs` had one `wasm export` column measured only

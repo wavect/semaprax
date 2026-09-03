@@ -184,16 +184,51 @@ fn checked_oid(oid: &str, format: GitObjectFormat) -> io::Result<()> {
     Ok(())
 }
 
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+#[path = "process/platform.rs"]
+mod platform;
+
+#[cfg(all(unix, not(any(target_os = "linux", target_os = "macos"))))]
+mod platform {
+    use std::fs::{File, Metadata};
+    use std::io;
+    use std::path::Path;
+    use std::time::Instant;
+
+    pub(super) const SUPPORTED: bool = false;
+
+    #[derive(Clone, Copy)]
+    pub(super) struct Limits {
+        pub(super) stdout: usize,
+        pub(super) stderr: usize,
+        pub(super) deadline: Instant,
+    }
+
+    pub(super) fn run(
+        _executable_path: &Path,
+        _executable: &File,
+        _executable_metadata: &Metadata,
+        _repository: &File,
+        _command: &[&str],
+        _input: &[u8],
+        limits: Limits,
+    ) -> io::Result<(i32, Vec<u8>)> {
+        let _ = (limits.stdout, limits.stderr, limits.deadline);
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "held Git execution requires Linux or macOS",
+        ))
+    }
+}
+
 #[cfg(unix)]
 mod unix {
     use super::*;
     use std::fs::{File, Metadata};
-    use std::io::{Read, Write};
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
-    use std::os::unix::process::CommandExt;
     use std::path::PathBuf;
-    use std::process::{Command, Stdio};
-    use std::sync::mpsc;
+
+    use super::platform;
 
     struct Lease(File);
     impl Drop for Lease {
@@ -212,6 +247,8 @@ mod unix {
         repo_file: File,
         executable_file: File,
         executable_meta: Metadata,
+        objects_file: File,
+        refs_file: File,
         config_file: File,
         config: Vec<u8>,
         lock: Lease,
@@ -226,6 +263,9 @@ mod unix {
             max_commands: usize,
             timeout_ms: u64,
         ) -> Result<Self> {
+            if !platform::SUPPORTED {
+                return Err(host("held Git execution requires Linux or macOS"));
+            }
             if !executable.is_absolute()
                 || !repository.is_absolute()
                 || !(1..=4096).contains(&max_commands)
@@ -256,7 +296,11 @@ mod unix {
             }
             let repo_file = open_file(&repo, true, false)
                 .map_err(|_| host("cannot hold bare repository directory"))?;
-            let lock = open_file(&repo.join(".semaprax-git-publication.lock"), false, true)
+            let objects_file = open_file_at(&repo_file, c"objects", true, false)
+                .map_err(|_| host("cannot hold Git objects directory"))?;
+            let refs_file = open_file_at(&repo_file, c"refs", true, false)
+                .map_err(|_| host("cannot hold Git refs directory"))?;
+            let lock = open_file_at(&repo_file, c".semaprax-git-publication.lock", false, true)
                 .map_err(|_| host("cannot open Git publication lock"))?;
             if !lock
                 .metadata()
@@ -268,7 +312,7 @@ mod unix {
             fs2::FileExt::try_lock_exclusive(&lock)
                 .map_err(|_| host("Git publication host is already leased"))?;
             let lock = Lease(lock);
-            let config_file = open_file(&repo.join("config"), false, false)
+            let config_file = open_file_at(&repo_file, c"config", false, false)
                 .map_err(|_| host("cannot hold Git config"))?;
             let config = read_bounded(&config_file, 65_536)
                 .map_err(|_| host("cannot read bounded Git config"))?;
@@ -280,6 +324,8 @@ mod unix {
                 repo_file,
                 executable_file,
                 executable_meta: meta,
+                objects_file,
+                refs_file,
                 config_file,
                 config,
                 lock,
@@ -293,48 +339,42 @@ mod unix {
             Ok(value)
         }
         pub(super) fn recheck(&self) -> io::Result<()> {
-            same_file(&self.repo, &self.repo_file, true)?;
-            same_file(&self.executable, &self.executable_file, false)?;
             let executable_meta = self.executable_file.metadata()?;
-            if executable_meta.len() != self.executable_meta.len()
+            if executable_meta.dev() != self.executable_meta.dev()
+                || executable_meta.ino() != self.executable_meta.ino()
+                || executable_meta.len() != self.executable_meta.len()
+                || executable_meta.mode() != self.executable_meta.mode()
                 || executable_meta.mtime() != self.executable_meta.mtime()
                 || executable_meta.mtime_nsec() != self.executable_meta.mtime_nsec()
-                || executable_meta.ctime() != self.executable_meta.ctime()
-                || executable_meta.ctime_nsec() != self.executable_meta.ctime_nsec()
             {
                 return Err(io::Error::other("trusted Git executable changed"));
             }
-            validate_storage(&self.repo, self.deadline)?;
-            same_file(&self.repo.join("config"), &self.config_file, false)?;
-            same_file(
-                &self.repo.join(".semaprax-git-publication.lock"),
-                &self.lock.0,
-                false,
-            )?;
-            let config = open_file(&self.repo.join("config"), false, false)?;
+            validate_storage(&self.repo_file, self.deadline)?;
+            let config = open_file_at(&self.repo_file, c"config", false, false)?;
+            same_file_handles(&config, &self.config_file, false)?;
             if read_bounded(&config, 65_536)? != self.config {
                 return Err(io::Error::other("Git config changed"));
             }
-            for path in [
-                "commondir",
-                "worktrees",
-                "shallow",
-                "info/grafts",
-                "objects/info/alternates",
-                "objects/info/http-alternates",
-            ] {
-                match std::fs::symlink_metadata(self.repo.join(path)) {
-                    Err(e) if e.kind() == io::ErrorKind::NotFound => (),
-                    _ => return Err(io::Error::other("Git repository indirection is forbidden")),
-                }
+            let lock = open_file_at(
+                &self.repo_file,
+                c".semaprax-git-publication.lock",
+                false,
+                false,
+            )?;
+            same_file_handles(&lock, &self.lock.0, false)?;
+            for name in [c"commondir", c"worktrees", c"shallow"] {
+                require_absent_at(&self.repo_file, name)?;
             }
-            // Fixed Git object/ref directories must not redirect the host boundary.
-            for path in ["objects", "refs"] {
-                let file = open_file(&self.repo.join(path), true, false)?;
-                if !file.metadata()?.is_dir() {
-                    return Err(io::Error::other("invalid Git storage directory"));
-                }
+            let info = open_file_at(&self.repo_file, c"info", true, false).ok();
+            if let Some(info) = info.as_ref() {
+                require_absent_at(info, c"grafts")?;
             }
+            require_absent_nested(&self.objects_file, c"info", c"alternates")?;
+            require_absent_nested(&self.objects_file, c"info", c"http-alternates")?;
+            let objects = open_file_at(&self.repo_file, c"objects", true, false)?;
+            let refs = open_file_at(&self.repo_file, c"refs", true, false)?;
+            same_file_handles(&objects, &self.objects_file, true)?;
+            same_file_handles(&refs, &self.refs_file, true)?;
             Ok(())
         }
         pub(super) fn read_ref(&mut self, reference: &str) -> io::Result<Option<String>> {
@@ -374,9 +414,11 @@ mod unix {
             Ok(output)
         }
         fn run(&mut self, args: &[&str], input: &[u8], limit: usize) -> io::Result<(i32, Vec<u8>)> {
+            if Instant::now() >= self.deadline {
+                return Err(io::Error::other("Git host deadline exceeded"));
+            }
             self.recheck()?;
             if self.remaining == 0
-                || Instant::now() >= self.deadline
                 || input.len() > MAX_OBJECT
                 || limit > MAX_OBJECT
                 || self
@@ -390,130 +432,60 @@ mod unix {
             }
             self.remaining -= 1;
             self.io_bytes += input.len() + limit + 65_536;
-            let mut command = Command::new(&self.executable);
-            command
-                .current_dir(&self.repo)
-                .arg(format!("--git-dir={}", self.repo.display()))
-                .arg("--no-replace-objects")
-                .args([
-                    "-c",
-                    "core.hooksPath=/dev/null",
-                    "-c",
-                    "core.fsmonitor=false",
-                    "-c",
-                    "protocol.allow=never",
-                    "-c",
-                    "core.commitGraph=false",
-                ])
-                .args(args)
-                .env_clear()
-                .env("GIT_CONFIG_NOSYSTEM", "1")
-                .env("GIT_CONFIG_SYSTEM", "/dev/null")
-                .env("GIT_CONFIG_GLOBAL", "/dev/null")
-                .env("GIT_NO_REPLACE_OBJECTS", "1")
-                .env("GIT_NO_LAZY_FETCH", "1")
-                .env("GIT_OPTIONAL_LOCKS", "0")
-                .env("GIT_TERMINAL_PROMPT", "0")
-                .env("GIT_ATTR_NOSYSTEM", "1")
-                .env("LC_ALL", "C")
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .process_group(0);
-            let mut child = command.spawn()?;
-            let pid = rustix::process::Pid::from_raw(child.id() as i32);
-            let mut stdin = child
-                .stdin
-                .take()
-                .ok_or_else(|| io::Error::other("missing Git stdin"))?;
-            let stdout = child
-                .stdout
-                .take()
-                .ok_or_else(|| io::Error::other("missing Git stdout"))?;
-            let stderr = child
-                .stderr
-                .take()
-                .ok_or_else(|| io::Error::other("missing Git stderr"))?;
-            let (tx, rx) = mpsc::channel();
-            let input = input.to_vec();
-            let outtx = tx.clone();
-            std::thread::spawn(move || {
-                let _ = outtx.send((0, read_pipe(stdout, limit)));
-            });
-            let errtx = tx.clone();
-            std::thread::spawn(move || {
-                let _ = errtx.send((1, read_pipe(stderr, 65_536)));
-            });
-            std::thread::spawn(move || {
-                let value = stdin.write_all(&input).map(|_| Vec::new());
-                drop(stdin);
-                let _ = tx.send((2, value));
-            });
-            let mut output = None;
-            let mut received = 0;
-            let mut status = None;
-            let result = loop {
-                if Instant::now() >= self.deadline {
-                    break Err(io::Error::other("Git host deadline exceeded"));
+            let result = platform::run(
+                &self.executable,
+                &self.executable_file,
+                &self.executable_meta,
+                &self.repo_file,
+                args,
+                input,
+                platform::Limits {
+                    stdout: limit,
+                    stderr: 65_536,
+                    deadline: self.deadline,
+                },
+            );
+            match result {
+                Ok(value) => {
+                    self.recheck()?;
+                    Ok(value)
                 }
-                match child.try_wait() {
-                    Ok(Some(s)) => status = Some(s),
-                    Ok(None) => (),
-                    Err(e) => break Err(e),
+                Err(primary) => {
+                    let _ = self.recheck();
+                    Err(primary)
                 }
-                match rx.recv_timeout(Duration::from_millis(2)) {
-                    Ok((kind, Ok(bytes))) => {
-                        received += 1;
-                        if kind == 0 {
-                            output = Some(bytes);
-                        }
-                    }
-                    Ok((_, Err(e))) => break Err(e),
-                    Err(mpsc::RecvTimeoutError::Timeout) => (),
-                    Err(mpsc::RecvTimeoutError::Disconnected) if received < 3 => {
-                        break Err(io::Error::other("Git pipe worker failed"))
-                    }
-                    Err(_) => (),
-                }
-                if received == 3 {
-                    if let Some(status) = status {
-                        break Ok((
-                            status.code().unwrap_or(-1),
-                            output.take().unwrap_or_default(),
-                        ));
-                    }
-                }
-            };
-            if result.is_err() {
-                if let Some(pid) = pid {
-                    let _ = rustix::process::kill_process_group(pid, rustix::process::Signal::KILL);
-                }
-                let _ = child.kill();
-                let _ = child.try_wait();
             }
-            self.recheck()?;
-            result
         }
     }
     // The repository is host-controlled; this also rejects preexisting nested
     // redirects. The permanent lease cannot stop a malicious same-UID mutator.
-    fn validate_storage(root: &Path, deadline: Instant) -> io::Result<()> {
-        let mut pending = vec![(root.to_path_buf(), 0usize)];
+    fn validate_storage(root: &File, deadline: Instant) -> io::Result<()> {
+        let mut pending = vec![(root.try_clone()?, 0usize)];
         let mut entries = 0usize;
         while let Some((directory, depth)) = pending.pop() {
-            if depth > 64 || Instant::now() >= deadline {
+            if depth > 64 {
                 return Err(io::Error::other("Git storage traversal bound exceeded"));
             }
-            for entry in std::fs::read_dir(directory)? {
-                let entry = entry?;
+            if Instant::now() >= deadline {
+                return Err(io::Error::other("Git host deadline exceeded"));
+            }
+            for entry in rustix::fs::Dir::read_from(&directory).map_err(io::Error::from)? {
+                let entry = entry.map_err(io::Error::from)?;
+                let name = entry.file_name();
+                if name.to_bytes() == b"." || name.to_bytes() == b".." {
+                    continue;
+                }
                 entries += 1;
                 if entries > 65_536 {
                     return Err(io::Error::other("Git storage entry bound exceeded"));
                 }
-                let metadata = std::fs::symlink_metadata(entry.path())?;
-                if metadata.is_dir() {
-                    pending.push((entry.path(), depth + 1));
-                } else if !metadata.is_file() || metadata.nlink() != 1 {
+                if let Ok(child) = open_file_at(&directory, name, true, false) {
+                    pending.push((child, depth + 1));
+                    continue;
+                }
+                let child = open_file_at(&directory, name, false, false)?;
+                let metadata = child.metadata()?;
+                if !metadata.is_file() || metadata.nlink() != 1 {
                     return Err(io::Error::other(
                         "Git storage redirects, special files, or hardlinks are forbidden",
                     ));
@@ -521,15 +493,6 @@ mod unix {
             }
         }
         Ok(())
-    }
-    fn read_pipe(reader: impl Read, limit: usize) -> io::Result<Vec<u8>> {
-        let mut result = Vec::new();
-        reader.take(limit as u64 + 1).read_to_end(&mut result)?;
-        if result.len() > limit {
-            Err(io::Error::other("Git pipe exceeded byte bound"))
-        } else {
-            Ok(result)
-        }
     }
     fn open_file(path: &Path, directory: bool, create: bool) -> io::Result<File> {
         use rustix::fs::{Mode, OFlags};
@@ -551,6 +514,62 @@ mod unix {
             .map(File::from)
             .map_err(io::Error::from)
     }
+    fn open_file_at(
+        parent: &File,
+        name: &std::ffi::CStr,
+        directory: bool,
+        create: bool,
+    ) -> io::Result<File> {
+        use rustix::fs::{Mode, OFlags};
+        let flags = if create {
+            OFlags::RDWR | OFlags::CREATE
+        } else {
+            OFlags::RDONLY
+        };
+        let flags = flags
+            | OFlags::NOFOLLOW
+            | OFlags::CLOEXEC
+            | OFlags::NONBLOCK
+            | if directory {
+                OFlags::DIRECTORY
+            } else {
+                OFlags::empty()
+            };
+        rustix::fs::openat(parent, name, flags, Mode::from_bits_truncate(0o600))
+            .map(File::from)
+            .map_err(io::Error::from)
+    }
+    fn same_file_handles(current: &File, held: &File, directory: bool) -> io::Result<()> {
+        let current = current.metadata()?;
+        let held = held.metadata()?;
+        if current.dev() != held.dev()
+            || current.ino() != held.ino()
+            || (directory && !current.is_dir())
+            || (!directory && !current.is_file())
+        {
+            Err(io::Error::other("held Git host input changed"))
+        } else {
+            Ok(())
+        }
+    }
+    fn require_absent_at(parent: &File, name: &std::ffi::CStr) -> io::Result<()> {
+        match open_file_at(parent, name, false, false) {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+            _ => Err(io::Error::other("Git repository indirection is forbidden")),
+        }
+    }
+    fn require_absent_nested(
+        parent: &File,
+        directory: &std::ffi::CStr,
+        name: &std::ffi::CStr,
+    ) -> io::Result<()> {
+        match open_file_at(parent, directory, true, false) {
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+            Err(_) => Err(io::Error::other("Git repository indirection is forbidden")),
+            Ok(directory) => require_absent_at(&directory, name),
+        }
+    }
+    #[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
     fn same_file(path: &Path, file: &File, directory: bool) -> io::Result<()> {
         let current = std::fs::symlink_metadata(path)?;
         let held = file.metadata()?;
@@ -634,7 +653,7 @@ mod unix {
         }
     }
 
-    #[cfg(test)]
+    #[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
     mod tests {
         use super::*;
         use std::sync::atomic::{AtomicU64, Ordering};
@@ -724,5 +743,25 @@ mod unix {
             repository.assert_leased();
             next.recheck().unwrap();
         }
+
+        #[test]
+        fn expired_host_deadline_is_the_sticky_primary() {
+            let repository = Repository::new();
+            let executable = std::env::current_exe().unwrap().canonicalize().unwrap();
+            let mut host = Host::open(&executable, &repository.0, 1, 20).unwrap();
+            let started = Instant::now();
+            while started.elapsed() < Duration::from_millis(25) {
+                std::hint::spin_loop();
+            }
+            let error = host
+                .read_ref("refs/heads/review")
+                .expect_err("expired authority must not start a process");
+            assert_eq!(error.to_string(), "Git host deadline exceeded");
+        }
+    }
+
+    #[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
+    mod process_tests {
+        include!("process/tests.rs");
     }
 }

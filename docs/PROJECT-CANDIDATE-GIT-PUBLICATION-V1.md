@@ -1,9 +1,10 @@
 # Project Candidate Git Publication v1
 
 Audience: host integrators and compiler contributors.
-Status: bounded Unix/bare-SHA1-or-SHA256 source-publication route; focused real-Git
-regressions pass locally on macOS and Linux. No hosted, Windows, full-profile or
-completion-gate evidence is claimed.
+Status: bounded Linux/macOS bare-SHA1-or-SHA256 source-publication route; the
+focused current boundary and real-Git regressions pass locally on macOS. The
+Linux held-descriptor cases are authored and remain unrun on this head. No
+hosted, Windows, full-profile or completion-gate evidence is claimed.
 
 This route writes actual canonical `.spx` blobs, trees and a commit into one
 explicitly selected local Git repository, then publishes through one expected-old
@@ -16,12 +17,13 @@ reports, test results, and the managed publication bridge.
 ## Explicit host interface
 
 `CandidateGitProcessAuthority::open(executable, repository, max_commands,
-timeout_ms)` admits a host-controlled bare SHA1 or SHA256 repository on Unix. Both paths
+timeout_ms)` admits a host-controlled bare SHA1 or SHA256 repository on Linux or
+macOS. Both paths
 must be absolute; the repository path must already be canonical. The explicitly
 trusted Git executable may be a symlink, resolved to a held regular executable.
 No executable, repository, branch, author, timestamp or message comes from the
-candidate or recovery capsule. Windows and other non-Unix process hosts fail
-closed. Ordinary SHA1 repositories are supported for Git compatibility; they do not gain
+candidate or recovery capsule. Windows and other process hosts fail closed.
+Ordinary SHA1 repositories are supported for Git compatibility; they do not gain
 a collision-resistance or collision-detection claim.
 
 `CandidateGitTarget::new(repository_identity, reference, expected_base_commit,
@@ -109,23 +111,44 @@ grafts are rejected. Before each process call, held repository/config/executable
 identities are checked, config bytes are compared, and a bounded recursive scan
 rejects nested symlinks, special files and multiply linked regular files anywhere
 in the repository, including refs, reflogs, packs and loose objects. Git executable
-size and modification/change timestamps are held and rechecked. These checks do
+device, inode, size, mode and modification timestamp are held and rechecked. These checks do
 not confer trust on an untrusted binary selected by a host.
 
-Every process has an empty inherited environment and explicit null global/system
-config, no replacement objects, no lazy fetching, no terminal prompts and no
-optional locks. A fixed command-line `protocol.allow=never` forbids transport;
+Linux launches every process from the executable image and repository directory
+held by the authority, using handle-relative working-directory selection and
+descriptor execution rather than reopening either authenticated pathname.
+macOS derives the launch path from the held executable, starts the child
+suspended with a handle-relative working directory, attests its executable vnode
+and working directory against the held objects, and resumes it only after
+agreement. A namespace substitution that prevents exact Darwin vnode agreement
+fails closed before resume. The child receives only its exact
+standard-pipe inventory; every other descriptor is closed. It has an empty
+inherited environment and explicit null global/system config, no replacement
+objects, no lazy fetching, no terminal prompts and no optional locks. A fixed
+command-line `protocol.allow=never` forbids transport;
 there are no network commands or request-selected command names. Hashing uses
 `--no-filters`. Fixed `core.hooksPath=/dev/null` disables hooks, including
 `reference-transaction`, which otherwise executes during ref operations.
 [Git hooks](https://git-scm.com/docs/githooks). Shells, aliases, signing, filters,
 credential helpers and inherited SSH/secret variables are not used.
 
+The syscall implementation is the root registry crate's only locally allowed
+unsafe module. The root manifest denies unsafe code everywhere else, and
+`root_unsafe_quarantine` source-locks that single exception and its private API.
+This packaging-preserving quarantine is narrower than exposing a generic safe
+process facade but is not a claim that arbitrary unsafe additions are accepted.
+
 Only `symbolic-ref`, `show-ref`, raw `cat-file`, raw `hash-object` and
-`update-ref` are invoked. Reads/writes use bounded pipes, a fresh process group,
-and one host-selected total adapter deadline (1–60,000 ms) and command budget
-(1–4,096). Worker pipes are capped; timeout/output failure kills the process group
-and reports failure. The deadline begins at adapter opening and includes time
+`update-ref` are invoked. Synchronous bounded pipe handling, a fresh process
+group, one host-selected total adapter deadline (1–60,000 ms), and one command
+budget (1–4,096) cover input, output, and ordinary child execution. Success
+or ordinary failure is returned only after the leader is reaped and the owned
+process group is quiescent. Timeout, output overflow, pipe failure, or any other
+post-spawn failure selects a sticky error, kills the owned group, drains bounded
+output while the command is active, closes the pipes, and settles it. Settlement
+has a separate fixed 30-second fail-stop allowance after the operation deadline;
+inability to prove settlement aborts rather than returning a recoverable error.
+The operation deadline begins at adapter opening and includes time
 spent by the caller before publication. No claim is made that a trusted executable
 can be physically preempted inside an uninterruptible kernel operation.
 
@@ -152,14 +175,17 @@ publication, unrelated entry/mode preservation, unchanged raw sources, disabled
 ref hooks, stale-ref/original-blob rejection, unsafe-config rejection and nested
 object-store symlink rejection. It also checks live-host contention, explicit
 lease release, rejected-admission recovery, unchanged source/ref state and lock-file
-retention. `SEMAPRAX_TEST_GIT` can select the trusted fixture binary; otherwise the
-Unix fixture selects `/usr/bin/git`. These lower-level tests and the then-current
-integrated SHA1/SHA256 workflow previously passed locally on macOS with Rust
-1.98 and in a bounded offline Linux container with Rust 1.88. That is prior-head
-evidence, not a claim for the expanded current fixture. The later exact-subject
+retention and directory substitution. Private held-runner tests cover executable
+substitution, expired authority deadlines, descriptor/environment isolation,
+bounded stdout/stderr, and child-group settlement.
+`SEMAPRAX_TEST_GIT` can select the trusted fixture binary; otherwise the
+Unix fixture selects `/usr/bin/git`. On this current macOS head, the eight active
+held-runner cases, seven real-Git cases, root quarantine contract, and four
+integrated SHA1/SHA256 workflow cases pass locally; strict root Clippy also
+passes. Linux descriptor-execution cases remain authored/unrun. The later exact-subject
 [graph-workflow bundle](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md) is local
 Darwin evidence only. Neither result is current-head hosted or Windows evidence,
-and the complete quality profile was not rerun for this correction.
+and the complete quality profile was not rerun for this tranche.
 
 ## Additive legacy SHA1 compatibility
 

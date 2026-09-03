@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Added an authority-free task-economics normalizer over exact caller-supplied
+  paired observation bytes. It authenticates the existing observation-v1
+  envelopes, complete metric and evidence-reference inventories and paired
+  bindings, then emits only descriptive deltas for matching outcomes with
+  `superiority: not_assessed`. The v1 manifest's external-unrun Zero lane is
+  rejected and remains explicitly unassessed. V5 exposes a smaller
+  envelope-safe query through generated clients and MCP without invoking a
+  model, tool, validator, artifact reader or publication path. Regressions are
+  authored and unrun.
+
+- Added a startup-selected retention lifecycle coordinator for successful typed
+  image, candidate and draft store receipts. It holds the authenticated private
+  registry root and metadata directory for its lifetime, advances the exact CAS
+  cursor, and reports stale, failed, uncertain and poisoned states without ever
+  denying or rolling back prior immutable-store success. It grants no subject
+  restore, deletion, GC, source, approval or publication authority. Regressions
+  are authored and unrun.
+
 - Added one candidate environment-consumer review that joins the complete
   source/environment review to an explicitly host-attached, authenticated
   candidate-era package graph. Exact Project, Workspace, graph, provider,
@@ -11,11 +29,12 @@
   runtime, registry or deployment observation. Regressions are authored and
   unrun.
 
-- Extended ordered signature evolution with one exact `own Bytes` to
-  `borrow Slice<u8>` replacement. The compiler authenticates a sole
-  body-local `bytes_as_slice` use, stages every caller argument left to right,
-  derives the view from the staged caller-owned value, and leaves cleanup with
-  the caller. Contracts, aliases, duplicate views, transfers, automatic package
+- Extended ordered signature evolution with one to eight distinct exact
+  `own Bytes` to `borrow Slice<u8>` replacements. The compiler authenticates
+  every sole body-local `bytes_as_slice` use and complete source/HIR parity
+  before mutation, stages every caller argument left to right, derives views in
+  mapped-parameter order from caller-owned stages, and leaves cleanup with the
+  caller. Contracts, aliases, duplicate owners, transfers, automatic package
   migration and compatibility claims remain excluded. Regressions are authored
   and unrun.
 

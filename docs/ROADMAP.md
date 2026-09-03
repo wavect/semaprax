@@ -140,10 +140,13 @@ rebase before promoting persistence. Host-policy v3 selects existing archives
 before frames without restoring approval or making old source current.
 An explicit private-root retention registry now authors consecutive durable
 checkpoint/plan metadata from successful typed store receipts, with exact
-cursor recovery and no subject restoration or deletion. Automatic session and
-branch checkpoint integration, incomplete-draft lifecycle recovery, warm HIR
-loading, separately authorized eviction/GC and measured recovery cost remain
-future work.
+cursor recovery and no subject restoration or deletion. An opt-in
+[host lifecycle coordinator](SEMANTIC-RETENTION-HOST-LIFECYCLE-V1.md) now holds
+that startup-selected root identity and checkpoints successful typed
+image/candidate/draft receipts without obscuring store success when registry
+publication fails. Automatic protocol-session and branch integration,
+incomplete-draft lifecycle recovery, warm HIR loading, separately authorized
+eviction/GC and measured recovery cost remain future work.
 
 The additive [workspace protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) now composes
 host-selected semantic, candidate, diagnostic, test, pathless-build and optional

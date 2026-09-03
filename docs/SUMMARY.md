@@ -144,6 +144,7 @@ Audience: all documentation readers.
 - [Graph-operational programme ledger](GRAPH-OPERATIONAL-PROGRAMME.md)
 - [Semantic Retention Checkpoint v1](SEMANTIC-RETENTION-CHECKPOINT-V1.md)
 - [Semantic Retention Registry v1](SEMANTIC-RETENTION-REGISTRY-V1.md)
+- [Semantic Retention Host Lifecycle v1](SEMANTIC-RETENTION-HOST-LIFECYCLE-V1.md)
 - [Semantic Retention Metadata CLI v1](SEMANTIC-RETENTION-METADATA-CLI-V1.md)
 - [Project Target Cache v1](PROJECT-TARGET-CACHE-V1.md)
 - [Semantic Image Facets v1](SEMANTIC-IMAGE-FACETS-V1.md)

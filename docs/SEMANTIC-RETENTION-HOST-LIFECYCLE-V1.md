@@ -27,10 +27,14 @@ receipt, image, candidate, draft, or generated client.
 
 The coordinator opens and retains the authenticated registry-root and metadata
 directory identities for its complete lifetime. Every recovery, initialize,
-or compare-and-swap operation uses those held directories and rebinds them to
-the startup-selected path before mutation and before a `CURRENT` pivot. A
-same-owner path substitution therefore fails closed instead of redirecting a
-later checkpoint. It receives no image,
+or compare-and-swap operation uses those held directories, validates the
+startup-selected path when the operation begins, and revalidates it immediately
+before a `CURRENT` pivot. A same-owner path substitution cannot redirect writes
+to a replacement directory or make a stranded immutable pair current. A race
+after the initial validation may leave an unselected pair in the displaced held
+metadata directory. Substitution after the final pre-pivot validation,
+including at or after the pivot, retains the registry's ordinary post-pivot
+uncertainty and explicit-recovery requirement. It receives no image,
 candidate, or draft store root and cannot reopen a subject. Its
 `RetentionAuthority::None` result means no subject restore/delete, GC, source,
 approval, or publication authority; the startup-selected registry root remains

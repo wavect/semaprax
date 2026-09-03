@@ -10,6 +10,7 @@ use sha2::{Digest, Sha256};
 
 use crate::diagnostic::Diagnostic;
 use crate::project_revision_store as store;
+use crate::semantic_retention::{RetentionObservation, RetentionReceipt, RetentionSubject};
 use crate::semantic_workspace::SemanticWorkspaceSource;
 
 use super::{
@@ -30,6 +31,7 @@ pub struct ImageStoreReceipt {
     entry: String,
     image: String,
     project: String,
+    image_bytes: u64,
 }
 
 impl ImageStoreReceipt {
@@ -47,6 +49,24 @@ impl ImageStoreReceipt {
     }
     pub fn project_revision(&self) -> &str {
         &self.project
+    }
+    /// Exact canonical Semantic Workspace Image bytes bound into this receipt.
+    /// The source-backed store does not persist those derived bytes as trusted
+    /// compiler state; this is deterministic retention-policy accounting only.
+    pub const fn retained_image_bytes(&self) -> u64 {
+        self.image_bytes
+    }
+    pub fn retention_observation(&self) -> Result<RetentionObservation> {
+        RetentionObservation::new(
+            RetentionSubject::image(&self.image, &self.entry, &self.project)?,
+            self.image_bytes,
+        )
+    }
+}
+
+impl RetentionReceipt for ImageStoreReceipt {
+    fn retention_observation(&self) -> Result<RetentionObservation> {
+        ImageStoreReceipt::retention_observation(self)
     }
 }
 
@@ -466,6 +486,7 @@ fn identify(image: &ProjectSemanticImage) -> Result<ImageStoreReceipt> {
         entry: location.entry_digest().to_owned(),
         image: image.image_digest().to_owned(),
         project: location.project_revision().to_owned(),
+        image_bytes: image.to_json().len() as u64,
     })
 }
 

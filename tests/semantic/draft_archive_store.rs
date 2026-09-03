@@ -11,8 +11,12 @@
 use semaprax::candidate_archive_store::{load, load_draft, persist, persist_draft};
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
-    with_authenticated_project, ProjectCandidate, ProjectCandidateArchive, ProjectCandidateDraft,
-    ProjectCandidateDraftArchive,
+    persist_semantic_image, with_authenticated_project, ProjectCandidate, ProjectCandidateArchive,
+    ProjectCandidateDraft, ProjectCandidateDraftArchive, ProjectSemanticImage,
+};
+use semaprax::semantic_retention::{
+    checkpoint_receipts, RetentionAuthority, RetentionPolicy, RetentionReceipt,
+    MAX_RETENTION_TOTAL_BYTES,
 };
 use serde_json::json;
 use std::fs;
@@ -292,6 +296,58 @@ fn shared_store_keeps_candidate_and_draft_formats_distinct() {
     );
     assert_eq!(fixture.names().len(), 2);
     assert_eq!(fixture.sources(), sources);
+}
+
+#[test]
+fn real_image_candidate_and_draft_receipts_share_one_authority_neutral_checkpoint() {
+    let fixture = Fixture::new();
+    let image_root = fixture.root.join("images");
+    fs::create_dir(&image_root).unwrap();
+    fs::set_permissions(&image_root, fs::Permissions::from_mode(0o700)).unwrap();
+    let revision = Arc::clone(fixture.base.base_revision());
+    let expected_revision = revision.project_revision().to_owned();
+    let image = ProjectSemanticImage::derive(revision, &expected_revision).unwrap();
+    let image_receipt = persist_semantic_image(&image_root, &image, image.image_digest()).unwrap();
+
+    let candidate_archive =
+        ProjectCandidateArchive::prepare(&fixture.base, fixture.base.candidate_digest()).unwrap();
+    let candidate_receipt = persist(&fixture.store, &candidate_archive).unwrap();
+    let draft_archive = fixture.archive();
+    let draft_receipt = persist_draft(&fixture.store, &draft_archive).unwrap();
+
+    let receipts: [&dyn RetentionReceipt; 3] = [&image_receipt, &candidate_receipt, &draft_receipt];
+    let policy = RetentionPolicy::new(2, MAX_RETENTION_TOTAL_BYTES, 0).unwrap();
+    let transition = checkpoint_receipts(None, None, 1, policy, &receipts).unwrap();
+    let reversed = checkpoint_receipts(
+        None,
+        None,
+        1,
+        policy,
+        &[receipts[2], receipts[1], receipts[0]],
+    )
+    .unwrap();
+
+    assert_eq!(
+        image_receipt.retained_image_bytes(),
+        image.to_json().len() as u64
+    );
+    assert_eq!(
+        transition.checkpoint().to_json(),
+        reversed.checkpoint().to_json()
+    );
+    assert_eq!(transition.plan_json(), reversed.plan_json());
+    assert_eq!(
+        transition.checkpoint().authority(),
+        RetentionAuthority::None
+    );
+    assert_eq!(transition.plan().authority(), RetentionAuthority::None);
+    assert_eq!(transition.checkpoint().retained_subjects().len(), 2);
+    assert_eq!(transition.evicted_subjects().len(), 1);
+    assert!(image_root
+        .join(&image_receipt.entry_digest()["sha256:".len()..])
+        .exists());
+    assert!(fixture.entry(candidate_archive.archive_digest()).exists());
+    assert!(fixture.entry(draft_archive.archive_digest()).exists());
 }
 
 #[test]

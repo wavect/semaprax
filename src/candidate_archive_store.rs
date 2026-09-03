@@ -74,6 +74,11 @@ impl CandidateArchiveStoreReceipt {
         )
     }
 }
+impl semantic_retention::RetentionReceipt for CandidateArchiveStoreReceipt {
+    fn retention_observation(&self) -> Result<RetentionObservation> {
+        CandidateArchiveStoreReceipt::retention_observation(self)
+    }
+}
 
 /// Draft identity only. This receipt carries no completed candidate, store path,
 /// source authority, approval, or reusable filesystem handle.
@@ -108,6 +113,11 @@ impl CandidateDraftArchiveStoreReceipt {
             )?,
             self.stored_bytes,
         )
+    }
+}
+impl semantic_retention::RetentionReceipt for CandidateDraftArchiveStoreReceipt {
+    fn retention_observation(&self) -> Result<RetentionObservation> {
+        CandidateDraftArchiveStoreReceipt::retention_observation(self)
     }
 }
 

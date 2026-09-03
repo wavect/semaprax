@@ -362,6 +362,33 @@ impl RetentionObservation {
     }
 }
 
+/// Authority-neutral metadata emitted by a successful retained-subject store
+/// operation. Implementations expose only a validated typed identity and its
+/// fixed accounting bytes; the trait has no store discovery or mutation API.
+pub trait RetentionReceipt {
+    fn retention_observation(&self) -> Result<RetentionObservation>;
+}
+
+/// Derive one transition from a heterogeneous image/candidate/draft receipt
+/// inventory. Receipt order cannot affect the canonical checkpoint or plan.
+/// This adapter does not persist either output or apply any eviction.
+pub fn checkpoint_receipts(
+    previous: Option<&RetentionCheckpoint>,
+    expected_previous: Option<&str>,
+    sequence: u64,
+    policy: RetentionPolicy,
+    receipts: &[&dyn RetentionReceipt],
+) -> Result<RetentionTransition> {
+    if receipts.len() > MAX_RETENTION_SUBJECTS {
+        return Err(capacity("retention receipt inventory exceeds 96"));
+    }
+    let observations = receipts
+        .iter()
+        .map(|receipt| receipt.retention_observation())
+        .collect::<Result<Vec<_>>>()?;
+    checkpoint(previous, expected_previous, sequence, policy, &observations)
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Entry {
     subject: RetentionSubject,

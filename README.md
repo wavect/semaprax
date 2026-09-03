@@ -114,11 +114,18 @@ semaprax context examples/meaning.spx app.main \
 
 ```sh
 semaprax build examples/calculator.spx --target web \
-  --export calculator.add --export calculator.divide \
+  --export calculator.add --export calculator.subtract \
+  --export calculator.multiply --export calculator.divide \
+  --export calculator.is-negative --export calculator.not \
   -o target/calculator-web
 
-node scripts/verify-web.mjs target/calculator-web
+node scripts/verify-wasm-scalar-exports.mjs target/calculator-web
 ```
+
+The verifier calls the generated bindings by stable ID and prints
+`scalar-exports-v1-ok`. Use `scripts/verify-web.mjs` instead for a package
+built from an `app.main` entry, such as `examples/meaning.spx`; it prints that
+program's result.
 
 The generated JavaScript API uses stable IDs, so a source-level display rename
 does not change the external key. The current boundary is intentionally

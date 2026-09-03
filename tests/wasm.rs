@@ -20,6 +20,8 @@ mod internal_strings_web_v1;
 mod legacy_string_admission_v1;
 #[path = "wasm/owned.rs"]
 mod owned;
+#[path = "wasm/readme_web_package_commands.rs"]
+mod readme_web_package_commands;
 #[path = "wasm/scalar_browser_ci_contract.rs"]
 mod scalar_browser_ci_contract;
 #[path = "wasm/scalar_exports_v1.rs"]

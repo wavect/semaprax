@@ -26,6 +26,17 @@
   admission route that does not compile through WebAssembly, which is a
   profile decision this change deliberately does not make.
 
+- Added one host-selected, session-scoped candidate-test task with deterministic
+  queued start, cooperative evaluator cancellation, sticky terminal outcomes,
+  bounded report paging, exact source/candidate binding, drift/refresh/finish
+  invalidation, ordinary MCP tools, and VS Code Run/Cancel control. Build and
+  publication remain non-cancellable and no MCP Tasks capability is claimed.
+  The packaged TypeScript workflow SDK now exposes closed failure variants and
+  immutable per-call transcripts carrying validated grants, effects, authority,
+  blind spots, and permitted runtime updates. The overall graph-operational
+  programme remains Partial pending real Extension Host task execution,
+  hosted/cross-platform evidence, broader workflows, and representative gates.
+
 - Recorded the public Wasm export surface per profile instead of per backend.
   `tests/backend_type_parity.rs` had one `wasm export` column measured only
   against the Copy-scalar profile, so `usize`, `str`, and `Slice<u8>` read as

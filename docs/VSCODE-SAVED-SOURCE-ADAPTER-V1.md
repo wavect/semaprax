@@ -248,8 +248,10 @@ responses establish intended adapter behavior, not executed compiler or editor
 conformance.
 
 Real editor-host integration, accessibility and platform evidence, richer typed
-constructor UI, broader diagnostic workflows, asynchronous cancellation,
-durable candidate recovery and task-level measurements remain open. This is an
+constructor UI, broader diagnostic workflows, durable candidate recovery and
+task-level measurements remain open. The additive candidate-test task controller
+now supplies explicit Run/Cancel commands through VS Code cancellable progress,
+but real Extension Host execution of that path remains open. This is an
 optional local adapter, not a marketplace release or full programme completion.
 
 `editors/vscode/test/holes-suggestions.test.js` adds authored, unrun mock
@@ -262,3 +264,24 @@ remain outstanding.
 ## Focused Extension Host evidence
 
 [VS Code Host Execution Evidence v1](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V1.md) owns a separate, exact-subject local scenario using a selected provisioned Visual Studio Code Extension Host and freshly built compiler. Its test-only seam is enabled only by `ExtensionMode.Test` and contributes no production command or authority. The exact local subject `2888f84f123b7caa44aa6807388d98f851d4beaf` passed the 50-case standalone controller selection plus the actual Extension Host/compiler typed-rename, verified-diff, and dirty-buffer invalidation scenario. Packaging, manual UI, hosted/cross-platform, typed-hole and diagnostic-repair host execution remain open.
+
+## Candidate test task control
+
+When startup discovery already contains the four host-selected
+`candidate__test-task-*` tools, the extension exposes Run Candidate Tests and
+Cancel Candidate Tests. `tasks.js` validates exact image/project/candidate/task
+bindings, all-false authority, the six blind spots, closed states, report digest,
+and bounded 512 KiB pages before adopting any result. One controller task exists
+per image. Dirty buffers, file/config changes, refresh, stop, epoch change, and
+VS Code progress cancellation invalidate local adoption; explicit cancellation
+still reaches the compiler task before the editor retires it. Late results cannot
+replace current UI state.
+
+The extension cannot enable `candidate_test`, change its policy, schedule build
+or commit, or treat a passing reference report as target/runtime evidence. This
+is the explicit Semaprax lifecycle from
+[Candidate Test Tasks v1](IMAGE-CANDIDATE-TEST-TASKS-V1.md), not the optional MCP
+Tasks capability and not `notifications/cancelled`. The focused Node controller
+suite is local evidence; the prior real Extension Host evidence did not execute
+these commands, so manual UI, accessibility, hosted/cross-platform, and actual
+Extension Host cancellation remain open.

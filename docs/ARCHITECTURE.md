@@ -519,6 +519,16 @@ snapshot/image. Immutable historical candidate handles survive; drafts and
 attempts are cleared on success. The default constructor uses cold source
 recovery; the explicit cache constructors below select reuse strategies.
 
+`image_transport/vnext/test_tasks.rs` owns the one-task session registry and its
+queued/running/terminal lifecycle. It detaches one immutable exact candidate and
+fixed host test policy into a named worker, while the coordinator retains every
+source-authentication and result-release decision. The project candidate layer
+shares replay/report rendering between synchronous and cancellable execution;
+the prepared interpreter supplies the monotonic step-boundary cancellation flag.
+Drift, successful refresh, finish, and drop cancel and join before a late report
+can escape. [Candidate Test Tasks v1](IMAGE-CANDIDATE-TEST-TASKS-V1.md) owns the
+wire shapes, race semantics, authority ledger, and bounds.
+
 The optional `image_transport/vnext/mcp.rs` adapter consumes a configured v5
 session. Its pinned MCP lifecycle and stdio framing delegate semantic calls
 to the ordinary v5 handler, preserving source and publication boundaries.
@@ -527,7 +537,9 @@ input schemas from selected methods. Response capacity is reserved before
 forwarding calls so wrapper escaping cannot hide a completed mutation or
 publication. The CLI shares `workspace_session` startup policy loading between
 ordinary NDJSON and `serve-workspace-mcp`; no client capability becomes authority.
-See [MCP Adapter](IMAGE-MCP-ADAPTER-V1.md) for bounds and unrun evidence.
+Selected candidate-test task methods remain ordinary MCP tools; the adapter does
+not advertise the optional MCP Tasks facility or map `notifications/cancelled`.
+See [MCP Adapter](IMAGE-MCP-ADAPTER-V1.md) for bounds and evidence limits.
 
 Discovery's `clients.rs` retains selected-method request generation and runtime
 validation. Its bounded response normalizer lifts only document-local definitions
@@ -580,8 +592,10 @@ derives a closed source-pair/diff report, lazily retained on that exact candidat
 The v5 `source_review.rs` adapter shares its immutable bytes across bounded
 chunks and detached reads; held-source authentication remains in the coordinator.
 `editors/vscode` supplies an optional explicit-start MCP client and read-only
-virtual diff documents. Its command allowlist excludes build, test and source
-publication even when the selected server host has broader grants. Editor
+virtual diff documents. Its general command allowlist excludes build and source
+publication; the separate candidate-test task controller consumes only the four
+task methods when they already exist in the startup-selected server catalogue.
+Editor
 events invalidate UI state but never authorize or replace source authentication.
 See [Source Review](PROJECT-CANDIDATE-SOURCE-REVIEW-V1.md) and
 [Saved-Source Editor](VSCODE-SAVED-SOURCE-ADAPTER-V1.md).

@@ -72,6 +72,15 @@ semantic-review rejection alone carries the typed transition option
 publication failures carry no transition option. That option is guidance for a
 new host-authorized review session, not an automatic repair or retry.
 
+Every attempted RPC appends one immutable observation with its phase, one-based
+workflow step, request ID, method, decoded-or-failed outcome, and the exact
+validated response contract. The contract carries grants, effect, authority,
+blind spots, and the only permitted runtime update. Ready, published, and
+failure results return these transcripts. Public failures are a closed union of
+application diagnostics, workflow-transition rejection, and
+transport/response uncertainty; only the transport variant retains an opaque
+cause inside that typed boundary.
+
 ## Focused installed-package gate
 
 The ignored integration test

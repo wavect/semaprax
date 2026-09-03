@@ -34,6 +34,7 @@ mod retained_subjects;
 mod review_facets;
 mod source_review;
 pub(super) mod symbol_diagnostics;
+mod test_tasks;
 pub use commit::GitCommitHost;
 pub use mcp::{
     serve_mcp, McpSession, MAX_MCP_REQUEST_BYTES, MAX_MCP_RESPONSE_BYTES, MCP_PROTOCOL_VERSION,
@@ -130,6 +131,10 @@ pub(super) enum Action {
     FunctionInstanceFacet,
     FunctionReferenceExport,
     FunctionReferenceResolve,
+    CandidateTestTaskStart,
+    CandidateTestTaskStatus,
+    CandidateTestTaskCancel,
+    CandidateTestTaskResult,
 }
 
 const REFRESH: Method = Method {
@@ -167,6 +172,7 @@ pub struct VNextSession {
     package_graph: Option<Arc<crate::package_semantic_graph::PackageSemanticGraph>>,
     package_attachment_closed: bool,
     read_batch_workers: Option<usize>,
+    test_tasks: test_tasks::Registry,
 }
 
 impl VNextSession {
@@ -271,6 +277,7 @@ impl VNextSession {
             package_graph: None,
             package_attachment_closed: false,
             read_batch_workers: None,
+            test_tasks: test_tasks::Registry::new(),
         })
     }
 
@@ -406,6 +413,18 @@ impl VNextSession {
                 &failure("SPX-G282", "v5 expected image revision is stale"),
             ));
         }
+        if self.test_tasks.is_active()
+            && !matches!(
+                method.operation,
+                Operation::VNext(Action::Refresh | Action::RefreshPreview)
+            )
+        {
+            if let Err(errors) = self.snapshot.with_authenticated_request(|_| Ok(())) {
+                self.test_tasks.invalidate();
+                self.terminal = true;
+                return Some(error_response(&id, &errors));
+            }
+        }
         let response = match method.operation {
             Operation::VNext(Action::ReadBatch) => {
                 self.read_batch_request(&id, &params, &available)
@@ -413,9 +432,42 @@ impl VNextSession {
             Operation::VNext(Action::Refresh) => self.refresh(&id, &params, false),
             Operation::VNext(Action::RefreshPreview) => self.refresh(&id, &params, true),
             Operation::VNext(Action::Commit) => self.commit_request(&id, method, &params),
+            Operation::VNext(
+                action @ (Action::CandidateTestTaskStart
+                | Action::CandidateTestTaskStatus
+                | Action::CandidateTestTaskCancel
+                | Action::CandidateTestTaskResult),
+            ) => self.test_task_request(&id, action, &params),
             _ => self.ordinary_request(&id, method, &params, &available),
         };
         Some(response)
+    }
+
+    fn test_task_request(
+        &mut self,
+        id: &RequestId,
+        action: Action,
+        params: &Map<String, Value>,
+    ) -> Vec<u8> {
+        let authenticated = self.snapshot.with_authenticated_request(|_| Ok(()));
+        if let Err(errors) = authenticated {
+            self.test_tasks.invalidate();
+            self.terminal = true;
+            return error_response(id, &errors);
+        }
+        let Some(policy) = self.policy.test_policy.as_ref() else {
+            return error_response(
+                id,
+                &failure("SPX-G365", "candidate test task policy is unavailable"),
+            );
+        };
+        match self
+            .test_tasks
+            .request(action, params, &self.image, &self.registry, policy)
+        {
+            Ok(payload) => response(id, &self.image, payload),
+            Err(errors) => error_response(id, &errors),
+        }
     }
 
     fn ordinary_request(
@@ -667,6 +719,7 @@ impl VNextSession {
         match prepared {
             Ok((snapshot, image, frontend, response)) => {
                 if !preview {
+                    self.test_tasks.invalidate();
                     self.snapshot = snapshot;
                     self.image = image;
                     self.frontend = frontend;
@@ -717,6 +770,7 @@ impl VNextSession {
     }
 
     pub fn finish(&mut self) -> Result<(), Vec<Diagnostic>> {
+        self.test_tasks.invalidate();
         let final_check = self.snapshot.with_authenticated_request(|_| Ok(()));
         if self.commit.as_ref().is_some_and(GitCommitHost::is_terminal) {
             let published = self
@@ -783,6 +837,9 @@ fn session_methods(
     methods.extend(dependencies::navigation_methods());
     methods.extend(projections::methods(policy.build_enabled));
     methods.extend(review_facets::methods(policy));
+    if policy.test_policy.is_some() {
+        methods.extend(test_tasks::methods());
+    }
     if policy.candidate_prepare {
         methods.push(retained_subjects::method());
         methods.push(source_review::method());

@@ -17,7 +17,11 @@ request.
 
 This is selected-profile accountability metadata. It does not add fields to
 the frozen `semaprax.image-agent-result.v5` success envelope and must not be
-described as self-description embedded in each wire response.
+described as self-description embedded in each wire response. The packaged
+TypeScript workflow now resolves, validates, and freezes the matching contract
+beside every attempted RPC in its immutable transcript, so its returned
+workflow observations carry authority and blind-spot accountability without
+changing those wire bytes.
 
 ## Closed response contract
 
@@ -63,6 +67,14 @@ still selects the workflow event from its known request and publication state,
 then resolves the corresponding closed transition. A diagnostic code alone
 cannot safely distinguish a definite pre-pivot failure from an uncertain
 post-pivot outcome.
+
+The packaged workflow exposes a closed failure union for application
+diagnostics, workflow-transition rejection, and transport/response uncertainty.
+Only the last variant retains an opaque cause, inside a typed boundary with a
+normalized message. Ready, published, and failure results all retain the
+attempted-call transcript; publication inspection receives the complete publish
+phase transcript. This is package behavior, not a new compiler grant or proof
+that an unobserved call ran.
 
 ## Authority and blind spots
 

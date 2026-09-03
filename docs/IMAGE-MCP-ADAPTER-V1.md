@@ -54,8 +54,10 @@ Repeated or out-of-order initialization does not create another semantic session
 
 Client capability metadata is not authority. The adapter requests no filesystem
 roots, model sampling, elicitation, credentials, tools from the client or remote
-resources. It advertises no resources, prompts, logging, task execution or
-server-initiated requests. Task-augmented requests are not supported. Notifications
+resources. It advertises no resources, prompts, logging, the optional MCP Tasks
+facility, or server-initiated requests. When the host selected candidate tests,
+four ordinary Semaprax task-lifecycle tools can schedule, poll, cancel, and page
+one candidate test; they do not change the advertised MCP capabilities. Notifications
 cannot apply intentions or invoke a semantic tool; the initialized notification
 only advances the adapter lifecycle.
 
@@ -131,8 +133,13 @@ stream failure retain the inner final authentication and its publication-aware
 failure classification through `VNextSessionFailure`; known publication or
 uncertainty is not reported as rollback. Clients must inspect the inner outcome
 and use the existing status/receipt routes instead of blindly retrying a commit.
-There is no request-ID deduplication, cancellation, exactly-once delivery,
-background retry or transactional rollback of a completed operation.
+There is no request-ID deduplication, generic request cancellation,
+`notifications/cancelled`, exactly-once delivery, background retry, or
+transactional rollback of a completed operation. The selected
+`candidate__test-task-cancel` tool is narrower: it forwards the explicit
+Semaprax cooperative task lifecycle defined by
+[Candidate Test Tasks v1](IMAGE-CANDIDATE-TEST-TASKS-V1.md). Build and commit are
+never task-wrapped.
 
 ## Bounds and remaining evidence
 
@@ -162,7 +169,8 @@ workspace loader and old `serve-workspace` route remain covered by their own
 unrun regression suites. Tests, compiler checks, MCP clients and long local
 quality gates were not run in this change.
 
-Independent MCP-client conformance, HTTP transport and authorization, editor
-integration, asynchronous/cancelable scheduling, complete typed report payloads
-and measured workflow improvements remain open. This adapter does not complete
+Independent MCP-client conformance, HTTP transport and authorization, real
+Extension Host task evidence, the optional MCP Tasks facility, general
+concurrent scheduling, complete typed report payloads, and measured workflow
+improvements remain open. This adapter does not complete
 the full graph-operational programme or promote a completion-matrix row.

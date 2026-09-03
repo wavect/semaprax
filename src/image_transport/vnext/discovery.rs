@@ -89,6 +89,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/test-task-start")
+        {
+            instructions.push_str(" With candidate_test, candidate/test-task-start schedules at most one session-scoped cooperative reference-interpreter test task for an exact retained candidate. Poll candidate/test-task-status; candidate/test-task-cancel requests monotonic cancellation and reports whether completion or cancellation is currently terminal; fetch a completed canonical report through bounded candidate/test-task-result chunks. The digest handle binds the starting image, project and candidate and grants no authority. Every poll, cancel and result release reauthenticates held source. Source drift, successful refresh, stream finish or session drop cancels and joins the worker; a late outcome cannot escape an invalidated session. Build and source publication are never task-wrapped or cancellable. This explicit Semaprax tool lifecycle is not MCP notifications/cancelled or a claim of wall-time preemption, scheduling fairness, native/Wasm execution, deployment inspection or external API behavior.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "image/function-instances")
         {
             instructions.push_str(" Use image/function-instances with image_revision and a source generic-function template target to list only its retained concrete instances, including a valid empty inventory. The closed report binds the template's source provenance, exact ordered type arguments and concrete signature counts; each instance carries nine facet handles. Follow next_cursor with the same image, target and page_size. Use image/function-instance-facet with that template target, exact instance_id, facet and handle, keeping those selectors and page_size fixed across pages. page_size is 1 through 128 (default 32), max_bytes is 1024 through 1048576 (default 65536); the ordinary response-envelope bound still applies. Both queries are read-only and eligible for authenticated parallel batches. They do not instantiate new type arguments, create candidates or infer that retained instances are all possible instantiations. Caller facts match concrete call instance identities, and template source spans are provenance rather than executed-site locations. Entry/test instance inventory and template export membership do not prove execution, test coverage or instance export. Facet envelopes are closed and typed, but their heterogeneous item interiors remain explicitly unbundled as semaprax.image-instance-facet-item.v1; full contract/loan/cleanup facts retain their owning compiler format and canonical vector order. Existing image/function-summary and image/facet keep their declared-function selectors and unchanged payload schemas. No execution, dynamic/external caller completeness or source/publication authority is granted.");
@@ -336,7 +342,11 @@ fn method_capability(method: &Method) -> &'static str {
         "workspace/read-batch" => "parallel_read",
         "workspace/retained-subjects" => "candidate_prepare",
         "workspace/refresh" | "workspace/refresh-preview" => "workspace_refresh",
-        "candidate/test" => "candidate_test",
+        "candidate/test"
+        | "candidate/test-task-start"
+        | "candidate/test-task-status"
+        | "candidate/test-task-cancel"
+        | "candidate/test-task-result" => "candidate_test",
         "candidate/build" | "candidate/artifact-delta" | "candidate/analysis-artifact-evidence" => {
             "candidate_build"
         }

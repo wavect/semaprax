@@ -1048,6 +1048,114 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
     if capabilities["methods"].as_array().is_some_and(|methods| {
         methods
             .iter()
+            .any(|method| method == "candidate/test-task-start")
+    }) {
+        let common = || {
+            vec![
+                ("image_revision", digest()),
+                ("project_revision", digest()),
+                ("candidate_revision", digest()),
+                ("task_revision", digest()),
+                ("source_authority", json!({"const":false})),
+                (
+                    "authority",
+                    object(vec![
+                        ("source_write", json!({"const":false})),
+                        ("process", json!({"const":false})),
+                        ("network", json!({"const":false})),
+                        ("target_runtime", json!({"const":false})),
+                        ("publication", json!({"const":false})),
+                    ]),
+                ),
+                (
+                    "blind_spots",
+                    json!({"const":["native_and_wasm_runtime","deployment_configuration",
+                        "generated_artifacts","external_api_behavior","runtime_environment",
+                        "external_consumers"]}),
+                ),
+            ]
+        };
+        let status = |cancel: bool| {
+            let mut fields = common();
+            fields.extend([
+                (
+                    "state",
+                    json!({"enum":["queued","running","completed","cancelled","failed"]}),
+                ),
+                ("terminal", json!({"type":"boolean"})),
+                ("cancellation_requested", json!({"type":"boolean"})),
+                ("report_digest", nullable(digest())),
+                ("passed", nullable(json!({"type":"boolean"}))),
+                ("before_step", nullable(uint())),
+                ("steps_used", nullable(uint())),
+                ("max_steps", uint()),
+                (
+                    "diagnostics",
+                    array(object(vec![
+                        ("code", text()),
+                        ("severity", json!({"enum":["error","warning"]})),
+                        ("message", text()),
+                        ("path", nullable(text())),
+                        (
+                            "location",
+                            nullable(object(vec![
+                                ("line", uint()),
+                                ("column", uint()),
+                                ("start", uint()),
+                                ("end", uint()),
+                            ])),
+                        ),
+                        ("help", nullable(text())),
+                    ])),
+                ),
+            ]);
+            if cancel {
+                fields.push(("cancel_observed", json!({"const":true})));
+            }
+            fields
+        };
+        result.insert(
+            "urn:semaprax.image-candidate-test-task-start.v1".into(),
+            document("semaprax.image-candidate-test-task-start.v1", status(false)),
+        );
+        result.insert(
+            "urn:semaprax.image-candidate-test-task-status.v1".into(),
+            document(
+                "semaprax.image-candidate-test-task-status.v1",
+                status(false),
+            ),
+        );
+        result.insert(
+            "urn:semaprax.image-candidate-test-task-cancel.v1".into(),
+            document("semaprax.image-candidate-test-task-cancel.v1", status(true)),
+        );
+        let mut result_fields = common();
+        result_fields.extend([
+            (
+                "report_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_TEST_REPORT_SCHEMA}),
+            ),
+            ("report_digest", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            (
+                "chunk",
+                json!({"type":"string","maxLength":524288,"x-max-utf8-bytes":524288}),
+            ),
+            ("next_offset", nullable(uint())),
+            ("complete", json!({"type":"boolean"})),
+        ]);
+        result.insert(
+            "urn:semaprax.image-candidate-test-task-result-chunk.v1".into(),
+            document(
+                "semaprax.image-candidate-test-task-result-chunk.v1",
+                result_fields,
+            ),
+        );
+    }
+    if capabilities["methods"].as_array().is_some_and(|methods| {
+        methods
+            .iter()
             .any(|method| method == "candidate/function-summary")
     }) {
         result.extend(candidate_function_schemas::documents());

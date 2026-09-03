@@ -45,5 +45,7 @@ mod nominal_rename;
 mod openapi_artifacts;
 #[path = "image_transport_v5/ownership_delta.rs"]
 mod ownership_delta;
+#[path = "image_transport_v5/test_tasks.rs"]
+mod test_tasks;
 #[path = "image_transport_v5/workspace.rs"]
 mod workspace;

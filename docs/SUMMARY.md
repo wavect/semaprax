@@ -104,6 +104,7 @@ Audience: all documentation readers.
 - [Host-selected Parallel Read Protocol v1](IMAGE-READ-BATCH-PROTOCOL-V1.md)
 - [Source-checked Typed-hole Fill Suggestions v1](PROJECT-HOLE-FILL-SUGGESTIONS-V1.md)
 - [Semantic Workspace MCP Adapter v1](IMAGE-MCP-ADAPTER-V1.md)
+- [Candidate Test Tasks v1](IMAGE-CANDIDATE-TEST-TASKS-V1.md)
 - [Agent Discovery and Typed Clients v5](IMAGE-AGENT-DISCOVERY-V5.md)
 - [Typed Workspace Response Clients v1](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md)
 - [Typed Workspace Request Clients v1](IMAGE-TYPED-REQUEST-CLIENTS-V1.md)

@@ -148,8 +148,9 @@ compiler and plan projection diagnostics may propagate unchanged.
 
 `tests/project_candidate/ownership_delta.rs` owns focused library evidence;
 `tests/image_transport_v5/ownership_delta.rs` covers the v5 surface. Cases are
-authored and unrun. No tests, compiler checks, interpreter, target executable or
-long local quality gate was run for this batch, and no completion row is promoted.
+authored and unrun. A library-only `cargo check` passed; no tests, interpreter,
+target executable or long local quality gate was run for this batch, and no
+completion row is promoted.
 
 General ownership/lifetime reasoning, ABI compatibility classification,
 reverse field-to-obligation queries, physical settlement, runtime equivalence,

@@ -20,6 +20,31 @@
   accepts it, and a gate parses the documented commands out of the README and
   runs them.
 
+- Added a candidate-bound ABI delta that compares manifest-selected callable
+  signatures, reachable concrete record/variant shapes, checked type facts and
+  already-retained native/Wasm structural projections. Exact verification
+  replays the candidate; compatibility, runtime, deployment and external
+  consumers remain explicitly unassessed. Regressions are authored and unrun.
+
+- Extended ownership deltas with explicit source-nominal rows, ordered member
+  identities, resolved types and available checked Copy/drop/resource/layout
+  facts. Generic and unsupported/incomplete type closures remain explicitly
+  unavailable rather than receiving inferred facts. Regressions are authored
+  and unrun.
+
+- Extended the package-consumer migration proposal with one exact authenticated
+  `own Bytes` to `borrow Slice<u8>` provider and caller transition. Calls stage
+  the original bare owner before deriving its view, preserve ordinary cleanup,
+  and require complete candidate-era package replay; discovery, writes and
+  compatibility remain outside the artifact. Regressions are authored and
+  unrun.
+
+- Added bounded `add_variant_case` for one appended owning `Bytes` case on an
+  eligible originally Copy variant. Exact old member prefixes and checked
+  Copy-to-needs-drop facts survive replay and conservative rebase; String
+  variants, handler synthesis and ABI compatibility remain unsupported.
+  Regressions are authored and unrun.
+
 - Known commands that reject invalid arguments now point directly to their
   scoped `--help` usage. Recovery hints respect the standalone/full-toolchain
   capability boundary and leave unknown-command diagnostics unchanged.

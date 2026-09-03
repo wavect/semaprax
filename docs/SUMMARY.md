@@ -11,6 +11,7 @@ Audience: all documentation readers.
 - [Quickstart](QUICKSTART.md)
 - [Using the SEMAPRAX CLI](CLI-GUIDE.md)
 - [Language tour](LANGUAGE-TOUR.md)
+- [Agent quick reference](AGENT-QUICK-REFERENCE.md)
 - [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
 - [Capability-aware CLI help](CLI-HELP-V1.md)
 - [Capability-aware CLI typo guidance](CLI-HELP-V2.md)

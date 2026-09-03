@@ -130,8 +130,11 @@ git diff --check
 cargo test --locked -p semaprax --test documentation --test examples
 ```
 
-`tests/documentation.rs` checks local Markdown links recursively. The docs
-workflow builds the mdBook using the pinned version in
+`tests/documentation.rs` checks local Markdown links recursively, that every
+tour code block is a verbatim example excerpt, and that every SEMAPRAX block in
+the [agent quick reference](AGENT-QUICK-REFERENCE.md) either verifies cleanly in
+canonical form or produces exactly the diagnostic code its marker names. The
+docs workflow builds the mdBook using the pinned version in
 `.github/workflows/docs.yml`.
 
 If documentation changes a technical claim, run the evidence that owns that

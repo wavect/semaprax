@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Added the compiler-checked [agent quick reference](docs/AGENT-QUICK-REFERENCE.md):
+  one page of admitted language shapes, the compiler-owned function table, the
+  diagnostics that habits from other languages trigger with their fixes, and
+  measured guidance on when `graph`, `context`, or the source itself is the
+  cheapest representation. `tests/documentation.rs` checks every SEMAPRAX block
+  on the page: unmarked blocks must verify cleanly and already be canonical, and
+  marked blocks must produce exactly the named diagnostic code. `AGENTS.md` and
+  the documentation index route agents to it before the tour.
+
 - Added an authority-free Project-v8 C++ owned-data package derived from the
   exact replayed public descriptor and existing native provider. Its bounded
   C11 boundary and thread-bound, noncopyable C++17 wrapper enforce cumulative

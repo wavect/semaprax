@@ -243,3 +243,145 @@ fn markdown_targets(source: &str) -> Vec<&str> {
     }
     targets
 }
+
+mod agent_quick_reference {
+    //! Every `semaprax` block in the agent quick reference is a complete module
+    //! the compiler agrees with. An unmarked block verifies without diagnostics
+    //! and is already canonical, so an agent that copies it never pays for a
+    //! `fmt` or `check` round trip. A block preceded by
+    //! `<!-- expect: SPX-XNNN -->` must produce exactly that diagnostic code, so
+    //! the page's "what the compiler says" claims cannot drift from the parser
+    //! and verifier.
+
+    use std::path::Path;
+
+    use semaprax::{format, parse, verify};
+
+    const REFERENCE: &str = "docs/AGENT-QUICK-REFERENCE.md";
+    const FENCE: &str = "```semaprax";
+    const MARKER_PREFIX: &str = "<!-- expect: ";
+    const MARKER_SUFFIX: &str = " -->";
+
+    struct Block {
+        line: usize,
+        source: String,
+        expect: Option<String>,
+    }
+
+    fn blocks() -> Vec<Block> {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(REFERENCE);
+        let text = std::fs::read_to_string(&path)
+            .unwrap()
+            .replace("\r\n", "\n");
+        let lines = text.lines().collect::<Vec<_>>();
+        let mut blocks = Vec::new();
+        let mut index = 0usize;
+        while index < lines.len() {
+            if lines[index].trim() != FENCE {
+                index += 1;
+                continue;
+            }
+            let mut cursor = index;
+            while cursor > 0 && lines[cursor - 1].trim().is_empty() {
+                cursor -= 1;
+            }
+            let expect = cursor
+                .checked_sub(1)
+                .map(|previous| lines[previous].trim())
+                .and_then(|line| {
+                    line.strip_prefix(MARKER_PREFIX)?
+                        .strip_suffix(MARKER_SUFFIX)
+                        .map(str::to_owned)
+                });
+            let start = index + 1;
+            let mut end = start;
+            while end < lines.len() && lines[end].trim_end() != "```" {
+                end += 1;
+            }
+            assert!(
+                end < lines.len(),
+                "{REFERENCE} line {}: unterminated {FENCE} block",
+                index + 1
+            );
+            let mut source = lines[start..end].join("\n");
+            source.push('\n');
+            blocks.push(Block {
+                line: index + 1,
+                source,
+                expect,
+            });
+            index = end + 1;
+        }
+        blocks
+    }
+
+    #[test]
+    fn unmarked_blocks_verify_cleanly_and_are_canonical() {
+        let mut checked = 0usize;
+        for block in blocks().into_iter().filter(|block| block.expect.is_none()) {
+            let path = format!("agent-quick-reference-{}.spx", block.line);
+            let program = parse(&block.source, Path::new(&path)).unwrap_or_else(|diagnostic| {
+                panic!(
+                    "{REFERENCE} line {}: block does not parse: {diagnostic}",
+                    block.line
+                )
+            });
+            let diagnostics = verify::verify(&program);
+            assert!(
+                diagnostics.is_empty(),
+                "{REFERENCE} line {}: block must verify without diagnostics, found {:?}",
+                block.line,
+                diagnostics
+                    .iter()
+                    .map(|diagnostic| diagnostic.to_string())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                format::canonical(&program),
+                block.source,
+                "{REFERENCE} line {}: block is not canonical; paste the formatter output",
+                block.line
+            );
+            checked += 1;
+        }
+        assert!(
+            checked >= 5,
+            "{REFERENCE} must keep at least five verified clean modules, found {checked}"
+        );
+    }
+
+    #[test]
+    fn marked_blocks_produce_exactly_the_named_diagnostic() {
+        let mut checked = 0usize;
+        for block in blocks() {
+            let Some(expected) = block.expect.as_deref() else {
+                continue;
+            };
+            let path = format!("agent-quick-reference-{}.spx", block.line);
+            let codes = match parse(&block.source, Path::new(&path)) {
+                Err(diagnostic) => vec![diagnostic.code.to_owned()],
+                Ok(program) => verify::verify(&program)
+                    .into_iter()
+                    .filter(|diagnostic| diagnostic.severity.is_error())
+                    .map(|diagnostic| diagnostic.code.to_owned())
+                    .collect(),
+            };
+            assert!(
+                !codes.is_empty(),
+                "{REFERENCE} line {}: block is marked `expect: {expected}` but verifies",
+                block.line
+            );
+            assert!(
+                codes.iter().all(|code| code == expected),
+                "{REFERENCE} line {}: block is marked `expect: {expected}` but produced {codes:?}; \
+                 a habit example must demonstrate one diagnostic",
+                block.line
+            );
+            checked += 1;
+        }
+        assert!(
+            checked >= 5,
+            "{REFERENCE} must keep at least five diagnostic demonstrations, found {checked}"
+        );
+    }
+}

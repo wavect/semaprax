@@ -45,7 +45,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     const MCP_LINE: &str = "semaprax serve-workspace-mcp <manifest> <host-policy.json>\n";
     assert_eq!(current.matches(MCP_LINE).count(), 1);
     current = current.replacen(MCP_LINE, "", 1);
-    const CACHE_LINES: [&str; 4] = [
+    const CACHE_LINES: [&str; 5] = [
         "semaprax semantic-cache-init <store-root>\n",
         "semaprax semantic-cache-persist <manifest> <store-root>\n",
         "semaprax semantic-cache-load <store-root> <entry-digest>\n",

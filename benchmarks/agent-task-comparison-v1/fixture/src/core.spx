@@ -1,0 +1,21 @@
+module benchmark.core;
+
+@id("benchmark.add")
+fn add(left: i64, right: i64) -> i64
+    requires right >= 0
+    ensures result == left + right
+{
+    left + right
+}
+
+@id("benchmark.local-add")
+fn local_add() -> i64
+{
+    add(6 / 2, 8 / 2)
+}
+
+@id("benchmark.subtract")
+fn subtract(left: i64, right: i64) -> i64
+{
+    left - right
+}

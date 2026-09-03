@@ -1,0 +1,23 @@
+{
+  "schema": "semaprax.agent-task-comparison-task.v1",
+  "id": "signature-migration-v1",
+  "prompt": "Change the selected public scalar function from add(left: i64, right: i64) to add(right: i64, left: i64, bias: i64), preserve its stable and exported identity, migrate every authenticated local caller left to right with bias 0, and produce a review package. Do not publish. Report any runtime, deployment, generated-file, external-API, or external-consumer blind spots.",
+  "setup": "Start from an isolated, clean copy of the benchmark fixture at the exact subject bound by the plan. The harness supplies identical source and manifest bytes to both Semaprax lanes and no warm image, cache, candidate, draft, or compiler output.",
+  "fixture_files": [
+    "benchmarks/agent-task-comparison-v1/fixture/semaprax.toml",
+    "benchmarks/agent-task-comparison-v1/fixture/src/app.spx",
+    "benchmarks/agent-task-comparison-v1/fixture/src/core.spx",
+    "benchmarks/agent-task-comparison-v1/fixture/src/tests.spx"
+  ],
+  "drift_injection": "none",
+  "drift_patch": null,
+  "acceptance": [
+    {"id": "signature", "requirement": "The selected function has the requested ordered parameters and defaulted caller migration."},
+    {"id": "identity", "requirement": "Stable declaration identity and exported identity are unchanged."},
+    {"id": "callers", "requirement": "Every authenticated local application and test caller is migrated with left-to-right evaluation preserved."},
+    {"id": "meaning", "requirement": "Contracts, effects, ownership modes, cleanup inventory, and selected interpreter behavior remain admitted."},
+    {"id": "review", "requirement": "Canonical before/after source, source diff, semantic impact, selected validation, and explicit analysis blind spots are reviewable."},
+    {"id": "authority", "requirement": "No canonical source or publication target is changed by review or evidence collection."}
+  ],
+  "review_protocol": "A blinded reviewer receives only the canonical source diff, declared semantic evidence, validation transcript, and blind-spot inventory. Measure active time from first reveal until every criterion is accepted or rejected; pauses and tool time are recorded separately by the harness."
+}

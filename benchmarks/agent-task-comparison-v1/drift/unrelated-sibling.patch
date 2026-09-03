@@ -1,0 +1,10 @@
+diff --git a/src/core.spx b/src/core.spx
+--- a/src/core.spx
++++ b/src/core.spx
+@@ -18,5 +18,5 @@ fn local_add() -> i64
+ @id("benchmark.subtract")
+ fn subtract(left: i64, right: i64) -> i64
+ {
+-    left - right
++    left + -right
+ }

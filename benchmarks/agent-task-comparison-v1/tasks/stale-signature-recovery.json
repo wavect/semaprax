@@ -1,0 +1,23 @@
+{
+  "schema": "semaprax.agent-task-comparison-task.v1",
+  "id": "stale-signature-recovery-v1",
+  "prompt": "Change the selected public scalar function from add(left: i64, right: i64) to add(right: i64, left: i64, bias: i64), preserve its stable and exported identity, migrate every authenticated local caller left to right with bias 0, recover safely if the source changes, and produce a review package. Do not publish. Report any runtime, deployment, generated-file, external-API, or external-consumer blind spots.",
+  "setup": "Start from an isolated, clean copy of the benchmark fixture at the exact subject bound by the plan. The harness supplies identical source and manifest bytes to both Semaprax lanes and no warm image, cache, candidate, draft, or compiler output.",
+  "fixture_files": [
+    "benchmarks/agent-task-comparison-v1/fixture/semaprax.toml",
+    "benchmarks/agent-task-comparison-v1/fixture/src/app.spx",
+    "benchmarks/agent-task-comparison-v1/fixture/src/core.spx",
+    "benchmarks/agent-task-comparison-v1/fixture/src/tests.spx"
+  ],
+  "drift_injection": "After the first inspection that can identify the selected function, the harness makes the same unrelated, canonical, stable-ID-preserving sibling-body edit in both lanes. It records the injection before allowing the next agent action. The agent must detect or encounter staleness and retain both changes without silently overwriting either.",
+  "drift_patch": "benchmarks/agent-task-comparison-v1/drift/unrelated-sibling.patch",
+  "acceptance": [
+    {"id": "stale-detection", "requirement": "The pre-injection working state is not treated as current after the harness edit."},
+    {"id": "recovery", "requirement": "The requested signature work and the injected unrelated edit are both retained through an explicit recovery action."},
+    {"id": "signature", "requirement": "The selected function and every authenticated local caller have the requested admitted mapping."},
+    {"id": "identity", "requirement": "Stable declaration identity and exported identity are unchanged."},
+    {"id": "review", "requirement": "Canonical before/after source, source diff, semantic impact, selected validation, and explicit analysis blind spots are reviewable."},
+    {"id": "authority", "requirement": "No canonical source or publication target is changed by review, recovery, or evidence collection."}
+  ],
+  "review_protocol": "A blinded reviewer receives only the canonical source diff, declared semantic evidence, validation transcript, blind-spot inventory, and stale-recovery transcript. Measure active time from first reveal until every criterion is accepted or rejected; pauses and tool time are recorded separately by the harness."
+}

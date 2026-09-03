@@ -1,0 +1,42 @@
+{
+  "schema": "semaprax.agent-task-comparison-manifest.v1",
+  "id": "semaprax-source-authority-comparison-v1",
+  "repetitions": 3,
+  "tasks": [
+    "benchmarks/agent-task-comparison-v1/tasks/signature-migration.json",
+    "benchmarks/agent-task-comparison-v1/tasks/stale-signature-recovery.json"
+  ],
+  "lanes": [
+    {
+      "id": "semaprax-graph-operational",
+      "system": "semaprax",
+      "mode": "verified-image-and-typed-intent",
+      "subject": "repository-head-resolved-by-plan",
+      "availability": "available",
+      "instructions": "Use only the selected graph-operational profile for semantic inspection, candidate construction, validation, review export, and any separately approved publication."
+    },
+    {
+      "id": "semaprax-source-first",
+      "system": "semaprax",
+      "mode": "canonical-source-and-conventional-compiler",
+      "subject": "repository-head-resolved-by-plan",
+      "availability": "available",
+      "instructions": "Use canonical source reads and edits plus ordinary compiler or language-server feedback; do not use semantic workspace, candidate, draft, graph, context, or generated workflow APIs."
+    },
+    {
+      "id": "zero-graph-native",
+      "system": "zero",
+      "mode": "official-graph-query-and-checked-patch",
+      "subject": "vercel-labs/zerolang@eb2ed6c22fe3f6e3152efa0c0d05ffcf1ff4a2c7",
+      "availability": "external_unrun",
+      "instructions": "Reserved for an independently provisioned Zero adapter and semantically equivalent corpus port. No Zero command, result, or parity claim is present in this repository."
+    }
+  ],
+  "pairing": {
+    "same_model": true,
+    "same_prompt": true,
+    "same_task": true,
+    "same_trial": true,
+    "state": "cold"
+  }
+}

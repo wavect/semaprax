@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "agent-task-comparison"
+entry = "benchmark.app"
+sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+web_exports = ["benchmark.add"]
+tests = ["benchmark.tests"]

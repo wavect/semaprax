@@ -1,0 +1,8 @@
+module benchmark.app;
+use function @id("benchmark.add") from benchmark.core as add;
+
+@id("benchmark.app.main")
+fn main() -> i64
+{
+    add(19, 23)
+}

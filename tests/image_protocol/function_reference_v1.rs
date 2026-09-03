@@ -105,10 +105,21 @@ fn private_helper() -> i64
         let parsed = semaprax::parse(&changed, "src/app.spx").unwrap();
         std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
     }
-    fn make_private_identity_automatic(&self) {
+    /// Retire the helper's stable identity so the destination no longer carries
+    /// the reference target.
+    ///
+    /// Web Scalar Exports v1 requires every function in the program to have an
+    /// explicit persistent ID, so dropping the attribute entirely would make the
+    /// project inadmissible before the rebind under test could run. Re-identify
+    /// it instead: the target is equally absent from the destination.
+    fn make_private_identity_absent(&self) {
         let path = self.0.join("src/core.spx");
         let source = std::fs::read_to_string(&path).unwrap();
-        let changed = source.replacen("@id(\"calculator.private\")\n", "", 1);
+        let changed = source.replacen(
+            "@id(\"calculator.private\")",
+            "@id(\"calculator.retired\")",
+            1,
+        );
         assert_ne!(changed, source);
         let parsed = semaprax::parse(&changed, "src/core.spx").unwrap();
         std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
@@ -283,7 +294,7 @@ fn absent_destination_stable_identity_returns_a_closed_rejection_without_rebindi
     let reference = source
         .export_function_reference(source.image_digest(), PRIVATE_TARGET, None)
         .unwrap();
-    fixture.make_private_identity_automatic();
+    fixture.make_private_identity_absent();
     let destination = fixture.image();
     let report = rebind(&destination, &source, &reference);
 

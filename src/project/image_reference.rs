@@ -264,7 +264,15 @@ impl ProjectSemanticImage {
         let destination_revision = self.revision();
         let same_configuration = source_revision.manifest().to_canonical_toml()
             == destination_revision.manifest().to_canonical_toml()
-            && source_revision.workspace_manifest() == destination_revision.workspace_manifest();
+            && match (
+                workspace_configuration(source_revision.workspace_manifest()),
+                workspace_configuration(destination_revision.workspace_manifest()),
+            ) {
+                (Some(source), Some(destination)) => source == destination,
+                // An unreadable workspace manifest is not evidence of an equal
+                // configuration.
+                _ => false,
+            };
 
         let rejection = if source_image.image_digest() == self.image_digest() {
             Some((
@@ -378,6 +386,24 @@ enum FunctionSelection<'a> {
 
 struct FunctionIdentity<'a> {
     module: &'a WorkspaceGraphProjectionModule,
+}
+
+/// The workspace configuration a cross-revision rebind must find unchanged.
+///
+/// The workspace semantic manifest carries a per-file source revision, digest
+/// and byte count, all of which necessarily move with any edit. Rebinding
+/// exists precisely for edited sources, so comparing the manifest whole would
+/// reject every case the route exists to serve. Compare the inventory those
+/// files describe instead: their paths and graph schemas.
+fn workspace_configuration(manifest: &str) -> Option<Value> {
+    let mut value: Value = serde_json::from_str(manifest).ok()?;
+    for file in value.get_mut("files")?.as_array_mut()? {
+        let file = file.as_object_mut()?;
+        file.remove("source_revision");
+        file.remove("source_digest");
+        file.remove("bytes");
+    }
+    Some(value)
 }
 
 fn explicit_function<'a>(

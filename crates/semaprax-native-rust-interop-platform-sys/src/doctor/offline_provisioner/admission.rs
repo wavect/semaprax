@@ -434,12 +434,17 @@ mod tests {
 
     #[test]
     fn descriptor_scan_rejects_a_foreign_live_descriptor() {
-        let extra = unsafe { libc::dup(0) };
+        // Take a descriptor above the fixed inventory rather than the lowest
+        // free one: the harness's own descriptor count decides whether `dup`
+        // lands inside the admitted range, which left this rejection resting on
+        // the environment. `F_DUPFD_CLOEXEC` allocates at or above the floor
+        // without displacing anything the harness already holds.
+        let extra = unsafe { libc::fcntl(0, libc::F_DUPFD_CLOEXEC, PROC_FD + 1) };
         if extra < 0 {
             return;
         }
-        // The current test process intentionally violates the production fixed
-        // inventory, whether or not Cargo itself already owns other descriptors.
+        // The current test process now intentionally violates the production
+        // fixed inventory.
         let directory = unsafe {
             libc::open(
                 c"/proc/self/fd".as_ptr(),

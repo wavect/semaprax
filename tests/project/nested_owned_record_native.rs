@@ -86,14 +86,24 @@ fn unique(label: &str) -> PathBuf {
     ))
 }
 
+/// Resolve a held tool exactly as the Project v8 evidence beside it does.
+///
+/// The publication authority holds a prepared tool image, so a configured
+/// `/usr/bin/clang` that is a symlink to the versioned binary is refused. Both
+/// the configured value and the fallbacks are canonicalized before use.
 fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
-    if let Some(path) = std::env::var_os(variable).map(PathBuf::from) {
-        assert!(path.is_absolute() && path.is_file(), "invalid {variable}");
-        return path;
+    if let Some(configured) = std::env::var_os(variable)
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute() && path.is_file())
+    {
+        if let Ok(canonical) = configured.canonicalize() {
+            return canonical;
+        }
     }
     candidates
         .iter()
         .map(PathBuf::from)
+        .filter_map(|path| path.canonicalize().ok())
         .find(|path| path.is_absolute() && path.is_file())
         .unwrap_or_else(|| panic!("{variable} must name an installed absolute tool"))
 }

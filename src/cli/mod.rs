@@ -3,6 +3,7 @@ pub(crate) mod candidate_archive;
 pub(crate) mod candidate_git;
 pub(crate) mod draft_archive;
 pub(crate) mod execution;
+pub(crate) mod fmt;
 pub(crate) mod help;
 pub(crate) mod package_lock;
 pub(crate) mod package_resolver;

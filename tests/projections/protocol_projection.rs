@@ -184,6 +184,29 @@ fn canonical_formatting_round_trips_protocols() {
 }
 
 #[test]
+fn malformed_fmt_options_reject_before_reading_or_rewriting_source() {
+    let path = write_temp(FIXTURE_SOURCE);
+    let path_text = path.to_str().unwrap();
+    for arguments in [
+        vec!["fmt", path_text, "extra"],
+        vec!["fmt", path_text, "--unknown"],
+        vec!["fmt", path_text, "--check", "--check"],
+        vec!["fmt", "--check", path_text],
+    ] {
+        let before = std::fs::read(&path).unwrap();
+        let (status, stdout, stderr) = cli(&arguments);
+        assert_eq!(status, 2, "{arguments:?}");
+        assert!(stdout.is_empty(), "{arguments:?}");
+        assert!(
+            stderr.starts_with("fmt requires exactly") || stderr.starts_with("unknown fmt option"),
+            "{arguments:?}: {stderr}"
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), before, "{arguments:?}");
+    }
+    cleanup(&path);
+}
+
+#[test]
 fn digest_tampering_fails_closed() {
     let path = write_temp(FIXTURE_SOURCE);
     let envelope = protocol_check::generate(&path, &ProtocolCheckOptions::default()).unwrap();

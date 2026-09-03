@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Closed the `fmt <file> [--check]` command grammar. Unknown options, duplicate
+  `--check`, misplaced flags, and extra operands now reject with status 2
+  before the formatter reads or rewrites the source file.
+
 - Added candidate generic-template display renames with exact retained-instance
   preservation. The compiler authenticates the source template and bounded
   concrete instance inventory before mutation, migrates stable-ID-bound local
@@ -58,7 +62,6 @@
   operation, so request frames cannot select a root or trigger a checkpoint;
   wire-owned automatic storage remains open. Regressions are authored and
   unrun.
-
 - Added an authority-free task-economics normalizer over exact caller-supplied
   paired observation bytes. It authenticates the existing observation-v1
   envelopes, complete metric and evidence-reference inventories and paired

@@ -676,18 +676,18 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             project_execution_held("test", manifest_path, &options)
         }
         CommandId::Fmt => {
-            let path = required_path(&args, 1)?;
-            let check_only = args.iter().any(|arg| arg == "--check");
+            let options = cli::fmt::parse(&args[1..])?;
+            let path = options.path;
             let source = std::fs::read_to_string(&path).map_err(|error| {
                 eprintln!("cannot read {}: {error}", path.display());
                 1
             })?;
             let program = parse(&source, &path).map_err(|error| report(&[error], false))?;
             let canonical = format::canonical(&program);
-            if check_only && source != canonical {
+            if options.check && source != canonical {
                 eprintln!("{} is not canonically formatted", path.display());
                 Err(1)
-            } else if check_only {
+            } else if options.check {
                 Ok(())
             } else {
                 std::fs::write(&path, canonical).map_err(|error| {

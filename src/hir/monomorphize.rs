@@ -304,12 +304,35 @@ pub(super) fn materialize_template_expr(
         ResolvedExprKind::Usize(value) => ResolvedExprKind::Usize(*value),
         ResolvedExprKind::ArrayU8(_)
         | ResolvedExprKind::RepeatArrayU8 { .. }
-        | ResolvedExprKind::BorrowPlace { .. }
         | ResolvedExprKind::ByteRange { .. }
         | ResolvedExprKind::HostCommandCall(_) => {
             return Err(hir_error(
                 "generic template uses portable byte data outside the generic slice",
             ));
+        }
+        // The rooted owned-String view is the one byte view inside the generic
+        // slice. It carries no projection, so materialization only remaps the
+        // storage root; every other byte operation and every projected place
+        // stays outside.
+        ResolvedExprKind::BorrowPlace { operation, place } => {
+            if crate::byte_ops::by_id(operation.as_str())
+                != Some(crate::byte_ops::ByteOp::StringAsStr)
+                || !place.projections.is_empty()
+            {
+                return Err(hir_error(
+                    "generic template uses portable byte data outside the generic slice",
+                ));
+            }
+            ResolvedExprKind::BorrowPlace {
+                operation: operation.clone(),
+                place: Place {
+                    root: values
+                        .get(&place.root)
+                        .cloned()
+                        .ok_or_else(|| hir_error("generic template place is out of scope"))?,
+                    projections: Vec::new(),
+                },
+            }
         }
         ResolvedExprKind::Float32(bits) => ResolvedExprKind::Float32(*bits),
         ResolvedExprKind::Float64(bits) => ResolvedExprKind::Float64(*bits),

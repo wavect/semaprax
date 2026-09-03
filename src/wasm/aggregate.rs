@@ -7343,13 +7343,26 @@ impl Emitter<'_> {
     }
 }
 
+/// Acyclic Nested Owned-Byte Records v1 admits a `bytes_as_slice` borrow of a
+/// transitive `Bytes` leaf through a stable field-ID path. Such a path enters
+/// each owning record declaration at most once, so a field ID cannot repeat
+/// along it: a repeated or variant projection is a forged path, not a deeper
+/// legal one, and stays rejected here.
 fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir::Place) -> bool {
-    place.projections.is_empty()
-        || (operation.as_str() == crate::byte_ops::BYTES_AS_SLICE_ID
-            && place
-                .projections
-                .iter()
-                .all(|item| matches!(item, crate::hir::PlaceProjection::Field(_))))
+    if place.projections.is_empty() {
+        return true;
+    }
+    let mut walked: Vec<&DeclarationId> = Vec::with_capacity(place.projections.len());
+    for item in &place.projections {
+        let crate::hir::PlaceProjection::Field(field) = item else {
+            return false;
+        };
+        if walked.contains(&field) {
+            return false;
+        }
+        walked.push(field);
+    }
+    operation.as_str() == crate::byte_ops::BYTES_AS_SLICE_ID
 }
 
 fn value_type(value: &Value) -> &ResolvedType {

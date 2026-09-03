@@ -1288,6 +1288,7 @@ impl<'a> HirValidator<'a> {
                 if instance.is_some()
                     || !type_arguments.is_empty()
                     || (crate::string_ops::by_id(callee.as_str()).is_none()
+                        && crate::str_ops::by_id(callee.as_str()).is_none()
                         && self
                             .program
                             .functions
@@ -1355,7 +1356,10 @@ impl<'a> HirValidator<'a> {
                             {
                                 return Err(hir_error("generic template binding is not canonical"));
                             }
-                            if binding.ty != ResolvedType::Char {
+                            // Char and the rooted `str` view are admitted body
+                            // types but never signature slots, exactly as in
+                            // the expression check above.
+                            if binding.ty != ResolvedType::Char && binding.ty != ResolvedType::Str {
                                 self.validate_function_template_type(template, &binding.ty)?;
                             }
                             self.insert_value(&binding.id)?;
@@ -1427,10 +1431,22 @@ impl<'a> HirValidator<'a> {
                     "generic template expression is outside the direct-scalar slice",
                 ));
             }
-            ResolvedExprKind::BorrowPlace { .. } => {
-                return Err(hir_error(
-                    "generic template byte view is outside the direct-scalar slice",
-                ));
+            ResolvedExprKind::BorrowPlace { operation, place } => {
+                // The one admitted template view is the rooted owned-String
+                // view, mirroring the reference validator's "one unprojected
+                // named storage root" rule for `ByteOp::StringAsStr`. Every
+                // projected byte-field view, every other byte operation, and
+                // every other result type stays outside the slice.
+                if crate::byte_ops::by_id(operation.as_str())
+                    != Some(crate::byte_ops::ByteOp::StringAsStr)
+                    || !place.projections.is_empty()
+                    || values.get(&place.root) != Some(&ResolvedType::String)
+                    || expression.ty != ResolvedType::Str
+                {
+                    return Err(hir_error(
+                        "generic template byte view is outside the direct-scalar slice",
+                    ));
+                }
             }
             ResolvedExprKind::HostCommandCall(_) => {
                 return Err(hir_error(

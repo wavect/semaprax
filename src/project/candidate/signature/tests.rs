@@ -90,8 +90,8 @@ fn reordered_copy_parameters_preserve_value_and_stage_all_original_arguments() {
 fn borrowed_views_reorder_and_rename_without_copying_or_escaping_the_loan() {
     let mut programs = vec![program(
         r#"module test.signature;
-@id("math.select") fn select(left: borrow Slice<u8>, right: borrow Slice<u8>) -> i64 { byte_len(left) * 10 + byte_len(right) }
-@id("math.forward") fn forward(first: borrow Slice<u8>, second: borrow Slice<u8>) -> i64 { select(first, second) }
+@id("math.select") fn select(left: borrow Slice<u8>, right: borrow Slice<u8>) -> usize { byte_len(left) * 10usize + byte_len(right) }
+@id("math.forward") fn forward(first: borrow Slice<u8>, second: borrow Slice<u8>) -> usize { select(first, second) }
 @id("app.main") fn main() -> i64 { 0 }
 "#,
     )];
@@ -105,7 +105,7 @@ fn borrowed_views_reorder_and_rename_without_copying_or_escaping_the_loan() {
     .unwrap();
     let canonical = format::canonical(&programs[0]);
     assert!(canonical.contains("fn select(tail: borrow Slice<u8>, head: borrow Slice<u8>)"));
-    assert!(canonical.contains("byte_len(head) * 10 + byte_len(tail)"));
+    assert!(canonical.contains("byte_len(head) * 10usize + byte_len(tail)"));
     assert!(canonical.contains("let spx_sig_stage_0 = first; let spx_sig_stage_1 = second; select(spx_sig_stage_1, spx_sig_stage_0)"));
     hir::resolve(&program(&canonical)).unwrap();
     assert_eq!(format::canonical(&program(&canonical)), canonical);
@@ -288,12 +288,24 @@ fn owning_borrowed_and_shared_signature_omissions_reject_before_mutation() {
             Ok(_) => panic!("non-Copy signature mapping succeeded"),
             Err(errors) => errors,
         };
-        let expected = if matches!(parameter, "own Bytes" | "borrow str" | "string") {
+        // `own Bytes` and `borrow str` are legacy-classified parameters, so this
+        // revision-free route classifies them and rejects the omission itself.
+        // Implicit `string` ownership and `shared Bytes` are not legacy, so an
+        // apply without an authenticated revision cannot establish the ordered
+        // signature facts at all and refuses the whole evolution first. The
+        // G260 omission rejection for implicit string ownership is exercised on
+        // the authenticated route by
+        // `tests/project/signature_owned_values.rs`'s
+        // `every_original_owner_must_be_retained_once_including_implicit_string_ownership`.
+        let expected = if matches!(parameter, "own Bytes" | "borrow str") {
             "SPX-G260"
         } else {
             "SPX-G225"
         };
-        assert!(errors.iter().any(|error| error.code == expected));
+        assert!(
+            errors.iter().any(|error| error.code == expected),
+            "{parameter}: {errors:?}"
+        );
         assert_eq!(format::canonical(&programs[0]), before);
     }
 }

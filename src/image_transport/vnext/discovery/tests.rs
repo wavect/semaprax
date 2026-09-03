@@ -1251,7 +1251,7 @@ fn candidate_payloads_and_optional_frontend_work_are_concrete() {
     let operations = catalog["properties"]["operations"]["items"]["oneOf"]
         .as_array()
         .unwrap();
-    assert_eq!(operations.len(), 13);
+    assert_eq!(operations.len(), 14);
     let repairs = operations
         .iter()
         .filter(|schema| schema["properties"]["kind"]["const"] == "repair_diagnostic")

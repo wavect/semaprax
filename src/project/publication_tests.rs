@@ -158,7 +158,7 @@ fn scalar_project_is_rejected_before_host_handoff() {
         assert_eq!(errors[0].code, "SPX-J114");
         assert_eq!(
             errors[0].message,
-            "owned npm publication requires the exact Project v8, v9, or v10 profile"
+            "owned npm publication requires the exact Project v8, v9, v10, or v11 profile"
         );
         assert_eq!(snapshot.published_subject, None);
         assert!(!root.join("package").exists());

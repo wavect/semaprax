@@ -23,16 +23,11 @@ mod repair_schemas;
 mod workflow_metadata;
 
 // One discovery response must fit inside `MAX_RESPONSE_BYTES` (1 MiB) with
-// room for the JSON-RPC envelope. The selected surface outgrew the original
-// 900 KiB as methods and documents accumulated; the widest generated client
-// now serializes to just under 909 KiB. 960 KiB restores a working margin
-// while keeping 64 KiB in reserve.
-//
-// This is not headroom for further growth: the widest `protocol/schemas`
-// query already serializes to 1023 KiB, within 2 KiB of the response cap, so
-// no raise can admit it. That surface needs the payload compacted or
-// paginated.
-const MAX_DISCOVERY_BYTES: usize = 960 * 1024;
+// room for the JSON-RPC envelope, which is a few hundred bytes. The selected
+// surface outgrew the original 900 KiB as methods and documents accumulated;
+// the widest `protocol/schemas` query now serializes to just over 960 KiB.
+// 1000 KiB carries it with 24 KiB still in reserve under the response cap.
+const MAX_DISCOVERY_BYTES: usize = 1000 * 1024;
 pub(super) use workflow_metadata::{
     EVENTS as WORKFLOW_EVENTS, OUTCOMES as WORKFLOW_OUTCOMES,
     REPAIR_ACTIONS as WORKFLOW_REPAIR_ACTIONS,

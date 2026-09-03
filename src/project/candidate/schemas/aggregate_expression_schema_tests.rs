@@ -196,15 +196,29 @@ fn computed_signature_arguments_are_a_separate_recursive_mapping_only_form() {
     let choices = mapped["properties"]["parameters"]["items"]["oneOf"]
         .as_array()
         .unwrap();
-    assert_eq!(choices.len(), 5);
+    assert_eq!(choices.len(), 7);
     assert_eq!(choices[0]["required"], json!(["from"]));
     assert_eq!(choices[1]["required"], json!(["from", "name"]));
     assert_eq!(choices[2]["additionalProperties"], false);
     assert_eq!(choices[2]["required"], json!(["name", "borrow_from"]));
     assert_eq!(choices[2]["properties"].as_object().unwrap().len(), 2);
     assert_eq!(choices[2]["properties"]["borrow_from"]["type"], "string");
-    assert_eq!(choices[3]["oneOf"].as_array().unwrap(), literal_items);
-    let computed = &choices[4];
+    // The owner-rooted view forms stay separate closed shapes; neither carries
+    // an argument, an argument expression, or a declared type.
+    for (choice, owner) in [
+        (&choices[3], "borrow_slice_from_owner"),
+        (&choices[4], "borrow_str_from_owner"),
+    ] {
+        assert_eq!(choice["additionalProperties"], false);
+        assert_eq!(choice["required"], json!(["name", owner]));
+        assert_eq!(choice["properties"].as_object().unwrap().len(), 2);
+        assert_eq!(choice["properties"][owner]["type"], "string");
+        for excluded in ["from", "type", "argument", "argument_expression"] {
+            assert!(choice["properties"].get(excluded).is_none());
+        }
+    }
+    assert_eq!(choices[5]["oneOf"].as_array().unwrap(), literal_items);
+    let computed = &choices[6];
     assert_eq!(computed["additionalProperties"], false);
     assert_eq!(
         computed["required"],

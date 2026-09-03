@@ -35,7 +35,7 @@ fn receipt(byte: char, stored_bytes: u64) -> Receipt {
 fn exact_root_initializes_recovers_and_cas_advances_without_deleting_subjects() {
     use std::os::unix::fs::PermissionsExt;
 
-    let temporary = std::env::temp_dir().join(format!(
+    let temporary = std::env::temp_dir().canonicalize().unwrap().join(format!(
         "semaprax-retention-registry-{}",
         std::process::id()
     ));
@@ -166,7 +166,7 @@ fn exact_root_initializes_recovers_and_cas_advances_without_deleting_subjects() 
 fn metadata_swap_after_held_operation_preserves_current_and_recovery() {
     use std::os::unix::fs::PermissionsExt;
 
-    let temporary = std::env::temp_dir().join(format!(
+    let temporary = std::env::temp_dir().canonicalize().unwrap().join(format!(
         "semaprax-retention-registry-seeded-pivot-swap-{}",
         std::process::id()
     ));

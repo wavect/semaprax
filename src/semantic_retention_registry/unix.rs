@@ -447,7 +447,7 @@ mod tests {
 
     #[test]
     fn held_metadata_child_rejects_same_owner_path_replacement() {
-        let root_path = std::env::temp_dir().join(format!(
+        let root_path = std::env::temp_dir().canonicalize().unwrap().join(format!(
             "semaprax-retention-registry-metadata-swap-{}",
             std::process::id()
         ));
@@ -478,7 +478,7 @@ mod tests {
 
     #[test]
     fn transaction_rejects_metadata_replacement_before_current_pivot() {
-        let root_path = std::env::temp_dir().join(format!(
+        let root_path = std::env::temp_dir().canonicalize().unwrap().join(format!(
             "semaprax-retention-registry-pre-pivot-swap-{}",
             std::process::id()
         ));

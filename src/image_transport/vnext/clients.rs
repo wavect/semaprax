@@ -109,12 +109,18 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
         "unbundled":bundle["unbundled_payload_schemas"]});
     let encoded = serde_json::to_string(&metadata)
         .map_err(|_| invalid("client metadata serialization failed"))?;
+    // `{encoded:?}` escapes every quote in the metadata, and the transport then
+    // escapes each of those again, so one JSON quote costs four payload bytes.
+    // A raw string carries the same text at two. Fall back to the escaped form
+    // if the metadata could ever close the raw delimiter.
+    let rust_metadata = raw_rust_literal(&encoded);
+    let rust_workflows = raw_rust_literal(&workflows_encoded);
     let contract = client_contract(methods, &request_documents, &documents, workflows, bundle)?;
     let contract_revision = client_contract_revision(&contract)?;
     let mut source = match language {
         "typescript" => format!("// Generated selected-profile client. No I/O or capability changes.\nexport const PROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?};\nexport const RESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?};\nexport const CLIENT_CONTRACT_REVISION = {contract_revision:?} as const;\n{ts_types}const WORKFLOWS_JSON = {workflows_encoded:?};\nexport const EXPECTED_WORKFLOW_PROFILE_REVISION: string | null = {expected_revision_json};\nexport const WORKFLOWS = validateWorkflowCatalogue(JSON.parse(WORKFLOWS_JSON), EXPECTED_WORKFLOW_PROFILE_REVISION);\nconst META = JSON.parse({encoded:?});\n{}\n",include_str!("client_typescript.txt")),
         "python" => format!("# Generated selected-profile client. No I/O or capability changes.\nimport json\nimport re\nfrom typing import Any, Literal, NotRequired, TypedDict, TypeAlias\nPROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?}\nRESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?}\nCLIENT_CONTRACT_REVISION: str = {contract_revision:?}\n{python_types}WORKFLOWS_JSON = {workflows_encoded:?}\nEXPECTED_WORKFLOW_PROFILE_REVISION: str | None = {expected_revision_python}\nWORKFLOWS: list[SupportedWorkflow] = validate_workflow_catalogue(json.loads(WORKFLOWS_JSON), EXPECTED_WORKFLOW_PROFILE_REVISION)\nMETA = json.loads({encoded:?})\n{}\n",include_str!("client_python.txt")),
-        "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\npub const CLIENT_CONTRACT_REVISION: &str = {contract_revision:?};\n{rust_types}pub const WORKFLOWS_JSON: &str = {workflows_encoded:?};\npub const EXPECTED_WORKFLOW_PROFILE_REVISION: Option<&str> = {expected_revision_rust};\npub fn workflows() -> Result<Vec<SupportedWorkflow>, String> {{ let raw: Value = serde_json::from_str(WORKFLOWS_JSON).map_err(|error| error.to_string())?; validate_workflow_catalogue_json(&raw)?; let values: Vec<SupportedWorkflow> = serde_json::from_value(raw).map_err(|error| error.to_string())?; validate_workflows(&values, EXPECTED_WORKFLOW_PROFILE_REVISION)?; Ok(values) }}\npub fn workflow_transitions() -> Result<Vec<WorkflowTransition>, String> {{ Ok(workflows()?.into_iter().next().ok_or(\"supported workflow missing\")?.transition_policy) }}\nconst METADATA: &str = {encoded:?};\n{}\n",include_str!("client_rust.txt")),
+        "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\npub const CLIENT_CONTRACT_REVISION: &str = {contract_revision:?};\n{rust_types}pub const WORKFLOWS_JSON: &str = {rust_workflows};\npub const EXPECTED_WORKFLOW_PROFILE_REVISION: Option<&str> = {expected_revision_rust};\npub fn workflows() -> Result<Vec<SupportedWorkflow>, String> {{ let raw: Value = serde_json::from_str(WORKFLOWS_JSON).map_err(|error| error.to_string())?; validate_workflow_catalogue_json(&raw)?; let values: Vec<SupportedWorkflow> = serde_json::from_value(raw).map_err(|error| error.to_string())?; validate_workflows(&values, EXPECTED_WORKFLOW_PROFILE_REVISION)?; Ok(values) }}\npub fn workflow_transitions() -> Result<Vec<WorkflowTransition>, String> {{ Ok(workflows()?.into_iter().next().ok_or(\"supported workflow missing\")?.transition_policy) }}\nconst METADATA: &str = {rust_metadata};\n{}\n",include_str!("client_rust.txt")),
         _ => return Err(invalid("unknown client language")),
     };
     source.push_str(&typed.source);
@@ -800,6 +806,20 @@ impl ResponseNormalizer {
             }
         }
         Ok(())
+    }
+}
+
+/// Embed JSON in Rust source as a raw string.
+///
+/// `{value:?}` escapes every quote, and the transport escapes each of those
+/// again, so one JSON quote costs four payload bytes. A raw string carries the
+/// same text at two. Fall back to the escaped form if the text could ever close
+/// the delimiter.
+fn raw_rust_literal(value: &str) -> String {
+    if value.contains("\"##") {
+        format!("{value:?}")
+    } else {
+        format!("r##\"{value}\"##")
     }
 }
 

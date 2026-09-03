@@ -83,6 +83,7 @@ fn draft(session: &mut VNextSession) -> Value {
 fn export(session: &mut VNextSession, draft: &Value) -> String {
     let mut offset = 0usize;
     let mut bytes = String::new();
+    let mut capsule_schema = None;
     loop {
         let chunk = payload(bound(
             session,
@@ -90,10 +91,16 @@ fn export(session: &mut VNextSession, draft: &Value) -> String {
             json!({"draft_revision":draft["draft_revision"],"offset":offset,"chunk_bytes":1024}),
         ));
         assert_eq!(chunk["schema"], "semaprax.image-draft-recovery-chunk.v1");
-        assert_eq!(
-            chunk["capsule_schema"],
+        let selected = chunk["capsule_schema"].as_str().unwrap();
+        assert!(matches!(
+            selected,
             "semaprax.project-candidate-draft-recovery.v1"
-        );
+                | "semaprax.project-candidate-draft-recovery.v2"
+        ));
+        assert!(capsule_schema
+            .as_deref()
+            .is_none_or(|expected| expected == selected));
+        capsule_schema = Some(selected.to_owned());
         assert_eq!(chunk["draft_revision"], draft["draft_revision"]);
         assert_eq!(chunk["materializable"], false);
         assert_eq!(chunk["source_authority"], false);
@@ -110,6 +117,8 @@ fn export(session: &mut VNextSession, draft: &Value) -> String {
             }
         }
     }
+    let capsule: Value = serde_json::from_str(&bytes).unwrap();
+    assert_eq!(capsule["schema"], capsule_schema.unwrap());
     bytes
 }
 

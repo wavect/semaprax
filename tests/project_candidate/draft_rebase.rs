@@ -211,7 +211,7 @@ fn mixed_partial_history_rebases_across_display_renames_and_disjoint_regions_the
     let report: Value = serde_json::from_str(result.to_json()).unwrap();
     assert_eq!(
         report["schema"],
-        "semaprax.project-candidate-draft-rebase.v1"
+        "semaprax.project-candidate-draft-rebase.v2"
     );
     assert_eq!(report["parent_draft_digest"], draft.draft_digest());
     assert_eq!(
@@ -230,6 +230,14 @@ fn mixed_partial_history_rebases_across_display_renames_and_disjoint_regions_the
     );
     assert_eq!(report["source_authority"], false);
     assert_eq!(report["materializable"], false);
+    assert_eq!(report["filled_hole_lineage"].as_array().unwrap().len(), 1);
+    assert_eq!(report["filled_hole_lineage"][0]["hole_id"], "filled");
+    assert_eq!(report["branch_ancestry"].as_array().unwrap().len(), 1);
+    assert_eq!(report["branch_ancestry"][0]["operation"], "rebase");
+    assert_eq!(
+        report["branch_ancestry"][0]["parents"],
+        json!([draft.draft_digest()])
+    );
     let rows = report["holes"].as_array().unwrap();
     assert_eq!(rows.len(), 3);
     for (index, hole, kind) in [

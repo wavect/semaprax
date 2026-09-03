@@ -554,8 +554,12 @@ impl Registry {
                         "retained draft summary state disagrees with its hole inventory",
                     )
                 })?;
-            if summary["schema"] != crate::project::PROJECT_CANDIDATE_DRAFT_SCHEMA
-                || summary["materializable"] != false
+            if !matches!(
+                summary["schema"].as_str(),
+                Some(schema)
+                    if schema == crate::project::PROJECT_CANDIDATE_DRAFT_SCHEMA
+                        || schema == crate::project::PROJECT_CANDIDATE_DRAFT_LINEAGE_SCHEMA
+            ) || summary["materializable"] != false
                 || summary["source_authority"] != false
             {
                 return Err(failure(

@@ -180,7 +180,7 @@ fn disjoint_checked_histories_union_all_kinds_coalesce_shared_hole_and_regenerat
     let report: Value = serde_json::from_str(result.to_json()).unwrap();
     assert_eq!(
         report["schema"],
-        "semaprax.project-candidate-draft-merge.v1"
+        "semaprax.project-candidate-draft-merge.v2"
     );
     assert_eq!(report["left_parent_draft_digest"], left.draft_digest());
     assert_eq!(report["right_parent_draft_digest"], right.draft_digest());
@@ -481,7 +481,29 @@ fn empty_and_ready_siblings_merge_checked_histories_but_release_candidate_only_o
     let summary: Value =
         serde_json::from_str(ready.summary(ready.draft_digest()).unwrap()).unwrap();
     assert_eq!(summary["state"], "ready_to_complete");
+    assert_eq!(summary["schema"], "semaprax.project-candidate-draft.v2");
+    assert_eq!(summary["filled_hole_lineage"].as_array().unwrap().len(), 2);
+    assert_eq!(summary["branch_ancestry"].as_array().unwrap().len(), 1);
+    assert_eq!(summary["branch_ancestry"][0]["operation"], "merge");
+    assert_eq!(
+        summary["branch_ancestry"][0]["parents"],
+        json!([left.draft_digest(), right.draft_digest()])
+    );
+    let capsule = ready.recovery_capsule().unwrap();
+    let recovery: Value = serde_json::from_str(&capsule).unwrap();
+    assert_eq!(
+        recovery["schema"],
+        "semaprax.project-candidate-draft-recovery.v2"
+    );
+    let restored = ProjectCandidateDraft::restore(
+        Arc::clone(base.base_revision()),
+        base.base_revision().project_revision(),
+        capsule.as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(restored.to_json(), ready.to_json());
     let complete = ready.complete(ready.draft_digest()).unwrap();
-    let recovery: Value = serde_json::from_str(&complete.recovery_capsule().unwrap()).unwrap();
-    assert_eq!(recovery["changes"].as_array().unwrap().len(), 2);
+    let candidate_recovery: Value =
+        serde_json::from_str(&complete.recovery_capsule().unwrap()).unwrap();
+    assert_eq!(candidate_recovery["changes"].as_array().unwrap().len(), 2);
 }

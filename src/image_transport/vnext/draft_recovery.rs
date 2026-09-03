@@ -2,7 +2,7 @@
 use super::*;
 use crate::project::{
     ProjectCandidateDraft, MAX_PROJECT_CANDIDATE_DRAFT_RECOVERY_BYTES,
-    PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA, PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
 };
 
 const METHODS: &[Method] = &[
@@ -37,7 +37,10 @@ const METHODS: &[Method] = &[
             REVISION,
             Parameter {
                 name: "capsule",
-                kind: ParameterKind::Object(PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA),
+                kind: ParameterKind::ObjectOneOf(&[
+                    PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
+                    PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA,
+                ]),
                 required: true,
             },
         ],
@@ -102,6 +105,14 @@ pub(super) fn export_for_draft(
     draft: &ProjectCandidateDraft,
 ) -> Result<Value, Vec<Diagnostic>> {
     let capsule = draft.recovery_capsule()?;
+    let capsule_schema = serde_json::from_str::<Value>(&capsule)
+        .ok()
+        .and_then(|value| value["schema"].as_str().map(str::to_owned))
+        .filter(|schema| {
+            schema == PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA
+                || schema == PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA
+        })
+        .ok_or_else(|| failure("SPX-G230", "draft recovery capsule schema is unavailable"))?;
     let offset = number(params, "offset", 0);
     let chunk_bytes = number(params, "chunk_bytes", 16384);
     if !(1024..=65536).contains(&chunk_bytes)
@@ -120,7 +131,7 @@ pub(super) fn export_for_draft(
     Ok(json!({
         "schema":"semaprax.image-draft-recovery-chunk.v1",
         "draft_revision":draft.draft_digest(),
-        "capsule_schema":PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
+        "capsule_schema":capsule_schema,
         "offset":offset,"total_bytes":capsule.len(),"chunk":&capsule[offset..end],
         "next_offset":(end<capsule.len()).then_some(end),
         "source_authority":false,"materializable":false,

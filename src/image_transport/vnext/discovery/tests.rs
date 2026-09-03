@@ -874,6 +874,29 @@ fn draft_recovery_is_v5_candidate_only_with_closed_replay_schema() {
         capsule["properties"]["candidate_recovery"]["$ref"],
         "urn:semaprax.project-candidate-recovery.v1"
     );
+    let lineage_id = format!(
+        "urn:{}",
+        crate::project::PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA
+    );
+    let lineage = bundle["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|document| document["$id"] == lineage_id)
+        .unwrap();
+    assert_eq!(lineage["additionalProperties"], false);
+    assert_eq!(
+        lineage["properties"]["compiler"]["const"]["compatibility"],
+        crate::project::PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_COMPATIBILITY
+    );
+    assert_eq!(
+        lineage["properties"]["filled_hole_lineage"]["maxItems"],
+        crate::project::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE
+    );
+    assert_eq!(
+        lineage["properties"]["branch_ancestry"]["maxItems"],
+        crate::project::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE
+    );
     let holes = &capsule["properties"]["holes"];
     assert_eq!(holes["maxItems"], 16);
     let kinds = holes["items"]["oneOf"].as_array().unwrap();

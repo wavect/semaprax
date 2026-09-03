@@ -125,7 +125,13 @@ fn remint(mut value: Value) -> String {
     value.as_object_mut().unwrap().remove("capsule_digest");
     let payload = canonical(value.clone());
     let mut hasher = Sha256::new();
-    hasher.update(b"semaprax.project-candidate-draft-recovery.payload.v1\0");
+    hasher.update(
+        if value["schema"] == "semaprax.project-candidate-draft-recovery.v2" {
+            b"semaprax.project-candidate-draft-recovery.payload.v2\0".as_slice()
+        } else {
+            b"semaprax.project-candidate-draft-recovery.payload.v1\0".as_slice()
+        },
+    );
     hasher.update((payload.len() as u64).to_le_bytes());
     hasher.update(payload.as_bytes());
     value["capsule_digest"] = json!(format!("sha256:{:x}", LowerHex(hasher.finalize())));
@@ -281,6 +287,23 @@ fn both_initially_ready_and_fully_filled_drafts_recover_the_exact_complete_candi
     let capsule = done.recovery_capsule().unwrap();
     let value: Value = serde_json::from_str(&capsule).unwrap();
     assert_eq!(value["holes"], json!([]));
+    assert_eq!(
+        value["schema"],
+        "semaprax.project-candidate-draft-recovery.v2"
+    );
+    assert_eq!(value["filled_hole_lineage"].as_array().unwrap().len(), 1);
+    assert_eq!(value["filled_hole_lineage"][0]["hole_id"], "add");
+    assert_eq!(value["filled_hole_lineage"][0]["history_ordinal"], 0);
+    let mut wrong_ordinal = value.clone();
+    wrong_ordinal["filled_hole_lineage"][0]["history_ordinal"] = json!(1);
+    match restore(&base, remint(wrong_ordinal).as_bytes()) {
+        Ok(_) => panic!("tampered lineage ordinal recovered"),
+        Err(errors) => assert!(errors.iter().any(|error| error.code == "SPX-G230")),
+    }
+    let mut wrong_intent = value.clone();
+    wrong_intent["filled_hole_lineage"][0]["intent_digest"] =
+        json!(format!("sha256:{}", "0".repeat(64)));
+    assert!(restore(&base, remint(wrong_intent).as_bytes()).is_err());
     let restored = restore(&base, capsule.as_bytes()).unwrap();
     same_draft(&done, &restored, &[]);
     assert_eq!(

@@ -57,6 +57,7 @@ enum ParameterKind {
     Choice(&'static [&'static str]),
     Integer(usize, usize),
     Object(&'static str),
+    ObjectOneOf(&'static [&'static str]),
 }
 
 #[derive(Clone, Copy)]
@@ -531,7 +532,7 @@ fn validate_parameters(method: &Method, params: &Map<String, Value>) -> Result<(
             ParameterKind::Integer(min, max) => value
                 .as_u64()
                 .is_some_and(|number| number >= min as u64 && number <= max as u64),
-            ParameterKind::Object(_) => value.is_object(),
+            ParameterKind::Object(_) | ParameterKind::ObjectOneOf(_) => value.is_object(),
         };
         if !valid {
             return Err(format!("invalid parameter {}", parameter.name));
@@ -679,6 +680,7 @@ fn method_description(method: &Method) -> Value {
             ParameterKind::Choice(choices) => json!({"type":"string", "enum":choices}),
             ParameterKind::Integer(min, max) => json!({"type":"integer", "minimum":min, "maximum":max}),
             ParameterKind::Object(schema) => json!({"type":"object", "$ref":format!("urn:{schema}")}),
+            ParameterKind::ObjectOneOf(schemas) => json!({"type":"object","oneOf":schemas.iter().map(|schema|json!({"$ref":format!("urn:{schema}")})).collect::<Vec<_>>()}),
         };
         (parameter.name.to_owned(), schema)
     }).collect::<Map<_, _>>();

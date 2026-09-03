@@ -10,6 +10,8 @@ use crate::project::candidate::wire;
 use crate::project::SemanticChange;
 
 pub const PROJECT_CANDIDATE_DRAFT_MERGE_SCHEMA: &str = "semaprax.project-candidate-draft-merge.v1";
+pub const PROJECT_CANDIDATE_DRAFT_LINEAGE_MERGE_SCHEMA: &str =
+    "semaprax.project-candidate-draft-merge.v2";
 pub const MAX_PROJECT_CANDIDATE_DRAFT_MERGE_BYTES: usize = 1024 * 1024;
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
@@ -51,7 +53,7 @@ impl ProjectCandidateDraft {
             &other.last_valid,
             other.last_valid.candidate_digest(),
         )?;
-        let ancestry: Value = serde_json::from_str(replay.to_json())
+        let replay_ancestry: Value = serde_json::from_str(replay.to_json())
             .map_err(|_| invalid("checked candidate merge report is invalid"))?;
         let prefix = self
             .last_valid
@@ -96,22 +98,78 @@ impl ProjectCandidateDraft {
                 )?,
             };
         }
+        let mut filled_holes = other.filled_holes.clone();
+        for event in self.filled_holes.values() {
+            let mut event = event.clone();
+            if event.history_ordinal >= prefix {
+                event.history_ordinal = other
+                    .last_valid
+                    .changes
+                    .len()
+                    .checked_add(event.history_ordinal - prefix)
+                    .ok_or_else(|| capacity("draft merge lineage ordinal overflow"))?;
+            }
+            match filled_holes.get(&event.event_id) {
+                Some(existing) if existing != &event => {
+                    return Err(conflict("draft merge shared filled-hole lineage disagrees"));
+                }
+                Some(_) => {}
+                None => {
+                    if filled_holes.len() >= super::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE {
+                        return Err(capacity(
+                            "draft merge filled-hole lineage exceeds its bound",
+                        ));
+                    }
+                    filled_holes.insert(event.event_id.clone(), event);
+                }
+            }
+        }
+        let mut ancestry = other.ancestry.clone();
+        for item in &self.ancestry {
+            if !ancestry.contains(item) {
+                if ancestry.len() >= super::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE {
+                    return Err(capacity("draft merge ancestry exceeds its bound"));
+                }
+                ancestry.push(item.clone());
+            }
+        }
+        if ancestry.len() >= super::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE {
+            return Err(capacity("draft merge ancestry exceeds its bound"));
+        }
+        ancestry.push(super::DraftAncestry {
+            operation: "merge".to_owned(),
+            parents: vec![
+                self.draft_digest().to_owned(),
+                other.draft_digest().to_owned(),
+            ],
+            onto_revision: None,
+        });
+        draft = Self::finish(
+            Arc::clone(&draft.last_valid),
+            draft.holes,
+            draft.expression_holes,
+            draft.contract_expression_holes,
+            filled_holes,
+            ancestry,
+        )?;
         draft.validate_pending_contexts()?;
         let rows = union.into_iter().map(|(hole,item)| json!({
             "hole_id":hole,"kind":item.selector.kind.name(),"target":item.selector.target,
             "expression_id":item.selector.expression,"parents":item.parents,"context_refreshed":true
         })).collect::<Vec<_>>();
         let json = wire::render(json!({
-            "schema":PROJECT_CANDIDATE_DRAFT_MERGE_SCHEMA,
+            "schema":PROJECT_CANDIDATE_DRAFT_LINEAGE_MERGE_SCHEMA,
             "left_parent_draft_digest":self.draft_digest(),
             "right_parent_draft_digest":other.draft_digest(),
             "original_base_revision":self.last_valid.base_revision().project_revision(),
             "result_base_revision":draft.last_valid.base_revision().project_revision(),
             "result_draft_digest":draft.draft_digest(),
-            "last_valid_merge":ancestry,"left_holes":left_rows,"right_holes":right_rows,"holes":rows,
+            "last_valid_merge":replay_ancestry,"left_holes":left_rows,"right_holes":right_rows,"holes":rows,
+            "filled_hole_lineage":draft.filled_holes.values().map(super::FilledHoleLineage::json).collect::<Vec<_>>(),
+            "branch_ancestry":draft.ancestry.iter().map(super::DraftAncestry::json).collect::<Vec<_>>(),
             "materializable":false,"source_authority":false,
             "validation":"checked_history_merge_and_pending_selector_readmission",
-            "nonclaims":["no_unresolved_source_or_candidate_release","no_inferred_hole_tombstones_or_lineage","not_behavioral_equivalence","not_contract_implication","no_runtime_or_project_test_execution","no_source_commit_authority","conservative_opposing_region_writes_not_arbitrary_subtree_merge"]
+            "nonclaims":["no_unresolved_source_or_candidate_release","lineage_metadata_is_not_program_meaning_or_approval","not_behavioral_equivalence","not_contract_implication","no_runtime_or_project_test_execution","no_source_commit_authority","conservative_opposing_region_writes_not_arbitrary_subtree_merge"]
         }), MAX_PROJECT_CANDIDATE_DRAFT_MERGE_BYTES)
             .map_err(|_| capacity("draft merge report exceeds its byte bound"))?;
         Ok(ProjectCandidateDraftMerge { draft, json })

@@ -431,14 +431,13 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             Some("hole/recovery-export" | "hole/recovery-restore")
         )
     }) {
-        let schema = draft_recovery_schema();
-        documents.insert(
-            format!(
-                "urn:{}",
-                crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA
-            ),
-            schema,
-        );
+        for schema in draft_recovery_schemas() {
+            let id = schema["$id"]
+                .as_str()
+                .expect("draft recovery document has a static identity")
+                .to_owned();
+            documents.insert(id, schema);
+        }
     }
     if descriptors.iter().any(|descriptor| {
         matches!(
@@ -495,6 +494,19 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             references.insert(format!(
                 "urn:{}",
                 crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA
+            ));
+            references.insert(format!(
+                "urn:{}",
+                crate::project::PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA
+            ));
+        }
+        if matches!(
+            descriptor["method"].as_str(),
+            Some("hole/recovery-export" | "hole/recovery-restore")
+        ) {
+            references.insert(format!(
+                "urn:{}",
+                crate::project::PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA
             ));
         }
         let report = match descriptor["method"].as_str().unwrap_or("") {
@@ -573,7 +585,7 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
     )
 }
 
-fn draft_recovery_schema() -> Value {
+fn draft_recovery_schemas() -> [Value; 2] {
     use payload_schemas::{digest, document, object};
     let id = json!({"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9_.-]+$"});
     let target = json!({"type":"string","minLength":1,"maxLength":4096,"x-max-utf8-bytes":4096});
@@ -590,11 +602,13 @@ fn draft_recovery_schema() -> Value {
     ]);
     let contract = object(vec![
         ("kind", json!({"const":"contract_expression"})),
-        ("hole_id", id),
+        ("hole_id", id.clone()),
         ("target", target.clone()),
-        ("expression_id", target),
+        ("expression_id", target.clone()),
     ]);
-    document(
+    let holes = json!({"type":"array","maxItems":crate::project::MAX_PROJECT_CANDIDATE_HOLES,
+        "items":{"oneOf":[body,expression,contract]},"x-sorted-by":"hole_id","x-unique-hole-id":true});
+    let v1 = document(
         crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
         vec![
             (
@@ -613,15 +627,51 @@ fn draft_recovery_schema() -> Value {
                 "candidate_recovery",
                 json!({"$ref":"urn:semaprax.project-candidate-recovery.v1"}),
             ),
-            (
-                "holes",
-                json!({"type":"array","maxItems":crate::project::MAX_PROJECT_CANDIDATE_HOLES,
-            "items":{"oneOf":[body,expression,contract]},"x-sorted-by":"hole_id","x-unique-hole-id":true}),
-            ),
+            ("holes", holes.clone()),
             ("draft_digest", digest()),
             ("capsule_digest", digest()),
         ],
-    )
+    );
+    let filled = json!({"type":"array","maxItems":crate::project::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE,
+    "x-sorted-by":"event_id","items":object(vec![
+        ("event_id",digest()),("hole_id",id),("kind",json!({"enum":["replace_function_body","replace_expression","replace_contract_expression"]})),
+        ("target",target.clone()),("expression_id",payload_schemas::nullable(target.clone())),
+        ("intent_digest",digest()),("history_ordinal",payload_schemas::uint()),
+        ("origin_draft_digest",digest()),
+    ])});
+    let ancestry = json!({"type":"array","maxItems":crate::project::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE,
+    "items":object(vec![
+        ("operation",json!({"enum":["rebase","merge"]})),
+        ("parents",json!({"type":"array","minItems":1,"maxItems":2,"items":digest()})),
+        ("onto_revision",payload_schemas::nullable(digest())),
+    ])});
+    let v2 = document(
+        crate::project::PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA,
+        vec![
+            (
+                "compiler",
+                json!({"const":{
+                    "package":env!("CARGO_PKG_NAME"),"version":env!("CARGO_PKG_VERSION"),
+                    "compatibility":crate::project::PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_COMPATIBILITY,
+                }}),
+            ),
+            ("base_revision", digest()),
+            (
+                "draft_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_DRAFT_LINEAGE_SCHEMA}),
+            ),
+            (
+                "candidate_recovery",
+                json!({"$ref":"urn:semaprax.project-candidate-recovery.v1"}),
+            ),
+            ("holes", holes),
+            ("filled_hole_lineage", filled),
+            ("branch_ancestry", ancestry),
+            ("draft_digest", digest()),
+            ("capsule_digest", digest()),
+        ],
+    );
+    [v1, v2]
 }
 
 fn draft_archive_schema() -> Value {

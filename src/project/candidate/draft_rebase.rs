@@ -12,6 +12,8 @@ use crate::project::{ProjectCandidate, ProjectRevision};
 
 pub const PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA: &str =
     "semaprax.project-candidate-draft-rebase.v1";
+pub const PROJECT_CANDIDATE_DRAFT_LINEAGE_REBASE_SCHEMA: &str =
+    "semaprax.project-candidate-draft-rebase.v2";
 pub const MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES: usize = 1024 * 1024;
 const MAX_VISITS: usize = 1_048_576;
 const MAX_DEPTH: usize = 256;
@@ -51,18 +53,37 @@ impl ProjectCandidateDraft {
             new_base,
             expected_new_base,
         )?;
-        let ancestry: Value = serde_json::from_str(replay.to_json())
+        let replay_ancestry: Value = serde_json::from_str(replay.to_json())
             .map_err(|_| invalid("checked candidate rebase report is invalid"))?;
         let (draft, rows) = self.rebind_pending(Arc::new(replay.into_candidate()))?;
+        let mut ancestry = self.ancestry.clone();
+        if ancestry.len() >= super::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE {
+            return Err(capacity("draft rebase ancestry exceeds its bound"));
+        }
+        ancestry.push(super::DraftAncestry {
+            operation: "rebase".to_owned(),
+            parents: vec![self.draft_digest().to_owned()],
+            onto_revision: Some(expected_new_base.to_owned()),
+        });
+        let draft = Self::finish(
+            Arc::clone(&draft.last_valid),
+            draft.holes,
+            draft.expression_holes,
+            draft.contract_expression_holes,
+            self.filled_holes.clone(),
+            ancestry,
+        )?;
         draft.validate_pending_contexts()?;
         let json = wire::render(json!({
-            "schema":PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
+            "schema":PROJECT_CANDIDATE_DRAFT_LINEAGE_REBASE_SCHEMA,
             "parent_draft_digest":self.draft_digest(),
             "original_base_revision":self.last_valid.base_revision().project_revision(),
             "onto_revision":expected_new_base,
             "result_base_revision":draft.last_valid.base_revision().project_revision(),
             "result_draft_digest":draft.draft_digest(),
-            "last_valid_rebase":ancestry,"holes":rows,
+            "last_valid_rebase":replay_ancestry,"holes":rows,
+            "filled_hole_lineage":draft.filled_holes.values().map(super::FilledHoleLineage::json).collect::<Vec<_>>(),
+            "branch_ancestry":draft.ancestry.iter().map(super::DraftAncestry::json).collect::<Vec<_>>(),
             "materializable":false,"source_authority":false,
             "validation":"checked_history_replay_and_pending_selector_readmission",
             "nonclaims":["no_unresolved_source_or_candidate_release","not_behavioral_equivalence","not_contract_implication","no_runtime_or_project_test_execution","no_source_commit_authority","conservative_region_conflicts_not_arbitrary_subtree_merge"]

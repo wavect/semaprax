@@ -24,28 +24,32 @@ pub use expression_catalog::{
 #[path = "draft_recovery.rs"]
 mod recovery;
 pub use recovery::{
-    MAX_PROJECT_CANDIDATE_DRAFT_RECOVERY_BYTES, PROJECT_CANDIDATE_DRAFT_RECOVERY_COMPATIBILITY,
-    PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
+    MAX_PROJECT_CANDIDATE_DRAFT_RECOVERY_BYTES,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_COMPATIBILITY,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA,
+    PROJECT_CANDIDATE_DRAFT_RECOVERY_COMPATIBILITY, PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,
 };
 
 #[path = "draft_rebase.rs"]
 mod rebase;
 pub use rebase::{
     ProjectCandidateDraftRebase, MAX_PROJECT_CANDIDATE_DRAFT_REBASE_BYTES,
-    PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_REBASE_SCHEMA, PROJECT_CANDIDATE_DRAFT_REBASE_SCHEMA,
 };
 
 #[path = "draft_merge.rs"]
 mod merge;
 pub use merge::{
     ProjectCandidateDraftMerge, MAX_PROJECT_CANDIDATE_DRAFT_MERGE_BYTES,
-    PROJECT_CANDIDATE_DRAFT_MERGE_SCHEMA,
+    PROJECT_CANDIDATE_DRAFT_LINEAGE_MERGE_SCHEMA, PROJECT_CANDIDATE_DRAFT_MERGE_SCHEMA,
 };
 
 pub const PROJECT_CANDIDATE_DRAFT_SCHEMA: &str = "semaprax.project-candidate-draft.v1";
+pub const PROJECT_CANDIDATE_DRAFT_LINEAGE_SCHEMA: &str = "semaprax.project-candidate-draft.v2";
 pub const PROJECT_CANDIDATE_HOLE_CONTEXT_SCHEMA: &str =
     "semaprax.project-candidate-hole-context.v1";
 pub const MAX_PROJECT_CANDIDATE_HOLES: usize = 16;
+pub const MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE: usize = 64;
 const MAX_REPORT_BYTES: usize = 1024 * 1024;
 const MAX_RENDER_BYTES: usize = 16 * 1024 * 1024;
 
@@ -57,13 +61,66 @@ pub struct ProjectCandidateDraft {
     holes: BTreeMap<String, String>,
     expression_holes: BTreeMap<String, (String, String)>,
     contract_expression_holes: BTreeMap<String, (String, String)>,
+    filled_holes: BTreeMap<String, FilledHoleLineage>,
+    ancestry: Vec<DraftAncestry>,
     json: String,
     digest: String,
 }
 
+#[derive(Clone, Eq, PartialEq)]
+struct FilledHoleLineage {
+    event_id: String,
+    hole_id: String,
+    kind: String,
+    target: String,
+    expression_id: Option<String>,
+    intent_digest: String,
+    history_ordinal: usize,
+    origin_draft_digest: String,
+}
+
+#[derive(Clone, Eq, PartialEq)]
+struct DraftAncestry {
+    operation: String,
+    parents: Vec<String>,
+    onto_revision: Option<String>,
+}
+
+impl FilledHoleLineage {
+    fn json(&self) -> Value {
+        json!({
+            "event_id":self.event_id,
+            "hole_id":self.hole_id,
+            "kind":self.kind,
+            "target":self.target,
+            "expression_id":self.expression_id,
+            "intent_digest":self.intent_digest,
+            "history_ordinal":self.history_ordinal,
+            "origin_draft_digest":self.origin_draft_digest,
+        })
+    }
+}
+
+impl DraftAncestry {
+    fn json(&self) -> Value {
+        json!({
+            "operation":self.operation,
+            "parents":self.parents,
+            "onto_revision":self.onto_revision,
+        })
+    }
+}
+
 impl ProjectCandidateDraft {
     pub fn open(candidate: Arc<ProjectCandidate>) -> Result<Self, Vec<Diagnostic>> {
-        Self::finish(candidate, BTreeMap::new(), BTreeMap::new(), BTreeMap::new())
+        Self::finish(
+            candidate,
+            BTreeMap::new(),
+            BTreeMap::new(),
+            BTreeMap::new(),
+            BTreeMap::new(),
+            Vec::new(),
+        )
     }
 
     pub fn with_body_hole(
@@ -96,6 +153,8 @@ impl ProjectCandidateDraft {
             holes,
             self.expression_holes.clone(),
             self.contract_expression_holes.clone(),
+            self.filled_holes.clone(),
+            self.ancestry.clone(),
         )
     }
 
@@ -157,6 +216,8 @@ impl ProjectCandidateDraft {
             self.holes.clone(),
             holes,
             self.contract_expression_holes.clone(),
+            self.filled_holes.clone(),
+            self.ancestry.clone(),
         )
     }
 
@@ -216,6 +277,8 @@ impl ProjectCandidateDraft {
             self.holes.clone(),
             self.expression_holes.clone(),
             holes,
+            self.filled_holes.clone(),
+            self.ancestry.clone(),
         )
     }
 
@@ -316,6 +379,27 @@ impl ProjectCandidateDraft {
             json!({"kind":"replace_function_body", "target":target, "body":expression})
         };
         let change = SemanticChange::new(self.last_valid.revision().project_revision(), &intent)?;
+        let kind = intent["kind"]
+            .as_str()
+            .ok_or_else(|| grammar("candidate hole fill lacks its checked intention kind"))?;
+        let target = intent["target"]
+            .as_str()
+            .ok_or_else(|| grammar("candidate hole fill lacks its checked target"))?;
+        let expression_id = intent["expression_id"].as_str().map(str::to_owned);
+        let intent_json = render(intent.clone())?;
+        let intent_digest = wire::digest(
+            b"semaprax.project-candidate-filled-hole-intent.v1\0",
+            intent_json.as_bytes(),
+        );
+        let event_id = wire::digest(
+            b"semaprax.project-candidate-filled-hole-lineage.v1\0",
+            render(json!({
+                "origin_draft_digest":self.draft_digest(),
+                "hole_id":hole_id,
+                "intent_digest":intent_digest,
+            }))?
+            .as_bytes(),
+        );
         let candidate = self
             .last_valid
             .apply(self.last_valid.candidate_digest(), &change)?;
@@ -341,11 +425,32 @@ impl ProjectCandidateDraft {
                 expression_id,
             )?;
         }
+        let mut filled_holes = self.filled_holes.clone();
+        if filled_holes.len() >= MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE {
+            return Err(capacity(
+                "candidate draft filled-hole lineage exceeds its bound",
+            ));
+        }
+        filled_holes.insert(
+            event_id.clone(),
+            FilledHoleLineage {
+                event_id,
+                hole_id: hole_id.to_owned(),
+                kind: kind.to_owned(),
+                target: target.to_owned(),
+                expression_id,
+                intent_digest,
+                history_ordinal: self.last_valid.changes.len(),
+                origin_draft_digest: self.draft_digest().to_owned(),
+            },
+        );
         Self::finish(
             Arc::new(candidate),
             holes,
             expression_holes,
             contract_expression_holes,
+            filled_holes,
+            self.ancestry.clone(),
         )
     }
 
@@ -381,12 +486,21 @@ impl ProjectCandidateDraft {
         holes: BTreeMap<String, String>,
         expression_holes: BTreeMap<String, (String, String)>,
         contract_expression_holes: BTreeMap<String, (String, String)>,
+        filled_holes: BTreeMap<String, FilledHoleLineage>,
+        ancestry: Vec<DraftAncestry>,
     ) -> Result<Self, Vec<Diagnostic>> {
+        if filled_holes.len() > MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE
+            || ancestry.len() > MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE
+        {
+            return Err(capacity("candidate draft lineage exceeds its bound"));
+        }
         let mut draft = Self {
             last_valid: candidate,
             holes,
             expression_holes,
             contract_expression_holes,
+            filled_holes,
+            ancestry,
             json: String::new(),
             digest: String::new(),
         };
@@ -412,7 +526,19 @@ impl ProjectCandidateDraft {
             );
         }
         pending.sort_by(|left, right| left["hole_id"].as_str().cmp(&right["hole_id"].as_str()));
-        draft.json = render(json!({
+        draft.validate_lineage()?;
+        let filled = draft
+            .filled_holes
+            .values()
+            .map(FilledHoleLineage::json)
+            .collect::<Vec<_>>();
+        let ancestry = draft
+            .ancestry
+            .iter()
+            .map(DraftAncestry::json)
+            .collect::<Vec<_>>();
+        let lineage = !draft.filled_holes.is_empty() || !draft.ancestry.is_empty();
+        let mut report = json!({
             "schema":PROJECT_CANDIDATE_DRAFT_SCHEMA,
             "last_valid_revision":draft.last_valid.revision().project_revision(),
             "last_valid_candidate_digest":draft.last_valid.candidate_digest(),
@@ -420,12 +546,65 @@ impl ProjectCandidateDraft {
             "state":if draft.pending_count() == 0 {"ready_to_complete"} else {"incomplete"},
             "materializable":false, "source_authority":false,
             "nonclaims":["last_valid_revision_is_not_the_incomplete_candidate", "no_placeholder_ast_or_source", "no_candidate_source_or_evidence_until_complete", "no_execution_or_commit_authority"],
-        }))?;
-        draft.digest = wire::digest(
-            b"semaprax.project-candidate-draft.v1\0",
-            draft.json.as_bytes(),
-        );
+        });
+        let domain: &[u8] = if lineage {
+            report["schema"] = json!(PROJECT_CANDIDATE_DRAFT_LINEAGE_SCHEMA);
+            report["filled_hole_lineage"] = json!(filled);
+            report["branch_ancestry"] = json!(ancestry);
+            report["nonclaims"] = json!([
+                "last_valid_revision_is_not_the_incomplete_candidate",
+                "no_placeholder_ast_or_source",
+                "no_candidate_source_or_evidence_until_complete",
+                "lineage_does_not_authenticate_parent_draft_contents_or_grant_authority",
+                "no_execution_or_commit_authority"
+            ]);
+            b"semaprax.project-candidate-draft.v2\0"
+        } else {
+            b"semaprax.project-candidate-draft.v1\0"
+        };
+        draft.json = render(report)?;
+        draft.digest = wire::digest(domain, draft.json.as_bytes());
         Ok(draft)
+    }
+
+    fn validate_lineage(&self) -> Result<(), Vec<Diagnostic>> {
+        for (event_id, event) in &self.filled_holes {
+            if event_id != &event.event_id || event.history_ordinal >= self.last_valid.changes.len()
+            {
+                return Err(grammar(
+                    "candidate draft filled-hole lineage is internally inconsistent",
+                ));
+            }
+            let expected_event = wire::digest(
+                b"semaprax.project-candidate-filled-hole-lineage.v1\0",
+                render(json!({
+                    "origin_draft_digest":event.origin_draft_digest,
+                    "hole_id":event.hole_id,
+                    "intent_digest":event.intent_digest,
+                }))?
+                .as_bytes(),
+            );
+            if expected_event != event.event_id {
+                return Err(grammar(
+                    "candidate draft filled-hole event identity disagrees",
+                ));
+            }
+            let change = &self.last_valid.changes[event.history_ordinal];
+            let intent_json = render(change.intent.clone())?;
+            if wire::digest(
+                b"semaprax.project-candidate-filled-hole-intent.v1\0",
+                intent_json.as_bytes(),
+            ) != event.intent_digest
+                || change.intent["kind"] != event.kind
+                || change.intent["target"] != event.target
+                || change.intent["expression_id"].as_str() != event.expression_id.as_deref()
+            {
+                return Err(grammar(
+                    "candidate draft filled-hole lineage disagrees with checked history",
+                ));
+            }
+        }
+        Ok(())
     }
     fn target(&self, id: &str) -> Result<&str, Vec<Diagnostic>> {
         validate_id(id)?;

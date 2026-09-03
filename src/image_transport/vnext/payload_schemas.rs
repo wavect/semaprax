@@ -386,7 +386,7 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             ),
             (
                 "report",
-                json!({"$ref":"urn:semaprax.project-candidate-draft-rebase.v1"}),
+                json!({"$ref":"urn:semaprax.project-candidate-draft-rebase.v2"}),
             ),
         ],
     );
@@ -401,7 +401,7 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             ),
             (
                 "report",
-                json!({"$ref":"urn:semaprax.project-candidate-draft-merge.v1"}),
+                json!({"$ref":"urn:semaprax.project-candidate-draft-merge.v2"}),
             ),
         ],
     );
@@ -515,7 +515,7 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             ("draft_revision", digest()),
             (
                 "capsule_schema",
-                json!({"const":crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA}),
+                json!({"enum":[crate::project::PROJECT_CANDIDATE_DRAFT_RECOVERY_SCHEMA,crate::project::PROJECT_CANDIDATE_DRAFT_LINEAGE_RECOVERY_SCHEMA]}),
             ),
             ("offset", uint()),
             ("total_bytes", uint()),

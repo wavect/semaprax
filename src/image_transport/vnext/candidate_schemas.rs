@@ -572,7 +572,7 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
                 reference("semaprax.project-candidate-rebase.v1"),
             ),
             ("left_holes", parent_holes.clone()),
-            ("right_holes", parent_holes),
+            ("right_holes", parent_holes.clone()),
             (
                 "holes",
                 json!({"type":"array","maxItems":16,"items":object(vec![
@@ -584,6 +584,82 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
                     ("context_refreshed", json!({"const":true})),
                 ])}),
             ),
+            ("materializable", json!({"const":false})),
+            ("source_authority", json!({"const":false})),
+            (
+                "validation",
+                json!({"const":"checked_history_merge_and_pending_selector_readmission"}),
+            ),
+            ("nonclaims", strings()),
+        ],
+    );
+    let filled_lineage = json!({"type":"array","maxItems":crate::project::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE,
+    "x-sorted-by":"event_id","items":object(vec![
+        ("event_id",digest()),("hole_id",text()),
+        ("kind",json!({"enum":["replace_function_body","replace_expression","replace_contract_expression"]})),
+        ("target",text()),("expression_id",nullable(text())),("intent_digest",digest()),
+        ("history_ordinal",uint()),("origin_draft_digest",digest()),
+    ])});
+    let branch_ancestry = json!({"type":"array","maxItems":crate::project::MAX_PROJECT_CANDIDATE_DRAFT_LINEAGE,
+    "items":object(vec![
+        ("operation",json!({"enum":["rebase","merge"]})),
+        ("parents",json!({"type":"array","minItems":1,"maxItems":2,"items":digest()})),
+        ("onto_revision",nullable(digest())),
+    ])});
+    let rebase_holes = json!({"type":"array","maxItems":16,"items":object(vec![
+        ("hole_id", text()),
+        ("kind",json!({"enum":["function_body","expression","contract_expression"]})),
+        ("target", text()),("old_expression_id", nullable(text())),
+        ("new_expression_id", nullable(text())),("concurrent_contract_change", boolean()),
+        ("concurrent_body_change", boolean()),("context_refreshed", json!({"const":true})),
+    ])});
+    put(
+        "semaprax.project-candidate-draft-rebase.v2",
+        vec![
+            ("parent_draft_digest", digest()),
+            ("original_base_revision", digest()),
+            ("onto_revision", digest()),
+            ("result_base_revision", digest()),
+            ("result_draft_digest", digest()),
+            (
+                "last_valid_rebase",
+                reference("semaprax.project-candidate-rebase.v1"),
+            ),
+            ("holes", rebase_holes),
+            ("filled_hole_lineage", filled_lineage.clone()),
+            ("branch_ancestry", branch_ancestry.clone()),
+            ("materializable", json!({"const":false})),
+            ("source_authority", json!({"const":false})),
+            (
+                "validation",
+                json!({"const":"checked_history_replay_and_pending_selector_readmission"}),
+            ),
+            ("nonclaims", strings()),
+        ],
+    );
+    let merge_holes = json!({"type":"array","maxItems":16,"items":object(vec![
+        ("hole_id",text()),("kind",json!({"enum":["function_body","expression","contract_expression"]})),
+        ("target",text()),("expression_id",nullable(text())),
+        ("parents",json!({"enum":[["left"],["right"],["left","right"]]})),
+        ("context_refreshed",json!({"const":true})),
+    ])});
+    put(
+        "semaprax.project-candidate-draft-merge.v2",
+        vec![
+            ("left_parent_draft_digest", digest()),
+            ("right_parent_draft_digest", digest()),
+            ("original_base_revision", digest()),
+            ("result_base_revision", digest()),
+            ("result_draft_digest", digest()),
+            (
+                "last_valid_merge",
+                reference("semaprax.project-candidate-rebase.v1"),
+            ),
+            ("left_holes", parent_holes.clone()),
+            ("right_holes", parent_holes),
+            ("holes", merge_holes),
+            ("filled_hole_lineage", filled_lineage),
+            ("branch_ancestry", branch_ancestry),
             ("materializable", json!({"const":false})),
             ("source_authority", json!({"const":false})),
             (

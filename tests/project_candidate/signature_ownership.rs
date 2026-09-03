@@ -95,6 +95,12 @@ requires str_len_bytes(string_as_str(text)) > 0
 @id("frame.forward-owned-string") fn forward_owned_string(value: char) -> string {
     make_owned_string(value)
 }
+@id("frame.echo-owned-string") fn echo_owned_string(value: string) -> string {
+    value
+}
+@id("frame.call-echo-owned-string") fn call_echo_owned_string(value: char) -> string {
+    echo_owned_string(string_from_char(value))
+}
 "#,
         );
         let program = semaprax::parse(&source, &path).unwrap();
@@ -521,6 +527,13 @@ fn whole_owned_results_wrap_once_and_local_callers_move_the_exact_field() {
             "frame.string-envelope.value",
             "fn make_owned_string(value: char) -> StringEnvelope { StringEnvelope { value: string_from_char(value) } }",
             "fn forward_owned_string(value: char) -> string { make_owned_string(value).value }",
+        ),
+        (
+            "frame.echo-owned-string",
+            "frame.string-envelope",
+            "frame.string-envelope.value",
+            "fn echo_owned_string(value: string) -> StringEnvelope { StringEnvelope { value: value } }",
+            "fn call_echo_owned_string(value: char) -> string { echo_owned_string(string_from_char(value)).value }",
         ),
     ] {
         let root = fixture.candidate();

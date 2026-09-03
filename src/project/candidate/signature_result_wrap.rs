@@ -3,12 +3,17 @@
 //! Authentication is complete before this plan exposes either mutation. The
 //! provider constructs one monomorphic record and each direct local caller
 //! immediately moves its sole field back out. Ordinary Project replay owns
-//! cleanup, target-profile, and package-consumer validation.
+//! cleanup and target-profile validation. External consumer replay remains a
+//! separate API and is not implied by this transformation.
 
 use super::super::{aggregate, object, text, Result};
-use crate::ast::{Expr, ExprKind, FieldInitializer, Function, Program, Type};
+use crate::ast::{
+    Expr, ExprKind, FieldInitializer, Function, ModuleUseKind, Param, ParamMode, Program, Type,
+};
 use crate::diagnostic::Diagnostic;
-use crate::hir::{ResolvedType, ResolvedTypeDeclarationKind};
+use crate::hir::{
+    DeclarationId, OwnershipMode, ResolvedParam, ResolvedType, ResolvedTypeDeclarationKind,
+};
 use crate::project::ProjectRevision;
 use serde_json::Value;
 
@@ -109,6 +114,10 @@ pub(super) fn authenticate(
         return Err(authentication(
             "owned result provider source and checked signature disagree",
         ));
+    }
+    let mut parameter_work = 0usize;
+    for (source, checked) in function.params.iter().zip(&checked_function.params) {
+        authenticate_parameter(&programs[owner], source, checked, &mut parameter_work)?;
     }
     let authenticated_function_source = revision
         .sources()
@@ -240,6 +249,102 @@ pub(super) fn authenticate(
         record_name: name,
         field_name: fields[0].name.clone(),
         expected_callers: body_calls,
+    })
+}
+
+fn authenticate_parameter(
+    program: &Program,
+    source: &Param,
+    checked: &ResolvedParam,
+    work: &mut usize,
+) -> Result<()> {
+    let ownership = if source.mode == ParamMode::Value && source.ty == Type::String {
+        OwnershipMode::Own
+    } else {
+        OwnershipMode::from(source.mode)
+    };
+    let ty = source_type(program, &source.ty, work, 0)?;
+    if source.name != checked.name
+        || source.span != checked.span
+        || ownership != checked.ownership
+        || ty != checked.ty
+    {
+        return Err(authentication(
+            "owned result provider parameter disagrees with retained checked name, span, ownership, or type",
+        ));
+    }
+    Ok(())
+}
+
+fn source_type(
+    program: &Program,
+    source: &Type,
+    work: &mut usize,
+    depth: usize,
+) -> Result<ResolvedType> {
+    *work = work
+        .checked_add(1)
+        .ok_or_else(|| authentication("owned result provider parameter type work overflow"))?;
+    if *work > super::super::MAX_WALK_NODES || depth > 64 {
+        return Err(authentication(
+            "owned result provider parameter type exceeds its authentication bound",
+        ));
+    }
+    Ok(match source {
+        Type::I64 => ResolvedType::I64,
+        Type::I32 => ResolvedType::I32,
+        Type::Char => ResolvedType::Char,
+        Type::U8 => ResolvedType::U8,
+        Type::Usize => ResolvedType::Usize,
+        Type::ArrayU8(length) => ResolvedType::ArrayU8(*length),
+        Type::F32 => ResolvedType::F32,
+        Type::F64 => ResolvedType::F64,
+        Type::Bool => ResolvedType::Bool,
+        Type::String => ResolvedType::String,
+        Type::Bytes => ResolvedType::Bytes,
+        Type::Str => ResolvedType::Str,
+        Type::SliceU8 => ResolvedType::SliceU8,
+        Type::Named { name, arguments } => {
+            *work = work
+                .checked_add(program.types.len() + program.module_uses.len())
+                .ok_or_else(|| authentication("owned result nominal binding work overflow"))?;
+            if *work > super::super::MAX_WALK_NODES {
+                return Err(authentication(
+                    "owned result nominal binding inventory exceeds its authentication bound",
+                ));
+            }
+            let mut identities = std::collections::BTreeSet::new();
+            for declaration in &program.types {
+                if declaration.name == *name {
+                    identities.insert(declaration.stable_id.as_str());
+                }
+            }
+            for binding in &program.module_uses {
+                if binding.kind == ModuleUseKind::Type && binding.alias == *name {
+                    identities.insert(binding.persistent_id.as_str());
+                }
+            }
+            if name == "Option" {
+                identities.insert(crate::prelude::OPTION_ID);
+            }
+            if name == "Result" {
+                identities.insert(crate::prelude::RESULT_ID);
+            }
+            if identities.len() != 1 {
+                return Err(authentication(
+                    "owned result provider parameter has an ambiguous nominal source binding",
+                ));
+            }
+            let declaration = DeclarationId::new(*identities.iter().next().expect("one identity"));
+            let mut resolved = Vec::with_capacity(arguments.len());
+            for argument in arguments {
+                resolved.push(source_type(program, argument, work, depth + 1)?);
+            }
+            ResolvedType::Nominal {
+                declaration,
+                arguments: resolved,
+            }
+        }
     })
 }
 

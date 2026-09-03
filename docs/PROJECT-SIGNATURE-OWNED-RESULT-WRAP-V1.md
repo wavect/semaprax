@@ -30,8 +30,12 @@ source bindings; request bytes select stable identities only.
 
 Admission authenticates the provider source and checked signature, the whole
 record and field shape, and every stable-ID-bound local call inventory before
-mutation. Calls from contracts are rejected. At least one local body call is
-required, and the authenticated count must equal the rewritten count.
+mutation. Every provider parameter must match retained HIR elementwise in
+name, span, ownership, and recursively resolved type. Bare source `string`
+normalizes only to checked owning `String`; all legacy scalars/views and
+ordered nominal owners keep their exact ordinary ownership and type identity.
+Calls from contracts are rejected. At least one local body call is required,
+and the authenticated count must equal the rewritten count.
 
 The provider wraps its former body exactly once in the selected record
 constructor at the existing result position. Each local caller keeps its
@@ -41,17 +45,16 @@ record owns the result until publication; after projection, ordinary caller
 cleanup owns the moved `Bytes` or `string` and cleans the empty record according
 to the compiler's existing structural plan. Full Project reconstruction
 rechecks HIR, ownership, cleanup, interpreter admission, native emission, Wasm
-emission, manifests, and package conflict detection before the candidate is
-observable.
+emission, manifests, and target admission before the candidate is observable.
 
 The lane rejects borrowed results, projected provider results, generic or
 resource-bearing wrappers, multi-field or mismatched wrappers, implicit
 identities, contract occurrences, exported providers, zero-local-caller
 changes, unknown mapping fields, and caller-inventory drift. It does not search
 or rewrite external source, generated SDKs, packages, deployed consumers,
-reflection, network providers, or runtime data. A package conflict remains
-visible through the existing candidate dependency machinery; no automatic
-consumer migration is claimed.
+reflection, network providers, or runtime data. Package-consumer analysis and
+replay are separate explicit APIs; this lane neither invokes them nor claims a
+package conflict gate, compatibility result, or automatic consumer migration.
 
 `SPX-G494` owns unsupported wrapper shape and scope, `SPX-G495` owns retained
 source/HIR authentication failures, and `SPX-G496` owns caller inventory and
@@ -60,7 +63,8 @@ the same two stable selectors and exclusions.
 
 Authored, unrun regressions in
 [`tests/project_candidate/signature_ownership.rs`](../tests/project_candidate/signature_ownership.rs)
-cover Bytes and String wrappers, provider construction, caller projection,
+cover Bytes and String wrappers, legacy borrowed parameters, bare owning String
+parameter normalization, provider construction, caller projection,
 exact candidate replay, cleanup-bearing Project admission, wrong-type and
 multi-field rejection, and unchanged candidate state after rejection. Full
 Project replay is the authored interpreter/native/Wasm admission oracle; no

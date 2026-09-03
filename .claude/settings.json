@@ -20,7 +20,19 @@
       "Bash(git log:*)",
       "Bash(git diff:*)",
       "Bash(git show:*)",
-      "Bash(git worktree list:*)"
+      "Bash(git worktree list:*)",
+      "Bash(rtk proxy cargo test:*)",
+      "Bash(git fetch:*)",
+      "Bash(rtk proxy git status:*)",
+      "Bash(git rev-list:*)",
+      "Bash(rtk proxy git log:*)",
+      "Bash(cargo build:*)",
+      "Bash(rtk proxy cargo fmt:*)",
+      "Bash(rtk proxy git diff:*)",
+      "Bash(rtk proxy cargo clippy:*)",
+      "Bash(rtk proxy cargo check:*)",
+      "Bash(node scripts/verify-web.mjs:*)",
+      "Bash(node scripts/verify-wasm-scalar-exports.mjs:*)"
     ],
     "deny": [
       "Bash(git stash:*)",

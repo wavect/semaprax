@@ -718,6 +718,11 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
                     ("cached_AST_clones", uint()),
                     ("modules_resolved", uint()),
                     ("checked_HIR_reused", json!({"const":0})),
+                    ("monomorphic_functions_resolved", uint()),
+                    ("monomorphic_function_HIR_reused", json!({"const":0})),
+                    ("selective_function_HIR_resolution", json!({"const":false})),
+                    ("full_source_verification", json!({"const":true})),
+                    ("full_HIR_validation", json!({"const":true})),
                     ("full_cross_file_checks", json!({"const":true})),
                     ("full_link_and_profile_admission", json!({"const":true})),
                 ]),
@@ -736,6 +741,7 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
                     ("modules", uint()),
                     ("source_bytes", uint()),
                     ("AST_construction_prebound", uint()),
+                    ("checked_monomorphic_functions", uint()),
                 ]),
             ),
             ("nonclaims", strings()),
@@ -748,6 +754,9 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
     semantic["properties"]["schema"]["const"] = json!("semaprax.project-semantic-cache-work.v1");
     semantic["properties"]["work"]["properties"]["checked_HIR_reused"] =
         json!({"type":"integer","minimum":0,"maximum":16});
+    semantic["properties"]["work"]["properties"]["monomorphic_function_HIR_reused"] = json!({"type":"integer","minimum":0,"maximum":crate::project::incremental::MAX_PROJECT_CHECKED_FUNCTIONS});
+    semantic["properties"]["work"]["properties"]["selective_function_HIR_resolution"] =
+        json!({"const":true});
     docs.insert(
         "urn:semaprax.project-semantic-cache-work.v1".into(),
         semantic,

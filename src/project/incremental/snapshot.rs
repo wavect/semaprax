@@ -156,6 +156,11 @@ pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<ProjectFrontendCache> {
                 resolved: entry.resolved,
                 resolver_bytes: entry.resolver_bytes,
                 retained_loan_bytes: entry.retained_loan_bytes,
+                // Persistent checked HIR remains reusable as a complete exact
+                // module. Function work costs are invocation-local evidence;
+                // they are rebuilt by the first changed-module resolution and
+                // are never accepted from serialized cache bytes.
+                function_costs: BTreeMap::new(),
             }),
         );
     }

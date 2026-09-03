@@ -289,6 +289,61 @@ pub fn resolve(program: &Program) -> Result<ResolvedProgram, Vec<Diagnostic>> {
     resolved.ok_or(diagnostics)
 }
 
+/// Private checked-module seam for exact monomorphic function reuse.
+///
+/// Source verification and declaration-index construction always run first.
+/// A prior function is eligible only when the complete non-body environment,
+/// every function signature, and that function's full AST are exactly equal.
+/// The resolver still rebuilds and validates the complete `ResolvedProgram`.
+pub(crate) fn resolve_with_function_reuse(
+    program: &Program,
+    previous_program: Option<&Program>,
+    previous_resolved: Option<&ResolvedProgram>,
+    previous_costs: Option<&BTreeMap<String, usize>>,
+) -> Result<(ResolvedProgram, FunctionResolutionWork), Vec<Diagnostic>> {
+    let diagnostics = source_verify::verify(program);
+    if diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.severity.is_error())
+    {
+        return Err(diagnostics);
+    }
+    let declarations = DeclarationIndex::from_verified(program).map_err(|error| vec![error])?;
+    let reuse = previous_program
+        .zip(previous_resolved)
+        .zip(previous_costs)
+        .filter(|((previous, _), _)| function_reuse_environment_is_exact(program, previous))
+        .map(|((program, resolved), costs)| FunctionReuse {
+            program,
+            resolved,
+            costs,
+        });
+    (Resolver {
+        program,
+        declarations,
+        reuse,
+        function_work: FunctionResolutionWork::default(),
+    })
+    .resolve()
+    .map_err(|error| vec![error])
+}
+
+#[derive(Default)]
+pub(crate) struct FunctionResolutionWork {
+    costs: BTreeMap<String, usize>,
+    reused: usize,
+}
+
+impl FunctionResolutionWork {
+    pub(crate) fn costs(self) -> BTreeMap<String, usize> {
+        self.costs
+    }
+
+    pub(crate) fn reused(&self) -> usize {
+        self.reused
+    }
+}
+
 /// The source diagnostics and optional resolved meaning from one analysis.
 ///
 /// Warnings do not prevent resolution. Any source error fails closed before the
@@ -324,10 +379,12 @@ pub fn analyze(program: &Program) -> Analysis {
     match (Resolver {
         program,
         declarations,
+        reuse: None,
+        function_work: FunctionResolutionWork::default(),
     })
     .resolve()
     {
-        Ok(resolved) => Analysis {
+        Ok((resolved, _)) => Analysis {
             diagnostics,
             resolved: Some(resolved),
         },
@@ -344,9 +401,81 @@ fn hir_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-H006", message)
 }
 
+struct FunctionReuse<'a> {
+    program: &'a Program,
+    resolved: &'a ResolvedProgram,
+    costs: &'a BTreeMap<String, usize>,
+}
+
 struct Resolver<'a> {
     program: &'a Program,
     declarations: DeclarationIndex,
+    reuse: Option<FunctionReuse<'a>>,
+    function_work: FunctionResolutionWork,
+}
+
+fn function_reuse_environment_is_exact(current: &Program, previous: &Program) -> bool {
+    current.path == previous.path
+        && current.module == previous.module
+        && current.module_uses == previous.module_uses
+        && current.permits == previous.permits
+        && current.types == previous.types
+        && current.interfaces == previous.interfaces
+        && current.protocols == previous.protocols
+        && current.implementations == previous.implementations
+        && current.functions.len() == previous.functions.len()
+        && current
+            .functions
+            .iter()
+            .all(|function| function.type_parameters.is_empty())
+        && current
+            .functions
+            .iter()
+            .zip(&previous.functions)
+            .all(|(current, previous)| function_signature_is_exact(current, previous))
+}
+
+fn function_signature_is_exact(
+    current: &crate::ast::Function,
+    previous: &crate::ast::Function,
+) -> bool {
+    current.stable_id == previous.stable_id
+        && current.explicit_id == previous.explicit_id
+        && current.name == previous.name
+        && current.name_span == previous.name_span
+        && current.type_parameters == previous.type_parameters
+        && current.params == previous.params
+        && current.return_type == previous.return_type
+        && current.effects == previous.effects
+        && current.requires == previous.requires
+        && current.ensures == previous.ensures
+        && current.span == previous.span
+}
+
+#[cfg(test)]
+mod function_reuse_environment_tests {
+    use super::*;
+
+    fn program(body: &str, requirement: &str) -> Program {
+        crate::parse(
+            &format!(
+                "module reuse; @id(\"reuse.value\") fn value(input: i64) -> i64 requires {requirement} {{ {body} }} @id(\"reuse.main\") fn main() -> i64 {{ value(1) }}"
+            ),
+            "reuse.spx",
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn only_an_exact_length_body_change_can_preserve_the_function_environment() {
+        let before = program("input + 1", "input >= 0");
+        let body_only = program("input + 2", "input >= 0");
+        assert!(function_reuse_environment_is_exact(&body_only, &before));
+        assert_ne!(body_only.functions[0], before.functions[0]);
+
+        let contract = program("input + 2", "input >= 1");
+        assert!(!function_reuse_environment_is_exact(&contract, &before));
+    }
 }
 
 #[cfg(test)]

@@ -4492,11 +4492,7 @@ fn build_resolved_core(
     let mut synthetic_modules = Vec::with_capacity(programs.len());
     for program in programs {
         let synthetic = synthetic_program(program, authored, programs)?;
-        // Synthetic AST equality includes full imported stubs and source spans;
-        // source-exact/context filtering happened before this private cache seam.
-        // The unconditional synthetic AST/HIR construction prebound above also
-        // bounds cache-hit clones. Cache retention is separately capped by that
-        // same whole-inventory prebound and the frontend retained-source bound.
+        // Exact stubs/spans and the unconditional prebound govern hits.
         let cached = frontend
             .as_deref_mut()
             .and_then(|cache| cache.checked_module(&program.path, &synthetic));
@@ -4536,7 +4532,14 @@ fn build_resolved_core(
         } else {
             let before = crate::bounded_output::active_remaining()
                 .expect("resolved core has a builder budget");
-            let resolved = hir::resolve(&synthetic)?;
+            let selective = frontend
+                .as_deref()
+                .and_then(|cache| cache.resolve_functions(&program.path, &synthetic));
+            let (resolved, function_costs, reused_functions) = if let Some(selective) = selective {
+                selective?.into_parts()
+            } else {
+                (hir::resolve(&synthetic)?, BTreeMap::new(), 0)
+            };
             let resolver_bytes = before.saturating_sub(
                 crate::bounded_output::active_remaining()
                     .expect("resolved core has a builder budget"),
@@ -4548,6 +4551,8 @@ fn build_resolved_core(
                     &resolved,
                     resolver_bytes,
                     resolved_loan_bytes(&resolved)?,
+                    function_costs,
+                    reused_functions,
                 );
             }
             resolved

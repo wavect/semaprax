@@ -173,6 +173,40 @@ fn leaf_provider_and_private_body_edits_invalidate_their_checked_modules() {
 }
 
 #[test]
+fn body_only_edit_reuses_exact_sibling_functions_but_contract_change_invalidates_all() {
+    let fixture = Fixture::new();
+    fixture.write(
+        "src/spare.spx",
+        r#"module calculator.spare;
+@id("calculator.spare.value")
+fn value(input: i64) -> i64 requires input >= 0 { input + 1 }
+@id("calculator.spare.other")
+fn other() -> i64 { 7 }
+"#,
+    );
+    let manifest = fixture.manifest();
+    let mut cache = ProjectFrontendCache::new_with_semantic_cache();
+    cache.build(&manifest, &fixture.sources()).unwrap();
+
+    fixture.replace("src/spare.spx", "input + 1", "input + 2");
+    let body = cache.build(&manifest, &fixture.sources()).unwrap();
+    let report = work(&body, 1, 3);
+    assert_eq!(report["work"]["monomorphic_functions_resolved"], 1);
+    // `other` and the synthetic entry point have exact AST and environment.
+    assert_eq!(report["work"]["monomorphic_function_HIR_reused"], 2);
+    assert_eq!(report["work"]["full_source_verification"], true);
+    assert_eq!(report["work"]["full_HIR_validation"], true);
+    same(body.revision(), fixture.cold().unwrap());
+
+    fixture.replace("src/spare.spx", "input >= 0", "input >= 1");
+    let contract = cache.build(&manifest, &fixture.sources()).unwrap();
+    let report = work(&contract, 1, 3);
+    assert_eq!(report["work"]["monomorphic_functions_resolved"], 3);
+    assert_eq!(report["work"]["monomorphic_function_HIR_reused"], 0);
+    same(contract.revision(), fixture.cold().unwrap());
+}
+
+#[test]
 fn stale_import_signature_cannot_hide_behind_cached_consumers() {
     let fixture = Fixture::new();
     let manifest = fixture.manifest();

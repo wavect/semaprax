@@ -27,7 +27,9 @@ use super::nodes::{
 use super::{validate, Binding, Resolver};
 
 impl Resolver<'_> {
-    pub(super) fn resolve(self) -> Result<ResolvedProgram, Diagnostic> {
+    pub(super) fn resolve(
+        mut self,
+    ) -> Result<(ResolvedProgram, super::FunctionResolutionWork), Diagnostic> {
         let entrypoint = self
             .program
             .functions
@@ -229,17 +231,29 @@ impl Resolver<'_> {
                 })
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
-        let mut functions: Vec<ResolvedFunction> = self
+        let mut functions = Vec::new();
+        for function in self
             .program
             .functions
             .iter()
             .filter(|function| function.type_parameters.is_empty())
-            .map(|function| self.resolve_function(function))
-            .collect::<Result<_, _>>()?;
+        {
+            let (resolved, cost, reused) = self.resolve_or_reuse_function(function)?;
+            if reused {
+                self.function_work.reused += 1;
+            }
+            self.function_work
+                .costs
+                .insert(function.stable_id.clone(), cost);
+            functions.push(resolved);
+        }
         for decl in &self.program.types {
             if let TypeDeclarationKind::Class { methods, .. } = &decl.kind {
                 for method in methods {
                     if method.type_parameters.is_empty() {
+                        // Class declarations are part of the exact environment,
+                        // but the first function-granular lane deliberately
+                        // resolves their methods afresh.
                         functions.push(self.resolve_function(method)?);
                     }
                 }
@@ -329,7 +343,44 @@ impl Resolver<'_> {
             instance.function.cleanup_plan = cleanup_plan;
         }
         validate(&resolved)?;
-        Ok(resolved)
+        Ok((resolved, self.function_work))
+    }
+
+    fn resolve_or_reuse_function(
+        &self,
+        function: &crate::ast::Function,
+    ) -> Result<(ResolvedFunction, usize, bool), Diagnostic> {
+        if let Some(reuse) = &self.reuse {
+            let previous = reuse
+                .program
+                .functions
+                .iter()
+                .find(|previous| previous.stable_id == function.stable_id);
+            let resolved = reuse
+                .resolved
+                .functions
+                .iter()
+                .find(|previous| previous.id.as_str() == function.stable_id);
+            let cost = reuse.costs.get(&function.stable_id).copied();
+            if let (Some(previous), Some(resolved), Some(cost)) = (previous, resolved, cost) {
+                if previous == function {
+                    if !crate::bounded_output::reserve_active(cost) {
+                        return Err(self.error(
+                            "SPX-H006",
+                            "function reuse exceeds the active builder budget",
+                            function.span,
+                        ));
+                    }
+                    return Ok((resolved.clone(), cost, true));
+                }
+            }
+        }
+        let before = crate::bounded_output::active_remaining();
+        let resolved = self.resolve_function(function)?;
+        let cost = before
+            .zip(crate::bounded_output::active_remaining())
+            .map_or(0, |(before, after)| before.saturating_sub(after));
+        Ok((resolved, cost, false))
     }
 
     pub(super) fn validate_record_layouts(&self) -> Result<(), Diagnostic> {

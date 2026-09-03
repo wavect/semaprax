@@ -45,6 +45,7 @@ pub const PROJECT_SEMANTIC_CACHE_COMPATIBILITY: &str = "semaprax.project-checked
 pub const MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES: usize = MAX_TOTAL_SOURCE_BYTES;
 pub const MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET: usize = 16 * 1024 * 1024;
 pub const MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND: usize = 16 * 1024 * 1024;
+pub const MAX_PROJECT_CHECKED_FUNCTIONS: usize = 8192;
 pub const MAX_PROJECT_FRONTEND_REPORT_BYTES: usize = 65_536;
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
@@ -83,6 +84,7 @@ struct CheckedModule {
     resolved: crate::hir::ResolvedProgram,
     resolver_bytes: usize,
     retained_loan_bytes: usize,
+    function_costs: BTreeMap<String, usize>,
 }
 
 /// A bounded in-memory cache belonging to its caller. It has no filesystem
@@ -243,14 +245,22 @@ impl ProjectFrontendCache {
             retained_source_bytes: 0,
             ast_budget: 0,
             semantic: self.semantic,
-            checked: self
-                .checked
-                .iter()
-                .filter(|(path, _)| !reset && !invalidated.contains(*path))
-                .map(|(path, entry)| (path.clone(), Arc::clone(entry)))
-                .collect(),
+            // Old entries remain only as private reuse candidates. Exact
+            // reconstructed synthetic input still governs whole-module hits;
+            // the narrower function seam separately authenticates its complete
+            // environment. Failed admission never installs either candidate.
+            checked: if reset {
+                BTreeMap::new()
+            } else {
+                self.checked
+                    .iter()
+                    .map(|(path, entry)| (path.clone(), Arc::clone(entry)))
+                    .collect()
+            },
             next_checked: BTreeMap::new(),
             checked_reused: 0,
+            functions_resolved: 0,
+            functions_reused: 0,
         };
         let owned = sources
             .iter()
@@ -267,10 +277,13 @@ impl ProjectFrontendCache {
             "manifest_context_reset":reset,"invalidated_sources":invalidated,
             "work":{"modules_parsed":pass.parsed,"modules_reused":pass.reused,"canonicalizer_calls":pass.canonicalizations,
                 "parsed_source_bytes":pass.parsed_bytes,"reused_source_bytes":pass.reused_bytes,"cached_AST_clones":pass.reused,
-                "modules_resolved":pass.resolved,"checked_HIR_reused":pass.checked_reused,"full_cross_file_checks":true,"full_link_and_profile_admission":true},
+                "modules_resolved":pass.resolved,"checked_HIR_reused":pass.checked_reused,
+                "monomorphic_functions_resolved":pass.functions_resolved,"monomorphic_function_HIR_reused":pass.functions_reused,
+                "selective_function_HIR_resolution":self.semantic,"full_source_verification":true,"full_HIR_validation":true,
+                "full_cross_file_checks":true,"full_link_and_profile_admission":true},
             "retained":{"modules":pass.entries.len(),"source_bytes":pass.retained_source_bytes,"AST_construction_prebound":pass.ast_budget},
-            "limits":{"modules":MAX_SOURCES,"source_bytes":MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES,"AST_construction_prebound":MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET},
-            "nonclaims":if self.semantic {vec!["not_general_incremental_semantic_verification","no_cross_file_check_or_profile_bypass","no_implicit_persistence_or_ambient_cache","no_untrusted_HIR_deserialization","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}else{vec!["not_incremental_semantic_verification","no_checked_HIR_reuse","no_persistent_or_cross_process_cache","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}
+            "limits":{"modules":MAX_SOURCES,"source_bytes":MAX_PROJECT_FRONTEND_CACHE_SOURCE_BYTES,"AST_construction_prebound":MAX_PROJECT_FRONTEND_CACHE_AST_BUDGET,"checked_monomorphic_functions":MAX_PROJECT_CHECKED_FUNCTIONS},
+            "nonclaims":if self.semantic {vec!["function_reuse_requires_exact_monomorphic_environment","no_cross_file_check_or_profile_bypass","no_implicit_persistence_or_ambient_cache","no_untrusted_HIR_deserialization","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}else{vec!["not_incremental_semantic_verification","no_checked_HIR_reuse","no_persistent_or_cross_process_cache","not_allocator_or_RSS_accounting","no_source_or_execution_authority"]}
         }),true,MAX_PROJECT_FRONTEND_REPORT_BYTES).map_err(|_|capacity("frontend work report exceeds its byte bound"))?;
         self.context = context;
         self.entries = pass.entries;
@@ -323,6 +336,21 @@ pub(crate) struct FrontendPass {
     checked: BTreeMap<String, Arc<CheckedModule>>,
     next_checked: BTreeMap<String, Arc<CheckedModule>>,
     checked_reused: usize,
+    functions_resolved: usize,
+    functions_reused: usize,
+}
+
+pub(crate) struct SelectiveResolvedModule {
+    pub(crate) resolved: crate::hir::ResolvedProgram,
+    pub(crate) function_costs: BTreeMap<String, usize>,
+    pub(crate) reused_functions: usize,
+}
+impl SelectiveResolvedModule {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (crate::hir::ResolvedProgram, BTreeMap<String, usize>, usize) {
+        (self.resolved, self.function_costs, self.reused_functions)
+    }
 }
 impl FrontendPass {
     pub(crate) fn checked_retention_prebound(&self, bytes: usize) -> Result<()> {
@@ -346,12 +374,42 @@ impl FrontendPass {
             return None;
         }
         self.checked_reused += 1;
+        self.functions_reused += entry.resolved.functions.len();
         self.next_checked.insert(path.to_owned(), Arc::clone(entry));
         Some((
             entry.resolved.clone(),
             entry.resolver_bytes,
             entry.retained_loan_bytes,
         ))
+    }
+
+    pub(crate) fn resolve_functions(
+        &self,
+        path: &str,
+        synthetic: &Program,
+    ) -> Option<Result<SelectiveResolvedModule>> {
+        if !self.semantic {
+            return None;
+        }
+        if synthetic.functions.len() > MAX_PROJECT_CHECKED_FUNCTIONS {
+            return Some(Err(capacity(
+                "checked function inventory exceeds its bound",
+            )));
+        }
+        let entry = self.checked.get(path);
+        Some(
+            crate::hir::resolve_with_function_reuse(
+                synthetic,
+                entry.map(|entry| &entry.synthetic),
+                entry.map(|entry| &entry.resolved),
+                entry.map(|entry| &entry.function_costs),
+            )
+            .map(|(resolved, work)| SelectiveResolvedModule {
+                reused_functions: work.reused(),
+                function_costs: work.costs(),
+                resolved,
+            }),
+        )
     }
 
     pub(crate) fn resolved_module(
@@ -361,8 +419,12 @@ impl FrontendPass {
         resolved: &crate::hir::ResolvedProgram,
         resolver_bytes: usize,
         retained_loan_bytes: usize,
+        function_costs: BTreeMap<String, usize>,
+        reused_functions: usize,
     ) {
         self.resolved += 1;
+        self.functions_reused += reused_functions;
+        self.functions_resolved += resolved.functions.len().saturating_sub(reused_functions);
         if self.semantic {
             self.next_checked.insert(
                 path.to_owned(),
@@ -371,6 +433,7 @@ impl FrontendPass {
                     resolved: resolved.clone(),
                     resolver_bytes,
                     retained_loan_bytes,
+                    function_costs,
                 }),
             );
         }
@@ -495,6 +558,7 @@ mod semantic_tests {
                 resolved,
                 resolver_bytes: 0,
                 retained_loan_bytes: 0,
+                function_costs: BTreeMap::new(),
             }),
         )]);
         let mut pass = FrontendPass {
@@ -511,6 +575,8 @@ mod semantic_tests {
             checked,
             next_checked: BTreeMap::new(),
             checked_reused: 0,
+            functions_resolved: 0,
+            functions_reused: 0,
         };
         assert!(pass.checked_module("local.spx", &synthetic).is_some());
         let mut signature = synthetic.clone();

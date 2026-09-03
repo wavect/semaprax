@@ -175,7 +175,7 @@ fn string_owner_view_rejects_contract_roots_and_mismatched_mapping_kinds() {
             &json!({"kind":"change_function_signature","target":target,"parameters":parameters}),
         )
         .unwrap();
-        let errors = root.apply(root.candidate_digest(), &change).unwrap_err();
+        let errors = root.apply(root.candidate_digest(), &change).err().unwrap();
         assert!(
             errors.iter().any(|error| error.code == "SPX-G469"),
             "{errors:?}"

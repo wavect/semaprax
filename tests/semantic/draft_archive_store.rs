@@ -511,9 +511,12 @@ fn v5_host_retains_explicit_registry_and_reports_post_store_stale_without_rollba
         .unwrap();
     assert!(advanced.registry_advanced());
     assert_eq!(advanced.sequence(), Some(1));
+    // `to_json` borrows, so own the bytes to end the mutable borrow of `first`
+    // before reading its outcome back.
+    let advanced = advanced.to_json().to_string();
     assert_eq!(
         first.retention_lifecycle_outcome().unwrap().to_json(),
-        advanced.to_json()
+        advanced.as_str()
     );
     let stale = stale
         .checkpoint_successful_retention_receipts(&typed)

@@ -27,6 +27,7 @@ Audience: all documentation readers.
 - [Provisioned offline doctor collector](DOCTOR-OFFLINE-COLLECTOR-V1.md)
 - [Provisioned offline doctor launcher](DOCTOR-OFFLINE-LAUNCHER-V1.md)
 - [Linux production offline doctor provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
+- [Signed doctor generation install and activation](DOCTOR-SIGNED-INSTALL-V1.md)
 - [Native compiler scratch](NATIVE-SCRATCH-V1.md)
 
 ## Language contract
@@ -160,6 +161,7 @@ Audience: all documentation readers.
 - [Semantic Retention Registry v1](SEMANTIC-RETENTION-REGISTRY-V1.md)
 - [Semantic Retention Host Lifecycle v1](SEMANTIC-RETENTION-HOST-LIFECYCLE-V1.md)
 - [Semantic Retention Protocol Session v1](SEMANTIC-RETENTION-PROTOCOL-SESSION-V1.md)
+- [Automatic durable candidate/draft lifecycle v1](AUTOMATIC-CANDIDATE-DRAFT-LIFECYCLE-V1.md)
 - [Semantic Retention Metadata CLI v1](SEMANTIC-RETENTION-METADATA-CLI-V1.md)
 - [Project Target Cache v1](PROJECT-TARGET-CACHE-V1.md)
 - [Semantic Image Facets v1](SEMANTIC-IMAGE-FACETS-V1.md)
@@ -185,6 +187,7 @@ Audience: all documentation readers.
 - [Project Revision Store Windows-entry v1](PROJECT-REVISION-STORE-WINDOWS-V1.md)
 - [Project Profile Admission v1](PROJECT-PROFILE-ADMISSION-V1.md)
 - [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md)
+- [Project v8 Promotion Receipt v1](PROJECT-V8-PROMOTION-RECEIPT-V1.md)
 - [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md)
 - [Public Nested Owned-Record API v1](PUBLIC-NESTED-OWNED-RECORD-API-V1.md)
 - [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md)

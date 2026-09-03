@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Added a Unix-only signed doctor generation store with lifetime-held root
+  authority, exact signed-byte replay, no-adoption installation, settled
+  generation publication, cooperative expected-current activation/rollback,
+  and fail-closed authenticated inert-stage recovery. Focused fault and race
+  evidence covers substitution, pre/post-pivot uncertainty, unsafe inventory,
+  and foreign-byte preservation; it does not claim a kernel CAS against an
+  uncooperative same-principal writer, Windows support, CLI activation, or
+  production promotion.
+
+- Added automatic host-library composition of immutable candidate/draft archive
+  storage and the semantic-retention registry. Exact held-root replay can resume
+  an archive orphaned before checkpointing, distinguish an already retained
+  subject without advancing again, and reject cross-kind or reminted selectors.
+  Canonical replay receipts and closed recovery outcomes carry no source, Git,
+  approval, GC, warm-HIR, or publication authority.
+
+- Added an authority-free Project v8 promotion receipt model. Its canonical,
+  bounded replay binds one exact commit, baseline and display-rename subjects,
+  eight artifact digests, and a closed pass-only fifteen-gate platform/tool
+  inventory. The receipt records caller-owned observations only; it neither
+  executes gates nor establishes hosted success, provenance, support, package
+  publication, or WP-15 completion.
+
 - Added the compiler-checked [agent quick reference](docs/AGENT-QUICK-REFERENCE.md):
   one page of admitted language shapes, the compiler-owned function table, the
   diagnostics that habits from other languages trigger with their fixes, and

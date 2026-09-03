@@ -3,6 +3,8 @@
 Status: private Unix implementation contract; not ordinary CLI activation or
 production support.
 
+Audience: release engineers, embedding hosts, and security reviewers.
+
 ## Boundary
 
 This contract turns one independently authenticated, unpacked Linux doctor

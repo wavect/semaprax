@@ -37,9 +37,9 @@ mod scaffold;
 mod scalar_wit;
 mod semantic;
 mod target_cache;
-mod v8_promotion;
 #[cfg(test)]
 mod tests;
+mod v8_promotion;
 
 use std::collections::BTreeSet;
 use std::ops::Deref;
@@ -237,13 +237,6 @@ pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,
     ProjectExecutionRole, PROJECT_EXECUTION_SCHEMA,
 };
-pub use v8_promotion::{
-    derive_project_v8_promotion_receipt, parse_project_v8_promotion_receipt,
-    replay_project_v8_promotion_receipt, ProjectV8PromotionArtifact,
-    ProjectV8PromotionGateObservation, ProjectV8PromotionGateOutcome,
-    ProjectV8PromotionReceipt, ProjectV8PromotionSubject,
-    MAX_PROJECT_V8_PROMOTION_RECEIPT_BYTES, PROJECT_V8_PROMOTION_RECEIPT_SCHEMA,
-};
 pub use flat_owned_record::{
     derive_flat_owned_record_api_descriptor, render_flat_owned_record_metadata,
     render_flat_owned_record_rust, render_flat_owned_record_typescript,
@@ -333,6 +326,13 @@ pub use target_cache::{
     MAX_PROJECT_TARGET_CACHE_REPORT_BYTES, PROJECT_C_TARGET_CACHE_COMPATIBILITY,
     PROJECT_NPM_TARGET_CACHE_COMPATIBILITY, PROJECT_TARGET_CACHE_COMPATIBILITY,
     PROJECT_TARGET_CACHE_SCHEMA,
+};
+pub use v8_promotion::{
+    derive_project_v8_promotion_receipt, parse_project_v8_promotion_receipt,
+    replay_project_v8_promotion_receipt, ProjectV8PromotionArtifact,
+    ProjectV8PromotionGateObservation, ProjectV8PromotionGateOutcome, ProjectV8PromotionReceipt,
+    ProjectV8PromotionSubject, MAX_PROJECT_V8_PROMOTION_RECEIPT_BYTES,
+    PROJECT_V8_PROMOTION_RECEIPT_SCHEMA,
 };
 
 /// Prepare the additive WP-10/WP-11 owned-data package from held HIR and the

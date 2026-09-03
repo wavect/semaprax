@@ -170,6 +170,16 @@ closed default-deny syscall table per authenticated tool role. This boundary
 does not activate ordinary CLI profile discovery, prove hostile binfmt/kernel
 policy absent, package a signed production profile, or supply macOS/Windows
 confinement. See [Linux production offline doctor provisioner v1](DOCTOR-PRODUCTION-PROVISIONER-V1.md).
+The separate `semaprax-doctor-release::install` library boundary owns a
+Unix-only, explicitly selected signed-generation store. It retains the exact
+private root authority for the store object's lifetime, replays signed release
+bytes through held files, publishes immutable generations without adoption,
+and changes the fixed `ACTIVE` record only under a cooperative lock and an
+expected-current check. Recovery authenticates the complete held inert-stage
+inventory before its first effect. This layer does not execute a generation,
+activate the ordinary CLI, provide a kernel compare-and-swap against hostile
+same-principal writers, or add Windows support. See [Signed doctor generation
+install v1](DOCTOR-SIGNED-INSTALL-V1.md).
 The collector's lifetime state owns authentication, the irreversible reap transition and
 fixed handle closure; only the native adapter performs pidfd and descriptor
 operations. The separate report-delivery module owns bounded writes and final
@@ -828,6 +838,15 @@ exclusive cleanup; malformed or unrelated stages fail closed. Cursor-stage
 cleanup never deletes a retained subject or immutable pair. The registry grants
 no source, subject-store, GC, approval or publication authority and has no CLI
 or session integration. See [Semantic Retention Registry v1](SEMANTIC-RETENTION-REGISTRY-V1.md).
+`src/semantic_retention_lifecycle/automatic.rs` composes one separately held
+candidate/draft archive store with that registry. Immutable archive publication
+precedes checkpointing. A fresh coordinator can replay an exact already stored
+archive into a typed receipt, then either recognize its exact retained subject
+or attempt one registry checkpoint, closing the crash window without weakening
+ordinary no-adoption publication. Its canonical replay and resume reports are
+accountability data only; current source, Git, approval, GC, warm HIR and
+publication authority remain outside the module. See [Automatic durable
+candidate/draft lifecycle v1](AUTOMATIC-CANDIDATE-DRAFT-LIFECYCLE-V1.md).
 `src/cli/retention_metadata.rs` is the narrow command-line adapter. It receives
 an explicit bounded canonical declaration inventory whose rows contain only a
 closed image/candidate/draft subject and byte accounting. Declaration rows use
@@ -1701,13 +1720,16 @@ a supported language, CLI, ABI, or runtime surface.
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
 | Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/`, explicit adapter `src/cli/retention_metadata.rs` |
 | Retention registry cursor | `src/semantic_retention_registry.rs`, `src/semantic_retention_registry/` |
+| Automatic candidate/draft retention lifecycle | `src/semantic_retention_lifecycle.rs`, `src/semantic_retention_lifecycle/automatic.rs`, held replay adapters in `src/candidate_archive_store.rs` |
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
+| Project v8 promotion observation replay | `src/project/v8_promotion.rs` |
 | Exact Project semantic references | `src/project/image_reference.rs` |
 | Exact Project target reuse | `src/project/target_cache.rs` |
 | Immutable Project revision inputs | `src/project_revision_store.rs`, `src/project_revision_store/unix.rs` |
 | Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/` |
+| Signed doctor generation store | `crates/semaprax-doctor-release/src/install.rs`, `crates/semaprax-doctor-release/src/install/` |
 | Interpreter | `src/interpreter.rs`, `src/interpreter/prepared.rs`, `src/hosted_interpreter.rs`, `src/project/prepared_interpreter/`, `src/project/prepared_interpreter/trace/` |
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |

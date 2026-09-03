@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+- Extended the authored Phase 0 v3 aggregate to authenticate the complete
+  three-language supported product workflow and the installed TypeScript SDK's
+  pinned-MCP review/separate-publication gate alongside the earlier selected
+  children. The aggregate validates the exact child subjects, tool identities,
+  ten hostile workflow cases and recursively bound artifact rows. V3 remains
+  authored and unrun, so it adds no execution or completion claim.
+
+- Added bounded exact monomorphic free-function HIR reuse inside a changed
+  Project module. Reuse requires complete equality of the non-body module
+  environment, every function signature/contract/span, and the selected
+  function AST. Source verification, HIR validation, cross-file checks,
+  linking, profile admission and graph replay remain mandatory; persistent
+  snapshots do not restore function-cost evidence. Authored regressions cover
+  sibling reuse and conservative contract invalidation and were not run.
+
+- Added pure authority-neutral semantic retention checkpoints and digest-bound
+  GC plans for exact images, candidates and drafts. Canonical chained
+  checkpoints bind deterministic bounded recency/protection decisions; recovery
+  rejects stale predecessors, rollback, tampering and protected-capacity
+  overflow. The API grants no filesystem, deletion, freshness, approval or
+  publication authority. Authored regressions were not run.
+
+- Made candidate rebase and merge treat an imported callable's contracts and
+  effects as dependency facts alongside its signature. Concurrent provider
+  contract/effect drift now fails with `SPX-G235` before replay, while a
+  provider body-only change can still merge through complete canonical source
+  and semantic-graph replay. The cross-module regressions are authored and
+  unrun; cross-manifest and external-package merging remain unsupported.
+
+- Extended ordered signature evolution to retain and reorder existing exact
+  `borrow str` and `borrow Slice<u8>` parameters once each while rebuilding
+  callers with left-to-right staging and complete Project replay. New borrowed
+  parameters, borrowed Bytes/nominal/storage migration, and external consumers
+  remain outside this authored, unrun slice.
+
 - Added an authored Phase 0 aggregate evidence v3 contract. It upgrades the
   real VS Code child to the closed task-control v2 schema and bundle domain and
   records current-head, exact-tag, provisioned, default-ignored, and

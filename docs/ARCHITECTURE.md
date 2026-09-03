@@ -719,13 +719,24 @@ is authored/unrun; no complete-workflow or current-head promotion follows.
 canonical ASTs. It can avoid parsing/canonicalization for eligible retained
 modules while the ordinary graph, linking and profile gates still revalidate
 semantics. Its separate semantic-cache constructor also retains exact synthetic
-AST/HIR pairs and conservative reverse-import invalidation. Cache hits replay
-checked-HIR validation and preserve cold builder accounting, without calling
-the source resolver again. Only the separately authenticated snapshot loader can
+AST/HIR pairs and conservative reverse-import invalidation. Complete module
+hits replay checked-HIR validation and preserve cold builder accounting without
+calling the source resolver again. A changed module can reuse exact monomorphic
+free-function HIR only under complete non-body environment, signature,
+contract, span and selected-AST equality; source verification, declaration
+reconstruction, HIR validation and every Project-wide gate still rerun. Only
+the separately authenticated snapshot loader can
 restore serialized HIR into this cache. `candidate/draft.rs` now carries
 disjoint expression holes as well as whole-body holes; completed fills pass
 ordinary candidate admission and reauthenticate surviving selections against
 the resulting canonical source. Neither cache nor draft owns source authority.
+
+`src/semantic_retention.rs` owns a pure bounded metadata policy for exact image,
+candidate and draft identities. It derives canonical chained checkpoints and
+separately digest-bound GC plans from caller-supplied inventories. Recovery
+authenticates predecessor and policy bytes and returns
+`RetentionAuthority::None`; the module never reads storage, deletes an object,
+establishes freshness, restores approval, or publishes a generation.
 
 `candidate/git_publication.rs` authenticates Git object identities and original
 Project source before constructing canonical replacement blobs, trees and a
@@ -1530,6 +1541,7 @@ a supported language, CLI, ABI, or runtime surface.
 | HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `validation.rs` owns core validation |
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
 | Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs` |
+| Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/` |
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |

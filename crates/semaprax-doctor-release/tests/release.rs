@@ -24,6 +24,9 @@ impl Fixture {
     fn file(&self, name: &str, bytes: &[u8], executable: bool) -> PathBuf {
         let path = self.0.join(name);
         fs::write(&path, bytes).unwrap();
+        // Only the Unix permission mode consumes this.
+        #[cfg(not(unix))]
+        let _ = executable;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt as _;

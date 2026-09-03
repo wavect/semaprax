@@ -27,9 +27,9 @@ name = "variant-case"
 version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "variant.app"
-sources = ["src/app.spx"]
-web_exports = []
-tests = []
+sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+web_exports = ["variant.public"]
+tests = ["variant.tests"]
 "#,
         )
         .unwrap();
@@ -38,8 +38,8 @@ tests = []
         } else {
             "let value = Choice::Empty {}; 7"
         };
-        let source = format!(
-            r#"module variant.app;
+        let core_source = format!(
+            r#"module variant.core;
 @id("variant.choice") variant Choice {{
     @id("variant.choice.empty") Empty,
     @id("variant.choice.number") Number {{
@@ -47,16 +47,31 @@ tests = []
     }},
 }}
 @id("variant.unrelated") fn unrelated() -> i64 {{ 1 }}
-@id("variant.app") fn main() -> i64 {{ {body} }}
+@id("variant.public") fn public_value() -> i64 {{ {body} }}
 "#
         );
-        let program = semaprax::parse(&source, Path::new("src/app.spx")).unwrap();
-        std::fs::write(
-            root.join("src/app.spx"),
-            semaprax::format::canonical(&program),
-        )
-        .unwrap();
-        Self(root.canonicalize().unwrap())
+        let fixture = Self(root.canonicalize().unwrap());
+        for (path, text) in [
+            ("src/core.spx", core_source.as_str()),
+            (
+                "src/app.spx",
+                r#"module variant.app;
+use function @id("variant.public") from variant.core as public_value;
+@id("variant.main") fn main() -> i64 { public_value() }
+"#,
+            ),
+            (
+                "src/tests.spx",
+                r#"module variant.tests;
+use function @id("variant.public") from variant.core as public_value;
+@id("variant.test") fn main() -> i64 { if public_value() == 7 { 0 } else { 1 } }
+"#,
+            ),
+        ] {
+            let program = semaprax::parse(text, Path::new(path)).unwrap();
+            std::fs::write(fixture.0.join(path), semaprax::format::canonical(&program)).unwrap();
+        }
+        fixture
     }
 
     fn candidate(&self) -> ProjectCandidate {
@@ -68,10 +83,15 @@ tests = []
     }
 
     fn bytes(&self) -> BTreeMap<String, Vec<u8>> {
-        ["semaprax.toml", "src/app.spx"]
-            .into_iter()
-            .map(|path| (path.to_owned(), std::fs::read(self.0.join(path)).unwrap()))
-            .collect()
+        [
+            "semaprax.toml",
+            "src/app.spx",
+            "src/core.spx",
+            "src/tests.spx",
+        ]
+        .into_iter()
+        .map(|path| (path.to_owned(), std::fs::read(self.0.join(path)).unwrap()))
+        .collect()
     }
 }
 impl Drop for Fixture {
@@ -102,6 +122,16 @@ fn apply(
     )
 }
 
+fn core(candidate: &ProjectCandidate) -> &str {
+    candidate
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/core.spx")
+        .unwrap()
+        .source()
+}
+
 fn diagnostic<T>(result: Result<T, Vec<Diagnostic>>, code: &str) {
     match result {
         Ok(_) => panic!("expected {code}"),
@@ -120,7 +150,7 @@ fn appends_one_owned_bytes_case_without_rewriting_existing_constructors() {
     )
     .unwrap();
     let candidate = root.apply(root.candidate_digest(), &change).unwrap();
-    let source = candidate.revision().sources()[0].source();
+    let source = core(&candidate);
     assert!(source.contains("@id(\"variant.choice.data\") Data"));
     assert!(source.contains("@id(\"variant.choice.data.bytes\") payload: Bytes"));
     assert_eq!(source.matches("Choice::Empty {}").count(), 1);
@@ -196,9 +226,7 @@ fn merge_replays_after_unrelated_change_and_rejects_competing_case_additions() {
     let merged = left
         .merge(left.candidate_digest(), &right, right.candidate_digest())
         .unwrap();
-    assert!(merged.candidate().revision().sources()[0]
-        .source()
-        .contains("fn renamed("));
+    assert!(core(merged.candidate()).contains("fn renamed("));
 
     let competing = apply(&root, &request("variant.choice.other", "Other")).unwrap();
     diagnostic(

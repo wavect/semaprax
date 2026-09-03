@@ -232,7 +232,7 @@ version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "libmath"
 sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
-web_exports = ["lib.answer", "lib.unused", "lib.bytes-len"]
+web_exports = ["lib.answer", "lib.unused"]
 tests = ["lib.tests"]
 "#,
         )

@@ -231,9 +231,12 @@ impl ProjectCandidate {
                 "candidate analysis-boundary bundle did not mark every owned area partial",
             ));
         }
-        super::super::image::render(
+        // Every nested candidate report is rendered through `wire`, and the
+        // readers that authenticate them compare against `wire::render`, which
+        // terminates with a line feed. Rendering this one without it made the
+        // bundle report fail its own exact-canonical check.
+        wire::render(
             coverage,
-            false,
             MAX_PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_BYTES,
         )
         .map_err(|_| capacity("candidate analysis-boundary bundle report exceeds its byte bound"))

@@ -1,7 +1,9 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-use semaprax_doctor_release::{create_release, key_information, ReleaseInputs};
+use semaprax_doctor_release::{
+    create_release, key_information, verify_release_directory, ReleaseExpectation, ReleaseInputs,
+};
 
 fn main() {
     if let Err(error) = run(std::env::args_os()) {
@@ -22,8 +24,33 @@ fn run(arguments: impl IntoIterator<Item = OsString>) -> Result<(), String> {
         print!("{}", key_information(&key)?);
         return Ok(());
     }
+    if mode == "verify" {
+        let directory = take_option(&mut args, "--directory")?;
+        let public_key_hex = take_text_option(&mut args, "--public-key-hex")?;
+        let release_version = take_text_option(&mut args, "--release-version")?;
+        let release_commit = take_text_option(&mut args, "--release-commit")?;
+        let target_triple = take_text_option(&mut args, "--target-triple")?;
+        let architecture = take_architecture(&mut args)?;
+        let target = take_target(&mut args)?;
+        let selector = take_text_option(&mut args, "--selector")?;
+        if args.next().is_some() {
+            return Err("unknown or repeated argument".into());
+        }
+        return verify_release_directory(
+            &directory,
+            &ReleaseExpectation {
+                release_version,
+                release_commit,
+                target_triple,
+                architecture,
+                target,
+                selector,
+                public_key_hex,
+            },
+        );
+    }
     if mode != "create" {
-        return Err("mode must be create or key-info".into());
+        return Err("mode must be create, verify, or key-info".into());
     }
     let request = take_option(&mut args, "--request")?;
     let bundle = take_option(&mut args, "--bundle")?;
@@ -36,26 +63,8 @@ fn run(arguments: impl IntoIterator<Item = OsString>) -> Result<(), String> {
         return Err("arguments must use canonical order".into());
     }
     let selector = utf8(args.next(), "selector")?;
-    let architecture_flag = utf8(args.next(), "--architecture")?;
-    if architecture_flag != "--architecture" {
-        return Err("arguments must use canonical order".into());
-    }
-    let architecture = match utf8(args.next(), "architecture")?.as_str() {
-        "x86_64" => 1,
-        "aarch64" => 2,
-        _ => return Err("architecture must be x86_64 or aarch64".into()),
-    };
-    let target_flag = utf8(args.next(), "--target")?;
-    if target_flag != "--target" {
-        return Err("arguments must use canonical order".into());
-    }
-    let target = match utf8(args.next(), "target")?.as_str() {
-        "contributor" => 0,
-        "native" => 1,
-        "web" => 2,
-        "all" => 3,
-        _ => return Err("target must be contributor, native, web, or all".into()),
-    };
+    let architecture = take_architecture(&mut args)?;
+    let target = take_target(&mut args)?;
     let release_version = take_text_option(&mut args, "--release-version")?;
     let release_commit = take_text_option(&mut args, "--release-commit")?;
     let target_triple = take_text_option(&mut args, "--target-triple")?;
@@ -80,6 +89,30 @@ fn run(arguments: impl IntoIterator<Item = OsString>) -> Result<(), String> {
         signing_key,
         output_directory,
     })
+}
+
+fn take_architecture(args: &mut impl Iterator<Item = OsString>) -> Result<u8, String> {
+    if utf8(args.next(), "--architecture")? != "--architecture" {
+        return Err("arguments must use canonical order".into());
+    }
+    match utf8(args.next(), "architecture")?.as_str() {
+        "x86_64" => Ok(1),
+        "aarch64" => Ok(2),
+        _ => Err("architecture must be x86_64 or aarch64".into()),
+    }
+}
+
+fn take_target(args: &mut impl Iterator<Item = OsString>) -> Result<u8, String> {
+    if utf8(args.next(), "--target")? != "--target" {
+        return Err("arguments must use canonical order".into());
+    }
+    match utf8(args.next(), "target")?.as_str() {
+        "contributor" => Ok(0),
+        "native" => Ok(1),
+        "web" => Ok(2),
+        "all" => Ok(3),
+        _ => Err("target must be contributor, native, web, or all".into()),
+    }
 }
 
 fn take_text_option(

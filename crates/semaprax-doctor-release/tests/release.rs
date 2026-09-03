@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax_doctor_release::{
-    create_release, key_information, verify_outputs, ReleaseInputs, CAPSULE_FILE, MANIFEST_FILE,
-    MANIFEST_SIGNATURE_FILE,
+    create_release, key_information, verify_outputs, verify_release_directory, ReleaseExpectation,
+    ReleaseInputs, BUNDLE_FILE, CAPSULE_FILE, COLLECTOR_FILE, LAUNCHER_FILE, MANIFEST_FILE,
+    MANIFEST_SIGNATURE_FILE, PROVISIONER_FILE, REQUEST_FILE, WORKER_FILE,
 };
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -78,6 +79,45 @@ fn inputs(fixture: &Fixture, seed: u8) -> ReleaseInputs {
         target_triple: "x86_64-unknown-linux-musl".into(),
         signing_key: key,
         output_directory: fixture.0.clone(),
+    }
+}
+
+fn distribution_inputs(fixture: &Fixture, seed: u8) -> ReleaseInputs {
+    let mut values = inputs(fixture, seed);
+    values.output_directory = fixture.0.join("distribution");
+    fs::create_dir(&values.output_directory).unwrap();
+    values
+}
+
+fn public_key(values: &ReleaseInputs) -> String {
+    let info = key_information(&values.signing_key).unwrap();
+    let marker = "\"public_key_hex\":\"";
+    let start = info.find(marker).unwrap() + marker.len();
+    info[start..start + 64].to_owned()
+}
+
+fn expectation(values: &ReleaseInputs) -> ReleaseExpectation {
+    ReleaseExpectation {
+        release_version: values.release_version.clone(),
+        release_commit: values.release_commit.clone(),
+        target_triple: values.target_triple.clone(),
+        architecture: values.architecture,
+        target: values.target,
+        selector: values.selector.clone(),
+        public_key_hex: public_key(values),
+    }
+}
+
+fn complete_directory(values: &ReleaseInputs) {
+    for (source, name) in [
+        (&values.request, REQUEST_FILE),
+        (&values.bundle, BUNDLE_FILE),
+        (&values.launcher, LAUNCHER_FILE),
+        (&values.worker, WORKER_FILE),
+        (&values.collector, COLLECTOR_FILE),
+        (&values.provisioner, PROVISIONER_FILE),
+    ] {
+        fs::copy(source, values.output_directory.join(name)).unwrap();
     }
 }
 
@@ -167,4 +207,127 @@ fn key_info_contains_only_public_material_and_unsafe_inputs_reject() {
         fs::set_permissions(&values.signing_key, fs::Permissions::from_mode(0o644)).unwrap();
         assert!(key_information(&values.signing_key).is_err());
     }
+}
+
+#[test]
+fn unpacked_verifier_authenticates_every_file_and_out_of_band_identity() {
+    let fixture = Fixture::new();
+    let values = distribution_inputs(&fixture, 41);
+    let expected = expectation(&values);
+    create_release(&values).unwrap();
+    complete_directory(&values);
+    verify_release_directory(&values.output_directory, &expected).unwrap();
+
+    for name in [
+        REQUEST_FILE,
+        BUNDLE_FILE,
+        LAUNCHER_FILE,
+        WORKER_FILE,
+        COLLECTOR_FILE,
+        PROVISIONER_FILE,
+    ] {
+        let path = values.output_directory.join(name);
+        let original = fs::read(&path).unwrap();
+        let mut changed = original.clone();
+        let last = changed.len() - 1;
+        changed[last] ^= 1;
+        fs::write(&path, changed).unwrap();
+        assert!(verify_release_directory(&values.output_directory, &expected).is_err());
+        fs::write(&path, original).unwrap();
+    }
+
+    let mut wrong = expected.clone();
+    wrong.release_commit.replace_range(0..1, "f");
+    assert!(verify_release_directory(&values.output_directory, &wrong).is_err());
+    wrong = expected.clone();
+    wrong.selector.push('x');
+    assert!(verify_release_directory(&values.output_directory, &wrong).is_err());
+    wrong = expected.clone();
+    wrong.target = 1;
+    assert!(verify_release_directory(&values.output_directory, &wrong).is_err());
+
+    fs::write(values.output_directory.join("surplus"), b"foreign").unwrap();
+    assert!(verify_release_directory(&values.output_directory, &expected).is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn unpacked_verifier_rejects_symlinked_inventory_members() {
+    use std::os::unix::fs::symlink;
+
+    let fixture = Fixture::new();
+    let values = distribution_inputs(&fixture, 43);
+    let expected = expectation(&values);
+    create_release(&values).unwrap();
+    complete_directory(&values);
+    fs::remove_file(values.output_directory.join(REQUEST_FILE)).unwrap();
+    symlink(&values.request, values.output_directory.join(REQUEST_FILE)).unwrap();
+    assert!(verify_release_directory(&values.output_directory, &expected).is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn packaging_script_replays_staged_and_independently_unpacked_bytes_no_clobber() {
+    use std::process::Command;
+
+    let fixture = Fixture::new();
+    let values = inputs(&fixture, 47);
+    let public = public_key(&values);
+    let tool = env!("CARGO_BIN_EXE_semaprax-doctor-release");
+    let script =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../scripts/package-doctor-release.sh");
+    let arguments = [
+        tool.into(),
+        "v0.2.0".into(),
+        values.release_commit.clone(),
+        values.target_triple.clone(),
+        values.selector.clone(),
+        "all".into(),
+        public,
+        values.signing_key.display().to_string(),
+        values.request.display().to_string(),
+        values.bundle.display().to_string(),
+        values.launcher.display().to_string(),
+        values.worker.display().to_string(),
+        values.collector.display().to_string(),
+        values.provisioner.display().to_string(),
+        fixture.0.display().to_string(),
+    ];
+    let mut hostile_arguments = arguments.clone();
+    hostile_arguments[1] = "v1/../../escape".into();
+    let hostile = Command::new("/bin/sh")
+        .arg(&script)
+        .args(&hostile_arguments)
+        .output()
+        .unwrap();
+    assert!(!hostile.status.success());
+    assert!(!fixture.0.join("escape").exists());
+
+    let first = Command::new("/bin/sh")
+        .arg(&script)
+        .args(&arguments)
+        .output()
+        .unwrap();
+    assert!(
+        first.status.success(),
+        "{}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(first.stderr.is_empty());
+    let physical_root = fs::canonicalize(&fixture.0).unwrap();
+    let archive = physical_root.join("semaprax-doctor-v0.2.0-x86_64-unknown-linux-musl.tar.gz");
+    assert_eq!(first.stdout, format!("{}\n", archive.display()).as_bytes());
+    let before = fs::read(&archive).unwrap();
+    let unpacked = physical_root
+        .join("verify-x86_64-unknown-linux-musl")
+        .join("semaprax-doctor-v0.2.0-x86_64-unknown-linux-musl");
+    verify_release_directory(&unpacked, &expectation(&values)).unwrap();
+
+    let second = Command::new("/bin/sh")
+        .arg(&script)
+        .args(&arguments)
+        .output()
+        .unwrap();
+    assert!(!second.status.success());
+    assert_eq!(fs::read(&archive).unwrap(), before);
 }

@@ -5,6 +5,7 @@
 //! substitution, but cannot prove the absence of concurrent same-size writes to
 //! an already open file.
 
+mod directory;
 mod elf;
 
 use std::fs::{File, OpenOptions};
@@ -17,11 +18,20 @@ use sha2::{Digest as _, Sha256};
 
 use elf::{verify_static_elf64, ExpectedArchitecture};
 
+pub use directory::{verify_release_directory, ReleaseExpectation};
+
 pub const CAPSULE_FILE: &str = "semaprax-doctor-release.capsule";
 pub const MANIFEST_FILE: &str = "semaprax-doctor-release-manifest.json";
 pub const MANIFEST_SIGNATURE_FILE: &str = "semaprax-doctor-release-manifest.sig";
+pub const REQUEST_FILE: &str = "semaprax-doctor-request.bin";
+pub const BUNDLE_FILE: &str = "semaprax-doctor-bundle.bin";
+pub const LAUNCHER_FILE: &str = "semaprax-doctor-launcher";
+pub const WORKER_FILE: &str = "semaprax-doctor-worker";
+pub const COLLECTOR_FILE: &str = "semaprax-doctor-collector";
+pub const PROVISIONER_FILE: &str = "semaprax-doctor-provisioner";
 const MAX_ARTIFACT_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_KEY_BYTES: u64 = 65;
+const MAX_MANIFEST_BYTES: u64 = 32 * 1024;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReleaseInputs {
@@ -223,8 +233,9 @@ fn verify_manifest_binding(
             .as_object()
             .ok_or("manifest artifact row is invalid")?;
         let artifact = capsule.artifacts[index];
-        if row.len() != 3
+        if row.len() != 4
             || row["role"] != *role
+            || row["file"] != artifact_file(role).ok_or("manifest role is invalid")?
             || row["length"] != artifact.length
             || row["sha256"] != format!("sha256:{}", hex(&artifact.digest))
         {
@@ -234,7 +245,10 @@ fn verify_manifest_binding(
     let provisioner = rows[5]
         .as_object()
         .ok_or("manifest provisioner row is invalid")?;
-    if provisioner.len() != 3 || provisioner["role"] != "provisioner" {
+    if provisioner.len() != 4
+        || provisioner["role"] != "provisioner"
+        || provisioner["file"] != PROVISIONER_FILE
+    {
         return Err("manifest provisioner row is invalid".into());
     }
     Ok(())
@@ -306,7 +320,14 @@ fn read_once(path: &Path, limit: u64, executable: bool, secret: bool) -> Result<
         return Err("input must be one nonempty bounded regular file".into());
     }
     check_permissions(&before, executable, secret)?;
-    let file = File::open(path).map_err(|_| "input cannot be opened")?;
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    let file = options.open(path).map_err(|_| "input cannot be opened")?;
     let opened = file
         .metadata()
         .map_err(|_| "opened input metadata is unavailable")?;
@@ -441,59 +462,110 @@ fn render_manifest(
     fingerprint: &str,
     public_key_hex: &str,
 ) -> String {
+    render_manifest_exact(
+        &inputs.release_version,
+        &inputs.release_commit,
+        &inputs.target_triple,
+        inputs.architecture,
+        inputs.target,
+        &inputs.selector,
+        artifacts,
+        capsule_len,
+        capsule_digest,
+        fingerprint,
+        public_key_hex,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn render_manifest_exact(
+    release_version: &str,
+    release_commit: &str,
+    target_triple: &str,
+    architecture: u8,
+    target: u8,
+    selector: &str,
+    artifacts: &[InputArtifact; 6],
+    capsule_len: usize,
+    capsule_digest: &str,
+    fingerprint: &str,
+    public_key_hex: &str,
+) -> String {
     let rows = artifacts
         .iter()
         .map(|item| {
             format!(
-                "{{\"role\":\"{}\",\"length\":{},\"sha256\":\"{}\"}}",
+                "{{\"role\":\"{}\",\"file\":\"{}\",\"length\":{},\"sha256\":\"{}\"}}",
                 item.role,
+                artifact_file(item.role).expect("closed release artifact role"),
                 item.bytes.len(),
                 digest(&item.bytes)
             )
         })
         .collect::<Vec<_>>()
         .join(",");
-    let roles = [4, 1, 2, 7][usize::from(inputs.target)];
-    format!("{{\"schema\":\"semaprax.doctor-release-manifest.v1\",\"release_version\":\"{}\",\"release_commit\":\"{}\",\"target_triple\":\"{}\",\"architecture\":{},\"target\":{},\"roles\":{},\"selector\":\"{}\",\"public_key_hex\":\"{}\",\"key_fingerprint\":\"{}\",\"artifacts\":[{}],\"capsule\":{{\"file\":\"{}\",\"length\":{},\"sha256\":\"{}\"}},\"manifest_signature\":{{\"file\":\"{}\",\"algorithm\":\"ed25519\"}}}}\n", inputs.release_version, inputs.release_commit, inputs.target_triple, inputs.architecture, inputs.target, roles, inputs.selector, public_key_hex, fingerprint, rows, CAPSULE_FILE, capsule_len, capsule_digest, MANIFEST_SIGNATURE_FILE)
+    let roles = [4, 1, 2, 7][usize::from(target)];
+    format!("{{\"schema\":\"semaprax.doctor-release-manifest.v1\",\"release_version\":\"{}\",\"release_commit\":\"{}\",\"target_triple\":\"{}\",\"architecture\":{},\"target\":{},\"roles\":{},\"selector\":\"{}\",\"public_key_hex\":\"{}\",\"key_fingerprint\":\"{}\",\"artifacts\":[{}],\"capsule\":{{\"file\":\"{}\",\"length\":{},\"sha256\":\"{}\"}},\"manifest_signature\":{{\"file\":\"{}\",\"algorithm\":\"ed25519\"}}}}\n", release_version, release_commit, target_triple, architecture, target, roles, selector, public_key_hex, fingerprint, rows, CAPSULE_FILE, capsule_len, capsule_digest, MANIFEST_SIGNATURE_FILE)
+}
+
+fn artifact_file(role: &str) -> Option<&'static str> {
+    match role {
+        "request" => Some(REQUEST_FILE),
+        "bundle" => Some(BUNDLE_FILE),
+        "launcher" => Some(LAUNCHER_FILE),
+        "worker" => Some(WORKER_FILE),
+        "collector" => Some(COLLECTOR_FILE),
+        "provisioner" => Some(PROVISIONER_FILE),
+        _ => None,
+    }
 }
 
 fn validate_release_identity(inputs: &ReleaseInputs) -> Result<(), String> {
-    if inputs.release_version.is_empty()
-        || inputs.release_version.len() > 64
-        || !inputs.release_version.as_bytes()[0].is_ascii_digit()
-        || !inputs.release_version.as_bytes()[inputs.release_version.len() - 1]
-            .is_ascii_alphanumeric()
-        || !inputs
-            .release_version
+    validate_release_identity_values(
+        &inputs.release_version,
+        &inputs.release_commit,
+        &inputs.target_triple,
+        inputs.architecture,
+    )
+}
+
+fn validate_release_identity_values(
+    release_version: &str,
+    release_commit: &str,
+    target_triple: &str,
+    architecture: u8,
+) -> Result<(), String> {
+    if release_version.is_empty()
+        || release_version.len() > 64
+        || !release_version.as_bytes()[0].is_ascii_digit()
+        || !release_version.as_bytes()[release_version.len() - 1].is_ascii_alphanumeric()
+        || !release_version
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-'))
     {
         return Err("release version is not canonical".into());
     }
-    if inputs.release_commit.len() != 40
-        || !inputs
-            .release_commit
+    if release_commit.len() != 40
+        || !release_commit
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
     {
         return Err("release commit must be 40 lowercase hexadecimal characters".into());
     }
-    if inputs.target_triple.is_empty()
-        || inputs.target_triple.len() > 128
-        || !inputs.target_triple.bytes().all(|byte| {
+    if target_triple.is_empty()
+        || target_triple.len() > 128
+        || !target_triple.bytes().all(|byte| {
             byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_')
         })
     {
         return Err("target triple is not canonical".into());
     }
-    let expected_prefix = if inputs.architecture == 1 {
+    let expected_prefix = if architecture == 1 {
         "x86_64-"
     } else {
         "aarch64-"
     };
-    if !inputs.target_triple.starts_with(expected_prefix)
-        || !inputs.target_triple.contains("-linux-")
-    {
+    if !target_triple.starts_with(expected_prefix) || !target_triple.contains("-linux-") {
         return Err("target triple disagrees with the Linux capsule architecture".into());
     }
     Ok(())

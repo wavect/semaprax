@@ -100,7 +100,7 @@ verification.
 - The resolved HIR has no function effects and passes the ordinary HIR validator.
 - Every selected export is an explicit monomorphic function declared by the
   root module and is admitted by the unchanged Public Scalar Export Profile v1
-  (`i64` and `bool` only).
+  (by-value Copy scalars: `i64`, `i32`, `u8`, `char`, `f32`, `f64`, `bool`).
 - The source-replayed report has `wasm32: available`; this is
   compiler projection evidence, not execution or conformance evidence.
 

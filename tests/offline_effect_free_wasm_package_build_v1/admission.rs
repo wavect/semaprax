@@ -126,3 +126,40 @@ fn root_option_uses_the_exact_source_module_grammar() {
         );
     }
 }
+
+/// The package lane admits the same Copy-scalar surface as the Public Scalar
+/// Export Profile v1 it emits: the interface report, the resolver subject, and
+/// the emitted manifest all describe one widened ABI. `usize` stays outside.
+#[test]
+fn package_lane_admits_the_widened_copy_scalar_surface() {
+    const WIDENED: &str = "module widen.pkg;\n\n@id(\"widen.pkg.char\")\nfn pick_char(value: char) -> char\n{\n    value\n}\n\n@id(\"widen.pkg.mixed\")\nfn mixed(flag: bool, small: u8, medium: i32, ratio: f32) -> f64\n{\n    2.5\n}\n\n@id(\"widen.pkg.main\")\nfn main() -> i64\n{\n    0\n}\n";
+
+    let fixture = fixture_from_source(
+        "widen.pkg",
+        "1.0.0",
+        WIDENED,
+        &["widen.pkg.char", "widen.pkg.mixed"],
+    );
+    let manifest = &fixture.build.manifest_json;
+    assert!(manifest.contains("\"stable_id\":\"widen.pkg.char\",\"wasm_export\":\"spx_scalar_"));
+    assert!(manifest.contains("\"parameters\":[\"char\"],\"result\":\"char\""));
+    assert!(
+        manifest.contains("\"parameters\":[\"bool\",\"u8\",\"i32\",\"f32\"],\"result\":\"f64\"")
+    );
+}
+
+/// `usize` is outside the profile in the package lane too. The lane maps the
+/// `SPX-W115` profile rejection to its own `SPX-PB504`, before any artifact
+/// exists.
+#[test]
+fn package_lane_still_excludes_usize() {
+    const USIZE_SOURCE: &str = "module widen.usz;\n\n@id(\"widen.usz.width\")\nfn width(value: usize) -> usize\n{\n    value\n}\n\n@id(\"widen.usz.main\")\nfn main() -> i64\n{\n    0\n}\n";
+
+    let report = report_from_source("widen.usz", USIZE_SOURCE);
+    let subject = subject(&report, "widen.usz", "1.0.0", &[], &[]);
+    let input = input(&[("widen.usz", "1.0.0")], vec![subject], "wasm32", &[]);
+    let resolution = package_resolver::generate(&input, &ResolutionOptions::default())
+        .expect("usize source is still valid resolver evidence");
+    let options = build_options("widen.usz", &["widen.usz.width"], MAX_BYTES, MAX_BYTES);
+    assert_eq!(generate_error(&resolution, &input, &options), "SPX-PB504");
+}

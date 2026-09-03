@@ -271,6 +271,141 @@ fn provider_exports_and_out_of_range_limits_are_rejected() {
     }
 }
 
+/// The linked lane admits the same Copy-scalar surface end to end: the
+/// package-source interface report, the source capsule's typed interface
+/// equality, the workspace scalar linker, and the emitted scalar ABI manifest
+/// all describe one widened surface. This is the only path on which
+/// `verify_scalar_interface_for_package_source` runs.
+#[test]
+fn linked_lane_admits_the_widened_copy_scalar_surface() {
+    const PROV: &str = "widen.prov";
+    const ROOT_PACKAGE: &str = "widen.linked";
+
+    // The provider stays `i64` so its interface projection can carry the
+    // required `fn main() -> i64` entry; the widened surface is the root's
+    // exported ABI, which is what the linked lane must admit.
+    let provider_source =
+        format!("module {PROV};\n\n@id(\"widen.prov.count\")\nfn count() -> i64\n{{\n    41\n}}\n");
+    let provider_interface_source =
+        format!("module {PROV};\n\n@id(\"widen.prov.count\")\nfn main() -> i64\n{{\n    41\n}}\n");
+    let root_source = format!(
+        "module {ROOT_PACKAGE};\nuse function @id(\"widen.prov.count\") from {PROV} as count;\n\n@id(\"widen.linked.char\")\nfn pick_char(value: char) -> char\n{{\n    value\n}}\n\n@id(\"widen.linked.mixed\")\nfn mixed(flag: bool, small: u8, medium: i32) -> f32\n{{\n    0.5f32\n}}\n\n@id(\"widen.linked.scaled\")\nfn scaled(value: i32) -> i64\n{{\n    count()\n}}\n\n@id(\"widen.linked.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
+    );
+    let root_interface_source = format!(
+        "module {ROOT_PACKAGE};\n\n@id(\"widen.linked.char\")\nfn pick_char(value: char) -> char\n{{\n    value\n}}\n\n@id(\"widen.linked.mixed\")\nfn mixed(flag: bool, small: u8, medium: i32) -> f32\n{{\n    0.5f32\n}}\n\n@id(\"widen.linked.scaled\")\nfn scaled(value: i32) -> i64\n{{\n    0\n}}\n\n@id(\"widen.linked.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
+    );
+
+    let provider_report = report(PROV, &provider_interface_source);
+    let root_report = report(ROOT_PACKAGE, &root_interface_source);
+    let provider_coordinate = coordinate(PROV);
+    let provider_subject =
+        package_lock_v2::create_subject(&provider_coordinate, &provider_report, &[], &[])
+            .expect("widened provider Subject v2");
+    let root_subject = package_lock_v2::create_subject(
+        &coordinate(ROOT_PACKAGE),
+        &root_report,
+        std::slice::from_ref(&provider_coordinate),
+        &[],
+    )
+    .expect("widened root Subject v2");
+    let input = ResolutionInput {
+        requirements: vec![Requirement {
+            package: ROOT_PACKAGE.to_owned(),
+            range: "=1.0.0".to_owned(),
+        }],
+        subjects: vec![root_subject, provider_subject],
+        target: "wasm32".to_owned(),
+        allowed_capabilities: Vec::new(),
+    };
+    let resolution_options = ResolutionOptions::default();
+    let resolution =
+        package_resolver::generate(&input, &resolution_options).expect("widened resolver evidence");
+    let selected = package_resolver::verify(&resolution, &input, &resolution_options)
+        .expect("widened resolver replay");
+    let by_package = BTreeMap::from([
+        (
+            ROOT_PACKAGE.to_owned(),
+            PackageSource {
+                package: ROOT_PACKAGE.to_owned(),
+                report: root_report,
+                source: root_source,
+            },
+        ),
+        (
+            PROV.to_owned(),
+            PackageSource {
+                package: PROV.to_owned(),
+                report: provider_report,
+                source: provider_source,
+            },
+        ),
+    ]);
+    let sources = selected
+        .packages
+        .iter()
+        .map(|coordinate| {
+            by_package
+                .get(&coordinate.package)
+                .expect("selected widened package source")
+                .clone()
+        })
+        .collect::<Vec<_>>();
+    let capsule_options = SourceCapsuleOptions {
+        root_package: ROOT_PACKAGE.to_owned(),
+        max_bytes: package_source_capsule::MAX_OUTPUT_BYTES,
+    };
+    let capsule = package_source_capsule::generate(
+        &sources,
+        &resolution,
+        &input,
+        &resolution_options,
+        &capsule_options,
+    )
+    .expect("widened capsule authenticates the Copy-scalar interface");
+    let build_options = LinkedOfflinePackageBuildOptions {
+        root_package: ROOT_PACKAGE.to_owned(),
+        exports: vec![
+            "widen.linked.char".to_owned(),
+            "widen.linked.mixed".to_owned(),
+            "widen.linked.scaled".to_owned(),
+        ],
+        max_artifact_bytes: MAX_ARTIFACT_BYTES,
+        max_evidence_bytes: MAX_EVIDENCE_BYTES,
+    };
+    let build = package_build_v2::generate(
+        &capsule,
+        &sources,
+        &resolution,
+        &input,
+        &resolution_options,
+        &capsule_options,
+        &build_options,
+    )
+    .expect("widened linked package build");
+
+    assert!(build
+        .manifest_json
+        .contains("\"parameters\":[\"char\"],\"result\":\"char\""));
+    assert!(build
+        .manifest_json
+        .contains("\"parameters\":[\"bool\",\"u8\",\"i32\"],\"result\":\"f32\""));
+    assert!(build
+        .manifest_json
+        .contains("\"parameters\":[\"i32\"],\"result\":\"i64\""));
+
+    package_build_v2::verify(
+        &build,
+        &capsule,
+        &sources,
+        &resolution,
+        &input,
+        &resolution_options,
+        &capsule_options,
+        &build_options,
+    )
+    .expect("widened linked build replays exactly");
+}
+
 fn report(package: &str, source: &str) -> String {
     let path = fixture_path(package);
     std::fs::write(&path, source).expect("write Report v2 source fixture");

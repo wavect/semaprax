@@ -303,17 +303,17 @@ fn parse_scalar_interface_function(
     })
 }
 
+/// The interface report describes the same Copy-scalar surface the linked
+/// package build admits, so a package the linker accepts always has a report.
 fn scalar_type_json(ty: &hir::ResolvedType) -> Result<String, Diagnostic> {
-    match ty {
-        hir::ResolvedType::I64 | hir::ResolvedType::Bool => {
-            let value: serde_json::Value = serde_json::from_str(&model::type_json(ty))
-                .map_err(|_| consistency_error("compiler scalar type JSON is malformed"))?;
-            scalar_type_value(&value)
-        }
-        _ => Err(consistency_error(
-            "package-source interface is outside the i64/bool scalar profile",
-        )),
+    if !hir::copy_scalar_type(ty) {
+        return Err(consistency_error(
+            "package-source interface is outside the Copy-scalar profile",
+        ));
     }
+    let value: serde_json::Value = serde_json::from_str(&model::type_json(ty))
+        .map_err(|_| consistency_error("compiler scalar type JSON is malformed"))?;
+    scalar_type_value(&value)
 }
 
 fn scalar_type_value(value: &serde_json::Value) -> Result<String, Diagnostic> {
@@ -321,14 +321,14 @@ fn scalar_type_value(value: &serde_json::Value) -> Result<String, Diagnostic> {
         .as_object()
         .ok_or_else(|| consistency_error("v2 scalar interface type must be an object"))?;
     let primitive = object.get("kind").and_then(serde_json::Value::as_str) == Some("primitive")
-        && matches!(
-            object.get("name").and_then(serde_json::Value::as_str),
-            Some("i64" | "bool")
-        )
+        && object
+            .get("name")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|name| hir::COPY_SCALAR_NAMES.contains(&name))
         && object.len() == 2;
     if !primitive {
         return Err(consistency_error(
-            "v2 package interface is outside the i64/bool scalar profile",
+            "v2 package interface is outside the Copy-scalar profile",
         ));
     }
     serde_json::to_string(value)

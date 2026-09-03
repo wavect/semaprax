@@ -47,9 +47,12 @@ The closed v1 profile requires:
   evidence for `wasm32` with an empty capability allowlist;
 - an explicit selected root and one caller-owned canonical source and exact
   selected Report-v2 envelope per coordinate;
-- only effect-free `i64`/`bool` value parameters and results, including at
-  least one explicit root-owned `fn() -> i64` HIR anchor, no declared permits,
-  nominal types, interfaces, templates, or type imports;
+- only effect-free by-value Copy-scalar parameters and results — `i64`, `i32`,
+  `u8`, `char`, `f32`, `f64`, `bool`, the surface the
+  [Public Scalar Export Profile v1](WASM-SCALAR-EXPORTS-V1.md) admits and
+  `usize` is excluded from — including at least one explicit root-owned
+  `fn() -> i64` HIR anchor, no declared permits, nominal types, interfaces,
+  templates, or type imports;
 - exact equality between each source-derived typed function fact vector and
   the selected Report-v2 interface after display and parameter names are
   omitted; and

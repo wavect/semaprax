@@ -12,7 +12,7 @@ use crate::hir::{
     ResolvedExprKind, ResolvedFunction, ResolvedProgram, ResolvedStatement, ResolvedType,
 };
 
-use super::{write_u32, ByteOutput, I32, I64};
+use super::{write_i32, write_u32, ByteOutput, F32, F64, I32, I64};
 
 const MAX_EXPORTS: usize = 32;
 const MAX_EXECUTABLE_FUNCTIONS: usize = 256;
@@ -54,7 +54,7 @@ impl ScalarExportPlan {
         function_indexes: &HashMap<FunctionExecutionId, u32>,
     ) -> Result<(), Diagnostic> {
         let result_local = self.params.len() as u32;
-        if self.result == ScalarType::Bool {
+        if self.result.needs_boundary_trap() {
             write_u32(body, 1); // one i32 group for the canonical result
             write_u32(body, 1);
             body.push(I32);
@@ -62,9 +62,7 @@ impl ScalarExportPlan {
             write_u32(body, 0);
         }
         for (index, parameter) in self.params.iter().enumerate() {
-            if *parameter == ScalarType::Bool {
-                emit_bool_trap(body, index as u32);
-            }
+            emit_boundary_trap(body, *parameter, index as u32);
             body.push(0x20); // local.get
             write_u32(body, index as u32);
         }
@@ -77,10 +75,10 @@ impl ScalarExportPlan {
         })?;
         body.push(0x10); // call
         write_u32(body, target);
-        if self.result == ScalarType::Bool {
+        if self.result.needs_boundary_trap() {
             body.push(0x21); // local.set
             write_u32(body, result_local);
-            emit_bool_trap(body, result_local);
+            emit_boundary_trap(body, self.result, result_local);
             body.push(0x20); // local.get
             write_u32(body, result_local);
         }
@@ -89,34 +87,171 @@ impl ScalarExportPlan {
     }
 }
 
-/// The sole ABI values admitted by the public scalar profile.
+/// The Copy-scalar ABI values admitted by the public scalar profile: the same
+/// surface the reference interpreter, the interop projections, and the schema
+/// projections already admit, minus `usize`, whose host width is not a public
+/// fact of this profile.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum ScalarType {
     I64,
+    I32,
+    U8,
+    Char,
+    F32,
+    F64,
     Bool,
 }
 
 impl ScalarType {
+    /// Canonical widening order for every projection that renders one row per
+    /// admitted scalar. `I64` and `Bool` lead because they are the frozen v1
+    /// base that already-published artifacts encode.
+    pub(super) const WIDENED: [Self; 5] = [Self::I32, Self::U8, Self::Char, Self::F32, Self::F64];
+
     pub(super) const fn text(self) -> &'static str {
         match self {
             Self::I64 => "i64",
+            Self::I32 => "i32",
+            Self::U8 => "u8",
+            Self::Char => "char",
+            Self::F32 => "f32",
+            Self::F64 => "f64",
             Self::Bool => "bool",
         }
     }
 
+    /// `i64` is the only admitted scalar whose Wasm value type exceeds the
+    /// exact integer range of a JavaScript number, so it alone is a `bigint`.
     pub(super) const fn typescript_type(self) -> &'static str {
         match self {
             Self::I64 => "bigint",
+            Self::I32 | Self::U8 | Self::Char | Self::F32 | Self::F64 => "number",
             Self::Bool => "boolean",
         }
     }
 
+    /// Exactly the Core-Wasm value-type lowering the monomorphic callee already
+    /// uses (`wasm_type` in the backend), so an adapter forwards its parameters
+    /// without conversion: `i32`, `u8`, `char`, and `bool` ride the `i32` lane.
     pub(super) const fn wasm_type(self) -> u8 {
         match self {
             Self::I64 => I64,
-            Self::Bool => I32,
+            Self::I32 | Self::U8 | Self::Char | Self::Bool => I32,
+            Self::F32 => F32,
+            Self::F64 => F64,
         }
     }
+
+    /// True when the Wasm value type is wider than the SEMAPRAX type, so a
+    /// host caller can present a representation the language does not admit.
+    /// `i64`, `i32`, `f32`, and `f64` occupy their value type exactly.
+    const fn needs_boundary_trap(self) -> bool {
+        matches!(self, Self::Bool | Self::U8 | Self::Char)
+    }
+
+    /// The JavaScript predicate that rejects every host value outside the exact
+    /// admitted range of one widened scalar. `Number.isInteger` already rejects
+    /// non-numbers, bigints, and non-integral doubles, and requiring
+    /// `Math.fround` identity makes an `f32` narrowing explicit at the call
+    /// site instead of silently rounding a double at the boundary.
+    const fn javascript_rejection(self) -> &'static str {
+        match self {
+            Self::I32 => "!Number.isInteger(value) || value < -2147483648 || value > 2147483647",
+            Self::U8 => "!Number.isInteger(value) || value < 0 || value > 255",
+            Self::Char => {
+                "!Number.isInteger(value) || value < 0 || value > 1114111 || (value >= 55296 && value <= 57343)"
+            }
+            Self::F32 => {
+                "typeof value !== \"number\" || (!Number.isNaN(value) && Math.fround(value) !== value)"
+            }
+            Self::F64 => "typeof value !== \"number\"",
+            // The frozen base guards live in the runtime template itself.
+            Self::I64 | Self::Bool => "true",
+        }
+    }
+
+    const fn javascript_expectation(self) -> &'static str {
+        match self {
+            Self::I32 => "a signed 32-bit integer number",
+            Self::U8 => "an integer number in 0..=255",
+            Self::Char => "a Unicode scalar value number",
+            Self::F32 => "a number exactly representable as f32",
+            Self::F64 => "a number",
+            Self::I64 | Self::Bool => "unreachable",
+        }
+    }
+
+    /// `non-canonical` names a value the Wasm lane can hold but the SEMAPRAX
+    /// type cannot, exactly as the frozen `bool` result guard already says.
+    const fn javascript_defect(self) -> &'static str {
+        match self {
+            Self::U8 | Self::Char => "non-canonical",
+            _ => "invalid",
+        }
+    }
+}
+
+/// The admitted ABI type spellings, as they appear in a rendered manifest.
+pub(super) fn is_admitted_abi_text(value: Option<&str>) -> bool {
+    value.is_some_and(|text| {
+        [ScalarType::I64, ScalarType::Bool]
+            .into_iter()
+            .chain(ScalarType::WIDENED)
+            .any(|ty| ty.text() == text)
+    })
+}
+
+/// The widened scalars this package actually projects, in canonical order.
+fn widened_in_use(plans: &[ScalarExportPlan]) -> impl Iterator<Item = ScalarType> + '_ {
+    ScalarType::WIDENED.into_iter().filter(|ty| {
+        plans
+            .iter()
+            .any(|plan| plan.result == *ty || plan.params.contains(ty))
+    })
+}
+
+/// Extra `argument` guards for the generated JavaScript facade.
+///
+/// The `i64` and `bool` guards are frozen in the runtime template, so a
+/// package that projects only those two scalars renders the empty string here
+/// and reproduces every already-published v1 facade byte for byte.
+pub(super) fn javascript_argument_guards(plans: &[ScalarExportPlan]) -> String {
+    widened_in_use(plans)
+        .map(|ty| {
+            javascript_guard(
+                ty,
+                &format!(
+                    "`argument ${{index}} must be {}`",
+                    ty.javascript_expectation()
+                ),
+            )
+        })
+        .collect()
+}
+
+/// Extra `result` guards for the generated JavaScript facade, which reject a
+/// raw adapter return the SEMAPRAX result type cannot contain.
+pub(super) fn javascript_result_guards(plans: &[ScalarExportPlan]) -> String {
+    widened_in_use(plans)
+        .map(|ty| {
+            javascript_guard(
+                ty,
+                &format!(
+                    "\"SEMAPRAX adapter returned {} {}\"",
+                    ty.javascript_defect(),
+                    ty.text()
+                ),
+            )
+        })
+        .collect()
+}
+
+fn javascript_guard(ty: ScalarType, failure: &str) -> String {
+    format!(
+        "  if (type === \"{}\") {{\n    if ({}) throw new TypeError({failure});\n    return value;\n  }}\n",
+        ty.text(),
+        ty.javascript_rejection(),
+    )
 }
 
 /// Validate the public scalar-export profile and produce wrappers in canonical
@@ -416,14 +551,17 @@ fn validate_expression_profile(
 fn scalar_type(ty: &ResolvedType) -> Option<ScalarType> {
     match ty {
         ResolvedType::I64 => Some(ScalarType::I64),
+        ResolvedType::I32 => Some(ScalarType::I32),
+        ResolvedType::U8 => Some(ScalarType::U8),
+        ResolvedType::Char => Some(ScalarType::Char),
+        ResolvedType::F32 => Some(ScalarType::F32),
+        ResolvedType::F64 => Some(ScalarType::F64),
         ResolvedType::Bool => Some(ScalarType::Bool),
+        // `usize` is deliberately excluded: its width is a host fact, not a
+        // public fact of this profile. Every other exclusion needs the
+        // memory/ownership ABI the owned-data programme owns.
         ResolvedType::Unit
-        | ResolvedType::I32
-        | ResolvedType::Char
-        | ResolvedType::U8
         | ResolvedType::Usize
-        | ResolvedType::F32
-        | ResolvedType::F64
         | ResolvedType::String
         | ResolvedType::Str
         | ResolvedType::SliceU8
@@ -453,12 +591,46 @@ pub(super) fn raw_symbol(stable_id: &str) -> String {
     symbol
 }
 
-/// Trap if the given i32 local is not a canonical Wasm boolean (zero or one).
-fn emit_bool_trap(body: &mut impl ByteOutput, local: u32) {
+/// Trap unless the given local already holds a canonical representation of the
+/// scalar it claims to be. The check runs on the export edge, so a host caller
+/// that presents an inadmissible number fails closed instead of reaching a
+/// verified body with a value its type does not contain. Scalars that occupy
+/// their Wasm value type exactly need no check and emit no bytes.
+fn emit_boundary_trap(body: &mut impl ByteOutput, ty: ScalarType, local: u32) {
+    match ty {
+        ScalarType::Bool => emit_unsigned_ceiling_trap(body, local, 1),
+        ScalarType::U8 => emit_unsigned_ceiling_trap(body, local, 0xff),
+        ScalarType::Char => {
+            emit_unsigned_ceiling_trap(body, local, 0x0010_ffff);
+            emit_surrogate_trap(body, local);
+        }
+        ScalarType::I64 | ScalarType::I32 | ScalarType::F32 | ScalarType::F64 => {}
+    }
+}
+
+/// Trap if the given i32 local exceeds `ceiling` when read as an unsigned
+/// 32-bit number, which rejects every negative host value as well.
+fn emit_unsigned_ceiling_trap(body: &mut impl ByteOutput, local: u32, ceiling: i32) {
     body.push(0x20); // local.get
     write_u32(body, local);
-    body.extend_bytes(&[0x41, 0x01, 0x4b, 0x04, 0x40, 0x00, 0x0b]);
-    // i32.const 1; i32.gt_u; if (empty); unreachable; end
+    body.push(0x41); // i32.const
+    write_i32(body, ceiling);
+    body.extend_bytes(&[0x4b, 0x04, 0x40, 0x00, 0x0b]);
+    // i32.gt_u; if (empty); unreachable; end
+}
+
+/// Trap if the given i32 local names a UTF-16 surrogate code point, which is
+/// a code point but never a Unicode scalar value.
+fn emit_surrogate_trap(body: &mut impl ByteOutput, local: u32) {
+    body.push(0x20); // local.get
+    write_u32(body, local);
+    body.push(0x41); // i32.const
+    write_i32(body, 0xd800);
+    body.push(0x6b); // i32.sub
+    body.push(0x41); // i32.const
+    write_i32(body, 0x800);
+    body.extend_bytes(&[0x49, 0x04, 0x40, 0x00, 0x0b]);
+    // i32.lt_u; if (empty); unreachable; end
 }
 
 fn admission(message: impl Into<String>) -> Diagnostic {
@@ -497,6 +669,30 @@ mod tests {
         );
         assert_eq!(plans[1].stable_id, "scalar.main");
         assert_eq!(plans[0].params, vec![ScalarType::I64]);
+    }
+
+    /// The backend's ABI spellings and the linker's Copy-scalar vocabulary
+    /// describe one surface. A widening that reaches only one of them would
+    /// let a linked program lose its manifest, or the reverse.
+    #[test]
+    fn abi_spellings_equal_the_shared_copy_scalar_vocabulary() {
+        let backend = [ScalarType::I64, ScalarType::Bool]
+            .into_iter()
+            .chain(ScalarType::WIDENED)
+            .map(ScalarType::text)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            backend,
+            crate::hir::COPY_SCALAR_NAMES.into_iter().collect(),
+            "the Wasm ABI vocabulary drifted from the shared Copy-scalar names"
+        );
+        for name in crate::hir::COPY_SCALAR_NAMES {
+            assert!(is_admitted_abi_text(Some(name)), "{name} is not admitted");
+        }
+        for excluded in ["usize", "string", "str", "Bytes", "", "I64"] {
+            assert!(!is_admitted_abi_text(Some(excluded)), "{excluded} admitted");
+        }
+        assert!(!is_admitted_abi_text(None));
     }
 
     #[test]

@@ -2177,13 +2177,10 @@ impl WorkspaceGraphBuild {
             }
             for function in &module.functions {
                 let admitted_parameter = |parameter: &hir::ResolvedParam| match profile {
-                    crate::project::ProjectProfile::ScalarV1 => matches!(
-                        (&parameter.ty, parameter.ownership),
-                        (
-                            hir::ResolvedType::I64 | hir::ResolvedType::Bool,
-                            hir::OwnershipMode::Value
-                        )
-                    ),
+                    crate::project::ProjectProfile::ScalarV1 => {
+                        parameter.ownership == hir::OwnershipMode::Value
+                            && hir::copy_scalar_type(&parameter.ty)
+                    }
                     crate::project::ProjectProfile::UsefulTextConsumerV1 => matches!(
                         (&parameter.ty, parameter.ownership),
                         (
@@ -2206,8 +2203,10 @@ impl WorkspaceGraphBuild {
                     }
                 };
                 let admitted_return = match profile {
-                    crate::project::ProjectProfile::ScalarV1
-                    | crate::project::ProjectProfile::UsefulTextConsumerV1 => matches!(
+                    crate::project::ProjectProfile::ScalarV1 => {
+                        hir::copy_scalar_type(&function.return_type)
+                    }
+                    crate::project::ProjectProfile::UsefulTextConsumerV1 => matches!(
                         function.return_type,
                         hir::ResolvedType::I64 | hir::ResolvedType::Bool
                     ),

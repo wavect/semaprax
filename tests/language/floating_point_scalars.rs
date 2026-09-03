@@ -569,11 +569,78 @@ fn replace_f32_in_expression(expression: &mut hir::ResolvedExpr, bits: u32) -> b
     }
 }
 
+/// Float signatures are inside the widened Public Scalar Export Profile v1 and
+/// keep their exact Core-Wasm value types across the export boundary; a
+/// non-Copy shape still fails closed with the same diagnostic.
 #[test]
-fn scalar_export_profile_still_rejects_float_signatures() {
+fn scalar_export_profile_admits_float_signatures_with_exact_value_types() {
     let program = parse(SCALARS, Path::new("floats.spx")).unwrap();
-    let error = wasm::emit_module_with_scalar_exports(&program, &["f.scale".to_owned()])
-        .expect_err("float signatures are outside Public Scalar Export Profile v1");
+    let bytes = wasm::emit_module_with_scalar_exports(
+        &program,
+        &["f.narrow".to_owned(), "f.scale".to_owned()],
+    )
+    .expect("float signatures are inside Public Scalar Export Profile v1");
+
+    let mut types: Vec<(Vec<wasmparser::ValType>, Vec<wasmparser::ValType>)> = Vec::new();
+    let mut function_types: Vec<u32> = Vec::new();
+    let mut exports: Vec<String> = Vec::new();
+    for payload in wasmparser::Parser::new(0).parse_all(&bytes) {
+        match payload.unwrap() {
+            wasmparser::Payload::TypeSection(section) => {
+                types.extend(section.into_iter_err_on_gc_types().map(|ty| {
+                    let ty = ty.unwrap();
+                    (ty.params().to_vec(), ty.results().to_vec())
+                }));
+            }
+            wasmparser::Payload::FunctionSection(section) => {
+                function_types.extend(section.into_iter().map(Result::unwrap));
+            }
+            wasmparser::Payload::ExportSection(section) => {
+                for export in section {
+                    let export = export.unwrap();
+                    if export.kind == wasmparser::ExternalKind::Func {
+                        exports.push(export.name.to_owned());
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    let hex = |id: &str| {
+        id.bytes()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    };
+    assert_eq!(
+        exports,
+        vec![
+            format!("spx_scalar_{}", hex("f.narrow")),
+            format!("spx_scalar_{}", hex("f.scale")),
+        ]
+    );
+    let adapters = function_types.len() - 2;
+    assert_eq!(
+        types[function_types[adapters] as usize],
+        (
+            vec![wasmparser::ValType::F32],
+            vec![wasmparser::ValType::F32]
+        )
+    );
+    assert_eq!(
+        types[function_types[adapters + 1] as usize],
+        (
+            vec![wasmparser::ValType::F64],
+            vec![wasmparser::ValType::F64]
+        )
+    );
+
+    let excluded = parse(
+        "module test.float_excluded;\n@id(\"f.text\")\nfn text(value: string) -> f64 { 0.5 }\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+        Path::new("floats-excluded.spx"),
+    )
+    .unwrap();
+    let error = wasm::emit_module_with_scalar_exports(&excluded, &["f.text".to_owned()])
+        .expect_err("a string parameter is outside Public Scalar Export Profile v1");
     assert_eq!(error.code, "SPX-W115");
 }
 

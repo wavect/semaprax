@@ -8,7 +8,8 @@ use super::*;
 /// Assemble one backend-ready scalar program from real resolved workspace
 /// functions. This is intentionally narrower than general cross-file linking:
 /// callers must have already resolved the complete provider closure, and only
-/// value `i64`/`bool` functions without effects are admitted.
+/// effect-free functions over by-value Copy scalars are admitted. That surface
+/// is exactly the Public Scalar Export Profile v1 ABI this linker feeds.
 ///
 pub(crate) fn link_scalar_workspace(
     module: String,
@@ -55,11 +56,11 @@ fn link_scalar_workspace_impl(
                 .params
                 .iter()
                 .any(|parameter| parameter.ownership != OwnershipMode::Value)
-            || !scalar_type(&function.return_type)
+            || !copy_scalar_type(&function.return_type)
             || function
                 .params
                 .iter()
-                .any(|parameter| !scalar_type(&parameter.ty))
+                .any(|parameter| !copy_scalar_type(&parameter.ty))
         {
             return Err(link_error(format!(
                 "workspace function `{}` is outside the pure scalar linker profile",
@@ -634,8 +635,31 @@ fn workspace_compiler_prelude(
     Ok((declarations, compiler_types))
 }
 
+/// The narrow `i64`/`bool` result surface of the Useful Text Consumer profile,
+/// which is unrelated to the public scalar export ABI and is not widened here.
 fn scalar_type(ty: &ResolvedType) -> bool {
     matches!(ty, ResolvedType::I64 | ResolvedType::Bool)
+}
+
+/// The canonical SEMAPRAX spellings of [`copy_scalar_type`], in the profile's
+/// canonical order. Every projection that names the admitted surface as wire
+/// text reads this list, so the vocabulary cannot drift from the predicate.
+pub(crate) const COPY_SCALAR_NAMES: [&str; 7] = ["i64", "i32", "u8", "char", "f32", "f64", "bool"];
+
+/// The Copy scalars the Public Scalar Export Profile v1 admits. `usize` stays
+/// outside: its width is a host fact, not a public fact of the profile, and
+/// every remaining exclusion needs the owned-data memory ABI.
+pub(crate) fn copy_scalar_type(ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::I64
+            | ResolvedType::I32
+            | ResolvedType::U8
+            | ResolvedType::Char
+            | ResolvedType::F32
+            | ResolvedType::F64
+            | ResolvedType::Bool
+    )
 }
 
 fn link_error(message: impl Into<String>) -> Diagnostic {

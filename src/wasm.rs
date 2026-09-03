@@ -2522,13 +2522,11 @@ fn verify_embedded_project_web_manifest(
             .ok_or_else(|| {
                 project_web_build_error("Project Web build scalar parameters are invalid")
             })?;
+        let result_text = function.get("result").and_then(serde_json::Value::as_str);
         if parameters
             .iter()
-            .any(|ty| !matches!(ty.as_str(), Some("i64" | "bool")))
-            || !matches!(
-                function.get("result").and_then(serde_json::Value::as_str),
-                Some("i64" | "bool")
-            )
+            .any(|ty| !scalar_exports::is_admitted_abi_text(ty.as_str()))
+            || !scalar_exports::is_admitted_abi_text(result_text)
         {
             return Err(project_web_build_error(
                 "Project Web build scalar type is outside the closed ABI",
@@ -3064,7 +3062,7 @@ function argument(value, type, index) {{
     if (typeof value !== "bigint" || value < SPX_MIN || value > SPX_MAX) throw new TypeError(`argument ${{index}} must be a signed 64-bit bigint`);
     return value;
   }}
-  if (typeof value !== "boolean") throw new TypeError(`argument ${{index}} must be boolean`);
+{argument_guards}  if (typeof value !== "boolean") throw new TypeError(`argument ${{index}} must be boolean`);
   return value ? 1 : 0;
 }}
 function result(value, type) {{
@@ -3072,7 +3070,7 @@ function result(value, type) {{
     if (typeof value !== "bigint" || value < SPX_MIN || value > SPX_MAX) throw new TypeError("SEMAPRAX adapter returned invalid i64");
     return value;
   }}
-  if (value !== 0 && value !== 1) throw new TypeError("SEMAPRAX adapter returned non-canonical bool");
+{result_guards}  if (value !== 0 && value !== 1) throw new TypeError("SEMAPRAX adapter returned non-canonical bool");
   return value === 1;
 }}
 function invoke(instance, id, values) {{
@@ -3096,7 +3094,9 @@ function facade(instance) {{
 export async function instantiateBytes(bytes) {{ const linked = await instantiateRuntimeBytes(bytes); return facade(linked.instance); }}
 export async function instantiate(url = new URL("./app.wasm", import.meta.url)) {{ const response = await fetch(url); return instantiateBytes(await response.arrayBuffer()); }}
 export const exportIds = EXPORT_IDS;
-"#
+"#,
+        argument_guards = scalar_exports::javascript_argument_guards(plans),
+        result_guards = scalar_exports::javascript_result_guards(plans),
     )
 }
 

@@ -2,6 +2,8 @@
 
 Status: additive implementation and owning local tests; not transport or package promotion.
 
+Audience: SDK consumers, transport integrators, compiler contributors, and reviewers.
+
 The compiler exposes an authority-free, out-of-band discovery document with
 schema `semaprax.project-agent-transport-v6-discovery.v1`. It describes the
 unchanged `semaprax.agent-transport.v6` protocol, exactly

@@ -13,6 +13,8 @@
 
 #[path = "projections/capability_manifest.rs"]
 mod capability_manifest;
+#[path = "projections/cxx_package.rs"]
+mod cxx_package;
 #[path = "projections/cxx_shim_projection.rs"]
 mod cxx_shim_projection;
 #[path = "projections/freestanding_object.rs"]

@@ -2,9 +2,9 @@
 //!
 //! Every old argument is evaluated once even when its parameter is removed.
 //! Parameter identity is selected by its old name; display renaming follows
-//! lexical binding scopes. The sole owner conversion is an explicit, checked
-//! `own Bytes` replacement with `borrow Slice<u8>`. Project replay is caller's
-//! responsibility.
+//! lexical binding scopes. The sole owner-conversion lane is an explicit,
+//! checked bounded set of `own Bytes` replacements with `borrow Slice<u8>`.
+//! Project replay is caller's responsibility.
 
 use super::{
     array, call_bindings, capacity, grammar, identifier, literal, member, object, scalar_type,
@@ -31,6 +31,7 @@ mod rename;
 // limits. Public ABI parameter ceilings are rechecked by ordinary Project
 // admission; this route never raises them.
 const MAX_PARAMETERS: usize = 4096;
+const MAX_OWNER_VIEW_REPLACEMENTS: usize = 8;
 
 #[derive(Clone)]
 enum Argument {
@@ -110,7 +111,9 @@ pub(super) fn apply(
     let mut params = Vec::with_capacity(requested.len());
     let mut arguments = Vec::with_capacity(requested.len());
     let mut template_nodes = 0usize;
-    let mut owner_view = None;
+    let mut owner_views = Vec::new();
+    let mut owner_view_sources = BTreeSet::new();
+    let mut owner_view_names = BTreeSet::new();
     for mapping in requested {
         if mapping.get("from").is_some() {
             if mapping.get("name").is_some() {
@@ -170,12 +173,19 @@ pub(super) fn apply(
         } else if mapping.get("borrow_slice_from_owner").is_some() {
             object(mapping, &["name", "borrow_slice_from_owner"])?;
             let name = identifier(text(mapping, "name")?)?;
-            if original.contains_key(name)
-                || preexisting_names.contains(name)
-                || !names.insert(name.to_owned())
-            {
+            if original.contains_key(name) || preexisting_names.contains(name) {
                 return Err(owner_view::invalid(
                     "owner-to-view replacement requires a globally capture-free borrowed binding name",
+                ));
+            }
+            if !owner_view_names.insert(name.to_owned()) {
+                return Err(owner_view::alias(
+                    "owner-to-view replacements cannot alias one borrowed binding",
+                ));
+            }
+            if !names.insert(name.to_owned()) {
+                return Err(owner_view::invalid(
+                    "owner-to-view replacement requires a unique borrowed binding name",
                 ));
             }
             let source_name = text(mapping, "borrow_slice_from_owner")?;
@@ -189,9 +199,14 @@ pub(super) fn apply(
                     "owner-to-view replacement requires an exact original own Bytes parameter",
                 ));
             }
-            if owner_view.replace((index, name.to_owned())).is_some() {
-                return Err(owner_view::invalid(
-                    "signature evolution admits at most one owner-to-view replacement",
+            if owner_views.len() == MAX_OWNER_VIEW_REPLACEMENTS {
+                return Err(owner_view::capacity(
+                    "signature evolution admits at most eight owner-to-view replacements",
+                ));
+            }
+            if !owner_view_sources.insert(index) {
+                return Err(owner_view::duplicate(
+                    "owner-to-view replacement duplicates an original owner",
                 ));
             }
             if !selected.insert(index) {
@@ -206,6 +221,7 @@ pub(super) fn apply(
                 span: Span::default(),
             });
             arguments.push(Argument::BorrowedOwner(index));
+            owner_views.push((index, name.to_owned()));
         } else {
             let is_computed = mapping.get("argument_expression").is_some();
             if is_computed {
@@ -298,18 +314,17 @@ pub(super) fn apply(
             &mut occupied,
         )?;
     }
-    if let Some((index, new_name)) = &owner_view {
+    if !owner_views.is_empty() {
         let revision = revision.ok_or_else(|| {
             owner_view::invalid(
                 "owner-to-view replacement requires an authenticated Project revision",
             )
         })?;
-        owner_view::authenticate_and_rewrite(
+        owner_view::authenticate_and_rewrite_all(
             revision,
             &mut programs[owner].functions[function_index],
-            &original_params[*index],
-            *index,
-            new_name,
+            &original_params,
+            &owner_views,
         )?;
     }
     let mut generated = 0usize;

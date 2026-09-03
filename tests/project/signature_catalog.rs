@@ -378,6 +378,7 @@ fn owned_bytes_catalogue_exposes_only_exact_replacement_and_no_external_migratio
         json!(["name", "borrow_slice_from_owner"])
     );
     let lane = &mapping["owner_to_borrowed_slice"];
+    assert_eq!(lane["maximum_replacements"], 8);
     assert_eq!(lane["result"], "borrow Slice<u8>");
     assert_eq!(lane["owner_cleanup"], "caller_owned_ordinary_cleanup");
     assert_eq!(lane["full_project_replay"], true);
@@ -389,4 +390,8 @@ fn owned_bytes_catalogue_exposes_only_exact_replacement_and_no_external_migratio
         .as_array()
         .unwrap()
         .contains(&json!("additive_owner_alias")));
+    assert!(lane["excludes"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("more_than_eight_owner_conversions")));
 }

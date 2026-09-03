@@ -38,7 +38,7 @@ Each element has exactly one of these shapes:
 | --- | --- |
 | `{"from":"old_name"}` | Retain one original parameter with its exact existing name, type, and mode at this position. |
 | `{"from":"old_name","name":"new_name"}` | Retain its exact type and mode and rename the original lexical parameter binding. |
-| `{"name":"new_name","borrow_slice_from_owner":"old_name"}` | Replace one exact original `own Bytes` parameter with `borrow Slice<u8>` under the closed owner-view admission below. |
+| `{"name":"new_name","borrow_slice_from_owner":"old_name"}` | Replace one of at most eight distinct exact original `own Bytes` parameters with `borrow Slice<u8>` under the closed owner-view admission below. |
 | `{"name":"new_name","type":"scalar","argument":literal}` | Add a fresh by-value scalar parameter and supply the explicit matching scalar literal at every migrated call. |
 | `{"name":"new_name","type":type_selector,"argument_expression":expression}` | Compute a new scalar or checked Copy nominal argument from the original staged parameters after all original arguments, then fully revalidate each migrated caller. See [Argument Expressions v1](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md). |
 
@@ -49,16 +49,18 @@ Copy parameter while preserving argument evaluation at existing calls. Every
 owning or borrowed parameter must be retained exactly once; it cannot be
 removed or copied.
 
-The sole exception is the explicit `borrow_slice_from_owner` replacement. It
-admits at most one exact original `own Bytes` parameter. Retained checked HIR
-must prove that the provider body uses that owner exactly once, as the
-unprojected root of compiler-owned `core.bytes.as-slice`. The provider
-declaration changes that parameter to exact `borrow Slice<u8>` and the
-authenticated `bytes_as_slice(owner)` expression becomes the new parameter
-reference. Any owner root in `requires` or `ensures`, move, return, projection,
-nested owner, second conversion, alternate operation, or concurrent `from`
-mapping rejects. The new binding must be absent from the complete candidate
-lexical inventory so the rewrite cannot capture another binding.
+The sole exception is the explicit `borrow_slice_from_owner` replacement. One
+change admits one through eight distinct exact original `own Bytes` parameters.
+Retained checked HIR must independently prove that the provider body uses each
+selected owner exactly once, as the unprojected root of compiler-owned
+`core.bytes.as-slice`. The provider declaration changes each selected parameter
+to exact `borrow Slice<u8>` and each authenticated `bytes_as_slice(owner)`
+expression becomes its corresponding new parameter reference. Any selected
+owner root in `requires` or `ensures`, move, return, projection, nested owner,
+duplicate or cross-owner alias, alternate operation, ninth conversion, or
+concurrent `from` mapping rejects. Every new binding must be unique and absent
+from the complete candidate lexical inventory so no rewrite can capture another
+binding.
 
 New parameter names must be distinct from all original names, including names
 of removed parameters. They cannot reinterpret an existing body binding.
@@ -188,13 +190,14 @@ unchanged physical move counts, allocation failures, or finalization traces.
 No custom cleanup, physical finalization authority, or hidden settlement-model
 action is introduced here.
 
-For `borrow_slice_from_owner`, every original caller argument is staged exactly
-once in its original left-to-right order, including removed or reordered
-arguments. Only after all original staging completes does a fresh immutable
-local evaluate `bytes_as_slice(staged_owner)`. The final call receives that
-view; it never receives or transfers the owner. The staging block keeps the
-owner caller-owned, and ordinary loan, failure, and cleanup replay remain the
-only authority for its lifetime and exact cleanup. This changes the borrow
+For one or more `borrow_slice_from_owner` mappings, every original caller
+argument is staged exactly once in its original left-to-right order, including
+removed or reordered arguments. Only after all original staging completes do
+fresh immutable locals evaluate `bytes_as_slice(staged_owner)` in
+mapped-parameter order. The
+final call receives those views; it never receives or transfers the owners. The
+staging block keeps every owner caller-owned, and ordinary loan, failure, and
+cleanup replay remain the only authority for their lifetimes and exact cleanup. This changes the borrow
 boundary: the caller now creates the loan before the final call and that loan
 spans the callee, whereas the original provider created its view inside the
 body after preconditions. Ordinary full Project/HIR/loan/cleanup/target replay
@@ -244,8 +247,10 @@ capture and a still-referenced removed parameter during renaming. `SPX-G260`
 rejects omitted owners or borrowed views. `SPX-G261` bounds the additional substitution traversal
 and fresh-name allocation with the same depth/node ceilings. `SPX-G469`
 rejects invalid owner-to-view subjects, provider uses, contract references,
-duplicate conversions, additive owner mappings, capture-prone bindings, and
-rebuilt borrowed-parameter mismatches. Real Project
+additive owner mappings, capture-prone bindings, and rebuilt borrowed-parameter
+mismatches. `SPX-G477` rejects a duplicate selected owner, `SPX-G478` rejects a
+ninth owner conversion, and `SPX-G479` rejects a shared replacement binding
+across owners. Real Project
 verification and candidate stale/replay checks retain their existing
 language and `SPX-G222`–`SPX-G224` diagnostics. Failed candidate construction
 never mutates a previously returned candidate or live source files.
@@ -264,9 +269,9 @@ Additional authored regressions cover simultaneous display renames, contract
 references, local mutation, match guard capture avoidance, and removed-binding
 capture. [`tests/project_candidate/signature_ownership.rs`](../tests/project_candidate/signature_ownership.rs)
 authors full Project candidate/replay checks for reordered and renamed owned
-byte arguments, the bounded owner-to-slice replacement, exact original
-evaluation order followed by view derivation, provider
-transfer/duplicate/contract/additive rejection, exact replay, and unchanged
+byte arguments, one and multiple bounded owner-to-slice replacements, exact original
+evaluation order followed by mapped-order view derivation, provider
+transfer/duplicate/contract/additive/mixed-kind/over-cap rejection, exact replay, and unchanged
 live source files. These owner-to-slice cases have not been executed. The
 closed intention schema and `change/catalog` expose the exact
 `borrow_slice_from_owner` fields and exclusions. Authored catalogue checks pin
@@ -295,7 +300,7 @@ Declared-effect ordering is a structural regression, not hosted effect-runtime
 evidence.
 
 This lane does not admit `String`, `borrow Bytes`, a projected or nested owner,
-multiple conversions, an additive owner alias, borrowed results, parallel
+more than eight conversions, duplicate or cross-owner aliases, an additive owner alias, borrowed results, parallel
 reads, external source rewriting, target-profile widening, runtime support,
 provider or network behavior, ABI or deployment compatibility, or consumer
 acceptance. Library compilation and static formatting/diff checks passed; the

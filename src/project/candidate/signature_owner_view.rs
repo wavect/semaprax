@@ -1,7 +1,8 @@
 //! Exact `own Bytes` provider-use authentication for signature replacement.
 //!
-//! This module admits one narrow rewrite: the old owner may occur exactly once,
-//! as the unprojected root of the compiler builtin `bytes_as_slice(owner)`.
+//! This module admits up to eight independent narrow rewrites: each old owner
+//! may occur exactly once, as the unprojected root of the compiler builtin
+//! `bytes_as_slice(owner)`.
 
 use super::*;
 use crate::diagnostic::Diagnostic;
@@ -11,12 +12,23 @@ pub(super) fn invalid(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G469", message)]
 }
 
-pub(super) fn authenticate_and_rewrite(
+pub(super) fn capacity(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G478", message)]
+}
+
+pub(super) fn duplicate(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G477", message)]
+}
+
+pub(super) fn alias(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G479", message)]
+}
+
+pub(super) fn authenticate_and_rewrite_all(
     revision: &ProjectRevision,
     function: &mut Function,
-    owner: &Param,
-    owner_index: usize,
-    replacement: &str,
+    original_params: &[Param],
+    replacements: &[(usize, String)],
 ) -> Result<()> {
     let mut checked = None;
     for module in revision.semantic.image_modules() {
@@ -35,59 +47,69 @@ pub(super) fn authenticate_and_rewrite(
     let checked = checked.ok_or_else(|| {
         invalid("owner-to-view replacement has no authenticated checked provider")
     })?;
-    let parameter = checked.params.get(owner_index).ok_or_else(|| {
-        invalid("owner-to-view replacement checked parameter inventory disagrees")
-    })?;
-    if parameter.name != owner.name
-        || parameter.ownership != OwnershipMode::Own
-        || parameter.ty != ResolvedType::Bytes
-    {
-        return Err(invalid(
-            "owner-to-view replacement source and checked owner disagree",
-        ));
-    }
-
-    if checked
-        .requires
-        .iter()
-        .chain(&checked.ensures)
-        .any(|contract| uses_root(contract, &parameter.id))
-    {
-        return Err(invalid(
-            "owner-to-view replacement does not admit owner references in contracts",
-        ));
-    }
-    let mut uses = 0usize;
-    let mut pending = vec![&checked.body];
-    while let Some(expression) = pending.pop() {
-        match &expression.kind {
-            ResolvedExprKind::BorrowPlace { operation, place } if place.root == parameter.id => {
-                if operation.as_str() != crate::byte_ops::BYTES_AS_SLICE_ID
-                    || !place.projections.is_empty()
+    let mut authenticated = Vec::with_capacity(replacements.len());
+    for (owner_index, replacement) in replacements {
+        let owner = original_params.get(*owner_index).ok_or_else(|| {
+            invalid("owner-to-view replacement source parameter inventory disagrees")
+        })?;
+        let parameter = checked.params.get(*owner_index).ok_or_else(|| {
+            invalid("owner-to-view replacement checked parameter inventory disagrees")
+        })?;
+        if parameter.name != owner.name
+            || parameter.ownership != OwnershipMode::Own
+            || parameter.ty != ResolvedType::Bytes
+        {
+            return Err(invalid(
+                "owner-to-view replacement source and checked owner disagree",
+            ));
+        }
+        if checked
+            .requires
+            .iter()
+            .chain(&checked.ensures)
+            .any(|contract| uses_root(contract, &parameter.id))
+        {
+            return Err(invalid(
+                "owner-to-view replacement does not admit owner references in contracts",
+            ));
+        }
+        let mut uses = 0usize;
+        let mut pending = vec![&checked.body];
+        while let Some(expression) = pending.pop() {
+            match &expression.kind {
+                ResolvedExprKind::BorrowPlace { operation, place }
+                    if place.root == parameter.id =>
+                {
+                    if operation.as_str() != crate::byte_ops::BYTES_AS_SLICE_ID
+                        || !place.projections.is_empty()
+                    {
+                        return Err(invalid(
+                            "owner-to-view replacement requires the exact unprojected bytes_as_slice builtin use",
+                        ));
+                    }
+                    uses += 1;
+                }
+                ResolvedExprKind::Place(place) | ResolvedExprKind::BorrowPlace { place, .. }
+                    if place.root == parameter.id =>
                 {
                     return Err(invalid(
-                        "owner-to-view replacement requires the exact unprojected bytes_as_slice builtin use",
+                        "owner-to-view replacement owner has a non-view provider use",
                     ));
                 }
-                uses += 1;
+                _ => push_children(expression, &mut pending),
             }
-            ResolvedExprKind::Place(place) | ResolvedExprKind::BorrowPlace { place, .. }
-                if place.root == parameter.id =>
-            {
-                return Err(invalid(
-                    "owner-to-view replacement owner has a non-view provider use",
-                ));
-            }
-            _ => push_children(expression, &mut pending),
         }
+        if uses != 1 {
+            return Err(invalid(
+                "owner-to-view replacement requires exactly one authenticated bytes_as_slice owner use",
+            ));
+        }
+        authenticated.push((owner.clone(), replacement.as_str(), uses));
     }
-    if uses != 1 {
-        return Err(invalid(
-            "owner-to-view replacement requires exactly one authenticated bytes_as_slice owner use",
-        ));
+    for (owner, replacement, uses) in authenticated {
+        rewrite_source(function, &owner, replacement, uses)?;
     }
-
-    rewrite_source(function, owner, replacement, uses)
+    Ok(())
 }
 
 fn rewrite_source(

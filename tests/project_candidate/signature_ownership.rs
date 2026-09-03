@@ -40,6 +40,22 @@ impl Fixture {
 @id("frame.owner-view-call") fn owner_view_call(input: borrow Slice<u8>) -> usize {
     owner_view(bytes_copy(input), 8 / 4)
 }
+@id("frame.owner-views") fn owner_views(left: own Bytes, flag: i64, right: own Bytes) -> usize {
+    byte_len(bytes_as_slice(left)) + if flag == 0 { byte_len(bytes_as_slice(right)) } else { 1usize }
+}
+@id("frame.owner-views-call") fn owner_views_call(input: borrow Slice<u8>) -> usize {
+    owner_views(bytes_copy(input), 9 / 3, bytes_copy(input))
+}
+@id("frame.owner-views-nine") fn owner_views_nine(
+    p0: own Bytes, p1: own Bytes, p2: own Bytes, p3: own Bytes, p4: own Bytes,
+    p5: own Bytes, p6: own Bytes, p7: own Bytes, p8: own Bytes
+) -> usize {
+    byte_len(bytes_as_slice(p0)) + byte_len(bytes_as_slice(p1))
+        + byte_len(bytes_as_slice(p2)) + byte_len(bytes_as_slice(p3))
+        + byte_len(bytes_as_slice(p4)) + byte_len(bytes_as_slice(p5))
+        + byte_len(bytes_as_slice(p6)) + byte_len(bytes_as_slice(p7))
+        + byte_len(bytes_as_slice(p8))
+}
 @id("frame.owner-return") fn owner_return(input: own Bytes) -> Bytes { input }
 @id("frame.owner-duplicate-view") fn owner_duplicate_view(input: own Bytes) -> usize {
     byte_len(bytes_as_slice(input)) + byte_len(bytes_as_slice(input))
@@ -106,6 +122,132 @@ fn own_bytes_replacement_derives_one_caller_view_after_left_to_right_staging_and
     )
     .unwrap();
     assert_eq!(replayed.to_json(), evolved.to_json());
+}
+
+#[test]
+fn bounded_distinct_owner_views_derive_in_mapping_order_after_all_old_stages() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    let change = SemanticChange::new(
+        root.revision().project_revision(),
+        &json!({
+            "kind":"change_function_signature", "target":"frame.owner-views", "parameters":[
+                {"name":"right_view","borrow_slice_from_owner":"right"},
+                {"from":"flag"},
+                {"name":"left_view","borrow_slice_from_owner":"left"}
+            ]
+        }),
+    )
+    .unwrap();
+    let evolved = root.apply(root.candidate_digest(), &change).unwrap();
+    let source = evolved
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/frame.spx")
+        .unwrap()
+        .source();
+    assert!(source.contains(
+        "fn owner_views(right_view: borrow Slice<u8>, flag: i64, left_view: borrow Slice<u8>)"
+    ));
+    assert!(source.contains("byte_len(left_view)"));
+    assert!(source.contains("byte_len(right_view)"));
+    let stage_left = source
+        .find("let spx_sig_stage_0 = bytes_copy(input)")
+        .unwrap();
+    let stage_flag = source.find("let spx_sig_stage_1 = 9 / 3").unwrap();
+    let stage_right = source
+        .rfind("let spx_sig_stage_2 = bytes_copy(input)")
+        .unwrap();
+    let derive_right = source
+        .find("let spx_sig_stage_3 = bytes_as_slice(spx_sig_stage_2)")
+        .unwrap();
+    let derive_left = source
+        .find("let spx_sig_stage_4 = bytes_as_slice(spx_sig_stage_0)")
+        .unwrap();
+    let migrated = source
+        .find("owner_views(spx_sig_stage_3, spx_sig_stage_1, spx_sig_stage_4)")
+        .unwrap();
+    assert!(stage_left < stage_flag && stage_flag < stage_right);
+    assert!(stage_right < derive_right && derive_right < derive_left && derive_left < migrated);
+    let replayed = ProjectCandidate::replay(
+        Arc::clone(root.base_revision()),
+        root.base_revision().project_revision(),
+        &[change],
+        evolved.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replayed.to_json(), evolved.to_json());
+}
+
+#[test]
+fn bounded_owner_view_set_rejects_duplicate_partial_mixed_and_more_than_eight() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    for (parameters, diagnostic) in [
+        (
+            json!([
+                {"name":"first","borrow_slice_from_owner":"left"},
+                {"from":"flag"},
+                {"name":"again","borrow_slice_from_owner":"left"}
+            ]),
+            "SPX-G477",
+        ),
+        (
+            json!([
+                {"name":"shared","borrow_slice_from_owner":"left"},
+                {"from":"flag"},
+                {"name":"shared","borrow_slice_from_owner":"right"}
+            ]),
+            "SPX-G479",
+        ),
+        (
+            json!([
+                {"name":"left_view","borrow_slice_from_owner":"left"},
+                {"from":"flag"}
+            ]),
+            "SPX-G260",
+        ),
+        (
+            json!([
+                {"name":"view","borrow_slice_from_owner":"flag"},
+                {"from":"left"},
+                {"from":"right"}
+            ]),
+            "SPX-G469",
+        ),
+    ] {
+        let change = SemanticChange::new(root.revision().project_revision(), &json!({
+            "kind":"change_function_signature","target":"frame.owner-views","parameters":parameters
+        })).unwrap();
+        let errors = root.apply(root.candidate_digest(), &change).unwrap_err();
+        assert!(
+            errors.iter().any(|error| error.code == diagnostic),
+            "{errors:?}"
+        );
+    }
+    let parameters = (0..9)
+        .map(|index| {
+            json!({
+                "name":format!("view{index}"),
+                "borrow_slice_from_owner":format!("p{index}")
+            })
+        })
+        .collect::<Vec<_>>();
+    let change = SemanticChange::new(
+        root.revision().project_revision(),
+        &json!({
+            "kind":"change_function_signature",
+            "target":"frame.owner-views-nine",
+            "parameters":parameters
+        }),
+    )
+    .unwrap();
+    let errors = root.apply(root.candidate_digest(), &change).unwrap_err();
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G478"),
+        "{errors:?}"
+    );
 }
 
 #[test]

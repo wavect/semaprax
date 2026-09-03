@@ -67,6 +67,10 @@ scoped and malformed-position behavior, and zero-activity gates owned by
 requires bounded unique matching, exact diagnostics, and standalone/full
 capability separation owned by [CLI Help v2](CLI-HELP-V2.md).
 
+Human diagnostic rendering requires exact path/span combinations,
+control-character escaping, unchanged JSON, and a physical compiler failure as
+owned by [Human Diagnostic Locations v1](HUMAN-DIAGNOSTICS-V1.md).
+
 The script is the executable source of truth for the precise command sequence.
 Do not copy that sequence into feature documents.
 

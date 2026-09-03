@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Human compiler diagnostics now include terminal-safe `path:line:column`
+  locations when source paths and spans are available. Pathless rendering and
+  machine-readable JSON remain unchanged.
+
 - Added bounded, deterministic typo guidance for unknown CLI commands. The
   nearest unique command within edit distance one or two is suggested only
   from the executable's capability-visible static catalog; unrelated,

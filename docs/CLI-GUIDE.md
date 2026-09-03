@@ -89,6 +89,8 @@ does not reveal private full-toolchain commands through suggestions.
 
 Compiler diagnostics carry stable `SPX-...` codes so tests and tools can bind
 to the diagnostic kind instead of matching an entire human-readable message.
+Human-readable diagnostics include `path:line:column` when the compiler knows
+the source location; `--json` remains the stable automation interface.
 SEMAPRAX remains pre-alpha, so consult the release notes and versioned
 references before treating a diagnostic, schema, or ABI as stable across
 releases.
@@ -111,3 +113,5 @@ For a complete first project, continue with the executable
 [quickstart](QUICKSTART.md). The exact capability boundary and byte-level help
 contract are defined by [Capability-Aware CLI Help v1](CLI-HELP-V1.md), with
 bounded typo guidance added by [v2](CLI-HELP-V2.md).
+Human diagnostic rendering is defined by
+[Human Diagnostic Locations v1](HUMAN-DIAGNOSTICS-V1.md).

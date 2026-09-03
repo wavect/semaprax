@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use semaprax::{codegen, graph, parse, verify};
+use semaprax::{ast::Span, codegen, diagnostic::Diagnostic, graph, parse, verify};
 
 const VALID: &str = r#"
 module test.answer;
@@ -332,4 +332,39 @@ fn main() -> i64 {{ {statement} }}
         assert_eq!(error.code, "SPX-P003", "{literal}: {error}");
         assert!(error.message.contains("suffix"), "{literal}: {error}");
     }
+}
+
+#[test]
+fn human_diagnostics_include_terminal_safe_source_locations() {
+    let span = Span {
+        start: 4,
+        end: 9,
+        line: 2,
+        column: 3,
+    };
+    let located = Diagnostic::error("SPX-T001", "invalid source", span)
+        .at_path("src/main.spx")
+        .with_help("replace it");
+    assert_eq!(
+        located.to_string(),
+        "error[SPX-T001]: invalid source at src/main.spx:2:3\n  help: replace it"
+    );
+    assert_eq!(
+        Diagnostic::error("SPX-T001", "invalid source", span).to_string(),
+        "error[SPX-T001]: invalid source at 2:3"
+    );
+    assert_eq!(
+        Diagnostic::io("SPX-T002", "cannot read").to_string(),
+        "error[SPX-T002]: cannot read"
+    );
+    assert_eq!(
+        Diagnostic::io("SPX-T002", "cannot read")
+            .at_path("bad\n\x1b[31m.spx")
+            .to_string(),
+        "error[SPX-T002]: cannot read at bad\\n\\u{1b}[31m.spx"
+    );
+    assert_eq!(
+        located.json(),
+        "{\"code\":\"SPX-T001\",\"severity\":\"error\",\"message\":\"invalid source\",\"path\":\"src/main.spx\",\"location\":{\"line\":2,\"column\":3,\"start\":4,\"end\":9},\"help\":\"replace it\"}"
+    );
 }

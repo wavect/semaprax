@@ -24,6 +24,14 @@ over-limit names keep the v1 diagnostic. Scripts that intentionally snapshot a
 near-miss diagnostic should accept the v2 suffix; status remains 2 and the
 capability-appropriate global help remains on stdout.
 
+## Human diagnostic source locations
+
+Human-readable diagnostics that carry a source path now render
+`path:line:column` instead of only `line:column`. Pathless diagnostics are
+unchanged, and `--json` output is unchanged. Terminal-output snapshots should
+accept the added path; tools should continue consuming JSON rather than parsing
+the human representation.
+
 ## Graph-v6 CLI context to agent-context v1
 
 `semaprax context` now emits `semaprax.agent-context.v1` instead of a Graph-v6

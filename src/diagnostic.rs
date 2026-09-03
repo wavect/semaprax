@@ -1,4 +1,5 @@
 use std::fmt;
+use std::fmt::Write as _;
 
 use crate::ast::Span;
 
@@ -114,14 +115,37 @@ impl fmt::Display for Diagnostic {
             self.code,
             self.message
         )?;
-        if let Some(span) = self.span {
-            write!(f, " at {}:{}", span.line, span.column)?;
+        match (&self.path, self.span) {
+            (Some(path), Some(span)) => {
+                f.write_str(" at ")?;
+                write_human_path(f, path)?;
+                write!(f, ":{}:{}", span.line, span.column)?;
+            }
+            (Some(path), None) => {
+                f.write_str(" at ")?;
+                write_human_path(f, path)?;
+            }
+            (None, Some(span)) => write!(f, " at {}:{}", span.line, span.column)?,
+            (None, None) => {}
         }
         if let Some(help) = &self.help {
             write!(f, "\n  help: {help}")?;
         }
         Ok(())
     }
+}
+
+fn write_human_path(f: &mut fmt::Formatter<'_>, path: &str) -> fmt::Result {
+    for character in path.chars() {
+        if character.is_control() {
+            for escaped in character.escape_default() {
+                f.write_char(escaped)?;
+            }
+        } else {
+            f.write_char(character)?;
+        }
+    }
+    Ok(())
 }
 
 pub fn quote_json(value: &str) -> String {

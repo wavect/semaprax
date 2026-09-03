@@ -221,7 +221,7 @@ row.
 | Proof-carrying patches | Partial | [Patch Evidence v2](SEMANTIC-PATCH-EVIDENCE-V2.md) | General semantic claims, tests, targets, capability deltas, provenance, and compatibility are independently verified before commit. |
 | Semantic human review | Partial | [Semantic Review v1](SEMANTIC-REVIEW-V1.md) | Complete repository-wide behavioral, API, security, memory, target, migration, and unsafe summaries are evidence-backed. |
 | Sandboxed builds and dependencies | Partial; authority-free linked build has exact-tag nonignored coverage and remains unpromoted | [Capability Manifest v1](CAPABILITY-MANIFEST-V1.md), [Offline Package Lock v1](OFFLINE-PACKAGE-LOCK-V1.md), [Offline Resolver v1](OFFLINE-PACKAGE-RESOLVER-V1.md), [Multi-Package Source Capsule v1](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md), [Effect-Free Wasm Package Build v1](OFFLINE-PURE-WASM-PACKAGE-BUILD-V1.md), [Linked Scalar Wasm Package Build v2](OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md) | Complete separately provisioned publisher evidence, then verify reproducible acquired inputs and actual least-authority OS sandbox/dependency enforcement. Empty source authority and no external tool execution are not a hermetic sandbox. |
-| Debugger, profiler, diagnostics, and operations | Partial | [Architecture](ARCHITECTURE.md) | Source-level debugging/profiling, crash and trace mapping, observability, and deployment diagnostics cover every backend. |
+| Debugger, profiler, diagnostics, and operations | Partial | [Architecture](ARCHITECTURE.md), [Human Diagnostic Locations v1](HUMAN-DIAGNOSTICS-V1.md) | Source-level debugging/profiling, crash and trace mapping, observability, and deployment diagnostics cover every backend. |
 
 ## Final validation product
 

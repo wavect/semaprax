@@ -116,7 +116,7 @@ borrow/move facts — not runtime storage management.
 
 ## Evidence
 
-Executable evidence lives in `tests/region_report_v1.rs` plus module tests in
+Executable evidence lives in `tests/projections/region_report.rs` plus module tests in
 `src/region_report.rs`: pinned golden envelope KATs over
 `examples/calculator.spx` (`sha256:cdde79b66a970e57cf86c13bfcac02cdd6782d5c1ceda7949270f344d80ee1e1`)
 and `examples/meaning.spx`

@@ -19,9 +19,9 @@ fn discard(value: own Token) -> i64 { 0 }
 
 @id("token.requires")
 fn requires_guard(value: own Token, allowed: bool) -> i64
-requires allowed
+    requires allowed
 {
-0
+    0
 }
 
 @id("token.checked")
@@ -35,9 +35,9 @@ fn choose_second(first: own Token, count: i64, second: own Token) -> Token { sec
 
 @id("token.ensures-false")
 fn ensures_false(value: own Token) -> Token
-ensures false
+    ensures false
 {
-value
+    value
 }
 
 @id("app.main")
@@ -91,8 +91,8 @@ fn reference_trace_round_trips_only_through_emitted_ordinals() {
     );
     let canonical = dictionary.canonical_json();
     assert!(canonical.starts_with(
-        "{\"schema\":\"semaprax.semantic-event-dictionary.v1\",\"function\":\"token.discard\",\"entries\":[{\"ordinal\":1,\"event\":{\"kind\":\"finalize_begin\""
-    ));
+            "{\"schema\":\"semaprax.semantic-event-dictionary.v1\",\"function\":\"token.discard\",\"entries\":[{\"ordinal\":1,\"event\":{\"kind\":\"finalize_begin\""
+        ));
     assert!(canonical.contains("{\"ordinal\":2,\"event\":{\"kind\":\"finalize_end\""));
     assert!(canonical.contains("{\"ordinal\":3,\"event\":{\"kind\":\"result_commit\""));
     for forbidden in [
@@ -179,14 +179,14 @@ fn failure_and_checked_statuses_are_dictionary_bound() {
     let checked = function(&program, "token.checked");
     let checked_dictionary = build_semantic_event_dictionary(&program, &checked.id).unwrap();
     assert!(checked_dictionary.entries().iter().any(|entry| {
-        matches!(
-            entry.event,
-            TraceEventKind::SelectFailure {
-                ref status,
-                ..
-            } if status == &NormalizedStatus::arithmetic(crate::cleanup_plan::StatusCase::AddOverflow)
-        )
-    }));
+            matches!(
+                entry.event,
+                TraceEventKind::SelectFailure {
+                    ref status,
+                    ..
+                } if status == &NormalizedStatus::arithmetic(crate::cleanup_plan::StatusCase::AddOverflow)
+            )
+        }));
 }
 
 #[test]
@@ -271,11 +271,11 @@ permit { file.release }
 resource File { @id("file.drop") drop import "file.finalize"; }
 @id("file.host")
 interface FileHost permits { file.release } {
-@id("file.finalize")
-import fn finalize(file: own File) -> unit
-    effects { file.release }
-    failure infallible
-    consumes file always;
+    @id("file.finalize")
+    import fn finalize(file: own File) -> unit
+        effects { file.release }
+        failure infallible
+        consumes file always;
 }
 @id("file.discard")
 fn discard(value: own File) -> i64 uses { file.release } { 0 }
@@ -294,8 +294,8 @@ fn typed_result_staging_is_rejected_before_callable_trace_admission() {
     let source = r#"module test.trace_try_closed;
 @id("test.forward")
 fn forward(value: Result<i64, bool>) -> Result<bool, bool> {
-let number = value?;
-Result<bool, bool>::Ok { value: number > 0 }
+    let number = value?;
+    Result<bool, bool>::Ok { value: number > 0 }
 }
 @id("app.main")
 fn main() -> i64 { 0 }

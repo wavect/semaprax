@@ -13,7 +13,7 @@ module test.reserved_host_index;
 @id("choice") variant Choice { @id("choice.a") A { @id("choice.a.x") x: i64, }, }
 @id("class") class Class { @id("class.x") x: i64, @id("class.value") fn value(self: Class) -> i64 { self.x } }
 @id("host") interface Host permits {} {
-@id("host.echo") import rust fn echo(value: i64) -> i64 effects {} failure infallible;
+    @id("host.echo") import rust fn echo(value: i64) -> i64 effects {} failure infallible;
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
@@ -74,8 +74,8 @@ record Pair {
 @id("host.echo.interface")
 interface HostEcho permits { host.echo } {
   @id("host.echo") import rust fn host_echo(value: i64) -> i64
-effects { host.echo }
-failure status "host.echo.v1";
+    effects { host.echo }
+    failure status "host.echo.v1";
 }
 @id("callee") fn callee(a: i64, b: i64) -> i64 { a + b }
 @id("identity") fn identity<T>(value: T) -> T { value }
@@ -227,10 +227,10 @@ variant Choice { @id("choice.a") A, @id("choice.b") B, }
 
 @id("host.echo.interface")
 interface HostEcho permits { host.echo } {
-@id("host.echo")
-import rust fn host_echo(value: i64) -> i64
-    effects { host.echo }
-    failure status "host.echo.v1";
+    @id("host.echo")
+    import rust fn host_echo(value: i64) -> i64
+        effects { host.echo }
+        failure status "host.echo.v1";
 }
 
 @id("token.consume")
@@ -244,7 +244,7 @@ fn call_hostile(token: own Token) -> i64 { consume(token) }
 
 @id("hostile.native")
 fn native_hostile(token: own Token, value: i64) -> i64
-uses { host.echo }
+    uses { host.echo }
 { host_echo(value) }
 
 @id("hostile.construct")
@@ -252,34 +252,34 @@ fn construct_hostile(token: own Token) -> OwnedBox { OwnedBox { token: token } }
 
 @id("hostile.update")
 fn update_hostile(input: own OwnedBox, token: own Token) -> OwnedBox {
-input with { token: token }
+    input with { token: token }
 }
 
 @id("hostile.block_statement")
 fn block_statement_hostile(token: own Token) -> i64 {
-let used = consume(token);
-used
+    let used = consume(token);
+    used
 }
 
 @id("hostile.block_tail")
 fn block_tail_hostile(token: own Token) -> i64 {
-let zero = 0;
-consume(token)
+    let zero = 0;
+    consume(token)
 }
 
 @id("hostile.if")
 fn if_hostile(flag: bool, token: own Token) -> i64 {
-if flag { consume(token) } else { 0 }
+    if flag { consume(token) } else { 0 }
 }
 
 @id("hostile.lazy")
 fn lazy_hostile(flag: bool, token: own Token) -> bool {
-flag && consume_bool(token)
+    flag && consume_bool(token)
 }
 
 @id("hostile.match")
 fn match_hostile(choice: Choice, token: own Token) -> i64 {
-match choice { Choice::A {} => consume(token), Choice::B {} => 0, }
+    match choice { Choice::A {} => consume(token), Choice::B {} => 0, }
 }
 
 @id("app.main")
@@ -467,9 +467,9 @@ fn validator_oracle_handles_an_exact_depth_512_late_error_with_a_nonempty_scope(
     fn run() {
         const UNARY_NODES: usize = 510;
         let source = format!(
-            "module test.validator_depth; @id(\"token.type\") resource Token {{ @id(\"token.drop\") drop trivial; }} @id(\"token.consume\") fn consume(token: own Token) -> i64 {{ 1 }} @id(\"hostile.depth\") fn deep(token: own Token) -> i64 {{ {}consume(token) }} @id(\"app.main\") fn main() -> i64 {{ 0 }}",
-            "-".repeat(UNARY_NODES)
-        );
+                "module test.validator_depth; @id(\"token.type\") resource Token {{ @id(\"token.drop\") drop trivial; }} @id(\"token.consume\") fn consume(token: own Token) -> i64 {{ 1 }} @id(\"hostile.depth\") fn deep(token: own Token) -> i64 {{ {}consume(token) }} @id(\"app.main\") fn main() -> i64 {{ 0 }}",
+                "-".repeat(UNARY_NODES)
+            );
         let mut hostile =
             hir::resolve(&parse(&source, Path::new("validator-depth-hostile.spx")).unwrap())
                 .unwrap();

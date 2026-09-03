@@ -104,7 +104,7 @@ candidate binding failures `SPX-G224`, and semantic rebase conflicts
 their owning diagnostics. No failure writes authoritative source.
 
 Authored library and v5 transport regression evidence lives in
-[member rename cases](../tests/project_candidate_member_rename_v1.rs). The evidence
+[member rename cases](../tests/project_candidate/member_rename.rs). The evidence
 must establish source migration, identity preservation, collision and stale
 rejection, independent history replay and unchanged authority. Tests, compiler
 checks, interpreter/application execution and long quality gates were not run

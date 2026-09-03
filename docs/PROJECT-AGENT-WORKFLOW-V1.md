@@ -109,7 +109,7 @@ The focused local gate is:
 
 ```sh
 cargo test --locked -p semaprax --all-features \
-  --test project_agent_workflow_v1 -- --test-threads=1 --nocapture
+  --test project agent_workflow:: -- --test-threads=1 --nocapture
 ```
 
 It runs the real daemon through open, silent notification, derivation, stale

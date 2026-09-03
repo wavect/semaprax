@@ -1,0 +1,10 @@
+# Source-locked contracts that do not bind every submodule of the module they read,
+# with the number of submodules each currently misses. Counts may fall and entries may
+# disappear; a count that rises means a split moved audited text out from under a contract.
+crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs	src/hir.rs	13
+crates/semaprax-native-rust-interop-builder/src/implementation/tests/ledger_capacity.rs	src/source_verify.rs	13
+tests/desktop_native_ui_ci_contract.rs	src/codegen.rs	31
+tests/native_rust_interop_ci_contract.rs	crates/semaprax-native-rust-interop-builder/src/implementation.rs	4
+tests/projections/public_api_descriptor.rs	src/project/npm.rs	12
+tests/projections/public_api_descriptor.rs	src/wasm.rs	18
+tests/workspace/semantic_graph.rs	src/workspace_graph.rs	3

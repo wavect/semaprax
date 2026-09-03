@@ -144,7 +144,7 @@ argument diagnostics, per-field tamper rejection including re-signed
 forgeries, drift binding, and CLI exit-code contracts. Toolchain-dependent
 parity legs skip when clang or Node is unavailable unless
 `SEMAPRAX_REQUIRE_INTERPRETER_BACKEND_PARITY` is set.
-`tests/interpreter_scalar_widen_v1.rs` adds a 24-row widened-surface corpus
+`tests/language/interpreter_scalar_widen.rs` adds a 24-row widened-surface corpus
 with the same producer contracts.
 
 ## Scalar admission widening (2026-08-23)

@@ -36,9 +36,9 @@ fn exhausted_or_duplicate_cell_identity_is_diagnostic_not_panic() {
 #[test]
 fn inline_owner_cells_cover_ordinary_and_owned_data_provider_strings() {
     let checked = crate::check(
-        "module test.inline; @id(\"word\") fn word() -> string { \"value\" } @id(\"main\") fn main() -> i64 { 0 }",
-        "inline.spx",
-    ).unwrap();
+            "module test.inline; @id(\"word\") fn word() -> string { \"value\" } @id(\"main\") fn main() -> i64 { 0 }",
+            "inline.spx",
+        ).unwrap();
     let program = crate::hir::resolve(&checked).unwrap();
     let ordinary = crate::codegen::emit_hir_c(&program).unwrap();
     let provider = crate::codegen::emit_hir_c_for_owned_data_provider(&program).unwrap();
@@ -152,8 +152,8 @@ fn string_free_function_emission_matches_frozen_route_bytes_and_budget() {
 fn string_free_owned_bytes_provider_retains_frozen_prelude_and_budget() {
     use super::super::{NativeOutputProfile as Profile, StringRuntimeSelection};
     let program = resolved(
-        "module test.provider_bytes; @id(\"payload\") fn payload(input: borrow Slice<u8>) -> Bytes { bytes_copy(input) } @id(\"main\") fn main() -> i64 { 0 }",
-    );
+            "module test.provider_bytes; @id(\"payload\") fn payload(input: borrow Slice<u8>) -> Bytes { bytes_copy(input) } @id(\"main\") fn main() -> i64 { 0 }",
+        );
     for function in &program.functions {
         assert!(!Profile::OwnedDataProvider.tracks_strings(function));
     }

@@ -6,6 +6,31 @@ fn read(relative: &str) -> String {
         .unwrap_or_else(|error| panic!("read {relative}: {error}"))
 }
 
+/// A consumer test plus every submodule it owns.
+///
+/// The counts below bind *every* nested Cargo invocation in a consumer. Reading
+/// only the root would let an invocation added in a submodule escape the count
+/// while the assertion still passed against the smaller file.
+fn read_consumer(relative: &str) -> String {
+    let mut source = read(relative);
+    let directory = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join(relative.strip_suffix(".rs").expect("consumer module root"));
+    let Ok(entries) = fs::read_dir(&directory) else {
+        return source;
+    };
+    let mut submodules: Vec<_> = entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().is_some_and(|ext| ext == "rs"))
+        .collect();
+    submodules.sort();
+    for submodule in submodules {
+        source.push('\n');
+        source.push_str(&fs::read_to_string(&submodule).expect("consumer submodule"));
+    }
+    source
+}
+
 #[test]
 fn hosted_matrix_routes_public_sdk_evidence_on_all_three_operating_systems() {
     let workflow = read(".github/workflows/ci.yml");
@@ -112,11 +137,11 @@ fn external_consumers_share_one_bounded_nested_cargo_linker_path_binder() {
     }
 
     for (path, expected_commands) in [
-        ("tests/frame_payload_product_v1.rs", 1),
+        ("tests/frame_payload_product_v1.rs", 2),
         ("tests/public_native_rust_owned_data_sdk_v1.rs", 3),
         ("tests/project_native_rust_owned_utf8_v1.rs", 1),
     ] {
-        let consumer = read(path);
+        let consumer = read_consumer(path);
         assert!(consumer.contains("mod native_rust_cargo;"), "{path}");
         assert!(consumer.contains("mod native_rust_target;"), "{path}");
         assert_eq!(

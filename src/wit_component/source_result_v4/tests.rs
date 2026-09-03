@@ -6,20 +6,20 @@ const SOURCE: &str = r#"module test.component_source_result_v4;
 
 @id("component.source")
 fn source(value: i64, reject: bool) -> Result<i64, bool> {
-if reject {
-    Result<i64, bool>::Err { error: value > 0 }
-} else {
-    Result<i64, bool>::Ok { value: value }
-}
+    if reject {
+        Result<i64, bool>::Err { error: value > 0 }
+    } else {
+        Result<i64, bool>::Ok { value: value }
+    }
 }
 
 @id("component.evaluate")
 fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool>
-requires value != -99
-ensures divisor != 13
+    requires value != -99
+    ensures divisor != 13
 {
-let checked = source(value, reject)?;
-Result<bool, bool>::Ok { value: (checked + 1) / divisor > 0 }
+    let checked = source(value, reject)?;
+    Result<bool, bool>::Ok { value: (checked + 1) / divisor > 0 }
 }
 
 @id("app.main")
@@ -192,10 +192,10 @@ fn v1_v2_v3_v4_profiles_are_never_confused() {
     .unwrap();
     let v2 = super::super::emit_private_checked_component_v2(&v2_program).unwrap();
     let v3_program = crate::parse(
-        "module v3; @id(\"component.evaluate\") fn evaluate(left:i64,right:i64)->i64 { left + right } @id(\"app.main\") fn main()->i64 { 0 }",
-        Path::new("v3.spx"),
-    )
-    .unwrap();
+            "module v3; @id(\"component.evaluate\") fn evaluate(left:i64,right:i64)->i64 { left + right } @id(\"app.main\") fn main()->i64 { 0 }",
+            Path::new("v3.spx"),
+        )
+        .unwrap();
     let v3 = super::super::emit_private_result_component_v3(&v3_program).unwrap();
     let v4 = artifact();
     for candidate in [v1.bytes(), v2.bytes(), v3.bytes()] {
@@ -265,37 +265,37 @@ fn rehashed_flattened_named_type_lift_and_export_hostiles_reject() {
 #[test]
 fn excluded_authority_type_and_signature_profiles_fail_closed() {
     for source in [
-        SOURCE.replace(
-            "fn evaluate(value: i64, reject: bool, divisor: i64)",
-            "fn evaluate(value: i64, reject: bool, divisor: i64, extra: bool)",
-        ),
-        SOURCE
-            .replace(
-                "fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool>",
-                "fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<i64, bool>",
-            )
-            .replace(
-                "Result<bool, bool>::Ok { value: (checked + 1) / divisor > 0 }",
-                "Result<i64, bool>::Ok { value: checked }",
+            SOURCE.replace(
+                "fn evaluate(value: i64, reject: bool, divisor: i64)",
+                "fn evaluate(value: i64, reject: bool, divisor: i64, extra: bool)",
             ),
-        SOURCE.replace(
-            "module test.component_source_result_v4;",
-            "module test.component_source_result_v4;\npermit { clock.read }",
-        ).replace(
-            "fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool>",
-            "fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool> uses { clock.read }",
-        ),
-    ] {
-        let program = crate::parse(
-            &source,
-            Path::new("excluded-component-source-result-v4.spx"),
-        )
-        .unwrap();
-        assert_eq!(
-            emit_private_source_result_component_v4(&program)
-                .unwrap_err()
-                .code,
-            "SPX-WIT108"
-        );
-    }
+            SOURCE
+                .replace(
+                    "fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool>",
+                    "fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<i64, bool>",
+                )
+                .replace(
+                    "Result<bool, bool>::Ok { value: (checked + 1) / divisor > 0 }",
+                    "Result<i64, bool>::Ok { value: checked }",
+                ),
+            SOURCE.replace(
+                "module test.component_source_result_v4;",
+                "module test.component_source_result_v4;\npermit { clock.read }",
+            ).replace(
+                "fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool>",
+                "fn evaluate(value: i64, reject: bool, divisor: i64) -> Result<bool, bool> uses { clock.read }",
+            ),
+        ] {
+            let program = crate::parse(
+                &source,
+                Path::new("excluded-component-source-result-v4.spx"),
+            )
+            .unwrap();
+            assert_eq!(
+                emit_private_source_result_component_v4(&program)
+                    .unwrap_err()
+                    .code,
+                "SPX-WIT108"
+            );
+        }
 }

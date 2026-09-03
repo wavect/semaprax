@@ -222,7 +222,7 @@ promotion or overall production-readiness claim follows from this profile.
 
 ### Authored gate inventory
 
-`tests/wasm_internal_strings_v1.rs` contains the canonical/Graph, normalized
+`tests/wasm/internal_strings_v1.rs` contains the canonical/Graph, normalized
 interpreter/native O0/O2, raw Wasm all-reached-mint refusal, safe-facade,
 generation-time quota and stable admission regressions. Its private
 `raw.mjs` oracle is independent of the production arena. The `host.mjs`

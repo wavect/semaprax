@@ -66,7 +66,7 @@ and rechecks before swapping all retained state, retaining historical complete
 candidates and clearing drafts/attempts exactly as the ordinary v5 route does.
 Startup-only Git host attachment and approval guards remain unchanged.
 
-`tests/image_workspace_frontend_cache_v1.rs` authors cold identity/discovery
+`tests/image_protocol/workspace_frontend_cache_v1.rs` authors cold identity/discovery
 equivalence, zero-parser warm refresh, leaf/provider invalidation, preview and
 failed-refresh rollback, full semantic rejection, stale-session recovery, and
 physical hardlink rejection despite exact cached source bytes. Existing cache,
@@ -84,7 +84,7 @@ A separate [persistent cache](PERSISTENT-SEMANTIC-CACHE-V1.md) now supplies
 selection. The constructors described above still create in-process caches;
 none implicitly opens a root or trusts submitted HIR. The persistent route
 has its own key-custody and compiler-installation trust contract.
-`tests/workspace_session_semantic_cache_cli_v1.rs` additionally authors unchanged
+`tests/workspace/session_semantic_cache_cli.rs` additionally authors unchanged
 refresh checked-HIR reuse, cold/AST/semantic image and discovery equivalence,
 old-version rejection, strict boolean/dependent selection, and RPC override
 rejection. Its direct semantic-session regression also authors absorbing source

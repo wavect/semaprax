@@ -90,7 +90,7 @@ or joined batch. A cached report cannot make a stale live workspace current.
 The pure library can review a retained historical revision even after the
 original checkout changes; it makes no claim about current editor buffers.
 
-`tests/project_candidate_source_review_v1.rs` and `tests/image_source_review_v5.rs`
+`tests/project_candidate/source_review.rs` and `tests/image_v5/source_review.rs`
 author exact source/diff/digest, signature-migration, stale selector, selected
 grant, chunk and parallel-read evidence. They were not executed. This addition
 does not promote a completion-matrix row or replace separate commit approval.

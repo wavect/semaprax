@@ -124,7 +124,7 @@ store root, change startup policy, write the store or approve a candidate.
 
 ## Authored evidence and remaining work
 
-`tests/draft_archive_store_v1.rs` and `tests/draft_archive_cli_v1.rs` author
+`tests/semantic/draft_archive_store.rs` and `tests/semantic/draft_archive_cli.rs` author
 source-loss recovery, partial-hole continuation, exact typed selection,
 hostile storage inputs, publication preservation and strict startup policies.
 Tests, compiler checks, CLI executions and long quality gates were not run.

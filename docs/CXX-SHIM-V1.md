@@ -112,8 +112,8 @@ consistency.
 
 ## Evidence
 
-Executable evidence lives in `tests/cxx_shim_projection_v1.rs`,
-`tests/interop_scalar_widen_v1.rs`, plus module
+Executable evidence lives in `tests/projections/cxx_shim_projection.rs`,
+`tests/language/interop_scalar_widen.rs`, plus module
 tests in `src/cxx_shim.rs`: pinned golden envelope and path-independent
 `extern "C"` fragment digests over `examples/meaning.spx`, byte-identical
 double runs, verbatim cross-consistency against the native projection, every
@@ -137,7 +137,7 @@ no rendering changes because declaration lines are extracted verbatim from
 the production native projection, which already emits `int64_t`, `int32_t`,
 `uint8_t`, `uint32_t` (for `char`), `float`, `double`, and `bool` for those
 scalars; widened `extern "C"` declarations are pinned byte-level against that
-projection in `tests/interop_scalar_widen_v1.rs`. Fragment shape, guard
+projection in `tests/language/interop_scalar_widen.rs`. Fragment shape, guard
 derivation, digest domains, hygiene rules, budget behavior, diagnostics
 (`SPX-X101`–`SPX-X105`), fixed nonclaims, and the bounded ownership slice are
 unchanged, all pre-existing pinned KATs remain green, and no new diagnostic

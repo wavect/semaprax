@@ -19,9 +19,9 @@ fn programs() -> Vec<Program> {
 requires add(x, 0) >= 0
 ensures add(result, 0) >= 0
 {
-let mut n = add(x, 1);
-while add(n, 0) > 0 { n = add(n, -1); n > 0 }
-add(add(x, 1), 2)
+    let mut n = add(x, 1);
+    while add(n, 0) > 0 { n = add(n, -1); n > 0 }
+    add(add(x, 1), 2)
 }
 "#,
         ),
@@ -84,8 +84,8 @@ fn byte_array_literals_charge_payloads_to_the_shared_expression_budget() {
         matches!(data_expression(&json!({"kind":"array_u8","values":[]})).unwrap().kind, ExprKind::ArrayU8(values) if values.is_empty())
     );
     let nested = json!({"kind":"let","name":"first",
-        "value":{"kind":"array_u8","values":vec![0u8; 2047]},
-        "body":{"kind":"array_u8","values":vec![1u8; 2047]}});
+            "value":{"kind":"array_u8","values":vec![0u8; 2047]},
+            "body":{"kind":"array_u8","values":vec![1u8; 2047]}});
     for request in [
         json!({"kind":"array_u8","values":vec![0u8; MAX_EXPRESSION_NODES]}),
         nested,
@@ -129,7 +129,7 @@ fn widened_copy_literals_preserve_scalar_bits_and_signed_node_shape() {
     assert_eq!(literal_nodes(&negative_zero), 2);
     assert!(
         matches!(negative_zero.kind, ExprKind::Unary { op: UnaryOp::Neg, value }
-        if matches!(value.kind, ExprKind::Float32(0)))
+            if matches!(value.kind, ExprKind::Float32(0)))
     );
     for invalid in [
         json!({"kind":"char","scalar":"0000d800"}),
@@ -185,13 +185,13 @@ fn rename_keeps_import_alias_and_identity_and_body_uses_stable_id_calls() {
     assert!(source.contains("@id(\"image.add\")\nfn sum("));
     assert!(source.contains("sum(sum(x, 1), 2)"));
     apply(&mut programs, &json!({
-        "kind":"replace_function_body","target":"image.local",
-        "body":{"kind":"if",
-            "condition":{"kind":"binary","op":">=","left":{"kind":"place","name":"x"},"right":{"kind":"i64","value":0}},
-            "then":{"kind":"call","target":"image.add","arguments":[{"kind":"place","name":"x"},{"kind":"i64","value":1}]},
-            "else":{"kind":"unary","op":"-","value":{"kind":"place","name":"x"}}
-        }
-    })).unwrap();
+            "kind":"replace_function_body","target":"image.local",
+            "body":{"kind":"if",
+                "condition":{"kind":"binary","op":">=","left":{"kind":"place","name":"x"},"right":{"kind":"i64","value":0}},
+                "then":{"kind":"call","target":"image.add","arguments":[{"kind":"place","name":"x"},{"kind":"i64","value":1}]},
+                "else":{"kind":"unary","op":"-","value":{"kind":"place","name":"x"}}
+            }
+        })).unwrap();
     let source = format::canonical(&programs[0]);
     assert!(source.contains("if x >= 0 { sum(x, 1) } else { -x }"));
     assert_eq!(format::canonical(&parse(&source)), source);
@@ -213,35 +213,35 @@ fn unsupported_or_effectful_migrations_and_unbound_body_nodes_fail_closed() {
     // without relying on the default test-thread stack size, which can be
     // as small as 2 MiB on some runners.
     std::thread::Builder::new()
-        .stack_size(8 * 1024 * 1024)
-        .spawn(|| {
-            let invalid = [
-        json!({"kind":"change_function_signature","target":"image.add","parameters":[{"from":"missing"}]}),
-        json!({"kind":"change_function_signature","target":"image.add","append_parameters":[{"name":"offset","type":"i64","argument":{"kind":"call","target":"image.add","arguments":[]}}]}),
-        json!({"kind":"change_function_signature","target":"image.add","append_parameters":[{"name":"a","type":"i64","argument":{"kind":"i64","value":0}}]}),
-        json!({"kind":"replace_function_body","target":"image.add","body":{"kind":"place","name":"missing"}}),
-        json!({"kind":"replace_function_body","target":"image.add","body":{"kind":"call","target":"not.imported","arguments":[]}}),
-        json!({"kind":"replace_function_body","target":"image.add","body":{"kind":"i64","value":0,"source":"ambient()"}}),
-        json!({"kind":"rename_declaration","target":"image.add","name":"local"}),
-        json!({"kind":"rename_declaration","target":"image.consumer.main","name":"entry"}),
-        json!({"kind":"rename_declaration","target":"image.add","name":"sum() { 1 }"}),
-    ];
-    for intention in invalid {
-        code(apply(&mut programs(), &intention), "SPX-G225");
-    }
-    let mut nested = json!({"kind":"i64","value":0});
-    for _ in 0..=MAX_EXPRESSION_DEPTH {
-        nested = json!({"kind":"unary","op":"-","value":nested});
-    }
-    code(
-        apply(
-            &mut programs(),
-            &json!({"kind":"replace_function_body","target":"image.add","body":nested}),
-        ),
-        "SPX-G226",
-    );
-        })
-        .unwrap()
-        .join()
-        .unwrap();
+            .stack_size(8 * 1024 * 1024)
+            .spawn(|| {
+                let invalid = [
+            json!({"kind":"change_function_signature","target":"image.add","parameters":[{"from":"missing"}]}),
+            json!({"kind":"change_function_signature","target":"image.add","append_parameters":[{"name":"offset","type":"i64","argument":{"kind":"call","target":"image.add","arguments":[]}}]}),
+            json!({"kind":"change_function_signature","target":"image.add","append_parameters":[{"name":"a","type":"i64","argument":{"kind":"i64","value":0}}]}),
+            json!({"kind":"replace_function_body","target":"image.add","body":{"kind":"place","name":"missing"}}),
+            json!({"kind":"replace_function_body","target":"image.add","body":{"kind":"call","target":"not.imported","arguments":[]}}),
+            json!({"kind":"replace_function_body","target":"image.add","body":{"kind":"i64","value":0,"source":"ambient()"}}),
+            json!({"kind":"rename_declaration","target":"image.add","name":"local"}),
+            json!({"kind":"rename_declaration","target":"image.consumer.main","name":"entry"}),
+            json!({"kind":"rename_declaration","target":"image.add","name":"sum() { 1 }"}),
+        ];
+        for intention in invalid {
+            code(apply(&mut programs(), &intention), "SPX-G225");
+        }
+        let mut nested = json!({"kind":"i64","value":0});
+        for _ in 0..=MAX_EXPRESSION_DEPTH {
+            nested = json!({"kind":"unary","op":"-","value":nested});
+        }
+        code(
+            apply(
+                &mut programs(),
+                &json!({"kind":"replace_function_body","target":"image.add","body":nested}),
+            ),
+            "SPX-G226",
+        );
+            })
+            .unwrap()
+            .join()
+            .unwrap();
 }

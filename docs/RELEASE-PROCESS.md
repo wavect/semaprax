@@ -63,8 +63,8 @@ filesystem substitution. Failures leave build/staging residue for inspection;
 the scripts do not delete or retry over it. A successful archive still needs
 the exact-head release gate and real unpacked-binary execution described above.
 
-`tests/release_packaging_unix_v1.rs` and
-`tests/release_packaging_windows_v1.rs` author packaging-mechanics regressions
+`tests/offline_package/release_packaging_unix.rs` and
+`tests/offline_package/release_packaging_windows.rs` author packaging-mechanics regressions
 using deliberately fake toolchain executables. They distinguish fresh build
 output from stale sentinels, exercise paths containing spaces and rejection
 before build/staging effects, and run the actual archive/extraction scripts
@@ -75,8 +75,8 @@ the correction; even when run, fake tools do not prove compiler execution,
 daemon behavior, release provenance, or a successful product release.
 
 ```sh
-cargo test --locked -p semaprax --test release_packaging_unix_v1
-cargo test --locked -p semaprax --test release_packaging_windows_v1
+cargo test --locked -p semaprax --test offline_package release_packaging_unix::
+cargo test --locked -p semaprax --test offline_package release_packaging_windows::
 ```
 
 ## Explicit unpacked-product acceptance

@@ -191,19 +191,19 @@ original candidate and canonical source files unchanged.
 `src/project/candidate/movement.rs` owns construction, discovery, and exact
 post-validation. Parent candidate dispatch/invariants, catalogue, schemas, and
 semantic rebase own integration. Five authored tests in
-`tests/project_candidate_movement_v1.rs` cover destination alias removal,
+`tests/project_candidate/movement.rs` cover destination alias removal,
 cross-file callers, body dependencies, source callers, obsolete import pruning,
 hygienic alias collisions, contracts, exact replay without source writes,
 fixed-export/main/path rejection, cycles, unrelated rename/body merges,
 competing locations, and stale handles. None has been run in this change.
 
 Additional authored, unrun nominal cases are in
-`tests/project_candidate_nominal_movement_v1.rs`. They cover destination type
+`tests/project_candidate/nominal_movement.rs`. They cover destination type
 bindings, aggregate syntax, replay, and rejected relocation shapes. Discovery
 advertises checked nominal identity and type-binding migration constraints;
 an advertised destination still requires full candidate admission.
 
-`tests/project_candidate_owned_movement_v1.rs` adds authored, unrun String
+`tests/project_candidate/owned_movement.rs` adds authored, unrun String
 call/import migration, scalar-signature internal byte work, unused owning Bytes
 relocation, exact replay and unchanged-source assertions. Existing owning import
 and cycle failures remain negative cases. These are not physical execution or

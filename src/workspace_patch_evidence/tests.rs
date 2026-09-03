@@ -23,14 +23,14 @@ impl Fixture {
         for (index, stem) in ["alpha", "beta"].into_iter().enumerate() {
             let logical = format!("{stem}.spx");
             let source = crate::format::canonical(
-                &crate::parse(
-                    &format!(
-                        "module evidence.{stem}; @id(\"evidence.{stem}.helper\") fn helper()->i64{{{index}}} @id(\"evidence.{stem}.main\") fn main()->i64{{helper()}}"
-                    ),
-                    Path::new(&logical),
-                )
-                .unwrap(),
-            );
+                    &crate::parse(
+                        &format!(
+                            "module evidence.{stem}; @id(\"evidence.{stem}.helper\") fn helper()->i64{{{index}}} @id(\"evidence.{stem}.main\") fn main()->i64{{helper()}}"
+                        ),
+                        Path::new(&logical),
+                    )
+                    .unwrap(),
+                );
             std::fs::write(root.join(&logical), &source).unwrap();
             let revision =
                 crate::graph::revision(&crate::parse(&source, Path::new(&logical)).unwrap());
@@ -40,21 +40,21 @@ impl Fixture {
         }
         let path_set = root.join("paths.json");
         std::fs::write(
-            &path_set,
-            "{\"schema\":\"semaprax.workspace-path-set.v1\",\"files\":[{\"path\":\"alpha.spx\"},{\"path\":\"beta.spx\"}]}\n",
-        )
-        .unwrap();
+                &path_set,
+                "{\"schema\":\"semaprax.workspace-path-set.v1\",\"files\":[{\"path\":\"alpha.spx\"},{\"path\":\"beta.spx\"}]}\n",
+            )
+            .unwrap();
         let base = workspace::initialize(&root, &path_set).unwrap();
         let patch = root.join("change.wspatch");
         std::fs::write(
-            &patch,
-            format!(
-                "{{\"schema\":\"semaprax.semantic-workspace-patch.v1\",\"base_workspace_revision\":\"{base}\",\"files\":[{{\"path\":\"alpha.spx\",\"patch\":{}}},{{\"path\":\"beta.spx\",\"patch\":{}}}]}}\n",
-                serde_json::to_string(&child_patches[0]).unwrap(),
-                serde_json::to_string(&child_patches[1]).unwrap(),
-            ),
-        )
-        .unwrap();
+                &patch,
+                format!(
+                    "{{\"schema\":\"semaprax.semantic-workspace-patch.v1\",\"base_workspace_revision\":\"{base}\",\"files\":[{{\"path\":\"alpha.spx\",\"patch\":{}}},{{\"path\":\"beta.spx\",\"patch\":{}}}]}}\n",
+                    serde_json::to_string(&child_patches[0]).unwrap(),
+                    serde_json::to_string(&child_patches[1]).unwrap(),
+                ),
+            )
+            .unwrap();
         let evidence = root.join("evidence.json");
         let managed_source = root
             .join(".semaprax-workspace/generations")

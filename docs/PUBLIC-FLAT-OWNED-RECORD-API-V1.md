@@ -228,7 +228,7 @@ the existing owned-data path; only after that succeeds are identity-bound scalar
 members constructed in descriptor order. No offset, padding, map order, native
 layout or target carrier becomes public.
 
-`tests/project_flat_owned_record_interpreter_v1.rs` covers byte-first and
+`tests/project/flat_owned_record_interpreter.rs` covers byte-first and
 byte-last declarations, empty and 65,536-byte results, `i64`/`usize` extrema,
 both Boolean values, exact field identities/order, failure before and after byte
 creation, one successful settlement event, malformed and unselected selectors,
@@ -274,7 +274,7 @@ equivalence gates. Hosted promotion requires one exact blocking
 Linux/macOS/Windows head.
 
 The replay-alignment regressions are authored in
-`tests/project_flat_owned_record_api_v1.rs` and the lower package's
+`tests/project/flat_owned_record_api.rs` and the lower package's
 `flat_descriptor::tests`. A shared hand-authored source/canonical-byte oracle
 connects actual compiler derivation/replay with lower native replay without
 adding dependencies or exposing a new public replay API. These tests remain
@@ -293,7 +293,7 @@ Synthetic revision facts are intentionally equal for this lower-level oracle,
 not evidence of unchanged real Project revisions or source provenance. The
 tests are authored and unrun, and change no descriptor, runtime or golden bytes.
 
-`tests/project_v9_recipe_identity_v1.rs` adds actual multi-module Project
+`tests/project/v9_recipe_identity.rs` adds actual multi-module Project
 admission and npm replay for colliding display names, retained control-bearing
 identities, and display-only renames. Its native assertion reaches a deliberately
 rejecting injected publisher only: it proves semantic replay reaches the package
@@ -306,7 +306,7 @@ The follow-on published-product fixtures share one four-source subject in
 identities, including a control-bearing record identity and one empty field
 identity. The byte field is first in one declaration and last in the other;
 division by zero therefore exercises failure after and before byte creation.
-`tests/project_v9_recipe_consumer_v1.rs` publishes and reopens all six npm
+`tests/project/v9_recipe_consumer.rs` publishes and reopens all six npm
 artifacts against the exact inline carrier before consuming the real bindings
 and Wasm under Node. It also checks the complete TypeScript declaration text
 against a source-derived oracle; this is not TypeScript compiler execution.
@@ -326,7 +326,7 @@ The native gate is explicitly selected after tool provisioning; it remains
 ignored in an ordinary test run. These commands are documented, not executed:
 
 ```sh
-cargo test --locked -p semaprax --test project_v9_recipe_consumer_v1
+cargo test --locked -p semaprax --test project v9_recipe_consumer::
 cargo test --locked -p semaprax-toolchain --test project_flat_record_sdk_v1 -- --ignored
 ```
 
@@ -343,7 +343,7 @@ and package manifest oracles. This opt-in gate passes locally on Linux/Rust
 1.88 and macOS/Rust 1.98, as recorded in the owning mixed-borrow evidence;
 it does not prove allocation counts or persistent-context reuse.
 
-The companion `tests/project_owned_tuple_npm_v1.rs` reopens the six real npm
+The companion `tests/project/owned_tuple_npm.rs` reopens the six real npm
 artifacts against their verified inline carrier and exercises the same mixed
 tuple boundaries under Node. It checks the frozen null-prototype record,
 stable-ID field names, exact `BigInt` lengths, and independent byte copies.
@@ -352,7 +352,7 @@ whole-tuple JavaScript rejection; they do not measure allocation or internal
 Wasm semantic entry. This companion passes in the separate scoped local
 descriptor/lifecycle batch on Linux and macOS.
 
-The separate native `native_owned_tuple_admission_v1` fixture generates the
+The separate `native::owned_tuple_admission` fixture generates the
 real v9 provider from the retained Project subject. All four output carrier
 slots start at the ABI-required sentinel. Rejected tuples must preserve the
 carrier and physical context, with no post-validation invocation increment,

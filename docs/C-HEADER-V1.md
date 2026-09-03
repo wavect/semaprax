@@ -100,8 +100,8 @@ consistency.
 
 ## Evidence
 
-Executable evidence lives in `tests/c_header_emission_v1.rs`,
-`tests/interop_scalar_widen_v1.rs`, plus module
+Executable evidence lives in `tests/offline_package/c_header_emission.rs`,
+`tests/language/interop_scalar_widen.rs`, plus module
 tests in `src/c_header.rs`: pinned golden envelope and path-independent
 header digests over `examples/meaning.spx`, byte-identical double runs,
 verbatim cross-consistency against the native projection, every exclusion
@@ -120,7 +120,7 @@ rendering changes because declaration lines are extracted verbatim from the
 production native projection, which already emits `int64_t`, `int32_t`,
 `uint8_t`, `uint32_t` (for `char`), `float`, `double`, and `bool` for those
 scalars; widened prototypes are pinned byte-level against that projection in
-`tests/interop_scalar_widen_v1.rs`. Envelope shape, guard derivation,
+`tests/language/interop_scalar_widen.rs`. Envelope shape, guard derivation,
 digest domains, hygiene rules, budget behavior, diagnostics
 (`SPX-D101`–`SPX-D105`), and nonclaims are unchanged, all pre-existing pinned
 KATs remain green, and no new diagnostic codes were needed. Still nonclaimed:

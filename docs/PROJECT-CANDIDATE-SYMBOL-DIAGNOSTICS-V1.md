@@ -111,7 +111,7 @@ capacity, and `SPX-G243` mismatched attempt association or stale/missing report
 continuation bindings. Existing stale image/candidate and compiler diagnostics
 remain unchanged.
 
-`tests/image_symbol_diagnostics_v1.rs` authors exact predecessor/target matching,
+`tests/image_protocol/symbol_diagnostics_v1.rs` authors exact predecessor/target matching,
 actual supported and unsupported repair facts, empty-scope nonclaims, absent
 symbols and missing host grant, continuation invalidation, refresh clearing,
 the fifth-match capacity failure, and single-attempt replay with changed bytes,

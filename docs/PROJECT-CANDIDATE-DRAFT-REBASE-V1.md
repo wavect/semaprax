@@ -142,8 +142,8 @@ The v5 wrapper schema is `semaprax.image-draft-rebase.v1`, with
 candidate separately from the report's destination Project revision. Nested
 history facts describe the last valid candidate, not the incomplete draft.
 
-`tests/project_candidate_draft_rebase_v1.rs` and
-`tests/image_draft_rebase_transport_v5.rs` author mixed pending kinds, partial
+`tests/project_candidate/draft_rebase.rs` and
+`tests/image_transport_v5/draft_rebase.rs` author mixed pending kinds, partial
 history, context/identity remapping, compatible and conflicting source changes,
 historical recovery, stale rejection and authority preservation. Tests, compiler
 checks and long local gates were not run. No completion-matrix row is promoted.

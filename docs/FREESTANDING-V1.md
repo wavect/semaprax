@@ -125,7 +125,7 @@ this bounded slice is claimed.
 
 ## Evidence
 
-Executable evidence lives in `tests/freestanding_object_v1.rs` plus module
+Executable evidence lives in `tests/projections/freestanding_object.rs` plus module
 tests in `src/freestanding_object.rs`: pinned golden envelope and
 path-independent translation-unit digests over `examples/meaning.spx`,
 determinism double-runs in-process and through the CLI, per-digest-field

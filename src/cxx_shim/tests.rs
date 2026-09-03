@@ -23,10 +23,10 @@ module test.probe;
 
 @id("probe.double")
 fn double(value: i64) -> i64
-requires value >= 0
-ensures result == value + value
+    requires value >= 0
+    ensures result == value + value
 {
-value + value
+    value + value
 }
 
 @id("probe.flag")
@@ -34,9 +34,9 @@ fn flag(enabled: bool) -> bool { enabled }
 
 @id("app.main")
 fn main() -> i64
-ensures result == 42
+    ensures result == 42
 {
-if flag(double(21) == 42) { 42 } else { 0 }
+    if flag(double(21) == 42) { 42 } else { 0 }
 }
 "#;
 
@@ -101,8 +101,8 @@ fn golden_fragment_has_expected_shape_and_is_deterministic() {
     assert!(first.contains(" * status-contract: returns spx_status_token;"));
     assert!(first.contains(" * ownership: caller-free / by-value scalars\n"));
     assert!(first.contains(
-        "static __attribute__((unused)) spx_status_token spx_decl_70726f62652e646f75626c65(struct spx_context *spx_ctx, int64_t, int64_t *spx_result_out);"
-    ));
+            "static __attribute__((unused)) spx_status_token spx_decl_70726f62652e646f75626c65(struct spx_context *spx_ctx, int64_t, int64_t *spx_result_out);"
+        ));
     assert!(first.ends_with("\n}\n\n#endif\n"));
     cleanup(&path);
 }
@@ -184,15 +184,15 @@ fn narrow(ratio: i64) -> string { "x" }
 
 @id("app.main")
 fn main() -> i64
-ensures result == 7
+    ensures result == 7
 {
-7
+    7
 }
 
 @id("buffer.type")
 resource Buffer {
-@id("buffer.type.drop")
-drop trivial;
+    @id("buffer.type.drop")
+    drop trivial;
 }
 "#;
     let path = write_temp(source);
@@ -230,9 +230,9 @@ fn helper(value: i64) -> i64 { value + 1 }
 
 @id("app.main")
 fn main() -> i64
-ensures result == 1
+    ensures result == 1
 {
-helper(0)
+    helper(0)
 }
 "#;
     let path = write_temp(source);

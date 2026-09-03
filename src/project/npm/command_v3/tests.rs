@@ -46,13 +46,13 @@ module test.npm.command;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("test.npm.command.run")
 fn run() -> bool uses { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write } {
-let input = stdin_read();
-let view = bytes_as_slice(input);
-if args_len() == 0usize {
-    stdout_write(view) == byte_len(view)
-} else {
-    stderr_write(view) == byte_len(view) && false
-}
+    let input = stdin_read();
+    let view = bytes_as_slice(input);
+    if args_len() == 0usize {
+        stdout_write(view) == byte_len(view)
+    } else {
+        stderr_write(view) == byte_len(view) && false
+    }
 }
 @id("main")
 fn main() -> i64 { 0 }
@@ -60,9 +60,9 @@ fn main() -> i64 { 0 }
     let ast = crate::parse(source, Path::new("npm-command-v3-runtime.spx")).unwrap();
     let program = crate::hir::resolve(&ast).unwrap();
     let manifest = super::ProjectManifest::parse(
-        "schema = \"semaprax.project.v6\"\nname = \"spxgrep\"\nversion = \"0.1.0\"\nprofile = \"language-command-io.v1\"\nentry = \"test.npm.command\"\nsources = [\"a.spx\", \"b.spx\"]\nweb_exports = [\"test.npm.command.run\"]\ncommand = \"test.npm.command.run\"\ninput = \"argv-utf8+stdin-bytes.v1\"\ncapabilities = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\ntests = [\"test.npm.tests\"]\n",
-    )
-    .unwrap();
+            "schema = \"semaprax.project.v6\"\nname = \"spxgrep\"\nversion = \"0.1.0\"\nprofile = \"language-command-io.v1\"\nentry = \"test.npm.command\"\nsources = [\"a.spx\", \"b.spx\"]\nweb_exports = [\"test.npm.command.run\"]\ncommand = \"test.npm.command.run\"\ninput = \"argv-utf8+stdin-bytes.v1\"\ncapabilities = [\"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]\ntests = [\"test.npm.tests\"]\n",
+        )
+        .unwrap();
     let fact = format!("sha256:{}", "0".repeat(64));
     let carrier = super::prepare(
         &manifest,
@@ -92,12 +92,12 @@ fn main() -> i64 { 0 }
     }
     let runner = directory.join("run.mjs");
     std::fs::write(
-        &runner,
-        r#"import fs from 'node:fs';import {createInvocation,instantiate} from './semaprax.js';
+            &runner,
+            r#"import fs from 'node:fs';import {createInvocation,instantiate} from './semaprax.js';
 const wasm=new Uint8Array(fs.readFileSync(new URL('./app.wasm',import.meta.url))),text=new TextEncoder().encode('npm-owned');const invocation=createInvocation([],text);const yes=await instantiate(wasm,invocation);if(!yes.result||new TextDecoder().decode(yes.stdout)!=='npm-owned'||yes.stderr.length!==0)throw Error('true envelope');const no=await instantiate(wasm,createInvocation(['miss'],text));if(no.result||no.stdout.length!==0||new TextDecoder().decode(no.stderr)!=='npm-owned')throw Error('false envelope');let rejected=false;try{await instantiate(wasm,invocation)}catch{rejected=true}if(!rejected)throw Error('provider reuse');console.log('command-v3-runtime-ok');
 "#,
-    )
-    .unwrap();
+        )
+        .unwrap();
     let output = Command::new("node").arg(&runner).output().unwrap();
     assert!(
         output.status.success(),
@@ -146,14 +146,14 @@ module test.npm.status_domain;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("test.npm.status_domain.run")
 fn run() -> bool uses { process.args.read } {
-let count = args_len();
-if count == 0usize {
-    let zero = count - count;
-    count / zero == 0usize
-} else {
-    let missing = arg_utf8(count);
-    byte_len(str_as_bytes(missing)) == 0usize
-}
+    let count = args_len();
+    if count == 0usize {
+        let zero = count - count;
+        count / zero == 0usize
+    } else {
+        let missing = arg_utf8(count);
+        byte_len(str_as_bytes(missing)) == 0usize
+    }
 }
 @id("main") fn main() -> i64 { 0 }
 "#;
@@ -180,15 +180,15 @@ if count == 0usize {
     }
     let runner = directory.join("run.mjs");
     std::fs::write(
-        &runner,
-        r#"import fs from 'node:fs';import {createInvocation,instantiate} from './semaprax.js';
+            &runner,
+            r#"import fs from 'node:fs';import {createInvocation,instantiate} from './semaprax.js';
 const wasm=new Uint8Array(fs.readFileSync(new URL('./app.wasm',import.meta.url)));
 let generic;try{await instantiate(wasm,createInvocation([],new Uint8Array()))}catch(error){generic=error}if(!generic||generic.domain!==undefined||generic.message==='command input failure')throw Error('generic attribution');
 let input;try{await instantiate(wasm,createInvocation(['x'],new Uint8Array()))}catch(error){input=error}if(!input||input.domain!=='semaprax.command-input.v1'||input.code!==1)throw Error('input attribution');
 console.log('command-v3-status-domain-ok');
 "#,
-    )
-    .unwrap();
+        )
+        .unwrap();
     let output = Command::new("node").arg(&runner).output().unwrap();
     assert!(
         output.status.success(),

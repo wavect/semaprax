@@ -57,7 +57,7 @@ effect/precondition admission, as specified in
 provide dynamic dispatch, a runtime witness table, cross-module implementation
 bindings, behavioral contract proof, target execution or publication authority.
 
-`tests/image_protocol_conformance_v1.rs` authors exact replay, mutation/stale
+`tests/image_protocol/protocol_conformance_v1.rs` authors exact replay, mutation/stale
 rejection, source binding and empty inventory cases. The v4 transport regression
 authors discovery, base/candidate chunk selection and legacy-profile exclusion.
 No tests, compiler checks, interpreter runs or target executions were performed

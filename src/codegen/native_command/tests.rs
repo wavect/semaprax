@@ -14,25 +14,25 @@ permit { process.stdout.write }
 
 @id("test.command")
 fn command(input: borrow Slice<u8>, needle: borrow Slice<u8>) -> bool
-uses { process.stdout.write }
+    uses { process.stdout.write }
 {
-let found = if byte_len(needle) == 0usize {
-    true
-} else {
-    match byte_get(needle, 0usize) {
-        Option::Some { value: needle_byte } => match byte_get(input, 0usize) {
-            Option::Some { value: input_byte } => input_byte == needle_byte,
+    let found = if byte_len(needle) == 0usize {
+        true
+    } else {
+        match byte_get(needle, 0usize) {
+            Option::Some { value: needle_byte } => match byte_get(input, 0usize) {
+                Option::Some { value: input_byte } => input_byte == needle_byte,
+                Option::None {} => false,
+            },
             Option::None {} => false,
-        },
-        Option::None {} => false,
+        }
+    };
+    if found {
+        let written = stdout_write(input);
+        written == byte_len(input)
+    } else {
+        false
     }
-};
-if found {
-    let written = stdout_write(input);
-    written == byte_len(input)
-} else {
-    false
-}
 }
 
 @id("main")

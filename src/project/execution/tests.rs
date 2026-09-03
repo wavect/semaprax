@@ -95,36 +95,36 @@ fn complete_envelope_is_a_frozen_kat_and_independently_verifies() {
 fn verifier_rejects_noncanonical_confused_and_mutated_envelopes() {
     let envelope = canonical_return(65_536);
     let mutations = [
-        format!(" {envelope}"),
-        format!("{envelope}\n"),
-        envelope.replacen(
-            "{\"schema\":\"semaprax.project-execution.v1\",\"project_schema\":\"semaprax.project.v1\"",
-            "{\"project_schema\":\"semaprax.project.v1\",\"schema\":\"semaprax.project-execution.v1\"",
-            1,
-        ),
-        envelope.replacen(
-            "{\"schema\":",
-            "{\"unknown\":false,\"schema\":",
-            1,
-        ),
-        envelope.replacen(
-            "{\"schema\":",
-            "{\"schema\":\"semaprax.project-execution.v1\",\"schema\":",
-            1,
-        ),
-        envelope.replacen("\"role\":\"entry\"", "\"role\":\"test\"", 1),
-        envelope.replacen(
-            "semaprax.project-execution.v1",
-            "semaprax.project.v1",
-            1,
-        ),
-        envelope.replacen("\"steps_used\":7", "\"steps_used\":101", 1),
-        envelope.replacen(
-            "\"no_target_execution\"",
-            "\"target_execution\"",
-            1,
-        ),
-    ];
+            format!(" {envelope}"),
+            format!("{envelope}\n"),
+            envelope.replacen(
+                "{\"schema\":\"semaprax.project-execution.v1\",\"project_schema\":\"semaprax.project.v1\"",
+                "{\"project_schema\":\"semaprax.project.v1\",\"schema\":\"semaprax.project-execution.v1\"",
+                1,
+            ),
+            envelope.replacen(
+                "{\"schema\":",
+                "{\"unknown\":false,\"schema\":",
+                1,
+            ),
+            envelope.replacen(
+                "{\"schema\":",
+                "{\"schema\":\"semaprax.project-execution.v1\",\"schema\":",
+                1,
+            ),
+            envelope.replacen("\"role\":\"entry\"", "\"role\":\"test\"", 1),
+            envelope.replacen(
+                "semaprax.project-execution.v1",
+                "semaprax.project.v1",
+                1,
+            ),
+            envelope.replacen("\"steps_used\":7", "\"steps_used\":101", 1),
+            envelope.replacen(
+                "\"no_target_execution\"",
+                "\"target_execution\"",
+                1,
+            ),
+        ];
     for mutation in mutations {
         assert!(
             verify_execution_envelope(&mutation).is_err(),

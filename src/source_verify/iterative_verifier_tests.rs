@@ -246,53 +246,53 @@ fn scalar_frame_machine_matches_recursive_oracle() {
     compare_scalar_body("module t; fn main(flag: bool) -> bool { flag && missing }");
     compare_scalar_body("module t; fn main(flag: bool) -> i64 { if flag { 1 } else { true } }");
     compare_scalar_body(
-        "module t; fn main(flag: bool) -> i64 { if missing_condition { missing_then } else { missing_else } }",
-    );
+            "module t; fn main(flag: bool) -> i64 { if missing_condition { missing_then } else { missing_else } }",
+        );
     compare_scalar_body(
-        "module t; fn main(flag: bool) -> i64 { let value = 1 + true; let value = missing; if flag { value } else { missing_tail } }",
-    );
+            "module t; fn main(flag: bool) -> i64 { let value = 1 + true; let value = missing; if flag { value } else { missing_tail } }",
+        );
     compare_scalar_body(
         "module t; fn zero() -> i64 { 0 } fn main() -> i64 { zero(missing_a, missing_b) }",
     );
     compare_scalar_body(
-        "module t; fn one(value: i64) -> i64 { value } fn main() -> i64 { one(true) + one(missing) }",
-    );
+            "module t; fn one(value: i64) -> i64 { value } fn main() -> i64 { one(true) + one(missing) }",
+        );
     compare_scalar_body(
-        "module t; fn identity<T>(value: T) -> T { value } fn main() -> i64 { identity<i64>(1) + identity<bool>(true) }",
-    );
+            "module t; fn identity<T>(value: T) -> T { value } fn main() -> i64 { identity<i64>(1) + identity<bool>(true) }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.host\") interface Host permits {  } { @id(\"t.host.ping\") import rust fn ping(value: i64) -> unit effects {  } failure infallible; } fn main() -> i64 { let acknowledged = ping(1); let copied = acknowledged; 1 }",
-    );
+            "module t; @id(\"t.host\") interface Host permits {  } { @id(\"t.host.ping\") import rust fn ping(value: i64) -> unit effects {  } failure infallible; } fn main() -> i64 { let acknowledged = ping(1); let copied = acknowledged; 1 }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.buffer\") resource Buffer { @id(\"t.buffer.drop\") drop trivial; } fn inspect(value: borrow Buffer) -> i64 { 1 } fn consume(value: own Buffer) -> i64 { 1 } fn main(buffer: own Buffer) -> i64 { let first = consume(buffer) + missing; inspect(buffer) }",
-    );
+            "module t; @id(\"t.buffer\") resource Buffer { @id(\"t.buffer.drop\") drop trivial; } fn inspect(value: borrow Buffer) -> i64 { 1 } fn consume(value: own Buffer) -> i64 { 1 } fn main(buffer: own Buffer) -> i64 { let first = consume(buffer) + missing; inspect(buffer) }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.buffer\") resource Buffer { @id(\"t.buffer.drop\") drop trivial; } fn inspect(value: borrow Buffer) -> i64 { 1 } fn consume(value: own Buffer) -> bool { true } fn main(buffer: own Buffer, left: bool, right: bool) -> i64 { let selected = left && (right && consume(buffer)); inspect(buffer) }",
-    );
+            "module t; @id(\"t.buffer\") resource Buffer { @id(\"t.buffer.drop\") drop trivial; } fn inspect(value: borrow Buffer) -> i64 { 1 } fn consume(value: own Buffer) -> bool { true } fn main(buffer: own Buffer, left: bool, right: bool) -> i64 { let selected = left && (right && consume(buffer)); inspect(buffer) }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.pair\") record Pair { @id(\"t.pair.x\") x: i64, @id(\"t.pair.y\") y: i64, } fn main() -> Pair { Pair { missing: missing_rhs, x: true, x: missing_duplicate } }",
-    );
+            "module t; @id(\"t.pair\") record Pair { @id(\"t.pair.x\") x: i64, @id(\"t.pair.y\") y: i64, } fn main() -> Pair { Pair { missing: missing_rhs, x: true, x: missing_duplicate } }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.pair\") record Pair { @id(\"t.pair.x\") x: i64, @id(\"t.pair.y\") y: i64, } fn main() -> Pair { let pair = Pair { x: 1, y: 2 }; pair with { missing: missing_rhs, x: true, x: missing_duplicate } }",
-    );
+            "module t; @id(\"t.pair\") record Pair { @id(\"t.pair.x\") x: i64, @id(\"t.pair.y\") y: i64, } fn main() -> Pair { let pair = Pair { x: 1, y: 2 }; pair with { missing: missing_rhs, x: true, x: missing_duplicate } }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.choice\") variant Choice { @id(\"t.choice.none\") None, @id(\"t.choice.value\") Value { @id(\"t.choice.value.v\") value: i64, }, } fn main(choice: Choice) -> i64 { match choice { Choice::Value { value: item } => item, Choice::None {} => 0, } }",
-    );
+            "module t; @id(\"t.choice\") variant Choice { @id(\"t.choice.none\") None, @id(\"t.choice.value\") Value { @id(\"t.choice.value.v\") value: i64, }, } fn main(choice: Choice) -> i64 { match choice { Choice::Value { value: item } => item, Choice::None {} => 0, } }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.choice\") variant Choice { @id(\"t.choice.none\") None, @id(\"t.choice.value\") Value { @id(\"t.choice.value.v\") value: i64, }, } fn main(choice: Choice) -> i64 { match choice { Choice::Value { missing: binding } => missing_arm, _ => true, } }",
-    );
+            "module t; @id(\"t.choice\") variant Choice { @id(\"t.choice.none\") None, @id(\"t.choice.value\") Value { @id(\"t.choice.value.v\") value: i64, }, } fn main(choice: Choice) -> i64 { match choice { Choice::Value { missing: binding } => missing_arm, _ => true, } }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.choice\") variant Choice { @id(\"t.choice.value\") Value { @id(\"t.choice.value.v\") value: i64, }, } fn main() -> Choice { Choice::Value { missing: missing_rhs, value: true, value: missing_duplicate } }",
-    );
+            "module t; @id(\"t.choice\") variant Choice { @id(\"t.choice.value\") Value { @id(\"t.choice.value.v\") value: i64, }, } fn main() -> Choice { Choice::Value { missing: missing_rhs, value: true, value: missing_duplicate } }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.pair\") record Pair { @id(\"t.pair.x\") x: i64, } fn main(pair: Pair) -> i64 { match pair { Pair { x } => x, _ => missing_unreachable, } }",
-    );
+            "module t; @id(\"t.pair\") record Pair { @id(\"t.pair.x\") x: i64, } fn main(pair: Pair) -> i64 { match pair { Pair { x } => x, _ => missing_unreachable, } }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.inner\") record Inner { @id(\"t.inner.value\") value: i64, @id(\"t.inner.flag\") flag: bool, } @id(\"t.outer\") record Outer { @id(\"t.outer.inner\") inner: Inner, @id(\"t.outer.other\") other: i64, } fn main(input: Outer) -> i64 { match input { Outer { inner: Inner { value: item, missing: skipped, value: duplicate }, other: item } => missing_arm, } }",
-    );
+            "module t; @id(\"t.inner\") record Inner { @id(\"t.inner.value\") value: i64, @id(\"t.inner.flag\") flag: bool, } @id(\"t.outer\") record Outer { @id(\"t.outer.inner\") inner: Inner, @id(\"t.outer.other\") other: i64, } fn main(input: Outer) -> i64 { match input { Outer { inner: Inner { value: item, missing: skipped, value: duplicate }, other: item } => missing_arm, } }",
+        );
     compare_scalar_body(
-        "module t; @id(\"t.pair\") record Pair { @id(\"t.pair.x\") x: i64, } fn main(pair: Pair) -> i64 { pair.x }",
-    );
+            "module t; @id(\"t.pair\") record Pair { @id(\"t.pair.x\") x: i64, } fn main(pair: Pair) -> i64 { pair.x }",
+        );
     compare_scalar_body("module t; fn main() -> i64 { missing.field }");
     compare_scalar_body("module t; fn main() -> i64 { missing? }");
 }
@@ -300,10 +300,10 @@ fn scalar_frame_machine_matches_recursive_oracle() {
 #[test]
 fn byte_capacity_reclaims_shallow_wide_sibling_scopes_at_last_continuation() {
     let mut program = crate::parse(
-        "module capacity.scope_peak; @id(\"capacity.scope_peak.wide\") fn wide() -> i64 { 0 } @id(\"capacity.scope_peak.main\") fn main() -> i64 { 0 }",
-        Path::new("capacity-scope-peak.spx"),
-    )
-    .unwrap();
+            "module capacity.scope_peak; @id(\"capacity.scope_peak.wide\") fn wide() -> i64 { 0 } @id(\"capacity.scope_peak.main\") fn main() -> i64 { 0 }",
+            Path::new("capacity-scope-peak.spx"),
+        )
+        .unwrap();
     let span = Span::default();
     let wide = program
         .functions
@@ -451,10 +451,10 @@ fn transcript_match_arms_share_one_many_root_snapshot() {
 #[test]
 fn byte_capacity_serializes_wide_match_arm_scratch_with_a_deep_type() {
     let mut program = crate::parse(
-        "module capacity.match_scratch; @id(\"capacity.match_scratch.wide\") fn wide(value: i64) -> i64 { value } @id(\"capacity.match_scratch.main\") fn main() -> i64 { 0 }",
-        Path::new("capacity-match-scratch.spx"),
-    )
-    .unwrap();
+            "module capacity.match_scratch; @id(\"capacity.match_scratch.wide\") fn wide(value: i64) -> i64 { value } @id(\"capacity.match_scratch.main\") fn main() -> i64 { 0 }",
+            Path::new("capacity-match-scratch.spx"),
+        )
+        .unwrap();
     let span = Span::default();
     let mut deep_type = Type::I64;
     for index in 0..512 {
@@ -514,10 +514,10 @@ fn byte_capacity_serializes_wide_match_arm_scratch_with_a_deep_type() {
 #[test]
 fn transcript_many_let_var_queries_borrow_the_growing_root_map() {
     let mut program = crate::parse(
-        "module capacity.transcript_borrow; @id(\"capacity.transcript_borrow.wide\") fn wide() -> i64 { 0 } @id(\"capacity.transcript_borrow.main\") fn main() -> i64 { 0 }",
-        Path::new("capacity-transcript-borrow.spx"),
-    )
-    .unwrap();
+            "module capacity.transcript_borrow; @id(\"capacity.transcript_borrow.wide\") fn wide() -> i64 { 0 } @id(\"capacity.transcript_borrow.main\") fn main() -> i64 { 0 }",
+            Path::new("capacity-transcript-borrow.spx"),
+        )
+        .unwrap();
     let span = Span::default();
     let wide = program
         .functions
@@ -564,10 +564,10 @@ fn transcript_many_let_var_queries_borrow_the_growing_root_map() {
 #[test]
 fn source_type_inference_mutates_one_owned_scope_for_many_inferred_lets() {
     let mut program = crate::parse(
-        "module capacity.type_scope; @id(\"capacity.type_scope.wide\") fn wide() -> i64 { 0 } @id(\"capacity.type_scope.main\") fn main() -> i64 { 0 }",
-        Path::new("capacity-type-scope.spx"),
-    )
-    .unwrap();
+            "module capacity.type_scope; @id(\"capacity.type_scope.wide\") fn wide() -> i64 { 0 } @id(\"capacity.type_scope.main\") fn main() -> i64 { 0 }",
+            Path::new("capacity-type-scope.spx"),
+        )
+        .unwrap();
     let span = Span::default();
     let wide = program
         .functions

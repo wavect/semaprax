@@ -151,8 +151,8 @@ interpreter, backend, generated client, or quality gate was executed for this
 change. The graph-operational programme and completion matrix remain partial.
 
 The string extension has separate
-[candidate regressions](../tests/project_candidate_string_builtin_calls_v1.rs)
-and [protocol regressions](../tests/image_string_builtin_constructors_v5.rs).
+[candidate regressions](../tests/project_candidate/string_builtin_calls.rs)
+and [protocol regressions](../tests/image_v5/string_builtin_constructors.rs).
 String fixtures retained outside the selected entry/test closure establish no
 active Project or Wasm String execution support. Existing target profiles,
 generated-client response limits, and the serialized Rust client size gate are

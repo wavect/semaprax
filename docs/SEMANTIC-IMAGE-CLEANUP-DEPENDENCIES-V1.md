@@ -140,8 +140,8 @@ Existing stale candidate/image and underlying collector diagnostics propagate.
 Transport stale-image, invalid UTF-8 range and output-bound failures retain
 their ordinary diagnostics.
 
-Authored cases in [image evidence](../tests/image_cleanup_dependencies_v1.rs)
-and [transport evidence](../tests/image_cleanup_dependencies_transport_v5.rs)
+Authored cases in [image evidence](../tests/image_protocol/cleanup_dependencies_v1.rs)
+and [transport evidence](../tests/image_transport_v5/cleanup_dependencies.rs)
 cover real plan relationships, unchanged older reports, source bindings,
 candidate review and hostile selectors. These checks remain unrun, so no
 completion-matrix row is promoted. General lifetime/alias analysis, external

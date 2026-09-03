@@ -104,26 +104,26 @@ fn native_borrowed_bytes_calls_use_const_aliases_without_owned_staging() {
     let source = r#"
 module test.native_borrowed_bytes;
 @id("packet") record Packet {
-@id("packet.payload") payload: Bytes,
-@id("packet.marker") marker: i64,
+    @id("packet.payload") payload: Bytes,
+    @id("packet.marker") marker: i64,
 }
 @id("bytes.inspect")
 fn inspect(value: borrow Bytes) -> usize {
-byte_len(bytes_as_slice(value))
+    byte_len(bytes_as_slice(value))
 }
 @id("bytes.consume")
 fn consume(value: own Bytes) -> usize {
-byte_len(bytes_as_slice(value))
+    byte_len(bytes_as_slice(value))
 }
 @id("bytes.projected")
 fn projected(data: borrow Slice<u8>) -> usize {
-let packet = Packet { payload: bytes_copy(data), marker: 7 };
-inspect(packet.payload)
+    let packet = Packet { payload: bytes_copy(data), marker: 7 };
+    inspect(packet.payload)
 }
 @id("bytes.owned")
 fn owned(data: borrow Slice<u8>) -> usize {
-let value = bytes_copy(data);
-consume(value)
+    let value = bytes_copy(data);
+    consume(value)
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;

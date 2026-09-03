@@ -97,7 +97,7 @@ The focused gate is:
 
 ```sh
 cargo test --locked -p semaprax --all-features \
-  --test project_agent_transport_v5 -- --test-threads=1
+  --test project agent_transport_v5:: -- --test-threads=1
 ```
 
 The authored evidence covers the exact method set; v2 method exclusion;

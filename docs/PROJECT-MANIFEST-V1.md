@@ -181,11 +181,11 @@ focused commands are:
 ```sh
 cargo test --locked -p semaprax --all-features --lib project::tests::
 cargo test --locked -p semaprax --all-features --test project_cli_v1 -- --test-threads=1
-cargo test --locked -p semaprax --all-features --test project_developer_loop_v1 -- --test-threads=1
-cargo test --locked -p semaprax --all-features --test project_native_publication_v1 -- --test-threads=1
-cargo test --locked -p semaprax --test project_language_command_native_v1 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test project developer_loop:: -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test project native_publication:: -- --test-threads=1
+cargo test --locked -p semaprax --test project language_command_native:: -- --test-threads=1
 cargo test --locked -p semaprax --test project_manifest_v1
-cargo test --locked -p semaprax --test project_backend_equivalence_v1 -- --test-threads=1
+cargo test --locked -p semaprax --test project backend_equivalence:: -- --test-threads=1
 cargo test --locked -p semaprax-native-rust-interop --test project_sdk_cli
 ```
 
@@ -198,7 +198,7 @@ calculator Project through Web/Node and Rust consumers before and after the
 opt-in daemon rename and explicit shutdown:
 
 ```sh
-SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK=1 cargo test --locked -p semaprax --test project_agent_transport_rename_v1 project_rename_transaction_refreshes_the_exact_project_and_preserves_web_api -- --nocapture
+SEMAPRAX_REQUIRE_PROJECT_NATIVE_RUST_SDK=1 cargo test --locked -p semaprax --test project agent_transport_rename::project_rename_transaction_refreshes_the_exact_project_and_preserves_web_api -- --nocapture
 ```
 
 The unpublished builder workspace binary exposes that same authenticated
@@ -234,7 +234,7 @@ and the complete Product Acceptance jobs passed on
 [Ubuntu](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195951104),
 [macOS](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195940394),
 and [Windows](https://github.com/wavect/semaprax/actions/runs/33608662244/job/100195908639),
-including `project_native_publication_v1` and
+including `project/native_publication` and
 the Project Native Rust SDK gate. This proves only the selected lanes at the
 exact tag; it does not publish or promote Project-v8/v9/v10 packages. Project
 v1 does not

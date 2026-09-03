@@ -173,19 +173,19 @@ source, cache an image, publish a workspace generation, or commit Git changes.
 
 ## Evidence and remaining scope
 
-Authored, unrun cases in `tests/project_candidate_extraction_v1.rs` cover repeated
+Authored, unrun cases in `tests/project_candidate/extraction.rs` cover repeated
 capture deduplication, internal let/match binders, lazy checked-failure placement,
 mutable capture and contract rejection, identity/name collisions, exact replay,
 stale changes, rebase after unrelated source movement, and unchanged disk bytes.
 No local tests, compiler checks, or long quality gates were run, at the user's
 request; these cases are not passing completion evidence.
 
-`tests/project_candidate_nominal_extraction_v1.rs` adds authored, unrun coverage
+`tests/project_candidate/nominal_extraction.rs` adds authored, unrun coverage
 for nominal captures/results, whole-root field reads, body-only generic values,
 rejection cases and exact candidate recovery. Discovery advertises the checked
 Copy and whole-root constraints without claiming each expression is extractable.
 
-`tests/project_candidate_owned_block_extraction_v1.rs` authors the nested-owned
+`tests/project_candidate/owned_block_extraction.rs` authors the nested-owned
 block lane and its rejection boundaries. These cases have not been run; actual
 backend execution and cleanup/failure traces remain required evidence.
 Private correspondence regressions first build ordinary extracted calculator

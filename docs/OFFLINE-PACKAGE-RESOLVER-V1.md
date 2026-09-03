@@ -372,7 +372,7 @@ Windows is not yet authored or run and remains required before hosted Windows
 promotion. Focused preservation owners are
 `src/package_lock/tests.rs`, `src/package_lock_v2/tests.rs`,
 `src/package_report_v2/tests.rs`, `src/package_compatibility/tests.rs`,
-`tests/offline_package_lock_v1.rs`, `tests/package_report_v1.rs`,
+`tests/offline_package/lock.rs`, `tests/offline_package/report.rs`,
 `tests/documentation.rs`, and existing CLI dispatch/usage evidence.
 
 Report v1/v2, Subject/Lock v2, Lock v1, Compatibility Evidence v1, Graph

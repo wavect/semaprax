@@ -116,8 +116,8 @@ bounds, binding and exact-replay failures retain their existing diagnostic
 families. No rejection is replaced with an invented prototype or partial
 successful native output.
 
-Authored cases in [image/candidate evidence](../tests/image_c_artifacts_v1.rs)
-and [transport evidence](../tests/image_c_artifacts_transport_v5.rs) cover
+Authored cases in [image/candidate evidence](../tests/image_protocol/c_artifacts_v1.rs)
+and [transport evidence](../tests/image_transport_v5/c_artifacts.rs) cover
 actual prototype/file correspondence, cross-file source identity, candidate
 signature evolution, exact replay, exclusions, hostile inputs and build grants.
 Tests, compiler checks and native execution were not run; no completion-matrix

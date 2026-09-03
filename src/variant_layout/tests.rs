@@ -8,14 +8,14 @@ const SOURCE: &str = r#"
 module test.variant_layout;
 @id("choice.type")
 variant Choice {
-@id("choice.none") None,
-@id("choice.flag") Flag {
-    @id("choice.flag.value") value: bool,
-},
-@id("choice.pair") Pair {
-    @id("choice.pair.number") number: i64,
-    @id("choice.pair.enabled") enabled: bool,
-},
+    @id("choice.none") None,
+    @id("choice.flag") Flag {
+        @id("choice.flag.value") value: bool,
+    },
+    @id("choice.pair") Pair {
+        @id("choice.pair.number") number: i64,
+        @id("choice.pair.enabled") enabled: bool,
+    },
 }
 @id("app.main")
 fn main() -> i64 { 0 }
@@ -25,10 +25,10 @@ const GENERIC_SOURCE: &str = r#"
 module test.generic_variant_layout;
 @id("choice.generic")
 variant Choice<T> {
-@id("choice.generic.none") None,
-@id("choice.generic.value") Value {
-    @id("choice.generic.value.value") value: T,
-},
+    @id("choice.generic.none") None,
+    @id("choice.generic.value") Value {
+        @id("choice.generic.value.value") value: T,
+    },
 }
 @id("choice.i64")
 fn choice_i64() -> Choice<i64> { Choice<i64>::Value { value: 42 } }

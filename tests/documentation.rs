@@ -5,6 +5,7 @@ fn local_markdown_links_resolve() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let mut documents = [
         "AGENTS.md",
+        "CLAUDE.md",
         "CHANGELOG.md",
         "CONTRIBUTING.md",
         "README.md",

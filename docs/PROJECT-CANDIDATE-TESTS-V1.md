@@ -143,7 +143,7 @@ covers test-plan/report/inventory capacity. Stale candidate selectors keep
 ## Evidence and remaining boundaries
 
 `src/project/candidate/testing.rs` owns selection and explicit execution.
-Five authored, unrun regressions in `tests/project_candidate_testing_v1.rs`
+Five authored, unrun regressions in `tests/project_candidate/testing.rs`
 cover transitive local/imported calls, unused-function exclusion, move fallback,
 full execution despite empty selection, independent replay and exact report
 digests, deterministic outcomes, immutable source files, nonzero failure, fuel

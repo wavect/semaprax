@@ -12,15 +12,15 @@ const SOURCE: &str = r#"module test.native_materialize;
 
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop trivial;
+    @id("token.drop")
+    drop trivial;
 }
 
 @id("token.consume")
 fn consume(value: own Token, allowed: bool) -> i64
-requires allowed
+    requires allowed
 {
-7
+    7
 }
 
 @id("token.identity")

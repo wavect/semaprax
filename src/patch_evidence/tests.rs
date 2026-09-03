@@ -508,9 +508,9 @@ fn evidence_apply_never_deletes_a_foreign_stage_path_replacement() {
 fn evidence_v2_apply_owns_inputs_and_replays_every_a0_boundary() {
     let source = "module evidence.v2_hooks;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
     let patch_source = format!(
-        "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
-        graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
-    );
+            "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
     let (directory, source_path, patch_path, evidence_path) = fixture(source, &patch_source);
     let capsule = generate_v2(&source_path, &patch_path).unwrap();
     std::fs::write(&evidence_path, &capsule).unwrap();
@@ -565,9 +565,9 @@ fn evidence_v2_apply_owns_inputs_and_replays_every_a0_boundary() {
 fn evidence_v2_read_only_routes_own_inputs_and_reject_final_drift() {
     let source = "module evidence.v2_readonly;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
     let patch_source = format!(
-        "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
-        graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
-    );
+            "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
     let (directory, source_path, patch_path, evidence_path) = fixture(source, &patch_source);
     let expected_capsule = generate_v2(&source_path, &patch_path).unwrap();
     let capsule = generate_v2_with_hook(&source_path, &patch_path, |phase, path, _| {
@@ -647,9 +647,9 @@ fn evidence_v2_read_only_routes_own_inputs_and_reject_final_drift() {
 fn evidence_v2_apply_rejects_stage_replacement_and_rename_failure() {
     let source = "module evidence.v2_stage;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
     let patch_source = format!(
-        "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
-        graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
-    );
+            "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
     for (selected, expected) in [
         (ApplyPhase::BeforeFinalCheck, "SPX-I203"),
         (ApplyPhase::BeforeRename, "SPX-I204"),
@@ -687,9 +687,9 @@ fn evidence_v2_apply_rejects_stage_replacement_and_rename_failure() {
 fn evidence_v2_apply_rejects_same_bytes_with_replaced_source_identity() {
     let source = "module evidence.v2_identity;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
     let patch_source = format!(
-        "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
-        graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
-    );
+            "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
     let (directory, source_path, patch_path, evidence_path) = fixture(source, &patch_source);
     let capsule = generate_v2(&source_path, &patch_path).unwrap();
     std::fs::write(&evidence_path, capsule).unwrap();
@@ -718,9 +718,9 @@ fn evidence_v2_apply_rejects_same_bytes_with_replaced_source_identity() {
 fn evidence_v2_apply_bounds_both_final_reads_and_preserves_foreign_stage() {
     let source = "module evidence.v2_growth;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
     let patch_source = format!(
-        "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
-        graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
-    );
+            "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
     for selected in [ApplyPhase::BeforeFinalCheck, ApplyPhase::BeforeRename] {
         let (directory, source_path, patch_path, evidence_path) = fixture(source, &patch_source);
         let capsule = generate_v2(&source_path, &patch_path).unwrap();
@@ -784,9 +784,9 @@ fn evidence_v2_apply_bounds_both_final_reads_and_preserves_foreign_stage() {
 fn evidence_v2_apply_acquires_lock_before_owned_reads() {
     let source = "module evidence.v2_lock;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
     let patch_source = format!(
-        "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
-        graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
-    );
+            "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
     let (directory, source_path, patch_path, evidence_path) = fixture(source, &patch_source);
     let capsule = generate_v2(&source_path, &patch_path).unwrap();
     std::fs::write(&evidence_path, capsule).unwrap();
@@ -818,9 +818,9 @@ fn evidence_v2_apply_preserves_source_permissions() {
 
     let source = "module evidence.v2_permissions;\n@id(\"evidence.helper\") fn helper()->i64{1}\n@id(\"app.main\") fn main()->i64{helper()}\n";
     let patch_source = format!(
-        "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
-        graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
-    );
+            "schema semaprax.semantic-patch.v2\nbase {}\nrename evidence.helper to renamed\nrequire no-new-effects\n",
+            graph::revision(&parse(source, Path::new("evidence.spx")).unwrap())
+        );
     let (directory, source_path, patch_path, evidence_path) = fixture(source, &patch_source);
     std::fs::set_permissions(&source_path, std::fs::Permissions::from_mode(0o640)).unwrap();
     let before = std::fs::metadata(&source_path).unwrap();

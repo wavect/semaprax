@@ -7,12 +7,12 @@ module test.loan_plan_cfg;
 @id("bytes.take") fn take(value: own Bytes) -> i64 { 1 }
 @id("loan.run")
 fn run(input: borrow Slice<u8>, outer: bool, inner: bool) -> i64 {
-let owned = bytes_copy(input);
-let view = bytes_as_slice(owned);
-let observed = if outer {
-    if inner { byte_len(view) > 0usize && byte_len(view) < 9usize } else { false }
-} else { false };
-take(owned)
+    let owned = bytes_copy(input);
+    let view = bytes_as_slice(owned);
+    let observed = if outer {
+        if inner { byte_len(view) > 0usize && byte_len(view) < 9usize } else { false }
+    } else { false };
+    take(owned)
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
@@ -116,13 +116,13 @@ fn consume(value: own Bytes) -> i64 { 1 }
 
 @id("loan.inspect")
 fn inspect(input: own Option<Bytes>) -> i64 {
-match own input {
-    Option::None {} => 0,
-    Option::Some { value: bytes } => {
-        let observed = if byte_len(bytes_as_slice(bytes)) == 1usize { 1 } else { 0 };
-        consume(bytes) + observed
-    },
-}
+    match own input {
+        Option::None {} => 0,
+        Option::Some { value: bytes } => {
+            let observed = if byte_len(bytes_as_slice(bytes)) == 1usize { 1 } else { 0 };
+            consume(bytes) + observed
+        },
+    }
 }
 
 @id("app.main") fn main() -> i64 { 0 }
@@ -236,8 +236,8 @@ fn option_try_residual_edge_terminates_a_normal_path_loan() {
 fn loan_limit_accepts_256_and_rejects_257() {
     fn source(count: usize) -> String {
         let mut source = String::from(
-            "module test.loan_limit;\n@id(\"loan.limit\") fn limit(input: borrow Slice<u8>) -> i64 {\nlet owned = bytes_copy(input);\n",
-        );
+                "module test.loan_limit;\n@id(\"loan.limit\") fn limit(input: borrow Slice<u8>) -> i64 {\nlet owned = bytes_copy(input);\n",
+            );
         for index in 0..count {
             source.push_str(&format!("let view{index} = bytes_as_slice(owned);\n"));
         }

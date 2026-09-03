@@ -14,18 +14,18 @@ module test.command_legacy;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("test.command_legacy.run")
 fn run() -> bool uses { process.stdin.read, process.stdout.write } {
-let input = stdin_read();
-let view = bytes_as_slice(input);
-stdout_write(view) == byte_len(view)
+    let input = stdin_read();
+    let view = bytes_as_slice(input);
+    stdout_write(view) == byte_len(view)
 }
 @id("main") fn main() -> i64 { 0 }
 "#;
     let line = legacy
-        .replace("test.command_legacy", "test.command_line")
-        .replace(
-            "stdout_write(view) == byte_len(view)",
-            "let full = byte_range(view, 0usize, byte_len(view));\n    stdout_append(full) == byte_len(full)",
-        );
+            .replace("test.command_legacy", "test.command_line")
+            .replace(
+                "stdout_write(view) == byte_len(view)",
+                "let full = byte_range(view, 0usize, byte_len(view));\n    stdout_append(full) == byte_len(full)",
+            );
     let legacy_program =
         crate::hir::resolve(&crate::parse(legacy, Path::new("command-legacy-wasm.spx")).unwrap())
             .unwrap();
@@ -72,11 +72,11 @@ module test.command_range;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("test.command_range.run")
 fn run() -> bool uses { process.stdin.read, process.stdout.write } {
-let input = stdin_read();
-let root = bytes_as_slice(input);
-let first = byte_range(root, 1usize, 5usize);
-let second = byte_range(first, 1usize, 3usize);
-stdout_append(second) == 2usize
+    let input = stdin_read();
+    let root = bytes_as_slice(input);
+    let first = byte_range(root, 1usize, 5usize);
+    let second = byte_range(first, 1usize, 3usize);
+    stdout_append(second) == 2usize
 }
 @id("main") fn main() -> i64 { 0 }
 "#;
@@ -135,11 +135,11 @@ module test.command_range_binding;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("test.command_range_binding.run")
 fn run() -> bool uses { process.stdin.read, process.stdout.write } {
-let input = stdin_read();
-let root = bytes_as_slice(input);
-let selected = byte_range(root, 0usize, 2usize);
-let first = stdout_append(selected);
-stdout_append(selected) == first
+    let input = stdin_read();
+    let root = bytes_as_slice(input);
+    let selected = byte_range(root, 0usize, 2usize);
+    let first = stdout_append(selected);
+    stdout_append(selected) == first
 }
 @id("main") fn main() -> i64 { 0 }
 "#;
@@ -193,13 +193,13 @@ module test.command_range_recursion;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("test.command_range_recursion.run")
 fn run() -> bool uses { process.args.read, process.stdin.read, process.stdout.write } {
-if args_len() == 0usize {
-    let input = stdin_read();
-    let view = bytes_as_slice(input);
-    stdout_append(byte_range(view, 0usize, byte_len(view))) == byte_len(view)
-} else {
-    run()
-}
+    if args_len() == 0usize {
+        let input = stdin_read();
+        let view = bytes_as_slice(input);
+        stdout_append(byte_range(view, 0usize, byte_len(view))) == byte_len(view)
+    } else {
+        run()
+    }
 }
 @id("main") fn main() -> i64 { 0 }
 "#;
@@ -225,12 +225,12 @@ module test.command_capacity;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("test.command_capacity.run")
 fn run() -> bool uses { process.stdin.read, process.stdout.write, process.stderr.write } {
-let input = stdin_read();
-let view = bytes_as_slice(input);
-let selected = byte_range(view, 0usize, byte_len(view));
-let first = stdout_append(view);
-let second = stderr_append(view);
-first == second
+    let input = stdin_read();
+    let view = bytes_as_slice(input);
+    let selected = byte_range(view, 0usize, byte_len(view));
+    let first = stdout_append(view);
+    let second = stderr_append(view);
+    first == second
 }
 @id("main") fn main() -> i64 { 0 }
 "#;
@@ -284,9 +284,9 @@ module test.command;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("test.command.run")
 fn run() -> bool uses { process.stdin.read, process.stdout.write } {
-let input = stdin_read();
-let view = bytes_as_slice(input);
-stdout_write(view) == byte_len(view)
+    let input = stdin_read();
+    let view = bytes_as_slice(input);
+    stdout_write(view) == byte_len(view)
 }
 @id("main")
 fn main() -> i64 { 0 }
@@ -325,26 +325,26 @@ const bad=await run(true);if(bad.len!==0||bad.err!==0||bad.entries!==0||bad.stat
         symbol = crate::diagnostic::quote_json(&symbol),
     );
     let script = script
-        .replace(
-            "spx_command_stdin_read_v1:p=>{if(fail)return 3;const c=fixed?11n:oversized?BigInt.asIntN(64,(0x80000001n<<32n)|65537n):alloc(new TextEncoder().encode('owned-stdin'));new DataView(instance.exports.memory.buffer).setBigInt64(p,c,true);return 0}",
-            "spx_command_stdin_read_v1:p=>{if(fail)return 3;let c;if(fixed)c=11n;else if(oversized)c=BigInt.asIntN(64,(0x80000001n<<32n)|65537n);else if(forge==='missing')c=BigInt.asIntN(64,(0x80000063n<<32n)|1n);else if(forge==='zero')c=alloc(new Uint8Array());else{c=alloc(new TextEncoder().encode('owned-stdin'));if(forge==='wrong')c-=1n}new DataView(instance.exports.memory.buffer).setBigInt64(p,c,true);return 0},spx_command_owned_bytes_validate_v1:c=>{try{const d=decode(c);if(!d.t||d.k===0)return 1;const b=entries.get(d.k);if(!b)return 1;if(b.length!==d.n){entries.delete(d.k);return 1}return 0}catch{return 1}}",
-        )
-        .replace(
-            "async function run(fail,hostile=false,fixed=false,oversized=false){",
-            "async function run(fail,hostile=false,fixed=false,oversized=false,forge=''){",
-        )
-        .replace(
-            "console.log('command-io-node-ok');",
-            "for(const kind of ['missing','wrong']){const forged=await run(false,false,false,false,kind);if(forged.len!==0||forged.err!==0||forged.entries!==0||forged.status!==-1)throw Error(kind+JSON.stringify(forged))}const empty=await run(false,false,false,false,'zero');if(empty.value!==1||empty.len!==0||empty.err!==0||empty.entries!==0||empty.status!==0||empty.dirty)throw Error('zero'+JSON.stringify(empty));console.log('command-io-node-ok');",
-        )
-        .replace(
-            "dirty:out.slice(131072,393216).some(value=>value!==0)}",
-            "dirty:out.slice(131072,393216).some(value=>value!==0),privateDirty:out.slice(262144,393216).some(value=>value!==0)}",
-        )
-        .replace(
-            "if(ok.value!==1||ok.text!=='owned-stdin'||ok.err!==0||ok.entries!==0||ok.status!==0)",
-            "if(ok.value!==1||ok.text!=='owned-stdin'||ok.err!==0||ok.entries!==0||ok.status!==0||ok.privateDirty)",
-        );
+            .replace(
+                "spx_command_stdin_read_v1:p=>{if(fail)return 3;const c=fixed?11n:oversized?BigInt.asIntN(64,(0x80000001n<<32n)|65537n):alloc(new TextEncoder().encode('owned-stdin'));new DataView(instance.exports.memory.buffer).setBigInt64(p,c,true);return 0}",
+                "spx_command_stdin_read_v1:p=>{if(fail)return 3;let c;if(fixed)c=11n;else if(oversized)c=BigInt.asIntN(64,(0x80000001n<<32n)|65537n);else if(forge==='missing')c=BigInt.asIntN(64,(0x80000063n<<32n)|1n);else if(forge==='zero')c=alloc(new Uint8Array());else{c=alloc(new TextEncoder().encode('owned-stdin'));if(forge==='wrong')c-=1n}new DataView(instance.exports.memory.buffer).setBigInt64(p,c,true);return 0},spx_command_owned_bytes_validate_v1:c=>{try{const d=decode(c);if(!d.t||d.k===0)return 1;const b=entries.get(d.k);if(!b)return 1;if(b.length!==d.n){entries.delete(d.k);return 1}return 0}catch{return 1}}",
+            )
+            .replace(
+                "async function run(fail,hostile=false,fixed=false,oversized=false){",
+                "async function run(fail,hostile=false,fixed=false,oversized=false,forge=''){",
+            )
+            .replace(
+                "console.log('command-io-node-ok');",
+                "for(const kind of ['missing','wrong']){const forged=await run(false,false,false,false,kind);if(forged.len!==0||forged.err!==0||forged.entries!==0||forged.status!==-1)throw Error(kind+JSON.stringify(forged))}const empty=await run(false,false,false,false,'zero');if(empty.value!==1||empty.len!==0||empty.err!==0||empty.entries!==0||empty.status!==0||empty.dirty)throw Error('zero'+JSON.stringify(empty));console.log('command-io-node-ok');",
+            )
+            .replace(
+                "dirty:out.slice(131072,393216).some(value=>value!==0)}",
+                "dirty:out.slice(131072,393216).some(value=>value!==0),privateDirty:out.slice(262144,393216).some(value=>value!==0)}",
+            )
+            .replace(
+                "if(ok.value!==1||ok.text!=='owned-stdin'||ok.err!==0||ok.entries!==0||ok.status!==0)",
+                "if(ok.value!==1||ok.text!=='owned-stdin'||ok.err!==0||ok.entries!==0||ok.status!==0||ok.privateDirty)",
+            );
     std::fs::write(&script_path, script).unwrap();
     let output = Command::new("node")
         .arg(&script_path)
@@ -372,8 +372,8 @@ module test.command_arg_status;
 permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 @id("test.command_arg_status.run")
 fn run() -> bool uses { process.args.read } {
-let argument = arg_utf8(0usize);
-byte_len(str_as_bytes(argument)) == 0usize
+    let argument = arg_utf8(0usize);
+    byte_len(str_as_bytes(argument)) == 0usize
 }
 @id("main")
 fn main() -> i64 { 0 }

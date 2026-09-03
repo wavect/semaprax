@@ -111,7 +111,7 @@ these navigation outputs; they are not validity proofs or replacements for the
 full compiler context.
 
 Library and transport regressions are authored in
-`tests/project_hole_navigation_v1.rs` and `tests/image_hole_navigation_v5.rs`.
+`tests/project/hole_navigation.rs` and `tests/image_v5/hole_navigation.rs`.
 They cover all three hole kinds, scope/effect normalization, pagination,
 reference binding, selected grants, schemas and parallel-read behavior. They
 have not been executed. No tests, compiler, generated client or interpreter was

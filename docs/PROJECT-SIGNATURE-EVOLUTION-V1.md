@@ -219,11 +219,11 @@ ordering, canonical source round trips, removal of a still-used parameter,
 and rejection of type changes, omitted owners, and unsupported borrowed modes.
 Additional authored regressions cover simultaneous display renames, contract
 references, local mutation, match guard capture avoidance, and removed-binding
-capture. [`tests/project_candidate_signature_ownership_v1.rs`](../tests/project_candidate_signature_ownership_v1.rs)
+capture. [`tests/project_candidate/signature_ownership.rs`](../tests/project_candidate/signature_ownership.rs)
 authors full Project candidate/replay checks for reordered and renamed owned
 byte arguments, exact original evaluation order, duplicate/removal rejection,
 and unchanged live source files. These tests have not been executed.
-[`tests/project_signature_owned_values_v1.rs`](../tests/project_signature_owned_values_v1.rs)
+[`tests/project/signature_owned_values.rs`](../tests/project/signature_owned_values.rs)
 adds authored cases for bare String and resource-free owned record/variant
 parameters, two local callers per target, preserved argument subtrees and order,
 renaming, exact replay/recovery, stale rejection, omitted-owner diagnostics and
@@ -251,12 +251,12 @@ and internal trace labels; it does not claim identical runtime traces or costs.
 Those wider cases remain open in the graph-operational roadmap. The same
 storage, trace-label and cost limits apply to String and nominal owner staging.
 
-`tests/project_signature_named_copy_v1.rs` and
-`tests/project_signature_catalog_v1.rs` author named aggregate staging,
+`tests/project/signature_named_copy.rs` and
+`tests/project/signature_catalog.rs` author named aggregate staging,
 retention/removal, alias/identity, catalogue and independent candidate replay
 evidence. Rebase signature fingerprints additionally bind retained nominal
 type identities: unchanged source spelling cannot conceal a different record
 or variant identity on a concurrent base. The regression in
-`tests/project_candidate_rebase_v1.rs` authors that conflict and unchanged-source
+`tests/project_candidate/rebase.rs` authors that conflict and unchanged-source
 failure behavior. These cases are unrun; neither runtime equivalence nor the
 full signature-evolution objective is promoted.

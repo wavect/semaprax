@@ -126,7 +126,7 @@ association checks or nonclaims.
 ## Evidence
 
 Authored, unrun regressions in
-`tests/project_candidate_package_consumer_replay_v1.rs` construct a real
+`tests/project_candidate/package_consumer_replay.rs` construct a real
 candidate-era provider report and complete two-package source capsule. They
 cover a called export and a separately imported-only export, a private caller
 outside the linked export closure, exact source/candidate/package bindings,

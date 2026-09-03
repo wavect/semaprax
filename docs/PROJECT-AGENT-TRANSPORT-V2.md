@@ -75,7 +75,7 @@ failure.
 ## Evidence and nonclaims
 
 ```sh
-cargo test --locked -p semaprax --all-features --test project_agent_transport_v2 -- --test-threads=1
+cargo test --locked -p semaprax --all-features --test project agent_transport_v2:: -- --test-threads=1
 cargo test --locked -p semaprax --test agent_transport_v1 -- --test-threads=1
 ```
 

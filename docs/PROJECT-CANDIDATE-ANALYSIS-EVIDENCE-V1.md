@@ -81,7 +81,7 @@ retain a graph/image/candidate; mutate source; or grant publication authority.
 
 ## Evidence
 
-Authored, unrun regressions in `tests/project_candidate_analysis_evidence_v1.rs`
+Authored, unrun regressions in `tests/project_candidate/analysis_evidence.rs`
 construct an exact candidate-era provider report and two-package source capsule,
 compare the nested replay with its independent owner result, preserve seven
 coverage rows exactly, establish `partial` for explicit called, import-only and

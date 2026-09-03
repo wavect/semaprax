@@ -188,7 +188,7 @@ descriptor must reject against the other's retained HIR. This is signature
 binding evidence authored but unrun, not cross-schema rejection, source
 provenance, behavioral equivalence or target execution.
 
-`tests/project_v10_recipe_consumer_v1.rs` uses a real four-source Project,
+`tests/project/v10_recipe_consumer.rs` uses a real four-source Project,
 with two imported owned-String helpers sharing a display name but retaining
 different stable identities, including source-escaped control characters. It
 replays the actual inline npm carrier and reopens all six published artifacts
@@ -202,7 +202,7 @@ publisher; it does not compile, publish, or consume a native SDK. No test was
 executed while authoring this fixture.
 
 ```sh
-cargo test --locked -p semaprax --test project_v10_recipe_consumer_v1
+cargo test --locked -p semaprax --test project v10_recipe_consumer::
 ```
 
 The separate provisioned gate
@@ -255,8 +255,8 @@ coverage. Both gates are authored but unrun; the native one is explicitly
 ignored and requires the same provisioned tools described above:
 
 ```sh
-cargo test --locked -p semaprax --test project_owned_utf8_capacity_v1
-cargo test --locked -p semaprax-toolchain --test project_owned_utf8_capacity_v1 -- --ignored
+cargo test --locked -p semaprax --test project owned_utf8_capacity::
+cargo test --locked -p semaprax-toolchain --test project owned_utf8_capacity:: -- --ignored
 ```
 
 ## Retained reference evaluation
@@ -319,7 +319,7 @@ This tightens malformed-input rejection only, without changing emitted package
 bytes, public signatures, or schema identities.
 
 Focused authored lifetime evidence is in
-`tests/project_owned_utf8_lifetimes_v1.rs` and its raw-arena/real-facade Node
+`tests/project/owned_utf8_lifetimes.rs` and its raw-arena/real-facade Node
 consumer. It derives and replays the real descriptor before target generation;
 locals and Copy-only loops occur inside admitted direct-call arguments. The
 loop case retains one String before the loop and settles it on exit; it does
@@ -330,10 +330,10 @@ preserve the rejected outer-body String forms. The native O0/O2 fixture is
 success-value evidence only, not native failure-path allocation evidence.
 
 ```sh
-cargo test --locked -p semaprax --test project_owned_utf8_lifetimes_v1
+cargo test --locked -p semaprax --test project owned_utf8_lifetimes::
 ```
 
-`tests/native_owned_utf8_settlement_v1.rs` independently derives/replays the
+`tests/native/owned_utf8_settlement.rs` independently derives/replays the
 descriptor and emits the actual v10 length-header native provider. Its fixed
 test-only allocation table observes provider allocations and frees at O0/O2:
 local, late-argument, nested-call, callee, and loop failures must leave no
@@ -347,7 +347,7 @@ The generated Rust package consumer exercises safe API reuse after failure;
 it is not a substitute for the physical allocation counter.
 
 ```sh
-cargo test --locked -p semaprax --test native_owned_utf8_settlement_v1
+cargo test --locked -p semaprax --test native owned_utf8_settlement::
 cargo test --locked -p semaprax --test project_native_rust_owned_utf8_v1
 ```
 
@@ -355,7 +355,7 @@ The separate sanitizer gate requires an installed absolute
 `SEMAPRAX_STRING_SANITIZER_CLANG` path with ASan/UBSan support:
 
 ```sh
-cargo test --locked -p semaprax --test native_owned_utf8_settlement_v1 provisioned_native_string_provider_asan_ubsan -- --ignored --exact
+cargo test --locked -p semaprax --test native owned_utf8_settlement::provisioned_native_string_provider_asan_ubsan -- --ignored --exact
 ```
 
 Allocation counters establish the leak assertion even on hosts without

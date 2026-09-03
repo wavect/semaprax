@@ -116,9 +116,9 @@ two merge attempts occur per request; host worker and frame bounds still apply.
 
 ## Evidence
 
-Authored regressions in `tests/project_candidate_merge_preview_v1.rs` cover
+Authored regressions in `tests/project_candidate/merge_preview.rs` cover
 ordered replay, exact parents, shared histories, unchanged source and candidate
 state, accepted source comparisons and explicit rejections. Transport cases in
-`tests/image_candidate_merge_preview_v5.rs` cover selected authority, exact
+`tests/image_v5/candidate_merge_preview.rs` cover selected authority, exact
 bindings and the retained-read path. No tests, compiler execution, throughput
 measurement or hosted evidence was run for this change.

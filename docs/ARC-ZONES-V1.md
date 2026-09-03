@@ -166,7 +166,7 @@ are executed verbatim. These projections are test evidence, not a wire format.
 
 ## Required executable evidence
 
-`tests/arc_zones_model_v1.rs` plus seven focused module units currently cover:
+`tests/cleanup_backends/arc_zones_model.rs` plus seven focused module units currently cover:
 
 - pinned known-answer trace digests for four canonical scenarios:
   - shared fan-out release with canonical-order cascade:

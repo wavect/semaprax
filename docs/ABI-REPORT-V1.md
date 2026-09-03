@@ -106,8 +106,8 @@ unused `SPX-A2xx` family: `SPX-A201` options, `SPX-A202` selection,
 
 ## Evidence
 
-Executable evidence lives in `tests/abi_report_v1.rs`,
-`tests/interop_scalar_widen_v1.rs`, plus module tests in `src/abi_report.rs`:
+Executable evidence lives in `tests/offline_package/abi_report.rs`,
+`tests/language/interop_scalar_widen.rs`, plus module tests in `src/abi_report.rs`:
 pinned golden envelope KATs over `examples/calculator.spx` and
 `examples/meaning.spx`, byte-identical double
 runs, verbatim cross-consistency against the native projection, byte-level

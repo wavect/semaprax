@@ -177,11 +177,11 @@ the selected approval on an attempted publication, and reports uncertain
 post-pivot outcomes explicitly. Do not blindly retry uncertain publication.
 Source/approval/candidate errors do not create a new approval or widen policy.
 
-`tests/workspace_session_cli_v1.rs` authors host selection, NDJSON framing,
+`tests/workspace/session_cli.rs` authors host selection, NDJSON framing,
 request-elevation rejection, and invalid closed-policy checks.
 CLI cache-policy regressions preserve v1 rejection, compare cold/cached discovery
 and image identities, and reject invalid v2 cache selections and RPC overrides.
-`tests/workspace_session_semantic_cache_cli_v1.rs` adds explicit v4 warm
+`tests/workspace/session_semantic_cache_cli.rs` adds explicit v4 warm
 checked-module reuse, cold/AST/semantic identity and authority equivalence, older
 policy rejection, strict/dependent boolean selection, and RPC override rejection.
 It also authors direct semantic-session source-drift recovery and verifies that

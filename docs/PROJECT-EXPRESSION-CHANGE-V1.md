@@ -135,7 +135,7 @@ candidates, sibling branches, and live files remain unchanged.
 
 ## Evidence and remaining scope
 
-[Integration evidence](../tests/project_candidate_expression_v1.rs) is authored
+[Integration evidence](../tests/project_candidate/expression.rs) is authored
 but unrun at the user's request. It covers typed local-scope discovery, real
 HIR ID selection, exact replay and stale rejection, unknown selectors,
 initializer scope and inferred-type rejection, read-only contracts, `main`

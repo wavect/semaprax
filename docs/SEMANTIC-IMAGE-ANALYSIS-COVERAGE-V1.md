@@ -83,7 +83,7 @@ preserves these facts and blind spots, adds candidate/base bindings and no
 authority, and does not reinterpret an unchanged status as verified evidence.
 
 Focused library and transport regressions in
-[image_analysis_coverage_v1.rs](../tests/image_analysis_coverage_v1.rs) are
+[image_protocol/analysis_coverage_v1.rs](../tests/image_protocol/analysis_coverage_v1.rs) are
 authored but unrun. Broader deployment ingestion, generator provenance, provider
 conformance, and external-consumer analysis require separate explicit inputs
 and independently designed authority boundaries.

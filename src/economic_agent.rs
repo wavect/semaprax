@@ -10,16 +10,16 @@
 //! policy, intent, budget, event, and terminal types every stage reads. The
 //! submodules divide the work by concern:
 //!
-//! - [`validate`], [`policy`], [`address`], [`intent`], [`snapshot`] — bounded
+//! - `validate`, `policy`, `address`, `intent`, `snapshot` — bounded
 //!   parsing, rendering, and admission of the input documents.
-//! - [`transaction`] — unsigned transaction construction and signed-byte
+//! - `transaction` — unsigned transaction construction and signed-byte
 //!   verification per rail.
-//! - [`documents`], [`journal`] — the invoice, plan, simulation, approval,
+//! - `documents`, `journal` — the invoice, plan, simulation, approval,
 //!   broadcast, and reconciliation documents, and the journal that records
 //!   them.
-//! - [`evidence`], [`replay`] — trace and evidence rendering, replay of a
+//! - `evidence`, `replay` — trace and evidence rendering, replay of a
 //!   rendered run, and run finalization.
-//! - [`agent_core`], [`agent_execute`], [`agent_reconcile`] — the driver
+//! - `agent_core`, `agent_execute`, `agent_reconcile` — the driver
 //!   itself, split into construction and shared guards, the forward execution
 //!   path, and the reconciliation and resume paths.
 

@@ -141,8 +141,8 @@ let valueReads = 0;
 const changingProxy = new Proxy({ ok: 7n }, {
   ownKeys() { return ["ok"]; },
   getOwnPropertyDescriptor() {
-descriptorReads++;
-return { configurable: true, enumerable: true, value: descriptorReads === 1 ? 7n : 7 };
+    descriptorReads++;
+    return { configurable: true, enumerable: true, value: descriptorReads === 1 ? 7n : 7 };
   },
   get() { valueReads++; return 7; }
 });
@@ -337,8 +337,8 @@ fn checked_component_v2_rejects_owned_core_profiles() {
         r#"module test.checked_component_owned;
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop trivial;
+    @id("token.drop")
+    drop trivial;
 }
 @id("token.identity")
 fn identity(value: own Token) -> Token { value }
@@ -414,11 +414,11 @@ for (const invoke of [
   if (!trapped) process.exit(73);
 }}
 if (runtime.exports.spx_add(19n, 23n) !== 42n ||
-runtime.exports.spx_sub(23n, 19n) !== 4n ||
-runtime.exports.spx_mul(-6n, 7n) !== -42n ||
-runtime.exports.spx_div(-42n, 7n) !== -6n ||
-runtime.exports.spx_rem(43n, 7n) !== 1n ||
-runtime.exports.spx_neg(42n) !== -42n) process.exit(74);
+    runtime.exports.spx_sub(23n, 19n) !== 4n ||
+    runtime.exports.spx_mul(-6n, 7n) !== -42n ||
+    runtime.exports.spx_div(-42n, 7n) !== -6n ||
+    runtime.exports.spx_rem(43n, 7n) !== 1n ||
+    runtime.exports.spx_neg(42n) !== -42n) process.exit(74);
 "#
     );
     let output = Command::new("node")
@@ -554,7 +554,7 @@ if (component.evaluate(19n, 23n) !== 42n) process.exit(81);
 const i64Minimum = -(1n << 63n);
 const i64Maximum = (1n << 63n) - 1n;
 if (component.evaluate(i64Minimum, 0n) !== i64Minimum ||
-component.evaluate(i64Maximum, 0n) !== i64Maximum) process.exit(82);
+    component.evaluate(i64Maximum, 0n) !== i64Maximum) process.exit(82);
 const rejectI64 = args => {
   let rejected = false;
   try { component.evaluate(...args); }
@@ -625,31 +625,31 @@ semaprax = {{ path = "{manifest_root}", default-features = false }}
     std::fs::write(
         directory.path().join("src/main.rs"),
         r#"use semaprax::wit_component::{
-emit_private_checked_component_v2,
-emit_private_component_v1,
-emit_private_result_component_v3,
-emit_private_scalar_algebra_component_v5,
-emit_private_source_result_component_v4,
-private_checked_component_runtime_javascript_v2,
-validate_private_checked_component_v2,
-validate_private_component_v1,
-validate_private_result_component_v3,
-validate_private_scalar_algebra_component_v5,
-validate_private_source_result_component_v4,
+    emit_private_checked_component_v2,
+    emit_private_component_v1,
+    emit_private_result_component_v3,
+    emit_private_scalar_algebra_component_v5,
+    emit_private_source_result_component_v4,
+    private_checked_component_runtime_javascript_v2,
+    validate_private_checked_component_v2,
+    validate_private_component_v1,
+    validate_private_result_component_v3,
+    validate_private_scalar_algebra_component_v5,
+    validate_private_source_result_component_v4,
 };
 
 fn main() {
-let artifact = emit_private_component_v1();
-let _ = validate_private_component_v1(artifact.bytes());
-let _ = emit_private_checked_component_v2;
-let _ = private_checked_component_runtime_javascript_v2;
-let _ = validate_private_checked_component_v2;
-let _ = emit_private_result_component_v3;
-let _ = validate_private_result_component_v3;
-let _ = emit_private_scalar_algebra_component_v5;
-let _ = validate_private_scalar_algebra_component_v5;
-let _ = emit_private_source_result_component_v4;
-let _ = validate_private_source_result_component_v4;
+    let artifact = emit_private_component_v1();
+    let _ = validate_private_component_v1(artifact.bytes());
+    let _ = emit_private_checked_component_v2;
+    let _ = private_checked_component_runtime_javascript_v2;
+    let _ = validate_private_checked_component_v2;
+    let _ = emit_private_result_component_v3;
+    let _ = validate_private_result_component_v3;
+    let _ = emit_private_scalar_algebra_component_v5;
+    let _ = validate_private_scalar_algebra_component_v5;
+    let _ = emit_private_source_result_component_v4;
+    let _ = validate_private_source_result_component_v4;
 }
 "#,
     )
@@ -702,8 +702,8 @@ fn owned_resource_corpus_wit_exposes_token_resource_handles() {
         r#"module test.unsupported;
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop import "token.finalize";
+    @id("token.drop")
+    drop import "token.finalize";
 }
 @id("token.use")
 fn use_token(value: own Token) -> i64 { 0 }
@@ -722,9 +722,9 @@ fn feature_consumer_can_only_read_checked_component_digests_through_accessors() 
     let directory = ConsumerDirectory::create();
     let manifest_root = env!("CARGO_MANIFEST_DIR").replace('\\', "\\\\");
     std::fs::write(
-        directory.path().join("Cargo.toml"),
-        format!(
-            r#"[package]
+            directory.path().join("Cargo.toml"),
+            format!(
+                r#"[package]
 name = "semaprax-wit-read-only-digest-check"
 version = "0.0.0"
 edition = "2021"
@@ -734,49 +734,49 @@ edition = "2021"
 [dependencies]
 semaprax = {{ path = "{manifest_root}", default-features = false, features = ["unstable-wit-component-harness"] }}
 "#
-        ),
-    )
-    .unwrap();
+            ),
+        )
+        .unwrap();
     std::fs::create_dir(directory.path().join("src")).unwrap();
     std::fs::write(
         directory.path().join("src/main.rs"),
         r#"use semaprax::wit_component::{
-PrivateCheckedComponentArtifactV2,
-PrivateResultComponentArtifactV3,
-PrivateSourceResultComponentArtifactV4,
+    PrivateCheckedComponentArtifactV2,
+    PrivateResultComponentArtifactV3,
+    PrivateSourceResultComponentArtifactV4,
 };
 
 fn hostile(artifact: &mut PrivateCheckedComponentArtifactV2) {
-let _ = artifact.digest();
-let _ = artifact.generated_core_digest();
-let _ = artifact.runtime_core_digest();
-artifact.digest = [0; 32];
-artifact.generated_core_digest = [0; 32];
-artifact.runtime_core_digest = [0; 32];
+    let _ = artifact.digest();
+    let _ = artifact.generated_core_digest();
+    let _ = artifact.runtime_core_digest();
+    artifact.digest = [0; 32];
+    artifact.generated_core_digest = [0; 32];
+    artifact.runtime_core_digest = [0; 32];
 }
 
 fn hostile_v3(artifact: &mut PrivateResultComponentArtifactV3) {
-let _ = artifact.digest();
-let _ = artifact.generated_core_digest();
-let _ = artifact.profile_digest();
-artifact.digest = [0; 32];
-artifact.generated_core_digest = [0; 32];
-artifact.profile_digest = [0; 32];
+    let _ = artifact.digest();
+    let _ = artifact.generated_core_digest();
+    let _ = artifact.profile_digest();
+    artifact.digest = [0; 32];
+    artifact.generated_core_digest = [0; 32];
+    artifact.profile_digest = [0; 32];
 }
 
 fn hostile_v4(artifact: &mut PrivateSourceResultComponentArtifactV4) {
-let _ = artifact.digest();
-let _ = artifact.generated_core_digest();
-let _ = artifact.profile_digest();
-let _ = artifact.prelude_digest();
-let _ = artifact.result_i64_bool_layout_digest();
-let _ = artifact.result_bool_bool_layout_digest();
-artifact.digest = [0; 32];
-artifact.generated_core_digest = [0; 32];
-artifact.profile_digest = [0; 32];
-artifact.prelude_digest = [0; 32];
-artifact.result_i64_bool_layout_digest = [0; 32];
-artifact.result_bool_bool_layout_digest = [0; 32];
+    let _ = artifact.digest();
+    let _ = artifact.generated_core_digest();
+    let _ = artifact.profile_digest();
+    let _ = artifact.prelude_digest();
+    let _ = artifact.result_i64_bool_layout_digest();
+    let _ = artifact.result_bool_bool_layout_digest();
+    artifact.digest = [0; 32];
+    artifact.generated_core_digest = [0; 32];
+    artifact.profile_digest = [0; 32];
+    artifact.prelude_digest = [0; 32];
+    artifact.result_i64_bool_layout_digest = [0; 32];
+    artifact.result_bool_bool_layout_digest = [0; 32];
 }
 
 fn main() {}

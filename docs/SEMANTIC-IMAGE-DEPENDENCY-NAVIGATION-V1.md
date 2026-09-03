@@ -100,8 +100,8 @@ reuses these inventories over an exact admitted candidate while issuing a
 separate candidate-bound handle and cursor domain. Image references remain
 image-only and their schemas and bytes are unchanged.
 
-Authored evidence is in `tests/image_dependency_navigation_v1.rs` and
-`tests/image_dependency_navigation_transport_v5.rs`. Pagination completeness,
+Authored evidence is in `tests/image_protocol/dependency_navigation_v1.rs` and
+`tests/image_transport_v5/dependency_navigation.rs`. Pagination completeness,
 reference rejection, source drift, cross-root determinism and batch equivalence
 remain unrun. Representative task-level token, tool-call, correctness and human
 review measurements remain outstanding.

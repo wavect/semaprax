@@ -10,8 +10,8 @@ const SUPPORTED: &str = r#"module test.native_cleanup_index;
 
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop trivial;
+    @id("token.drop")
+    drop trivial;
 }
 
 @id("token.discard")
@@ -175,7 +175,7 @@ fn conditional_and_lazy_control_flow_are_rejected_without_reconstruction() {
         r#"module test.native_cleanup_if;
 @id("token.type") resource Token { @id("token.drop") drop trivial; }
 @id("token.choose") fn choose(value: own Token, condition: bool) -> i64 {
-if condition { 1 } else { 0 }
+    if condition { 1 } else { 0 }
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#,
@@ -188,7 +188,7 @@ if condition { 1 } else { 0 }
         r#"module test.native_cleanup_lazy;
 @id("token.type") resource Token { @id("token.drop") drop trivial; }
 @id("token.lazy") fn lazy(value: own Token, condition: bool) -> bool {
-condition && true
+    condition && true
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#,
@@ -311,9 +311,9 @@ fn records_are_rejected_precisely() {
     let diagnostic = classify(&program, function(&program, "box.discard")).unwrap_err();
     assert_eq!(diagnostic.code, "SPX-B104");
     assert_eq!(
-        diagnostic.message,
-        "native cleanup first slice for function `box.discard` does not support record declaration `box.type`"
-    );
+            diagnostic.message,
+            "native cleanup first slice for function `box.discard` does not support record declaration `box.type`"
+        );
 }
 
 #[test]
@@ -323,8 +323,8 @@ fn imported_lifecycles_are_rejected_precisely() {
 permit { io.release }
 @id("file.type") resource File { @id("file.drop") drop import "file.finalize"; }
 @id("file.host") interface FileHost permits { io.release } {
-@id("file.finalize") import fn finalize(file: own File) -> unit
-    effects { io.release } failure infallible consumes file always;
+    @id("file.finalize") import fn finalize(file: own File) -> unit
+        effects { io.release } failure infallible consumes file always;
 }
 @id("file.discard") fn discard(value: own File) -> i64 uses { io.release } { 0 }
 @id("app.main") fn main() -> i64 { 0 }

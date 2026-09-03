@@ -50,9 +50,9 @@ impl ManagedOperationsFixture {
             "module ops.provider; @id(\"ops.answer\") fn answer()->i64{1}",
         );
         let consumer = canonical(
-            "b/consumer.spx",
-            "module ops.consumer; use function @id(\"ops.answer\") from ops.provider as answer; @id(\"ops.main\") fn main()->i64{answer()}",
-        );
+                "b/consumer.spx",
+                "module ops.consumer; use function @id(\"ops.answer\") from ops.provider as answer; @id(\"ops.main\") fn main()->i64{answer()}",
+            );
         for (path, source) in [("a/provider.spx", provider), ("b/consumer.spx", consumer)] {
             let destination = root.join(path);
             std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
@@ -70,8 +70,8 @@ impl ManagedOperationsFixture {
         .unwrap();
         let revision = semantic_workspace::initialize(&root, &path_set).unwrap();
         let proposal_source = format!(
-            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{revision}\",\"entry_module\":\"ops.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.answer\",\"from\":\"answer\",\"to\":\"response\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.answer\",\"target_module\":\"ops.provider\",\"from\":\"answer\",\"to\":\"response\"}}]}}\n"
-        );
+                "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{revision}\",\"entry_module\":\"ops.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.answer\",\"from\":\"answer\",\"to\":\"response\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.answer\",\"target_module\":\"ops.provider\",\"from\":\"answer\",\"to\":\"response\"}}]}}\n"
+            );
         let proposal_path = root.join("operations.json");
         std::fs::write(&proposal_path, &proposal_source).unwrap();
         Self {
@@ -149,9 +149,9 @@ fn fixture() -> (semantic_workspace::SemanticWorkspacePreflight, String) {
         "module ops.provider; @id(\"ops.answer\") fn answer()->i64{1}",
     );
     let consumer = canonical(
-        "b/consumer.spx",
-        "module ops.consumer; use function @id(\"ops.answer\") from ops.provider as answer; @id(\"ops.main\") fn main()->i64{answer()}",
-    );
+            "b/consumer.spx",
+            "module ops.consumer; use function @id(\"ops.answer\") from ops.provider as answer; @id(\"ops.main\") fn main()->i64{answer()}",
+        );
     let paths = vec!["a/provider.spx".to_owned(), "b/consumer.spx".to_owned()];
     let path_set = semantic_workspace::render_path_set(&paths).unwrap();
     let preflight = semantic_workspace::preflight_owned_for_operations(
@@ -171,9 +171,9 @@ fn fixture() -> (semantic_workspace::SemanticWorkspacePreflight, String) {
     )
     .unwrap();
     let proposal = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.answer\",\"from\":\"answer\",\"to\":\"response\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.answer\",\"target_module\":\"ops.provider\",\"from\":\"answer\",\"to\":\"response\"}}]}}\n",
-        preflight.workspace_revision(),
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.answer\",\"from\":\"answer\",\"to\":\"response\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.answer\",\"target_module\":\"ops.provider\",\"from\":\"answer\",\"to\":\"response\"}}]}}\n",
+            preflight.workspace_revision(),
+        );
     (preflight, proposal)
 }
 
@@ -201,7 +201,7 @@ permit { audit.read }
 @id("ops.point") record Point { @id("ops.point.value") value: i64, }
 @id("ops.choice") variant Choice { @id("ops.choice.some") Some { @id("ops.choice.some.value") value: i64, }, @id("ops.choice.none") None, }
 @id("ops.host") interface Host permits {} {
-@id("ops.host.release") import fn release(token: own Token) -> unit effects {} failure infallible consumes token always;
+    @id("ops.host.release") import fn release(token: own Token) -> unit effects {} failure infallible consumes token always;
 }
 @id("ops.work") fn work(value: Point) -> i64 uses { audit.read } { value.value }
 @id("ops.echo") fn echo<T>(value: T) -> T { value }
@@ -221,8 +221,8 @@ permit { audit.read }
 @id("ops.consumer.local") fn local(provider: i64) -> i64 { let Point = provider; Point }
 @id("ops.consumer.preserve") fn preserve(value: Point) -> Point { value }
 @id("ops.consumer.run") fn run(value: Point) -> i64 uses { audit.read } {
-let wrapped = Wrapper { point: value };
-match wrapped { Wrapper { point: nested } => provider(nested), }
+    let wrapped = Wrapper { point: value };
+    match wrapped { Wrapper { point: nested } => provider(nested), }
 }
 @id("ops.consumer.main") fn main() -> i64 uses { audit.read } { run(Point { value: 0 }) }
 "#,
@@ -246,9 +246,9 @@ match wrapped { Wrapper { point: nested } => provider(nested), }
     )
     .unwrap();
     let proposal = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.work\",\"from\":\"work\",\"to\":\"compute\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function_template\",\"target_id\":\"ops.echo\",\"from\":\"echo\",\"to\":\"identity\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"resource\",\"target_id\":\"ops.token\",\"from\":\"Token\",\"to\":\"Handle\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"record\",\"target_id\":\"ops.point\",\"from\":\"Point\",\"to\":\"Metric\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"variant\",\"target_id\":\"ops.choice\",\"from\":\"Choice\",\"to\":\"Outcome\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"interface\",\"target_id\":\"ops.host\",\"from\":\"Host\",\"to\":\"Runtime\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.work\",\"target_module\":\"ops.provider\",\"from\":\"provider\",\"to\":\"compute\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"type\",\"target_id\":\"ops.point\",\"target_module\":\"ops.provider\",\"from\":\"Point\",\"to\":\"Metric\"}}]}}\n",
-        preflight.workspace_revision(),
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.work\",\"from\":\"work\",\"to\":\"compute\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function_template\",\"target_id\":\"ops.echo\",\"from\":\"echo\",\"to\":\"identity\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"resource\",\"target_id\":\"ops.token\",\"from\":\"Token\",\"to\":\"Handle\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"record\",\"target_id\":\"ops.point\",\"from\":\"Point\",\"to\":\"Metric\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"variant\",\"target_id\":\"ops.choice\",\"from\":\"Choice\",\"to\":\"Outcome\"}},{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"interface\",\"target_id\":\"ops.host\",\"from\":\"Host\",\"to\":\"Runtime\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.work\",\"target_module\":\"ops.provider\",\"from\":\"provider\",\"to\":\"compute\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"type\",\"target_id\":\"ops.point\",\"target_module\":\"ops.provider\",\"from\":\"Point\",\"to\":\"Metric\"}}]}}\n",
+            preflight.workspace_revision(),
+        );
     (preflight, proposal)
 }
 
@@ -689,9 +689,9 @@ fn typed_occurrence_sidecar_covers_constructor_arguments_and_nested_patterns() {
     )
     .unwrap();
     let proposal = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.first\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/first.spx\",\"declaration_kind\":\"record\",\"target_id\":\"ops.first.inner\",\"from\":\"Inner\",\"to\":\"Core\"}},{{\"kind\":\"rename_declaration\",\"path\":\"b/second.spx\",\"declaration_kind\":\"record\",\"target_id\":\"ops.second.leaf\",\"from\":\"Leaf\",\"to\":\"Node\"}}]}}\n",
-        base.workspace_revision(),
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.first\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/first.spx\",\"declaration_kind\":\"record\",\"target_id\":\"ops.first.inner\",\"from\":\"Inner\",\"to\":\"Core\"}},{{\"kind\":\"rename_declaration\",\"path\":\"b/second.spx\",\"declaration_kind\":\"record\",\"target_id\":\"ops.second.leaf\",\"from\":\"Leaf\",\"to\":\"Node\"}}]}}\n",
+            base.workspace_revision(),
+        );
     let prepared = prepare_owned(&proposal, base).unwrap();
     let first = prepared.candidate_sources()[0].source();
     assert!(first.contains("record Core"));
@@ -855,9 +855,9 @@ permit { audit.one, audit.two }
     )
     .unwrap();
     let proposal = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"selective.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"selective.first\",\"from\":\"first\",\"to\":\"chosen\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"selective.first\",\"target_module\":\"selective.provider\",\"from\":\"first\",\"to\":\"chosen\"}}]}}\n",
-        base.workspace_revision(),
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"selective.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"selective.first\",\"from\":\"first\",\"to\":\"chosen\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"selective.first\",\"target_module\":\"selective.provider\",\"from\":\"first\",\"to\":\"chosen\"}}]}}\n",
+            base.workspace_revision(),
+        );
     let prepared = prepare_owned(&proposal, base).unwrap();
     let selected = |edge: &&workspace_graph::WorkspaceEdge| {
         matches!(edge.kind(), "call" | "effect_requirement")
@@ -908,9 +908,9 @@ fn trailing_as_keyword_and_alias_do_not_capture_the_module_segment() {
         "module ops.as; @id(\"ops.as.answer\") fn answer()->i64{1}",
     );
     let consumer = canonical(
-        "b/consumer.spx",
-        "module ops.consumer; use function @id(\"ops.as.answer\") from ops.as as as; @id(\"ops.consumer.main\") fn main()->i64{as()}",
-    );
+            "b/consumer.spx",
+            "module ops.consumer; use function @id(\"ops.as.answer\") from ops.as as as; @id(\"ops.consumer.main\") fn main()->i64{as()}",
+        );
     let paths = vec!["a/provider.spx".to_owned(), "b/consumer.spx".to_owned()];
     let path_set = semantic_workspace::render_path_set(&paths).unwrap();
     let base = semantic_workspace::preflight_owned_for_operations(
@@ -930,9 +930,9 @@ fn trailing_as_keyword_and_alias_do_not_capture_the_module_segment() {
     )
     .unwrap();
     let proposal = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.as.answer\",\"from\":\"answer\",\"to\":\"response\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.as.answer\",\"target_module\":\"ops.as\",\"from\":\"as\",\"to\":\"invoke\"}}]}}\n",
-        base.workspace_revision(),
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.consumer\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/provider.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.as.answer\",\"from\":\"answer\",\"to\":\"response\"}},{{\"kind\":\"rename_import_alias\",\"path\":\"b/consumer.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.as.answer\",\"target_module\":\"ops.as\",\"from\":\"as\",\"to\":\"invoke\"}}]}}\n",
+            base.workspace_revision(),
+        );
     let prepared = prepare_owned(&proposal, base).unwrap();
     let consumer = &prepared
         .candidate_sources()
@@ -1043,16 +1043,16 @@ fn grammar_binding_conflict_and_limit_matrix_is_exact() {
 
     let revision = parse_proposal(&proposal).unwrap().base_workspace_revision;
     let rows = (0..65)
-        .map(|index| {
-            format!(
-                "{{\"kind\":\"rename_declaration\",\"path\":\"{index:02}/module.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.limit.{index:02}\",\"from\":\"f{index:02}\",\"to\":\"g{index:02}\"}}"
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(",");
+            .map(|index| {
+                format!(
+                    "{{\"kind\":\"rename_declaration\",\"path\":\"{index:02}/module.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.limit.{index:02}\",\"from\":\"f{index:02}\",\"to\":\"g{index:02}\"}}"
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",");
     let over_operations = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{revision}\",\"entry_module\":\"ops.limit\",\"operations\":[{rows}]}}\n"
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{revision}\",\"entry_module\":\"ops.limit\",\"operations\":[{rows}]}}\n"
+        );
     assert_eq!(
         parse_proposal(&over_operations).err().unwrap()[0].message,
         "Semantic Workspace Operations exceeds operations maximum 64"
@@ -1068,17 +1068,17 @@ fn affected_path_cardinality_accepts_sixteen_and_rejects_seventeen() {
         let path = format!("{index:02}/module.spx");
         paths.push(path.clone());
         sources.push(semantic_workspace::SemanticWorkspaceSource {
-            path: path.clone(),
-            source: canonical(
-                &path,
-                &format!(
-                    "module exact.path{index:02}; @id(\"exact.path{index:02}.target\") fn target()->i64{{{index}}} @id(\"exact.path{index:02}.main\") fn main()->i64{{target()}}"
+                path: path.clone(),
+                source: canonical(
+                    &path,
+                    &format!(
+                        "module exact.path{index:02}; @id(\"exact.path{index:02}.target\") fn target()->i64{{{index}}} @id(\"exact.path{index:02}.main\") fn main()->i64{{target()}}"
+                    ),
                 ),
-            ),
-        });
+            });
         operations.push(format!(
-            "{{\"kind\":\"rename_declaration\",\"path\":\"{path}\",\"declaration_kind\":\"function\",\"target_id\":\"exact.path{index:02}.target\",\"from\":\"target\",\"to\":\"renamed\"}}"
-        ));
+                "{{\"kind\":\"rename_declaration\",\"path\":\"{path}\",\"declaration_kind\":\"function\",\"target_id\":\"exact.path{index:02}.target\",\"from\":\"target\",\"to\":\"renamed\"}}"
+            ));
     }
     let path_set = semantic_workspace::render_path_set(&paths).unwrap();
     let base = semantic_workspace::preflight_owned_for_operations(
@@ -1089,22 +1089,22 @@ fn affected_path_cardinality_accepts_sixteen_and_rejects_seventeen() {
     )
     .unwrap();
     let proposal = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"exact.path00\",\"operations\":[{}]}}\n",
-        base.workspace_revision(),
-        operations.join(",")
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"exact.path00\",\"operations\":[{}]}}\n",
+            base.workspace_revision(),
+            operations.join(",")
+        );
     let revision = base.workspace_revision().to_owned();
     let prepared = prepare_owned(&proposal, base).unwrap();
     assert_eq!(prepared.operations_len(), MAX_AFFECTED_PATHS);
     assert_eq!(prepared.candidate_sources().len(), MAX_AFFECTED_PATHS);
 
     operations.push(String::from(
-        "{\"kind\":\"rename_declaration\",\"path\":\"16/module.spx\",\"declaration_kind\":\"function\",\"target_id\":\"exact.path16.target\",\"from\":\"target\",\"to\":\"renamed\"}",
-    ));
+            "{\"kind\":\"rename_declaration\",\"path\":\"16/module.spx\",\"declaration_kind\":\"function\",\"target_id\":\"exact.path16.target\",\"from\":\"target\",\"to\":\"renamed\"}",
+        ));
     let over_paths = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{revision}\",\"entry_module\":\"exact.path00\",\"operations\":[{}]}}\n",
-        operations.join(",")
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{revision}\",\"entry_module\":\"exact.path00\",\"operations\":[{}]}}\n",
+            operations.join(",")
+        );
     assert_eq!(
         parse_proposal(&over_paths).err().unwrap()[0].message,
         "Semantic Workspace Operations exceeds affected_paths maximum 16"
@@ -1114,13 +1114,13 @@ fn affected_path_cardinality_accepts_sixteen_and_rejects_seventeen() {
 #[test]
 fn automatic_compiler_and_unsupported_targets_are_not_addressable() {
     let first = canonical(
-        "a/first.spx",
-        "module ops.first; fn automatic()->i64{1} @id(\"ops.first.main\") fn main()->i64{automatic()}",
-    );
+            "a/first.spx",
+            "module ops.first; fn automatic()->i64{1} @id(\"ops.first.main\") fn main()->i64{automatic()}",
+        );
     let second = canonical(
-        "b/second.spx",
-        "module ops.second; @id(\"ops.second.record\") record Record { @id(\"ops.second.field\") field:i64, } @id(\"ops.second.main\") fn main()->i64{0}",
-    );
+            "b/second.spx",
+            "module ops.second; @id(\"ops.second.record\") record Record { @id(\"ops.second.field\") field:i64, } @id(\"ops.second.main\") fn main()->i64{0}",
+        );
     let paths = vec!["a/first.spx".to_owned(), "b/second.spx".to_owned()];
     let path_set = semantic_workspace::render_path_set(&paths).unwrap();
     let make = || {
@@ -1148,8 +1148,8 @@ fn automatic_compiler_and_unsupported_targets_are_not_addressable() {
         ("record", crate::prelude::OPTION_ID, "Option"),
     ] {
         let proposal = format!(
-            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{revision}\",\"entry_module\":\"ops.first\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/first.spx\",\"declaration_kind\":\"{kind}\",\"target_id\":\"{id}\",\"from\":\"{from}\",\"to\":\"changed\"}},{{\"kind\":\"rename_declaration\",\"path\":\"b/second.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.second.main\",\"from\":\"main\",\"to\":\"entry\"}}]}}\n"
-        );
+                "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{revision}\",\"entry_module\":\"ops.first\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/first.spx\",\"declaration_kind\":\"{kind}\",\"target_id\":\"{id}\",\"from\":\"{from}\",\"to\":\"changed\"}},{{\"kind\":\"rename_declaration\",\"path\":\"b/second.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.second.main\",\"from\":\"main\",\"to\":\"entry\"}}]}}\n"
+            );
         assert_eq!(code(prepare_owned(&proposal, make())), "SPX-G197");
     }
 }
@@ -1161,9 +1161,9 @@ fn candidate_namespace_checks_include_automatic_declarations() {
         "module ops.first; fn occupied()->i64{1} @id(\"ops.first.selected\") fn selected()->i64{2}",
     );
     let second = canonical(
-        "b/second.spx",
-        "module ops.second; record Occupied { value:i64, } @id(\"ops.second.selected\") record Selected { @id(\"ops.second.selected.value\") value:i64, } @id(\"ops.second.main\") fn main()->i64{0}",
-    );
+            "b/second.spx",
+            "module ops.second; record Occupied { value:i64, } @id(\"ops.second.selected\") record Selected { @id(\"ops.second.selected.value\") value:i64, } @id(\"ops.second.main\") fn main()->i64{0}",
+        );
     let paths = vec!["a/first.spx".to_owned(), "b/second.spx".to_owned()];
     let path_set = semantic_workspace::render_path_set(&paths).unwrap();
     let base = semantic_workspace::preflight_owned_for_operations(
@@ -1183,9 +1183,9 @@ fn candidate_namespace_checks_include_automatic_declarations() {
     )
     .unwrap();
     let proposal = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.second\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/first.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.first.selected\",\"from\":\"selected\",\"to\":\"occupied\"}},{{\"kind\":\"rename_declaration\",\"path\":\"b/second.spx\",\"declaration_kind\":\"record\",\"target_id\":\"ops.second.selected\",\"from\":\"Selected\",\"to\":\"Occupied\"}}]}}\n",
-        base.workspace_revision(),
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.second\",\"operations\":[{{\"kind\":\"rename_declaration\",\"path\":\"a/first.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.first.selected\",\"from\":\"selected\",\"to\":\"occupied\"}},{{\"kind\":\"rename_declaration\",\"path\":\"b/second.spx\",\"declaration_kind\":\"record\",\"target_id\":\"ops.second.selected\",\"from\":\"Selected\",\"to\":\"Occupied\"}}]}}\n",
+            base.workspace_revision(),
+        );
     let diagnostics = prepare_owned(&proposal, base).err().unwrap();
     assert_eq!(diagnostics[0].code, "SPX-G198");
     assert_eq!(
@@ -1206,8 +1206,8 @@ fn dense_fixture() -> (semantic_workspace::SemanticWorkspacePreflight, String) {
             "use function @id(\"ops.a{index:02}\") from ops.dense as f{index:02};\n"
         ));
         operations.push(format!(
-            "{{\"kind\":\"rename_declaration\",\"path\":\"a/dense.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.a{index:02}\",\"from\":\"f{index:02}\",\"to\":\"g{index:02}\"}}"
-        ));
+                "{{\"kind\":\"rename_declaration\",\"path\":\"a/dense.spx\",\"declaration_kind\":\"function\",\"target_id\":\"ops.a{index:02}\",\"from\":\"f{index:02}\",\"to\":\"g{index:02}\"}}"
+            ));
     }
     provider.push_str("@id(\"ops.dense.main\") fn main()->i64{0}\n");
     for index in 0..32 {
@@ -1215,8 +1215,8 @@ fn dense_fixture() -> (semantic_workspace::SemanticWorkspacePreflight, String) {
             "@id(\"ops.b.caller{index:02}\") fn caller{index:02}()->i64{{f{index:02}()}}\n"
         ));
         operations.push(format!(
-            "{{\"kind\":\"rename_import_alias\",\"path\":\"b/late.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.a{index:02}\",\"target_module\":\"ops.dense\",\"from\":\"f{index:02}\",\"to\":\"g{index:02}\"}}"
-        ));
+                "{{\"kind\":\"rename_import_alias\",\"path\":\"b/late.spx\",\"import_kind\":\"function\",\"target_id\":\"ops.a{index:02}\",\"target_module\":\"ops.dense\",\"from\":\"f{index:02}\",\"to\":\"g{index:02}\"}}"
+            ));
     }
     consumer.push_str("@id(\"ops.late.main\") fn main()->i64{0}\n");
     let paths = vec!["a/dense.spx".to_owned(), "b/late.spx".to_owned()];
@@ -1238,10 +1238,10 @@ fn dense_fixture() -> (semantic_workspace::SemanticWorkspacePreflight, String) {
     )
     .unwrap();
     let proposal = format!(
-        "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.late\",\"operations\":[{}]}}\n",
-        preflight.workspace_revision(),
-        operations.join(",")
-    );
+            "{{\"schema\":\"{SCHEMA}\",\"base_workspace_revision\":\"{}\",\"entry_module\":\"ops.late\",\"operations\":[{}]}}\n",
+            preflight.workspace_revision(),
+            operations.join(",")
+        );
     (preflight, proposal)
 }
 
@@ -1709,135 +1709,135 @@ fn operations_evidence_parser_and_exact_replay_fail_closed() {
     .unwrap();
 
     for (hostile, expected) in [
-        (canonical.trim_end().to_owned(), "SPX-G201"),
-        (format!("\u{feff}{canonical}"), "SPX-G201"),
-        (canonical.replace("\n", "\r\n"), "SPX-G201"),
-        (
-            canonical.replacen("\"schema\":", "\"extra\":0,\"schema\":", 1),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen("\"schema\":", "\"schema\":0,\"schema_copy\":", 1),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(
-                "\"schema\":",
-                "\"schema\":\"duplicate\",\"schema\":",
-                1,
+            (canonical.trim_end().to_owned(), "SPX-G201"),
+            (format!("\u{feff}{canonical}"), "SPX-G201"),
+            (canonical.replace("\n", "\r\n"), "SPX-G201"),
+            (
+                canonical.replacen("\"schema\":", "\"extra\":0,\"schema\":", 1),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(
-                evidence_artifact::EVIDENCE_SCHEMA,
-                evidence_artifact::VERIFICATION_RECEIPT_SCHEMA,
-                1,
+            (
+                canonical.replacen("\"schema\":", "\"schema\":0,\"schema_copy\":", 1),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen("\"entry_module\":\"ops.consumer\",", "", 1),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen("\"bytes\":509}", "\"bytes\":509,\"extra\":0}", 1),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(
-                "\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"digest\":",
-                "\"digest\":\"sha256:3c7bf340a5313907edcec41748063e8666793ee76b903bc4e691871a843544b5\",\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"bytes\":509,\"digest\":",
-                1,
+            (
+                canonical.replacen(
+                    "\"schema\":",
+                    "\"schema\":\"duplicate\",\"schema\":",
+                    1,
+                ),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen("\"bytes\":509", "\"bytes\":\"509\"", 1),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(
-                "\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"digest\":",
-                "\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"digest\":",
-                1,
+            (
+                canonical.replacen(
+                    evidence_artifact::EVIDENCE_SCHEMA,
+                    evidence_artifact::VERIFICATION_RECEIPT_SCHEMA,
+                    1,
+                ),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(artifacts.operations_proposal_digest(), "invalid-digest", 1),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(
-                "\"document\":\"",
-                "\"extra\":0,\"document\":\"",
-                1,
+            (
+                canonical.replacen("\"entry_module\":\"ops.consumer\",", "", 1),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen("\"max_json_depth\":8,", "", 1),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(
-                "\"max_json_depth\":8,",
-                "\"max_json_depth\":\"8\",",
-                1,
+            (
+                canonical.replacen("\"bytes\":509}", "\"bytes\":509,\"extra\":0}", 1),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen("\"used_staging_attempts\":0,", "", 1),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(
-                "\"used_staging_attempts\":0,",
-                "\"used_staging_attempts\":\"0\",",
-                1,
+            (
+                canonical.replacen(
+                    "\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"digest\":",
+                    "\"digest\":\"sha256:3c7bf340a5313907edcec41748063e8666793ee76b903bc4e691871a843544b5\",\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"bytes\":509,\"digest\":",
+                    1,
+                ),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen("\"nonclaims\":[", "\"nonclaims\":{", 1),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(
-                "\"entry_module\":\"ops.consumer\"",
-                "\"entry_module\":[]",
-                1,
+            (
+                canonical.replacen("\"bytes\":509", "\"bytes\":\"509\"", 1),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (
-            canonical.replacen(
-                "\"operations_proposal\":{",
-                "\"operations_proposal\":[]",
-                1,
+            (
+                canonical.replacen(
+                    "\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"digest\":",
+                    "\"digest\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"schema\":\"semaprax.semantic-workspace-operations.v1\",\"digest\":",
+                    1,
+                ),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (
-            format!(
-                "{{\"schema\":\"{}\",\"result\":\"exact_replay\"}}\n",
-                evidence_artifact::VERIFICATION_RECEIPT_SCHEMA
+            (
+                canonical.replacen(artifacts.operations_proposal_digest(), "invalid-digest", 1),
+                "SPX-G201",
             ),
-            "SPX-G201",
-        ),
-        (artifacts.workspace_change_evidence().to_owned(), "SPX-G201"),
-        ("[[[[[[[[[]]]]]]]]]\n".to_owned(), "SPX-G199"),
-    ] {
-        assert_eq!(
-            evidence_verification::parse_evidence(&hostile)
-                .err()
-                .unwrap()[0]
-                .code,
-            expected
-        );
-    }
+            (
+                canonical.replacen(
+                    "\"document\":\"",
+                    "\"extra\":0,\"document\":\"",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"max_json_depth\":8,", "", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"max_json_depth\":8,",
+                    "\"max_json_depth\":\"8\",",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"used_staging_attempts\":0,", "", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"used_staging_attempts\":0,",
+                    "\"used_staging_attempts\":\"0\",",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen("\"nonclaims\":[", "\"nonclaims\":{", 1),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"entry_module\":\"ops.consumer\"",
+                    "\"entry_module\":[]",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                canonical.replacen(
+                    "\"operations_proposal\":{",
+                    "\"operations_proposal\":[]",
+                    1,
+                ),
+                "SPX-G201",
+            ),
+            (
+                format!(
+                    "{{\"schema\":\"{}\",\"result\":\"exact_replay\"}}\n",
+                    evidence_artifact::VERIFICATION_RECEIPT_SCHEMA
+                ),
+                "SPX-G201",
+            ),
+            (artifacts.workspace_change_evidence().to_owned(), "SPX-G201"),
+            ("[[[[[[[[[]]]]]]]]]\n".to_owned(), "SPX-G199"),
+        ] {
+            assert_eq!(
+                evidence_verification::parse_evidence(&hostile)
+                    .err()
+                    .unwrap()[0]
+                    .code,
+                expected
+            );
+        }
     assert_eq!(
         evidence_verification::parse_evidence("[[[[[[[]]]]]]]\n")
             .err()
@@ -2260,9 +2260,9 @@ fn operations_apply_is_exact_stale_and_zero_write_before_replay() {
         .unwrap();
     assert_eq!(stale[0].code, "SPX-G197");
     assert_eq!(
-        stale[0].message,
-        "Semantic Workspace Operations target does not match one explicit user-owned pre-state declaration"
-    );
+            stale[0].message,
+            "Semantic Workspace Operations target does not match one explicit user-owned pre-state declaration"
+        );
     assert_eq!(fixture.inventory(), committed);
     fixture.assert_exclusive_reacquire();
 

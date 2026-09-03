@@ -106,7 +106,7 @@ Focused local evidence is:
 
 ```sh
 cargo test --locked -p semaprax --all-features \
-  --test project_agent_transport_rename_v1 -- --test-threads=1
+  --test project agent_transport_rename:: -- --test-threads=1
 ```
 
 It covers v2/v3 method isolation, a calculator `calculator.add` display rename

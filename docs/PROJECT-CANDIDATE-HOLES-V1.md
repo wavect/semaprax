@@ -183,7 +183,7 @@ format. They do not add persistence, rebase or publication authority.
 
 ## Authored evidence
 
-[Integration evidence](../tests/project_candidate_holes_v1.rs) covers typed
+[Integration evidence](../tests/project_candidate/holes.rs) covers typed
 scope/contracts, no incomplete materialization or source/evidence leakage,
 multiple pending holes, failed-fill immutability, local/import call selection,
 stale and duplicate selectors, exact capacity, cross-root determinism, and

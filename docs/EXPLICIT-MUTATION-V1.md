@@ -4,7 +4,7 @@ Audience: language users, tool authors, and compiler contributors.
 
 Status: Partial — the Immutable-by-default values and explicit mutation row of
 [COMPLETION-MATRIX.md](COMPLETION-MATRIX.md) moves from Missing to Partial on
-the strength of this document plus `tests/explicit_mutation_v1.rs`.
+the strength of this document plus `tests/language/explicit_mutation.rs`.
 
 ## Objective
 
@@ -107,7 +107,7 @@ Unknown assignment names reuse the established unknown-value diagnostic
 
 ## Evidence
 
-`tests/explicit_mutation_v1.rs` pins canonical round-trips, all six U-family
+`tests/language/explicit_mutation.rs` pins canonical round-trips, all six U-family
 diagnostics plus statement-only grammar regressions, deterministic Graph JSON
 with a byte-exact non-mutation digest pin, CleanupPlan structural equality,
 native C11 O0/O2 probes (success values and assigned-overflow failure

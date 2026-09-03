@@ -147,7 +147,7 @@ New diagnostics are `SPX-G252` for invalid delta selection/facts, `SPX-G253` for
 capacity, and `SPX-G254` for failed exact recomputation. Existing stale candidate,
 image/facet, Project, and target-projection diagnostics may propagate unchanged.
 
-`tests/project_candidate_semantic_delta_v1.rs` contains authored, unrun cases for
+`tests/project_candidate/semantic_delta.rs` contains authored, unrun cases for
 signature changes, omission of equal contract payloads, exact replay/tampering,
 stale selection, source preservation, added-function absent-base contracts,
 non-function field/record deltas, real read/write/pattern sites, static test

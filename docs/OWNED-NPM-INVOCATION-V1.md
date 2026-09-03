@@ -141,7 +141,7 @@ not target execution and must not be described as behavioral evidence.
 ## Required authored evidence
 
 The authored entry point is
-[`tests/project_owned_failure_fsm_v1.rs`](../tests/project_owned_failure_fsm_v1.rs).
+[`tests/project/owned_failure_fsm.rs`](../tests/project/owned_failure_fsm.rs).
 Its companion `baseline.rs` freezes complete TypeScript, package JSON and API
 metadata formats independently of the current renderers. Supplied descriptor
 bytes are authenticated fixture inputs, not a historical descriptor known
@@ -231,7 +231,7 @@ or a hostile-JavaScript sandbox. UTF-8 decoder evidence remains a separate case.
 
 ### Successful inactive results after initialized ownership
 
-`tests/project_owned_inactive_cleanup_v1.rs` adds a separate authenticated v8
+`tests/project/owned_inactive_cleanup.rs` adds a separate authenticated v8
 Project whose two exports copy their borrowed input before selecting `Some`
 versus `None`, or `Ok` versus `Err`. It materializes the six verified inline
 artifacts for Node consumption; it is not a production filesystem-publication
@@ -267,7 +267,7 @@ safe-Rust publication evidence. Browser coverage remains separate.
 ### Scoped local execution
 
 On macOS AArch64 with Rust 1.98 and Node 24.3, both tests in
-`project_owned_failure_fsm_v1` pass across the seven generated packages,
+`project/owned_failure_fsm` pass across the seven generated packages,
 including the malformed-result and finalization companions above. Production
 runtime templates and existing artifact known answers are unchanged by the
 finalization-test batch. This is local evidence for this selected gate, not a
@@ -275,9 +275,9 @@ full quality-profile, hosted release, package publication, support promotion
 or overall production-readiness claim.
 
 The later descriptor/inactive-cleanup test-only batch passes the complete
-`public_api_descriptor_v1` suite (16 tests), `project_owned_bytes_npm_v1`
-(7), `project_owned_failure_fsm_v1` (2), `project_owned_tuple_npm_v1` (1),
-and `project_owned_inactive_cleanup_v1` (1) together on macOS AArch64/Rust
+`public_api_descriptor_v1` suite (16 tests), `project/owned_bytes_npm`
+(7), `project/owned_failure_fsm` (2), `project/owned_tuple_npm` (1),
+and `project/owned_inactive_cleanup` (1) together on macOS AArch64/Rust
 1.98 and offline Linux AArch64/Rust 1.88, both using Node 24.3. The new fixture
 observes 64 active consumes and 32 inactive compiler drops. Two documentation
 checks pass on both hosts; strict compiler-library and changed-integration

@@ -48,7 +48,7 @@ permit { collision.same }
 
 @id("entry.main")
 fn main() -> i64 uses { collision.same } {
-work(Point { value: 1 })
+    work(Point { value: 1 })
 }
 "#,
             ),
@@ -60,10 +60,10 @@ work(Point { value: 1 })
         }
         let paths = root.join("paths.json");
         std::fs::write(
-            &paths,
-            "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"a/provider.spx\"},{\"path\":\"z/entry.spx\"}]}\n",
-        )
-        .unwrap();
+                &paths,
+                "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"a/provider.spx\"},{\"path\":\"z/entry.spx\"}]}\n",
+            )
+            .unwrap();
         crate::semantic_workspace::initialize(&root, &paths).unwrap();
         Self { root }
     }

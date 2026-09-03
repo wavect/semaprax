@@ -92,7 +92,7 @@ authority.
 
 ## Evidence
 
-`tests/hygienic_gen_v1.rs` pins the known-answer identities and formatted
+`tests/projections/hygienic_gen.rs` pins the known-answer identities and formatted
 digests, cross-run byte determinism, rename-with-same-id name stability,
 move/comment stability, semantic field-order sensitivity, hygiene collisions
 (`SPX-Y102`), reserved-prefix preemption (`SPX-Y103`), verifier passthrough,

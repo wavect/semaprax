@@ -45,12 +45,12 @@ fn resolved_value_match_program() -> ResolvedProgram {
 module test.graph_match_mode;
 @id("mode.pair")
 record Pair {
-@id("mode.pair.left") left: i64,
-@id("mode.pair.right") right: bool,
+    @id("mode.pair.left") left: i64,
+    @id("mode.pair.right") right: bool,
 }
 @id("mode.read")
 fn read(value: Pair) -> i64 {
-match value { Pair { left, right: _ } => left, }
+    match value { Pair { left, right: _ } => left, }
 }
 @id("app.main")
 fn main() -> i64 { 0 }
@@ -266,9 +266,9 @@ fn dynamic_byte_ranges_select_v20_and_publish_exact_contract() {
 module test.graph_byte_range;
 @id("range.length")
 fn range_length(input: borrow Slice<u8>) -> usize {
-let outer = byte_range(input, 1usize, 4usize);
-let inner = byte_range(outer, 0usize, 2usize);
-byte_len(inner)
+    let outer = byte_range(input, 1usize, 4usize);
+    let inner = byte_range(outer, 0usize, 2usize);
+    byte_len(inner)
 }
 @id("app.main")
 fn main() -> i64 { 0 }
@@ -308,11 +308,11 @@ module test.graph_line_command_v20;
 permit { process.stderr.write, process.stdout.write }
 @id("command.append")
 fn append(value: borrow Slice<u8>) -> usize
-uses { process.stderr.write, process.stdout.write }
+    uses { process.stderr.write, process.stdout.write }
 {
-let selected = byte_range(value, 0usize, byte_len(value));
-let stdout = stdout_append(selected);
-stdout + stderr_append(selected)
+    let selected = byte_range(value, 0usize, byte_len(value));
+    let stdout = stdout_append(selected);
+    stdout + stderr_append(selected)
 }
 @id("app.main")
 fn main() -> i64 { 0 }
@@ -331,8 +331,8 @@ fn internal_hir_renderer_rejects_forged_byte_range_operation() {
 module test.graph_forged_byte_range;
 @id("range.length")
 fn range_length(input: borrow Slice<u8>) -> usize {
-let selected = byte_range(input, 0usize, 1usize);
-byte_len(selected)
+    let selected = byte_range(input, 0usize, 1usize);
+    byte_len(selected)
 }
 @id("app.main")
 fn main() -> i64 { 0 }

@@ -127,30 +127,30 @@ fn provider_target_guard_source_is_exact_for_msvc_and_gnu_models() {
     assert_eq!(
         msvc,
         "#if !(defined(__x86_64__) || defined(_M_X64) || defined(_M_AMD64))\n\
-         # error \"SEMAPRAX callable provider architecture mismatch\"\n\
-         #endif\n\
-         #if !(defined(_WIN32))\n\
-         # error \"SEMAPRAX callable provider operating-system mismatch\"\n\
-         #endif\n\
-         #if !(defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__MINGW64__))\n\
-         # error \"SEMAPRAX callable provider environment mismatch\"\n\
-         #endif\n\
-         #if !(defined(_WIN32) && !defined(__ELF__) && !defined(__MACH__))\n\
-         # error \"SEMAPRAX callable provider object-format mismatch\"\n\
-         #endif\n\
-         #if !(UINTPTR_MAX == UINT64_MAX)\n\
-         # error \"SEMAPRAX callable provider pointer-width mismatch\"\n\
-         #endif\n\
-         #if defined(_MSC_VER)\n\
-         /* Supported MSVC architectures are intrinsically little-endian;\n\
-            GNU byte-order builtins are neither required nor assumed. */\n\
-         #elif defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)\n\
-         # if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__\n\
-         #  error \"SEMAPRAX callable provider endian mismatch\"\n\
-         # endif\n\
-         #else\n\
-         # error \"SEMAPRAX callable provider cannot prove little endian\"\n\
-         #endif\n"
+             # error \"SEMAPRAX callable provider architecture mismatch\"\n\
+             #endif\n\
+             #if !(defined(_WIN32))\n\
+             # error \"SEMAPRAX callable provider operating-system mismatch\"\n\
+             #endif\n\
+             #if !(defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__MINGW64__))\n\
+             # error \"SEMAPRAX callable provider environment mismatch\"\n\
+             #endif\n\
+             #if !(defined(_WIN32) && !defined(__ELF__) && !defined(__MACH__))\n\
+             # error \"SEMAPRAX callable provider object-format mismatch\"\n\
+             #endif\n\
+             #if !(UINTPTR_MAX == UINT64_MAX)\n\
+             # error \"SEMAPRAX callable provider pointer-width mismatch\"\n\
+             #endif\n\
+             #if defined(_MSC_VER)\n\
+             /* Supported MSVC architectures are intrinsically little-endian;\n\
+                GNU byte-order builtins are neither required nor assumed. */\n\
+             #elif defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)\n\
+             # if __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__\n\
+             #  error \"SEMAPRAX callable provider endian mismatch\"\n\
+             # endif\n\
+             #else\n\
+             # error \"SEMAPRAX callable provider cannot prove little endian\"\n\
+             #endif\n"
     );
 
     let gnu = render_provider_target_guards(ProviderTargetGuardSpec {
@@ -258,11 +258,11 @@ fn android_guards_reject_wrong_architecture_platform_api_and_object_format() {
         fs::write(
             directory.join("stdint.h"),
             "#define UINT32_MAX 4294967295U\n\
-             #define UINT64_MAX 18446744073709551615ULL\n\
-             #define UINTPTR_MAX UINT64_MAX\n\
-             #define __ORDER_LITTLE_ENDIAN__ 1234\n\
-             #define __ORDER_BIG_ENDIAN__ 4321\n\
-             #define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__\n",
+                 #define UINT64_MAX 18446744073709551615ULL\n\
+                 #define UINTPTR_MAX UINT64_MAX\n\
+                 #define __ORDER_LITTLE_ENDIAN__ 1234\n\
+                 #define __ORDER_BIG_ENDIAN__ 4321\n\
+                 #define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__\n",
         )
         .unwrap();
         fs::write(
@@ -374,25 +374,25 @@ fn ios_simulator_and_catalyst_guards_reject_each_others_target_conditionals() {
     }
     fn preprocess(guard: &str, simulator: bool, directory: &std::path::Path) -> (bool, String) {
         fs::write(
-            directory.join("TargetConditionals.h"),
-            format!(
-                "#define TARGET_OS_IOS 1\n#define TARGET_OS_SIMULATOR {}\n#define TARGET_OS_MACCATALYST {}\n",
-                u8::from(simulator),
-                u8::from(!simulator),
-            ),
-        )
-        .unwrap();
+                directory.join("TargetConditionals.h"),
+                format!(
+                    "#define TARGET_OS_IOS 1\n#define TARGET_OS_SIMULATOR {}\n#define TARGET_OS_MACCATALYST {}\n",
+                    u8::from(simulator),
+                    u8::from(!simulator),
+                ),
+            )
+            .unwrap();
         fs::write(
             directory.join("stdint.h"),
             "#define UINT32_MAX 4294967295U\n\
-             #define UINT64_MAX 18446744073709551615ULL\n\
-             #define UINTPTR_MAX UINT64_MAX\n\
-             #ifndef __ORDER_LITTLE_ENDIAN__\n\
-             #define __ORDER_LITTLE_ENDIAN__ 1234\n\
-             #endif\n\
-             #ifndef __BYTE_ORDER__\n\
-             #define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__\n\
-             #endif\n",
+                 #define UINT64_MAX 18446744073709551615ULL\n\
+                 #define UINTPTR_MAX UINT64_MAX\n\
+                 #ifndef __ORDER_LITTLE_ENDIAN__\n\
+                 #define __ORDER_LITTLE_ENDIAN__ 1234\n\
+                 #endif\n\
+                 #ifndef __BYTE_ORDER__\n\
+                 #define __BYTE_ORDER__ __ORDER_LITTLE_ENDIAN__\n\
+                 #endif\n",
         )
         .unwrap();
         fs::write(
@@ -518,19 +518,19 @@ fn scalar_provider_strictly_decodes_and_preserves_response_on_rejection() {
     source.push_str(&c_bytes("canonical_request", &canonical));
     writeln!(source, "static uint32_t SPX_PROVIDER_CALL {}(uint64_t invocation, int64_t a, bool b, uint64_t c, struct spx_provider_execution *out) {{ if (invocation != UINT64_C(9) || a != INT64_MIN || !b || c != UINT64_MAX) return UINT32_C(9); out->outcome = SPX_OUTCOME_SUCCESS; out->scalar_result = -INT64_C(7); out->event_count = UINT32_C(3); out->event_ordinals[0] = UINT32_C(1); out->event_ordinals[1] = UINT32_C(2); out->event_ordinals[2] = UINT32_C(3); return UINT32_C(0); }}", provider.hook_symbol).unwrap();
     source.push_str(
-        "static int unchanged(const uint8_t *p, size_t n) { for (size_t i = 0; i < n; ++i) if (p[i] != UINT8_C(0xa5)) return 0; return 1; }\n\
-         int main(void) {\n\
-         uint8_t response[SPX_PROVIDER_RESPONSE_BYTES]; uint8_t hostile[sizeof(canonical_request)];\n\
-         memset(response, 0xa5, sizeof(response));\n\
-         if (spx_test_scalar_call_v2(canonical_request, sizeof(canonical_request), response, sizeof(response)) != SPX_CALL_COMPLETE) return 1;\n\
-         if (memcmp(response, \"SPXNRSP1\", 8) != 0 || spx_load_u32(response + 60) != SPX_OUTCOME_SUCCESS || spx_load_u32(response + 64) != 3 || spx_load_u32(response + 68) != 1 || spx_load_i64(response + 72) != -INT64_C(7) || spx_load_u32(response + 80) != 1 || spx_load_u32(response + 84) != 2 || spx_load_u32(response + 88) != 3) return 2;\n\
-         for (uint32_t which = 0; which < UINT32_C(12); ++which) { memcpy(hostile, canonical_request, sizeof(hostile));\n\
-           if (which == 0) hostile[0] ^= 1; else if (which == 1) hostile[8] ^= 1; else if (which == 2) hostile[12] ^= 1; else if (which == 3) hostile[16] ^= 1; else if (which == 4) hostile[20] ^= 1; else if (which == 5) memset(hostile + 52, 0, 8); else if (which == 6) hostile[60] ^= 1; else if (which == 7) hostile[64] ^= 1; else if (which == 8) hostile[84] = 2; else if (which == 9) hostile[88] = 2; else if (which == 10) hostile[92] ^= 1; else hostile[100] = 1;\n\
-           memset(response, 0xa5, sizeof(response)); if (spx_test_scalar_call_v2(hostile, sizeof(hostile), response, sizeof(response)) != SPX_CALL_INVALID_REQUEST || !unchanged(response, sizeof(response))) return 10 + (int)which; }\n\
-         memset(response, 0xa5, sizeof(response)); if (spx_test_scalar_call_v2(canonical_request, sizeof(canonical_request) - 1, response, sizeof(response)) != SPX_CALL_INVALID_REQUEST || !unchanged(response, sizeof(response))) return 30;\n\
-         memset(response, 0xa5, sizeof(response)); if (spx_test_scalar_call_v2(canonical_request, sizeof(canonical_request), response, sizeof(response) - 1) != SPX_CALL_RESPONSE_CAPACITY || !unchanged(response, sizeof(response))) return 31;\n\
-         return 0; }\n",
-    );
+            "static int unchanged(const uint8_t *p, size_t n) { for (size_t i = 0; i < n; ++i) if (p[i] != UINT8_C(0xa5)) return 0; return 1; }\n\
+             int main(void) {\n\
+             uint8_t response[SPX_PROVIDER_RESPONSE_BYTES]; uint8_t hostile[sizeof(canonical_request)];\n\
+             memset(response, 0xa5, sizeof(response));\n\
+             if (spx_test_scalar_call_v2(canonical_request, sizeof(canonical_request), response, sizeof(response)) != SPX_CALL_COMPLETE) return 1;\n\
+             if (memcmp(response, \"SPXNRSP1\", 8) != 0 || spx_load_u32(response + 60) != SPX_OUTCOME_SUCCESS || spx_load_u32(response + 64) != 3 || spx_load_u32(response + 68) != 1 || spx_load_i64(response + 72) != -INT64_C(7) || spx_load_u32(response + 80) != 1 || spx_load_u32(response + 84) != 2 || spx_load_u32(response + 88) != 3) return 2;\n\
+             for (uint32_t which = 0; which < UINT32_C(12); ++which) { memcpy(hostile, canonical_request, sizeof(hostile));\n\
+               if (which == 0) hostile[0] ^= 1; else if (which == 1) hostile[8] ^= 1; else if (which == 2) hostile[12] ^= 1; else if (which == 3) hostile[16] ^= 1; else if (which == 4) hostile[20] ^= 1; else if (which == 5) memset(hostile + 52, 0, 8); else if (which == 6) hostile[60] ^= 1; else if (which == 7) hostile[64] ^= 1; else if (which == 8) hostile[84] = 2; else if (which == 9) hostile[88] = 2; else if (which == 10) hostile[92] ^= 1; else hostile[100] = 1;\n\
+               memset(response, 0xa5, sizeof(response)); if (spx_test_scalar_call_v2(hostile, sizeof(hostile), response, sizeof(response)) != SPX_CALL_INVALID_REQUEST || !unchanged(response, sizeof(response))) return 10 + (int)which; }\n\
+             memset(response, 0xa5, sizeof(response)); if (spx_test_scalar_call_v2(canonical_request, sizeof(canonical_request) - 1, response, sizeof(response)) != SPX_CALL_INVALID_REQUEST || !unchanged(response, sizeof(response))) return 30;\n\
+             memset(response, 0xa5, sizeof(response)); if (spx_test_scalar_call_v2(canonical_request, sizeof(canonical_request), response, sizeof(response) - 1) != SPX_CALL_RESPONSE_CAPACITY || !unchanged(response, sizeof(response))) return 31;\n\
+             return 0; }\n",
+        );
     compile_and_run(&source);
 }
 
@@ -609,15 +609,15 @@ fn owned_provider_encodes_success_failure_and_contains_hook_failure() {
     source.push_str(&c_bytes("bad_failure_request", &bad_failure));
     writeln!(source, "static uint32_t SPX_PROVIDER_CALL {}(uint64_t invocation, uint64_t value, bool success, struct spx_provider_execution *out) {{ if (invocation < UINT64_C(10) || invocation > UINT64_C(14)) return UINT32_C(8); if (value == UINT64_MAX) return UINT32_C(7); if (value == UINT64_C(78)) {{ out->outcome = SPX_OUTCOME_SUCCESS; out->owned_result_ordinal = UINT32_C(0); out->event_count = UINT32_C(1); out->event_ordinals[0] = UINT32_C(3); return UINT32_C(0); }} if (value == UINT64_C(79)) {{ out->outcome = SPX_OUTCOME_FAILURE; out->selected_failure_ordinal = UINT32_C(2); out->event_count = UINT32_C(1); out->event_ordinals[0] = UINT32_C(3); return UINT32_C(0); }} if (success) {{ out->outcome = SPX_OUTCOME_SUCCESS; out->owned_result_ordinal = UINT32_C(0); out->event_count = UINT32_C(2); out->event_ordinals[0] = UINT32_C(1); out->event_ordinals[1] = UINT32_C(4); }} else {{ out->outcome = SPX_OUTCOME_FAILURE; out->selected_failure_ordinal = UINT32_C(2); out->event_count = UINT32_C(3); out->event_ordinals[0] = UINT32_C(2); out->event_ordinals[1] = UINT32_C(3); out->event_ordinals[2] = UINT32_C(4); }} return UINT32_C(0); }}", provider.hook_symbol).unwrap();
     source.push_str(
-        "static int unchanged(const uint8_t *p, size_t n) { for (size_t i = 0; i < n; ++i) if (p[i] != UINT8_C(0xa5)) return 0; return 1; }\n\
-         int main(void) { uint8_t response[SPX_PROVIDER_RESPONSE_BYTES];\n\
-         memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(success_request, sizeof(success_request), response, sizeof(response)) != 0 || spx_load_u32(response + 60) != 1 || spx_load_u32(response + 68) != 2 || spx_load_u32(response + 72) != 0) return 1;\n\
-         memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(failure_request, sizeof(failure_request), response, sizeof(response)) != 0 || spx_load_u32(response + 60) != 2 || spx_load_u32(response + 68) != 2 || spx_load_u32(response + 72) != 2) return 2;\n\
-         memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(internal_request, sizeof(internal_request), response, sizeof(response)) != SPX_CALL_INTERNAL_FAILURE || !unchanged(response, sizeof(response))) return 3;\n\
-         memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(bad_commit_request, sizeof(bad_commit_request), response, sizeof(response)) != SPX_CALL_INTERNAL_FAILURE || !unchanged(response, sizeof(response))) return 4;\n\
-         memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(bad_failure_request, sizeof(bad_failure_request), response, sizeof(response)) != SPX_CALL_INTERNAL_FAILURE || !unchanged(response, sizeof(response))) return 5;\n\
-         return 0; }\n",
-    );
+            "static int unchanged(const uint8_t *p, size_t n) { for (size_t i = 0; i < n; ++i) if (p[i] != UINT8_C(0xa5)) return 0; return 1; }\n\
+             int main(void) { uint8_t response[SPX_PROVIDER_RESPONSE_BYTES];\n\
+             memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(success_request, sizeof(success_request), response, sizeof(response)) != 0 || spx_load_u32(response + 60) != 1 || spx_load_u32(response + 68) != 2 || spx_load_u32(response + 72) != 0) return 1;\n\
+             memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(failure_request, sizeof(failure_request), response, sizeof(response)) != 0 || spx_load_u32(response + 60) != 2 || spx_load_u32(response + 68) != 2 || spx_load_u32(response + 72) != 2) return 2;\n\
+             memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(internal_request, sizeof(internal_request), response, sizeof(response)) != SPX_CALL_INTERNAL_FAILURE || !unchanged(response, sizeof(response))) return 3;\n\
+             memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(bad_commit_request, sizeof(bad_commit_request), response, sizeof(response)) != SPX_CALL_INTERNAL_FAILURE || !unchanged(response, sizeof(response))) return 4;\n\
+             memset(response, 0xa5, sizeof(response)); if (spx_test_owned_call_v2(bad_failure_request, sizeof(bad_failure_request), response, sizeof(response)) != SPX_CALL_INTERNAL_FAILURE || !unchanged(response, sizeof(response))) return 5;\n\
+             return 0; }\n",
+        );
     compile_and_run(&source);
 }
 

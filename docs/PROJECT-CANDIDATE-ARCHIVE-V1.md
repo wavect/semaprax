@@ -71,7 +71,7 @@ identity disagreements. The archive has no store, process, network, source-write
 or commit authority. Any host-selected persistence or live-session import route
 must impose its own filesystem and current-source authentication boundaries.
 
-`tests/project_candidate_archive_v1.rs` authors deleted-source exact restoration
+`tests/project_candidate/archive.rs` authors deleted-source exact restoration
 without file recreation, rebased history restoration after raw edits, continued
 candidate editing, wrong selectors/canonical spelling/authority rejection,
 self-rehashed false base/source/candidate rejection, and raw structural limits.

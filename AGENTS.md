@@ -85,13 +85,35 @@ Use bounded source tools such as `rg` and `rg --files` for Rust and host-code
 navigation. Read [ADR 0001](docs/decisions/0001-graphify.md) before adding a
 repository-wide graph index.
 
+A Rust source file may not exceed 1500 lines unless `tests/module-size-budget.tsv`
+records it, and a recorded file may not grow past its recorded size. Prefer a new
+submodule over a larger file. [Architecture](docs/ARCHITECTURE.md#module-size)
+owns the rule and the two standing exceptions.
+
+Add an integration test as a module of the harness that owns its subject, not as
+a new top-level file in `tests/`. Each top-level file is a separate binary that
+statically links the whole compiler.
+[Architecture](docs/ARCHITECTURE.md#integration-test-harnesses) owns the
+convention and the cases that must stay standalone.
+
 ## Prohibited shortcuts
 
 - Do not edit generated files under `target/` or commit tool caches.
+- Do not run `git stash` here. The stash is a single stack shared by every
+  worktree of this repository, and dozens are usually registered, so a push or
+  pop reaches another agent's uncommitted work rather than your own. Commit to a
+  scratch branch, or use a worktree, instead.
 - Do not introduce build-time network access or ambient authority.
 - Do not bypass verification in a backend or report generator.
 - Do not sort, repair, or reinterpret canonical cleanup plans downstream.
 - Do not weaken a test, diagnostic, golden, or hostile-input case merely to
-  make a gate pass.
+  make a gate pass. Relocating audited source weakens one silently: a gate that
+  reads a module's text keeps passing against the smaller root while covering
+  less. Splitting a module means joining its submodules back into every such
+  contract.
+- Do not dedent relocated code. Moving a body out of an inline module removes a
+  level of indentation from the interior lines of multi-line string literals,
+  where leading whitespace is content rather than formatting. Move bodies
+  verbatim and let `cargo fmt` reindent; it never rewrites literal contents.
 - Do not describe private, local, proof-only, simulator, or prior-head evidence
   as public, hosted, physical-device, current-head, or production support.

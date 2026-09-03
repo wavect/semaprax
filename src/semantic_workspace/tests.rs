@@ -33,7 +33,7 @@ permit { audit.write }
 
 @id("semantic.main")
 fn main() -> i64 uses { audit.write } {
-work(Point { value: 1 })
+    work(Point { value: 1 })
 }
 "#,
         ),
@@ -80,21 +80,21 @@ fn raw_path_set(paths: &[String]) -> String {
 
 fn raw_manifest(files: &[SemanticWorkspaceFileFact]) -> String {
     format!(
-        "{{\"schema\":{},\"files\":[{}]}}\n",
-        quote_json(MANIFEST_SCHEMA),
-        files
-            .iter()
-            .map(|file| format!(
-                "{{\"path\":{},\"source_graph_schema\":{},\"source_revision\":{},\"source_digest\":{},\"bytes\":{}}}",
-                quote_json(&file.path),
-                quote_json(&file.source_graph_schema),
-                quote_json(&file.source_revision),
-                quote_json(&file.source_digest),
-                file.bytes
-            ))
-            .collect::<Vec<_>>()
-            .join(",")
-    )
+            "{{\"schema\":{},\"files\":[{}]}}\n",
+            quote_json(MANIFEST_SCHEMA),
+            files
+                .iter()
+                .map(|file| format!(
+                    "{{\"path\":{},\"source_graph_schema\":{},\"source_revision\":{},\"source_digest\":{},\"bytes\":{}}}",
+                    quote_json(&file.path),
+                    quote_json(&file.source_graph_schema),
+                    quote_json(&file.source_revision),
+                    quote_json(&file.source_digest),
+                    file.bytes
+                ))
+                .collect::<Vec<_>>()
+                .join(",")
+        )
 }
 
 fn assert_code<T>(result: Result<T, Vec<Diagnostic>>, code: &str) -> Vec<Diagnostic> {
@@ -108,9 +108,9 @@ fn assert_code<T>(result: Result<T, Vec<Diagnostic>>, code: &str) -> Vec<Diagnos
 fn exact_path_set_active_manifest_and_revision_kat_replay() {
     let paths = path_set(&["a/provider.spx", "z/app.spx"]);
     assert_eq!(
-        paths,
-        "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"a/provider.spx\"},{\"path\":\"z/app.spx\"}]}\n"
-    );
+            paths,
+            "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[{\"path\":\"a/provider.spx\"},{\"path\":\"z/app.spx\"}]}\n"
+        );
     assert_eq!(
         parse_path_set(&paths).unwrap(),
         ["a/provider.spx", "z/app.spx"]
@@ -133,9 +133,9 @@ fn exact_path_set_active_manifest_and_revision_kat_replay() {
             && file.source_digest().starts_with("sha256:")
     }));
     assert_eq!(
-        preflight.manifest(),
-        "{\"schema\":\"semaprax.workspace-semantic-manifest.v1\",\"files\":[{\"path\":\"a/provider.spx\",\"source_graph_schema\":\"semaprax.graph.v10\",\"source_revision\":\"sha256:e9e29bfe3a186fd9c9e1a7d8f3c10dc7ebcc006ed92b407344adacbb0248b7c0\",\"source_digest\":\"sha256:92041de1eebfe58bac89d26f743f7b09c21e57b9203094fc8a5667d40c1592a7\",\"bytes\":292},{\"path\":\"z/app.spx\",\"source_graph_schema\":\"semaprax.graph.v10\",\"source_revision\":\"sha256:df8274579bffda63bfed85c486f8dc30b54c698a8d051bf4ee165b947e3e370a\",\"source_digest\":\"sha256:943ec92f277f75089f8a4b7db0a3a4bf66fa90787d94ea494230195d2604f10b\",\"bytes\":272}]}\n"
-    );
+            preflight.manifest(),
+            "{\"schema\":\"semaprax.workspace-semantic-manifest.v1\",\"files\":[{\"path\":\"a/provider.spx\",\"source_graph_schema\":\"semaprax.graph.v10\",\"source_revision\":\"sha256:e9e29bfe3a186fd9c9e1a7d8f3c10dc7ebcc006ed92b407344adacbb0248b7c0\",\"source_digest\":\"sha256:92041de1eebfe58bac89d26f743f7b09c21e57b9203094fc8a5667d40c1592a7\",\"bytes\":292},{\"path\":\"z/app.spx\",\"source_graph_schema\":\"semaprax.graph.v10\",\"source_revision\":\"sha256:df8274579bffda63bfed85c486f8dc30b54c698a8d051bf4ee165b947e3e370a\",\"source_digest\":\"sha256:943ec92f277f75089f8a4b7db0a3a4bf66fa90787d94ea494230195d2604f10b\",\"bytes\":272}]}\n"
+        );
     assert_eq!(
         preflight.workspace_revision(),
         "sha256:88181393a052db1605145236cd3fd2e7f3f24256ce0c90d7968d939fc6a4c4ef"
@@ -158,12 +158,12 @@ fn exact_path_set_active_manifest_and_revision_kat_replay() {
     }
     let active = render_root(preflight.workspace_revision()).unwrap();
     assert_eq!(
-        active,
-        format!(
-            "{{\"schema\":\"semaprax.workspace-semantic-root.v1\",\"workspace_revision\":\"{}\"}}\n",
-            preflight.workspace_revision()
-        )
-    );
+            active,
+            format!(
+                "{{\"schema\":\"semaprax.workspace-semantic-root.v1\",\"workspace_revision\":\"{}\"}}\n",
+                preflight.workspace_revision()
+            )
+        );
     assert_eq!(parse_root(&active).unwrap(), preflight.workspace_revision());
     let schemas = preflight.graph().source_graph_schemas().unwrap();
     assert_eq!(schemas["a/provider.spx"], "semaprax.graph.v10");
@@ -174,17 +174,17 @@ fn exact_path_set_active_manifest_and_revision_kat_replay() {
 fn control_parsers_reject_noncanonical_and_hostile_forms() {
     let valid = path_set(&["a.spx", "b.spx"]);
     for hostile in [
-        "{".to_owned(),
-        "{\"files\":[{\"path\":\"a.spx\"},{\"path\":\"b.spx\"}],\"schema\":\"semaprax.workspace-semantic-path-set.v1\"}\n".to_owned(),
-        "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\"}\n".to_owned(),
-        "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[],\"extra\":0}\n".to_owned(),
-        format!("\u{feff}{valid}"),
-        valid.replace('\n', "\r\n"),
-        valid.trim_end().to_owned(),
-        format!("{valid}\n"),
-    ] {
-        assert_code(parse_path_set(&hostile), "SPX-G174");
-    }
+            "{".to_owned(),
+            "{\"files\":[{\"path\":\"a.spx\"},{\"path\":\"b.spx\"}],\"schema\":\"semaprax.workspace-semantic-path-set.v1\"}\n".to_owned(),
+            "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\"}\n".to_owned(),
+            "{\"schema\":\"semaprax.workspace-semantic-path-set.v1\",\"files\":[],\"extra\":0}\n".to_owned(),
+            format!("\u{feff}{valid}"),
+            valid.replace('\n', "\r\n"),
+            valid.trim_end().to_owned(),
+            format!("{valid}\n"),
+        ] {
+            assert_code(parse_path_set(&hostile), "SPX-G174");
+        }
 
     let deep = format!(
         "{{\"schema\":\"{}\",\"files\":[[[[[[[[[]]]]]]]]]}}\n",
@@ -391,47 +391,47 @@ fn preflight_replay_rejects_malformed_reordered_and_substituted_manifest() {
 #[test]
 fn per_file_graph_v10_through_v17_facts_replay_exactly() {
     let cases = [
-        (
-            "v10.spx",
-            "module schema.v10; @id(\"v10.main\") fn main()->i64{0}",
-            "semaprax.graph.v10",
-        ),
-        (
-            "v11.spx",
-            "module schema.v11; @id(\"v11.target\") fn target(input:Option<i64>)->Option<bool>{let checked=input?;Option<bool>::Some { value: checked>0 }} @id(\"v11.main\") fn main()->i64{0}",
-            "semaprax.graph.v11",
-        ),
-        (
-            "v12.spx",
-            "module schema.v12; @id(\"v12.box\") record Box<T>{@id(\"v12.box.value\") value:T,} @id(\"v12.main\") fn main()->i64{0}",
-            "semaprax.graph.v12",
-        ),
-        (
-            "v13.spx",
-            "module schema.v13; @id(\"v13.box\") record Box{@id(\"v13.box.value\") value:i64,} @id(\"v13.read\") fn read(input:Box)->i64{match input { Box { value } => value, }} @id(\"v13.main\") fn main()->i64{0}",
-            "semaprax.graph.v13",
-        ),
-        (
-            "v14.spx",
-            "module schema.v14; @id(\"v14.target\") fn target<T>()->bool{true} @id(\"v14.main\") fn main()->i64{if target<i64>(){1}else{0}}",
-            "semaprax.graph.v14",
-        ),
-        (
-            "v15.spx",
-            "module schema.v15; @id(\"v15.main\") fn main()->i64{let mut n=0;while n<1{n=n+1;n<1}n}",
-            "semaprax.graph.v15",
-        ),
-        (
-            "v16.spx",
-            "module schema.v16; @id(\"v16.pick\") fn pick(value:i64)->i64{match value { 0 => 1, _ => 2, }} @id(\"v16.main\") fn main()->i64{pick(0)}",
-            "semaprax.graph.v16",
-        ),
-        (
-            "v17.spx",
-            "module schema.v17; @id(\"v17.length\") fn length(value:borrow Slice<u8>)->usize{byte_len(value)} @id(\"v17.main\") fn main()->i64{0}",
-            "semaprax.graph.v17",
-        ),
-    ];
+            (
+                "v10.spx",
+                "module schema.v10; @id(\"v10.main\") fn main()->i64{0}",
+                "semaprax.graph.v10",
+            ),
+            (
+                "v11.spx",
+                "module schema.v11; @id(\"v11.target\") fn target(input:Option<i64>)->Option<bool>{let checked=input?;Option<bool>::Some { value: checked>0 }} @id(\"v11.main\") fn main()->i64{0}",
+                "semaprax.graph.v11",
+            ),
+            (
+                "v12.spx",
+                "module schema.v12; @id(\"v12.box\") record Box<T>{@id(\"v12.box.value\") value:T,} @id(\"v12.main\") fn main()->i64{0}",
+                "semaprax.graph.v12",
+            ),
+            (
+                "v13.spx",
+                "module schema.v13; @id(\"v13.box\") record Box{@id(\"v13.box.value\") value:i64,} @id(\"v13.read\") fn read(input:Box)->i64{match input { Box { value } => value, }} @id(\"v13.main\") fn main()->i64{0}",
+                "semaprax.graph.v13",
+            ),
+            (
+                "v14.spx",
+                "module schema.v14; @id(\"v14.target\") fn target<T>()->bool{true} @id(\"v14.main\") fn main()->i64{if target<i64>(){1}else{0}}",
+                "semaprax.graph.v14",
+            ),
+            (
+                "v15.spx",
+                "module schema.v15; @id(\"v15.main\") fn main()->i64{let mut n=0;while n<1{n=n+1;n<1}n}",
+                "semaprax.graph.v15",
+            ),
+            (
+                "v16.spx",
+                "module schema.v16; @id(\"v16.pick\") fn pick(value:i64)->i64{match value { 0 => 1, _ => 2, }} @id(\"v16.main\") fn main()->i64{pick(0)}",
+                "semaprax.graph.v16",
+            ),
+            (
+                "v17.spx",
+                "module schema.v17; @id(\"v17.length\") fn length(value:borrow Slice<u8>)->usize{byte_len(value)} @id(\"v17.main\") fn main()->i64{0}",
+                "semaprax.graph.v17",
+            ),
+        ];
     let paths = cases.iter().map(|(path, _, _)| *path).collect::<Vec<_>>();
     let sources = cases
         .iter()

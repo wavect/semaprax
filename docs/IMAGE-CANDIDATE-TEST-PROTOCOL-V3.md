@@ -67,7 +67,7 @@ Test responses do not mutate or retain registry entries, and no test result can
 publish source. Explicit managed publication remains a separate host API.
 
 Focused evidence is authored in
-[image_candidate_test_transport_v3.rs](../tests/image_candidate_test_transport_v3.rs):
+[image_protocol/candidate_test_transport_v3.rs](../tests/image_protocol/candidate_test_transport_v3.rs):
 old-profile rejection, host policy disclosure, no request overrides, candidate
 binding, replay-bound success, fuel exhaustion, no source writes and held-input
 drift. These cases have not been run.

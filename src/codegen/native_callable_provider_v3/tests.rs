@@ -648,7 +648,7 @@ fn scalar_two_owner_provider_is_durable_strict_and_idempotent_at_o0_o2() {
     )
     .unwrap();
     source.push_str(
-        r#"
+            r#"
 static uint32_t finalizer_count=0,finalizer_order[8]; static uint64_t finalizer_payload[8];
 static void spx_v3_generated_finalize(uint32_t owner,uint64_t payload){if(finalizer_count<8){finalizer_order[finalizer_count]=owner;finalizer_payload[finalizer_count]=payload;}finalizer_count++;}
 int main(void){
@@ -671,7 +671,7 @@ int main(void){
  memcpy(abort_frame,uncertain_frame,sizeof(abort_frame));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),uncertain_abort_decision,sizeof(uncertain_abort_decision),candidate,sizeof(candidate))!=1||finalizer_count!=4)return 14;
  return 0;}
 "#,
-    );
+        );
     for optimization in ["-O0", "-O2"] {
         compile_and_run(&source, optimization);
     }
@@ -841,13 +841,13 @@ fn authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2() {
         append_u32_array(&mut source, "case_execute_order", &execute_finalizers);
         append_u64_array(&mut source, "case_execute_payload", &execute_payloads);
         writeln!(
-            source,
-            "#define CASE_EXECUTE_COUNT UINT32_C({})\n#define CASE_EVENT_COUNT UINT32_C({})\n#define CASE_OUTCOME_TAG UINT32_C({outcome_tag})\n#define CASE_OUTCOME_DETAIL UINT32_C({outcome_detail})\n#define CASE_OUTCOME_PAYLOAD UINT64_C({outcome_payload})\n#define CASE_CANDIDATE_TAG UINT32_C({candidate_tag})\n#define CASE_TERMINAL_CHECKPOINT UINT32_C({})",
-            execute_finalizers.len(),
-            spec.plan.semantic_ordinals.len(),
-            spec.plan.terminal_checkpoint,
-        )
-        .unwrap();
+                source,
+                "#define CASE_EXECUTE_COUNT UINT32_C({})\n#define CASE_EVENT_COUNT UINT32_C({})\n#define CASE_OUTCOME_TAG UINT32_C({outcome_tag})\n#define CASE_OUTCOME_DETAIL UINT32_C({outcome_detail})\n#define CASE_OUTCOME_PAYLOAD UINT64_C({outcome_payload})\n#define CASE_CANDIDATE_TAG UINT32_C({candidate_tag})\n#define CASE_TERMINAL_CHECKPOINT UINT32_C({})",
+                execute_finalizers.len(),
+                spec.plan.semantic_ordinals.len(),
+                spec.plan.terminal_checkpoint,
+            )
+            .unwrap();
 
         let mut hostile = case.arguments.clone();
         let hostile_wires = hostile
@@ -877,7 +877,7 @@ fn authoritative_fourteen_case_graph_providers_execute_and_settle_at_o0_o2() {
             source.push_str("#define CASE_HAS_HOSTILE_SCALAR UINT32_C(0)\n");
         }
         source.push_str(
-            r#"
+                r#"
 static uint32_t finalizer_count=0,finalizer_order[16];static uint64_t finalizer_payload[16];
 static void spx_v3_generated_finalize(uint32_t owner,uint64_t payload){if(finalizer_count<16){finalizer_order[finalizer_count]=owner;finalizer_payload[finalizer_count]=payload;}finalizer_count++;}
 int main(void){
@@ -892,7 +892,7 @@ int main(void){
  memcpy(abort_frame,case_abort_frame,sizeof(abort_frame));memcpy(saved_abort_frame,abort_frame,sizeof(abort_frame));memset(candidate,0xa5,sizeof(candidate));memcpy(saved,candidate,sizeof(saved));if(spx_fixture_settle_v3(abort_frame,sizeof(abort_frame),case_abort_decision,sizeof(case_abort_decision),candidate,sizeof(candidate))!=3||memcmp(abort_frame,saved_abort_frame,sizeof(abort_frame))||memcmp(candidate,saved,sizeof(candidate))||finalizer_count!=CASE_EXECUTE_COUNT)return 9;
  return 0;}
 "#,
-        );
+            );
         for optimization in ["-O0", "-O2"] {
             compile_and_run_labeled(&source, optimization, case.scenario_id);
         }
@@ -972,7 +972,7 @@ fn owned_identity_accept_abort_and_finalizing_uncertainty_are_exact_at_o0_o2() {
     append_array(&mut source, "expected_accept_chain", &expected_accept_chain);
     append_array(&mut source, "expected_abort_chain", &expected_abort_chain);
     source.push_str(
-        r#"
+            r#"
 static uint32_t finalizer_count=0;static uint64_t finalized_payload=0;
 static void spx_v3_generated_finalize(uint32_t owner,uint64_t payload){if(owner!=0)return;finalizer_count++;finalized_payload=payload;}
 int main(void){
@@ -985,7 +985,7 @@ int main(void){
  memcpy(uncertain,abort_frame,sizeof(uncertain));if(spx_fixture_execute_v3(abort_request,sizeof(abort_request),uncertain,sizeof(uncertain),other_response,sizeof(other_response))!=0)return 5;spx_v3_decision_digest(abort_decision,dh);memcpy(uncertain+276,dh,32);spx_v3_action_seed(uncertain,dh,1);spx_v3_store_u32(uncertain+272,3);spx_v3_store_u32(uncertain+316,1);spx_v3_store_u32(uncertain+324,3);spx_v3_refresh_frame(uncertain);if(spx_fixture_settle_v3(uncertain,sizeof(uncertain),abort_decision,sizeof(abort_decision),candidate,sizeof(candidate))!=1||finalizer_count!=1)return 6;
  return 0;}
 "#,
-    );
+        );
     for optimization in ["-O0", "-O2"] {
         compile_and_run(&source, optimization);
     }
@@ -1022,11 +1022,11 @@ fn physical_failure_injection_and_durable_settlement_boundaries_are_exact_at_o0_
         append_array(&mut source, "fixture_decision", &decision);
         append_array(&mut source, "fixture_conflict", &conflict);
         source.push_str(
-            r#"
+                r#"
 static uint32_t finalizer_count=0;static uint64_t finalized_payload=0;
 static void spx_v3_generated_finalize(uint32_t owner,uint64_t payload){if(owner==0){finalizer_count++;finalized_payload=payload;}}
 "#,
-        );
+            );
         source.push_str(body);
         source
     }

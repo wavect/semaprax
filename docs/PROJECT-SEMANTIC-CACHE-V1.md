@@ -99,7 +99,7 @@ cache policy cannot make an inadmissible program valid.
 
 ## Authored evidence
 
-`tests/project_semantic_cache_v1.rs` covers unchanged warm counters and exact cold
+`tests/project/semantic_cache.rs` covers unchanged warm counters and exact cold
 source/graph/image identity; AST-only compatibility; leaf, provider, and private
 body invalidation; changed import signatures/bindings; matching cold rejection
 diagnostics; failed-build rollback; manifest reset; and owned-source image

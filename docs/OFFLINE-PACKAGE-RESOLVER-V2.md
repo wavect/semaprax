@@ -55,7 +55,7 @@ not a complete CPU or heap bound.
 
 `src/package_resolver_v2/tests.rs` retains the v1-shaped hostile wire, remint,
 nested-bound, catalog, policy, and exact-coordinate fixtures using Subject-v3
-exact ranges. `tests/offline_package_ranges_v3.rs` adds genuinely ranged
+exact ranges. `tests/offline_package/ranges.rs` adds genuinely ranged
 dependencies, numeric ordering, later-root intersection and rollback, exact
 Lock-v3/raw-report binding, permutation, and cross-input rejection. These tests
 are authored and locally unrun; no completion row is promoted by their presence.

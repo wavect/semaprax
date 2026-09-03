@@ -101,9 +101,9 @@ correction has separately authored, unrun evidence.
 The focused gates (not run for this batch) are:
 
 ```sh
-cargo test --locked -p semaprax --test native_string_settlement_v1
-cargo test --locked -p semaprax --test string_ops_v1 --test string_ops_v2
-cargo test --locked -p semaprax --test semantic_target_evidence_v1 string_cleanup_evidence_binds_current_production_c_and_rejects_foreign_binding
+cargo test --locked -p semaprax --test native string_settlement::
+cargo test --locked -p semaprax --test language string_ops
+cargo test --locked -p semaprax --test semantic target_evidence::string_cleanup_evidence_binds_current_production_c_and_rejects_foreign_binding
 ```
 
 Physical native cases require `CLANG` or `clang`; the cross-backend contents
@@ -113,8 +113,8 @@ gate, set `SEMAPRAX_STRING_SANITIZER_CLANG` to an absolute existing Clang
 executable with ASan/UBSan runtimes provisioned, then run:
 
 ```sh
-cargo test --locked -p semaprax --test native_string_settlement_v1 provisioned_ordinary_native_string_asan_ubsan -- --ignored --exact
-cargo test --locked -p semaprax --test native_string_settlement_v1 contents::provisioned_embedded_nul_native_values_asan_ubsan -- --ignored --exact
+cargo test --locked -p semaprax --test native string_settlement::provisioned_ordinary_native_string_asan_ubsan -- --ignored --exact
+cargo test --locked -p semaprax --test native string_settlement::contents::provisioned_embedded_nul_native_values_asan_ubsan -- --ignored --exact
 ```
 
 All new evidence remains unrun. Required target and sanitizer execution,

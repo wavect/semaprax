@@ -127,7 +127,7 @@ live-session imports remain host-only at startup; its separate RPC restore
 requires the current original base and recovers no extra authority.
 
 Authored, unrun evidence lives in
-`tests/project_candidate_draft_recovery_v1.rs` and
-`tests/image_draft_recovery_transport_v5.rs`, covering mixed holes, partial fills,
+`tests/project_candidate/draft_recovery.rs` and
+`tests/image_transport_v5/draft_recovery.rs`, covering mixed holes, partial fills,
 context regeneration, ready drafts, hostile and stale capsules, restart,
 permission boundaries, registry association and source refresh.

@@ -184,7 +184,7 @@ generic flag, and `base_evaluation: once_into_typed_value_binding`. It retains
 `requires_full_candidate_validation: true`. Generic descriptors add the same
 ordered `type_parameters`; their field identity is a template fact, not a
 substituted type. Existing aggregate constructor entries are unchanged. Schema
-regressions and `tests/project_candidate_record_projection_v1.rs` are authored
+regressions and `tests/project_candidate/record_projection.rs` are authored
 and unrun; discovery does not validate an arbitrary proposed base expression.
 
 Exhaustive matching uses `{"kind":"match","target":variant_owner_id,
@@ -377,7 +377,7 @@ The provenance closes the declaration stable ID, ordered argument identity keys,
 `ownership: copy`, `evidence_owner: retained_checked_hir`, `copy: true`,
 `sized: true`, `contains_resource: false`, and `needs_drop: false`. An unsupported
 signature does not acquire eligibility merely because its source type has a
-name. `tests/project_signature_catalog_v1.rs` authors nominal/generic identity,
+name. `tests/project/signature_catalog.rs` authors nominal/generic identity,
 import-alias identity equivalence, unchanged scalar/Bytes shapes, and rejection
 of owned-record or borrowed-view ordered mapping. These tests remain unrun.
 

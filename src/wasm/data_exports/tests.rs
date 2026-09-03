@@ -10,26 +10,26 @@ fn main() -> i64 { 0 }
 fn length(value: borrow Slice<u8>) -> usize { byte_len(value) }
 @id("data.present")
 fn present(value: borrow Slice<u8>) -> bool {
-match byte_get(value, 0usize) {
-    Option::Some { value: byte } => byte == 255u8,
-    Option::None {} => false,
-}
+    match byte_get(value, 0usize) {
+        Option::Some { value: byte } => byte == 255u8,
+        Option::None {} => false,
+    }
 }
 @id("data.copy")
 fn copy(value: borrow Slice<u8>) -> i64 {
-let owned = bytes_copy(value);
-let view = bytes_as_slice(owned);
-if byte_len(view) == 0usize { 0 } else { 1 }
+    let owned = bytes_copy(value);
+    let view = bytes_as_slice(owned);
+    if byte_len(view) == 0usize { 0 } else { 1 }
 }
 @id("data.total")
 fn total(left: borrow Slice<u8>, right: borrow Slice<u8>) -> usize {
-byte_len(left) + byte_len(right)
+    byte_len(left) + byte_len(right)
 }
 @id("data.fail")
 fn fail(value: borrow Slice<u8>) -> i64 {
-let owned = bytes_copy(value);
-let view = bytes_as_slice(owned);
-if byte_len(view) == 3usize { 9223372036854775807 + 1 } else { 0 }
+    let owned = bytes_copy(value);
+    let view = bytes_as_slice(owned);
+    if byte_len(view) == 3usize { 9223372036854775807 + 1 } else { 0 }
 }
 "#;
 
@@ -97,8 +97,8 @@ module test.command_external;
 permit { process.stdout.write }
 @id("command.run")
 fn run(input: borrow Slice<u8>) -> bool uses { process.stdout.write } {
-let alias = input;
-stdout_write(alias) == byte_len(input)
+    let alias = input;
+    stdout_write(alias) == byte_len(input)
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
@@ -107,37 +107,37 @@ stdout_write(alias) == byte_len(input)
     prepare_with_stdout_transcript(&resolved, &["command.run".to_owned()]).unwrap();
 
     for (name, replacement) in [
-        (
-            "array",
-            "let local = [65u8]; let view = array_as_slice(local); stdout_write(view) == 1usize",
-        ),
-        (
-            "owned",
-            "let owned = bytes_copy(input); let view = bytes_as_slice(owned); stdout_write(view) == byte_len(input)",
-        ),
-    ] {
-        let hostile = EXTERNAL.replace(
-            "let alias = input;\n    stdout_write(alias) == byte_len(input)",
-            replacement,
-        );
-        let parsed = crate::parse(
-            &hostile,
-            Path::new(&format!("command-hostile-{name}.spx")),
-        )
-        .unwrap();
-        let resolved = crate::hir::resolve(&parsed).unwrap();
-        let error = prepare_with_stdout_transcript(&resolved, &["command.run".to_owned()])
-            .unwrap_err();
-        assert_eq!(error.code, "SPX-W121");
-        assert!(error.message.contains("external Slice parameter"));
-    }
+            (
+                "array",
+                "let local = [65u8]; let view = array_as_slice(local); stdout_write(view) == 1usize",
+            ),
+            (
+                "owned",
+                "let owned = bytes_copy(input); let view = bytes_as_slice(owned); stdout_write(view) == byte_len(input)",
+            ),
+        ] {
+            let hostile = EXTERNAL.replace(
+                "let alias = input;\n    stdout_write(alias) == byte_len(input)",
+                replacement,
+            );
+            let parsed = crate::parse(
+                &hostile,
+                Path::new(&format!("command-hostile-{name}.spx")),
+            )
+            .unwrap();
+            let resolved = crate::hir::resolve(&parsed).unwrap();
+            let error = prepare_with_stdout_transcript(&resolved, &["command.run".to_owned()])
+                .unwrap_err();
+            assert_eq!(error.code, "SPX-W121");
+            assert!(error.message.contains("external Slice parameter"));
+        }
 
     let helper = EXTERNAL
         .replace(
             "@id(\"command.run\")",
             r#"@id("command.helper")
 fn helper(input: borrow Slice<u8>) -> usize uses { process.stdout.write } {
-stdout_write(input)
+    stdout_write(input)
 }
 @id("command.run")"#,
         )
@@ -161,11 +161,11 @@ module test.command_throw;
 permit { process.stdout.write }
 @id("command.run")
 fn run(input: borrow Slice<u8>) -> bool uses { process.stdout.write } {
-let written = stdout_write(input);
-match byte_get(input, 0usize) {
-    Option::Some { value } => written == byte_len(input) && value == 65u8,
-    Option::None {} => false,
-}
+    let written = stdout_write(input);
+    match byte_get(input, 0usize) {
+        Option::Some { value } => written == byte_len(input) && value == 65u8,
+        Option::None {} => false,
+    }
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;

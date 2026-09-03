@@ -128,7 +128,7 @@ computations can run together. This contract makes no total heap, RSS, stack,
 latency, CPU, model-token or throughput guarantee. It introduces no cancellation,
 persistent worker pool, automatic scheduling, durable cursor or session recovery.
 
-`tests/image_parallel_candidate_reads_v1.rs` authors sequential-byte parity,
+`tests/image_protocol/parallel_candidate_reads_v1.rs` authors sequential-byte parity,
 historical and pending selection, immutable parent retention, closed method
 grants, malformed/stale selection and source-drift cases. The original batch
 evidence continues to own input ordering, worker bounds, join and panic behavior.

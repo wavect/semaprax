@@ -9,8 +9,8 @@ fn record_program() -> hir::ResolvedProgram {
 module test.hostile_record_hir;
 @id("node.type")
 record Node {
-@id("node.value")
-value: i64,
+    @id("node.value")
+    value: i64,
 }
 @id("app.main")
 fn main() -> i64 { 0 }
@@ -33,18 +33,18 @@ mod identity_nul_tests {
 module test.hostile_identity_nul;
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop import "host.dispose";
+    @id("token.drop")
+    drop import "host.dispose";
 }
 @id("pair.type")
 record Pair { @id("pair.value") value: i64, }
 @id("host.interface")
 interface Host permits {} {
-@id("host.dispose")
-import fn dispose(token: own Token) -> unit
-    effects {}
-    failure infallible
-    consumes token always;
+    @id("host.dispose")
+    import fn dispose(token: own Token) -> unit
+        effects {}
+        failure infallible
+        consumes token always;
 }
 @id("helper.function")
 fn helper(value: i64) -> i64 { value }
@@ -470,21 +470,21 @@ fn type_facts_capacity_high_water_covers_layered_and_wide_hostiles() {
         let mut source = String::from("module capacity.typefacts.layers;\n\n");
         if resource {
             source.push_str(
-                "@id(\"layer.r0\")\nresource R0 {\n    @id(\"layer.r0.drop\")\n    drop trivial;\n}\n\n",
-            );
+                    "@id(\"layer.r0\")\nresource R0 {\n    @id(\"layer.r0.drop\")\n    drop trivial;\n}\n\n",
+                );
         } else {
             source.push_str(
-                "@id(\"layer.r0\")\nrecord R0 {\n    @id(\"layer.r0.value\")\n    value: i64,\n}\n\n",
-            );
+                    "@id(\"layer.r0\")\nrecord R0 {\n    @id(\"layer.r0.value\")\n    value: i64,\n}\n\n",
+                );
         }
         for level in 1..=levels {
             writeln!(
-                source,
-                "@id(\"layer.r{level}\")\nrecord R{level} {{\n    @id(\"layer.r{level}.a\")\n    a: R{},\n    @id(\"layer.r{level}.b\")\n    b: R{},\n}}\n",
-                level - 1,
-                level - 1
-            )
-            .unwrap();
+                    source,
+                    "@id(\"layer.r{level}\")\nrecord R{level} {{\n    @id(\"layer.r{level}.a\")\n    a: R{},\n    @id(\"layer.r{level}.b\")\n    b: R{},\n}}\n",
+                    level - 1,
+                    level - 1
+                )
+                .unwrap();
         }
         source.push_str("@id(\"app.main\")\nfn main() -> i64 { 0 }\n");
         source
@@ -509,22 +509,22 @@ fn type_facts_capacity_high_water_covers_layered_and_wide_hostiles() {
     let mut wide = String::from("module capacity.typefacts.wide;\n\n");
     for index in 0..514 {
         writeln!(
-            wide,
-            "@id(\"wide.r{index}\")\nrecord R{index} {{\n    @id(\"wide.r{index}.value\")\n    value: i64,\n}}\n"
-        )
-        .unwrap();
+                wide,
+                "@id(\"wide.r{index}\")\nrecord R{index} {{\n    @id(\"wide.r{index}.value\")\n    value: i64,\n}}\n"
+            )
+            .unwrap();
     }
     wide.push_str("@id(\"app.main\")\nfn main() -> i64 { 0 }\n");
     let mut chain = String::from(
-        "module capacity.typefacts.chain;\n\n@id(\"chain.r0\")\nrecord R0 {\n    @id(\"chain.r0.value\")\n    value: i64,\n}\n\n",
-    );
+            "module capacity.typefacts.chain;\n\n@id(\"chain.r0\")\nrecord R0 {\n    @id(\"chain.r0.value\")\n    value: i64,\n}\n\n",
+        );
     for index in 1..514 {
         writeln!(
-            chain,
-            "@id(\"chain.r{index}\")\nrecord R{index} {{\n    @id(\"chain.r{index}.next\")\n    next: R{},\n}}\n",
-            index - 1
-        )
-        .unwrap();
+                chain,
+                "@id(\"chain.r{index}\")\nrecord R{index} {{\n    @id(\"chain.r{index}.next\")\n    next: R{},\n}}\n",
+                index - 1
+            )
+            .unwrap();
     }
     chain.push_str("@id(\"app.main\")\nfn main() -> i64 { 0 }\n");
 
@@ -578,21 +578,21 @@ module test.useful_data_link;
 
 @id("data.length")
 fn length(value: borrow Slice<u8>) -> usize {
-let alias = value;
-byte_len(alias)
+    let alias = value;
+    byte_len(alias)
 }
 
 @id("data.count")
 fn count(value: borrow Slice<u8>) -> usize {
-let mut index = 0usize;
-while index < byte_len(value) {
-    index = index + 1usize;
-    index < byte_len(value)
-}
-match byte_get(value, 0usize) {
-    Option::Some { value: _ } => index,
-    Option::None {} => index,
-}
+    let mut index = 0usize;
+    while index < byte_len(value) {
+        index = index + 1usize;
+        index < byte_len(value)
+    }
+    match byte_get(value, 0usize) {
+        Option::Some { value: _ } => index,
+        Option::None {} => index,
+    }
 }
 
 @id("app.main")

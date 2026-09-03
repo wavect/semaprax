@@ -111,7 +111,7 @@ does not mutate candidates. The
 [parallel retained-read extension](IMAGE-PARALLEL-CANDIDATE-READS-V1.md) shares
 the same pure handler with only the selected candidate. V1–v4
 method sets remain unchanged. Transport/discovery evidence is authored in
-`tests/image_workspace_transport_v5.rs` and the v5 discovery module.
+`tests/image_transport_v5/workspace.rs` and the v5 discovery module.
 
 Reports are deterministic compact JSON with recursively lexical object keys,
 canonical array order, and one terminal LF. The report is bounded to 8 MiB;
@@ -135,7 +135,7 @@ separate exact and provenance-normalized projection digests.
 capacity overflow, and `SPX-G312` rejects exact replay mismatch. Existing stale
 candidate, source, conformance, and Project diagnostics propagate unchanged.
 
-`tests/project_candidate_interface_delta_v1.rs` authors addition with complete
+`tests/project_candidate/interface_delta.rs` authors addition with complete
 member tables, independent modules with identical display names, exact source
 provenance, changed bound-function facts with unchanged sibling retention,
 imported-helper edits affecting a binding whose own source is unchanged,

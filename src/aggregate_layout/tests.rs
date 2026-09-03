@@ -14,26 +14,26 @@ module test.aggregate_layout;
 
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop trivial;
+    @id("token.drop")
+    drop trivial;
 }
 
 @id("inner.type")
 record Inner {
-@id("inner.flag")
-flag: bool,
-@id("inner.token")
-token: Token,
+    @id("inner.flag")
+    flag: bool,
+    @id("inner.token")
+    token: Token,
 }
 
 @id("outer.type")
 record Outer {
-@id("outer.flag")
-flag: bool,
-@id("outer.count")
-count: i64,
-@id("outer.inner")
-inner: Inner,
+    @id("outer.flag")
+    flag: bool,
+    @id("outer.count")
+    count: i64,
+    @id("outer.inner")
+    inner: Inner,
 }
 
 @id("empty.type")
@@ -41,10 +41,10 @@ record Empty {}
 
 @id("array-holder.type")
 record ArrayHolder {
-@id("array-holder.bytes")
-bytes: [u8; 7],
-@id("array-holder.zero")
-zero: [u8; 0],
+    @id("array-holder.bytes")
+    bytes: [u8; 7],
+    @id("array-holder.zero")
+    zero: [u8; 0],
 }
 
 @id("app.main")

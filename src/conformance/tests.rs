@@ -41,9 +41,9 @@ fn compiler_status_codes_and_canonical_json_are_stable() {
     }
 
     assert_eq!(
-        NormalizedStatus::contract(ContractPhase::Requires).to_json(),
-        "{\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.contract.v1\",\"code\":1,\"class\":\"contract\",\"retryable\":false}"
-    );
+            NormalizedStatus::contract(ContractPhase::Requires).to_json(),
+            "{\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.contract.v1\",\"code\":1,\"class\":\"contract\",\"retryable\":false}"
+        );
     assert_eq!(
         NormalizedStatus::contract(ContractPhase::Ensures).code(),
         CONTRACT_ENSURES_FALSE_CODE

@@ -11,23 +11,23 @@ permit { io.release }
 
 @id("token.type")
 resource Token {
-@id("token.drop")
-drop trivial;
+    @id("token.drop")
+    drop trivial;
 }
 
 @id("file.type")
 resource File {
-@id("file.drop")
-drop import "file.finalize";
+    @id("file.drop")
+    drop import "file.finalize";
 }
 
 @id("file.host")
 interface FileHost permits { io.release } {
-@id("file.finalize")
-import fn finalize(file: own File) -> unit
-    effects { io.release }
-    failure infallible
-    consumes file always;
+    @id("file.finalize")
+    import fn finalize(file: own File) -> unit
+        effects { io.release }
+        failure infallible
+        consumes file always;
 }
 
 @id("token.discard-two")
@@ -38,7 +38,7 @@ fn discard_file(value: own File) -> i64 uses { io.release } { 0 }
 
 @id("token.choose")
 fn choose(condition: bool, left: own Token, right: own Token) -> Token {
-if condition { left } else { right }
+    if condition { left } else { right }
 }
 
 @id("app.main")

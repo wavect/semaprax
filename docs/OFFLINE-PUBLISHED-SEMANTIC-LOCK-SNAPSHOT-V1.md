@@ -158,7 +158,7 @@ These additional fixtures are authored but unrun.
 The focused commands are:
 
 ```sh
-cargo test --locked -p semaprax --test offline_package_resolution_snapshot_v1
+cargo test --locked -p semaprax --test offline_package resolution_snapshot::
 cargo test --locked -p semaprax-offline-wasm-package --test lock_snapshot_publication
 cargo test --locked -p semaprax-offline-wasm-package --lib authority::tests
 ```

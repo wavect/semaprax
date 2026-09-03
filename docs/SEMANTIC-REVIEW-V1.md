@@ -272,11 +272,11 @@ do not constitute target or test execution by Review.
 Focused gates:
 
 ```text
-cargo test --locked -p semaprax --all-features --test semantic_review_v1
+cargo test --locked -p semaprax --all-features --test semantic review::
 cargo test --locked -p semaprax --all-features --lib review::tests::
-cargo test --locked -p semaprax --all-features --test semantic_impact_v1
-cargo test --locked -p semaprax --all-features --test diagnostic_repair_v1
-cargo test --locked -p semaprax --all-features --test semantic_patch_v3
+cargo test --locked -p semaprax --all-features --test semantic impact::
+cargo test --locked -p semaprax --all-features --test semantic diagnostic_repair::
+cargo test --locked -p semaprax --all-features --test semantic patch_v3::
 ```
 
 The separate [Semantic Workspace Transaction

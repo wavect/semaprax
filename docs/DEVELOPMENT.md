@@ -90,6 +90,33 @@ The [architecture](ARCHITECTURE.md) is the single repository module map.
 `AGENTS.md` contains operating invariants and routes contributors here instead
 of duplicating that map.
 
+Before splitting a module, check whether a gate binds its text. `rg` the module's
+path across `tests/` and `crates/*/src` for `include_str!` and path reads: a hit
+means a [source-locked contract](ARCHITECTURE.md#source-locked-contracts) whose
+join must follow the code, or it will keep passing while covering less.
+`tests/source_locked_contracts.rs` fails when a reader binds a module root but
+not its submodules, and `tests/module_size.rs` fails when a module grows past its
+recorded size.
+
+## Windows checkouts
+
+Archived evidence under `docs/evidence/` nests a subject digest inside a commit
+digest, and twenty-four of those paths exceed the 260-character limit Windows
+applies by default — the longest reaches 279 characters once a CI runner's
+workspace prefix is added. Git refuses to create them with `Filename too long`
+and the checkout fails before any build starts.
+
+Enable long paths before cloning on Windows:
+
+```sh
+git config --global core.longpaths true
+```
+
+CI does this for every job, guarded by `runner.os == 'Windows'`, in a step that
+runs before `actions/checkout`; the setting has to exist before the clone, not
+after it. Keep new evidence paths short enough that this remains a safety net
+rather than a requirement.
+
 ## Verification
 
 The standalone `semaprax` registry package has no private-host dependency.

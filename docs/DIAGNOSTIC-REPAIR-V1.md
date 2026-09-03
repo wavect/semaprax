@@ -342,8 +342,8 @@ plus two bounded-work integration-hook cases. It does not include or replace
 the separate 4/4 internal v3 A0 hook-unit result.
 
 ```sh
-cargo test --locked -p semaprax --all-features --test diagnostic_repair_v1
-cargo test --locked -p semaprax --all-features --test semantic_patch_v3
+cargo test --locked -p semaprax --all-features --test semantic diagnostic_repair::
+cargo test --locked -p semaprax --all-features --test semantic patch_v3::
 cargo test --locked -p semaprax --all-features --lib patch::commit_tests::v3
 cargo test --locked -p semaprax --all-features --lib
 ```

@@ -72,9 +72,9 @@ The additive v4 `hole/open-expression` takes `image_revision`,
 advertises the body/expression context schema alternatives. V1–V3 retain their
 existing method sets; no request elevates authority.
 
-`tests/project_candidate_expression_holes_v1.rs` covers local visibility,
+`tests/project_candidate/expression_holes.rs` covers local visibility,
 type rejection, disjoint selection remapping, mixed body/expression drafts,
 overlap rejection, stale selectors, unresolved materialization rejection and
-unchanged files. `tests/image_diagnostic_transport_v4.rs` adds the protocol
+unchanged files. `tests/image_protocol/diagnostic_transport_v4.rs` adds the protocol
 lifecycle and legacy rejection scenario. These cases were authored but not run;
 no compiler, interpreter or long quality gate was executed in this work.

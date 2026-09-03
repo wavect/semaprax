@@ -108,8 +108,8 @@ carrier inconsistency and report mismatch. Candidate stale/replay and artifact
 delta diagnostics retain their existing ownership.
 
 Authored cases live in
-[image/candidate evidence](../tests/image_openapi_artifacts_v1.rs) and
-[transport evidence](../tests/image_openapi_artifacts_transport_v5.rs). They
+[image/candidate evidence](../tests/image_protocol/openapi_artifacts_v1.rs) and
+[transport evidence](../tests/image_transport_v5/openapi_artifacts.rs). They
 cover source-bound cross-file selection, actual document/file relationships,
 candidate changes, exact replay, hostile selectors and host-selected authority.
 These cases remain unrun; no completion-matrix row is promoted.

@@ -23,10 +23,10 @@ module test.probe;
 
 @id("probe.double")
 fn double(value: i64) -> i64
-requires value >= 0
-ensures result == value + value
+    requires value >= 0
+    ensures result == value + value
 {
-value + value
+    value + value
 }
 
 @id("probe.flag")
@@ -34,9 +34,9 @@ fn flag(enabled: bool) -> bool { enabled }
 
 @id("app.main")
 fn main() -> i64
-ensures result == 42
+    ensures result == 42
 {
-if flag(double(21) == 42) { 42 } else { 0 }
+    if flag(double(21) == 42) { 42 } else { 0 }
 }
 "#;
 
@@ -99,8 +99,8 @@ fn golden_header_has_expected_shape_and_is_deterministic() {
     assert!(first.contains(" * effects: none\n"));
     assert!(first.contains(" * ownership: caller-free / by-value scalars\n"));
     assert!(first.contains(
-        "static __attribute__((unused)) spx_status_token spx_decl_70726f62652e646f75626c65(struct spx_context *spx_ctx, int64_t, int64_t *spx_result_out);"
-    ));
+            "static __attribute__((unused)) spx_status_token spx_decl_70726f62652e646f75626c65(struct spx_context *spx_ctx, int64_t, int64_t *spx_result_out);"
+        ));
     assert!(first.ends_with("#endif\n"));
     cleanup(&path);
 }
@@ -179,15 +179,15 @@ fn wide(label: [u8; 1]) -> i64 { 0 }
 
 @id("app.main")
 fn main() -> i64
-ensures result == 7
+    ensures result == 7
 {
-7
+    7
 }
 
 @id("buffer.type")
 resource Buffer {
-@id("buffer.type.drop")
-drop trivial;
+    @id("buffer.type.drop")
+    drop trivial;
 }
 "#;
     let path = write_temp(source);
@@ -222,9 +222,9 @@ fn helper(value: i64) -> i64 { value + 1 }
 
 @id("app.main")
 fn main() -> i64
-ensures result == 1
+    ensures result == 1
 {
-helper(0)
+    helper(0)
 }
 "#;
     let path = write_temp(source);
@@ -258,22 +258,22 @@ module test.c_header_byte_loop;
 
 @id("probe.count-ff")
 fn count_ff() -> i64 {
-let fixed = [0u8, 255u8, 1u8, 255u8];
-let fixed_view = array_as_slice(fixed);
-let copied = bytes_copy(fixed_view);
-let copied_view = bytes_as_slice(copied);
-let length = byte_len(copied_view);
-let mut index = 0usize;
-let mut total = 0usize;
-while index <= length {
-    total = total + match byte_get(copied_view, index) {
-        Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize },
-        Option::None {} => 0usize,
-    };
-    index = index + 1usize;
-    index <= length
-}
-if total == 2usize { 0 } else { 1 }
+    let fixed = [0u8, 255u8, 1u8, 255u8];
+    let fixed_view = array_as_slice(fixed);
+    let copied = bytes_copy(fixed_view);
+    let copied_view = bytes_as_slice(copied);
+    let length = byte_len(copied_view);
+    let mut index = 0usize;
+    let mut total = 0usize;
+    while index <= length {
+        total = total + match byte_get(copied_view, index) {
+            Option::Some { value: byte } => if byte == 255u8 { 1usize } else { 0usize },
+            Option::None {} => 0usize,
+        };
+        index = index + 1usize;
+        index <= length
+    }
+    if total == 2usize { 0 } else { 1 }
 }
 
 @id("app.main")
@@ -299,8 +299,8 @@ fn main() -> i64 { count_ff() }
         "sha256:45fe0a969633ce8c5ad5cdcb14ed705311c3010b2ff305a551b78f5c55d18b02"
     );
     assert!(header.contains(
-        "static __attribute__((unused)) spx_status_token spx_decl_70726f62652e636f756e742d6666(struct spx_context *spx_ctx, int64_t *spx_result_out);"
-    ));
+            "static __attribute__((unused)) spx_status_token spx_decl_70726f62652e636f756e742d6666(struct spx_context *spx_ctx, int64_t *spx_result_out);"
+        ));
     let program = crate::parse(&std::fs::read_to_string(&path).unwrap(), &path).expect("parses");
     let native = crate::codegen::emit_c(&program).expect("native projection");
     for line in header.lines() {

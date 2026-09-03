@@ -95,8 +95,8 @@ fn patch_path_mutation_after_one_read_does_not_change_processed_digest() {
 #[test]
 fn exhausted_complete_node_budget_stops_before_wide_frontier_materialization() {
     let mut source = String::from(
-        "module impact.aggregate_bound;\n@id(\"generic.marker\") fn marker<T>()->bool{true}\n@id(\"impact.seed\") fn seed()->bool{marker<i64>()}\n",
-    );
+            "module impact.aggregate_bound;\n@id(\"generic.marker\") fn marker<T>()->bool{true}\n@id(\"impact.seed\") fn seed()->bool{marker<i64>()}\n",
+        );
     for index in 0..128 {
         source.push_str(&format!(
             "@id(\"impact.caller.{index}\") fn caller{index}()->bool{{seed()}}\n"
@@ -121,11 +121,11 @@ fn exhausted_complete_node_budget_stops_before_wide_frontier_materialization() {
         panic!("seed tail must be a generic call")
     };
     let patch_source = format!(
-        "schema semaprax.semantic-patch.v2\nbase {}\nreplace-call-type-argument expression {} template generic.marker old-instance {} index 0 from i64 to bool\n",
-        graph::revision(&program),
-        tail.id,
-        instance,
-    );
+            "schema semaprax.semantic-patch.v2\nbase {}\nreplace-call-type-argument expression {} template generic.marker old-instance {} index 0 from i64 to bool\n",
+            graph::revision(&program),
+            tail.id,
+            instance,
+        );
     let preflight = patch::preflight_review_owned(
         source,
         patch_source,

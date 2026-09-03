@@ -141,7 +141,7 @@ diagnostics retain their owning meanings.
 ## Authored evidence and limits
 
 `src/project/image_store.rs` owns this lifecycle. Five authored, unrun tests in
-`tests/semantic_image_store_v1.rs` cover unchanged `Arc` reuse, manual source
+`tests/semantic/image_store.rs` cover unchanged `Arc` reuse, manual source
 and manifest refresh, reverse-import invalidation, stale/invalid-source
 preservation, cold rebuilding after dropping retained state, working-copy
 independence, duplicate persistence, corruption/deletion, and hostile receipt

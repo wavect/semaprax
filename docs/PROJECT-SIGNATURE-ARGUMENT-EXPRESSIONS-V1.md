@@ -133,12 +133,12 @@ scope/order/binding constraints. Constructor schemas include the closed
 recursive form. This is discovery of a constructor requiring admission, not a
 proof that every caller accepts an arbitrary expression.
 
-Authored evidence is in `tests/project_signature_argument_expressions_v1.rs`
+Authored evidence is in `tests/project/signature_argument_expressions.rs`
 and the computed-signature cases in
-`tests/project_candidate_lexical_binding_rebase_v1.rs`. They remain unrun.
+`tests/project_candidate/lexical_binding_rebase.rs`. They remain unrun.
 Nominal parameter coverage is authored in
-`tests/project_signature_nominal_arguments_v1.rs` and
-`tests/project_signature_nominal_rebase_v1.rs`, including distinct caller type
+`tests/project/signature_nominal_arguments.rs` and
+`tests/project/signature_nominal_rebase.rs`, including distinct caller type
 aliases, exact type mismatches, missing bindings, zero-call checks and nominal
 shape dependencies during replay. These cases are also unrun.
 General type conversions, new owning parameters, broader nominal arguments,

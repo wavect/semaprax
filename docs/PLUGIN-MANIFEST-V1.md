@@ -140,7 +140,7 @@ consistency.
 
 ## Evidence
 
-Executable evidence lives in `tests/plugin_manifest_v1.rs` plus module
+Executable evidence lives in `tests/projections/plugin_manifest.rs` plus module
 tests in `src/plugin_manifest.rs`: pinned golden envelope KATs over
 `examples/calculator.spx`
 (`sha256:5b70733d21c171280c236377e1c30bdd02b7aeda4a70e5ca6cf940cfb447f957`)

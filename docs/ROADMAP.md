@@ -195,11 +195,19 @@ contracts and cross-module conformance only after that bounded evidence exists;
 operation count does not reduce the full-goal acceptance criteria.
 
 Source-backed image storage/refresh, semantic delta replay and diagnostic
-protocol v4 now have exact-tag nonignored regression coverage. The integrated signature
-workflow reaches separate managed `ACTIVE` publication only. Remaining exit
-conditions include warm/incremental compiler reuse, general interface operations,
-separately provisioned canonical-source publication evidence and measured task-level evidence; these additions
-do not change the programme's Partial status.
+protocol v4 now have exact-tag nonignored regression coverage. The integrated
+signature workflow reaches separate managed `ACTIVE` publication only.
+
+The closed `function_signature_review_publish_v1` workflow now has exact-subject
+local evidence for generated TypeScript, Python, and Rust clients, bounded
+reference-interpreter tests, source-backed recovery handoff, separately approved
+real local bare SHA-256 Git publication, receipt inspection, and ten hostile
+transitions. This does not generalize signature migration, prove native/Wasm or
+deployed runtime behavior, or select MCP/editor, hosted/cross-platform,
+full-quality, or task-economics gates. Warm/incremental reuse, general
+interfaces and intentions, broader canonical-source publication, and
+representative measured workflows remain exit conditions; Phase 1 and the
+programme stay Partial.
 
 The complete requirement ledger is the
 [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md). Image facets,

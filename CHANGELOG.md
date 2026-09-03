@@ -2,14 +2,18 @@
 
 ## Unreleased
 
-- Authored the unrun `function_signature_review_publish_v1` product-workflow
-  contract. It composes exact function references, a typed signature intention,
-  validation, interpreter tests, source review, explicit analysis blind spots,
-  bounded recovery handoff, and a separately startup-approved real Git
-  status/commit/receipt session through generated TypeScript, Python and Rust
-  clients. No complete harness or execution is claimed; cancellation, runtime,
-  deployment, hosted/cross-platform, packaged-SDK, full-quality and programme
-  completion evidence remain open.
+- Executed `function_signature_review_publish_v1` at clean exact local subject
+  `3c605fe3055539a9a5f2bf83e98c8c2a521ff741`. Bundle
+  `8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa`
+  authenticates 18 artifacts covering three isolated generated-client success
+  workflows (Python, Rust, and explicitly provisioned TypeScript), three
+  source-backed handoffs, three exact success transcripts and real local Unix
+  bare SHA-256 publications, plus ten closed hostile transitions including
+  result loss after a real ref update. Raw Project source remained unchanged per language. This
+  qualifies only the frozen scalar fixture and profile; MCP/editor transport,
+  native/Wasm/deployed runtime, hosted/cross-platform, network isolation,
+  packaged SDK, full quality, economics, completion-matrix promotion, and
+  programme completion remain unclaimed.
 
 - Executed the Phase 0 graph-operational v2 closure runner at exact local
   subject `4e6751f92525ed8e4bb5e859233616df7adc86d1`. Aggregate bundle

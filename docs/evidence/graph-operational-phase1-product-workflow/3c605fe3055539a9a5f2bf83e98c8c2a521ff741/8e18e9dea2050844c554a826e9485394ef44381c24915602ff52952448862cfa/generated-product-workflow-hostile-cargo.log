@@ -1,0 +1,9 @@
+   Compiling semaprax v0.2.0 (/Users/kevin/Documents/ChatGPT/AI-Lang/.agent-worktrees/graph-phase1-product-surface)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.08s
+     Running tests/image_generated_product_workflow_hostile_v5.rs (target/phase1-product-workflow-evidence/run-mu6muw29/target/debug/deps/image_generated_product_workflow_hostile_v5-bdf4e9fca83dbeaa)
+
+running 1 test
+test hostile_workflow_transitions_fail_closed ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.14s
+

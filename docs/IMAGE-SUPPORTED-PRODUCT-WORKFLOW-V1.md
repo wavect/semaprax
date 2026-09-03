@@ -1,7 +1,10 @@
 # Supported graph-operational product workflow v1
 
-Status: contract authored, **unrun**. No client, compiler, test, Git provider,
-hosted job, or evidence runner has executed this complete workflow.
+Status: the closed workflow passed its clean exact-subject local evidence gate
+at commit `3c605fe3055539a9a5f2bf83e98c8c2a521ff741`, bundle
+`8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa`.
+This qualifies only the fixture, profiles, clients, provider, and transitions
+frozen here; full Phase 1 and the graph-operational programme remain **Partial**.
 
 Audience: agent-client authors, embedding hosts, release engineers, and
 programme reviewers.
@@ -9,9 +12,10 @@ programme reviewers.
 This contract defines one closed product workflow named
 `function_signature_review_publish_v1`. It composes existing v5 operations
 without changing their schemas, authority, or failure semantics. Canonical
-`.spx` remains repository authority. The workflow is supported only after its
-own exact-subject evidence gate passes; the presence of every constituent API
-is not execution evidence for their composition.
+`.spx` remains repository authority. Its exact-subject gate passed for the
+captured subject above; every later subject requires fresh evidence. Static
+discovery exposes the available composition and exact profile binding but does
+not embed or infer executed support from the presence of constituent APIs.
 
 ## Closed fixture and intention
 
@@ -162,7 +166,7 @@ to say `not_inspected`. The workflow ledger also keeps
 `analysis_completeness: partial`; retained compiler facts and a passing fixture
 do not prove complete impact, behavior, or environment coverage.
 
-Even after a qualifying future run, this bounded workflow will not establish:
+The qualifying exact-subject local run did not establish:
 
 - general signature changes, owned/resource migrations, dynamic or external
   callers, behavioral compatibility, or every operation class;
@@ -177,7 +181,7 @@ Even after a qualifying future run, this bounded workflow will not establish:
   cross-platform support, an exact release tag, comparative economics, full
   quality, completion-matrix promotion, or programme completion.
 
-## Executable evidence gate
+## Executable evidence gate and record
 
 The owning evidence tranche must bind one clean exact commit and tree; exact
 `Cargo.toml` and `Cargo.lock` bytes; compiler and client-generator identity; the
@@ -186,9 +190,15 @@ request/response transcript; handoff artifact; approval binding; real Git
 object format, ref and object digests; committed source objects; receipt; raw
 source before/after digests; and the closed per-language terminal outcome.
 
-It must execute three isolated successful workflows plus hostile cases for
+The gate executes three isolated successful workflows plus hostile cases for
 stale references, source drift, failed tests, tampered recovery, wrong approval,
 definite pre-pivot failure, injected result loss after a real ref update, and
 malformed generated-client responses. All nonclaims above remain
-machine-readable. No runner, fixture, generated orchestration harness, or
-archive is authored by this document change; execution remains pending.
+machine-readable.
+
+[Phase 1 product workflow execution evidence
+v1](GRAPH-OPERATIONAL-PHASE1-PRODUCT-WORKFLOW-EXECUTION-EVIDENCE-V1.md)
+records the clean exact local gate: all three isolated successful workflows and
+all ten hostile transitions passed. Its tracked archive is evidence for the
+captured subject only; it does not transfer the result to this later report
+commit or weaken any nonclaim above.

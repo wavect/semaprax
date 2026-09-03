@@ -144,9 +144,12 @@ cursor recovery and no subject restoration or deletion. An opt-in
 [host lifecycle coordinator](SEMANTIC-RETENTION-HOST-LIFECYCLE-V1.md) now holds
 that startup-selected root identity and checkpoints successful typed
 image/candidate/draft receipts without obscuring store success when registry
-publication fails. Automatic protocol-session and branch integration,
-incomplete-draft lifecycle recovery, warm HIR loading, separately authorized
-eviction/GC and measured recovery cost remain future work.
+publication fails. An opt-in [v5 session attachment](SEMANTIC-RETENTION-PROTOCOL-SESSION-V1.md)
+holds the coordinator for the embedding-session lifetime and accepts only typed
+receipts after out-of-band stores succeed. V5 still owns no immutable subject
+store, so automatic wire checkpointing, branch integration, incomplete-draft
+lifecycle recovery, warm HIR loading, separately authorized eviction/GC and
+measured recovery cost remain future work.
 
 The additive [workspace protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) now composes
 host-selected semantic, candidate, diagnostic, test, pathless-build and optional

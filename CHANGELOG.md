@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- Added an exact candidate-bound function-reference rebind. It independently
+  derives the immutable base and final images, resolves the canonical base
+  reference through the ordinary exact-image path, and delegates conservative
+  stable-ID selection to the existing image rebind before returning a fresh
+  destination reference that still requires normal replay. It grants no
+  migration, compatibility, source, execution or publication authority.
+  Regressions are authored and unrun.
+
+- Added a paired candidate analysis-coverage change report. Optional exact
+  base/final boundary bundles are independently authenticated through their
+  existing deployment, generated-file and external-API declaration owners,
+  enabling real categorical advances, regressions and same-status unknowns in
+  those three areas. Runtime and external-consumer rows remain explicit
+  source-only invariants; completeness and compatibility stay `not_assessed`,
+  and every observation flag remains false. Regressions are authored and
+  unrun.
+
+- Attached the retention lifecycle coordinator to v5 embedding sessions under
+  a once-only startup host selection. The session holds the authenticated
+  registry root for its lifetime and records exact outcomes for typed receipts
+  supplied after separate immutable stores succeed. V5 owns no subject-store
+  operation, so request frames cannot select a root or trigger a checkpoint;
+  wire-owned automatic storage remains open. Regressions are authored and
+  unrun.
+
 - Added an authority-free task-economics normalizer over exact caller-supplied
   paired observation bytes. It authenticates the existing observation-v1
   envelopes, complete metric and evidence-reference inventories and paired
@@ -29,14 +54,16 @@
   runtime, registry or deployment observation. Regressions are authored and
   unrun.
 
-- Extended ordered signature evolution with one to eight distinct exact
-  `own Bytes` to `borrow Slice<u8>` replacements. The compiler authenticates
-  every sole body-local `bytes_as_slice` use and complete source/HIR parity
-  before mutation, stages every caller argument left to right, derives views in
-  mapped-parameter order from caller-owned stages, and leaves cleanup with the
-  caller. Contracts, aliases, duplicate owners, transfers, automatic package
-  migration and compatibility claims remain excluded. Regressions are authored
-  and unrun.
+- Added the rooted `string_as_str` / `core.string.as-str` view over an exact
+  unprojected owning String, with source/HIR/graph/cache loan provenance,
+  interpreter, native and general Wasm lowering, and fail-closed standalone
+  internal-String exclusion. Ordered signature evolution now converts a mixed
+  set of one to eight exact owning Bytes/String parameters to `borrow Slice<u8>`
+  or `borrow str`: complete source/HIR uses authenticate before mutation, all
+  old caller arguments stage left to right, views derive in mapped order, and
+  owners retain ordinary caller cleanup. Projected/temporary/escaping views,
+  automatic package migration and compatibility remain excluded. Regressions
+  are authored and unrun.
 
 - Added a durable authority-neutral retention registry over successful typed
   image/candidate/draft store receipts. An explicit private Unix root chains

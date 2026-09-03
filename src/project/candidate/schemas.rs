@@ -349,6 +349,7 @@ fn intent_schema() -> Value {
         closed(&[("from",json!({"type":"string","minLength":1}))]),
         closed(&[("from",json!({"type":"string","minLength":1})),("name",identifier())]),
         closed(&[("name",identifier()),("borrow_from",json!({"type":"string","minLength":1}))]),
+        closed(&[("name",identifier()),("borrow_slice_from_owner",json!({"type":"string","minLength":1}))]),
         new_parameter(),
         computed_parameter()
     ]});

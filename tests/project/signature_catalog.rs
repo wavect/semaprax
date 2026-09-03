@@ -357,3 +357,36 @@ fn fresh_borrowed_parameters_reject_unknown_nonview_unretained_and_open_requests
         );
     }
 }
+
+#[test]
+fn owned_bytes_catalogue_exposes_only_exact_replacement_and_no_external_migration() {
+    let fixture = Fixture::new();
+    let report = catalog(&fixture.candidate(), "catalog.bytes");
+    let mapping = report["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|operation| operation["kind"] == "change_function_signature")
+        .unwrap()["exactly_one_form"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|form| form["selector"] == "parameters")
+        .unwrap();
+    assert_eq!(
+        mapping["owner_to_borrowed_slice_fields"],
+        json!(["name", "borrow_slice_from_owner"])
+    );
+    let lane = &mapping["owner_to_borrowed_slice"];
+    assert_eq!(lane["result"], "borrow Slice<u8>");
+    assert_eq!(lane["owner_cleanup"], "caller_owned_ordinary_cleanup");
+    assert_eq!(lane["full_project_replay"], true);
+    assert!(lane["excludes"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("external_package_source_rewrite")));
+    assert!(lane["excludes"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("additive_owner_alias")));
+}

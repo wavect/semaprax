@@ -34,6 +34,16 @@ impl Fixture {
 @id("frame.own-call") fn own_call(input: borrow Slice<u8>) -> Bytes {
     own_select(bytes_copy(input), bytes_copy(input), 4 / 2)
 }
+@id("frame.owner-view") fn owner_view(input: own Bytes, offset: i64) -> usize {
+    byte_len(bytes_as_slice(input)) + if offset == 0 { 0usize } else { 1usize }
+}
+@id("frame.owner-view-call") fn owner_view_call(input: borrow Slice<u8>) -> usize {
+    owner_view(bytes_copy(input), 8 / 4)
+}
+@id("frame.owner-return") fn owner_return(input: own Bytes) -> Bytes { input }
+@id("frame.owner-duplicate-view") fn owner_duplicate_view(input: own Bytes) -> usize {
+    byte_len(bytes_as_slice(input)) + byte_len(bytes_as_slice(input))
+}
 "#,
         );
         let program = semaprax::parse(&source, &path).unwrap();
@@ -46,6 +56,101 @@ impl Fixture {
         })
         .unwrap();
         ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap()
+    }
+}
+
+#[test]
+fn own_bytes_replacement_derives_one_caller_view_after_left_to_right_staging_and_replays() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    let change = SemanticChange::new(
+        root.revision().project_revision(),
+        &json!({
+            "kind":"change_function_signature", "target":"frame.owner-view", "parameters":[
+                {"name":"view","borrow_slice_from_owner":"input"}, {"from":"offset"}
+            ]
+        }),
+    )
+    .unwrap();
+    let evolved = root.apply(root.candidate_digest(), &change).unwrap();
+    let source = evolved
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/frame.spx")
+        .unwrap()
+        .source();
+    assert!(source.contains("fn owner_view(view: borrow Slice<u8>, offset: i64) -> usize"));
+    assert!(source.contains("byte_len(view)"));
+    let stage_owner = source
+        .find("let spx_sig_stage_0 = bytes_copy(input)")
+        .unwrap();
+    let stage_offset = source.find("let spx_sig_stage_1 = 8 / 4").unwrap();
+    let derive_view = source
+        .find("let spx_sig_stage_2 = bytes_as_slice(spx_sig_stage_0)")
+        .unwrap();
+    let migrated_call = source
+        .find("owner_view(spx_sig_stage_2, spx_sig_stage_1)")
+        .unwrap();
+    assert!(
+        stage_owner < stage_offset && stage_offset < derive_view && derive_view < migrated_call
+    );
+    let replayed = ProjectCandidate::replay(
+        Arc::clone(root.base_revision()),
+        root.base_revision().project_revision(),
+        &[change],
+        evolved.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replayed.to_json(), evolved.to_json());
+}
+
+#[test]
+fn owner_to_view_rejects_transfer_duplicate_conversion_additive_alias_and_open_mapping() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    for (target, parameters) in [
+        (
+            "frame.owner-return",
+            json!([{"name":"view","borrow_slice_from_owner":"input"}]),
+        ),
+        (
+            "frame.owner-duplicate-view",
+            json!([{"name":"view","borrow_slice_from_owner":"input"}]),
+        ),
+        (
+            "frame.owner-view",
+            json!([
+                {"from":"input"},
+                {"name":"view","borrow_slice_from_owner":"input"},
+                {"from":"offset"}
+            ]),
+        ),
+        (
+            "frame.owner-view",
+            json!([
+                {"name":"view","borrow_slice_from_owner":"input","type":"Slice<u8>"},
+                {"from":"offset"}
+            ]),
+        ),
+    ] {
+        let change = SemanticChange::new(
+            root.revision().project_revision(),
+            &json!({
+                "kind":"change_function_signature", "target":target, "parameters":parameters
+            }),
+        )
+        .unwrap();
+        let errors = root
+            .apply(root.candidate_digest(), &change)
+            .err()
+            .expect("unsupported owner-to-view migration admitted");
+        assert!(
+            errors
+                .iter()
+                .any(|error| matches!(error.code, "SPX-G225" | "SPX-G469")),
+            "{errors:?}"
+        );
     }
 }
 impl Drop for Fixture {

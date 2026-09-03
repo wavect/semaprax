@@ -2,8 +2,9 @@
 //!
 //! Every old argument is evaluated once even when its parameter is removed.
 //! Parameter identity is selected by its old name; display renaming follows
-//! lexical binding scopes. No implicit conversion is performed. Project replay is
-//! caller's responsibility.
+//! lexical binding scopes. The sole owner conversion is an explicit, checked
+//! `own Bytes` replacement with `borrow Slice<u8>`. Project replay is caller's
+//! responsibility.
 
 use super::{
     array, call_bindings, capacity, grammar, identifier, literal, member, object, scalar_type,
@@ -21,6 +22,8 @@ use std::collections::{BTreeMap, BTreeSet};
 #[path = "signature_arguments.rs"]
 mod computed;
 pub(in crate::project::candidate) use computed::validate_computed_signature;
+#[path = "signature_owner_view.rs"]
+mod owner_view;
 #[path = "signature_rename.rs"]
 mod rename;
 
@@ -36,6 +39,10 @@ enum Argument {
     /// borrowed-view parameter. The caller reuses the already staged view;
     /// no new root, projection, copy, or lifetime is synthesized.
     BorrowedExisting(usize),
+    /// One exact original `own Bytes` argument remains caller-owned. After all
+    /// original arguments are staged, the caller derives one authenticated
+    /// Slice view and passes only that view to the changed provider.
+    BorrowedOwner(usize),
     Literal(Expr),
     Computed {
         template: Value,
@@ -101,6 +108,7 @@ pub(super) fn apply(
     let mut params = Vec::with_capacity(requested.len());
     let mut arguments = Vec::with_capacity(requested.len());
     let mut template_nodes = 0usize;
+    let mut owner_view = None;
     for mapping in requested {
         if mapping.get("from").is_some() {
             if mapping.get("name").is_some() {
@@ -157,6 +165,42 @@ pub(super) fn apply(
                 span: Span::default(),
             });
             arguments.push(Argument::BorrowedExisting(index));
+        } else if mapping.get("borrow_slice_from_owner").is_some() {
+            object(mapping, &["name", "borrow_slice_from_owner"])?;
+            let name = identifier(text(mapping, "name")?)?;
+            if original.contains_key(name) || !names.insert(name.to_owned()) {
+                return Err(owner_view::invalid(
+                    "owner-to-view replacement requires a fresh borrowed binding name",
+                ));
+            }
+            let source_name = text(mapping, "borrow_slice_from_owner")?;
+            let index = *original.get(source_name).ok_or_else(|| {
+                owner_view::invalid("owner-to-view replacement names an unknown original owner")
+            })?;
+            if original_params[index].mode != ParamMode::Own
+                || original_params[index].ty != Type::Bytes
+            {
+                return Err(owner_view::invalid(
+                    "owner-to-view replacement requires an exact original own Bytes parameter",
+                ));
+            }
+            if owner_view.replace((index, name.to_owned())).is_some() {
+                return Err(owner_view::invalid(
+                    "signature evolution admits at most one owner-to-view replacement",
+                ));
+            }
+            if !selected.insert(index) {
+                return Err(owner_view::invalid(
+                    "owner-to-view replacement cannot also retain or remap its owner",
+                ));
+            }
+            params.push(Param {
+                name: name.to_owned(),
+                mode: ParamMode::Borrow,
+                ty: Type::SliceU8,
+                span: Span::default(),
+            });
+            arguments.push(Argument::BorrowedOwner(index));
         } else {
             let is_computed = mapping.get("argument_expression").is_some();
             if is_computed {
@@ -234,9 +278,10 @@ pub(super) fn apply(
             Argument::Existing(index) => {
                 Some((original_params[*index].name.clone(), param.name.clone()))
             }
-            Argument::BorrowedExisting(_) | Argument::Literal(_) | Argument::Computed { .. } => {
-                None
-            }
+            Argument::BorrowedExisting(_)
+            | Argument::BorrowedOwner(_)
+            | Argument::Literal(_)
+            | Argument::Computed { .. } => None,
         })
         .collect::<BTreeMap<_, _>>();
     if renames.iter().any(|(old, new)| old != new) {
@@ -246,6 +291,20 @@ pub(super) fn apply(
             &renames,
             &names,
             &mut occupied,
+        )?;
+    }
+    if let Some((index, new_name)) = &owner_view {
+        let revision = revision.ok_or_else(|| {
+            owner_view::invalid(
+                "owner-to-view replacement requires an authenticated Project revision",
+            )
+        })?;
+        owner_view::authenticate_and_rewrite(
+            revision,
+            &mut programs[owner].functions[function_index],
+            &original_params[*index],
+            *index,
+            new_name,
         )?;
     }
     let mut generated = 0usize;
@@ -296,6 +355,7 @@ pub(super) fn apply(
                     Argument::Literal(expression) => super::literal_nodes(expression),
                     Argument::Existing(_)
                     | Argument::BorrowedExisting(_)
+                    | Argument::BorrowedOwner(_)
                     | Argument::Computed { .. } => 1,
                 })
                 .sum::<usize>();
@@ -345,6 +405,34 @@ pub(super) fn apply(
                 stages.push(fresh_name(&mut occupied, &mut generated)?);
             }
             let mut defaults = Vec::new();
+            let mut owner_view_stages = BTreeMap::new();
+            let mut owner_view_statements = Vec::new();
+            for argument in &arguments {
+                let Argument::BorrowedOwner(index) = argument else {
+                    continue;
+                };
+                let name = fresh_name(&mut occupied, &mut generated)?;
+                computed::charge(&mut added_nodes, 2)?;
+                owner_view_statements.push(Statement::Let {
+                    name: name.clone(),
+                    name_span: span,
+                    mutable: false,
+                    declared: None,
+                    value: Expr {
+                        kind: ExprKind::Call {
+                            name: crate::byte_ops::BYTES_AS_SLICE_NAME.to_owned(),
+                            type_arguments: Vec::new(),
+                            args: vec![Expr {
+                                kind: ExprKind::Var(stages[*index].clone()),
+                                span,
+                            }],
+                        },
+                        span,
+                    },
+                    span,
+                });
+                owner_view_stages.insert(*index, name);
+            }
             let mut mapped = Vec::with_capacity(arguments.len());
             for (argument, template) in arguments.iter().zip(templates) {
                 mapped.push(match argument {
@@ -354,6 +442,15 @@ pub(super) fn apply(
                     },
                     Argument::BorrowedExisting(index) => Expr {
                         kind: ExprKind::Var(stages[*index].clone()),
+                        span,
+                    },
+                    Argument::BorrowedOwner(index) => Expr {
+                        kind: ExprKind::Var(
+                            owner_view_stages
+                                .get(index)
+                                .expect("owner view stage prepared")
+                                .clone(),
+                        ),
                         span,
                     },
                     Argument::Literal(expression) => expression.clone(),
@@ -397,6 +494,11 @@ pub(super) fn apply(
                     span,
                 })
                 .collect::<Vec<_>>();
+            // Every authored old argument is evaluated first, in source order.
+            // Only then is the view borrowed from its staged owner. The owner
+            // is never transferred and ordinary caller cleanup remains its
+            // sole cleanup authority.
+            statements.extend(owner_view_statements);
             statements.extend(defaults);
             expression.kind = ExprKind::Block {
                 statements,

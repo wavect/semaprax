@@ -70,6 +70,28 @@ pub(in crate::project::candidate) fn validate_computed_signature(
         ));
     }
     for (mapping, parameter) in parameters.iter().zip(&function.params) {
+        if mapping.get("borrow_slice_from_owner").is_some() {
+            object(mapping, &["name", "borrow_slice_from_owner"])?;
+            if parameter.name != text(mapping, "name")?
+                || parameter.ownership != OwnershipMode::Borrow
+                || parameter.ty != ResolvedType::SliceU8
+            {
+                return Err(super::owner_view::invalid(
+                    "rebuilt owner-to-view parameter disagrees with borrow Slice<u8>",
+                ));
+            }
+            if parameters.iter().any(|other| {
+                other.get("from").and_then(Value::as_str)
+                    == mapping
+                        .get("borrow_slice_from_owner")
+                        .and_then(Value::as_str)
+            }) {
+                return Err(super::owner_view::invalid(
+                    "rebuilt owner-to-view source was also retained",
+                ));
+            }
+            continue;
+        }
         if mapping.get("borrow_from").is_some() {
             object(mapping, &["name", "borrow_from"])?;
             if parameter.name != text(mapping, "name")?

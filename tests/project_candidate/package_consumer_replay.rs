@@ -22,6 +22,7 @@ use std::sync::{
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const PROVIDER_PATH: &str = "src/core.spx";
 const TARGET: &str = "lib.answer";
+const OWNER_VIEW_TARGET: &str = "lib.bytes-len";
 
 fn canonical(text: &str, path: &str) -> String {
     semaprax::format::canonical(&semaprax::parse(text, path).unwrap())
@@ -44,7 +45,7 @@ version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "libmath"
 sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
-web_exports = ["lib.answer", "lib.unused"]
+web_exports = ["lib.answer", "lib.unused", "lib.bytes-len"]
 tests = ["lib.tests"]
 "#,
         )
@@ -62,6 +63,8 @@ use function @id("lib.answer") from libmath as answer;
             r#"module libmath;
 @id("lib.answer") fn answer()->i64 {41}
 @id("lib.unused") fn unused()->i64 {99}
+@id("lib.bytes-len") fn bytes_len_owned(input: own Bytes)->usize {byte_len(bytes_as_slice(input))}
+@id("lib.bytes-internal") fn bytes_internal(input: borrow Slice<u8>)->usize {bytes_len_owned(bytes_copy(input))}
 @id("lib.main") fn main()->i64 {answer()}
 "#,
         );
@@ -118,6 +121,15 @@ fn signature_changed(base: &ProjectCandidate) -> ProjectCandidate {
     let intent = json!({"kind":"change_function_signature","target":TARGET,
         "append_parameters":[{"name":"offset","type":"i64",
             "argument":{"kind":"i64","value":0}}]});
+    base.apply(
+        base.candidate_digest(),
+        &SemanticChange::new(base.revision().project_revision(), &intent).unwrap(),
+    )
+    .unwrap()
+}
+fn owner_view_signature_changed(base: &ProjectCandidate) -> ProjectCandidate {
+    let intent = json!({"kind":"change_function_signature","target":OWNER_VIEW_TARGET,
+        "parameters":[{"name":"view","borrow_slice_from_owner":"input"}]});
     base.apply(
         base.candidate_digest(),
         &SemanticChange::new(base.revision().project_revision(), &intent).unwrap(),
@@ -192,8 +204,10 @@ impl Corpus {
             r#"module app.main;
 use function @id("lib.answer") from libmath as answer;
 use function @id("lib.unused") from libmath as unused;
+use function @id("lib.bytes-len") from libmath as bytes_len_owned;
 @id("app.main") fn main()->i64 {answer()+1}
 fn private_helper()->i64 {answer()}
+fn bytes_consumer(input: borrow Slice<u8>)->usize {bytes_len_owned(bytes_copy(input))}
 "#,
             "consumer.spx",
         );
@@ -369,6 +383,40 @@ fn changed_provider_signature_marks_exact_baseline_imports_and_calls_for_replay(
     );
     assert_eq!(base.to_json(), base_json);
     assert_eq!(candidate.to_json(), candidate_json);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn owner_to_borrowed_slice_reports_external_parameter_conflict_without_migrating_package_source() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let revision = fixture.revision();
+    let base = open(&revision);
+    let baseline = Corpus::candidate_era(&fixture.0, &base);
+    let candidate = owner_view_signature_changed(&base);
+    let report: Value = serde_json::from_str(
+        &candidate
+            .package_signature_consumer_conflicts(
+                candidate.candidate_digest(),
+                &baseline.signature_conflicts(OWNER_VIEW_TARGET),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(report["signature_changed"], true);
+    assert_eq!(report["changed_facets"], json!(["parameters"]));
+    assert_eq!(
+        report["compatibility_status"],
+        "known_source_consumers_require_candidate_era_replay"
+    );
+    assert!(report["nonclaims"].as_array().unwrap().contains(&json!(
+        "no_automatic_consumer_migration_or_candidate_era_consumer_acceptance"
+    )));
+    assert!(report["affected_calls"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|row| row["target"] == OWNER_VIEW_TARGET));
     assert_eq!(fixture.bytes(), disk);
 }
 

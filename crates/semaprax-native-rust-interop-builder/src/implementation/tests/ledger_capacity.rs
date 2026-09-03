@@ -132,7 +132,10 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     let hir_validator = include_str!("../../../../../src/hir/validation.rs");
     let verifier = include_str!("../../../../../src/source_verify.rs");
     let cleanup = include_str!("../../../../../src/cleanup.rs");
-    let lower = include_str!("../../../../../src/cleanup_plan/build.rs");
+    let lower = concat!(
+        include_str!("../../../../../src/cleanup_plan/build.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/schema.rs"),
+    );
     let calls = include_str!("../../../../../src/call_index.rs");
     for (source, expected) in [
         (hir_resolver, "size_of::<Frame<'static>>() == 592"),

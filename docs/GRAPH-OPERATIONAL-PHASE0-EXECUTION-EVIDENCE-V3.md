@@ -14,6 +14,7 @@ makes evidence status classes explicit in one canonical envelope.
 python3 scripts/graph-operational-phase0-evidence.py \
   --node /absolute/path/to/node \
   --tsc /absolute/path/to/tsc \
+  --typescript-package-root /absolute/path/to/typescript-5.8.3 \
   --vscode-app '/absolute/path/Visual Studio Code.app' \
   --mcp-python /absolute/path/to/python-with-mcp-1.27.0
 ```
@@ -29,7 +30,7 @@ another.
 
 | Class | Meaning |
 | --- | --- |
-| `current_head` | Selected components freshly executed against the one exact local `HEAD` captured by the envelope. |
+| `current_head` | Selected canonical-Git, client/MCP, generated product-workflow, VS Code, and independent MCP SDK components freshly executed against the one exact local `HEAD` captured by the envelope. |
 | `exact_tag` | Tags observed at that commit; tag evidence is `not_selected` and no release-tag claim follows. |
 | `provisioned` | Selected executions that use explicitly bound local Node, TypeScript, Visual Studio Code, or Python MCP SDK inputs. |
 | `default_ignored` | Default-ignored tests are excluded from ordinary counts and named only when separately selected and passed. |
@@ -38,7 +39,11 @@ another.
 ## Updated selected inventory
 
 The canonical Git, managed publication, generated-client/MCP, and independent
-Python MCP SDK dimensions remain the v2 selections. The editor component now
+Python MCP SDK dimensions remain the v2 selections. A new child selects the
+closed generated Python/Rust/TypeScript review-to-publication workflow and its
+ten hostile transitions; its TypeScript row is separately provisioned and its
+transport remains the recorded direct v5 harness. It is not packaged-SDK-over-
+MCP evidence. The editor component now
 requires 57 standalone controller rows plus one real Extension Host row that
 observes fixed startup policy, immediate zero-step cancellation, no released
 report or source authority, dirty-buffer invalidation, and rejection of the late

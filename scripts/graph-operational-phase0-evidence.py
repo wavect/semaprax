@@ -10,9 +10,10 @@ HEX=re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 MAX_LOG=16*1024*1024; MAX_ARTIFACT=512*1024*1024; TIMEOUT=30*60
 POLICY={"schema":"semaprax.workspace-host-policy.v7","candidate_prepare":True,"diagnostics":False,"build_enabled":False,"test_policy":None,"git_commit":None,"frontend_cache":False,"candidate_archives":[],"semantic_cache":False,"semantic_cache_entry":None,"draft_archives":[],"read_batch_workers":None}
 COMPONENTS=(
- ("canonical-git","scripts/graph-operational-evidence.py","semaprax.graph-operational-execution-evidence.v2","semaprax.graph-operational-execution-evidence.bundle.v2"),
- ("client-mcp","scripts/graph-operational-client-mcp-evidence.py","semaprax.graph-operational-client-mcp-execution-evidence.v2","semaprax.graph-operational-client-mcp-execution-evidence.bundle.v2"),
- ("vscode-host","scripts/graph-operational-vscode-host-evidence.py","semaprax.graph-operational-vscode-host-execution-evidence.v2","semaprax.graph-operational-vscode-host-execution-evidence.bundle.v2"),)
+ ("canonical-git","scripts/graph-operational-evidence.py","semaprax.graph-operational-execution-evidence.v2","semaprax.graph-operational-execution-evidence.bundle.v2","digest_text"),
+ ("client-mcp","scripts/graph-operational-client-mcp-evidence.py","semaprax.graph-operational-client-mcp-execution-evidence.v2","semaprax.graph-operational-client-mcp-execution-evidence.bundle.v2","digest_text"),
+ ("product-workflow","scripts/graph-operational-phase1-product-workflow-evidence.py","semaprax.graph-operational-phase1-product-workflow-execution-evidence.v1","semaprax.graph-operational-phase1-product-workflow-execution-evidence.bundle.v1","canonical_rows"),
+ ("vscode-host","scripts/graph-operational-vscode-host-evidence.py","semaprax.graph-operational-vscode-host-execution-evidence.v2","semaprax.graph-operational-vscode-host-execution-evidence.bundle.v2","raw_digests"),)
 CANONICAL_GATES=(
  ("graph_operational_git_workflow_v1",["cargo","test","--locked","--offline","-p","semaprax","--test","project_graph_operational_git_workflow_v1","--","--test-threads=1","--nocapture"],"local_unix_git","cargo.log",("competing_real_git_ref_consumes_approval_without_overwriting_the_other_commit","real_git_ref_update_with_lost_response_is_terminal_and_requires_inspection","twelve_step_v5_review_to_real_sha1_git_commit","twelve_step_v5_review_to_real_sha256_git_commit")),
  ("candidate_managed_publication_v1",["cargo","test","--locked","--offline","-p","semaprax","--test","project_candidate_publication_v1","--","--test-threads=1","--nocapture"],"local_managed_workspace","candidate-publication-cargo.log",("existing_exclusive_lock_is_required_before_replay_or_candidate_approval_checks","prepare_is_read_only_and_apply_changes_only_the_managed_active_generation","proof_tamper_approval_and_host_substitution_reject_before_any_generation_write","raw_source_drift_and_single_changed_file_never_pad_or_publish")),
@@ -48,9 +49,12 @@ def verify_repository(commit,tree,inputs):
  if git("rev-parse","HEAD^{commit}")!=commit or git("rev-parse","HEAD^{tree}")!=tree: raise Failure("repository subject drift")
  for expected in inputs:
   if file_row(ROOT/expected["path"],expected["path"])!=expected: raise Failure(f"repository input drift: {expected['path']}")
-def child_bundle(domain,artifacts,raw):
+def child_bundle(domain,artifacts,mode):
  seed=domain.encode()+b"\0"
- seed+=b"".join(bytes.fromhex(x["sha256"][7:]) for x in artifacts) if raw else b"\0".join(x["sha256"].encode() for x in artifacts)
+ if mode=="raw_digests": seed+=b"".join(bytes.fromhex(x["sha256"][7:]) for x in artifacts)
+ elif mode=="canonical_rows": seed+=b"".join(canonical(x) for x in artifacts)
+ elif mode=="digest_text": seed+=b"\0".join(x["sha256"].encode() for x in artifacts)
+ else: raise Failure(f"unknown child bundle mode: {mode}")
  return hashlib.sha256(seed).hexdigest()
 def validate_outcomes(name,value):
  repo=value.get("repository",{})
@@ -74,6 +78,17 @@ def validate_outcomes(name,value):
    if gate.get("outcome")!="passed" or gate.get("exit_code")!=0 or gate.get("counts")!=expected[gate["id"]]: raise Failure(f"client/MCP gate outcome mismatch: {gate.get('id')}")
   required={"generated_client_python_request_admission":"passed","generated_client_rust_request_admission":"passed","generated_client_typescript_request_admission":"passed_provisioned_local","mcp_adapter_in_process":"passed","mcp_cli_stdio_local_subprocess":"passed"}
   if any(value.get("observations",{}).get(k)!=v for k,v in required.items()): raise Failure("client/MCP observations mismatch")
+ elif name=="product-workflow":
+  if (repo.get("clean_before"),repo.get("clean_after"),repo.get("head_unchanged"))!=(True,True,True): raise Failure("product workflow repository state mismatch")
+  expected={"generated_product_workflow_python_rust_v1":{"selected":3,"passed":2,"failed":0,"ignored":1,"measured":0,"filtered_out":0},"generated_product_workflow_hostile_v1":{"selected":1,"passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":0},"generated_product_workflow_typescript_v1":{"selected":1,"passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":2}}
+  rows=value.get("executions")
+  if not isinstance(rows,list) or {x.get("id") for x in rows}!=set(expected): raise Failure("product workflow gate inventory mismatch")
+  for gate in rows:
+   if gate.get("outcome")!="passed" or gate.get("exit_code")!=0 or gate.get("counts")!=expected[gate["id"]]: raise Failure(f"product workflow gate outcome mismatch: {gate.get('id')}")
+  observations=value.get("observations",{})
+  required={"workflow":"function_signature_review_publish_v1","generated_python":"passed_local_exact_subject","generated_rust":"passed_local_exact_subject","generated_typescript":"passed_explicitly_provisioned_local_exact_subject","closed_success_transcripts":3,"closed_handoff_artifacts":3,"closed_generated_client_artifacts":3,"hostile_transition_cases":10,"publication_fixture":"isolated_local_unix_bare_sha256_git","raw_source_preservation":"passed_per_language"}
+  if any(observations.get(key)!=expected for key,expected in required.items()): raise Failure("product workflow observations mismatch")
+  if "packaged_sdk_editor_ui_or_mcp_certification" not in value.get("nonclaims",[]): raise Failure("product workflow MCP/package nonclaim is absent")
  else:
   if repo.get("clean_before_and_after") is not True or repo.get("current_head") is not True: raise Failure("VS Code repository state mismatch")
   expected=[{"id":"vscode_node_mock_controllers_v2","passed":57,"failed":0,"ignored":0},{"id":"vscode_extension_host_real_compiler_task_control_v2","passed":1,"failed":0,"ignored":0}]
@@ -83,7 +98,7 @@ def validate_outcomes(name,value):
   if observation.get("discovered_task_tools")!=["candidate/test-task-start","candidate/test-task-status","candidate/test-task-cancel","candidate/test-task-result"]: raise Failure("VS Code task catalogue mismatch")
   if observation.get("cancellation")!={"state":"cancelled","before_step":1,"steps_used":0,"report_released":False,"source_authority":False}: raise Failure("VS Code cancellation observation mismatch")
   if observation.get("authority")!={"source_write":False,"build":False,"commit":False,"publication":False}: raise Failure("VS Code authority observation mismatch")
-def validate_component(path,name,schema,domain,commit,tree):
+def validate_component(path,name,schema,domain,bundle_mode,commit,tree):
  body=(path/"evidence.json").read_bytes(); value=json.loads(body)
  if canonical(value)!=body or value.get("schema")!=schema: raise Failure(f"invalid {name} envelope")
  repo=value.get("repository",{})
@@ -95,7 +110,7 @@ def validate_component(path,name,schema,domain,commit,tree):
  if {x.name for x in path.iterdir()}!={"evidence.json",*paths}: raise Failure(f"{name} bundle inventory mismatch")
  for item in artifacts:
   if file_row(path/item["path"],item["path"])!={k:item[k] for k in ("path","bytes","sha256")}: raise Failure(f"{name} artifact mismatch: {item['path']}")
- if value.get("bundle_id")!=child_bundle(domain,artifacts,name=="vscode-host"): raise Failure(f"{name} bundle ID mismatch")
+ if value.get("bundle_id")!=child_bundle(domain,artifacts,bundle_mode): raise Failure(f"{name} bundle ID mismatch")
  validate_outcomes(name,value); return value
 def distribution_binding(python):
  script='''import importlib.metadata as m,json\nnames=("mcp","anyio","pydantic","pydantic_core")\nprint(json.dumps({n:m.version(n) for n in names},sort_keys=True,separators=(",",":")))\nd=m.distribution("mcp")\nfor x in d.files or (): print(d.locate_file(x))'''
@@ -143,12 +158,16 @@ def execute_sdk(stage,python,cargo,rustc,commit,tree,inputs):
  verify_repository(commit,tree,inputs); return pre,compiler_row,observation,artifacts,sdk_command
 def cross_tools(values):
  client=values["client-mcp"]["runner"]["tools"]; vscode=values["vscode-host"]["runner"]["tools"]; canonical_tools=values["canonical-git"]["runner"]["tools"]
+ product=values["product-workflow"]["runner"]["tools"]
  for name in ("cargo","rustc"):
   if client[name]["resolved_path"]!=vscode[name]["path"] or client[name]["resolved_path"]!=canonical_tools[name]["executable"] or client[name]["sha256"]!=vscode[name]["sha256"]: raise Failure(f"cross-component {name} identity mismatch")
+  if product[name]["resolved_path"]!=client[name]["resolved_path"] or product[name]["sha256"]!=client[name]["sha256"]: raise Failure(f"product workflow {name} identity mismatch")
  if client["node"]["resolved_path"]!=vscode["node"]["path"] or client["node"]["sha256"]!=vscode["node"]["sha256"]: raise Failure("cross-component Node identity mismatch")
+ if product["node"]["resolved_path"]!=client["node"]["resolved_path"] or product["node"]["sha256"]!=client["node"]["sha256"]: raise Failure("product workflow Node identity mismatch")
  if client["git"]["resolved_path"]!=canonical_tools["git"]["executable"]: raise Failure("cross-component Git identity mismatch")
+ if product["git"]["resolved_path"]!=client["git"]["resolved_path"] or product["git"]["sha256"]!=client["git"]["sha256"]: raise Failure("product workflow Git identity mismatch")
 def verify_final(destination,evidence):
- if {x.name for x in destination.iterdir()}!={"evidence.json","canonical-git","client-mcp","vscode-host","independent-mcp-sdk"}: raise Failure("aggregate top-level inventory mismatch")
+ if {x.name for x in destination.iterdir()}!={"evidence.json","canonical-git","client-mcp","product-workflow","vscode-host","independent-mcp-sdk"}: raise Failure("aggregate top-level inventory mismatch")
  body=(destination/"evidence.json").read_bytes()
  if canonical(evidence)!=body or json.loads(body)!=evidence: raise Failure("aggregate evidence replay mismatch")
  expected={x["path"] for x in evidence["artifacts"]}; actual={str(x.relative_to(destination)) for x in destination.rglob("*") if x.is_file() and x.relative_to(destination)!=Path("evidence.json")}
@@ -158,28 +177,31 @@ def verify_final(destination,evidence):
  bid=hashlib.sha256(DOMAIN+b"".join(canonical(x) for x in evidence["artifacts"])).hexdigest()
  if evidence["bundle_id"]!=bid: raise Failure("aggregate bundle ID mismatch")
 def main():
- ap=argparse.ArgumentParser(); ap.add_argument("--node",required=True); ap.add_argument("--tsc",required=True); ap.add_argument("--vscode-app",required=True); ap.add_argument("--mcp-python",required=True); ap.add_argument("--output"); ns=ap.parse_args()
+ ap=argparse.ArgumentParser(); ap.add_argument("--node",required=True); ap.add_argument("--tsc",required=True); ap.add_argument("--typescript-package-root",required=True); ap.add_argument("--vscode-app",required=True); ap.add_argument("--mcp-python",required=True); ap.add_argument("--output"); ns=ap.parse_args()
  clean(); commit=git("rev-parse","HEAD^{commit}"); tree=git("rev-parse","HEAD^{tree}")
  if not HEX.fullmatch(commit) or not HEX.fullmatch(tree): raise Failure("invalid exact subject")
  symbolic=run([shutil.which("git"),"symbolic-ref","--quiet","--short","HEAD"]); branch=symbolic.stdout.decode("utf-8","strict").strip() if symbolic.returncode==0 else None; tags=sorted(filter(None,git("tag","--points-at",commit).splitlines())); inputs=repository_inputs()
  node=executable(ns.node,"Node"); tsc=executable(ns.tsc,"TypeScript"); mcp_python=executable(ns.mcp_python,"MCP Python"); cargo=executable(os.path.abspath(shutil.which("cargo")),"Cargo"); rustc=executable(os.path.abspath(shutil.which("rustc")),"rustc")
  with tempfile.TemporaryDirectory(prefix="semaprax-phase0-components-",dir="/private/tmp") as temporary:
-  stage=Path(temporary); commands={"canonical-git":[sys.executable,str(ROOT/"scripts/graph-operational-evidence.py")],"client-mcp":[sys.executable,str(ROOT/"scripts/graph-operational-client-mcp-evidence.py"),"--node",node,"--tsc",tsc],"vscode-host":[sys.executable,str(ROOT/"scripts/graph-operational-vscode-host-evidence.py"),"--node",node,"--vscode-app",str(Path(ns.vscode_app).resolve(strict=True))]}; components=[]; values={}; artifacts=[]
-  for name,script,schema,domain in COMPONENTS:
-   incoming=stage/name/"incoming"; cmd=[*commands[name],"--output",str(incoming)]; command(cmd,f"{name} component",timeout=65*60 if name=="canonical-git" else TIMEOUT); value=validate_component(incoming,name,schema,domain,commit,tree); verify_repository(commit,tree,inputs); bundle=value["bundle_id"]; target=incoming.parent/bundle; incoming.rename(target); values[name]=value
-   components.append({"id":name,"schema":schema,"bundle_id":bundle,"path":f"{name}/{bundle}","outcome":"passed","command":cmd,"provisioning":"explicit_local_node_tsc" if name=="client-mcp" else ("explicit_local_visual_studio_code_product" if name=="vscode-host" else "local_unix_git")})
+  typescript_root=str(Path(ns.typescript_package_root).resolve(strict=True)); stage=Path(temporary); commands={"canonical-git":[sys.executable,str(ROOT/"scripts/graph-operational-evidence.py")],"client-mcp":[sys.executable,str(ROOT/"scripts/graph-operational-client-mcp-evidence.py"),"--node",node,"--tsc",tsc],"product-workflow":[sys.executable,str(ROOT/"scripts/graph-operational-phase1-product-workflow-evidence.py"),"--python",mcp_python,"--node",node,"--tsc",tsc,"--typescript-package-root",typescript_root],"vscode-host":[sys.executable,str(ROOT/"scripts/graph-operational-vscode-host-evidence.py"),"--node",node,"--vscode-app",str(Path(ns.vscode_app).resolve(strict=True))]}; components=[]; values={}; artifacts=[]
+  for name,script,schema,domain,bundle_mode in COMPONENTS:
+   incoming=stage/name/"incoming"; cmd=[*commands[name],"--output",str(incoming)]; command(cmd,f"{name} component",timeout=65*60 if name in ("canonical-git","product-workflow") else TIMEOUT); value=validate_component(incoming,name,schema,domain,bundle_mode,commit,tree); verify_repository(commit,tree,inputs); bundle=value["bundle_id"]; target=incoming.parent/bundle; incoming.rename(target); values[name]=value
+   provisioning={"client-mcp":"explicit_local_node_tsc","product-workflow":"explicit_local_python_node_typescript","vscode-host":"explicit_local_visual_studio_code_product"}.get(name,"local_unix_git")
+   components.append({"id":name,"schema":schema,"bundle_id":bundle,"path":f"{name}/{bundle}","outcome":"passed","command":cmd,"provisioning":provisioning})
    for path in sorted(target.iterdir()): artifacts.append(file_row(path,f"{name}/{bundle}/{path.name}"))
   cross_tools(values); sdk_tools,compiler_row,observation,sdk_artifacts,sdk_command=execute_sdk(stage,mcp_python,cargo,rustc,commit,tree,inputs)
   for name in ("cargo","rustc"):
    child=values["client-mcp"]["runner"]["tools"][name]
    if sdk_tools[name]["path"]!=child["resolved_path"] or sdk_tools[name]["sha256"]!=child["sha256"]: raise Failure(f"SDK/component {name} identity mismatch")
+  product_python=values["product-workflow"]["runner"]["tools"]["python"]
+  if product_python["resolved_path"]!=sdk_tools["python"]["path"] or product_python["sha256"]!=sdk_tools["python"]["sha256"]: raise Failure("SDK/product workflow Python identity mismatch")
   artifacts.extend(sdk_artifacts); components.append({"id":"independent-mcp-sdk","schema":observation["schema"],"bundle_id":sha(canonical(observation))[7:],"path":"independent-mcp-sdk","outcome":"passed","command":sdk_command,"provisioning":"explicit_local_python_mcp_1.27.0"}); artifacts.sort(key=lambda x:x["path"]); bid=hashlib.sha256(DOMAIN+b"".join(canonical(x) for x in artifacts)).hexdigest()
-  evidence={"schema":SCHEMA,"bundle_id":bid,"repository":{"commit":commit,"tree":tree,"subject_kind":"exact_local_commit","head_relation_at_capture":"HEAD","current_head_at_capture":True,"branch":branch,"clean_before_and_after":True,"head_unchanged":True,"inputs":inputs},"exact_tag":{"selection":"not_required","observed":tags,"claim":"not_claimed"},"runner":{"host":{"system":platform.system(),"release":platform.release(),"machine":platform.machine()},"sdk_tools":sdk_tools,"sdk_compiler":compiler_row},"components":components,"evidence_classes":{"current_head":{"status":"executed_exact_local_subject","components":["canonical-git","client-mcp","vscode-host","independent-mcp-sdk"]},"exact_tag":{"status":"not_selected","observed":tags},"provisioned":{"status":"executed_selected_local_tools","components":["client-mcp","vscode-host","independent-mcp-sdk"]},"default_ignored":{"status":"not_counted_as_default_execution","separately_selected":["provisioned_typescript_submits_exact_typed_request_for_compiler_admission","provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values"]},"authored_unrun":{"status":"not_executed_by_this_aggregate","slices":["packaged_typescript_workflow_over_mcp","vscode_marketplace_or_vsix","full_mcp_conformance"]}},"ignored_tests":[{"test":"provisioned_typescript_submits_exact_typed_request_for_compiler_admission","default":"ignored","separate":"passed_provisioned_local"},{"test":"provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values","default":"ignored","separate":"passed_provisioned_local"}],"dimensions":{"canonical_git":{"passed":4,"failed":0},"candidate_managed_publication":{"passed":4,"failed":0},"integrated_managed_workflow":{"passed":1,"failed":0},"generated_client_and_authored_mcp":{"passed":25,"failed":0,"default_ignored":2},"vscode":{"standalone_controllers_passed":57,"actual_host_passed":1,"task_control":True},"independent_mcp_sdk":{"passed":1,"failed":0}},"artifacts":artifacts,"claims":{"same_exact_subject_selected_components":"executed","phase0_selected_local_evidence_set":"passed","typescript_python_rust_request_admission":"passed_selected_flow","independent_python_mcp_sdk_interoperability":"passed","vscode_task_cancellation_and_session_invalidation":"passed_selected_flow","packaged_typescript_workflow_over_mcp":"authored_unrun_not_selected","full_mcp_conformance_certification":"not_claimed","managed_active":"executed_local_managed_generation","real_git_post_cas_uncertainty":"executed_injected_result_loss_after_real_ref_update","exact_release_tag":"not_claimed","remote_main_or_later_head":"not_claimed","hosted_cross_platform":"not_observed","network_isolation":"not_claimed","full_quality":"not_selected","programme_completion":"not_claimed"}}
+  evidence={"schema":SCHEMA,"bundle_id":bid,"repository":{"commit":commit,"tree":tree,"subject_kind":"exact_local_commit","head_relation_at_capture":"HEAD","current_head_at_capture":True,"branch":branch,"clean_before_and_after":True,"head_unchanged":True,"inputs":inputs},"exact_tag":{"selection":"not_required","observed":tags,"claim":"not_claimed"},"runner":{"host":{"system":platform.system(),"release":platform.release(),"machine":platform.machine()},"sdk_tools":sdk_tools,"sdk_compiler":compiler_row},"components":components,"evidence_classes":{"current_head":{"status":"executed_exact_local_subject","components":["canonical-git","client-mcp","product-workflow","vscode-host","independent-mcp-sdk"]},"exact_tag":{"status":"not_selected","observed":tags},"provisioned":{"status":"executed_selected_local_tools","components":["client-mcp","product-workflow","vscode-host","independent-mcp-sdk"]},"default_ignored":{"status":"not_counted_as_default_execution","separately_selected":["provisioned_typescript_submits_exact_typed_request_for_compiler_admission","provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values","provisioned_typescript_reference_review_export_and_real_git_commit"]},"authored_unrun":{"status":"not_executed_by_this_aggregate","slices":["packaged_typescript_workflow_over_mcp","vscode_marketplace_or_vsix","full_mcp_conformance"]}},"ignored_tests":[{"test":"provisioned_typescript_submits_exact_typed_request_for_compiler_admission","default":"ignored","separate":"passed_provisioned_local"},{"test":"provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values","default":"ignored","separate":"passed_provisioned_local"},{"test":"provisioned_typescript_reference_review_export_and_real_git_commit","default":"ignored","separate":"passed_provisioned_local"}],"dimensions":{"canonical_git":{"passed":4,"failed":0},"candidate_managed_publication":{"passed":4,"failed":0},"integrated_managed_workflow":{"passed":1,"failed":0},"generated_client_and_authored_mcp":{"passed":25,"failed":0,"default_ignored":2},"generated_product_workflow":{"passed":4,"failed":0,"default_ignored":1,"hostile_cases":10,"successful_language_workflows":3},"vscode":{"standalone_controllers_passed":57,"actual_host_passed":1,"task_control":True},"independent_mcp_sdk":{"passed":1,"failed":0}},"artifacts":artifacts,"claims":{"same_exact_subject_selected_components":"executed","phase0_selected_local_evidence_set":"passed","typescript_python_rust_request_admission":"passed_selected_flow","generated_python_rust_typescript_product_workflow":"passed_selected_flow","independent_python_mcp_sdk_interoperability":"passed","vscode_task_cancellation_and_session_invalidation":"passed_selected_flow","packaged_typescript_workflow_over_mcp":"authored_unrun_not_selected","full_mcp_conformance_certification":"not_claimed","managed_active":"executed_local_managed_generation","real_git_post_cas_uncertainty":"executed_injected_result_loss_after_real_ref_update","exact_release_tag":"not_claimed","remote_main_or_later_head":"not_claimed","hosted_cross_platform":"not_observed","network_isolation":"not_claimed","full_quality":"not_selected","programme_completion":"not_claimed"}}
   destination=Path(ns.output).resolve() if ns.output else ROOT/".semaprax/evidence/graph-operational-phase0"/commit/bid; destination.parent.mkdir(parents=True,exist_ok=True)
   if destination.exists() or destination.is_symlink(): raise Failure(f"destination exists: {destination}")
   publish=Path(tempfile.mkdtemp(prefix=".graph-operational-phase0-",dir=destination.parent))
   try:
-   for name in ("canonical-git","client-mcp","vscode-host","independent-mcp-sdk"): shutil.copytree(stage/name,publish/name)
+   for name in ("canonical-git","client-mcp","product-workflow","vscode-host","independent-mcp-sdk"): shutil.copytree(stage/name,publish/name)
    (publish/"evidence.json").write_bytes(canonical(evidence)); publish.rename(destination)
   except BaseException: shutil.rmtree(publish,ignore_errors=True); raise
  try: verify_repository(commit,tree,inputs); verify_final(destination,evidence)

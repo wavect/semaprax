@@ -339,6 +339,43 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.image-candidate-external-api-contract-delta-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DELTA_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("base_declaration_digest", digest()),
+            ("candidate_declaration_digest", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("report_sha256", digest()),
+            ("compatibility", json!({"const":"not_assessed"})),
+            (
+                "comparison_scope",
+                json!({"const":"caller_declared_export_identity_operation_digest_and_schema_digest_inventory_only"}),
+            ),
+            ("source_authority", json!({"const":false})),
+            ("external_io", json!({"const":false})),
+            ("filesystem_authority", json!({"const":false})),
+            ("process_authority", json!({"const":false})),
+            ("network_observation", json!({"const":false})),
+            ("network_authority", json!({"const":false})),
+            ("provider_observation", json!({"const":false})),
+            ("runtime_observation", json!({"const":false})),
+            ("version_evidence", json!({"const":false})),
+            ("conformance_evidence", json!({"const":false})),
+            ("consumer_evidence", json!({"const":false})),
+            ("ambient_authority", json!({"const":false})),
+            ("publication_authority", json!({"const":false})),
+            ("deployment_authority", json!({"const":false})),
+        ],
+    );
+    put(
         "semaprax.image-candidate-environment-aware-review-chunk.v1",
         vec![
             (

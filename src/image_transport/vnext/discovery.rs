@@ -171,6 +171,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/external-api-contract-delta")
+        {
+            instructions.push_str(" With candidate_prepare, use candidate/external-api-contract-delta with exact image_revision and candidate_revision plus canonical base_declaration/base_declaration_digest and candidate_declaration/candidate_declaration_digest pairs. Each declaration has a 131072-byte library bound, while the ordinary 64 KiB JSON-RPC frame bound remains tighter for the complete request. The base declaration binds base_project_revision and complete manifest exports or a canonical nonempty explicit subset; the candidate declaration uses the existing exact candidate contract schema and binding. Reassemble offset/next_offset chunks with chunk_bytes 1024 through 65536 (default 16384), keeping both complete declarations, digests and selectors identical; the report is bounded to 2 MiB and report_sha256 must match across chunks. Added and removed mean only changes in the caller-declared contract inventory. compatibility is not_assessed. The delta is not provider, network, runtime, version, conformance or consumer evidence and grants no source, filesystem, process, network, ambient, publication or deployment authority. Caller-supplied declaration bytes keep this query outside the parallel-read subset.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "candidate/dependency-summary")
         {
             instructions.push_str(" With candidate_prepare, use candidate/dependency-summary and candidate/dependency-page to navigate the exact fully admitted revision of one retained candidate, including changed or introduced declarations. Keep image_revision, candidate_revision, target, view, page_size and max_bytes fixed while following next_cursor. Candidate handles and cursors are isolated from base-image and sibling-candidate references and grant no retention, execution, source or publication authority. One signature change can alter several dependency views; these final-candidate pages are not a before/after delta, test coverage, runtime liveness or evidence of external callers. Both queries are eligible for authenticated parallel read batches over detached immutable candidates.");
@@ -388,6 +394,7 @@ fn method_capability(method: &Method) -> &'static str {
         | "candidate/analysis-coverage"
         | "candidate/analysis-boundary-bundle"
         | "candidate/environment-aware-review"
+        | "candidate/external-api-contract-delta"
         | "candidate/analysis-deployment-contract-evidence"
         | "candidate/analysis-external-api-contract-evidence"
         | "candidate/analysis-generated-file-provenance-evidence"
@@ -581,6 +588,9 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             }
             "candidate/environment-aware-review" => {
                 Some(crate::project::PROJECT_CANDIDATE_ENVIRONMENT_REVIEW_SCHEMA)
+            }
+            "candidate/external-api-contract-delta" => {
+                Some(crate::project::PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DELTA_SCHEMA)
             }
             "candidate/analysis-deployment-contract-evidence" => {
                 Some(crate::project::PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_EVIDENCE_SCHEMA)

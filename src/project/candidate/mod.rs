@@ -39,6 +39,7 @@ mod external_api_contract_delta;
 mod external_api_contract_evidence;
 mod extraction;
 mod facet_navigation;
+mod function_reference_rebind;
 mod generated_file_provenance;
 mod git_publication;
 mod impact_navigation;
@@ -135,6 +136,10 @@ pub use facet_navigation::{
     MAX_PROJECT_CANDIDATE_FUNCTION_FACET_BYTES, MAX_PROJECT_CANDIDATE_FUNCTION_SUMMARY_BYTES,
     PROJECT_CANDIDATE_FUNCTION_FACET_ITEM_SCHEMA, PROJECT_CANDIDATE_FUNCTION_FACET_SCHEMA,
     PROJECT_CANDIDATE_FUNCTION_SUMMARY_SCHEMA,
+};
+pub use function_reference_rebind::{
+    MAX_PROJECT_CANDIDATE_FUNCTION_REFERENCE_REBIND_BYTES,
+    PROJECT_CANDIDATE_FUNCTION_REFERENCE_REBIND_SCHEMA,
 };
 pub use generated_file_provenance::{
     MAX_PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_DECLARATION_BYTES,

@@ -63,6 +63,8 @@ mod extraction;
 mod field_borrow_repair;
 #[path = "project_candidate/field_places.rs"]
 mod field_places;
+#[path = "project_candidate/function_reference_rebind.rs"]
+mod function_reference_rebind;
 #[path = "project_candidate/generic_aggregate_expressions.rs"]
 mod generic_aggregate_expressions;
 #[path = "project_candidate/git_publication.rs"]

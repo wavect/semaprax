@@ -101,11 +101,12 @@ identities are private. Before executing the held launcher, the child overmounts
 `/` with one fixed 64 KiB tmpfs, pivots into it without creating a pathname in the
 inherited tree, detaches the old root, fixes both root and current directory,
 remounts it read-only, and authenticates an empty
-`readonly,nosuid,nodev,noexec` tmpfs. No old-root pathname or directory/traversal
-descriptor survives. The fixed non-directory request, image, report, procfs and
-cgroup descriptors retain only their separately admitted authorities. The
-existing worker later materializes and enters the independently authenticated
-bundle root before executing an inspected tool.
+`readonly,nosuid,nodev,noexec` tmpfs. Old-root pathname and directory/traversal
+authority does not survive. The authenticated sealed artifact, report, procfs
+and cgroup descriptors are explicit exceptions: they remain open with only
+their separately admitted non-directory authorities. The existing worker later
+materializes and enters the independently authenticated bundle root before
+executing an inspected tool.
 
 Before releasing the child setup barrier, the supervisor uses the authenticated
 procfs root and pinned child identity to install exact one-ID UID/GID maps and a
@@ -208,6 +209,14 @@ the fixed archive metadata switch where required); inherited `PATH`, shell
 startup, tar, gzip, temporary-directory and dynamic-loader controls do not
 reach those tools. This is not held-image execution, tool provenance, or
 concurrent host-mutation resistance.
+
+The caller must likewise provide a trusted output-root directory whose complete
+ancestor chain is immutable and quiescent for the invocation: no foreign actor
+may rename, replace, link into, enumerate-and-modify, or precreate entries in
+that tree between the helper's checks and operations. The helper's physical-root
+resolution, exclusive output creation and signed unpacked replay detect many
+disagreements, but do not turn portable pathname operations into held directory
+authority or prove absence of a concurrent writer.
 
 The authority-free capsule/parser/policy/lifecycle tests and strict workspace
 Clippy are necessary but not promotion evidence. WP-05 remains Partial until the

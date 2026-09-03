@@ -102,6 +102,10 @@ for input in "$signing_key" "$request" "$bundle" "$launcher" "$worker" "$collect
     case "$input" in /*) ;; *) fail "every input and output path must be absolute" ;; esac
 done
 [ -d "$output_root" ] && [ ! -L "$output_root" ] || fail "output root must be one physical directory"
+# Portable pathname operations cannot hold the output ancestry. The caller
+# guarantees this directory and every ancestor are trusted, immutable and
+# quiescent until completion; exclusive creation is defense in depth, not that
+# authority proof.
 output_root=$(CDPATH= cd -P "$output_root" && run_closed "$pwd_tool" -P) \
     || fail "output root cannot be resolved"
 package_name="semaprax-doctor-$tag-$target"

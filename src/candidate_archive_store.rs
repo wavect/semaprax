@@ -41,8 +41,9 @@ pub const MAX_CANDIDATE_ARCHIVE_STORE_PATH_DEPTH: usize = 64;
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
 /// One explicitly selected immutable archive store held by directory identity.
-/// The handle can publish only independently replayed typed archives; it grants
-/// no archive discovery, load, restore, deletion, source, or publication API.
+/// The handle can publish and restore only exact digest-selected,
+/// independently replayed typed archives; it grants no discovery, deletion,
+/// source, approval, or source-publication API.
 pub struct CandidateArchiveStore {
     #[cfg(all(
         unix,
@@ -129,6 +130,110 @@ impl CandidateArchiveStore {
         ))]
         unix::persist_draft_held(&self.root, archive)?;
         Ok(receipt)
+    }
+
+    /// Restore one exact complete candidate through the startup-held root.
+    /// Digests select content only; no pathname or reusable authority enters.
+    pub fn load(
+        &self,
+        expected_archive: &str,
+        expected_candidate: &str,
+    ) -> Result<ProjectCandidate> {
+        digest_hex(expected_archive)?;
+        digest_hex(expected_candidate)?;
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        {
+            unix::load_held(&self.root, expected_archive, expected_candidate)
+        }
+        #[cfg(not(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )))]
+        {
+            Err(io(
+                "candidate archive store requires supported Unix held-directory input",
+            ))
+        }
+    }
+
+    /// Restore one exact unfinished draft through the startup-held root.
+    pub fn load_draft(
+        &self,
+        expected_archive: &str,
+        expected_draft: &str,
+    ) -> Result<ProjectCandidateDraft> {
+        digest_hex(expected_archive)?;
+        digest_hex(expected_draft)?;
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        {
+            unix::load_draft_held(&self.root, expected_archive, expected_draft)
+        }
+        #[cfg(not(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )))]
+        {
+            Err(io(
+                "draft archive store requires supported Unix held-directory input",
+            ))
+        }
+    }
+
+    /// Reconstruct the exact typed receipt for an already published candidate.
+    /// This is a read-only replay, not adoption or a second publication.
+    pub fn replay_candidate_receipt(
+        &self,
+        expected_archive: &str,
+        expected_candidate: &str,
+    ) -> Result<CandidateArchiveStoreReceipt> {
+        let candidate = self.load(expected_archive, expected_candidate)?;
+        let archive = ProjectCandidateArchive::prepare(&candidate, expected_candidate)?;
+        if archive.archive_digest() != expected_archive {
+            return Err(binding("replayed candidate archive digest differs"));
+        }
+        prepare_candidate_receipt(&archive)
+    }
+
+    /// Reconstruct the exact typed receipt for an already published draft.
+    /// The selected archive is replayed completely while its held bytes remain
+    /// authenticated; no store mutation occurs.
+    pub fn replay_draft_receipt(
+        &self,
+        expected_archive: &str,
+        expected_draft: &str,
+    ) -> Result<CandidateDraftArchiveStoreReceipt> {
+        let draft = self.load_draft(expected_archive, expected_draft)?;
+        let archive = ProjectCandidateDraftArchive::prepare(&draft, expected_draft)?;
+        if archive.archive_digest() != expected_archive {
+            return Err(binding("replayed draft archive digest differs"));
+        }
+        prepare_draft_receipt(&archive)
     }
 
     /// Process-local comparison key for composing separately selected held

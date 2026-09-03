@@ -20,6 +20,8 @@
 //! `mod` in a test crate root resolves against `tests/`, so each module names
 //! its file explicitly.
 
+#[path = "semantic/automatic_candidate_draft_lifecycle.rs"]
+mod automatic_candidate_draft_lifecycle;
 #[path = "semantic/candidate_archive_cli.rs"]
 mod candidate_archive_cli;
 #[path = "semantic/diagnostic_repair.rs"]

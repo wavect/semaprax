@@ -452,7 +452,18 @@ pub(super) fn load(
     archive_digest: &str,
     candidate_digest: &str,
 ) -> Result<ProjectCandidate> {
-    load_with(root_path, archive_digest, |bytes| {
+    let root = Root::open(root_path)?;
+    load_with(&root, archive_digest, |bytes| {
+        ProjectCandidateArchive::restore(bytes, archive_digest, candidate_digest)
+    })
+}
+
+pub(super) fn load_held(
+    root: &Root,
+    archive_digest: &str,
+    candidate_digest: &str,
+) -> Result<ProjectCandidate> {
+    load_with(root, archive_digest, |bytes| {
         ProjectCandidateArchive::restore(bytes, archive_digest, candidate_digest)
     })
 }
@@ -462,7 +473,18 @@ pub(super) fn load_draft(
     archive_digest: &str,
     draft_digest: &str,
 ) -> Result<ProjectCandidateDraft> {
-    load_with(root_path, archive_digest, |bytes| {
+    let root = Root::open(root_path)?;
+    load_with(&root, archive_digest, |bytes| {
+        ProjectCandidateDraftArchive::restore(bytes, archive_digest, draft_digest)
+    })
+}
+
+pub(super) fn load_draft_held(
+    root: &Root,
+    archive_digest: &str,
+    draft_digest: &str,
+) -> Result<ProjectCandidateDraft> {
+    load_with(root, archive_digest, |bytes| {
         ProjectCandidateDraftArchive::restore(bytes, archive_digest, draft_digest)
     })
 }
@@ -470,18 +492,17 @@ pub(super) fn load_draft(
 // Typed replay runs inside the held lock and descriptors; successful results
 // cannot leave this scope before the original selected bytes are rechecked.
 fn load_with<T>(
-    root_path: &Path,
+    root: &Root,
     archive_digest: &str,
     restore: impl FnOnce(&[u8]) -> Result<T>,
 ) -> Result<T> {
-    let root = Root::open(root_path)?;
     let lock = root.lock(false)?;
-    let initial = inventory(&root, true)?;
+    let initial = inventory(root, true)?;
     let name = format!("{}.json", digest_hex(archive_digest)?);
     let expected = *initial
         .get(&name)
         .ok_or_else(|| binding("selected archive is absent from the store"))?;
-    unchanged(&root, &initial)?;
+    unchanged(root, &initial)?;
     let fd = fs::openat(
         root.fd(),
         name.as_bytes(),
@@ -492,8 +513,8 @@ fn load_with<T>(
     let mut file = std::fs::File::from(fd);
     let bytes = read_exact(&mut file, expected)?;
     let value = restore(&bytes)?;
-    unchanged(&root, &initial)?;
-    selected(&root, &name, &mut file, expected, &bytes)?;
+    unchanged(root, &initial)?;
+    selected(root, &name, &mut file, expected, &bytes)?;
     lock.release()?;
     Ok(value)
 }

@@ -15,6 +15,13 @@ use crate::project::ImageStoreReceipt;
 use crate::semantic_retention::{RetentionAuthority, RetentionPolicy, RetentionReceipt};
 use crate::semantic_retention_registry;
 
+mod automatic;
+pub use automatic::{
+    AutomaticCandidateLifecycleOutcome, AutomaticCandidateResumeOutcome,
+    AutomaticDraftLifecycleOutcome, AutomaticDraftResumeOutcome, AutomaticRetentionLifecycle,
+    DurableLifecycleReplayReceipt, RestoredPendingSubject,
+};
+
 pub const SEMANTIC_RETENTION_LIFECYCLE_REPORT_SCHEMA: &str =
     "semaprax.semantic-retention-lifecycle-report.v1";
 pub const MAX_SEMANTIC_RETENTION_LIFECYCLE_REPORT_BYTES: usize = 65_536;

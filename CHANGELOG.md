@@ -25,6 +25,15 @@
   executes gates nor establishes hosted success, provenance, support, package
   publication, or WP-15 completion.
 
+- Parser diagnostics now carry fix hints for habits carried over from other
+  languages: `return`, `for`/`loop`, `else if`, an expression statement, a
+  missing `else`, a tuple literal, a `Some(x)` pattern, and a `while` body,
+  `if` branch, or function body that ends without a value. Every hinted
+  diagnostic keeps the stable code the grammar already produced and no hint
+  admits new syntax; `tests/language/foreign_syntax_hints.rs` pins each case.
+  Match-pattern parsing moved verbatim into `src/parser/patterns.rs` so the
+  grammar root shrinks under its recorded module-size budget.
+
 - Added the compiler-checked [agent quick reference](docs/AGENT-QUICK-REFERENCE.md):
   one page of admitted language shapes, the compiler-owned function table, the
   diagnostics that habits from other languages trigger with their fixes, and

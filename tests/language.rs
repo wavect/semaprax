@@ -35,6 +35,8 @@ mod explicit_mutation;
 mod field_mutation;
 #[path = "language/floating_point_scalars.rs"]
 mod floating_point_scalars;
+#[path = "language/foreign_syntax_hints.rs"]
+mod foreign_syntax_hints;
 #[path = "language/generic_functions.rs"]
 mod generic_functions;
 #[path = "language/generic_records.rs"]

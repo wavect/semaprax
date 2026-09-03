@@ -335,7 +335,9 @@ These names are reserved; declaring your own `string_len` is `SPX-S113`.
 ## Habits from other languages and what the compiler says
 
 Each block below is what an agent typically writes first. The marker names
-the diagnostic it produces; the fix is in the text after it.
+the diagnostic it produces; the fix is in the text after it. The compiler
+prints the same fix as the diagnostic's `help` line, so act on `help` before
+re-reading this page.
 
 <!-- expect: SPX-P106 -->
 ```semaprax

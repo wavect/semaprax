@@ -28,7 +28,7 @@ src/hir/validation.rs	9303
 src/interpreter.rs	6891
 src/native_settlement.rs	2055
 src/native_settlement/tests.rs	1667
-src/parser.rs	2250
+src/parser.rs	2055
 src/patch.rs	3311
 src/patch_evidence.rs	1914
 src/properties.rs	1550

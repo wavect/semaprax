@@ -44,10 +44,10 @@ edit followed by restoration, is still an opposing write.
 | Contract expression | Contract replacement, contract addition or signature change on that owner. |
 
 This is conservative: it does not infer that a fill on one branch fulfills a
-hole on another. Draft archives contain pending selectors and checked history,
-not a tombstone or shared filled-hole event log. Merge never removes or completes
-a pending hole based on the absence of a corresponding hole in the other draft.
-Any future completion-lineage semantics require a separate explicit contract.
+hole on another. Drafts now retain explicit filled-hole events, but merge uses
+them only as authenticated history lineage. It never removes or completes a
+pending hole based on an event or the absence of a corresponding selector in
+the other draft.
 
 After opposing-write checks, each parent still passes all existing draft rebase
 guards against the merged last-valid revision. Protected source regions,
@@ -108,11 +108,15 @@ admission, refresh clearing of drafts and independent Git approvals are unchange
 
 ## Report and evidence
 
-The canonical library report uses `semaprax.project-candidate-draft-merge.v1`.
+The canonical lineage report uses `semaprax.project-candidate-draft-merge.v2`;
+the v1 schema remains a published compatibility identity for prior artifacts.
 It binds `left_parent_draft_digest`, `right_parent_draft_digest`,
 `original_base_revision`, `result_base_revision` and `result_draft_digest`.
 `last_valid_merge` contains the existing checked-history
-merge report. `left_holes` and `right_holes` preserve both parents' old/new
+merge report. `filled_hole_lineage` preserves checked events from both histories
+with ordinals remapped to the actual right-history/left-suffix merge order;
+`branch_ancestry` unions prior rows and appends the exact two parent draft
+digests. `left_holes` and `right_holes` preserve both parents' old/new
 expression mappings and concurrent-region classifications. Final `holes` rows
 bind the merged selection and its contributing parents. Materialization and
 source authority remain false.
@@ -121,7 +125,7 @@ Final rows contain `hole_id`, `kind`, `target`, `expression_id`, `parents` and
 `context_refreshed:true`. Parent arrays are exactly `["left"]`, `["right"]` or
 `["left","right"]`; final rows and each parent's mappings use hole-ID order.
 The root `validation` is `checked_history_merge_and_pending_selector_readmission`,
-and `nonclaims` identifies unproved behavior, lineage and authority. Per-parent
+and `nonclaims` identifies unproved behavior and authority. Per-parent
 mapping rows retain the eight-field shape described by draft rebase. None of
 these fields is a proof that an unfilled replacement would typecheck or execute.
 
@@ -143,6 +147,6 @@ mixed holes, coalescing, conflicting selections, opposing writes, recovery and
 authority-preserving protocol behavior. Tests, compiler checks and long local
 gates were not run. No completion-matrix row is promoted.
 
-General semantic compatibility, filled-hole lineage, arbitrary disjoint edits
-inside one protected region, cross-manifest merging, runtime verification and
+General semantic compatibility, automatic cross-branch hole completion,
+arbitrary disjoint edits inside one protected region, cross-manifest merging, runtime verification and
 measured multi-agent performance remain open.

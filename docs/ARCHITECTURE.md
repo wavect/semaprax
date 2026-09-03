@@ -696,6 +696,10 @@ install packages, invoke a native toolchain or execute generated code.
 `project/image_coverage.rs` inventories exact retained source/manifest bindings
 and interface-import declarations, and explicitly reports deployment,
 generated provenance, external behavior, runtime and consumer analysis gaps.
+Its closed `blind_spots` ledger binds absent deployment-configuration,
+generated-file-provenance and external-API/deployed-runtime evidence to the
+exact retained Project/source inventory while explicitly refusing to infer
+that the corresponding contract is absent.
 The v5 `image/analysis-coverage` read shares ordinary source authentication and
 the detached parallel read path. It neither scans external inputs nor mistakes
 missing edges for absent external systems. See
@@ -730,6 +734,13 @@ restore serialized HIR into this cache. `candidate/draft.rs` now carries
 disjoint expression holes as well as whole-body holes; completed fills pass
 ordinary candidate admission and reauthenticate surviving selections against
 the resulting canonical source. Neither cache nor draft owns source authority.
+
+`project/target_cache.rs` owns one caller-scoped exact scalar-Web target entry.
+Its key binds the admitted immutable Project/workspace/graph identities,
+canonical manifest, target selectors, compiler compatibility and byte bound.
+Every hit independently verifies and rebinds the retained carrier; it skips
+only target emission and grants no persistence, filesystem, execution or
+publication authority. See [Project Target Cache v1](PROJECT-TARGET-CACHE-V1.md).
 
 `src/semantic_retention.rs` owns a pure bounded metadata policy for exact image,
 candidate and draft identities. It derives canonical chained checkpoints and
@@ -1039,6 +1050,12 @@ imports neither serialized HIR nor authority and cannot materialize unresolved
 drafts. `candidate/draft_recovery.rs` wraps that valid history with bounded
 pending selectors, independently restores the history, and re-creates holes
 through ordinary draft APIs before comparing exact draft/capsule identities.
+Lineage-bearing v2 drafts additionally bind every successful fill to its exact
+checked intention/history ordinal and retain bounded rebase/merge ancestry.
+Recovery checks filled events against replayed history and preserves ancestry
+as content-bound metadata; it does not prove the contents of parent drafts or
+treat lineage as source meaning, approval, or authority. Lineage-free v1 draft and
+recovery bytes remain preserved.
 `image_transport/vnext/draft_recovery.rs` exposes host-selected chunk export and
 transactional draft-only retention; it imports no registry or approval state.
 `candidate/draft_archive.rs` composes that capsule with the existing complete
@@ -1059,7 +1076,10 @@ Its private pending-rebinding helper is also used by `candidate/draft_merge.rs`
 after one ordinary candidate history merge. Both parents pass region and
 dependency checks; opposing history writes are checked before their pending
 maps are reconciled through ordinary hole APIs. Final contexts precede result
-publication. The v5 `draft_merge.rs` adapter retains only the merged draft under
+publication. Filled events from both branches retain their actual merged
+history ordinals, while ancestry records the two exact parent draft digests;
+neither fact implicitly completes a pending sibling hole. The v5
+`draft_merge.rs` adapter retains only the merged draft under
 the same request/registry boundary. See [Draft Merge](PROJECT-CANDIDATE-DRAFT-MERGE-V1.md).
 These additions and focused regression cases are authored, unrun.
 
@@ -1545,6 +1565,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
+| Exact Project target reuse | `src/project/target_cache.rs` |
 | Immutable Project revision inputs | `src/project_revision_store.rs`, `src/project_revision_store/unix.rs` |
 | Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/` |
 | Interpreter | `src/interpreter.rs`, `src/interpreter/prepared.rs`, `src/hosted_interpreter.rs`, `src/project/prepared_interpreter/`, `src/project/prepared_interpreter/trace/` |

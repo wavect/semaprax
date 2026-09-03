@@ -20,17 +20,23 @@ ProjectCandidateDraft::restore(
 ) -> Result<ProjectCandidateDraft, Vec<Diagnostic>>
 ```
 
-The canonical JSON capsule uses `semaprax.project-candidate-draft-recovery.v1`
-and exactly these fields:
+Lineage-free drafts preserve the canonical
+`semaprax.project-candidate-draft-recovery.v1` capsule and exact bytes.
+Lineage-bearing drafts use additive
+`semaprax.project-candidate-draft-recovery.v2` and exactly add
+`filled_hole_lineage` and `branch_ancestry`:
 
 - `schema`, `compiler`, `base_revision`, `draft_schema`;
 - `candidate_recovery`, the existing complete-candidate recovery object;
 - `holes`, sorted by `hole_id`;
+- for v2, filled events sorted by event identity and ordered rebase/merge
+  ancestry, each bound to checked history and exact parent draft digests;
 - `draft_digest`, the expected reconstructed draft identity;
 - `capsule_digest`, the content digest of this capsule.
 
 Compiler facts bind package, version and
-`semaprax.project-candidate-draft-recovery-compatibility.v1`. The nested
+`semaprax.project-candidate-draft-recovery-compatibility.v1`, or the separate
+v2 compatibility identity for lineage capsules. The nested
 [complete-candidate capsule](PROJECT-CANDIDATE-RECOVERY-V1.md) retains its own
 unchanged compatibility, schema, history and replay checks. There is no new
 source archive, serialized context, approval, session policy or trusted HIR.
@@ -49,7 +55,7 @@ body/expression-only capsule bytes remain unchanged.
 
 Object keys are sorted, array order is retained, and canonical bytes end with
 one LF. The digest uses SHA-256 over the domain
-`semaprax.project-candidate-draft-recovery.payload.v1\0`, the little-endian u64
+`semaprax.project-candidate-draft-recovery.payload.v1\0` or `.v2\0`, the little-endian u64
 payload length, and canonical payload bytes with `capsule_digest` omitted.
 This identifies content; it establishes neither provenance nor approval.
 
@@ -58,19 +64,29 @@ compiler compatibility, exact canonical bytes, original base and content digest,
 then invokes ordinary `ProjectCandidate::restore` on the nested object. It opens
 a fresh draft and replays `with_body_hole`, `with_expression_hole` or
 `with_contract_expression_hole` for each
-selector. Duplicate or overlapping holes, inaccessible targets and stale
+selector. V2 additionally authenticates every filled event against the exact
+kind, target, expression selector, intention digest and history ordinal, then
+restores the bounded branch ancestry before comparing the final draft identity.
+Duplicate or overlapping holes, inaccessible targets and stale
 expression identities retain their ordinary failures. Final draft identity
 and the entire regenerated capsule must match exactly before returning.
 
-The limit is 64 MiB, at most 16 pending holes and JSON depth 128. The raw node
-bound is the existing complete-history preflight bound plus `16 * 16 + 32`
-wrapper/selector nodes. The nested history separately retains its unchanged
+The limit is 64 MiB, at most 16 pending holes, at most 64 filled events and 64
+ancestry rows, and JSON depth 128. The raw node bound is the existing
+complete-history preflight bound plus bounded selector and lineage envelopes.
+The nested history separately retains its unchanged
 32-change, byte, node, constructor and compiler limits. The enclosing capsule
 can reject a near-limit history; it does not relax those limits. Export applies
 the same outer preflight. Byte bounds do not establish total-memory or replay
 time guarantees. G230 covers outer grammar/canonicality, G231 capacity, and
 G232 stale/content/final identity mismatches; nested replay retains its own
 diagnostics.
+
+The capsule content digest is not a signature or provenance proof. Restore
+checks filled events against replayed checked intentions. It preserves ancestry
+rows and their digest-shaped parent identities exactly, but cannot authenticate
+the absent parent draft contents. An embedding host that needs provenance must
+bind the capsule through its own authenticated store or evidence envelope.
 
 ## Completion remains separate
 
@@ -113,8 +129,9 @@ need not name a registered candidate. An already retained identical draft keeps
 its existing session association. Query, fill and completion use the draft
 handle; subsequent completion may register the fully filled candidate.
 
-V1–v4 method sets are unchanged. V5 schemas and generated TypeScript/Python/Rust
-clients describe only the host-selected methods. Explicit refresh still clears
+V1–v4 method sets are unchanged. V5 discovery closes both v1 and v2 recovery
+schemas and generated TypeScript/Python/Rust clients describe only the
+host-selected methods. Explicit refresh still clears
 drafts. A saved capsule can restore after an unchanged-source refresh, but a
 changed original base rejects: this route does not implicitly rebase holes.
 Historical source archives, entire registries, pending validation, cursors and

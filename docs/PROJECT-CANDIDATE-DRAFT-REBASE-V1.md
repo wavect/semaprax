@@ -27,6 +27,12 @@ unchanged. A history conflict rejects the entire draft rebase before any result
 is installed. The new draft's eventual source diff is based on the selected
 new revision, not the abandoned original revision.
 
+Every successful rebase appends one bounded ancestry row naming the exact
+parent draft and destination Project revision. Filled-hole events survive with
+their checked history ordinals and intention bindings. The resulting draft and
+report use additive v2 schemas; lineage is metadata over replayed valid history,
+not unfinished meaning, approval, or authority.
+
 Pending selections are compared between the original last-valid revision and
 the fully rebased last-valid revision, after every checked history step. A hole
 in a declaration introduced by that history is therefore selected against real
@@ -127,13 +133,16 @@ archives carry no approval or commit authority.
 
 ## Evidence and limits
 
-The canonical LF-terminated library report uses
-`semaprax.project-candidate-draft-rebase.v1`. It binds `parent_draft_digest`,
+The canonical LF-terminated lineage report uses
+`semaprax.project-candidate-draft-rebase.v2`; the v1 schema remains a published
+compatibility identity for prior artifacts. It binds `parent_draft_digest`,
 `original_base_revision`, `onto_revision`, `result_base_revision` and
 `result_draft_digest`, plus the existing checked-history report nested under
 `last_valid_rebase`. Pending rows bind hole ID, kind, stable target, old/new
 expression identities (null for body holes), concurrent body/contract change
-flags and regenerated-context status. `materializable` and `source_authority`
+flags and regenerated-context status. `filled_hole_lineage` and
+`branch_ancestry` bind the preserved event and branch history.
+`materializable` and `source_authority`
 remain false; validation describes history replay and pending-selector
 readmission, not validation of an unfilled replacement.
 

@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+- Added a caller-owned exact scalar-Web target cache for already admitted
+  immutable Project revisions. The key binds canonical manifest, Project,
+  workspace and graph identities, entry/exports, compiler compatibility and the
+  byte limit; every hit independently verifies and rebinds the carrier. Failed
+  or incompatible work leaves the prior entry intact. This authored lane grants
+  no persistence, filesystem, execution or publication authority and does not
+  cover npm, Native, non-scalar or cross-revision targets.
+
+- Added a fixed source-bound blind-spot ledger to image and candidate analysis
+  coverage. It records absent deployment-configuration, generated-file
+  provenance and external-API/deployed-runtime evidence against the exact
+  retained Project revision while explicitly refusing to infer that the
+  underlying contract is absent. Closed v5 schemas and discovery guidance carry
+  the same boundary; no external system is scanned, fetched, or verified.
+
+- Added an ownership-sensitive third task to the paired graph-operational and
+  source-first agent benchmark corpus. It reorders two `Bytes` owners and one
+  borrowed slice view, requiring exact-once retention, left-to-right caller
+  migration, rebuilt loan/cleanup admission, authority separation and explicit
+  runtime/deployment/generated/API/consumer blind spots. The canonical fixture
+  is admitted, but no agent observations or comparative result exist yet.
+
+- Added bounded filled-hole lineage and branch ancestry to additive v2 draft,
+  rebase, merge and recovery schemas. Every successful fill binds the exact
+  checked intention and history ordinal; rebase and merge retain exact parent
+  draft identities and remap event ordinals to the actual merged history.
+  Recovery and closed v5 transport validate canonical v1 and v2 capsules;
+  filled events are checked against replayed intentions while ancestry remains
+  content-bound metadata rather than parent-content provenance. Lineage never
+  supplies source meaning, approval, publication authority, or implicit
+  completion of a sibling branch's pending hole. Regressions are authored and
+  unrun.
+
 - Extended the authored Phase 0 v3 aggregate to authenticate the complete
   three-language supported product workflow and the installed TypeScript SDK's
   pinned-MCP review/separate-publication gate alongside the earlier selected
@@ -44,7 +77,7 @@
   historical v1/v2 bundles retain only their exact-subject claims.
 
 - Added an evidence-honest comparative agent-task benchmark framework for the
-  graph-operational and source-first Semaprax lanes. Two exact cold-state tasks
+  graph-operational and source-first Semaprax lanes. Three exact cold-state tasks
   bind common fixture, prompt, drift, acceptance and review protocols; the
   bounded summarizer authenticates external artifacts and requires observed
   model tokens, bytes, tool calls, failures, stale recovery, validation time,

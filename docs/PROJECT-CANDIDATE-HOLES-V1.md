@@ -61,14 +61,20 @@ any unresolved hole remains. After all fills, it returns the last fully
 validated candidate. The resulting candidate still has no filesystem or
 publication authority.
 
-Draft reports use `semaprax.project-candidate-draft.v1`, contain only pending
-hole summaries and clearly named `last_valid_revision` and
+Lineage-free draft reports preserve `semaprax.project-candidate-draft.v1`
+bytes. The first successful fill, rebase, or merge selects additive
+`semaprax.project-candidate-draft.v2`, which adds authenticated filled-hole
+events and explicit branch ancestry. Both contain pending hole summaries and
+clearly named `last_valid_revision` and
 `last_valid_candidate_digest` facts, and always say `materializable: false`.
 They never label the incomplete state `candidate_revision` or include
 replacement source/source diff/candidate evidence. An empty draft says
 `ready_to_complete`; consumers still call `complete` to obtain its candidate.
 The previously supplied valid candidate may remain independently held by its
-caller, but that object does not represent the incomplete draft.
+caller, but that object does not represent the incomplete draft. Lineage binds
+checked history; it is not unfinished program meaning, approval, or authority,
+does not authenticate the contents of parent draft digests, and never silently
+completes a sibling's pending hole.
 
 The additive [Draft Recovery v1](PROJECT-CANDIDATE-DRAFT-RECOVERY-V1.md) exports
 prior valid history and pending selectors for explicit restart recovery. It
@@ -157,12 +163,14 @@ context bytes change when the four compiler-prelude cases are added.
 
 Canonical reports sort JSON object keys lexically, preserve array order and
 include one terminal LF. The draft digest hashes the exact report bytes with
-domain `semaprax.project-candidate-draft.v1` followed by NUL and a u64
-little-endian byte length. Hole-handle hashing uses
+domain `semaprax.project-candidate-draft.v1` or, when lineage is present,
+`semaprax.project-candidate-draft.v2`, followed by NUL and a u64 little-endian
+byte length. Hole-handle hashing uses
 `semaprax.project-candidate-hole-handle.v1` followed by NUL and the same byte
 framing around canonical JSON containing draft, hole and target.
 
-Draft and context reports are capped at 1 MiB. Existing individual compiler
+Draft and context reports are capped at 1 MiB. Filled-hole and ancestry
+inventories are independently capped at 64 rows each. Existing individual compiler
 contract/loan/cleanup renderers run under a 16 MiB rendering budget; accessible
 call bindings are capped at 1,024. These are wire and per-renderer limits, not
 an aggregate heap or proportional-query-cost guarantee. Oversized context

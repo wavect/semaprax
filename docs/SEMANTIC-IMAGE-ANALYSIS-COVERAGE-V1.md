@@ -28,14 +28,12 @@ rows expose actual checked owner/import identities, name, import key,
 `native_rust`, effects and required authority. These are declarations, not
 independent provider verification or granted host capabilities.
 
-Current semantic Graph admission rejects Native Rust import declarations with
-`SPX-G218`, before an image or coverage report exists. The generic retained
-interface inventory does not widen that admission, and its `native_rust` field
-does not establish a supported native-import coverage lane. The regression
-explicitly preserves this rejection. A separate authored, unrun positive case
-uses an already-admitted non-native resource import that is retained in the
-source image but unused by the selected executable closure; it claims only
-partial declaration evidence, with `native_rust: false`.
+Graph v25 and Project image admission now retain Native Rust import
+declarations. The coverage report therefore exposes the actual declaration
+with `native_rust:true`, effects and required authority. This remains partial
+declared-contract evidence: it does not authenticate a Rust provider, deployed
+implementation, runtime version or observed call. The separate non-native
+resource-import case carries the same boundary with `native_rust:false`.
 
 Each `areas` row has an area name, `status`, `basis`, `limitations`, and
 `required_evidence`. The evidence descriptions explain what is missing; they
@@ -58,6 +56,17 @@ inventory of all files and services. In particular, an absent import or graph
 edge is not evidence that no external API or consumer exists. Filenames do not establish
 generated provenance. `source_authority`, `external_io`, and `execution` are
 always false, and the report carries explicit nonclaims.
+
+The additive `blind_spots` ledger makes the three most consequential absences
+machine-readable in fixed order: `deployment_configuration`,
+`generated_file_provenance`, and
+`external_api_and_deployed_runtime_contracts`. Every row has
+`evidence_status:"absent"`, names the evidence not supplied, binds the exact
+retained Project revision and its manifest source inventory, and states that
+missing evidence is not proof that the corresponding contract is absent. The
+candidate projection re-derives the same ledger from the candidate revision,
+so its binding changes when canonical candidate source changes. These rows do
+not scan, fetch, execute, or verify any external system.
 
 ## Bounds and compatibility
 

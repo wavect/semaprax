@@ -136,6 +136,7 @@ Audience: all documentation readers.
 - [Project Expression Change v1](PROJECT-EXPRESSION-CHANGE-V1.md)
 - [Graph-operational programme ledger](GRAPH-OPERATIONAL-PROGRAMME.md)
 - [Semantic Retention Checkpoint v1](SEMANTIC-RETENTION-CHECKPOINT-V1.md)
+- [Project Target Cache v1](PROJECT-TARGET-CACHE-V1.md)
 - [Semantic Image Facets v1](SEMANTIC-IMAGE-FACETS-V1.md)
 - [Semantic Image Function Instances v1](SEMANTIC-IMAGE-FUNCTION-INSTANCES-V1.md)
 - [Semantic Image Analysis Coverage v1](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md)

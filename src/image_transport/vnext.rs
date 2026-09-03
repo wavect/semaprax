@@ -169,6 +169,7 @@ pub struct VNextSession {
     started: bool,
     terminal: bool,
     frontend: Option<ProjectFrontendCache>,
+    initial_frontend_work: Option<Value>,
     package_graph: Option<Arc<crate::package_semantic_graph::PackageSemanticGraph>>,
     package_attachment_closed: bool,
     read_batch_workers: Option<usize>,
@@ -248,12 +249,12 @@ impl VNextSession {
         {
             return Err(failure("SPX-G280", "v5 requires an absolute host manifest and candidate preparation for diagnostics, tests, or builds"));
         }
-        let (mut snapshot, frontend) = if let Some(cache) = cache {
-            let (snapshot, cache, _) =
+        let (mut snapshot, frontend, initial_frontend_work) = if let Some(cache) = cache {
+            let (snapshot, cache, work) =
                 crate::project::load_snapshot_with_frontend(manifest, cache)?;
-            (snapshot, Some(cache))
+            (snapshot, Some(cache), Some(work))
         } else {
-            (crate::project::load_snapshot(manifest)?, None)
+            (crate::project::load_snapshot(manifest)?, None, None)
         };
         if manifest != snapshot.root().join("semaprax.toml") {
             return Err(failure(
@@ -274,6 +275,7 @@ impl VNextSession {
             started: false,
             terminal: false,
             frontend,
+            initial_frontend_work,
             package_graph: None,
             package_attachment_closed: false,
             read_batch_workers: None,
@@ -342,6 +344,13 @@ impl VNextSession {
     }
     pub fn policy(&self) -> VNextPolicy {
         self.policy
+    }
+
+    /// Exact compiler-work report from the authenticated source admission that
+    /// opened this session. It is observational data and carries no retained
+    /// cache, source handle, storage selector, or publication authority.
+    pub fn initial_frontend_work(&self) -> Option<&Value> {
+        self.initial_frontend_work.as_ref()
     }
 
     /// Notifications and invalid frames never perform semantic work or refresh.

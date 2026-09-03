@@ -48,6 +48,10 @@ pub fn load(
     root: &Path,
     expected_digest: &str,
 ) -> Result<ProjectFrontendCache, Vec<Diagnostic>>;
+pub fn evict(
+    root: &Path,
+    expected_digest: &str,
+) -> Result<SemanticCacheEvictionReceipt, Vec<Diagnostic>>;
 ```
 
 `initialize` requires an existing, empty, host-selected directory. It obtains a
@@ -72,6 +76,43 @@ does not authenticate the current raw project files; the session constructor
 must independently read and authenticate current source before deciding whether
 any restored entry is reusable. A source/dependency/context mismatch cannot be
 converted into a cache hit merely because a MAC verified.
+
+`evict` removes exactly one digest-selected completed entry under an exclusive
+store lock. It authenticates the held root, complete inventory and selected
+file identity before the handle-relative unlink, syncs the directory, then
+rechecks the surviving inventory and root binding. Its receipt reports the
+removed entry digest, envelope bytes and number of completed entries remaining.
+It carries no key, source handle, retry permission or publication authority.
+Absence and selector disagreement fail before the namespace pivot; any failure
+after unlink is `SPX-I363` uncertainty and must not be retried blindly.
+
+## Deterministic lifecycle telemetry
+
+The public CLI adds:
+
+```text
+semaprax semantic-cache-lifecycle <manifest> <empty-store-root>
+```
+
+The command composes existing authority boundaries into one bounded authored
+scenario: initialize the caller-provisioned private root, perform a cold
+source-authenticated semantic open, persist and authenticate one entry, restore
+it into another source-authenticated session, perform an unchanged explicit
+refresh, evict that exact entry, then rebuild cold. The canonical JSON report
+uses `semaprax.semantic-cache-lifecycle.v1` and includes the existing exact
+compiler-work report for cold open, restored open, refresh and post-eviction
+rebuild; payload/envelope bytes; final entry count; and exact Project/image/work
+equivalence assertions. The command fails unless cold admission resolves at
+least one module with zero checked-HIR hits and both restored open and refresh
+reuse the complete resolved module inventory with zero resolutions. Successful
+completion leaves only the initialized key.
+
+The report is deterministic evidence of compiler operations and retained-byte
+counts, bounded to 512 KiB. It deliberately contains no elapsed time, RSS,
+allocator, model-token or cross-process claim. The command executes in one
+process, never mutates source, executes target code or grants publication
+authority. It does not automatically remove partial store effects after a
+failure; each underlying operation retains its existing settlement contract.
 
 ## Exact envelope
 
@@ -128,7 +169,7 @@ Completed envelopes must be nonempty. The total envelope bound is 128 MiB plus
 bounded identity/mode/owner/size inventory checks, not content authentication.
 
 Each invocation acquires a nonblocking advisory root lock: exclusive for key
-initialization/publication, shared for load. It coordinates cooperating callers;
+initialization, publication and eviction, shared for load. It coordinates cooperating callers;
 it is not protection against a malicious peer ignoring it. A stage is created
 once with exclusive/no-follow flags, written, synced, reread exactly, checked
 against held identity and complete inventory, and published by no-replace
@@ -151,10 +192,11 @@ if its bytes match, and never removes failed stages. A failed stage blocks
 future publication but may coexist with a readable completed entry. Failed key
 initialization does not become an implicitly adopted key on retry.
 
-Any failure after successful rename is `SPX-I363`, including final readback,
-key/compiler disagreement, directory settlement, or lock-release failure.
-Publication may already exist. There is no rollback, automatic retry, cleanup,
-key rotation, eviction, or garbage collection. A selected entry may be inspected
+Any failure after a successful publication rename or eviction unlink is
+`SPX-I363`, including final readback, key/compiler disagreement, directory
+settlement, or lock-release failure. Publication may already exist or the
+selected entry may already be absent. There is no rollback, automatic retry, cleanup,
+key rotation, automatic eviction policy, or garbage collection. A selected entry may be inspected
 only through ordinary authenticated `load`; failed initialization requires
 explicit host intervention, never silent adoption. Sync ordering is not a
 power-loss, NFS, overlay, hardware-durability, or physical-crash guarantee.
@@ -174,14 +216,16 @@ reservation, but no general out-of-memory recovery claim follows.
 | `SPX-G308` | Root/key/file/compiler/context/content-address binding disagreement, existing destination, or uninitialized/busy root. |
 | `SPX-G309` | HMAC authentication failure before private decode. |
 | `SPX-I362` | OS entropy/filesystem failure before confirmed publication or during load. |
-| `SPX-I363` | Failure after successful publication rename; outcome is uncertain. |
+| `SPX-I363` | Failure after successful publication or eviction namespace pivot; outcome is uncertain. |
 
 Private tests author envelope success, recomputed-address tampering, wrong key,
 wrong compiler digest, incompatible authenticated context and oversized header;
 real filesystem tests author private create-new key initialization, mode
 rejection, repeated initialization, key symlink rejection, tampered invalid
 payload rejection before decoding, and immutable no-replace publication. These
-tests do not expose public key/signing APIs and remain unrun. CLI cross-process
+tests do not expose public key/signing APIs and remain unrun. CLI evidence also
+authors exact eviction and the five-stage lifecycle receipt, source-byte
+preservation, warm-work facts and cold reconstruction equality. Cross-process
 recovery evidence is separate. No tests, compiler gates, executable fixtures,
 or generated clients ran while authoring this implementation. Cross-process
 cache reuse is not measured performance evidence or full-goal completion.

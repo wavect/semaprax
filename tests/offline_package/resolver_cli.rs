@@ -50,6 +50,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         "semaprax semantic-cache-persist <manifest> <store-root>\n",
         "semaprax semantic-cache-load <store-root> <entry-digest>\n",
         "semaprax semantic-cache-evict <store-root> <entry-digest>\n",
+        "semaprax semantic-cache-lifecycle <manifest> <empty-store-root>\n",
     ];
     assert_eq!(current.matches(CACHE_LINES.concat().as_str()).count(), 1);
     for line in CACHE_LINES {

@@ -26,6 +26,7 @@ semaprax semantic-cache-init <store-root>
 semaprax semantic-cache-persist <manifest> <store-root>
 semaprax semantic-cache-load <store-root> <entry-digest>
 semaprax semantic-cache-evict <store-root> <entry-digest>
+semaprax semantic-cache-lifecycle <manifest> <empty-store-root>
 ```
 
 Initialization emits `semaprax.semantic-cache-initialized.v1`; persistence emits
@@ -34,6 +35,18 @@ Initialization emits `semaprax.semantic-cache-initialized.v1`; persistence emits
 admission, or commit approval. Load emits the existing
 `semaprax.project-semantic-cache-work.v1` report. Each command can run in a fresh
 process using the same compiler executable and host-protected store.
+
+The lifecycle command performs a cold semantic open, exact persistence and
+authenticated restored open, unchanged explicit refresh, exact eviction, and a
+cold rebuild in one process. Its bounded
+`semaprax.semantic-cache-lifecycle.v1` receipt includes each existing compiler
+work report plus payload/envelope bytes and exact Project/image/cold-work
+equality. It rejects a zero-hit restoration: cold admission must resolve a
+nonzero module inventory with zero checked-HIR hits, and restored open plus
+refresh must reuse the complete inventory with zero resolutions. Successful
+completion leaves only the initialized store key and never changes canonical
+source. This count-based telemetry is not elapsed-time, RSS, model-token,
+cross-process, crash-recovery, target-execution or publication evidence.
 
 Eviction removes one exact digest-selected entry under the same held-root and
 exclusive-lock discipline. It emits
@@ -135,7 +148,8 @@ three checked-HIR hits and zero resolver calls; historical loading after source
 edits; live startup admission and unchanged refresh; request-level cache and
 commit authority rejection; exact entry eviction, source preservation and
 deterministic warm rebuild; explicit cold startup after deletion; reminted
-public digest with invalid MAC; exact compiler mismatch; and closed older/new
+public digest with invalid MAC; the composed five-stage lifecycle receipt and
+required cold/warm work profile; exact compiler mismatch; and closed older/new
 startup policy validation. The compiler-mismatch case applies only when both
 executables satisfy the supported 256 MiB bound.
 

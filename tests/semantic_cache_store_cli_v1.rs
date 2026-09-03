@@ -133,6 +133,14 @@ impl Fixture {
             .output()
             .unwrap()
     }
+    fn lifecycle(&self) -> Output {
+        Command::new(&self.compiler)
+            .arg("semantic-cache-lifecycle")
+            .arg(self.root.join("semaprax.toml"))
+            .arg(&self.store)
+            .output()
+            .unwrap()
+    }
     fn image(&self) -> ProjectSemanticImage {
         with_authenticated_project(&self.root.join("semaprax.toml"), |snapshot| {
             let revision = snapshot.retain_revision();
@@ -304,6 +312,50 @@ fn exact_eviction_preserves_source_and_rebuilds_the_same_warm_entry() {
     assert_eq!(rebuilt["compiler_digest"], first["compiler_digest"]);
     assert_eq!(rebuilt["payload_bytes"], first["payload_bytes"]);
     warm(&value(fixture.load(digest)));
+}
+
+#[test]
+fn lifecycle_receipt_binds_cold_restore_refresh_evict_and_identical_rebuild() {
+    let fixture = Fixture::new();
+    let paths = [
+        "semaprax.toml",
+        "src/app.spx",
+        "src/core.spx",
+        "src/tests.spx",
+    ];
+    let source_before = paths.map(|path| std::fs::read(fixture.root.join(path)).unwrap());
+    let report = value(fixture.lifecycle());
+    assert_eq!(report["schema"], "semaprax.semantic-cache-lifecycle.v1");
+    assert_eq!(report["source_authority"], false);
+    assert_eq!(report["canonical_source_mutation"], false);
+    assert_eq!(report["publication_authority"], false);
+    assert_eq!(report["execution"], false);
+    assert_eq!(report["equivalence"]["project_revision_preserved"], true);
+    assert_eq!(report["equivalence"]["image_revision_preserved"], true);
+    assert_eq!(report["equivalence"]["cold_rebuild_work_identical"], true);
+    assert!(report["payload_bytes"].as_u64().unwrap() > 0);
+    assert!(report["envelope_bytes"].as_u64().unwrap() > report["payload_bytes"].as_u64().unwrap());
+    let stages = report["stages"].as_array().unwrap();
+    assert_eq!(stages.len(), 5);
+    assert_eq!(stages[0]["stage"], "cold_open");
+    assert_eq!(stages[0]["frontend_work"]["work"]["modules_resolved"], 3);
+    assert_eq!(stages[1]["stage"], "authenticated_store_restore");
+    warm(&stages[1]["frontend_work"]);
+    assert_eq!(stages[2]["stage"], "same_revision_refresh");
+    warm(&stages[2]["frontend_work"]);
+    assert_eq!(stages[3]["stage"], "exact_eviction");
+    assert_eq!(stages[3]["entries_remaining"], 0);
+    assert_eq!(stages[4]["stage"], "cold_rebuild_after_eviction");
+    assert_eq!(stages[0]["frontend_work"], stages[4]["frontend_work"]);
+    assert_eq!(
+        source_before,
+        paths.map(|path| std::fs::read(fixture.root.join(path)).unwrap())
+    );
+    assert_eq!(
+        std::fs::read_dir(&fixture.store).unwrap().count(),
+        1,
+        "successful lifecycle retains only the initialized store key"
+    );
 }
 
 #[test]

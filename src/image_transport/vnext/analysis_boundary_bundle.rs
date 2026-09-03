@@ -93,12 +93,6 @@ pub(super) fn prepare(
     while !report.is_char_boundary(end) {
         end -= 1;
     }
-    if end == offset && offset < report.len() {
-        return Err(failure(
-            "SPX-G445",
-            "candidate analysis-boundary bundle chunk cannot make progress",
-        ));
-    }
     Ok(json!({
         "schema":CHUNK_SCHEMA,
         "report_schema":PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_SCHEMA,

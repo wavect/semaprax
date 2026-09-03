@@ -26,6 +26,22 @@ character restrictions come from the same descriptors used by dispatch.
 Optional request fields are omitted; they do not accept null unless explicitly
 nullable. Success and error IDs follow the ordinary JSON-RPC grammar.
 
+Selected v5 descriptors expose the optional closed application-error data
+shape, and generated TypeScript, Python, and Rust clients retain it through a
+typed decoder while preserving the generic decoder's public error surface. The
+shape is owned by
+[Image agent application error data v1](IMAGE-AGENT-APPLICATION-ERROR-DATA-V1.md).
+Generic transport and grammar errors have no compiler diagnostic data. The
+extension is bound to the exact selected discovery profile; older generated v5
+clients with the prior closed error shape are not claimed to accept it.
+
+The supported product workflow additionally publishes a closed response
+contract for every ordered step and typed workflow metadata in all three
+generated clients. [Supported workflow response accountability
+v1](IMAGE-SUPPORTED-WORKFLOW-RESPONSE-ACCOUNTABILITY-V1.md) owns the exact
+authority and blind-spot boundary. Discovery still does not embed or infer
+executed support.
+
 `documents` provides independently identified request/response schemas, existing
 compiler constructor documents, and concrete transport payload documents. All
 external references in selected request schemas resolve within this bundle;

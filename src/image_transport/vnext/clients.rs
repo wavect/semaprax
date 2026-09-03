@@ -4,6 +4,9 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 
+#[path = "workflow_client_types.rs"]
+mod workflow_client_types;
+
 #[path = "request_types.rs"]
 mod request_types;
 #[path = "response_types.rs"]
@@ -29,8 +32,40 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
         .and_then(|capabilities| capabilities.get("workflows"))
         .and_then(Value::as_array)
         .ok_or_else(|| invalid("client supported workflow metadata is missing"))?;
+    validate_workflow_contracts(workflows, methods)?;
+    let expected_profile_revision = match workflows.as_slice() {
+        [] => None,
+        [workflow] => {
+            let qualification = workflow
+                .get("qualification")
+                .and_then(Value::as_object)
+                .ok_or_else(|| invalid("client supported workflow qualification is invalid"))?;
+            let profile = qualification
+                .get("selected_profile_binding")
+                .ok_or_else(|| invalid("client selected profile binding is missing"))?;
+            let revision = qualification
+                .get("selected_profile_revision")
+                .and_then(Value::as_str)
+                .ok_or_else(|| invalid("client selected profile revision is missing"))?;
+            if super::workflow_metadata::profile_revision(profile) != revision {
+                return Err(invalid(
+                    "client selected profile revision does not bind its profile",
+                ));
+            }
+            Some(revision)
+        }
+        _ => return Err(invalid("client supported workflow inventory is invalid")),
+    };
     let workflows_encoded = serde_json::to_string(workflows)
         .map_err(|_| invalid("client supported workflow serialization failed"))?;
+    let expected_revision_json = serde_json::to_string(&expected_profile_revision)
+        .map_err(|_| invalid("client selected profile revision serialization failed"))?;
+    let expected_revision_python = expected_profile_revision
+        .map(|value| format!("{value:?}"))
+        .unwrap_or_else(|| "None".to_owned());
+    let expected_revision_rust = expected_profile_revision
+        .map(|value| format!("Some({value:?})"))
+        .unwrap_or_else(|| "None".to_owned());
     let events = super::WORKFLOW_EVENTS
         .iter()
         .map(|value| (*value).to_owned())
@@ -44,22 +79,25 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
         .map(|value| (*value).to_owned())
         .collect::<Vec<_>>();
     let ts_types = format!(
-        "export type WorkflowEvent = {};\nexport type WorkflowOutcome = {};\nexport type WorkflowRepairAction = {};\nexport interface WorkflowTransition {{ event: WorkflowEvent; workflow_outcome: WorkflowOutcome; candidate_state: string; session_state: string; next: string; repair_action: WorkflowRepairAction; blind_retry: false; rollback_claim?: false; }}\nexport interface SupportedWorkflow {{ schema: 'semaprax.supported-product-workflow.v1'; id: 'function_signature_review_publish_v1'; transition_policy: readonly WorkflowTransition[]; readonly [key: string]: unknown; }}\n",
+        "export type WorkflowEvent = {};\nexport type WorkflowOutcome = {};\nexport type WorkflowRepairAction = {};\n{}",
         ts_union(&events),
         ts_union(&outcomes),
-        ts_union(&repairs)
+        ts_union(&repairs),
+        workflow_client_types::typescript(),
     );
     let python_types = format!(
-        "WorkflowEvent: TypeAlias = Literal[{}]\nWorkflowOutcome: TypeAlias = Literal[{}]\nWorkflowRepairAction: TypeAlias = Literal[{}]\nclass WorkflowTransition(TypedDict):\n    event: WorkflowEvent\n    workflow_outcome: WorkflowOutcome\n    candidate_state: str\n    session_state: str\n    next: str\n    repair_action: WorkflowRepairAction\n    blind_retry: Literal[False]\n    rollback_claim: NotRequired[Literal[False]]\nclass SupportedWorkflow(TypedDict):\n    schema: Literal['semaprax.supported-product-workflow.v1']\n    id: Literal['function_signature_review_publish_v1']\n    transition_policy: list[WorkflowTransition]\n",
+        "WorkflowEvent: TypeAlias = Literal[{}]\nWorkflowOutcome: TypeAlias = Literal[{}]\nWorkflowRepairAction: TypeAlias = Literal[{}]\n{}",
         py_literal(&events),
         py_literal(&outcomes),
-        py_literal(&repairs)
+        py_literal(&repairs),
+        workflow_client_types::python(),
     );
     let rust_types = format!(
-        "{}{}{}#[derive(Clone, Debug, Serialize, Deserialize)]\n#[serde(deny_unknown_fields)]\npub struct WorkflowTransition {{ pub event: WorkflowEvent, pub workflow_outcome: WorkflowOutcome, pub candidate_state: String, pub session_state: String, pub next: String, pub repair_action: WorkflowRepairAction, pub blind_retry: bool, #[serde(default, skip_serializing_if = \"Option::is_none\")] pub rollback_claim: Option<bool> }}\n",
+        "{}{}{}{}",
         rust_enum("WorkflowEvent", &events),
         rust_enum("WorkflowOutcome", &outcomes),
-        rust_enum("WorkflowRepairAction", &repairs)
+        rust_enum("WorkflowRepairAction", &repairs),
+        workflow_client_types::rust(),
     );
     let metadata = json!({"methods":methods.iter().map(|descriptor|(descriptor["method"].as_str().unwrap().to_owned(),json!({"params":descriptor["request_schema"]["properties"]["params"],"payload":descriptor["success_response_schema"]["properties"]["result"]["properties"]["payload"]}))).collect::<serde_json::Map<_,_>>(),
         "documents":documents,
@@ -67,9 +105,9 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
     let encoded = serde_json::to_string(&metadata)
         .map_err(|_| invalid("client metadata serialization failed"))?;
     let mut source = match language {
-        "typescript" => format!("// Generated selected-profile client. No I/O or capability changes.\nexport const PROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?};\nexport const RESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?};\n{ts_types}export const WORKFLOWS = JSON.parse({workflows_encoded:?}) as readonly SupportedWorkflow[];\nconst META = JSON.parse({encoded:?});\n{}\n",include_str!("client_typescript.txt")),
-        "python" => format!("# Generated selected-profile client. No I/O or capability changes.\nimport json\nimport re\nfrom typing import Any, Literal, NotRequired, TypedDict, TypeAlias\nPROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?}\nRESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?}\n{python_types}WORKFLOWS: list[SupportedWorkflow] = json.loads({workflows_encoded:?})\nMETA = json.loads({encoded:?})\n{}\n",include_str!("client_python.txt")),
-        "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\n{rust_types}pub const WORKFLOWS_JSON: &str = {workflows_encoded:?};\npub fn workflows() -> Result<Value, String> {{ serde_json::from_str(WORKFLOWS_JSON).map_err(|error| error.to_string()) }}\npub fn workflow_transitions() -> Result<Vec<WorkflowTransition>, String> {{ let value = workflows()?; serde_json::from_value(value[0][\"transition_policy\"].clone()).map_err(|error| error.to_string()) }}\nconst METADATA: &str = {encoded:?};\n{}\n",include_str!("client_rust.txt")),
+        "typescript" => format!("// Generated selected-profile client. No I/O or capability changes.\nexport const PROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?};\nexport const RESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?};\n{ts_types}const WORKFLOWS_JSON = {workflows_encoded:?};\nexport const EXPECTED_WORKFLOW_PROFILE_REVISION: string | null = {expected_revision_json};\nexport const WORKFLOWS = validateWorkflowCatalogue(JSON.parse(WORKFLOWS_JSON), EXPECTED_WORKFLOW_PROFILE_REVISION);\nconst META = JSON.parse({encoded:?});\n{}\n",include_str!("client_typescript.txt")),
+        "python" => format!("# Generated selected-profile client. No I/O or capability changes.\nimport json\nimport re\nfrom typing import Any, Literal, NotRequired, TypedDict, TypeAlias\nPROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?}\nRESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?}\n{python_types}WORKFLOWS_JSON = {workflows_encoded:?}\nEXPECTED_WORKFLOW_PROFILE_REVISION: str | None = {expected_revision_python}\nWORKFLOWS: list[SupportedWorkflow] = validate_workflow_catalogue(json.loads(WORKFLOWS_JSON), EXPECTED_WORKFLOW_PROFILE_REVISION)\nMETA = json.loads({encoded:?})\n{}\n",include_str!("client_python.txt")),
+        "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\n{rust_types}pub const WORKFLOWS_JSON: &str = {workflows_encoded:?};\npub const EXPECTED_WORKFLOW_PROFILE_REVISION: Option<&str> = {expected_revision_rust};\npub fn workflows() -> Result<Vec<SupportedWorkflow>, String> {{ let raw: Value = serde_json::from_str(WORKFLOWS_JSON).map_err(|error| error.to_string())?; validate_workflow_catalogue_json(&raw)?; let values: Vec<SupportedWorkflow> = serde_json::from_value(raw).map_err(|error| error.to_string())?; validate_workflows(&values, EXPECTED_WORKFLOW_PROFILE_REVISION)?; Ok(values) }}\npub fn workflow_transitions() -> Result<Vec<WorkflowTransition>, String> {{ Ok(workflows()?.into_iter().next().ok_or(\"supported workflow missing\")?.transition_policy) }}\nconst METADATA: &str = {encoded:?};\n{}\n",include_str!("client_rust.txt")),
         _ => return Err(invalid("unknown client language")),
     };
     source.push_str(&typed.source);
@@ -179,6 +217,72 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
         typed_request(&mut source, language, method, &class, &function, parameters);
     }
     Ok(source)
+}
+
+fn validate_workflow_contracts(workflows: &[Value], methods: &[Value]) -> Result<()> {
+    for step in workflows
+        .iter()
+        .flat_map(|workflow| workflow["phases"].as_array().into_iter().flatten())
+        .flat_map(|phase| phase["ordered_steps"].as_array().into_iter().flatten())
+    {
+        let name = step["method"]
+            .as_str()
+            .ok_or_else(|| invalid("client workflow step method is invalid"))?;
+        let descriptor = methods
+            .iter()
+            .find(|descriptor| descriptor["method"] == name)
+            .ok_or_else(|| invalid("client workflow method is not selected"))?;
+        let payload_schema = descriptor["success_response_schema"]["properties"]["result"]
+            ["properties"]["payload"]["$ref"]
+            .as_str()
+            .and_then(|value| value.strip_prefix("urn:"))
+            .ok_or_else(|| invalid("client workflow payload schema is invalid"))?;
+        let descriptor_grant = descriptor["capability"]
+            .as_str()
+            .ok_or_else(|| invalid("client workflow descriptor capability is invalid"))?;
+        let required_grants = match name {
+            "candidate/test" | "candidate/test-plan" => {
+                json!(["candidate_prepare", "candidate_test"])
+            }
+            "candidate/commit" => json!(["candidate_prepare", "source_commit"]),
+            value if value.starts_with("candidate/") && value != "candidate/commit-report" => {
+                json!(["candidate_prepare"])
+            }
+            _ => json!([descriptor_grant]),
+        };
+        let effect = match name {
+            "candidate/open" | "candidate/apply-intent" | "candidate/recovery-restore" => {
+                "candidate_overlay_mutation"
+            }
+            "candidate/test" => "bounded_test_execution",
+            "candidate/commit" => "source_publication",
+            "candidate/commit-report" => "receipt_read",
+            _ => "read_only",
+        };
+        let expected = json!({
+            "schema":"semaprax.supported-product-workflow-response-contract.v1",
+            "payload_schema":payload_schema,
+            "required_grants":required_grants,
+            "effect":effect,
+            "authority":{
+                "request_capability_changes":false,
+                "evidence_or_handoff_grants_authority":false,
+                "candidate_overlay_mutation":effect == "candidate_overlay_mutation",
+                "test_execution":effect == "bounded_test_execution",
+                "source_publication":effect == "source_publication"
+            },
+            "blind_spots":{
+                "ledger_reference":"workflow.blind_spots",
+                "permitted_runtime_update":if name == "candidate/test" {
+                    json!({"area":"runtime_environment","from":"not_inspected","to":"partial","requires":"bound_successful_reference_interpreter_report"})
+                } else { Value::Null }
+            }
+        });
+        if step["response_contract"] != expected {
+            return Err(invalid("client workflow response contract is invalid"));
+        }
+    }
+    Ok(())
 }
 
 fn ts_union(values: &[String]) -> String {

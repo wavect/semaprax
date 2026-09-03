@@ -209,6 +209,14 @@ interfaces and intentions, broader canonical-source publication, and
 representative measured workflows remain exit conditions; Phase 1 and the
 programme stay Partial.
 
+The selected workflow now also has closed per-step response accountability and
+typed v5 application diagnostics in all three generated clients. This removes
+generic-string loss for compiler application failures and binds each step to
+its grant, effect, authority, and blind-spot treatment. It remains an I/O-free
+generated codec and metadata surface rather than a packaged workflow driver;
+automatic orchestration and repairs, cancellation, and real MCP/editor task
+control remain open Phase 1 work.
+
 The complete requirement ledger is the
 [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md). Image facets,
 read-only/candidate-only protocol discovery, immutable typed candidate previews,

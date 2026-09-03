@@ -55,6 +55,28 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         result.insert(format!("urn:{id}"), document(id, fields));
     };
     put(
+        super::VNEXT_APPLICATION_ERROR_DATA_SCHEMA,
+        vec![(
+            "diagnostics",
+            json!({"type":"array","minItems":1,"items":object(vec![
+                ("code", text()),
+                ("severity", json!({"enum":["error","warning"]})),
+                ("message", text()),
+                ("path", nullable(text())),
+                (
+                    "location",
+                    nullable(object(vec![
+                        ("line", uint()),
+                        ("column", uint()),
+                        ("start", uint()),
+                        ("end", uint()),
+                    ])),
+                ),
+                ("help", nullable(text())),
+            ])}),
+        )],
+    );
+    put(
         "semaprax.image-analysis-coverage.v1",
         vec![
             ("image_revision", digest()),

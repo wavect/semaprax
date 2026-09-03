@@ -41,6 +41,8 @@ pub use mcp::{
 
 pub const VNEXT_PROTOCOL_SCHEMA: &str = "semaprax.image-agent-protocol.v5";
 pub const VNEXT_RESULT_SCHEMA: &str = "semaprax.image-agent-result.v5";
+pub const VNEXT_APPLICATION_ERROR_DATA_SCHEMA: &str =
+    "semaprax.image-agent-application-error-data.v1";
 
 /// Structured final-session diagnostics retained inside `io::Error`.
 #[derive(Debug)]
@@ -815,7 +817,27 @@ fn failure(code: &'static str, message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io(code, message)]
 }
 fn error_response(id: &RequestId, errors: &[Diagnostic]) -> Vec<u8> {
-    codec::bounded_error_response(Some(id), -32000, &diagnostics(errors), MAX_RESPONSE_BYTES)
+    if errors.is_empty() {
+        return codec::bounded_error_response(Some(id), -32000, "", MAX_RESPONSE_BYTES);
+    }
+    let mut data = String::from("{\"schema\":");
+    data.push_str(&crate::diagnostic::quote_json(
+        VNEXT_APPLICATION_ERROR_DATA_SCHEMA,
+    ));
+    data.push_str(",\"diagnostics\":[");
+    for (index, diagnostic) in errors.iter().enumerate() {
+        if index != 0 {
+            data.push(',');
+        }
+        data.push_str(&diagnostic.json());
+    }
+    data.push_str("]}");
+    codec::bounded_application_error_response_with_data(
+        id,
+        &diagnostics(errors),
+        &data,
+        MAX_RESPONSE_BYTES,
+    )
 }
 
 /// The embedding host supplies both streams and the already configured session.
@@ -953,5 +975,79 @@ mod stream_failure_tests {
         )
         .unwrap_err();
         assert_eq!(ordinary.kind(), io::ErrorKind::BrokenPipe);
+    }
+}
+
+#[cfg(test)]
+mod application_error_tests {
+    use super::*;
+
+    #[test]
+    fn application_errors_preserve_message_and_closed_diagnostic_facts() {
+        let errors = vec![
+            Diagnostic::error(
+                "SPX-G282",
+                "stale \"subject\"",
+                crate::ast::Span {
+                    line: 3,
+                    column: 5,
+                    start: 8,
+                    end: 13,
+                },
+            )
+            .at_path("src/core.spx")
+            .with_help("open a fresh session"),
+            Diagnostic::io("SPX-G280", "authority unavailable"),
+        ];
+        let bytes = error_response(&RequestId::Text("application".into()), &errors);
+        let value: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(value["jsonrpc"], "2.0");
+        assert_eq!(value["id"], "application");
+        assert_eq!(value["error"]["code"], -32000);
+        assert_eq!(value["error"]["message"], diagnostics(&errors));
+        let data = &value["error"]["data"];
+        assert_eq!(data["schema"], VNEXT_APPLICATION_ERROR_DATA_SCHEMA);
+        assert_eq!(data.as_object().unwrap().len(), 2);
+        assert_eq!(data["diagnostics"].as_array().unwrap().len(), 2);
+        assert_eq!(data["diagnostics"][0].as_object().unwrap().len(), 6);
+        assert_eq!(data["diagnostics"][0]["code"], "SPX-G282");
+        assert_eq!(data["diagnostics"][0]["severity"], "error");
+        assert_eq!(data["diagnostics"][0]["message"], "stale \"subject\"");
+        assert_eq!(data["diagnostics"][0]["path"], "src/core.spx");
+        assert_eq!(data["diagnostics"][0]["location"]["line"], 3);
+        assert_eq!(data["diagnostics"][0]["location"]["column"], 5);
+        assert_eq!(data["diagnostics"][0]["location"]["start"], 8);
+        assert_eq!(data["diagnostics"][0]["location"]["end"], 13);
+        assert_eq!(
+            data["diagnostics"][0]["location"]
+                .as_object()
+                .unwrap()
+                .len(),
+            4
+        );
+        assert_eq!(data["diagnostics"][0]["help"], "open a fresh session");
+        assert!(data["diagnostics"][1]["path"].is_null());
+        assert!(data["diagnostics"][1]["location"].is_null());
+        assert!(data["diagnostics"][1]["help"].is_null());
+    }
+
+    #[test]
+    fn oversized_application_data_keeps_the_existing_generic_overflow() {
+        let errors = vec![Diagnostic::io("SPX-G289", "x".repeat(MAX_RESPONSE_BYTES))];
+        let bytes = error_response(&RequestId::Number(7), &errors);
+        assert!(codec::is_overflow_response(&bytes));
+        let value: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(value["error"]["code"], -32001);
+        assert!(value["error"].get("data").is_none());
+    }
+
+    #[test]
+    fn empty_application_diagnostics_keep_the_legacy_dataless_error() {
+        let bytes = error_response(&RequestId::Number(9), &[]);
+        let value: Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(value["id"], 9);
+        assert_eq!(value["error"]["code"], -32000);
+        assert_eq!(value["error"]["message"], "");
+        assert!(value["error"].get("data").is_none());
     }
 }

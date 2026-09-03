@@ -1,5 +1,76 @@
 use super::*;
 
+fn workflow_capabilities(value: &mut Value) -> &mut Value {
+    &mut value["documents"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|document| document["$id"] == "urn:semaprax.image-agent-capabilities.v5")
+        .unwrap()["const"]
+}
+
+#[test]
+fn supported_workflow_types_are_closed_and_resolve_exact_steps() {
+    let typescript = workflow_client_types::typescript();
+    assert!(typescript.contains("export interface WorkflowResponseContract"));
+    assert!(typescript.contains("export function workflowResponseContract"));
+    assert!(typescript.contains("export function validateWorkflowCatalogue"));
+    assert!(typescript.contains("JSON.stringify(value) !== WORKFLOWS_JSON"));
+    assert!(!typescript.contains("[key: string]: unknown"));
+
+    let python = workflow_client_types::python();
+    assert!(python.contains("class WorkflowResponseContract(TypedDict)"));
+    assert!(python.contains("def workflow_response_contract("));
+    assert!(python.contains("def validate_workflow_catalogue("));
+    assert!(python.contains("!= WORKFLOWS_JSON"));
+
+    let rust = workflow_client_types::rust();
+    assert!(rust.contains("pub enum WorkflowPhaseId"));
+    assert!(rust.contains("pub enum WorkflowSession"));
+    assert!(rust.contains("pub enum WorkflowEffect"));
+    assert!(rust.contains("pub fn workflow_response_contract"));
+    assert!(rust.contains("pub fn validate_workflows"));
+    assert!(rust.contains("fn validate_workflow_catalogue_json"));
+}
+
+#[test]
+fn workflow_generation_rejects_changed_profile_revision_and_response_contract() {
+    use super::super::super::VNextPolicy;
+    let policy = VNextPolicy {
+        candidate_prepare: true,
+        test_policy: Some(crate::project::CandidateTestPolicy::new(100, 4096, 16384).unwrap()),
+        ..VNextPolicy::default()
+    };
+    let methods = super::super::super::session_methods(&policy, false, false, false);
+    let capabilities = super::super::capabilities(&methods, &policy, false);
+    let bundle = super::super::bundle(
+        &methods
+            .iter()
+            .map(|method| super::super::descriptor(method, &policy))
+            .collect::<Vec<_>>(),
+        &capabilities,
+    )
+    .unwrap();
+    for language in ["typescript", "python", "rust"] {
+        let source = generate(language, &bundle).unwrap();
+        assert!(source.contains("EXPECTED_WORKFLOW_PROFILE_REVISION"));
+    }
+
+    let mut changed_revision = bundle.clone();
+    workflow_capabilities(&mut changed_revision)["workflows"][0]["qualification"]
+        ["selected_profile_revision"] = json!(format!("sha256:{}", "0".repeat(64)));
+    for language in ["typescript", "python", "rust"] {
+        assert!(generate(language, &changed_revision).is_err());
+    }
+
+    let mut changed_contract = bundle;
+    workflow_capabilities(&mut changed_contract)["workflows"][0]["phases"][0]["ordered_steps"][0]
+        ["response_contract"]["effect"] = json!("source_publication");
+    for language in ["typescript", "python", "rust"] {
+        assert!(generate(language, &changed_contract).is_err());
+    }
+}
+
 #[test]
 fn unsupported_response_assertions_fail_before_client_generation() {
     for unsupported in [
@@ -146,19 +217,20 @@ fn selected_recursive_definitions_normalize_without_erasing_assertions() {
 
 #[test]
 fn typed_public_names_reject_colliding_method_spellings() {
-    let methods = ["sample/value", "sample-value"]
-            .map(|method| {
-                json!({
-                    "method":method,
-                    "request_schema":{"properties":{"params":{
-                        "type":"object","properties":{},"required":[],"additionalProperties":false
-                    }}},
-                    "success_response_schema":{"properties":{"result":{"properties":{
-                        "payload":{"type":"object","properties":{},"required":[],"additionalProperties":false}
-                    }}}}
-                })
-            });
-    let bundle = json!({"methods":methods,"documents":[],"unbundled_payload_schemas":[]});
+    let methods = ["sample/value", "sample-value"].map(|method| {
+        json!({
+            "method":method,
+            "request_schema":{"properties":{"params":{
+                "type":"object","properties":{},"required":[],"additionalProperties":false
+            }}},
+            "success_response_schema":{"properties":{"result":{"properties":{
+                "payload":{"$ref":"urn:semaprax.image-agent-capabilities.v5"}
+            }}}}
+        })
+    });
+    let bundle = json!({"methods":methods,"documents":[{
+        "$id":"urn:semaprax.image-agent-capabilities.v5","const":{"workflows":[]}
+    }],"unbundled_payload_schemas":[]});
     for language in ["typescript", "python", "rust"] {
         let errors = generate(language, &bundle).unwrap_err();
         assert_eq!(errors[0].code, "SPX-G288");

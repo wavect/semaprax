@@ -91,6 +91,24 @@ fn test_python() -> PathBuf {
     )
 }
 
+fn selected_command(variable: &str, fallback: &str) -> PathBuf {
+    std::env::var_os(variable).map_or_else(|| PathBuf::from(fallback), PathBuf::from)
+}
+
+fn locked_version(name: &str) -> &'static str {
+    let selected = format!("name = \"{name}\"");
+    include_str!("../Cargo.lock")
+        .split("[[package]]")
+        .find(|package| package.lines().any(|line| line == selected))
+        .unwrap()
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix("version = \"")
+                .and_then(|value| value.strip_suffix('"'))
+        })
+        .unwrap()
+}
+
 #[test]
 fn all_languages_emit_deterministic_typed_responses_for_only_selected_methods() {
     let fixture = Fixture::new();
@@ -119,6 +137,19 @@ fn all_languages_emit_deterministic_typed_responses_for_only_selected_methods() 
             independent.finish().unwrap();
             let source = generated["source"].as_str().unwrap();
             assert!(source.contains("TypedResultEnvelope"));
+            for expected in [
+                "TypedRpcError",
+                "RpcDiagnosticData",
+                "semaprax.image-agent-application-error-data.v1",
+            ] {
+                assert!(source.contains(expected), "{language}: missing {expected}");
+            }
+            assert!(source.contains(match language {
+                "typescript" => "export function decodeTyped(",
+                "python" => "def decode_typed(",
+                "rust" => "pub fn decode_typed(",
+                _ => unreachable!(),
+            }));
             if policy.candidate_prepare && language == "rust" {
                 let next = source
                     .lines()
@@ -310,6 +341,233 @@ fn generated_python_typed_decoders_preserve_runtime_validation_and_opaque_report
     assert_eq!(fixture.bytes(), disk);
 }
 
+#[test]
+fn generated_rust_typed_errors_preserve_closed_application_diagnostics() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let mut session = fixture.session(VNextPolicy::default());
+    let generated = client(&mut session, "rust");
+    let root = fixture.0.join("typed-error-rust");
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(
+        root.join("Cargo.toml"),
+        r#"[package]
+name = "typed-error-client-evidence"
+version = "0.0.0"
+edition = "2021"
+[workspace]
+[dependencies]
+serde = { version = "=@SERDE_VERSION@", features = ["derive"] }
+serde_json = "=@SERDE_JSON_VERSION@"
+[profile.dev]
+debug = 0
+incremental = false
+"#
+        .replace("@SERDE_VERSION@", locked_version("serde"))
+        .replace("@SERDE_JSON_VERSION@", locked_version("serde_json")),
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("src/client.rs"),
+        generated["source"].as_str().unwrap(),
+    )
+    .unwrap();
+    std::fs::write(root.join("src/main.rs"), RUST_ERROR_EVIDENCE).unwrap();
+    let output = Command::new(selected_command("SEMAPRAX_TEST_CARGO", "cargo"))
+        .args(["run", "--offline", "--quiet", "--manifest-path"])
+        .arg(root.join("Cargo.toml"))
+        .env("CARGO_TARGET_DIR", root.join("target"))
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(output.stdout, b"typed-rust-error-evidence-ok\n");
+    session.finish().unwrap();
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+#[ignore = "requires provisioned absolute SEMAPRAX_TEST_TSC 5.8.3 and SEMAPRAX_TEST_NODE >=22"]
+fn provisioned_typescript_typed_errors_preserve_closed_application_diagnostics() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let tsc = selected_command("SEMAPRAX_TEST_TSC", "");
+    let node = selected_command("SEMAPRAX_TEST_NODE", "");
+    assert!(tsc.is_absolute(), "SEMAPRAX_TEST_TSC must be provided");
+    assert!(node.is_absolute(), "SEMAPRAX_TEST_NODE must be provided");
+    let version = Command::new(&tsc).arg("--version").output().unwrap();
+    assert!(version.status.success());
+    assert_eq!(
+        String::from_utf8(version.stdout)
+            .unwrap()
+            .trim_end_matches(['\r', '\n']),
+        "Version 5.8.3"
+    );
+    let mut session = fixture.session(VNextPolicy::default());
+    let generated = client(&mut session, "typescript");
+    let root = fixture.0.join("typed-error-typescript");
+    let output = root.join("out");
+    std::fs::create_dir_all(&root).unwrap();
+    let mut source = generated["source"].as_str().unwrap().to_owned();
+    source.push_str(TYPESCRIPT_ERROR_EVIDENCE);
+    let input = root.join("typed-errors.ts");
+    std::fs::write(&input, source).unwrap();
+    let compiled = Command::new(tsc)
+        .args([
+            "--strict",
+            "--noEmitOnError",
+            "--target",
+            "ES2022",
+            "--module",
+            "NodeNext",
+            "--moduleResolution",
+            "NodeNext",
+            "--outDir",
+        ])
+        .arg(&output)
+        .arg(&input)
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(
+        compiled.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&compiled.stdout),
+        String::from_utf8_lossy(&compiled.stderr)
+    );
+    let executed = Command::new(node)
+        .arg(output.join("typed-errors.js"))
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(
+        executed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&executed.stderr)
+    );
+    assert_eq!(executed.stdout, b"typed-typescript-error-evidence-ok\n");
+    session.finish().unwrap();
+    assert_eq!(fixture.bytes(), disk);
+}
+
+const RUST_ERROR_EVIDENCE: &str = r#"
+#![allow(dead_code)]
+mod client;
+use serde_json::{json, Value};
+
+fn application_error() -> Value {
+    json!({"jsonrpc":"2.0","id":"typed-error","error":{
+        "code":-32000,"message":"message deliberately contains SPX-WRONG only","data":{
+            "schema":"semaprax.image-agent-application-error-data.v1",
+            "diagnostics":[{"code":"SPX-G282","severity":"error","message":"stale image",
+                "path":null,"location":{"line":3,"column":5,"start":8,"end":13},"help":"refresh explicitly"}]
+        }
+    }})
+}
+
+fn malformed(value: Value, id: &client::RpcId) {
+    assert!(matches!(client::decode_typed(&value.to_string(), "workspace/open", id), Err(client::TypedDecodeError::Invalid(_))));
+}
+
+fn main() {
+    // Preserve source compatibility for callers constructing the old public type.
+    let _compatibility = client::RpcError { code: -1, message: "generic".into() };
+    let id = client::RpcId::Text("typed-error".into());
+    let good = application_error();
+    assert_eq!(client::decode(&good.to_string(), "workspace/open", &id).unwrap_err(),
+        "RPC -32000: message deliberately contains SPX-WRONG only");
+    match client::decode_typed(&good.to_string(), "workspace/open", &id) {
+        Err(client::TypedDecodeError::Rpc(error)) => {
+            assert_eq!(error.code, -32000);
+            let data = error.data.unwrap();
+            assert_eq!(data.diagnostics.len(), 1);
+            assert_eq!(data.diagnostics[0].code, "SPX-G282");
+            assert!(matches!(data.diagnostics[0].severity, client::RpcDiagnosticSeverity::Error));
+        }
+        result => panic!("unexpected typed result: {result:?}"),
+    }
+    let grammar = json!({"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"parse error"}});
+    match client::decode_typed(&grammar.to_string(), "workspace/open", &id) {
+        Err(client::TypedDecodeError::Rpc(error)) => assert!(error.data.is_none()),
+        result => panic!("unexpected grammar result: {result:?}"),
+    }
+    let mut hostile = good.clone();
+    hostile["error"]["data"] = Value::Null;
+    malformed(hostile, &id);
+    let mut hostile = good.clone();
+    hostile["error"]["data"]["schema"] = json!("foreign");
+    malformed(hostile, &id);
+    let mut hostile = good.clone();
+    hostile["error"]["data"]["diagnostics"] = json!([]);
+    malformed(hostile, &id);
+    let mut hostile = good.clone();
+    hostile["error"]["data"]["diagnostics"][0]["extra"] = json!(true);
+    malformed(hostile, &id);
+    let mut hostile = good.clone();
+    hostile["error"]["data"]["diagnostics"][0].as_object_mut().unwrap().remove("help");
+    malformed(hostile, &id);
+    let mut hostile = good.clone();
+    hostile["error"]["code"] = json!(-32602);
+    malformed(hostile, &id);
+    let mut hostile = good.clone();
+    hostile["id"] = Value::Null;
+    malformed(hostile, &id);
+    let mut hostile = good.clone();
+    hostile["id"] = json!("wrong");
+    malformed(hostile, &id);
+    println!("typed-rust-error-evidence-ok");
+}
+"#;
+
+const TYPESCRIPT_ERROR_EVIDENCE: &str = r#"
+function applicationError(): any {
+  return {jsonrpc:'2.0',id:'typed-error',error:{
+    code:-32000,message:'message deliberately contains SPX-WRONG only',data:{
+      schema:'semaprax.image-agent-application-error-data.v1',
+      diagnostics:[{code:'SPX-G282',severity:'error',message:'stale image',path:null,
+        location:{line:3,column:5,start:8,end:13},help:'refresh explicitly'}]
+    }
+  }};
+}
+function typedFailure(value: any): TypedRpcError {
+  try { decodeTyped(JSON.stringify(value),'workspace/open','typed-error'); }
+  catch (error) { if (error instanceof RpcResponseError) return error.rpc; throw error; }
+  throw Error('typed error was accepted as success');
+}
+function malformed(value: any): void {
+  try { decodeTyped(JSON.stringify(value),'workspace/open','typed-error'); }
+  catch (error) { if (error instanceof RpcResponseError) throw Error('malformed data became typed RPC error'); return; }
+  throw Error('malformed data was accepted');
+}
+const good = applicationError();
+const failure = typedFailure(good);
+if (failure.code!==-32000 || failure.message!==good.error.message || failure.data?.diagnostics[0].code!=='SPX-G282') throw Error('typed diagnostic changed');
+let legacy = false;
+try { decode(JSON.stringify(good),'workspace/open','typed-error'); }
+catch (error) { legacy = error instanceof Error && !(error instanceof RpcResponseError) && error.message.includes('SPX-G282'); }
+if (!legacy) throw Error('compatibility decoder behavior changed');
+const grammar = typedFailure({jsonrpc:'2.0',id:null,error:{code:-32700,message:'parse error'}});
+if (grammar.data!==undefined) throw Error('grammar error invented diagnostic data');
+for (const mutate of [
+  (value:any)=>{value.error.data=null;},
+  (value:any)=>{value.error.data.schema='foreign';},
+  (value:any)=>{value.error.data.diagnostics=[];},
+  (value:any)=>{value.error.data.diagnostics[0].extra=true;},
+  (value:any)=>{delete value.error.data.diagnostics[0].help;},
+  (value:any)=>{value.error.code=-32602;},
+  (value:any)=>{value.id=null;},
+  (value:any)=>{value.id='wrong';},
+]) {
+  const hostile=structuredClone(good); mutate(hostile); malformed(hostile);
+}
+console.log('typed-typescript-error-evidence-ok');
+"#;
+
 const PYTHON_EVIDENCE: &str = r#"
 import copy
 import importlib.util
@@ -384,6 +642,64 @@ assert 'frontend_work' in client.WorkspaceRefreshPreviewPayload.__optional_keys_
 hints = typing.get_type_hints(client.CandidateQueryPayload, vars(client), vars(client))
 assert type(None) in typing.get_args(hints['next_offset'])
 assert client.HoleQueryPayload is typing.Any
+
+diagnostic = {
+    'code': 'SPX-G282', 'severity': 'error', 'message': 'stale image',
+    'path': None, 'location': {'line': 3, 'column': 5, 'start': 8, 'end': 13},
+    'help': 'refresh explicitly'
+}
+typed_error = {'jsonrpc': '2.0', 'id': 'typed-evidence', 'error': {
+    'code': -32000, 'message': 'message text deliberately has no diagnostic code',
+    'data': {'schema': 'semaprax.image-agent-application-error-data.v1', 'diagnostics': [diagnostic]}
+}}
+try:
+    client.decode_typed(json.dumps(typed_error), 'workspace/open', 'typed-evidence')
+except client.RpcResponseError as error:
+    assert error.error['code'] == -32000
+    assert error.error['message'] == typed_error['error']['message']
+    assert error.error['data']['diagnostics'][0]['code'] == 'SPX-G282'
+else:
+    raise AssertionError('typed RPC error was accepted as success')
+
+grammar_error = {'jsonrpc': '2.0', 'id': None, 'error': {'code': -32700, 'message': 'parse error'}}
+try:
+    client.decode_typed(json.dumps(grammar_error), 'workspace/open', 'typed-evidence')
+except client.RpcResponseError as error:
+    assert error.error == grammar_error['error'] and 'data' not in error.error
+else:
+    raise AssertionError('unstructured grammar error was accepted as success')
+
+# The compatibility decoder retains its original generic ValueError surface.
+try:
+    client.decode(json.dumps(typed_error), 'workspace/open', 'typed-evidence')
+except ValueError as error:
+    assert not isinstance(error, client.RpcResponseError)
+else:
+    raise AssertionError('legacy decoder accepted an RPC error')
+
+for mutate in (
+    lambda error: error['error'].update(data=None),
+    lambda error: error['error']['data'].update(schema='foreign'),
+    lambda error: error['error']['data'].update(extra=True),
+    lambda error: error['error']['data'].update(diagnostics=[]),
+    lambda error: error['error']['data']['diagnostics'][0].pop('help'),
+    lambda error: error['error']['data']['diagnostics'][0].update(extra=True),
+    lambda error: error['error']['data']['diagnostics'][0].update(severity='fatal'),
+    lambda error: error['error']['data']['diagnostics'][0]['location'].update(extra=True),
+    lambda error: error['error'].update(code=-32602),
+    lambda error: error.update(id=None),
+    lambda error: error.update(id='wrong'),
+):
+    bad = copy.deepcopy(typed_error)
+    mutate(bad)
+    try:
+        client.decode_typed(json.dumps(bad), 'workspace/open', 'typed-evidence')
+    except client.RpcResponseError:
+        raise AssertionError(('malformed diagnostic became a typed RPC error', bad))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError(('accepted malformed diagnostic data', bad))
 # Keep this exact-byte test marker independent of Windows text-mode CRLF.
 sys.stdout.buffer.write(b'typed-response-evidence-ok\n')
 "#;

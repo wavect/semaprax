@@ -129,6 +129,16 @@ Static compilation, type checking, or deterministic source equality alone is
 not a workflow pass. One language's real publication cannot be transferred to
 another language's result.
 
+The generated clients also expose the closed workflow metadata and per-step
+response contracts defined by [Supported workflow response accountability
+v1](IMAGE-SUPPORTED-WORKFLOW-RESPONSE-ACCOUNTABILITY-V1.md). V5 application
+failures preserve optional structured diagnostics through the generic
+`decodeTyped`/`decode_typed` API; the existing method-specific typed success
+decoders still use the generic error surface. Generic transport and grammar
+failures remain explicitly unstructured. The earlier archived workflow run did
+not exercise this later structured-error path. These types do not choose a
+transition, apply a repair, perform I/O, or grant authority.
+
 ## Error transition policy
 
 The evidence report records one of these closed terminal outcomes for each
@@ -161,8 +171,8 @@ exists. Test success is not runtime, path, deployment, or provider coverage.
 The workflow-level blind-spot ledger may describe `runtime_environment` as
 `partial` only by citing the separately bound successful reference-interpreter
 test report. That composite status means bounded interpreter execution only;
-the two analysis-coverage payloads remain byte-for-byte unchanged and continue
-to say `not_inspected`. The workflow ledger also keeps
+the base and candidate analysis-coverage payloads both continue to classify
+the runtime environment as `not_inspected`. The workflow ledger also keeps
 `analysis_completeness: partial`; retained compiler facts and a passing fixture
 do not prove complete impact, behavior, or environment coverage.
 

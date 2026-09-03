@@ -5,9 +5,30 @@ class ResultEnvelope(TypedDict):
     image_revision: str
     project_revision: str
     payload: Any
+class RpcDiagnosticLocation(TypedDict):
+    line: int
+    column: int
+    start: int
+    end: int
+class RpcDiagnostic(TypedDict):
+    code: str
+    severity: Literal['error', 'warning']
+    message: str
+    path: str | None
+    location: RpcDiagnosticLocation | None
+    help: str | None
+class RpcDiagnosticData(TypedDict):
+    schema: Literal['semaprax.image-agent-application-error-data.v1']
+    diagnostics: list[RpcDiagnostic]
 class RpcError(TypedDict):
     code: int
     message: str
+class TypedRpcError(RpcError):
+    data: NotRequired[RpcDiagnosticData]
+class RpcResponseError(ValueError):
+    def __init__(self, error: TypedRpcError):
+        super().__init__(f"RPC {error['code']}: {error['message']}")
+        self.error = error
 
 def _same(left: Any, right: Any) -> bool:
     if type(left) is not type(right):
@@ -133,10 +154,34 @@ def decode(line: str, method: str, request_id: RpcId) -> ResultEnvelope:
     if not isinstance(value, dict) or value.get('jsonrpc') != '2.0':
         raise ValueError('response envelope')
     if 'error' in value:
-        _check(value, {'type':'object','required':['jsonrpc','id','error'],'additionalProperties':False,'properties':{'jsonrpc':{'const':'2.0'},'id':{},'error':{'type':'object','required':['code','message'],'additionalProperties':False,'properties':{'code':{'type':'integer'},'message':{'type':'string'}}}}})
-        if value['id'] is not None and (value['id'] != request_id or type(value['id']) is not type(request_id)):
-            raise ValueError('response id mismatch')
-        raise ValueError(value['error'])
+        raise ValueError(_typed_rpc_error(value, request_id))
     digest = {'type':'string','pattern':r'^sha256:[0-9a-f]{64}$'}
     _check(value, {'type':'object','required':['jsonrpc','id','result'],'additionalProperties':False,'properties':{'jsonrpc':{'const':'2.0'},'id':{'const':request_id},'result':{'type':'object','required':['schema','protocol','image_revision','project_revision','payload'],'additionalProperties':False,'properties':{'schema':{'const':RESULT_SCHEMA},'protocol':{'const':PROTOCOL},'image_revision':digest,'project_revision':digest,'payload':META['methods'][method]['payload']}}}})
     return value['result']
+
+_DIAGNOSTIC_LOCATION = {'type':'object','required':['line','column','start','end'],'additionalProperties':False,'properties':{'line':{'type':'integer','minimum':0},'column':{'type':'integer','minimum':0},'start':{'type':'integer','minimum':0},'end':{'type':'integer','minimum':0}}}
+_DIAGNOSTIC_ROW = {'type':'object','required':['code','severity','message','path','location','help'],'additionalProperties':False,'properties':{'code':{'type':'string'},'severity':{'enum':['error','warning']},'message':{'type':'string'},'path':{'oneOf':[{'type':'string'},{'type':'null'}]},'location':{'oneOf':[_DIAGNOSTIC_LOCATION,{'type':'null'}]},'help':{'oneOf':[{'type':'string'},{'type':'null'}]}}}
+_TYPED_RPC_ERROR = {'type':'object','required':['code','message'],'additionalProperties':False,'properties':{'code':{'type':'integer'},'message':{'type':'string'},'data':{'type':'object','required':['schema','diagnostics'],'additionalProperties':False,'properties':{'schema':{'const':'semaprax.image-agent-application-error-data.v1'},'diagnostics':{'type':'array','minItems':1,'items':_DIAGNOSTIC_ROW}}}}}
+
+def _typed_rpc_error(value: dict[str, Any], request_id: RpcId) -> TypedRpcError:
+    _check(value, {'type':'object','required':['jsonrpc','id','error'],'additionalProperties':False,'properties':{'jsonrpc':{'const':'2.0'},'id':{},'error':_TYPED_RPC_ERROR}})
+    error = value['error']
+    if 'data' in error and (error['code'] != -32000 or value['id'] is None or value['id'] != request_id or type(value['id']) is not type(request_id)):
+        raise ValueError('application error data requires correlated -32000 response')
+    if value['id'] is not None and (value['id'] != request_id or type(value['id']) is not type(request_id)):
+        raise ValueError('response id mismatch')
+    return error
+
+def decode_typed(line: str, method: str, request_id: RpcId) -> ResultEnvelope:
+    """Decode a selected response while preserving structured application diagnostics."""
+    _id(request_id)
+    if method not in META['methods'] or len(line.encode('utf-8')) > 1048576:
+        raise ValueError('response bound/method')
+    def invalid_number(value: str) -> Any:
+        raise ValueError('non-JSON number: ' + value)
+    value = json.loads(line, object_pairs_hook=_pairs, parse_constant=invalid_number)
+    if not isinstance(value, dict) or value.get('jsonrpc') != '2.0':
+        raise ValueError('response envelope')
+    if 'error' not in value:
+        return decode(line, method, request_id)
+    raise RpcResponseError(_typed_rpc_error(value, request_id))

@@ -78,6 +78,15 @@ fn supported_signature_workflow_freezes_review_publish_and_blind_spot_transition
     );
     assert_eq!(workflow["qualification"]["evidence_embedded"], false);
     assert_eq!(workflow["qualification"]["evidence_inferred"], false);
+    let review_profile_revision = workflow["qualification"]["selected_profile_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let review_digest = review_profile_revision.strip_prefix("sha256:").unwrap();
+    assert_eq!(review_digest.len(), 64);
+    assert!(review_digest
+        .bytes()
+        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)));
     let profile = &workflow["qualification"]["selected_profile_binding"];
     assert_eq!(profile["basis"], "exact_selected_capabilities_document");
     assert_eq!(
@@ -97,31 +106,73 @@ fn supported_signature_workflow_freezes_review_publish_and_blind_spot_transition
         selected_capabilities(&review)["test_policy"]
     );
     assert_eq!(workflow["phases"].as_array().unwrap().len(), 1);
+    let review_phase = &workflow["phases"][0];
+    assert_eq!(review_phase["id"], "review");
+    assert_eq!(review_phase["session"], "review_session");
     assert_eq!(
-        workflow["phases"][0],
-        json!({
-            "id":"review",
-            "session":"review_session",
-            "required_grants":["candidate_prepare","candidate_test"],
-            "ordered_steps":[
-                {"index":1,"method":"workspace/open"},
-                {"index":2,"method":"image/function-reference-export"},
-                {"index":3,"method":"image/function-reference-resolve"},
-                {"index":4,"method":"image/analysis-coverage"},
-                {"index":5,"method":"candidate/open"},
-                {"index":6,"method":"candidate/apply-intent"},
-                {"index":7,"method":"candidate/validate"},
-                {"index":8,"method":"candidate/semantic-delta"},
-                {"index":9,"method":"candidate/test-plan"},
-                {"index":10,"method":"candidate/test"},
-                {"index":11,"method":"candidate/source-review"},
-                {"index":12,"method":"candidate/analysis-coverage"},
-                {"index":13,"method":"candidate/recovery-export"}
-            ],
-            "outcome":"reviewed_candidate_and_source_backed_recovery_capsule",
-            "publication_authority":false
-        })
+        review_phase["required_grants"],
+        json!(["candidate_prepare", "candidate_test"])
     );
+    let review_steps = review_phase["ordered_steps"].as_array().unwrap();
+    assert_eq!(review_steps.len(), 13);
+    assert_eq!(review_steps[0]["method"], "workspace/open");
+    assert_eq!(review_steps[9]["method"], "candidate/test");
+    assert_eq!(review_steps[12]["method"], "candidate/recovery-export");
+    assert!(review_steps.iter().all(|step| step.get("id").is_none()));
+    assert_eq!(
+        review_steps[0]["response_contract"]["required_grants"],
+        json!(["semantic_read"])
+    );
+    assert_eq!(
+        review_steps[10]["response_contract"]["required_grants"],
+        json!(["candidate_prepare"])
+    );
+    assert_eq!(
+        review_steps[5]["response_contract"]["required_grants"],
+        json!(["candidate_prepare"])
+    );
+    assert_eq!(
+        review_steps[9]["response_contract"]["required_grants"],
+        json!(["candidate_prepare", "candidate_test"])
+    );
+    assert_eq!(
+        review_steps[8]["response_contract"]["required_grants"],
+        json!(["candidate_prepare", "candidate_test"])
+    );
+    assert_eq!(
+        review_steps[12]["response_contract"]["required_grants"],
+        json!(["candidate_prepare"])
+    );
+    for step in review_steps {
+        let contract = &step["response_contract"];
+        assert_eq!(
+            contract["schema"],
+            "semaprax.supported-product-workflow-response-contract.v1"
+        );
+        assert!(contract["payload_schema"].as_str().is_some());
+        assert_eq!(contract["authority"]["request_capability_changes"], false);
+        assert_eq!(
+            contract["authority"]["evidence_or_handoff_grants_authority"],
+            false
+        );
+        assert_eq!(
+            contract["blind_spots"]["ledger_reference"],
+            "workflow.blind_spots"
+        );
+    }
+    assert_eq!(
+        review_steps[9]["response_contract"]["effect"],
+        "bounded_test_execution"
+    );
+    assert_eq!(
+        review_steps[9]["response_contract"]["blind_spots"]["permitted_runtime_update"],
+        json!({"area":"runtime_environment","from":"not_inspected","to":"partial","requires":"bound_successful_reference_interpreter_report"})
+    );
+    assert!(review_steps
+        .iter()
+        .enumerate()
+        .all(|(index, step)| index == 9
+            || step["response_contract"]["blind_spots"]["permitted_runtime_update"].is_null()));
     assert_eq!(
         workflow["separate_session_handoff"],
         json!({
@@ -162,11 +213,11 @@ fn supported_signature_workflow_freezes_review_publish_and_blind_spot_transition
     );
     assert_eq!(
         workflow["transition_contract"]["rpc_error_shape"],
-        "generic_json_rpc_code_and_message"
+        "code_message_with_optional_closed_application_diagnostic_data"
     );
     assert_eq!(
         workflow["transition_contract"]["compiler_diagnostic_interior"],
-        "not_typed_by_this_workflow_metadata"
+        "typed_application_diagnostics_with_unstructured_transport_and_grammar_fallback"
     );
     assert_eq!(
         workflow["transition_contract"]["diagnostic_repair_catalog"],
@@ -230,6 +281,10 @@ fn supported_signature_workflow_freezes_review_publish_and_blind_spot_transition
     let publish_capabilities = selected_capabilities(&publish);
     let workflow = &publish_capabilities["workflows"][0];
     let publish_profile = &workflow["qualification"]["selected_profile_binding"];
+    let publish_profile_revision = workflow["qualification"]["selected_profile_revision"]
+        .as_str()
+        .unwrap();
+    assert_ne!(publish_profile_revision, review_profile_revision);
     assert_eq!(
         publish_profile["protocol"],
         publish_capabilities["protocol"]
@@ -247,27 +302,38 @@ fn supported_signature_workflow_freezes_review_publish_and_blind_spot_transition
         publish_capabilities["test_policy"]
     );
     assert_eq!(workflow["phases"].as_array().unwrap().len(), 2);
+    let publish_phase = &workflow["phases"][1];
+    assert_eq!(publish_phase["id"], "publish");
+    assert_eq!(publish_phase["session"], "separate_publish_session");
+    let publish_steps = publish_phase["ordered_steps"].as_array().unwrap();
+    assert_eq!(publish_steps.len(), 9);
+    assert_eq!(publish_steps[5]["required_state"], "available");
+    assert_eq!(publish_steps[6]["maximum_calls"], 1);
     assert_eq!(
-        workflow["phases"][1],
-        json!({
-            "id":"publish",
-            "session":"separate_publish_session",
-            "required_grants":["candidate_prepare","source_commit"],
-            "ordered_steps":[
-                {"index":1,"id":"open_original_subject","method":"workspace/open"},
-                {"index":2,"id":"resolve_reviewed_function","method":"image/function-reference-resolve"},
-                {"index":3,"id":"restore_candidate","method":"candidate/recovery-restore"},
-                {"index":4,"id":"repeat_validation","method":"candidate/validate"},
-                {"index":5,"id":"repeat_source_review","method":"candidate/source-review"},
-                {"index":6,"id":"precommit_status","method":"source-commit/status","required_state":"available"},
-                {"index":7,"id":"commit_once","method":"candidate/commit","maximum_calls":1},
-                {"index":8,"id":"postcommit_status","method":"source-commit/status","required_state":"published_or_publication_uncertain"},
-                {"index":9,"id":"read_receipt_after_published_status","method":"candidate/commit-report","requires_state":"published","read_to_terminal_chunk":true}
-            ],
-            "outcome":"published_or_publication_uncertain",
-            "raw_working_tree_write":false
-        })
+        publish_steps[7]["required_state"],
+        "published_or_publication_uncertain"
     );
+    assert_eq!(publish_steps[8]["requires_state"], "published");
+    assert_eq!(publish_steps[8]["read_to_terminal_chunk"], true);
+    assert_eq!(
+        publish_steps[6]["response_contract"]["effect"],
+        "source_publication"
+    );
+    assert_eq!(
+        publish_steps[6]["response_contract"]["required_grants"],
+        json!(["candidate_prepare", "source_commit"])
+    );
+    assert_eq!(
+        publish_steps[8]["response_contract"]["effect"],
+        "receipt_read"
+    );
+    for step in publish_steps {
+        assert_eq!(
+            step["response_contract"]["blind_spots"]["ledger_reference"],
+            "workflow.blind_spots"
+        );
+        assert!(step["response_contract"]["blind_spots"]["permitted_runtime_update"].is_null());
+    }
     for language in ["typescript", "python", "rust"] {
         let source = clients::generate(language, &publish).unwrap();
         assert_eq!(source, clients::generate(language, &publish).unwrap());
@@ -283,20 +349,67 @@ fn supported_signature_workflow_freezes_review_publish_and_blind_spot_transition
             "typescript" => {
                 assert!(source.contains("export type WorkflowOutcome ="));
                 assert!(source.contains("readonly SupportedWorkflow[]"));
+                assert!(source.contains("export function workflowResponseContract"));
+                assert!(source.contains("validateWorkflowCatalogue(JSON.parse(WORKFLOWS_JSON)"));
+                assert!(!source.contains("readonly [key: string]: unknown"));
             }
             "python" => {
                 assert!(source.contains("WorkflowOutcome: TypeAlias = Literal["));
                 assert!(source.contains("WORKFLOWS: list[SupportedWorkflow]"));
+                assert!(source.contains("def workflow_response_contract("));
+                assert!(source.contains("validate_workflow_catalogue(json.loads(WORKFLOWS_JSON)"));
             }
             _ => {
                 assert!(source.contains("pub const WORKFLOWS_JSON: &str"));
-                assert!(source.contains("pub fn workflows() -> Result<Value, String>"));
+                assert!(
+                    source.contains("pub fn workflows() -> Result<Vec<SupportedWorkflow>, String>")
+                );
                 assert!(source.contains("pub enum WorkflowOutcome"));
                 assert!(source.contains("pub fn workflow_transitions()"));
+                assert!(source.contains("pub fn workflow_response_contract"));
+                assert!(source
+                    .contains("validate_workflows(&values, EXPECTED_WORKFLOW_PROFILE_REVISION)?"));
             }
         }
     }
 }
+
+#[test]
+fn application_error_data_is_closed_nonempty_and_correlated() {
+    let bundle = selected(VNextPolicy::default());
+    for method in bundle["methods"].as_array().unwrap() {
+        let error = &method["error_response_schema"]["properties"]["error"];
+        assert_eq!(
+            error["properties"]["data"]["$ref"],
+            "urn:semaprax.image-agent-application-error-data.v1"
+        );
+        assert_eq!(error["allOf"][0]["if"]["required"], json!(["data"]));
+        assert_eq!(
+            error["allOf"][0]["then"]["properties"]["code"]["const"],
+            -32000
+        );
+        assert_eq!(
+            method["error_response_schema"]["allOf"][0]["then"]["properties"]["id"],
+            method["success_response_schema"]["properties"]["id"]
+        );
+    }
+    let document = bundle["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|document| document["$id"] == "urn:semaprax.image-agent-application-error-data.v1")
+        .unwrap();
+    assert_eq!(document["additionalProperties"], false);
+    assert_eq!(document["required"], json!(["schema", "diagnostics"]));
+    assert_eq!(document["properties"]["diagnostics"]["minItems"], 1);
+    let diagnostic = &document["properties"]["diagnostics"]["items"];
+    assert_eq!(diagnostic["additionalProperties"], false);
+    assert_eq!(
+        diagnostic["required"],
+        json!(["code", "severity", "message", "path", "location", "help"])
+    );
+}
+
 #[test]
 fn dependency_query_is_read_only_with_closed_chunks_and_opaque_facts() {
     let bundle = selected(VNextPolicy::default());

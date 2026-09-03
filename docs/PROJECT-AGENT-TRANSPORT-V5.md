@@ -35,6 +35,15 @@ complete JSON-RPC wrapper and terminal LF. A complete response that cannot fit
 is replaced as a whole by the existing `-32001` response and terminates the
 session; no response is truncated.
 
+V5 compiler application errors retain the ordinary JSON-RPC `code` and
+`message` and additionally carry the optional closed diagnostic `data` owned by
+[Image agent application error data v1](IMAGE-AGENT-APPLICATION-ERROR-DATA-V1.md).
+Parse, request-grammar, unavailable-method, invalid-parameter, and overflow
+errors remain generic and omit `data`. Absence of structured data never implies
+success or retry safety. This extension is exact-profile coupled: hosts must use
+the generated client from the same selected discovery document, and older v5
+clients with the prior closed error shape are not claimed wire-compatible.
+
 ## `project/api-describe`
 
 Parameters contain only the two exact revisions. The result is exactly:

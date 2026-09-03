@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Added closed v5 application-error diagnostic data while preserving ordinary
+  JSON-RPC code/message and generic grammar/overflow failures. Generated
+  TypeScript, Python, and Rust clients now retain structured compiler failures
+  through typed decoders and reject malformed or foreign data without parsing
+  diagnostic codes from prose. The supported workflow now binds every ordered
+  response to a closed grant/effect/authority/blind-spot contract and an exact
+  selected-profile revision. This is typed accountability metadata and codec
+  support, not a packaged workflow driver, automatic repair, cancellation,
+  later-head execution evidence, or programme completion.
+
 - Executed `function_signature_review_publish_v1` at clean exact local subject
   `3c605fe3055539a9a5f2bf83e98c8c2a521ff741`. Bundle
   `8e18e9dea2050844c554a826e9485394ef44381c24915602ff52952448862cfa`

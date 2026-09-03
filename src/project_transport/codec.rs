@@ -218,6 +218,43 @@ pub(crate) fn bounded_error_response(
     error_response(id, code, message)
 }
 
+/// Build one bounded compact application error response with an already
+/// serialized JSON `data` value. Callers own that closed value's schema and
+/// canonical bytes. Parse, request-grammar, and other errors that have no
+/// structured data keep using `bounded_error_response`.
+pub(crate) fn bounded_application_error_response_with_data(
+    id: &RequestId,
+    message: &str,
+    data_json: &str,
+    max_frame_bytes: usize,
+) -> Vec<u8> {
+    const PREFIX: &str = "{\"jsonrpc\":\"2.0\",\"id\":";
+    const MIDDLE: &str = ",\"error\":{\"code\":";
+    const MESSAGE: &str = ",\"message\":";
+    const DATA: &str = ",\"data\":";
+    let rendered_id = id.render();
+    let rendered_code = (-32000_i64).to_string();
+    let message_bytes = quoted_json_bytes(message);
+    let required = PREFIX
+        .len()
+        .checked_add(rendered_id.len())
+        .and_then(|value| value.checked_add(MIDDLE.len()))
+        .and_then(|value| value.checked_add(rendered_code.len()))
+        .and_then(|value| value.checked_add(MESSAGE.len()))
+        .and_then(|value| value.checked_add(message_bytes))
+        .and_then(|value| value.checked_add(DATA.len()))
+        .and_then(|value| value.checked_add(data_json.len()))
+        .and_then(|value| value.checked_add(3)); // two closing braces plus LF
+    if required.is_none_or(|required| required > max_frame_bytes) {
+        return bounded_overflow_response(Some(id), max_frame_bytes);
+    }
+    let message = serde_json::to_string(message).expect("strings always serialize");
+    format!(
+        "{{\"jsonrpc\":\"2.0\",\"id\":{rendered_id},\"error\":{{\"code\":-32000,\"message\":{message},\"data\":{data_json}}}}}"
+    )
+    .into_bytes()
+}
+
 fn bounded_overflow_response(id: Option<&RequestId>, max_frame_bytes: usize) -> Vec<u8> {
     let correlated = error_response(id, -32001, "response exceeds configured byte limit");
     if correlated
@@ -477,5 +514,29 @@ mod tests {
             )
         );
         assert!(is_overflow_response(&overflow));
+    }
+
+    #[test]
+    fn structured_error_data_is_exact_and_preserves_the_overflow_contract() {
+        let data = r#"{"schema":"example.error.v1","diagnostics":[{"code":"E1"}]}"#;
+        let expected = br#"{"jsonrpc":"2.0","id":"agent","error":{"code":-32000,"message":"bad\nvalue","data":{"schema":"example.error.v1","diagnostics":[{"code":"E1"}]}}}"#;
+        let required = expected.len() + 1;
+        assert_eq!(
+            bounded_application_error_response_with_data(
+                &RequestId::Text("agent".into()),
+                "bad\nvalue",
+                data,
+                required,
+            ),
+            expected
+        );
+        let overflow = bounded_application_error_response_with_data(
+            &RequestId::Text("agent".into()),
+            "bad\nvalue",
+            data,
+            required - 1,
+        );
+        assert!(is_overflow_response(&overflow));
+        assert!(!String::from_utf8(overflow).unwrap().contains("\"data\""));
     }
 }

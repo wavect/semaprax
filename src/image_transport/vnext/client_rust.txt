@@ -10,6 +10,29 @@ pub struct ResultEnvelope {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RpcError { pub code: i64, pub message: String }
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RpcDiagnosticLocation { pub line: u64, pub column: u64, pub start: u64, pub end: u64 }
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RpcDiagnostic { pub code: String, pub severity: RpcDiagnosticSeverity, pub message: String, pub path: Option<String>, pub location: Option<RpcDiagnosticLocation>, pub help: Option<String> }
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(rename_all="lowercase")]
+pub enum RpcDiagnosticSeverity { Error, Warning }
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RpcDiagnosticData { pub schema: RpcDiagnosticDataSchema, pub diagnostics: Vec<RpcDiagnostic> }
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+pub enum RpcDiagnosticDataSchema { #[serde(rename="semaprax.image-agent-application-error-data.v1")] V1 }
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TypedRpcError { pub code: i64, pub message: String, #[serde(default)] pub data: Option<RpcDiagnosticData> }
+#[derive(Clone, Debug, PartialEq)]
+pub enum TypedDecodeError { Invalid(String), Rpc(TypedRpcError) }
+impl std::fmt::Display for TypedDecodeError {
+    fn fmt(&self, formatter:&mut std::fmt::Formatter<'_>)->std::fmt::Result { match self { Self::Invalid(error)=>formatter.write_str(error), Self::Rpc(error)=>write!(formatter,"RPC {}: {}",error.code,error.message) } }
+}
+impl std::error::Error for TypedDecodeError {}
 fn metadata() -> Result<Value,String> { serde_json::from_str(METADATA).map_err(|e|e.to_string()) }
 fn check(value:&Value, schema:&Value, meta:&Value, depth:usize)->Result<(),String> {
     check_bounded(value,schema,meta,depth,&mut 1_048_576usize)
@@ -119,6 +142,26 @@ pub fn request(id:RpcId,method:&str,params:Value)->Result<String,String> {
     if line.len()>65536 { return Err("request byte bound".into()); }
     Ok(line+"\n")
 }
+fn validate_rpc_error_value(error:&Value,response_id:&Value,expected_id:&Value)->Result<(),String> {
+    let fields=error.as_object().ok_or("RPC error must be an object")?;
+    if fields.len()<2 || fields.len()>3 || !fields.contains_key("code") || !fields.contains_key("message") || fields.keys().any(|key|!matches!(key.as_str(),"code"|"message"|"data")) { return Err("RPC error fields are not closed".into()); }
+    if fields.get("data").is_some_and(Value::is_null) { return Err("RPC diagnostic data must be omitted or an object".into()); }
+    if let Some(data)=fields.get("data") {
+        let data=data.as_object().ok_or("RPC diagnostic data must be an object")?;
+        if data.len()!=2 || !data.contains_key("schema") || !data.contains_key("diagnostics") { return Err("RPC diagnostic data fields are not closed".into()); }
+        let rows=data["diagnostics"].as_array().ok_or("RPC diagnostics must be an array")?;
+        if rows.is_empty() { return Err("RPC diagnostics must not be empty".into()); }
+        if fields["code"]!=-32000 || response_id.is_null() || response_id!=expected_id { return Err("application error data requires correlated -32000 response".into()); }
+        for row in rows {
+            let row=row.as_object().ok_or("RPC diagnostic must be an object")?;
+            if row.len()!=6 || ["code","severity","message","path","location","help"].iter().any(|key|!row.contains_key(*key)) { return Err("RPC diagnostic fields are not closed".into()); }
+            if let Some(location)=row["location"].as_object() {
+                if location.len()!=4 || ["line","column","start","end"].iter().any(|key|!location.contains_key(*key)) { return Err("RPC diagnostic location fields are not closed".into()); }
+            } else if !row["location"].is_null() { return Err("RPC diagnostic location must be null or an object".into()); }
+        }
+    }
+    Ok(())
+}
 pub fn decode(line:&str,method:&str,id:&RpcId)->Result<ResultEnvelope,String> {
     id_check(id)?;
     if line.len()>1048576 { return Err("response byte bound".into()); }
@@ -130,7 +173,8 @@ pub fn decode(line:&str,method:&str,id:&RpcId)->Result<ResultEnvelope,String> {
     if let Some(error)=value.get("error") {
         if value.as_object().is_none_or(|fields|fields.len()!=3 || !fields.contains_key("id")) { return Err("error envelope".into()); }
         if !value["id"].is_null() && value["id"]!=expected_id { return Err("response id mismatch".into()); }
-        let error:RpcError=serde_json::from_value(error.clone()).map_err(|e|e.to_string())?;
+        validate_rpc_error_value(error,&value["id"],&expected_id)?;
+        let error:TypedRpcError=serde_json::from_value(error.clone()).map_err(|e|e.to_string())?;
         return Err(format!("RPC {}: {}",error.code,error.message));
     }
     if value.as_object().is_none_or(|fields|fields.len()!=3 || !fields.contains_key("result")) || value["id"]!=expected_id { return Err("response id/envelope mismatch".into()); }
@@ -142,4 +186,22 @@ pub fn decode(line:&str,method:&str,id:&RpcId)->Result<ResultEnvelope,String> {
     check_bounded(&json!(result.project_revision),&digest,&meta,0,&mut work)?;
     check_bounded(&result.payload,&entry["payload"],&meta,0,&mut work)?;
     Ok(result)
+}
+/// Decode a selected response while preserving structured application diagnostics.
+pub fn decode_typed(line:&str,method:&str,id:&RpcId)->Result<ResultEnvelope,TypedDecodeError> {
+    id_check(id).map_err(TypedDecodeError::Invalid)?;
+    if line.len()>1048576 { return Err(TypedDecodeError::Invalid("response byte bound".into())); }
+    let meta=metadata().map_err(TypedDecodeError::Invalid)?;
+    if meta["methods"].get(method).is_none() { return Err(TypedDecodeError::Invalid("method unavailable".into())); }
+    let value:Value=serde_json::from_str(line).map_err(|error|TypedDecodeError::Invalid(error.to_string()))?;
+    if value["jsonrpc"]!="2.0" { return Err(TypedDecodeError::Invalid("response envelope".into())); }
+    if let Some(error)=value.get("error") {
+        if value.as_object().is_none_or(|fields|fields.len()!=3 || !fields.contains_key("id")) { return Err(TypedDecodeError::Invalid("error envelope".into())); }
+        let expected_id=serde_json::to_value(id).map_err(|error|TypedDecodeError::Invalid(error.to_string()))?;
+        if !value["id"].is_null() && value["id"]!=expected_id { return Err(TypedDecodeError::Invalid("response id mismatch".into())); }
+        validate_rpc_error_value(error,&value["id"],&expected_id).map_err(TypedDecodeError::Invalid)?;
+        let error:TypedRpcError=serde_json::from_value(error.clone()).map_err(|error|TypedDecodeError::Invalid(error.to_string()))?;
+        return Err(TypedDecodeError::Rpc(error));
+    }
+    decode(line,method,id).map_err(TypedDecodeError::Invalid)
 }

@@ -3,6 +3,13 @@ export type Digest = `sha256:${string}`;
 export type JsonObject = { [key: string]: unknown };
 export interface ResultEnvelope { schema: string; protocol: string; image_revision: Digest; project_revision: Digest; payload: unknown; }
 export interface RpcError { code: number; message: string; }
+export interface RpcDiagnosticLocation { line: number; column: number; start: number; end: number; }
+export interface RpcDiagnostic { code: string; severity: 'error' | 'warning'; message: string; path: string | null; location: RpcDiagnosticLocation | null; help: string | null; }
+export interface RpcDiagnosticData { schema: 'semaprax.image-agent-application-error-data.v1'; diagnostics: RpcDiagnostic[]; }
+export interface TypedRpcError extends RpcError { data?: RpcDiagnosticData; }
+export class RpcResponseError extends Error {
+  constructor(public readonly rpc: TypedRpcError) { super(`RPC ${rpc.code}: ${rpc.message}`); this.name='RpcResponseError'; }
+}
 const object = (v: unknown): v is JsonObject => v !== null && typeof v === 'object' && !Array.isArray(v);
 function same(a: any, b: any): boolean {
   if (a === b) return true;
@@ -83,10 +90,27 @@ export function decode(line: string, method: string, expectedId: RpcId): ResultE
   const value=JSON.parse(line,(_key,v)=>{if(typeof v==='number' && Number.isInteger(v) && !Number.isSafeInteger(v)) throw Error('unsafe response integer');return v;});
   if (!object(value) || value.jsonrpc!=='2.0') throw Error('response envelope');
   if (Object.hasOwn(value,'error')) {
-    check(value,{type:'object',required:['jsonrpc','id','error'],additionalProperties:false,properties:{jsonrpc:{const:'2.0'},id:{},error:{type:'object',required:['code','message'],additionalProperties:false,properties:{code:{type:'integer'},message:{type:'string'}}}}});
-    if(value.id!==null && value.id!==expectedId) throw Error('response id mismatch');
-    throw Error(JSON.stringify(value.error));
+    throw Error(JSON.stringify(checkedRpcError(value,expectedId)));
   }
   check(value,{type:'object',required:['jsonrpc','id','result'],additionalProperties:false,properties:{jsonrpc:{const:'2.0'},id:{const:expectedId},result:{type:'object',required:['schema','protocol','image_revision','project_revision','payload'],additionalProperties:false,properties:{schema:{const:RESULT_SCHEMA},protocol:{const:PROTOCOL},image_revision:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},project_revision:{type:'string',pattern:'^sha256:[0-9a-f]{64}$'},payload:META.methods[method].payload}}}});
   return value.result as unknown as ResultEnvelope;
+}
+const DIAGNOSTIC_LOCATION = {type:'object',required:['line','column','start','end'],additionalProperties:false,properties:{line:{type:'integer',minimum:0},column:{type:'integer',minimum:0},start:{type:'integer',minimum:0},end:{type:'integer',minimum:0}}};
+const DIAGNOSTIC_ROW = {type:'object',required:['code','severity','message','path','location','help'],additionalProperties:false,properties:{code:{type:'string'},severity:{enum:['error','warning']},message:{type:'string'},path:{oneOf:[{type:'string'},{type:'null'}]},location:{oneOf:[DIAGNOSTIC_LOCATION,{type:'null'}]},help:{oneOf:[{type:'string'},{type:'null'}]}}};
+const TYPED_RPC_ERROR = {type:'object',required:['code','message'],additionalProperties:false,properties:{code:{type:'integer'},message:{type:'string'},data:{type:'object',required:['schema','diagnostics'],additionalProperties:false,properties:{schema:{const:'semaprax.image-agent-application-error-data.v1'},diagnostics:{type:'array',minItems:1,items:DIAGNOSTIC_ROW}}}}};
+function checkedRpcError(value: JsonObject, expectedId: RpcId): TypedRpcError {
+  check(value,{type:'object',required:['jsonrpc','id','error'],additionalProperties:false,properties:{jsonrpc:{const:'2.0'},id:{},error:TYPED_RPC_ERROR}});
+  const error=value.error as TypedRpcError;
+  if (error.data!==undefined && (error.code!==-32000 || value.id===null || value.id!==expectedId)) throw Error('application error data requires correlated -32000 response');
+  if(value.id!==null && value.id!==expectedId) throw Error('response id mismatch');
+  return error;
+}
+/** Decode a selected response while preserving structured application diagnostics. */
+export function decodeTyped(line: string, method: string, expectedId: RpcId): ResultEnvelope {
+  idCheck(expectedId);
+  if (!Object.hasOwn(META.methods,method) || new TextEncoder().encode(line).length>1048576) throw Error('response bound/method');
+  const value=JSON.parse(line,(_key,v)=>{if(typeof v==='number' && Number.isInteger(v) && !Number.isSafeInteger(v)) throw Error('unsafe response integer');return v;});
+  if (!object(value) || value.jsonrpc!=='2.0') throw Error('response envelope');
+  if (!Object.hasOwn(value,'error')) return decode(line,method,expectedId);
+  throw new RpcResponseError(checkedRpcError(value,expectedId));
 }

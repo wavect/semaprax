@@ -6,23 +6,28 @@
   API contracts. Canonical declaration bytes join retained source identities or
   explicit manifest exports to caller-declared digests and advance only the
   matching analysis blind spot to partial. V5 exposes bounded chunks through
-  closed schemas, generated TypeScript/Python/Rust clients and MCP discovery;
-  no generator, filesystem, network, provider, runtime or conformance evidence
-  is inferred. Regressions are authored and unrun.
+  closed schemas, generated TypeScript/Python/Rust clients and MCP discovery. A
+  transport-safe canonical bundle independently replays these declarations
+  with the deployment contract and composes exactly the three owned coverage
+  rows. No generator, filesystem, network, provider, runtime or conformance
+  evidence is inferred. Regressions are authored and unrun.
 
 - Exposed immutable retention checkpoint/plan persistence and exact restoration
   through explicit CLI commands. The caller supplies an existing private root,
-  bounded metadata files and every selector; the commands add no discovery,
-  freshness choice, overwrite, deletion, GC execution, subject restoration,
-  protocol, approval or publication authority. Regressions are authored and
-  unrun.
+  bounded metadata files and every selector. A separate planner accepts a
+  canonical sorted image/candidate/draft observation inventory and exact prior
+  checkpoint tuple, then emits canonical checkpoint/plan bytes without storing
+  or applying them. The commands add no discovery, freshness choice, overwrite,
+  deletion, GC execution, subject restoration, protocol, approval or
+  publication authority. Regressions are authored and unrun.
 
 - Added typed event-ledger derivation to the paired agent-task benchmark. Exact
   plan/task/lane/model bindings, authenticated stream evidence and closed
   per-event token/context/tool/failure/stale/timing/intervention records produce
-  the existing observation schema and authenticate the ledger itself. Zero
-  streams still require evidence; no agent trial or comparative result is
-  claimed.
+  the existing observation schema and authenticate the ledger itself. A bounded
+  incremental audit validates one observation and every referenced artifact
+  before the complete matrix exists. Zero streams still require evidence; no
+  agent trial, lane comparison or productivity result is claimed.
 
 - Added an explicit immutable retention metadata store that publishes one
   already authenticated checkpoint/GC-plan pair through a single no-replace

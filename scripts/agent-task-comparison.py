@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_SCHEMA = "semaprax.agent-task-comparison-manifest.v1"
 TASK_SCHEMA = "semaprax.agent-task-comparison-task.v1"
 OBSERVATION_SCHEMA = "semaprax.agent-task-comparison-observation.v1"
+LEDGER_SCHEMA = "semaprax.agent-task-comparison-ledger.v1"
 PLAN_SCHEMA = "semaprax.agent-task-comparison-plan.v1"
 TRIAL_SCHEMA = "semaprax.agent-task-comparison-trial.v1"
 MATRIX_SCHEMA = "semaprax.agent-task-comparison-matrix.v1"
@@ -21,6 +22,9 @@ MAX_JSON = 1024 * 1024
 MAX_EVIDENCE = 32 * 1024 * 1024
 MAX_EVIDENCE_TOTAL = 64 * 1024 * 1024
 MAX_ARTIFACTS = 64
+MAX_LEDGER = 8 * 1024 * 1024
+MAX_LEDGER_EVENTS = 65536
+LEDGER_ARTIFACT_ID = "typed-event-ledger"
 METRICS = (
     "model_input_tokens",
     "model_output_tokens",
@@ -422,6 +426,228 @@ def make_matrix(manifest_path):
     }
 
 
+def make_observation(manifest_path, ledger_path, output):
+    if output is None:
+        raise Failure("observation derivation requires --output")
+    destination = Path(output)
+    if not destination.is_absolute():
+        raise Failure("output path must be absolute")
+    ledger_relative = Path(ledger_path)
+    expected_parent = (ROOT / ledger_relative.parent).resolve()
+    if destination.parent.resolve() != expected_parent or destination.name == ledger_relative.name:
+        raise Failure("derived observation must be a distinct file beside its ledger")
+
+    body = relative_file(ROOT, ledger_path, MAX_LEDGER, "ledger")
+    value = object_json(body, "ledger")
+    if body != canonical(value) + b"\n":
+        raise Failure("ledger must use exact canonical JSON with one terminal LF")
+    exact_keys(
+        value,
+        (
+            "schema", "plan_sha256", "task", "lane", "trial", "state", "model",
+            "tokenizer", "model_configuration", "harness", "host", "toolchain",
+            "prompt_sha256", "artifacts", "streams", "events", "acceptance", "outcome",
+        ),
+        (),
+        "ledger",
+    )
+    plan = make_plan(manifest_path)
+    manifest, _, _ = load_manifest(manifest_path)
+    if value["schema"] != LEDGER_SCHEMA or value["plan_sha256"] != digest(canonical(plan)):
+        raise Failure("ledger does not bind this plan")
+    task = next((item for item in plan["tasks"] if item["id"] == value["task"]), None)
+    lane = next((item for item in manifest["lanes"] if item["id"] == value["lane"]), None)
+    if task is None or lane is None or lane["availability"] != "available":
+        raise Failure("ledger selects an unavailable task or lane")
+    if value["state"] != manifest["pairing"]["state"]:
+        raise Failure("ledger has the wrong workspace state")
+    trial = natural(value["trial"], "trial")
+    if trial < 1 or trial > manifest["repetitions"]:
+        raise Failure("ledger trial is outside the manifest")
+    for key in (
+        "model", "tokenizer", "model_configuration", "harness", "host", "toolchain",
+        "prompt_sha256", "outcome",
+    ):
+        text(value[key], f"ledger {key}")
+    if value["prompt_sha256"] != task["prompt_sha256"]:
+        raise Failure("ledger changes the common task prompt")
+    if value["outcome"] not in ("completed", "failed", "aborted"):
+        raise Failure("ledger has an invalid outcome")
+
+    artifacts = value["artifacts"]
+    if not isinstance(artifacts, list) or not artifacts or len(artifacts) >= MAX_ARTIFACTS:
+        raise Failure("ledger must authenticate between 1 and 63 external artifacts")
+    known = set()
+    evidence_bytes = 0
+    ledger_base = ledger_relative.parent
+    for artifact in artifacts:
+        exact_keys(artifact, ("id", "path", "bytes", "sha256", "kind"), (), "artifact")
+        artifact_id = text(artifact["id"], "artifact id")
+        if artifact_id == LEDGER_ARTIFACT_ID or artifact_id in known:
+            raise Failure(f"duplicate or reserved artifact id: {artifact_id}")
+        known.add(artifact_id)
+        artifact_path = text(artifact["path"], "artifact path")
+        artifact_body = relative_file(
+            ROOT, str(ledger_base / artifact_path), MAX_EVIDENCE, "evidence artifact"
+        )
+        evidence_bytes += len(artifact_body)
+        if evidence_bytes > MAX_EVIDENCE_TOTAL:
+            raise Failure("ledger evidence exceeds the total byte bound")
+        if natural(artifact["bytes"], "artifact bytes") != len(artifact_body):
+            raise Failure(f"artifact byte binding disagrees: {artifact_id}")
+        if artifact["sha256"] != digest(artifact_body):
+            raise Failure(f"artifact digest binding disagrees: {artifact_id}")
+        text(artifact["kind"], "artifact kind")
+
+    stream_metrics = {
+        "model_usage": ("model_input_tokens", "model_output_tokens"),
+        "context_presentation": ("presented_context_bytes",),
+        "tool_calls": ("tool_calls", "tool_request_bytes", "tool_response_bytes"),
+        "failed_attempts": ("failed_attempts",),
+        "stale_recovery": ("stale_failures", "stale_recovery_actions"),
+        "validation": ("validation_wall_ms",),
+        "review": ("review_wall_ms",),
+        "human_interventions": ("human_interventions",),
+    }
+    streams = value["streams"]
+    if not isinstance(streams, dict) or set(streams) != set(stream_metrics):
+        raise Failure("ledger stream evidence inventory disagrees")
+
+    def refs(selected, label):
+        if (
+            not isinstance(selected, list)
+            or not selected
+            or any(not isinstance(item, str) or item not in known for item in selected)
+        ):
+            raise Failure(f"{label} lacks authenticated evidence")
+        return selected
+
+    totals = {metric: 0 for metric in METRICS}
+    metric_evidence = {metric: [LEDGER_ARTIFACT_ID] for metric in METRICS}
+    for stream, metrics in stream_metrics.items():
+        selected = refs(streams[stream], f"ledger stream {stream}")
+        for metric in metrics:
+            metric_evidence[metric].extend(selected)
+
+    events = value["events"]
+    if not isinstance(events, list) or len(events) > MAX_LEDGER_EVENTS:
+        raise Failure("ledger events are absent or exceed their bound")
+    event_shapes = {
+        "model_usage": ("model_input_tokens", "model_output_tokens"),
+        "context_presentation": ("presented_context_bytes",),
+        "tool_call": ("tool_request_bytes", "tool_response_bytes"),
+        "failed_attempt": (),
+        "stale_failure": (),
+        "stale_recovery_action": (),
+        "validation_interval": ("validation_wall_ms",),
+        "review_interval": ("review_wall_ms",),
+        "human_intervention": (),
+    }
+    for index, event in enumerate(events):
+        exact_keys(event, ("kind", "values", "evidence"), (), f"ledger event {index}")
+        kind = event["kind"]
+        if not isinstance(kind, str) or kind not in event_shapes:
+            raise Failure(f"ledger event {index} has an unknown kind")
+        values = event["values"]
+        exact_keys(values, event_shapes[kind], (), f"ledger event {index} values")
+        selected = refs(event["evidence"], f"ledger event {index}")
+        for metric in event_shapes[kind]:
+            amount = natural(values[metric], f"ledger event {index} {metric}")
+            totals[metric] += amount
+            metric_evidence[metric].extend(selected)
+        if kind == "tool_call":
+            totals["tool_calls"] += 1
+            metric_evidence["tool_calls"].extend(selected)
+        elif kind == "failed_attempt":
+            totals["failed_attempts"] += 1
+            metric_evidence["failed_attempts"].extend(selected)
+        elif kind == "stale_failure":
+            totals["stale_failures"] += 1
+            metric_evidence["stale_failures"].extend(selected)
+        elif kind == "stale_recovery_action":
+            totals["stale_recovery_actions"] += 1
+            metric_evidence["stale_recovery_actions"].extend(selected)
+        elif kind == "human_intervention":
+            totals["human_interventions"] += 1
+            metric_evidence["human_interventions"].extend(selected)
+
+    for metric in METRICS:
+        metric_evidence[metric] = list(dict.fromkeys(metric_evidence[metric]))
+    methods = {
+        "model_input_tokens": "sum_typed_model_usage_events",
+        "model_output_tokens": "sum_typed_model_usage_events",
+        "presented_context_bytes": "sum_typed_context_presentation_events",
+        "tool_calls": "count_typed_tool_call_events",
+        "tool_request_bytes": "sum_typed_tool_call_events",
+        "tool_response_bytes": "sum_typed_tool_call_events",
+        "failed_attempts": "count_typed_failed_attempt_events",
+        "stale_failures": "count_typed_stale_failure_events",
+        "stale_recovery_actions": "count_typed_stale_recovery_action_events",
+        "validation_wall_ms": "sum_typed_validation_interval_events",
+        "review_wall_ms": "sum_typed_review_interval_events",
+        "human_interventions": "count_typed_human_intervention_events",
+    }
+    metrics = {
+        metric: {
+            "status": "observed",
+            "value": totals[metric],
+            "method": methods[metric],
+            "evidence": metric_evidence[metric],
+        }
+        for metric in METRICS
+    }
+
+    task_body = task["task"] if "task" in task else object_json(
+        relative_file(ROOT, task["path"], MAX_JSON, "task"), "task"
+    )
+    expected = [criterion["id"] for criterion in task_body["acceptance"]]
+    acceptance = value["acceptance"]
+    if not isinstance(acceptance, list) or [row.get("id") for row in acceptance if isinstance(row, dict)] != expected:
+        raise Failure("ledger acceptance inventory disagrees")
+    derived_acceptance = []
+    for row in acceptance:
+        exact_keys(row, ("id", "outcome", "evidence"), (), "ledger acceptance row")
+        if row["outcome"] not in ("passed", "failed"):
+            raise Failure(f"ledger acceptance row {row['id']} has an invalid outcome")
+        selected = refs(row["evidence"], f"ledger acceptance row {row['id']}")
+        derived_acceptance.append(
+            {"id": row["id"], "outcome": row["outcome"], "evidence": [LEDGER_ARTIFACT_ID, *selected]}
+        )
+    acceptance_passed = all(row["outcome"] == "passed" for row in derived_acceptance)
+    if (value["outcome"] == "completed") != acceptance_passed:
+        raise Failure("ledger outcome disagrees with acceptance")
+
+    output_artifacts = list(artifacts)
+    output_artifacts.append(
+        {
+            "id": LEDGER_ARTIFACT_ID,
+            "path": ledger_relative.name,
+            "bytes": len(body),
+            "sha256": digest(body),
+            "kind": "typed_event_ledger",
+        }
+    )
+    return {
+        "schema": OBSERVATION_SCHEMA,
+        "plan_sha256": value["plan_sha256"],
+        "task": value["task"],
+        "lane": value["lane"],
+        "trial": trial,
+        "state": value["state"],
+        "model": value["model"],
+        "tokenizer": value["tokenizer"],
+        "model_configuration": value["model_configuration"],
+        "harness": value["harness"],
+        "host": value["host"],
+        "toolchain": value["toolchain"],
+        "prompt_sha256": value["prompt_sha256"],
+        "artifacts": output_artifacts,
+        "metrics": metrics,
+        "acceptance": derived_acceptance,
+        "outcome": value["outcome"],
+    }
+
+
 def load_observation(path, plan, manifest):
     body = relative_file(ROOT, path, MAX_JSON, "observation")
     value = object_json(body, f"observation {path}")
@@ -616,30 +842,37 @@ def write(value, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("plan", "matrix", "trial", "report"))
+    parser.add_argument("command", choices=("plan", "matrix", "trial", "observation", "report"))
     parser.add_argument("--manifest", default="benchmarks/agent-task-comparison-v1/manifest.json")
     parser.add_argument("--observation", action="append", default=[])
     parser.add_argument("--task")
     parser.add_argument("--lane")
     parser.add_argument("--trial", type=int)
+    parser.add_argument("--ledger")
     parser.add_argument("--output")
     arguments = parser.parse_args()
     if arguments.command == "plan":
-        if arguments.observation or arguments.task or arguments.lane or arguments.trial is not None:
+        if arguments.observation or arguments.task or arguments.lane or arguments.trial is not None or arguments.ledger:
             raise Failure("plan does not accept observations or trial selectors")
         value = make_plan(arguments.manifest)
     elif arguments.command == "matrix":
-        if arguments.observation or arguments.task or arguments.lane or arguments.trial is not None:
+        if arguments.observation or arguments.task or arguments.lane or arguments.trial is not None or arguments.ledger:
             raise Failure("matrix does not accept observations or trial selectors")
         value = make_matrix(arguments.manifest)
     elif arguments.command == "trial":
-        if arguments.observation:
+        if arguments.observation or arguments.ledger:
             raise Failure("trial does not accept observations")
         if arguments.task is None or arguments.lane is None or arguments.trial is None:
             raise Failure("trial requires --task, --lane, and --trial")
         value = make_trial(arguments.manifest, arguments.task, arguments.lane, arguments.trial)
+    elif arguments.command == "observation":
+        if arguments.observation or arguments.task or arguments.lane or arguments.trial is not None:
+            raise Failure("observation does not accept observations or trial selectors")
+        if arguments.ledger is None:
+            raise Failure("observation requires --ledger")
+        value = make_observation(arguments.manifest, arguments.ledger, arguments.output)
     else:
-        if arguments.task or arguments.lane or arguments.trial is not None:
+        if arguments.task or arguments.lane or arguments.trial is not None or arguments.ledger:
             raise Failure("report does not accept trial selectors")
         if not arguments.observation:
             raise Failure("report requires the complete observation matrix")

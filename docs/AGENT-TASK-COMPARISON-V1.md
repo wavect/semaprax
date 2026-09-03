@@ -99,6 +99,40 @@ reviewer or publication host; all outcome and comparison claims remain
 unobserved. The external harness must still archive actual evidence and produce
 the separate observation object accepted by the report command.
 
+## Typed event-ledger derivation
+
+An external harness can derive the observation metrics from a canonical typed
+event ledger instead of hand-entering aggregate totals:
+
+```sh
+python3 scripts/agent-task-comparison.py observation \
+  --manifest benchmarks/agent-task-comparison-v1/manifest.json \
+  --ledger evidence/task-lane-trial/ledger.json \
+  --output /absolute/repository/path/evidence/task-lane-trial/observation.json
+```
+
+The output must be a distinct file beside the repository-relative ledger so
+all artifact paths keep the same meaning. The bounded
+`semaprax.agent-task-comparison-ledger.v1` object carries the same exact
+plan/task/lane/trial/model/harness bindings as an observation, 1 through 63
+authenticated external artifacts, complete stream-evidence references, typed
+events, acceptance rows and outcome. It uses canonical compact JSON with one
+terminal LF and is capped at 8 MiB and 65,536 events.
+
+Closed events record provider token usage, context presentation, tool calls,
+failed attempts, stale failures and recovery actions, validation/review
+intervals and human interventions. The derivation sums byte/token/time values
+and counts action events. Complete stream evidence is mandatory even when a
+stream has no events, so a zero still has an auditable basis. The resulting
+observation automatically authenticates the complete ledger itself as
+`typed-event-ledger` in addition to every referenced provider, tool,
+validation, drift, review or intervention artifact.
+
+Derivation does not make the external recorder trustworthy, infer tokens from
+bytes, time work internally, invoke an agent, or validate task correctness. It
+turns event-level assertions into reproducible totals and lets the existing
+observation/report validator re-hash the ledger and all supporting evidence.
+
 ## Observation contract
 
 An external harness owns model invocation, isolation, deterministic drift

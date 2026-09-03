@@ -14,6 +14,11 @@ use semaprax::project_transport::{
 };
 use serde_json::{json, Value};
 
+#[rustfmt::skip]
+mod generated_rust {
+    include!("generated_rust.txt");
+}
+
 const MAX_REQUEST_BYTES: usize = 1024 * 1024;
 const MAX_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_STDERR_BYTES: usize = 64 * 1024;
@@ -123,9 +128,66 @@ impl Drop for Fixture {
     }
 }
 
+struct OwnedChild(Option<Child>);
+
+impl OwnedChild {
+    fn child_mut(&mut self) -> &mut Child {
+        self.0.as_mut().expect("owned live child")
+    }
+
+    fn settle(&mut self, require_success: bool) {
+        let deadline = Instant::now() + PROCESS_DEADLINE;
+        loop {
+            let Some(child) = self.0.as_mut() else {
+                return;
+            };
+            if let Some(status) = child.try_wait().unwrap() {
+                self.0.take();
+                if require_success {
+                    assert!(status.success(), "owned child failed: {status}");
+                }
+                return;
+            }
+            if Instant::now() >= deadline {
+                let _ = child.kill();
+                let _ = child.wait();
+                self.0.take();
+                panic!("owned child did not settle before deadline");
+            }
+            thread::sleep(Duration::from_millis(5));
+        }
+    }
+
+    fn abort(&mut self) {
+        let Some(child) = self.0.as_mut() else {
+            return;
+        };
+        let _ = child.kill();
+        let deadline = Instant::now() + PROCESS_DEADLINE;
+        loop {
+            match child.try_wait() {
+                Ok(Some(_)) => {
+                    self.0.take();
+                    return;
+                }
+                Ok(None) if Instant::now() < deadline => {
+                    thread::sleep(Duration::from_millis(5));
+                }
+                _ => std::process::abort(),
+            }
+        }
+    }
+}
+
+impl Drop for OwnedChild {
+    fn drop(&mut self) {
+        self.abort();
+    }
+}
+
 struct Daemon {
-    child: Child,
-    input: ChildStdin,
+    child: OwnedChild,
+    input: Option<ChildStdin>,
     responses: mpsc::Receiver<Vec<u8>>,
     output: Option<thread::JoinHandle<()>>,
     error: Option<thread::JoinHandle<std::io::Result<Vec<u8>>>>,
@@ -144,6 +206,7 @@ impl Daemon {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
+            .env_clear()
             .spawn()
             .unwrap();
         let error = child.stderr.take().unwrap();
@@ -158,24 +221,25 @@ impl Daemon {
             }
         });
         Self {
-            input: child.stdin.take().unwrap(),
+            input: Some(child.stdin.take().unwrap()),
             responses,
             output: Some(output),
             error: Some(thread::spawn(move || read_capped(error, MAX_STDERR_BYTES))),
-            child,
+            child: OwnedChild(Some(child)),
         }
     }
 
     fn request(&mut self, request: &[u8]) -> Vec<u8> {
         assert!(request.ends_with(b"\n") && !request[..request.len() - 1].contains(&b'\n'));
         assert!(request.len() <= MAX_REQUEST_BYTES);
-        self.input.write_all(request).unwrap();
-        self.input.flush().unwrap();
+        let input = self.input.as_mut().unwrap();
+        input.write_all(request).unwrap();
+        input.flush().unwrap();
         match self.responses.recv_timeout(PROCESS_DEADLINE) {
             Ok(response) => response,
             Err(error) => {
-                let _ = self.child.kill();
-                let _ = self.child.wait();
+                self.input.take();
+                self.child.abort();
                 panic!("daemon response did not arrive before deadline: {error}");
             }
         }
@@ -206,20 +270,8 @@ impl Daemon {
             self.json(json!({"jsonrpc":"2.0","id":99,"method":"shutdown"}))["result"]["ok"],
             true
         );
-        drop(self.input);
-        let deadline = Instant::now() + PROCESS_DEADLINE;
-        loop {
-            if let Some(status) = self.child.try_wait().unwrap() {
-                assert!(status.success());
-                break;
-            }
-            if Instant::now() >= deadline {
-                self.child.kill().unwrap();
-                let _ = self.child.wait();
-                panic!("daemon did not settle before deadline");
-            }
-            thread::sleep(Duration::from_millis(5));
-        }
+        self.input.take();
+        self.child.settle(true);
         if let Some(error) = self.error.take() {
             let bytes = error.join().unwrap().unwrap();
             assert!(
@@ -230,6 +282,19 @@ impl Daemon {
         }
         if let Some(output) = self.output.take() {
             output.join().unwrap();
+        }
+    }
+}
+
+impl Drop for Daemon {
+    fn drop(&mut self) {
+        self.input.take();
+        self.child.abort();
+        if let Some(error) = self.error.take() {
+            let _ = error.join();
+        }
+        if let Some(output) = self.output.take() {
+            let _ = output.join();
         }
     }
 }
@@ -279,7 +344,7 @@ enum Language {
 
 struct Codec {
     language: Language,
-    command: PathBuf,
+    command: Option<PathBuf>,
     arguments: Vec<String>,
     root: Fixture,
 }
@@ -303,7 +368,7 @@ impl Codec {
         );
         Self {
             language: Language::Python,
-            command,
+            command: Some(command),
             arguments: vec![
                 "-B".to_owned(),
                 root.0.join("client.py").to_string_lossy().into_owned(),
@@ -314,58 +379,17 @@ impl Codec {
 
     fn rust() -> Self {
         let root = Fixture::empty("rust");
-        std::fs::create_dir_all(root.0.join("src")).unwrap();
-        std::fs::write(
-            root.0.join("src/client.rs"),
+        assert_eq!(
             generated(ProjectTransportClientLanguage::Rust),
-        )
-        .unwrap();
-        std::fs::write(root.0.join("src/main.rs"), RUST_ADAPTER).unwrap();
-        let lock =
-            std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.lock"))
-                .unwrap();
-        let marker = "name = \"serde_json\"\nversion = \"";
-        let serde_json_version = lock
-            .split(marker)
-            .nth(1)
-            .and_then(|rest| rest.split('"').next())
-            .expect("workspace lock contains serde_json");
-        std::fs::write(
-            root.0.join("Cargo.toml"),
-            format!(
-                "[package]\nname=\"semaprax-v6-sdk-consumer\"\nversion=\"0.0.0\"\nedition=\"2021\"\n[dependencies]\nserde_json=\"={serde_json_version}\"\n"
-            ),
-        )
-        .unwrap();
-        let cargo = configured_tool("SEMAPRAX_TEST_CARGO", &[]);
-        for arguments in [
-            vec![
-                "generate-lockfile",
-                "--offline",
-                "--manifest-path",
-                "Cargo.toml",
-            ],
-            vec![
-                "build",
-                "--locked",
-                "--offline",
-                "--quiet",
-                "--target-dir",
-                "target",
-                "--manifest-path",
-                "Cargo.toml",
-            ],
-        ] {
-            let output = run_bounded(&cargo, &arguments, &root.0, b"", false);
-            assert_success(&output, "compile generated Rust codec offline");
-        }
-        let executable = root.0.join("target").join("debug").join(format!(
-            "semaprax-v6-sdk-consumer{}",
-            std::env::consts::EXE_SUFFIX
-        ));
+            include_str!("generated_rust.txt")
+        );
+        assert_eq!(
+            generated_rust::DISCOVERY_JSON,
+            semaprax::project_transport::project_public_api_transport_discovery()
+        );
         Self {
             language: Language::Rust,
-            command: executable,
+            command: None,
             arguments: Vec::new(),
             root,
         }
@@ -375,13 +399,31 @@ impl Codec {
         let root = Fixture::empty("typescript");
         let tsc = configured_tool("SEMAPRAX_TEST_TSC", &[]);
         let node = configured_tool("SEMAPRAX_TEST_NODE", &[]);
-        let version = run_bounded(&tsc, &["--version"], &root.0, b"", false);
+        let tsc_source = std::fs::read_to_string(&tsc).expect("read held TypeScript entry");
+        let implementation = tsc.with_file_name("_tsc.js");
+        let implementation_source =
+            std::fs::read_to_string(&implementation).expect("read held TypeScript implementation");
+        assert!(
+            tsc_source.contains("require(\"./_tsc.js\")")
+                && !tsc_source.contains("require(\"child_process\")")
+                && !tsc_source.contains(".spawn(")
+                && !implementation_source.contains("require(\"child_process\")")
+                && !implementation_source.contains(".spawn(")
+                && !implementation_source.contains(".execFile("),
+            "SEMAPRAX_TEST_TSC must name the held TypeScript lib/tsc.js entry"
+        );
+        let version = run_bounded(
+            &node,
+            &[tsc.as_os_str(), OsStr::new("--version")],
+            &root.0,
+            b"",
+        );
         assert_success(&version, "query held TypeScript compiler");
         assert_eq!(
             String::from_utf8(version.stdout).unwrap().trim(),
             "Version 5.8.3"
         );
-        let version = run_bounded(&node, &["--version"], &root.0, b"", false);
+        let version = run_bounded(&node, &["--version"], &root.0, b"");
         assert_success(&version, "query held Node runtime");
         let major: u64 = String::from_utf8(version.stdout)
             .unwrap()
@@ -404,8 +446,9 @@ impl Codec {
         .unwrap();
         std::fs::write(root.0.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
         let output = run_bounded(
-            &tsc,
+            &node,
             &[
+                tsc.to_str().unwrap(),
                 "--strict",
                 "--noEmitOnError",
                 "--target",
@@ -418,25 +461,39 @@ impl Codec {
             ],
             &root.0,
             b"",
-            false,
         );
         assert_success(&output, "compile generated TypeScript codec");
         Self {
             language: Language::TypeScript,
-            command: node,
+            command: Some(node),
             arguments: vec![root.0.join("client.js").to_string_lossy().into_owned()],
             root,
         }
     }
 
-    fn invoke(&self, arguments: &[&str], input: &[u8], clear_environment: bool) -> Output {
+    fn invoke(&self, arguments: &[&str], input: &[u8]) -> Output {
         let mut all = self.arguments.clone();
         all.extend(arguments.iter().map(|value| (*value).to_owned()));
-        run_bounded(&self.command, &all, &self.root.0, input, clear_environment)
+        run_bounded(
+            self.command.as_deref().expect("process-backed codec"),
+            &all,
+            &self.root.0,
+            input,
+        )
     }
 
     fn request(&self, mode: &str, project: &str, workspace: &str) -> Vec<u8> {
-        let output = self.invoke(&[mode, project, workspace], b"", true);
+        if matches!(self.language, Language::Rust) {
+            let id = json!(7);
+            let line = if mode == "describe" {
+                generated_rust::describe(&id, project, workspace)
+            } else {
+                generated_rust::build_inline(&id, project, workspace, None)
+            }
+            .expect("construct generated Rust request");
+            return line.into_bytes();
+        }
+        let output = self.invoke(&[mode, project, workspace], b"");
         assert_success(&output, "construct generated-client request");
         assert!(output.stdout.ends_with(b"\n"));
         assert!(!output.stdout[..output.stdout.len() - 1].contains(&b'\n'));
@@ -444,16 +501,34 @@ impl Codec {
         output.stdout
     }
 
-    fn decode(&self, response: &[u8], build: bool) -> Output {
-        self.invoke(
+    fn decode_succeeds(&self, response: &[u8], build: bool) -> bool {
+        if matches!(self.language, Language::Rust) {
+            return std::str::from_utf8(response)
+                .map_err(|_| "response is not UTF-8".to_owned())
+                .and_then(|line| generated_rust::decode(line, &json!(7), build))
+                .is_ok();
+        }
+        let output = self.invoke(
             &["decode", if build { "build" } else { "describe" }],
             response,
-            true,
-        )
+        );
+        output.status.success() && output.stdout == b"ok\n"
     }
 
     fn assert_hostile_requests(&self) {
-        let output = self.invoke(&["hostile"], b"", true);
+        if matches!(self.language, Language::Rust) {
+            let zero = format!("sha256:{}", "0".repeat(64));
+            let one = format!("sha256:{}", "1".repeat(64));
+            assert!(generated_rust::describe(&json!(-1), &zero, &one).is_err());
+            assert!(generated_rust::describe(&Value::String(String::new()), &zero, &one).is_err());
+            assert!(generated_rust::describe(&json!(7), "x", "x").is_err());
+            assert!(generated_rust::build_inline(&json!(7), &zero, &one, Some(0)).is_err());
+            assert!(
+                generated_rust::build_inline(&json!(7), &zero, &one, Some(41_943_041)).is_err()
+            );
+            return;
+        }
+        let output = self.invoke(&["hostile"], b"");
         assert_success(&output, "generated-client hostile request checks");
         assert_eq!(output.stdout, b"ok\n");
     }
@@ -479,22 +554,6 @@ fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
             "{variable} must be an absolute file"
         );
         return path.canonicalize().unwrap();
-    }
-    if variable == "SEMAPRAX_TEST_CARGO" {
-        let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
-        let path = PathBuf::from(&cargo);
-        let resolved = if path.is_absolute() {
-            path.canonicalize().unwrap()
-        } else {
-            std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default())
-                .map(|directory| directory.join(&path))
-                .find(|candidate| candidate.is_file())
-                .and_then(|candidate| candidate.canonicalize().ok())
-                .expect("local smoke test requires Cargo on PATH")
-        };
-        let output = Command::new(&resolved).arg("--version").output().unwrap();
-        assert!(output.status.success());
-        return resolved;
     }
     candidates
         .iter()
@@ -523,12 +582,44 @@ fn generated(language: ProjectTransportClientLanguage) -> String {
     source
 }
 
+fn assert_direct_child_contract() {
+    for source in [PYTHON_ADAPTER, TYPESCRIPT_ADAPTER] {
+        for forbidden in [
+            "subprocess",
+            "child_process",
+            "Command::new",
+            ".spawn(",
+            ".execFile(",
+        ] {
+            assert!(
+                !source.contains(forbidden),
+                "adapter violates direct-child contract with {forbidden}"
+            );
+        }
+    }
+    for source in [
+        include_str!("../../../src/project_transport/session/public_api.rs"),
+        include_str!("../../../src/project/npm.rs"),
+        include_str!("../../../src/project/npm/carrier.rs"),
+        include_str!("../../../src/project/npm/owned_data.rs"),
+        include_str!("../../../src/project/npm/flat_owned_record.rs"),
+        include_str!("../../../src/project/npm/owned_utf8.rs"),
+        include_str!("../../../src/project/npm/nested_owned_record.rs"),
+    ] {
+        for forbidden in ["Command::new", ".spawn(", "std::process"] {
+            assert!(
+                !source.contains(forbidden),
+                "admitted daemon route violates direct-child contract with {forbidden}"
+            );
+        }
+    }
+}
+
 fn run_bounded(
     command: &Path,
     arguments: &[impl AsRef<OsStr>],
     current_dir: &Path,
     input: &[u8],
-    clear_environment: bool,
 ) -> Output {
     assert!(input.len() <= MAX_RESPONSE_BYTES.saturating_add(1));
     let mut command = Command::new(command);
@@ -537,26 +628,24 @@ fn run_bounded(
         .current_dir(current_dir)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    if clear_environment {
-        command.env_clear();
-    }
-    let mut child = command.spawn().unwrap();
-    let mut stdin = child.stdin.take().unwrap();
-    let stdout = child.stdout.take().unwrap();
-    let stderr = child.stderr.take().unwrap();
+        .stderr(Stdio::piped())
+        .env_clear();
+    let mut child = OwnedChild(Some(command.spawn().unwrap()));
+    let mut stdin = child.child_mut().stdin.take().unwrap();
+    let stdout = child.child_mut().stdout.take().unwrap();
+    let stderr = child.child_mut().stderr.take().unwrap();
     let input = input.to_vec();
     let input_thread = thread::spawn(move || stdin.write_all(&input));
     let stdout_thread = thread::spawn(move || read_capped(stdout, MAX_RESPONSE_BYTES));
     let stderr_thread = thread::spawn(move || read_capped(stderr, MAX_STDERR_BYTES));
     let deadline = Instant::now() + PROCESS_DEADLINE;
     let status = loop {
-        if let Some(status) = child.try_wait().unwrap() {
+        if let Some(status) = child.child_mut().try_wait().unwrap() {
+            child.0.take();
             break status;
         }
         if Instant::now() >= deadline {
-            child.kill().unwrap();
-            let _ = child.wait();
+            child.abort();
             panic!("{:?} exceeded bounded test deadline", command.get_program());
         }
         thread::sleep(Duration::from_millis(5));
@@ -578,6 +667,7 @@ fn assert_success(output: &Output, action: &str) {
 }
 
 fn exercise_live(codec: &Codec) {
+    assert_direct_child_contract();
     codec.assert_hostile_requests();
     for case in CASES {
         let fixture = Fixture::new(case);
@@ -591,12 +681,93 @@ fn exercise_live(codec: &Codec) {
             assert_eq!(value["result"]["project_schema"], case.project_schema);
             assert_eq!(value["result"]["descriptor_schema"], case.descriptor_schema);
             assert_eq!(value["result"]["carrier_schema"], case.carrier_schema);
-            let decoded = codec.decode(&response, build);
-            assert_success(&decoded, "decode live retained daemon response");
-            assert_eq!(decoded.stdout, b"ok\n", "{:?} response", codec.language);
+            assert!(
+                codec.decode_succeeds(&response, build),
+                "{:?} rejected a live response",
+                codec.language
+            );
+            assert_profile_binding_rejections(codec, &response, case, build);
+        }
+        for mode in ["describe", "build"] {
+            for (bad_project, bad_workspace) in [
+                (format!("sha256:{}", "f".repeat(64)), workspace.clone()),
+                (project.clone(), format!("sha256:{}", "e".repeat(64))),
+            ] {
+                let rejected = daemon.request(&codec.request(mode, &bad_project, &bad_workspace));
+                assert_eq!(
+                    serde_json::from_slice::<Value>(&rejected).unwrap()["error"]["code"],
+                    -32602,
+                    "{} {mode} admitted a foreign retained subject",
+                    case.label
+                );
+                assert_eq!(
+                    daemon.json(json!({"jsonrpc":"2.0","id":10,"method":"ping"}))["result"]
+                        ["state"],
+                    "open"
+                );
+            }
         }
         daemon.finish();
         assert_eq!(fixture.inventory(), before);
+    }
+}
+
+fn assert_profile_binding_rejections(
+    codec: &Codec,
+    response: &[u8],
+    expected: ProfileCase,
+    build: bool,
+) {
+    let original: Value = serde_json::from_slice(response).unwrap();
+    for foreign in CASES {
+        if foreign.project_schema == expected.project_schema {
+            continue;
+        }
+        for (path, value) in [
+            ("project", foreign.project_schema),
+            ("descriptor", foreign.descriptor_schema),
+            ("carrier", foreign.carrier_schema),
+        ] {
+            let mut hostile = original.clone();
+            match path {
+                "project" => hostile["result"]["project_schema"] = json!(value),
+                "descriptor" => hostile["result"]["descriptor_schema"] = json!(value),
+                "carrier" => hostile["result"]["carrier_schema"] = json!(value),
+                _ => unreachable!(),
+            }
+            assert!(
+                !codec.decode_succeeds(&serde_json::to_vec(&hostile).unwrap(), build),
+                "{:?} admitted {path} binding from {} into {}",
+                codec.language,
+                foreign.label,
+                expected.label
+            );
+        }
+        if build {
+            let mut hostile = original.clone();
+            hostile["result"]["build"]["schema"] = json!(foreign.carrier_schema);
+            assert!(
+                !codec.decode_succeeds(&serde_json::to_vec(&hostile).unwrap(), true),
+                "{:?} admitted build binding from {} into {}",
+                codec.language,
+                foreign.label,
+                expected.label
+            );
+        }
+    }
+    for path in ["outer", "descriptor"] {
+        let mut hostile = original.clone();
+        if path == "outer" {
+            hostile["result"]["descriptor_digest"] = json!("sha256:00");
+        } else {
+            hostile["result"]["descriptor"]["schema"] = json!("foreign");
+        }
+        assert!(
+            !codec.decode_succeeds(&serde_json::to_vec(&hostile).unwrap(), build),
+            "{:?} admitted hostile {path} binding for {}",
+            codec.language,
+            expected.label
+        );
     }
 }
 
@@ -637,26 +808,20 @@ fn exercise_hostile_decoders(codec: &Codec) {
     for value in hostiles {
         let bytes = serde_json::to_vec(&value).unwrap();
         assert!(
-            !codec.decode(&bytes, false).status.success(),
+            !codec.decode_succeeds(&bytes, false),
             "hostile response admitted"
         );
     }
     let build_response = daemon.request(&codec.request("build", &project, &workspace));
     let mut wrong_build: Value = serde_json::from_slice(&build_response).unwrap();
     wrong_build["result"]["build"]["schema"] = json!("semaprax.project-npm-build.v9");
-    assert!(!codec
-        .decode(&serde_json::to_vec(&wrong_build).unwrap(), true)
-        .status
-        .success());
+    assert!(!codec.decode_succeeds(&serde_json::to_vec(&wrong_build).unwrap(), true));
     let error = json!({"jsonrpc":"2.0","id":7,"error":{"code":-32602,"message":"rejected"}});
-    assert!(!codec
-        .decode(&serde_json::to_vec(&error).unwrap(), false)
-        .status
-        .success());
-    assert!(!codec.decode(b"null", false).status.success());
-    assert!(!codec.decode(b"{} {}", false).status.success());
+    assert!(!codec.decode_succeeds(&serde_json::to_vec(&error).unwrap(), false));
+    assert!(!codec.decode_succeeds(b"null", false));
+    assert!(!codec.decode_succeeds(b"{} {}", false));
     let oversized = vec![b' '; MAX_RESPONSE_BYTES + 1];
-    assert!(!codec.decode(&oversized, false).status.success());
+    assert!(!codec.decode_succeeds(&oversized, false));
     let stale = format!("sha256:{}", "f".repeat(64));
     let rejected = daemon.request(&codec.request("describe", &stale, &workspace));
     assert_eq!(
@@ -668,15 +833,12 @@ fn exercise_hostile_decoders(codec: &Codec) {
         "open"
     );
     let recovered = daemon.request(&codec.request("describe", &project, &workspace));
-    assert_success(
-        &codec.decode(&recovered, false),
-        "decode after stale-subject rejection",
-    );
+    assert!(codec.decode_succeeds(&recovered, false));
     daemon.finish();
 }
 
 #[test]
-fn generated_python_and_offline_rust_clients_drive_all_retained_v6_profiles() {
+fn generated_python_and_embedded_rust_clients_drive_all_retained_v6_profiles() {
     for codec in [Codec::python(), Codec::rust()] {
         exercise_live(&codec);
         exercise_hostile_decoders(&codec);
@@ -684,7 +846,7 @@ fn generated_python_and_offline_rust_clients_drive_all_retained_v6_profiles() {
 }
 
 #[test]
-#[ignore = "requires absolute provisioned SEMAPRAX_TEST_TSC 5.8.3 and SEMAPRAX_TEST_NODE >=22"]
+#[ignore = "requires absolute provisioned TypeScript lib/tsc.js 5.8.3 and Node >=22"]
 fn provisioned_typescript_client_drives_all_retained_v6_profiles() {
     let codec = Codec::typescript();
     exercise_live(&codec);
@@ -707,21 +869,6 @@ elif mode=='hostile':
         except ValueError: pass
     print('ok')
 else: raise AssertionError('unknown mode')
-"#;
-
-const RUST_ADAPTER: &str = r#"
-mod client { include!("client.rs"); }
-use serde_json::{json,Value};
-use std::io::{Read,Write};
-fn main(){
- let args=std::env::args().collect::<Vec<_>>();
- match args[1].as_str(){
-  "describe"|"build"=>{let id=json!(7);let line=if args[1]=="describe"{client::describe(&id,&args[2],&args[3])}else{client::build_inline(&id,&args[2],&args[3],None)}.unwrap();print!("{line}");std::io::stdout().flush().unwrap();}
-  "decode"=>{let mut line=String::new();std::io::stdin().read_to_string(&mut line).unwrap();client::decode(&line,&json!(7),args[2]=="build").unwrap();println!("ok");}
-  "hostile"=>{let zero=format!("sha256:{}","0".repeat(64));let one=format!("sha256:{}","1".repeat(64));let bad=[client::describe(&json!(-1),&zero,&one),client::describe(&Value::String(String::new()),&zero,&one),client::describe(&json!(7),"x","x"),client::build_inline(&json!(7),&zero,&one,Some(0)),client::build_inline(&json!(7),&zero,&one,Some(41943041))];assert!(bad.iter().all(Result::is_err));println!("ok");}
-  _=>panic!("unknown mode")
- }
-}
 "#;
 
 const TYPESCRIPT_ADAPTER: &str = r#"

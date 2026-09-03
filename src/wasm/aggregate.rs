@@ -2174,7 +2174,8 @@ fn emit_profile(
     }
     write_u32(&mut function_section, wrapper_type);
     section(&mut module, 3, function_section);
-
+    let owned_utf8 = super::program_uses_strings(program);
+    let mut utf8_literals = OwnedUtf8Literals::default();
     let mut memory = Vec::new();
     write_u32(&mut memory, 1);
     if uses_byte_data {
@@ -2185,7 +2186,8 @@ fn emit_profile(
                 super::host_output::MEMORY_PAGES,
             ]);
         } else {
-            memory.extend([0x01, 0x02, 0x02]);
+            let pages = if owned_utf8 { 4 } else { 2 };
+            memory.extend([0x01, pages, pages]);
         }
     } else {
         memory.extend([0x00, 0x01]);
@@ -2291,7 +2293,7 @@ fn emit_profile(
             &variant_layouts,
             host_output.then_some(super::host_output::ROOT_GLOBALS),
             range_bindings.as_ref(),
-            None,
+            owned_utf8.then_some(&mut utf8_literals),
         )?;
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
@@ -2305,6 +2307,7 @@ fn emit_profile(
     write_u32(&mut code, wrapper.len() as u32);
     code.extend(wrapper);
     section(&mut module, 10, code);
+    owned_strings::emit_literal_data(&mut module, owned_utf8, &utf8_literals)?;
     Ok(module)
 }
 

@@ -100,3 +100,31 @@ pub(super) fn emit_drop(output: &mut Vec<u8>, local: u32) {
     write_u32(output, BYTE_DROP_IMPORT);
     output.push(0x0b);
 }
+
+/// Emit the interned owned UTF-8 literal table as the module's data section.
+///
+/// The aggregate profile places it at [`super::OWNED_UTF8_LITERAL_BASE`], three
+/// pages in, so the memory section must already reserve four pages.
+pub(super) fn emit_literal_data(
+    module: &mut Vec<u8>,
+    owned_utf8: bool,
+    literals: &super::OwnedUtf8Literals,
+) -> Result<(), crate::diagnostic::Diagnostic> {
+    if !owned_utf8 {
+        return Ok(());
+    }
+    let mut data = Vec::new();
+    super::write_u32(&mut data, 1);
+    data.push(0x00);
+    data.push(0x41);
+    super::write_i64(&mut data, i64::from(super::OWNED_UTF8_LITERAL_BASE));
+    data.push(0x0b);
+    super::write_u32(
+        &mut data,
+        u32::try_from(literals.bytes.len())
+            .map_err(|_| super::error("owned UTF-8 literal table overflows u32"))?,
+    );
+    data.extend_from_slice(&literals.bytes);
+    super::section(module, 11, data);
+    Ok(())
+}

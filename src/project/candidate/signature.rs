@@ -105,6 +105,8 @@ pub(super) fn apply(
     }
     let mut selected = BTreeSet::new();
     let mut names = BTreeSet::new();
+    let mut preexisting_names = BTreeSet::new();
+    reserve_names(programs, &mut preexisting_names)?;
     let mut params = Vec::with_capacity(requested.len());
     let mut arguments = Vec::with_capacity(requested.len());
     let mut template_nodes = 0usize;
@@ -168,9 +170,12 @@ pub(super) fn apply(
         } else if mapping.get("borrow_slice_from_owner").is_some() {
             object(mapping, &["name", "borrow_slice_from_owner"])?;
             let name = identifier(text(mapping, "name")?)?;
-            if original.contains_key(name) || !names.insert(name.to_owned()) {
+            if original.contains_key(name)
+                || preexisting_names.contains(name)
+                || !names.insert(name.to_owned())
+            {
                 return Err(owner_view::invalid(
-                    "owner-to-view replacement requires a fresh borrowed binding name",
+                    "owner-to-view replacement requires a globally capture-free borrowed binding name",
                 ));
             }
             let source_name = text(mapping, "borrow_slice_from_owner")?;
@@ -270,7 +275,7 @@ pub(super) fn apply(
     // Reserve lexical names across the complete candidate, including unrelated
     // and shadowed binders. This conservative whole-program set avoids capture
     // before any scope-aware substitution or staging introduces new names.
-    reserve_names(programs, &mut occupied)?;
+    occupied.extend(preexisting_names);
     let renames = arguments
         .iter()
         .zip(&params)

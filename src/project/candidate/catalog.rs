@@ -149,6 +149,8 @@ impl ProjectCandidate {
                                 "source":"one_authenticated_original_own_Bytes_parameter",
                                 "provider_use":"exactly_one_unprojected_bytes_as_slice_builtin_call",
                                 "provider_rewrite":"replace_authenticated_builtin_view_with_new_borrowed_parameter",
+                                "contracts":"no_original_owner_reference",
+                                "replacement_binding":"fresh_across_complete_candidate_lexical_inventory",
                                 "caller_lowering":"stage_every_original_argument_left_to_right_then_derive_view_from_staged_owner",
                                 "owner_cleanup":"caller_owned_ordinary_cleanup",
                                 "result":"borrow Slice<u8>",

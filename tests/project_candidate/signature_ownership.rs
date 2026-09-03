@@ -44,6 +44,9 @@ impl Fixture {
 @id("frame.owner-duplicate-view") fn owner_duplicate_view(input: own Bytes) -> usize {
     byte_len(bytes_as_slice(input)) + byte_len(bytes_as_slice(input))
 }
+@id("frame.owner-contract") fn owner_contract(input: own Bytes) -> usize
+requires byte_len(bytes_as_slice(input)) > 0usize
+{ byte_len(bytes_as_slice(input)) }
 "#,
         );
         let program = semaprax::parse(&source, &path).unwrap();
@@ -116,6 +119,10 @@ fn owner_to_view_rejects_transfer_duplicate_conversion_additive_alias_and_open_m
         ),
         (
             "frame.owner-duplicate-view",
+            json!([{"name":"view","borrow_slice_from_owner":"input"}]),
+        ),
+        (
+            "frame.owner-contract",
             json!([{"name":"view","borrow_slice_from_owner":"input"}]),
         ),
         (

@@ -47,13 +47,18 @@ pub(super) fn authenticate_and_rewrite(
         ));
     }
 
-    let mut uses = 0usize;
-    let mut pending = checked
+    if checked
         .requires
         .iter()
-        .chain(std::iter::once(&checked.body))
         .chain(&checked.ensures)
-        .collect::<Vec<_>>();
+        .any(|contract| uses_root(contract, &parameter.id))
+    {
+        return Err(invalid(
+            "owner-to-view replacement does not admit owner references in contracts",
+        ));
+    }
+    let mut uses = 0usize;
+    let mut pending = vec![&checked.body];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
             ResolvedExprKind::BorrowPlace { operation, place } if place.root == parameter.id => {
@@ -127,6 +132,21 @@ fn rewrite_source(
 
 fn push_children<'a>(expression: &'a ResolvedExpr, pending: &mut Vec<&'a ResolvedExpr>) {
     crate::hir::push_resolved_expression_children_in_authored_order(expression, pending);
+}
+
+fn uses_root(expression: &ResolvedExpr, root: &crate::hir::ValueId) -> bool {
+    let mut pending = vec![expression];
+    while let Some(node) = pending.pop() {
+        match &node.kind {
+            ResolvedExprKind::Place(place) | ResolvedExprKind::BorrowPlace { place, .. }
+                if &place.root == root =>
+            {
+                return true;
+            }
+            _ => push_children(node, &mut pending),
+        }
+    }
+    false
 }
 
 #[cfg(test)]

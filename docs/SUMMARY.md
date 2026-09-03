@@ -208,6 +208,7 @@ Audience: all documentation readers.
 - [Project aggregate expression constructors v1](PROJECT-AGGREGATE-CONSTRUCTORS-V1.md)
 - [Project agent transport v2](PROJECT-AGENT-TRANSPORT-V2.md)
 - [Project agent transport v5](PROJECT-AGENT-TRANSPORT-V5.md)
+- [Project agent transport v6](PROJECT-AGENT-TRANSPORT-V6.md)
 - [Project rename transaction](PROJECT-RENAME-TRANSACTION-V1.md)
 - [Project agent workflow](PROJECT-AGENT-WORKFLOW-V1.md)
 - [Semantic impact](SEMANTIC-IMPACT-V1.md)

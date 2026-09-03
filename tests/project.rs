@@ -43,6 +43,8 @@ mod agent_transport_rename;
 mod agent_transport_v2;
 #[path = "project/agent_transport_v5.rs"]
 mod agent_transport_v5;
+#[path = "project/agent_transport_v6.rs"]
+mod agent_transport_v6;
 #[path = "project/agent_workflow.rs"]
 mod agent_workflow;
 #[path = "project/backend_equivalence.rs"]

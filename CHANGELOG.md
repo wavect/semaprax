@@ -328,6 +328,14 @@
   a nested record with two-segment owned paths cannot be misclassified as a
   conditional variant.
 
+- Added opt-in read-only Project Agent Transport v6 for exact Project v8-v11
+  public descriptors and npm carriers. The manifest selects the closed profile;
+  every carrier is independently replayed and compared with its retained typed
+  descriptor, response budgets include the complete discriminated wrapper, and
+  v2-v5 behavior remains unchanged. Focused local evidence covers all four
+  profiles without granting write, build-process, execution, or publication
+  authority.
+
 - Added canonical per-trial contracts to the agent-task comparison harness.
   Each contract binds the exact plan, repository head, task, prompt, fixtures,
   drift, lane, workspace state, acceptance rubric and metric inventory for one

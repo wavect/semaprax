@@ -1471,11 +1471,16 @@ cleanup, recovery, eviction, or garbage collection is exposed.
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
 Project revision for bounded requests. Read-only v2 is the default. Explicit
 opt-ins add one server-derived rename, the bounded workflow, or the additive
-read-only Project v8 descriptor/npm carrier surface. Transport v5 compares the
-carrier's independently replayed typed descriptor binding with the retained
-canonical descriptor before returning either. These profiles do not add
-general patch, filesystem, process, publication, network, persistence, or
-recovery authority.
+read-only Project v8 descriptor/npm carrier surface. Additive Transport v6 is
+a separate opt-in read-only surface over exactly Project v8-v11. The retained
+manifest profile, never a request field, selects the typed descriptor and npm
+carrier schema. V5 and v6 compare each independently replayed carrier's typed
+descriptor binding with the separately replayed retained descriptor before
+returning either. `src/project_transport/session/owned_data.rs` owns frozen v5;
+`src/project_transport/session/public_api.rs` owns v6 dispatch and complete
+wrapper budgeting; `src/project/npm/carrier.rs` owns profile-specific carrier
+replay and descriptor authentication. These profiles do not add general patch,
+filesystem, process, publication, network, persistence, or recovery authority.
 
 ## Reports and projections
 

@@ -19,6 +19,8 @@ pub const SEMANTIC_RETENTION_CHECKPOINT_SCHEMA: &str = "semaprax.semantic-retent
 pub const SEMANTIC_RETENTION_PLAN_SCHEMA: &str = "semaprax.semantic-retention-plan.v1";
 pub const SEMANTIC_RETENTION_INVENTORY_SCHEMA: &str =
     "semaprax.semantic-retention-observation-inventory.v1";
+pub const SEMANTIC_RETENTION_DECLARATION_INVENTORY_SCHEMA: &str =
+    "semaprax.semantic-retention-declaration-inventory.v1";
 pub const MAX_RETENTION_SUBJECTS: usize = 96;
 pub const MAX_RETENTION_TRANSITION_SUBJECTS: usize = MAX_RETENTION_SUBJECTS * 2;
 pub const MAX_RETENTION_CHECKPOINT_BYTES: usize = 1_048_576;
@@ -44,6 +46,13 @@ const INVENTORY_NONCLAIMS: &[&str] = &[
     "caller_declared_metadata_not_store_or_filesystem_discovery",
     "inventory_not_subject_presence_freshness_validation_or_approval_evidence",
     "inventory_grants_no_source_candidate_image_gc_or_publication_authority",
+];
+const DECLARATION_INVENTORY_NONCLAIMS: &[&str] = &[
+    "caller_declared_subjects_not_store_receipts_or_filesystem_discovery",
+    "declarations_order_by_visible_canonical_subject_JSON_not_subject_digest",
+    "compiler_derives_subject_identities_without_trusting_supplied_subject_digests",
+    "declarations_not_subject_presence_freshness_validation_or_approval_evidence",
+    "declarations_grant_no_source_candidate_image_gc_or_publication_authority",
 ];
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -368,6 +377,89 @@ impl RetentionObservation {
     pub const fn stored_bytes(&self) -> u64 {
         self.stored_bytes
     }
+}
+
+/// Authenticate a canonical caller declaration inventory and return the exact
+/// observation-inventory bytes accepted by `restore_observation_inventory`.
+/// Input rows use visible canonical subject-JSON order. Subject identities and
+/// the output's digest order are always derived here; input cannot supply them.
+pub fn derive_observation_inventory(bytes: &[u8]) -> Result<String> {
+    if bytes.is_empty() || bytes.len() > MAX_RETENTION_INVENTORY_BYTES {
+        return Err(declaration_capacity(
+            "retention declaration inventory bytes are empty or exceed the fixed bound",
+        ));
+    }
+    let value: Value = serde_json::from_slice(bytes)
+        .map_err(|_| declaration_invalid("retention declaration inventory is not valid JSON"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| declaration_invalid("retention declaration inventory must be an object"))?;
+    require_keys(
+        object,
+        &["schema", "declarations", "nonclaims"],
+        "retention declaration inventory has unknown or missing fields",
+    )
+    .map_err(|_| {
+        declaration_invalid("retention declaration inventory has unknown or missing fields")
+    })?;
+    if value["schema"] != SEMANTIC_RETENTION_DECLARATION_INVENTORY_SCHEMA
+        || value["nonclaims"] != json!(DECLARATION_INVENTORY_NONCLAIMS)
+    {
+        return Err(declaration_invalid(
+            "retention declaration inventory schema or authority boundary differs",
+        ));
+    }
+    let rows = object
+        .get("declarations")
+        .and_then(Value::as_array)
+        .ok_or_else(|| declaration_invalid("retention declaration inventory rows are missing"))?;
+    if rows.len() > MAX_RETENTION_SUBJECTS {
+        return Err(declaration_capacity(
+            "retention declaration inventory exceeds 96",
+        ));
+    }
+    let mut observations = Vec::with_capacity(rows.len());
+    let mut prior = None;
+    for row in rows {
+        let row = row.as_object().ok_or_else(|| {
+            declaration_invalid("retention declaration inventory row must be an object")
+        })?;
+        if row.len() != 2 || !row.contains_key("subject") || !row.contains_key("stored_bytes") {
+            return Err(declaration_invalid(
+                "retention declaration row has unknown or missing fields",
+            ));
+        }
+        let subject = RetentionSubject::parse(
+            row.get("subject")
+                .ok_or_else(|| declaration_invalid("retention declaration subject is missing"))?,
+        )
+        .map_err(|_| declaration_invalid("retention declaration subject is invalid"))?;
+        let ordering_key = canonical(&subject.value());
+        if prior.as_ref().is_some_and(|prior| prior >= &ordering_key) {
+            return Err(declaration_binding(
+                "retention declaration subjects repeat or are not ordered by canonical subject JSON",
+            ));
+        }
+        prior = Some(ordering_key);
+        let stored_bytes = row
+            .get("stored_bytes")
+            .and_then(Value::as_u64)
+            .ok_or_else(|| {
+                declaration_invalid("retention declaration byte count is missing or invalid")
+            })?;
+        observations.push(
+            RetentionObservation::new(subject, stored_bytes).map_err(|_| {
+                declaration_capacity("retention declaration byte count exceeds its fixed bound")
+            })?,
+        );
+    }
+    if render_declaration_inventory(&observations)?.as_bytes() != bytes {
+        return Err(declaration_binding(
+            "retention declaration inventory bytes are not canonical",
+        ));
+    }
+    observations.sort_by_key(|observation| observation.subject.subject_digest());
+    render_observation_inventory(&observations)
 }
 
 /// Restore one closed caller-declared observation inventory. Canonical rows are
@@ -1092,6 +1184,21 @@ fn render_observation_inventory(observations: &[RetentionObservation]) -> Result
     )
 }
 
+fn render_declaration_inventory(observations: &[RetentionObservation]) -> Result<String> {
+    render(
+        json!({
+            "schema":SEMANTIC_RETENTION_DECLARATION_INVENTORY_SCHEMA,
+            "declarations":observations.iter().map(|observation| json!({
+                "subject":observation.subject.value(),
+                "stored_bytes":observation.stored_bytes,
+            })).collect::<Vec<_>>(),
+            "nonclaims":DECLARATION_INVENTORY_NONCLAIMS,
+        }),
+        MAX_RETENTION_INVENTORY_BYTES,
+    )
+    .map_err(|_| declaration_capacity("retention declaration inventory exceeds its byte bound"))
+}
+
 fn canonical(value: &Value) -> String {
     serde_json::to_string(value).expect("bounded retention value is serializable")
 }
@@ -1166,4 +1273,13 @@ fn binding(message: impl Into<String>) -> Vec<Diagnostic> {
 }
 fn stale(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G423", message)]
+}
+fn declaration_invalid(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G449", message)]
+}
+fn declaration_capacity(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G450", message)]
+}
+fn declaration_binding(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G451", message)]
 }

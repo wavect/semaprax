@@ -240,6 +240,16 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
+        CommandId::RetentionMetadataInventory => {
+            if args.len() != 2 || args[1].is_empty() || args[1].starts_with('-') {
+                eprintln!("{command} requires exactly <declarations.json>");
+                return Err(2);
+            }
+            let output = cli::retention_metadata::inventory(Path::new(&args[1]))
+                .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
         CommandId::RetentionMetadataPlan => {
             if args.len() != 9
                 || args[1..]

@@ -5,13 +5,19 @@ use std::path::Path;
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::semantic_retention::{
-    checkpoint, restore_checkpoint, restore_observation_inventory, restore_plan, RetentionPolicy,
-    MAX_RETENTION_CHECKPOINT_BYTES, MAX_RETENTION_INVENTORY_BYTES, MAX_RETENTION_PLAN_BYTES,
+    checkpoint, derive_observation_inventory, restore_checkpoint, restore_observation_inventory,
+    restore_plan, RetentionPolicy, MAX_RETENTION_CHECKPOINT_BYTES, MAX_RETENTION_INVENTORY_BYTES,
+    MAX_RETENTION_PLAN_BYTES,
 };
 use semaprax::semantic_retention_store;
 use serde_json::json;
 
 use super::project_image::read_bounded;
+
+pub(crate) fn inventory(path: &Path) -> Result<String, Vec<Diagnostic>> {
+    let bytes = read_bounded(path, MAX_RETENTION_INVENTORY_BYTES).map_err(|error| vec![error])?;
+    derive_observation_inventory(&bytes)
+}
 
 pub(crate) struct PlanOptions<'a> {
     pub inventory: &'a Path,

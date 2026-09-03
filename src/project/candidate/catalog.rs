@@ -60,7 +60,30 @@ impl ProjectCandidate {
         let mut parameters = Vec::<Value>::new();
         let mut reason = "target_is_not_a_supported_top_level_function";
         if let Some(function) = selected {
-            reason = "target_requires_explicit_identity_monomorphic_non_main_function";
+            reason = "target_requires_explicit_identity_supported_non_main_function";
+            if function.explicit_id
+                && !function.type_parameters.is_empty()
+                && function.name != "main"
+                && self.changes.len() < MAX_CHANGES
+            {
+                reason = "constructor_available_payload_requires_full_candidate_admission";
+                operations.push(json!({
+                    "kind":"rename_declaration", "required_fields":["kind","target","name"],
+                    "generic_instances":"preserve_exact_retained_checked_hir",
+                    "constraints":[
+                        "explicit_authored_generic_template",
+                        "new_identifier_max_128_bytes",
+                        "different_display_name",
+                        "no_call_binding_collision",
+                        "preserve_stable_template_identity",
+                        "preserve_exact_concrete_instance_identities_and_type_arguments",
+                        "preserve_checked_template_instance_ownership_cleanup_and_loans",
+                        "preserve_cross_module_import_aliases",
+                        "full_project_replay",
+                    ],
+                    "nonclaims":["not_generic_signature_evolution","not_all_possible_instantiations","no_external_or_dynamic_consumer_compatibility","no_target_execution"],
+                }));
+            }
             if function.explicit_id
                 && function.type_parameters.is_empty()
                 && function.name != "main"

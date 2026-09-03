@@ -264,6 +264,35 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.image-candidate-analysis-boundary-bundle-report-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("bundle_digest", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("report_sha256", digest()),
+            ("source_authority", json!({"const":false})),
+            ("external_io", json!({"const":false})),
+            ("filesystem_scan", json!({"const":false})),
+            ("generator_execution", json!({"const":false})),
+            ("artifact_materialization", json!({"const":false})),
+            ("network_observation", json!({"const":false})),
+            ("provider_observation", json!({"const":false})),
+            ("runtime_observation", json!({"const":false})),
+            ("conformance_evidence", json!({"const":false})),
+            ("ambient_authority", json!({"const":false})),
+            ("publication_authority", json!({"const":false})),
+            ("deployment_authority", json!({"const":false})),
+        ],
+    );
+    put(
         "semaprax.image-candidate-deployment-contract-evidence-chunk.v1",
         vec![
             (

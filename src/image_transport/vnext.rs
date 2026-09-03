@@ -4,6 +4,7 @@ use crate::project::{CandidateTestPolicy, ProjectFrontendCache};
 use crate::project_transport::codec::RequestId;
 use std::path::PathBuf;
 
+mod analysis_boundary_bundle;
 mod analysis_coverage;
 mod candidate_dependency_navigation;
 mod candidate_function_facets;
@@ -118,6 +119,7 @@ pub(super) enum Action {
     Dependencies,
     AnalysisCoverage,
     CandidateAnalysisCoverage,
+    CandidateAnalysisBoundaryBundle,
     CandidateDeploymentContractEvidence,
     CandidateExternalApiContractEvidence,
     CandidateGeneratedFileProvenanceEvidence,
@@ -575,6 +577,10 @@ impl VNextSession {
                     analysis_coverage::prepare_candidate(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::CandidateAnalysisBoundaryBundle) => (
+                    analysis_boundary_bundle::prepare(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(Action::CandidateDeploymentContractEvidence) => (
                     deployment_contract_evidence::prepare(params, image, registry)?,
                     candidates::Mutation::None,
@@ -872,6 +878,7 @@ fn session_methods(
         methods.push(source_review::method());
         methods.push(merge_preview::method());
         methods.push(analysis_coverage::candidate_method());
+        methods.push(analysis_boundary_bundle::method());
         methods.push(deployment_contract_evidence::method());
         methods.push(external_api_contract_evidence::method());
         methods.push(generated_file_provenance::method());

@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const GENERATED_METHOD: &str = "candidate/analysis-generated-file-provenance-evidence";
 const EXTERNAL_METHOD: &str = "candidate/analysis-external-api-contract-evidence";
+const BUNDLE_METHOD: &str = "candidate/analysis-boundary-bundle";
 const GENERATED_DECLARATION: &str =
     "semaprax.project-candidate-generated-file-provenance-declaration.v1";
 const EXTERNAL_DECLARATION: &str =
@@ -18,6 +19,9 @@ const EXTERNAL_REPORT: &str = "semaprax.project-candidate-external-api-contract-
 const GENERATED_CHUNK: &str =
     "semaprax.image-candidate-generated-file-provenance-evidence-chunk.v1";
 const EXTERNAL_CHUNK: &str = "semaprax.image-candidate-external-api-contract-evidence-chunk.v1";
+const BUNDLE_SCHEMA: &str = "semaprax.project-candidate-analysis-boundary-bundle.v1";
+const BUNDLE_REPORT: &str = "semaprax.project-candidate-analysis-boundary-bundle-report.v1";
+const BUNDLE_CHUNK: &str = "semaprax.image-candidate-analysis-boundary-bundle-report-chunk.v1";
 const FILES: [&str; 4] = [
     "semaprax.toml",
     "src/app.spx",
@@ -90,7 +94,7 @@ fn canonical(value: Value, domain: &[u8]) -> (String, String) {
 fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
     let fixture = Fixture::new();
     let mut unavailable = fixture.session(false);
-    for method in [GENERATED_METHOD, EXTERNAL_METHOD] {
+    for method in [GENERATED_METHOD, EXTERNAL_METHOD, BUNDLE_METHOD] {
         assert_eq!(
             call(&mut unavailable, method, json!({}))["error"]["code"],
             -32601
@@ -141,6 +145,25 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
             "operations":operations
         }),
         b"semaprax.project-candidate-external-api-contract-declaration.v1\0",
+    );
+    let (deployment, deployment_digest) = canonical(
+        json!({
+            "schema":"semaprax.project-candidate-deployment-contract-declaration.v1",
+            "candidate_revision":candidate,
+            "manifest_exports":coverage["manifest"]["web_exports"],
+            "configuration":[{"key":"SERVICE_MODE","type":"string","required":true}]
+        }),
+        b"semaprax.project-candidate-deployment-contract-declaration.v1\0",
+    );
+    let (bundle, bundle_digest) = canonical(
+        json!({
+            "schema":BUNDLE_SCHEMA,
+            "candidate_revision":candidate,
+            "deployment_contract":{"declaration":deployment,"declaration_digest":deployment_digest},
+            "generated_file_provenance":{"declaration":generated.clone(),"declaration_digest":generated_digest.clone()},
+            "external_api_contract":{"declaration":external.clone(),"declaration_digest":external_digest.clone()}
+        }),
+        b"semaprax.project-candidate-analysis-boundary-bundle.v1\0",
     );
 
     for (method, declaration, digest, chunk_schema, report_schema, false_fields) in [
@@ -193,6 +216,42 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
         let report: Value = serde_json::from_str(chunk["chunk"].as_str().unwrap()).unwrap();
         assert_eq!(report["schema"], report_schema);
     }
+    let chunk = payload(call(
+        &mut session,
+        BUNDLE_METHOD,
+        json!({"candidate_revision":candidate,"bundle":bundle.clone(),"bundle_digest":bundle_digest.clone(),
+            "offset":0,"chunk_bytes":65536}),
+    ));
+    assert_eq!(chunk["schema"], BUNDLE_CHUNK);
+    assert_eq!(chunk["report_schema"], BUNDLE_REPORT);
+    assert_eq!(chunk["candidate_revision"], candidate);
+    assert_eq!(chunk["bundle_digest"], bundle_digest);
+    for field in [
+        "source_authority",
+        "external_io",
+        "filesystem_scan",
+        "generator_execution",
+        "artifact_materialization",
+        "network_observation",
+        "provider_observation",
+        "runtime_observation",
+        "conformance_evidence",
+        "ambient_authority",
+        "publication_authority",
+        "deployment_authority",
+    ] {
+        assert_eq!(chunk[field], false);
+    }
+    let report: Value = serde_json::from_str(chunk["chunk"].as_str().unwrap()).unwrap();
+    assert_eq!(report["schema"], BUNDLE_REPORT);
+    assert_eq!(
+        report["analysis_boundary_bundle"]["owned_partial_areas"],
+        json!([
+            "deployment_configuration",
+            "generated_file_provenance",
+            "external_api_behavior"
+        ])
+    );
 
     let schemas = payload(call(&mut session, "protocol/schemas", json!({})));
     for (method, chunk_schema, report_schema, max) in [
@@ -222,6 +281,31 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
             .unwrap()
             .contains(&json!(format!("urn:{report_schema}"))));
     }
+    let descriptor = schemas["methods"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["method"] == BUNDLE_METHOD)
+        .unwrap();
+    assert_eq!(descriptor["capability"], "candidate_prepare");
+    let params = &descriptor["request_schema"]["properties"]["params"];
+    assert_eq!(params["additionalProperties"], false);
+    assert_eq!(params["properties"]["bundle"]["maxLength"], 24576);
+    let document = schemas["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["$id"] == format!("urn:{BUNDLE_CHUNK}"))
+        .unwrap();
+    assert_eq!(document["additionalProperties"], false);
+    assert_eq!(
+        document["properties"]["report_schema"]["const"],
+        BUNDLE_REPORT
+    );
+    assert!(schemas["unbundled_payload_schemas"]
+        .as_array()
+        .unwrap()
+        .contains(&json!(format!("urn:{BUNDLE_REPORT}"))));
     for language in ["typescript", "python", "rust"] {
         let client = payload(call(
             &mut session,
@@ -232,6 +316,7 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
         for name in [
             "candidate_analysis_generated_file_provenance_evidence",
             "candidate_analysis_external_api_contract_evidence",
+            "candidate_analysis_boundary_bundle",
         ] {
             assert!(source.contains(&format!("request_{name}")));
             assert!(source.contains(&format!("decode_request_{name}")));
@@ -265,6 +350,7 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
     }
     assert!(names.contains(&"candidate__analysis-generated-file-provenance-evidence".to_owned()));
     assert!(names.contains(&"candidate__analysis-external-api-contract-evidence".to_owned()));
+    assert!(names.contains(&"candidate__analysis-boundary-bundle".to_owned()));
     mcp.finish().unwrap();
     session.finish().unwrap();
 }

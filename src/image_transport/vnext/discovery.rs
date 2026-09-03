@@ -141,6 +141,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/analysis-boundary-bundle")
+        {
+            instructions.push_str(" With candidate_prepare, use candidate/analysis-boundary-bundle with exact image_revision, candidate_revision, canonical bundle string and bundle_digest. The closed bundle is bounded to 24576 UTF-8 bytes and must carry all three canonical child declarations and their domain digests: deployment contract, generated-file provenance and external API contract. Every child is independently regenerated through its owning candidate attachment method. Reassemble the report using offset and next_offset with chunk_bytes 1024 through 65536 (default 16384), keeping the complete bundle and selectors identical; the report is bounded to 2 MiB and report_sha256 must match across chunks. The composition advances only deployment_configuration, generated_file_provenance and external_api_behavior to partial while preserving every other coverage fact and nonclaim. It is not filesystem, environment, generator, provider, network, runtime, freshness, reproducibility, conformance, consumer or deployment evidence. The request grants no source, artifact, filesystem, process, network, ambient, publication or deployment authority and is not in the parallel-read subset.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "candidate/analysis-deployment-contract-evidence")
         {
             instructions.push_str(" With candidate_prepare, use candidate/analysis-deployment-contract-evidence with exact image_revision, candidate_revision, canonical declaration string and declaration_digest. The declaration is bounded to 65536 UTF-8 bytes and must bind the exact candidate and complete ordered manifest export inventory; its configuration rows describe only sorted key names, string/integer/boolean shapes and required flags. Reassemble the independently regenerated report using offset and next_offset with chunk_bytes 1024 through 65536 (default 16384), keeping all declaration bytes and selectors identical; the report is bounded to 2 MiB and report_sha256 must match across chunks. This caller declaration changes only deployment_configuration coverage from not_inspected to partial. It is not environment observation, deployed state, artifact/runtime/API/consumer compatibility, freshness, drift or conformance evidence. Requests grant no filesystem, environment, secret, network, provider, deployment, source or publication authority, and this potentially large caller-data query is not in the parallel-read subset.");
@@ -374,6 +380,7 @@ fn method_capability(method: &Method) -> &'static str {
         | "candidate/source-review"
         | "candidate/merge-preview"
         | "candidate/analysis-coverage"
+        | "candidate/analysis-boundary-bundle"
         | "candidate/analysis-deployment-contract-evidence"
         | "candidate/analysis-external-api-contract-evidence"
         | "candidate/analysis-generated-file-provenance-evidence"
@@ -561,6 +568,9 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             "candidate/artifact-delta" => Some("semaprax.project-candidate-artifact-delta.v1"),
             "candidate/analysis-artifact-evidence" => {
                 Some(crate::project::PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_SCHEMA)
+            }
+            "candidate/analysis-boundary-bundle" => {
+                Some(crate::project::PROJECT_CANDIDATE_ANALYSIS_BOUNDARY_BUNDLE_REPORT_SCHEMA)
             }
             "candidate/analysis-deployment-contract-evidence" => {
                 Some(crate::project::PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_EVIDENCE_SCHEMA)

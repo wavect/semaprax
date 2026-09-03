@@ -169,8 +169,8 @@ pub fn normalize_task_comparison_observations(
     render(&report, MAX_AGENT_TASK_COMPARISON_REPORT_BYTES)
 }
 
-fn validate_row<'a>(
-    value: &'a Value,
+fn validate_row(
+    value: &Value,
     root: &Map<String, Value>,
     task: &str,
     corpus: &str,
@@ -739,7 +739,7 @@ mod tests {
             row(ZERO_LANE, "completed", 1),
         ]);
         assert_eq!(
-            normalize_task_comparison_observations(&zero.as_bytes(), &sha256(zero.as_bytes()))
+            normalize_task_comparison_observations(zero.as_bytes(), &sha256(zero.as_bytes()))
                 .unwrap_err()[0]
                 .code,
             "SPX-G488"
@@ -792,7 +792,7 @@ mod tests {
             1,
         );
         assert_eq!(
-            normalize_task_comparison_observations(&beyond.as_bytes(), &sha256(beyond.as_bytes()))
+            normalize_task_comparison_observations(beyond.as_bytes(), &sha256(beyond.as_bytes()))
                 .unwrap_err()[0]
                 .code,
             "SPX-G485"

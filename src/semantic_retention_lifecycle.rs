@@ -484,6 +484,22 @@ fn validate_digest(value: &str) -> Result<()> {
     Ok(())
 }
 
+fn invalid(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G480", message)]
+}
+fn capacity(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G481", message)]
+}
+fn binding(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G482", message)]
+}
+fn poisoned(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G483", message)]
+}
+fn encoding(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G484", message)]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -553,20 +569,4 @@ mod tests {
         );
         assert_eq!(forward.1[0].code, "SPX-G998");
     }
-}
-
-fn invalid(message: impl Into<String>) -> Vec<Diagnostic> {
-    vec![Diagnostic::io("SPX-G480", message)]
-}
-fn capacity(message: impl Into<String>) -> Vec<Diagnostic> {
-    vec![Diagnostic::io("SPX-G481", message)]
-}
-fn binding(message: impl Into<String>) -> Vec<Diagnostic> {
-    vec![Diagnostic::io("SPX-G482", message)]
-}
-fn poisoned(message: impl Into<String>) -> Vec<Diagnostic> {
-    vec![Diagnostic::io("SPX-G483", message)]
-}
-fn encoding(message: impl Into<String>) -> Vec<Diagnostic> {
-    vec![Diagnostic::io("SPX-G484", message)]
 }

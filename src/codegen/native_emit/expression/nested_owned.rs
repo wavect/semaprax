@@ -275,30 +275,6 @@ fn nested_record_binding_is_exact(contains_owned_bytes: bool) -> bool {
     !contains_owned_bytes
 }
 
-#[cfg(test)]
-mod match_admission_tests {
-    use super::{nested_record_binding_is_exact, wildcard_is_exact};
-    use crate::hir::ResolvedMatchMode;
-
-    #[test]
-    fn hostile_ownership_aware_hir_cannot_hide_owned_subtrees_with_wildcards() {
-        assert!(!wildcard_is_exact(ResolvedMatchMode::Own, true));
-        assert!(!wildcard_is_exact(ResolvedMatchMode::Borrow, true));
-    }
-
-    #[test]
-    fn hostile_hir_cannot_bind_an_owning_record_as_one_terminal() {
-        assert!(!nested_record_binding_is_exact(true));
-        assert!(nested_record_binding_is_exact(false));
-    }
-
-    #[test]
-    fn copy_only_wildcards_remain_admitted() {
-        assert!(wildcard_is_exact(ResolvedMatchMode::Own, false));
-        assert!(wildcard_is_exact(ResolvedMatchMode::Borrow, false));
-    }
-}
-
 impl<'a, O: COutput> CEmitter<'a, O> {
     pub(super) fn emit_update_record_expr(
         &mut self,
@@ -570,5 +546,29 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod match_admission_tests {
+    use super::{nested_record_binding_is_exact, wildcard_is_exact};
+    use crate::hir::ResolvedMatchMode;
+
+    #[test]
+    fn hostile_ownership_aware_hir_cannot_hide_owned_subtrees_with_wildcards() {
+        assert!(!wildcard_is_exact(ResolvedMatchMode::Own, true));
+        assert!(!wildcard_is_exact(ResolvedMatchMode::Borrow, true));
+    }
+
+    #[test]
+    fn hostile_hir_cannot_bind_an_owning_record_as_one_terminal() {
+        assert!(!nested_record_binding_is_exact(true));
+        assert!(nested_record_binding_is_exact(false));
+    }
+
+    #[test]
+    fn copy_only_wildcards_remain_admitted() {
+        assert!(wildcard_is_exact(ResolvedMatchMode::Own, false));
+        assert!(wildcard_is_exact(ResolvedMatchMode::Borrow, false));
     }
 }

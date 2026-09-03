@@ -176,10 +176,10 @@ pub(super) fn read_held<T>(
     root.validate()?;
     let lock = root.lock(false)?;
     let current =
-        read_current(&root)?.ok_or_else(|| stale("retention registry is not initialized"))?;
-    validate_stage(&root, Some(&current), false)?;
+        read_current(root)?.ok_or_else(|| stale("retention registry is not initialized"))?;
+    validate_stage(root, Some(&current), false)?;
     let result = operation(&current, &root.metadata_fd)?;
-    if read_current(&root)?.as_deref() != Some(current.as_slice()) {
+    if read_current(root)?.as_deref() != Some(current.as_slice()) {
         return Err(stale("retention registry CURRENT changed during recovery"));
     }
     root.validate()?;
@@ -202,9 +202,9 @@ pub(super) fn transaction_held<T>(
 ) -> Result<T> {
     root.validate()?;
     let lock = root.lock(true)?;
-    let current = read_current(&root)?;
-    validate_stage(&root, current.as_deref(), true)?;
-    if read_current(&root)? != current {
+    let current = read_current(root)?;
+    validate_stage(root, current.as_deref(), true)?;
+    if read_current(root)? != current {
         return Err(stale(
             "retention registry CURRENT changed during stage recovery",
         ));
@@ -215,17 +215,17 @@ pub(super) fn transaction_held<T>(
             "retention registry CURRENT bytes exceed their bound",
         ));
     }
-    if read_current(&root)? != current {
+    if read_current(root)? != current {
         return Err(stale("retention registry CURRENT changed before pivot"));
     }
     // The held metadata fd prevents nested store operations from being
     // redirected, but CURRENT must never select a pair stranded in a displaced
     // child. Rebind the child immediately before the cursor pivot.
     root.validate()?;
-    publish(&root, current.as_deref(), &next)?;
+    publish(root, current.as_deref(), &next)?;
     let final_check = (|| -> Result<()> {
         fs::fsync(root.fd()).map_err(|_| io("cannot settle retention registry root"))?;
-        if read_current(&root)?.as_deref() != Some(next.as_slice()) {
+        if read_current(root)?.as_deref() != Some(next.as_slice()) {
             return Err(binding("retention registry CURRENT differs after pivot"));
         }
         root.validate()?;

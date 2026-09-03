@@ -155,13 +155,13 @@ fn task_comparison_is_closed_generated_and_mcp_catalogued_without_execution() {
             .contains("request_agent_task_comparison"));
     }
     let observations = "{}\n";
-    let digest = digest(observations.as_bytes());
+    let empty_digest = digest(observations.as_bytes());
     assert_eq!(
         call(
             &mut session,
             "agent/task-comparison",
             json!({"image_revision":image,
-        "observations":observations,"observations_sha256":digest})
+        "observations":observations,"observations_sha256":empty_digest})
         )["error"]["data"]["diagnostics"][0]["code"],
         "SPX-G485"
     );

@@ -39,6 +39,7 @@ impl ProjectCandidate {
     /// selected consumers of one caller-attached package graph. This marks the
     /// bounded external-consumer inventory partial; it does not discover
     /// installed consumers or assess compatibility.
+    #[allow(clippy::too_many_arguments)]
     pub fn environment_consumer_review(
         &self,
         expected_candidate: &str,
@@ -279,6 +280,7 @@ fn validate_environment(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn validate_package_reports(
     candidate: &ProjectCandidate,
     environment: &Value,

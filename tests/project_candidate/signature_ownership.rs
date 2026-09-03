@@ -325,7 +325,7 @@ fn bounded_owner_view_set_rejects_duplicate_partial_mixed_and_more_than_eight() 
         let change = SemanticChange::new(root.revision().project_revision(), &json!({
             "kind":"change_function_signature","target":"frame.owner-views","parameters":parameters
         })).unwrap();
-        let errors = root.apply(root.candidate_digest(), &change).unwrap_err();
+        let errors = root.apply(root.candidate_digest(), &change).err().unwrap();
         assert!(
             errors.iter().any(|error| error.code == diagnostic),
             "{errors:?}"
@@ -348,7 +348,7 @@ fn bounded_owner_view_set_rejects_duplicate_partial_mixed_and_more_than_eight() 
         }),
     )
     .unwrap();
-    let errors = root.apply(root.candidate_digest(), &change).unwrap_err();
+    let errors = root.apply(root.candidate_digest(), &change).err().unwrap();
     assert!(
         errors.iter().any(|error| error.code == "SPX-G478"),
         "{errors:?}"

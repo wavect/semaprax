@@ -2,6 +2,8 @@
 
 Status: **Partial, authored/unrun**.
 
+Audience: compiler contributors, CLI integrators, and retention-store hosts.
+
 This contract exposes authority-neutral retention planning and the immutable
 semantic retention metadata store through four explicit command-line
 operations. It derives a checkpoint and its exact companion plan from

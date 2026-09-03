@@ -117,10 +117,21 @@ pub(super) fn serve<R: BufRead, W: Write>(
     let snapshot = crate::project::load_snapshot(&manifest_path)
         .map_err(|diagnostics| io::Error::other(diagnostic_message(&diagnostics)))?;
     if config.profile() == ServerProfile::ProjectOwnedDataV1
-        && snapshot.manifest().project_profile() != crate::project::ProjectProfile::OwnedDataApiV1
+        && !config
+            .profile()
+            .accepts_project_profile(snapshot.manifest().project_profile())
     {
         return Err(io::Error::other(
             "SPX-J105: Agent Transport v5 requires Project v8 owned-data-api.v1",
+        ));
+    }
+    if config.profile() == ServerProfile::ProjectPublicApiV1
+        && !config
+            .profile()
+            .accepts_project_profile(snapshot.manifest().project_profile())
+    {
+        return Err(io::Error::other(
+            "SPX-J105: Agent Transport v6 requires a Project v8-v11 public owned-data API profile",
         ));
     }
     let mut session = Session {

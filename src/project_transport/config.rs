@@ -18,6 +18,28 @@ pub(crate) enum ServerProfile {
     ProjectRenameV1,
     ProjectWorkflowV1,
     ProjectOwnedDataV1,
+    ProjectPublicApiV1,
+}
+
+impl ServerProfile {
+    pub(crate) const fn accepts_project_profile(
+        self,
+        profile: crate::project::ProjectProfile,
+    ) -> bool {
+        match self {
+            Self::ProjectOwnedDataV1 => {
+                matches!(profile, crate::project::ProjectProfile::OwnedDataApiV1)
+            }
+            Self::ProjectPublicApiV1 => matches!(
+                profile,
+                crate::project::ProjectProfile::OwnedDataApiV1
+                    | crate::project::ProjectProfile::FlatOwnedRecordApiV1
+                    | crate::project::ProjectProfile::OwnedUtf8ApiV1
+                    | crate::project::ProjectProfile::NestedOwnedRecordApiV1
+            ),
+            Self::ReadOnlyV2 | Self::ProjectRenameV1 | Self::ProjectWorkflowV1 => true,
+        }
+    }
 }
 
 impl ServerConfig {
@@ -31,6 +53,7 @@ impl ServerConfig {
         let mut allow_project_rename = false;
         let mut allow_project_workflow = false;
         let mut allow_project_owned_data = false;
+        let mut allow_project_public_api = false;
 
         while let Some(argument) = arguments.next() {
             let Some(option) = argument.to_str() else {
@@ -75,6 +98,12 @@ impl ServerConfig {
                 "--allow-project-owned-data" => {
                     return Err("--allow-project-owned-data may not be repeated".to_owned());
                 }
+                "--allow-project-public-api" if !allow_project_public_api => {
+                    allow_project_public_api = true;
+                }
+                "--allow-project-public-api" => {
+                    return Err("--allow-project-public-api may not be repeated".to_owned());
+                }
                 unknown => return Err(format!("unknown semapraxd option `{unknown}`")),
             }
         }
@@ -92,16 +121,26 @@ impl ServerConfig {
                     .to_owned(),
             );
         }
-        if allow_project_owned_data && (allow_project_rename || allow_project_workflow) {
+        if allow_project_owned_data
+            && (allow_project_rename || allow_project_workflow || allow_project_public_api)
+        {
             return Err(
                 "--allow-project-owned-data is mutually exclusive with every other Project daemon authority profile"
+                    .to_owned(),
+            );
+        }
+        if allow_project_public_api && (allow_project_rename || allow_project_workflow) {
+            return Err(
+                "--allow-project-public-api is mutually exclusive with every other Project daemon authority profile"
                     .to_owned(),
             );
         }
         Ok(Self {
             manifest_path: manifest_path.unwrap_or_else(|| PathBuf::from(DEFAULT_MANIFEST)),
             limits,
-            profile: if allow_project_owned_data {
+            profile: if allow_project_public_api {
+                ServerProfile::ProjectPublicApiV1
+            } else if allow_project_owned_data {
                 ServerProfile::ProjectOwnedDataV1
             } else if allow_project_workflow {
                 ServerProfile::ProjectWorkflowV1
@@ -197,11 +236,34 @@ mod tests {
             "--allow-project-owned-data"
         ])
         .is_err());
-        for conflicting in ["--allow-project-rename", "--allow-project-workflow"] {
+        for conflicting in [
+            "--allow-project-rename",
+            "--allow-project-workflow",
+            "--allow-project-public-api",
+        ] {
             assert!(parse(&[
                 "semapraxd",
                 "--stdio",
                 "--allow-project-owned-data",
+                conflicting
+            ])
+            .is_err());
+        }
+
+        let public = parse(&["semapraxd", "--stdio", "--allow-project-public-api"]).unwrap();
+        assert_eq!(public.profile(), ServerProfile::ProjectPublicApiV1);
+        assert!(parse(&[
+            "semapraxd",
+            "--stdio",
+            "--allow-project-public-api",
+            "--allow-project-public-api"
+        ])
+        .is_err());
+        for conflicting in ["--allow-project-rename", "--allow-project-workflow"] {
+            assert!(parse(&[
+                "semapraxd",
+                "--stdio",
+                "--allow-project-public-api",
                 conflicting
             ])
             .is_err());
@@ -241,5 +303,34 @@ mod tests {
         .is_err());
         assert!(parse(&["semapraxd", "--stdio", "--unknown"]).is_err());
         assert!(parse(&["semapraxd", "--stdio", "--max-request-bytes", "01"]).is_err());
+    }
+
+    #[test]
+    fn public_api_profile_accepts_exactly_project_v8_through_v11() {
+        use crate::project::ProjectProfile;
+        let public = ServerProfile::ProjectPublicApiV1;
+        for profile in [
+            ProjectProfile::OwnedDataApiV1,
+            ProjectProfile::FlatOwnedRecordApiV1,
+            ProjectProfile::OwnedUtf8ApiV1,
+            ProjectProfile::NestedOwnedRecordApiV1,
+        ] {
+            assert!(public.accepts_project_profile(profile));
+        }
+        for profile in [
+            ProjectProfile::ScalarV1,
+            ProjectProfile::UsefulTextConsumerV1,
+            ProjectProfile::UsefulDataV1,
+            ProjectProfile::UsefulDataCommandV1,
+            ProjectProfile::UsefulDataCommandV2,
+            ProjectProfile::LanguageCommandIoV1,
+            ProjectProfile::LineCommandIoV1,
+        ] {
+            assert!(!public.accepts_project_profile(profile));
+        }
+        assert!(ServerProfile::ProjectOwnedDataV1
+            .accepts_project_profile(ProjectProfile::OwnedDataApiV1));
+        assert!(!ServerProfile::ProjectOwnedDataV1
+            .accepts_project_profile(ProjectProfile::FlatOwnedRecordApiV1));
     }
 }

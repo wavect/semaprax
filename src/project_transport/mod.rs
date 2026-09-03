@@ -19,6 +19,8 @@ pub const PROJECT_RENAME_TRANSPORT_SCHEMA: &str = "semaprax.agent-transport.v3";
 pub const PROJECT_WORKFLOW_TRANSPORT_SCHEMA: &str = "semaprax.agent-transport.v4";
 /// Explicit opt-in read-only profile for Project v8 API inspection and npm builds.
 pub const PROJECT_OWNED_DATA_TRANSPORT_SCHEMA: &str = "semaprax.agent-transport.v5";
+/// Explicit opt-in read-only profile for Project v8-v11 public API inspection and npm builds.
+pub const PROJECT_PUBLIC_API_TRANSPORT_SCHEMA: &str = "semaprax.agent-transport.v6";
 
 /// Parse daemon startup authority and serve exactly one sequential stdio
 /// session. Human-readable startup/I/O failures are returned to the tiny

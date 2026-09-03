@@ -26,6 +26,10 @@ struct Fixture {
 fn canonical(text: &str, path: &str) -> String {
     semaprax::format::canonical(&semaprax::parse(text, path).unwrap())
 }
+/// The provider's exact source.
+const PROVIDER_SOURCE: &str =
+    "module libmath;\n@id(\"lib.answer\") fn answer()->i64 {41}\n@id(\"lib.unused\") fn unused()->i64 {99}\n";
+
 impl Fixture {
     fn new(version: &str) -> Self {
         let root = std::env::temp_dir().join(format!(
@@ -52,7 +56,7 @@ impl Fixture {
             "module app.main;\n@id(\"app.main\") fn main()->i64 {0}\n",
             "app-interface.spx",
         );
-        let provider_interface = canonical("module lib.math;\n@id(\"lib.answer\") fn main()->i64 {0}\n@id(\"lib.unused\") fn unused()->i64 {0}\n", "lib-interface.spx");
+        let provider_interface = canonical("module libmath;\n@id(\"lib.answer\") fn main()->i64 {0}\n@id(\"lib.unused\") fn unused()->i64 {0}\n", "lib-interface.spx");
         let reports = [app_interface, provider_interface]
             .iter()
             .zip(["app-interface.spx", "lib-interface.spx"])
@@ -67,7 +71,7 @@ impl Fixture {
             version: "1.0.0".into(),
         };
         let provider = Coordinate {
-            package: "lib.math".into(),
+            package: "libmath".into(),
             version: version.into(),
         };
         let app_subject = package_lock_v2::create_subject(
@@ -91,8 +95,8 @@ impl Fixture {
         let resolution_options = ResolutionOptions::default();
         let evidence = package_resolver::generate(&input, &resolution_options).unwrap();
         let sources = vec![
-            PackageSource { package:"app.main".into(), report:reports[0].clone(), source:canonical("module app.main;\nuse function @id(\"lib.answer\") from lib.math as answer;\nuse function @id(\"lib.unused\") from lib.math as unused;\n@id(\"app.main\") fn main()->i64 {answer()+1}\nfn private_helper()->i64 {answer()}\n", "app.spx") },
-            PackageSource { package:"lib.math".into(), report:reports[1].clone(), source:canonical("module lib.math;\n@id(\"lib.answer\") fn answer()->i64 {41}\n@id(\"lib.unused\") fn unused()->i64 {99}\n", "lib.spx") },
+            PackageSource { package:"app.main".into(), report:reports[0].clone(), source:canonical("module app.main;\nuse function @id(\"lib.answer\") from libmath as answer;\nuse function @id(\"lib.unused\") from libmath as unused;\n@id(\"app.main\") fn main()->i64 {answer()+1}\nfn private_helper()->i64 {answer()}\n", "app.spx") },
+            PackageSource { package:"libmath".into(), report:reports[1].clone(), source:canonical(PROVIDER_SOURCE, "lib.spx") },
         ];
         let capsule_options = SourceCapsuleOptions::default();
         let capsule = package_source_capsule::generate(
@@ -174,6 +178,12 @@ fn frame(id: u64, method: &str, params: Value) -> Vec<u8> {
 fn call(session: &mut VNextSession, method: &str, params: Value) -> Value {
     serde_json::from_slice(&session.handle_frame(&frame(1, method, params)).unwrap()).unwrap()
 }
+fn bound(session: &mut VNextSession, method: &str, params: Value) -> Value {
+    let image = session.image_revision().to_owned();
+    let mut params = params;
+    params["image_revision"] = json!(image);
+    call(session, method, params)
+}
 fn payload(response: Value) -> Value {
     assert!(response.get("error").is_none(), "{response}");
     response["result"]["payload"].clone()
@@ -201,19 +211,35 @@ fn exact_environment_consumer_project(fixture: &Fixture) {
     std::fs::write(
         fixture.root.join("project/semaprax.toml"),
         r#"schema = "semaprax.project.v8"
-name = "lib.math"
+name = "libmath"
 version = "1.0.0"
 profile = "owned-data-api.v1"
-entry = "lib.math"
-sources = ["src/lib.spx"]
+entry = "libmath.app"
+sources = ["src/app.spx", "src/lib.spx", "src/tests.spx"]
 web_exports = ["lib.answer", "lib.unused"]
-tests = []
+tests = ["libmath.tests"]
 "#,
     )
     .unwrap();
     std::fs::write(
         fixture.root.join("project/src/lib.spx"),
         &fixture.sources[1].source,
+    )
+    .unwrap();
+    std::fs::write(
+        fixture.root.join("project/src/app.spx"),
+        canonical(
+            "module libmath.app;\nuse function @id(\"lib.answer\") from libmath as answer;\n@id(\"libmath.app-main\") fn main()->i64 {answer()}\n",
+            "app.spx",
+        ),
+    )
+    .unwrap();
+    std::fs::write(
+        fixture.root.join("project/src/tests.spx"),
+        canonical(
+            "module libmath.tests;\nuse function @id(\"lib.answer\") from libmath as answer;\n@id(\"libmath.test-main\") fn main()->i64 {if answer()==41 {0} else {1}}\n",
+            "tests.spx",
+        ),
     )
     .unwrap();
 }
@@ -314,7 +340,7 @@ fn package_graph_requires_exact_replayed_source_selection_and_interface_evidence
         "SPX-PS503",
     );
     sources = fixture.sources.clone();
-    sources[0].source = canonical("module app.main;\nuse function @id(\"lib.answer\") from lib.math as answer;\nuse function @id(\"lib.unused\") from lib.math as unused;\n@id(\"app.main\") fn main()->i64 ensures result == 42 {answer()+1}\n", "app.spx");
+    sources[0].source = canonical("module app.main;\nuse function @id(\"lib.answer\") from libmath as answer;\nuse function @id(\"lib.unused\") from libmath as unused;\n@id(\"app.main\") fn main()->i64 ensures result == 42 {answer()+1}\n", "app.spx");
     code(
         PackageSemanticGraph::derive(
             &fixture.capsule,
@@ -340,7 +366,7 @@ fn package_graph_requires_exact_replayed_source_selection_and_interface_evidence
         "SPX-PS503",
     );
     let wrong_root = SourceCapsuleOptions {
-        root_package: "lib.math".into(),
+        root_package: "libmath".into(),
         ..fixture.capsule_options.clone()
     };
     assert!(PackageSemanticGraph::derive(
@@ -385,7 +411,7 @@ fn actual_consumers_and_uncalled_imports_keep_exact_source_and_interface_provena
     assert_eq!(called["project_association"], "none");
     assert_eq!(
         called["imports"],
-        json!([{"dependent":{"package":"app.main","version":"1.0.0"},"dependency":{"package":"lib.math","version":"1.0.0"},"target":"lib.answer","alias":"answer","ordinal":0}])
+        json!([{"dependent":{"package":"app.main","version":"1.0.0"},"dependency":{"package":"libmath","version":"1.0.0"},"target":"lib.answer","alias":"answer","ordinal":0}])
     );
     let calls = called["calls"].as_array().unwrap();
     assert_eq!(calls.len(), 2);
@@ -409,7 +435,7 @@ fn actual_consumers_and_uncalled_imports_keep_exact_source_and_interface_provena
         );
         assert_eq!(
             row["target_package"],
-            json!({"package":"lib.math","version":"1.0.0"})
+            json!({"package":"libmath","version":"1.0.0"})
         );
         assert_eq!(row["target"], "lib.answer");
         assert_eq!(row["alias"], "answer");
@@ -477,7 +503,7 @@ fn actual_consumers_and_uncalled_imports_keep_exact_source_and_interface_provena
     .unwrap();
     assert_eq!(
         uncalled["imports"],
-        json!([{"dependent":{"package":"app.main","version":"1.0.0"},"dependency":{"package":"lib.math","version":"1.0.0"},"target":"lib.unused","alias":"unused","ordinal":1}])
+        json!([{"dependent":{"package":"app.main","version":"1.0.0"},"dependency":{"package":"libmath","version":"1.0.0"},"target":"lib.unused","alias":"unused","ordinal":1}])
     );
     assert_eq!(uncalled["calls"], json!([]));
     assert_eq!(uncalled["project_association"], "none");
@@ -600,17 +626,17 @@ fn startup_attached_package_queries_remain_independent_of_project_and_match_read
         frame(
             2,
             "package/consumers",
-            json!({"image_revision":image,"package_revision":graph.graph_digest(),"provider_package":"lib.math","provider_version":"1.0.0","target":"lib.answer"}),
+            json!({"image_revision":image,"package_revision":graph.graph_digest(),"provider_package":"libmath","provider_version":"1.0.0","target":"lib.answer"}),
         ),
         frame(
             8,
             "package/consumers",
-            json!({"image_revision":image,"package_revision":graph.graph_digest(),"provider_package":"lib.math","provider_version":"1.0.0","target":"lib.unused"}),
+            json!({"image_revision":image,"package_revision":graph.graph_digest(),"provider_package":"libmath","provider_version":"1.0.0","target":"lib.unused"}),
         ),
         frame(
             4,
             "package/consumers",
-            json!({"image_revision":image,"package_revision":graph.graph_digest(),"provider_package":"lib.math","provider_version":"2.0.0","target":"lib.answer"}),
+            json!({"image_revision":image,"package_revision":graph.graph_digest(),"provider_package":"libmath","provider_version":"2.0.0","target":"lib.answer"}),
         ),
         frame(
             3,
@@ -755,7 +781,7 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
     let graph = Arc::new(fixture.graph());
 
     let mut candidate_only = fixture.candidate_session();
-    assert!(!payload(call(
+    assert!(!payload(bound(
         &mut candidate_only,
         "protocol/capabilities",
         json!({})
@@ -764,7 +790,7 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
         .unwrap()
         .contains(&json!(METHOD)));
     assert!(
-        !payload(call(&mut candidate_only, "protocol/schemas", json!({})))["documents"]
+        !payload(bound(&mut candidate_only, "protocol/schemas", json!({})))["documents"]
             .as_array()
             .unwrap()
             .iter()
@@ -777,13 +803,13 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
         .attach_package_graph(Arc::clone(&graph), graph.graph_digest())
         .unwrap();
     assert!(
-        !payload(call(&mut graph_only, "protocol/capabilities", json!({})))["methods"]
+        !payload(bound(&mut graph_only, "protocol/capabilities", json!({})))["methods"]
             .as_array()
             .unwrap()
             .contains(&json!(METHOD))
     );
     assert!(
-        !payload(call(&mut graph_only, "protocol/schemas", json!({})))["documents"]
+        !payload(bound(&mut graph_only, "protocol/schemas", json!({})))["documents"]
             .as_array()
             .unwrap()
             .iter()
@@ -796,7 +822,7 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
         .attach_package_graph(Arc::clone(&graph), graph.graph_digest())
         .unwrap();
     assert!(!selected.parallel_read_methods().contains(&METHOD));
-    let schemas = payload(call(&mut selected, "protocol/schemas", json!({})));
+    let schemas = payload(bound(&mut selected, "protocol/schemas", json!({})));
     let descriptor = schemas["methods"]
         .as_array()
         .unwrap()
@@ -849,7 +875,7 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
         assert_eq!(chunk["properties"][field]["const"], false);
     }
     for language in ["typescript", "python", "rust"] {
-        let client = payload(call(
+        let client = payload(bound(
             &mut selected,
             "protocol/client",
             json!({"language":language}),
@@ -859,11 +885,12 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
         assert!(source.contains("decode_request_candidate_environment_consumer_review"));
     }
     let image = selected.image_revision().to_owned();
-    let candidate = payload(call(&mut selected, "candidate/open", json!({})))["candidate_revision"]
+    let candidate = payload(bound(&mut selected, "candidate/open", json!({})))
+        ["candidate_revision"]
         .as_str()
         .unwrap()
         .to_owned();
-    let coverage = payload(call(
+    let coverage = payload(bound(
         &mut selected,
         "candidate/analysis-coverage",
         json!({"candidate_revision":candidate}),
@@ -875,7 +902,7 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
         "package_revision":graph.graph_digest(),
         "bundle":bundle,
         "bundle_digest":bundle_digest,
-        "provider_package":"lib.math",
+        "provider_package":"libmath",
         "provider_version":"1.0.0",
         "provider_source_path":"src/lib.spx",
         "target":"lib.answer",
@@ -922,7 +949,7 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
     let report: Value = serde_json::from_str(&report_bytes).unwrap();
     assert_eq!(report["candidate_revision"], candidate);
     assert_eq!(report["package_graph_revision"], graph.graph_digest());
-    assert_eq!(report["provider"]["package"], "lib.math");
+    assert_eq!(report["provider"]["package"], "libmath");
     assert_eq!(report["provider_source"]["path"], "src/lib.spx");
     assert_eq!(report["target"], "lib.answer");
     assert!(report["counts"]["imports"].as_u64().unwrap() > 0);

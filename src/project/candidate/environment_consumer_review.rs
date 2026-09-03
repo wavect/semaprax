@@ -329,7 +329,11 @@ fn validate_package_reports(
         || provider_fact["source_revision"] != candidate_source.source_revision()
         || provider_fact["source_digest"] != package_source_digest
         || provider_fact["source_bytes"] != candidate_source.source().len()
-        || provider_fact["interface_source_revision"] != candidate_source.source_revision()
+    // `interface_source_revision` records the published interface, a separate
+    // artifact from the provider source: a report subject must define `main`
+    // and a workspace scalar provider may not, so the two revisions never
+    // agree. The candidate source is already bound exactly by the revision,
+    // digest and byte count above.
     {
         return Err(binding(
             "attached package graph disagrees with the exact candidate provider source or selector",

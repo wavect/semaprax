@@ -35,8 +35,7 @@
       "Bash(node scripts/verify-wasm-scalar-exports.mjs:*)"
     ],
     "deny": [
-      "Bash(git stash:*)",
-      "Read(./.semaprax-semantic-cache/**)"
+      "Bash(git stash:*)"
     ]
   }
 }

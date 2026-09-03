@@ -71,3 +71,16 @@ or oversized nested material. Transport and generated-consumer regressions
 cover discovery, chunk continuation and closed schemas where present. They are
 authored and unrun; no current-head runtime, provider, deployment, generated
 consumer or quality-gate execution is claimed.
+
+## Next composition: attached package consumers
+
+The [Project Candidate Environment Consumer Review
+v1](PROJECT-CANDIDATE-ENVIRONMENT-CONSUMER-REVIEW-V1.md) composes this complete,
+unchanged environment review with independently regenerated summary and
+consumer reports from one host-attached authenticated package graph. It
+requires an exact candidate-era provider-source and target join, then publishes
+a separate operational coverage schema in which only `external_consumers`
+advances to `partial`. The attached graph remains input evidence with no Project,
+filesystem, registry, runtime, compatibility or publication authority. Its v5
+route requires both candidate preparation and host graph attachment, returns
+bounded chunks, and stays outside parallel reads.

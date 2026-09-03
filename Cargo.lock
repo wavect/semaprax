@@ -425,6 +425,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "semaprax-doctor-capsule"
+version = "0.1.0"
+dependencies = [
+ "ed25519-dalek",
+]
+
+[[package]]
 name = "semaprax-doctor-collector"
 version = "0.1.0"
 dependencies = [
@@ -474,8 +481,8 @@ dependencies = [
 name = "semaprax-native-rust-interop-platform-sys"
 version = "0.1.0"
 dependencies = [
- "ed25519-dalek",
  "libc",
+ "semaprax-doctor-capsule",
  "sha2 0.11.0",
  "windows-sys",
 ]

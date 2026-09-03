@@ -15,6 +15,7 @@ categories = ["compilers", "development-tools"]
 [workspace]
 members = [
     "crates/semaprax-doctor-collector",
+    "crates/semaprax-doctor-capsule",
     "crates/semaprax-offline-wasm-package",
     "crates/semaprax-native-host",
     "crates/semaprax-native-loader",

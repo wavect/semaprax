@@ -24,7 +24,7 @@ libc = "=0.2.189"
 sha2 = "=0.11.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["std"] }
+semaprax-doctor-capsule = { version = "=0.1.0", path = "../semaprax-doctor-capsule" }
 
 [target.'cfg(windows)'.dependencies]
 sha2 = "=0.11.0"

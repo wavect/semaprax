@@ -400,6 +400,7 @@ mod tests {
             Action::RefreshPreview,
             Action::ContractHoleOpen,
             Action::CandidateArchiveStore,
+            Action::DraftArchiveStore,
         ] {
             assert!(!parallel_read(Operation::VNext(action)));
         }

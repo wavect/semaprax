@@ -8,7 +8,9 @@ use std::path::Path;
 
 use serde_json::{json, Value};
 
-use crate::candidate_archive_store::{CandidateArchiveStore, CandidateArchiveStoreReceipt};
+use crate::candidate_archive_store::{
+    CandidateArchiveStore, CandidateArchiveStoreReceipt, CandidateDraftArchiveStoreReceipt,
+};
 use crate::diagnostic::Diagnostic;
 use crate::project::ProjectCandidateArchive;
 use crate::project_transport::codec::RequestId;
@@ -27,8 +29,9 @@ pub(super) fn schema_documents(capabilities: &Value) -> std::collections::BTreeM
 }
 
 pub const IMAGE_CANDIDATE_ARCHIVE_STORE_SCHEMA: &str = "semaprax.image-candidate-archive-store.v1";
+pub const IMAGE_DRAFT_ARCHIVE_STORE_SCHEMA: &str = "semaprax.image-draft-archive-store.v1";
 
-const METHOD: Method = Method {
+const CANDIDATE_METHOD: Method = Method {
     name: "candidate/archive-store",
     operation: Operation::VNext(Action::CandidateArchiveStore),
     parameters: &[
@@ -42,9 +45,23 @@ const METHOD: Method = Method {
     query: false,
     payload_schema: IMAGE_CANDIDATE_ARCHIVE_STORE_SCHEMA,
 };
+const DRAFT_METHOD: Method = Method {
+    name: "draft/archive-store",
+    operation: Operation::VNext(Action::DraftArchiveStore),
+    parameters: &[
+        REVISION,
+        Parameter {
+            name: "draft_revision",
+            kind: ParameterKind::Digest,
+            required: true,
+        },
+    ],
+    query: false,
+    payload_schema: IMAGE_DRAFT_ARCHIVE_STORE_SCHEMA,
+};
 
-pub(super) const fn method() -> &'static Method {
-    &METHOD
+pub(super) fn methods() -> [&'static Method; 2] {
+    [&CANDIDATE_METHOD, &DRAFT_METHOD]
 }
 
 impl VNextSession {
@@ -127,6 +144,58 @@ impl VNextSession {
         response(id, &self.image, payload)
     }
 
+    pub(super) fn draft_archive_store_request(
+        &mut self,
+        id: &RequestId,
+        params: &serde_json::Map<String, Value>,
+    ) -> Vec<u8> {
+        let prepared = self.snapshot.with_authenticated_request(|_| {
+            let draft = self.registry.draft_value(text(params, "draft_revision"))?;
+            crate::project::ProjectCandidateDraftArchive::prepare(
+                draft,
+                text(params, "draft_revision"),
+            )
+        });
+        let archive = match prepared {
+            Ok(archive) => archive,
+            Err(errors) => return super::error_response(id, &errors),
+        };
+        let receipt = match self
+            .candidate_archive_store
+            .as_ref()
+            .expect("method is selected only with its startup store")
+            .persist_draft(&archive)
+        {
+            Ok(receipt) => receipt,
+            Err(errors) => return super::error_response(id, &errors),
+        };
+
+        let retention = self.checkpoint_draft_archive_receipt(&receipt);
+        let payload = json!({
+            "schema":IMAGE_DRAFT_ARCHIVE_STORE_SCHEMA,
+            "image_revision":self.image.image_digest(),
+            "draft_revision":receipt.draft_digest(),
+            "archive_digest":receipt.archive_digest(),
+            "base_project_revision":receipt.base_revision(),
+            "stored_bytes":receipt.stored_bytes(),
+            "store_status":"immutable_draft_archive_stored",
+            "retention_lifecycle":retention,
+            "source_authority":false,
+            "approval_authority":false,
+            "publication_authority":false,
+            "restore_authority":false,
+            "completion_authority":false,
+            "gc_authority":false,
+            "nonclaims":[
+                "draft_archive_store_success_does_not_complete_restore_or_make_the_draft_current",
+                "retention_checkpoint_failure_does_not_undo_or_deny_draft_archive_store_success",
+                "request_contains_no_store_or_registry_path_policy_or_authority",
+                "no_restore_delete_gc_approval_source_write_publication_or_branch_inference",
+            ],
+        });
+        response(id, &self.image, payload)
+    }
+
     fn checkpoint_candidate_archive_receipt(
         &mut self,
         receipt: &CandidateArchiveStoreReceipt,
@@ -139,6 +208,32 @@ impl VNextSession {
             });
         };
         let receipts = [SuccessfulRetentionReceipt::Candidate(receipt)];
+        self.retention_lifecycle_outcome = Some(coordinator.checkpoint(&receipts));
+        let outcome = self
+            .retention_lifecycle_outcome
+            .as_ref()
+            .expect("retention outcome stored immediately before projection");
+        let value: Value = serde_json::from_str(outcome.to_json())
+            .expect("retention lifecycle always retains canonical JSON");
+        json!({
+            "selected":true,
+            "outcome":value,
+            "status":"checkpoint_outcome_returned",
+        })
+    }
+
+    fn checkpoint_draft_archive_receipt(
+        &mut self,
+        receipt: &CandidateDraftArchiveStoreReceipt,
+    ) -> Value {
+        let Some(coordinator) = self.retention_lifecycle.as_mut() else {
+            return json!({
+                "selected":false,
+                "outcome":null,
+                "status":"not_selected_before_frames",
+            });
+        };
+        let receipts = [SuccessfulRetentionReceipt::Draft(receipt)];
         self.retention_lifecycle_outcome = Some(coordinator.checkpoint(&receipts));
         let outcome = self
             .retention_lifecycle_outcome

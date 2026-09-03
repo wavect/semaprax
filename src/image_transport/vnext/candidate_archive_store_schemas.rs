@@ -8,7 +8,7 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
     if !capabilities["methods"].as_array().is_some_and(|methods| {
         methods
             .iter()
-            .any(|method| method == "candidate/archive-store")
+            .any(|method| method == "candidate/archive-store" || method == "draft/archive-store")
     }) {
         return BTreeMap::new();
     }
@@ -127,7 +127,7 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
                 ("base_project_revision", digest()),
                 ("stored_bytes", uint()),
                 ("store_status", json!({"const":"immutable_archive_stored"})),
-                ("retention_lifecycle", retention),
+                ("retention_lifecycle", retention.clone()),
                 ("source_authority", json!({"const":false})),
                 ("approval_authority", json!({"const":false})),
                 ("publication_authority", json!({"const":false})),
@@ -140,6 +140,40 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
                         "retention_checkpoint_failure_does_not_undo_or_deny_archive_store_success",
                         "request_contains_no_store_or_registry_path_policy_or_authority",
                         "no_restore_delete_gc_approval_source_write_or_publication_operation"
+                    ]}),
+                ),
+            ],
+        ),
+    );
+    let schema = super::IMAGE_DRAFT_ARCHIVE_STORE_SCHEMA;
+    result.insert(
+        format!("urn:{schema}"),
+        document(
+            schema,
+            vec![
+                ("image_revision", digest()),
+                ("draft_revision", digest()),
+                ("archive_digest", digest()),
+                ("base_project_revision", digest()),
+                ("stored_bytes", uint()),
+                (
+                    "store_status",
+                    json!({"const":"immutable_draft_archive_stored"}),
+                ),
+                ("retention_lifecycle", retention),
+                ("source_authority", json!({"const":false})),
+                ("approval_authority", json!({"const":false})),
+                ("publication_authority", json!({"const":false})),
+                ("restore_authority", json!({"const":false})),
+                ("completion_authority", json!({"const":false})),
+                ("gc_authority", json!({"const":false})),
+                (
+                    "nonclaims",
+                    json!({"const":[
+                        "draft_archive_store_success_does_not_complete_restore_or_make_the_draft_current",
+                        "retention_checkpoint_failure_does_not_undo_or_deny_draft_archive_store_success",
+                        "request_contains_no_store_or_registry_path_policy_or_authority",
+                        "no_restore_delete_gc_approval_source_write_publication_or_branch_inference"
                     ]}),
                 ),
             ],

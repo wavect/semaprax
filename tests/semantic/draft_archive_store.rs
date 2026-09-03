@@ -676,6 +676,148 @@ fn v5_candidate_archive_store_returns_store_success_before_stale_retention_outco
 }
 
 #[test]
+fn v5_draft_archive_store_preserves_store_success_before_stale_retention_outcome() {
+    let fixture = Fixture::new();
+    let second_store = fixture.root.join("draft-archives-second");
+    fs::create_dir(&second_store).unwrap();
+    fs::set_permissions(&second_store, fs::Permissions::from_mode(0o700)).unwrap();
+    let policy = RetentionPolicy::new(2, MAX_RETENTION_TOTAL_BYTES, 0).unwrap();
+    let registry = fixture.root.join("v5-draft-store-retention");
+    fs::create_dir(&registry).unwrap();
+    fs::create_dir(registry.join("metadata")).unwrap();
+    fs::set_permissions(&registry, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(registry.join("metadata"), fs::Permissions::from_mode(0o700)).unwrap();
+    let archive = fixture.archive();
+    let restored = || {
+        ProjectCandidateDraftArchive::restore(
+            archive.to_json().as_bytes(),
+            archive.archive_digest(),
+            archive.draft_digest(),
+        )
+        .unwrap()
+    };
+    let manifest = fixture.root.join("project/semaprax.toml");
+    let selected = VNextPolicy {
+        candidate_prepare: true,
+        ..Default::default()
+    };
+    let mut first = VNextSession::open(&manifest, selected)
+        .unwrap()
+        .with_candidate_archive_store(&fixture.store)
+        .unwrap()
+        .with_retention_lifecycle(&registry, policy, None)
+        .unwrap();
+    first
+        .retain_archived_draft(restored(), archive.draft_digest())
+        .unwrap();
+    let mut stale = VNextSession::open(&manifest, selected)
+        .unwrap()
+        .with_candidate_archive_store(&second_store)
+        .unwrap()
+        .with_retention_lifecycle(&registry, policy, None)
+        .unwrap();
+    stale
+        .retain_archived_draft(restored(), archive.draft_digest())
+        .unwrap();
+
+    let capabilities = v5_payload(v5_call(&mut first, "protocol/capabilities", json!({})));
+    assert!(capabilities["methods"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("draft/archive-store")));
+    let schemas = v5_payload(v5_call(&mut first, "protocol/schemas", json!({})));
+    assert!(schemas["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|document| document["$id"] == "urn:semaprax.image-draft-archive-store.v1"));
+    for language in ["typescript", "python", "rust"] {
+        let client = v5_payload(v5_call(
+            &mut first,
+            "protocol/client",
+            json!({"language":language}),
+        ));
+        let source = client["source"].as_str().unwrap();
+        assert!(source.contains("request_draft_archive_store"));
+        assert!(source.contains("decode_request_draft_archive_store"));
+    }
+    let stored = v5_payload(v5_bound(
+        &mut first,
+        "draft/archive-store",
+        json!({"draft_revision":archive.draft_digest()}),
+    ));
+    assert_eq!(stored["store_status"], "immutable_draft_archive_stored");
+    assert_eq!(stored["draft_revision"], archive.draft_digest());
+    assert_eq!(stored["archive_digest"], archive.archive_digest());
+    assert_eq!(stored["completion_authority"], false);
+    assert_eq!(
+        stored["retention_lifecycle"]["outcome"]["successful_store_receipts"][0]["kind"],
+        "draft"
+    );
+    assert_eq!(
+        stored["retention_lifecycle"]["outcome"]["registry_cursor_status"],
+        "advanced"
+    );
+    assert!(fixture.entry(archive.archive_digest()).exists());
+
+    let stale_stored = v5_payload(v5_bound(
+        &mut stale,
+        "draft/archive-store",
+        json!({"draft_revision":archive.draft_digest()}),
+    ));
+    assert_eq!(
+        stale_stored["store_status"],
+        "immutable_draft_archive_stored"
+    );
+    assert_eq!(
+        stale_stored["retention_lifecycle"]["outcome"]["subject_store_status"],
+        "successful_receipts_precede_registry_attempt"
+    );
+    assert_eq!(
+        stale_stored["retention_lifecycle"]["outcome"]["registry_cursor_status"],
+        "registry_cursor_not_advanced_stale"
+    );
+    assert!(second_store
+        .join(format!("{}.json", &archive.archive_digest()[7..]))
+        .exists());
+}
+
+#[test]
+fn v5_draft_archive_store_rejects_unknown_draft_and_request_authority() {
+    let fixture = Fixture::new();
+    let manifest = fixture.root.join("project/semaprax.toml");
+    let mut session = VNextSession::open(
+        &manifest,
+        VNextPolicy {
+            candidate_prepare: true,
+            ..Default::default()
+        },
+    )
+    .unwrap()
+    .with_candidate_archive_store(&fixture.store)
+    .unwrap();
+    let unknown = v5_bound(
+        &mut session,
+        "draft/archive-store",
+        json!({"draft_revision":format!("sha256:{}", "0".repeat(64))}),
+    );
+    assert_eq!(
+        unknown["error"]["data"]["diagnostics"][0]["code"],
+        "SPX-G232"
+    );
+    let rejected = v5_bound(
+        &mut session,
+        "draft/archive-store",
+        json!({
+            "draft_revision":format!("sha256:{}", "0".repeat(64)),
+            "root":fixture.store,
+        }),
+    );
+    assert_eq!(rejected["error"]["code"], -32602);
+    assert!(fixture.names().is_empty());
+}
+
+#[test]
 fn v5_candidate_archive_store_root_is_startup_only_and_never_a_request_operand() {
     let fixture = Fixture::new();
     let manifest = fixture.root.join("project/semaprax.toml");
@@ -799,6 +941,7 @@ fn mcp_catalog_exposes_only_the_digest_selected_candidate_archive_store_tool() {
         .handle_frame(br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#)
         .is_none());
     let mut selected = None;
+    let mut draft_selected = None;
     let mut cursor = None;
     loop {
         let params = cursor
@@ -812,6 +955,9 @@ fn mcp_catalog_exposes_only_the_digest_selected_candidate_archive_store_tool() {
             if tool["name"] == "candidate__archive-store" {
                 selected = Some(tool.clone());
             }
+            if tool["name"] == "draft__archive-store" {
+                draft_selected = Some(tool.clone());
+            }
         }
         cursor = page["result"]["nextCursor"].as_str().map(str::to_owned);
         if cursor.is_none() {
@@ -824,6 +970,12 @@ fn mcp_catalog_exposes_only_the_digest_selected_candidate_archive_store_tool() {
     assert!(properties.get("candidate_revision").is_some());
     assert!(properties.get("root").is_none());
     assert_eq!(selected["inputSchema"]["additionalProperties"], false);
+    let draft_selected = draft_selected.expect("draft archive store MCP tool missing");
+    let draft_properties = &draft_selected["inputSchema"]["properties"];
+    assert!(draft_properties.get("image_revision").is_some());
+    assert!(draft_properties.get("draft_revision").is_some());
+    assert!(draft_properties.get("root").is_none());
+    assert_eq!(draft_selected["inputSchema"]["additionalProperties"], false);
     mcp.finish().unwrap();
 }
 

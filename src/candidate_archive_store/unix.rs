@@ -349,6 +349,18 @@ pub(super) fn persist_held(root: &Root, archive: &ProjectCandidateArchive) -> Re
     )
 }
 
+pub(super) fn persist_draft_held(
+    root: &Root,
+    archive: &ProjectCandidateDraftArchive,
+) -> Result<()> {
+    persist_bytes_held_with_hook(
+        root,
+        archive.archive_digest(),
+        archive.to_json().as_bytes(),
+        |_, _| Ok(()),
+    )
+}
+
 fn persist_bytes_held_with_hook(
     root: &Root,
     archive_digest: &str,

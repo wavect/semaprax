@@ -311,6 +311,12 @@ pub(super) fn payload(
         {
             instructions.push_str(" With the candidate_archive_store startup capability, use candidate/archive-store with only the current image_revision and one exact retained complete candidate_revision. The host-selected private 0700 archive-store root is held before frames and is never a request parameter. The operation independently prepares and replays the canonical source-backed archive, publishes it immutably, and returns its exact identity and byte-count receipt. If a retention lifecycle was separately selected before frames, the successful typed receipt is then checkpointed automatically and its exact advanced, stale, failed, uncertain or poisoned outcome is returned as accountability data. Registry failure never rolls back the archive or changes store_status. Without a selected lifecycle, storage still succeeds and the payload states that no checkpoint was attempted. The route cannot restore, select current state, overwrite, discover or delete archives, execute GC, approve, write source or publish source; generated clients and MCP can select only the retained candidate identity, never either root or policy.");
         }
+        if methods
+            .iter()
+            .any(|method| method.name == "draft/archive-store")
+        {
+            instructions.push_str(" With the same startup-held candidate_archive_store capability, use draft/archive-store with only the current image_revision and one exact retained incomplete draft_revision. The operation prepares and independently replays the self-contained draft archive, publishes it immutably in the shared bounded archive inventory, and returns its exact identity and byte-count receipt. An optional startup-selected retention lifecycle checkpoints only that successful typed draft receipt and reports advanced, stale, failed, uncertain or poisoned accountability without rolling back or denying store success. The request carries no path, root, policy, branch, completion, restore, current-state, approval, publication, deletion or GC authority; no candidate completion or branch relationship is inferred.");
+        }
         result["instructions"] = json!(instructions);
     }
     bounded(result)
@@ -412,6 +418,7 @@ fn method_capability(method: &Method) -> &'static str {
         }
         "candidate/interface-delta"
         | "candidate/archive-store"
+        | "draft/archive-store"
         | "candidate/contract-delta"
         | "candidate/ownership-delta"
         | "candidate/source-review"
@@ -439,7 +446,10 @@ fn method_capability(method: &Method) -> &'static str {
         | "hole/archive-restore"
         | "hole/rebase"
         | "hole/merge" => {
-            if method.name == "candidate/archive-store" {
+            if matches!(
+                method.name,
+                "candidate/archive-store" | "draft/archive-store"
+            ) {
                 "candidate_archive_store"
             } else {
                 "candidate_prepare"

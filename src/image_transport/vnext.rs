@@ -143,6 +143,7 @@ pub(super) enum Action {
     CandidateImpactSummary,
     CandidateImpactPage,
     CandidateArchiveStore,
+    DraftArchiveStore,
     DependencySummary,
     DependencyPage,
     FunctionInstances,
@@ -470,6 +471,9 @@ impl VNextSession {
             Operation::VNext(Action::Commit) => self.commit_request(&id, method, &params),
             Operation::VNext(Action::CandidateArchiveStore) => {
                 self.candidate_archive_store_request(&id, &params)
+            }
+            Operation::VNext(Action::DraftArchiveStore) => {
+                self.draft_archive_store_request(&id, &params)
             }
             Operation::VNext(
                 action @ (Action::CandidateTestTaskStart
@@ -939,7 +943,7 @@ fn session_methods(
         methods.push(draft_merge::method());
         methods.extend(contract_holes::methods());
         if candidate_archive_store_selected {
-            methods.push(candidate_archive_store::method());
+            methods.extend(candidate_archive_store::methods());
         }
     }
     if commit_enabled {

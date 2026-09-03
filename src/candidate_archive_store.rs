@@ -111,6 +111,26 @@ impl CandidateArchiveStore {
         Ok(receipt)
     }
 
+    /// Replay and publish one exact incomplete draft archive through the same
+    /// held root. The receipt does not complete, restore, or select the draft.
+    pub fn persist_draft(
+        &self,
+        archive: &ProjectCandidateDraftArchive,
+    ) -> Result<CandidateDraftArchiveStoreReceipt> {
+        let receipt = prepare_draft_receipt(archive)?;
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        unix::persist_draft_held(&self.root, archive)?;
+        Ok(receipt)
+    }
+
     /// Process-local comparison key for composing separately selected held
     /// directory capabilities. It is not a path or reusable authority.
     pub(crate) fn held_root_identity(&self) -> (u64, u64) {
@@ -272,27 +292,7 @@ pub fn persist_draft(
     root: &Path,
     archive: &ProjectCandidateDraftArchive,
 ) -> Result<CandidateDraftArchiveStoreReceipt> {
-    digest_hex(archive.archive_digest())?;
-    digest_hex(archive.draft_digest())?;
-    if archive.to_json().len() > MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES
-        || archive.to_json().len() > MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES
-    {
-        return Err(capacity("draft archive exceeds the fixed store byte limit"));
-    }
-    // Restore binds all metadata by exact archive rederivation, including the
-    // original base. No last-valid candidate is exposed or materialized here.
-    let replay = ProjectCandidateDraftArchive::restore(
-        archive.to_json().as_bytes(),
-        archive.archive_digest(),
-        archive.draft_digest(),
-    )?;
-    drop(replay);
-    let receipt = CandidateDraftArchiveStoreReceipt {
-        archive_digest: archive.archive_digest().to_owned(),
-        draft_digest: archive.draft_digest().to_owned(),
-        base_revision: archive.base_revision().to_owned(),
-        stored_bytes: archive.to_json().len() as u64,
-    };
+    let receipt = prepare_draft_receipt(archive)?;
     #[cfg(all(
         unix,
         any(
@@ -321,6 +321,33 @@ pub fn persist_draft(
             "draft archive store requires supported Unix no-replace publication",
         ))
     }
+}
+
+fn prepare_draft_receipt(
+    archive: &ProjectCandidateDraftArchive,
+) -> Result<CandidateDraftArchiveStoreReceipt> {
+    digest_hex(archive.archive_digest())?;
+    digest_hex(archive.draft_digest())?;
+    if archive.to_json().len() > MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES
+        || archive.to_json().len() > MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES
+    {
+        return Err(capacity("draft archive exceeds the fixed store byte limit"));
+    }
+    // Restore binds all metadata by exact archive rederivation, including the
+    // original base. No last-valid candidate is exposed or materialized here.
+    let replay = ProjectCandidateDraftArchive::restore(
+        archive.to_json().as_bytes(),
+        archive.archive_digest(),
+        archive.draft_digest(),
+    )?;
+    drop(replay);
+    let receipt = CandidateDraftArchiveStoreReceipt {
+        archive_digest: archive.archive_digest().to_owned(),
+        draft_digest: archive.draft_digest().to_owned(),
+        base_revision: archive.base_revision().to_owned(),
+        stored_bytes: archive.to_json().len() as u64,
+    };
+    Ok(receipt)
 }
 
 /// Rebuild only the selected draft archive while its file and root remain held,

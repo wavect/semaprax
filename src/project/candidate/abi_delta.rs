@@ -263,17 +263,14 @@ fn signature(
     result: &ResolvedType,
     budget: &mut Budget,
 ) -> Result<Value> {
-    let parameters = params
-        .iter()
-        .enumerate()
-        .map(|(index, param)| {
-            json!({
-                "index":index,"id":param.id.as_str(),"name":param.name,
-                "ownership":ownership(param.ownership),"type_id":param.ty.identity_key()
-            })
-        })
-        .collect::<Vec<_>>();
-    let row = json!({"parameters":parameters,"result":{"type_id":result.identity_key(),
+    let mut parameters = Vec::with_capacity(params.len());
+    for (index, param) in params.iter().enumerate() {
+        parameters.push(json!({
+            "index":index,"id":param.id.as_str(),"name":param.name,
+            "ownership":ownership(param.ownership),"type_id":type_key(&param.ty,budget,0)?
+        }));
+    }
+    let row = json!({"parameters":parameters,"result":{"type_id":type_key(result,budget,0)?,
         "ownership":"return_value_semantics_checked_by_type_facts_not_a_foreign_ABI_mode"}});
     budget.fact(&row)?;
     Ok(row)
@@ -302,7 +299,7 @@ fn retain_nominals<'a>(
     else {
         return Ok(());
     };
-    let key = ty.identity_key();
+    let key = type_key(ty, budget, depth)?;
     if !seen.insert(key.clone()) {
         return Ok(());
     }
@@ -327,24 +324,49 @@ fn retain_nominals<'a>(
     let mut children = arguments.clone();
     let kind = match &declaration_fact.kind {
         ResolvedTypeDeclarationKind::Record { fields } => {
-            let fields = fields.iter().map(|field| {
-                let concrete = substitute(&field.ty, declaration.as_str(), arguments);
+            let mut rows = Vec::with_capacity(fields.len());
+            for field in fields {
+                let concrete = substitute(
+                    &field.ty,
+                    declaration.as_str(),
+                    arguments,
+                    budget,
+                    depth + 1,
+                )?;
+                let type_id = type_key(&concrete, budget, depth + 1)?;
                 children.push(concrete.clone());
-                json!({"index":field.index,"id":field.id.as_str(),"name":field.name,"type_id":concrete.identity_key()})
-            }).collect::<Vec<_>>();
-            json!({"kind":"record","fields":fields})
+                rows.push(json!({"index":field.index,"id":field.id.as_str(),"name":field.name,"type_id":type_id}));
+            }
+            json!({"kind":"record","fields":rows})
         }
         ResolvedTypeDeclarationKind::Variant { cases } => {
-            let cases = cases.iter().map(|case| json!({"index":case.index,"id":case.id.as_str(),"name":case.name,
-                "fields":case.fields.iter().map(|field| { let concrete=substitute(&field.ty,declaration.as_str(),arguments);
-                    children.push(concrete.clone()); json!({"index":field.index,"id":field.id.as_str(),"name":field.name,"type_id":concrete.identity_key()}) }).collect::<Vec<_>>()
-            })).collect::<Vec<_>>();
-            json!({"kind":"variant","cases":cases})
+            let mut case_rows = Vec::with_capacity(cases.len());
+            for case in cases {
+                let mut field_rows = Vec::with_capacity(case.fields.len());
+                for field in &case.fields {
+                    let concrete = substitute(
+                        &field.ty,
+                        declaration.as_str(),
+                        arguments,
+                        budget,
+                        depth + 1,
+                    )?;
+                    let type_id = type_key(&concrete, budget, depth + 1)?;
+                    children.push(concrete.clone());
+                    field_rows.push(json!({"index":field.index,"id":field.id.as_str(),"name":field.name,"type_id":type_id}));
+                }
+                case_rows.push(json!({"index":case.index,"id":case.id.as_str(),"name":case.name,"fields":field_rows}));
+            }
+            json!({"kind":"variant","cases":case_rows})
         }
         _ => return Err(invalid()),
     };
+    let type_arguments = arguments
+        .iter()
+        .map(|argument| type_key(argument, budget, depth + 1))
+        .collect::<Result<Vec<_>>>()?;
     let row = json!({"type_id":key,"declaration_id":declaration.as_str(),"name":declaration_fact.name,
-        "path":module.path(),"module":module.module(),"type_arguments":arguments.iter().map(ResolvedType::identity_key).collect::<Vec<_>>(),
+        "path":module.path(),"module":module.module(),"type_arguments":type_arguments,
         "shape":kind,"checked_facts":facts_value(&facts)});
     budget.fact(&row)?;
     output.insert(key, row);
@@ -354,8 +376,15 @@ fn retain_nominals<'a>(
     Ok(())
 }
 
-fn substitute(ty: &ResolvedType, owner: &str, arguments: &[ResolvedType]) -> ResolvedType {
-    match ty {
+fn substitute(
+    ty: &ResolvedType,
+    owner: &str,
+    arguments: &[ResolvedType],
+    budget: &mut Budget,
+    depth: usize,
+) -> Result<ResolvedType> {
+    budget.visit(depth)?;
+    Ok(match ty {
         ResolvedType::TypeParameter {
             owner: parameter_owner,
             index,
@@ -370,11 +399,26 @@ fn substitute(ty: &ResolvedType, owner: &str, arguments: &[ResolvedType]) -> Res
             declaration: declaration.clone(),
             arguments: nested
                 .iter()
-                .map(|item| substitute(item, owner, arguments))
-                .collect(),
+                .map(|item| substitute(item, owner, arguments, budget, depth + 1))
+                .collect::<Result<Vec<_>>>()?,
         },
         _ => ty.clone(),
+    })
+}
+
+fn type_key(ty: &ResolvedType, budget: &mut Budget, depth: usize) -> Result<String> {
+    preflight_type(ty, budget, depth)?;
+    Ok(ty.identity_key())
+}
+
+fn preflight_type(ty: &ResolvedType, budget: &mut Budget, depth: usize) -> Result<()> {
+    budget.visit(depth)?;
+    if let ResolvedType::Nominal { arguments, .. } = ty {
+        for argument in arguments {
+            preflight_type(argument, budget, depth + 1)?;
+        }
     }
+    Ok(())
 }
 
 fn facts_value(facts: &TypeFacts) -> Value {

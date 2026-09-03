@@ -75,6 +75,7 @@ pub use analysis_coverage::{
     MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_BYTES, PROJECT_CANDIDATE_ANALYSIS_COVERAGE_SCHEMA,
 };
 pub use analysis_coverage_change::{
+    CandidateAnalysisCoverageBoundaryInput, CandidateAnalysisCoverageChangeInput,
     MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_BYTES,
     PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_SCHEMA,
 };

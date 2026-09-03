@@ -1,12 +1,14 @@
 //! Candidate-bound analysis-boundary inventory.
 use semaprax::project::{
-    with_authenticated_project, ProjectCandidate, ProjectRevision, ProjectSemanticImage,
+    with_authenticated_project, CandidateAnalysisCoverageBoundaryInput,
+    CandidateAnalysisCoverageChangeInput, ProjectCandidate, ProjectRevision, ProjectSemanticImage,
     SemanticChange, IMAGE_ANALYSIS_COVERAGE_SCHEMA, MAX_IMAGE_ANALYSIS_COVERAGE_BYTES,
     MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_BYTES,
     MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_BYTES,
     PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_SCHEMA, PROJECT_CANDIDATE_ANALYSIS_COVERAGE_SCHEMA,
 };
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicU64, Ordering},
@@ -144,6 +146,92 @@ fn report(candidate: &ProjectCandidate) -> (String, Value) {
     (text, value)
 }
 
+fn canonical(value: Value, domain: &[u8]) -> (String, String) {
+    let mut value = value;
+    value.sort_all_objects();
+    let mut bytes = serde_json::to_string(&value).unwrap();
+    bytes.push('\n');
+    let mut hash = Sha256::new();
+    hash.update(domain);
+    hash.update((bytes.len() as u64).to_le_bytes());
+    hash.update(bytes.as_bytes());
+    (
+        bytes,
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(hash.finalize())
+        ),
+    )
+}
+
+fn boundary_bundle(candidate: &ProjectCandidate) -> (String, String) {
+    let coverage: Value = serde_json::from_str(
+        &candidate
+            .analysis_coverage(candidate.candidate_digest())
+            .unwrap(),
+    )
+    .unwrap();
+    let source_fact = &coverage["sources"][0];
+    let source = candidate
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == source_fact["path"].as_str().unwrap())
+        .unwrap();
+    let (generated, generated_digest) = canonical(
+        json!({
+            "schema":"semaprax.project-candidate-generated-file-provenance-declaration.v1",
+            "candidate_revision":candidate.candidate_digest(),
+            "files":[{
+                "artifact":{"path":source.path(),"bytes":source.source().len(),"sha256":source.source_digest()},
+                "source":{"path":source.path(),"source_revision":source.source_revision(),"source_digest":source.source_digest()},
+                "generator":{"id":"coverage-generator:v1","digest":format!("sha256:{}","1".repeat(64))}
+            }]
+        }),
+        b"semaprax.project-candidate-generated-file-provenance-declaration.v1\0",
+    );
+    let operations = coverage["manifest"]["web_exports"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|id| {
+            json!({
+                "export_id":id,
+                "operation_digest":format!("sha256:{}","2".repeat(64)),
+                "schema_digest":format!("sha256:{}","3".repeat(64))
+            })
+        })
+        .collect::<Vec<_>>();
+    let (external, external_digest) = canonical(
+        json!({
+            "schema":"semaprax.project-candidate-external-api-contract-declaration.v1",
+            "candidate_revision":candidate.candidate_digest(),
+            "scope":{"kind":"manifest_exports"},
+            "operations":operations
+        }),
+        b"semaprax.project-candidate-external-api-contract-declaration.v1\0",
+    );
+    let (deployment, deployment_digest) = canonical(
+        json!({
+            "schema":"semaprax.project-candidate-deployment-contract-declaration.v1",
+            "candidate_revision":candidate.candidate_digest(),
+            "manifest_exports":coverage["manifest"]["web_exports"],
+            "configuration":[{"key":"SERVICE_MODE","type":"string","required":true}]
+        }),
+        b"semaprax.project-candidate-deployment-contract-declaration.v1\0",
+    );
+    canonical(
+        json!({
+            "schema":"semaprax.project-candidate-analysis-boundary-bundle.v1",
+            "candidate_revision":candidate.candidate_digest(),
+            "deployment_contract":{"declaration":deployment,"declaration_digest":deployment_digest},
+            "generated_file_provenance":{"declaration":generated,"declaration_digest":generated_digest},
+            "external_api_contract":{"declaration":external,"declaration_digest":external_digest}
+        }),
+        b"semaprax.project-candidate-analysis-boundary-bundle.v1\0",
+    )
+}
+
 fn area<'a>(report: &'a Value, name: &str) -> &'a Value {
     let matches = report["areas"]
         .as_array()
@@ -170,7 +258,13 @@ fn coverage_change_replays_exact_base_and_final_boundaries_without_inventing_pro
     let base = open(&revision);
     let candidate = introduce(&base, "coverage.change-added", "change_added");
     let text = candidate
-        .analysis_coverage_change(candidate.candidate_digest())
+        .analysis_coverage_change(
+            candidate.candidate_digest(),
+            &CandidateAnalysisCoverageChangeInput {
+                base: None,
+                final_candidate: None,
+            },
+        )
         .unwrap();
     assert!(text.len() <= MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_BYTES);
     let report: Value = serde_json::from_str(&text).unwrap();
@@ -210,8 +304,76 @@ fn coverage_change_replays_exact_base_and_final_boundaries_without_inventing_pro
     }
     assert!(report.get("percentage").is_none());
     failed(
-        base.analysis_coverage_change(candidate.candidate_digest()),
+        base.analysis_coverage_change(
+            candidate.candidate_digest(),
+            &CandidateAnalysisCoverageChangeInput {
+                base: None,
+                final_candidate: None,
+            },
+        ),
         "SPX-G224",
+    );
+}
+
+#[test]
+fn exact_owning_bundles_produce_real_advance_and_regression_without_status_input() {
+    let fixture = Fixture::new(ImportFixture::None);
+    let revision = fixture.revision();
+    let base = open(&revision);
+    let candidate = introduce(&base, "coverage.bundle-added", "bundle_added");
+    let (base_bundle, base_digest) = boundary_bundle(&base);
+    let (final_bundle, final_digest) = boundary_bundle(&candidate);
+
+    let advanced: Value = serde_json::from_str(
+        &candidate
+            .analysis_coverage_change(
+                candidate.candidate_digest(),
+                &CandidateAnalysisCoverageChangeInput {
+                    base: None,
+                    final_candidate: Some(CandidateAnalysisCoverageBoundaryInput {
+                        bundle: final_bundle.as_bytes(),
+                        bundle_digest: &final_digest,
+                    }),
+                },
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(advanced["counts"]["advanced"], 3);
+    assert_eq!(advanced["counts"]["unchanged"], 2);
+    assert_eq!(advanced["overall_change"], "contains_advance");
+
+    let regressed: Value = serde_json::from_str(
+        &candidate
+            .analysis_coverage_change(
+                candidate.candidate_digest(),
+                &CandidateAnalysisCoverageChangeInput {
+                    base: Some(CandidateAnalysisCoverageBoundaryInput {
+                        bundle: base_bundle.as_bytes(),
+                        bundle_digest: &base_digest,
+                    }),
+                    final_candidate: None,
+                },
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(regressed["counts"]["regressed"], 3);
+    assert_eq!(regressed["counts"]["unchanged"], 2);
+    assert_eq!(regressed["overall_change"], "contains_regression");
+
+    failed(
+        candidate.analysis_coverage_change(
+            candidate.candidate_digest(),
+            &CandidateAnalysisCoverageChangeInput {
+                base: Some(CandidateAnalysisCoverageBoundaryInput {
+                    bundle: final_bundle.as_bytes(),
+                    bundle_digest: &final_digest,
+                }),
+                final_candidate: None,
+            },
+        ),
+        "SPX-G442",
     );
 }
 

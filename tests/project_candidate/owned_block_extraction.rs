@@ -425,6 +425,102 @@ fn internal_owners_remain_nested_and_only_copy_values_cross_the_helper_boundary(
 }
 
 #[test]
+fn one_whole_local_bytes_or_string_owner_transfers_at_the_original_expression() {
+    for (owner, body, expected_type, expected_mode) in [
+        (
+            "Bytes",
+            "let held=make_bytes();consume(held)+value",
+            Type::Bytes,
+            ParamMode::Own,
+        ),
+        (
+            "string",
+            "let held=\"owned text\";consume(held)+value",
+            Type::String,
+            ParamMode::Value,
+        ),
+    ] {
+        let fixture = Fixture::new(owner, Some(body), 2);
+        let disk = fixture.bytes();
+        let base = fixture.candidate();
+        let parent = base.to_json().to_owned();
+        let (candidate, change) = extract(&base, "block.evaluate", "consume(held)", false).unwrap();
+        let helper = function(&candidate, "block.helper");
+        assert_eq!(helper.params.len(), 1);
+        assert_eq!(helper.params[0].name, "held");
+        assert_eq!(helper.params[0].ty, expected_type);
+        assert_eq!(helper.params[0].mode, expected_mode);
+        assert_eq!(helper.return_type, Type::I64);
+        assert!(helper.requires.is_empty() && helper.ensures.is_empty());
+        assert!(source(&candidate).contains("extracted_block(held) + value"));
+        replay(&base, &candidate, &change);
+        if owner == "Bytes" {
+            same_outcome(&base, &candidate, ProjectExecutionOutcome::Returned(3));
+            let before = base.revision().entry_program();
+            let after = candidate.revision().entry_program();
+            let checked = after
+                .functions
+                .iter()
+                .find(|function| function.id.as_str() == "block.helper")
+                .unwrap();
+            assert_eq!(checked.params.len(), 1);
+            assert_eq!(checked.params[0].ownership, OwnershipMode::Own);
+            assert_eq!(
+                checked.cleanup_plan.entry_state.live_owned_parameters.len(),
+                1
+            );
+            assert!(checked
+                .cleanup_plan
+                .entry_state
+                .conditional_owned_parameters
+                .is_empty());
+            assert!(checked.loan_plan.loans.is_empty());
+            semaprax::codegen::emit_hir_c(before).unwrap();
+            semaprax::codegen::emit_hir_c(after).unwrap();
+            semaprax::wasm::emit_resolved_module(before).unwrap();
+            semaprax::wasm::emit_resolved_module(after).unwrap();
+        }
+        code(
+            candidate.apply(base.candidate_digest(), &change),
+            "SPX-G224",
+        );
+        assert_eq!(base.to_json(), parent);
+        assert_eq!(fixture.bytes(), disk);
+    }
+}
+
+#[test]
+fn owning_capture_rejects_parameters_projections_conditions_and_multiple_roots_atomically() {
+    let fixture = Fixture::new("Bytes", None, 2);
+    let core = std::fs::read_to_string(fixture.0.join("src/core.spx")).unwrap();
+    fixture.write(
+        "src/core.spx",
+        &(core
+            + r#"
+@id("block.owner-param") fn owner_param(input:own Bytes)->i64 {consume(input)}
+@id("block.owner-conditional") fn owner_conditional(value:i64)->i64 {let held=make_bytes();if value>0 {consume(held)} else {0}}
+@id("block.two-owners") fn two_owners()->i64 {let left=make_bytes();let right=make_bytes();consume(left)+consume(right)}
+@id("block.capture-packet") record CapturePacket {@id("block.capture-packet.bytes") bytes:Bytes,}
+@id("block.consume-bytes") fn consume_bytes(input:own Bytes)->i64 {1}
+@id("block.projected-owner") fn projected_owner()->i64 {let packet=CapturePacket { bytes: make_bytes() };consume_bytes(packet.bytes)}
+"#),
+    );
+    let disk = fixture.bytes();
+    let base = fixture.candidate();
+    let parent = base.to_json().to_owned();
+    for (target, marker) in [
+        ("block.owner-param", "consume(input)"),
+        ("block.owner-conditional", "if value > 0"),
+        ("block.two-owners", "consume(left) + consume(right)"),
+        ("block.projected-owner", "consume(packet.bytes)"),
+    ] {
+        code(extract(&base, target, marker, false), "SPX-G506");
+    }
+    assert_eq!(base.to_json(), parent);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
 fn failing_and_unreached_owned_blocks_keep_their_original_lazy_position() {
     for input in [1, -1] {
         let fixture=Fixture::new("Bytes",Some("if value >= 0 { let held = make_bytes(); let local = make_bytes(); let consumed = consume(local); consumed / (value - value) } else { 42 }"),input);
@@ -477,14 +573,19 @@ fn owner_boundaries_root_postconditions_and_view_subtrees_remain_rejected() {
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let parent = base.to_json().to_owned();
-    for (target, marker, block) in [
-        ("block.root", "let local", true),
-        ("block.capture", "consume(input)", true),
-        ("block.evaluate", "make_bytes()", false),
-        ("block.non-block", "consume(make_bytes())", false),
-        ("block.view", "let local", true),
+    for (target, marker, block, expected) in [
+        ("block.root", "let local", true, "SPX-G225"),
+        ("block.capture", "consume(input)", true, "SPX-G506"),
+        ("block.evaluate", "make_bytes()", false, "SPX-G225"),
+        (
+            "block.non-block",
+            "consume(make_bytes())",
+            false,
+            "SPX-G225",
+        ),
+        ("block.view", "let local", true, "SPX-G225"),
     ] {
-        code(extract(&base, target, marker, block), "SPX-G225");
+        code(extract(&base, target, marker, block), expected);
     }
     assert_eq!(base.to_json(), parent);
     assert_eq!(fixture.bytes(), disk);

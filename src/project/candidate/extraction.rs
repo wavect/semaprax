@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::{json, Value};
 
-use crate::ast::{Expr, ExprKind, Function, Param, ParamMode, Program, Span, Type};
+use crate::ast::{BinaryOp, Expr, ExprKind, Function, Param, ParamMode, Program, Span, Type};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     self, OwnershipMode, ResolvedBinding, ResolvedExprKind, ResolvedMatchPattern,
@@ -30,6 +30,7 @@ struct Capture {
     id: String,
     name: String,
     ty: Type,
+    mode: ParamMode,
 }
 
 pub(super) fn apply(
@@ -45,10 +46,23 @@ pub(super) fn apply(
         target,
         text(request, "expression_id")?,
     )?;
-    let (captures, return_type, extended) = {
+    let (captures, return_type, extended, owner_capture) = {
         let mut types = types::Types::new(revision, &programs[selection.owner], target)?;
-        capture_plan(&selection, &mut types)?
+        capture_plan(revision, target, &selection, &mut types)?
     };
+    if owner_capture
+        && (revision.entry_program().entrypoint.as_str() == target
+            || revision.test_program().entrypoint.as_str() == target
+            || revision
+                .manifest()
+                .web_exports()
+                .iter()
+                .any(|id| id == target))
+    {
+        return Err(owner_invalid(
+            "owning capture extraction excludes entrypoints and manifest exports",
+        ));
+    }
     let span = Span::default();
     let call = Expr {
         kind: ExprKind::Call {
@@ -104,7 +118,7 @@ pub(super) fn apply(
             .into_iter()
             .map(|capture| Param {
                 name: capture.name,
-                mode: ParamMode::Value,
+                mode: capture.mode,
                 ty: capture.ty,
                 span,
             })
@@ -179,17 +193,40 @@ fn expression_selector(request: &Value) -> Result<Value> {
 }
 
 fn capture_plan(
+    revision: &ProjectRevision,
+    target: &str,
     selection: &expression::AuthoredExpression<'_>,
     types: &mut types::Types<'_>,
-) -> Result<(Vec<Capture>, Type, bool)> {
+) -> Result<(Vec<Capture>, Type, bool, bool)> {
+    let external = selection
+        .scope
+        .iter()
+        .map(|binding| (binding.id, binding))
+        .collect::<BTreeMap<_, _>>();
     let mut pending = vec![(selection.expression, 0usize)];
     let mut nodes = Vec::new();
     let mut extended = false;
+    let mut conditional = false;
     while let Some((node, depth)) = pending.pop() {
         if depth > MAX_DEPTH || nodes.len() >= MAX_NODES {
             return Err(limit("extraction expression traversal exceeds its bound"));
         }
-        extended |= types.internal(&node.ty, node.ownership)?;
+        let external_owner_place = matches!(&node.kind, ResolvedExprKind::Place(place)
+            if place.projections.is_empty()
+                && external.get(place.root.as_str()).is_some_and(|binding|
+                    binding.ownership == OwnershipMode::Own));
+        if !external_owner_place {
+            extended |= types.internal(&node.ty, node.ownership)?;
+        }
+        conditional |= matches!(
+            &node.kind,
+            ResolvedExprKind::If { .. }
+                | ResolvedExprKind::Match { .. }
+                | ResolvedExprKind::Binary {
+                    op: BinaryOp::And | BinaryOp::Or,
+                    ..
+                }
+        );
         if matches!(
             node.kind,
             ResolvedExprKind::Try { .. }
@@ -248,13 +285,9 @@ fn capture_plan(
             _ => {}
         }
     }
-    let external = selection
-        .scope
-        .iter()
-        .map(|binding| (binding.id, binding))
-        .collect::<BTreeMap<_, _>>();
     let mut used = BTreeSet::new();
     let mut captures = Vec::new();
+    let mut owner_capture = None;
     for node in nodes {
         if let ResolvedExprKind::Block { statements, .. } = &node.kind {
             for statement in statements {
@@ -278,7 +311,39 @@ fn capture_plan(
             let binding = external.get(id).ok_or_else(|| {
                 invalid("extraction encountered a value outside authenticated lexical scope")
             })?;
-            if binding.mutable || binding.ownership != OwnershipMode::Value {
+            if binding.mutable {
+                return Err(invalid("extraction requires immutable captures"));
+            }
+            if binding.ownership == OwnershipMode::Own {
+                if !place.projections.is_empty()
+                    || !matches!(binding.ty, ResolvedType::Bytes | ResolvedType::String)
+                    || node.ownership != OwnershipMode::Own
+                {
+                    return Err(owner_invalid(
+                        "owning extraction capture requires one whole local Bytes or String place",
+                    ));
+                }
+                if !used.insert(id) || owner_capture.replace(id.to_owned()).is_some() {
+                    return Err(owner_invalid(
+                        "owning extraction requires exactly one occurrence of one owner",
+                    ));
+                }
+                if captures.len() >= MAX_CAPTURES {
+                    return Err(limit("extraction capture count exceeds its limit"));
+                }
+                captures.push(Capture {
+                    id: id.to_owned(),
+                    name: binding.name.to_owned(),
+                    ty: types.result(binding.ty, OwnershipMode::Own)?,
+                    mode: if *binding.ty == ResolvedType::Bytes {
+                        ParamMode::Own
+                    } else {
+                        ParamMode::Value
+                    },
+                });
+                continue;
+            }
+            if binding.ownership != OwnershipMode::Value {
                 return Err(invalid(
                     "extraction requires immutable by-value Copy captures",
                 ));
@@ -294,9 +359,18 @@ fn capture_plan(
                     id: id.to_owned(),
                     name: binding.name.to_owned(),
                     ty: types.ast(binding.ty)?,
+                    mode: ParamMode::Value,
                 });
             }
         }
+    }
+    if let Some(owner) = owner_capture.as_deref() {
+        if extended {
+            return Err(owner_invalid(
+                "owning extraction cannot combine an external owner with internal owning storage",
+            ));
+        }
+        authenticate_owner_cleanup(revision, target, owner, selection.expression, conditional)?;
     }
     if extended
         && (selection.path.is_empty()
@@ -307,7 +381,142 @@ fn capture_plan(
         ));
     }
     let result = types.result(&selection.expression.ty, selection.expression.ownership)?;
-    Ok((captures, result, extended))
+    Ok((captures, result, extended, owner_capture.is_some()))
+}
+
+fn selected_under_conditional(
+    body: &hir::ResolvedExpr,
+    selected: &hir::ResolvedExpr,
+) -> Result<bool> {
+    let mut pending = vec![(body, false)];
+    let mut visited = 0usize;
+    while let Some((node, conditional)) = pending.pop() {
+        if visited >= MAX_NODES {
+            return Err(limit(
+                "owning extraction control-flow authentication exceeds its bound",
+            ));
+        }
+        visited += 1;
+        if node.id == selected.id {
+            return Ok(conditional);
+        }
+        let descendants_conditional = conditional
+            || matches!(
+                &node.kind,
+                ResolvedExprKind::If { .. }
+                    | ResolvedExprKind::Match { .. }
+                    | ResolvedExprKind::Binary {
+                        op: BinaryOp::And | BinaryOp::Or,
+                        ..
+                    }
+            );
+        let mut children = Vec::new();
+        hir::push_resolved_expression_children_in_authored_order(node, &mut children);
+        pending.extend(
+            children
+                .into_iter()
+                .map(|child| (child, descendants_conditional)),
+        );
+    }
+    Err(owner_auth(
+        "owning extraction selection is absent from the authenticated provider HIR",
+    ))
+}
+
+fn authenticate_owner_cleanup(
+    revision: &ProjectRevision,
+    target: &str,
+    owner: &str,
+    selected: &hir::ResolvedExpr,
+    selection_contains_conditional: bool,
+) -> Result<()> {
+    let mut function = None;
+    for module in revision.semantic.image_modules() {
+        for candidate in module
+            .functions()
+            .iter()
+            .filter(|function| function.id.as_str() == target)
+        {
+            if function.replace(candidate).is_some() {
+                return Err(owner_auth(
+                    "owning extraction provider identity is ambiguous",
+                ));
+            }
+        }
+    }
+    let function =
+        function.ok_or_else(|| owner_auth("owning extraction provider HIR is absent"))?;
+    if selection_contains_conditional || selected_under_conditional(&function.body, selected)? {
+        return Err(owner_invalid(
+            "owning extraction cannot move an owner through conditional control flow",
+        ));
+    }
+    if function
+        .params
+        .iter()
+        .any(|parameter| parameter.id.as_str() == owner)
+    {
+        return Err(owner_invalid(
+            "owning extraction requires a local owner, not a parameter",
+        ));
+    }
+    let count = |root: &hir::ResolvedExpr| -> Result<usize> {
+        let mut pending = vec![root];
+        let mut total = 0usize;
+        let mut visited = 0usize;
+        while let Some(node) = pending.pop() {
+            if visited >= MAX_NODES {
+                return Err(limit("owning extraction authentication exceeds its bound"));
+            }
+            visited += 1;
+            if matches!(&node.kind, ResolvedExprKind::Place(place)
+                if place.root.as_str() == owner)
+            {
+                total += 1;
+            }
+            hir::push_resolved_expression_children_in_authored_order(node, &mut pending);
+        }
+        Ok(total)
+    };
+    let mut contract_count = 0usize;
+    for condition in function.requires.iter().chain(&function.ensures) {
+        contract_count = contract_count
+            .checked_add(count(condition)?)
+            .ok_or_else(|| limit("owning extraction occurrence count exceeds its bound"))?;
+    }
+    if contract_count != 0 || count(&function.body)? != 1 || count(selected)? != 1 {
+        return Err(owner_auth(
+            "owning extraction requires one body-local consuming occurrence and no contract occurrence",
+        ));
+    }
+    let inventory = function
+        .cleanup
+        .slots
+        .iter()
+        .filter(|slot| {
+            matches!(&slot.origin, crate::cleanup::CleanupStorageOrigin::Binding { value }
+            if value.as_str() == owner)
+        })
+        .collect::<Vec<_>>();
+    let plans = function
+        .cleanup_plan
+        .slots
+        .iter()
+        .filter(|slot| {
+            matches!(&slot.storage, crate::cleanup_plan::StorageId::Value(value)
+            if value.as_str() == owner)
+        })
+        .collect::<Vec<_>>();
+    if inventory.len() != 1
+        || plans.len() != 1
+        || inventory[0].ty != plans[0].ty
+        || !matches!(inventory[0].ty, ResolvedType::Bytes | ResolvedType::String)
+    {
+        return Err(owner_auth(
+            "owning extraction local lacks one exact authenticated cleanup slot",
+        ));
+    }
+    Ok(())
 }
 
 fn register_internal(
@@ -420,4 +629,13 @@ fn invalid(message: &'static str) -> Vec<Diagnostic> {
 }
 fn limit(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G226", message)]
+}
+fn owner_invalid(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G506", message)]
+}
+fn owner_auth(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G507", message)]
+}
+fn owner_replay(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G508", message)]
 }

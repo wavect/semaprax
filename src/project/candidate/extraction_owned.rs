@@ -12,8 +12,9 @@ pub(super) fn validate(
     let selected =
         expression::authored_selection(before, &programs, target, text(request, "expression_id")?)?;
     let mut original_types = types::Types::new(before, &programs[selected.owner], target)?;
-    let (captures, _, extended) = capture_plan(&selected, &mut original_types)?;
-    if !extended {
+    let (captures, _, extended, owner_capture) =
+        capture_plan(before, target, &selected, &mut original_types)?;
+    if !extended && !owner_capture {
         return Ok(());
     }
     let rebuilt = parse_revision(after)?;
@@ -33,23 +34,29 @@ pub(super) fn validate(
         || helper.body.ownership != selected.expression.ownership
         || helper.body.ty != selected.expression.ty
     {
-        return Err(invalid(
+        return Err(correspondence(
+            owner_capture,
             "extraction helper changed its result boundary or contracts",
         ));
     }
     let _ = helper_types.result(&helper.return_type, helper.body.ownership)?;
-    let ResolvedExprKind::Block {
-        statements,
-        tail: inner,
-    } = &helper.body.kind
-    else {
-        return Err(invalid("extraction helper has no root block wrapper"));
+    let inner = if extended {
+        let ResolvedExprKind::Block {
+            statements,
+            tail: inner,
+        } = &helper.body.kind
+        else {
+            return Err(invalid("extraction helper has no root block wrapper"));
+        };
+        if !statements.is_empty() || !matches!(inner.kind, ResolvedExprKind::Block { .. }) {
+            return Err(invalid(
+                "extraction owning scope must remain nested inside an empty root",
+            ));
+        }
+        inner.as_ref()
+    } else {
+        &helper.body
     };
-    if !statements.is_empty() || !matches!(inner.kind, ResolvedExprKind::Block { .. }) {
-        return Err(invalid(
-            "extraction owning scope must remain nested inside an empty root",
-        ));
-    }
     let mut ids = Ids::default();
     for (capture, parameter) in captures.iter().zip(&helper.params) {
         let binding = selected
@@ -59,12 +66,19 @@ pub(super) fn validate(
             .ok_or_else(|| {
                 invalid("extraction capture disappeared from its authenticated scope")
             })?;
+        let expected_ownership =
+            if capture.mode == ParamMode::Own || matches!(&capture.ty, Type::String) {
+                OwnershipMode::Own
+            } else {
+                OwnershipMode::Value
+            };
         if parameter.name != capture.name
             || parameter.ty != *binding.ty
-            || parameter.ownership != OwnershipMode::Value
+            || parameter.ownership != expected_ownership
         {
-            return Err(invalid(
-                "extraction helper changed an authenticated Copy capture",
+            return Err(correspondence(
+                owner_capture,
+                "extraction helper changed an authenticated capture boundary",
             ));
         }
         helper_types.check(&parameter.ty)?;
@@ -72,13 +86,35 @@ pub(super) fn validate(
     }
     pair(selected.expression, inner, &mut ids, &mut helper_types)?;
     let plan = &helper.cleanup_plan;
-    if !plan.entry_state.live_owned_parameters.is_empty()
-        || !plan.entry_state.conditional_owned_parameters.is_empty()
+    if !plan.entry_state.conditional_owned_parameters.is_empty()
         || !helper.loan_plan.loans.is_empty()
     {
         return Err(invalid(
             "extraction helper introduced crossing ownership or loans",
         ));
+    }
+    if owner_capture {
+        let owner_parameter = captures
+            .iter()
+            .zip(&helper.params)
+            .find(|(capture, _)| {
+                capture.mode == ParamMode::Own || matches!(&capture.ty, Type::String)
+            })
+            .map(|(_, parameter)| parameter)
+            .ok_or_else(|| owner_replay("extraction helper lost its owning parameter"))?;
+        if plan.entry_state.live_owned_parameters.len() != 1
+            || plan.entry_state.live_owned_parameters[0].storage
+                != crate::cleanup_plan::StorageId::Value(owner_parameter.id.clone())
+            || !plan.entry_state.live_owned_parameters[0]
+                .projections
+                .is_empty()
+        {
+            return Err(owner_replay(
+                "extraction helper does not receive one exact whole live owner",
+            ));
+        }
+    } else if !plan.entry_state.live_owned_parameters.is_empty() {
+        return Err(invalid("extraction helper introduced an owning parameter"));
     }
     let mut owned_result_commits = 0usize;
     let mut scalar_result_commits = 0usize;
@@ -125,8 +161,8 @@ pub(super) fn validate(
     if roots.len() != 1 {
         return Err(invalid("extraction helper cleanup root is ambiguous"));
     }
-    // Inspect slots in their original order. Copy staging is permitted, but
-    // the wrapper may own no droppable storage, parameters or result.
+    // Inspect slots in their original order. The rebuilt plan remains the
+    // authority; this correspondence never filters or repairs it.
     for storage in &roots[0].slots {
         let slot = plan
             .slots
@@ -136,6 +172,14 @@ pub(super) fn validate(
         helper_types.check(&slot.ty)?;
     }
     Ok(())
+}
+
+fn correspondence(owner_capture: bool, message: &'static str) -> Vec<Diagnostic> {
+    if owner_capture {
+        owner_replay(message)
+    } else {
+        invalid(message)
+    }
 }
 
 fn function<'a>(revision: &'a ProjectRevision, id: &str) -> Result<&'a ResolvedFunction> {
@@ -472,7 +516,8 @@ mod tests {
         .unwrap();
         let mut original_types =
             types::Types::new(base.revision(), &old_programs[selected.owner], target).unwrap();
-        let (captures, _, _) = capture_plan(&selected, &mut original_types).unwrap();
+        let (captures, _, _, _) =
+            capture_plan(base.revision(), target, &selected, &mut original_types).unwrap();
         let new_programs = parse_revision(candidate.revision()).unwrap();
         let source = new_programs
             .iter()

@@ -374,6 +374,30 @@ fn intent_schema() -> Value {
             ])
         })
         .collect::<Vec<_>>();
+    let mut extraction = base(
+        "extract_function",
+        vec![
+            ("expression_id", text(16_384)),
+            ("new_id", stable_id()),
+            ("new_name", identifier()),
+        ],
+    );
+    extraction["x-semantic-admission"] = json!({
+        "captures":[
+            "immutable_copy_values",
+            "one_exact_whole_local_own_bytes_or_bare_string_consumed_once"
+        ],
+        "owning_capture_exclusions":[
+            "parameter_owner",
+            "projected_or_borrowed_or_shared_owner",
+            "conditional_or_lazy_use",
+            "contract_use",
+            "entrypoint_or_manifest_export",
+            "internal_owning_storage",
+            "external_or_package_consumer_migration"
+        ],
+        "requires":"full_project_replay"
+    });
     json!({"oneOf":[
         base("rename_declaration",vec![("name",identifier())]),
         base("change_function_signature",vec![("append_parameters",json!({"type":"array","minItems":1,"maxItems":MAX_APPEND_PARAMETERS,"items":new_parameter()}))]),
@@ -392,7 +416,7 @@ fn intent_schema() -> Value {
             closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("destination",text(240)),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))])
         ]}),
         base("add_declaration",vec![("declaration",declaration_schema())]),
-        base("extract_function",vec![("expression_id",text(16_384)),("new_id",stable_id()),("new_name",identifier())]),
+        extraction,
         base("move_declaration",vec![("destination",text(MAX_ID_BYTES))]),
         base("add_record_field",vec![("field",json!({"oneOf":record_fields}))]),
     ]})

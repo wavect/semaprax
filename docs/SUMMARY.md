@@ -86,6 +86,8 @@ Audience: all documentation readers.
 - [Project Candidate Analysis Artifact Evidence v1](PROJECT-CANDIDATE-ANALYSIS-ARTIFACT-EVIDENCE-V1.md)
 - [Project Candidate Analysis Runtime Evidence v1](PROJECT-CANDIDATE-ANALYSIS-RUNTIME-EVIDENCE-V1.md)
 - [Project Candidate Blind-Spot Declarations v1](PROJECT-CANDIDATE-BLIND-SPOT-DECLARATIONS-V1.md)
+- [Project Candidate Environment Review v1](PROJECT-CANDIDATE-ENVIRONMENT-REVIEW-V1.md)
+- [Project Candidate External API Contract Delta v1](PROJECT-CANDIDATE-EXTERNAL-API-CONTRACT-DELTA-V1.md)
 - [Semantic Image Cleanup Dependencies v1](SEMANTIC-IMAGE-CLEANUP-DEPENDENCIES-V1.md)
 - [Candidate Tests v1](PROJECT-CANDIDATE-TESTS-V1.md)
 - [Candidate Test Protocol v3](IMAGE-CANDIDATE-TEST-PROTOCOL-V3.md)

@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- Added one environment-aware candidate review that independently regenerates
+  the complete source review and the three-declaration analysis-boundary bundle,
+  validates their exact candidate/source/Project/Workspace/graph joins, and
+  nests both bounded reports with exact revisions and byte hashes. V5 exposes
+  bounded chunks through closed schemas, generated TypeScript/Python/Rust
+  clients and MCP discovery. It carries no observation or authority and marks
+  semantic compatibility `not_assessed`. Regressions are authored and unrun.
+
+- Added a descriptive external-API contract delta over exact retained base and
+  candidate declarations. Canonical rows distinguish declared-inventory
+  additions, removals and operation/schema digest changes while binding both
+  Project, Workspace and graph revisions. V5 exposes bounded chunks through
+  closed schemas, generated clients and MCP discovery. Provider/runtime/API
+  compatibility remains `not_assessed`; regressions are authored and unrun.
+
+- Added a retention declaration-inventory command whose closed rows contain
+  only visible subject identities and logical stored bytes. The compiler
+  derives subject digests, imposes planner order internally, and emits the raw
+  observation inventory accepted by the existing retention planner. It adds no
+  store discovery, freshness, persistence, GC execution or authority. The
+  implementation is authored and unrun.
+
 - Added exact candidate declarations for generated-file provenance and external
   API contracts. Canonical declaration bytes join retained source identities or
   explicit manifest exports to caller-declared digests and advance only the

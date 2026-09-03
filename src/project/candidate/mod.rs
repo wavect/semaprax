@@ -33,6 +33,7 @@ mod draft_navigation;
 mod draft_suggestions;
 mod environment_review;
 mod expression;
+mod external_api_contract_delta;
 mod external_api_contract_evidence;
 mod extraction;
 mod facet_navigation;
@@ -107,6 +108,11 @@ pub use deployment_contract_evidence::{
 };
 pub use environment_review::{
     MAX_PROJECT_CANDIDATE_ENVIRONMENT_REVIEW_BYTES, PROJECT_CANDIDATE_ENVIRONMENT_REVIEW_SCHEMA,
+};
+pub use external_api_contract_delta::{
+    MAX_PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DELTA_BYTES,
+    PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_BASE_DECLARATION_SCHEMA,
+    PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DELTA_SCHEMA,
 };
 pub use external_api_contract_evidence::{
     MAX_PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DECLARATION_BYTES,

@@ -197,7 +197,7 @@ impl ProjectCandidate {
     }
 }
 
-fn authenticate_declaration(
+pub(super) fn authenticate_declaration(
     candidate: &ProjectCandidate,
     bytes: &[u8],
     expected_digest: &str,

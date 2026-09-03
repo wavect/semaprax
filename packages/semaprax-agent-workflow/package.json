@@ -1,0 +1,21 @@
+{
+  "name": "@semaprax/agent-workflow",
+  "version": "0.1.0",
+  "description": "Zero-authority orchestration for the bounded SEMAPRAX function-signature review and publication workflow.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "license": "Apache-2.0"
+}

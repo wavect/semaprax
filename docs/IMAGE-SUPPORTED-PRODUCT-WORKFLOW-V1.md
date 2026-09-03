@@ -187,9 +187,12 @@ The qualifying exact-subject local run did not establish:
   multi-writer atomicity;
 - cancellation, request deduplication, automatic retry, exactly-once delivery,
   session durability, or recovery of approval/authority from the handoff;
-- a packaged SDK, editor UI, MCP certification, network isolation, hosted or
-  cross-platform support, an exact release tag, comparative economics, full
-  quality, completion-matrix promotion, or programme completion.
+- registry publication, editor UI, MCP certification, cancellation/session
+  invalidation, network isolation, hosted or cross-platform support, an exact
+  release tag, comparative economics, full quality, completion-matrix
+  promotion, or programme completion. One separate local installed-package
+  slice is recorded by [Packaged TypeScript Workflow SDK
+  v1](IMAGE-PACKAGED-TYPESCRIPT-WORKFLOW-SDK-V1.md).
 
 ## Executable evidence gate and record
 

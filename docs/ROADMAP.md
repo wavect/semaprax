@@ -209,13 +209,18 @@ interfaces and intentions, broader canonical-source publication, and
 representative measured workflows remain exit conditions; Phase 1 and the
 programme stay Partial.
 
-The selected workflow now also has closed per-step response accountability and
-typed v5 application diagnostics in all three generated clients. This removes
-generic-string loss for compiler application failures and binds each step to
-its grant, effect, authority, and blind-spot treatment. It remains an I/O-free
-generated codec and metadata surface rather than a packaged workflow driver;
-automatic orchestration and repairs, cancellation, and real MCP/editor task
-control remain open Phase 1 work.
+The selected workflow now also has closed per-step response accountability,
+typed v5 application diagnostics in all three generated clients, and a
+domain-separated generated-client contract revision. The zero-authority
+`@semaprax/agent-workflow` package composes that surface into the exact review
+and separately approved publication sequence; its explicitly provisioned local
+Unix gate passed offline pack/install, package-name import, real stdio sessions,
+and local SHA-256 Git publication. Automatic repair remains unavailable for
+this signature change and is exposed as an empty typed compiler catalogue; a
+semantic rejection separately offers only the non-executing typed
+`start_new_review_with_different_intention` transition. Cancellation, session
+invalidation, real MCP/editor task control, registry/hosted/cross-platform
+support, broader workflows, and full programme evidence remain open Phase 1 work.
 
 The complete requirement ledger is the
 [graph-operational programme](GRAPH-OPERATIONAL-PROGRAMME.md). Image facets,

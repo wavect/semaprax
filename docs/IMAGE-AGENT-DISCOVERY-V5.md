@@ -163,6 +163,14 @@ optional fields become optional properties, `NotRequired`, or omitted `Option`
 fields. Required digests and integer bounds are checked before serialization.
 Calls always include an explicit request ID and end with one LF.
 
+Every generated language also exposes the same domain-separated
+`CLIENT_CONTRACT_REVISION`. The digest binds the protocol and result schemas,
+selected method descriptors, normalized request and response documents,
+workflow and capability catalogues, and unbundled report inventory after
+recursive object-key ordering while retaining array order. It identifies the
+generated codec's selected wire contract; it carries no authority and does not
+prove that a later live session was opened with the same host policy.
+
 [Typed Response Clients v1](IMAGE-TYPED-RESPONSE-CLIENTS-V1.md) adds concrete
 payload/result aliases and `decode_*_typed` helpers for selected methods. These
 helpers call the existing method-bound decoder first; generic decoders retain

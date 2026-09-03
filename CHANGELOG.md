@@ -46,6 +46,22 @@
   [Native Rust Interoperability v1](docs/NATIVE-RUST-INTEROP-V1.md), whose
   owned-diagnostic list had omitted both. No admitted source form, type, ABI,
   descriptor, manifest, or generated-artifact byte changed.
+- Added the zero-authority `@semaprax/agent-workflow` TypeScript package for
+  the frozen scalar signature workflow. Generated clients now expose a
+  domain-separated `CLIENT_CONTRACT_REVISION` that binds their selected wire
+  contract. The package fail-closes reference, validation, coverage, test,
+  review, handoff, approval, commit-status, receipt, and host-inspection
+  transitions; reports typed application failures with an explicitly empty
+  compiler-repair catalogue and the non-executing typed new-review transition;
+  and never retries publication. Its explicitly provisioned
+  local Unix gate strict-compiles the generated codecs and consumer, packs and
+  installs the checked artifact offline by package name, executes the real
+  thirteen-step review and separate nine-step approved publication against a
+  local bare SHA-256 Git repository, and rejects malformed, structured-failure,
+  and duplicate-publication cases. This does not establish registry
+  publication, OS network isolation, hosted or cross-platform support,
+  cancellation, MCP/editor control, automatic repair, broader workflows, full
+  quality, or programme completion.
 
 - Added closed v5 application-error diagnostic data while preserving ordinary
   JSON-RPC code/message and generic grammar/overflow failures. Generated

@@ -119,6 +119,7 @@ Audience: all documentation readers.
 - [Supported Graph-operational Product Workflow v1](IMAGE-SUPPORTED-PRODUCT-WORKFLOW-V1.md)
 - [Image Agent Application Error Data v1](IMAGE-AGENT-APPLICATION-ERROR-DATA-V1.md)
 - [Supported Workflow Response Accountability v1](IMAGE-SUPPORTED-WORKFLOW-RESPONSE-ACCOUNTABILITY-V1.md)
+- [Packaged TypeScript Workflow SDK v1](IMAGE-PACKAGED-TYPESCRIPT-WORKFLOW-SDK-V1.md)
 - [Graph-operational Phase 1 Product Workflow Execution Evidence v1](GRAPH-OPERATIONAL-PHASE1-PRODUCT-WORKFLOW-EXECUTION-EVIDENCE-V1.md)
 - [Graph-operational Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md)
 - [Graph-operational Execution Evidence v2](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V2.md)

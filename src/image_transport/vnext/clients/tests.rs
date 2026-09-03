@@ -72,6 +72,97 @@ fn workflow_generation_rejects_changed_profile_revision_and_response_contract() 
 }
 
 #[test]
+fn client_contract_revision_is_deterministic_closed_and_surface_sensitive() {
+    use super::super::super::VNextPolicy;
+    let policy = VNextPolicy {
+        candidate_prepare: true,
+        test_policy: Some(crate::project::CandidateTestPolicy::new(100, 4096, 16384).unwrap()),
+        ..VNextPolicy::default()
+    };
+    let selected = super::super::super::session_methods(&policy, false, false, false);
+    let capabilities = super::super::capabilities(&selected, &policy, false);
+    let bundle = super::super::bundle(
+        &selected
+            .iter()
+            .map(|method| super::super::descriptor(method, &policy))
+            .collect::<Vec<_>>(),
+        &capabilities,
+    )
+    .unwrap();
+    let methods = bundle["methods"].as_array().unwrap();
+    let requests = request_documents(&bundle).unwrap();
+    let responses = response_documents(&bundle).unwrap();
+    let workflows = responses["urn:semaprax.image-agent-capabilities.v5"]["const"]["workflows"]
+        .as_array()
+        .unwrap();
+    let contract = client_contract(methods, &requests, &responses, workflows, &bundle).unwrap();
+    let revision = client_contract_revision(&contract).unwrap();
+    assert_eq!(revision.len(), "sha256:".len() + 64);
+    assert!(revision
+        .strip_prefix("sha256:")
+        .unwrap()
+        .bytes()
+        .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)));
+    assert_eq!(client_contract_revision(&contract).unwrap(), revision);
+
+    let reversed = Value::Object(
+        contract
+            .as_object()
+            .unwrap()
+            .iter()
+            .rev()
+            .map(|(name, value)| (name.clone(), value.clone()))
+            .collect(),
+    );
+    assert_eq!(client_contract_revision(&reversed).unwrap(), revision);
+
+    let mut revisions = BTreeSet::from([revision.clone()]);
+    for (field, mutation) in [
+        ("methods", json!({"tampered":true})),
+        ("request_documents", json!({"tampered":true})),
+        ("response_documents", json!({"tampered":true})),
+        ("workflows", json!({"tampered":true})),
+        ("capabilities", json!({"tampered":true})),
+        ("unbundled", json!("urn:tampered")),
+    ] {
+        let mut changed = contract.clone();
+        match field {
+            "methods" | "workflows" | "unbundled" => {
+                changed[field].as_array_mut().unwrap().push(mutation)
+            }
+            _ => {
+                changed[field]["urn:tampered"] = mutation;
+            }
+        }
+        revisions.insert(client_contract_revision(&changed).unwrap());
+    }
+    assert_eq!(revisions.len(), 7);
+
+    for malformed in [
+        Value::Null,
+        json!({}),
+        json!({
+            "protocol":VNEXT_PROTOCOL_SCHEMA,
+            "result_schema":VNEXT_RESULT_SCHEMA,
+            "methods":[],
+            "request_documents":{},
+            "response_documents":{},
+            "workflows":[],
+            "capabilities":{},
+            "unbundled":[]
+        }),
+    ] {
+        assert!(client_contract_revision(&malformed).is_err());
+    }
+
+    for language in ["typescript", "python", "rust"] {
+        let source = generate(language, &bundle).unwrap();
+        assert!(source.contains("CLIENT_CONTRACT_REVISION"));
+        assert!(source.contains(&revision));
+    }
+}
+
+#[test]
 fn unsupported_response_assertions_fail_before_client_generation() {
     for unsupported in [
         json!({"allOf":[{"type":"string"}]}),

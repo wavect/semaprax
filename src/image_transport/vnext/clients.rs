@@ -1,8 +1,12 @@
 //! I/O-free request structs and response decoders from selected descriptors.
 use super::{invalid, Result, VNEXT_PROTOCOL_SCHEMA, VNEXT_RESULT_SCHEMA};
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
+
+const CLIENT_CONTRACT_DOMAIN: &[u8] = b"semaprax.image-agent-client-contract.v1\0";
+const MAX_CLIENT_CONTRACT_BYTES: usize = 32 * 1024 * 1024;
 
 #[path = "workflow_client_types.rs"]
 mod workflow_client_types;
@@ -25,7 +29,8 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
             .as_array()
             .ok_or_else(|| invalid("client opaque schema inventory missing"))?,
     )?;
-    let typed_requests = request_types::generate(language, methods, &request_documents(bundle)?)?;
+    let request_documents = request_documents(bundle)?;
+    let typed_requests = request_types::generate(language, methods, &request_documents)?;
     let workflows = documents
         .get("urn:semaprax.image-agent-capabilities.v5")
         .and_then(|document| document.get("const"))
@@ -104,10 +109,12 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
         "unbundled":bundle["unbundled_payload_schemas"]});
     let encoded = serde_json::to_string(&metadata)
         .map_err(|_| invalid("client metadata serialization failed"))?;
+    let contract = client_contract(methods, &request_documents, &documents, workflows, bundle)?;
+    let contract_revision = client_contract_revision(&contract)?;
     let mut source = match language {
-        "typescript" => format!("// Generated selected-profile client. No I/O or capability changes.\nexport const PROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?};\nexport const RESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?};\n{ts_types}const WORKFLOWS_JSON = {workflows_encoded:?};\nexport const EXPECTED_WORKFLOW_PROFILE_REVISION: string | null = {expected_revision_json};\nexport const WORKFLOWS = validateWorkflowCatalogue(JSON.parse(WORKFLOWS_JSON), EXPECTED_WORKFLOW_PROFILE_REVISION);\nconst META = JSON.parse({encoded:?});\n{}\n",include_str!("client_typescript.txt")),
-        "python" => format!("# Generated selected-profile client. No I/O or capability changes.\nimport json\nimport re\nfrom typing import Any, Literal, NotRequired, TypedDict, TypeAlias\nPROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?}\nRESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?}\n{python_types}WORKFLOWS_JSON = {workflows_encoded:?}\nEXPECTED_WORKFLOW_PROFILE_REVISION: str | None = {expected_revision_python}\nWORKFLOWS: list[SupportedWorkflow] = validate_workflow_catalogue(json.loads(WORKFLOWS_JSON), EXPECTED_WORKFLOW_PROFILE_REVISION)\nMETA = json.loads({encoded:?})\n{}\n",include_str!("client_python.txt")),
-        "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\n{rust_types}pub const WORKFLOWS_JSON: &str = {workflows_encoded:?};\npub const EXPECTED_WORKFLOW_PROFILE_REVISION: Option<&str> = {expected_revision_rust};\npub fn workflows() -> Result<Vec<SupportedWorkflow>, String> {{ let raw: Value = serde_json::from_str(WORKFLOWS_JSON).map_err(|error| error.to_string())?; validate_workflow_catalogue_json(&raw)?; let values: Vec<SupportedWorkflow> = serde_json::from_value(raw).map_err(|error| error.to_string())?; validate_workflows(&values, EXPECTED_WORKFLOW_PROFILE_REVISION)?; Ok(values) }}\npub fn workflow_transitions() -> Result<Vec<WorkflowTransition>, String> {{ Ok(workflows()?.into_iter().next().ok_or(\"supported workflow missing\")?.transition_policy) }}\nconst METADATA: &str = {encoded:?};\n{}\n",include_str!("client_rust.txt")),
+        "typescript" => format!("// Generated selected-profile client. No I/O or capability changes.\nexport const PROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?};\nexport const RESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?};\nexport const CLIENT_CONTRACT_REVISION = {contract_revision:?} as const;\n{ts_types}const WORKFLOWS_JSON = {workflows_encoded:?};\nexport const EXPECTED_WORKFLOW_PROFILE_REVISION: string | null = {expected_revision_json};\nexport const WORKFLOWS = validateWorkflowCatalogue(JSON.parse(WORKFLOWS_JSON), EXPECTED_WORKFLOW_PROFILE_REVISION);\nconst META = JSON.parse({encoded:?});\n{}\n",include_str!("client_typescript.txt")),
+        "python" => format!("# Generated selected-profile client. No I/O or capability changes.\nimport json\nimport re\nfrom typing import Any, Literal, NotRequired, TypedDict, TypeAlias\nPROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?}\nRESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?}\nCLIENT_CONTRACT_REVISION: str = {contract_revision:?}\n{python_types}WORKFLOWS_JSON = {workflows_encoded:?}\nEXPECTED_WORKFLOW_PROFILE_REVISION: str | None = {expected_revision_python}\nWORKFLOWS: list[SupportedWorkflow] = validate_workflow_catalogue(json.loads(WORKFLOWS_JSON), EXPECTED_WORKFLOW_PROFILE_REVISION)\nMETA = json.loads({encoded:?})\n{}\n",include_str!("client_python.txt")),
+        "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\npub const CLIENT_CONTRACT_REVISION: &str = {contract_revision:?};\n{rust_types}pub const WORKFLOWS_JSON: &str = {workflows_encoded:?};\npub const EXPECTED_WORKFLOW_PROFILE_REVISION: Option<&str> = {expected_revision_rust};\npub fn workflows() -> Result<Vec<SupportedWorkflow>, String> {{ let raw: Value = serde_json::from_str(WORKFLOWS_JSON).map_err(|error| error.to_string())?; validate_workflow_catalogue_json(&raw)?; let values: Vec<SupportedWorkflow> = serde_json::from_value(raw).map_err(|error| error.to_string())?; validate_workflows(&values, EXPECTED_WORKFLOW_PROFILE_REVISION)?; Ok(values) }}\npub fn workflow_transitions() -> Result<Vec<WorkflowTransition>, String> {{ Ok(workflows()?.into_iter().next().ok_or(\"supported workflow missing\")?.transition_policy) }}\nconst METADATA: &str = {encoded:?};\n{}\n",include_str!("client_rust.txt")),
         _ => return Err(invalid("unknown client language")),
     };
     source.push_str(&typed.source);
@@ -283,6 +290,98 @@ fn validate_workflow_contracts(workflows: &[Value], methods: &[Value]) -> Result
         }
     }
     Ok(())
+}
+
+fn client_contract(
+    methods: &[Value],
+    request_documents: &BTreeMap<String, Value>,
+    response_documents: &BTreeMap<String, Value>,
+    workflows: &[Value],
+    bundle: &Value,
+) -> Result<Value> {
+    let capabilities = response_documents
+        .get("urn:semaprax.image-agent-capabilities.v5")
+        .and_then(|document| document.get("const"))
+        .ok_or_else(|| invalid("client contract capabilities are missing"))?;
+    Ok(json!({
+        "protocol":VNEXT_PROTOCOL_SCHEMA,
+        "result_schema":VNEXT_RESULT_SCHEMA,
+        "methods":methods,
+        "request_documents":request_documents,
+        "response_documents":response_documents,
+        "workflows":workflows,
+        "capabilities":capabilities,
+        "unbundled":bundle["unbundled_payload_schemas"]
+    }))
+}
+
+fn client_contract_revision(contract: &Value) -> Result<String> {
+    const FIELDS: [&str; 8] = [
+        "protocol",
+        "result_schema",
+        "methods",
+        "request_documents",
+        "response_documents",
+        "workflows",
+        "capabilities",
+        "unbundled",
+    ];
+    let fields = contract
+        .as_object()
+        .filter(|fields| {
+            fields.len() == FIELDS.len() && FIELDS.iter().all(|field| fields.contains_key(*field))
+        })
+        .ok_or_else(|| invalid("client contract fields are malformed"))?;
+    if fields["protocol"] != VNEXT_PROTOCOL_SCHEMA
+        || fields["result_schema"] != VNEXT_RESULT_SCHEMA
+        || fields["methods"].as_array().is_none_or(Vec::is_empty)
+        || !fields["request_documents"].is_object()
+        || !fields["response_documents"].is_object()
+        || !fields["workflows"].is_array()
+        || !fields["capabilities"].is_object()
+        || !fields["unbundled"].is_array()
+    {
+        return Err(invalid("client contract values are malformed"));
+    }
+    let canonical = canonical_contract_value(contract);
+    let bytes = serde_json::to_vec(&canonical)
+        .map_err(|_| invalid("client contract serialization failed"))?;
+    if bytes.is_empty() || bytes.len() > MAX_CLIENT_CONTRACT_BYTES {
+        return Err(invalid("client contract exceeds its byte bound"));
+    }
+    let replay: Value = serde_json::from_slice(&bytes)
+        .map_err(|_| invalid("client contract canonical replay failed"))?;
+    if replay != canonical
+        || serde_json::to_vec(&canonical_contract_value(&replay))
+            .ok()
+            .as_deref()
+            != Some(bytes.as_slice())
+    {
+        return Err(invalid("client contract serialization is unstable"));
+    }
+    let mut hash = Sha256::new();
+    hash.update(CLIENT_CONTRACT_DOMAIN);
+    hash.update((bytes.len() as u64).to_le_bytes());
+    hash.update(&bytes);
+    Ok(format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(hash.finalize())
+    ))
+}
+
+fn canonical_contract_value(value: &Value) -> Value {
+    match value {
+        Value::Array(values) => Value::Array(values.iter().map(canonical_contract_value).collect()),
+        Value::Object(fields) => Value::Object(
+            fields
+                .iter()
+                .map(|(name, value)| (name.clone(), canonical_contract_value(value)))
+                .collect::<BTreeMap<_, _>>()
+                .into_iter()
+                .collect(),
+        ),
+        value => value.clone(),
+    }
 }
 
 fn ts_union(values: &[String]) -> String {

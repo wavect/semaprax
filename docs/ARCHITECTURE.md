@@ -1488,7 +1488,8 @@ filesystem, process, publication, network, persistence, or recovery authority.
 ## Reports and projections
 
 Read-only commands are implemented in focused modules such as
-`src/abi_report.rs`, `src/c_header.rs`, `src/cxx_shim.rs`,
+`src/abi_report.rs`, `src/c_header.rs`, `src/cxx_shim.rs` and its bounded
+`src/cxx_shim/package.rs` replay/package child,
 `src/capability_manifest.rs`, `src/freestanding_object.rs`, `src/openapi.rs`,
 `src/package_report.rs`, `src/plugin_manifest.rs`, `src/region_report.rs`,
 `src/simd_report.rs`, and `src/ui_schema.rs`.

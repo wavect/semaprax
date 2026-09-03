@@ -32,6 +32,9 @@ use crate::bounded_output::{with_limit, BudgetedJoin as _};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::{codegen, format, graph, parse, patch, verify};
 
+mod package;
+pub use package::{generate_package, verify_package_envelope, CxxPackage, PACKAGE_SCHEMA};
+
 macro_rules! bformat {
     ($($argument:tt)*) => {
         crate::bounded_output::budgeted_format(format_args!($($argument)*))
@@ -132,6 +135,7 @@ fn consistency_error(message: String) -> Diagnostic {
     Diagnostic::io("SPX-X105", message)
 }
 
+#[derive(Clone)]
 struct EmittedFunction {
     stable_id: String,
     name: String,
@@ -140,6 +144,8 @@ struct EmittedFunction {
     requires: Vec<String>,
     ensures: Vec<String>,
     effects: String,
+    params: Vec<Type>,
+    result: Type,
 }
 
 struct ExcludedFunction {
@@ -149,6 +155,17 @@ struct ExcludedFunction {
 }
 
 struct Generation {
+    envelope: String,
+    fragment: String,
+    native_text: Option<String>,
+    emitted: Vec<EmittedFunction>,
+    excluded: usize,
+    revision: String,
+    canonical_source: Option<String>,
+    source_path: String,
+}
+
+struct Rendered {
     envelope: String,
     fragment: String,
 }
@@ -256,9 +273,51 @@ fn generate_internal(
     source_path: &Path,
     options: &CxxShimOptions,
 ) -> Result<Generation, Vec<Diagnostic>> {
+    generate_internal_with_source_limit(source_path, options, None)
+}
+
+fn generate_internal_bounded(
+    source_path: &Path,
+    options: &CxxShimOptions,
+    max_source_bytes: usize,
+) -> Result<Generation, Vec<Diagnostic>> {
+    generate_internal_with_source_limit(source_path, options, Some(max_source_bytes))
+}
+
+fn generate_internal_with_source_limit(
+    source_path: &Path,
+    options: &CxxShimOptions,
+    max_source_bytes: Option<usize>,
+) -> Result<Generation, Vec<Diagnostic>> {
     let canonical_source_path = patch::canonical_source_path(source_path)?;
-    let snapshot = patch::read_source_snapshot(&canonical_source_path)?;
-    let program = parse(snapshot.source(), source_path).map_err(|error| vec![error])?;
+    let snapshot = match max_source_bytes {
+        Some(limit) => {
+            patch::read_source_snapshot_bounded(&canonical_source_path, limit, "SPX-X103")?
+        }
+        None => patch::read_source_snapshot(&canonical_source_path)?,
+    };
+    let generation = generate_from_source(
+        snapshot.source(),
+        source_path,
+        options,
+        max_source_bytes.is_some(),
+    )?;
+    patch::validate_source_unchanged(
+        &canonical_source_path,
+        source_path,
+        &snapshot,
+        &generation.revision,
+    )?;
+    Ok(generation)
+}
+
+fn generate_from_source(
+    source: &str,
+    source_path: &Path,
+    options: &CxxShimOptions,
+    capture_canonical_source: bool,
+) -> Result<Generation, Vec<Diagnostic>> {
+    let program = parse(source, source_path).map_err(|error| vec![error])?;
     let diagnostics = verify::verify(&program);
     if diagnostics.iter().any(|item| item.severity.is_error()) {
         return Err(diagnostics);
@@ -288,6 +347,12 @@ fn generate_internal(
                 requires: contract_clauses(&function.requires)?,
                 ensures: contract_clauses(&function.ensures)?,
                 effects: hygiene_check(function.effects.join(", "))?,
+                params: function
+                    .params
+                    .iter()
+                    .map(|param| param.ty.clone())
+                    .collect(),
+                result: function.return_type.clone(),
             }),
         }
     }
@@ -308,10 +373,10 @@ fn generate_internal(
         .map(|item| item.stable_id.clone())
         .collect::<Vec<_>>();
     let guard = include_guard(&guard_ids);
-    let digest = source_digest(snapshot.source());
+    let digest = source_digest(source);
     let path_text = source_path.display().to_string();
 
-    let (generation, overflowed) = with_limit(options.max_bytes, || {
+    let (rendered, overflowed) = with_limit(options.max_bytes, || {
         render(
             &path_text,
             &revision,
@@ -329,8 +394,16 @@ fn generate_internal(
             "cxx-shim output exceeds the max-bytes budget; refusing to truncate".to_owned(),
         )]);
     }
-    patch::validate_source_unchanged(&canonical_source_path, source_path, &snapshot, &revision)?;
-    Ok(generation)
+    Ok(Generation {
+        envelope: rendered.envelope,
+        fragment: rendered.fragment,
+        native_text,
+        emitted,
+        excluded: excluded.len(),
+        revision,
+        canonical_source: capture_canonical_source.then(|| format::canonical(&program)),
+        source_path: path_text,
+    })
 }
 
 fn resolve_selection<'a>(
@@ -501,7 +574,7 @@ fn render(
     functions_total: usize,
     emitted: &[EmittedFunction],
     excluded: &[ExcludedFunction],
-) -> Generation {
+) -> Rendered {
     let fragment = render_fragment(revision, guard, emitted);
 
     let function_entries = emitted
@@ -562,7 +635,7 @@ fn render(
         payload.len(),
         payload,
     );
-    Generation { envelope, fragment }
+    Rendered { envelope, fragment }
 }
 
 fn render_fragment(revision: &str, guard: &str, emitted: &[EmittedFunction]) -> String {

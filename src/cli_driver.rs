@@ -1251,6 +1251,14 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             Ok(())
         }
+        CommandId::CxxPackage => {
+            let path = required_path(&args, 1)?;
+            let options = cxx_package_options(&args)?;
+            let envelope = cxx_shim::generate_package(&path, &options)
+                .map_err(|errors| report(&errors, false))?;
+            println!("{envelope}");
+            Ok(())
+        }
         CommandId::TargetEvidence => {
             if args.len() != 3 {
                 eprintln!("target-evidence requires exactly <file> <patch.spatch>");
@@ -2258,6 +2266,20 @@ fn ui_schema_options(args: &[String]) -> Result<ui_schema::UiSchemaOptions, u8> 
 }
 
 fn cxx_shim_options(args: &[String]) -> Result<(cxx_shim::CxxShimOptions, bool), u8> {
+    cxx_selection_options(args, "cxx-shim", true)
+}
+
+fn cxx_package_options(args: &[String]) -> Result<cxx_shim::CxxShimOptions, u8> {
+    let (options, emit_fragment) = cxx_selection_options(args, "cxx-package", false)?;
+    debug_assert!(!emit_fragment);
+    Ok(options)
+}
+
+fn cxx_selection_options(
+    args: &[String],
+    command: &str,
+    allow_fragment: bool,
+) -> Result<(cxx_shim::CxxShimOptions, bool), u8> {
     let mut functions: Vec<String> = Vec::new();
     let mut max_bytes = cxx_shim::CxxShimOptions::default().max_bytes;
     let mut emit_fragment = false;
@@ -2268,12 +2290,12 @@ fn cxx_shim_options(args: &[String]) -> Result<(cxx_shim::CxxShimOptions, bool),
         match option {
             "--function" => {
                 let value = args.get(index + 1).ok_or_else(|| {
-                    eprintln!("cxx-shim option `{option}` requires a value");
+                    eprintln!("{command} option `{option}` requires a value");
                     2
                 })?;
                 for token in value.split(',') {
                     if token.is_empty() {
-                        eprintln!("cxx-shim option `{option}` requires nonempty selections");
+                        eprintln!("{command} option `{option}` requires nonempty selections");
                         return Err(2);
                     }
                     functions.push(token.to_owned());
@@ -2282,26 +2304,26 @@ fn cxx_shim_options(args: &[String]) -> Result<(cxx_shim::CxxShimOptions, bool),
             }
             "--max-bytes" => {
                 if !seen.insert(option.to_owned()) {
-                    eprintln!("duplicate cxx-shim option `{option}`");
+                    eprintln!("duplicate {command} option `{option}`");
                     return Err(2);
                 }
                 let value = args.get(index + 1).ok_or_else(|| {
-                    eprintln!("cxx-shim option `{option}` requires a value");
+                    eprintln!("{command} option `{option}` requires a value");
                     2
                 })?;
                 max_bytes = property_number(option, value)?;
                 index += 2;
             }
-            "--emit-fragment" => {
+            "--emit-fragment" if allow_fragment => {
                 if !seen.insert(option.to_owned()) {
-                    eprintln!("duplicate cxx-shim option `{option}`");
+                    eprintln!("duplicate {command} option `{option}`");
                     return Err(2);
                 }
                 emit_fragment = true;
                 index += 1;
             }
             other => {
-                eprintln!("unknown cxx-shim option `{other}`");
+                eprintln!("unknown {command} option `{other}`");
                 return Err(2);
             }
         }

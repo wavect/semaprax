@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Added the authority-free C++ scalar package v1 projection. An explicit
+  stable-ID selection now produces a bounded canonical envelope containing a
+  C++17 header and separately linkable C11 provider over the existing Copy-
+  scalar native ABI. Verification treats hashes only as transport integrity:
+  it replays embedded canonical source through parsing, verification,
+  admission and native emission, then requires exact reconstructed Shim,
+  header and provider bytes, rejecting self-consistent remints and appended
+  code. The local owning gate compiles separate translation units and executes
+  success plus failure-slot preservation; aggregate/resource/string ownership,
+  exceptions, maintained packaging, cross-platform conformance and support
+  promotion remain open.
+
 - Fixed the combined current-main regression batch: command UTF-8 results now
   retain authenticated borrowed-string provenance through immutable locals,
   nested owned-record backends distinguish records that actually contain

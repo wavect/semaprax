@@ -446,6 +446,7 @@ name = "semaprax-doctor-release"
 version = "0.1.0"
 dependencies = [
  "ed25519-dalek",
+ "libc",
  "semaprax-doctor-capsule",
  "serde_json",
  "sha2 0.11.0",

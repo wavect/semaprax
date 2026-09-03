@@ -1422,6 +1422,13 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         result.remove("urn:semaprax.project-candidate-dependency-summary.v1");
         result.remove("urn:semaprax.project-candidate-dependency-page.v1");
     }
+    if !capabilities["methods"].as_array().is_some_and(|methods| {
+        methods
+            .iter()
+            .any(|method| method == "candidate/environment-consumer-review")
+    }) {
+        result.remove("urn:semaprax.image-candidate-environment-consumer-review-chunk.v1");
+    }
     result.extend(candidate_schemas::documents());
     if capabilities["methods"].as_array().is_some_and(|methods| {
         methods

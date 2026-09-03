@@ -7,6 +7,7 @@ use semaprax::package_resolver::{self, Requirement, ResolutionInput, ResolutionO
 use semaprax::package_semantic_graph::PackageSemanticGraph;
 use semaprax::package_source_capsule::{self, PackageSource, SourceCapsuleOptions};
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -176,6 +177,105 @@ fn call(session: &mut VNextSession, method: &str, params: Value) -> Value {
 fn payload(response: Value) -> Value {
     assert!(response.get("error").is_none(), "{response}");
     response["result"]["payload"].clone()
+}
+
+fn canonical_json(value: Value, domain: &[u8]) -> (String, String) {
+    let mut value = value;
+    value.sort_all_objects();
+    let mut bytes = serde_json::to_string(&value).unwrap();
+    bytes.push('\n');
+    let mut hash = Sha256::new();
+    hash.update(domain);
+    hash.update((bytes.len() as u64).to_le_bytes());
+    hash.update(bytes.as_bytes());
+    (
+        bytes,
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(hash.finalize())
+        ),
+    )
+}
+
+fn exact_environment_consumer_project(fixture: &Fixture) {
+    std::fs::write(
+        fixture.root.join("project/semaprax.toml"),
+        r#"schema = "semaprax.project.v8"
+name = "lib.math"
+version = "1.0.0"
+profile = "owned-data-api.v1"
+entry = "lib.math"
+sources = ["src/lib.spx"]
+web_exports = ["lib.answer", "lib.unused"]
+tests = []
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        fixture.root.join("project/src/lib.spx"),
+        &fixture.sources[1].source,
+    )
+    .unwrap();
+}
+
+fn analysis_boundary_bundle(candidate: &str, coverage: &Value, root: &Path) -> (String, String) {
+    let source = coverage["sources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|source| source["path"] == "src/lib.spx")
+        .unwrap();
+    let source_bytes = std::fs::read(root.join("project/src/lib.spx")).unwrap();
+    let (generated, generated_digest) = canonical_json(
+        json!({
+            "schema":"semaprax.project-candidate-generated-file-provenance-declaration.v1",
+            "candidate_revision":candidate,
+            "files":[{
+                "artifact":{"path":"src/lib.spx","bytes":source_bytes.len(),"sha256":source["source_digest"]},
+                "source":{"path":"src/lib.spx","source_revision":source["source_revision"],"source_digest":source["source_digest"]},
+                "generator":{"id":"fixture.generator:v1","digest":"sha256:1111111111111111111111111111111111111111111111111111111111111111"}
+            }]
+        }),
+        b"semaprax.project-candidate-generated-file-provenance-declaration.v1\0",
+    );
+    let operations = coverage["manifest"]["web_exports"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|id| json!({
+            "export_id":id,
+            "operation_digest":"sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            "schema_digest":"sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        }))
+        .collect::<Vec<_>>();
+    let (external, external_digest) = canonical_json(
+        json!({
+            "schema":"semaprax.project-candidate-external-api-contract-declaration.v1",
+            "candidate_revision":candidate,
+            "scope":{"kind":"manifest_exports"},
+            "operations":operations
+        }),
+        b"semaprax.project-candidate-external-api-contract-declaration.v1\0",
+    );
+    let (deployment, deployment_digest) = canonical_json(
+        json!({
+            "schema":"semaprax.project-candidate-deployment-contract-declaration.v1",
+            "candidate_revision":candidate,
+            "manifest_exports":coverage["manifest"]["web_exports"],
+            "configuration":[{"key":"SERVICE_MODE","type":"string","required":true}]
+        }),
+        b"semaprax.project-candidate-deployment-contract-declaration.v1\0",
+    );
+    canonical_json(
+        json!({
+            "schema":"semaprax.project-candidate-analysis-boundary-bundle.v1",
+            "candidate_revision":candidate,
+            "deployment_contract":{"declaration":deployment,"declaration_digest":deployment_digest},
+            "generated_file_provenance":{"declaration":generated,"declaration_digest":generated_digest},
+            "external_api_contract":{"declaration":external,"declaration_digest":external_digest}
+        }),
+        b"semaprax.project-candidate-analysis-boundary-bundle.v1\0",
+    )
 }
 
 #[test]
@@ -651,6 +751,7 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
     const METHOD: &str = "candidate/environment-consumer-review";
     const CHUNK: &str = "urn:semaprax.image-candidate-environment-consumer-review-chunk.v1";
     let fixture = Fixture::new("1.0.0");
+    exact_environment_consumer_project(&fixture);
     let graph = Arc::new(fixture.graph());
 
     let mut candidate_only = fixture.candidate_session();
@@ -662,6 +763,13 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
         .as_array()
         .unwrap()
         .contains(&json!(METHOD)));
+    assert!(
+        !payload(call(&mut candidate_only, "protocol/schemas", json!({})))["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|document| document["$id"] == CHUNK)
+    );
     candidate_only.finish().unwrap();
 
     let mut graph_only = fixture.session();
@@ -673,6 +781,13 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
             .as_array()
             .unwrap()
             .contains(&json!(METHOD))
+    );
+    assert!(
+        !payload(call(&mut graph_only, "protocol/schemas", json!({})))["documents"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|document| document["$id"] == CHUNK)
     );
     graph_only.finish().unwrap();
 
@@ -743,6 +858,76 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
         assert!(source.contains("request_candidate_environment_consumer_review"));
         assert!(source.contains("decode_request_candidate_environment_consumer_review"));
     }
+    let image = selected.image_revision().to_owned();
+    let candidate = payload(call(&mut selected, "candidate/open", json!({})))["candidate_revision"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let coverage = payload(call(
+        &mut selected,
+        "candidate/analysis-coverage",
+        json!({"candidate_revision":candidate}),
+    ));
+    let (bundle, bundle_digest) = analysis_boundary_bundle(&candidate, &coverage, &fixture.root);
+    let request = json!({
+        "image_revision":image,
+        "candidate_revision":candidate,
+        "package_revision":graph.graph_digest(),
+        "bundle":bundle,
+        "bundle_digest":bundle_digest,
+        "provider_package":"lib.math",
+        "provider_version":"1.0.0",
+        "provider_source_path":"src/lib.spx",
+        "target":"lib.answer",
+        "chunk_bytes":1024
+    });
+    let mut stale = request.clone();
+    stale["package_revision"] =
+        json!("sha256:0000000000000000000000000000000000000000000000000000000000000000");
+    assert_eq!(
+        call(&mut selected, METHOD, stale)["error"]["data"]["diagnostics"][0]["code"],
+        "SPX-G475"
+    );
+    let mut offset = 0;
+    let mut chunks = 0;
+    let mut report_bytes = String::new();
+    let mut report_sha = None;
+    loop {
+        let mut params = request.clone();
+        params["offset"] = json!(offset);
+        let chunk = payload(call(&mut selected, METHOD, params));
+        assert_eq!(chunk["schema"], CHUNK.trim_start_matches("urn:"));
+        assert_eq!(chunk["candidate_revision"], candidate);
+        assert_eq!(chunk["package_revision"], graph.graph_digest());
+        assert_eq!(chunk["bundle_digest"], bundle_digest);
+        assert_eq!(chunk["compatibility"], "not_assessed");
+        let sha = chunk["report_sha256"].as_str().unwrap().to_owned();
+        assert!(report_sha.as_ref().is_none_or(|expected| expected == &sha));
+        report_sha = Some(sha);
+        report_bytes.push_str(chunk["chunk"].as_str().unwrap());
+        chunks += 1;
+        match chunk["next_offset"].as_u64() {
+            Some(next) => offset = next as usize,
+            None => break,
+        }
+    }
+    assert!(chunks >= 2);
+    assert_eq!(
+        report_sha.unwrap(),
+        format!(
+            "sha256:{:x}",
+            semaprax::digest_hex::LowerHex(Sha256::digest(report_bytes.as_bytes()))
+        )
+    );
+    let report: Value = serde_json::from_str(&report_bytes).unwrap();
+    assert_eq!(report["candidate_revision"], candidate);
+    assert_eq!(report["package_graph_revision"], graph.graph_digest());
+    assert_eq!(report["provider"]["package"], "lib.math");
+    assert_eq!(report["provider_source"]["path"], "src/lib.spx");
+    assert_eq!(report["target"], "lib.answer");
+    assert!(report["counts"]["imports"].as_u64().unwrap() > 0);
+    assert!(report["counts"]["calls"].as_u64().unwrap() > 0);
+    assert_eq!(report["compatibility"], "not_assessed");
     selected.finish().unwrap();
 
     let mut mcp_host = fixture.candidate_session();
@@ -756,6 +941,7 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
     mcp.handle_frame(initialize.to_string().as_bytes()).unwrap();
     mcp.handle_frame(br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#);
     let mut names = Vec::new();
+    let mut review_input = None;
     let mut cursor = None;
     loop {
         let request = json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":
@@ -763,18 +949,41 @@ fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_n
         let page: Value =
             serde_json::from_slice(&mcp.handle_frame(request.to_string().as_bytes()).unwrap())
                 .unwrap();
-        names.extend(
-            page["result"]["tools"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .filter_map(|tool| tool["name"].as_str().map(str::to_owned)),
-        );
+        for tool in page["result"]["tools"].as_array().unwrap() {
+            if tool["name"] == "candidate__environment-consumer-review" {
+                review_input = Some(tool["inputSchema"].clone());
+            }
+            names.push(tool["name"].as_str().unwrap().to_owned());
+        }
         cursor = page["result"]["nextCursor"].as_str().map(str::to_owned);
         if cursor.is_none() {
             break;
         }
     }
     assert!(names.contains(&"candidate__environment-consumer-review".to_owned()));
+    let review_input = review_input.unwrap();
+    assert_eq!(review_input["additionalProperties"], false);
+    assert!(review_input["required"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("bundle_digest")));
+    let opened = json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{
+        "name":"candidate__open","arguments":{"image_revision":image}}});
+    let opened: Value =
+        serde_json::from_slice(&mcp.handle_frame(opened.to_string().as_bytes()).unwrap()).unwrap();
+    let opened: Value =
+        serde_json::from_str(opened["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(opened["result"]["payload"]["candidate_revision"], candidate);
+    let invoked = json!({"jsonrpc":"2.0","id":3,"method":"tools/call","params":{
+        "name":"candidate__environment-consumer-review","arguments":request}});
+    let invoked: Value =
+        serde_json::from_slice(&mcp.handle_frame(invoked.to_string().as_bytes()).unwrap()).unwrap();
+    let inner: Value =
+        serde_json::from_str(invoked["result"]["content"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(
+        inner["result"]["payload"]["schema"],
+        CHUNK.trim_start_matches("urn:")
+    );
+    assert_eq!(inner["result"]["payload"]["candidate_revision"], candidate);
     mcp.finish().unwrap();
 }

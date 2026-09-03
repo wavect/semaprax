@@ -65,10 +65,12 @@ Every other coverage area, blind-spot row, source and manifest fact, attachment,
 authority field and existing nonclaim is retained. The original nested
 environment review and its analysis-boundary report remain unchanged.
 
-`partial` means that this one authenticated attached graph contains source
-imports and static call sites for the selected candidate provider declaration.
-It does not mean that the inventory is complete, that every import executes, or
-that an affected consumer accepts the candidate.
+`partial` means that the compiler inspected the bounded, authenticated inventory
+in this one attached graph for the selected candidate provider declaration and
+reports its exact import and static-call counts. Either inventory may be empty.
+An empty inventory does not prove that no consumer exists. The status does not
+mean that the inventory is complete, that any import executes, or that an
+affected consumer accepts the candidate.
 
 ## Transport v5
 

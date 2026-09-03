@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Recorded the public Wasm export surface per profile instead of per backend.
+  `tests/backend_type_parity.rs` had one `wasm export` column measured only
+  against the Copy-scalar profile, so `usize`, `str`, and `Slice<u8>` read as
+  having no export path when in fact each reaches a boundary through the
+  profile built for its ABI. The row set now pins scalar, borrowed-text, and
+  useful-data admission separately, one exact probe shape per row, and records
+  that position matters as much as type: `borrow str` is admitted by the
+  borrowed-text profile returning a scalar and refused returning `usize`.
+  [Public Wasm Scalar Exports v1](docs/WASM-SCALAR-EXPORTS-V1.md) now names
+  what each excluded type uses instead. No admission behavior changed.
+
 - Added `semaprax.graph.v25` so a program declaring an `import rust fn`
   callback has a semantic projection. Every Graph-derived route previously
   rejected such a program with `SPX-G218`, which closed the callback direction

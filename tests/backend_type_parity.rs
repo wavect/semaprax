@@ -8,9 +8,17 @@
 //! path — so a narrowing fails here, and a widening has to be recorded
 //! deliberately rather than passing unnoticed.
 //!
-//! A `no` is not a defect. Several are deliberate profile boundaries: the
-//! public Wasm export profile carries a Copy-scalar ABI and leaves aggregates
-//! and owned data to the owned-data programme.
+//! A `no` in one export column is not "unavailable". SEMAPRAX has several
+//! public Wasm export profiles, each with its own ABI, and a type reaches the
+//! boundary through the profile built for it: Copy scalars through the scalar
+//! profile's direct adapters, `borrow str` through the borrowed-text profile,
+//! `borrow Slice<u8>` and `usize` results through the useful-data profile's
+//! scratch/status ABI, and owned `Bytes` and `string` through the descriptor-
+//! driven owned-data and owned-UTF-8 project profiles, which need a Project
+//! subject and so are exercised by the project harnesses rather than here.
+//! Position matters as much as the type: the same type can be admitted as a
+//! borrowed parameter and refused as a result. The rows below therefore pin
+//! one exact probe shape each, not a claim about the type in every position.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -48,31 +56,45 @@ const PROBES: &[(&str, &str)] = &[
         "slice_u8",
         "fn probe(v: borrow Slice<u8>) -> usize { byte_len(v) }",
     ),
+    // The same `str` in the position the borrowed-text profile is built for:
+    // a borrowed view in, a scalar out. The `str` row above returns `usize`,
+    // which that profile does not carry, so it isolates position from type.
+    ("str borrowed", "fn probe(v: borrow str) -> i64 { 0 }"),
 ];
 
-/// The recorded answer per type: does the native backend lower it, does the
-/// Wasm backend lower it inside a module, and does the public scalar export
-/// profile admit it at the boundary?
-const RECORDED: &[(&str, bool, bool, bool)] = &[
-    // type        native  wasm module  wasm export
-    ("i64", true, true, true),
-    ("i32", true, true, true),
-    ("u8", true, true, true),
-    ("char", true, true, true),
-    ("f32", true, true, true),
-    ("f64", true, true, true),
-    ("bool", true, true, true),
-    // `usize` is a checked semantic integer with no host width; the scalar
-    // widenings deliberately left it outside the exported Copy-scalar surface.
-    ("usize", true, true, false),
-    // Owned and borrowed data lower on both backends but carry no export ABI
-    // until the owned-data programme provides one. `string` lowers into a core
-    // module here; it is the legacy Web *package* wrapper that rejects it,
-    // for want of the String runtime imports, not the backend.
-    ("string", true, true, false),
-    ("bytes", true, true, false),
-    ("str", true, true, false),
-    ("slice_u8", true, true, false),
+/// The recorded answer per probe: does the native backend lower it, does the
+/// Wasm backend lower it inside a module, and which public Wasm export profile
+/// admits it at the boundary — the Copy-scalar profile, the borrowed-text
+/// profile, or the useful-data profile.
+const RECORDED: &[(&str, bool, bool, bool, bool, bool)] = &[
+    // type          native module scalar text data
+    ("i64", true, true, true, false, false),
+    ("i32", true, true, true, false, false),
+    ("u8", true, true, true, false, false),
+    ("char", true, true, true, false, false),
+    ("f32", true, true, true, false, false),
+    ("f64", true, true, true, false, false),
+    ("bool", true, true, true, false, false),
+    // `usize` is a checked semantic integer with no host width, so the scalar
+    // widenings deliberately left it out of the exported Copy-scalar ABI. It
+    // still reaches the boundary as a useful-data *result* — see `slice_u8`,
+    // whose probe returns one — but not as a by-value scalar parameter.
+    ("usize", true, true, false, false, false),
+    // Owned and borrowed data lower on both backends. `string` lowers into a
+    // core module here; it is the legacy Web *package* wrapper that rejects
+    // it, for want of the String runtime imports, not the backend. Owned
+    // `string` and `Bytes` results reach the boundary through the descriptor-
+    // driven owned-UTF-8 and owned-data project profiles, which need a Project
+    // subject and are gated by the project harnesses.
+    ("string", true, true, false, false, false),
+    ("bytes", true, true, false, false, false),
+    // `str` in this shape returns `usize`, which the borrowed-text profile
+    // does not carry; `str borrowed` below is the same type in the shape that
+    // profile does admit.
+    ("str", true, true, false, false, false),
+    // A borrowed byte view in and a `usize` out: exactly the useful-data ABI.
+    ("slice_u8", true, true, false, false, true),
+    ("str borrowed", true, true, false, true, false),
 ];
 
 fn program(source: &str) -> String {
@@ -81,9 +103,11 @@ fn program(source: &str) -> String {
 
 #[test]
 fn every_backend_admits_exactly_the_recorded_types() {
-    let recorded: BTreeMap<&str, (bool, bool, bool)> = RECORDED
+    let recorded: BTreeMap<&str, (bool, bool, bool, bool, bool)> = RECORDED
         .iter()
-        .map(|(name, native, module, export)| (*name, (*native, *module, *export)))
+        .map(|(name, native, module, scalar, text, data)| {
+            (*name, (*native, *module, *scalar, *text, *data))
+        })
         .collect();
     assert_eq!(
         recorded.len(),
@@ -97,16 +121,20 @@ fn every_backend_admits_exactly_the_recorded_types() {
         let parsed = parse(&text, Path::new("probe.spx"))
             .unwrap_or_else(|error| panic!("probe `{name}` must parse and verify: {error:?}"));
 
+        let selected = ["probe.fn".to_owned()];
         let native = codegen::emit_c(&parsed).is_ok();
         let module = wasm::emit_module(&parsed).is_ok();
-        let export =
-            wasm::emit_module_with_scalar_exports(&parsed, &["probe.fn".to_owned()]).is_ok();
+        let scalar = wasm::emit_module_with_scalar_exports(&parsed, &selected).is_ok();
+        let text = wasm::emit_module_with_text_exports(&parsed, &selected).is_ok();
+        let data = wasm::emit_module_with_byte_exports(&parsed, &selected).is_ok();
 
-        let (want_native, want_module, want_export) = recorded[name];
+        let (want_native, want_module, want_scalar, want_text, want_data) = recorded[name];
         for (path, got, want) in [
             ("native", native, want_native),
             ("wasm module", module, want_module),
-            ("wasm export", export, want_export),
+            ("scalar export", scalar, want_scalar),
+            ("borrowed-text export", text, want_text),
+            ("useful-data export", data, want_data),
         ] {
             if got != want {
                 drift.push(format!(

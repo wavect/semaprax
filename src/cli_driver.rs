@@ -144,7 +144,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         return Err(2);
     }
     let Some(command_id) = cli::help::parse(command, true) else {
-        eprintln!("unknown command `{command}`\n");
+        eprint!("{}", cli::help::unknown_diagnostic(command, host.is_some()));
         print_help(host.is_some());
         return Err(2);
     };
@@ -2670,7 +2670,10 @@ fn print_scoped_help(command: &str, has_private_host: bool) -> Result<(), u8> {
         print!("{scoped}");
         Ok(())
     } else {
-        eprintln!("unknown command `{command}`\n");
+        eprint!(
+            "{}",
+            cli::help::unknown_diagnostic(command, has_private_host)
+        );
         print!("{help}");
         Err(2)
     }

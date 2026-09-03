@@ -63,7 +63,9 @@ plan on standard output.
 Capability-aware command help additionally requires the exact catalog/dispatcher
 inventory, global-byte preservation, standalone/full capability separation,
 scoped and malformed-position behavior, and zero-activity gates owned by
-[Capability-Aware CLI Help v1](CLI-HELP-V1.md).
+[Capability-Aware CLI Help v1](CLI-HELP-V1.md). Typo guidance additionally
+requires bounded unique matching, exact diagnostics, and standalone/full
+capability separation owned by [CLI Help v2](CLI-HELP-V2.md).
 
 The script is the executable source of truth for the precise command sequence.
 Do not copy that sequence into feature documents.

@@ -62,6 +62,21 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert_eq!(unknown.stdout, empty.stdout);
     assert_eq!(unknown.stderr, b"unknown command `not-a-command`\n\n");
 
+    let (typo, typo_dir) = invoke(&["chek"]);
+    assert_eq!(typo.status.code(), Some(2));
+    assert_eq!(typo.stdout, empty.stdout);
+    assert_eq!(
+        typo.stderr,
+        b"unknown command `chek`; did you mean `check`?\n\n"
+    );
+
+    let (hidden_typo, hidden_typo_dir) = invoke(&["doctro"]);
+    assert_eq!(hidden_typo.status.code(), Some(2));
+    assert_eq!(hidden_typo.stdout, empty.stdout);
+    assert_eq!(hidden_typo.stderr, b"unknown command `doctro`\n\n");
+
+    std::fs::remove_dir(hidden_typo_dir).unwrap();
+    std::fs::remove_dir(typo_dir).unwrap();
     std::fs::remove_dir(unknown_dir).unwrap();
     std::fs::remove_dir(empty_dir).unwrap();
 }
@@ -125,6 +140,14 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         assert!(output.stderr.is_empty());
         std::fs::remove_dir(directory).unwrap();
     }
+    let (typo, typo_dir) = invoke(&["help", "buidl"]);
+    assert_eq!(typo.status.code(), Some(2));
+    assert_eq!(typo.stdout, global.stdout);
+    assert_eq!(
+        typo.stderr,
+        b"unknown command `buidl`; did you mean `build`?\n\n"
+    );
+    std::fs::remove_dir(typo_dir).unwrap();
     let (malformed, malformed_dir) = invoke(&["help", "build", "extra"]);
     assert_eq!(malformed.status.code(), Some(2));
     assert_eq!(malformed.stdout, global.stdout);

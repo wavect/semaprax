@@ -14,6 +14,16 @@ Economic Agent v1 is additive and requires no migration. Callers may opt into
 the injected-host API; it adds no CLI, built-in transport, custody, wallet,
 language, Graph, cleanup, or backend authority.
 
+## CLI Help v1 to v2 typo guidance
+
+Global help and successful scoped help bytes are unchanged. An unknown command
+that has one unique nearby name in the capability-visible static catalog now
+adds a `did you mean` suffix naming that candidate to stderr. Unrelated,
+ambiguous, non-ASCII, and
+over-limit names keep the v1 diagnostic. Scripts that intentionally snapshot a
+near-miss diagnostic should accept the v2 suffix; status remains 2 and the
+capability-appropriate global help remains on stdout.
+
 ## Graph-v6 CLI context to agent-context v1
 
 `semaprax context` now emits `semaprax.agent-context.v1` instead of a Graph-v6

@@ -11,6 +11,7 @@ Audience: all documentation readers.
 - [Using the SEMAPRAX CLI](CLI-GUIDE.md)
 - [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
 - [Capability-aware CLI help](CLI-HELP-V1.md)
+- [Capability-aware CLI typo guidance](CLI-HELP-V2.md)
 - [Calculator project publication](NEW-PROJECT-PUBLICATION-V1.md)
 - [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)
 - [Doctor version-probe lifecycle](DOCTOR-PROBE-V1.md)

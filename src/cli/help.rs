@@ -233,6 +233,56 @@ fn selected(name: &str, private: bool) -> Option<&'static CommandSpec> {
 pub(crate) fn parse(name: &str, private: bool) -> Option<CommandId> {
     selected(name, private).map(|spec| spec.id)
 }
+pub(crate) fn unknown_diagnostic(name: &str, private: bool) -> String {
+    match suggestion(name, private) {
+        Some(candidate) => format!("unknown command `{name}`; did you mean `{candidate}`?\n\n"),
+        None => format!("unknown command `{name}`\n\n"),
+    }
+}
+fn suggestion(name: &str, private: bool) -> Option<&'static str> {
+    if !name.is_ascii() || name.len() > 64 {
+        return None;
+    }
+    let threshold = if name.len() <= 4 { 1 } else { 2 };
+    let mut nearest = None;
+    let mut nearest_distance = usize::MAX;
+    let mut ambiguous = false;
+    for spec in COMMANDS.iter().filter(|spec| available(spec, private)) {
+        for candidate in std::iter::once(spec.canonical).chain(spec.aliases.iter().copied()) {
+            if candidate.len() > 64 {
+                continue;
+            }
+            let distance = edit_distance(name.as_bytes(), candidate.as_bytes());
+            if distance < nearest_distance {
+                nearest = Some(candidate);
+                nearest_distance = distance;
+                ambiguous = false;
+            } else if distance == nearest_distance {
+                ambiguous = true;
+            }
+        }
+    }
+    (nearest_distance > 0 && nearest_distance <= threshold && !ambiguous)
+        .then_some(nearest)
+        .flatten()
+}
+fn edit_distance(left: &[u8], right: &[u8]) -> usize {
+    let mut previous = [0usize; 65];
+    let mut current = [0usize; 65];
+    for (index, slot) in previous.iter_mut().take(right.len() + 1).enumerate() {
+        *slot = index;
+    }
+    for (left_index, left_byte) in left.iter().enumerate() {
+        current[0] = left_index + 1;
+        for (right_index, right_byte) in right.iter().enumerate() {
+            current[right_index + 1] = (previous[right_index + 1] + 1)
+                .min(current[right_index] + 1)
+                .min(previous[right_index] + usize::from(left_byte != right_byte));
+        }
+        std::mem::swap(&mut previous, &mut current);
+    }
+    previous[right.len()]
+}
 pub(crate) fn global(private: bool) -> String {
     let mut out = String::from("SEMAPRAX — Meaning in. Verified machine code out.\n\nUsage:\n");
     for spec in COMMANDS
@@ -390,5 +440,27 @@ mod tests {
         assert_eq!(dispatcher.len(), DISPATCHER_INVENTORY.len());
         assert_eq!(catalog, dispatcher);
         assert!(ids.into_iter().all(|present| present));
+    }
+
+    #[test]
+    fn typo_suggestions_are_bounded_unique_and_capability_aware() {
+        assert_eq!(suggestion("chck", false), Some("check"));
+        assert_eq!(suggestion("checck", false), Some("check"));
+        assert_eq!(suggestion("checl", false), Some("check"));
+        assert_eq!(suggestion("buidl", false), Some("build"));
+        assert_eq!(suggestion("-v", false), None);
+        assert_eq!(suggestion("doctro", false), None);
+        assert_eq!(suggestion("doctro", true), Some("doctor"));
+        assert_eq!(suggestion("not-a-command", true), None);
+        assert_eq!(suggestion("gráph", true), None);
+        assert_eq!(suggestion(&"x".repeat(65), true), None);
+        assert_eq!(
+            unknown_diagnostic("chek", false),
+            "unknown command `chek`; did you mean `check`?\n\n"
+        );
+        assert_eq!(
+            unknown_diagnostic("not-a-command", false),
+            "unknown command `not-a-command`\n\n"
+        );
     }
 }

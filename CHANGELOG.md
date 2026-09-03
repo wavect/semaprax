@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Added bounded, deterministic typo guidance for unknown CLI commands. The
+  nearest unique command within edit distance one or two is suggested only
+  from the executable's capability-visible static catalog; unrelated,
+  ambiguous, non-ASCII, and over-limit names retain the prior diagnostic.
+
 - Closed the `graph <file>` command grammar. Unknown options and extra operands
   now reject with status 2 before the compiler reads or verifies the source.
 

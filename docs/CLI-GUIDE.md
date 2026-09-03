@@ -83,6 +83,10 @@ semaprax fmt --help
 semaprax context --help
 ```
 
+A uniquely recognizable command typo includes capability-aware guidance, such
+as ``unknown command `chek`; did you mean `check`?``. The standalone compiler
+does not reveal private full-toolchain commands through suggestions.
+
 Compiler diagnostics carry stable `SPX-...` codes so tests and tools can bind
 to the diagnostic kind instead of matching an entire human-readable message.
 SEMAPRAX remains pre-alpha, so consult the release notes and versioned
@@ -105,4 +109,5 @@ than installing the private source package beside it.
 
 For a complete first project, continue with the executable
 [quickstart](QUICKSTART.md). The exact capability boundary and byte-level help
-contract are defined by [Capability-Aware CLI Help v1](CLI-HELP-V1.md).
+contract are defined by [Capability-Aware CLI Help v1](CLI-HELP-V1.md), with
+bounded typo guidance added by [v2](CLI-HELP-V2.md).

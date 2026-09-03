@@ -91,6 +91,10 @@ mod native_rust_owned_data;
 mod native_rust_scalar_callback;
 #[path = "project/nested_owned_record_api.rs"]
 mod nested_owned_record_api;
+#[path = "project/nested_owned_record_native.rs"]
+mod nested_owned_record_native;
+#[path = "project/nested_owned_record_npm.rs"]
+mod nested_owned_record_npm;
 #[path = "project/owned_bytes_npm.rs"]
 mod owned_bytes_npm;
 #[path = "project/owned_failure_fsm.rs"]

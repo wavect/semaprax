@@ -300,6 +300,12 @@
   provider/safe-Rust package. V8-v10 identities and public aggregate ABIs stay
   unchanged; complete current-tree and hosted promotion evidence remains open.
 
+- Added executable Project v11 conformance through generated Node/npm and an
+  offline external safe-Rust consumer, including exact cumulative output,
+  plus-one rejection and successful reuse. Corrected Wasm cleanup lowering so
+  a nested record with two-segment owned paths cannot be misclassified as a
+  conditional variant.
+
 - Added canonical per-trial contracts to the agent-task comparison harness.
   Each contract binds the exact plan, repository head, task, prompt, fixtures,
   drift, lane, workspace state, acceptance rubric and metric inventory for one

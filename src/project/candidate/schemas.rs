@@ -378,12 +378,19 @@ fn intent_schema() -> Value {
         base("rename_declaration",vec![("name",identifier())]),
         base("change_function_signature",vec![("append_parameters",json!({"type":"array","minItems":1,"maxItems":MAX_APPEND_PARAMETERS,"items":new_parameter()}))]),
         base("change_function_signature",vec![("parameters",json!({"type":"array","minItems":0,"maxItems":4096,"items":mapped_parameter}))]),
+        base("change_function_signature",vec![
+            ("parameters",json!({"type":"array","minItems":0,"maxItems":4096,"items":mapped_parameter})),
+            ("wrap_return",closed(&[("record",stable_id()),("field",stable_id())]))
+        ]),
         base("replace_function_body",vec![("body",reference("expression"))]),
         base("repair_diagnostic",vec![("rejected_intent",base("replace_function_body",vec![("body",reference("expression"))])),("repair_id",digest_schema())]),
         base("replace_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("replace_contract_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("add_contract",vec![("phase",json!({"enum":["requires","ensures"]})),("predicate",reference("expression"))]),
-        closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))]),
+        json!({"oneOf":[
+            closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))]),
+            closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("destination",text(240)),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))])
+        ]}),
         base("add_declaration",vec![("declaration",declaration_schema())]),
         base("extract_function",vec![("expression_id",text(16_384)),("new_id",stable_id()),("new_name",identifier())]),
         base("move_declaration",vec![("destination",text(MAX_ID_BYTES))]),

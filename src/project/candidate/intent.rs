@@ -97,7 +97,8 @@ fn apply_inner(
     let (owner, function_index) = selected
         .ok_or_else(|| grammar("candidate intention requires an existing top-level function"))?;
     let function = &programs[owner].functions[function_index];
-    let generic_display_rename = kind == "rename_declaration" && !function.type_parameters.is_empty();
+    let generic_display_rename =
+        kind == "rename_declaration" && !function.type_parameters.is_empty();
     if !function.explicit_id
         || (!function.type_parameters.is_empty() && !generic_display_rename)
         || function.name == "main"

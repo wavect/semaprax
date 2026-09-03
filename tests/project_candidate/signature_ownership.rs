@@ -73,6 +73,28 @@ requires byte_len(bytes_as_slice(input)) > 0usize
 @id("frame.string-owner-contract") fn string_owner_contract(text: string) -> i64
 requires str_len_bytes(string_as_str(text)) > 0
 { str_len_bytes(string_as_str(text)) }
+@id("frame.bytes-envelope") record BytesEnvelope {
+    @id("frame.bytes-envelope.value") value: Bytes,
+}
+@id("frame.string-envelope") record StringEnvelope {
+    @id("frame.string-envelope.value") value: string,
+}
+@id("frame.bytes-envelope-wide") record BytesEnvelopeWide {
+    @id("frame.bytes-envelope-wide.value") value: Bytes,
+    @id("frame.bytes-envelope-wide.flag") flag: bool,
+}
+@id("frame.make-owned-bytes") fn make_owned_bytes(input: borrow Slice<u8>) -> Bytes {
+    bytes_copy(input)
+}
+@id("frame.forward-owned-bytes") fn forward_owned_bytes(input: borrow Slice<u8>) -> Bytes {
+    make_owned_bytes(input)
+}
+@id("frame.make-owned-string") fn make_owned_string(value: char) -> string {
+    string_from_char(value)
+}
+@id("frame.forward-owned-string") fn forward_owned_string(value: char) -> string {
+    make_owned_string(value)
+}
 "#,
         );
         let program = semaprax::parse(&source, &path).unwrap();
@@ -474,6 +496,98 @@ fn owned_parameter_cannot_be_dropped_and_duplicate_transfer_is_rejected() {
             Ok(_) => panic!("invalid owning migration admitted"),
             Err(errors) => errors,
         };
+        assert!(
+            errors.iter().any(|error| error.code == diagnostic),
+            "{errors:?}"
+        );
+        assert_eq!(root.to_json(), before);
+    }
+}
+
+#[test]
+fn whole_owned_results_wrap_once_and_local_callers_move_the_exact_field() {
+    let fixture = Fixture::new();
+    for (target, record, field, provider, caller) in [
+        (
+            "frame.make-owned-bytes",
+            "frame.bytes-envelope",
+            "frame.bytes-envelope.value",
+            "fn make_owned_bytes(input: borrow Slice<u8>) -> BytesEnvelope { BytesEnvelope { value: bytes_copy(input) } }",
+            "fn forward_owned_bytes(input: borrow Slice<u8>) -> Bytes { make_owned_bytes(input).value }",
+        ),
+        (
+            "frame.make-owned-string",
+            "frame.string-envelope",
+            "frame.string-envelope.value",
+            "fn make_owned_string(value: char) -> StringEnvelope { StringEnvelope { value: string_from_char(value) } }",
+            "fn forward_owned_string(value: char) -> string { make_owned_string(value).value }",
+        ),
+    ] {
+        let root = fixture.candidate();
+        let parameters = if target.ends_with("bytes") {
+            json!([{"from":"input"}])
+        } else {
+            json!([{"from":"value"}])
+        };
+        let change = SemanticChange::new(
+            root.revision().project_revision(),
+            &json!({"kind":"change_function_signature","target":target,"parameters":parameters,
+                "wrap_return":{"record":record,"field":field}}),
+        )
+        .unwrap();
+        let evolved = root.apply(root.candidate_digest(), &change).unwrap();
+        let source = evolved
+            .revision()
+            .sources()
+            .iter()
+            .find(|source| source.path() == "src/frame.spx")
+            .unwrap()
+            .source();
+        assert!(source.contains(provider), "{source}");
+        assert!(source.contains(caller), "{source}");
+        let replay = ProjectCandidate::replay(
+            Arc::clone(root.base_revision()),
+            root.base_revision().project_revision(),
+            &[change],
+            evolved.to_json().as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(replay.candidate_digest(), evolved.candidate_digest());
+    }
+}
+
+#[test]
+fn result_wrapper_shape_and_selector_fail_closed_without_mutating_the_candidate() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    let before = root.to_json().to_owned();
+    for (record, field, diagnostic) in [
+        (
+            "frame.bytes-envelope-wide",
+            "frame.bytes-envelope-wide.value",
+            "SPX-G494",
+        ),
+        (
+            "frame.string-envelope",
+            "frame.string-envelope.value",
+            "SPX-G494",
+        ),
+        (
+            "frame.bytes-envelope",
+            "frame.string-envelope.value",
+            "SPX-G494",
+        ),
+    ] {
+        let change = SemanticChange::new(
+            root.revision().project_revision(),
+            &json!({"kind":"change_function_signature","target":"frame.make-owned-bytes",
+                "parameters":[{"from":"input"}],"wrap_return":{"record":record,"field":field}}),
+        )
+        .unwrap();
+        let errors = root
+            .apply(root.candidate_digest(), &change)
+            .err()
+            .expect("invalid owning result wrapper admitted");
         assert!(
             errors.iter().any(|error| error.code == diagnostic),
             "{errors:?}"

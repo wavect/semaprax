@@ -26,6 +26,8 @@ pub(in crate::project::candidate) use computed::validate_computed_signature;
 mod owner_view;
 #[path = "signature_rename.rs"]
 mod rename;
+#[path = "signature_result_wrap.rs"]
+mod result_wrap;
 
 // This bounds internal declarations independently of narrower export-profile
 // limits. Public ABI parameter ceilings are rechecked by ordinary Project
@@ -58,11 +60,26 @@ pub(super) fn apply(
     owner: usize,
     function_index: usize,
 ) -> Result<usize> {
-    object(intent, &["kind", "target", "parameters"])?;
+    if intent.get("wrap_return").is_some() {
+        object(intent, &["kind", "target", "parameters", "wrap_return"])?;
+    } else {
+        object(intent, &["kind", "target", "parameters"])?;
+    }
     let target = text(intent, "target")?;
     let function = &programs[owner].functions[function_index];
     let owner_module = programs[owner].module.clone();
     let original_params = function.params.clone();
+    let result_wrap = intent
+        .get("wrap_return")
+        .map(|request| {
+            let revision = revision.ok_or_else(|| {
+                result_wrap::shape(
+                    "owned result wrapping requires an authenticated Project revision",
+                )
+            })?;
+            result_wrap::authenticate(revision, programs, owner, function_index, target, request)
+        })
+        .transpose()?;
     // Template variables name provider parameters, even while lowering the
     // template against an importing caller's available declaration bindings.
     let original_nominal_scope = match revision {
@@ -548,6 +565,9 @@ pub(super) fn apply(
                     span,
                 }),
             };
+            if let Some(plan) = &result_wrap {
+                plan.wrap_caller(expression);
+            }
             migrated_calls += 1;
             Ok(())
         })?;
@@ -559,6 +579,10 @@ pub(super) fn apply(
                 "signature migration complete expression inventory exceeds the limit",
             ));
         }
+    }
+    if let Some(plan) = result_wrap {
+        plan.authenticate_migrated_count(migrated_calls)?;
+        plan.wrap_provider(&mut programs[owner].functions[function_index]);
     }
     programs[owner].functions[function_index].params = params;
     Ok(migrated_calls)

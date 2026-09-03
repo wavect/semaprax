@@ -184,11 +184,36 @@ impl ProjectCandidate {
                             "constraints":constraints,
                             "evaluation_order":"stage_every_original_argument_once_left_to_right_including_removed_arguments",
                         }));
+                        if matches!(function.return_type, Type::Bytes | Type::String)
+                            && function.requires.is_empty()
+                            && function.ensures.is_empty()
+                            && function.stable_id.as_str()
+                                != self.revision.entry_program().entrypoint.as_str()
+                            && function.stable_id.as_str()
+                                != self.revision.test_program().entrypoint.as_str()
+                            && !self
+                                .revision
+                                .manifest()
+                                .web_exports()
+                                .iter()
+                                .any(|export| export == function.stable_id.as_str())
+                        {
+                            forms.push(json!({
+                                "selector":"parameters+wrap_return",
+                                "parameters":"same_closed_ordered_mapping_as_parameters_form",
+                                "wrap_return_fields":["record","field"],
+                                "wrap_return_selectors":{"record":"explicit_monomorphic_record_stable_id","field":"sole_explicit_field_stable_id"},
+                                "admission":"whole_owning_Bytes_or_String_result_into_visible_resource_free_one_field_owner",
+                                "provider_lowering":"construct_exact_wrapper_once_at_result_commit",
+                                "caller_lowering":"project_and_move_exact_field_from_every_authenticated_local_body_call",
+                                "constraints":["source_and_checked_hir_authenticated_before_mutation","no_contract_calls","no_entrypoint_or_manifest_export","at_least_one_local_caller","ordinary_cleanup_and_full_project_replay","no_external_consumer_migration_claim"]
+                            }));
+                        }
                     }
                     operations.push(json!({
                         "kind":"change_function_signature", "required_fields":["kind","target"],
                         "exactly_one_form":forms,
-                        "constraints":["all_authenticated_callers_migrated", "preserve_return_type", "full_project_profile_and_target_admission"],
+                        "constraints":["all_authenticated_callers_migrated", "preserve_return_type_unless_exact_owned_result_wrapper_selected", "full_project_profile_and_target_admission"],
                     }));
                     operations.push(json!({
                         "kind":"replace_function_body", "required_fields":["kind","target","body"],
@@ -344,8 +369,10 @@ impl ProjectCandidate {
             {
                 operations.push(json!({
                     "kind":"implement_interface","required_fields":["kind","target","protocol","id","members"],
+                    "optional_cross_module_fields":["destination"],
                     "member_fields":["method","implementation"],"discovery":"ProjectCandidate::interface_catalog",
-                    "constraints":["explicit_local_monomorphic_record","explicit_local_protocol_and_members","exact_complete_member_coverage","existing_local_matching_functions","fresh_explicit_implementation_identity","source_static_conformance_validation","full_candidate_revalidation"]
+                    "placement":"append_in_exact_declared_destination_module_with_canonical_dependency_imports",
+                    "constraints":["explicit_project_monomorphic_record","explicit_project_protocol_and_members","exact_complete_member_coverage","existing_project_matching_functions","exact_stable_identity_imports","fresh_explicit_implementation_identity","source_and_checked_hir_static_conformance_validation","full_candidate_revalidation"]
                 }));
                 reason = "constructor_available_payload_requires_full_candidate_admission";
             }

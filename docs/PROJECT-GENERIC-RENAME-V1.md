@@ -20,10 +20,12 @@ The candidate then follows the ordinary full-Project path: canonical format,
 reparse, Phase-A build, ownership and cleanup verification, linkage, profile
 admission, target admission, and an independent source replay. After replay,
 the compiler locates the same retained template owner and compares normalized
-checked HIR. The template display name and instantiated function display names
-are the only ignored fields. Template identity and structure, concrete instance
-identities, exact type arguments, signatures, bodies, effects, contracts,
-ownership, cleanup plans, and loan plans must otherwise compare exactly.
+checked HIR. It ignores the template and instantiated function display names,
+plus source spans that necessarily move after a width-changing rename. Stable
+structural expression/value identities are not ignored. Template identity and
+structure, concrete instance identities, exact type arguments, signatures,
+bodies, effects, contracts, ownership, cleanup plans, and loan plans must
+otherwise compare exactly.
 
 The operation summary records `generic_instances.preserved = true` and names
 its evidence as exact retained checked template and instance HIR. This is a

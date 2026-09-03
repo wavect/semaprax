@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Extended the `example-checks` and `example-fmt` quality gates to the
+  bidirectional Native Rust interoperability example
+  `examples/calculator-rust/callback.spx`, which declares an `import rust fn`
+  callback and the export that calls it. That source was previously outside
+  both loops, so its verification and canonical formatting were ungated.
+  Documented the already emitted `SPX-B112` SDK admission and `SPX-I233` SDK
+  publication diagnostics in
+  [Native Rust Interoperability v1](docs/NATIVE-RUST-INTEROP-V1.md), whose
+  owned-diagnostic list had omitted both. No admitted source form, type, ABI,
+  descriptor, manifest, or generated-artifact byte changed.
+
 - Widened the Public Scalar Export Profile v1 from `i64`/`bool` to the full
   Copy-scalar surface — `i64`, `i32`, `u8`, `char`, `f32`, `f64`, `bool` —
   matching the surface the reference interpreter, `semaprax.abi-report.v1`,

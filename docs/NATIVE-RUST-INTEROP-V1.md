@@ -367,9 +367,9 @@ builder output.
 
 The exact owned diagnostics are B106 noncanonical spec; B107 closed declaration
 reason; B108 descriptor disagreement; B109 limit; B110 target/toolchain; B111
-generated replay; I230 Clang; I231 Rust link/run; I232 publication; G218 Graph;
-and W114 Wasm. Diagnostics never echo source, paths, tool output, secrets, panic
-payloads, or pointers.
+generated replay; B112 SDK admission; I230 Clang; I231 Rust link/run; I232
+publication; I233 SDK publication; G218 Graph; and W114 Wasm. Diagnostics never
+echo source, paths, tool output, secrets, panic payloads, or pointers.
 
 The ordered nonclaims in every document deny resource/aggregate/pointer ABI,
 cross-boundary allocation, Wasm detours, dynamic loading, public execution,

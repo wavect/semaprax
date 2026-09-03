@@ -36,8 +36,11 @@ same execution envelope, report bytes, and report digest as the synchronous path
 
 Cancellation is observed only at evaluator step boundaries. Immediate cancel is
 deterministic: start leaves the worker behind a one-shot queue gate, cancel sets
-the token before releasing it, and the evaluator returns `before_step: 1` with
-zero steps. A task already running can complete before observing cancellation;
+the token before releasing it, and the worker returns `before_step: 1` with zero
+steps after authenticating the candidate selector and fixed policy, without
+spending candidate replay or report-construction work. Cancellation observed
+after replay but before evaluation has the same zero-step outcome. A task already
+running can complete before observing cancellation;
 the first terminal outcome is sticky. Cancellation emits no test report and
 cannot make a candidate pass.
 

@@ -300,7 +300,30 @@ impl ProjectCandidate {
         policy: &CandidateTestPolicy,
         cancellation: &ProjectExecutionCancellation,
     ) -> Result<ProjectCandidateTestTaskOutcome> {
+        // Authenticate the request before cancellation can select an outcome,
+        // but do not spend candidate replay or report-construction work when a
+        // queued task was cancelled before its worker started.
+        self.require_candidate(expected_candidate)?;
+        CandidateTestPolicy::new(
+            policy.max_steps,
+            policy.max_execution_bytes,
+            policy.max_report_bytes,
+        )?;
+        if cancellation.is_cancelled() {
+            return Ok(ProjectCandidateTestTaskOutcome::Cancelled {
+                before_step: 1,
+                steps_used: 0,
+                max_steps: policy.max_steps,
+            });
+        }
         let prepared = self.prepare_test_report(expected_candidate, policy)?;
+        if cancellation.is_cancelled() {
+            return Ok(ProjectCandidateTestTaskOutcome::Cancelled {
+                before_step: 1,
+                steps_used: 0,
+                max_steps: policy.max_steps,
+            });
+        }
         let options = ProjectExecutionOptions::new(policy.max_execution_bytes, policy.max_steps)
             .map_err(|error| vec![error])?;
         match prepared

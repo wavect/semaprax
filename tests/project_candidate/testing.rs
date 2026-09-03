@@ -218,6 +218,18 @@ fn pre_cancelled_candidate_test_releases_no_report_and_uses_zero_fuel() {
             panic!("pre-cancelled candidate test released a report")
         }
     }
+    assert_eq!(
+        candidate
+            .execute_tests_cancellable(
+                fixture.candidate().candidate_digest(),
+                &policy,
+                &cancellation,
+            )
+            .unwrap_err()[0]
+            .code,
+        "SPX-G224",
+        "cancellation must not bypass exact candidate authentication"
+    );
 }
 
 #[test]

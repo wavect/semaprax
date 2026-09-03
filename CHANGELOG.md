@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+- Added candidate generic-template display renames with exact retained-instance
+  preservation. The compiler authenticates the source template and bounded
+  concrete instance inventory before mutation, migrates stable-ID-bound local
+  typed calls, preserves imported aliases, and requires normalized checked HIR,
+  exact type arguments, ownership, cleanup and loan plans to survive full
+  Project replay. This is not generic signature evolution or runtime evidence.
+  Regressions are authored and unrun.
+
+- Added a bounded owning-result signature lane that wraps an exact whole
+  `Bytes` or `String` result in an existing visible one-field owning record.
+  Provider construction happens once at result commit and every authenticated
+  local body caller projects and moves the sole field after ordinary
+  left-to-right argument staging. Contracts, entrypoints, manifest exports,
+  zero-caller cases and external/package migration remain excluded. Regressions
+  are authored and unrun.
+
+- Extended static interface implementation across Project modules. An explicit
+  destination may import the exact receiver, protocol and implementation
+  functions through stable IDs and deterministic aliases; the new protocol
+  import kind remains static-conformance-only and is excluded from runtime HIR,
+  Graph and operation sidecars. Generic/owned receivers, runtime witnesses and
+  dynamic dispatch remain unsupported. Regressions are authored and unrun.
+
+- Added an opt-in v5 `candidate/archive-store` operation backed by a private
+  startup-held immutable archive store. Requests select only an already retained
+  complete candidate; the host independently prepares/replays it, stores it,
+  and automatically checkpoints the successful typed receipt through an
+  optional distinct retention lifecycle. Registry stale, failed, uncertain or
+  poisoned outcomes remain accountability data and never roll back storage.
+  There is no restore/current/source/approval/publication/delete/GC authority.
+  Regressions are authored and unrun.
+
 - Added an exact candidate-bound function-reference rebind. It independently
   derives the immutable base and final images, resolves the canonical base
   reference through the ordinary exact-image path, and delegates conservative

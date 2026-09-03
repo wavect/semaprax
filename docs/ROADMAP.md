@@ -145,11 +145,14 @@ cursor recovery and no subject restoration or deletion. An opt-in
 that startup-selected root identity and checkpoints successful typed
 image/candidate/draft receipts without obscuring store success when registry
 publication fails. An opt-in [v5 session attachment](SEMANTIC-RETENTION-PROTOCOL-SESSION-V1.md)
-holds the coordinator for the embedding-session lifetime and accepts only typed
-receipts after out-of-band stores succeed. V5 still owns no immutable subject
-store, so automatic wire checkpointing, branch integration, incomplete-draft
-lifecycle recovery, warm HIR loading, separately authorized eviction/GC and
-measured recovery cost remain future work.
+holds the coordinator for the embedding-session lifetime. A separate optional
+[candidate archive-store route](IMAGE-CANDIDATE-ARCHIVE-STORE-PROTOCOL-V1.md)
+holds a distinct startup-selected private store, persists one exact retained
+complete candidate and automatically checkpoints only its successful typed
+receipt. Requests select neither root, and registry failure never negates store
+success. Automatic draft/branch checkpointing, incomplete-draft lifecycle
+recovery, warm HIR loading, separately authorized eviction/GC and measured
+recovery cost remain future work.
 
 The additive [workspace protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) now composes
 host-selected semantic, candidate, diagnostic, test, pathless-build and optional
@@ -206,9 +209,11 @@ All eleven requested operation classes now have bounded authored slices. The new
 [interface intention](PROJECT-INTERFACE-CHANGE-V1.md) and
 [source-sidecar queries](IMAGE-PROTOCOL-CONFORMANCE-V1.md) need executed
 source round-trip, missing-member/signature rejection, candidate replay and
-frozen runtime-Graph/protocol compatibility evidence. Their static local mappings
-do not establish runtime interfaces or dynamic dispatch. Broaden ownership,
-contracts and cross-module conformance only after that bounded evidence exists;
+frozen runtime-Graph/protocol compatibility evidence. Their static mappings may
+now import an exact receiver, protocol and member-function set into an explicit
+Project destination, while protocol imports stay outside runtime HIR and Graph.
+They do not establish runtime interfaces or dynamic dispatch. Broaden ownership,
+contracts and generic conformance only after that bounded evidence exists;
 operation count does not reduce the full-goal acceptance criteria.
 
 Source-backed image storage/refresh, semantic delta replay and diagnostic

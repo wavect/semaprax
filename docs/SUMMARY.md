@@ -302,4 +302,7 @@ Audience: all documentation readers.
 - [Candidate Archive v1](PROJECT-CANDIDATE-ARCHIVE-V1.md)
 - [Candidate Archive Store v1](CANDIDATE-ARCHIVE-STORE-V1.md)
 - [Candidate Archive CLI v1](CANDIDATE-ARCHIVE-CLI-V1.md)
+- [Candidate Archive Store Protocol v1](IMAGE-CANDIDATE-ARCHIVE-STORE-PROTOCOL-V1.md)
 - [Workspace Archive Recovery v1](IMAGE-WORKSPACE-ARCHIVE-RECOVERY-V1.md)
+- [Generic Template Rename v1](PROJECT-GENERIC-RENAME-V1.md)
+- [Owned Result Signature Wrap v1](PROJECT-SIGNATURE-OWNED-RESULT-WRAP-V1.md)

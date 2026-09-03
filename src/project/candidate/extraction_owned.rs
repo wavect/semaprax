@@ -12,7 +12,7 @@ pub(super) fn validate(
     let selected =
         expression::authored_selection(before, &programs, target, text(request, "expression_id")?)?;
     let mut original_types = types::Types::new(before, &programs[selected.owner], target)?;
-    let (captures, extended) = capture_plan(&selected, &mut original_types)?;
+    let (captures, _, extended) = capture_plan(&selected, &mut original_types)?;
     if !extended {
         return Ok(());
     }
@@ -30,14 +30,14 @@ pub(super) fn validate(
         || !helper.requires.is_empty()
         || !helper.ensures.is_empty()
         || helper.return_type != selected.expression.ty
-        || helper.body.ownership != OwnershipMode::Value
+        || helper.body.ownership != selected.expression.ownership
         || helper.body.ty != selected.expression.ty
     {
         return Err(invalid(
-            "extraction helper changed its Copy boundary or contracts",
+            "extraction helper changed its result boundary or contracts",
         ));
     }
-    helper_types.check(&helper.return_type)?;
+    let _ = helper_types.result(&helper.return_type, helper.body.ownership)?;
     let ResolvedExprKind::Block {
         statements,
         tail: inner,
@@ -79,6 +79,43 @@ pub(super) fn validate(
         return Err(invalid(
             "extraction helper introduced crossing ownership or loans",
         ));
+    }
+    let mut owned_result_commits = 0usize;
+    let mut scalar_result_commits = 0usize;
+    for exit in &plan.exits {
+        if let crate::cleanup_plan::ExitContinuation::CommitResult { source } = &exit.continuation {
+            match source {
+                crate::cleanup_plan::CleanupResultSource::Owned { storage } => {
+                    owned_result_commits += 1;
+                    if storage.storage != crate::cleanup_plan::StorageId::ProvisionalResult
+                        || !storage.projections.is_empty()
+                    {
+                        return Err(invalid(
+                            "extraction owned result does not publish the whole provisional result",
+                        ));
+                    }
+                }
+                crate::cleanup_plan::CleanupResultSource::Scalar { .. } => {
+                    scalar_result_commits += 1;
+                }
+            }
+        }
+    }
+    match helper.body.ownership {
+        OwnershipMode::Value if owned_result_commits != 0 => {
+            return Err(invalid(
+                "extraction Copy result gained an owned publication",
+            ));
+        }
+        OwnershipMode::Own if owned_result_commits == 0 || scalar_result_commits != 0 => {
+            return Err(invalid(
+                "extraction owned result lacks exact owned publication",
+            ));
+        }
+        OwnershipMode::Borrow | OwnershipMode::Shared => {
+            return Err(invalid("extraction helper exposes a loan as its result"));
+        }
+        _ => {}
     }
     let roots = plan
         .regions
@@ -435,7 +472,7 @@ mod tests {
         .unwrap();
         let mut original_types =
             types::Types::new(base.revision(), &old_programs[selected.owner], target).unwrap();
-        let (captures, _) = capture_plan(&selected, &mut original_types).unwrap();
+        let (captures, _, _) = capture_plan(&selected, &mut original_types).unwrap();
         let new_programs = parse_revision(candidate.revision()).unwrap();
         let source = new_programs
             .iter()

@@ -1,6 +1,8 @@
 //! Authored, unrun regressions. Source replay is not a claim of runtime proof.
 use semaprax::ast::{ExprKind, Function, ParamMode, Statement, Type};
+use semaprax::cleanup_plan::{CleanupResultSource, ExitContinuation, StorageId};
 use semaprax::diagnostic::Diagnostic;
+use semaprax::hir::OwnershipMode;
 use semaprax::project::{
     with_authenticated_project, ProjectCandidate, ProjectExecutionOptions, ProjectExecutionOutcome,
     SemanticChange,
@@ -220,6 +222,99 @@ fn same_outcome(
 }
 
 #[test]
+fn resource_free_owned_results_cross_one_authenticated_helper_boundary() {
+    for (owner, ty, constructor, expected_type) in [
+        ("Bytes", "Bytes", "make_bytes()", Type::Bytes),
+        (
+            "Packet",
+            "Packet",
+            "Packet { bytes: make_bytes() }",
+            Type::Named {
+                name: "Packet".to_owned(),
+                arguments: Vec::new(),
+            },
+        ),
+        (
+            "Choice",
+            "Choice",
+            "Choice::Full { bytes: make_bytes() }",
+            Type::Named {
+                name: "Choice".to_owned(),
+                arguments: Vec::new(),
+            },
+        ),
+    ] {
+        let fixture = Fixture::new(owner, None, 2);
+        let core = std::fs::read_to_string(fixture.0.join("src/core.spx")).unwrap();
+        fixture.write(
+            "src/core.spx",
+            &format!(
+                "{core}\n@id(\"block.owner-result\") fn owner_result()->{ty} {{let computed={{let local={constructor};local}};computed}}\n@id(\"block.owner-result-use\") fn owner_result_use()->i64 {{consume(owner_result())}}\n"
+            ),
+        );
+        fixture.write(
+            "src/app.spx",
+            r#"module block.app;
+use function @id("block.owner-result-use") from block.core as owner_result_use;
+@id("block.main") fn main()->i64 {owner_result_use()}
+"#,
+        );
+        let disk = fixture.bytes();
+        let base = fixture.candidate();
+        let (candidate, change) = extract(&base, "block.owner-result", "let local", true).unwrap();
+        let helper = function(&candidate, "block.helper");
+        assert!(helper.params.is_empty());
+        assert_eq!(helper.return_type, expected_type);
+        assert!(matches!(
+            helper.body.kind,
+            ExprKind::Block {
+                ref statements,
+                ref tail
+            } if statements.is_empty() && matches!(tail.kind, ExprKind::Block { .. })
+        ));
+        let checked = candidate
+            .revision()
+            .entry_program()
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "block.helper")
+            .unwrap();
+        assert_eq!(checked.body.ownership, OwnershipMode::Own);
+        assert!(checked.params.is_empty());
+        assert!(checked.loan_plan.loans.is_empty());
+        assert!(checked
+            .cleanup_plan
+            .entry_state
+            .live_owned_parameters
+            .is_empty());
+        assert!(checked
+            .cleanup_plan
+            .entry_state
+            .conditional_owned_parameters
+            .is_empty());
+        let result_sources = checked
+            .cleanup_plan
+            .exits
+            .iter()
+            .filter_map(|exit| match &exit.continuation {
+                ExitContinuation::CommitResult { source } => Some(source),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert!(!result_sources.is_empty());
+        assert!(result_sources.iter().all(|source| matches!(
+            source,
+            CleanupResultSource::Owned { storage }
+                if storage.storage == StorageId::ProvisionalResult
+                    && storage.projections.is_empty()
+        )));
+        same_outcome(&base, &candidate, ProjectExecutionOutcome::Returned(1));
+        replay(&base, &candidate, &change);
+        assert_eq!(fixture.bytes(), disk);
+    }
+}
+
+#[test]
 fn internal_owners_remain_nested_and_only_copy_values_cross_the_helper_boundary() {
     for owner in ["Bytes", "Packet", "Choice", "string"] {
         let fixture = Fixture::new(owner, None, 2);
@@ -374,7 +469,6 @@ fn owner_boundaries_root_postconditions_and_view_subtrees_remain_rejected() {
     let additional = r#"
 @id("block.root") fn root(value:i64)->i64 ensures result >= value {let local=make_bytes();consume(local)+value}
 @id("block.capture") fn capture(input:own Bytes)->i64 {let computed={consume(input)};computed}
-@id("block.result") fn owner_result()->Bytes {let computed={let local=make_bytes();local};computed}
 @id("block.non-block") fn non_block()->i64 {consume(make_bytes())}
 @id("block.view") fn view()->usize {let computed={let local=make_bytes();let view=bytes_as_slice(local);byte_len(view)};computed}
 "#;
@@ -386,7 +480,6 @@ fn owner_boundaries_root_postconditions_and_view_subtrees_remain_rejected() {
     for (target, marker, block) in [
         ("block.root", "let local", true),
         ("block.capture", "consume(input)", true),
-        ("block.result", "let local", true),
         ("block.evaluate", "make_bytes()", false),
         ("block.non-block", "consume(make_bytes())", false),
         ("block.view", "let local", true),

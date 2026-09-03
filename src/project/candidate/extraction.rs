@@ -47,8 +47,7 @@ pub(super) fn apply(
     )?;
     let (captures, return_type, extended) = {
         let mut types = types::Types::new(revision, &programs[selection.owner], target)?;
-        let (captures, extended) = capture_plan(&selection, &mut types)?;
-        (captures, types.ast(&selection.expression.ty)?, extended)
+        capture_plan(&selection, &mut types)?
     };
     let span = Span::default();
     let call = Expr {
@@ -182,7 +181,7 @@ fn expression_selector(request: &Value) -> Result<Value> {
 fn capture_plan(
     selection: &expression::AuthoredExpression<'_>,
     types: &mut types::Types<'_>,
-) -> Result<(Vec<Capture>, bool)> {
+) -> Result<(Vec<Capture>, Type, bool)> {
     let mut pending = vec![(selection.expression, 0usize)];
     let mut nodes = Vec::new();
     let mut extended = false;
@@ -307,11 +306,8 @@ fn capture_plan(
             "extraction internal owners require a non-root authored block",
         ));
     }
-    types.check(&selection.expression.ty)?;
-    if selection.expression.ownership != OwnershipMode::Value {
-        return Err(invalid("extraction result must remain Copy"));
-    }
-    Ok((captures, extended))
+    let result = types.result(&selection.expression.ty, selection.expression.ownership)?;
+    Ok((captures, result, extended))
 }
 
 fn register_internal(

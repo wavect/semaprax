@@ -91,15 +91,44 @@ impl<'a> Types<'a> {
 
     pub(super) fn ast(&mut self, ty: &ResolvedType) -> Result<Type> {
         self.check(ty)?;
+        self.project(ty)
+    }
+
+    /// Helper results may additionally cross the new call boundary as one
+    /// checked resource-free owner. Captures remain on the Copy-only path.
+    pub(super) fn result(&mut self, ty: &ResolvedType, mode: OwnershipMode) -> Result<Type> {
+        match mode {
+            OwnershipMode::Value => self.ast(ty),
+            OwnershipMode::Own => {
+                if !self.internal(ty, mode)? {
+                    return Err(invalid("extraction owned result lacks owned type facts"));
+                }
+                self.project(ty)
+            }
+            OwnershipMode::Borrow | OwnershipMode::Shared => Err(invalid(
+                "extraction cannot return a borrowed or shared value",
+            )),
+        }
+    }
+
+    fn project(&mut self, ty: &ResolvedType) -> Result<Type> {
         if let Some(scalar) = scalar(ty) {
             return Ok(scalar);
+        }
+        if *ty == ResolvedType::String {
+            charge(&mut self.projected_nodes, 1)?;
+            return Ok(Type::String);
+        }
+        if *ty == ResolvedType::Bytes {
+            charge(&mut self.projected_nodes, 1)?;
+            return Ok(Type::Bytes);
         }
         let ResolvedType::Nominal {
             declaration,
             arguments,
         } = ty
         else {
-            unreachable!("check admitted scalar or nominal type");
+            return Err(invalid("extraction result type has no source projection"));
         };
         // Bound the actual added annotations separately from distinct checked
         // type facts, before allocating argument JSON or AST type vectors.

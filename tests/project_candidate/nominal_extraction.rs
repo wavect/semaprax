@@ -195,7 +195,9 @@ fn repeated_field_reads_capture_one_whole_immutable_nominal_root() {
         .find(|operation| operation["kind"] == "extract_function")
         .unwrap();
     let constraints = operation["constraints"].as_array().unwrap();
-    assert!(constraints.contains(&json!("checked_sized_copy_captures_and_result")));
+    assert!(constraints.contains(&json!("checked_sized_copy_captures")));
+    assert!(constraints.contains(&json!("checked_resource_free_copy_or_owned_result")));
+    assert!(constraints.contains(&json!("exact_owned_result_publication")));
     assert!(constraints.contains(&json!("field_reads_capture_immutable_copy_root")));
     assert!(constraints.contains(&json!(
         "internally_created_resource_free_owners_only_in_nested_authored_blocks"

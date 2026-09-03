@@ -1,6 +1,6 @@
 # Project Member Rename v1
 
-Status: Partial; implementation and regression evidence authored, unrun.
+Status: Partial; focused implementation and regression evidence pass locally.
 
 Audience: compiler contributors, agent builders and semantic tool authors.
 
@@ -103,23 +103,21 @@ candidate binding failures `SPX-G224`, and semantic rebase conflicts
 `SPX-G235`. Shared Operations, Graph, parser and verifier failures preserve
 their owning diagnostics. No failure writes authoritative source.
 
-Authored library and v5 transport regression evidence lives in
+Library and v5 transport regression evidence lives in
 [member rename cases](../tests/project_candidate/member_rename.rs). The evidence
 must establish source migration, identity preservation, collision and stale
-rejection, independent history replay and unchanged authority. Tests, compiler
-checks, interpreter/application execution and long quality gates were not run
-for this batch. Broader declaration kinds, unsupported reference forms,
-external consumer migration, general merge normalization and executed evidence
-remain outstanding.
+rejection, independent history replay and unchanged authority. The focused
+member-rename module passes locally. Full quality, hosted,
+interpreter/application and target execution were not run for this batch.
+Broader declaration kinds, unsupported reference forms,
+external consumer migration, general merge normalization and broader execution
+evidence remain outstanding beyond this focused module.
 
-Two older nominal-rename tests still assert that explicit members are
-unsupported. Automatic review blocked replacing those rejection cases; they
-remain pending explicit approval to convert them into positive member coverage.
-Those assertions contradict this additive feature and are not evidence of a
-passing preservation gate. The new member suite does not replace the remaining
-implicit-ID, compiler-owned-ID, collision or stale-rejection checks.
-Automatic review also blocked adjusting the new generic case's complete
-`TypeParameterDeclaration` equality assertion. That structure includes source
-spans, which legitimately shift after an earlier length-changing rename; its
-semantic comparison and source-location expectations still need an approved
-correction. The authored suite is therefore not ready to claim a passing gate.
+The generic regression compares the complete ordered type-parameter name
+inventory while deliberately excluding source spans: an earlier
+length-changing rename legitimately shifts later token locations without
+changing generic meaning. The suite separately retains exact canonical-source,
+stable-identity, owner-shape, field-type and recovery comparisons. The
+projected-owned-Bytes case uses a fixture without unrelated owned variants, so
+it exercises the already admitted projected-loan composition without weakening
+the fail-closed `SPX-G410` rejection for owned-variant Graph v22 masking.

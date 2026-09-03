@@ -398,7 +398,6 @@ fn assert_plan(repository: &Repository, profile: &str, expected: &str) {
     );
 }
 
-#[cfg(unix)]
 fn root() -> &'static Path {
     Path::new(env!("CARGO_MANIFEST_DIR"))
 }
@@ -558,4 +557,232 @@ fn make_executable(path: &Path) {
     let mut permissions = fs::metadata(path).unwrap().permissions();
     permissions.set_mode(0o755);
     fs::set_permissions(path, permissions).unwrap();
+}
+
+mod first_contribution {
+    //! Drift gate for the onboarding walkthrough.
+    //!
+    //! `docs/FIRST-CONTRIBUTION.md` is the one document that hands a newcomer
+    //! literal profile names, gate identifiers, path classifications, and
+    //! routing reasons to type and to read back out of a plan. Prose drifts
+    //! silently: a renamed gate leaves the walkthrough telling a first
+    //! contributor to run something that no longer exists, which is the exact
+    //! failure onboarding documentation cannot afford.
+    //!
+    //! Every identifier the walkthrough cites is therefore bound here to the
+    //! file that owns it: the executor `scripts/quality.sh` for profiles and
+    //! gates, the router `src/quality_route.rs` for classifications, reasons,
+    //! and the refusals the walkthrough quotes. The checks run in both the
+    //! `test-advisory` and `test-agent-context` gates, which already select
+    //! this target, so a documentation-only change set exercises them.
+
+    use std::collections::BTreeSet;
+    use std::fs;
+
+    const WALKTHROUGH: &str = "docs/FIRST-CONTRIBUTION.md";
+
+    /// Profiles the walkthrough tells a contributor to select.
+    const PROFILES: [&str; 3] = ["quick", "changed", "full"];
+
+    /// Gate identifiers the walkthrough lists for those profiles.
+    const GATES: [&str; 15] = [
+        "diff-check",
+        "fmt-check",
+        "check-workspace",
+        "test-advisory",
+        "clippy-package",
+        "test-agent-context",
+        "rustdoc-package",
+        "clippy-workspace",
+        "test-workspace",
+        "doctest-workspace",
+        "rustdoc-workspace",
+        "build-release",
+        "package",
+        "example-checks",
+        "example-fmt",
+    ];
+
+    /// Path classifications and routing reasons the walkthrough quotes. The
+    /// router decides these; they never appear in the executor.
+    const ROUTES: [&str; 7] = [
+        "documentation-truth",
+        "agent-context-economics",
+        "broad-compiler-or-graph-dispatch",
+        "unmapped-or-wide",
+        "complete-git-state-has-narrow-mappings",
+        "git-state-includes-wide-or-unmapped-path",
+        "changed-worktree-is-empty",
+    ];
+
+    /// Refusals the walkthrough quotes verbatim so a newcomer recognizes them.
+    const REFUSALS: [&str; 2] = [
+        "changed quality routing requires SEMAPRAX_QUALITY_BASE, SEMAPRAX_QUALITY_TARGET_REF, or configured origin/HEAD",
+        "must be an exact refs/remotes/ reference",
+    ];
+
+    #[test]
+    fn every_documented_profile_and_gate_exists_in_the_executor() {
+        let script = read("scripts/quality.sh");
+        let offered = usage_profiles(&script);
+        let labels = case_labels(&script);
+
+        for profile in PROFILES {
+            assert!(
+                offered.contains(profile),
+                "scripts/quality.sh no longer offers the `{profile}` profile that docs/FIRST-CONTRIBUTION.md documents"
+            );
+            assert!(
+                script.contains(&format!("{profile}:0:")),
+                "scripts/quality.sh no longer validates a gate sequence for the `{profile}` profile that docs/FIRST-CONTRIBUTION.md documents"
+            );
+        }
+
+        for gate in GATES {
+            assert!(
+                labels.contains(gate),
+                "scripts/quality.sh no longer dispatches the `{gate}` gate that docs/FIRST-CONTRIBUTION.md documents"
+            );
+            assert!(
+                script.contains(&format!(":{gate}")),
+                "scripts/quality.sh no longer admits `{gate}` in any validated gate sequence, though docs/FIRST-CONTRIBUTION.md documents it"
+            );
+        }
+
+        assert!(
+            script.contains("semaprax.quality-route.v2"),
+            "scripts/quality.sh no longer validates the plan schema that docs/FIRST-CONTRIBUTION.md names"
+        );
+    }
+
+    #[test]
+    fn every_documented_classification_and_reason_exists_in_the_router() {
+        let router = read("src/quality_route.rs");
+        for route in ROUTES {
+            assert!(
+                router.contains(&format!("\"{route}\"")),
+                "src/quality_route.rs no longer emits `{route}`, which docs/FIRST-CONTRIBUTION.md documents"
+            );
+        }
+        assert!(
+            router.contains("\"semaprax.quality-route.v2\""),
+            "src/quality_route.rs no longer emits the plan schema that docs/FIRST-CONTRIBUTION.md names"
+        );
+    }
+
+    #[test]
+    fn the_walkthrough_quotes_the_routers_actual_refusals() {
+        let router = read("src/quality_route.rs");
+        let walkthrough = prose(&read(WALKTHROUGH));
+        for refusal in REFUSALS {
+            assert!(
+                router.contains(refusal),
+                "src/quality_route.rs no longer refuses with {refusal:?}, which docs/FIRST-CONTRIBUTION.md quotes"
+            );
+            assert!(
+                walkthrough.contains(refusal),
+                "docs/FIRST-CONTRIBUTION.md no longer quotes the refusal {refusal:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_walkthrough_states_the_owning_gates_module_size_facts() {
+        let gate = read("tests/module_size.rs");
+        let walkthrough = prose(&read(WALKTHROUGH));
+        let regenerate = "cargo test --locked -p semaprax --test module_size -- --ignored regenerate";
+
+        assert!(
+            gate.contains("const LIMIT: usize = 1500;"),
+            "tests/module_size.rs no longer enforces the 1500-line limit that docs/FIRST-CONTRIBUTION.md states"
+        );
+        assert!(
+            walkthrough.contains("1500 lines"),
+            "docs/FIRST-CONTRIBUTION.md no longer states the module size limit"
+        );
+        assert!(
+            gate.contains(regenerate),
+            "tests/module_size.rs no longer documents the regeneration command that docs/FIRST-CONTRIBUTION.md repeats"
+        );
+        assert!(
+            walkthrough.contains(regenerate),
+            "docs/FIRST-CONTRIBUTION.md no longer shows the budget regeneration command"
+        );
+    }
+
+    #[test]
+    fn the_walkthrough_cites_exactly_the_identifiers_this_gate_tracks() {
+        let walkthrough = read(WALKTHROUGH);
+        let tracked = GATES.into_iter().chain(ROUTES).collect::<BTreeSet<_>>();
+
+        for token in walkthrough.split('`') {
+            if !identifier_shaped(token) {
+                continue;
+            }
+            assert!(
+                tracked.contains(token),
+                "docs/FIRST-CONTRIBUTION.md cites `{token}`, which is not a gate identifier or route classification this gate binds to its owner"
+            );
+        }
+
+        for identifier in GATES.into_iter().chain(ROUTES).chain(PROFILES) {
+            assert!(
+                walkthrough.contains(&format!("`{identifier}`")),
+                "docs/FIRST-CONTRIBUTION.md no longer cites `{identifier}`; drop it from this gate's lists as well"
+            );
+        }
+    }
+
+    fn read(path: &str) -> String {
+        fs::read_to_string(super::root().join(path)).unwrap()
+    }
+
+    /// Profile names the executor offers in the `Profiles:` block of its own
+    /// usage text.
+    fn usage_profiles(script: &str) -> BTreeSet<&str> {
+        script
+            .lines()
+            .skip_while(|line| line.trim() != "Profiles:")
+            .skip(1)
+            .take_while(|line| !line.trim().is_empty())
+            .filter_map(|line| line.split_whitespace().next())
+            .collect()
+    }
+
+    /// Labels of every `case` arm in the executor, which is where each gate it
+    /// dispatches appears. Plan record kinds share the shape, so a caller pairs
+    /// this with the validated gate sequences rather than trusting it alone.
+    fn case_labels(script: &str) -> BTreeSet<&str> {
+        script
+            .lines()
+            .map(str::trim_start)
+            .filter_map(|line| line.split_once(')').map(|(label, _)| label))
+            .filter(|label| identifier_like(label))
+            .collect()
+    }
+
+    /// Whether a token could be a gate or route identifier: lowercase ASCII
+    /// words joined by interior hyphens.
+    fn identifier_shaped(token: &str) -> bool {
+        token.contains('-') && identifier_like(token)
+    }
+
+    fn identifier_like(token: &str) -> bool {
+        !token.is_empty()
+            && !token.starts_with('-')
+            && !token.ends_with('-')
+            && token
+                .bytes()
+                .all(|byte| byte.is_ascii_lowercase() || byte == b'-')
+    }
+
+    /// Markdown wraps prose and marks code with backticks, so a quoted message
+    /// reaches the page across several lines. Compare on the words alone.
+    fn prose(document: &str) -> String {
+        document
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .replace('`', "")
+    }
 }

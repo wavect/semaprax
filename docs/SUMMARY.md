@@ -258,6 +258,7 @@ Audience: all documentation readers.
 # Internal development documentation
 
 - [Development guide](DEVELOPMENT.md)
+- [First contribution](FIRST-CONTRIBUTION.md)
 - [Completion matrix](COMPLETION-MATRIX.md)
 - [Architecture](ARCHITECTURE.md)
 - [Quality gates](QUALITY-GATES.md)

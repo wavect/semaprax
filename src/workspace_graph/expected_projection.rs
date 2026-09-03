@@ -63,6 +63,9 @@ pub(super) fn synthetic_builder_bytes(
     let mut runtime = StructuralCost(0);
     let mut default_memo = BTreeMap::new();
     for module_use in &program.module_uses {
+        if module_use.kind == ModuleUseKind::Protocol {
+            continue;
+        }
         let target = &authored[module_use.persistent_id.as_str()];
         runtime.string(&module_use.alias)?;
         if let Some(function) = target.function {
@@ -1187,6 +1190,9 @@ pub(super) fn synthetic_program(
 ) -> Result<Program, Vec<Diagnostic>> {
     let mut synthetic = program.clone();
     synthetic.module_uses.clear();
+    // Project validation already authenticated static implementation sidecars.
+    // Runtime HIR has no witness or dispatch representation for them.
+    synthetic.implementations.clear();
     for module_use in program
         .module_uses
         .iter()
@@ -1702,6 +1708,9 @@ pub(super) fn collect_expected_edges(
         }
     }
     for (ordinal, module_use) in program.module_uses.iter().enumerate() {
+        if module_use.kind == ModuleUseKind::Protocol {
+            continue;
+        }
         let target = &authored[module_use.persistent_id.as_str()];
         push_edge(
             edges,
@@ -1713,6 +1722,7 @@ pub(super) fn collect_expected_edges(
                 kind: match module_use.kind {
                     ModuleUseKind::Function => "function_import",
                     ModuleUseKind::Type => "type_import",
+                    ModuleUseKind::Protocol => unreachable!(),
                 },
                 site: "module",
                 expression: crate::bounded_output::budgeted_format(format_args!("use.{ordinal}")),

@@ -5,8 +5,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde_json::{json, Value};
 
 use crate::ast::{
-    Function, Program, ProtocolDeclaration, ProtocolMethod, Type, TypeDeclaration,
-    TypeDeclarationKind,
+    Function, ModuleUseKind, Program, ProtocolDeclaration, ProtocolImplementation, ProtocolMethod,
+    Type, TypeDeclaration, TypeDeclarationKind,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -222,39 +222,6 @@ pub fn validate(program: &Program) -> Result<(), Diagnostic> {
                 "a protocol and receiver may have only one local static implementation",
             ));
         }
-        let protocol = protocols
-            .get(implementation.protocol_id.as_str())
-            .filter(|item| item.explicit_id)
-            .ok_or_else(|| {
-                error(
-                    "SPX-Q106",
-                    "static impl protocol must be a local explicit declaration",
-                )
-            })?;
-        let receiver = receivers
-            .get(implementation.receiver_id.as_str())
-            .filter(|item| {
-                item.explicit_id
-                    && item.type_parameters.is_empty()
-                    && matches!(item.kind, TypeDeclarationKind::Record { .. })
-            })
-            .ok_or_else(|| {
-                error(
-                    "SPX-Q106",
-                    "static impl receiver must be a local explicit monomorphic record",
-                )
-            })?;
-        if implementation.members.len() != protocol.methods.len() {
-            return Err(error(
-                "SPX-Q107",
-                "static impl must bind every required method exactly once",
-            ));
-        }
-        let required = protocol
-            .methods
-            .iter()
-            .map(|item| (item.stable_id.as_str(), item))
-            .collect::<BTreeMap<_, _>>();
         let mut bound_methods = BTreeSet::new();
         let mut bound_functions = BTreeSet::new();
         for member in &implementation.members {
@@ -269,24 +236,95 @@ pub fn validate(program: &Program) -> Result<(), Diagnostic> {
             {
                 return Err(error("SPX-Q107", "static impl bindings must be one-to-one"));
             }
-            let method = required
-                .get(member.method_id.as_str())
-                .filter(|item| item.explicit_id)
-                .ok_or_else(|| {
-                    error(
-                        "SPX-Q107",
-                        "static impl member is not an explicit requirement of its protocol",
-                    )
-                })?;
-            let function = functions.get(member.function_id.as_str()).ok_or_else(|| {
+        }
+        let protocol = protocols
+            .get(implementation.protocol_id.as_str())
+            .filter(|item| item.explicit_id);
+        let receiver = receivers
+            .get(implementation.receiver_id.as_str())
+            .filter(|item| {
+                item.explicit_id
+                    && item.type_parameters.is_empty()
+                    && matches!(item.kind, TypeDeclarationKind::Record { .. })
+            });
+        let all_functions_local = implementation
+            .members
+            .iter()
+            .all(|member| functions.contains_key(member.function_id.as_str()));
+        if let (Some(protocol), Some(receiver), true) = (protocol, receiver, all_functions_local) {
+            validate_mapping(protocol, receiver, &functions, implementation)?;
+        } else {
+            if protocol.is_none() {
+                require_import(
+                    program,
+                    ModuleUseKind::Protocol,
+                    &implementation.protocol_id,
+                )?;
+            }
+            if receiver.is_none() {
+                require_import(program, ModuleUseKind::Type, &implementation.receiver_id)?;
+            }
+            for member in &implementation.members {
+                if !functions.contains_key(member.function_id.as_str()) {
+                    require_import(program, ModuleUseKind::Function, &member.function_id)?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn require_import(program: &Program, kind: ModuleUseKind, id: &str) -> Result<(), Diagnostic> {
+    let bindings = program
+        .module_uses
+        .iter()
+        .filter(|binding| binding.persistent_id == id)
+        .collect::<Vec<_>>();
+    if matches!(bindings.as_slice(), [binding] if binding.kind == kind) {
+        Ok(())
+    } else {
+        Err(error(
+            "SPX-Q106",
+            "cross-module static impl dependency requires one exact typed import",
+        ))
+    }
+}
+
+fn validate_mapping<'a>(
+    protocol: &ProtocolDeclaration,
+    receiver: &TypeDeclaration,
+    functions: &BTreeMap<&'a str, &'a Function>,
+    implementation: &ProtocolImplementation,
+) -> Result<(), Diagnostic> {
+    if implementation.members.len() != protocol.methods.len() {
+        return Err(error(
+            "SPX-Q107",
+            "static impl must bind every required method exactly once",
+        ));
+    }
+    let required = protocol
+        .methods
+        .iter()
+        .map(|item| (item.stable_id.as_str(), item))
+        .collect::<BTreeMap<_, _>>();
+    for member in &implementation.members {
+        let method = required
+            .get(member.method_id.as_str())
+            .filter(|item| item.explicit_id)
+            .ok_or_else(|| {
                 error(
                     "SPX-Q107",
-                    "static impl member must name an ordinary local function",
+                    "static impl member is not an explicit requirement of its protocol",
                 )
             })?;
-            if !member_matches(protocol, method, receiver, function) {
-                return Err(error("SPX-Q107", "static impl function signature, modes, effects, or preconditions do not satisfy its requirement"));
-            }
+        let function = functions.get(member.function_id.as_str()).ok_or_else(|| {
+            error(
+                "SPX-Q107",
+                "static impl member must name an ordinary function",
+            )
+        })?;
+        if !member_matches(protocol, method, receiver, function) {
+            return Err(error("SPX-Q107", "static impl function signature, modes, effects, or preconditions do not satisfy its requirement"));
         }
     }
     Ok(())
@@ -338,7 +376,254 @@ pub(crate) fn validate_workspace(programs: &[Program]) -> Result<(), Diagnostic>
             Ok(())
         })?;
     }
+    let protocols = programs
+        .iter()
+        .enumerate()
+        .flat_map(|(owner, program)| {
+            program
+                .protocols
+                .iter()
+                .map(move |item| (item.stable_id.as_str(), (owner, item)))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let receivers = programs
+        .iter()
+        .enumerate()
+        .flat_map(|(owner, program)| {
+            program
+                .types
+                .iter()
+                .map(move |item| (item.stable_id.as_str(), (owner, item)))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let functions = programs
+        .iter()
+        .enumerate()
+        .flat_map(|(owner, program)| {
+            program
+                .functions
+                .iter()
+                .map(move |item| (item.stable_id.as_str(), (owner, item)))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let mut pairs = BTreeSet::new();
+    for (destination, program) in programs.iter().enumerate() {
+        for implementation in &program.implementations {
+            if !pairs.insert((
+                implementation.protocol_id.as_str(),
+                implementation.receiver_id.as_str(),
+            )) {
+                return Err(error(
+                    "SPX-Q108",
+                    "a protocol and receiver may have only one Project static implementation",
+                ));
+            }
+            let (protocol_owner, protocol) = protocols
+                .get(implementation.protocol_id.as_str())
+                .copied()
+                .filter(|(_, item)| item.explicit_id)
+                .ok_or_else(|| {
+                    error(
+                        "SPX-Q106",
+                        "static impl protocol is absent from its Project",
+                    )
+                })?;
+            let (receiver_owner, receiver) = receivers
+                .get(implementation.receiver_id.as_str())
+                .copied()
+                .filter(|(_, item)| {
+                    item.explicit_id
+                        && item.type_parameters.is_empty()
+                        && matches!(item.kind, TypeDeclarationKind::Record { .. })
+                })
+                .ok_or_else(|| {
+                    error(
+                        "SPX-Q106",
+                        "static impl receiver is not one explicit Project record",
+                    )
+                })?;
+            require_workspace_import(
+                programs,
+                destination,
+                protocol_owner,
+                ModuleUseKind::Protocol,
+                &implementation.protocol_id,
+            )?;
+            require_workspace_import(
+                programs,
+                destination,
+                receiver_owner,
+                ModuleUseKind::Type,
+                &implementation.receiver_id,
+            )?;
+            if implementation.members.len() != protocol.methods.len() {
+                return Err(error(
+                    "SPX-Q107",
+                    "static impl must bind every required method exactly once",
+                ));
+            }
+            let required = protocol
+                .methods
+                .iter()
+                .map(|item| (item.stable_id.as_str(), item))
+                .collect::<BTreeMap<_, _>>();
+            for member in &implementation.members {
+                let method = required
+                    .get(member.method_id.as_str())
+                    .filter(|item| item.explicit_id)
+                    .ok_or_else(|| {
+                        error(
+                            "SPX-Q107",
+                            "static impl member is not an explicit Project protocol requirement",
+                        )
+                    })?;
+                let (function_owner, function) = functions
+                    .get(member.function_id.as_str())
+                    .copied()
+                    .ok_or_else(|| {
+                        error(
+                            "SPX-Q107",
+                            "static impl function is absent from its Project",
+                        )
+                    })?;
+                require_workspace_import(
+                    programs,
+                    destination,
+                    function_owner,
+                    ModuleUseKind::Function,
+                    &member.function_id,
+                )?;
+                if !workspace_member_matches(
+                    programs,
+                    protocol_owner,
+                    protocol,
+                    method,
+                    receiver,
+                    function_owner,
+                    function,
+                )? {
+                    return Err(error("SPX-Q107", "static impl function signature, modes, effects, or preconditions do not satisfy its Project requirement"));
+                }
+            }
+        }
+    }
     Ok(())
+}
+
+fn require_workspace_import(
+    programs: &[Program],
+    destination: usize,
+    provider: usize,
+    kind: ModuleUseKind,
+    id: &str,
+) -> Result<(), Diagnostic> {
+    if destination == provider {
+        return Ok(());
+    }
+    let bindings = programs[destination]
+        .module_uses
+        .iter()
+        .filter(|binding| binding.persistent_id == id)
+        .collect::<Vec<_>>();
+    if matches!(bindings.as_slice(), [binding] if binding.kind == kind && binding.target_module == programs[provider].module)
+    {
+        Ok(())
+    } else {
+        Err(error(
+            "SPX-Q106",
+            "cross-module static impl import disagrees with its exact Project provider",
+        ))
+    }
+}
+
+fn workspace_member_matches(
+    programs: &[Program],
+    protocol_owner: usize,
+    protocol: &ProtocolDeclaration,
+    method: &ProtocolMethod,
+    receiver: &TypeDeclaration,
+    function_owner: usize,
+    function: &Function,
+) -> Result<bool, Diagnostic> {
+    if !function.explicit_id
+        || function.name == "main"
+        || !function.type_parameters.is_empty()
+        || !function.effects.is_empty()
+        || !function.requires.is_empty()
+        || method.params.is_empty()
+        || method.params.len() != function.params.len()
+    {
+        return Ok(false);
+    }
+    for (index, (required, actual)) in method.params.iter().zip(&function.params).enumerate() {
+        if required.mode != actual.mode {
+            return Ok(false);
+        }
+        let required = if index == 0
+            && matches!(&required.ty, Type::Named { name, arguments } if arguments.is_empty() && (name == "Self" || name == &protocol.name))
+        {
+            format!("id:{}", receiver.stable_id)
+        } else {
+            workspace_type_key(programs, protocol_owner, &required.ty, 0)?
+        };
+        if required != workspace_type_key(programs, function_owner, &actual.ty, 0)? {
+            return Ok(false);
+        }
+    }
+    Ok(
+        workspace_type_key(programs, protocol_owner, &method.return_type, 0)?
+            == workspace_type_key(programs, function_owner, &function.return_type, 0)?,
+    )
+}
+
+fn workspace_type_key(
+    programs: &[Program],
+    owner: usize,
+    ty: &Type,
+    depth: usize,
+) -> Result<String, Diagnostic> {
+    if depth > 64 {
+        return Err(error(
+            "SPX-Q109",
+            "static impl type identity exceeds its depth bound",
+        ));
+    }
+    let Type::Named { name, arguments } = ty else {
+        return Ok(ty.to_string());
+    };
+    let program = &programs[owner];
+    let local = program.types.iter().find(|item| item.name == *name);
+    let imported = program
+        .module_uses
+        .iter()
+        .filter(|item| item.kind == ModuleUseKind::Type && item.alias == *name)
+        .collect::<Vec<_>>();
+    let prelude = crate::prelude::declarations()
+        .iter()
+        .find(|item| item.name == *name)
+        .map(|item| item.stable_id.as_str());
+    let identity = match (local, imported.as_slice()) {
+        (Some(item), []) => format!("id:{}", item.stable_id),
+        (None, [item]) => format!("id:{}", item.persistent_id),
+        (None, []) if prelude.is_some() => format!("id:{}", prelude.unwrap()),
+        (None, []) => {
+            return Err(error(
+                "SPX-Q106",
+                "static impl nominal type lacks an exact Project identity binding",
+            ))
+        }
+        _ => {
+            return Err(error(
+                "SPX-Q106",
+                "static impl nominal type binding is ambiguous",
+            ))
+        }
+    };
+    let arguments = arguments
+        .iter()
+        .map(|argument| workspace_type_key(programs, owner, argument, depth + 1))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(format!("{identity}<{}>", arguments.join(",")))
 }
 
 fn visit_ids<'a>(

@@ -4,12 +4,15 @@ Status: Partial; implementation and regression tests authored, unrun.
 
 Audience: agent builders, compiler contributors, and reviewers.
 
-`implement_interface` appends one actual source `impl` declaration that binds a
-local record to a local protocol's complete member table. The binding names
-existing functions by persistent identity. The ordinary source checker validates
-static conformance, and candidate application independently rebuilds the full
-Project and its admitted target projections. This does not generate function
-bodies, lower dynamic dispatch, or introduce a runtime witness table.
+`implement_interface` appends one actual source `impl` declaration that binds an
+explicit Project record to an explicit Project protocol's complete member table.
+The binding names existing Project functions by persistent identity. The
+declaration defaults to the receiver module; optional `destination` selects one
+other exact declared Project module. The compiler plans canonical dependency
+imports before mutation. Source and Project checkers validate the closed static
+sidecar before candidate application rebuilds the full Project. This does not
+generate function bodies, lower dynamic dispatch, introduce a runtime witness
+table, or add a runtime Graph edge for the protocol dependency.
 
 ## Intention and discovery
 
@@ -19,17 +22,19 @@ bodies, lower dynamic dispatch, or introduce a runtime witness table.
   "target": "example.counter",
   "protocol": "example.readable",
   "id": "example.counter.readable",
+  "destination": "example.bindings",
   "members": [
     {"method": "example.readable.read", "implementation": "example.read"}
   ]
 }
 ```
 
-These are the exact outer and member object fields. `target` selects one
-explicit monomorphic record. `protocol` selects an explicit protocol in that
-record's module. Each `method` is an explicit required member, and each
+The five-field form without `destination` remains exact and places the sidecar
+in the receiver module. The six-field form shown above is also closed. `target`
+selects one explicit monomorphic Project record. `protocol` selects one explicit
+Project protocol. Each `method` is an explicit required member, and each
 `implementation` is an existing explicit ordinary non-`main`, monomorphic
-function in the same module. Every required member must be selected exactly
+Project function. Every required member must be selected exactly
 once, and implementation functions must be distinct. The new implementation ID
 must be globally fresh. Selectors use the source static-conformance grammar:
 1–240 ASCII letters, digits, underscores, dots, colons, or hyphens. The new ID
@@ -37,26 +42,31 @@ cannot use the `auto:` or `semaprax.` prefixes or collide with prelude identitie
 
 `ProjectCandidate::interface_catalog(expected_candidate, target)` returns
 `semaprax.project-interface-change-catalog.v1`, bound to the exact candidate and
-Project revision. It lists local protocols, required signatures and modes,
-eligible function IDs for each member, and an existing implementation if present.
+Project revision. It lists Project protocols and provider modules, required
+signatures and modes, eligible Project function IDs, declared destination
+modules, and an existing implementation if present.
 `complete_mapping_available` requires an actual one-to-one matching, not merely
 one candidate per member. The ordinary change catalogue advertises
 `implement_interface` when a complete new mapping is available. Discovery never
 admits a proposed implementation or selects a preferred table automatically.
 
-The compiler's shared `static_protocol::member_matches` owns signature
-eligibility. The receiver position substitutes protocol `Self` or the protocol
-name with the actual record type. Remaining types, parameter modes, arity, and
-return type must match exactly. Implementation functions cannot add effects or
-preconditions; ordinary postconditions are permitted. The ordinary verifier
-still owns all body, ownership, cleanup, and backend admission. Discovery does
-not designate an owning record as Copy or relax an unsupported ownership mode.
+The compiler's static protocol owner resolves nominal parameter identities in
+each declaration's own module before comparison. The receiver position
+substitutes protocol `Self` or the protocol name with the record's exact stable
+identity. Remaining resolved type identities, parameter modes, arity, and return
+type must match exactly. Implementation functions cannot add effects or
+preconditions; ordinary postconditions are permitted. Retained checked HIR must
+contain the exact receiver record and every selected function before mutation.
+The ordinary verifier still owns body, ownership, cleanup, and backend admission.
 
 ## Canonical source and persistent identities
 
 The operation constructs a typed AST declaration, orders bindings by required
-method ID, and leaves projection to the canonical formatter. The output has
-ordinary source form:
+method ID, and leaves projection to the canonical formatter. Cross-module
+dependencies are sorted by family and stable identity. Existing exact imports
+are reused; fresh aliases prefer the provider display name and then use the
+bounded `_spx_impl_<n>` namespace. A conflicting identity, kind, or provider
+rejects before mutation. The output has ordinary source form:
 
 ```text
 @id("example.counter.readable")
@@ -64,6 +74,11 @@ impl "example.readable" for "example.counter" {
     "example.readable.read" = "example.read";
 }
 ```
+
+A cross-module destination additionally carries exact `use protocol`, `use
+type`, and `use function` declarations. `use protocol` is a static sidecar
+dependency: Project validation authenticates it, while runtime HIR and runtime
+Graph projection deliberately omit it.
 
 The source checker validates this complete table before candidate admission.
 Every subsequent candidate operation preserves the existing source-owned
@@ -78,8 +93,9 @@ The new implementation remains in exact Semantic Change history, replay, and
 recovery. A stale or failed application cannot change the existing candidate
 or original files. Conservative rebase and merge compare a closed
 compiler-owned dependency fingerprint at each original and destination
-intermediate revision before replay. It binds the exact receiver and protocol
-identities and shapes, the ordered required-member signatures, the normalized
+intermediate revision before replay. It binds the exact receiver, protocol, and
+destination identities and shapes, relevant import bindings, the ordered
+required-member signatures, the normalized
 method-to-function mapping, each selected function's conformance-relevant
 signature/effects/precondition facts, the vacant receiver/protocol pair, and
 the globally absent new implementation ID. Mapping input order is immaterial
@@ -123,15 +139,19 @@ active. These are structural/output bounds, not a total heap or latency promise.
 `SPX-G272` rejects malformed mappings, unavailable subjects, duplicate or
 incomplete selections, incompatible member signatures, and identity collisions.
 `SPX-G273` reports candidate interface capacity. `SPX-G274` rejects a changed
-source implementation inventory. `SPX-G235` owns conservative rebase/merge
+source implementation inventory. `SPX-G497` rejects an absent or ambiguous
+destination, `SPX-G498` rejects import conflicts or alias exhaustion, and
+`SPX-G499` rejects missing or ambiguous retained source/HIR bindings.
+`SPX-G235` owns conservative rebase/merge
 dependency, pair-occupancy, identity, and unsupported-history conflicts. The
 source static-conformance `SPX-Q1xx`, Project, and ordinary candidate
 stale/replay diagnostics remain authoritative where delegated.
 
 [`tests/project_candidate/interface.rs`](../tests/project_candidate/interface.rs)
-authors discovery, real source addition, selected delta verification, exact
-replay/recovery, no-write behavior, incomplete/wrong/duplicate/colliding mapping
-rejection, display rename preservation, and precondition revalidation.
+authors discovery, same-module and cross-module source additions, canonical
+dependency imports, selected delta verification, exact replay/recovery, no-write
+behavior, absent-destination and incompatible-function rejection, display rename
+preservation, and precondition revalidation.
 [`tests/project_candidate/interface_rebase.rs`](../tests/project_candidate/interface_rebase.rs)
 authors conservative rebase/merge success across unrelated body and selected
 display edits, exact replay equivalence, unchanged parents/files, the absence

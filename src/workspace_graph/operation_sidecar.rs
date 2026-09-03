@@ -197,6 +197,9 @@ fn build_sidecar(
     let mut import_index = BTreeMap::new();
     for program in programs {
         for module_use in &program.module_uses {
+            if module_use.kind == ModuleUseKind::Protocol {
+                continue;
+            }
             let target = authored
                 .get(module_use.persistent_id.as_str())
                 .ok_or_else(|| {
@@ -208,6 +211,7 @@ fn build_sidecar(
             let family_matches = match module_use.kind {
                 ModuleUseKind::Function => target.function.is_some(),
                 ModuleUseKind::Type => target.ty.is_some(),
+                ModuleUseKind::Protocol => unreachable!(),
             };
             if !target.explicit || !family_matches || target.module != module_use.target_module {
                 continue;
@@ -229,6 +233,7 @@ fn build_sidecar(
                 kind: match module_use.kind {
                     ModuleUseKind::Function => "function",
                     ModuleUseKind::Type => "type",
+                    ModuleUseKind::Protocol => unreachable!(),
                 },
                 target_id: crate::bounded_output::budgeted_clone(&module_use.persistent_id),
                 target_module: crate::bounded_output::budgeted_clone(&module_use.target_module),
@@ -270,10 +275,14 @@ fn build_sidecar(
         )?;
         let tokens = crate::lexer::lex(source, &program.path).map_err(|error| vec![error])?;
         for module_use in &program.module_uses {
+            if module_use.kind == ModuleUseKind::Protocol {
+                continue;
+            }
             let alias_span = module_use_alias_span(&tokens, module_use)?;
             let family = match module_use.kind {
                 ModuleUseKind::Function => "function",
                 ModuleUseKind::Type => "type",
+                ModuleUseKind::Protocol => unreachable!(),
             };
             let index = imports
                 .binary_search_by(|item| {
@@ -1793,6 +1802,7 @@ fn push_bound_operation_occurrence(
     let family_text = match family {
         ModuleUseKind::Function => "function",
         ModuleUseKind::Type => "type",
+        ModuleUseKind::Protocol => "protocol",
     };
     if let Ok(index) = imports.binary_search_by(|item| {
         (&item.path, item.kind, item.target_id.as_str()).cmp(&(

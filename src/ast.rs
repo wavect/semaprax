@@ -367,6 +367,8 @@ impl Drop for Program {
 pub enum ModuleUseKind {
     Function,
     Type,
+    /// Static-conformance-only protocol dependency. It never enters runtime HIR.
+    Protocol,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

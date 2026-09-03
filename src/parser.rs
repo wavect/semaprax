@@ -185,10 +185,13 @@ impl Parser {
         } else if self.at_keyword("type") {
             self.bump();
             ModuleUseKind::Type
+        } else if self.at_keyword("protocol") {
+            self.bump();
+            ModuleUseKind::Protocol
         } else {
             return Err(self.error_here(
                 "SPX-G170",
-                "workspace module use expects `function` or `type`",
+                "workspace module use expects `function`, `type`, or `protocol`",
             ));
         };
         if !self.take(&TokenKind::At) {

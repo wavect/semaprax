@@ -968,8 +968,16 @@ fn operation() -> Value {
                     json!({"const":["method","implementation"]}),
                 ),
                 (
+                    "optional_cross_module_fields",
+                    json!({"const":["destination"]}),
+                ),
+                (
                     "discovery",
                     json!({"const":"ProjectCandidate::interface_catalog"}),
+                ),
+                (
+                    "placement",
+                    json!({"const":"append_in_exact_declared_destination_module_with_canonical_dependency_imports"}),
                 ),
             ]),
             _ => {}

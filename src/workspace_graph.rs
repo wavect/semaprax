@@ -1025,6 +1025,7 @@ impl<'a> CallOccurrenceKey<'a> {
 enum AuthoredKind {
     Function,
     Type,
+    Protocol,
     Other,
 }
 
@@ -5299,6 +5300,23 @@ fn index_authored(
                 insert_other(&mut declarations, &import.stable_id, program)?;
             }
         }
+        for protocol in &program.protocols {
+            insert_authored(
+                &mut declarations,
+                &protocol.stable_id,
+                AuthoredDeclaration {
+                    path: &program.path,
+                    module: &program.module,
+                    explicit: protocol.explicit_id,
+                    kind: AuthoredKind::Protocol,
+                    function: None,
+                    ty: None,
+                },
+            )?;
+            for method in &protocol.methods {
+                insert_other(&mut declarations, &method.stable_id, program)?;
+            }
+        }
     }
     Ok(declarations)
 }
@@ -5379,6 +5397,7 @@ fn validate_uses(
     for program in programs {
         let mut function_aliases = BTreeSet::new();
         let mut type_aliases = BTreeSet::new();
+        let mut protocol_aliases = BTreeSet::new();
         let mut imported_targets = BTreeSet::new();
         let local_functions = program
             .functions
@@ -5401,6 +5420,11 @@ fn validate_uses(
                     .iter()
                     .map(|item| item.name.as_str()),
             )
+            .collect::<BTreeSet<_>>();
+        let local_protocols = program
+            .protocols
+            .iter()
+            .map(|item| item.name.as_str())
             .collect::<BTreeSet<_>>();
         let workspace_type_aliases = program
             .module_uses
@@ -5449,6 +5473,10 @@ fn validate_uses(
                     !type_aliases.insert(module_use.alias.as_str())
                         || local_types.contains(module_use.alias.as_str())
                 }
+                ModuleUseKind::Protocol => {
+                    !protocol_aliases.insert(module_use.alias.as_str())
+                        || local_protocols.contains(module_use.alias.as_str())
+                }
             };
             if alias_conflicts {
                 return Err(vec![use_error(
@@ -5469,6 +5497,7 @@ fn validate_uses(
             let expected = match module_use.kind {
                 ModuleUseKind::Function => AuthoredKind::Function,
                 ModuleUseKind::Type => AuthoredKind::Type,
+                ModuleUseKind::Protocol => AuthoredKind::Protocol,
             };
             if !target.explicit
                 || target.module != module_use.target_module
@@ -5487,6 +5516,7 @@ fn validate_uses(
                 ModuleUseKind::Type => {
                     validate_imported_type(program, module_use, target, authored, programs)?;
                 }
+                ModuleUseKind::Protocol => {}
             }
         }
     }
@@ -6078,6 +6108,9 @@ fn validate_stub_signatures(
                 )]
             })?;
         for module_use in &caller.module_uses {
+            if module_use.kind == ModuleUseKind::Protocol {
+                continue;
+            }
             let target_hir = modules
                 .iter()
                 .find(|(module, _)| module == &module_use.target_module)
@@ -6119,6 +6152,7 @@ fn validate_stub_signatures(
                         )]);
                     }
                 }
+                ModuleUseKind::Protocol => unreachable!(),
             }
         }
     }

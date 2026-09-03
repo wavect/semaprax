@@ -31,7 +31,7 @@ mod ast {
         implementations,
         functions
     });
-    codec_enum!(ModuleUseKind { 0 => Function, 1 => Type });
+    codec_enum!(ModuleUseKind { 0 => Function, 1 => Type, 2 => Protocol });
     codec_struct!(ModuleUse {
         kind,
         persistent_id,

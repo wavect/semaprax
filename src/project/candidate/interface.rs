@@ -1,7 +1,8 @@
 //! Source-backed static protocol mappings. No runtime witness or dispatch data.
 use super::{intent::IntentSummary, parse_revision, wire, ProjectCandidate};
 use crate::ast::{
-    Program, ProtocolImplementation, ProtocolImplementationMember, Span, TypeDeclarationKind,
+    Function, ModuleUse, ModuleUseKind, Program, ProtocolDeclaration, ProtocolImplementation,
+    ProtocolImplementationMember, ProtocolMethod, Span, Type, TypeDeclaration, TypeDeclarationKind,
 };
 use crate::diagnostic::Diagnostic;
 use crate::project::ProjectRevision;
@@ -22,18 +23,18 @@ pub(super) struct ImplementationAddition {
 }
 
 pub(super) fn apply(
-    _revision: &ProjectRevision,
+    revision: &ProjectRevision,
     programs: &mut [Program],
     request: &Value,
 ) -> Result<(IntentSummary, ImplementationAddition)> {
-    exact(request, &["kind", "target", "protocol", "id", "members"])?;
+    exact_implementation(request)?;
     let target = selector(request, "target")?;
     let protocol_id = selector(request, "protocol")?;
     let id = selector(request, "id")?;
     if id.starts_with("auto:") || id.starts_with("semaprax.") {
         return Err(invalid("implementation identity uses a reserved namespace"));
     }
-    let owner = receiver_owner(programs, target)?.ok_or_else(|| {
+    let receiver_owner = receiver_owner(programs, target)?.ok_or_else(|| {
         invalid("implementation receiver must be one explicit local monomorphic record")
     })?;
     let identities = identities(programs)?;
@@ -49,24 +50,30 @@ pub(super) fn apply(
             "implementation identity is already bound in this Project",
         ));
     }
-    let program = &programs[owner];
-    let receiver = program
+    let receiver_program = &programs[receiver_owner];
+    let receiver = receiver_program
         .types
         .iter()
         .find(|declaration| declaration.stable_id == target)
-        .unwrap();
-    let protocol = program
-        .protocols
-        .iter()
-        .find(|protocol| protocol.stable_id == protocol_id && protocol.explicit_id)
-        .ok_or_else(|| {
-            invalid(
-                "implementation protocol must be an explicit declaration in the receiver module",
-            )
+        .unwrap()
+        .clone();
+    let (protocol_owner, protocol) =
+        explicit_protocol(programs, protocol_id)?.ok_or_else(|| {
+            invalid("implementation protocol must be one explicit Project declaration")
         })?;
-    if program.implementations.iter().any(|implementation| {
-        implementation.receiver_id == target && implementation.protocol_id == protocol_id
-    }) {
+    let protocol = protocol.clone();
+    let destination = request
+        .get("destination")
+        .and_then(Value::as_str)
+        .unwrap_or(receiver_program.module.as_str());
+    let destination_owner = destination_module(programs, destination)?;
+    if programs
+        .iter()
+        .flat_map(|program| &program.implementations)
+        .any(|implementation| {
+            implementation.receiver_id == target && implementation.protocol_id == protocol_id
+        })
+    {
         return Err(invalid(
             "receiver already has an implementation of this protocol",
         ));
@@ -100,12 +107,20 @@ pub(super) fn apply(
             .ok_or_else(|| {
                 invalid("implementation selector is not an explicit required protocol member")
             })?;
-        let function = program
-            .functions
-            .iter()
-            .find(|function| function.stable_id == function_id)
-            .ok_or_else(|| invalid("implementation function must belong to the receiver module"))?;
-        if !crate::static_protocol::member_matches(protocol, method, receiver, function) {
+        let (function_owner, function) =
+            explicit_function(programs, function_id)?.ok_or_else(|| {
+                invalid("implementation function must be one explicit Project function")
+            })?;
+        if !member_matches_project(
+            programs,
+            protocol_owner,
+            &protocol,
+            method,
+            receiver_owner,
+            &receiver,
+            function_owner,
+            function,
+        )? {
             return Err(invalid(
                 "implementation function does not match the compiler-required member signature",
             ));
@@ -132,6 +147,17 @@ pub(super) fn apply(
             .collect(),
         span: Span::default(),
     };
+    authenticate_checked_bindings(revision, programs, target, protocol_id, &implementation)?;
+    plan_imports(
+        programs,
+        destination_owner,
+        receiver_owner,
+        &receiver,
+        protocol_owner,
+        &protocol,
+        &implementation,
+    )?;
+    let program = &programs[destination_owner];
     let fact = binding_fact(program, &implementation);
     let addition = ImplementationAddition {
         id: id.to_owned(),
@@ -140,8 +166,10 @@ pub(super) fn apply(
         module: program.module.clone(),
         fact,
     };
-    programs[owner].implementations.push(implementation);
-    crate::static_protocol::validate(&programs[owner]).map_err(|error| vec![error])?;
+    programs[destination_owner]
+        .implementations
+        .push(implementation);
+    crate::static_protocol::validate_workspace(programs).map_err(|error| vec![error])?;
     Ok((
         IntentSummary {
             target_id: target.to_owned(),
@@ -153,7 +181,7 @@ pub(super) fn apply(
 }
 
 impl ProjectCandidate {
-    /// Discover complete local protocol requirements and compiler-matched
+    /// Discover complete Project protocol requirements and compiler-matched
     /// existing functions. Discovery confers neither conformance nor authority.
     pub fn interface_catalog(&self, expected_candidate: &str, target: &str) -> Result<String> {
         self.require_candidate(expected_candidate)?;
@@ -163,7 +191,7 @@ impl ProjectCandidate {
             "target":target,"protocols":protocols,"admission":"compiler_signature_discovery_only",
             "requires_full_candidate_validation":true,"source_authority":false,
             "limits":{"max_members":MAX_MEMBERS,"max_items":MAX_ITEMS,"max_report_bytes":MAX_REPORT_BYTES},
-            "nonclaims":["no_dynamic_dispatch","no_runtime_witness","no_generated_implementation","no_external_module_conformance"]}), MAX_REPORT_BYTES)
+            "nonclaims":["no_dynamic_dispatch","no_runtime_witness","no_generated_implementation","no_external_abi_or_package_conformance"]}), MAX_REPORT_BYTES)
             .map_err(|_| capacity("interface discovery exceeds its report byte bound"))
     }
 }
@@ -187,17 +215,24 @@ pub(super) fn discover(revision: &ProjectRevision, target: &str) -> Result<Vec<V
         .iter()
         .find(|declaration| declaration.stable_id == target)
         .unwrap();
-    let mut protocols = program
-        .protocols
+    let mut protocols = programs
         .iter()
-        .filter(|protocol| {
-            protocol.explicit_id && crate::static_protocol::valid_binding_id(&protocol.stable_id)
+        .enumerate()
+        .flat_map(|(protocol_owner, program)| {
+            program
+                .protocols
+                .iter()
+                .filter(|protocol| {
+                    protocol.explicit_id
+                        && crate::static_protocol::valid_binding_id(&protocol.stable_id)
+                })
+                .map(move |protocol| (protocol_owner, protocol))
         })
         .collect::<Vec<_>>();
-    protocols.sort_by(|left, right| left.stable_id.cmp(&right.stable_id));
+    protocols.sort_by(|left, right| left.1.stable_id.cmp(&right.1.stable_id));
     let mut items = 0usize;
     let mut output = Vec::new();
-    for protocol in protocols {
+    for (protocol_owner, protocol) in protocols {
         if protocol.methods.len() > MAX_MEMBERS
             || protocol.methods.iter().any(|method| {
                 !method.explicit_id || !crate::static_protocol::valid_binding_id(&method.stable_id)
@@ -209,17 +244,25 @@ pub(super) fn discover(revision: &ProjectRevision, target: &str) -> Result<Vec<V
         methods.sort_by(|left, right| left.stable_id.cmp(&right.stable_id));
         let mut members = Vec::new();
         for method in methods {
-            let mut functions = program
-                .functions
-                .iter()
-                .filter(|function| {
-                    crate::static_protocol::valid_binding_id(&function.stable_id)
-                        && crate::static_protocol::member_matches(
-                            protocol, method, receiver, function,
-                        )
-                })
-                .map(|function| function.stable_id.clone())
-                .collect::<Vec<_>>();
+            let mut functions = Vec::new();
+            for (function_owner, function_program) in programs.iter().enumerate() {
+                for function in &function_program.functions {
+                    if crate::static_protocol::valid_binding_id(&function.stable_id)
+                        && member_matches_project(
+                            &programs,
+                            protocol_owner,
+                            protocol,
+                            method,
+                            owner,
+                            receiver,
+                            function_owner,
+                            function,
+                        )?
+                    {
+                        functions.push(function.stable_id.clone());
+                    }
+                }
+            }
             functions.sort();
             items = items.saturating_add(1 + functions.len());
             if items > MAX_ITEMS {
@@ -229,11 +272,17 @@ pub(super) fn discover(revision: &ProjectRevision, target: &str) -> Result<Vec<V
                 "parameters":method.params.iter().map(|parameter| json!({"name":parameter.name,"type":parameter.ty.to_string(),"mode":parameter.mode.text()})).collect::<Vec<_>>(),
                 "return_type":method.return_type.to_string(),"eligible_implementations":functions}));
         }
-        let existing = program.implementations.iter().find(|implementation| {
-            implementation.receiver_id == target && implementation.protocol_id == protocol.stable_id
-        });
+        let existing = programs
+            .iter()
+            .flat_map(|program| &program.implementations)
+            .find(|implementation| {
+                implementation.receiver_id == target
+                    && implementation.protocol_id == protocol.stable_id
+            });
         let complete = complete_mapping(&members);
         output.push(json!({"protocol":protocol.stable_id,"name":protocol.name,"members":members,
+            "protocol_module":programs[protocol_owner].module,
+            "destination_modules":programs.iter().map(|program| program.module.as_str()).collect::<Vec<_>>(),
             "existing_implementation":existing.map(|implementation| implementation.stable_id.as_str()),
             "complete_mapping_available":complete && existing.is_none()}));
     }
@@ -247,7 +296,7 @@ pub(super) fn rebase_fingerprint(
     revision: &ProjectRevision,
     request: &Value,
 ) -> Result<Option<Value>> {
-    exact(request, &["kind", "target", "protocol", "id", "members"])?;
+    exact_implementation(request)?;
     if request["kind"] != "implement_interface" {
         return Err(invalid(
             "interface rebase fingerprint requires an implementation intention",
@@ -304,6 +353,13 @@ pub(super) fn rebase_fingerprint(
         return Ok(None);
     };
     let program = &programs[owner];
+    let destination = request
+        .get("destination")
+        .and_then(Value::as_str)
+        .unwrap_or(program.module.as_str());
+    let Ok(destination_owner) = destination_module(&programs, destination) else {
+        return Ok(None);
+    };
     let Some(receiver) = program
         .types
         .iter()
@@ -311,19 +367,18 @@ pub(super) fn rebase_fingerprint(
     else {
         return Ok(None);
     };
-    let Some(protocol) = program
-        .protocols
-        .iter()
-        .find(|protocol| protocol.stable_id == protocol_id && protocol.explicit_id)
-    else {
+    let Ok(Some((protocol_owner, protocol))) = explicit_protocol(&programs, protocol_id) else {
         return Ok(None);
     };
     if protocol.methods.len() != mapping.len() || protocol.methods.len() > MAX_MEMBERS {
         return Ok(None);
     }
-    let pair_vacant = !program.implementations.iter().any(|implementation| {
-        implementation.receiver_id == target && implementation.protocol_id == protocol_id
-    });
+    let pair_vacant = !programs
+        .iter()
+        .flat_map(|program| &program.implementations)
+        .any(|implementation| {
+            implementation.receiver_id == target && implementation.protocol_id == protocol_id
+        });
     if !pair_vacant {
         return Ok(None);
     }
@@ -385,17 +440,30 @@ pub(super) fn rebase_fingerprint(
         let Some(function_id) = mapping.get(&method.stable_id) else {
             return Ok(None);
         };
-        let Some(function) = program
-            .functions
+        let Ok(Some((function_owner, function))) = explicit_function(&programs, function_id) else {
+            return Ok(None);
+        };
+        if !member_matches_project(
+            &programs,
+            protocol_owner,
+            protocol,
+            method,
+            owner,
+            receiver,
+            function_owner,
+            function,
+        )? {
+            return Ok(None);
+        }
+        let Some(function_module) = revision
+            .semantic
+            .image_modules()
             .iter()
-            .find(|function| function.stable_id == *function_id)
+            .find(|module| module.path() == programs[function_owner].path)
         else {
             return Ok(None);
         };
-        if !crate::static_protocol::member_matches(protocol, method, receiver, function) {
-            return Ok(None);
-        }
-        let Some(checked_function) = checked_module
+        let Some(checked_function) = function_module
             .functions()
             .iter()
             .find(|candidate| candidate.id.as_str() == function.stable_id)
@@ -449,13 +517,19 @@ pub(super) fn rebase_fingerprint(
             "id":protocol.stable_id,
             "explicit_id":protocol.explicit_id,
             "name":protocol.name,
-            "members":method_facts
+            "members":method_facts,
+            "path":programs[protocol_owner].path,
+            "module":programs[protocol_owner].module
         },
         "functions":function_facts,
         "mapping":mapping,
         "implementation_id":implementation_id,
         "implementation_id_absent":implementation_id_absent,
-        "pair_vacant":pair_vacant
+        "pair_vacant":pair_vacant,
+        "destination":{"path":programs[destination_owner].path,"module":programs[destination_owner].module},
+        "planned_imports":programs[destination_owner].module_uses.iter().filter(|binding|
+            binding.persistent_id == target || binding.persistent_id == protocol_id || mapping.values().any(|id| id == &binding.persistent_id)
+        ).map(|binding| json!({"kind":match binding.kind { ModuleUseKind::Function => "function", ModuleUseKind::Type => "type", ModuleUseKind::Protocol => "protocol" },"id":binding.persistent_id,"provider":binding.target_module,"alias":binding.alias})).collect::<Vec<_>>()
     });
     wire::render(fingerprint.clone(), MAX_REPORT_BYTES)
         .map_err(|_| capacity("interface rebase fingerprint exceeds its byte bound"))?;
@@ -497,6 +571,339 @@ fn complete_mapping(members: &[Value]) -> bool {
     let mut assigned = BTreeMap::new();
     (0..candidates.len())
         .all(|index| assign(index, &candidates, &mut assigned, &mut BTreeSet::new()))
+}
+
+fn exact_implementation(request: &Value) -> Result<()> {
+    if request.get("destination").is_some() {
+        exact(
+            request,
+            &["kind", "target", "protocol", "id", "destination", "members"],
+        )
+    } else {
+        exact(request, &["kind", "target", "protocol", "id", "members"])
+    }
+}
+
+fn destination_module(programs: &[Program], destination: &str) -> Result<usize> {
+    if destination.is_empty() || destination.len() > 240 {
+        return Err(placement(
+            "implementation destination must be one bounded declared Project module",
+        ));
+    }
+    let mut found = None;
+    for (index, program) in programs.iter().enumerate() {
+        if program.module == destination && found.replace(index).is_some() {
+            return Err(placement("implementation destination module is ambiguous"));
+        }
+    }
+    found.ok_or_else(|| placement("implementation destination module is absent"))
+}
+
+fn explicit_protocol<'a>(
+    programs: &'a [Program],
+    id: &str,
+) -> Result<Option<(usize, &'a ProtocolDeclaration)>> {
+    let mut found = None;
+    for (owner, program) in programs.iter().enumerate() {
+        for protocol in program
+            .protocols
+            .iter()
+            .filter(|protocol| protocol.stable_id == id && protocol.explicit_id)
+        {
+            if found.replace((owner, protocol)).is_some() {
+                return Err(authentication(
+                    "implementation protocol identity is ambiguous",
+                ));
+            }
+        }
+    }
+    Ok(found)
+}
+
+fn explicit_function<'a>(
+    programs: &'a [Program],
+    id: &str,
+) -> Result<Option<(usize, &'a Function)>> {
+    let mut found = None;
+    for (owner, program) in programs.iter().enumerate() {
+        for function in program
+            .functions
+            .iter()
+            .filter(|function| function.stable_id == id && function.explicit_id)
+        {
+            if found.replace((owner, function)).is_some() {
+                return Err(authentication(
+                    "implementation function identity is ambiguous",
+                ));
+            }
+        }
+    }
+    Ok(found)
+}
+
+fn member_matches_project(
+    programs: &[Program],
+    protocol_owner: usize,
+    protocol: &ProtocolDeclaration,
+    method: &ProtocolMethod,
+    receiver_owner: usize,
+    receiver: &TypeDeclaration,
+    function_owner: usize,
+    function: &Function,
+) -> Result<bool> {
+    if !receiver.explicit_id
+        || !receiver.type_parameters.is_empty()
+        || !matches!(receiver.kind, TypeDeclarationKind::Record { .. })
+        || !function.explicit_id
+        || function.name == "main"
+        || !function.type_parameters.is_empty()
+        || !function.effects.is_empty()
+        || !function.requires.is_empty()
+        || method.params.is_empty()
+        || method.params.len() != function.params.len()
+    {
+        return Ok(false);
+    }
+    for (index, (required, actual)) in method.params.iter().zip(&function.params).enumerate() {
+        if required.mode != actual.mode {
+            return Ok(false);
+        }
+        let required = if index == 0
+            && matches!(&required.ty, Type::Named { name, arguments } if arguments.is_empty() && (name == "Self" || name == &protocol.name))
+        {
+            format!("id:{}", receiver.stable_id)
+        } else {
+            type_key(programs, protocol_owner, &required.ty, 0)?
+        };
+        let actual = type_key(programs, function_owner, &actual.ty, 0)?;
+        if required != actual {
+            return Ok(false);
+        }
+    }
+    Ok(type_key(programs, protocol_owner, &method.return_type, 0)?
+        == type_key(programs, function_owner, &function.return_type, 0)?
+        && programs[receiver_owner]
+            .types
+            .iter()
+            .any(|item| item == receiver))
+}
+
+fn type_key(programs: &[Program], owner: usize, ty: &Type, depth: usize) -> Result<String> {
+    if depth > 64 {
+        return Err(capacity("interface type identity exceeds its depth bound"));
+    }
+    let Type::Named { name, arguments } = ty else {
+        return Ok(ty.to_string());
+    };
+    let program = &programs[owner];
+    let local = program
+        .types
+        .iter()
+        .find(|item| item.name == *name)
+        .map(|item| item.stable_id.as_str());
+    let imported = program
+        .module_uses
+        .iter()
+        .filter(|item| item.kind == ModuleUseKind::Type && item.alias == *name)
+        .map(|item| item.persistent_id.as_str())
+        .collect::<Vec<_>>();
+    let prelude = crate::prelude::declarations()
+        .iter()
+        .find(|item| item.name == *name)
+        .map(|item| item.stable_id.as_str());
+    let identity = match (local, imported.as_slice()) {
+        (Some(id), []) => format!("id:{id}"),
+        (None, [id]) => format!("id:{id}"),
+        (None, []) if prelude.is_some() => format!("id:{}", prelude.unwrap()),
+        (None, []) => {
+            return Err(authentication(
+                "interface nominal type lacks an exact Project identity binding",
+            ))
+        }
+        _ => {
+            return Err(authentication(
+                "interface nominal type binding is ambiguous",
+            ))
+        }
+    };
+    let arguments = arguments
+        .iter()
+        .map(|argument| type_key(programs, owner, argument, depth + 1))
+        .collect::<Result<Vec<_>>>()?;
+    Ok(format!("{identity}<{}>", arguments.join(",")))
+}
+
+fn authenticate_checked_bindings(
+    revision: &ProjectRevision,
+    programs: &[Program],
+    receiver_id: &str,
+    protocol_id: &str,
+    implementation: &ProtocolImplementation,
+) -> Result<()> {
+    let (receiver_owner, _) = receiver_owner(programs, receiver_id)?
+        .and_then(|owner| {
+            programs[owner]
+                .types
+                .iter()
+                .find(|item| item.stable_id == receiver_id)
+                .map(|item| (owner, item))
+        })
+        .ok_or_else(|| authentication("implementation receiver lost its source binding"))?;
+    let checked_receiver = revision
+        .semantic
+        .image_modules()
+        .iter()
+        .find(|module| module.path() == programs[receiver_owner].path)
+        .and_then(|module| {
+            module
+                .types()
+                .iter()
+                .find(|item| item.id.as_str() == receiver_id)
+        });
+    if !matches!(
+        checked_receiver.map(|item| &item.kind),
+        Some(crate::hir::ResolvedTypeDeclarationKind::Record { .. })
+    ) {
+        return Err(authentication(
+            "implementation receiver lacks exact retained record HIR",
+        ));
+    }
+    if explicit_protocol(programs, protocol_id)?.is_none() {
+        return Err(authentication(
+            "implementation protocol lost its retained source identity",
+        ));
+    }
+    for member in &implementation.members {
+        let (owner, function) = explicit_function(programs, &member.function_id)?
+            .ok_or_else(|| authentication("implementation function lost its source identity"))?;
+        let checked = revision
+            .semantic
+            .image_modules()
+            .iter()
+            .find(|module| module.path() == programs[owner].path)
+            .and_then(|module| {
+                module
+                    .functions()
+                    .iter()
+                    .find(|item| item.id.as_str() == function.stable_id)
+            });
+        if checked.is_none() {
+            return Err(authentication(
+                "implementation function lacks exact retained source HIR",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn plan_imports(
+    programs: &mut [Program],
+    destination: usize,
+    receiver_owner: usize,
+    receiver: &TypeDeclaration,
+    protocol_owner: usize,
+    protocol: &ProtocolDeclaration,
+    implementation: &ProtocolImplementation,
+) -> Result<()> {
+    let mut required = Vec::new();
+    if receiver_owner != destination {
+        required.push((
+            ModuleUseKind::Type,
+            receiver.stable_id.clone(),
+            programs[receiver_owner].module.clone(),
+            receiver.name.clone(),
+        ));
+    }
+    if protocol_owner != destination {
+        required.push((
+            ModuleUseKind::Protocol,
+            protocol.stable_id.clone(),
+            programs[protocol_owner].module.clone(),
+            protocol.name.clone(),
+        ));
+    }
+    for member in &implementation.members {
+        let (owner, function) = explicit_function(programs, &member.function_id)?
+            .ok_or_else(|| authentication("implementation function lost before import planning"))?;
+        if owner != destination {
+            required.push((
+                ModuleUseKind::Function,
+                function.stable_id.clone(),
+                programs[owner].module.clone(),
+                function.name.clone(),
+            ));
+        }
+    }
+    required.sort_by(|left, right| (left.0, &left.1).cmp(&(right.0, &right.1)));
+    required.dedup_by(|left, right| left.0 == right.0 && left.1 == right.1);
+    let mut occupied = programs[destination]
+        .functions
+        .iter()
+        .map(|item| item.name.clone())
+        .chain(
+            programs[destination]
+                .types
+                .iter()
+                .map(|item| item.name.clone()),
+        )
+        .chain(
+            programs[destination]
+                .protocols
+                .iter()
+                .map(|item| item.name.clone()),
+        )
+        .chain(
+            programs[destination]
+                .interfaces
+                .iter()
+                .map(|item| item.name.clone()),
+        )
+        .chain(
+            programs[destination]
+                .module_uses
+                .iter()
+                .map(|item| item.alias.clone()),
+        )
+        .collect::<BTreeSet<_>>();
+    for (kind, id, provider, preferred) in required {
+        let existing = programs[destination]
+            .module_uses
+            .iter()
+            .filter(|item| item.persistent_id == id)
+            .collect::<Vec<_>>();
+        match existing.as_slice() {
+            [binding] if binding.kind == kind && binding.target_module == provider => continue,
+            [] => {}
+            _ => {
+                return Err(import_conflict(
+                    "implementation dependency import conflicts with an existing binding",
+                ))
+            }
+        }
+        let alias = if occupied.insert(preferred.clone()) {
+            preferred
+        } else {
+            let mut selected = None;
+            for ordinal in 0..4096usize {
+                let candidate = format!("_spx_impl_{ordinal}");
+                if occupied.insert(candidate.clone()) {
+                    selected = Some(candidate);
+                    break;
+                }
+            }
+            selected.ok_or_else(|| {
+                import_conflict("implementation cannot allocate a bounded import alias")
+            })?
+        };
+        programs[destination].module_uses.push(ModuleUse {
+            kind,
+            persistent_id: id,
+            target_module: provider,
+            alias,
+            span: Span::default(),
+        });
+    }
+    Ok(())
 }
 
 fn receiver_owner(programs: &[Program], target: &str) -> Result<Option<usize>> {
@@ -666,6 +1073,15 @@ fn invalid(message: &'static str) -> Vec<Diagnostic> {
 }
 fn capacity(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G273", message)]
+}
+fn placement(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G497", message)]
+}
+fn import_conflict(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G498", message)]
+}
+fn authentication(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G499", message)]
 }
 pub(super) fn mismatch() -> Vec<Diagnostic> {
     vec![Diagnostic::io(

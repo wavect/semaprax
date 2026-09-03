@@ -25,7 +25,7 @@ name = "interface-change"
 version = "1.0.0"
 profile = "owned-data-api.v1"
 entry = "iface.app"
-sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+sources = ["src/app.spx", "src/core.spx", "src/sidecar.spx", "src/tests.spx"]
 web_exports = ["iface.evaluate"]
 tests = ["iface.tests"]
 "#,
@@ -52,6 +52,12 @@ tests = ["iface.tests"]
                 r#"module iface.app;
 use function @id("iface.evaluate") from iface.core as evaluate;
 @id("iface.main") fn main() -> i64 { evaluate(42) }
+"#,
+            ),
+            (
+                "src/sidecar.spx",
+                r#"module iface.sidecar;
+@id("iface.sidecar.keep") fn keep(value: i64) -> i64 { value }
 "#,
             ),
             (
@@ -85,6 +91,12 @@ fn request() -> Value {
         {"method":"iface.readable.read","implementation":"iface.read"},
         {"method":"iface.readable.positive","implementation":"iface.positive"}
     ]})
+}
+fn cross_module_request() -> Value {
+    let mut request = request();
+    request["id"] = json!("iface.counter.readable.sidecar");
+    request["destination"] = json!("iface.sidecar");
+    request
 }
 fn apply(base: &ProjectCandidate, intent: &Value) -> Result<ProjectCandidate, Vec<Diagnostic>> {
     base.apply(
@@ -172,6 +184,73 @@ fn discovers_real_signatures_and_records_replayable_source_conformance_without_w
         std::fs::read(fixture.0.join("src/core.spx")).unwrap(),
         untouched
     );
+}
+
+#[test]
+fn cross_module_sidecar_plans_exact_imports_and_replays_without_runtime_witness_claims() {
+    let fixture = Fixture::new();
+    let base = fixture.candidate();
+    let original_core = std::fs::read(fixture.0.join("src/core.spx")).unwrap();
+    let catalog: Value = serde_json::from_str(
+        &base
+            .interface_catalog(base.candidate_digest(), "iface.counter")
+            .unwrap(),
+    )
+    .unwrap();
+    assert!(catalog["protocols"][0]["destination_modules"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|module| module == "iface.sidecar"));
+    let change =
+        SemanticChange::new(base.revision().project_revision(), &cross_module_request()).unwrap();
+    let candidate = base.apply(base.candidate_digest(), &change).unwrap();
+    let source = candidate
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/sidecar.spx")
+        .unwrap()
+        .source();
+    assert!(source.contains("use protocol @id(\"iface.readable\") from iface.core as Readable;"));
+    assert!(source.contains("use type @id(\"iface.counter\") from iface.core as Counter;"));
+    assert!(source.contains("use function @id(\"iface.read\") from iface.core as counter_read;"));
+    assert!(source
+        .contains("use function @id(\"iface.positive\") from iface.core as counter_positive;"));
+    assert!(source.contains("impl \"iface.readable\" for \"iface.counter\""));
+    let report: Value = serde_json::from_str(candidate.to_json()).unwrap();
+    assert_eq!(
+        report["operations"][0]["new_declaration"]["module"],
+        "iface.sidecar"
+    );
+    assert_eq!(
+        report["operations"][0]["new_declaration"]["runtime_graph_declaration"],
+        false
+    );
+    let replayed = ProjectCandidate::replay(
+        Arc::clone(base.base_revision()),
+        base.base_revision().project_revision(),
+        &[change],
+        candidate.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replayed.to_json(), candidate.to_json());
+    assert_eq!(
+        std::fs::read(fixture.0.join("src/core.spx")).unwrap(),
+        original_core
+    );
+}
+
+#[test]
+fn cross_module_sidecar_rejects_absent_destination_and_incompatible_project_function() {
+    let fixture = Fixture::new();
+    let base = fixture.candidate();
+    let mut absent = cross_module_request();
+    absent["destination"] = json!("iface.absent");
+    code(apply(&base, &absent), "SPX-G497");
+    let mut wrong = cross_module_request();
+    wrong["members"][0]["implementation"] = json!("iface.wrong");
+    code(apply(&base, &wrong), "SPX-G272");
 }
 
 #[test]

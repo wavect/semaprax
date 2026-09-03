@@ -297,6 +297,7 @@ pub(crate) fn write_canonical(program: &Program, output: &mut impl std::fmt::Wri
         let kind = match module_use.kind {
             ModuleUseKind::Function => "function",
             ModuleUseKind::Type => "type",
+            ModuleUseKind::Protocol => "protocol",
         };
         write!(output, "use {kind} @id(\"").unwrap();
         write_escaped(output, &module_use.persistent_id);

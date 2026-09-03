@@ -8,6 +8,8 @@ SCHEMA="semaprax.graph-operational-phase0-execution-evidence.v3"
 DOMAIN=b"semaprax.graph-operational-phase0-execution-evidence.bundle.v3\0"
 HEX=re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 MAX_LOG=16*1024*1024; MAX_ARTIFACT=512*1024*1024; TIMEOUT=30*60
+PACKAGED_TEST="installed_typescript_sdk_drives_review_and_separately_approved_publish"
+PACKAGED_SCHEMA="semaprax.packaged-typescript-workflow-mcp-observation.v1"
 POLICY={"schema":"semaprax.workspace-host-policy.v7","candidate_prepare":True,"diagnostics":False,"build_enabled":False,"test_policy":None,"git_commit":None,"frontend_cache":False,"candidate_archives":[],"semantic_cache":False,"semantic_cache_entry":None,"draft_archives":[],"read_batch_workers":None}
 COMPONENTS=(
  ("canonical-git","scripts/graph-operational-evidence.py","semaprax.graph-operational-execution-evidence.v2","semaprax.graph-operational-execution-evidence.bundle.v2","digest_text"),
@@ -43,6 +45,13 @@ def executable(value,label):
  p=Path(value).expanduser()
  if not p.is_absolute() or not os.access(p,os.X_OK): raise Failure(f"{label} must be an absolute executable")
  return str(p.resolve(strict=True))
+def regular_input(value,label):
+ p=Path(value).expanduser()
+ if not p.is_absolute(): raise Failure(f"{label} must be an absolute file")
+ if p.is_symlink(): raise Failure(f"{label} must not be a symlink")
+ p=p.resolve(strict=True)
+ if not p.is_file(): raise Failure(f"{label} must be a regular file")
+ return str(p)
 def repository_inputs(): return [file_row(ROOT/name,name) for name in ("Cargo.toml","Cargo.lock")]
 def verify_repository(commit,tree,inputs):
  clean()
@@ -156,6 +165,31 @@ def execute_sdk(stage,python,cargo,rustc,commit,tree,inputs):
  post={"python":tool_binding(python,("--version",),"Python"),"cargo":tool_binding(cargo,("--version","--verbose"),"Cargo"),"rustc":tool_binding(rustc,("--version","--verbose"),"rustc"),"mcp_sdk":distribution_binding(python)}
  if post!=pre: raise Failure("MCP SDK tool or distribution drift")
  verify_repository(commit,tree,inputs); return pre,compiler_row,observation,artifacts,sdk_command
+def execute_packaged_sdk(stage,node,npm_cli,tsc,git_tool,cargo,rustc,commit,tree,inputs):
+ def bindings():
+  rows={name:tool_binding(path,args,name) for name,path,args in (("node",node,("--version",)),("cargo",cargo,("--version","--verbose")),("rustc",rustc,("--version","--verbose")),("git",git_tool,("--version",)))}
+  rows["npm_cli"]=file_row(npm_cli); rows["npm_cli"]["version"]=text([node,npm_cli,"--version"],"npm version")
+  rows["tsc"]=file_row(tsc); rows["tsc"]["version"]=text([node,tsc,"--version"],"TypeScript version")
+  if rows["tsc"]["version"]!="Version 5.8.3": raise Failure("packaged SDK requires TypeScript 5.8.3")
+  return rows
+ pre=bindings()
+ command_line=[cargo,"test","--locked","--offline","-p","semaprax","--test","image_packaged_typescript_workflow_v1",PACKAGED_TEST,"--","--exact","--ignored","--nocapture","--test-threads=1"]
+ with tempfile.TemporaryDirectory(prefix="semaprax-phase0-packaged-sdk-",dir="/private/tmp") as build:
+  env=os.environ.copy()
+  for key in ("CARGO_BUILD_RUSTFLAGS","CARGO_BUILD_TARGET","CARGO_ENCODED_RUSTFLAGS","RUSTC_WRAPPER","RUSTC_WORKSPACE_WRAPPER","RUSTFLAGS","RUSTDOCFLAGS","NODE_OPTIONS","NODE_PATH"): env.pop(key,None)
+  env.update({"CARGO_NET_OFFLINE":"true","CARGO_INCREMENTAL":"0","CARGO_TERM_COLOR":"never","CARGO_TARGET_DIR":str(Path(build)/"target"),"RUSTC":rustc,"NODE":node,"NPM_CLI":npm_cli,"TSC_CLI":tsc,"SEMAPRAX_TEST_GIT":git_tool})
+  log=command(command_line,"packaged TypeScript SDK over MCP",timeout=65*60,env=env)
+ body=log.decode("utf-8","strict")
+ if not re.search(rf"^test {re.escape(PACKAGED_TEST)} \.\.\. ok(?:, [^\r\n]+)?$",body,re.MULTILINE): raise Failure("packaged SDK selected test did not pass exactly")
+ if not re.search(r"^test result: ok\. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [^\r\n]+$",body,re.MULTILINE): raise Failure("packaged SDK libtest summary mismatch")
+ post=bindings()
+ if post!=pre: raise Failure("packaged SDK tool binding drift")
+ verify_repository(commit,tree,inputs)
+ observation={"schema":PACKAGED_SCHEMA,"protocol":{"mcp":"2025-11-25","inner":"semaprax.image-agent-protocol.v5"},"package":{"name":"@semaprax/agent-workflow","version":"0.1.0","installation":"fresh_offline_tarball"},"execution":{"test":PACKAGED_TEST,"outcome":"passed","selection":"explicit_ignored","counts":{"selected":1,"passed":1,"failed":0,"ignored":0,"measured":0,"filtered_out":0}},"flows":{"review":"passed","structured_failure":"passed","approved_publication":"passed","duplicate_publication":"rejected","post_cas_result_loss":"terminal_publication_uncertain"},"authority":{"package_or_mcp_grants_authority":False,"publication_authority":"startup_selected_test_host","raw_project_source_unchanged":True},"nonclaims":["general_sdk_support","full_mcp_conformance","network_isolation","hosted_or_cross_platform","external_consumer_compatibility","programme_completion"]}
+ body=canonical(observation); area=stage/"packaged-sdk-mcp"; area.mkdir(); (area/"cargo.log").write_bytes(log); (area/"observation.json").write_bytes(body)
+ artifacts=[]
+ for name,payload in (("cargo.log",log),("observation.json",body)): artifacts.append({"path":f"packaged-sdk-mcp/{name}","bytes":len(payload),"sha256":sha(payload)})
+ return pre,observation,artifacts,command_line
 def cross_tools(values):
  client=values["client-mcp"]["runner"]["tools"]; vscode=values["vscode-host"]["runner"]["tools"]; canonical_tools=values["canonical-git"]["runner"]["tools"]
  product=values["product-workflow"]["runner"]["tools"]
@@ -167,7 +201,7 @@ def cross_tools(values):
  if client["git"]["resolved_path"]!=canonical_tools["git"]["executable"]: raise Failure("cross-component Git identity mismatch")
  if product["git"]["resolved_path"]!=client["git"]["resolved_path"] or product["git"]["sha256"]!=client["git"]["sha256"]: raise Failure("product workflow Git identity mismatch")
 def verify_final(destination,evidence):
- if {x.name for x in destination.iterdir()}!={"evidence.json","canonical-git","client-mcp","product-workflow","vscode-host","independent-mcp-sdk"}: raise Failure("aggregate top-level inventory mismatch")
+ if {x.name for x in destination.iterdir()}!={"evidence.json","canonical-git","client-mcp","product-workflow","vscode-host","independent-mcp-sdk","packaged-sdk-mcp"}: raise Failure("aggregate top-level inventory mismatch")
  body=(destination/"evidence.json").read_bytes()
  if canonical(evidence)!=body or json.loads(body)!=evidence: raise Failure("aggregate evidence replay mismatch")
  expected={x["path"] for x in evidence["artifacts"]}; actual={str(x.relative_to(destination)) for x in destination.rglob("*") if x.is_file() and x.relative_to(destination)!=Path("evidence.json")}
@@ -177,11 +211,11 @@ def verify_final(destination,evidence):
  bid=hashlib.sha256(DOMAIN+b"".join(canonical(x) for x in evidence["artifacts"])).hexdigest()
  if evidence["bundle_id"]!=bid: raise Failure("aggregate bundle ID mismatch")
 def main():
- ap=argparse.ArgumentParser(); ap.add_argument("--node",required=True); ap.add_argument("--tsc",required=True); ap.add_argument("--typescript-package-root",required=True); ap.add_argument("--vscode-app",required=True); ap.add_argument("--mcp-python",required=True); ap.add_argument("--output"); ns=ap.parse_args()
+ ap=argparse.ArgumentParser(); ap.add_argument("--node",required=True); ap.add_argument("--npm-cli",required=True); ap.add_argument("--tsc",required=True); ap.add_argument("--typescript-package-root",required=True); ap.add_argument("--vscode-app",required=True); ap.add_argument("--mcp-python",required=True); ap.add_argument("--output"); ns=ap.parse_args()
  clean(); commit=git("rev-parse","HEAD^{commit}"); tree=git("rev-parse","HEAD^{tree}")
  if not HEX.fullmatch(commit) or not HEX.fullmatch(tree): raise Failure("invalid exact subject")
  symbolic=run([shutil.which("git"),"symbolic-ref","--quiet","--short","HEAD"]); branch=symbolic.stdout.decode("utf-8","strict").strip() if symbolic.returncode==0 else None; tags=sorted(filter(None,git("tag","--points-at",commit).splitlines())); inputs=repository_inputs()
- node=executable(ns.node,"Node"); tsc=executable(ns.tsc,"TypeScript"); mcp_python=executable(ns.mcp_python,"MCP Python"); cargo=executable(os.path.abspath(shutil.which("cargo")),"Cargo"); rustc=executable(os.path.abspath(shutil.which("rustc")),"rustc")
+ node=executable(ns.node,"Node"); npm_cli=regular_input(ns.npm_cli,"npm CLI"); tsc=executable(ns.tsc,"TypeScript"); mcp_python=executable(ns.mcp_python,"MCP Python"); cargo=executable(os.path.abspath(shutil.which("cargo")),"Cargo"); rustc=executable(os.path.abspath(shutil.which("rustc")),"rustc"); git_tool=executable(os.path.abspath(shutil.which("git")),"Git")
  with tempfile.TemporaryDirectory(prefix="semaprax-phase0-components-",dir="/private/tmp") as temporary:
   typescript_root=str(Path(ns.typescript_package_root).resolve(strict=True)); stage=Path(temporary); commands={"canonical-git":[sys.executable,str(ROOT/"scripts/graph-operational-evidence.py")],"client-mcp":[sys.executable,str(ROOT/"scripts/graph-operational-client-mcp-evidence.py"),"--node",node,"--tsc",tsc],"product-workflow":[sys.executable,str(ROOT/"scripts/graph-operational-phase1-product-workflow-evidence.py"),"--python",mcp_python,"--node",node,"--tsc",tsc,"--typescript-package-root",typescript_root],"vscode-host":[sys.executable,str(ROOT/"scripts/graph-operational-vscode-host-evidence.py"),"--node",node,"--vscode-app",str(Path(ns.vscode_app).resolve(strict=True))]}; components=[]; values={}; artifacts=[]
   for name,script,schema,domain,bundle_mode in COMPONENTS:
@@ -196,12 +230,17 @@ def main():
   product_python=values["product-workflow"]["runner"]["tools"]["python"]
   if product_python["resolved_path"]!=sdk_tools["python"]["path"] or product_python["sha256"]!=sdk_tools["python"]["sha256"]: raise Failure("SDK/product workflow Python identity mismatch")
   artifacts.extend(sdk_artifacts); components.append({"id":"independent-mcp-sdk","schema":observation["schema"],"bundle_id":sha(canonical(observation))[7:],"path":"independent-mcp-sdk","outcome":"passed","command":sdk_command,"provisioning":"explicit_local_python_mcp_1.27.0"}); artifacts.sort(key=lambda x:x["path"]); bid=hashlib.sha256(DOMAIN+b"".join(canonical(x) for x in artifacts)).hexdigest()
-  evidence={"schema":SCHEMA,"bundle_id":bid,"repository":{"commit":commit,"tree":tree,"subject_kind":"exact_local_commit","head_relation_at_capture":"HEAD","current_head_at_capture":True,"branch":branch,"clean_before_and_after":True,"head_unchanged":True,"inputs":inputs},"exact_tag":{"selection":"not_required","observed":tags,"claim":"not_claimed"},"runner":{"host":{"system":platform.system(),"release":platform.release(),"machine":platform.machine()},"sdk_tools":sdk_tools,"sdk_compiler":compiler_row},"components":components,"evidence_classes":{"current_head":{"status":"executed_exact_local_subject","components":["canonical-git","client-mcp","product-workflow","vscode-host","independent-mcp-sdk"]},"exact_tag":{"status":"not_selected","observed":tags},"provisioned":{"status":"executed_selected_local_tools","components":["client-mcp","product-workflow","vscode-host","independent-mcp-sdk"]},"default_ignored":{"status":"not_counted_as_default_execution","separately_selected":["provisioned_typescript_submits_exact_typed_request_for_compiler_admission","provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values","provisioned_typescript_reference_review_export_and_real_git_commit"]},"authored_unrun":{"status":"not_executed_by_this_aggregate","slices":["packaged_typescript_workflow_over_mcp","vscode_marketplace_or_vsix","full_mcp_conformance"]}},"ignored_tests":[{"test":"provisioned_typescript_submits_exact_typed_request_for_compiler_admission","default":"ignored","separate":"passed_provisioned_local"},{"test":"provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values","default":"ignored","separate":"passed_provisioned_local"},{"test":"provisioned_typescript_reference_review_export_and_real_git_commit","default":"ignored","separate":"passed_provisioned_local"}],"dimensions":{"canonical_git":{"passed":4,"failed":0},"candidate_managed_publication":{"passed":4,"failed":0},"integrated_managed_workflow":{"passed":1,"failed":0},"generated_client_and_authored_mcp":{"passed":25,"failed":0,"default_ignored":2},"generated_product_workflow":{"passed":4,"failed":0,"default_ignored":1,"hostile_cases":10,"successful_language_workflows":3},"vscode":{"standalone_controllers_passed":57,"actual_host_passed":1,"task_control":True},"independent_mcp_sdk":{"passed":1,"failed":0}},"artifacts":artifacts,"claims":{"same_exact_subject_selected_components":"executed","phase0_selected_local_evidence_set":"passed","typescript_python_rust_request_admission":"passed_selected_flow","generated_python_rust_typescript_product_workflow":"passed_selected_flow","independent_python_mcp_sdk_interoperability":"passed","vscode_task_cancellation_and_session_invalidation":"passed_selected_flow","packaged_typescript_workflow_over_mcp":"authored_unrun_not_selected","full_mcp_conformance_certification":"not_claimed","managed_active":"executed_local_managed_generation","real_git_post_cas_uncertainty":"executed_injected_result_loss_after_real_ref_update","exact_release_tag":"not_claimed","remote_main_or_later_head":"not_claimed","hosted_cross_platform":"not_observed","network_isolation":"not_claimed","full_quality":"not_selected","programme_completion":"not_claimed"}}
+  packaged_tools,packaged_observation,packaged_artifacts,packaged_command=execute_packaged_sdk(stage,node,npm_cli,tsc,git_tool,cargo,rustc,commit,tree,inputs)
+  for name in ("cargo","rustc","node","git"):
+   child=values["product-workflow"]["runner"]["tools"][name]
+   if packaged_tools[name]["path"]!=child["resolved_path"] or packaged_tools[name]["sha256"]!=child["sha256"]: raise Failure(f"packaged SDK/product workflow {name} identity mismatch")
+  artifacts.extend(packaged_artifacts); components.append({"id":"packaged-sdk-mcp","schema":PACKAGED_SCHEMA,"bundle_id":sha(canonical(packaged_observation))[7:],"path":"packaged-sdk-mcp","outcome":"passed","command":packaged_command,"provisioning":"explicit_local_node_npm_typescript_git"}); artifacts.sort(key=lambda x:x["path"]); bid=hashlib.sha256(DOMAIN+b"".join(canonical(x) for x in artifacts)).hexdigest()
+  evidence={"schema":SCHEMA,"bundle_id":bid,"repository":{"commit":commit,"tree":tree,"subject_kind":"exact_local_commit","head_relation_at_capture":"HEAD","current_head_at_capture":True,"branch":branch,"clean_before_and_after":True,"head_unchanged":True,"inputs":inputs},"exact_tag":{"selection":"not_required","observed":tags,"claim":"not_claimed"},"runner":{"host":{"system":platform.system(),"release":platform.release(),"machine":platform.machine()},"sdk_tools":sdk_tools,"sdk_compiler":compiler_row,"packaged_sdk_tools":packaged_tools},"components":components,"evidence_classes":{"current_head":{"status":"executed_exact_local_subject","components":["canonical-git","client-mcp","product-workflow","vscode-host","independent-mcp-sdk","packaged-sdk-mcp"]},"exact_tag":{"status":"not_selected","observed":tags},"provisioned":{"status":"executed_selected_local_tools","components":["client-mcp","product-workflow","vscode-host","independent-mcp-sdk","packaged-sdk-mcp"]},"default_ignored":{"status":"not_counted_as_default_execution","separately_selected":["provisioned_typescript_submits_exact_typed_request_for_compiler_admission","provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values","provisioned_typescript_reference_review_export_and_real_git_commit","installed_typescript_sdk_drives_review_and_separately_approved_publish"]},"authored_unrun":{"status":"not_executed_by_this_aggregate","slices":["vscode_marketplace_or_vsix","full_mcp_conformance"]}},"ignored_tests":[{"test":"provisioned_typescript_submits_exact_typed_request_for_compiler_admission","default":"ignored","separate":"passed_provisioned_local"},{"test":"provisioned_typescript_harness_checks_actual_recursive_repair_payloads_and_hostile_nested_values","default":"ignored","separate":"passed_provisioned_local"},{"test":"provisioned_typescript_reference_review_export_and_real_git_commit","default":"ignored","separate":"passed_provisioned_local"},{"test":"installed_typescript_sdk_drives_review_and_separately_approved_publish","default":"ignored","separate":"passed_provisioned_local"}],"dimensions":{"canonical_git":{"passed":4,"failed":0},"candidate_managed_publication":{"passed":4,"failed":0},"integrated_managed_workflow":{"passed":1,"failed":0},"generated_client_and_authored_mcp":{"passed":25,"failed":0,"default_ignored":2},"generated_product_workflow":{"passed":4,"failed":0,"default_ignored":1,"hostile_cases":10,"successful_language_workflows":3},"packaged_typescript_workflow_over_mcp":{"passed":1,"failed":0,"default_ignored":1},"vscode":{"standalone_controllers_passed":57,"actual_host_passed":1,"task_control":True},"independent_mcp_sdk":{"passed":1,"failed":0}},"artifacts":artifacts,"claims":{"same_exact_subject_selected_components":"executed","phase0_selected_local_evidence_set":"passed","typescript_python_rust_request_admission":"passed_selected_flow","generated_python_rust_typescript_product_workflow":"passed_selected_flow","independent_python_mcp_sdk_interoperability":"passed","vscode_task_cancellation_and_session_invalidation":"passed_selected_flow","packaged_typescript_workflow_over_mcp":"passed_selected_flow","full_mcp_conformance_certification":"not_claimed","managed_active":"executed_local_managed_generation","real_git_post_cas_uncertainty":"executed_injected_result_loss_after_real_ref_update","exact_release_tag":"not_claimed","remote_main_or_later_head":"not_claimed","hosted_cross_platform":"not_observed","network_isolation":"not_claimed","full_quality":"not_selected","programme_completion":"not_claimed"}}
   destination=Path(ns.output).resolve() if ns.output else ROOT/".semaprax/evidence/graph-operational-phase0"/commit/bid; destination.parent.mkdir(parents=True,exist_ok=True)
   if destination.exists() or destination.is_symlink(): raise Failure(f"destination exists: {destination}")
   publish=Path(tempfile.mkdtemp(prefix=".graph-operational-phase0-",dir=destination.parent))
   try:
-   for name in ("canonical-git","client-mcp","product-workflow","vscode-host","independent-mcp-sdk"): shutil.copytree(stage/name,publish/name)
+   for name in ("canonical-git","client-mcp","product-workflow","vscode-host","independent-mcp-sdk","packaged-sdk-mcp"): shutil.copytree(stage/name,publish/name)
    (publish/"evidence.json").write_bytes(canonical(evidence)); publish.rename(destination)
   except BaseException: shutil.rmtree(publish,ignore_errors=True); raise
  try: verify_repository(commit,tree,inputs); verify_final(destination,evidence)

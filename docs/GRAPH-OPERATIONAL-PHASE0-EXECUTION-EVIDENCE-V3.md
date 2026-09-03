@@ -13,6 +13,7 @@ makes evidence status classes explicit in one canonical envelope.
 ```sh
 python3 scripts/graph-operational-phase0-evidence.py \
   --node /absolute/path/to/node \
+  --npm-cli /absolute/path/to/npm-cli.js \
   --tsc /absolute/path/to/tsc \
   --typescript-package-root /absolute/path/to/typescript-5.8.3 \
   --vscode-app '/absolute/path/Visual Studio Code.app' \
@@ -34,7 +35,7 @@ another.
 | `exact_tag` | Tags observed at that commit; tag evidence is `not_selected` and no release-tag claim follows. |
 | `provisioned` | Selected executions that use explicitly bound local Node, TypeScript, Visual Studio Code, or Python MCP SDK inputs. |
 | `default_ignored` | Default-ignored tests are excluded from ordinary counts and named only when separately selected and passed. |
-| `authored_unrun` | Present slices outside this aggregate, including the packaged TypeScript workflow over MCP; they remain unexecuted by this report. |
+| `authored_unrun` | Present slices outside this aggregate, including Marketplace/VSIX and full MCP conformance; they remain unexecuted by this report. |
 
 ## Updated selected inventory
 
@@ -42,8 +43,11 @@ The canonical Git, managed publication, generated-client/MCP, and independent
 Python MCP SDK dimensions remain the v2 selections. A new child selects the
 closed generated Python/Rust/TypeScript review-to-publication workflow and its
 ten hostile transitions; its TypeScript row is separately provisioned and its
-transport remains the recorded direct v5 harness. It is not packaged-SDK-over-
-MCP evidence. The editor component now
+transport remains the recorded direct v5 harness. A separate selected child
+freshly packs and installs `@semaprax/agent-workflow`, initializes pinned MCP
+2025-11-25 sessions, and exercises review, structured failure, separately
+approved publication, duplicate rejection, and terminal post-CAS result loss.
+The editor component now
 requires 57 standalone controller rows plus one real Extension Host row that
 observes fixed startup policy, immediate zero-step cancellation, no released
 report or source authority, dirty-buffer invalidation, and rejection of the late
@@ -56,6 +60,6 @@ never satisfy the v3 aggregate by retaining a compatible-looking payload.
 
 Even after a successful v3 run, the aggregate does not establish an exact
 release tag, remote-main status, hosted or cross-platform execution, OS network
-isolation, Marketplace/VSIX behavior, full MCP conformance, packaged SDK-over-MCP
-execution, native/Wasm runtime equivalence, full quality, completion-matrix
+isolation, Marketplace/VSIX behavior, full MCP conformance, general packaged SDK
+support, native/Wasm runtime equivalence, full quality, completion-matrix
 promotion, or graph-operational programme completion.

@@ -152,3 +152,71 @@ fn exact_root_initializes_recovers_and_cas_advances_without_deleting_subjects() 
     );
     std::fs::remove_dir_all(temporary).unwrap();
 }
+
+#[test]
+#[cfg(all(
+    unix,
+    any(
+        target_os = "linux",
+        target_os = "android",
+        target_vendor = "apple",
+        target_os = "redox"
+    )
+))]
+fn metadata_swap_after_held_operation_preserves_current_and_recovery() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let temporary = std::env::temp_dir().join(format!(
+        "semaprax-retention-registry-seeded-pivot-swap-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&temporary);
+    std::fs::create_dir(&temporary).unwrap();
+    std::fs::create_dir(temporary.join("metadata")).unwrap();
+    std::fs::set_permissions(&temporary, std::fs::Permissions::from_mode(0o700)).unwrap();
+    std::fs::set_permissions(
+        temporary.join("metadata"),
+        std::fs::Permissions::from_mode(0o700),
+    )
+    .unwrap();
+
+    let first = receipt('3', 30);
+    let initial = initialize(
+        &temporary,
+        RetentionPolicy::new(2, 100, 1).unwrap(),
+        &[&first],
+    )
+    .unwrap();
+    let current = std::fs::read(temporary.join("CURRENT")).unwrap();
+    assert_eq!(current, initial.cursor_json().as_bytes());
+
+    let errors = unix::transaction(&temporary, |_current, _held_metadata| {
+        std::fs::rename(
+            temporary.join("metadata"),
+            temporary.join("displaced-metadata"),
+        )
+        .unwrap();
+        std::fs::create_dir(temporary.join("metadata")).unwrap();
+        std::fs::set_permissions(
+            temporary.join("metadata"),
+            std::fs::Permissions::from_mode(0o700),
+        )
+        .unwrap();
+        Ok((initial.cursor_json().as_bytes().to_vec(), ()))
+    })
+    .unwrap_err();
+    assert_eq!(errors[0].code, "SPX-G466");
+    assert_eq!(std::fs::read(temporary.join("CURRENT")).unwrap(), current);
+
+    std::fs::remove_dir(temporary.join("metadata")).unwrap();
+    std::fs::rename(
+        temporary.join("displaced-metadata"),
+        temporary.join("metadata"),
+    )
+    .unwrap();
+    assert_eq!(
+        recover(&temporary).unwrap().cursor_digest(),
+        initial.cursor_digest()
+    );
+    std::fs::remove_dir_all(temporary).unwrap();
+}

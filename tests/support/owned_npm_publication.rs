@@ -17,7 +17,7 @@ use semaprax::project::ProjectSnapshot;
 use crate::full_toolchain;
 
 #[cfg(windows)]
-const UNAVAILABLE: &str = "Project v8-v10 npm publication requires semaprax-full with safe handle-relative Windows authority";
+const UNAVAILABLE: &str = "Project v8-v11 npm publication requires semaprax-full with safe handle-relative Windows authority";
 
 pub fn publish(
     snapshot: &mut ProjectSnapshot,

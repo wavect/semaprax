@@ -208,7 +208,7 @@ fn direct_owned_carriers_reject_before_parent_effects_or_foreign_output_access()
             for output in [absent_parent.join("package"), foreign.clone()] {
                 let error = build.publish(&output).unwrap_err();
                 assert_eq!(error.code, "SPX-W120");
-                assert_eq!(error.message, "Project v8-v10 npm publication requires semaprax-full with safe handle-relative Windows authority");
+                assert_eq!(error.message, "Project v8-v11 npm publication requires semaprax-full with safe handle-relative Windows authority");
             }
             assert!(!absent_parent.exists());
             assert_eq!(std::fs::read(&foreign).unwrap(), bytes);

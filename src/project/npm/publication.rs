@@ -14,9 +14,9 @@ use crate::diagnostic::Diagnostic;
 use super::{package_error, NpmArtifact};
 #[cfg(windows)]
 use super::{
-    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
-    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
-    PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
+    PROJECT_NPM_BUILD_SCHEMA_V10, PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3,
+    PROJECT_NPM_BUILD_SCHEMA_V4, PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
+    PROJECT_NPM_BUILD_SCHEMA_V7, PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
 };
 
 #[cfg(all(test, unix))]
@@ -65,10 +65,13 @@ pub(super) fn publish(
 ) -> Result<(), Diagnostic> {
     if matches!(
         schema,
-        PROJECT_NPM_BUILD_SCHEMA_V7 | PROJECT_NPM_BUILD_SCHEMA_V8 | PROJECT_NPM_BUILD_SCHEMA_V9
+        PROJECT_NPM_BUILD_SCHEMA_V7
+            | PROJECT_NPM_BUILD_SCHEMA_V8
+            | PROJECT_NPM_BUILD_SCHEMA_V9
+            | PROJECT_NPM_BUILD_SCHEMA_V10
     ) {
         return Err(package_error(
-            "Project v8-v10 npm publication requires semaprax-full with safe handle-relative Windows authority",
+            "Project v8-v11 npm publication requires semaprax-full with safe handle-relative Windows authority",
         ));
     }
     if matches!(

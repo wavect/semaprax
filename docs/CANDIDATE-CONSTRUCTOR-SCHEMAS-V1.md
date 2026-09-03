@@ -357,7 +357,9 @@ regressions for the declaration alternatives and discovery forms are authored
 but unrun.
 
 Ordered signature mapping retains its existing closed `from` / optional `name`
-constructor. Selecting an existing named Copy record or variant does not add a
+constructor. Exact `borrow str` and `borrow Slice<u8>` parameters may now be
+retained, reordered and renamed but cannot be omitted; no new borrowed type or
+view constructor is added. Selecting an existing named Copy record or variant does not add a
 type spelling, conversion, or aggregate literal to the request grammar. The
 compiler checks eligibility against retained checked HIR, including concrete
 generic instances when already admitted by the Project profile. Fresh
@@ -378,8 +380,9 @@ The provenance closes the declaration stable ID, ordered argument identity keys,
 `sized: true`, `contains_resource: false`, and `needs_drop: false`. An unsupported
 signature does not acquire eligibility merely because its source type has a
 name. `tests/project/signature_catalog.rs` authors nominal/generic identity,
-import-alias identity equivalence, unchanged scalar/Bytes shapes, and rejection
-of owned-record or borrowed-view ordered mapping. These tests remain unrun.
+import-alias identity equivalence, unchanged scalar/Bytes shapes, owning and
+borrowed-view retention constraints, and borrowed caller migration/replay.
+These tests remain unrun.
 
 Constructor limits are drawn from the implementation's shared limit constants.
 Depth, aggregate node counts, implicit conditional block nodes, UTF-8 byte

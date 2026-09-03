@@ -43,7 +43,8 @@ A retained parameter can appear only once. Original parameters omitted from
 the array are removed from the declaration, but their caller argument
 expressions are still evaluated. An empty array therefore removes every
 Copy parameter while preserving argument evaluation at existing calls. Every
-owning parameter must be retained exactly once; it cannot be removed or copied.
+owning or borrowed parameter must be retained exactly once; it cannot be
+removed or copied.
 
 New parameter names must be distinct from all original names, including names
 of removed parameters. They cannot reinterpret an existing body binding.
@@ -62,10 +63,13 @@ signature facts must prove exact-identity Sized Copy admission.
 Every original parameter must have value mode and a built-in Copy type
 (`i64`, `i32`, `char`, `u8`, `usize`, `[u8; N]`, `f32`, `f64`, or `bool`),
 have value mode and an admitted concrete Copy record/variant type, be
-exactly `own Bytes`, or belong to the checked owning extension below.
+exactly `own Bytes`, be an exact `borrow str` or `borrow Slice<u8>` view, or
+belong to the checked owning extension below.
 Named Copy admission uses the retained checked HIR parameter identity and
 compiler TypeFacts: `copy` and `sized` must be true, while
-`contains_resource` and `needs_drop` must be false. The owning extension admits
+`contains_resource` and `needs_drop` must be false. The borrowed-view extension
+retains only exact `borrow str` and `borrow Slice<u8>` parameters. The owning
+extension admits
 ordinary `string` parameters and `own` record/variant parameters whose checked
 facts have `copy: false`, `sized: true`, `contains_resource: false`, and
 `needs_drop: true`. Source `string` parameters use the ordinary bare type
@@ -80,9 +84,15 @@ generic target functions remain excluded.
 The mapping keeps the original source type spelling, type arguments and mode.
 Retained mappings do not convert a record to another record,
 alter fields, widen a target profile or add an owning parameter. Classes,
-resources, resource-containing aggregates, borrows and shared modes remain
-excluded. Full candidate admission still rejects a removed parameter referenced
-by the body or contracts, and any caller that cannot be legally staged.
+resources, resource-containing aggregates, borrowed nominal/storage types,
+`borrow Bytes`, and shared modes remain excluded. Admitted borrowed views may
+be reordered and renamed while preserving their exact source type and mode.
+Migration evaluates each view expression once, left to right, into an immutable
+borrowed local before the final call. Ordinary loan and provenance verification
+must admit those locals and their roots; this operation creates no view, extends
+no root, and grants no ownership. Full candidate admission still rejects a
+removed parameter referenced by the body or contracts, and any caller that
+cannot be legally staged.
 
 For eligible named parameters, `change/catalog` adds `type_identity` and
 `type_provenance`, including the nominal declaration identity, ordered argument
@@ -93,6 +103,8 @@ is empty. Its surface `mode` remains `value`, while provenance `ownership` is
 `own`. Owning nominal descriptors keep their declaration and argument identities
 and surface `mode: own`. These descriptors add
 `checked_owning_parameters_retained_exactly_once` to the mapping constraints.
+An eligible borrowed-view signature instead adds
+`borrowed_views_retained_exactly_once`; it fabricates no nominal provenance.
 Both application and discovery use the same retained-HIR eligibility routine.
 Existing scalar parameter descriptors and the intention's `{from[,name]}` shape
 remain unchanged.
@@ -202,7 +214,7 @@ duplicate parameter selections, inconsistent provider bindings, and name/type
 reinterpretation. `SPX-G226` rejects existing structural capacity excess.
 `SPX-G259` rejects unsafe binding substitutions, including contract-result
 capture and a still-referenced removed parameter during renaming. `SPX-G260`
-rejects omitted owners. `SPX-G261` bounds the additional substitution traversal
+rejects omitted owners or borrowed views. `SPX-G261` bounds the additional substitution traversal
 and fresh-name allocation with the same depth/node ceilings. Real Project
 verification and candidate stale/replay checks retain their existing
 language and `SPX-G222`–`SPX-G224` diagnostics. Failed candidate construction
@@ -216,7 +228,8 @@ is authored but unrun at the user's request. It covers reordered Copy results,
 retained first-failure selection after dropping or reordering arguments,
 parameter/local name capture attempts, imported and declared-effect call
 ordering, canonical source round trips, removal of a still-used parameter,
-and rejection of type changes, omitted owners, and unsupported borrowed modes.
+borrowed-view reordering/renaming, and rejection of type changes, omitted
+owners/views, and unsupported borrowed modes.
 Additional authored regressions cover simultaneous display renames, contract
 references, local mutation, match guard capture avoidance, and removed-binding
 capture. [`tests/project_candidate/signature_ownership.rs`](../tests/project_candidate/signature_ownership.rs)
@@ -226,8 +239,9 @@ and unchanged live source files. These tests have not been executed.
 [`tests/project/signature_owned_values.rs`](../tests/project/signature_owned_values.rs)
 adds authored cases for bare String and resource-free owned record/variant
 parameters, two local callers per target, preserved argument subtrees and order,
-renaming, exact replay/recovery, stale rejection, omitted-owner diagnostics and
-borrowed-mode exclusion. Its five regressions pass locally on macOS/Rust 1.98.
+renaming, exact replay/recovery, stale rejection, omitted-owner diagnostics,
+exact borrowed-view admission, and borrowed nominal exclusion. Its five
+regressions pass locally on macOS/Rust 1.98.
 Catalog assertions distinguish implicit String ownership from source mode and
 preserve legacy Bytes/scalar descriptors. String declarations are retained and
 checked outside this fixture's executable closure; this is not a claim that

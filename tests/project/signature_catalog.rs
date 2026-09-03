@@ -39,7 +39,8 @@ tests = ["catalog.tests"]
 @id("catalog.owned") record Owned { @id("catalog.owned.bytes") bytes: Bytes, }
 @id("catalog.select") fn select(pair: Pair, boxed: Box<i64>, flag: bool) -> i64 { pair.value + boxed.value }
 @id("catalog.owned-select") fn owned_select(value: own Owned) -> i64 { 0 }
-@id("catalog.borrowed") fn borrowed(value: borrow Slice<u8>) -> i64 { 0 }
+@id("catalog.borrowed") fn borrowed(value: borrow Slice<u8>, text: borrow str, flag: i64) -> i64 { byte_len(value) + str_len_bytes(text) + flag }
+@id("catalog.borrowed-call") fn borrowed_call(value: borrow Slice<u8>, text: borrow str) -> i64 { borrowed(value, text, 1) }
 @id("catalog.bytes") fn bytes(value: own Bytes) -> Bytes { value }
 @id("catalog.evaluate") fn evaluate(input: i64) -> i64 { select(Pair { value: input }, Box<i64> { value: 2 }, true) }
 "#,
@@ -159,7 +160,7 @@ fn scalar_and_direct_bytes_parameter_shapes_stay_unchanged() {
 }
 
 #[test]
-fn owned_records_require_retention_while_borrowed_views_do_not_advertise_mapping() {
+fn owned_records_and_borrowed_views_advertise_exact_retention_constraints() {
     let fixture = Fixture::new();
     let candidate = fixture.candidate();
     let owned = catalog(&candidate, "catalog.owned-select");
@@ -195,7 +196,62 @@ fn owned_records_require_retention_while_borrowed_views_do_not_advertise_mapping
         .contains(&json!("checked_owning_parameters_retained_exactly_once")));
 
     let borrowed = catalog(&candidate, "catalog.borrowed");
-    assert!(!ordered(&borrowed));
+    assert!(ordered(&borrowed));
     assert!(borrowed["parameters"][0].get("type_identity").is_none());
     assert!(borrowed["parameters"][0].get("type_provenance").is_none());
+    assert_eq!(borrowed["parameters"][0]["mode"], "borrow");
+    assert_eq!(borrowed["parameters"][1]["mode"], "borrow");
+    let mapping = borrowed["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|operation| operation["kind"] == "change_function_signature")
+        .unwrap()["exactly_one_form"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|form| form["selector"] == "parameters")
+        .unwrap();
+    assert!(mapping["constraints"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("borrowed_views_retained_exactly_once")));
+}
+
+#[test]
+fn borrowed_slice_and_text_parameters_reorder_rename_and_replay() {
+    let fixture = Fixture::new();
+    let base = fixture.candidate();
+    let change = semaprax::project::SemanticChange::new(
+        base.revision().project_revision(),
+        &json!({
+            "kind":"change_function_signature",
+            "target":"catalog.borrowed",
+            "parameters":[
+                {"from":"text","name":"label"},
+                {"from":"flag"},
+                {"from":"value","name":"bytes"}
+            ]
+        }),
+    )
+    .unwrap();
+    let evolved = base.apply(base.candidate_digest(), &change).unwrap();
+    let core = evolved
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/core.spx")
+        .unwrap()
+        .source();
+    assert!(core.contains("fn borrowed(label: borrow str, flag: i64, bytes: borrow Slice<u8>)"));
+    assert!(core.contains("byte_len(bytes) + str_len_bytes(label) + flag"));
+    assert!(core.contains("let spx_sig_stage_0 = value; let spx_sig_stage_1 = text; let spx_sig_stage_2 = 1; borrowed(spx_sig_stage_1, spx_sig_stage_2, spx_sig_stage_0)"));
+    let replayed = semaprax::project::ProjectCandidate::replay(
+        Arc::clone(base.base_revision()),
+        base.base_revision().project_revision(),
+        &[change],
+        evolved.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replayed.to_json(), evolved.to_json());
 }

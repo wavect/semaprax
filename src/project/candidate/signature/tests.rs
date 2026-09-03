@@ -50,7 +50,8 @@ fn implicit_string_retention_guard_agrees_with_real_checked_parameter_ownership(
     assert!(owning_parameter(&original.params[0]));
     assert!(!legacy_parameter(&original.params[0]));
     assert!(!owning_parameter(&original.params[1]));
-    assert!(!legacy_parameter(&original.params[1]));
+    assert!(borrowed_view_parameter(&original.params[1]));
+    assert!(legacy_parameter(&original.params[1]));
     assert!(!owning_parameter(&original.params[2]));
     assert!(legacy_parameter(&original.params[2]));
     let facts = checked
@@ -82,6 +83,31 @@ fn reordered_copy_parameters_preserve_value_and_stage_all_original_arguments() {
     let canonical = format::canonical(&programs[0]);
     assert!(canonical.contains("fn select(right: i64, left: i64)"));
     assert!(canonical.contains("let spx_sig_stage_0 = 2; let spx_sig_stage_1 = 3; select(spx_sig_stage_1, spx_sig_stage_0)"));
+    assert_eq!(format::canonical(&program(&canonical)), canonical);
+}
+
+#[test]
+fn borrowed_views_reorder_and_rename_without_copying_or_escaping_the_loan() {
+    let mut programs = vec![program(
+        r#"module test.signature;
+@id("math.select") fn select(left: borrow Slice<u8>, right: borrow Slice<u8>) -> i64 { byte_len(left) * 10 + byte_len(right) }
+@id("math.forward") fn forward(first: borrow Slice<u8>, second: borrow Slice<u8>) -> i64 { select(first, second) }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+    )];
+    evolve(
+        &mut programs,
+        json!([
+            {"from":"right","name":"tail"},
+            {"from":"left","name":"head"}
+        ]),
+    )
+    .unwrap();
+    let canonical = format::canonical(&programs[0]);
+    assert!(canonical.contains("fn select(tail: borrow Slice<u8>, head: borrow Slice<u8>)"));
+    assert!(canonical.contains("byte_len(head) * 10 + byte_len(tail)"));
+    assert!(canonical.contains("let spx_sig_stage_0 = first; let spx_sig_stage_1 = second; select(spx_sig_stage_1, spx_sig_stage_0)"));
+    hir::resolve(&program(&canonical)).unwrap();
     assert_eq!(format::canonical(&program(&canonical)), canonical);
 }
 
@@ -253,7 +279,7 @@ fn renaming_to_a_removed_parameter_name_cannot_capture_a_live_reference() {
 }
 
 #[test]
-fn owned_and_borrowed_signature_migrations_reject_before_mutation() {
+fn owning_borrowed_and_shared_signature_omissions_reject_before_mutation() {
     for parameter in ["own Bytes", "borrow str", "shared Bytes", "string"] {
         let source = format!("module test.signature;\n@id(\"math.select\") fn select(value: {parameter}) -> i64 {{ 0 }}\n");
         let mut programs = vec![program(&source)];
@@ -262,7 +288,7 @@ fn owned_and_borrowed_signature_migrations_reject_before_mutation() {
             Ok(_) => panic!("non-Copy signature mapping succeeded"),
             Err(errors) => errors,
         };
-        let expected = if parameter == "own Bytes" {
+        let expected = if matches!(parameter, "own Bytes" | "borrow str" | "string") {
             "SPX-G260"
         } else {
             "SPX-G225"

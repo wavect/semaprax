@@ -431,7 +431,7 @@ fn every_original_owner_must_be_retained_once_including_implicit_string_ownershi
 }
 
 #[test]
-fn catalog_authenticates_owning_facts_and_keeps_borrowed_routes_outside_ordered_mapping() {
+fn catalog_authenticates_owning_facts_and_admits_only_exact_borrowed_views() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
@@ -467,11 +467,7 @@ fn catalog_authenticates_owning_facts_and_keeps_borrowed_routes_outside_ordered_
             }
         }
     }
-    for target in [
-        "owned.borrow-record",
-        "owned.borrow-variant",
-        "owned.borrow-view",
-    ] {
+    for target in ["owned.borrow-record", "owned.borrow-variant"] {
         let report = catalog(&base, target);
         assert!(!ordered(&report));
         code(
@@ -479,6 +475,21 @@ fn catalog_authenticates_owning_facts_and_keeps_borrowed_routes_outside_ordered_
             "SPX-G225",
         );
     }
+    let borrowed = catalog(&base, "owned.borrow-view");
+    assert!(ordered(&borrowed));
+    assert_eq!(
+        borrowed["parameters"],
+        json!([{
+            "name":"value", "type":"Slice<u8>", "mode":"borrow"
+        }])
+    );
+    let (renamed, _) = evolve(
+        &base,
+        "owned.borrow-view",
+        json!([{"from":"value","name":"renamed"}]),
+    )
+    .unwrap();
+    assert!(source(&renamed, "src/core.spx").contains("fn borrow_view(renamed: borrow Slice<u8>)"));
     assert_eq!(
         catalog(&base, "owned.bytes")["parameters"],
         json!([{"name":"value","type":"Bytes","mode":"own"}])

@@ -123,6 +123,13 @@ impl ProjectCandidate {
                         {
                             constraints.push("checked_owning_parameters_retained_exactly_once");
                         }
+                        if function
+                            .params
+                            .iter()
+                            .any(|parameter| parameter.mode == ParamMode::Borrow)
+                        {
+                            constraints.push("borrowed_views_retained_exactly_once");
+                        }
                         forms.push(json!({
                             "selector":"parameters", "minimum":0, "maximum":4096,
                             "existing_parameter_fields":["from"],

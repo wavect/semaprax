@@ -1,4 +1,4 @@
-//! Ordered checked Copy/resource-free-owner evolution with left-to-right staging.
+//! Ordered Copy, borrowed-view, and resource-free-owner evolution with left-to-right staging.
 //!
 //! Every old argument is evaluated once even when its parameter is removed.
 //! Parameter identity is selected by its old name; display renaming follows
@@ -73,7 +73,7 @@ pub(super) fn apply(
             .is_none()
     {
         return Err(grammar(
-            "ordered signature evolution requires checked Copy values or resource-free owned data",
+            "ordered signature evolution requires checked Copy values, exact borrowed views, or resource-free owned data",
         ));
     }
     let original = original_params
@@ -185,11 +185,11 @@ pub(super) fn apply(
     if original_params
         .iter()
         .enumerate()
-        .any(|(index, param)| owning_parameter(param) && !selected.contains(&index))
+        .any(|(index, param)| retained_noncopy_parameter(param) && !selected.contains(&index))
     {
         return Err(vec![crate::diagnostic::Diagnostic::io(
             "SPX-G260",
-            "signature evolution must retain every owning parameter exactly once",
+            "signature evolution must retain every owning or borrowed parameter exactly once",
         )]);
     }
     let old_arity = original_params.len();
@@ -406,11 +406,20 @@ fn copy_type(ty: &Type) -> bool {
 fn legacy_parameter(parameter: &Param) -> bool {
     (parameter.mode == ParamMode::Value && copy_type(&parameter.ty))
         || (parameter.mode == ParamMode::Own && parameter.ty == Type::Bytes)
+        || borrowed_view_parameter(parameter)
 }
 
 fn owning_parameter(parameter: &Param) -> bool {
     parameter.mode == ParamMode::Own
         || (parameter.mode == ParamMode::Value && parameter.ty == Type::String)
+}
+
+fn borrowed_view_parameter(parameter: &Param) -> bool {
+    parameter.mode == ParamMode::Borrow && matches!(parameter.ty, Type::Str | Type::SliceU8)
+}
+
+fn retained_noncopy_parameter(parameter: &Param) -> bool {
+    owning_parameter(parameter) || borrowed_view_parameter(parameter)
 }
 
 /// One authority shared by candidate admission and catalogue discovery. Legacy

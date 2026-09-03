@@ -23,6 +23,9 @@ pub const MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_BYTES: usize = 2 * 1024 
 pub const PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_SCHEMA: &str =
     "semaprax.project-candidate-package-signature-conflicts.v1";
 pub const MAX_PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_BYTES: usize = 2 * 1024 * 1024;
+pub const PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_SCHEMA: &str =
+    "semaprax.project-candidate-package-consumer-migration.v1";
+pub const MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_BYTES: usize = 16 * 1024 * 1024;
 
 const NONCLAIMS: [&str; 8] = [
     "no_ambient_consumer_discovery_or_completeness",
@@ -78,7 +81,210 @@ pub struct CandidatePackageSignatureConflictInput<'a> {
     pub baseline_capsule_options: &'a SourceCapsuleOptions,
 }
 
+/// Exact baseline corpus plus caller-supplied candidate-era package evidence.
+/// The migration is emitted only after the rebuilt candidate-era capsule and
+/// package graph independently admit every proposed canonical source.
+pub struct CandidatePackageConsumerMigrationInput<'a> {
+    pub baseline: CandidatePackageSignatureConflictInput<'a>,
+    pub candidate_provider_report: &'a str,
+    pub candidate_resolution_evidence: &'a str,
+    pub candidate_resolution_input: &'a ResolutionInput,
+    pub candidate_resolution_options: &'a ResolutionOptions,
+    pub candidate_capsule_options: &'a SourceCapsuleOptions,
+}
+
 impl ProjectCandidate {
+    /// Propose one closed scalar/Copy append-parameter migration for consumers
+    /// in an exact authenticated baseline package corpus. No source is written.
+    pub fn package_consumer_migration(
+        &self,
+        expected_candidate: &str,
+        input: &CandidatePackageConsumerMigrationInput<'_>,
+    ) -> Result<String> {
+        self.require_candidate(expected_candidate)?;
+        let change = if self.changes.len() == 1 {
+            &self.changes[0].intent
+        } else {
+            return Err(migration_refusal(
+                "consumer migration requires exactly one candidate change",
+            ));
+        };
+        let target = change
+            .get("target")
+            .and_then(Value::as_str)
+            .ok_or_else(|| migration_refusal("consumer migration change has no exact target"))?;
+        if change.get("kind").and_then(Value::as_str) != Some("change_function_signature")
+            || target != input.baseline.target
+            || change
+                .as_object()
+                .is_none_or(|object| object.len() != 3 || !object.contains_key("append_parameters"))
+        {
+            return Err(migration_refusal(
+                "consumer migration admits only one scalar Copy append-parameter change",
+            ));
+        }
+        let additions = change["append_parameters"].as_array().ok_or_else(|| {
+            migration_refusal("consumer migration append-parameter table is absent")
+        })?;
+        if additions.is_empty()
+            || additions.len() > 8
+            || additions.iter().any(|addition| {
+                !matches!(
+                    addition.get("type").and_then(Value::as_str),
+                    Some("i64" | "i32" | "char" | "u8" | "usize" | "f32" | "f64" | "bool")
+                )
+            })
+        {
+            return Err(migration_refusal(
+                "consumer migration append parameters must be one through eight Copy scalars",
+            ));
+        }
+
+        let conflicts: Value = serde_json::from_str(
+            &self.package_signature_consumer_conflicts(expected_candidate, &input.baseline)?,
+        )
+        .map_err(|_| migration_binding("authenticated signature conflict report is not JSON"))?;
+        let affected_calls = array(&conflicts, "affected_calls")?;
+        if affected_calls.is_empty() {
+            return Err(migration_refusal(
+                "consumer migration requires at least one authenticated affected call",
+            ));
+        }
+
+        let mut programs = Vec::with_capacity(input.baseline.baseline_sources.len());
+        for source in input.baseline.baseline_sources {
+            let program = crate::parse(&source.source, format!("package:{}", source.package))
+                .map_err(|error| vec![error])?;
+            if crate::format::canonical(&program) != source.source {
+                return Err(migration_binding(
+                    "baseline consumer corpus source is not exact canonical source",
+                ));
+            }
+            programs.push(program);
+        }
+        let mut owner = None;
+        for (program_index, program) in programs.iter().enumerate() {
+            for (function_index, function) in program.functions.iter().enumerate() {
+                if function.stable_id == target && function.explicit_id {
+                    if owner.replace((program_index, function_index)).is_some() {
+                        return Err(migration_binding(
+                            "baseline provider function identity is ambiguous",
+                        ));
+                    }
+                }
+            }
+        }
+        let (owner, function) = owner.ok_or_else(|| {
+            migration_binding("baseline provider function is absent from the exact corpus")
+        })?;
+        let migrated_calls =
+            super::intent::apply_detached_signature(&mut programs, change, owner, function)?;
+        if migrated_calls != affected_calls.len() {
+            return Err(migration_refusal(
+                "consumer migration excludes provider-local or unauthenticated call inventory",
+            ));
+        }
+
+        let candidate_provider = unique_source(
+            self.revision.sources(),
+            input.baseline.provider_source_path,
+            "candidate provider source is absent or duplicated",
+        )?;
+        let mut migrated_sources = Vec::with_capacity(programs.len());
+        let mut proposals = Vec::new();
+        for ((baseline, program), index) in input
+            .baseline
+            .baseline_sources
+            .iter()
+            .zip(programs)
+            .zip(0usize..)
+        {
+            let source = crate::format::canonical(&program);
+            let provider = baseline.package == input.baseline.provider.package;
+            if provider && source != candidate_provider.source() {
+                return Err(migration_refusal(
+                    "reconstructed provider does not exactly equal candidate source",
+                ));
+            }
+            if !provider && source != baseline.source {
+                proposals.push(json!({
+                    "package": baseline.package,
+                    "source_index": index,
+                    "baseline_source_digest": super::wire::digest(b"semaprax.package-consumer-migration.source.v1\0", baseline.source.as_bytes()),
+                    "proposed_source_digest": super::wire::digest(b"semaprax.package-consumer-migration.source.v1\0", source.as_bytes()),
+                    "proposed_source": source,
+                }));
+            }
+            migrated_sources.push(PackageSource {
+                package: baseline.package.clone(),
+                report: if provider {
+                    input.candidate_provider_report.to_owned()
+                } else {
+                    baseline.report.clone()
+                },
+                source,
+            });
+        }
+        if proposals.is_empty() {
+            return Err(migration_refusal(
+                "authenticated affected calls produced no consumer source proposal",
+            ));
+        }
+        let capsule = crate::package_source_capsule::generate(
+            &migrated_sources,
+            input.candidate_resolution_evidence,
+            input.candidate_resolution_input,
+            input.candidate_resolution_options,
+            input.candidate_capsule_options,
+        )?;
+        let replay = self.package_consumer_replay(
+            expected_candidate,
+            &CandidatePackageConsumerReplayInput {
+                provider: input.baseline.provider,
+                provider_source_path: input.baseline.provider_source_path,
+                target,
+                capsule: &capsule,
+                sources: &migrated_sources,
+                resolution_evidence: input.candidate_resolution_evidence,
+                resolution_input: input.candidate_resolution_input,
+                resolution_options: input.candidate_resolution_options,
+                capsule_options: input.candidate_capsule_options,
+            },
+        )?;
+        let replay: Value = serde_json::from_str(&replay)
+            .map_err(|_| migration_binding("candidate-era package replay is not JSON"))?;
+        if replay["counts"]["calls"] != affected_calls.len() {
+            return Err(migration_refusal(
+                "candidate-era replay call inventory differs from the migrated baseline inventory",
+            ));
+        }
+        render_migration(json!({
+            "schema": PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_SCHEMA,
+            "candidate_revision": self.candidate_digest(),
+            "base_project_revision": self.base.project_revision(),
+            "candidate_project_revision": self.revision.project_revision(),
+            "provider": {"package":input.baseline.provider.package,"version":input.baseline.provider.version},
+            "target": target,
+            "change": change,
+            "baseline_conflict_report_digest": super::wire::digest(b"semaprax.package-consumer-migration.conflicts.v1\0", serde_json::to_vec(&conflicts).map_err(|_| migration_binding("conflict report serialization failed"))?.as_slice()),
+            "candidate_source_capsule": {
+                "digest": replay["source_capsule_digest"],
+                "bytes": capsule.len(),
+                "source_set_digest": replay["source_set_digest"],
+                "link_digest": replay["link_digest"],
+                "complete_bytes_embedded": false,
+            },
+            "candidate_replay": replay,
+            "proposals": proposals,
+            "counts":{"affected_calls":affected_calls.len(),"migrated_calls":migrated_calls,"changed_consumer_sources":proposals.len()},
+            "status":"proposed_sources_independently_admitted_by_candidate_era_capsule_replay",
+            "generated_artifact_provenance":"not_supplied_or_inferred",
+            "source_authority":false,"execution":false,"publication_authority":false,
+            "compatibility":"not_assessed","tests":"not_run",
+            "nonclaims":["explicit_baseline_capsule_only_no_consumer_discovery_or_completeness","scalar_Copy_append_defaults_only_not_general_signature_migration","canonical_source_proposal_not_write_patch_commit_or_publication_authority","candidate_era_source_capsule_replay_not_runtime_behavior_or_compatibility","no_installed_generated_or_deployed_consumer_claim","generated_artifact_provenance_not_inferred","no_filesystem_network_registry_model_tool_or_target_execution_authority"]
+        }))
+    }
+
     /// Independently replay explicit package consumers against one source from
     /// this exact candidate. This is static source admission, not compatibility.
     pub fn package_consumer_replay(
@@ -566,4 +772,26 @@ fn association(message: &'static str) -> Vec<Diagnostic> {
 
 fn capacity(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G337", message)]
+}
+
+fn migration_binding(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G509", message)]
+}
+
+fn migration_refusal(message: &'static str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-G510", message)]
+}
+
+fn render_migration(value: Value) -> Result<String> {
+    super::super::image::render(
+        value,
+        false,
+        MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_BYTES,
+    )
+    .map_err(|_| {
+        vec![Diagnostic::io(
+            "SPX-G511",
+            "candidate package consumer migration report exceeds its byte bound",
+        )]
+    })
 }

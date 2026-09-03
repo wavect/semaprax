@@ -49,6 +49,18 @@ pub(super) use builtin::{
 pub(super) use field_place::{parameter_nominal_scope, NominalScope};
 pub(super) use signature::{ordered_signature_parameters, validate_computed_signature};
 
+/// Invocation-local reuse for an explicitly supplied offline package corpus.
+/// The caller must independently rebuild and authenticate every resulting
+/// source; this helper grants no Project, filesystem, or publication authority.
+pub(super) fn apply_detached_signature(
+    programs: &mut [Program],
+    intent: &Value,
+    owner: usize,
+    function_index: usize,
+) -> Result<usize> {
+    signature::apply(None, programs, intent, owner, function_index)
+}
+
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
 pub(super) struct IntentSummary {

@@ -5,10 +5,12 @@ use semaprax::package_report_v2::{self, PackageReportV2Options};
 use semaprax::package_resolver::{self, Requirement, ResolutionInput, ResolutionOptions};
 use semaprax::package_source_capsule::{self, PackageSource, SourceCapsuleOptions};
 use semaprax::project::{
-    with_authenticated_project, CandidatePackageConsumerReplayInput,
-    CandidatePackageSignatureConflictInput, ProjectCandidate, ProjectRevision, SemanticChange,
+    with_authenticated_project, CandidatePackageConsumerMigrationInput,
+    CandidatePackageConsumerReplayInput, CandidatePackageSignatureConflictInput, ProjectCandidate,
+    ProjectRevision, SemanticChange, MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_BYTES,
     MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_BYTES,
     MAX_PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_BYTES,
+    PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_SCHEMA,
     PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_SCHEMA,
     PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_SCHEMA,
 };
@@ -26,6 +28,111 @@ const OWNER_VIEW_TARGET: &str = "lib.bytes-len";
 
 fn canonical(text: &str, path: &str) -> String {
     semaprax::format::canonical(&semaprax::parse(text, path).unwrap())
+}
+
+#[test]
+fn scalar_append_proposes_canonical_consumers_only_after_candidate_capsule_replay() {
+    let fixture = Fixture::new();
+    let base = open(&fixture.revision());
+    let candidate = signature_changed(&base);
+    let baseline = Corpus::candidate_era(&fixture.0, &base);
+    let mut candidate_evidence = Corpus::candidate_era(&fixture.0, &base);
+    let candidate_source = candidate
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == PROVIDER_PATH)
+        .unwrap()
+        .source()
+        .to_owned();
+    let provider_path = fixture.0.join("migration-provider.spx");
+    std::fs::write(&provider_path, &candidate_source).unwrap();
+    let provider_report =
+        package_report_v2::generate(&provider_path, &PackageReportV2Options::default()).unwrap();
+    let provider_source = candidate_evidence
+        .sources
+        .iter_mut()
+        .find(|source| source.package == "libmath")
+        .unwrap();
+    provider_source.source = candidate_source;
+    provider_source.report = provider_report;
+    let consumer_report = &candidate_evidence
+        .sources
+        .iter()
+        .find(|source| source.package == "app.main")
+        .unwrap()
+        .report;
+    let provider_report = &candidate_evidence
+        .sources
+        .iter()
+        .find(|source| source.package == "libmath")
+        .unwrap()
+        .report;
+    let consumer = Coordinate {
+        package: "app.main".into(),
+        version: "1.0.0".into(),
+    };
+    candidate_evidence.input.subjects = vec![
+        package_lock_v2::create_subject(&candidate_evidence.provider, provider_report, &[], &[])
+            .unwrap(),
+        package_lock_v2::create_subject(
+            &consumer,
+            consumer_report,
+            std::slice::from_ref(&candidate_evidence.provider),
+            &[],
+        )
+        .unwrap(),
+    ];
+    candidate_evidence.evidence = package_resolver::generate(
+        &candidate_evidence.input,
+        &candidate_evidence.resolution_options,
+    )
+    .unwrap();
+    let input = CandidatePackageConsumerMigrationInput {
+        baseline: baseline.signature_conflicts(TARGET),
+        candidate_provider_report: provider_report,
+        candidate_resolution_evidence: &candidate_evidence.evidence,
+        candidate_resolution_input: &candidate_evidence.input,
+        candidate_resolution_options: &candidate_evidence.resolution_options,
+        candidate_capsule_options: &candidate_evidence.capsule_options,
+    };
+    let bytes = candidate
+        .package_consumer_migration(candidate.candidate_digest(), &input)
+        .unwrap();
+    assert!(bytes.len() <= MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_BYTES);
+    let report: Value = serde_json::from_str(&bytes).unwrap();
+    assert_eq!(
+        report["schema"],
+        PROJECT_CANDIDATE_PACKAGE_CONSUMER_MIGRATION_SCHEMA
+    );
+    assert_eq!(report["target"], TARGET);
+    assert_eq!(report["counts"]["affected_calls"], 2);
+    assert_eq!(report["counts"]["migrated_calls"], 2);
+    assert_eq!(report["counts"]["changed_consumer_sources"], 1);
+    assert!(report["proposals"][0]["proposed_source"]
+        .as_str()
+        .unwrap()
+        .contains("answer(0)"));
+    assert_eq!(report["candidate_replay"]["counts"]["calls"], 2);
+    assert_eq!(report["compatibility"], "not_assessed");
+    assert_eq!(report["source_authority"], false);
+    assert_eq!(report["publication_authority"], false);
+
+    failed(
+        candidate.package_consumer_migration("sha256:stale", &input),
+        "SPX-G222",
+    );
+    let ownership_change = owner_view_signature_changed(&base);
+    failed(
+        ownership_change.package_consumer_migration(
+            ownership_change.candidate_digest(),
+            &CandidatePackageConsumerMigrationInput {
+                baseline: baseline.signature_conflicts(OWNER_VIEW_TARGET),
+                ..input
+            },
+        ),
+        "SPX-G510",
+    );
 }
 
 struct Fixture(PathBuf);

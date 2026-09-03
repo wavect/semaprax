@@ -797,6 +797,17 @@ Unix pivot. Held private root/file identities and independently supplied
 checkpoint/predecessor/plan selectors guard ordinary restoration. This store
 persists metadata only: it cannot apply the plan, enumerate/delete subjects,
 infer newest state or restore any source/image/candidate authority.
+`src/semantic_retention_registry.rs` composes successful typed receipts, the
+pure planner and that unchanged pair store behind a separate explicit private
+registry root. A held `0700` `metadata` child owns immutable pairs; a canonical
+`0600` `CURRENT` cursor binds the consecutive sequence, exact pair selectors and
+fixed policy. Initialization and CAS advancement settle the pair before the
+cursor pivot. Recovery authenticates only the pair named by `CURRENT`; exact
+pre-pivot pairs may be reused after rederivation, while post-pivot uncertainty
+requires recovery from the same explicit root. Cursor-stage cleanup never
+deletes a retained subject or immutable pair. The registry grants no source,
+subject-store, GC, approval or publication authority and has no CLI or session
+integration. See [Semantic Retention Registry v1](SEMANTIC-RETENTION-REGISTRY-V1.md).
 `src/cli/retention_metadata.rs` is the narrow command-line adapter. It receives
 an explicit bounded canonical declaration inventory whose rows contain only a
 closed image/candidate/draft subject and byte accounting. Declaration rows use
@@ -1632,6 +1643,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs` |
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
 | Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/`, explicit adapter `src/cli/retention_metadata.rs` |
+| Retention registry cursor | `src/semantic_retention_registry.rs`, `src/semantic_retention_registry/` |
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |

@@ -788,10 +788,14 @@ checkpoint/predecessor/plan selectors guard ordinary restoration. This store
 persists metadata only: it cannot apply the plan, enumerate/delete subjects,
 infer newest state or restore any source/image/candidate authority.
 `src/cli/retention_metadata.rs` is the narrow command-line adapter. It receives
+an explicit bounded canonical observation-inventory file and optional exact
+prior-checkpoint file/digest/predecessor tuple for authority-neutral planning.
+Planning returns canonical checkpoint and GC-plan metadata without reading a
+store or persisting or applying either value. The same adapter receives
 an explicit existing store root, explicit bounded checkpoint/plan files for
 publication and all exact selectors as positional operands. Load requires the
 same selector tuple and returns the authenticated canonical metadata only. The
-adapter introduces no root creation, store discovery, freshness selection, GC
+adapter introduces no inventory or root discovery, freshness selection, GC
 execution, subject restoration, approval or publication path. See
 [Semantic Retention Metadata CLI v1](SEMANTIC-RETENTION-METADATA-CLI-V1.md).
 

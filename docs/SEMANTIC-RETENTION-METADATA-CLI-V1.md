@@ -2,12 +2,54 @@
 
 Status: **Partial, authored/unrun**.
 
-This contract exposes the immutable semantic retention metadata store through
-two explicit command-line operations. It makes an authenticated checkpoint and
-its exact companion plan durable and restores that metadata under caller-held
-selectors. It does not make a retained subject current or actionable.
+This contract exposes authority-neutral retention planning and the immutable
+semantic retention metadata store through three explicit command-line
+operations. It derives a checkpoint and its exact companion plan from
+caller-declared metadata, can make that pair durable, and restores it under
+caller-held selectors. It does not make a retained subject current or
+actionable.
 
-## Commands and capabilities
+## Canonical planning
+
+Planning is:
+
+```text
+semaprax retention-metadata-plan <inventory.json> <sequence> <max-subjects> <max-bytes> <protected-generations> <previous-checkpoint.json|none> <previous-digest|none> <previous-predecessor-digest|none>
+```
+
+`inventory.json` must be exact canonical
+`semaprax.semantic-retention-observation-inventory.v1` JSON with a terminal
+newline. Its closed top-level fields are `schema`, `observations` and
+`nonclaims`. Each observation binds `subject_digest`, the closed image,
+candidate or draft `subject`, and its exact nonzero `stored_bytes`. Rows are
+strictly sorted by derived subject digest, cannot repeat, and carry identities
+rather than paths or store handles. The fixed nonclaims state that the rows are
+caller declarations rather than store/filesystem discovery; do not prove
+presence, freshness, validation or approval; and grant no source, candidate,
+image, GC or publication authority.
+
+The inventory is at most 1,048,576 bytes and 96 observations. Each observation
+is at most 134,217,728 bytes of accounting. Existing policy bounds remain 1–96
+subjects, 1–8,589,934,592 total bytes and 0–32 protected generations.
+`sequence`, `max-subjects`, `max-bytes` and `protected-generations` are canonical
+unsigned decimal operands: digits only, with no leading zero except the value
+zero itself.
+
+An initial checkpoint requires all three previous operands to be `none`. A
+chained checkpoint requires an explicit previous-checkpoint file, its exact
+checkpoint digest, and that checkpoint's own predecessor digest or `none`.
+This three-part tuple lets ordinary checkpoint restoration authenticate the
+file and its lineage before planning. The CLI never selects a previous, newest
+or current checkpoint from a store.
+
+The canonical output binds `checkpoint_digest`, exact `checkpoint_json`,
+`plan_digest` and exact `plan_json`. It reports `authority: "none"` and false GC,
+source, approval and publication authority. Planning reads only the named
+inventory and optional prior-checkpoint files. It does not persist metadata,
+scan a store, execute or apply the GC plan, delete a subject, or restore source,
+candidate or image state.
+
+## Persistence and load
 
 Publication is:
 
@@ -35,19 +77,20 @@ the restored checkpoint and plan digests and carries their exact canonical JSON
 bytes as `checkpoint_json` and `plan_json` strings. A missing, malformed, stale,
 substituted or tampered selector/pair fails closed.
 
-Both commands are in the typed public CLI catalogue and therefore available in
-the standalone and full command surfaces. Arguments are exact positional
-operands; options, omitted selectors and implicit predecessor selection are not
-admitted. `none` is the sole spelling for an absent predecessor.
+All three commands are in the typed public CLI catalogue and therefore
+available in the standalone and full command surfaces. Arguments are exact
+positional operands; options, omitted selectors and implicit predecessor
+selection are not admitted. `none` is the sole spelling for an absent
+predecessor.
 
 ## Authority boundary
 
 The explicit paths authorize only the ordinary reads and immutable metadata
-publication named by the selected command. Receipts and restored values report
-`authority: "none"` and false GC, source, approval and publication authority.
-They carry no root or file handle.
+publication named by the selected command. Planner output, receipts and
+restored values report `authority: "none"` and false GC, source, approval and
+publication authority. They carry no root or file handle.
 
-Neither command can:
+No command can:
 
 - list or discover roots, entries, subjects or selectors;
 - choose a latest, newest or fresh checkpoint;
@@ -67,5 +110,7 @@ The existing semantic retention store harness contains an authored CLI
 round-trip that supplies separate checkpoint, plan and root paths, checks the
 authority-neutral receipt and exact restored bytes, and rejects a wrong plan
 selector without removing the stored pair. That regression has been compiled
-but intentionally not executed. The completion status remains Partial until
-the completion matrix's required executable gate is run and recorded.
+but intentionally not executed. The canonical inventory parser, typed planner
+dispatch and closed help-catalogue gate are authored and have compile-only
+validation; no planner test was executed. The completion status remains Partial
+until the completion matrix's required executable gate is run and recorded.

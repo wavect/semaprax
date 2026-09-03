@@ -284,7 +284,10 @@ fn explicit_candidate_era_consumers_change_only_the_external_consumer_boundary_t
     let (_, actual) = report(&candidate, &corpus, TARGET);
 
     assert_eq!(actual["schema"], PROJECT_CANDIDATE_ANALYSIS_EVIDENCE_SCHEMA);
-    assert_eq!(actual.as_object().unwrap().len(), 20);
+    // `Compose candidate analysis boundary declarations` added the declared
+    // external contract boundary to every analysis report.
+    assert_eq!(actual.as_object().unwrap().len(), 21);
+    assert!(!actual["external_contracts"].is_null());
     assert_eq!(
         actual["evidence_class"],
         "retained_source_and_explicit_package_consumer_evidence"

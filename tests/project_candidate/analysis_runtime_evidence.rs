@@ -154,7 +154,10 @@ fn exact_coverage_and_test_report_change_only_the_runtime_blind_spot() {
     );
     assert_eq!(report["candidate_test_report"], test_value);
     assert_eq!(report["candidate_test_report_digest"], test.report_digest());
-    assert_eq!(report.as_object().unwrap().len(), 23);
+    // `Compose candidate analysis boundary declarations` added the declared
+    // external contract boundary to every analysis report.
+    assert_eq!(report.as_object().unwrap().len(), 24);
+    assert!(!report["external_contracts"].is_null());
     assert_eq!(report["areas"].as_array().unwrap().len(), 8);
 
     let mut expected_root = coverage.clone();

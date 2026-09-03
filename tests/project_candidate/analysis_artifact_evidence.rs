@@ -206,7 +206,10 @@ fn independently_composed(candidate: &ProjectCandidate, kind: ImageArtifactKind)
 fn assert_exact_evidence(candidate: &ProjectCandidate, kind: ImageArtifactKind) -> Value {
     let (first, value) = report(candidate, kind);
     assert_eq!(value, independently_composed(candidate, kind));
-    assert_eq!(value.as_object().unwrap().len(), 20);
+    // `Compose candidate analysis boundary declarations` added the declared
+    // external contract boundary to every analysis report.
+    assert_eq!(value.as_object().unwrap().len(), 21);
+    assert!(!value["external_contracts"].is_null());
     assert_eq!(first, report(candidate, kind).0);
     let kind_name = match kind {
         ImageArtifactKind::Web => "web",

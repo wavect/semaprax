@@ -1,5 +1,6 @@
 //! Separate-translation-unit evidence for C++ scalar package v1.
 
+#[cfg(unix)]
 use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};

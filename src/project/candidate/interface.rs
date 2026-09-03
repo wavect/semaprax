@@ -5,6 +5,7 @@ use crate::ast::{
     ProtocolImplementationMember, ProtocolMethod, Span, Type, TypeDeclaration, TypeDeclarationKind,
 };
 use crate::diagnostic::Diagnostic;
+use crate::hir::{DeclarationId, OwnershipMode, ResolvedType};
 use crate::project::ProjectRevision;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -740,7 +741,7 @@ fn authenticate_checked_bindings(
     protocol_id: &str,
     implementation: &ProtocolImplementation,
 ) -> Result<()> {
-    let (receiver_owner, _) = receiver_owner(programs, receiver_id)?
+    let (receiver_owner, receiver) = receiver_owner(programs, receiver_id)?
         .and_then(|owner| {
             programs[owner]
                 .types
@@ -749,6 +750,7 @@ fn authenticate_checked_bindings(
                 .map(|item| (owner, item))
         })
         .ok_or_else(|| authentication("implementation receiver lost its source binding"))?;
+    authenticate_source_program(revision, &programs[receiver_owner])?;
     let checked_receiver = revision
         .semantic
         .image_modules()
@@ -760,13 +762,46 @@ fn authenticate_checked_bindings(
                 .iter()
                 .find(|item| item.id.as_str() == receiver_id)
         });
-    if !matches!(
-        checked_receiver.map(|item| &item.kind),
-        Some(crate::hir::ResolvedTypeDeclarationKind::Record { .. })
-    ) {
+    let Some(checked_receiver) = checked_receiver else {
         return Err(authentication(
             "implementation receiver lacks exact retained record HIR",
         ));
+    };
+    let TypeDeclarationKind::Record { fields } = &receiver.kind else {
+        return Err(authentication(
+            "implementation receiver source is no longer a record",
+        ));
+    };
+    let crate::hir::ResolvedTypeDeclarationKind::Record {
+        fields: checked_fields,
+    } = &checked_receiver.kind
+    else {
+        return Err(authentication(
+            "implementation receiver lacks exact retained record HIR",
+        ));
+    };
+    if checked_receiver.name != receiver.name
+        || checked_receiver.span != receiver.span
+        || !checked_receiver.type_parameters.is_empty()
+        || checked_fields.len() != fields.len()
+    {
+        return Err(authentication(
+            "implementation receiver source and retained record HIR disagree",
+        ));
+    }
+    let mut work = 0usize;
+    for (index, (field, checked)) in fields.iter().zip(checked_fields).enumerate() {
+        let ty = resolved_source_type(&programs[receiver_owner], &field.ty, &mut work, 0)?;
+        if checked.id.as_str() != field.stable_id
+            || checked.name != field.name
+            || checked.span != field.span
+            || checked.index as usize != index
+            || checked.ty != ty
+        {
+            return Err(authentication(
+                "implementation receiver field source and retained HIR disagree",
+            ));
+        }
     }
     if explicit_protocol(programs, protocol_id)?.is_none() {
         return Err(authentication(
@@ -776,6 +811,7 @@ fn authenticate_checked_bindings(
     for member in &implementation.members {
         let (owner, function) = explicit_function(programs, &member.function_id)?
             .ok_or_else(|| authentication("implementation function lost its source identity"))?;
+        authenticate_source_program(revision, &programs[owner])?;
         let checked = revision
             .semantic
             .image_modules()
@@ -787,13 +823,130 @@ fn authenticate_checked_bindings(
                     .iter()
                     .find(|item| item.id.as_str() == function.stable_id)
             });
-        if checked.is_none() {
+        let Some(checked) = checked else {
             return Err(authentication(
                 "implementation function lacks exact retained source HIR",
             ));
+        };
+        if checked.name != function.name
+            || checked.span != function.span
+            || checked.params.len() != function.params.len()
+            || checked.return_type
+                != resolved_source_type(&programs[owner], &function.return_type, &mut work, 0)?
+            || checked.effects != function.effects
+            || checked.requires.len() != function.requires.len()
+            || checked.ensures.len() != function.ensures.len()
+        {
+            return Err(authentication(
+                "implementation function source and retained HIR signature, effects, or contracts disagree",
+            ));
+        }
+        for (source, retained) in function.params.iter().zip(&checked.params) {
+            let ownership =
+                if source.mode == crate::ast::ParamMode::Value && source.ty == Type::String {
+                    OwnershipMode::Own
+                } else {
+                    OwnershipMode::from(source.mode)
+                };
+            if retained.name != source.name
+                || retained.span != source.span
+                || retained.ownership != ownership
+                || retained.ty != resolved_source_type(&programs[owner], &source.ty, &mut work, 0)?
+            {
+                return Err(authentication(
+                    "implementation function parameter source and retained HIR disagree",
+                ));
+            }
         }
     }
     Ok(())
+}
+
+fn authenticate_source_program(revision: &ProjectRevision, program: &Program) -> Result<()> {
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == program.path)
+        .ok_or_else(|| authentication("implementation source module is absent"))?;
+    let retained = crate::parse(source.source(), source.path()).map_err(|error| vec![error])?;
+    if retained != *program {
+        return Err(authentication(
+            "implementation source module differs from its authenticated revision",
+        ));
+    }
+    Ok(())
+}
+
+fn resolved_source_type(
+    program: &Program,
+    source: &Type,
+    work: &mut usize,
+    depth: usize,
+) -> Result<ResolvedType> {
+    *work = work
+        .checked_add(1)
+        .ok_or_else(|| capacity("interface checked type authentication work overflow"))?;
+    if *work > MAX_ITEMS || depth > 64 {
+        return Err(capacity(
+            "interface checked type authentication exceeds its bound",
+        ));
+    }
+    Ok(match source {
+        Type::I64 => ResolvedType::I64,
+        Type::I32 => ResolvedType::I32,
+        Type::Char => ResolvedType::Char,
+        Type::U8 => ResolvedType::U8,
+        Type::Usize => ResolvedType::Usize,
+        Type::ArrayU8(length) => ResolvedType::ArrayU8(*length),
+        Type::F32 => ResolvedType::F32,
+        Type::F64 => ResolvedType::F64,
+        Type::Bool => ResolvedType::Bool,
+        Type::String => ResolvedType::String,
+        Type::Bytes => ResolvedType::Bytes,
+        Type::Str => ResolvedType::Str,
+        Type::SliceU8 => ResolvedType::SliceU8,
+        Type::Named { name, arguments } => {
+            *work = work
+                .checked_add(program.types.len() + program.module_uses.len())
+                .ok_or_else(|| capacity("interface nominal authentication work overflow"))?;
+            if *work > MAX_ITEMS {
+                return Err(capacity(
+                    "interface nominal authentication exceeds its inventory bound",
+                ));
+            }
+            let mut identities = BTreeSet::new();
+            for declaration in &program.types {
+                if declaration.name == *name {
+                    identities.insert(declaration.stable_id.as_str());
+                }
+            }
+            for binding in &program.module_uses {
+                if binding.kind == ModuleUseKind::Type && binding.alias == *name {
+                    identities.insert(binding.persistent_id.as_str());
+                }
+            }
+            if let Some(prelude) = crate::prelude::declarations()
+                .iter()
+                .find(|declaration| declaration.name == *name)
+            {
+                identities.insert(prelude.stable_id.as_str());
+            }
+            if identities.len() != 1 {
+                return Err(authentication(
+                    "interface checked nominal type lacks one exact source identity",
+                ));
+            }
+            let declaration = DeclarationId::new(*identities.iter().next().expect("one identity"));
+            let mut resolved = Vec::with_capacity(arguments.len());
+            for argument in arguments {
+                resolved.push(resolved_source_type(program, argument, work, depth + 1)?);
+            }
+            ResolvedType::Nominal {
+                declaration,
+                arguments: resolved,
+            }
+        }
+    })
 }
 
 fn plan_imports(

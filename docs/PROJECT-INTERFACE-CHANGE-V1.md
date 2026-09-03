@@ -80,6 +80,16 @@ type`, and `use function` declarations. `use protocol` is a static sidecar
 dependency: Project validation authenticates it, while runtime HIR and runtime
 Graph projection deliberately omit it.
 
+Before mutation, candidate admission reparses each selected authenticated source
+module and requires exact Program equality. The receiver's retained record HIR
+must match its source name, span, monomorphic shape, and every ordered field's
+stable identity, name, span, index, and recursively resolved type. Every
+selected function must match retained HIR in name and span, each parameter's
+name, span, ownership and recursively resolved type, return type, effects, and
+requires/ensures inventory. Bare source `string` parameters normalize only to
+the compiler's existing owning `String` mode. Nominal resolution is bounded to
+64 levels and 65,536 authentication work items.
+
 The source checker validates this complete table before candidate admission.
 Every subsequent candidate operation preserves the existing source-owned
 implementation identity, owner/module, protocol, and member-ID mapping. These
@@ -151,7 +161,8 @@ stale/replay diagnostics remain authoritative where delegated.
 authors discovery, same-module and cross-module source additions, canonical
 dependency imports, selected delta verification, exact replay/recovery, no-write
 behavior, absent-destination and incompatible-function rejection, display rename
-preservation, and precondition revalidation.
+preservation, precondition revalidation, and absence of the static protocol and
+implementation identities from the real candidate Semantic Graph.
 [`tests/project_candidate/interface_rebase.rs`](../tests/project_candidate/interface_rebase.rs)
 authors conservative rebase/merge success across unrelated body and selected
 display edits, exact replay equivalence, unchanged parents/files, the absence
@@ -160,3 +171,8 @@ selected-function, pair, and implementation-identity conflicts. A focused unit
 regression checks one-to-one discovery matching. All are unrun at the user's
 request; no compiler, interpreter, target, or local quality gate was executed
 for this change.
+A focused authored Workspace Graph unit regression independently checks that
+`use protocol`, the protocol and member identities, and the source
+implementation identity are absent from both runtime Graph declarations/edges
+and the operation-sidecar declaration/import inventories. Ordinary type and
+function imports remain present in the sidecar.

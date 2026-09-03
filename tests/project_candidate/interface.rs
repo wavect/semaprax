@@ -227,6 +227,17 @@ fn cross_module_sidecar_plans_exact_imports_and_replays_without_runtime_witness_
         report["operations"][0]["new_declaration"]["runtime_graph_declaration"],
         false
     );
+    let graph = candidate.revision().semantic_graph();
+    for excluded in [
+        "iface.readable",
+        "iface.readable.read",
+        "iface.counter.readable.sidecar",
+    ] {
+        assert!(
+            !graph.contains(excluded),
+            "{excluded} entered runtime Graph"
+        );
+    }
     let replayed = ProjectCandidate::replay(
         Arc::clone(base.base_revision()),
         base.base_revision().project_revision(),

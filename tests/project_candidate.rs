@@ -41,6 +41,8 @@ mod data_type_declarations;
 mod declaration;
 #[path = "project_candidate/dependency_navigation.rs"]
 mod dependency_navigation;
+#[path = "project_candidate/deployment_contract_evidence.rs"]
+mod deployment_contract_evidence;
 #[path = "project_candidate/diagnostics.rs"]
 mod diagnostics;
 #[path = "project_candidate/draft_archive.rs"]

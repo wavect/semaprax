@@ -24,6 +24,7 @@ mod contract_delta;
 mod declaration;
 mod delta;
 mod dependency_navigation;
+mod deployment_contract_evidence;
 mod diagnostic_intent;
 mod diagnostics;
 mod draft;

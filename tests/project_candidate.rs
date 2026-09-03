@@ -107,6 +107,8 @@ mod owned_movement;
 mod ownership_delta;
 #[path = "project_candidate/package_consumer_replay.rs"]
 mod package_consumer_replay;
+#[path = "project_candidate/package_dependency_rebase.rs"]
+mod package_dependency_rebase;
 #[path = "project_candidate/rebase.rs"]
 mod rebase;
 #[path = "project_candidate/record_field.rs"]

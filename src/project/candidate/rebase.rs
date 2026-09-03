@@ -891,9 +891,12 @@ fn classify(
                 let after = new_facts
                     .get(&dependency)
                     .ok_or_else(|| conflict("candidate call target was concurrently deleted"))?;
-                if before.signature != after.signature {
+                if before.signature != after.signature
+                    || before.effects != after.effects
+                    || before.contracts != after.contracts
+                {
                     return Err(conflict(
-                        "candidate call target signature changed concurrently",
+                        "candidate call target signature, effects or contracts changed concurrently",
                     ));
                 }
             }

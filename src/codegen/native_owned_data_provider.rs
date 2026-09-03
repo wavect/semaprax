@@ -44,6 +44,10 @@ impl NativeOwnedDataProviderArtifact {
     pub fn descriptor_digest(&self) -> &str {
         &self.descriptor_digest
     }
+
+    pub(crate) fn into_source(self) -> String {
+        self.source
+    }
 }
 
 pub fn emit_native_owned_data_provider(

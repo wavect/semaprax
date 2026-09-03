@@ -15,6 +15,9 @@ mod render;
 pub const PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA: &str =
     "semaprax.project-cxx-owned-data-package.v1";
 pub const MAX_CXX_OWNED_DATA_PACKAGE_BYTES: usize = 4 * 1024 * 1024;
+// Runtime plus 32 bounded export adapters are structurally below this reserve;
+// it is withheld before the independently capped semantic-C emission.
+const MAX_CXX_PROVIDER_WRAPPER_BYTES: usize = 2 * 1024 * 1024;
 const DIGEST_DOMAIN: &[u8] = b"semaprax.project-cxx-owned-data-package.digest.v1\0";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -73,13 +76,20 @@ impl ProjectSnapshot {
         let descriptor_digest = descriptor.digest();
         let (provider, overflowed) =
             crate::bounded_output::with_limit(MAX_CXX_OWNED_DATA_PACKAGE_BYTES, || {
-                crate::codegen::emit_project_v8_native_owned_data_provider(
+                if !crate::bounded_output::set_active_floor(MAX_CXX_PROVIDER_WRAPPER_BYTES) {
+                    return Err(package_error(
+                        "native provider wrapper reserve is unavailable",
+                    ));
+                }
+                let provider = crate::codegen::emit_project_v8_native_owned_data_provider(
                     self.entry_program(),
                     selected,
                     subject,
                     &descriptor_bytes,
                     &descriptor_digest,
-                )
+                );
+                crate::bounded_output::clear_active_floor();
+                provider
             });
         if overflowed {
             return Err(vec![package_error(
@@ -87,6 +97,11 @@ impl ProjectSnapshot {
             )]);
         }
         let provider = provider.map_err(|error| vec![error])?;
+        if provider.source().len() > MAX_CXX_OWNED_DATA_PACKAGE_BYTES {
+            return Err(vec![package_error(
+                "native provider exceeds the package builder bound",
+            )]);
+        }
         if provider.descriptor() != descriptor_bytes
             || provider.descriptor_digest() != descriptor_digest
         {
@@ -94,7 +109,8 @@ impl ProjectSnapshot {
                 "native provider disagrees with the replayed descriptor",
             )]);
         }
-        let package = build_package(&descriptor, provider.source())?;
+        let provider_source = provider.into_source();
+        let package = build_package(&descriptor, provider_source)?;
         self.recheck()?;
         Ok(package)
     }
@@ -121,7 +137,7 @@ pub fn replay_cxx_owned_data_package(
 
 fn build_package(
     descriptor: &PublicApiDescriptor,
-    provider_c: &str,
+    provider_c: String,
 ) -> Result<CxxOwnedDataPackage, Vec<Diagnostic>> {
     if std::str::from_utf8(descriptor.canonical_bytes().as_slice()).is_err() {
         return Err(vec![package_error("public descriptor is not UTF-8")]);
@@ -173,7 +189,7 @@ fn build_package(
         descriptor_digest,
         c_header,
         cxx_header,
-        provider_c: provider_c.to_owned(),
+        provider_c,
     })
 }
 

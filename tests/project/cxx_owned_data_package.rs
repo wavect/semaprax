@@ -272,7 +272,7 @@ spx_owned_data_status_v1 spx_owned_data_context_drop_v1(spx_context_v1*c){{if(mo
 spx_owned_data_status_v1 spx_owned_bytes_len_v1(spx_context_v1*c,uint64_t h,uint64_t*n){{if(!c||c->marker!=7||!c->live||h!=c->serial)return 3;*n=mode==8?UINT64_C(65537):UINT64_C(2);return 0;}}
 spx_owned_data_status_v1 spx_owned_bytes_copy_v1(spx_context_v1*c,uint64_t h,uint8_t*d,uint64_t n){{if(!c||!c->live||h!=c->serial)return 3;if(mode==4)return 4;if(n!=2||!d)return 4;d[0]=111;d[1]=107;return 0;}}
 spx_owned_data_status_v1 spx_owned_bytes_drop_v1(spx_context_v1*c,uint64_t h){{if(!c||!c->live||h!=c->serial)return 3;if(mode==5)return 5;c->live=0;return 0;}}
-spx_owned_data_status_v1 spx_owned_data_call_{method}_v1(spx_context_v1*c,const uint8_t*p,uint64_t n,uint32_t*t,uint64_t*h,int64_t*e){{(void)p;(void)n;if(mode==1)return 1;if(mode==2){{*t=0;return 1;}}if(!c||c->marker!=7||c->live)return 2;c->serial+=1;c->live=1;*t=mode==3?99:0;*h=c->serial;*e=0;return 0;}}
+spx_owned_data_status_v1 spx_owned_data_call_{method}_v1(spx_context_v1*c,const uint8_t*p,uint64_t n,uint32_t*t,uint64_t*h,int64_t*e){{(void)p;(void)n;if(mode==1)return 1;if(mode==2){{*t=0;return 1;}}if(mode==9)return 99;if(!c||c->marker!=7||c->live)return 2;c->serial+=1;c->live=1;*t=mode==3?99:0;*h=c->serial;*e=0;return 0;}}
 "#)).unwrap();
     fs::write(root.join("fault.cpp"), format!(r#"#include "semaprax_owned_data.hpp"
 #include <cstdlib>
@@ -334,8 +334,109 @@ try{{auto r=c.{method}(ByteView(&x,1));if(m==1||m==4||m==8)return 10;return std:
             .unwrap()
             .success());
     }
-    for mode in [2, 3, 5, 6] {
+    for mode in [2, 3, 5, 6, 9] {
         assert!(!Command::new(root.join("fault"))
+            .arg(mode.to_string())
+            .status()
+            .unwrap()
+            .success());
+    }
+}
+
+#[test]
+fn synthetic_scalar_provider_preserves_poison_and_rejects_unknown_status() {
+    let root = Temporary::new();
+    fs::create_dir(root.join("src")).unwrap();
+    let source = "module scalar.app; @id(\"scalar.value\") fn value() -> i64 { 7 } @id(\"scalar.main\") fn main() -> i64 { 0 }";
+    let checked = semaprax::check(source, "scalar.spx").unwrap();
+    fs::write(
+        root.join("src/app.spx"),
+        semaprax::format::canonical(&checked),
+    )
+    .unwrap();
+    fs::write(
+        root.join("src/tests.spx"),
+        semaprax::format::canonical(
+            &semaprax::check(
+                "module scalar.tests; @id(\"scalar.tests.main\") fn main() -> i64 { 0 }",
+                "tests.spx",
+            )
+            .unwrap(),
+        ),
+    )
+    .unwrap();
+    let manifest = root.join("semaprax.toml");
+    fs::write(&manifest,"schema = \"semaprax.project.v8\"\nname = \"scalar-cxx\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"scalar.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"scalar.value\"]\ntests = [\"scalar.tests\"]\n").unwrap();
+    let (package, method) = with_authenticated_project(&manifest, |snapshot| {
+        let method = snapshot.public_api_descriptor()?.exports()[0]
+            .rust_method_name()
+            .to_owned();
+        Ok((snapshot.cxx_owned_data_package_v1()?, method))
+    })
+    .unwrap();
+    fs::write(root.join("semaprax_owned_data.h"), package.c_header()).unwrap();
+    fs::write(root.join("semaprax_owned_data.hpp"), package.cxx_header()).unwrap();
+    fs::write(root.join("scalar.c"),format!(r#"#include "semaprax_owned_data.h"
+#include <string.h>
+struct spx_owned_data_context_v1{{uint64_t marker;}};static uint32_t mode;void set_mode(uint32_t m){{mode=m;}}uint64_t spx_owned_data_context_size_v1(void){{return sizeof(spx_context_v1);}}uint64_t spx_owned_data_context_align_v1(void){{return _Alignof(spx_context_v1);}}uint32_t spx_owned_data_context_init_v1(void*p,uint64_t n){{if(!p||n!=sizeof(spx_context_v1))return 2;memset(p,0,n);((spx_context_v1*)p)->marker=7;return 0;}}uint32_t spx_owned_data_context_drop_v1(spx_context_v1*c){{if(!c||c->marker!=7)return 5;c->marker=0;return 0;}}uint32_t spx_owned_bytes_len_v1(spx_context_v1*c,uint64_t h,uint64_t*n){{(void)c;(void)h;(void)n;return 3;}}uint32_t spx_owned_bytes_copy_v1(spx_context_v1*c,uint64_t h,uint8_t*d,uint64_t n){{(void)c;(void)h;(void)d;(void)n;return 3;}}uint32_t spx_owned_bytes_drop_v1(spx_context_v1*c,uint64_t h){{(void)c;(void)h;return 3;}}uint32_t spx_owned_data_call_{method}_v1(spx_context_v1*c,int64_t*out){{if(!c||c->marker!=7)return 2;if(mode==1)return 1;if(mode==2){{*out=0;return 1;}}if(mode==9)return 99;*out=7;return 0;}}
+"#)).unwrap();
+    fs::write(root.join("scalar.cpp"),format!(r#"#include "semaprax_owned_data.hpp"
+#include <cstdlib>
+extern "C" void set_mode(uint32_t);int main(int argc,char**argv){{unsigned m=argc>1?(unsigned)std::strtoul(argv[1],nullptr,10):0;set_mode(m);semaprax::owned_data_v1::Client c;try{{auto value=c.{method}();if(m==1)return 10;return value==7?0:11;}}catch(const semaprax::owned_data_v1::Failure&f){{if(m==1&&f.status()==1){{set_mode(0);return c.{method}()==7?0:12;}}return 13;}}}}
+"#)).unwrap();
+    let clang = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
+    let cxx = std::env::var_os("CXX").unwrap_or_else(|| "clang++".into());
+    for (compiler, args) in [
+        (
+            &clang,
+            vec![
+                "-std=c11", "-Wall", "-Wextra", "-Werror", "-c", "scalar.c", "-o", "scalar.o",
+            ],
+        ),
+        (
+            &cxx,
+            vec![
+                "-std=c++17",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-c",
+                "scalar.cpp",
+                "-o",
+                "scalar-cxx.o",
+            ],
+        ),
+    ] {
+        let output = Command::new(compiler)
+            .current_dir(&root)
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let output = Command::new(&cxx)
+        .current_dir(&root)
+        .args(["scalar.o", "scalar-cxx.o", "-o", "scalar"])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    for mode in [0, 1] {
+        assert!(Command::new(root.join("scalar"))
+            .arg(mode.to_string())
+            .status()
+            .unwrap()
+            .success());
+    }
+    for mode in [2, 9] {
+        assert!(!Command::new(root.join("scalar"))
             .arg(mode.to_string())
             .status()
             .unwrap()

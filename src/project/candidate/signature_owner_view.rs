@@ -24,12 +24,29 @@ pub(super) fn alias(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G479", message)]
 }
 
-pub(super) fn authenticate_and_rewrite_all(
+pub(super) struct AuthenticatedOwnerViews {
+    replacements: Vec<(Param, String)>,
+}
+
+impl AuthenticatedOwnerViews {
+    /// Apply the already authenticated batch to a private copy and publish the
+    /// provider only after every bounded rewrite traversal succeeds.
+    pub(super) fn rewrite_all(self, function: &mut Function) -> Result<()> {
+        let mut rewritten = function.clone();
+        for (owner, replacement) in self.replacements {
+            rewrite_source(&mut rewritten, &owner, &replacement)?;
+        }
+        *function = rewritten;
+        Ok(())
+    }
+}
+
+pub(super) fn authenticate_all(
     revision: &ProjectRevision,
-    function: &mut Function,
+    function: &Function,
     original_params: &[Param],
     replacements: &[(usize, String)],
-) -> Result<()> {
+) -> Result<AuthenticatedOwnerViews> {
     let mut checked = None;
     for module in revision.semantic.image_modules() {
         for candidate in module
@@ -104,24 +121,38 @@ pub(super) fn authenticate_and_rewrite_all(
                 "owner-to-view replacement requires exactly one authenticated bytes_as_slice owner use",
             ));
         }
-        authenticated.push((owner.clone(), replacement.as_str(), uses));
+        authenticated.push((owner.clone(), replacement.clone(), uses));
     }
-    for (owner, replacement, uses) in authenticated {
-        rewrite_source(function, &owner, replacement, uses)?;
-    }
-    Ok(())
+    authenticate_sources(function, authenticated)
 }
 
-fn rewrite_source(
-    function: &mut Function,
+fn authenticate_sources(
+    function: &Function,
+    authenticated: Vec<(Param, String, usize)>,
+) -> Result<AuthenticatedOwnerViews> {
+    // Source/HIR parity for the complete batch is authenticated before any
+    // provider mutation. A late owner mismatch cannot expose a partial rewrite.
+    for (owner, _, uses) in &authenticated {
+        authenticate_source(function, owner, *uses)?;
+    }
+    Ok(AuthenticatedOwnerViews {
+        replacements: authenticated
+            .into_iter()
+            .map(|(owner, replacement, _)| (owner, replacement))
+            .collect(),
+    })
+}
+
+fn authenticate_source(
+    function: &Function,
     owner: &Param,
-    replacement: &str,
     authenticated_uses: usize,
 ) -> Result<()> {
+    let mut inspected = function.clone();
     let mut nodes = 0usize;
     let mut source_calls = 0usize;
     let mut source_places = 0usize;
-    super::super::walk_function(function, &mut nodes, &mut |expression| {
+    super::super::walk_function(&mut inspected, &mut nodes, &mut |expression| {
         if matches!(&expression.kind, ExprKind::Var(name) if name == &owner.name) {
             source_places += 1;
         }
@@ -139,6 +170,10 @@ fn rewrite_source(
             "owner-to-view replacement source uses do not match authenticated builtin evidence",
         ));
     }
+    Ok(())
+}
+
+fn rewrite_source(function: &mut Function, owner: &Param, replacement: &str) -> Result<()> {
     let mut rewrite_nodes = 0usize;
     super::super::walk_function(function, &mut rewrite_nodes, &mut |expression| {
         if matches!(&expression.kind, ExprKind::Call { name, type_arguments, args }
@@ -183,7 +218,8 @@ mod tests {
         )
         .unwrap();
         let owner = program.functions[0].params[0].clone();
-        rewrite_source(&mut program.functions[0], &owner, "view", 1).unwrap();
+        authenticate_source(&program.functions[0], &owner, 1).unwrap();
+        rewrite_source(&mut program.functions[0], &owner, "view").unwrap();
         let source = crate::format::canonical(&program);
         assert!(source.contains("byte_len(view)"));
         assert!(!source.contains("bytes_as_slice(input)"));
@@ -191,13 +227,34 @@ mod tests {
 
     #[test]
     fn source_shape_rejects_any_additional_owner_occurrence() {
-        let mut program = crate::parse(
+        let program = crate::parse(
             "module sample; @id(\"sample.read\") fn read(input: own Bytes)->Bytes { let view = bytes_as_slice(input); input }",
             "sample.spx",
         )
         .unwrap();
         let owner = program.functions[0].params[0].clone();
-        let errors = rewrite_source(&mut program.functions[0], &owner, "view", 1).unwrap_err();
+        let errors = authenticate_source(&program.functions[0], &owner, 1).unwrap_err();
         assert!(errors.iter().any(|error| error.code == "SPX-G469"));
+    }
+
+    #[test]
+    fn later_source_mismatch_cannot_partially_rewrite_an_earlier_owner() {
+        let program = crate::parse(
+            "module sample; @id(\"sample.read\") fn read(left: own Bytes, right: own Bytes)->usize { byte_len(bytes_as_slice(left)) + byte_len(bytes_as_slice(right)) + byte_len(bytes_as_slice(right)) }",
+            "sample.spx",
+        )
+        .unwrap();
+        let before = crate::format::canonical(&program);
+        let function = &program.functions[0];
+        let evidence = vec![
+            (function.params[0].clone(), "left_view".to_owned(), 1),
+            (function.params[1].clone(), "right_view".to_owned(), 1),
+        ];
+        let errors = match authenticate_sources(function, evidence) {
+            Ok(_) => panic!("later owner source mismatch was admitted"),
+            Err(errors) => errors,
+        };
+        assert!(errors.iter().any(|error| error.code == "SPX-G469"));
+        assert_eq!(crate::format::canonical(&program), before);
     }
 }

@@ -305,6 +305,24 @@ pub(super) fn apply(
             | Argument::Computed { .. } => None,
         })
         .collect::<BTreeMap<_, _>>();
+    let authenticated_owner_views = if owner_views.is_empty() {
+        None
+    } else {
+        let revision = revision.ok_or_else(|| {
+            owner_view::invalid(
+                "owner-to-view replacement requires an authenticated Project revision",
+            )
+        })?;
+        Some(owner_view::authenticate_all(
+            revision,
+            &programs[owner].functions[function_index],
+            &original_params,
+            &owner_views,
+        )?)
+    };
+    if let Some(authenticated) = authenticated_owner_views {
+        authenticated.rewrite_all(&mut programs[owner].functions[function_index])?;
+    }
     if renames.iter().any(|(old, new)| old != new) {
         rename::apply(
             &mut programs[owner].functions[function_index],
@@ -312,19 +330,6 @@ pub(super) fn apply(
             &renames,
             &names,
             &mut occupied,
-        )?;
-    }
-    if !owner_views.is_empty() {
-        let revision = revision.ok_or_else(|| {
-            owner_view::invalid(
-                "owner-to-view replacement requires an authenticated Project revision",
-            )
-        })?;
-        owner_view::authenticate_and_rewrite_all(
-            revision,
-            &mut programs[owner].functions[function_index],
-            &original_params,
-            &owner_views,
         )?;
     }
     let mut generated = 0usize;

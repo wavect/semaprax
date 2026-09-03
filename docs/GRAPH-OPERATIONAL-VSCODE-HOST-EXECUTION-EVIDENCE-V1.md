@@ -10,6 +10,10 @@ bundles. Passing it does not complete the graph-operational programme.
 
 ## Exact runner
 
+The command below describes the runner at the recorded v1 subject. The current
+script implements the additive [v2 contract](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V2.md);
+reproducing v1 requires the exact recorded commit rather than a later script.
+
 Run a clean committed subject with an externally provisioned Visual Studio Code
 application and absolute Node executable:
 

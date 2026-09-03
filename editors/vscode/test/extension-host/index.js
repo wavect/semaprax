@@ -24,6 +24,15 @@ async function run() {
   const manifest = required('SEMAPRAX_VSCODE_MANIFEST');
   const policy = required('SEMAPRAX_VSCODE_POLICY');
   const source = required('SEMAPRAX_VSCODE_SOURCE');
+  const hostPolicy = JSON.parse(fs.readFileSync(policy, 'utf8'));
+  assert.deepEqual(hostPolicy.test_policy, {
+    max_steps: 100000,
+    max_execution_bytes: 65536,
+    max_report_bytes: 262144
+  }, 'candidate test limits must be selected by the startup host policy');
+  assert.equal(hostPolicy.candidate_prepare, true);
+  assert.equal(hostPolicy.build_enabled, false);
+  assert.equal(hostPolicy.git_commit, null);
   assert.equal(vscode.workspace.isTrusted, true, 'isolated fixture workspace must be trusted');
   const folder = vscode.workspace.workspaceFolders?.[0];
   assert.ok(folder, 'fixture workspace must be open');
@@ -47,6 +56,9 @@ async function run() {
   const contributed = extension.packageJSON.contributes.commands.map(row => row.command);
   assert.equal(contributed.length, 28);
   for (const command of contributed) assert.ok(registered.has(command), `${command} must be registered`);
+  for (const command of ['semaprax.build', 'semaprax.commit', 'semaprax.publish']) {
+    assert.equal(contributed.includes(command), false, `${command} must not be contributed`);
+  }
 
   const sourceBefore = fs.readFileSync(source);
   await api.execute('start');
@@ -55,6 +67,16 @@ async function run() {
   assert.equal(state.stale, false);
   assert.match(state.status, /^SEMAPRAX: saved source ready$/);
   assert.match(state.image, /^sha256:[0-9a-f]{64}$/);
+  const discoveredTaskTools = [
+    'candidate/test-task-start',
+    'candidate/test-task-status',
+    'candidate/test-task-cancel',
+    'candidate/test-task-result'
+  ];
+  for (const method of discoveredTaskTools) assert.ok(state.tools.includes(method), `${method} must be selected at startup`);
+  for (const method of ['candidate/test', 'candidate/build', 'candidate/commit']) {
+    assert.equal(state.tools.includes(method), false, `${method} must remain outside the editor catalogue`);
+  }
 
   await api.execute('openCandidate');
   api.enqueueInput('calculator.add');
@@ -79,13 +101,46 @@ async function run() {
   assert.deepEqual(fs.readFileSync(source), sourceBefore, 'candidate review must not write canonical source');
   const workflow = state;
 
+  const documentsBeforeCancellation = state.documents.length;
+  const cancelledRun = api.execute('runCandidateTests');
+  await api.execute('cancelCandidateTests');
+  const cancelledStatus = await cancelledRun;
+  assert.equal(cancelledStatus.schema, 'semaprax.image-candidate-test-task-cancel.v1');
+  assert.equal(cancelledStatus.state, 'cancelled');
+  assert.equal(cancelledStatus.cancellation_requested, true);
+  assert.equal(cancelledStatus.before_step, 1);
+  assert.equal(cancelledStatus.steps_used, 0);
+  assert.equal(cancelledStatus.report_digest, null);
+  assert.equal(cancelledStatus.passed, null);
+  assert.equal(cancelledStatus.source_authority, false);
+  assert.deepEqual(cancelledStatus.authority, {
+    source_write: false,
+    process: false,
+    network: false,
+    target_runtime: false,
+    publication: false
+  });
+  state = api.state();
+  assert.equal(state.status, 'SEMAPRAX: candidate tests cancelled');
+  assert.equal(state.testTask, null);
+  assert.equal(state.testTaskUsed, true);
+  assert.equal(state.documents.length, documentsBeforeCancellation, 'cancelled task must not expose a report');
+  assert.deepEqual(fs.readFileSync(source), sourceBefore, 'task cancellation must not write canonical source');
+
+  await api.execute('stop');
+  await api.execute('start');
+  await api.execute('openCandidate');
   const sourceDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(source));
   const sourceEditor = await vscode.window.showTextDocument(sourceDocument, { preview: false });
   const first = sourceDocument.lineAt(0).range.end;
+  const invalidatedRun = api.execute('runCandidateTests');
   assert.equal(await sourceEditor.edit(edit => edit.insert(first, ' ')), true);
+  await assert.rejects(invalidatedRun, /Source or candidate changed while the test task was pending/);
   state = api.state();
   assert.equal(state.stale, true);
   assert.equal(state.candidate, null);
+  assert.equal(state.testTask, null);
+  assert.equal(state.testTaskUsed, false);
   assert.ok(state.documents.every(row => row.text.startsWith('SEMAPRAX view invalidated.')));
   assert.deepEqual(fs.readFileSync(source), sourceBefore, 'dirty-buffer invalidation must not write canonical source');
   await vscode.commands.executeCommand('workbench.action.files.revert');
@@ -96,7 +151,7 @@ async function run() {
   assert.equal(state.running, false);
   assert.equal(state.documents.length, 0);
   console.log('SEMAPRAX_VSCODE_HOST_RESULT=' + JSON.stringify({
-    schema: 'semaprax.vscode-extension-host-result.v1',
+    schema: 'semaprax.vscode-extension-host-result.v2',
     vscode_version: vscode.version,
     app_name: vscode.env.appName,
     extension_host_exec_path: process.execPath,
@@ -108,6 +163,24 @@ async function run() {
     typed_intent: 'rename_declaration',
     target: 'calculator.add',
     verified_virtual_diff: true,
+    startup_test_grant: hostPolicy.test_policy,
+    discovered_task_tools: discoveredTaskTools,
+    explicit_cooperative_cancellation: true,
+    cancellation: {
+      state: cancelledStatus.state,
+      before_step: cancelledStatus.before_step,
+      steps_used: cancelledStatus.steps_used,
+      report_released: false,
+      source_authority: cancelledStatus.source_authority
+    },
+    test_task_authority: cancelledStatus.authority,
+    pending_task_dirty_buffer_invalidated: true,
+    authority: {
+      source_write: false,
+      build: false,
+      commit: false,
+      publication: false
+    },
     dirty_buffer_invalidated: true,
     source_bytes_unchanged: true
   }));

@@ -4,12 +4,13 @@ import argparse, hashlib, json, os, platform, re, shutil, subprocess, sys, tempf
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-SCHEMA = "semaprax.graph-operational-vscode-host-execution-evidence.v1"
+SCHEMA = "semaprax.graph-operational-vscode-host-execution-evidence.v2"
 MAX_LOG = 16 * 1024 * 1024
 TIMEOUT = 180
 FILES = [
     "Cargo.toml", "Cargo.lock", "editors/vscode/package.json",
     "editors/vscode/extension.js", "editors/vscode/protocol.js", "editors/vscode/review.js",
+    "editors/vscode/tasks.js",
     "editors/vscode/holes.js", "editors/vscode/repairs.js",
     "editors/vscode/test/extension-host/index.js",
     "examples/calculator-project/semaprax.toml", "examples/calculator-project/src/app.spx",
@@ -18,10 +19,10 @@ FILES = [
 NODE_TESTS = [
     "editors/vscode/test/protocol.test.js", "editors/vscode/test/review.test.js",
     "editors/vscode/test/holes.test.js", "editors/vscode/test/holes-suggestions.test.js",
-    "editors/vscode/test/repairs.test.js",
+    "editors/vscode/test/repairs.test.js", "editors/vscode/test/tasks.test.js",
 ]
 POLICY = {"schema":"semaprax.workspace-host-policy.v7","candidate_prepare":True,
- "diagnostics":False,"build_enabled":False,"test_policy":None,"git_commit":None,
+ "diagnostics":False,"build_enabled":False,"test_policy":{"max_steps":100000,"max_execution_bytes":65536,"max_report_bytes":262144},"git_commit":None,
  "frontend_cache":False,"candidate_archives":[],"semantic_cache":False,
  "semantic_cache_entry":None,"draft_archives":[],"read_batch_workers":None}
 MARKER = re.compile(rb"^SEMAPRAX_VSCODE_HOST_RESULT=(\{[^\r\n]+\})$", re.MULTILINE)
@@ -84,7 +85,7 @@ def main():
     bound_rows={name:file_row(path) for name,path in bound_paths.items()}
     versions={"node":text([node,"--version"],"node version"),"cargo":text([cargo,"--version"],"cargo version"),"rustc":text([rustc,"--version"],"rustc version"),"vscode":cli_version,"vscode_identity_diagnostics":cli_identity[:-3]}
     node_log=command([node,"--test","--test-concurrency=1","--test-reporter=tap",*NODE_TESTS],"Node controllers")
-    for name,expected in ((b"tests",50),(b"pass",50),(b"fail",0),(b"skipped",0)):
+    for name,expected in ((b"tests",57),(b"pass",57),(b"fail",0),(b"skipped",0)):
         rows=re.findall(rb"^# "+name+rb" ([0-9]+)$",node_log,re.MULTILINE)
         if rows != [str(expected).encode()]: raise Failure(f"unexpected Node controller {name.decode()} inventory: {rows!r}")
     build_temp=tempfile.TemporaryDirectory(prefix="semaprax-vscode-build-",dir="/private/tmp")
@@ -110,12 +111,17 @@ def main():
         matches=MARKER.findall(host_log)
         if len(matches)!=1: raise Failure("expected one Extension Host result")
         observation=json.loads(matches[0])
-        expected_keys={"schema","vscode_version","app_name","extension_host_exec_path","extension_version","registered_commands","image_revision","candidate_revision","source_sha256","typed_intent","target","verified_virtual_diff","dirty_buffer_invalidated","source_bytes_unchanged"}
+        expected_keys={"schema","vscode_version","app_name","extension_host_exec_path","extension_version","registered_commands","image_revision","candidate_revision","source_sha256","typed_intent","target","verified_virtual_diff","startup_test_grant","discovered_task_tools","explicit_cooperative_cancellation","cancellation","test_task_authority","pending_task_dirty_buffer_invalidated","authority","dirty_buffer_invalidated","source_bytes_unchanged"}
         if set(observation)!=expected_keys: raise Failure("unexpected Extension Host observation schema")
-        if observation["schema"]!="semaprax.vscode-extension-host-result.v1" or observation["vscode_version"]!=cli_version[0] or observation["app_name"]!="Visual Studio Code" or observation["registered_commands"]!=26: raise Failure("Extension Host identity mismatch")
+        if observation["schema"]!="semaprax.vscode-extension-host-result.v2" or observation["vscode_version"]!=cli_version[0] or observation["app_name"]!="Visual Studio Code" or observation["registered_commands"]!=28: raise Failure("Extension Host identity mismatch")
         for key in ("image_revision","candidate_revision"):
             if not re.fullmatch(r"sha256:[0-9a-f]{64}",observation[key]): raise Failure(f"invalid {key}")
-        if not all(observation[k] is True for k in ("verified_virtual_diff","dirty_buffer_invalidated","source_bytes_unchanged")): raise Failure("host scenario incomplete")
+        if observation["startup_test_grant"] != POLICY["test_policy"]: raise Failure("host test grant mismatch")
+        if observation["discovered_task_tools"] != ["candidate/test-task-start","candidate/test-task-status","candidate/test-task-cancel","candidate/test-task-result"]: raise Failure("host task catalogue mismatch")
+        if observation["cancellation"] != {"state":"cancelled","before_step":1,"steps_used":0,"report_released":False,"source_authority":False}: raise Failure("host cancellation boundary mismatch")
+        if observation["test_task_authority"] != {"source_write":False,"process":False,"network":False,"target_runtime":False,"publication":False}: raise Failure("candidate test task authority widened")
+        if observation["authority"] != {"source_write":False,"build":False,"commit":False,"publication":False}: raise Failure("editor authority widened")
+        if not all(observation[k] is True for k in ("verified_virtual_diff","explicit_cooperative_cancellation","pending_task_dirty_buffer_invalidated","dirty_buffer_invalidated","source_bytes_unchanged")): raise Failure("host scenario incomplete")
         host_exec=Path(observation["extension_host_exec_path"]).resolve(strict=True)
         if app not in host_exec.parents: raise Failure("Extension Host executable is outside selected product")
         fixture_after={str(p.relative_to(workspace)):sha(p.read_bytes()) for p in sorted(workspace.rglob("*")) if p.is_file()}
@@ -142,9 +148,9 @@ def main():
       "runner":{"path":"scripts/graph-operational-vscode-host-evidence.py","host":{"system":platform.system(),"machine":platform.machine()},"versions":versions,
         "tools":{"node":bound_rows["node"],"cargo":bound_rows["cargo"],"rustc":bound_rows["rustc"],"compiler":compiler_before},
         "vscode":{"app":str(app),"code":bound_rows["code"],"cli":bound_rows["cli"],"product":bound_rows["product"],"package":bound_rows["package"],"extension_host":host_exec_row}},
-      "executions":[{"id":"vscode_node_mock_controllers_v1","passed":50,"failed":0,"ignored":0},{"id":"vscode_extension_host_real_compiler_v1","passed":1,"failed":0,"ignored":0}],
+      "executions":[{"id":"vscode_node_mock_controllers_v2","passed":57,"failed":0,"ignored":0},{"id":"vscode_extension_host_real_compiler_task_control_v2","passed":1,"failed":0,"ignored":0}],
       "observation":observation,"artifacts":rows,
-      "claims":{"selected_visual_studio_code_product_extension_host":"passed","actual_compiler_mcp_typed_intent_review_invalidation":"passed","source_bytes_unchanged":"passed","node_controllers_are_extension_host":"not_claimed","marketplace_or_vsix":"not_selected","hosted_or_cross_platform":"not_observed","full_quality_or_programme_completion":"not_selected","os_network_isolation":"not_claimed"}}
+      "claims":{"selected_visual_studio_code_product_extension_host":"passed","actual_compiler_mcp_typed_intent_review_task_cancellation_invalidation":"passed","startup_test_grant":"passed","editor_build_commit_publication_authority":"absent","source_bytes_unchanged":"passed","node_controllers_are_extension_host":"not_claimed","marketplace_or_vsix":"not_selected","hosted_or_cross_platform":"not_observed","full_quality_or_programme_completion":"not_selected","os_network_isolation":"not_claimed"}}
     if destination.exists(): raise Failure(f"destination exists: {destination}")
     stage=destination.parent/("."+destination.name+".tmp")
     if stage.exists(): shutil.rmtree(stage)

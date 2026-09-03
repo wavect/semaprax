@@ -2,7 +2,8 @@
 
 Experimental. A focused local Visual Studio Code Extension Host run passed for
 exact subject `2888f84f123b7caa44aa6807388d98f851d4beaf`; the standalone
-50-case controller suite remains separate. This zero-build CommonJS extension uses only
+50-case controller suite remains separate. An additive 57-case controller and
+real-host candidate-task scenario is authored but unrun. This zero-build CommonJS extension uses only
 VS Code APIs and Node built-ins. No npm dependencies, bundling, telemetry,
 webviews, language server, automatic process startup, or publication command.
 It is not a packaged or marketplace release. The exact local execution claim is bounded by the evidence contract below.
@@ -144,8 +145,9 @@ reports, malformed responses and failed handle retirement. Task-controller cases
 cover exact queued and terminal states, sticky cancellation, bounded report
 chunks, digest binding, authority and blind spots. Verification can use
 `node --test test/*.test.js`; no VS Code or compiler process is started by those tests.
-The separate `scripts/graph-operational-vscode-host-evidence.py` runner provisions
-an actual Extension Host scenario and must be reported under its exact subject.
+The separate `scripts/graph-operational-vscode-host-evidence.py` v2 runner
+provisions an actual Extension Host plus compiler task-cancellation scenario and
+must be reported only after it succeeds on its exact clean subject.
 
 Implementation references: [VS Code workspace trust](https://code.visualstudio.com/api/extension-guides/workspace-trust),
 [virtual documents](https://code.visualstudio.com/api/extension-guides/virtual-documents),

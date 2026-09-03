@@ -357,7 +357,7 @@ function activate(context) {
       if (outcome.status.state === 'cancelled') {
         status.text = 'SEMAPRAX: candidate tests cancelled';
         await vscode.window.showInformationMessage('Candidate interpreter tests cancelled. No passing report or source authority was produced.');
-        return;
+        return outcome.status;
       }
       if (outcome.status.state === 'failed') {
         status.text = 'SEMAPRAX: candidate tests failed to execute';
@@ -369,6 +369,7 @@ function activate(context) {
       status.text = outcome.status.passed ? 'SEMAPRAX: candidate tests passed' : 'SEMAPRAX: candidate tests returned failure';
       const message = outcome.status.passed ? 'Candidate interpreter tests passed. External and target-runtime blind spots remain.' : 'Candidate interpreter tests completed with a failing result. Inspect the bounded report.';
       await (outcome.status.passed ? vscode.window.showInformationMessage(message) : vscode.window.showWarningMessage(message));
+      return outcome.status;
     },
     async cancelCandidateTests() {
       if (!testTask || !testTask.requestCancel()) throw new Error('No running candidate test task is available to cancel');
@@ -535,6 +536,7 @@ function activate(context) {
       return {
         running: Boolean(client && !client.closed), stale, image: image || null, candidate: candidate || null,
         target: target || null, status: status.text, scratch: [...scratch],
+        tools: client ? [...client.tools].sort() : [],
         testTask: testTask ? { taskRevision: testTask.taskRevision, state: testTask.state, cancellationRequested: testTask.cancellationRequested } : null,
         testTaskUsed,
         documents: [...documents].map(([uri, text]) => ({ uri, text }))

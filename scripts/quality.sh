@@ -1,10 +1,37 @@
 #!/usr/bin/env sh
 set -eu
 
+usage() {
+    cat <<'EOF'
+Usage: scripts/quality.sh [--plan] [quick|changed|full] [exact-changed-path ...]
+
+Profiles:
+  quick    Fast advisory checks for early local feedback
+  changed  Route the complete Git change set to the narrowest safe gate set
+  full     Run the complete repository gate (default)
+
+Options:
+  -n, --plan  Print and validate the routed gate plan without executing it
+  -h, --help  Show this help
+
+Path arguments are accepted only with the changed profile and must exactly
+match the complete change set discovered from Git.
+EOF
+}
+
+plan_only=0
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+    -n|--plan) plan_only=1; shift ;;
+esac
+
 requested=${1:-full}
-if [ "$#" -gt 0 ]; then
-    shift
-fi
+if [ "$#" -gt 0 ]; then shift; fi
+
+case "${1:-}" in
+    -h|--help) usage; exit 0 ;;
+    -n|--plan) plan_only=1; shift ;;
+esac
 
 plan_file=$(mktemp "${TMPDIR:-/tmp}/semaprax-quality-plan.XXXXXX")
 trap 'rm -f "$plan_file"' EXIT HUP INT TERM
@@ -87,9 +114,14 @@ case "$effective:$gate_count" in quick:4|changed:7|full:12) ;; *) gate_count=0 ;
     exit 2
 }
 
+if [ "$plan_only" -eq 1 ]; then
+    exit 0
+fi
+
 # Dispatch only the exact, validated gate identifiers emitted by the plan.
 while IFS="$tab" read -r kind gate _rest; do
     [ "$kind" = gate ] || continue
+    printf '==> %s\n' "$gate" >&2
     case "$gate" in
         diff-check) git diff --check ;;
         fmt-check) cargo fmt --all --check ;;

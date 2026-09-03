@@ -34,6 +34,13 @@ Run the full Unix gate with:
 scripts/quality.sh full
 ```
 
+For a faster local loop, preview the repository-aware route and then run it:
+
+```sh
+scripts/quality.sh changed --plan
+scripts/quality.sh changed
+```
+
 On hosts without a POSIX shell, reproduce the manual baseline in
 [Quality gates](docs/QUALITY-GATES.md) and run the focused evidence named by
 the owning specification.

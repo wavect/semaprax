@@ -320,6 +320,34 @@ esac
     assert!(executed.contains("cargo:fmt --all --check\n"));
     assert!(executed.contains("cargo:check --locked --workspace --all-targets --all-features\n"));
     assert!(executed.contains("--test quality_routing"));
+    assert!(String::from_utf8_lossy(&success.stderr).contains("==> diff-check"));
+
+    fs::write(&log, "").unwrap();
+    let help = Command::new("sh")
+        .arg("scripts/quality.sh")
+        .arg("--help")
+        .current_dir(&fixture.path)
+        .env("PATH", &path)
+        .env("QUALITY_LOG", &log)
+        .output()
+        .unwrap();
+    assert!(help.status.success());
+    let help_stdout = String::from_utf8_lossy(&help.stdout);
+    assert!(help_stdout.contains("Usage: scripts/quality.sh"));
+    assert!(help_stdout.contains("--plan"));
+    assert_eq!(fs::read_to_string(&log).unwrap(), "");
+
+    let plan_only = Command::new("sh")
+        .arg("scripts/quality.sh")
+        .args(["quick", "--plan"])
+        .current_dir(&fixture.path)
+        .env("PATH", &path)
+        .env("QUALITY_LOG", &log)
+        .output()
+        .unwrap();
+    assert!(plan_only.status.success());
+    assert!(String::from_utf8_lossy(&plan_only.stdout).contains("effective\tquick"));
+    assert_eq!(fs::read_to_string(&log).unwrap(), "");
 
     for profile in ["changed", "full"] {
         fs::write(&log, "").unwrap();

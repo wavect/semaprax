@@ -42,6 +42,18 @@ deterministic `semaprax.quality-route.v2` plan, then dispatches only the exact
 listed gates. `changed` may widen to `full` when the path classification is not
 safe enough for a narrower run.
 
+Preview the validated route without running any gates when choosing a local
+feedback loop or diagnosing why `changed` widened:
+
+```sh
+scripts/quality.sh changed --plan
+```
+
+Run `scripts/quality.sh --help` for the profile and option summary. During
+execution the script writes each gate name to standard error before starting
+it, so long-running checks remain attributable without changing the canonical
+plan on standard output.
+
 | Profile | Intended use | Gates |
 | --- | --- | --- |
 | `quick` | Early local feedback | diff check, Rust formatting, workspace check, advisory documentation/examples/context tests |

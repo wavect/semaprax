@@ -7,6 +7,7 @@ Audience: all documentation readers.
 # Public documentation
 
 - [Documentation overview](index.md)
+- [Install](INSTALL.md)
 - [Quickstart](QUICKSTART.md)
 - [Using the SEMAPRAX CLI](CLI-GUIDE.md)
 - [Language tour](LANGUAGE-TOUR.md)

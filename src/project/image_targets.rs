@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 use super::ProjectSemanticImage;
 use crate::diagnostic::Diagnostic;
-mod c;
+pub(super) mod c;
 mod openapi;
 
 pub const IMAGE_TARGET_ADMISSION_SCHEMA: &str = "semaprax.image-target-admission.v1";

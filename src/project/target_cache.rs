@@ -13,6 +13,7 @@ use super::{ProjectRevision, ProjectWebBuild, PROJECT_WEB_BUILD_SCHEMA};
 
 pub const PROJECT_TARGET_CACHE_SCHEMA: &str = "semaprax.project-target-cache-work.v1";
 pub const PROJECT_TARGET_CACHE_COMPATIBILITY: &str = "semaprax.project-scalar-web-target-work.v1";
+pub const PROJECT_C_TARGET_CACHE_COMPATIBILITY: &str = "semaprax.project-native-c11-target-work.v1";
 pub const MAX_PROJECT_TARGET_CACHE_REPORT_BYTES: usize = 32 * 1024;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -53,6 +54,44 @@ struct ScalarWebEntry {
     build: ProjectWebBuild,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NativeCKey {
+    compiler_package: &'static str,
+    compiler_version: &'static str,
+    compatibility: &'static str,
+    canonical_manifest: String,
+    project_revision: String,
+    workspace_revision: String,
+    project_graph_digest: String,
+    entry_module: String,
+    web_exports: Vec<String>,
+    max_bytes: usize,
+}
+
+impl NativeCKey {
+    fn derive(revision: &ProjectRevision, max_bytes: usize) -> Self {
+        Self {
+            compiler_package: env!("CARGO_PKG_NAME"),
+            compiler_version: env!("CARGO_PKG_VERSION"),
+            compatibility: PROJECT_C_TARGET_CACHE_COMPATIBILITY,
+            canonical_manifest: revision.manifest().to_canonical_toml(),
+            project_revision: revision.project_revision().to_owned(),
+            workspace_revision: revision.workspace_revision().to_owned(),
+            project_graph_digest: revision.semantic_graph_digest().to_owned(),
+            entry_module: revision.manifest().entry().to_owned(),
+            web_exports: revision.manifest().web_exports().to_vec(),
+            max_bytes,
+        }
+    }
+}
+
+struct NativeCEntry {
+    key: NativeCKey,
+    envelope: String,
+    payload_digest: String,
+    artifact_bytes: usize,
+}
+
 /// One target result and its deterministic work report.
 #[derive(Debug)]
 pub struct ProjectTargetBuild {
@@ -79,7 +118,45 @@ impl ProjectTargetBuild {
     }
 }
 
-/// A caller-owned, single-entry scalar-Web target cache.
+/// One canonical pathless native-C source carrier and its deterministic work
+/// report. The decoded artifacts remain inspection data and gain no compiler,
+/// filesystem, linkage, execution, or publication authority.
+#[derive(Debug)]
+pub struct ProjectCTargetBuild {
+    envelope: String,
+    payload_digest: String,
+    artifact_bytes: usize,
+    reused: bool,
+    report: String,
+}
+
+impl ProjectCTargetBuild {
+    pub fn envelope(&self) -> &str {
+        &self.envelope
+    }
+
+    pub fn into_envelope(self) -> String {
+        self.envelope
+    }
+
+    pub fn payload_digest(&self) -> &str {
+        &self.payload_digest
+    }
+
+    pub fn artifact_bytes(&self) -> usize {
+        self.artifact_bytes
+    }
+
+    pub fn reused(&self) -> bool {
+        self.reused
+    }
+
+    pub fn to_json(&self) -> &str {
+        &self.report
+    }
+}
+
+/// A caller-owned cache with one exact entry per admitted target carrier.
 ///
 /// Every requested revision has already passed the complete Project builder.
 /// An exact hit skips only deterministic target emission and carrier assembly;
@@ -89,6 +166,7 @@ impl ProjectTargetBuild {
 #[derive(Default)]
 pub struct ProjectTargetCache {
     scalar_web: Option<ScalarWebEntry>,
+    native_c: Option<NativeCEntry>,
 }
 
 impl ProjectTargetCache {
@@ -133,9 +211,120 @@ impl ProjectTargetCache {
         })
     }
 
+    /// Reuse one exact compiler-produced pathless native-C carrier. An exact
+    /// hit independently replays all subject, source, export, artifact, and
+    /// embedded-header bindings without invoking either target emitter.
+    pub fn build_native_c(
+        &mut self,
+        revision: &ProjectRevision,
+        max_bytes: usize,
+    ) -> Result<ProjectCTargetBuild> {
+        revision.check()?;
+        let key = NativeCKey::derive(revision, max_bytes);
+        let retained = self
+            .native_c
+            .as_ref()
+            .filter(|entry| entry.key == key)
+            .map(|entry| {
+                (
+                    entry.envelope.clone(),
+                    entry.payload_digest.clone(),
+                    entry.artifact_bytes,
+                )
+            });
+        let (envelope, retained_facts) = if let Some((envelope, digest, bytes)) = retained {
+            (envelope, Some((digest, bytes)))
+        } else {
+            (revision.build_c_inline(max_bytes)?, None)
+        };
+        let replay = super::image_targets::c::replay_carrier(revision, &envelope, max_bytes)?;
+        if retained_facts.as_ref().is_some_and(|(digest, bytes)| {
+            replay.payload_digest != *digest || replay.artifact_bytes != *bytes
+        }) {
+            return Err(target_error(
+                "retained native C carrier disagrees with its committed cache facts",
+            ));
+        }
+        let reused = retained_facts.is_some();
+        let report = render_c_report(&key, &replay, reused)?;
+        if !reused {
+            self.native_c = Some(NativeCEntry {
+                key,
+                envelope: envelope.clone(),
+                payload_digest: replay.payload_digest.clone(),
+                artifact_bytes: replay.artifact_bytes,
+            });
+        }
+        Ok(ProjectCTargetBuild {
+            envelope,
+            payload_digest: replay.payload_digest,
+            artifact_bytes: replay.artifact_bytes,
+            reused,
+            report,
+        })
+    }
+
     pub fn clear(&mut self) {
         self.scalar_web = None;
+        self.native_c = None;
     }
+}
+
+fn render_c_report(
+    key: &NativeCKey,
+    replay: &super::image_targets::c::ReplayedCarrier,
+    reused: bool,
+) -> Result<String> {
+    super::image::render(
+        json!({
+            "schema": PROJECT_TARGET_CACHE_SCHEMA,
+            "compiler": {
+                "package": key.compiler_package,
+                "version": key.compiler_version,
+                "compatibility": key.compatibility,
+                "binary_identity_claimed": false,
+            },
+            "target": {
+                "kind": "native_c11_pathless",
+                "canonical_manifest": key.canonical_manifest,
+                "project_revision": key.project_revision,
+                "workspace_revision": key.workspace_revision,
+                "project_graph_digest": key.project_graph_digest,
+                "entry_module": key.entry_module,
+                "web_exports": key.web_exports,
+                "max_bytes": key.max_bytes,
+            },
+            "work": {
+                "target_emission_reused": reused,
+                "target_emitter_calls": usize::from(!reused),
+                "carrier_replay_calls": 1,
+                "carrier_payload_digest": replay.payload_digest,
+                "carrier_artifact_bytes": replay.artifact_bytes,
+            },
+            "validation": {
+                "admitted_project_revision_required": true,
+                "full_source_verification": "completed_before_revision_construction",
+                "full_HIR_validation": "completed_before_revision_construction",
+                "full_cross_file_linking": "completed_before_revision_construction",
+                "full_profile_admission": "completed_before_revision_construction",
+                "exact_target_subject_replayed": true,
+                "embedded_header_envelopes_replayed": true,
+            },
+            "retained": {"entries": 1, "strategy": "single_exact_entry_for_native_c11"},
+            "nonclaims": [
+                "no_source_HIR_link_or_profile_validation_bypass",
+                "no_implicit_persistence_or_cross_process_reuse",
+                "no_untrusted_target_deserialization",
+                "no_C_compilation_linking_or_runtime_execution",
+                "no_filesystem_artifact_materialization_or_publication_authority",
+                "no_target_admission_widening",
+                "no_cross_target_reuse",
+                "not_allocator_RSS_or_wall_clock_accounting",
+            ],
+        }),
+        true,
+        MAX_PROJECT_TARGET_CACHE_REPORT_BYTES,
+    )
 }
 
 fn verify_exact_subject(
@@ -222,6 +411,7 @@ mod tests {
     use std::path::Path;
 
     use super::*;
+    use crate::project::image_targets::MAX_IMAGE_ARTIFACT_BUILD_BYTES;
     use crate::project::MAX_PROJECT_WEB_BUILD_BYTES;
 
     fn revision(example: &str) -> std::sync::Arc<ProjectRevision> {
@@ -273,6 +463,100 @@ mod tests {
         assert_eq!(diagnostics[0].code, "SPX-W120");
         assert!(cache
             .build_scalar_web(&scalar, MAX_PROJECT_WEB_BUILD_BYTES)
+            .unwrap()
+            .reused());
+    }
+
+    #[test]
+    fn exact_admitted_native_c_target_reuses_only_after_complete_carrier_replay() {
+        let revision = revision("calculator-project");
+        let mut cache = ProjectTargetCache::new();
+        let cold = cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap();
+        assert!(!cold.reused());
+        let envelope = cold.envelope().to_owned();
+        let digest = cold.payload_digest().to_owned();
+        let bytes = cold.artifact_bytes();
+
+        let warm = cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap();
+        assert!(warm.reused());
+        assert_eq!(warm.envelope(), envelope);
+        assert_eq!(warm.payload_digest(), digest);
+        assert_eq!(warm.artifact_bytes(), bytes);
+        let report: Value = serde_json::from_str(warm.to_json()).unwrap();
+        assert_eq!(report["target"]["kind"], "native_c11_pathless");
+        assert_eq!(report["work"]["target_emitter_calls"], 0);
+        assert_eq!(report["work"]["carrier_replay_calls"], 1);
+        assert_eq!(
+            report["validation"]["embedded_header_envelopes_replayed"],
+            true
+        );
+        assert!(report["nonclaims"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("no_C_compilation_linking_or_runtime_execution")));
+    }
+
+    #[test]
+    fn target_lanes_are_independent_and_max_bytes_is_part_of_the_c_key() {
+        let revision = revision("calculator-project");
+        let mut cache = ProjectTargetCache::new();
+        cache
+            .build_scalar_web(&revision, MAX_PROJECT_WEB_BUILD_BYTES)
+            .unwrap();
+        cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap();
+        assert!(cache
+            .build_scalar_web(&revision, MAX_PROJECT_WEB_BUILD_BYTES)
+            .unwrap()
+            .reused());
+        assert!(cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap()
+            .reused());
+
+        assert!(!cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES - 1)
+            .unwrap()
+            .reused());
+        assert!(cache
+            .build_scalar_web(&revision, MAX_PROJECT_WEB_BUILD_BYTES)
+            .unwrap()
+            .reused());
+    }
+
+    #[test]
+    fn corrupted_retained_c_carrier_fails_closed_without_emitter_recovery() {
+        let revision = revision("calculator-project");
+        let mut cache = ProjectTargetCache::new();
+        cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap();
+        let exact = cache.native_c.as_ref().unwrap().envelope.clone();
+        cache.native_c.as_mut().unwrap().envelope = exact.replacen("sha256:", "sha257:", 1);
+
+        let diagnostics = cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap_err();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].code, "SPX-G292");
+        assert_eq!(
+            cache
+                .native_c
+                .as_ref()
+                .unwrap()
+                .envelope
+                .contains("sha257:"),
+            true
+        );
+
+        cache.native_c.as_mut().unwrap().envelope = exact;
+        assert!(cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
             .unwrap()
             .reused());
     }

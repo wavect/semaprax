@@ -13,6 +13,7 @@ const ADMISSION: &str =
     "crates/semaprax-native-rust-interop-platform-sys/src/doctor/offline_provisioner/admission.rs";
 const CAPSULE: &str =
     "crates/semaprax-native-rust-interop-platform-sys/src/doctor/offline_provisioner/capsule.rs";
+const CAPSULE_CORE: &str = "crates/semaprax-doctor-capsule/src/lib.rs";
 const LINUX: &str =
     "crates/semaprax-native-rust-interop-platform-sys/src/doctor/offline_provisioner/linux.rs";
 const RUNTIME_MODULE_DIRECTORY: &str =
@@ -101,6 +102,7 @@ struct Sources {
     root: String,
     admission: String,
     capsule: String,
+    capsule_core: String,
     cgroup: String,
     linux: String,
     linux_capture: String,
@@ -122,6 +124,7 @@ impl Sources {
             root: read(repository, ROOT),
             admission: read(repository, ADMISSION),
             capsule: read(repository, CAPSULE),
+            capsule_core: read(repository, CAPSULE_CORE),
             cgroup: read(repository, RUNTIME_MODULES[3]),
             linux: read(repository, LINUX),
             linux_capture: read(repository, RUNTIME_MODULES[5]),
@@ -169,6 +172,7 @@ impl Sources {
             &self.root,
             &self.admission,
             &self.capsule,
+            &self.capsule_core,
             &self.cgroup,
             &self.linux,
             &self.linux_capture,
@@ -242,14 +246,22 @@ fn provisioner_source_tripwires(sources: &Sources) -> Result<(), String> {
     )?;
     require(
         &sources.capsule,
+        "release-anchor capsule wrapper",
+        &[
+            "semaprax_doctor_capsule::{parse_public_key, parse_signed, Capsule}",
+            "option_env!(\"SEMAPRAX_DOCTOR_RELEASE_PUBLIC_KEY_HEX\")",
+            "parse_signed(bytes, &key).map_err(map_error)",
+        ],
+    )?;
+    require(
+        &sources.capsule_core,
         "signed capsule admission",
         &[
             "const MAX_CAPSULE_BYTES: usize = 341;",
             "const MAX_ARTIFACT_BYTES: u64 = 512 * 1024 * 1024;",
-            "option_env!(\"SEMAPRAX_DOCTOR_RELEASE_PUBLIC_KEY_HEX\")",
             "key.verify_strict(body, &Signature::from_bytes(&signature_bytes))",
             "if roles != expected_roles",
-            "if artifact.length == 0 || artifact.length > MAX_ARTIFACT_BYTES",
+            ".any(|artifact| artifact.length == 0 || artifact.length > MAX_ARTIFACT_BYTES)",
             "if cursor != body.len()",
         ],
     )?;
@@ -377,12 +389,12 @@ fn source_layout_tripwire_rejects_representative_widening_and_role_swap() {
     ));
     mutations.push((
         "unsigned capsule parser",
-        checked_in.capsule.replacen(
+        checked_in.capsule_core.replacen(
             "key.verify_strict(body, &Signature::from_bytes(&signature_bytes))",
             "Ok(())",
             1,
         ),
-        "capsule",
+        "capsule_core",
     ));
 
     for (name, mutation, field) in mutations {
@@ -391,6 +403,7 @@ fn source_layout_tripwire_rejects_representative_widening_and_role_swap() {
             "root" => hostile.root = mutation,
             "admission" => hostile.admission = mutation,
             "capsule" => hostile.capsule = mutation,
+            "capsule_core" => hostile.capsule_core = mutation,
             "linux" => hostile.linux = mutation,
             "linux_child" => hostile.linux_child = mutation,
             "known_ordinary_cli_surfaces" => hostile.known_ordinary_cli_surfaces = mutation,

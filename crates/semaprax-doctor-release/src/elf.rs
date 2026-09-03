@@ -95,7 +95,7 @@ pub fn verify_static_elf64(
         .checked_mul(PROGRAM_HEADER_BYTES)
         .ok_or(StaticElf64Error::Invalid)?;
     let table = range(bytes, offset, table_bytes)?;
-    for entry in table.chunks_exact(PROGRAM_HEADER_BYTES) {
+    for entry in table.as_chunks::<PROGRAM_HEADER_BYTES>().0 {
         if u32_at(entry, 0)? == PT_INTERP {
             return Err(StaticElf64Error::ProgramInterpreter);
         }

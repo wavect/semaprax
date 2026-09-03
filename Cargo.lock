@@ -442,6 +442,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "semaprax-doctor-release"
+version = "0.1.0"
+dependencies = [
+ "ed25519-dalek",
+ "semaprax-doctor-capsule",
+ "serde_json",
+ "sha2 0.11.0",
+]
+
+[[package]]
 name = "semaprax-native-host"
 version = "0.1.0"
 dependencies = [

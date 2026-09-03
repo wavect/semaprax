@@ -306,7 +306,7 @@ fn read_once(path: &Path, limit: u64, executable: bool, secret: bool) -> Result<
         return Err("input must be one nonempty bounded regular file".into());
     }
     check_permissions(&before, executable, secret)?;
-    let mut file = File::open(path).map_err(|_| "input cannot be opened")?;
+    let file = File::open(path).map_err(|_| "input cannot be opened")?;
     let opened = file
         .metadata()
         .map_err(|_| "opened input metadata is unavailable")?;

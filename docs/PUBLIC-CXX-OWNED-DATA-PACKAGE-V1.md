@@ -20,9 +20,12 @@ canonical byte length, and the exact canonical bytes. Verification regenerates
 all bytes from the held Project and compares them exactly; hashes cannot remint
 an artifact.
 
-The complete canonical package is at most 4,194,304 bytes. Rendering is
-pre-bounded. Borrowed input and owned output remain cumulatively bounded to
-65,536 bytes. Project v1-v7 and v9-v11 artifacts are unchanged.
+The complete canonical package is at most 4,194,304 bytes. Semantic-provider
+and canonical-provider logical output bytes are pre-bounded; an explicit
+structural reserve covers the fixed runtime and maximum 32 export adapters.
+This is not a claim about allocator capacity or total resident memory.
+Borrowed input and owned output remain cumulatively bounded to 65,536 bytes.
+Project v1-v7 and v9-v11 artifacts are unchanged.
 
 ## C boundary
 

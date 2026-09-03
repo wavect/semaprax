@@ -74,6 +74,52 @@ fn package_is_exact_replayed_bounded_and_v8_only() {
 }
 
 #[test]
+fn maximum_export_inventory_fits_the_provider_wrapper_reserve() {
+    let root = Temporary::new();
+    fs::create_dir(root.join("src")).unwrap();
+    let mut source = String::from("module maximum.app;\n");
+    let mut exports = Vec::new();
+    for index in 0..32 {
+        let id = format!("maximum.value{index:02}");
+        exports.push(format!("\"{id}\""));
+        source.push_str(&format!("@id(\"{id}\") fn value{index:02}() -> Bytes {{ let value = [{index}u8]; bytes_copy(array_as_slice(value)) }}\n"));
+    }
+    source.push_str("@id(\"maximum.main\") fn main() -> i64 { 0 }\n");
+    let checked = semaprax::check(&source, "maximum.spx").unwrap();
+    fs::write(
+        root.join("src/app.spx"),
+        semaprax::format::canonical(&checked),
+    )
+    .unwrap();
+    let tests = semaprax::check(
+        "module maximum.tests; @id(\"maximum.tests.main\") fn main() -> i64 { 0 }",
+        "tests.spx",
+    )
+    .unwrap();
+    fs::write(
+        root.join("src/tests.spx"),
+        semaprax::format::canonical(&tests),
+    )
+    .unwrap();
+    let manifest = root.join("semaprax.toml");
+    fs::write(&manifest, format!("schema = \"semaprax.project.v8\"\nname = \"maximum-cxx\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"maximum.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [{}]\ntests = [\"maximum.tests\"]\n", exports.join(", "))).unwrap();
+    let package =
+        with_authenticated_project(&manifest, |snapshot| snapshot.cxx_owned_data_package_v1())
+            .unwrap();
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(package.descriptor()).unwrap()["exports"]
+            .as_array()
+            .unwrap()
+            .len(),
+        32
+    );
+    assert!(
+        package.provider_c().len() <= 2 * 1024 * 1024,
+        "maximum admitted export inventory exceeded the reserved structural provider budget"
+    );
+}
+
+#[test]
 fn generated_provider_and_wrapper_compile_separately_at_o0_and_o2() {
     let root = Temporary::new();
     let manifest = crate::owned_mixed_arity_product::write_project(&root, 4);

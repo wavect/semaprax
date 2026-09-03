@@ -10,6 +10,7 @@
 ))]
 use semaprax::candidate_archive_store::{load, load_draft, persist, persist_draft};
 use semaprax::diagnostic::Diagnostic;
+use semaprax::image_transport::{VNextPolicy, VNextSession};
 use semaprax::project::{
     persist_semantic_image, with_authenticated_project, ProjectCandidate, ProjectCandidateArchive,
     ProjectCandidateDraft, ProjectCandidateDraftArchive, ProjectSemanticImage,
@@ -477,6 +478,67 @@ fn lifecycle_holds_the_startup_registry_root_across_path_substitution() {
     fs::rename(&displaced, &registry).unwrap();
     let reopened = RetentionLifecycleCoordinator::open(&registry, policy, None).unwrap();
     assert_eq!(reopened.expected_cursor_digest(), None);
+}
+
+#[test]
+fn v5_host_retains_explicit_registry_and_reports_post_store_stale_without_rollback() {
+    let fixture = Fixture::new();
+    let archive =
+        ProjectCandidateArchive::prepare(&fixture.base, fixture.base.candidate_digest()).unwrap();
+    let receipt = persist(&fixture.store, &archive).unwrap();
+    let entry = fixture.entry(receipt.archive_digest());
+    assert!(entry.exists());
+
+    let policy = RetentionPolicy::new(2, MAX_RETENTION_TOTAL_BYTES, 0).unwrap();
+    let registry = fixture.root.join("v5-retention-registry");
+    fs::create_dir(&registry).unwrap();
+    fs::create_dir(registry.join("metadata")).unwrap();
+    fs::set_permissions(&registry, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(registry.join("metadata"), fs::Permissions::from_mode(0o700)).unwrap();
+    let manifest = fixture.root.join("project/semaprax.toml");
+    let mut first = VNextSession::open(&manifest, VNextPolicy::default())
+        .unwrap()
+        .with_retention_lifecycle(&registry, policy, None)
+        .unwrap();
+    let mut stale = VNextSession::open(&manifest, VNextPolicy::default())
+        .unwrap()
+        .with_retention_lifecycle(&registry, policy, None)
+        .unwrap();
+    let typed = [SuccessfulRetentionReceipt::Candidate(&receipt)];
+
+    let advanced = first
+        .checkpoint_successful_retention_receipts(&typed)
+        .unwrap();
+    assert!(advanced.registry_advanced());
+    assert_eq!(advanced.sequence(), Some(1));
+    assert_eq!(
+        first.retention_lifecycle_outcome().unwrap().to_json(),
+        advanced.to_json()
+    );
+    let stale = stale
+        .checkpoint_successful_retention_receipts(&typed)
+        .unwrap();
+    assert!(!stale.registry_advanced());
+    assert_eq!(stale.diagnostics()[0].code, "SPX-G467");
+    let stale_json: serde_json::Value = serde_json::from_str(stale.to_json()).unwrap();
+    assert_eq!(
+        stale_json["subject_store_status"],
+        "successful_receipts_precede_registry_attempt"
+    );
+    assert_eq!(
+        stale_json["registry_cursor_status"],
+        "registry_cursor_not_advanced_stale"
+    );
+    assert!(entry.exists());
+
+    let mut unattached = VNextSession::open(&manifest, VNextPolicy::default()).unwrap();
+    let errors = match unattached.checkpoint_successful_retention_receipts(&typed) {
+        Ok(_) => panic!("unattached session accepted retention receipts"),
+        Err(errors) => errors,
+    };
+    assert_eq!(errors[0].code, "SPX-G280");
+    assert!(errors[0].message.contains("receipt remains valid"));
+    assert!(entry.exists());
 }
 
 #[test]

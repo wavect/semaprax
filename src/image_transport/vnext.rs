@@ -38,6 +38,7 @@ mod read_batch_rpc;
 mod recovery;
 mod retained_reads;
 mod retained_subjects;
+mod retention_lifecycle;
 mod review_facets;
 mod source_review;
 pub(super) mod symbol_diagnostics;
@@ -190,6 +191,9 @@ pub struct VNextSession {
     package_attachment_closed: bool,
     read_batch_workers: Option<usize>,
     test_tasks: test_tasks::Registry,
+    retention_lifecycle: Option<crate::semantic_retention_lifecycle::RetentionLifecycleCoordinator>,
+    retention_lifecycle_outcome:
+        Option<crate::semantic_retention_lifecycle::RetentionLifecycleOutcome>,
 }
 
 impl VNextSession {
@@ -296,6 +300,8 @@ impl VNextSession {
             package_attachment_closed: false,
             read_batch_workers: None,
             test_tasks: test_tasks::Registry::new(),
+            retention_lifecycle: None,
+            retention_lifecycle_outcome: None,
         })
     }
 

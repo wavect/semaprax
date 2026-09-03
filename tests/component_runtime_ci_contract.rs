@@ -57,6 +57,8 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
         members,
         [
             "crates/semaprax-doctor-collector",
+            "crates/semaprax-doctor-capsule",
+            "crates/semaprax-doctor-release",
             "crates/semaprax-offline-wasm-package",
             "crates/semaprax-native-host",
             "crates/semaprax-native-loader",

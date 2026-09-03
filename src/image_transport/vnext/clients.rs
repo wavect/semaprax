@@ -832,6 +832,7 @@ fn response_annotation(key: &str) -> bool {
             | "x-requires-exact-owner-and-field-admission"
             | "x-root-depth-increment"
             | "x-root-selection"
+            | "x-semantic-admission"
             | "x-sorted"
             | "x-total-payload-binders-maximum"
             | "x-value-and-body-depth-increment"

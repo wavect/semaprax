@@ -688,7 +688,11 @@ fn method_description(method: &Method) -> Value {
             ParameterKind::Choice(choices) => json!({"type":"string", "enum":choices}),
             ParameterKind::Integer(min, max) => json!({"type":"integer", "minimum":min, "maximum":max}),
             ParameterKind::Object(schema) => json!({"type":"object", "$ref":format!("urn:{schema}")}),
-            ParameterKind::ObjectOneOf(schemas) => json!({"type":"object","oneOf":schemas.iter().map(|schema|json!({"$ref":format!("urn:{schema}")})).collect::<Vec<_>>()}),
+            // Each alternative is a `$ref` to a document that already declares
+            // `"type":"object"`, and the parameter is separately checked with
+            // `value.is_object()`. Carrying a second `type` beside `oneOf`
+            // only makes the typed client builders reject the alternatives.
+            ParameterKind::ObjectOneOf(schemas) => json!({"oneOf":schemas.iter().map(|schema|json!({"$ref":format!("urn:{schema}")})).collect::<Vec<_>>()}),
         };
         (parameter.name.to_owned(), schema)
     }).collect::<Map<_, _>>();

@@ -521,10 +521,12 @@ recovery; the explicit cache constructors below select reuse strategies.
 
 `image_transport/vnext/test_tasks.rs` owns the one-task session registry and its
 queued/running/terminal lifecycle. It detaches one immutable exact candidate and
-fixed host test policy into a named worker, while the coordinator retains every
-source-authentication and result-release decision. The project candidate layer
+fixed host test policy into a named scheduling worker, while the coordinator
+retains every source-authentication and result-release decision. The project candidate layer
 shares replay/report rendering between synchronous and cancellable execution;
-the prepared interpreter supplies the monotonic step-boundary cancellation flag.
+a fixed-stack prepared evaluator thread supplies the monotonic step-boundary
+cancellation flag. A process-wide eight-task permit bounds the scheduling and
+evaluator thread pairs across sessions.
 Drift, successful refresh, finish, and drop cancel and join before a late report
 can escape. [Candidate Test Tasks v1](IMAGE-CANDIDATE-TEST-TASKS-V1.md) owns the
 wire shapes, race semantics, authority ledger, and bounds.

@@ -8,11 +8,14 @@ use super::*;
 use crate::project::{
     CandidateTestPolicy, ProjectCandidateTestTaskOutcome, ProjectExecutionCancellation,
 };
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{mpsc, Arc};
 use std::thread::JoinHandle;
 
 const TASK_DOMAIN: &[u8] = b"semaprax.image-candidate-test-task.v1\0";
 const MAX_RESULT_CHUNK_BYTES: usize = 512 * 1024;
+const MAX_ACTIVE_TASKS: usize = 8;
+static ACTIVE_TASKS: AtomicUsize = AtomicUsize::new(0);
 
 const CANDIDATE: Parameter = Parameter {
     name: "candidate_revision",
@@ -129,6 +132,7 @@ impl Registry {
             ));
         }
         let candidate = Arc::clone(candidates.candidate(text(params, "candidate_revision"))?);
+        let permit = TaskPermit::acquire(&ACTIVE_TASKS, MAX_ACTIVE_TASKS)?;
         let task_revision = task_revision(image.image_digest(), candidate.candidate_digest());
         let cancellation = ProjectExecutionCancellation::new();
         let worker_cancellation = cancellation.clone();
@@ -161,6 +165,7 @@ impl Registry {
             receiver,
             worker: Some(worker),
             terminal: None,
+            permit: Some(permit),
         };
         let payload = task.status("semaprax.image-candidate-test-task-start.v1", false);
         self.task = Some(task);
@@ -204,6 +209,40 @@ struct Task {
     receiver: mpsc::Receiver<Result<ProjectCandidateTestTaskOutcome, Vec<Diagnostic>>>,
     worker: Option<JoinHandle<()>>,
     terminal: Option<Terminal>,
+    permit: Option<TaskPermit>,
+}
+
+#[derive(Debug)]
+struct TaskPermit {
+    active: &'static AtomicUsize,
+}
+
+impl TaskPermit {
+    fn acquire(active: &'static AtomicUsize, limit: usize) -> Result<Self, Vec<Diagnostic>> {
+        let mut observed = active.load(Ordering::Acquire);
+        loop {
+            if observed >= limit {
+                return Err(task_error(
+                    "process-wide candidate test task bound is exhausted",
+                ));
+            }
+            match active.compare_exchange_weak(
+                observed,
+                observed + 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => return Ok(Self { active }),
+                Err(actual) => observed = actual,
+            }
+        }
+    }
+}
+
+impl Drop for TaskPermit {
+    fn drop(&mut self) {
+        self.active.fetch_sub(1, Ordering::AcqRel);
+    }
 }
 
 enum Terminal {
@@ -296,6 +335,7 @@ impl Task {
                     "candidate test task worker panicked",
                 ))));
             }
+            self.permit.take();
         }
     }
 
@@ -432,4 +472,25 @@ fn worker_error(message: &'static str) -> Vec<Diagnostic> {
 }
 fn capacity_error(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G367", message)]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    static ACTIVE: AtomicUsize = AtomicUsize::new(0);
+
+    #[test]
+    fn task_permit_is_bounded_and_reusable() {
+        let first = TaskPermit::acquire(&ACTIVE, 2).unwrap();
+        let second = TaskPermit::acquire(&ACTIVE, 2).unwrap();
+        assert_eq!(
+            TaskPermit::acquire(&ACTIVE, 2).unwrap_err()[0].code,
+            "SPX-G365"
+        );
+        drop(first);
+        let replacement = TaskPermit::acquire(&ACTIVE, 2).unwrap();
+        drop((second, replacement));
+        assert_eq!(ACTIVE.load(Ordering::Acquire), 0);
+    }
 }

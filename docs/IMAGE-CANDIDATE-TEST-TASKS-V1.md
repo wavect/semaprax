@@ -30,8 +30,8 @@ change fuel, execution bytes, report bytes, worker count, or cancellation mode.
 
 `ProjectCandidate::execute_tests_cancellable` shares exact candidate replay,
 test-plan construction, report construction, and final legacy `ProjectExecution`
-rendering with `execute_tests`. The cancellable path uses the retained prepared
-interpreter with zero retained trace events. An uncancelled run must produce the
+rendering with `execute_tests`. The cancellable path uses the prepared evaluator
+on its fixed-stack thread with zero retained trace events. An uncancelled run must produce the
 same execution envelope, report bytes, and report digest as the synchronous path.
 
 Cancellation is observed only at evaluator step boundaries. Immediate cancel is
@@ -77,7 +77,9 @@ publication.
 
 ## Bounds and diagnostics
 
-- one retained task and one worker per session;
+- one retained task per session and at most eight active tasks process-wide;
+- each active task owns one scheduling thread and one fixed-stack evaluator
+  thread while executing; the process-wide task cap bounds both populations;
 - report chunks are 4 KiB through 512 KiB and the report retains its existing
   2 MiB host-policy ceiling;
 - `SPX-G365` identifies stale/unknown handles, duplicate start, and invalid task

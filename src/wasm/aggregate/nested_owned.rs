@@ -369,9 +369,15 @@ pub(super) fn bind_record_match_pattern(
             }
             crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {
                 let ty = value_type(&projected);
-                let owns_bytes =
-                    *ty == ResolvedType::Bytes || record_contains_owned_bytes(emitter.program, ty)?;
-                if !wildcard_is_exact(mode, owns_bytes) {
+                let nested = record_contains_owned_bytes(emitter.program, ty)?;
+                let direct = *ty == ResolvedType::Bytes;
+                // The resolver admits a wildcard over a direct droppable leaf
+                // under a borrow and rejects a nested owning subtree in either
+                // mode. Match it exactly, so a program the front end admits is
+                // never refused by a backend.
+                if !wildcard_is_exact(mode, nested)
+                    || (direct && matches!(mode, crate::hir::ResolvedMatchMode::Own))
+                {
                     return Err(error(
                         "owned Bytes subtree reached a record pattern wildcard",
                     ));

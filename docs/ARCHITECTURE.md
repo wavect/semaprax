@@ -798,15 +798,20 @@ checkpoint/predecessor/plan selectors guard ordinary restoration. This store
 persists metadata only: it cannot apply the plan, enumerate/delete subjects,
 infer newest state or restore any source/image/candidate authority.
 `src/cli/retention_metadata.rs` is the narrow command-line adapter. It receives
-an explicit bounded canonical observation-inventory file and optional exact
+an explicit bounded canonical declaration inventory whose rows contain only a
+closed image/candidate/draft subject and byte accounting. Declaration rows use
+visible canonical subject-JSON order; compiler code derives their subject
+digests and emits the exact digest-ordered observation inventory consumed by
+planning. No caller-supplied subject digest is trusted. The adapter then
+receives an explicit bounded canonical observation-inventory file and optional exact
 prior-checkpoint file/digest/predecessor tuple for authority-neutral planning.
 Planning returns canonical checkpoint and GC-plan metadata without reading a
-store or persisting or applying either value. The same adapter receives
-an explicit existing store root, explicit bounded checkpoint/plan files for
+store or persisting or applying either value. The same adapter receives an
+explicit existing store root, explicit bounded checkpoint/plan files for
 publication and all exact selectors as positional operands. Load requires the
 same selector tuple and returns the authenticated canonical metadata only. The
-adapter introduces no inventory or root discovery, freshness selection, GC
-execution, subject restoration, approval or publication path. See
+adapter introduces no receipt trust, inventory or root discovery, freshness
+selection, GC execution, subject restoration, approval or publication path. See
 [Semantic Retention Metadata CLI v1](SEMANTIC-RETENTION-METADATA-CLI-V1.md).
 
 `candidate/git_publication.rs` authenticates Git object identities and original

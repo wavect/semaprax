@@ -3,11 +3,45 @@
 Status: **Partial, authored/unrun**.
 
 This contract exposes authority-neutral retention planning and the immutable
-semantic retention metadata store through three explicit command-line
+semantic retention metadata store through four explicit command-line
 operations. It derives a checkpoint and its exact companion plan from
 caller-declared metadata, can make that pair durable, and restores it under
 caller-held selectors. It does not make a retained subject current or
 actionable.
+
+## Declaration inventory construction
+
+Canonical planner input can be constructed without reproducing the compiler's
+subject-digest domain:
+
+```text
+semaprax retention-metadata-inventory <declarations.json>
+```
+
+`declarations.json` is exact canonical
+`semaprax.semantic-retention-declaration-inventory.v1` JSON with a terminal
+newline. Its closed top-level fields are `schema`, `declarations` and
+`nonclaims`. Each declaration row contains exactly `subject` and nonzero
+`stored_bytes`; no `subject_digest`, path, store handle or receipt is admitted.
+The subject is one closed image, candidate or draft identity under the same
+existing digest and 134,217,728-byte per-subject accounting bounds.
+
+Rows are unique and strictly ordered by their visible canonical subject JSON
+bytes. This order can be reproduced without the subject hash algorithm. The
+compiler authenticates each subject, derives its domain-separated subject
+digest, sorts the output rows by that derived digest, and emits raw exact
+`semaprax.semantic-retention-observation-inventory.v1` JSON. That output is the
+file format accepted directly by `retention-metadata-plan`; it is not wrapped in
+a receipt or another payload.
+
+The declaration input and emitted observation inventory are each bounded to
+1,048,576 bytes and 96 rows. Fixed declaration nonclaims state that input rows
+are caller declarations rather than store receipts or filesystem discovery;
+their visible ordering does not depend on subject digests; compiler code derives
+rather than trusts those digests; the declarations prove no presence,
+freshness, validation or approval; and they grant no source, candidate, image,
+GC or publication authority. The conversion reads only the explicit input file
+and performs no discovery, persistence, planning, GC application or deletion.
 
 ## Canonical planning
 
@@ -77,7 +111,7 @@ the restored checkpoint and plan digests and carries their exact canonical JSON
 bytes as `checkpoint_json` and `plan_json` strings. A missing, malformed, stale,
 substituted or tampered selector/pair fails closed.
 
-All three commands are in the typed public CLI catalogue and therefore
+All four commands are in the typed public CLI catalogue and therefore
 available in the standalone and full command surfaces. Arguments are exact
 positional operands; options, omitted selectors and implicit predecessor
 selection are not admitted. `none` is the sole spelling for an absent
@@ -86,8 +120,8 @@ predecessor.
 ## Authority boundary
 
 The explicit paths authorize only the ordinary reads and immutable metadata
-publication named by the selected command. Planner output, receipts and
-restored values report `authority: "none"` and false GC, source, approval and
+publication named by the selected command. Inventory conversion, planner
+output, receipts and restored values carry no GC, source, approval or
 publication authority. They carry no root or file handle.
 
 No command can:
@@ -110,7 +144,8 @@ The existing semantic retention store harness contains an authored CLI
 round-trip that supplies separate checkpoint, plan and root paths, checks the
 authority-neutral receipt and exact restored bytes, and rejects a wrong plan
 selector without removing the stored pair. That regression has been compiled
-but intentionally not executed. The canonical inventory parser, typed planner
-dispatch and closed help-catalogue gate are authored and have compile-only
-validation; no planner test was executed. The completion status remains Partial
-until the completion matrix's required executable gate is run and recorded.
+but intentionally not executed. The declaration conversion, canonical
+observation-inventory parser, typed planner dispatch and closed help-catalogue
+gate are authored and have compile-only validation; no inventory-conversion or
+planner test was executed. The completion status remains Partial until the
+completion matrix's required executable gate is run and recorded.

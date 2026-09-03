@@ -9,11 +9,13 @@ use serde_json::{json, Value};
 
 use crate::diagnostic::Diagnostic;
 
-use super::{ProjectRevision, ProjectWebBuild, PROJECT_WEB_BUILD_SCHEMA};
+use super::{ProjectNpmBuild, ProjectRevision, ProjectWebBuild, PROJECT_WEB_BUILD_SCHEMA};
 
 pub const PROJECT_TARGET_CACHE_SCHEMA: &str = "semaprax.project-target-cache-work.v1";
 pub const PROJECT_TARGET_CACHE_COMPATIBILITY: &str = "semaprax.project-scalar-web-target-work.v1";
 pub const PROJECT_C_TARGET_CACHE_COMPATIBILITY: &str = "semaprax.project-native-c11-target-work.v1";
+pub const PROJECT_NPM_TARGET_CACHE_COMPATIBILITY: &str =
+    "semaprax.project-pathless-npm-target-work.v1";
 pub const MAX_PROJECT_TARGET_CACHE_REPORT_BYTES: usize = 32 * 1024;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -92,6 +94,61 @@ struct NativeCEntry {
     artifact_bytes: usize,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NpmKey {
+    compiler_package: &'static str,
+    compiler_version: &'static str,
+    compatibility: &'static str,
+    canonical_manifest: String,
+    project_revision: String,
+    workspace_revision: String,
+    project_graph_digest: String,
+    entry_module: String,
+    web_exports: Vec<String>,
+    source_bindings: Vec<NpmSourceBinding>,
+    max_bytes: usize,
+}
+
+impl NpmKey {
+    fn derive(revision: &ProjectRevision, max_bytes: usize) -> Self {
+        Self {
+            compiler_package: env!("CARGO_PKG_NAME"),
+            compiler_version: env!("CARGO_PKG_VERSION"),
+            compatibility: PROJECT_NPM_TARGET_CACHE_COMPATIBILITY,
+            canonical_manifest: revision.manifest().to_canonical_toml(),
+            project_revision: revision.project_revision().to_owned(),
+            workspace_revision: revision.workspace_revision().to_owned(),
+            project_graph_digest: revision.semantic_graph_digest().to_owned(),
+            entry_module: revision.manifest().entry().to_owned(),
+            web_exports: revision.manifest().web_exports().to_vec(),
+            source_bindings: revision
+                .sources()
+                .iter()
+                .map(|source| NpmSourceBinding {
+                    path: source.path().to_owned(),
+                    source_revision: source.source_revision().to_owned(),
+                    source_digest: source.source_digest().to_owned(),
+                })
+                .collect(),
+            max_bytes,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct NpmSourceBinding {
+    path: String,
+    source_revision: String,
+    source_digest: String,
+}
+
+struct NpmEntry {
+    key: NpmKey,
+    build: ProjectNpmBuild,
+    payload_digest: String,
+    artifact_bytes: usize,
+}
+
 /// One target result and its deterministic work report.
 #[derive(Debug)]
 pub struct ProjectTargetBuild {
@@ -156,6 +213,34 @@ impl ProjectCTargetBuild {
     }
 }
 
+/// One verified pathless npm package carrier and its deterministic work
+/// report. This value grants no package-manager, installation, runtime,
+/// filesystem, persistence, or publication authority.
+#[derive(Debug)]
+pub struct ProjectNpmTargetBuild {
+    build: ProjectNpmBuild,
+    reused: bool,
+    report: String,
+}
+
+impl ProjectNpmTargetBuild {
+    pub fn build(&self) -> &ProjectNpmBuild {
+        &self.build
+    }
+
+    pub fn into_build(self) -> ProjectNpmBuild {
+        self.build
+    }
+
+    pub fn reused(&self) -> bool {
+        self.reused
+    }
+
+    pub fn to_json(&self) -> &str {
+        &self.report
+    }
+}
+
 /// A caller-owned cache with one exact entry per admitted target carrier.
 ///
 /// Every requested revision has already passed the complete Project builder.
@@ -167,6 +252,7 @@ impl ProjectCTargetBuild {
 pub struct ProjectTargetCache {
     scalar_web: Option<ScalarWebEntry>,
     native_c: Option<NativeCEntry>,
+    npm: Option<NpmEntry>,
 }
 
 impl ProjectTargetCache {
@@ -264,10 +350,146 @@ impl ProjectTargetCache {
         })
     }
 
+    /// Reuse one exact compiler-produced pathless npm carrier. An exact hit
+    /// invokes no generator and replays the carrier's closed schema, semantic
+    /// recipe, file inventory, bytes, digests, and retained Project identity.
+    pub fn build_npm(
+        &mut self,
+        revision: &ProjectRevision,
+        max_bytes: usize,
+    ) -> Result<ProjectNpmTargetBuild> {
+        revision.check()?;
+        let key = NpmKey::derive(revision, max_bytes);
+        let retained = self
+            .npm
+            .as_ref()
+            .filter(|entry| entry.key == key)
+            .map(|entry| {
+                (
+                    entry.build.clone(),
+                    entry.payload_digest.clone(),
+                    entry.artifact_bytes,
+                )
+            });
+        let (build, retained_facts) = if let Some((build, digest, bytes)) = retained {
+            (build, Some((digest, bytes)))
+        } else {
+            (revision.build_npm_inline(max_bytes)?, None)
+        };
+        verify_exact_npm_subject(&build, revision, max_bytes)?;
+        if retained_facts.as_ref().is_some_and(|(digest, bytes)| {
+            build.payload_digest() != digest || build.artifact_bytes() != *bytes
+        }) {
+            return Err(target_error(
+                "retained npm carrier disagrees with its committed cache facts",
+            ));
+        }
+        let reused = retained_facts.is_some();
+        let report = render_npm_report(&key, &build, reused)?;
+        if !reused {
+            self.npm = Some(NpmEntry {
+                key,
+                payload_digest: build.payload_digest().to_owned(),
+                artifact_bytes: build.artifact_bytes(),
+                build: build.clone(),
+            });
+        }
+        Ok(ProjectNpmTargetBuild {
+            build,
+            reused,
+            report,
+        })
+    }
+
     pub fn clear(&mut self) {
         self.scalar_web = None;
         self.native_c = None;
+        self.npm = None;
     }
+}
+
+fn verify_exact_npm_subject(
+    build: &ProjectNpmBuild,
+    revision: &ProjectRevision,
+    max_bytes: usize,
+) -> Result<()> {
+    build.verify().map_err(|diagnostic| vec![diagnostic])?;
+    let carrier: Value = serde_json::from_str(build.envelope())
+        .map_err(|_| target_error("retained npm carrier is invalid JSON"))?;
+    if carrier["project_schema"] != revision.manifest().schema()
+        || carrier["package"] != revision.manifest().name()
+        || carrier["version"] != revision.manifest().package_version().unwrap_or("")
+        || carrier["project_revision"] != revision.project_revision()
+        || carrier["workspace_revision"] != revision.workspace_revision()
+        || carrier["project_graph_digest"] != revision.semantic_graph_digest()
+        || carrier["payload_digest"] != build.payload_digest()
+        || carrier["artifact_bytes"].as_u64() != u64::try_from(build.artifact_bytes()).ok()
+        || build.max_bytes() != max_bytes
+    {
+        return Err(target_error(
+            "retained npm carrier does not exactly bind the admitted revision",
+        ));
+    }
+    Ok(())
+}
+
+fn render_npm_report(key: &NpmKey, build: &ProjectNpmBuild, reused: bool) -> Result<String> {
+    super::image::render(
+        json!({
+            "schema": PROJECT_TARGET_CACHE_SCHEMA,
+            "compiler": {
+                "package": key.compiler_package,
+                "version": key.compiler_version,
+                "compatibility": key.compatibility,
+                "binary_identity_claimed": false,
+            },
+            "target": {
+                "kind": "npm_pathless",
+                "canonical_manifest": key.canonical_manifest,
+                "project_revision": key.project_revision,
+                "workspace_revision": key.workspace_revision,
+                "project_graph_digest": key.project_graph_digest,
+                "entry_module": key.entry_module,
+                "web_exports": key.web_exports,
+                "source_bindings": key.source_bindings.iter().map(|source| json!({
+                    "path": source.path,
+                    "source_revision": source.source_revision,
+                    "source_digest": source.source_digest,
+                })).collect::<Vec<_>>(),
+                "max_bytes": key.max_bytes,
+            },
+            "work": {
+                "target_emission_reused": reused,
+                "target_emitter_calls": usize::from(!reused),
+                "carrier_replay_calls": 1,
+                "carrier_payload_digest": build.payload_digest(),
+                "carrier_artifact_bytes": build.artifact_bytes(),
+            },
+            "validation": {
+                "admitted_project_revision_required": true,
+                "full_source_verification": "completed_before_revision_construction",
+                "full_HIR_validation": "completed_before_revision_construction",
+                "full_cross_file_linking": "completed_before_revision_construction",
+                "full_profile_admission": "completed_before_revision_construction",
+                "exact_manifest_source_export_subject_matched": true,
+                "closed_package_files_and_digests_replayed": true,
+            },
+            "retained": {"entries": 1, "strategy": "single_exact_entry_for_npm"},
+            "nonclaims": [
+                "no_source_HIR_link_or_profile_validation_bypass",
+                "no_package_manager_or_installation",
+                "no_target_runtime_execution",
+                "no_filesystem_materialization_or_publication_authority",
+                "no_implicit_persistence_or_cross_process_reuse",
+                "no_untrusted_target_deserialization",
+                "no_target_admission_widening",
+                "no_cross_target_reuse",
+                "not_allocator_RSS_or_wall_clock_accounting",
+            ],
+        }),
+        true,
+        MAX_PROJECT_TARGET_CACHE_REPORT_BYTES,
+    )
 }
 
 fn render_c_report(
@@ -557,6 +779,88 @@ mod tests {
         cache.native_c.as_mut().unwrap().envelope = exact;
         assert!(cache
             .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap()
+            .reused());
+    }
+
+    #[test]
+    fn exact_admitted_npm_target_reuses_only_after_closed_carrier_replay() {
+        let revision = revision("config-validator-project");
+        let mut cache = ProjectTargetCache::new();
+        let cold = cache
+            .build_npm(&revision, crate::project::MAX_PROJECT_NPM_BUILD_BYTES)
+            .unwrap();
+        assert!(!cold.reused());
+        let expected = cold.build().clone();
+
+        let warm = cache
+            .build_npm(&revision, crate::project::MAX_PROJECT_NPM_BUILD_BYTES)
+            .unwrap();
+        assert!(warm.reused());
+        assert_eq!(warm.build(), &expected);
+        let report: Value = serde_json::from_str(warm.to_json()).unwrap();
+        assert_eq!(report["target"]["kind"], "npm_pathless");
+        assert_eq!(report["work"]["target_emitter_calls"], 0);
+        assert_eq!(report["work"]["carrier_replay_calls"], 1);
+        assert_eq!(
+            report["validation"]["closed_package_files_and_digests_replayed"],
+            true
+        );
+        assert!(report["nonclaims"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("no_package_manager_or_installation")));
+    }
+
+    #[test]
+    fn npm_and_native_c_lanes_are_independent_and_npm_limit_is_exact() {
+        let revision = revision("config-validator-project");
+        let mut cache = ProjectTargetCache::new();
+        cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap();
+        cache
+            .build_npm(&revision, crate::project::MAX_PROJECT_NPM_BUILD_BYTES)
+            .unwrap();
+        assert!(cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap()
+            .reused());
+        assert!(cache
+            .build_npm(&revision, crate::project::MAX_PROJECT_NPM_BUILD_BYTES)
+            .unwrap()
+            .reused());
+
+        assert!(!cache
+            .build_npm(&revision, crate::project::MAX_PROJECT_NPM_BUILD_BYTES - 1,)
+            .unwrap()
+            .reused());
+        assert!(cache
+            .build_native_c(&revision, MAX_IMAGE_ARTIFACT_BUILD_BYTES)
+            .unwrap()
+            .reused());
+    }
+
+    #[test]
+    fn altered_npm_cache_facts_fail_closed_without_generator_recovery() {
+        let revision = revision("config-validator-project");
+        let mut cache = ProjectTargetCache::new();
+        cache
+            .build_npm(&revision, crate::project::MAX_PROJECT_NPM_BUILD_BYTES)
+            .unwrap();
+        let exact = cache.npm.as_ref().unwrap().payload_digest.clone();
+        cache.npm.as_mut().unwrap().payload_digest = "sha256:00".to_owned();
+
+        let diagnostics = cache
+            .build_npm(&revision, crate::project::MAX_PROJECT_NPM_BUILD_BYTES)
+            .unwrap_err();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(diagnostics[0].code, "SPX-W117");
+        assert_eq!(cache.npm.as_ref().unwrap().payload_digest, "sha256:00");
+
+        cache.npm.as_mut().unwrap().payload_digest = exact;
+        assert!(cache
+            .build_npm(&revision, crate::project::MAX_PROJECT_NPM_BUILD_BYTES)
             .unwrap()
             .reused());
     }

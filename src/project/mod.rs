@@ -250,9 +250,10 @@ pub use prepared_interpreter::{
     MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
 };
 pub use target_cache::{
-    ProjectCTargetBuild, ProjectTargetBuild, ProjectTargetCache,
+    ProjectCTargetBuild, ProjectNpmTargetBuild, ProjectTargetBuild, ProjectTargetCache,
     MAX_PROJECT_TARGET_CACHE_REPORT_BYTES, PROJECT_C_TARGET_CACHE_COMPATIBILITY,
-    PROJECT_TARGET_CACHE_COMPATIBILITY, PROJECT_TARGET_CACHE_SCHEMA,
+    PROJECT_NPM_TARGET_CACHE_COMPATIBILITY, PROJECT_TARGET_CACHE_COMPATIBILITY,
+    PROJECT_TARGET_CACHE_SCHEMA,
 };
 
 /// Prepare the additive WP-10/WP-11 owned-data package from held HIR and the

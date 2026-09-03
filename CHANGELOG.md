@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Authored the unrun `function_signature_review_publish_v1` product-workflow
+  contract. It composes exact function references, a typed signature intention,
+  validation, interpreter tests, source review, explicit analysis blind spots,
+  bounded recovery handoff, and a separately startup-approved real Git
+  status/commit/receipt session through generated TypeScript, Python and Rust
+  clients. No complete harness or execution is claimed; cancellation, runtime,
+  deployment, hosted/cross-platform, packaged-SDK, full-quality and programme
+  completion evidence remain open.
+
 - Executed the Phase 0 graph-operational v2 closure runner at exact local
   subject `4e6751f92525ed8e4bb5e859233616df7adc86d1`. Aggregate bundle
   `76b2e7fab8a5c90fac6ed9c06fff8debe6c97bef015ff26ac53daf8b6ae0eeff`

@@ -19,6 +19,26 @@ mod payload_schemas;
 mod repair_schemas;
 
 const MAX_DISCOVERY_BYTES: usize = 900 * 1024;
+pub(super) const WORKFLOW_EVENTS: &[&str] = &[
+    "transport_or_response_uncertain_before_publication",
+    "stale_image_reference_or_source_drift",
+    "semantic_review_rejection",
+    "publish_precondition_rejection",
+    "definite_pre_pivot_commit_failure",
+    "publication_uncertain",
+    "published_and_independently_inspected",
+];
+pub(super) const WORKFLOW_OUTCOMES: &[&str] = &[
+    "transport_uncertain_no_publish_claim",
+    "stale_subject",
+    "review_rejected",
+    "publish_precondition_rejected",
+    "publish_failed_pre_pivot",
+    "publication_uncertain",
+    "published",
+];
+pub(super) const WORKFLOW_REPAIR_ACTIONS: &[&str] =
+    &["none", "start_new_review_with_different_intention"];
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
 pub(super) fn payload(
@@ -273,11 +293,160 @@ fn capabilities(methods: &[&Method], policy: &VNextPolicy, commit: bool) -> Valu
     }
     grants.sort();
     json!({"schema":"semaprax.image-agent-capabilities.v5","protocol":VNEXT_PROTOCOL_SCHEMA,
-        "capabilities":grants,"methods":methods.iter().map(|method|method.name).collect::<Vec<_>>(),
+        "capabilities":&grants,"methods":methods.iter().map(|method|method.name).collect::<Vec<_>>(),
+        "workflows":supported_workflows(methods, &grants, policy),
         "max_request_bytes":MAX_REQUEST_BYTES,"max_response_bytes":MAX_RESPONSE_BYTES,
         "source_authority":commit,"test_execution":policy.test_policy.is_some(),"target_execution":false,
         "artifact_projection":policy.build_enabled,"request_capability_changes":false,
         "test_policy":policy.test_policy.as_ref().map(|policy|json!({"max_steps":policy.max_steps(),"max_execution_bytes":policy.max_execution_bytes(),"max_report_bytes":policy.max_report_bytes(),"engine":"project_interpreter","request_overrides":false}))})
+}
+
+fn supported_workflows(methods: &[&Method], grants: &[&str], policy: &VNextPolicy) -> Vec<Value> {
+    let selected = methods
+        .iter()
+        .map(|method| method.name)
+        .collect::<BTreeSet<_>>();
+    let review = [
+        "workspace/open",
+        "image/function-reference-export",
+        "image/function-reference-resolve",
+        "image/analysis-coverage",
+        "candidate/open",
+        "candidate/apply-intent",
+        "candidate/validate",
+        "candidate/semantic-delta",
+        "candidate/test-plan",
+        "candidate/test",
+        "candidate/source-review",
+        "candidate/analysis-coverage",
+        "candidate/recovery-export",
+    ];
+    if review.iter().any(|method| !selected.contains(method)) {
+        return Vec::new();
+    }
+    let mut phases = vec![json!({
+        "id":"review",
+        "session":"review_session",
+        "required_grants":["candidate_prepare","candidate_test"],
+        "ordered_steps":review.iter().enumerate().map(|(index, method)|json!({
+            "index":index + 1,"method":method
+        })).collect::<Vec<_>>(),
+        "outcome":"reviewed_candidate_and_source_backed_recovery_capsule",
+        "publication_authority":false
+    })];
+    let publish_methods = [
+        "workspace/open",
+        "image/function-reference-resolve",
+        "candidate/recovery-restore",
+        "candidate/validate",
+        "candidate/source-review",
+        "source-commit/status",
+        "candidate/commit",
+        "candidate/commit-report",
+    ];
+    if publish_methods
+        .iter()
+        .all(|method| selected.contains(method))
+    {
+        phases.push(json!({
+            "id":"publish",
+            "session":"separate_publish_session",
+            "required_grants":["candidate_prepare","source_commit"],
+            "ordered_steps":[
+                {"index":1,"id":"open_original_subject","method":"workspace/open"},
+                {"index":2,"id":"resolve_reviewed_function","method":"image/function-reference-resolve"},
+                {"index":3,"id":"restore_candidate","method":"candidate/recovery-restore"},
+                {"index":4,"id":"repeat_validation","method":"candidate/validate"},
+                {"index":5,"id":"repeat_source_review","method":"candidate/source-review"},
+                {"index":6,"id":"precommit_status","method":"source-commit/status","required_state":"available"},
+                {"index":7,"id":"commit_once","method":"candidate/commit","maximum_calls":1},
+                {"index":8,"id":"postcommit_status","method":"source-commit/status","required_state":"published_or_publication_uncertain"},
+                {"index":9,"id":"read_receipt_after_published_status","method":"candidate/commit-report","requires_state":"published","read_to_terminal_chunk":true}
+            ],
+            "outcome":"published_or_publication_uncertain",
+            "raw_working_tree_write":false
+        }));
+    }
+    vec![json!({
+        "id":"function_signature_review_publish_v1",
+        "schema":"semaprax.supported-product-workflow.v1",
+        "change_kind":"change_function_signature",
+        "qualification":{
+            "contract_and_composition_available":true,
+            "executed_support_status":"not_qualified_by_discovery",
+            "successful_support_requires":"external_clean_exact_subject_evidence",
+            "evidence_embedded":false,
+            "evidence_inferred":false,
+            "selected_profile_binding":{
+                "basis":"exact_selected_capabilities_document",
+                "protocol":VNEXT_PROTOCOL_SCHEMA,
+                "complete_method_set":methods.iter().map(|method|method.name).collect::<Vec<_>>(),
+                "complete_grant_set":grants,
+                "host_test_policy":policy.test_policy.as_ref().map(|policy|json!({
+                    "max_steps":policy.max_steps(),
+                    "max_execution_bytes":policy.max_execution_bytes(),
+                    "max_report_bytes":policy.max_report_bytes(),
+                    "engine":"project_interpreter",
+                    "request_overrides":false
+                }))
+            }
+        },
+        "phases":phases,
+        "separate_session_handoff":{
+            "export_method":"candidate/recovery-export",
+            "restore_method":"candidate/recovery-restore",
+            "carrier":"exact_source_backed_recovery_capsule",
+            "host_storage_and_transfer":"out_of_band",
+            "authority_transfer":false,
+            "same_original_source_required":true,
+            "bound_review_artifacts":[
+                "candidate_recovery_capsule","candidate_revision",
+                "compact_function_reference","typed_intention_bytes",
+                "validation_and_semantic_delta","test_plan_and_report",
+                "source_review_digest","base_and_candidate_analysis_coverage_digests"
+            ]
+        },
+        "publication_approval":{
+            "mode":"out_of_band_host_approval_before_first_publish_session_frame",
+            "request_can_approve":false,
+            "candidate_revision_exact":true,
+            "approval_single_use":true
+        },
+        "transition_contract":{
+            "schema":"semaprax.function-signature-review-publish-transition.v1",
+            "events":WORKFLOW_EVENTS,
+            "outcomes":WORKFLOW_OUTCOMES,
+            "repair_actions":WORKFLOW_REPAIR_ACTIONS,
+            "rpc_error_shape":"generic_json_rpc_code_and_message",
+            "compiler_diagnostic_interior":"not_typed_by_this_workflow_metadata",
+            "diagnostic_repair_catalog":"not_selected_or_authorized_by_this_workflow"
+        },
+        "transition_policy":[
+            {"event":"transport_or_response_uncertain_before_publication","workflow_outcome":"transport_uncertain_no_publish_claim","candidate_state":"not_a_publication_receipt","session_state":"retired","next":"inspect_out_of_band_state_before_any_new_workflow","repair_action":"none","blind_retry":false},
+            {"event":"stale_image_reference_or_source_drift","workflow_outcome":"stale_subject","candidate_state":"not_authoritative_for_live_source","session_state":"invalidated","next":"open_new_session_and_rederive","repair_action":"none","blind_retry":false},
+            {"event":"semantic_review_rejection","workflow_outcome":"review_rejected","candidate_state":"preserved","session_state":"open_or_finished_without_approval","next":"start_new_review_with_different_intention","repair_action":"start_new_review_with_different_intention","blind_retry":false},
+            {"event":"publish_precondition_rejection","workflow_outcome":"publish_precondition_rejected","candidate_state":"preserved_without_commit","session_state":"retired","next":"inspect_handoff_approval_and_subject_mismatch","repair_action":"none","blind_retry":false},
+            {"event":"definite_pre_pivot_commit_failure","workflow_outcome":"publish_failed_pre_pivot","candidate_state":"not_published","session_state":"terminal_approval_consumed","next":"new_host_configured_and_approved_session_required","repair_action":"none","blind_retry":false},
+            {"event":"publication_uncertain","workflow_outcome":"publication_uncertain","candidate_state":"publication_outcome_unknown","session_state":"terminal","next":"inspect_source_commit_status_fixed_git_ref_and_prepared_commit","repair_action":"none","blind_retry":false,"rollback_claim":false},
+            {"event":"published_and_independently_inspected","workflow_outcome":"published","candidate_state":"published_exact_candidate","session_state":"terminal","next":"no_further_publication_action","repair_action":"none","blind_retry":false}
+        ],
+        "blind_spots":[
+            {"area":"analysis_completeness","status":"partial","basis":"bounded_retained_compiler_facts_are_not_complete_impact_or_behavior_proof"},
+            {"area":"generated_file_provenance","status":"not_inspected","basis":"listed_source_or_output_names_do_not_authenticate_generators_inputs_or_freshness"},
+            {"area":"generated_artifacts","status":"not_inspected","basis":"this_workflow_does_not_project_materialize_install_or_bind_artifacts"},
+            {"area":"deployment_configuration","status":"not_inspected","basis":"no_environment_secret_route_or_infrastructure_input_is_read"},
+            {"area":"external_api_behavior","status":"not_inspected","basis":"declared_contracts_do_not_verify_provider_versions_availability_authentication_or_side_effects"},
+            {"area":"runtime_environment","status":"not_inspected","basis":"static_discovery_precedes_execution_and_binds_no_successful_runtime_report","conditional_promotion":"partial_only_after_bound_successful_reference_interpreter_report"},
+            {"area":"external_consumers","status":"not_inspected","basis":"exports_and_graph_edges_do_not_enumerate_installed_or_dynamic_consumers"}
+        ],
+        "authority":{
+            "request_capability_changes":false,
+            "review_source_authority":false,
+            "recovery_capsule_authority":false,
+            "publication_only_in_selected_publish_phase":true,
+            "deployment_network_process_or_secret_authority":false
+        }
+    })]
 }
 
 fn descriptor(method: &Method, policy: &VNextPolicy) -> Value {

@@ -23,15 +23,53 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
             .ok_or_else(|| invalid("client opaque schema inventory missing"))?,
     )?;
     let typed_requests = request_types::generate(language, methods, &request_documents(bundle)?)?;
+    let workflows = documents
+        .get("urn:semaprax.image-agent-capabilities.v5")
+        .and_then(|document| document.get("const"))
+        .and_then(|capabilities| capabilities.get("workflows"))
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid("client supported workflow metadata is missing"))?;
+    let workflows_encoded = serde_json::to_string(workflows)
+        .map_err(|_| invalid("client supported workflow serialization failed"))?;
+    let events = super::WORKFLOW_EVENTS
+        .iter()
+        .map(|value| (*value).to_owned())
+        .collect::<Vec<_>>();
+    let outcomes = super::WORKFLOW_OUTCOMES
+        .iter()
+        .map(|value| (*value).to_owned())
+        .collect::<Vec<_>>();
+    let repairs = super::WORKFLOW_REPAIR_ACTIONS
+        .iter()
+        .map(|value| (*value).to_owned())
+        .collect::<Vec<_>>();
+    let ts_types = format!(
+        "export type WorkflowEvent = {};\nexport type WorkflowOutcome = {};\nexport type WorkflowRepairAction = {};\nexport interface WorkflowTransition {{ event: WorkflowEvent; workflow_outcome: WorkflowOutcome; candidate_state: string; session_state: string; next: string; repair_action: WorkflowRepairAction; blind_retry: false; rollback_claim?: false; }}\nexport interface SupportedWorkflow {{ schema: 'semaprax.supported-product-workflow.v1'; id: 'function_signature_review_publish_v1'; transition_policy: readonly WorkflowTransition[]; readonly [key: string]: unknown; }}\n",
+        ts_union(&events),
+        ts_union(&outcomes),
+        ts_union(&repairs)
+    );
+    let python_types = format!(
+        "WorkflowEvent: TypeAlias = Literal[{}]\nWorkflowOutcome: TypeAlias = Literal[{}]\nWorkflowRepairAction: TypeAlias = Literal[{}]\nclass WorkflowTransition(TypedDict):\n    event: WorkflowEvent\n    workflow_outcome: WorkflowOutcome\n    candidate_state: str\n    session_state: str\n    next: str\n    repair_action: WorkflowRepairAction\n    blind_retry: Literal[False]\n    rollback_claim: NotRequired[Literal[False]]\nclass SupportedWorkflow(TypedDict):\n    schema: Literal['semaprax.supported-product-workflow.v1']\n    id: Literal['function_signature_review_publish_v1']\n    transition_policy: list[WorkflowTransition]\n",
+        py_literal(&events),
+        py_literal(&outcomes),
+        py_literal(&repairs)
+    );
+    let rust_types = format!(
+        "{}{}{}#[derive(Clone, Debug, Serialize, Deserialize)]\n#[serde(deny_unknown_fields)]\npub struct WorkflowTransition {{ pub event: WorkflowEvent, pub workflow_outcome: WorkflowOutcome, pub candidate_state: String, pub session_state: String, pub next: String, pub repair_action: WorkflowRepairAction, pub blind_retry: bool, #[serde(default, skip_serializing_if = \"Option::is_none\")] pub rollback_claim: Option<bool> }}\n",
+        rust_enum("WorkflowEvent", &events),
+        rust_enum("WorkflowOutcome", &outcomes),
+        rust_enum("WorkflowRepairAction", &repairs)
+    );
     let metadata = json!({"methods":methods.iter().map(|descriptor|(descriptor["method"].as_str().unwrap().to_owned(),json!({"params":descriptor["request_schema"]["properties"]["params"],"payload":descriptor["success_response_schema"]["properties"]["result"]["properties"]["payload"]}))).collect::<serde_json::Map<_,_>>(),
         "documents":documents,
         "unbundled":bundle["unbundled_payload_schemas"]});
     let encoded = serde_json::to_string(&metadata)
         .map_err(|_| invalid("client metadata serialization failed"))?;
     let mut source = match language {
-        "typescript" => format!("// Generated selected-profile client. No I/O or capability changes.\nexport const PROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?};\nexport const RESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?};\nconst META = JSON.parse({:?});\n{}\n",encoded,include_str!("client_typescript.txt")),
-        "python" => format!("# Generated selected-profile client. No I/O or capability changes.\nimport json\nimport re\nfrom typing import Any, Literal, NotRequired, TypedDict, TypeAlias\nPROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?}\nRESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?}\nMETA = json.loads({:?})\n{}\n",encoded,include_str!("client_python.txt")),
-        "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\nconst METADATA: &str = {:?};\n{}\n",encoded,include_str!("client_rust.txt")),
+        "typescript" => format!("// Generated selected-profile client. No I/O or capability changes.\nexport const PROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?};\nexport const RESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?};\n{ts_types}export const WORKFLOWS = JSON.parse({workflows_encoded:?}) as readonly SupportedWorkflow[];\nconst META = JSON.parse({encoded:?});\n{}\n",include_str!("client_typescript.txt")),
+        "python" => format!("# Generated selected-profile client. No I/O or capability changes.\nimport json\nimport re\nfrom typing import Any, Literal, NotRequired, TypedDict, TypeAlias\nPROTOCOL = {VNEXT_PROTOCOL_SCHEMA:?}\nRESULT_SCHEMA = {VNEXT_RESULT_SCHEMA:?}\n{python_types}WORKFLOWS: list[SupportedWorkflow] = json.loads({workflows_encoded:?})\nMETA = json.loads({encoded:?})\n{}\n",include_str!("client_python.txt")),
+        "rust" => format!("// Generated selected-profile client. Requires serde(derive) + serde_json; no I/O.\nuse serde::{{Serialize, Deserialize}};\nuse serde_json::{{Value, json}};\npub const PROTOCOL: &str = {VNEXT_PROTOCOL_SCHEMA:?};\npub const RESULT_SCHEMA: &str = {VNEXT_RESULT_SCHEMA:?};\n{rust_types}pub const WORKFLOWS_JSON: &str = {workflows_encoded:?};\npub fn workflows() -> Result<Value, String> {{ serde_json::from_str(WORKFLOWS_JSON).map_err(|error| error.to_string()) }}\npub fn workflow_transitions() -> Result<Vec<WorkflowTransition>, String> {{ let value = workflows()?; serde_json::from_value(value[0][\"transition_policy\"].clone()).map_err(|error| error.to_string()) }}\nconst METADATA: &str = {encoded:?};\n{}\n",include_str!("client_rust.txt")),
         _ => return Err(invalid("unknown client language")),
     };
     source.push_str(&typed.source);
@@ -141,6 +179,32 @@ pub(super) fn generate(language: &str, bundle: &Value) -> Result<String> {
         typed_request(&mut source, language, method, &class, &function, parameters);
     }
     Ok(source)
+}
+
+fn ts_union(values: &[String]) -> String {
+    values
+        .iter()
+        .map(|value| format!("{value:?}"))
+        .collect::<Vec<_>>()
+        .join(" | ")
+}
+
+fn py_literal(values: &[String]) -> String {
+    values
+        .iter()
+        .map(|value| format!("{value:?}"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn rust_enum(name: &str, values: &[String]) -> String {
+    let mut result =
+        format!("#[derive(Clone, Debug, Serialize, Deserialize)]\npub enum {name} {{\n");
+    for (index, value) in values.iter().enumerate() {
+        writeln!(result, "    #[serde(rename = {value:?})] Choice{index},").unwrap();
+    }
+    result.push_str("}\n");
+    result
 }
 
 /// Additive structural request types retain ordinary outer validation and

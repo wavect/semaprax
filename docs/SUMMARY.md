@@ -116,6 +116,7 @@ Audience: all documentation readers.
 - [Workspace Session CLI and Host Policies](WORKSPACE-SESSION-CLI-V1.md)
 - [Project Graph-operational Workflow v1](PROJECT-GRAPH-OPERATIONAL-WORKFLOW-V1.md)
 - [Project Graph-operational Git Workflow v1](PROJECT-GRAPH-OPERATIONAL-GIT-WORKFLOW-V1.md)
+- [Supported Graph-operational Product Workflow v1](IMAGE-SUPPORTED-PRODUCT-WORKFLOW-V1.md)
 - [Graph-operational Execution Evidence v1](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V1.md)
 - [Graph-operational Execution Evidence v2](GRAPH-OPERATIONAL-EXECUTION-EVIDENCE-V2.md)
 - [Graph-operational Client and MCP Execution Evidence v1](GRAPH-OPERATIONAL-CLIENT-MCP-EXECUTION-EVIDENCE-V1.md)

@@ -1,7 +1,10 @@
 use super::*;
 fn selected(policy: VNextPolicy) -> Value {
-    let methods = super::super::methods(&policy, false);
-    let capabilities = capabilities(&methods, &policy, false);
+    selected_with_commit(policy, false)
+}
+fn selected_with_commit(policy: VNextPolicy, commit: bool) -> Value {
+    let methods = super::super::methods(&policy, commit);
+    let capabilities = capabilities(&methods, &policy, commit);
     bundle(
         &methods
             .iter()
@@ -10,6 +13,289 @@ fn selected(policy: VNextPolicy) -> Value {
         &capabilities,
     )
     .unwrap()
+}
+
+fn selected_capabilities(bundle: &Value) -> &Value {
+    &bundle["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|document| document["$id"] == "urn:semaprax.image-agent-capabilities.v5")
+        .unwrap()["const"]
+}
+
+#[test]
+fn supported_signature_workflow_freezes_review_publish_and_blind_spot_transitions() {
+    for policy in [
+        VNextPolicy::default(),
+        VNextPolicy {
+            candidate_prepare: true,
+            ..VNextPolicy::default()
+        },
+    ] {
+        assert_eq!(
+            selected_capabilities(&selected(policy))["workflows"],
+            json!([])
+        );
+    }
+    let bounded_rejection_profile = selected(VNextPolicy {
+        candidate_prepare: true,
+        test_policy: Some(crate::project::CandidateTestPolicy::new(1, 4096, 16384).unwrap()),
+        ..VNextPolicy::default()
+    });
+    assert_eq!(
+        selected_capabilities(&bounded_rejection_profile)["workflows"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        selected_capabilities(&bounded_rejection_profile)["workflows"][0]["qualification"]
+            ["selected_profile_binding"]["host_test_policy"]["max_steps"],
+        1
+    );
+    let policy = VNextPolicy {
+        candidate_prepare: true,
+        test_policy: Some(crate::project::CandidateTestPolicy::new(100, 4096, 16384).unwrap()),
+        ..VNextPolicy::default()
+    };
+    let review = selected(policy);
+    let workflow = &selected_capabilities(&review)["workflows"][0];
+    assert_eq!(workflow["id"], "function_signature_review_publish_v1");
+    assert_eq!(workflow["change_kind"], "change_function_signature");
+    assert_eq!(
+        workflow["qualification"]["contract_and_composition_available"],
+        true
+    );
+    assert_eq!(
+        workflow["qualification"]["executed_support_status"],
+        "not_qualified_by_discovery"
+    );
+    assert_eq!(
+        workflow["qualification"]["successful_support_requires"],
+        "external_clean_exact_subject_evidence"
+    );
+    assert_eq!(workflow["qualification"]["evidence_embedded"], false);
+    assert_eq!(workflow["qualification"]["evidence_inferred"], false);
+    let profile = &workflow["qualification"]["selected_profile_binding"];
+    assert_eq!(profile["basis"], "exact_selected_capabilities_document");
+    assert_eq!(
+        profile["protocol"],
+        selected_capabilities(&review)["protocol"]
+    );
+    assert_eq!(
+        profile["complete_method_set"],
+        selected_capabilities(&review)["methods"]
+    );
+    assert_eq!(
+        profile["complete_grant_set"],
+        selected_capabilities(&review)["capabilities"]
+    );
+    assert_eq!(
+        profile["host_test_policy"],
+        selected_capabilities(&review)["test_policy"]
+    );
+    assert_eq!(workflow["phases"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        workflow["phases"][0],
+        json!({
+            "id":"review",
+            "session":"review_session",
+            "required_grants":["candidate_prepare","candidate_test"],
+            "ordered_steps":[
+                {"index":1,"method":"workspace/open"},
+                {"index":2,"method":"image/function-reference-export"},
+                {"index":3,"method":"image/function-reference-resolve"},
+                {"index":4,"method":"image/analysis-coverage"},
+                {"index":5,"method":"candidate/open"},
+                {"index":6,"method":"candidate/apply-intent"},
+                {"index":7,"method":"candidate/validate"},
+                {"index":8,"method":"candidate/semantic-delta"},
+                {"index":9,"method":"candidate/test-plan"},
+                {"index":10,"method":"candidate/test"},
+                {"index":11,"method":"candidate/source-review"},
+                {"index":12,"method":"candidate/analysis-coverage"},
+                {"index":13,"method":"candidate/recovery-export"}
+            ],
+            "outcome":"reviewed_candidate_and_source_backed_recovery_capsule",
+            "publication_authority":false
+        })
+    );
+    assert_eq!(
+        workflow["separate_session_handoff"],
+        json!({
+            "export_method":"candidate/recovery-export",
+            "restore_method":"candidate/recovery-restore",
+            "carrier":"exact_source_backed_recovery_capsule",
+            "host_storage_and_transfer":"out_of_band",
+            "authority_transfer":false,
+            "same_original_source_required":true,
+            "bound_review_artifacts":[
+                "candidate_recovery_capsule","candidate_revision",
+                "compact_function_reference","typed_intention_bytes",
+                "validation_and_semantic_delta","test_plan_and_report",
+                "source_review_digest","base_and_candidate_analysis_coverage_digests"
+            ]
+        })
+    );
+    assert_eq!(
+        workflow["publication_approval"]["request_can_approve"],
+        false
+    );
+    assert_eq!(
+        workflow["publication_approval"]["mode"],
+        "out_of_band_host_approval_before_first_publish_session_frame"
+    );
+    assert_eq!(workflow["transition_policy"].as_array().unwrap().len(), 7);
+    assert_eq!(
+        workflow["transition_contract"]["events"],
+        json!(WORKFLOW_EVENTS)
+    );
+    assert_eq!(
+        workflow["transition_contract"]["outcomes"],
+        json!(WORKFLOW_OUTCOMES)
+    );
+    assert_eq!(
+        workflow["transition_contract"]["repair_actions"],
+        json!(WORKFLOW_REPAIR_ACTIONS)
+    );
+    assert_eq!(
+        workflow["transition_contract"]["rpc_error_shape"],
+        "generic_json_rpc_code_and_message"
+    );
+    assert_eq!(
+        workflow["transition_contract"]["compiler_diagnostic_interior"],
+        "not_typed_by_this_workflow_metadata"
+    );
+    assert_eq!(
+        workflow["transition_contract"]["diagnostic_repair_catalog"],
+        "not_selected_or_authorized_by_this_workflow"
+    );
+    assert_eq!(
+        workflow["transition_policy"][2]["candidate_state"],
+        "preserved"
+    );
+    assert_eq!(
+        workflow["transition_policy"][1]["session_state"],
+        "invalidated"
+    );
+    assert_eq!(workflow["transition_policy"][5]["blind_retry"], false);
+    assert_eq!(
+        workflow["transition_policy"][5]["next"],
+        "inspect_source_commit_status_fixed_git_ref_and_prepared_commit"
+    );
+    assert_eq!(
+        workflow["blind_spots"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|row| (
+                row["area"].as_str().unwrap(),
+                row["status"].as_str().unwrap()
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            ("analysis_completeness", "partial"),
+            ("generated_file_provenance", "not_inspected"),
+            ("generated_artifacts", "not_inspected"),
+            ("deployment_configuration", "not_inspected"),
+            ("external_api_behavior", "not_inspected"),
+            ("runtime_environment", "not_inspected"),
+            ("external_consumers", "not_inspected"),
+        ]
+    );
+    assert_eq!(workflow["authority"]["request_capability_changes"], false);
+    assert_eq!(workflow["authority"]["recovery_capsule_authority"], false);
+    let runtime_blind_spot = workflow["blind_spots"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["area"] == "runtime_environment")
+        .unwrap();
+    assert_eq!(
+        runtime_blind_spot["basis"],
+        "static_discovery_precedes_execution_and_binds_no_successful_runtime_report"
+    );
+    assert_eq!(
+        runtime_blind_spot["conditional_promotion"],
+        "partial_only_after_bound_successful_reference_interpreter_report"
+    );
+    assert_eq!(
+        workflow["authority"]["deployment_network_process_or_secret_authority"],
+        false
+    );
+
+    let publish = selected_with_commit(policy, true);
+    let publish_capabilities = selected_capabilities(&publish);
+    let workflow = &publish_capabilities["workflows"][0];
+    let publish_profile = &workflow["qualification"]["selected_profile_binding"];
+    assert_eq!(
+        publish_profile["protocol"],
+        publish_capabilities["protocol"]
+    );
+    assert_eq!(
+        publish_profile["complete_method_set"],
+        publish_capabilities["methods"]
+    );
+    assert_eq!(
+        publish_profile["complete_grant_set"],
+        publish_capabilities["capabilities"]
+    );
+    assert_eq!(
+        publish_profile["host_test_policy"],
+        publish_capabilities["test_policy"]
+    );
+    assert_eq!(workflow["phases"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        workflow["phases"][1],
+        json!({
+            "id":"publish",
+            "session":"separate_publish_session",
+            "required_grants":["candidate_prepare","source_commit"],
+            "ordered_steps":[
+                {"index":1,"id":"open_original_subject","method":"workspace/open"},
+                {"index":2,"id":"resolve_reviewed_function","method":"image/function-reference-resolve"},
+                {"index":3,"id":"restore_candidate","method":"candidate/recovery-restore"},
+                {"index":4,"id":"repeat_validation","method":"candidate/validate"},
+                {"index":5,"id":"repeat_source_review","method":"candidate/source-review"},
+                {"index":6,"id":"precommit_status","method":"source-commit/status","required_state":"available"},
+                {"index":7,"id":"commit_once","method":"candidate/commit","maximum_calls":1},
+                {"index":8,"id":"postcommit_status","method":"source-commit/status","required_state":"published_or_publication_uncertain"},
+                {"index":9,"id":"read_receipt_after_published_status","method":"candidate/commit-report","requires_state":"published","read_to_terminal_chunk":true}
+            ],
+            "outcome":"published_or_publication_uncertain",
+            "raw_working_tree_write":false
+        })
+    );
+    for language in ["typescript", "python", "rust"] {
+        let source = clients::generate(language, &publish).unwrap();
+        assert_eq!(source, clients::generate(language, &publish).unwrap());
+        assert!(source.len() < MAX_DISCOVERY_BYTES);
+        assert!(source.contains("function_signature_review_publish_v1"));
+        assert!(source.contains("external_clean_exact_subject_evidence"));
+        assert!(source.contains("not_qualified_by_discovery"));
+        assert!(source.contains("publication_uncertain"));
+        assert!(source.contains("deployment_configuration"));
+        assert!(source.contains("partial_only_after_bound_successful_reference_interpreter_report"));
+        assert!(source.contains("no I/O") || source.contains("No I/O"));
+        match language {
+            "typescript" => {
+                assert!(source.contains("export type WorkflowOutcome ="));
+                assert!(source.contains("readonly SupportedWorkflow[]"));
+            }
+            "python" => {
+                assert!(source.contains("WorkflowOutcome: TypeAlias = Literal["));
+                assert!(source.contains("WORKFLOWS: list[SupportedWorkflow]"));
+            }
+            _ => {
+                assert!(source.contains("pub const WORKFLOWS_JSON: &str"));
+                assert!(source.contains("pub fn workflows() -> Result<Value, String>"));
+                assert!(source.contains("pub enum WorkflowOutcome"));
+                assert!(source.contains("pub fn workflow_transitions()"));
+            }
+        }
+    }
 }
 #[test]
 fn dependency_query_is_read_only_with_closed_chunks_and_opaque_facts() {

@@ -189,6 +189,8 @@ impl Builder<'_> {
                     | "minLength"
                     | "maxLength"
                     | "x-max-utf8-bytes"
+                    | "x-sorted-by"
+                    | "x-unique-hole-id"
                     | "pattern"
                     | "uniqueItems"
                     | "not"

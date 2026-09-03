@@ -509,6 +509,8 @@ fn audit_schema(schema: &Value, refs: &mut BTreeSet<String>, depth: usize) -> Re
                 | "minLength"
                 | "maxLength"
                 | "x-max-utf8-bytes"
+                | "x-sorted-by"
+                | "x-unique-hole-id"
                 | "pattern"
                 | "not"
         ) {
@@ -553,7 +555,14 @@ fn audit_schema(schema: &Value, refs: &mut BTreeSet<String>, depth: usize) -> Re
         ),
         (
             "array",
-            &["items", "minItems", "maxItems", "uniqueItems"][..],
+            &[
+                "items",
+                "minItems",
+                "maxItems",
+                "uniqueItems",
+                "x-sorted-by",
+                "x-unique-hole-id",
+            ][..],
         ),
         (
             "string",
@@ -589,6 +598,7 @@ fn audit_schema(schema: &Value, refs: &mut BTreeSet<String>, depth: usize) -> Re
                     | r"^[^\u0000-\u001f\u007f-\u009f]+$"
                     | "^[A-Za-z_][A-Za-z0-9_]*$"
                     | "^[A-Za-z0-9_.:-]+$"
+                    | "^[A-Za-z0-9_.-]+$"
                     | "^[a-z0-9._-]+$"
                     | "^[0-9a-f]{8}$"
                     | "^[0-9a-f]{16}$"

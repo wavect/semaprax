@@ -84,6 +84,8 @@ fn check_bounded(value:&Value, schema:&Value, meta:&Value, depth:usize, work:&mu
                     if !bytes.next().is_some_and(|byte|byte.is_ascii_alphabetic() || byte==b'_') || !bytes.all(|byte|byte.is_ascii_alphanumeric() || byte==b'_') { return Err("identifier format".into()); }
                 } else if pattern=="^[A-Za-z0-9_.:-]+$" {
                     if text.is_empty() || !text.bytes().all(|byte|byte.is_ascii_alphanumeric() || matches!(byte,b'_'|b'.'|b':'|b'-')) { return Err("binding format".into()); }
+                } else if pattern=="^[A-Za-z0-9_.-]+$" {
+                    if text.is_empty() || !text.bytes().all(|byte|byte.is_ascii_alphanumeric() || matches!(byte,b'_'|b'.'|b'-')) { return Err("hole identity format".into()); }
                 } else if pattern=="^[a-z0-9._-]+$" {
                     if text.is_empty() || !text.bytes().all(|byte|byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte,b'.'|b'_'|b'-')) { return Err("stable identity format".into()); }
                 } else if pattern=="^[0-9a-f]{8}$" {

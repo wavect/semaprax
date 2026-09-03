@@ -623,6 +623,11 @@ fn workspace_type_key(
         .iter()
         .map(|argument| workspace_type_key(programs, owner, argument, depth + 1))
         .collect::<Result<Vec<_>, _>>()?;
+    // A monomorphic nominal type keys as its bare identity, exactly like the
+    // receiver key the first-parameter `Self` case builds from `stable_id`.
+    if arguments.is_empty() {
+        return Ok(identity);
+    }
     Ok(format!("{identity}<{}>", arguments.join(",")))
 }
 

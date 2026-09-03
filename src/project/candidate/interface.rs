@@ -642,6 +642,7 @@ fn explicit_function<'a>(
     Ok(found)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn member_matches_project(
     programs: &[Program],
     protocol_owner: usize,
@@ -731,6 +732,11 @@ fn type_key(programs: &[Program], owner: usize, ty: &Type, depth: usize) -> Resu
         .iter()
         .map(|argument| type_key(programs, owner, argument, depth + 1))
         .collect::<Result<Vec<_>>>()?;
+    // A monomorphic nominal type keys as its bare identity, exactly like the
+    // receiver key the first-parameter `Self` case builds from `stable_id`.
+    if arguments.is_empty() {
+        return Ok(identity);
+    }
     Ok(format!("{identity}<{}>", arguments.join(",")))
 }
 

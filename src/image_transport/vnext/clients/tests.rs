@@ -41,7 +41,7 @@ fn workflow_generation_rejects_changed_profile_revision_and_response_contract() 
         test_policy: Some(crate::project::CandidateTestPolicy::new(100, 4096, 16384).unwrap()),
         ..VNextPolicy::default()
     };
-    let methods = super::super::super::session_methods(&policy, false, false, false);
+    let methods = super::super::super::session_methods(&policy, false, false, false, false);
     let capabilities = super::super::capabilities(&methods, &policy, false);
     let bundle = super::super::bundle(
         &methods
@@ -79,7 +79,7 @@ fn client_contract_revision_is_deterministic_closed_and_surface_sensitive() {
         test_policy: Some(crate::project::CandidateTestPolicy::new(100, 4096, 16384).unwrap()),
         ..VNextPolicy::default()
     };
-    let selected = super::super::super::session_methods(&policy, false, false, false);
+    let selected = super::super::super::session_methods(&policy, false, false, false, false);
     let capabilities = super::super::capabilities(&selected, &policy, false);
     let bundle = super::super::bundle(
         &selected
@@ -232,7 +232,7 @@ fn rust_client_fits_the_actual_serialized_discovery_payload() {
     ] {
         for batch_selected in [false, true] {
             let methods =
-                super::super::super::session_methods(&policy, false, false, batch_selected);
+                super::super::super::session_methods(&policy, false, false, batch_selected, false);
             let method = methods
                 .iter()
                 .find(|method| method.name == "protocol/client")

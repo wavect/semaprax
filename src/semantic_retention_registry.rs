@@ -17,7 +17,8 @@
     )),
     allow(
         unused_imports,
-        reason = "unsupported hosts expose only fail-closed registry APIs; the held-transition imports are not invoked"
+        dead_code,
+        reason = "unsupported hosts expose only fail-closed registry APIs; the held-transition imports and private cursor helpers are not invoked"
     )
 )]
 

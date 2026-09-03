@@ -44,10 +44,11 @@ pub(super) fn plan(
     let mut source = None;
     for program in programs {
         for function in &program.functions {
-            if function.stable_id == target && !function.type_parameters.is_empty() {
-                if source.replace((program, function)).is_some() {
-                    return Err(invalid("generic rename source identity is ambiguous"));
-                }
+            if function.stable_id == target
+                && !function.type_parameters.is_empty()
+                && source.replace((program, function)).is_some()
+            {
+                return Err(invalid("generic rename source identity is ambiguous"));
             }
         }
     }

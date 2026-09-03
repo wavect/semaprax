@@ -369,7 +369,7 @@ fn persist_bytes_held_with_hook(
 ) -> Result<()> {
     let root_path = root.path.as_path();
     let lock = root.lock(true)?;
-    let initial = inventory(&root, false)?;
+    let initial = inventory(root, false)?;
     if initial.len() >= MAX_CANDIDATE_ARCHIVE_STORE_ENTRIES {
         return Err(capacity("archive store has no publication slot"));
     }
@@ -381,7 +381,7 @@ fn persist_bytes_held_with_hook(
         ));
     }
     let stage = format!(".stage-{hex}");
-    unchanged(&root, &initial)?;
+    unchanged(root, &initial)?;
     let fd = fs::openat(
         root.fd(),
         stage.as_bytes(),
@@ -403,8 +403,8 @@ fn persist_bytes_held_with_hook(
     staged.insert(stage.clone(), created);
     hook(StorePoint::AfterStageCreate, root_path)
         .map_err(|_| io("archive stage creation hook failed"))?;
-    unchanged(&root, &staged)?;
-    selected(&root, &stage, &mut file, created, b"")?;
+    unchanged(root, &staged)?;
+    selected(root, &stage, &mut file, created, b"")?;
     file.write_all(bytes)
         .and_then(|()| file.sync_all())
         .map_err(|_| io("cannot write and settle archive stage"))?;
@@ -415,13 +415,13 @@ fn persist_bytes_held_with_hook(
     staged.insert(stage.clone(), written);
     hook(StorePoint::AfterStageWrite, root_path)
         .map_err(|_| io("archive stage write hook failed"))?;
-    unchanged(&root, &staged)?;
-    selected(&root, &stage, &mut file, written, bytes)?;
+    unchanged(root, &staged)?;
+    selected(root, &stage, &mut file, written, bytes)?;
     fs::fsync(root.fd()).map_err(|_| io("cannot settle archive stage directory"))?;
     hook(StorePoint::BeforePublish, root_path)
         .map_err(|_| io("archive pre-publication hook failed"))?;
-    unchanged(&root, &staged)?;
-    selected(&root, &stage, &mut file, written, bytes)?;
+    unchanged(root, &staged)?;
+    selected(root, &stage, &mut file, written, bytes)?;
     file.sync_all()
         .map_err(|_| io("cannot resettle archive stage"))?;
     fs::renameat_with(
@@ -439,8 +439,8 @@ fn persist_bytes_held_with_hook(
             .map_err(|_| io("archive post-publication hook failed"))?;
         let mut published = initial;
         published.insert(destination.clone(), written);
-        unchanged(&root, &published)?;
-        selected(&root, &destination, &mut file, written, bytes)?;
+        unchanged(root, &published)?;
+        selected(root, &destination, &mut file, written, bytes)?;
         lock.release()?;
         Ok(())
     })();

@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- Added one candidate environment-consumer review that joins the complete
+  source/environment review to an explicitly host-attached, authenticated
+  candidate-era package graph. Exact Project, Workspace, graph, provider,
+  source and target bindings advance only the external-consumer area to
+  `partial`; compatibility remains `not_assessed`. V5 exposes bounded chunks
+  through generated clients and MCP input discovery without ambient consumer,
+  runtime, registry or deployment observation. Regressions are authored and
+  unrun.
+
+- Extended ordered signature evolution with one exact `own Bytes` to
+  `borrow Slice<u8>` replacement. The compiler authenticates a sole
+  body-local `bytes_as_slice` use, stages every caller argument left to right,
+  derives the view from the staged caller-owned value, and leaves cleanup with
+  the caller. Contracts, aliases, duplicate views, transfers, automatic package
+  migration and compatibility claims remain excluded. Regressions are authored
+  and unrun.
+
+- Added a durable authority-neutral retention registry over successful typed
+  image/candidate/draft store receipts. An explicit private Unix root chains
+  immutable checkpoint/plan pairs through a canonical CAS `CURRENT` cursor,
+  authenticates exact interrupted stages, and recovers through held-directory
+  descriptors. It performs no subject discovery, deletion, GC execution,
+  source restoration, approval or publication. Regressions are authored and
+  unrun.
+
 - Added one environment-aware candidate review that independently regenerates
   the complete source review and the three-declaration analysis-boundary bundle,
   validates their exact candidate/source/Project/Workspace/graph joins, and

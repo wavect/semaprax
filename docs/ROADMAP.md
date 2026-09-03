@@ -138,8 +138,12 @@ without the original raw checkout. Execute source/capsule remint rejection,
 private-root/no-clobber/stage/post-pivot cases, and startup historical-candidate
 rebase before promoting persistence. Host-policy v3 selects existing archives
 before frames without restoring approval or making old source current.
-Automatic durable registry checkpoints, incomplete drafts, warm HIR loading,
-eviction/GC and measured recovery cost remain future work.
+An explicit private-root retention registry now authors consecutive durable
+checkpoint/plan metadata from successful typed store receipts, with exact
+cursor recovery and no subject restoration or deletion. Automatic session and
+branch checkpoint integration, incomplete-draft lifecycle recovery, warm HIR
+loading, separately authorized eviction/GC and measured recovery cost remain
+future work.
 
 The additive [workspace protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) now composes
 host-selected semantic, candidate, diagnostic, test, pathless-build and optional

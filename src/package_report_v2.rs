@@ -217,9 +217,16 @@ pub(crate) fn scalar_interface_from_resolved(
             .params
             .iter()
             .map(|parameter| {
+                let ty = package_interface_type_json(&parameter.ty)?;
+                let ownership = ownership_text(parameter.ownership);
+                if !package_parameter_profile(&ty, ownership) {
+                    return Err(consistency_error(
+                        "package-source parameter is outside the Copy or owner-view profile",
+                    ));
+                }
                 Ok(ScalarInterfaceParameter {
-                    ty: scalar_type_json(&parameter.ty)?,
-                    ownership: ownership_text(parameter.ownership).to_owned(),
+                    ty,
+                    ownership: ownership.to_owned(),
                 })
             })
             .collect::<Result<Vec<_>, Diagnostic>>()?;
@@ -275,13 +282,17 @@ fn parse_scalar_interface_function(
                     "v2 scalar interface parameter positions are noncanonical",
                 ));
             }
-            Ok(ScalarInterfaceParameter {
-                ty: scalar_type_value(&parameter["type"])?,
-                ownership: parameter["ownership"]
-                    .as_str()
-                    .ok_or_else(|| consistency_error("v2 scalar interface ownership is missing"))?
-                    .to_owned(),
-            })
+            let ty = package_interface_type_value(&parameter["type"])?;
+            let ownership = parameter["ownership"]
+                .as_str()
+                .ok_or_else(|| consistency_error("v2 scalar interface ownership is missing"))?
+                .to_owned();
+            if !package_parameter_profile(&ty, &ownership) {
+                return Err(consistency_error(
+                    "v2 package parameter is outside the Copy or owner-view profile",
+                ));
+            }
+            Ok(ScalarInterfaceParameter { ty, ownership })
         })
         .collect::<Result<Vec<_>, Diagnostic>>()?;
     let result_type = scalar_type_value(&row["result"]["type"])?;
@@ -314,6 +325,56 @@ fn scalar_type_json(ty: &hir::ResolvedType) -> Result<String, Diagnostic> {
     let value: serde_json::Value = serde_json::from_str(&model::type_json(ty))
         .map_err(|_| consistency_error("compiler scalar type JSON is malformed"))?;
     scalar_type_value(&value)
+}
+
+fn package_interface_type_json(ty: &hir::ResolvedType) -> Result<String, Diagnostic> {
+    let value: serde_json::Value = serde_json::from_str(&model::type_json(ty))
+        .map_err(|_| consistency_error("compiler package type JSON is malformed"))?;
+    package_interface_type_value(&value)
+}
+
+fn package_interface_type_value(value: &serde_json::Value) -> Result<String, Diagnostic> {
+    if scalar_type_value(value).is_ok()
+        || matches!(
+            value,
+            serde_json::Value::Object(object)
+                if (object.len() == 1
+                    && matches!(
+                        object.get("kind").and_then(serde_json::Value::as_str),
+                        Some("owned_bytes")
+                    ))
+                    || (object.len() == 2
+                        && object.get("kind").and_then(serde_json::Value::as_str)
+                            == Some("borrowed_slice")
+                        && object.get("element").is_some_and(|element| {
+                            element.as_object().is_some_and(|element| {
+                                element.len() == 2
+                                    && element.get("kind").and_then(serde_json::Value::as_str)
+                                        == Some("primitive")
+                                    && element.get("name").and_then(serde_json::Value::as_str)
+                                        == Some("u8")
+                            })
+                        }))
+        )
+    {
+        return serde_json::to_string(value)
+            .map_err(|_| consistency_error("v2 package interface type cannot be canonicalized"));
+    }
+    Err(consistency_error(
+        "v2 package interface is outside the Copy or owner-view profile",
+    ))
+}
+
+fn package_parameter_profile(ty: &str, ownership: &str) -> bool {
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(ty) else {
+        return false;
+    };
+    match value.get("kind").and_then(serde_json::Value::as_str) {
+        Some("primitive") => ownership == "value",
+        Some("owned_bytes") => ownership == "own",
+        Some("borrowed_slice") => ownership == "borrow",
+        _ => false,
+    }
 }
 
 fn scalar_type_value(value: &serde_json::Value) -> Result<String, Diagnostic> {

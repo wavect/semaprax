@@ -93,9 +93,25 @@ pub struct CandidatePackageConsumerMigrationInput<'a> {
     pub candidate_capsule_options: &'a SourceCapsuleOptions,
 }
 
+#[derive(Clone, Copy)]
+enum ConsumerMigrationLane {
+    CopyAppend,
+    OwnedBytesToSlice,
+}
+
+impl ConsumerMigrationLane {
+    fn label(self) -> &'static str {
+        match self {
+            Self::CopyAppend => "copy_scalar_append",
+            Self::OwnedBytesToSlice => "whole_owned_bytes_to_borrowed_slice",
+        }
+    }
+}
+
 impl ProjectCandidate {
-    /// Propose one closed scalar/Copy append-parameter migration for consumers
-    /// in an exact authenticated baseline package corpus. No source is written.
+    /// Propose one closed Copy append or whole-owned-Bytes borrowed-view
+    /// migration for consumers in an exact authenticated baseline package
+    /// corpus. No source is written.
     pub fn package_consumer_migration(
         &self,
         expected_candidate: &str,
@@ -113,32 +129,7 @@ impl ProjectCandidate {
             .get("target")
             .and_then(Value::as_str)
             .ok_or_else(|| migration_refusal("consumer migration change has no exact target"))?;
-        if change.get("kind").and_then(Value::as_str) != Some("change_function_signature")
-            || target != input.baseline.target
-            || change
-                .as_object()
-                .is_none_or(|object| object.len() != 3 || !object.contains_key("append_parameters"))
-        {
-            return Err(migration_refusal(
-                "consumer migration admits only one scalar Copy append-parameter change",
-            ));
-        }
-        let additions = change["append_parameters"].as_array().ok_or_else(|| {
-            migration_refusal("consumer migration append-parameter table is absent")
-        })?;
-        if additions.is_empty()
-            || additions.len() > 8
-            || additions.iter().any(|addition| {
-                !matches!(
-                    addition.get("type").and_then(Value::as_str),
-                    Some("i64" | "i32" | "char" | "u8" | "usize" | "f32" | "f64" | "bool")
-                )
-            })
-        {
-            return Err(migration_refusal(
-                "consumer migration append parameters must be one through eight Copy scalars",
-            ));
-        }
+        let lane = migration_lane(change, target, input.baseline.target)?;
 
         let conflicts: Value = serde_json::from_str(
             &self.package_signature_consumer_conflicts(expected_candidate, &input.baseline)?,
@@ -178,8 +169,24 @@ impl ProjectCandidate {
         let (owner, function) = owner.ok_or_else(|| {
             migration_binding("baseline provider function is absent from the exact corpus")
         })?;
-        let migrated_calls =
-            super::intent::apply_detached_signature(&mut programs, change, owner, function)?;
+        if matches!(lane, ConsumerMigrationLane::OwnedBytesToSlice) {
+            authenticate_owner_view_signatures(&conflicts)?;
+            require_bare_owner_calls(&programs, target, affected_calls.len())?;
+        }
+        let migrated_calls = match lane {
+            ConsumerMigrationLane::CopyAppend => {
+                super::intent::apply_detached_signature(&mut programs, change, owner, function)?
+            }
+            ConsumerMigrationLane::OwnedBytesToSlice => {
+                super::intent::apply_detached_signature_with_revision(
+                    &self.base,
+                    &mut programs,
+                    change,
+                    owner,
+                    function,
+                )?
+            }
+        };
         if migrated_calls != affected_calls.len() {
             return Err(migration_refusal(
                 "consumer migration excludes provider-local or unauthenticated call inventory",
@@ -267,6 +274,7 @@ impl ProjectCandidate {
             "provider": {"package":input.baseline.provider.package,"version":input.baseline.provider.version},
             "target": target,
             "change": change,
+            "migration_lane": lane.label(),
             "baseline_conflict_report_digest": super::wire::digest(b"semaprax.package-consumer-migration.conflicts.v1\0", serde_json::to_vec(&conflicts).map_err(|_| migration_binding("conflict report serialization failed"))?.as_slice()),
             "candidate_source_capsule": {
                 "digest": replay["source_capsule_digest"],
@@ -282,7 +290,7 @@ impl ProjectCandidate {
             "generated_artifact_provenance":"not_supplied_or_inferred",
             "source_authority":false,"execution":false,"publication_authority":false,
             "compatibility":"not_assessed","tests":"not_run",
-            "nonclaims":["explicit_baseline_capsule_only_no_consumer_discovery_or_completeness","scalar_Copy_append_defaults_only_not_general_signature_migration","canonical_source_proposal_not_write_patch_commit_or_publication_authority","candidate_era_source_capsule_replay_not_runtime_behavior_or_compatibility","no_installed_generated_or_deployed_consumer_claim","generated_artifact_provenance_not_inferred","no_filesystem_network_registry_model_tool_or_target_execution_authority"]
+            "nonclaims":["explicit_baseline_capsule_only_no_consumer_discovery_or_completeness","only_Copy_scalar_append_or_one_whole_owned_Bytes_to_borrowed_Slice_change_not_general_signature_migration","canonical_source_proposal_not_write_patch_commit_or_publication_authority","candidate_era_source_capsule_replay_not_runtime_behavior_or_compatibility","no_installed_generated_or_deployed_consumer_claim","generated_artifact_provenance_not_inferred","no_filesystem_network_registry_model_tool_or_target_execution_authority","owner_view_lane_refuses_projection_temporary_multiple_owner_contract_and_owned_result_changes"]
         }))
     }
 
@@ -704,6 +712,137 @@ fn signature_value(package: &str, function: &crate::hir::ResolvedFunction) -> Re
         "requires": parse_contracts(&signature.requires)?,
         "ensures": parse_contracts(&signature.ensures)?,
     }))
+}
+
+fn migration_lane(
+    change: &Value,
+    target: &str,
+    expected_target: &str,
+) -> Result<ConsumerMigrationLane> {
+    let Some(object) = change.as_object() else {
+        return Err(migration_refusal(
+            "consumer migration change is not an object",
+        ));
+    };
+    if change.get("kind").and_then(Value::as_str) != Some("change_function_signature")
+        || target != expected_target
+        || object.len() != 3
+    {
+        return Err(migration_refusal(
+            "consumer migration requires one exact admitted signature change",
+        ));
+    }
+    if object.contains_key("append_parameters") {
+        let additions = change["append_parameters"].as_array().ok_or_else(|| {
+            migration_refusal("consumer migration append-parameter table is absent")
+        })?;
+        if additions.is_empty()
+            || additions.len() > 8
+            || additions.iter().any(|addition| {
+                !matches!(
+                    addition.get("type").and_then(Value::as_str),
+                    Some("i64" | "i32" | "char" | "u8" | "usize" | "f32" | "f64" | "bool")
+                )
+            })
+        {
+            return Err(migration_refusal(
+                "consumer migration append parameters must be one through eight Copy scalars",
+            ));
+        }
+        return Ok(ConsumerMigrationLane::CopyAppend);
+    }
+    let Some(parameters) = object.get("parameters").and_then(Value::as_array) else {
+        return Err(migration_refusal(
+            "consumer migration admits only Copy append or one whole owned-Bytes view mapping",
+        ));
+    };
+    let exact_mapping = parameters.as_slice().first().and_then(Value::as_object);
+    if parameters.len() != 1
+        || exact_mapping.is_none_or(|mapping| {
+            mapping.len() != 2
+                || mapping.get("name").and_then(Value::as_str).is_none()
+                || mapping
+                    .get("borrow_slice_from_owner")
+                    .and_then(Value::as_str)
+                    .is_none()
+        })
+    {
+        return Err(migration_refusal(
+            "owner-view consumer migration requires exactly one whole owned-Bytes mapping",
+        ));
+    }
+    Ok(ConsumerMigrationLane::OwnedBytesToSlice)
+}
+
+fn authenticate_owner_view_signatures(conflicts: &Value) -> Result<()> {
+    let base = &conflicts["base_signature"];
+    let candidate = &conflicts["candidate_signature"];
+    if conflicts["changed_facets"] != json!(["parameters"])
+        || base["parameters"]
+            != json!([{"index":0,"type":{"kind":"owned_bytes"},"ownership":"own"}])
+        || candidate["parameters"]
+            != json!([{"index":0,"type":{"kind":"borrowed_slice","element":{"kind":"primitive","name":"u8"}},"ownership":"borrow"}])
+        || base["result"] != candidate["result"]
+        || base["result"]["ownership"] != "value"
+        || !base["effects"].as_array().is_some_and(Vec::is_empty)
+        || !base["requires"].as_array().is_some_and(Vec::is_empty)
+        || !base["ensures"].as_array().is_some_and(Vec::is_empty)
+        || candidate["effects"] != base["effects"]
+        || candidate["requires"] != base["requires"]
+        || candidate["ensures"] != base["ensures"]
+    {
+        return Err(migration_refusal(
+            "owner-view consumer migration requires one contract-free own Bytes to borrow Slice<u8> parameter change with an unchanged Copy result",
+        ));
+    }
+    Ok(())
+}
+
+fn require_bare_owner_calls(
+    programs: &[crate::ast::Program],
+    target: &str,
+    expected: usize,
+) -> Result<()> {
+    let mut calls = 0usize;
+    for source in programs {
+        let bindings = super::intent::call_bindings(source)?;
+        let mut inspected = source.clone();
+        let mut nodes = 0usize;
+        super::intent::walk_program(&mut inspected, &mut nodes, &mut |expression| {
+            let crate::ast::ExprKind::Call {
+                name,
+                type_arguments,
+                args,
+            } = &expression.kind
+            else {
+                return Ok(());
+            };
+            if !bindings.get(name).is_some_and(|binding| binding == target) {
+                return Ok(());
+            }
+            calls = calls.saturating_add(1);
+            if !type_arguments.is_empty()
+                || !matches!(
+                    args.as_slice(),
+                    [crate::ast::Expr {
+                        kind: crate::ast::ExprKind::Var(_),
+                        ..
+                    }]
+                )
+            {
+                return Err(migration_refusal(
+                    "owner-view consumer migration requires every affected argument to be one bare caller-held owner root",
+                ));
+            }
+            Ok(())
+        })?;
+    }
+    if calls != expected {
+        return Err(migration_refusal(
+            "owner-view consumer migration refuses provider-local or unauthenticated call sites",
+        ));
+    }
+    Ok(())
 }
 
 fn changed_signature_facets(base: &Value, candidate: &Value) -> Vec<&'static str> {

@@ -122,13 +122,93 @@ fn scalar_append_proposes_canonical_consumers_only_after_candidate_capsule_repla
         candidate.package_consumer_migration("sha256:stale", &input),
         "SPX-G222",
     );
-    let ownership_change = owner_view_signature_changed(&base);
-    failed(
-        ownership_change.package_consumer_migration(
-            ownership_change.candidate_digest(),
+}
+
+#[test]
+fn whole_owned_bytes_call_proposes_borrowed_slice_and_replays_caller_cleanup() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let base = open(&fixture.revision());
+    let candidate = owner_view_signature_changed(&base);
+    let baseline = Corpus::candidate_era(&fixture.0, &base);
+    let mut candidate_evidence = Corpus::candidate_era(&fixture.0, &base);
+    retarget_candidate_evidence(&fixture.0, &candidate, &mut candidate_evidence);
+    let provider_report = &candidate_evidence
+        .sources
+        .iter()
+        .find(|source| source.package == "libmath")
+        .unwrap()
+        .report;
+    let bytes = candidate
+        .package_consumer_migration(
+            candidate.candidate_digest(),
             &CandidatePackageConsumerMigrationInput {
                 baseline: baseline.signature_conflicts(OWNER_VIEW_TARGET),
-                ..input
+                candidate_provider_report: provider_report,
+                candidate_resolution_evidence: &candidate_evidence.evidence,
+                candidate_resolution_input: &candidate_evidence.input,
+                candidate_resolution_options: &candidate_evidence.resolution_options,
+                candidate_capsule_options: &candidate_evidence.capsule_options,
+            },
+        )
+        .unwrap();
+    let report: Value = serde_json::from_str(&bytes).unwrap();
+    assert_eq!(
+        report["migration_lane"],
+        "whole_owned_bytes_to_borrowed_slice"
+    );
+    assert_eq!(report["counts"]["affected_calls"], 1);
+    assert_eq!(report["counts"]["migrated_calls"], 1);
+    assert_eq!(report["candidate_replay"]["counts"]["calls"], 1);
+    let proposed = report["proposals"][0]["proposed_source"].as_str().unwrap();
+    assert!(proposed.contains("let spx_sig_stage_0 = input;"));
+    assert!(proposed.contains("bytes_as_slice(spx_sig_stage_0)"));
+    assert!(proposed.contains("bytes_len_owned(spx_sig_stage_1)"));
+    assert!(!proposed.contains("bytes_len_owned(input)"));
+    assert_eq!(report["compatibility"], "not_assessed");
+    assert_eq!(report["source_authority"], false);
+    assert_eq!(report["execution"], false);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn owner_view_consumer_migration_refuses_temporary_owner_arguments() {
+    let fixture = Fixture::new();
+    let base = open(&fixture.revision());
+    let candidate = owner_view_signature_changed(&base);
+    let mut baseline = Corpus::candidate_era(&fixture.0, &base);
+    baseline.sources[0].source = canonical(
+        r#"module app.main;
+use function @id("lib.answer") from libmath as answer;
+use function @id("lib.unused") from libmath as unused;
+use function @id("lib.bytes-len") from libmath as bytes_len_owned;
+@id("app.main") fn main()->i64 {answer()+1}
+fn private_helper()->i64 {answer()}
+fn bytes_consumer(input: borrow Slice<u8>)->usize {bytes_len_owned(bytes_copy(input))}
+"#,
+        "temporary-consumer.spx",
+    );
+    baseline.capsule = package_source_capsule::generate(
+        &baseline.sources,
+        &baseline.evidence,
+        &baseline.input,
+        &baseline.resolution_options,
+        &baseline.capsule_options,
+    )
+    .unwrap();
+    let mut candidate_evidence = Corpus::candidate_era(&fixture.0, &base);
+    retarget_candidate_evidence(&fixture.0, &candidate, &mut candidate_evidence);
+    let provider_report = &candidate_evidence.sources[1].report;
+    failed(
+        candidate.package_consumer_migration(
+            candidate.candidate_digest(),
+            &CandidatePackageConsumerMigrationInput {
+                baseline: baseline.signature_conflicts(OWNER_VIEW_TARGET),
+                candidate_provider_report: provider_report,
+                candidate_resolution_evidence: &candidate_evidence.evidence,
+                candidate_resolution_input: &candidate_evidence.input,
+                candidate_resolution_options: &candidate_evidence.resolution_options,
+                candidate_capsule_options: &candidate_evidence.capsule_options,
             },
         ),
         "SPX-G510",
@@ -171,7 +251,6 @@ use function @id("lib.answer") from libmath as answer;
 @id("lib.answer") fn answer()->i64 {41}
 @id("lib.unused") fn unused()->i64 {99}
 @id("lib.bytes-len") fn bytes_len_owned(input: own Bytes)->usize {byte_len(bytes_as_slice(input))}
-@id("lib.bytes-internal") fn bytes_internal(input: borrow Slice<u8>)->usize {bytes_len_owned(bytes_copy(input))}
 @id("lib.main") fn main()->i64 {answer()}
 "#,
         );
@@ -314,7 +393,7 @@ use function @id("lib.unused") from libmath as unused;
 use function @id("lib.bytes-len") from libmath as bytes_len_owned;
 @id("app.main") fn main()->i64 {answer()+1}
 fn private_helper()->i64 {answer()}
-fn bytes_consumer(input: borrow Slice<u8>)->usize {bytes_len_owned(bytes_copy(input))}
+fn bytes_consumer(input: own Bytes)->usize {bytes_len_owned(input)}
 "#,
             "consumer.spx",
         );
@@ -378,6 +457,56 @@ fn bytes_consumer(input: borrow Slice<u8>)->usize {bytes_len_owned(bytes_copy(in
             baseline_capsule_options: &self.capsule_options,
         }
     }
+}
+
+fn retarget_candidate_evidence(root: &Path, candidate: &ProjectCandidate, evidence: &mut Corpus) {
+    let candidate_source = candidate
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == PROVIDER_PATH)
+        .unwrap()
+        .source()
+        .to_owned();
+    let provider_path = root.join("migration-owner-provider.spx");
+    std::fs::write(&provider_path, &candidate_source).unwrap();
+    let provider_report =
+        package_report_v2::generate(&provider_path, &PackageReportV2Options::default()).unwrap();
+    let provider_source = evidence
+        .sources
+        .iter_mut()
+        .find(|source| source.package == "libmath")
+        .unwrap();
+    provider_source.source = candidate_source;
+    provider_source.report = provider_report;
+    let consumer_report = &evidence
+        .sources
+        .iter()
+        .find(|source| source.package == "app.main")
+        .unwrap()
+        .report;
+    let provider_report = &evidence
+        .sources
+        .iter()
+        .find(|source| source.package == "libmath")
+        .unwrap()
+        .report;
+    let consumer = Coordinate {
+        package: "app.main".into(),
+        version: "1.0.0".into(),
+    };
+    evidence.input.subjects = vec![
+        package_lock_v2::create_subject(&evidence.provider, provider_report, &[], &[]).unwrap(),
+        package_lock_v2::create_subject(
+            &consumer,
+            consumer_report,
+            std::slice::from_ref(&evidence.provider),
+            &[],
+        )
+        .unwrap(),
+    ];
+    evidence.evidence =
+        package_resolver::generate(&evidence.input, &evidence.resolution_options).unwrap();
 }
 
 fn report(candidate: &ProjectCandidate, corpus: &Corpus, target: &str) -> Value {

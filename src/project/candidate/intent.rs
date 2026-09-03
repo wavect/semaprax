@@ -62,6 +62,20 @@ pub(super) fn apply_detached_signature(
     signature::apply(None, programs, intent, owner, function_index)
 }
 
+/// Invocation-local reuse for a detached corpus whose provider bytes were
+/// independently bound to this authenticated Project revision. Owner-to-view
+/// authentication reads only the retained checked provider; the caller still
+/// owns rebuilding and replaying every detached source.
+pub(super) fn apply_detached_signature_with_revision(
+    revision: &crate::project::ProjectRevision,
+    programs: &mut [Program],
+    intent: &Value,
+    owner: usize,
+    function_index: usize,
+) -> Result<usize> {
+    signature::apply(Some(revision), programs, intent, owner, function_index)
+}
+
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
 pub(super) struct IntentSummary {

@@ -179,10 +179,10 @@ pub(crate) fn build_package_scalar_sources(
             || !module.function_instances.is_empty()
             || module.functions.iter().any(|function| {
                 !function.effects.is_empty()
-                    || function.params.iter().any(|parameter| {
-                        parameter.ownership != hir::OwnershipMode::Value
-                            || !hir::copy_scalar_type(&parameter.ty)
-                    })
+                    || function
+                        .params
+                        .iter()
+                        .any(|parameter| !package_parameter(parameter))
                     || !hir::copy_scalar_type(&function.return_type)
             })
         {
@@ -230,6 +230,24 @@ pub(crate) fn build_package_scalar_sources(
         imports,
         root_exports,
     })
+}
+
+fn package_parameter(parameter: &hir::ResolvedParam) -> bool {
+    matches!(
+        (&parameter.ty, parameter.ownership),
+        (
+            hir::ResolvedType::I64
+                | hir::ResolvedType::I32
+                | hir::ResolvedType::F32
+                | hir::ResolvedType::F64
+                | hir::ResolvedType::Bool
+                | hir::ResolvedType::Char
+                | hir::ResolvedType::U8
+                | hir::ResolvedType::Usize,
+            hir::OwnershipMode::Value
+        ) | (hir::ResolvedType::Bytes, hir::OwnershipMode::Own)
+            | (hir::ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
+    )
 }
 
 fn package_error(message: impl Into<String>) -> Diagnostic {

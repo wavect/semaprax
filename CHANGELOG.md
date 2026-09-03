@@ -33,9 +33,13 @@
   six agent types and six harness operations; compilation emits a deterministic
   digest-bound AgentGraph and derives a canonical Agent Runtime Profile v1 from
   structured model, tool, policy, and limit material. The fixture projection is
-  byte-identical to the frozen Runtime v1 known answer and executes through the unchanged
-  `Agent<H>` kernel. This adds no `.spx` syntax, generated proposal grammar,
-  transition execution, effects, durability, provider transport, or authority.
+  byte-identical to the frozen Runtime v1 known answer and executes through the
+  unchanged `Agent<H>` kernel. AgentGraph exposes model, context, proposal,
+  capability, effect, limit, terminal, and evidence contracts; represents the
+  opaque single-use authorization and `AgentStep` boundaries; and supports exact
+  definition/profile/graph bundle replay. This adds no `.spx` syntax, generated
+  proposal grammar, transition execution, effects, durability, provider
+  transport, or authority.
 
 - Added bounded, deterministic typo guidance for unknown CLI commands. The
   nearest unique command within edit distance one or two is suggested only

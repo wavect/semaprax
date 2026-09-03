@@ -128,7 +128,12 @@ AgentGraph is consumed directly by Runtime v2.
 ## AgentGraph v1
 
 The schema identity is `semaprax.agent-graph.v1`. The compiler emits compact
-canonical UTF-8 JSON with one terminal LF and a maximum size of 262,144 bytes.
+canonical UTF-8 JSON with one terminal LF and a maximum size of 1,572,864 bytes.
+That independent output cap is the 1,310,720-byte definition cap plus 262,144
+bytes of graph headroom. Stable identifiers occupy a fixed number of repeated
+slots and are individually limited to 240 bytes. The compiler still measures
+the completed graph and rejects `graph_bytes` above the cap; admission of the
+embedded Runtime v1 profile alone does not waive that output bound.
 Its ordered fields are:
 
 1. `schema`;
@@ -136,14 +141,26 @@ Its ordered fields are:
 3. `agent_id`;
 4. `types`;
 5. `operations`;
-6. `relationships`;
-7. `runtime_v1_profile_digest`; and
-8. `nonclaims`.
+6. `derived_types`;
+7. `relationships`;
+8. `model_contract`;
+9. `context_plan`;
+10. `proposal_contract`;
+11. `capability_manifest`;
+12. `effect_bindings`;
+13. `limits`;
+14. `approval_requirements`;
+15. `terminal_conditions`;
+16. `evidence_obligations`;
+17. `references`;
+18. `runtime_v1_profile_digest`; and
+19. `nonclaims`.
 
 The graph repeats the admitted stable type and operation nodes and derives the
 following fixed relationship sequence:
 
 ```text
+initialize CONSUMES Task
 initialize RETURNS State
 observe BORROWS State
 observe RETURNS Observation
@@ -151,17 +168,33 @@ propose BORROWS Observation
 propose RETURNS Proposal
 authorize BORROWS State
 authorize BORROWS Proposal
-execute CONSUMES Proposal
+authorize RETURNS Result<Authorized<Proposal>, Rejection>
+execute CONSUMES Authorized<Proposal>
 execute RETURNS Outcome
 reduce CONSUMES State
 reduce USES Proposal
 reduce USES Outcome
-reduce RETURNS Result
+reduce RETURNS AgentStep<State, Result>
 ```
 
-The current graph does not assert that the proposal is authorized. Opaque,
-single-use `Authorized<T>` semantics belong to a later runtime-consuming graph
-version and must not be inferred from this relationship list.
+Graph-local `@authorized_proposal`, `@rejection`, `@authorization_result`,
+`@suspension`, `@agent_failure`, and `@agent_step` nodes encode these structural
+wrapper types. `@agent_step` records the exact payloads of `continue(State)`,
+`complete(Result)`, `suspend(State, Suspension)`, and `fail(AgentFailure)`. `@`
+cannot occur in an authored stable identifier. The authorized proposal is
+explicitly opaque, runtime-minted, and single-use. Recording these boundaries
+does not yet implement token minting, consumption, suspension, or failure
+execution.
+
+The model contract projects required locality, minimum quality, required model
+capabilities, and the bounded v1 compatibility route. The context plan records
+the fixed task/objective/context ordering. The proposal contract exposes the
+closed v1 `final` and `tool` transport variants and allowed tools. Capabilities,
+complete read-only tool effect bindings, limits, terminal conditions, evidence
+schemas, and empty ProgramGraph/workspace/test/validation references are
+directly inspectable. Concrete model locality and quality attributes, tokenizer
+data, and price data remain deployment-like Profile v1 material bound by
+`runtime_v1_profile_digest`, not AgentGraph model semantics.
 
 ## Digests
 
@@ -174,9 +207,9 @@ AgentGraph:      "semaprax.agent-graph.digest.v1\0"
 Runtime profile: "semaprax.agent-runtime.profile-digest.v1\0"
 ```
 
-The graph binds both the exact definition and exact v1 profile. Reordering,
-renaming, changing an operation kind, or changing even escaped profile bytes
-therefore changes the corresponding identity.
+The graph binds both the exact definition and exact v1 profile. An admitted
+stable-ID rename changes the definition and graph identities. Invalid operation
+kinds are rejected rather than normalized into a different graph.
 
 ## Public Rust surface
 
@@ -187,6 +220,7 @@ let compiled = semaprax::agent_definition::compile_agent_definition(source)?;
 let definition = compiled.definition();
 let graph = compiled.graph();
 let profile = compiled.runtime_v1_profile();
+semaprax::agent_definition::verify_agent_graph_bundle(source, profile, graph.canonical_json())?;
 ```
 
 `AgentDefinition`, `AgentGraph`, and `CompiledAgentDefinition` expose only
@@ -200,7 +234,9 @@ authority.
 | Code | Meaning |
 | --- | --- |
 | `SPX-G501` | The definition is not canonical closed AgentDefinition v1 JSON. |
-| `SPX-G502` | A semantic identity, role, bound, agent/profile join, or embedded Profile v1 invariant failed. |
+| `SPX-G502` | A semantic identity, role, bound, or derived Profile v1 invariant failed. |
+| `SPX-G503` | Supplied AgentGraph bytes do not equal the independently recompiled graph. |
+| `SPX-G504` | Supplied Profile v1 bytes do not equal the independently recompiled projection. |
 
 Profile-specific rejection is intentionally collapsed into the stable
 `runtime_v1_profile` invariant at this boundary. Runtime v1 diagnostics remain
@@ -214,15 +250,21 @@ The `agent_runtime_v1` integration harness proves:
 - exact Runtime v1 profile byte and raw-digest preservation;
 - execution of the projection through the unchanged `Agent<H>` kernel;
 - stable rejection of noncanonical key order, incorrect stochastic/effect role,
-  and mismatched definition/profile identity; and
-- omission of concrete tokenizer/profile content from AgentGraph.
+  widened v1 effects, and cross-category identity collisions;
+- visible model, context, proposal, capability, effect, limit, terminal, and
+  evidence contracts while omitting concrete tokenizer/price content; and
+- exact bundle replay plus graph tamper, definition cross-pair, profile tamper,
+  and graph-capacity rejection;
+- synchronized graph/profile changes for locality and quality requirements,
+  capabilities, tool contracts, and limits; and
+- stable-ID-only graph evolution with byte-identical Runtime v1 profile output.
 
 The fixture known answers are:
 
 - AgentDefinition digest:
   `sha256:82ab9abbeca5e209c36224d9cab3b7b6a7cdffc3b2fce5db73123fa7425965a0`;
 - AgentGraph digest:
-  `sha256:04f1aa2c674a4b65b78504007e87686c3163aa9ef7cf46b2e845d3448d24024f`;
+  `sha256:0dc7ce1d50d43077042577cf6ac3dcfb5d2a744fb3acd2ca6cea12a6e296ff61`;
 - projected Runtime v1 profile raw SHA-256: the frozen Runtime v1 fixture value
   `sha256:14981ee99af965dcea311121a90cacfb9891a00d6365e7ad00cab8cefe69c01a`.
 

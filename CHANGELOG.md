@@ -68,13 +68,35 @@
   an ordinary non-native import that has no scalar calling convention. With no
   retained interfaces the linked program is identical to before.
 
-  This is not yet reachable end to end. `ScalarV1` Project admission derives
-  its target through the WebAssembly emitter, which rejects module permits,
-  interfaces, and native Rust imports by design. A Project carrying a callback
-  therefore still fails admission with `SPX-W115`, and a regression pins that
-  exact boundary rather than weakening it. Closing it needs a Project
-  admission route that does not compile through WebAssembly, which is a
-  profile decision this change deliberately does not make.
+  Project v1 admission no longer forces a callback program through the
+  WebAssembly emitter. A `ScalarV1` linked entry program that declares a
+  native Rust callback now takes a separate route that derives no target
+  bytes and no scalar WIT descriptor. It proves instead, under the new
+  `SPX-J117`, that every selected export names an explicitly identified
+  monomorphic function, that the selected identities are in canonical
+  manifest order without duplicates, that each has at most eight value-mode
+  `i64`/`bool` parameters and an `i64`/`bool` result, and that every declared
+  effect is granted by a declared callback. A program with no callback keeps
+  the previous WebAssembly scalar-export path and its exact bytes.
+
+  The no-Web-target boundary is retained rather than widened. WebAssembly
+  still rejects native Rust imports (`SPX-W114`), the ordinary native backend
+  still cannot lower a callback call site, and the public scalar WIT accessor
+  still fails closed with `SPX-J105` because no descriptor exists. The only
+  consumer of such a Project is the generated C and safe Rust bridge that the
+  SDK builder renders from linked HIR; regressions pin both the admission and
+  the still-closed Wasm target.
+
+  With that route in place the authenticated Project SDK is bidirectional end
+  to end: `semaprax-native-rust-sdk project` on a Project declaring a callback
+  publishes a package whose generated facade carries both the selected
+  SEMAPRAX export and the Rust callback trait method, and a Rust consumer
+  built against it completed the round trip Rust caller → `callback.apply` →
+  SEMAPRAX → Rust callback → scalar result, with a declared-status failure
+  surfacing its exact domain. That evidence is local, single-host,
+  current-head only, on one macOS `aarch64-apple-darwin` machine. It promotes
+  nothing, there is no hosted three-host run for it, and the builder crate and
+  generated packages remain unpublished.
 
 - Added one host-selected, session-scoped candidate-test task with deterministic
   queued start, cooperative evaluator cancellation, sticky terminal outcomes,

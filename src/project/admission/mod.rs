@@ -7,6 +7,7 @@
 
 mod flat_record;
 mod legacy;
+mod native_callback;
 mod owned;
 
 #[cfg(test)]
@@ -27,6 +28,9 @@ use super::{
 /// treating them as semantic input.
 pub(super) enum PreparedProjectAdmission {
     ScalarV1(Box<ScalarWitInterfaceArtifactV1>),
+    /// A Project v1 closure that declares a Native Rust callback. It has no
+    /// Web target and therefore no scalar WIT descriptor.
+    ScalarNativeCallbackV1,
     UsefulTextConsumerV1,
     UsefulDataV1,
     UsefulDataCommandV1,
@@ -41,7 +45,7 @@ pub(super) enum PreparedProjectAdmission {
 impl PreparedProjectAdmission {
     pub(super) fn profile(&self) -> ProjectProfile {
         match self {
-            Self::ScalarV1(_descriptor) => ProjectProfile::ScalarV1,
+            Self::ScalarV1(_) | Self::ScalarNativeCallbackV1 => ProjectProfile::ScalarV1,
             Self::UsefulTextConsumerV1 => ProjectProfile::UsefulTextConsumerV1,
             Self::UsefulDataV1 => ProjectProfile::UsefulDataV1,
             Self::UsefulDataCommandV1 => ProjectProfile::UsefulDataCommandV1,
@@ -87,6 +91,10 @@ pub(super) fn prepare(
     subject: PublicApiSubject<'_>,
 ) -> Result<PreparedProjectAdmission, Diagnostic> {
     match manifest.project_profile() {
+        ProjectProfile::ScalarV1 if native_callback::declares_callback(program) => {
+            native_callback::prepare(program, manifest.web_exports())?;
+            Ok(PreparedProjectAdmission::ScalarNativeCallbackV1)
+        }
         ProjectProfile::ScalarV1 => {
             legacy::scalar(program, manifest.web_exports())?;
             let scalar_subject = super::scalar_wit::ScalarWitSubject {

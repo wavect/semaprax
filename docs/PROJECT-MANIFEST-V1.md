@@ -81,12 +81,27 @@ because linkage and calls use stable IDs. The linker reconstructs cleanup
 inventory and cleanup plans over each linked closure and finally validates HIR
 before any backend is invoked.
 
-Retaining a callback is a semantic admission only. Project v1 target admission
-still derives the scalar Web module, which admits neither module permits nor
-interfaces, so a Project that declares a callback has no admitted target and
-fails with `SPX-W115` before any artifact exists. Giving it one needs a Project
-admission route that does not compile through WebAssembly, which this version
-does not define.
+A Project v1 entry closure that declares a Native Rust callback is admitted
+through a separate route that derives no target at all. WebAssembly rejects
+native Rust imports (`SPX-W114`) and the ordinary native backend cannot lower a
+callback call site, so such a Project has no Web target and no scalar Web
+module. Its admission instead proves, under `SPX-J117`, that every selected
+export names an explicitly identified monomorphic function, that the selected
+identities are in canonical manifest order with no duplicate, that each has at
+most eight by-value `i64`/`bool` parameters and an `i64`/`bool` result, and
+that every effect it declares is granted by a declared callback. A Project that
+declares no callback keeps the previous route unchanged: the scalar Web module
+is still emitted and admitted, byte for byte.
+
+Because no Web artifact exists for this shape, that admission derives no scalar
+WIT descriptor, and the public scalar WIT accessor fails closed with
+`SPX-J105`. The manifest field is still spelled `web_exports`. For a callback
+Project it names the exported functions selected for the generated Rust SDK
+even though the Project has no Web target; the field name is frozen v1 grammar
+while its meaning now depends on the admitted route, which is a wart rather
+than a claim of Web support. The only consumer of such a Project is the
+generated C and safe Rust bridge that the Native Rust SDK builder renders from
+the linked HIR.
 
 ## CLI and artifacts
 
@@ -173,6 +188,7 @@ output with the current inputs and must never delete it automatically.
 | `SPX-J101` | A bounded Project v1 input limit was exceeded. |
 | `SPX-J102` | Authentication or pre-publication held-input drift rejection. |
 | `SPX-J103` | Post-publication held-input drift; reconcile the retained complete package, never delete it automatically. |
+| `SPX-J117` | Native Rust callback admission rejected a selection, signature, identity, ordering, or ungranted effect. |
 | `SPX-F106` | Project execution report verification rejected noncanonical, confused, out-of-bounds, or digest-invalid bytes. |
 
 ## Evidence and nonclaims

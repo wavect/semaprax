@@ -648,6 +648,37 @@ entrypoint, callable/resource/component admission, stable ABI, or CleanupPlan
 v4 claim. The separately gated exact private Component v9 profile does not
 broaden that Graph migration into general/public Component admission.
 
+## Graph v24 to v25 for native Rust import declarations
+
+Any program declaring an `import rust fn` selects `semaprax.graph.v25`. The
+selection predicate reads declarations rather than call sites, so a declared
+but uncalled import still selects the schema that can represent its result
+type. No earlier schema can represent such a declaration, so every program
+without one keeps the schema it already selected and its previously emitted
+bytes; the golden snapshots and every frozen digest are unchanged. Consumers
+must inspect the declared `schema` field rather than assume the v10-v24
+lattice, and must not relabel a v25 projection as an earlier schema.
+
+The module Graph projects the declaration with its real result type: an import
+node's `result.type` was previously always `"unit"` and now carries the
+declared `unit`, `i64`, or `bool` spelling, which is unchanged for the
+ordinary unit-result imports of every earlier schema. Only v25 appends the
+additive `native_rust` boolean marker to an import node; earlier schemas close
+the node exactly as before. A call projects as a `native_rust_import_call`
+node carrying the import identity, result type, and arguments, mirroring the
+existing `host_command_call` shape. `ResolvedType::Unit` gains a projection
+because a unit-result import can now reach it, and the workspace and Project
+graphs represent these declarations as well.
+
+The projections that omit import nodes by construction stay closed and say so
+with `SPX-G218`: agent context, review, impact, and target evidence would drop
+authenticated meaning rather than represent it. Patch and evidence flows are
+unchanged and remain fail-closed, because their verifiers authenticate only
+`semaprax.graph.v10`-`v14`; v25 is outside that admission like every schema
+above v14. This migration adds no CleanupPlan schema, admitted WebAssembly or
+callable target, or public ABI. WebAssembly still rejects native Rust imports
+(`SPX-W114`) and ordinary callable routes remain closed by `SPX-B104`.
+
 ## Internal variant-layout digest v1 to v2
 
 The compiler-internal Native64/Wasm32 variant-layout digest now uses the exact

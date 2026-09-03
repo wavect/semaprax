@@ -60,26 +60,51 @@ fn fixture() -> Fixture {
     Fixture(root.canonicalize().unwrap())
 }
 
-// The scalar workspace linker now retains the callback interface, but Project
-// v1 admission still derives its target through the Public Scalar Export
-// Profile v1 WebAssembly emitter, which admits neither module permits nor
-// interfaces (`SPX-W115`) and rejects Native Rust imports outright
-// (`SPX-W114`). Those are WebAssembly target rules and stay closed; a
-// bidirectional Rust SDK needs Project v1 admission to select a non-WebAssembly
-// route for a native-callback program. This test pins that exact boundary, so
-// the day the route exists the failure it records changes here first.
+// Project v1 admission proves a callback closure without deriving any target.
+// WebAssembly rejects Native Rust imports and the ordinary native backend
+// cannot lower a callback call site, so such a Project has no Web target and
+// no scalar WIT descriptor; its only consumer is the generated C and safe Rust
+// bridge the SDK builder renders from linked HIR.
 #[test]
-fn scalar_project_native_rust_callback_reaches_the_wasm_target_admission_gate() {
+fn scalar_project_native_rust_callback_is_admitted_and_retains_its_interface() {
     let fixture = fixture();
-    let error = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
-        snapshot.with_authenticated_native_rust_sdk_subject(|subject| {
-            Ok(subject.program().interfaces.len())
+    let (interfaces, imports, exports) =
+        with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+            snapshot.with_authenticated_native_rust_sdk_subject(|subject| {
+                let program = subject.program();
+                let imports = program
+                    .interfaces
+                    .iter()
+                    .flat_map(|interface| &interface.imports)
+                    .filter(|import| import.native_rust)
+                    .map(|import| import.id.as_str().to_owned())
+                    .collect::<Vec<_>>();
+                let exports = subject
+                    .exports()
+                    .iter()
+                    .map(|export| export.stable_id().to_owned())
+                    .collect::<Vec<_>>();
+                Ok((program.interfaces.len(), imports, exports))
+            })
         })
-    })
-    .expect_err("Project v1 admission still emits a WebAssembly scalar-export module");
-    assert_eq!(error[0].code, "SPX-W115");
+        .expect("a declared Native Rust callback is admitted without a Web target");
+
+    assert_eq!(interfaces, 1);
+    assert_eq!(imports, ["callback.host.adjust"]);
+    assert_eq!(exports, ["callback.apply"]);
+}
+
+// The Web target stays closed for exactly the same program, so admitting the
+// callback never silently promises a WebAssembly artifact.
+#[test]
+fn the_same_callback_program_is_still_refused_by_the_wasm_target() {
+    let fixture = fixture();
+    let source = std::fs::read_to_string(fixture.0.join("src/app.spx")).unwrap();
+    let program = semaprax::parse(&source, Path::new("src/app.spx")).unwrap();
+    let error = semaprax::wasm::emit_module(&program).unwrap_err();
+    assert_eq!(error.code, "SPX-W114");
     assert_eq!(
-        error[0].message,
-        "Public Scalar Export Profile v1 does not admit module permits"
+        error.message,
+        "Native Rust imports are unavailable for WebAssembly targets"
     );
 }

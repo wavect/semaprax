@@ -19,10 +19,12 @@ Run 33608662244 is release evidence for the exact Phase-C surface at that tag;
 it does not publish the builder or promote later Project-v8/v9/v10 packages.
 
 Native Rust Interoperability v1 is an additive, current-host, scalar bridge. It
-does not change callable v2/v3, the native loader or host, Graph schemas, Wasm,
-`SPX-B104`, or any existing wire/KAT. Its admitted round trip is safe generated
-Rust caller → selected SEMAPRAX export → selected Rust-import callback → scalar
-result. It never detours through Wasm or a dynamic library.
+does not change callable v2/v3, the native loader or host, Wasm, `SPX-B104`, or
+any existing wire/KAT; the additive `semaprax.graph.v25` projection that a
+declared import selects leaves every earlier Graph schema's selection and bytes
+unchanged. Its admitted round trip is safe generated Rust caller → selected
+SEMAPRAX export → selected Rust-import callback → scalar result. It never
+detours through Wasm or a dynamic library.
 
 ## Source and semantic admission
 
@@ -44,9 +46,11 @@ domains are closed, and calls retain the distinct HIR kind
 non-entry, monomorphic scalar functions whose result is `i64` or `bool`; `unit`
 is admitted only as a Rust-import result. Their acyclic transitive closure is at
 most 256 functions and may reach only selected Rust imports. Calls from a
-contract, including through a helper, are rejected. Graph-derived routes reject
-`SPX-G218`; Wasm rejects `SPX-W114`; ordinary callable routes remain closed by
-`SPX-B104`.
+contract, including through a helper, are rejected. The agent context, review,
+impact, and target-evidence projections still reject `SPX-G218` because each
+omits import nodes by construction; the module Graph and the workspace/Project
+graph represent these declarations under `semaprax.graph.v25`. Wasm rejects
+`SPX-W114`; ordinary callable routes remain closed by `SPX-B104`.
 
 ## Canonical documents and digests
 
@@ -359,9 +363,38 @@ workspace, subject, and changed-source revisions to change; it deliberately
 does not claim whole-package byte equality across a semantic source rename.
 Hosted Ubuntu/macOS/Windows promotion is satisfied by the blocking Project
 Product Acceptance jobs in the exact run cited above. This entry point adds no
-root or installed/public CLI, registry, dependency, general Project SDK, capability, import,
-aggregate, resource, or publication-path claim beyond the existing bounded
-builder output.
+root or installed/public CLI, registry, dependency, general Project SDK,
+capability, aggregate, resource, or publication-path claim beyond the existing
+bounded builder output. It does now carry an import selection, described next.
+
+The Project route is no longer export-only. The subject's `imports` are the
+sorted native Rust imports declared by the authenticated entry program, and its
+`capabilities` are the sorted union of those imports' declared effects. Both
+render as `[]` when there are none, so an import-free Project's subject bytes
+are unchanged. Phase A independently re-derives the reached import set and
+still rejects any disagreement. The `capabilities` row names the effects the
+selected imports declare; it grants no host capability and is not a deployment
+or authority fact.
+
+Project v1 admission routes a linked entry program that declares a callback
+away from the WebAssembly scalar-export emitter and admits it under `SPX-J117`
+without deriving any target bytes or scalar WIT descriptor. Such a Project has
+no Web target: Wasm still rejects native Rust imports with `SPX-W114`, the
+ordinary native backend cannot lower a callback call site, and the public
+scalar WIT accessor fails closed with the existing `SPX-J105`. Its only
+consumer is the generated C and safe Rust bridge rendered from linked HIR.
+`semaprax-native-rust-sdk project --manifest-path <path> --output <path>` on
+such a Project publishes a generated package whose facade carries both the
+selected SEMAPRAX export and the Rust callback trait method, and a locally
+built Rust consumer completed the round trip Rust caller → SEMAPRAX export →
+Rust callback → scalar result, including a declared-status failure surfacing
+with its exact domain.
+
+That bidirectional Project evidence is local, single-host, current-head only:
+one macOS `aarch64-apple-darwin` machine. There is no hosted three-host run for
+it, it promotes nothing, and the builder crate and every generated package
+remain unpublished. The hosted runs cited above cover the earlier export-only
+Project surface at their exact tag, not this route.
 
 ## Diagnostics and nonclaims
 

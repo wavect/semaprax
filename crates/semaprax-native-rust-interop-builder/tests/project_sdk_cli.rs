@@ -324,3 +324,86 @@ fn configured_effectful_project_build_emits_one_canonical_result() {
     }
     assert!(output.join("semaprax.native-rust-sdk.json").is_file());
 }
+
+const CALLBACK_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"callback\"\nentry = \"callback.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"callback.apply\"]\ntests = [\"callback.tests\"]\n";
+
+const CALLBACK_APP: &str = r#"
+module callback.app;
+
+permit { host.adjust }
+
+@id("callback.host")
+interface CallbackHost permits { host.adjust } {
+    @id("callback.host.adjust")
+    import rust fn adjust(value: i64) -> i64
+        effects { host.adjust }
+        failure status "callback.host.v1";
+}
+
+@id("callback.apply")
+fn apply(left: i64, right: i64) -> i64 uses { host.adjust } { adjust(left + right) }
+
+@id("callback.main")
+fn main() -> i64 uses { host.adjust } { apply(19, 23) }
+"#;
+
+const CALLBACK_TESTS: &str =
+    "module callback.tests;\n\n@id(\"callback.tests.main\")\nfn main() -> i64 { 0 }\n";
+
+/// The Project route is bidirectional: a Project declaring an `import rust fn`
+/// publishes a package whose generated surface carries both the selected
+/// SEMAPRAX export a Rust caller invokes and the Rust callback the export
+/// calls back into.
+#[test]
+fn configured_effectful_project_build_publishes_both_call_directions() {
+    if !effectful_tools_available() {
+        return;
+    }
+    let root = TestRoot::new();
+    let project = root.0.join("project");
+    fs::create_dir_all(project.join("src")).unwrap();
+    fs::write(project.join("semaprax.toml"), CALLBACK_MANIFEST).unwrap();
+    for (relative, source) in [
+        ("src/app.spx", CALLBACK_APP),
+        ("src/tests.spx", CALLBACK_TESTS),
+    ] {
+        let program = semaprax::parse(source, Path::new(relative)).unwrap();
+        fs::write(
+            project.join(relative),
+            semaprax::format::canonical(&program),
+        )
+        .unwrap();
+    }
+
+    let output = root.0.join("generated-sdk");
+    let result = binary()
+        .args(["project", "--manifest-path"])
+        .arg(project.join("semaprax.toml"))
+        .arg("--output")
+        .arg(&output)
+        .output()
+        .unwrap();
+    assert!(result.status.success(), "{}", stderr(&result));
+
+    // Both directions reach the published package.
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(output.join("semaprax.native-rust-sdk.json")).unwrap())
+            .unwrap();
+    let exports = manifest["exports"].as_array().unwrap();
+    let imports = manifest["imports"].as_array().unwrap();
+    assert_eq!(exports.len(), 1);
+    assert_eq!(exports[0]["id"], "callback.apply");
+    assert_eq!(imports.len(), 1);
+    assert_eq!(imports[0]["id"], "callback.host.adjust");
+    assert_eq!(imports[0]["failure"]["domain_id"], "callback.host.v1");
+
+    let facade = fs::read_to_string(output.join("src/lib.rs")).unwrap();
+    assert!(
+        facade.contains("fn spx_callback_dot_host_dot_adjust"),
+        "the generated host trait lost the Rust callback"
+    );
+    assert!(
+        facade.contains("pub fn spx_callback_dot_apply"),
+        "the generated facade lost the SEMAPRAX export"
+    );
+}

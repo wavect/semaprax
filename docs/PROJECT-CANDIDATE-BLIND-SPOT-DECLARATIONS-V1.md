@@ -22,10 +22,13 @@ other area rows. Only the area owned by the declaration changes to `partial`.
 The embedded declaration retains its canonical bytes and digest so another
 reader can replay the exact caller statement.
 
-These are library-only surfaces at this source head. They add no Project Agent
-Transport v5 method, schema catalogue entry, generated client method, MCP tool,
-parallel read, or editor command. The existing deployment-contract protocol is
-a separate attachment and does not expose either declaration below.
+Project Agent Transport v5 exposes both attachments as `candidate_prepare`
+queries with exact image/candidate selectors, canonical declaration text and
+its digest. Responses regenerate the report and return bounded UTF-8 chunks
+with a stable whole-report digest. Their closed chunk schemas feed the existing
+TypeScript, Python and Rust client generator and MCP catalogue. The methods are
+not admitted to parallel reads and add no editor command. These protocol and
+client surfaces are authored/unrun at this source head.
 
 ## Generated-file provenance
 
@@ -92,6 +95,6 @@ generator identities, stale source bindings, and declaration digest changes.
 External API cases cover complete manifest scope, an explicit stable subset,
 incomplete manifest coverage, unknown exports, and an attempted URL field.
 
-The regressions are authored and unrun. No test, target, provider, network,
-runtime, filesystem, protocol, generated-client, MCP, editor, or quality-gate
+The regressions are authored and unrun. No test, generated-client, MCP, target,
+provider, network, runtime, filesystem, editor, or quality-gate execution
 evidence is claimed.

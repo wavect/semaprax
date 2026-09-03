@@ -11,10 +11,13 @@ const GENERATED_METHOD: &str = "candidate/analysis-generated-file-provenance-evi
 const EXTERNAL_METHOD: &str = "candidate/analysis-external-api-contract-evidence";
 const BUNDLE_METHOD: &str = "candidate/analysis-boundary-bundle";
 const ENVIRONMENT_METHOD: &str = "candidate/environment-aware-review";
+const EXTERNAL_DELTA_METHOD: &str = "candidate/external-api-contract-delta";
 const GENERATED_DECLARATION: &str =
     "semaprax.project-candidate-generated-file-provenance-declaration.v1";
 const EXTERNAL_DECLARATION: &str =
     "semaprax.project-candidate-external-api-contract-declaration.v1";
+const EXTERNAL_BASE_DECLARATION: &str =
+    "semaprax.project-candidate-external-api-contract-base-declaration.v1";
 const GENERATED_REPORT: &str = "semaprax.project-candidate-generated-file-provenance-evidence.v1";
 const EXTERNAL_REPORT: &str = "semaprax.project-candidate-external-api-contract-evidence.v1";
 const GENERATED_CHUNK: &str =
@@ -25,6 +28,8 @@ const BUNDLE_REPORT: &str = "semaprax.project-candidate-analysis-boundary-bundle
 const BUNDLE_CHUNK: &str = "semaprax.image-candidate-analysis-boundary-bundle-report-chunk.v1";
 const ENVIRONMENT_REPORT: &str = "semaprax.project-candidate-environment-aware-review.v1";
 const ENVIRONMENT_CHUNK: &str = "semaprax.image-candidate-environment-aware-review-chunk.v1";
+const EXTERNAL_DELTA_REPORT: &str = "semaprax.project-candidate-external-api-contract-delta.v1";
+const EXTERNAL_DELTA_CHUNK: &str = "semaprax.image-candidate-external-api-contract-delta-chunk.v1";
 const FILES: [&str; 4] = [
     "semaprax.toml",
     "src/app.spx",
@@ -102,6 +107,7 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
         EXTERNAL_METHOD,
         BUNDLE_METHOD,
         ENVIRONMENT_METHOD,
+        EXTERNAL_DELTA_METHOD,
     ] {
         assert_eq!(
             call(&mut unavailable, method, json!({}))["error"]["code"],
@@ -150,9 +156,18 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
             "schema":EXTERNAL_DECLARATION,
             "candidate_revision":candidate,
             "scope":{"kind":"manifest_exports"},
-            "operations":operations
+            "operations":operations.clone()
         }),
         b"semaprax.project-candidate-external-api-contract-declaration.v1\0",
+    );
+    let (external_base, external_base_digest) = canonical(
+        json!({
+            "schema":EXTERNAL_BASE_DECLARATION,
+            "base_project_revision":coverage["base_project_revision"],
+            "scope":{"kind":"manifest_exports"},
+            "operations":operations
+        }),
+        b"semaprax.project-candidate-external-api-contract-base-declaration.v1\0",
     );
     let (deployment, deployment_digest) = canonical(
         json!({
@@ -293,6 +308,107 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
     }
     assert_eq!(environment["semantic_compatibility"], "not_assessed");
 
+    assert!(!session
+        .parallel_read_methods()
+        .contains(&EXTERNAL_DELTA_METHOD));
+    let parallel_frame = json!({
+        "jsonrpc":"2.0",
+        "id":"delta-parallel",
+        "method":EXTERNAL_DELTA_METHOD,
+        "params":{
+            "image_revision":session.image_revision(),
+            "candidate_revision":candidate,
+            "base_declaration":external_base,
+            "base_declaration_digest":external_base_digest,
+            "candidate_declaration":external,
+            "candidate_declaration_digest":external_digest,
+        }
+    })
+    .to_string()
+    .into_bytes();
+    let parallel = session
+        .handle_read_batch(&[parallel_frame.as_slice()], 1)
+        .unwrap();
+    let parallel: Value = serde_json::from_slice(parallel[0].as_ref().unwrap()).unwrap();
+    assert_eq!(parallel["error"]["code"], -32601);
+    let mut delta_bytes = String::new();
+    let mut delta_offset = 0usize;
+    let mut delta_chunks = 0usize;
+    let mut delta_report_digest = None;
+    loop {
+        let chunk = payload(call(
+            &mut session,
+            EXTERNAL_DELTA_METHOD,
+            json!({
+                "candidate_revision":candidate,
+                "base_declaration":external_base,
+                "base_declaration_digest":external_base_digest,
+                "candidate_declaration":external,
+                "candidate_declaration_digest":external_digest,
+                "offset":delta_offset,
+                "chunk_bytes":1024
+            }),
+        ));
+        assert_eq!(chunk["schema"], EXTERNAL_DELTA_CHUNK);
+        assert_eq!(chunk["report_schema"], EXTERNAL_DELTA_REPORT);
+        assert_eq!(chunk["candidate_revision"], candidate);
+        assert_eq!(chunk["base_declaration_digest"], external_base_digest);
+        assert_eq!(chunk["candidate_declaration_digest"], external_digest);
+        assert_eq!(chunk["offset"], delta_offset);
+        assert_eq!(chunk["compatibility"], "not_assessed");
+        assert_eq!(
+            chunk["comparison_scope"],
+            "caller_declared_export_identity_operation_digest_and_schema_digest_inventory_only"
+        );
+        for field in [
+            "source_authority",
+            "external_io",
+            "filesystem_authority",
+            "process_authority",
+            "network_observation",
+            "network_authority",
+            "provider_observation",
+            "runtime_observation",
+            "version_evidence",
+            "conformance_evidence",
+            "consumer_evidence",
+            "ambient_authority",
+            "publication_authority",
+            "deployment_authority",
+        ] {
+            assert_eq!(chunk[field], false);
+        }
+        let digest = chunk["report_sha256"].as_str().unwrap().to_owned();
+        assert_eq!(delta_report_digest.get_or_insert(digest.clone()), &digest);
+        delta_bytes.push_str(chunk["chunk"].as_str().unwrap());
+        delta_chunks += 1;
+        match chunk["next_offset"].as_u64() {
+            Some(next) => {
+                assert!(next as usize > delta_offset);
+                delta_offset = next as usize;
+            }
+            None => {
+                assert_eq!(
+                    delta_bytes.len(),
+                    chunk["total_bytes"].as_u64().unwrap() as usize
+                );
+                break;
+            }
+        }
+    }
+    assert!(delta_chunks > 1);
+    let delta: Value = serde_json::from_str(&delta_bytes).unwrap();
+    assert_eq!(delta["schema"], EXTERNAL_DELTA_REPORT);
+    assert_eq!(delta["compatibility"], "not_assessed");
+    assert_eq!(delta["inventory"]["changed"], 0);
+    assert_eq!(
+        delta["inventory"]["unchanged"],
+        coverage["manifest"]["web_exports"]
+            .as_array()
+            .unwrap()
+            .len()
+    );
+
     let schemas = payload(call(&mut session, "protocol/schemas", json!({})));
     for (method, chunk_schema, report_schema, max) in [
         (GENERATED_METHOD, GENERATED_CHUNK, GENERATED_REPORT, 65536),
@@ -372,6 +488,44 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
         .as_array()
         .unwrap()
         .contains(&json!(format!("urn:{ENVIRONMENT_REPORT}"))));
+    let descriptor = schemas["methods"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["method"] == EXTERNAL_DELTA_METHOD)
+        .unwrap();
+    assert_eq!(descriptor["capability"], "candidate_prepare");
+    let params = &descriptor["request_schema"]["properties"]["params"];
+    assert_eq!(params["additionalProperties"], false);
+    assert_eq!(params["properties"].as_object().unwrap().len(), 8);
+    assert_eq!(
+        params["properties"]["base_declaration"]["maxLength"],
+        131072
+    );
+    assert_eq!(
+        params["properties"]["candidate_declaration"]["maxLength"],
+        131072
+    );
+    assert_eq!(params["properties"]["offset"]["maximum"], 2 * 1024 * 1024);
+    let document = schemas["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["$id"] == format!("urn:{EXTERNAL_DELTA_CHUNK}"))
+        .unwrap();
+    assert_eq!(document["additionalProperties"], false);
+    assert_eq!(
+        document["properties"]["report_schema"]["const"],
+        EXTERNAL_DELTA_REPORT
+    );
+    assert_eq!(
+        document["properties"]["compatibility"]["const"],
+        "not_assessed"
+    );
+    assert!(schemas["unbundled_payload_schemas"]
+        .as_array()
+        .unwrap()
+        .contains(&json!(format!("urn:{EXTERNAL_DELTA_REPORT}"))));
     for language in ["typescript", "python", "rust"] {
         let client = payload(call(
             &mut session,
@@ -384,6 +538,7 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
             "candidate_analysis_external_api_contract_evidence",
             "candidate_analysis_boundary_bundle",
             "candidate_environment_aware_review",
+            "candidate_external_api_contract_delta",
         ] {
             assert!(source.contains(&format!("request_{name}")));
             assert!(source.contains(&format!("decode_request_{name}")));
@@ -396,6 +551,7 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
     mcp.handle_frame(initialize.to_string().as_bytes()).unwrap();
     mcp.handle_frame(br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#);
     let mut names = Vec::new();
+    let mut external_delta_tool = None;
     let mut cursor = None;
     loop {
         let request = json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":
@@ -403,13 +559,13 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
         let page: Value =
             serde_json::from_slice(&mcp.handle_frame(request.to_string().as_bytes()).unwrap())
                 .unwrap();
-        names.extend(
-            page["result"]["tools"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|tool| tool["name"].as_str().unwrap().to_owned()),
-        );
+        for tool in page["result"]["tools"].as_array().unwrap() {
+            let name = tool["name"].as_str().unwrap().to_owned();
+            if name == "candidate__external-api-contract-delta" {
+                external_delta_tool = Some(tool.clone());
+            }
+            names.push(name);
+        }
         cursor = page["result"]["nextCursor"].as_str().map(str::to_owned);
         if cursor.is_none() {
             break;
@@ -419,6 +575,15 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
     assert!(names.contains(&"candidate__analysis-external-api-contract-evidence".to_owned()));
     assert!(names.contains(&"candidate__analysis-boundary-bundle".to_owned()));
     assert!(names.contains(&"candidate__environment-aware-review".to_owned()));
+    assert!(names.contains(&"candidate__external-api-contract-delta".to_owned()));
+    let input = &external_delta_tool.unwrap()["inputSchema"];
+    assert_eq!(input["additionalProperties"], false);
+    assert_eq!(input["properties"].as_object().unwrap().len(), 8);
+    assert_eq!(input["properties"]["base_declaration"]["maxLength"], 131072);
+    assert_eq!(
+        input["properties"]["candidate_declaration"]["maxLength"],
+        131072
+    );
     mcp.finish().unwrap();
     session.finish().unwrap();
 }

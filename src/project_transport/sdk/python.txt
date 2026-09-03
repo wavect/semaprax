@@ -1,0 +1,31 @@
+# Generated SEMAPRAX Transport v6 codec. Caller owns all I/O and process plumbing.
+import json,re
+DISCOVERY=json.loads(__DISCOVERY__)
+PROFILES={p['project_schema']:p for p in DISCOVERY['profiles']}
+def _keys(value, expected):
+    if type(value) is not dict or set(value)!=set(expected): raise ValueError('closed object mismatch')
+def _id(value):
+    if type(value) not in (str,int) or type(value) is bool or (type(value) is int and (value<0 or value>9007199254740991)) or (type(value) is str and (not value or len(value.encode())>128)): raise ValueError('invalid id')
+def _request(request_id,method,params):
+    _id(request_id); line=json.dumps({'jsonrpc':'2.0','id':request_id,'method':method,'params':params},separators=(',',':'))
+    if len(line.encode())>1048576: raise ValueError('request bound')
+    return line+'\n'
+def _subject(value):
+    _keys(value,['project_revision','workspace_revision'])
+    if any(re.fullmatch(r'sha256:[0-9a-f]{64}',value[key]) is None for key in value): raise ValueError('subject revision')
+def describe(request_id,subject): _subject(subject); return _request(request_id,'project/api-describe',subject)
+def build_inline(request_id,subject,max_bytes=None):
+    _subject(subject)
+    if max_bytes is not None and (type(max_bytes) is not int or max_bytes<1 or max_bytes>41943040): raise ValueError('carrier bound')
+    params=dict(subject)
+    if max_bytes is not None: params['max_bytes']=max_bytes
+    return _request(request_id,'project/npm-build-inline',params)
+def decode(line,request_id,with_build=False):
+    if len(line.encode())>16777216: raise ValueError('response bound')
+    envelope=json.loads(line); _keys(envelope,['jsonrpc','id','result'])
+    if envelope['jsonrpc']!='2.0' or envelope['id']!=request_id: raise ValueError('response binding')
+    result=envelope['result']; fields=['project_schema','descriptor_schema','carrier_schema','descriptor','descriptor_digest']+(['build'] if with_build else []); _keys(result,fields)
+    profile=PROFILES.get(result['project_schema']); descriptor=result['descriptor']
+    if profile is None or result['descriptor_schema']!=profile['descriptor_schema'] or result['carrier_schema']!=profile['carrier_schema'] or re.fullmatch(r'sha256:[0-9a-f]{64}',result['descriptor_digest']) is None or type(descriptor) is not dict or descriptor.get('schema')!=profile['descriptor_schema'] or descriptor.get('project_schema')!=profile['project_schema']: raise ValueError('profile binding')
+    if with_build and (type(result['build']) is not dict or result['build'].get('schema')!=profile['carrier_schema']): raise ValueError('carrier binding')
+    return result

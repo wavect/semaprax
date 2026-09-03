@@ -1,0 +1,17 @@
+[package]
+name = "semaprax-doctor-capsule"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+description = "Pure canonical codec for release-signed SEMAPRAX doctor capsules"
+license = "Apache-2.0"
+
+[dependencies]
+ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["std"] }
+
+[lints.rust]
+unsafe_code = "forbid"

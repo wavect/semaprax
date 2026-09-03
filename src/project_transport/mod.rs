@@ -7,7 +7,13 @@
 pub(crate) mod codec;
 mod config;
 pub(crate) mod framing;
+mod sdk;
 mod session;
+
+pub use sdk::{
+    generate_project_public_api_transport_client, project_public_api_transport_discovery,
+    ProjectTransportClientLanguage, PROJECT_PUBLIC_API_DISCOVERY_SCHEMA,
+};
 
 use std::ffi::OsString;
 

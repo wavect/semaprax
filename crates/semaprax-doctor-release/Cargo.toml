@@ -1,0 +1,20 @@
+[package]
+name = "semaprax-doctor-release"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+description = "Deterministic offline SEMAPRAX doctor release capsule signer"
+license = "Apache-2.0"
+
+[dependencies]
+ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["std"] }
+semaprax-doctor-capsule = { version = "=0.1.0", path = "../semaprax-doctor-capsule" }
+serde_json = "=1.0.151"
+sha2 = "=0.11.0"
+
+[target.'cfg(unix)'.dependencies]
+libc = "=0.2.189"
+
+[lints.rust]
+unsafe_code = "forbid"

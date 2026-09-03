@@ -425,12 +425,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "semaprax-doctor-capsule"
+version = "0.1.0"
+dependencies = [
+ "ed25519-dalek",
+]
+
+[[package]]
 name = "semaprax-doctor-collector"
 version = "0.1.0"
 dependencies = [
  "libc",
  "semaprax-native-rust-interop-platform-sys",
  "semaprax-toolchain",
+ "sha2 0.11.0",
+]
+
+[[package]]
+name = "semaprax-doctor-release"
+version = "0.1.0"
+dependencies = [
+ "ed25519-dalek",
+ "semaprax-doctor-capsule",
+ "serde_json",
  "sha2 0.11.0",
 ]
 
@@ -474,8 +491,8 @@ dependencies = [
 name = "semaprax-native-rust-interop-platform-sys"
 version = "0.1.0"
 dependencies = [
- "ed25519-dalek",
  "libc",
+ "semaprax-doctor-capsule",
  "sha2 0.11.0",
  "windows-sys",
 ]

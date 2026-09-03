@@ -126,6 +126,116 @@ impl OwnedDataDescriptorBinding {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+struct ProfileDescriptorBinding {
+    canonical: String,
+    digest: String,
+    project_revision: String,
+    workspace_revision: String,
+    project_graph_digest: String,
+}
+
+impl ProfileDescriptorBinding {
+    fn matches_flat(&self, descriptor: &crate::project::FlatOwnedRecordApiDescriptor) -> bool {
+        self.matches(
+            &descriptor.canonical_bytes(),
+            &descriptor.digest(),
+            descriptor.project_revision(),
+            descriptor.workspace_revision(),
+            descriptor.project_graph_digest(),
+        )
+    }
+
+    fn matches_owned_utf8(&self, descriptor: &crate::project::PublicApiDescriptor) -> bool {
+        descriptor.schema() == crate::project::PUBLIC_OWNED_UTF8_API_SCHEMA
+            && descriptor.project_schema() == crate::project::PUBLIC_OWNED_UTF8_PROJECT_SCHEMA
+            && self.matches(
+                &descriptor.canonical_bytes(),
+                &descriptor.digest(),
+                descriptor.project_revision(),
+                descriptor.workspace_revision(),
+                descriptor.project_graph_digest(),
+            )
+    }
+
+    fn matches_nested(&self, descriptor: &crate::project::NestedOwnedRecordApiDescriptor) -> bool {
+        self.matches(
+            &descriptor.canonical_bytes(),
+            &descriptor.digest(),
+            descriptor.project_revision(),
+            descriptor.workspace_revision(),
+            descriptor.project_graph_digest(),
+        )
+    }
+
+    fn matches(
+        &self,
+        canonical: &[u8],
+        digest: &str,
+        project_revision: &str,
+        workspace_revision: &str,
+        project_graph_digest: &str,
+    ) -> bool {
+        self.canonical.as_bytes() == canonical
+            && self.digest == digest
+            && self.project_revision == project_revision
+            && self.workspace_revision == workspace_revision
+            && self.project_graph_digest == project_graph_digest
+    }
+}
+
+#[derive(Clone, Copy)]
+enum DescriptorProfile {
+    FlatOwnedRecord,
+    OwnedUtf8,
+    NestedOwnedRecord,
+}
+
+impl DescriptorProfile {
+    fn metadata_schema(self) -> &'static str {
+        match self {
+            Self::FlatOwnedRecord => crate::project::FLAT_OWNED_RECORD_METADATA_SCHEMA,
+            Self::OwnedUtf8 => super::owned_utf8::API_SCHEMA,
+            Self::NestedOwnedRecord => "semaprax.nested-owned-record-api.v1",
+        }
+    }
+
+    fn metadata_keys(self) -> &'static [&'static str] {
+        match self {
+            Self::FlatOwnedRecord => &[
+                "artifacts",
+                "descriptor",
+                "descriptor_digest",
+                "result_carrier",
+                "schema",
+                "settlement",
+                "wasm_sha256",
+            ],
+            Self::OwnedUtf8 => &[
+                "artifacts",
+                "descriptor",
+                "descriptor_digest",
+                "limits",
+                "package",
+                "schema",
+                "settlement",
+                "target",
+                "version",
+                "wasm",
+            ],
+            Self::NestedOwnedRecord => &[
+                "artifacts",
+                "descriptor",
+                "descriptor_digest",
+                "package",
+                "schema",
+                "version",
+                "wasm",
+            ],
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct TrustedNpmBinding {
     project_schema: String,
     package: String,
@@ -235,6 +345,97 @@ impl ProjectNpmBuild {
                 "npm carrier descriptor does not match the retained Project subject",
             ))
         }
+    }
+
+    /// Independently replay this carrier and require its exact embedded v9
+    /// flat owned-record descriptor and retained Project subject to equal
+    /// `descriptor`. Success grants no build or publication authority.
+    pub fn verify_flat_owned_record_api_descriptor(
+        &self,
+        descriptor: &crate::project::FlatOwnedRecordApiDescriptor,
+    ) -> Result<(), Diagnostic> {
+        if self
+            .profile_descriptor_binding(DescriptorProfile::FlatOwnedRecord)?
+            .matches_flat(descriptor)
+        {
+            Ok(())
+        } else {
+            Err(package_error(
+                "npm carrier descriptor does not match the retained Project v9 subject",
+            ))
+        }
+    }
+
+    /// Independently replay this carrier and require its exact embedded v10
+    /// owned UTF-8 descriptor and retained Project subject to equal
+    /// `descriptor`. Success grants no build or publication authority.
+    pub fn verify_owned_utf8_api_descriptor(
+        &self,
+        descriptor: &crate::project::PublicApiDescriptor,
+    ) -> Result<(), Diagnostic> {
+        if self
+            .profile_descriptor_binding(DescriptorProfile::OwnedUtf8)?
+            .matches_owned_utf8(descriptor)
+        {
+            Ok(())
+        } else {
+            Err(package_error(
+                "npm carrier descriptor does not match the retained Project v10 subject",
+            ))
+        }
+    }
+
+    /// Independently replay this carrier and require its exact embedded v11
+    /// nested owned-record descriptor and retained Project subject to equal
+    /// `descriptor`. Success grants no build or publication authority.
+    pub fn verify_nested_owned_record_api_descriptor(
+        &self,
+        descriptor: &crate::project::NestedOwnedRecordApiDescriptor,
+    ) -> Result<(), Diagnostic> {
+        if self
+            .profile_descriptor_binding(DescriptorProfile::NestedOwnedRecord)?
+            .matches_nested(descriptor)
+        {
+            Ok(())
+        } else {
+            Err(package_error(
+                "npm carrier descriptor does not match the retained Project v11 subject",
+            ))
+        }
+    }
+
+    fn profile_descriptor_binding(
+        &self,
+        profile: DescriptorProfile,
+    ) -> Result<ProfileDescriptorBinding, Diagnostic> {
+        // The context-bound outer carrier and every regenerated artifact must
+        // replay before metadata becomes eligible as comparison data.
+        self.verify()?;
+        let replayed = decode_carrier_artifacts(&self.envelope, self.max_bytes)?;
+        let artifacts = match (profile, replayed) {
+            (DescriptorProfile::FlatOwnedRecord, ReplayedNpmArtifacts::FlatOwnedRecord(value))
+            | (DescriptorProfile::OwnedUtf8, ReplayedNpmArtifacts::OwnedUtf8(value))
+            | (
+                DescriptorProfile::NestedOwnedRecord,
+                ReplayedNpmArtifacts::NestedOwnedRecord(value),
+            ) => value,
+            (DescriptorProfile::FlatOwnedRecord, _) => {
+                return Err(package_error(
+                    "npm carrier is not the Project v9 flat owned-record schema",
+                ))
+            }
+            (DescriptorProfile::OwnedUtf8, _) => {
+                return Err(package_error(
+                    "npm carrier is not the Project v10 owned UTF-8 schema",
+                ))
+            }
+            (DescriptorProfile::NestedOwnedRecord, _) => {
+                return Err(package_error(
+                    "npm carrier is not the Project v11 nested owned-record schema",
+                ))
+            }
+        };
+        profile_metadata_binding(profile, &artifacts, &self.trusted)
     }
 
     /// Inspect an untrusted serialized envelope for canonical compiler
@@ -501,6 +702,33 @@ impl ProjectNpmBuild {
             ))
         }
     }
+}
+
+fn profile_metadata_binding(
+    profile: DescriptorProfile,
+    artifacts: &[NpmArtifact; 6],
+    trusted: &TrustedNpmBinding,
+) -> Result<ProfileDescriptorBinding, Diagnostic> {
+    let metadata = artifacts
+        .iter()
+        .find(|artifact| artifact.path == "semaprax.api.json")
+        .ok_or_else(|| package_error("npm profile API metadata is absent"))?;
+    let value: serde_json::Value = serde_json::from_slice(metadata.bytes())
+        .map_err(|_| package_error("npm profile API metadata is not valid JSON"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| package_error("npm profile API metadata must be one object"))?;
+    require_exact_keys(object, profile.metadata_keys())?;
+    if json_string(object, "schema")? != profile.metadata_schema() {
+        return Err(package_error("npm profile API metadata schema disagrees"));
+    }
+    Ok(ProfileDescriptorBinding {
+        canonical: json_string(object, "descriptor")?.to_owned(),
+        digest: json_string(object, "descriptor_digest")?.to_owned(),
+        project_revision: trusted.project_revision.clone(),
+        workspace_revision: trusted.workspace_revision.clone(),
+        project_graph_digest: trusted.project_graph_digest.clone(),
+    })
 }
 
 #[derive(Clone, Copy)]
@@ -831,5 +1059,214 @@ pub(super) fn decode_carrier_artifacts(
             .map(ReplayedNpmArtifacts::NestedOwnedRecord)
             .map_err(|_| package_error("npm build artifact inventory is not exact")),
         _ => unreachable!("carrier schema selected above"),
+    }
+}
+
+#[cfg(test)]
+mod descriptor_authentication_tests {
+    use std::path::Path;
+
+    use super::*;
+    use crate::project::{
+        derive_flat_owned_record_api_descriptor, derive_nested_owned_record_api_descriptor,
+        derive_public_api_descriptor, PublicApiSubject, FLAT_OWNED_RECORD_PROJECT_SCHEMA,
+        NESTED_OWNED_RECORD_PROJECT_SCHEMA, PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+        PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
+    };
+
+    const REVISION: &str =
+        "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    const WORKSPACE: &str =
+        "sha256:2222222222222222222222222222222222222222222222222222222222222222";
+    const GRAPH: &str = "sha256:3333333333333333333333333333333333333333333333333333333333333333";
+
+    fn subject(project_schema: &'static str) -> PublicApiSubject<'static> {
+        PublicApiSubject {
+            project_schema,
+            project_revision: REVISION,
+            workspace_revision: WORKSPACE,
+            project_graph_digest: GRAPH,
+        }
+    }
+
+    fn program(source: &str, name: &str) -> crate::hir::ResolvedProgram {
+        crate::hir::resolve(&crate::check(source, Path::new(name)).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn typed_profile_bindings_require_complete_replay_and_reject_cross_profile_carriers() {
+        let flat_program = program(
+            r#"module auth.flat;
+@id("auth.packet") record Packet { @id("auth.packet.bytes") bytes: Bytes, @id("auth.packet.flag") flag: bool, }
+@id("auth.make") fn make(input: borrow Slice<u8>) -> Packet { Packet { bytes: bytes_copy(input), flag: true } }
+@id("auth.main") fn main() -> i64 { 0 }
+"#,
+            "auth-flat.spx",
+        );
+        let flat_selected = vec!["auth.make".to_owned()];
+        let flat = derive_flat_owned_record_api_descriptor(
+            &flat_program,
+            &flat_selected,
+            subject(FLAT_OWNED_RECORD_PROJECT_SCHEMA),
+        )
+        .unwrap();
+        let flat_build = super::super::flat_owned_record::prepare(
+            &flat_program,
+            &flat,
+            "auth-flat",
+            "1.0.0",
+            MAX_PROJECT_NPM_BUILD_BYTES,
+        )
+        .unwrap();
+        flat_build
+            .verify_flat_owned_record_api_descriptor(&flat)
+            .unwrap();
+
+        let utf8_program = program(
+            "module auth.utf8;\n@id(\"auth.text\") fn text() -> string { \"bound\" }\n@id(\"auth.main\") fn main() -> i64 { 0 }\n",
+            "auth-utf8.spx",
+        );
+        let utf8_selected = vec!["auth.text".to_owned()];
+        let utf8 = derive_public_api_descriptor(
+            &utf8_program,
+            &utf8_selected,
+            subject(PUBLIC_OWNED_UTF8_PROJECT_SCHEMA),
+        )
+        .unwrap();
+        let utf8_build = super::super::owned_data::prepare(
+            &utf8_program,
+            &utf8,
+            "auth-utf8",
+            "1.0.0",
+            MAX_PROJECT_NPM_BUILD_BYTES,
+        )
+        .unwrap();
+        utf8_build.verify_owned_utf8_api_descriptor(&utf8).unwrap();
+
+        let nested_program = program(
+            r#"module auth.nested;
+@id("auth.inner") record Inner { @id("auth.inner.bytes") bytes: Bytes, }
+@id("auth.outer") record Outer { @id("auth.outer.inner") inner: Inner, @id("auth.outer.flag") flag: bool, }
+@id("auth.wrap") fn wrap(input: borrow Slice<u8>) -> Outer { Outer { inner: Inner { bytes: bytes_copy(input) }, flag: true } }
+@id("auth.main") fn main() -> i64 { 0 }
+"#,
+            "auth-nested.spx",
+        );
+        let nested_selected = vec!["auth.wrap".to_owned()];
+        let nested = derive_nested_owned_record_api_descriptor(
+            &nested_program,
+            &nested_selected,
+            subject(NESTED_OWNED_RECORD_PROJECT_SCHEMA),
+        )
+        .unwrap();
+        let nested_build = super::super::nested_owned_record::prepare(
+            &nested_program,
+            &nested,
+            "auth-nested",
+            "1.0.0",
+            MAX_PROJECT_NPM_BUILD_BYTES,
+        )
+        .unwrap();
+        nested_build
+            .verify_nested_owned_record_api_descriptor(&nested)
+            .unwrap();
+
+        assert!(flat_build.verify_owned_utf8_api_descriptor(&utf8).is_err());
+        assert!(utf8_build
+            .verify_flat_owned_record_api_descriptor(&flat)
+            .is_err());
+        assert!(nested_build
+            .verify_owned_utf8_api_descriptor(&utf8)
+            .is_err());
+        assert!(utf8_build
+            .verify_nested_owned_record_api_descriptor(&nested)
+            .is_err());
+
+        let v8_program = program(
+            "module auth.v8;\n@id(\"auth.bytes\") fn bytes(input: borrow Slice<u8>) -> Bytes { bytes_copy(input) }\n@id(\"auth.main\") fn main() -> i64 { 0 }\n",
+            "auth-v8.spx",
+        );
+        let v8_selected = vec!["auth.bytes".to_owned()];
+        let v8 = derive_public_api_descriptor(
+            &v8_program,
+            &v8_selected,
+            subject(PUBLIC_OWNED_DATA_PROJECT_SCHEMA),
+        )
+        .unwrap();
+        let v8_build = super::super::owned_data::prepare(
+            &v8_program,
+            &v8,
+            "auth-v8",
+            "1.0.0",
+            MAX_PROJECT_NPM_BUILD_BYTES,
+        )
+        .unwrap();
+        v8_build.verify_public_api_descriptor(&v8).unwrap();
+        assert!(v8_build.verify_owned_utf8_api_descriptor(&utf8).is_err());
+        assert!(utf8_build.verify_public_api_descriptor(&utf8).is_err());
+    }
+
+    #[test]
+    fn exact_binding_rejects_descriptor_digest_and_every_subject_remint() {
+        let binding = ProfileDescriptorBinding {
+            canonical: "path=left;type=owned-bytes".to_owned(),
+            digest: "sha256:descriptor".to_owned(),
+            project_revision: REVISION.to_owned(),
+            workspace_revision: WORKSPACE.to_owned(),
+            project_graph_digest: GRAPH.to_owned(),
+        };
+        assert!(binding.matches(
+            b"path=left;type=owned-bytes",
+            "sha256:descriptor",
+            REVISION,
+            WORKSPACE,
+            GRAPH,
+        ));
+        for (canonical, digest, project, workspace, graph) in [
+            (
+                b"path=right;type=owned-bytes".as_slice(),
+                "sha256:descriptor",
+                REVISION,
+                WORKSPACE,
+                GRAPH,
+            ),
+            (
+                b"path=left;type=bool".as_slice(),
+                "sha256:descriptor",
+                REVISION,
+                WORKSPACE,
+                GRAPH,
+            ),
+            (
+                b"path=left;type=owned-bytes".as_slice(),
+                "sha256:reminted",
+                REVISION,
+                WORKSPACE,
+                GRAPH,
+            ),
+            (
+                b"path=left;type=owned-bytes".as_slice(),
+                "sha256:descriptor",
+                WORKSPACE,
+                WORKSPACE,
+                GRAPH,
+            ),
+            (
+                b"path=left;type=owned-bytes".as_slice(),
+                "sha256:descriptor",
+                REVISION,
+                REVISION,
+                GRAPH,
+            ),
+            (
+                b"path=left;type=owned-bytes".as_slice(),
+                "sha256:descriptor",
+                REVISION,
+                WORKSPACE,
+                REVISION,
+            ),
+        ] {
+            assert!(!binding.matches(canonical, digest, project, workspace, graph));
+        }
     }
 }

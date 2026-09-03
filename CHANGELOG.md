@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Known commands that reject invalid arguments now point directly to their
+  scoped `--help` usage. Recovery hints respect the standalone/full-toolchain
+  capability boundary and leave unknown-command diagnostics unchanged.
+
 - Human compiler diagnostics now include terminal-safe `path:line:column`
   locations when source paths and spans are available. Pathless rendering and
   machine-readable JSON remain unchanged.

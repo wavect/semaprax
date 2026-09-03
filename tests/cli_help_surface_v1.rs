@@ -75,6 +75,21 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert_eq!(hidden_typo.stdout, empty.stdout);
     assert_eq!(hidden_typo.stderr, b"unknown command `doctro`\n\n");
 
+    let (malformed_known, malformed_known_dir) = invoke(&["check", "--unknown"]);
+    assert_eq!(malformed_known.status.code(), Some(2));
+    assert!(malformed_known.stdout.is_empty());
+    assert_eq!(
+        malformed_known.stderr,
+        b"unknown check option `--unknown`\nhint: run `semaprax check --help` for usage\n"
+    );
+
+    let (hidden_known, hidden_known_dir) = invoke(&["doctor", "--unknown"]);
+    assert_eq!(hidden_known.status.code(), Some(2));
+    assert!(hidden_known.stdout.is_empty());
+    assert_eq!(hidden_known.stderr, b"doctor is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI\n");
+
+    std::fs::remove_dir(hidden_known_dir).unwrap();
+    std::fs::remove_dir(malformed_known_dir).unwrap();
     std::fs::remove_dir(hidden_typo_dir).unwrap();
     std::fs::remove_dir(typo_dir).unwrap();
     std::fs::remove_dir(unknown_dir).unwrap();

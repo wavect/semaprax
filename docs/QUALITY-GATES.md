@@ -66,6 +66,9 @@ scoped and malformed-position behavior, and zero-activity gates owned by
 [Capability-Aware CLI Help v1](CLI-HELP-V1.md). Typo guidance additionally
 requires bounded unique matching, exact diagnostics, and standalone/full
 capability separation owned by [CLI Help v2](CLI-HELP-V2.md).
+Known-command recovery additionally requires exact status-2 hints, capability
+separation, and preservation of unknown and malformed-help diagnostics owned by
+[CLI Help v3](CLI-HELP-V3.md).
 
 Human diagnostic rendering requires exact path/span combinations,
 control-character escaping, unchanged JSON, and a physical compiler failure as

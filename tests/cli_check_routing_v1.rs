@@ -63,9 +63,9 @@ fn source_json_flag_order_cannot_select_a_shadow_file() {
     let human = cli(&root, &["invalid.spx"]);
     assert_eq!(human.status.code(), Some(1));
     assert!(human.stdout.is_empty());
-    assert!(String::from_utf8(human.stderr)
-        .unwrap()
-        .contains(" at invalid.spx:1:1"));
+    let human_stderr = String::from_utf8_lossy(&human.stderr);
+    assert!(human_stderr.contains(" at invalid.spx:1:1"));
+    assert!(!human_stderr.contains("--help"));
     assert_eq!(fs::read_to_string(root.join("--json")).unwrap(), VALID);
     assert_eq!(fs::read_to_string(root.join("valid.spx")).unwrap(), VALID);
     assert_eq!(

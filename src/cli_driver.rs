@@ -45,7 +45,8 @@ pub struct PrivateHost {
 const CLI_STACK_BYTES: usize = 16 * 1024 * 1024;
 
 pub fn main_with_host(host: Option<&'static PrivateHost>) -> ExitCode {
-    let args = std::env::args().skip(1).collect();
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let recovery_hint = cli::help::usage_recovery_hint(&args, host.is_some());
     let worker = match std::thread::Builder::new()
         .name("semaprax-cli".to_owned())
         .stack_size(CLI_STACK_BYTES)
@@ -61,10 +62,7 @@ pub fn main_with_host(host: Option<&'static PrivateHost>) -> ExitCode {
         Ok(outcome) => outcome,
         Err(payload) => std::panic::resume_unwind(payload),
     };
-    match outcome {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(code) => ExitCode::from(code),
-    }
+    cli::help::finish(outcome, recovery_hint)
 }
 
 fn require_private_host<'a>(

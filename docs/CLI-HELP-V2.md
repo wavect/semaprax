@@ -4,6 +4,9 @@ Status: authored and locally exercised; unpublished and unpromoted.
 
 Audience: CLI users, release engineers, and compiler contributors.
 
+Known-command invocation recovery is extended by
+[Capability-Aware CLI Recovery v3](CLI-HELP-V3.md).
+
 This additive revision helps users recover from a misspelled command while
 preserving the v1 catalog, global help bytes, scoped help bytes, exit statuses,
 capability boundary, and zero-authority behavior.

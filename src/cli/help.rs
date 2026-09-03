@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(usize)]
 pub(crate) enum CommandId {
@@ -313,6 +315,29 @@ pub(crate) fn scoped(name: &str, private: bool) -> Option<String> {
         out.push('\n');
     }
     Some(out)
+}
+pub(crate) fn usage_recovery_hint(args: &[String], private: bool) -> Option<String> {
+    let command = args.first()?;
+    if command == "help"
+        || args[1..]
+            .iter()
+            .any(|argument| matches!(argument.as_str(), "--help" | "-h"))
+        || selected(command, private).is_none()
+    {
+        return None;
+    }
+    Some(format!("hint: run `semaprax {command} --help` for usage\n"))
+}
+pub(crate) fn finish(outcome: Result<(), u8>, recovery_hint: Option<String>) -> ExitCode {
+    match outcome {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(code) => {
+            if let (2, Some(hint)) = (code, recovery_hint) {
+                eprint!("{hint}");
+            }
+            ExitCode::from(code)
+        }
+    }
 }
 #[cfg(test)]
 mod tests {

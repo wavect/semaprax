@@ -69,6 +69,15 @@ fn full_help_is_exact_capability_aware_and_inert() {
         b"unknown command `doctro`; did you mean `doctor`?\n\n"
     );
 
+    let (malformed_known, malformed_known_dir) = invoke(&["doctor", "--unknown"]);
+    assert_eq!(malformed_known.status.code(), Some(2));
+    assert!(malformed_known.stdout.is_empty());
+    assert_eq!(
+        malformed_known.stderr,
+        b"doctor: unknown doctor option `--unknown`\nhint: run `semaprax doctor --help` for usage\n"
+    );
+
+    std::fs::remove_dir(malformed_known_dir).unwrap();
     std::fs::remove_dir(typo_dir).unwrap();
     std::fs::remove_dir(unknown_dir).unwrap();
     std::fs::remove_dir(empty_dir).unwrap();

@@ -24,6 +24,14 @@ over-limit names keep the v1 diagnostic. Scripts that intentionally snapshot a
 near-miss diagnostic should accept the v2 suffix; status remains 2 and the
 capability-appropriate global help remains on stdout.
 
+## CLI Help v2 to v3 known-command recovery
+
+A capability-visible known command that rejects its invocation with status 2
+now appends a stderr hint directing the user to `<command> --help`. Existing
+diagnostic text and status are unchanged. Unknown and hidden commands, empty
+invocations, and malformed help-flag placement retain their v2 bytes. Scripts
+that snapshot known-command usage errors should accept the added final line.
+
 ## Human diagnostic source locations
 
 Human-readable diagnostics that carry a source path now render

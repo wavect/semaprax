@@ -62,7 +62,18 @@ impl VNextSession {
                 "candidate archive store must be selected once before protocol input with candidate preparation enabled",
             ));
         }
-        self.candidate_archive_store = Some(CandidateArchiveStore::open(root)?);
+        let store = CandidateArchiveStore::open(root)?;
+        if self
+            .retention_lifecycle
+            .as_ref()
+            .is_some_and(|lifecycle| lifecycle.held_root_identity() == store.held_root_identity())
+        {
+            return Err(failure(
+                "SPX-G500",
+                "candidate archive store and retention registry must hold distinct root identities",
+            ));
+        }
+        self.candidate_archive_store = Some(store);
         Ok(self)
     }
 

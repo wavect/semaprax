@@ -36,11 +36,18 @@ impl VNextSession {
                 "retention lifecycle must be selected once before protocol input",
             ));
         }
-        self.retention_lifecycle = Some(RetentionLifecycleCoordinator::open(
-            root,
-            policy,
-            expected_cursor,
-        )?);
+        let lifecycle = RetentionLifecycleCoordinator::open(root, policy, expected_cursor)?;
+        if self
+            .candidate_archive_store
+            .as_ref()
+            .is_some_and(|store| store.held_root_identity() == lifecycle.held_root_identity())
+        {
+            return Err(failure(
+                "SPX-G500",
+                "candidate archive store and retention registry must hold distinct root identities",
+            ));
+        }
+        self.retention_lifecycle = Some(lifecycle);
         Ok(self)
     }
 

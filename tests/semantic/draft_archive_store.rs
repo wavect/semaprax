@@ -707,6 +707,42 @@ fn v5_candidate_archive_store_root_is_startup_only_and_never_a_request_operand()
 }
 
 #[test]
+fn v5_archive_store_and_retention_registry_reject_one_held_root_in_either_order() {
+    let fixture = Fixture::new();
+    fs::create_dir(fixture.store.join("metadata")).unwrap();
+    fs::set_permissions(
+        fixture.store.join("metadata"),
+        fs::Permissions::from_mode(0o700),
+    )
+    .unwrap();
+    let alias = fixture.root.join("archives");
+    let policy = RetentionPolicy::new(2, MAX_RETENTION_TOTAL_BYTES, 0).unwrap();
+    let manifest = fixture.root.join("project/semaprax.toml");
+    let selected = VNextPolicy {
+        candidate_prepare: true,
+        ..Default::default()
+    };
+
+    let archive_first = VNextSession::open(&manifest, selected)
+        .unwrap()
+        .with_candidate_archive_store(&fixture.store)
+        .unwrap();
+    code(
+        archive_first.with_retention_lifecycle(&alias, policy, None),
+        "SPX-G500",
+    );
+
+    let registry_first = VNextSession::open(&manifest, selected)
+        .unwrap()
+        .with_retention_lifecycle(&fixture.store, policy, None)
+        .unwrap();
+    code(
+        registry_first.with_candidate_archive_store(&alias),
+        "SPX-G500",
+    );
+}
+
+#[test]
 fn v5_candidate_archive_store_rejects_same_owner_root_substitution() {
     let fixture = Fixture::new();
     let manifest = fixture.root.join("project/semaprax.toml");

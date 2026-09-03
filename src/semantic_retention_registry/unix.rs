@@ -98,6 +98,11 @@ impl Root {
         &self.chain.last().expect("root held").0
     }
 
+    pub(super) fn identity_key(&self) -> (u64, u64) {
+        let identity = self.chain.last().expect("root held").1;
+        (identity.device, identity.inode)
+    }
+
     fn validate(&self) -> Result<()> {
         for (index, (held, expected)) in self.chain.iter().enumerate() {
             if identity(held)? != *expected {

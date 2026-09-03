@@ -19,7 +19,10 @@ replace, or enumerate the root.
 
 The host may separately attach `RetentionLifecycleCoordinator` before frames.
 The archive store and retention registry are distinct held roots and distinct
-authorities. Selecting either one does not select the other.
+authorities. Startup compares their held device/inode identities and rejects the
+same directory in either attachment order, including a second path spelling
+that resolves to the already held identity. Selecting either one does not select
+the other.
 
 ## Operation
 

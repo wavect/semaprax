@@ -168,6 +168,12 @@ impl RetentionLifecycleCoordinator {
         self.expected_cursor.as_deref()
     }
 
+    /// Process-local comparison key used only to keep separately selected
+    /// filesystem capabilities on distinct held directories.
+    pub(crate) fn held_root_identity(&self) -> (u64, u64) {
+        self.registry.held_root_identity()
+    }
+
     pub const fn authority(&self) -> RetentionAuthority {
         RetentionAuthority::None
     }

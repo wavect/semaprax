@@ -127,6 +127,10 @@ impl Root {
     fn fd(&self) -> &OwnedFd {
         &self.chain.last().expect("root held").0
     }
+    pub(super) fn identity_key(&self) -> (u64, u64) {
+        let identity = self.chain.last().expect("root held").1;
+        (identity.device, identity.inode)
+    }
     fn check_chain(&self) -> Result<()> {
         for (index, (held, expected)) in self.chain.iter().enumerate() {
             if identity(held)? != *expected {

@@ -112,6 +112,33 @@ impl RetentionRegistryHandle {
         }
     }
 
+    pub(crate) fn held_root_identity(&self) -> (u64, u64) {
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        {
+            self.root.identity_key()
+        }
+        #[cfg(not(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )))]
+        {
+            unreachable!("retention registry construction fails on unsupported hosts")
+        }
+    }
+
     pub(crate) fn initialize(
         &self,
         policy: RetentionPolicy,

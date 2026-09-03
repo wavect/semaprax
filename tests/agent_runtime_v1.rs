@@ -302,6 +302,9 @@ fn public_agent_completes_one_tool_with_private_kat_parity_and_no_write() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[path = "agent_runtime_v1/agent_definition_v1.rs"]
+mod agent_definition_v1;
+
 #[test]
 fn public_cancellation_retry_and_sink_limits_are_fail_closed() {
     let host = Host::new();

@@ -10,6 +10,15 @@
   locations when source paths and spans are available. Pathless rendering and
   machine-readable JSON remain unchanged.
 
+- Added the bounded [Language-Native Agent Object v1](docs/LANGUAGE-NATIVE-AGENT-OBJECT-V1.md)
+  compiler slice. Canonical AgentDefinition documents assign stable IDs to the
+  six agent types and six harness operations; compilation emits a deterministic
+  digest-bound AgentGraph and derives a canonical Agent Runtime Profile v1 from
+  structured model, tool, policy, and limit material. The fixture projection is
+  byte-identical to the frozen Runtime v1 known answer and executes through the unchanged
+  `Agent<H>` kernel. This adds no `.spx` syntax, generated proposal grammar,
+  transition execution, effects, durability, provider transport, or authority.
+
 - Added bounded, deterministic typo guidance for unknown CLI commands. The
   nearest unique command within edit distance one or two is suggested only
   from the executable's capability-visible static catalog; unrelated,

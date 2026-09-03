@@ -1639,6 +1639,9 @@ contract:
   semantic-authentication authority;
 - `src/native_settlement.rs`, `src/arc_zones.rs`, and `src/scoped_tasks.rs`:
   target-neutral proof models rather than wired runtime features;
+- `src/agent_definition.rs`: the additive canonical AgentDefinition v1 compiler,
+  deterministic AgentGraph v1 projection, and canonical Runtime v1 profile
+  compatibility boundary; it has no language parser or execution authority;
 - `src/agent_runtime.rs` and `src/economic_agent.rs`: injected-host Rust APIs
   with no built-in provider transport, keys, wallet, or ambient authority;
 - `platform-tests/`: installed application and runtime fixtures whose claims

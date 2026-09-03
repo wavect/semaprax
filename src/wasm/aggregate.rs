@@ -3224,7 +3224,7 @@ impl Emitter<'_> {
         place: &crate::cleanup_plan::CleanupPlace,
         value: &Value,
     ) -> Result<bool, Diagnostic> {
-        if !place.projections.is_empty() {
+        if !place.projections.is_empty() || !is_variant(self.program, value_type(value))? {
             return Ok(false);
         }
         let leaves = self

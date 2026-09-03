@@ -63,6 +63,26 @@ python3 scripts/agent-task-comparison.py plan \
 The plan is a protocol artifact, not execution evidence. Its claims remain
 `not_observed` and `not_claimed`.
 
+Generate one canonical external-harness trial contract with:
+
+```sh
+python3 scripts/agent-task-comparison.py trial \
+  --manifest benchmarks/agent-task-comparison-v1/manifest.json \
+  --task owned-signature-migration-v1 \
+  --lane semaprax-graph-operational \
+  --trial 1 \
+  --output /absolute/path/to/trial.json
+```
+
+`semaprax.agent-task-comparison-trial.v1` binds the plan, exact repository
+subject, task/prompt/fixture/drift bytes, lane instructions, state, acceptance
+rubric, review protocol and required metric inventory for one available tuple.
+It resolves the Semaprax subject to the plan's exact Git head and rejects the
+external-unrun Zero lane. It invokes no model, tool, compiler, validator,
+reviewer or publication host; all outcome and comparison claims remain
+unobserved. The external harness must still archive actual evidence and produce
+the separate observation object accepted by the report command.
+
 ## Observation contract
 
 An external harness owns model invocation, isolation, deterministic drift

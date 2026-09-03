@@ -14,6 +14,7 @@ MANIFEST_SCHEMA = "semaprax.agent-task-comparison-manifest.v1"
 TASK_SCHEMA = "semaprax.agent-task-comparison-task.v1"
 OBSERVATION_SCHEMA = "semaprax.agent-task-comparison-observation.v1"
 PLAN_SCHEMA = "semaprax.agent-task-comparison-plan.v1"
+TRIAL_SCHEMA = "semaprax.agent-task-comparison-trial.v1"
 REPORT_SCHEMA = "semaprax.agent-task-comparison-report.v1"
 MAX_JSON = 1024 * 1024
 MAX_EVIDENCE = 32 * 1024 * 1024
@@ -265,6 +266,68 @@ def make_plan(manifest_path):
     return plan
 
 
+def make_trial(manifest_path, task_id, lane_id, trial):
+    manifest, manifest_body, loaded_tasks = load_manifest(manifest_path)
+    plan = make_plan(manifest_path)
+    task_binding = next((item for item in loaded_tasks if item["id"] == task_id), None)
+    lane = next((item for item in manifest["lanes"] if item["id"] == lane_id), None)
+    if task_binding is None:
+        raise Failure(f"unknown trial task: {task_id}")
+    if lane is None:
+        raise Failure(f"unknown trial lane: {lane_id}")
+    if lane["availability"] != "available":
+        raise Failure(f"trial lane is not available: {lane_id}")
+    if trial < 1 or trial > manifest["repetitions"]:
+        raise Failure("trial number is outside the manifest")
+    task = object_json(relative_file(ROOT, task_binding["path"], MAX_JSON, "task"), "task")
+    resolved_subject = (
+        plan["repository_head"]
+        if lane["subject"] == "repository-head-resolved-by-plan"
+        else lane["subject"]
+    )
+    return {
+        "schema": TRIAL_SCHEMA,
+        "plan_sha256": digest(canonical(plan)),
+        "repository_head": plan["repository_head"],
+        "manifest": {
+            "id": manifest["id"],
+            "path": manifest_path,
+            "sha256": digest(manifest_body),
+        },
+        "task": {
+            "id": task_id,
+            "path": task_binding["path"],
+            "sha256": task_binding["sha256"],
+            "prompt": task["prompt"],
+            "prompt_sha256": task_binding["prompt_sha256"],
+            "setup": task["setup"],
+            "fixture": task_binding["fixture"],
+            "drift_injection": task["drift_injection"],
+            "drift_patch": task_binding["drift_patch"],
+            "acceptance": task["acceptance"],
+            "review_protocol": task["review_protocol"],
+        },
+        "lane": {
+            "id": lane_id,
+            "system": lane["system"],
+            "mode": lane["mode"],
+            "declared_subject": lane["subject"],
+            "resolved_subject": resolved_subject,
+            "instructions": lane["instructions"],
+        },
+        "trial": trial,
+        "state": manifest["pairing"]["state"],
+        "required_metrics": list(METRICS),
+        "required_observation_schema": OBSERVATION_SCHEMA,
+        "claims": {
+            "execution": "not_performed_by_trial_generation",
+            "acceptance": "not_observed",
+            "comparative_result": "not_observed",
+            "publication_authority": False,
+        },
+    }
+
+
 def load_observation(path, plan, manifest):
     body = relative_file(ROOT, path, MAX_JSON, "observation")
     value = object_json(body, f"observation {path}")
@@ -459,16 +522,27 @@ def write(value, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("plan", "report"))
+    parser.add_argument("command", choices=("plan", "trial", "report"))
     parser.add_argument("--manifest", default="benchmarks/agent-task-comparison-v1/manifest.json")
     parser.add_argument("--observation", action="append", default=[])
+    parser.add_argument("--task")
+    parser.add_argument("--lane")
+    parser.add_argument("--trial", type=int)
     parser.add_argument("--output")
     arguments = parser.parse_args()
     if arguments.command == "plan":
-        if arguments.observation:
-            raise Failure("plan does not accept observations")
+        if arguments.observation or arguments.task or arguments.lane or arguments.trial is not None:
+            raise Failure("plan does not accept observations or trial selectors")
         value = make_plan(arguments.manifest)
+    elif arguments.command == "trial":
+        if arguments.observation:
+            raise Failure("trial does not accept observations")
+        if arguments.task is None or arguments.lane is None or arguments.trial is None:
+            raise Failure("trial requires --task, --lane, and --trial")
+        value = make_trial(arguments.manifest, arguments.task, arguments.lane, arguments.trial)
     else:
+        if arguments.task or arguments.lane or arguments.trial is not None:
+            raise Failure("report does not accept trial selectors")
         if not arguments.observation:
             raise Failure("report requires the complete observation matrix")
         value = make_report(arguments.manifest, arguments.observation)

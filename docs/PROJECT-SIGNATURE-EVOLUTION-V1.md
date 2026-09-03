@@ -194,9 +194,12 @@ arguments. Only after all original staging completes does a fresh immutable
 local evaluate `bytes_as_slice(staged_owner)`. The final call receives that
 view; it never receives or transfers the owner. The staging block keeps the
 owner caller-owned, and ordinary loan, failure, and cleanup replay remain the
-only authority for its lifetime and exact cleanup. The route does not add a
-second owner or view, extend a loan, change failure selection, or bypass full
-Project/HIR/cleanup/target reconstruction.
+only authority for its lifetime and exact cleanup. This changes the borrow
+boundary: the caller now creates the loan before the final call and that loan
+spans the callee, whereas the original provider created its view inside the
+body after preconditions. Ordinary full Project/HIR/loan/cleanup/target replay
+must prove that changed lifetime is legal at every caller. The route claims no
+equivalent lifetime, failure, cleanup trace, or external-consumer behavior.
 
 Stable-ID provider bindings determine which direct calls migrate. Existing
 import aliases stay unchanged, and provider module identity is checked.

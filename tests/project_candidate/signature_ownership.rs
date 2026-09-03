@@ -112,18 +112,21 @@ fn own_bytes_replacement_derives_one_caller_view_after_left_to_right_staging_and
 fn owner_to_view_rejects_transfer_duplicate_conversion_additive_alias_and_open_mapping() {
     let fixture = Fixture::new();
     let root = fixture.candidate();
-    for (target, parameters) in [
+    for (target, parameters, diagnostic) in [
         (
             "frame.owner-return",
             json!([{"name":"view","borrow_slice_from_owner":"input"}]),
+            "SPX-G469",
         ),
         (
             "frame.owner-duplicate-view",
             json!([{"name":"view","borrow_slice_from_owner":"input"}]),
+            "SPX-G469",
         ),
         (
             "frame.owner-contract",
             json!([{"name":"view","borrow_slice_from_owner":"input"}]),
+            "SPX-G469",
         ),
         (
             "frame.owner-view",
@@ -132,6 +135,7 @@ fn owner_to_view_rejects_transfer_duplicate_conversion_additive_alias_and_open_m
                 {"name":"view","borrow_slice_from_owner":"input"},
                 {"from":"offset"}
             ]),
+            "SPX-G469",
         ),
         (
             "frame.owner-view",
@@ -139,6 +143,7 @@ fn owner_to_view_rejects_transfer_duplicate_conversion_additive_alias_and_open_m
                 {"name":"view","borrow_slice_from_owner":"input","type":"Slice<u8>"},
                 {"from":"offset"}
             ]),
+            "SPX-G225",
         ),
     ] {
         let change = SemanticChange::new(
@@ -153,9 +158,7 @@ fn owner_to_view_rejects_transfer_duplicate_conversion_additive_alias_and_open_m
             .err()
             .expect("unsupported owner-to-view migration admitted");
         assert!(
-            errors
-                .iter()
-                .any(|error| matches!(error.code, "SPX-G225" | "SPX-G469")),
+            errors.iter().any(|error| error.code == diagnostic),
             "{errors:?}"
         );
     }

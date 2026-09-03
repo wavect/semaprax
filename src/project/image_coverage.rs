@@ -147,6 +147,7 @@ impl ProjectSemanticImage {
         });
         let interface_imports = external_contracts.len();
         let areas = areas(interface_imports > 0);
+        let blind_spots = blind_spots(revision.project_revision());
         super::image::render(
             json!({
                 "schema":IMAGE_ANALYSIS_COVERAGE_SCHEMA,
@@ -159,7 +160,7 @@ impl ProjectSemanticImage {
                 "inventory":{"source_modules":modules.len(),"functions":functions,
                     "function_templates":templates,"function_instances":instances,"nominal_types":types,
                     "interfaces":interfaces,"interface_imports":interface_imports},
-                "external_contracts":external_contracts,"areas":areas,
+                "external_contracts":external_contracts,"areas":areas,"blind_spots":blind_spots,
                 "source_authority":false,"external_io":false,"execution":false,
                 "evidence_class":"retained_source_analysis_boundary_inventory",
                 "nonclaims":["not_a_completeness_or_coverage_percentage",
@@ -173,6 +174,50 @@ impl ProjectSemanticImage {
             MAX_IMAGE_ANALYSIS_COVERAGE_BYTES,
         )
     }
+}
+
+/// Name missing runtime-contract evidence without treating the corresponding
+/// contract as absent. Every row is scoped to the exact retained Project and
+/// its manifest-listed source inventory carried by the parent report.
+fn blind_spots(project_revision: &str) -> Vec<Value> {
+    vec![
+        blind_spot(
+            "deployment_configuration",
+            project_revision,
+            "no_authenticated_deployment_configuration_evidence",
+            "not_evidence_that_no_deployment_contract_exists",
+        ),
+        blind_spot(
+            "generated_file_provenance",
+            project_revision,
+            "no_authenticated_generator_or_generated_source_provenance_evidence",
+            "not_evidence_that_retained_or_unlisted_sources_are_not_generated",
+        ),
+        blind_spot(
+            "external_api_and_deployed_runtime_contracts",
+            project_revision,
+            "no_authenticated_external_provider_or_deployed_runtime_contract_evidence",
+            "not_evidence_that_no_external_api_or_runtime_contract_exists",
+        ),
+    ]
+}
+
+fn blind_spot(
+    domain: &str,
+    project_revision: &str,
+    absent_evidence: &str,
+    nonclaim: &str,
+) -> Value {
+    json!({
+        "domain":domain,
+        "evidence_status":"absent",
+        "absent_evidence":absent_evidence,
+        "source_binding":{
+            "kind":"exact_retained_project_revision_and_manifest_source_inventory",
+            "project_revision":project_revision,
+        },
+        "nonclaim":nonclaim,
+    })
 }
 
 fn areas(has_imports: bool) -> Vec<Value> {

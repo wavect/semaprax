@@ -143,6 +143,41 @@ fn no_imports_still_explicitly_leave_external_generated_deployment_and_runtime_a
     assert_eq!(value["inventory"]["interface_imports"], 0);
     assert_eq!(value["external_contracts"], json!([]));
     assert_eq!(value["areas"].as_array().unwrap().len(), 8);
+    assert_eq!(
+        value["blind_spots"],
+        json!([
+            {
+                "domain":"deployment_configuration",
+                "evidence_status":"absent",
+                "absent_evidence":"no_authenticated_deployment_configuration_evidence",
+                "source_binding":{
+                    "kind":"exact_retained_project_revision_and_manifest_source_inventory",
+                    "project_revision":image.revision().project_revision(),
+                },
+                "nonclaim":"not_evidence_that_no_deployment_contract_exists",
+            },
+            {
+                "domain":"generated_file_provenance",
+                "evidence_status":"absent",
+                "absent_evidence":"no_authenticated_generator_or_generated_source_provenance_evidence",
+                "source_binding":{
+                    "kind":"exact_retained_project_revision_and_manifest_source_inventory",
+                    "project_revision":image.revision().project_revision(),
+                },
+                "nonclaim":"not_evidence_that_retained_or_unlisted_sources_are_not_generated",
+            },
+            {
+                "domain":"external_api_and_deployed_runtime_contracts",
+                "evidence_status":"absent",
+                "absent_evidence":"no_authenticated_external_provider_or_deployed_runtime_contract_evidence",
+                "source_binding":{
+                    "kind":"exact_retained_project_revision_and_manifest_source_inventory",
+                    "project_revision":image.revision().project_revision(),
+                },
+                "nonclaim":"not_evidence_that_no_external_api_or_runtime_contract_exists",
+            },
+        ])
+    );
     assert_eq!(area(&value, "declared_source_inputs")["status"], "known");
     for name in [
         "declared_external_contracts",
@@ -227,6 +262,20 @@ fn native_interface_is_admitted_and_represented_without_claiming_host_evidence()
             "native_rust_imports_are_rejected_by_current_semantic_graph_schemas"
         )),
         "{limitations:?}"
+    );
+    let runtime_blind_spot = &coverage["blind_spots"][2];
+    assert_eq!(
+        runtime_blind_spot["domain"],
+        "external_api_and_deployed_runtime_contracts"
+    );
+    assert_eq!(runtime_blind_spot["evidence_status"], "absent");
+    assert_eq!(
+        runtime_blind_spot["source_binding"]["project_revision"],
+        image.revision().project_revision()
+    );
+    assert_eq!(
+        runtime_blind_spot["nonclaim"],
+        "not_evidence_that_no_external_api_or_runtime_contract_exists"
     );
 
     VNextSession::open(&fixture.0.join("semaprax.toml"), VNextPolicy::default())
@@ -422,6 +471,14 @@ fn readonly_transport_exposes_closed_schema_exact_payload_and_parallel_parity() 
     }
     assert_eq!(doc["properties"]["areas"]["minItems"], 8);
     assert_eq!(doc["properties"]["areas"]["maxItems"], 8);
+    assert_eq!(doc["properties"]["blind_spots"]["minItems"], 3);
+    assert_eq!(doc["properties"]["blind_spots"]["maxItems"], 3);
+    assert!(
+        doc["properties"]["blind_spots"]["items"]["properties"]["domain"]["enum"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("external_api_and_deployed_runtime_contracts"))
+    );
     assert!(!bundle["unbundled_payload_schemas"]
         .as_array()
         .unwrap()

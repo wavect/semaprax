@@ -259,7 +259,9 @@ fn candidate_grant_selects_closed_schema_clients_and_mcp_without_widening_old_pr
         .find(|row| row["$id"] == "urn:semaprax.project-candidate-analysis-coverage.v1")
         .unwrap();
     assert_eq!(document["additionalProperties"], false);
-    assert_eq!(document["properties"].as_object().unwrap().len(), 19);
+    assert_eq!(document["properties"].as_object().unwrap().len(), 20);
+    assert_eq!(document["properties"]["blind_spots"]["minItems"], 3);
+    assert_eq!(document["properties"]["blind_spots"]["maxItems"], 3);
     for field in [
         "candidate_retained",
         "source_authority",

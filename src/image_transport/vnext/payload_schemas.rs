@@ -33,6 +33,39 @@ pub(super) fn nullable(value: Value) -> Value {
 pub(super) fn array(value: Value) -> Value {
     json!({"type":"array","items":value})
 }
+fn blind_spot_ledger() -> Value {
+    json!({
+        "type":"array",
+        "minItems":3,
+        "maxItems":3,
+        "items":blind_spot(),
+    })
+}
+fn blind_spot() -> Value {
+    object(vec![
+        (
+            "domain",
+            json!({"enum":[
+                "deployment_configuration",
+                "generated_file_provenance",
+                "external_api_and_deployed_runtime_contracts",
+            ]}),
+        ),
+        ("evidence_status", json!({"const":"absent"})),
+        ("absent_evidence", text()),
+        (
+            "source_binding",
+            object(vec![
+                (
+                    "kind",
+                    json!({"const":"exact_retained_project_revision_and_manifest_source_inventory"}),
+                ),
+                ("project_revision", digest()),
+            ]),
+        ),
+        ("nonclaim", text()),
+    ])
+}
 pub(super) fn object(fields: Vec<(&str, Value)>) -> Value {
     let required = fields.iter().map(|(name, _)| *name).collect::<Vec<_>>();
     let properties = fields
@@ -140,6 +173,7 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
                     ("basis",text()),("limitations",array(text())),("required_evidence",array(text())),
                 ])}),
             ),
+            ("blind_spots", blind_spot_ledger()),
             ("source_authority", json!({"const":false})),
             ("external_io", json!({"const":false})),
             ("execution", json!({"const":false})),
@@ -216,6 +250,7 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
                     ("basis",text()),("limitations",array(text())),("required_evidence",array(text())),
                 ])}),
             ),
+            ("blind_spots", blind_spot_ledger()),
             ("source_authority", json!({"const":false})),
             ("external_io", json!({"const":false})),
             ("execution", json!({"const":false})),

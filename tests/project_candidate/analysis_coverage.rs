@@ -188,7 +188,7 @@ fn final_candidate_report_is_the_independently_derived_image_inventory_with_exac
 
     let (_, actual) = report(&candidate);
     assert_eq!(actual, expected);
-    assert_eq!(actual.as_object().unwrap().len(), 19);
+    assert_eq!(actual.as_object().unwrap().len(), 20);
     assert_eq!(actual["image_revision"], image.image_digest());
     assert_eq!(
         actual["project_revision"],
@@ -203,6 +203,21 @@ fn final_candidate_report_is_the_independently_derived_image_inventory_with_exac
         candidate.revision().semantic_graph_digest()
     );
     assert_eq!(actual["inventory"]["functions"].as_u64().unwrap(), 5);
+    for blind_spot in actual["blind_spots"].as_array().unwrap() {
+        assert_eq!(blind_spot["evidence_status"], "absent");
+        assert_eq!(
+            blind_spot["source_binding"]["kind"],
+            "exact_retained_project_revision_and_manifest_source_inventory"
+        );
+        assert_eq!(
+            blind_spot["source_binding"]["project_revision"],
+            candidate.revision().project_revision()
+        );
+        assert!(blind_spot["nonclaim"]
+            .as_str()
+            .unwrap()
+            .starts_with("not_evidence_that_"));
+    }
 
     let base_image =
         ProjectSemanticImage::derive(Arc::clone(&revision), revision.project_revision()).unwrap();
@@ -212,6 +227,10 @@ fn final_candidate_report_is_the_independently_derived_image_inventory_with_exac
             .unwrap(),
     )
     .unwrap();
+    assert_ne!(
+        actual["blind_spots"][0]["source_binding"]["project_revision"],
+        base_coverage["blind_spots"][0]["source_binding"]["project_revision"]
+    );
     assert_eq!(
         actual["inventory"]["functions"].as_u64().unwrap(),
         base_coverage["inventory"]["functions"].as_u64().unwrap() + 1

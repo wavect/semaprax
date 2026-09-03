@@ -338,7 +338,28 @@ fn opposing_history_conflict_and_stale_requests_preserve_both_parents() {
         "hole/merge",
         json!({"draft_revision":left.draft_digest(),"other_draft_revision":left.draft_digest()}),
     ));
-    assert_eq!(self_merge["draft"]["draft_revision"], left.draft_digest());
+    // `Preserve typed draft branch lineage` records every merge in the recovery
+    // capsule's branch ancestry, so even a self-merge advances the revision.
+    // Assert the recorded lineage rather than the pre-lineage identity.
+    let merged = self_merge["draft"]["draft_revision"].as_str().unwrap();
+    assert_ne!(merged, left.draft_digest());
+    let archive: Value = serde_json::from_str(
+        session
+            .export_draft_archive(&image, merged)
+            .unwrap()
+            .to_json(),
+    )
+    .unwrap();
+    let capsule: Value =
+        serde_json::from_str(archive["draft_recovery_capsule"].as_str().unwrap()).unwrap();
+    assert_eq!(
+        capsule["branch_ancestry"],
+        json!([{
+            "onto_revision":Value::Null,
+            "operation":"merge",
+            "parents":[left.draft_digest(), left.draft_digest()],
+        }])
+    );
     assert_eq!(
         self_merge["report"]["holes"][0]["parents"],
         json!(["left", "right"])

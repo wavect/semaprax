@@ -2,7 +2,9 @@
 use semaprax::project::{
     with_authenticated_project, ProjectCandidate, ProjectRevision, ProjectSemanticImage,
     SemanticChange, IMAGE_ANALYSIS_COVERAGE_SCHEMA, MAX_IMAGE_ANALYSIS_COVERAGE_BYTES,
-    MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_BYTES, PROJECT_CANDIDATE_ANALYSIS_COVERAGE_SCHEMA,
+    MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_BYTES,
+    MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_BYTES,
+    PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_SCHEMA, PROJECT_CANDIDATE_ANALYSIS_COVERAGE_SCHEMA,
 };
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -158,6 +160,58 @@ fn failed<T>(result: Result<T, Vec<semaprax::diagnostic::Diagnostic>>, code: &st
     assert!(
         diagnostics.iter().any(|diagnostic| diagnostic.code == code),
         "{diagnostics:?}"
+    );
+}
+
+#[test]
+fn coverage_change_replays_exact_base_and_final_boundaries_without_inventing_progress() {
+    let fixture = Fixture::new(ImportFixture::None);
+    let revision = fixture.revision();
+    let base = open(&revision);
+    let candidate = introduce(&base, "coverage.change-added", "change_added");
+    let text = candidate
+        .analysis_coverage_change(candidate.candidate_digest())
+        .unwrap();
+    assert!(text.len() <= MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_BYTES);
+    let report: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(
+        report["schema"],
+        PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_SCHEMA
+    );
+    assert_eq!(report["candidate_revision"], candidate.candidate_digest());
+    assert_eq!(report["base_project_revision"], revision.project_revision());
+    assert_eq!(
+        report["final_project_revision"],
+        candidate.revision().project_revision()
+    );
+    assert_ne!(
+        report["base_project_revision"],
+        report["final_project_revision"]
+    );
+    assert_eq!(report["overall_change"], "unchanged");
+    assert_eq!(report["counts"]["unchanged"], 5);
+    assert_eq!(report["compatibility"], "not_assessed");
+    assert_eq!(report["completeness"], "not_assessed");
+    assert_eq!(report["runtime_observation"], false);
+    assert_eq!(report["source_authority"], false);
+    let changes = report["area_changes"].as_array().unwrap();
+    assert_eq!(changes.len(), 5);
+    for expected in [
+        "deployment_configuration",
+        "generated_file_provenance",
+        "external_api_behavior",
+        "runtime_environment",
+        "external_consumers",
+    ] {
+        let row = changes.iter().find(|row| row["area"] == expected).unwrap();
+        assert_eq!(row["change"], "unchanged");
+        assert_eq!(row["base_status"], "not_inspected");
+        assert_eq!(row["final_status"], "not_inspected");
+    }
+    assert!(report.get("percentage").is_none());
+    failed(
+        base.analysis_coverage_change(candidate.candidate_digest()),
+        "SPX-G224",
     );
 }
 

@@ -517,7 +517,7 @@ fn publish_policy(fixture: &Fixture, candidate: &str) -> Value {
 }
 
 const STRICT_CONSUMER: &str = r#"
-import {runReview,runPublish,type FailureClassifier,type InspectPublication,type WorkflowHandoff,type WorkflowTransport} from '@semaprax/agent-workflow';
+import {runReview,runPublish,type FailureClassifier,type InspectPublication,type WorkflowFailureDetail,type WorkflowHandoff,type WorkflowStepObservation,type WorkflowTransport} from '@semaprax/agent-workflow';
 import * as review from './review-client.js';
 import * as publish from './publish-client.js';
 const classify:FailureClassifier=()=> 'semantic_review_rejection';
@@ -526,6 +526,9 @@ const input={target:'calculator.add',parameters:[{from:'right',name:'rhs'},{from
 void runReview(review,transport,input);
 const inspect=Object.assign(async()=>true,{classifyFailure:classify}) as InspectPublication;
 void runPublish(publish,{...transport,sessionId:'typed-publish'},{} as WorkflowHandoff,inspect);
+function inspectStep(step:WorkflowStepObservation):boolean{return step.responseContract.authority.request_capability_changes===false&&step.responseContract.blind_spots.ledger_reference==='workflow.blind_spots';}
+function inspectFailure(detail:WorkflowFailureDetail):string{switch(detail.kind){case'application_failure':return detail.applicationFailure.data.diagnostics[0].code;case'workflow_transition_failure':return detail.message;case'transport_or_response_failure':return String(detail.opaqueCause);default:{const exhaustive:never=detail;return exhaustive;}}}
+void inspectStep;void inspectFailure;
 "#;
 
 const INSTALLED_RUNNER: &str = r#"
@@ -575,20 +578,41 @@ async function bindLiveProfile(session,codec,publish) {
   assert.equal(generatedConstant(client.source,'export const EXPECTED_WORKFLOW_PROFILE_REVISION: string | null = '),codec.EXPECTED_WORKFLOW_PROFILE_REVISION);
 }
 
+const REVIEW_METHODS=['workspace/open','image/function-reference-export','image/function-reference-resolve','image/analysis-coverage','candidate/open','candidate/apply-intent','candidate/validate','candidate/semantic-delta','candidate/test-plan','candidate/test','candidate/source-review','candidate/analysis-coverage','candidate/recovery-export'];
+const PUBLISH_METHODS=['workspace/open','image/function-reference-resolve','candidate/recovery-restore','candidate/validate','candidate/source-review','source-commit/status','candidate/commit','source-commit/status','candidate/commit-report'];
+function assertTranscript(transcript,phase,methods,failed=false) {
+  assert.ok(Array.isArray(transcript)); assert.ok(Object.isFrozen(transcript)); assert.ok(transcript.length>=methods.length);
+  let previous=-1; const seen=new Set();
+  for(const [position,step] of transcript.entries()) {
+    assert.equal(step.phase,phase); assert.equal(step.method,methods[step.stepIndex-1]); assert.ok(step.stepIndex>0&&step.stepIndex>=previous); previous=step.stepIndex; seen.add(step.stepIndex);
+    assert.equal(step.requestId,`${phase}:${position+1}`); assert.ok(Object.isFrozen(step)); assert.ok(Object.isFrozen(step.responseContract));
+    const contract=step.responseContract; assert.equal(contract.schema,'semaprax.supported-product-workflow-response-contract.v1'); assert.ok(contract.payload_schema.length>0); assert.ok(Array.isArray(contract.required_grants)); assert.ok(Object.isFrozen(contract.required_grants));
+    assert.equal(contract.authority.request_capability_changes,false); assert.equal(contract.authority.evidence_or_handoff_grants_authority,false); assert.ok(Object.isFrozen(contract.authority));
+    assert.equal(contract.authority.candidate_overlay_mutation,contract.effect==='candidate_overlay_mutation'); assert.equal(contract.authority.test_execution,contract.effect==='bounded_test_execution'); assert.equal(contract.authority.source_publication,contract.effect==='source_publication');
+    assert.equal(contract.blind_spots.ledger_reference,'workflow.blind_spots'); assert.ok(Object.isFrozen(contract.blind_spots));
+    if(step.method==='candidate/test') assert.deepEqual(contract.blind_spots.permitted_runtime_update,{area:'runtime_environment',from:'not_inspected',to:'partial',requires:'bound_successful_reference_interpreter_report'}); else assert.equal(contract.blind_spots.permitted_runtime_update,null);
+    assert.equal(step.outcome,failed&&position===transcript.length-1?'failed_response':'decoded_response');
+  }
+  assert.deepEqual([...seen],methods.map((_,index)=>index+1));
+}
+
 const classify=({phase})=>phase==='review'?'semantic_review_rejection':'publish_precondition_rejection';
 const parameters=[{from:'right',name:'rhs'},{from:'left',name:'lhs'},{name:'offset',type:'i64',argument:{kind:'i64',value:0}}];
 const [action,compiler,manifest,policy,handoffPath,git,repository,reference,inspectionPath]=process.argv.slice(2);
 if(action==='review') {
+  const weakened={...reviewCodec,WORKFLOWS:structuredClone(reviewCodec.WORKFLOWS)};
+  weakened.WORKFLOWS[0].phases[0].ordered_steps[0].response_contract.authority.request_capability_changes=true;
+  await assert.rejects(runReview(weakened,{sessionId:'weakened-contract',exchange:()=>{throw new Error('weakened contract must fail before transport');}},{target:'calculator.add',parameters,classifyFailure:classify}),/response authority is not closed/);
   const session=new Session('installed-review',compiler,manifest,policy);
   await bindLiveProfile(session,reviewCodec,false);
   const result=await runReview(reviewCodec,session,{target:'calculator.add',parameters,classifyFailure:classify});
-  await session.close(); assert.equal(result.status,'ready'); assert.deepEqual(result.compilerRepairOptions,[]); assert.equal(result.blindRetry,false);
+  await session.close(); assert.equal(result.status,'ready'); assert.deepEqual(result.compilerRepairOptions,[]); assert.equal(result.blindRetry,false); assertTranscript(result.transcript,'review',REVIEW_METHODS);
   const malformed=await runReview(reviewCodec,{sessionId:'malformed',exchange:()=>'{not-json'},{target:'calculator.add',parameters,classifyFailure:classify});
-  assert.equal(malformed.status,'failure'); assert.equal(malformed.outcome,'transport_uncertain_no_publish_claim'); assert.deepEqual(malformed.compilerRepairOptions,[]); assert.deepEqual(malformed.transitionRepairOptions,[]); assert.equal(malformed.blindRetry,false);
+  assert.equal(malformed.status,'failure'); assert.equal(malformed.outcome,'transport_uncertain_no_publish_claim'); assert.deepEqual(malformed.compilerRepairOptions,[]); assert.deepEqual(malformed.transitionRepairOptions,[]); assert.equal(malformed.blindRetry,false); assert.equal(Object.hasOwn(malformed,'error'),false); assert.equal(malformed.failure.kind,'transport_or_response_failure'); assert.equal(typeof malformed.failure.message,'string'); assert.ok(Object.hasOwn(malformed.failure,'opaqueCause')); assertTranscript(malformed.transcript,'review',REVIEW_METHODS.slice(0,1),true);
   const rejectedSession=new Session('installed-structured-failure',compiler,manifest,policy);
   await bindLiveProfile(rejectedSession,reviewCodec,false);
   const rejected=await runReview(reviewCodec,rejectedSession,{target:'missing.function',parameters,classifyFailure:classify});
-  await rejectedSession.close(); assert.equal(rejected.status,'failure'); assert.equal(rejected.outcome,'review_rejected'); assert.deepEqual(rejected.compilerRepairOptions,[]); assert.deepEqual(rejected.transitionRepairOptions,['start_new_review_with_different_intention']);
+  await rejectedSession.close(); assert.equal(rejected.status,'failure'); assert.equal(rejected.outcome,'review_rejected'); assert.deepEqual(rejected.compilerRepairOptions,[]); assert.deepEqual(rejected.transitionRepairOptions,['start_new_review_with_different_intention']); assert.equal(rejected.failure.kind,'application_failure'); assert.ok(rejected.failure.applicationFailure.data.diagnostics.length>0); assert.equal(Object.hasOwn(rejected.failure,'opaqueCause'),false); assertTranscript(rejected.transcript,'review',REVIEW_METHODS.slice(0,2),true);
   process.stdout.write(JSON.stringify(result));
 } else if(action==='publish'||action==='publish-loss') {
   const saved=JSON.parse(readFileSync(handoffPath,'utf8')); const handoff=saved.handoff??saved;
@@ -602,6 +626,7 @@ if(action==='review') {
     assert.equal(output.status,0,output.stderr?.toString()); return output.stdout;
   };
   const inspect=Object.assign(async observation=>{
+    assertTranscript(observation.transcript,'publish',PUBLISH_METHODS);
     const receipt=observation.receipt;
     const head=gitRun(['rev-parse',reference],'utf8').trim();
     assert.equal(receipt.reference,reference); assert.equal(receipt.previous_commit,expected.baseCommit);
@@ -622,10 +647,12 @@ if(action==='review') {
   }}:session;
   const result=await runPublish(publishCodec,transport,handoff,inspect);
   if(action==='publish-loss') {
-    assert.equal(result.status,'failure'); assert.equal(result.outcome,'publication_uncertain'); assert.deepEqual(result.compilerRepairOptions,[]); assert.deepEqual(result.transitionRepairOptions,[]); assert.equal(result.commitInvoked,true); assert.equal(result.blindRetry,false);
+    assert.equal(result.status,'failure'); assert.equal(result.outcome,'publication_uncertain'); assert.deepEqual(result.compilerRepairOptions,[]); assert.deepEqual(result.transitionRepairOptions,[]); assert.equal(result.commitInvoked,true); assert.equal(result.blindRetry,false); assert.equal(result.failure.kind,'transport_or_response_failure'); assert.ok(Object.hasOwn(result.failure,'opaqueCause')); assertTranscript(result.transcript,'publish',PUBLISH_METHODS.slice(0,7),true);
     await session.close(); process.stdout.write(JSON.stringify(result)); process.exit(0);
   }
-  assert.equal(result.status,'published',JSON.stringify(result)); assert.equal(result.commitCalls,1); assert.equal(result.blindRetry,false); assert.equal(result.inspected,true);
+  assert.equal(result.status,'published',JSON.stringify(result)); assert.equal(result.commitCalls,1); assert.equal(result.blindRetry,false); assert.equal(result.inspected,true); assertTranscript(result.transcript,'publish',PUBLISH_METHODS);
+  const invalid=await runPublish(publishCodec,{sessionId:'installed-invalid-handoff',exchange:()=>{throw new Error('invalid handoff must not reach transport');}},{...handoff,schema:'foreign'},inspect);
+  assert.equal(invalid.status,'failure'); assert.equal(invalid.outcome,'publish_precondition_rejected'); assert.equal(invalid.failure.kind,'workflow_transition_failure'); assert.equal(typeof invalid.failure.message,'string'); assert.equal(Object.hasOwn(invalid.failure,'opaqueCause'),false); assert.deepEqual(invalid.transcript,[]); assert.ok(Object.isFrozen(invalid.transcript));
   const duplicate=publishCodec.request('duplicate','candidate/commit',{image_revision:handoff.imageRevision,candidate_revision:handoff.candidateRevision,approval_revision:'sha256:'+'0'.repeat(64)});
   const duplicateResponse=JSON.parse(await session.exchange(duplicate));
   assert.match(duplicateResponse.error.message,/SPX-G287/);
@@ -877,6 +904,16 @@ fn installed_typescript_sdk_drives_review_and_separately_approved_publish() {
         None,
     );
     assert_eq!(reviewed["status"], "ready");
+    assert!(reviewed["transcript"].as_array().unwrap().len() >= 13);
+    assert!(reviewed["transcript"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|step| {
+            step["responseContract"]["authority"]["request_capability_changes"] == false
+                && step["responseContract"]["blind_spots"]["ledger_reference"]
+                    == "workflow.blind_spots"
+        }));
     assert_eq!(
         reviewed["handoff"]["reviewClientContractRevision"],
         review.contract_revision
@@ -919,6 +956,7 @@ fn installed_typescript_sdk_drives_review_and_separately_approved_publish() {
         Some(&handoff_path),
     );
     assert_eq!(published["status"], "published");
+    assert!(published["transcript"].as_array().unwrap().len() >= 9);
     assert_eq!(
         published["publishClientContractRevision"],
         publish.contract_revision
@@ -1015,6 +1053,9 @@ fn installed_typescript_sdk_drives_review_and_separately_approved_publish() {
     );
     assert_eq!(lost["status"], "failure");
     assert_eq!(lost["outcome"], "publication_uncertain");
+    assert_eq!(lost["failure"]["kind"], "transport_or_response_failure");
+    assert!(lost.get("error").is_none());
+    assert!(lost["transcript"].as_array().unwrap().len() >= 7);
     assert_eq!(lost["commitInvoked"], true);
     assert_eq!(lost["blindRetry"], false);
     assert_ne!(loss_fixture.head(), loss_fixture.base);

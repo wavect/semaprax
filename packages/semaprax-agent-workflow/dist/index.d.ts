@@ -8,6 +8,42 @@ export type WorkflowEvent = 'transport_or_response_uncertain_before_publication'
 export type WorkflowOutcome = 'transport_uncertain_no_publish_claim' | 'stale_subject' | 'review_rejected' | 'publish_precondition_rejected' | 'publish_failed_pre_pivot' | 'publication_uncertain';
 export type CompilerRepairOptions = readonly [];
 export type WorkflowTransitionRepairOptions = readonly [] | readonly ['start_new_review_with_different_intention'];
+export type WorkflowPhaseId = 'review' | 'publish';
+export type WorkflowEffect = 'read_only' | 'candidate_overlay_mutation' | 'bounded_test_execution' | 'source_publication' | 'receipt_read';
+export interface WorkflowResponseAuthority {
+    readonly request_capability_changes: false;
+    readonly evidence_or_handoff_grants_authority: false;
+    readonly candidate_overlay_mutation: boolean;
+    readonly test_execution: boolean;
+    readonly source_publication: boolean;
+}
+export interface WorkflowRuntimeBlindSpotUpdate {
+    readonly area: 'runtime_environment';
+    readonly from: 'not_inspected';
+    readonly to: 'partial';
+    readonly requires: 'bound_successful_reference_interpreter_report';
+}
+export interface WorkflowResponseBlindSpots {
+    readonly ledger_reference: 'workflow.blind_spots';
+    readonly permitted_runtime_update: WorkflowRuntimeBlindSpotUpdate | null;
+}
+export interface WorkflowResponseContract {
+    readonly schema: 'semaprax.supported-product-workflow-response-contract.v1';
+    readonly payload_schema: string;
+    readonly required_grants: readonly string[];
+    readonly effect: WorkflowEffect;
+    readonly authority: WorkflowResponseAuthority;
+    readonly blind_spots: WorkflowResponseBlindSpots;
+}
+export interface WorkflowStepObservation {
+    readonly phase: WorkflowPhaseId;
+    readonly stepIndex: number;
+    readonly requestId: string;
+    readonly method: string;
+    readonly outcome: 'decoded_response' | 'failed_response';
+    readonly responseContract: WorkflowResponseContract;
+}
+export type WorkflowTranscript = readonly WorkflowStepObservation[];
 export interface ResultEnvelope {
     readonly schema: string;
     readonly protocol: string;
@@ -49,12 +85,23 @@ export interface RpcDiagnostic {
     readonly help: string | null;
 }
 export interface FailureContext {
-    readonly phase: 'review' | 'publish';
+    readonly phase: WorkflowPhaseId;
     readonly method: string;
     readonly applicationFailure: ApplicationFailure;
     readonly commitInvoked: boolean;
 }
 export type FailureClassifier = (context: FailureContext) => WorkflowEvent;
+export type WorkflowFailureDetail = {
+    readonly kind: 'application_failure';
+    readonly applicationFailure: ApplicationFailure;
+} | {
+    readonly kind: 'workflow_transition_failure';
+    readonly message: string;
+} | {
+    readonly kind: 'transport_or_response_failure';
+    readonly message: string;
+    readonly opaqueCause: unknown;
+};
 export type ScalarSignatureLiteral = {
     readonly kind: 'i64' | 'i32' | 'u8' | 'usize';
     readonly value: number;
@@ -169,13 +216,14 @@ export interface WorkflowFailure {
     readonly status: 'failure';
     readonly outcome: WorkflowOutcome;
     readonly event: WorkflowEvent;
-    readonly phase: 'review' | 'publish';
+    readonly phase: WorkflowPhaseId;
     readonly method: string;
     readonly commitInvoked: boolean;
     readonly blindRetry: false;
     readonly compilerRepairOptions: CompilerRepairOptions;
     readonly transitionRepairOptions: WorkflowTransitionRepairOptions;
-    readonly error: unknown;
+    readonly failure: WorkflowFailureDetail;
+    readonly transcript: WorkflowTranscript;
 }
 export interface ReviewReady {
     readonly status: 'ready';
@@ -183,6 +231,7 @@ export interface ReviewReady {
     readonly handoff: WorkflowHandoff;
     readonly compilerRepairOptions: CompilerRepairOptions;
     readonly blindRetry: false;
+    readonly transcript: WorkflowTranscript;
 }
 export type ReviewResult = ReviewReady | WorkflowFailure;
 export interface PublicationInspection {
@@ -197,6 +246,7 @@ export interface PublicationInspection {
     readonly receiptSha256: Digest;
     readonly publishClientContractRevision: Digest;
     readonly publishProfileRevision: Digest;
+    readonly transcript: WorkflowTranscript;
 }
 export type InspectPublication = ((inspection: PublicationInspection) => boolean | Promise<boolean>) & {
     readonly classifyFailure: FailureClassifier;
@@ -214,6 +264,7 @@ export interface PublishComplete {
     readonly inspected: true;
     readonly commitCalls: 1;
     readonly blindRetry: false;
+    readonly transcript: WorkflowTranscript;
 }
 export type PublishResult = PublishComplete | WorkflowFailure;
 export declare function runReview(codec: WorkflowCodec, transport: WorkflowTransport, input: ReviewInput): Promise<ReviewResult>;

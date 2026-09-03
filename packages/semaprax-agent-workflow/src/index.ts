@@ -60,6 +60,54 @@ export type WorkflowTransitionRepairOptions =
   | readonly []
   | readonly ['start_new_review_with_different_intention'];
 
+export type WorkflowPhaseId = 'review' | 'publish';
+export type WorkflowEffect =
+  | 'read_only'
+  | 'candidate_overlay_mutation'
+  | 'bounded_test_execution'
+  | 'source_publication'
+  | 'receipt_read';
+
+export interface WorkflowResponseAuthority {
+  readonly request_capability_changes: false;
+  readonly evidence_or_handoff_grants_authority: false;
+  readonly candidate_overlay_mutation: boolean;
+  readonly test_execution: boolean;
+  readonly source_publication: boolean;
+}
+
+export interface WorkflowRuntimeBlindSpotUpdate {
+  readonly area: 'runtime_environment';
+  readonly from: 'not_inspected';
+  readonly to: 'partial';
+  readonly requires: 'bound_successful_reference_interpreter_report';
+}
+
+export interface WorkflowResponseBlindSpots {
+  readonly ledger_reference: 'workflow.blind_spots';
+  readonly permitted_runtime_update: WorkflowRuntimeBlindSpotUpdate | null;
+}
+
+export interface WorkflowResponseContract {
+  readonly schema: 'semaprax.supported-product-workflow-response-contract.v1';
+  readonly payload_schema: string;
+  readonly required_grants: readonly string[];
+  readonly effect: WorkflowEffect;
+  readonly authority: WorkflowResponseAuthority;
+  readonly blind_spots: WorkflowResponseBlindSpots;
+}
+
+export interface WorkflowStepObservation {
+  readonly phase: WorkflowPhaseId;
+  readonly stepIndex: number;
+  readonly requestId: string;
+  readonly method: string;
+  readonly outcome: 'decoded_response' | 'failed_response';
+  readonly responseContract: WorkflowResponseContract;
+}
+
+export type WorkflowTranscript = readonly WorkflowStepObservation[];
+
 export interface ResultEnvelope {
   readonly schema: string;
   readonly protocol: string;
@@ -107,13 +155,28 @@ export interface RpcDiagnostic {
 }
 
 export interface FailureContext {
-  readonly phase: 'review' | 'publish';
+  readonly phase: WorkflowPhaseId;
   readonly method: string;
   readonly applicationFailure: ApplicationFailure;
   readonly commitInvoked: boolean;
 }
 
 export type FailureClassifier = (context: FailureContext) => WorkflowEvent;
+
+export type WorkflowFailureDetail =
+  | {
+      readonly kind: 'application_failure';
+      readonly applicationFailure: ApplicationFailure;
+    }
+  | {
+      readonly kind: 'workflow_transition_failure';
+      readonly message: string;
+    }
+  | {
+      readonly kind: 'transport_or_response_failure';
+      readonly message: string;
+      readonly opaqueCause: unknown;
+    };
 
 export type ScalarSignatureLiteral =
   | { readonly kind: 'i64' | 'i32' | 'u8' | 'usize'; readonly value: number }
@@ -179,13 +242,14 @@ export interface WorkflowFailure {
   readonly status: 'failure';
   readonly outcome: WorkflowOutcome;
   readonly event: WorkflowEvent;
-  readonly phase: 'review' | 'publish';
+  readonly phase: WorkflowPhaseId;
   readonly method: string;
   readonly commitInvoked: boolean;
   readonly blindRetry: false;
   readonly compilerRepairOptions: CompilerRepairOptions;
   readonly transitionRepairOptions: WorkflowTransitionRepairOptions;
-  readonly error: unknown;
+  readonly failure: WorkflowFailureDetail;
+  readonly transcript: WorkflowTranscript;
 }
 
 export interface ReviewReady {
@@ -194,6 +258,7 @@ export interface ReviewReady {
   readonly handoff: WorkflowHandoff;
   readonly compilerRepairOptions: CompilerRepairOptions;
   readonly blindRetry: false;
+  readonly transcript: WorkflowTranscript;
 }
 
 export type ReviewResult = ReviewReady | WorkflowFailure;
@@ -210,6 +275,7 @@ export interface PublicationInspection {
   readonly receiptSha256: Digest;
   readonly publishClientContractRevision: Digest;
   readonly publishProfileRevision: Digest;
+  readonly transcript: WorkflowTranscript;
 }
 
 export type InspectPublication = ((inspection: PublicationInspection) => boolean | Promise<boolean>) & {
@@ -229,6 +295,7 @@ export interface PublishComplete {
   readonly inspected: true;
   readonly commitCalls: 1;
   readonly blindRetry: false;
+  readonly transcript: WorkflowTranscript;
 }
 
 export type PublishResult = PublishComplete | WorkflowFailure;
@@ -317,6 +384,14 @@ interface BoundWorkflow {
   readonly metadata: JsonObject;
   readonly clientContractRevision: Digest;
   readonly profileRevision: Digest;
+  readonly reviewSteps: readonly BoundWorkflowStep[];
+  readonly publishSteps: readonly BoundWorkflowStep[];
+}
+
+interface BoundWorkflowStep {
+  readonly index: number;
+  readonly method: string;
+  readonly responseContract: WorkflowResponseContract;
 }
 
 function workflow(codec: WorkflowCodec, requirePublish = false): BoundWorkflow {
@@ -329,18 +404,117 @@ function workflow(codec: WorkflowCodec, requirePublish = false): BoundWorkflow {
   const profileRevision = digest(qualification.selected_profile_revision, 'selected workflow profile revision');
   const phases = selected.phases;
   if (!Array.isArray(phases)) throw new Error('workflow phases missing');
-  checkPhase(phases, 'review', REVIEW_METHODS);
+  const reviewSteps = checkPhase(phases, 'review', REVIEW_METHODS);
   const publish = phases.find((phase) => object(phase) && phase.id === 'publish');
   if (requirePublish && publish === undefined) throw new Error('codec publish workflow phase missing');
-  if (publish !== undefined) checkPhase(phases, 'publish', PUBLISH_METHODS);
-  return { metadata: selected, clientContractRevision: contract, profileRevision };
+  const publishSteps = publish === undefined ? [] : checkPhase(phases, 'publish', PUBLISH_METHODS);
+  return { metadata: selected, clientContractRevision: contract, profileRevision, reviewSteps, publishSteps };
 }
 
-function checkPhase(phases: readonly unknown[], id: string, methods: readonly string[]): void {
+function checkPhase(
+  phases: readonly unknown[],
+  id: WorkflowPhaseId,
+  methods: readonly string[],
+): readonly BoundWorkflowStep[] {
   const phase = phases.find((value) => object(value) && value.id === id);
   if (!object(phase) || !Array.isArray(phase.ordered_steps)) throw new Error(`workflow ${id} phase missing`);
   const actual = phase.ordered_steps.map((step) => object(step) ? step.method : undefined);
   if (!same(actual, methods)) throw new Error(`workflow ${id} method order mismatch`);
+  return Object.freeze(phase.ordered_steps.map((raw, position) => {
+    const step = record(raw, `workflow ${id} step ${position}`);
+    if (!Number.isSafeInteger(step.index) || step.index !== position + 1 || step.method !== methods[position]) {
+      throw new Error(`workflow ${id} step index mismatch`);
+    }
+    return Object.freeze({
+      index: position + 1,
+      method: methods[position]!,
+      responseContract: responseContract(step.response_contract, methods[position]!, `workflow ${id} step ${position}`),
+    });
+  }));
+}
+
+function expectedGrants(method: string): readonly string[] {
+  if (method === 'candidate/test' || method === 'candidate/test-plan') return ['candidate_prepare', 'candidate_test'];
+  if (method === 'candidate/commit') return ['candidate_prepare', 'source_commit'];
+  if (method === 'candidate/commit-report' || method === 'source-commit/status') return ['source_commit'];
+  if (method.startsWith('candidate/')) return ['candidate_prepare'];
+  return ['semantic_read'];
+}
+
+function expectedEffect(method: string): WorkflowEffect {
+  if (method === 'candidate/open' || method === 'candidate/apply-intent' || method === 'candidate/recovery-restore') return 'candidate_overlay_mutation';
+  if (method === 'candidate/test') return 'bounded_test_execution';
+  if (method === 'candidate/commit') return 'source_publication';
+  if (method === 'candidate/commit-report') return 'receipt_read';
+  return 'read_only';
+}
+
+function responseContract(value: unknown, method: string, name: string): WorkflowResponseContract {
+  const contract = record(value, `${name} response contract`);
+  const keys = ['schema', 'payload_schema', 'required_grants', 'effect', 'authority', 'blind_spots'];
+  if (!same(Object.keys(contract).sort(), keys.sort()) ||
+      contract.schema !== 'semaprax.supported-product-workflow-response-contract.v1' ||
+      typeof contract.payload_schema !== 'string' || contract.payload_schema.length === 0 ||
+      !Array.isArray(contract.required_grants) || !contract.required_grants.every((grant) => typeof grant === 'string' && grant.length > 0) ||
+      new Set(contract.required_grants).size !== contract.required_grants.length ||
+      !same(contract.required_grants, expectedGrants(method))) {
+    throw new Error(`${name} response contract is not closed`);
+  }
+  const effects: readonly WorkflowEffect[] = ['read_only', 'candidate_overlay_mutation', 'bounded_test_execution', 'source_publication', 'receipt_read'];
+  if (!effects.includes(contract.effect as WorkflowEffect) || contract.effect !== expectedEffect(method)) throw new Error(`${name} response effect is unknown`);
+  const authority = record(contract.authority, `${name} response authority`);
+  const authorityKeys = ['request_capability_changes', 'evidence_or_handoff_grants_authority', 'candidate_overlay_mutation', 'test_execution', 'source_publication'];
+  if (!same(Object.keys(authority).sort(), authorityKeys.sort()) ||
+      authority.request_capability_changes !== false || authority.evidence_or_handoff_grants_authority !== false ||
+      typeof authority.candidate_overlay_mutation !== 'boolean' || typeof authority.test_execution !== 'boolean' ||
+      typeof authority.source_publication !== 'boolean') {
+    throw new Error(`${name} response authority is not closed`);
+  }
+  if (authority.candidate_overlay_mutation !== (contract.effect === 'candidate_overlay_mutation') ||
+      authority.test_execution !== (contract.effect === 'bounded_test_execution') ||
+      authority.source_publication !== (contract.effect === 'source_publication')) {
+    throw new Error(`${name} response authority disagrees with its effect`);
+  }
+  const blindSpots = record(contract.blind_spots, `${name} response blind spots`);
+  if (!same(Object.keys(blindSpots).sort(), ['ledger_reference', 'permitted_runtime_update'].sort()) ||
+      blindSpots.ledger_reference !== 'workflow.blind_spots') {
+    throw new Error(`${name} response blind spots are not closed`);
+  }
+  let update: WorkflowRuntimeBlindSpotUpdate | null = null;
+  if (blindSpots.permitted_runtime_update !== null) {
+    const selected = record(blindSpots.permitted_runtime_update, `${name} permitted runtime update`);
+    if (!same(Object.keys(selected).sort(), ['area', 'from', 'to', 'requires'].sort()) ||
+        selected.area !== 'runtime_environment' || selected.from !== 'not_inspected' || selected.to !== 'partial' ||
+        selected.requires !== 'bound_successful_reference_interpreter_report') {
+      throw new Error(`${name} permitted runtime update is not closed`);
+    }
+    update = Object.freeze({
+      area: 'runtime_environment',
+      from: 'not_inspected',
+      to: 'partial',
+      requires: 'bound_successful_reference_interpreter_report',
+    });
+  }
+  if ((update !== null) !== (contract.effect === 'bounded_test_execution')) {
+    throw new Error(`${name} permitted runtime update disagrees with its effect`);
+  }
+  return Object.freeze({
+    schema: 'semaprax.supported-product-workflow-response-contract.v1',
+    payload_schema: contract.payload_schema,
+    required_grants: Object.freeze([...(contract.required_grants as string[])]),
+    effect: contract.effect as WorkflowEffect,
+    authority: Object.freeze({
+      request_capability_changes: false,
+      evidence_or_handoff_grants_authority: false,
+      candidate_overlay_mutation: authority.candidate_overlay_mutation as boolean,
+      test_execution: authority.test_execution as boolean,
+      source_publication: authority.source_publication as boolean,
+    }),
+    blind_spots: Object.freeze({
+      ledger_reference: 'workflow.blind_spots',
+      permitted_runtime_update: update,
+    }),
+  });
 }
 
 function transportSession(transport: WorkflowTransport): string {
@@ -350,9 +524,29 @@ function transportSession(transport: WorkflowTransport): string {
 function applicationFailure(error: unknown): ApplicationFailure | null {
   if (!object(error) || !object(error.rpc)) return null;
   const rpc = error.rpc;
-  if (!Number.isSafeInteger(rpc.code) || typeof rpc.message !== 'string' || !object(rpc.data)) return null;
+  if (!same(Object.keys(rpc).sort(), ['code', 'message', 'data'].sort()) ||
+      !Number.isSafeInteger(rpc.code) || typeof rpc.message !== 'string' || !object(rpc.data) ||
+      !same(Object.keys(rpc.data).sort(), ['schema', 'diagnostics'].sort())) return null;
   if (rpc.data.schema !== 'semaprax.image-agent-application-error-data.v1' || !Array.isArray(rpc.data.diagnostics) || rpc.data.diagnostics.length === 0 || !rpc.data.diagnostics.every(diagnostic)) return null;
-  return rpc as unknown as ApplicationFailure;
+  const diagnostics = rpc.data.diagnostics.map((value) => {
+    const selected = value as RpcDiagnostic;
+    return Object.freeze({
+      code: selected.code,
+      severity: selected.severity,
+      message: selected.message,
+      path: selected.path,
+      location: selected.location === null ? null : Object.freeze({ ...selected.location }),
+      help: selected.help,
+    });
+  }) as unknown as readonly [RpcDiagnostic, ...RpcDiagnostic[]];
+  return Object.freeze({
+    code: rpc.code as number,
+    message: rpc.message,
+    data: Object.freeze({
+      schema: 'semaprax.image-agent-application-error-data.v1',
+      diagnostics: Object.freeze(diagnostics),
+    }),
+  });
 }
 
 function diagnostic(value: unknown): value is RpcDiagnostic {
@@ -588,12 +782,22 @@ class WorkflowTransitionError extends Error {
 
 function failure(
   error: unknown,
-  phase: 'review' | 'publish',
+  phase: WorkflowPhaseId,
   method: string,
   classifier: FailureClassifier,
   commitInvoked: boolean,
+  transcript: readonly WorkflowStepObservation[],
 ): WorkflowFailure {
   const application = applicationFailure(error);
+  const detail: WorkflowFailureDetail = error instanceof WorkflowTransitionError
+    ? Object.freeze({ kind: 'workflow_transition_failure', message: error.message })
+    : application !== null
+      ? Object.freeze({ kind: 'application_failure', applicationFailure: application })
+      : Object.freeze({
+          kind: 'transport_or_response_failure',
+          message: error instanceof Error && error.message.length > 0 ? error.message : 'transport or response failed',
+          opaqueCause: error,
+        });
   let event: WorkflowEvent;
   if (commitInvoked) {
     event = 'publication_uncertain';
@@ -620,25 +824,59 @@ function failure(
   const transitionRepairOptions: WorkflowTransitionRepairOptions = event === 'semantic_review_rejection'
     ? ['start_new_review_with_different_intention']
     : [];
-  return { status: 'failure', outcome: outcomes[event], event, phase, method, commitInvoked, blindRetry: false, compilerRepairOptions: [], transitionRepairOptions, error };
+  return { status: 'failure', outcome: outcomes[event], event, phase, method, commitInvoked, blindRetry: false, compilerRepairOptions: [], transitionRepairOptions, failure: detail, transcript: transcriptSnapshot(transcript) };
 }
 
-function caller(codec: WorkflowCodec, transport: WorkflowTransport, phase: 'review' | 'publish') {
+function transcriptSnapshot(transcript: readonly WorkflowStepObservation[]): WorkflowTranscript {
+  return Object.freeze([...transcript]);
+}
+
+function caller(
+  codec: WorkflowCodec,
+  transport: WorkflowTransport,
+  phase: WorkflowPhaseId,
+  steps: readonly BoundWorkflowStep[],
+  transcript: WorkflowStepObservation[],
+) {
   let sequence = 0;
+  let stepPosition = 0;
   return async (method: string, params: object): Promise<ResultEnvelope> => {
     sequence += 1;
     const id = `${phase}:${sequence}`;
-    const frame = codec.request(id, method, params);
-    if (!frame.endsWith('\n') || frame.slice(0, -1).includes('\n')) throw new Error('codec request is not one NDJSON frame');
-    const response = await transport.exchange(frame);
-    if (typeof response !== 'string' || response.length === 0) {
-      throw new Error('transport response must be one nonempty JSON line');
+    let step = steps[stepPosition];
+    if (step?.method !== method) {
+      stepPosition += 1;
+      step = steps[stepPosition];
     }
-    const line = response.endsWith('\n') ? response.slice(0, -1) : response;
-    if (line.length === 0 || line.includes('\n') || line.includes('\r')) throw new Error('transport response must be one nonempty JSON line');
-    const decoded = codec.decodeTyped(line, method, id);
-    if (decoded.protocol !== PROTOCOL) throw new Error('response protocol mismatch');
-    return decoded;
+    if (step?.method !== method) throw new Error(`workflow ${phase} call order mismatch`);
+    const selectedStep = step;
+    const observe = (outcome: WorkflowStepObservation['outcome']): void => {
+      transcript.push(Object.freeze({
+        phase,
+        stepIndex: selectedStep.index,
+        requestId: id,
+        method,
+        outcome,
+        responseContract: selectedStep.responseContract,
+      }));
+    };
+    try {
+      const frame = codec.request(id, method, params);
+      if (!frame.endsWith('\n') || frame.slice(0, -1).includes('\n')) throw new Error('codec request is not one NDJSON frame');
+      const response = await transport.exchange(frame);
+      if (typeof response !== 'string' || response.length === 0) {
+        throw new Error('transport response must be one nonempty JSON line');
+      }
+      const line = response.endsWith('\n') ? response.slice(0, -1) : response;
+      if (line.length === 0 || line.includes('\n') || line.includes('\r')) throw new Error('transport response must be one nonempty JSON line');
+      const decoded = codec.decodeTyped(line, method, id);
+      if (decoded.protocol !== PROTOCOL) throw new Error('response protocol mismatch');
+      observe('decoded_response');
+      return decoded;
+    } catch (error) {
+      observe('failed_response');
+      throw error;
+    }
   };
 }
 
@@ -679,7 +917,8 @@ export async function runReview(codec: WorkflowCodec, transport: WorkflowTranspo
   const target = boundedText(input.target, 'signature target', 4096);
   const parameters = signatureParameters(input.parameters);
   const intention = { kind: 'change_function_signature', target, parameters };
-  const call = caller(codec, transport, 'review');
+  const transcript: WorkflowStepObservation[] = [];
+  const call = caller(codec, transport, 'review', selected.reviewSteps, transcript);
   let method: string = REVIEW_METHODS[0];
   try {
     const openedEnvelope = await call(method, {});
@@ -746,9 +985,9 @@ export async function runReview(codec: WorkflowCodec, transport: WorkflowTranspo
       recoveryCapsuleSha256: await sha256(recoveryCapsule), compilerRepairOptions: [],
     };
     const handoff: WorkflowHandoff = { ...core, handoffSha256: await sha256(canonical(core)) };
-    return { status: 'ready', outcome: 'reviewed_candidate_and_source_backed_recovery_capsule', handoff, compilerRepairOptions: [], blindRetry: false };
+    return { status: 'ready', outcome: 'reviewed_candidate_and_source_backed_recovery_capsule', handoff, compilerRepairOptions: [], blindRetry: false, transcript: transcriptSnapshot(transcript) };
   } catch (error) {
-    return failure(error, 'review', method, input.classifyFailure, false);
+    return failure(error, 'review', method, input.classifyFailure, false, transcript);
   }
 }
 
@@ -761,7 +1000,8 @@ export async function runPublish(
   const selected = workflow(codec, true);
   const sessionId = transportSession(transport);
   if (typeof inspectPublication !== 'function' || typeof inspectPublication.classifyFailure !== 'function') throw new Error('inspectPublication and its classifyFailure callback are required');
-  const call = caller(codec, transport, 'publish');
+  const transcript: WorkflowStepObservation[] = [];
+  const call = caller(codec, transport, 'publish', selected.publishSteps, transcript);
   let method = 'handoff/preflight';
   let commitInvoked = false;
   try {
@@ -820,13 +1060,14 @@ export async function runPublish(
     const receipt = record(JSON.parse(receiptText), 'publication receipt');
     exactReceipt(receipt, { candidate: handoff.candidateRevision, baseProject: handoff.projectRevision, candidateProject: reviewedSource.candidateProjectRevision, paths: reviewedSource.paths });
     const receiptSha256 = await sha256(receiptText);
-    const inspected = await inspectPublication({ workflow: WORKFLOW_ID, candidateRevision: handoff.candidateRevision, approvalRevision: approval, reportRevision, precommitStatus: pre, commitHandle: committed, postcommitStatus: post, receipt, receiptSha256, publishClientContractRevision: selected.clientContractRevision, publishProfileRevision: selected.profileRevision });
+    const finalTranscript = transcriptSnapshot(transcript);
+    const inspected = await inspectPublication({ workflow: WORKFLOW_ID, candidateRevision: handoff.candidateRevision, approvalRevision: approval, reportRevision, precommitStatus: pre, commitHandle: committed, postcommitStatus: post, receipt, receiptSha256, publishClientContractRevision: selected.clientContractRevision, publishProfileRevision: selected.profileRevision, transcript: finalTranscript });
     if (inspected !== true) throw new WorkflowTransitionError('publication_uncertain', 'host publication inspection did not confirm the fixed ref and prepared commit');
-    return { status: 'published', outcome: 'published', candidateRevision: handoff.candidateRevision, approvalRevision: approval, reportRevision, receipt, receiptSha256, publishClientContractRevision: selected.clientContractRevision, publishProfileRevision: selected.profileRevision, inspected: true, commitCalls: 1, blindRetry: false };
+    return { status: 'published', outcome: 'published', candidateRevision: handoff.candidateRevision, approvalRevision: approval, reportRevision, receipt, receiptSha256, publishClientContractRevision: selected.clientContractRevision, publishProfileRevision: selected.profileRevision, inspected: true, commitCalls: 1, blindRetry: false, transcript: finalTranscript };
   } catch (error) {
     const selectedError = method === 'handoff/preflight' && !(error instanceof WorkflowTransitionError)
       ? new WorkflowTransitionError('publish_precondition_rejection', 'handoff is malformed or incomplete')
       : error;
-    return failure(selectedError, 'publish', method, inspectPublication.classifyFailure, commitInvoked);
+    return failure(selectedError, 'publish', method, inspectPublication.classifyFailure, commitInvoked, transcript);
   }
 }

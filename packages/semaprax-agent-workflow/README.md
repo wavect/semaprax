@@ -18,7 +18,7 @@ const review = await runReview(codec, reviewTransport, {
   ],
   classifyFailure,
 });
-if (review.status !== 'ready') throw review.error;
+if (review.status !== 'ready') throw new Error(review.failure.kind);
 
 const inspectPublication = Object.assign(
   async ({ receipt, reportRevision }) => hostChecksFixedRefAndPreparedCommit(receipt, reportRevision),
@@ -55,7 +55,20 @@ required or expected to have the same contract digest.
 
 The required `classifyFailure` callback may classify only a structurally typed
 application error into the workflow's closed events. Transport failures and
-malformed responses bypass it and remain uncertainty. A successful package
-result is evidence about these protocol transitions only; it does not establish
+malformed responses bypass it and remain uncertainty. Failures expose one
+closed `failure` union: typed application diagnostics, a typed workflow
+transition message, or a transport/response variant whose `opaqueCause` is the
+only untyped interior.
+
+Every ready, published, or failed result also carries an immutable `transcript`.
+Each attempted step binds its phase, workflow index, request ID, method, decoded
+or failed outcome, and a validated copy of that step's selected-profile
+`responseContract`. The contract carries the exact grants, effect, authority
+flags, blind-spot ledger, and only permitted runtime-evidence update. It is
+accountability metadata, not authority and not evidence that an uninspected
+area was observed.
+
+A successful package result is evidence about these protocol transitions only;
+it does not establish
 deployment configuration, generated artifact provenance, external API behavior,
 external consumer compatibility, or general signature evolution.

@@ -45,14 +45,19 @@ The Python and TypeScript adapters and the admitted daemon route are checked
 for process-launch primitives. The selected TypeScript entry and implementation
 are checked for direct child-process calls before use. These source scans are
 tripwires over the named files, not recursive proof over arbitrary imports.
-The TypeScript gate therefore requires immutable, pre-provisioned absolute
-Node and TypeScript paths and ancestors for the complete run; it proves neither
-tool provenance nor safety under concurrent pathname replacement. Within that
-explicit precondition, the tripwires support the gate's deliberately narrow
+The gate therefore requires the selected Python, Node, TypeScript, and
+`CARGO_BIN_EXE_semapraxd` images and every path ancestor to remain immutable and
+quiescent for the complete run; it proves neither tool provenance nor safety
+under concurrent pathname replacement. Windows must provide an absolute
+`SEMAPRAX_TEST_PYTHON`; Unix may use one of the fixed absolute system Python
+locations when no explicit selection is supplied. TypeScript always requires
+explicit absolute `SEMAPRAX_TEST_TSC` and `SEMAPRAX_TEST_NODE` selections.
+Within that precondition, the tripwires support the gate's deliberately narrow
 direct-child/no-descendant contract. They are not a general process-tree
 supervisor or proof about arbitrary third-party interpreters. Every admitted
-direct child is owned by an idempotent settlement guard which kills and reaps
-it on timeout or unwinding.
+direct child is owned by an idempotent bounded settlement guard which kills
+and repeatedly probes it to completion on timeout or unwinding; no blocking
+wait is used after the deadline.
 
 The executable cases cover the four closed profile triples, every foreign
 cross-profile project/descriptor/carrier/build-schema substitution, per-profile
@@ -73,6 +78,12 @@ semantic replay and carrier authentication remain exclusively server-side.
 Focused local commands:
 
 ```sh
+cargo test --locked -p semaprax --test project \
+  agent_transport_v6_sdk::live_conformance::generated_python_and_embedded_rust_clients_drive_all_retained_v6_profiles \
+  -- --exact --test-threads=1
+
+# Required on Windows; optional on Unix when a listed absolute system Python exists.
+SEMAPRAX_TEST_PYTHON=/absolute/python \
 cargo test --locked -p semaprax --test project \
   agent_transport_v6_sdk::live_conformance::generated_python_and_embedded_rust_clients_drive_all_retained_v6_profiles \
   -- --exact --test-threads=1

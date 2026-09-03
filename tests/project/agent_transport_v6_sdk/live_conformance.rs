@@ -149,9 +149,7 @@ impl OwnedChild {
                 return;
             }
             if Instant::now() >= deadline {
-                let _ = child.kill();
-                let _ = child.wait();
-                self.0.take();
+                self.abort();
                 panic!("owned child did not settle before deadline");
             }
             thread::sleep(Duration::from_millis(5));
@@ -195,7 +193,13 @@ struct Daemon {
 
 impl Daemon {
     fn start(fixture: &Fixture) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_semapraxd"))
+        let executable = Path::new(env!("CARGO_BIN_EXE_semapraxd"));
+        assert!(
+            executable.is_absolute() && executable.is_file(),
+            "the harness must supply an absolute semapraxd image"
+        );
+        let executable = executable.canonicalize().unwrap();
+        let mut child = Command::new(executable)
             .args(["--stdio", "--manifest-path"])
             .arg(fixture.manifest())
             .args([
@@ -358,6 +362,12 @@ impl Codec {
             format!("{generated}\n{PYTHON_ADAPTER}"),
         )
         .unwrap();
+        if cfg!(windows) {
+            assert!(
+                std::env::var_os("SEMAPRAX_TEST_PYTHON").is_some(),
+                "Windows must explicitly provision absolute SEMAPRAX_TEST_PYTHON"
+            );
+        }
         let command = configured_tool(
             "SEMAPRAX_TEST_PYTHON",
             &[

@@ -130,6 +130,14 @@ impl ProjectCandidate {
                         "competing move intentions target the same stable ID",
                     ));
                 }
+                if left.intent["target"] == right.intent["target"]
+                    && left.intent["kind"] == "add_variant_case"
+                    && right.intent["kind"] == "add_variant_case"
+                {
+                    return Err(conflict(
+                        "competing variant case additions target the same stable ID",
+                    ));
+                }
             }
         }
         let mut common =
@@ -618,6 +626,84 @@ fn record_fingerprints(
     }
     Ok(result)
 }
+
+// Variant-shape conflicts include exact checked nominal identity keys so a
+// display-compatible source rewrite cannot silently change payload ownership.
+fn variant_fingerprints(
+    revision: &ProjectRevision,
+) -> Result<BTreeMap<String, String>, Vec<Diagnostic>> {
+    let programs = parse_revision(revision)?;
+    let mut checked = BTreeMap::new();
+    for module in revision.semantic.image_modules() {
+        for declaration in module.types() {
+            if checked
+                .insert(
+                    declaration.id.as_str().to_owned(),
+                    (module.path(), module.module(), declaration),
+                )
+                .is_some()
+            {
+                return Err(grammar(
+                    "candidate rebase has ambiguous retained variant identities",
+                ));
+            }
+        }
+    }
+    let mut result = BTreeMap::new();
+    for program in &programs {
+        for declaration in &program.types {
+            if !declaration.explicit_id {
+                continue;
+            }
+            let crate::ast::TypeDeclarationKind::Variant { cases } = &declaration.kind else {
+                continue;
+            };
+            let (path, module, retained) = checked
+                .get(&declaration.stable_id)
+                .ok_or_else(|| grammar("candidate rebase variant lacks retained checked facts"))?;
+            let crate::hir::ResolvedTypeDeclarationKind::Variant {
+                cases: checked_cases,
+            } = &retained.kind
+            else {
+                return Err(grammar(
+                    "candidate rebase source and retained variant kinds disagree",
+                ));
+            };
+            if *path != program.path
+                || *module != program.module
+                || retained.name != declaration.name
+                || checked_cases.len() != cases.len()
+            {
+                return Err(grammar(
+                    "candidate rebase source and retained variant origins disagree",
+                ));
+            }
+            let fingerprint = hash_value(json!({
+                "path":program.path,
+                "module":program.module,
+                "name":declaration.name,
+                "parameters":declaration.type_parameters.iter().map(|parameter| &parameter.name).collect::<Vec<_>>(),
+                "cases":cases.iter().map(|case| json!({
+                    "id":case.stable_id,"explicit":case.explicit_id,"name":case.name,
+                    "fields":case.fields.iter().map(|field| json!({"id":field.stable_id,"explicit":field.explicit_id,"name":field.name,"type":field.ty.to_string()})).collect::<Vec<_>>()
+                })).collect::<Vec<_>>(),
+                "checked_cases":checked_cases.iter().map(|case| json!({
+                    "id":case.id.as_str(),"name":case.name,"index":case.index,
+                    "fields":case.fields.iter().map(|field| json!({"id":field.id.as_str(),"name":field.name,"index":field.index,"type":field.ty.identity_key()})).collect::<Vec<_>>()
+                })).collect::<Vec<_>>(),
+                "evidence_owner":"retained_checked_source_module_HIR",
+            }))?;
+            if result
+                .insert(declaration.stable_id.clone(), fingerprint)
+                .is_some()
+            {
+                return Err(grammar("candidate rebase has ambiguous variant identities"));
+            }
+        }
+    }
+    Ok(result)
+}
+
 struct TypeFingerprint {
     display: String,
     kind: &'static str,
@@ -828,6 +914,14 @@ fn classify(
     } else {
         (BTreeMap::new(), BTreeMap::new())
     };
+    let has_variant_changes = changes
+        .iter()
+        .any(|change| change.intent["kind"] == "add_variant_case");
+    let (old_variants, new_variants) = if has_variant_changes {
+        (variant_fingerprints(old)?, variant_fingerprints(new)?)
+    } else {
+        (BTreeMap::new(), BTreeMap::new())
+    };
     let new_graph: Value = serde_json::from_str(new.semantic_graph())
         .map_err(|_| grammar("candidate rebase graph is invalid"))?;
     let mut new_ids = new_graph["declarations"]
@@ -885,6 +979,19 @@ fn classify(
                     ));
                 }
                 (false, false, false, false, false)
+            } else if kind == "add_variant_case" && !introduced.contains(target) {
+                let before = old_variants.get(target).ok_or_else(|| {
+                    conflict("variant case addition target is absent from its original base")
+                })?;
+                let after = new_variants.get(target).ok_or_else(|| {
+                    conflict("variant case addition target was deleted or changed kind")
+                })?;
+                if before != after {
+                    return Err(conflict(
+                        "variant case addition conflicts with concurrent variant shape changes",
+                    ));
+                }
+                (false, false, false, false, false)
             } else if kind == "rename_declaration" && old_types.contains_key(target) {
                 compare_type_rename(&old_types[target], new_types.get(target))?;
                 (false, false, false, false, false)
@@ -917,7 +1024,7 @@ fn classify(
             "replace_contract_expression" if signature_changed || contracts_changed || effects_changed => return Err(conflict("contract replacement conflicts with concurrent target signature, contracts or effects")),
             "add_declaration" if signature_changed || effects_changed => return Err(conflict("declaration addition conflicts with concurrent target signature or effects")),
             "move_declaration" if signature_changed || effects_changed => return Err(conflict("declaration move conflicts with concurrent target signature or effects")),
-            "rename_declaration" | "replace_function_body" | "replace_expression" | "replace_contract_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" | "add_record_field" | "move_declaration" | "implement_interface" => {},
+            "rename_declaration" | "replace_function_body" | "replace_expression" | "replace_contract_expression" | "change_function_signature" | "add_contract" | "add_declaration" | "extract_function" | "add_record_field" | "add_variant_case" | "move_declaration" | "implement_interface" => {},
             _ => return Err(grammar("candidate rebase does not admit this intention kind")),
         }
         if kind == "move_declaration" {
@@ -1012,6 +1119,10 @@ fn added_intent_ids<'a>(request: &'a Value) -> Result<BTreeSet<&'a str>, Vec<Dia
         }
         Some("extract_function") => add(&request["new_id"])?,
         Some("add_record_field") => add(&request["field"]["id"])?,
+        Some("add_variant_case") => {
+            add(&request["case"]["id"])?;
+            add(&request["case"]["field"]["id"])?;
+        }
         Some("implement_interface") => add(&request["id"])?,
         _ => {}
     }

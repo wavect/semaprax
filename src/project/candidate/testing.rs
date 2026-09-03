@@ -241,6 +241,9 @@ impl ProjectCandidate {
                 "add_record_field" => {
                     fallback.insert("non_callable_record_shape_change");
                 }
+                "add_variant_case" => {
+                    fallback.insert("non_callable_variant_shape_change");
+                }
                 _ => {
                     fallback.insert("unclassified_semantic_change");
                 }

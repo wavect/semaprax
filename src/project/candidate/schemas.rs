@@ -453,6 +453,15 @@ fn intent_schema() -> Value {
         extraction,
         base("move_declaration",vec![("destination",text(MAX_ID_BYTES))]),
         base("add_record_field",vec![("field",json!({"oneOf":record_fields}))]),
+        base("add_variant_case",vec![("case",closed(&[
+            ("id",stable_id()),
+            ("name",identifier()),
+            ("field",closed(&[
+                ("id",stable_id()),
+                ("name",identifier()),
+                ("type",json!({"enum":["Bytes","string"],"x-semantic-admission":"Bytes_only_string_is_explicitly_unsupported"})),
+            ])),
+        ]))]),
     ]})
 }
 

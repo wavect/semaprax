@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 mod analysis_boundary_bundle;
 mod analysis_coverage;
+mod candidate_archive_store;
 mod candidate_dependency_navigation;
 mod candidate_function_facets;
 mod candidate_impact_navigation;
@@ -141,6 +142,7 @@ pub(super) enum Action {
     CandidateFunctionFacet,
     CandidateImpactSummary,
     CandidateImpactPage,
+    CandidateArchiveStore,
     DependencySummary,
     DependencyPage,
     FunctionInstances,
@@ -194,6 +196,7 @@ pub struct VNextSession {
     retention_lifecycle: Option<crate::semantic_retention_lifecycle::RetentionLifecycleCoordinator>,
     retention_lifecycle_outcome:
         Option<crate::semantic_retention_lifecycle::RetentionLifecycleOutcome>,
+    candidate_archive_store: Option<crate::candidate_archive_store::CandidateArchiveStore>,
 }
 
 impl VNextSession {
@@ -302,6 +305,7 @@ impl VNextSession {
             test_tasks: test_tasks::Registry::new(),
             retention_lifecycle: None,
             retention_lifecycle_outcome: None,
+            candidate_archive_store: None,
         })
     }
 
@@ -412,6 +416,7 @@ impl VNextSession {
             self.commit.is_some(),
             self.package_graph.is_some(),
             self.read_batch_workers.is_some(),
+            self.candidate_archive_store.is_some(),
         );
         let Some(method) = available
             .iter()
@@ -463,6 +468,9 @@ impl VNextSession {
             Operation::VNext(Action::Refresh) => self.refresh(&id, &params, false),
             Operation::VNext(Action::RefreshPreview) => self.refresh(&id, &params, true),
             Operation::VNext(Action::Commit) => self.commit_request(&id, method, &params),
+            Operation::VNext(Action::CandidateArchiveStore) => {
+                self.candidate_archive_store_request(&id, &params)
+            }
             Operation::VNext(
                 action @ (Action::CandidateTestTaskStart
                 | Action::CandidateTestTaskStatus
@@ -857,7 +865,7 @@ impl VNextSession {
 
 #[cfg(test)]
 fn methods(policy: &VNextPolicy, commit_enabled: bool) -> Vec<&'static Method> {
-    session_methods(policy, commit_enabled, false, false)
+    session_methods(policy, commit_enabled, false, false, false)
 }
 
 fn session_methods(
@@ -865,6 +873,7 @@ fn session_methods(
     commit_enabled: bool,
     package_attached: bool,
     read_batch_selected: bool,
+    candidate_archive_store_selected: bool,
 ) -> Vec<&'static Method> {
     use candidates::diagnostics::Action as DiagnosticAction;
     let mut methods = candidates::diagnostics::methods(policy.test_policy.is_some())
@@ -929,6 +938,9 @@ fn session_methods(
         methods.push(draft_rebase::method());
         methods.push(draft_merge::method());
         methods.extend(contract_holes::methods());
+        if candidate_archive_store_selected {
+            methods.push(candidate_archive_store::method());
+        }
     }
     if commit_enabled {
         methods.extend(commit::methods());

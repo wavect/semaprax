@@ -40,6 +40,78 @@ pub const MAX_CANDIDATE_ARCHIVE_STORE_PATH_BYTES: usize = 4096;
 pub const MAX_CANDIDATE_ARCHIVE_STORE_PATH_DEPTH: usize = 64;
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
+/// One explicitly selected immutable archive store held by directory identity.
+/// The handle can publish only independently replayed typed archives; it grants
+/// no archive discovery, load, restore, deletion, source, or publication API.
+pub struct CandidateArchiveStore {
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    ))]
+    root: unix::Root,
+}
+
+impl CandidateArchiveStore {
+    /// Hold one pre-existing exact private root. The selected path is consumed
+    /// only here and is never accepted from a later archive/store request.
+    pub fn open(root: &Path) -> Result<Self> {
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        {
+            Ok(Self {
+                root: unix::Root::open(root)?,
+            })
+        }
+        #[cfg(not(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )))]
+        {
+            let _ = root;
+            Err(io(
+                "candidate archive store requires supported Unix held-directory input",
+            ))
+        }
+    }
+
+    /// Replay and publish one exact complete candidate archive through the held
+    /// root. The successful receipt contains identity/accounting facts only.
+    pub fn persist(
+        &self,
+        archive: &ProjectCandidateArchive,
+    ) -> Result<CandidateArchiveStoreReceipt> {
+        let receipt = prepare_candidate_receipt(archive)?;
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        unix::persist_held(&self.root, archive)?;
+        Ok(receipt)
+    }
+}
+
 /// Subject identity only: no path, handle, approval, or reusable store authority.
 #[derive(Debug)]
 pub struct CandidateArchiveStoreReceipt {
@@ -267,28 +339,7 @@ pub fn persist(
     root: &Path,
     archive: &ProjectCandidateArchive,
 ) -> Result<CandidateArchiveStoreReceipt> {
-    digest_hex(archive.archive_digest())?;
-    digest_hex(archive.candidate_digest())?;
-    if archive.to_json().len() > MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES {
-        return Err(capacity("candidate archive exceeds the fixed byte limit"));
-    }
-    // Typed preparation is not a filesystem authority or a reason to skip replay.
-    let replay = ProjectCandidateArchive::restore(
-        archive.to_json().as_bytes(),
-        archive.archive_digest(),
-        archive.candidate_digest(),
-    )?;
-    if replay.base_revision().project_revision() != archive.base_revision() {
-        return Err(binding("candidate archive original-base binding disagrees"));
-    }
-    drop(replay);
-    // Prepare receipt allocations before the filesystem pivot.
-    let receipt = CandidateArchiveStoreReceipt {
-        archive_digest: archive.archive_digest().to_owned(),
-        candidate_digest: archive.candidate_digest().to_owned(),
-        base_revision: archive.base_revision().to_owned(),
-        stored_bytes: archive.to_json().len() as u64,
-    };
+    let receipt = prepare_candidate_receipt(archive)?;
     #[cfg(all(
         unix,
         any(
@@ -317,6 +368,34 @@ pub fn persist(
             "candidate archive store requires supported Unix no-replace publication",
         ))
     }
+}
+
+fn prepare_candidate_receipt(
+    archive: &ProjectCandidateArchive,
+) -> Result<CandidateArchiveStoreReceipt> {
+    digest_hex(archive.archive_digest())?;
+    digest_hex(archive.candidate_digest())?;
+    if archive.to_json().len() > MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES {
+        return Err(capacity("candidate archive exceeds the fixed byte limit"));
+    }
+    // Typed preparation is not a filesystem authority or a reason to skip replay.
+    let replay = ProjectCandidateArchive::restore(
+        archive.to_json().as_bytes(),
+        archive.archive_digest(),
+        archive.candidate_digest(),
+    )?;
+    if replay.base_revision().project_revision() != archive.base_revision() {
+        return Err(binding("candidate archive original-base binding disagrees"));
+    }
+    drop(replay);
+    // Prepare receipt allocations before the filesystem pivot.
+    let receipt = CandidateArchiveStoreReceipt {
+        archive_digest: archive.archive_digest().to_owned(),
+        candidate_digest: archive.candidate_digest().to_owned(),
+        base_revision: archive.base_revision().to_owned(),
+        stored_bytes: archive.to_json().len() as u64,
+    };
+    Ok(receipt)
 }
 
 /// Read only the selected file's bytes, independently rebuild its stored source

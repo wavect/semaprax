@@ -1201,9 +1201,10 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
             ),
         ],
     );
-    // Capabilities are immutable for one selected host profile, so this exact
-    // constant is the strongest truthful schema, including nullable test policy.
     result.insert("urn:semaprax.image-agent-capabilities.v5".into(),json!({"$id":"urn:semaprax.image-agent-capabilities.v5","$schema":"https://json-schema.org/draft/2020-12/schema","const":capabilities}));
+    result.extend(super::super::candidate_archive_store::schema_documents(
+        capabilities,
+    ));
     if capabilities["methods"].as_array().is_some_and(|methods| {
         methods
             .iter()

@@ -26,19 +26,21 @@ pub(super) struct Catalog {
 impl Catalog {
     #[cfg(test)]
     pub(super) fn new(policy: &VNextPolicy, commit_enabled: bool) -> Result<Self> {
-        Self::new_with_package(policy, commit_enabled, false, false)
+        Self::new_with_package(policy, commit_enabled, false, false, false)
     }
     pub(super) fn new_with_package(
         policy: &VNextPolicy,
         commit_enabled: bool,
         package_attached: bool,
         read_batch_selected: bool,
+        candidate_archive_store_selected: bool,
     ) -> Result<Self> {
         let selected_methods = session_methods(
             policy,
             commit_enabled,
             package_attached,
             read_batch_selected,
+            candidate_archive_store_selected,
         );
         if selected_methods.len() > MAX_TOOLS {
             return Err(capacity("MCP selected tool count exceeds 256"));

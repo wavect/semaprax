@@ -64,13 +64,13 @@ impl FileFact {
         })
     }
 }
-struct Root {
+pub(super) struct Root {
     path: PathBuf,
     chain: Vec<(OwnedFd, Identity)>,
     names: Vec<Vec<u8>>,
 }
 impl Root {
-    fn open(path: &Path) -> Result<Self> {
+    pub(super) fn open(path: &Path) -> Result<Self> {
         let raw = path.as_os_str().as_bytes();
         if !path.is_absolute() || raw.len() > MAX_CANDIDATE_ARCHIVE_STORE_PATH_BYTES {
             return Err(invalid(
@@ -330,9 +330,28 @@ fn persist_bytes_with_hook(
     root_path: &Path,
     archive_digest: &str,
     bytes: &[u8],
-    mut hook: impl FnMut(StorePoint, &Path) -> std::io::Result<()>,
+    hook: impl FnMut(StorePoint, &Path) -> std::io::Result<()>,
 ) -> Result<()> {
     let root = Root::open(root_path)?;
+    persist_bytes_held_with_hook(&root, archive_digest, bytes, hook)
+}
+
+pub(super) fn persist_held(root: &Root, archive: &ProjectCandidateArchive) -> Result<()> {
+    persist_bytes_held_with_hook(
+        root,
+        archive.archive_digest(),
+        archive.to_json().as_bytes(),
+        |_, _| Ok(()),
+    )
+}
+
+fn persist_bytes_held_with_hook(
+    root: &Root,
+    archive_digest: &str,
+    bytes: &[u8],
+    mut hook: impl FnMut(StorePoint, &Path) -> std::io::Result<()>,
+) -> Result<()> {
+    let root_path = root.path.as_path();
     let lock = root.lock(true)?;
     let initial = inventory(&root, false)?;
     if initial.len() >= MAX_CANDIDATE_ARCHIVE_STORE_ENTRIES {

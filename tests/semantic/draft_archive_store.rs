@@ -10,7 +10,7 @@
 ))]
 use semaprax::candidate_archive_store::{load, load_draft, persist, persist_draft};
 use semaprax::diagnostic::Diagnostic;
-use semaprax::image_transport::{VNextPolicy, VNextSession};
+use semaprax::image_transport::{McpSession, VNextPolicy, VNextSession};
 use semaprax::project::{
     persist_semantic_image, with_authenticated_project, ProjectCandidate, ProjectCandidateArchive,
     ProjectCandidateDraft, ProjectCandidateDraftArchive, ProjectSemanticImage,
@@ -22,7 +22,7 @@ use semaprax::semantic_retention::{
 use semaprax::semantic_retention_lifecycle::{
     RetentionLifecycleCoordinator, SuccessfulRetentionReceipt,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 use std::fs;
 use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -32,6 +32,22 @@ use std::sync::{
 };
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
+
+fn v5_call(session: &mut VNextSession, method: &str, params: Value) -> Value {
+    let frame = json!({"jsonrpc":"2.0","id":1,"method":method,"params":params}).to_string();
+    serde_json::from_slice(&session.handle_frame(frame.as_bytes()).unwrap()).unwrap()
+}
+
+fn v5_bound(session: &mut VNextSession, method: &str, mut params: Value) -> Value {
+    params["image_revision"] = json!(session.image_revision());
+    v5_call(session, method, params)
+}
+
+fn v5_payload(response: Value) -> Value {
+    assert!(response.get("error").is_none(), "{response}");
+    response["result"]["payload"].clone()
+}
+
 struct Fixture {
     root: PathBuf,
     store: PathBuf,
@@ -542,6 +558,237 @@ fn v5_host_retains_explicit_registry_and_reports_post_store_stale_without_rollba
     assert_eq!(errors[0].code, "SPX-G280");
     assert!(errors[0].message.contains("receipt remains valid"));
     assert!(entry.exists());
+}
+
+#[test]
+fn v5_candidate_archive_store_returns_store_success_before_stale_retention_outcome() {
+    let fixture = Fixture::new();
+    let second_store = fixture.root.join("archives-second");
+    fs::create_dir(&second_store).unwrap();
+    fs::set_permissions(&second_store, fs::Permissions::from_mode(0o700)).unwrap();
+    let policy = RetentionPolicy::new(2, MAX_RETENTION_TOTAL_BYTES, 0).unwrap();
+    let registry = fixture.root.join("v5-archive-store-retention");
+    fs::create_dir(&registry).unwrap();
+    fs::create_dir(registry.join("metadata")).unwrap();
+    fs::set_permissions(&registry, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(registry.join("metadata"), fs::Permissions::from_mode(0o700)).unwrap();
+    let manifest = fixture.root.join("project/semaprax.toml");
+    let selected = VNextPolicy {
+        candidate_prepare: true,
+        ..Default::default()
+    };
+    let mut first = VNextSession::open(&manifest, selected)
+        .unwrap()
+        .with_candidate_archive_store(&fixture.store)
+        .unwrap()
+        .with_retention_lifecycle(&registry, policy, None)
+        .unwrap();
+    let mut stale = VNextSession::open(&manifest, selected)
+        .unwrap()
+        .with_candidate_archive_store(&second_store)
+        .unwrap()
+        .with_retention_lifecycle(&registry, policy, None)
+        .unwrap();
+
+    let capabilities = v5_payload(v5_call(&mut first, "protocol/capabilities", json!({})));
+    assert!(capabilities["methods"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("candidate/archive-store")));
+    assert!(capabilities["capabilities"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("candidate_archive_store")));
+    let schemas = v5_payload(v5_call(&mut first, "protocol/schemas", json!({})));
+    assert!(schemas["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|document| { document["$id"] == "urn:semaprax.image-candidate-archive-store.v1" }));
+    for language in ["typescript", "python", "rust"] {
+        let client = v5_payload(v5_call(
+            &mut first,
+            "protocol/client",
+            json!({"language":language}),
+        ));
+        let source = client["source"].as_str().unwrap();
+        assert!(source.contains("request_candidate_archive_store"));
+        assert!(source.contains("decode_request_candidate_archive_store"));
+    }
+
+    let opened = v5_payload(v5_bound(&mut first, "candidate/open", json!({})));
+    let first_store = v5_payload(v5_bound(
+        &mut first,
+        "candidate/archive-store",
+        json!({"candidate_revision":opened["candidate_revision"]}),
+    ));
+    assert_eq!(first_store["store_status"], "immutable_archive_stored");
+    assert_eq!(first_store["retention_lifecycle"]["selected"], true);
+    assert_eq!(
+        first_store["retention_lifecycle"]["outcome"]["registry_cursor_status"],
+        "advanced"
+    );
+    assert!(fixture
+        .entry(first_store["archive_digest"].as_str().unwrap())
+        .exists());
+
+    let stale_opened = v5_payload(v5_bound(&mut stale, "candidate/open", json!({})));
+    assert_eq!(
+        stale_opened["candidate_revision"],
+        opened["candidate_revision"]
+    );
+    let stale_store = v5_payload(v5_bound(
+        &mut stale,
+        "candidate/archive-store",
+        json!({"candidate_revision":stale_opened["candidate_revision"]}),
+    ));
+    assert_eq!(stale_store["store_status"], "immutable_archive_stored");
+    assert_eq!(
+        stale_store["retention_lifecycle"]["outcome"]["subject_store_status"],
+        "successful_receipts_precede_registry_attempt"
+    );
+    assert_eq!(
+        stale_store["retention_lifecycle"]["outcome"]["registry_cursor_status"],
+        "registry_cursor_not_advanced_stale"
+    );
+    assert!(second_store
+        .join(format!(
+            "{}.json",
+            &stale_store["archive_digest"].as_str().unwrap()[7..]
+        ))
+        .exists());
+
+    let duplicate = v5_bound(
+        &mut stale,
+        "candidate/archive-store",
+        json!({"candidate_revision":stale_opened["candidate_revision"]}),
+    );
+    assert_eq!(
+        duplicate["error"]["data"]["diagnostics"][0]["code"],
+        "SPX-G302"
+    );
+    assert!(second_store
+        .join(format!(
+            "{}.json",
+            &stale_store["archive_digest"].as_str().unwrap()[7..]
+        ))
+        .exists());
+}
+
+#[test]
+fn v5_candidate_archive_store_root_is_startup_only_and_never_a_request_operand() {
+    let fixture = Fixture::new();
+    let manifest = fixture.root.join("project/semaprax.toml");
+    let selected = VNextPolicy {
+        candidate_prepare: true,
+        ..Default::default()
+    };
+    let mut session = VNextSession::open(&manifest, selected)
+        .unwrap()
+        .with_candidate_archive_store(&fixture.store)
+        .unwrap();
+    let opened = v5_payload(v5_bound(&mut session, "candidate/open", json!({})));
+    let rejected = v5_bound(
+        &mut session,
+        "candidate/archive-store",
+        json!({
+            "candidate_revision":opened["candidate_revision"],
+            "root":fixture.store,
+        }),
+    );
+    assert_eq!(rejected["error"]["code"], -32602);
+    assert!(fixture.names().is_empty());
+
+    let errors = match session.with_candidate_archive_store(&fixture.store) {
+        Ok(_) => panic!("started session accepted another archive store"),
+        Err(errors) => errors,
+    };
+    assert_eq!(errors[0].code, "SPX-G500");
+}
+
+#[test]
+fn v5_candidate_archive_store_rejects_same_owner_root_substitution() {
+    let fixture = Fixture::new();
+    let manifest = fixture.root.join("project/semaprax.toml");
+    let mut session = VNextSession::open(
+        &manifest,
+        VNextPolicy {
+            candidate_prepare: true,
+            ..Default::default()
+        },
+    )
+    .unwrap()
+    .with_candidate_archive_store(&fixture.store)
+    .unwrap();
+    let displaced = fixture.root.join("archives-displaced");
+    fs::rename(&fixture.store, &displaced).unwrap();
+    fs::create_dir(&fixture.store).unwrap();
+    fs::set_permissions(&fixture.store, fs::Permissions::from_mode(0o700)).unwrap();
+
+    let opened = v5_payload(v5_bound(&mut session, "candidate/open", json!({})));
+    let rejected = v5_bound(
+        &mut session,
+        "candidate/archive-store",
+        json!({"candidate_revision":opened["candidate_revision"]}),
+    );
+    assert_eq!(
+        rejected["error"]["data"]["diagnostics"][0]["code"],
+        "SPX-G302"
+    );
+    assert_eq!(fs::read_dir(&fixture.store).unwrap().count(), 0);
+    assert_eq!(fs::read_dir(&displaced).unwrap().count(), 0);
+}
+
+#[test]
+fn mcp_catalog_exposes_only_the_digest_selected_candidate_archive_store_tool() {
+    let fixture = Fixture::new();
+    let manifest = fixture.root.join("project/semaprax.toml");
+    let host = VNextSession::open(
+        &manifest,
+        VNextPolicy {
+            candidate_prepare: true,
+            ..Default::default()
+        },
+    )
+    .unwrap()
+    .with_candidate_archive_store(&fixture.store)
+    .unwrap();
+    let mut mcp = McpSession::new(host).unwrap();
+    let initialize = json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+        "protocolVersion":"2025-11-25","capabilities":{},
+        "clientInfo":{"name":"candidate-archive-store","version":"1"}
+    }});
+    mcp.handle_frame(initialize.to_string().as_bytes()).unwrap();
+    assert!(mcp
+        .handle_frame(br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#)
+        .is_none());
+    let mut selected = None;
+    let mut cursor = None;
+    loop {
+        let params = cursor
+            .as_ref()
+            .map_or_else(|| json!({}), |value| json!({"cursor":value}));
+        let request = json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":params});
+        let page: Value =
+            serde_json::from_slice(&mcp.handle_frame(request.to_string().as_bytes()).unwrap())
+                .unwrap();
+        for tool in page["result"]["tools"].as_array().unwrap() {
+            if tool["name"] == "candidate__archive-store" {
+                selected = Some(tool.clone());
+            }
+        }
+        cursor = page["result"]["nextCursor"].as_str().map(str::to_owned);
+        if cursor.is_none() {
+            break;
+        }
+    }
+    let selected = selected.expect("candidate archive store MCP tool missing");
+    let properties = &selected["inputSchema"]["properties"];
+    assert!(properties.get("image_revision").is_some());
+    assert!(properties.get("candidate_revision").is_some());
+    assert!(properties.get("root").is_none());
+    assert_eq!(selected["inputSchema"]["additionalProperties"], false);
+    mcp.finish().unwrap();
 }
 
 #[test]

@@ -305,6 +305,12 @@ pub(super) fn payload(
         {
             instructions.push_str(" Typed expressions additionally accept string with only kind and value, array_u8 with only kind and values, char with kind and an eight-lowercase-hex scalar, and f32/f64 with kind and exact eight-/sixteen-lowercase-hex bits. String value is decoded UTF-8 data, including empty strings and escaped controls, bounded to 16384 UTF-8 bytes per literal; it is never raw source. Byte-array values are zero through 255 integers in source order, including an empty array, with at most 4095 elements. Each element consumes the shared expression-node budget in addition to the literal root; enclosing constructors, aggregate JSON and wire limits still apply. Character scalar values must be valid Unicode scalars. Floating bits must denote finite IEEE-754 values; hexadecimal transport preserves negative zero and finite subnormal values without JSON-number conversion. A negative float is lowered through the ordinary unary-negation node and consumes that additional shared expression-node/depth capacity. No repeated-array form, non-finite float or arbitrary element expressions are introduced. All forms compose with existing typed lets and ordinary compiler admission; String ownership, fixed-array type/length, loans, cleanup and selected targets remain checked. Legacy append_parameters and ordered literal signature defaults admit the eight Copy scalar kinds i64, i32, u8, usize, bool, char, f32 and f64. New computed signature parameter types remain separately restricted; record-field defaults retain their five inert scalar kinds and diagnostic retagging remains integer-only. Hole constructor discovery lists these forms, but fill suggestions retain their existing place/direct-call search and do not invent literal values.");
         }
+        if methods
+            .iter()
+            .any(|method| method.name == "candidate/archive-store")
+        {
+            instructions.push_str(" With the candidate_archive_store startup capability, use candidate/archive-store with only the current image_revision and one exact retained complete candidate_revision. The host-selected private 0700 archive-store root is held before frames and is never a request parameter. The operation independently prepares and replays the canonical source-backed archive, publishes it immutably, and returns its exact identity and byte-count receipt. If a retention lifecycle was separately selected before frames, the successful typed receipt is then checkpointed automatically and its exact advanced, stale, failed, uncertain or poisoned outcome is returned as accountability data. Registry failure never rolls back the archive or changes store_status. Without a selected lifecycle, storage still succeeds and the payload states that no checkpoint was attempted. The route cannot restore, select current state, overwrite, discover or delete archives, execute GC, approve, write source or publish source; generated clients and MCP can select only the retained candidate identity, never either root or policy.");
+        }
         result["instructions"] = json!(instructions);
     }
     bounded(result)
@@ -329,6 +335,12 @@ fn capabilities(methods: &[&Method], policy: &VNextPolicy, commit: bool) -> Valu
     }
     if policy.build_enabled {
         grants.push("candidate_build");
+    }
+    if methods
+        .iter()
+        .any(|method| method.name == "candidate/archive-store")
+    {
+        grants.push("candidate_archive_store");
     }
     if commit {
         grants.push("source_commit");
@@ -399,6 +411,7 @@ fn method_capability(method: &Method) -> &'static str {
             "candidate_build"
         }
         "candidate/interface-delta"
+        | "candidate/archive-store"
         | "candidate/contract-delta"
         | "candidate/ownership-delta"
         | "candidate/source-review"
@@ -425,7 +438,13 @@ fn method_capability(method: &Method) -> &'static str {
         | "hole/archive-export"
         | "hole/archive-restore"
         | "hole/rebase"
-        | "hole/merge" => "candidate_prepare",
+        | "hole/merge" => {
+            if method.name == "candidate/archive-store" {
+                "candidate_archive_store"
+            } else {
+                "candidate_prepare"
+            }
+        }
         "hole/summary" | "hole/page" | "hole/expression-catalog" | "hole/fill-suggestions" => {
             "candidate_prepare"
         }

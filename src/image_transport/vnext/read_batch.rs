@@ -66,6 +66,7 @@ impl VNextSession {
             self.commit.is_some(),
             self.package_graph.is_some(),
             self.read_batch_workers.is_some(),
+            self.candidate_archive_store.is_some(),
         );
         let reads = frames
             .iter()
@@ -100,6 +101,7 @@ impl VNextSession {
             self.commit.is_some(),
             self.package_graph.is_some(),
             self.read_batch_workers.is_some(),
+            self.candidate_archive_store.is_some(),
         )
         .into_iter()
         .filter(|method| parallel_read(method.operation))
@@ -397,6 +399,7 @@ mod tests {
             Action::Refresh,
             Action::RefreshPreview,
             Action::ContractHoleOpen,
+            Action::CandidateArchiveStore,
         ] {
             assert!(!parallel_read(Operation::VNext(action)));
         }

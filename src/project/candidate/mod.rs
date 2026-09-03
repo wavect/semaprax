@@ -31,6 +31,7 @@ mod diagnostics;
 mod draft;
 mod draft_navigation;
 mod draft_suggestions;
+mod environment_review;
 mod expression;
 mod external_api_contract_evidence;
 mod extraction;
@@ -103,6 +104,9 @@ pub use deployment_contract_evidence::{
     MAX_PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_EVIDENCE_BYTES,
     PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_DECLARATION_SCHEMA,
     PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_EVIDENCE_SCHEMA,
+};
+pub use environment_review::{
+    MAX_PROJECT_CANDIDATE_ENVIRONMENT_REVIEW_BYTES, PROJECT_CANDIDATE_ENVIRONMENT_REVIEW_SCHEMA,
 };
 pub use external_api_contract_evidence::{
     MAX_PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DECLARATION_BYTES,

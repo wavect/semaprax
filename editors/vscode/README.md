@@ -23,11 +23,12 @@ local filesystem workspace and saved source/manifest buffers are required.
 The explicit Start command invokes the selected binary directly, without a shell:
 `serve-workspace-mcp <manifest> <host-policy>`. Nothing downloads or builds it.
 The existing host-policy v1–v7 parser remains authoritative. Prefer a policy with
-candidate preparation enabled and builds, tests and Git commit disabled. Enable
+candidate preparation enabled and builds and Git commit disabled. Candidate
+interpreter tests are unavailable unless startup policy selects fixed test limits. Enable
 diagnostics in the host policy only if you want the optional attempt workflow
 below. The adapter cannot widen policy and its own fixed allowlist excludes
-builds, tests, commit approval, source publication and archive restoration even
-if the supplied policy grants them.
+builds, direct synchronous tests, commit approval, source publication and archive
+restoration even if the supplied policy grants them.
 
 Use the command palette in this order:
 
@@ -47,6 +48,19 @@ Use the command palette in this order:
    then displays the selected base/candidate text through read-only virtual
    documents. It performs no `WorkspaceEdit`, filesystem write or arbitrary path
    read. Source paths are validated labels, not filesystem access instructions.
+
+**Run Candidate Interpreter Tests** uses Semaprax's explicit
+`candidate/test-task-*` methods when all four are in the startup-selected tool
+catalogue. These are Semaprax tools, not MCP standard task augmentation. The
+start response is queued behind a one-shot gate; polling releases the bounded
+interpreter worker. **Cancel Candidate Interpreter Tests** and the cancellable
+VS Code progress notification request cooperative cancellation. Cancellation is
+sticky, but completion may win if it was already terminal. Source drift, refresh,
+finish or stop invalidates the editor handle, requests cancellation and discards
+late results. A completed report is accepted only after exact revision, authority,
+blind-spot, schema, pagination and digest checks. It claims no native or Wasm
+runtime, deployment, generated-artifact, external API, runtime-environment or
+external-consumer coverage. Builds and commits remain non-cancellable and absent.
 
 For diagnostic recovery, **Try Active Typed Intent with Diagnostics** preserves
 a rejected attempt separately from the valid candidate. **Show Rejected Attempt
@@ -102,7 +116,9 @@ Superseded in-memory draft handles are released after successful transitions;
 a failed release terminates the session without pretending that the preceding
 operation was rolled back. There is no automatic retry or publication.
 
-Only one command/request can be pending. Requests are capped at 128 KiB outer
+Only one protocol request can be pending. The Cancel command can mark the active
+test controller while its current request is pending; the controller sends the
+explicit cancellation request sequentially. Requests are capped at 128 KiB outer
 MCP and 64 KiB inner v5, responses at 8 MiB, source reviews at 16 MiB and 16 files,
 and virtual-document references at 64 and 32 MiB total per session. Requests time out after 30
 seconds. Framing, identity, protocol or digest failures terminate the session;
@@ -124,8 +140,9 @@ context/reference binding, failed fills and explicit completion. Suggestion
 controller cases cover exact summary/report bindings, bounded expression
 grammar, stale and asynchronous failures, and no implicit preview adoption. Repair cases
 use schema-shaped mock responses to cover exact selectors, bound raw diagnostic
-reports, malformed responses and failed handle retirement. They were
-**not run** during implementation. Later explicit verification can use
+reports, malformed responses and failed handle retirement. Task-controller cases
+cover exact queued and terminal states, sticky cancellation, bounded report
+chunks, digest binding, authority and blind spots. Verification can use
 `node --test test/*.test.js`; no VS Code or compiler process is started by those tests.
 The separate `scripts/graph-operational-vscode-host-evidence.py` runner provisions
 an actual Extension Host scenario and must be reported under its exact subject.

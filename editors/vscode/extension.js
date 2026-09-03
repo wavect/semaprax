@@ -7,11 +7,13 @@ const { McpClient, parse, digest, invalidates } = require('./protocol');
 const { fetchReview } = require('./review');
 const { HoleDraft } = require('./holes');
 const { Repairs, validateCandidateHandle } = require('./repairs');
+const { CandidateTestTask, METHODS: TEST_TASK_METHODS } = require('./tasks');
 let stopActive = () => {};
 function activate(context) {
   let client, config, image, candidate, target, stale = true, epoch = 0, busy = false;
   let holes, selectedHole, holeNavigation;
   let imageProject, candidateHandle, repairs;
+  let testTask, testTaskUsed = false;
   let watchers = [];
   const testMode = context.extensionMode === vscode.ExtensionMode.Test;
   const testInputs = [], testPicks = [];
@@ -30,6 +32,8 @@ function activate(context) {
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
   status.text = 'SEMAPRAX: stopped'; status.show();
   const clear = label => {
+    testTask?.requestCancel();
+    testTaskUsed = false;
     epoch++; stale = true; candidate = undefined; target = undefined;
     candidateHandle = undefined; repairs = undefined; attemptReports.clear();
     holes = undefined; selectedHole = undefined; holeNavigation = undefined;
@@ -116,6 +120,9 @@ function activate(context) {
   function requireDiagnosticMethods() {
     const methods = ['candidate/attempt', 'attempt/summary', 'attempt/query', 'attempt/repair-catalog', 'attempt/repair-apply', 'attempt/discard'];
     if (!client || methods.some(method => !client.tools.has(method))) throw new Error('This host has not selected the diagnostic attempt and repair methods; the extension cannot enable them');
+  }
+  function requireTestTaskMethods() {
+    if (!client || TEST_TASK_METHODS.some(method => !client.tools.has(method))) throw new Error('This host has not selected the complete candidate test-task surface; the extension cannot enable it');
   }
   async function showAttemptReport(value, label, token) {
     ensureRepairToken(token);
@@ -315,6 +322,58 @@ function activate(context) {
       await vscode.commands.executeCommand('vscode.diff', left, right, `SEMAPRAX ${file.label} · ${report.report_revision.slice(7, 19)} · read-only`);
       ensureEpoch(current);
     },
+    async runCandidateTests() {
+      requireNoDraft(); requireCandidate(); requireTestTaskMethods();
+      if (testTask) throw new Error('A candidate test task is already selected');
+      if (testTaskUsed) throw new Error('This saved-source image already scheduled its one candidate test task; refresh explicitly to replace it');
+      const token = { epoch, image, project: imageProject, candidate, client };
+      const controller = new CandidateTestTask((method, params) => token.client.call(method, params), {
+        image_revision: token.image, project_revision: token.project, candidate_revision: token.candidate
+      });
+      testTask = controller; testTaskUsed = true;
+      let outcome;
+      try {
+        outcome = await vscode.window.withProgress({
+          location: vscode.ProgressLocation.Notification,
+          title: 'SEMAPRAX candidate interpreter tests',
+          cancellable: true
+        }, async (progress, cancellation) => {
+          const subscription = cancellation.onCancellationRequested(() => controller.requestCancel());
+          try {
+            return await controller.run(value => {
+              status.text = `SEMAPRAX: candidate tests ${value.state}`;
+              progress.report({ message: value.state === 'running' ? 'Running under the host-selected interpreter policy' : value.state });
+            });
+          } finally { subscription.dispose(); }
+        });
+      } catch (error) {
+        if (error.semantic && invalidates(error)) clear('source binding rejected; refresh required');
+        if (!error.semantic && !error.discardOnly && !token.client.closed) token.client.fail(error);
+        throw error;
+      } finally {
+        if (testTask === controller) testTask = undefined;
+      }
+      if (epoch !== token.epoch || client !== token.client || image !== token.image || candidate !== token.candidate || stale) throw discardError('Source or candidate changed while the test task was pending; its result was discarded');
+      if (outcome.status.state === 'cancelled') {
+        status.text = 'SEMAPRAX: candidate tests cancelled';
+        await vscode.window.showInformationMessage('Candidate interpreter tests cancelled. No passing report or source authority was produced.');
+        return;
+      }
+      if (outcome.status.state === 'failed') {
+        status.text = 'SEMAPRAX: candidate tests failed to execute';
+        throw new Error(`Candidate test task failed: ${JSON.stringify(outcome.status.diagnostics).slice(0, 3072)}`);
+      }
+      const notice = '// Bounded reference-interpreter test report. No native/Wasm, deployment, generated-artifact, external API, runtime-environment, external-consumer, or source-publication claim.\n';
+      const uri = await virtual(notice + outcome.raw, 'candidate-test-report.jsonc', 'jsonc', token.epoch);
+      await vscode.window.showTextDocument(uri, { preview: true }); ensureEpoch(token.epoch);
+      status.text = outcome.status.passed ? 'SEMAPRAX: candidate tests passed' : 'SEMAPRAX: candidate tests returned failure';
+      const message = outcome.status.passed ? 'Candidate interpreter tests passed. External and target-runtime blind spots remain.' : 'Candidate interpreter tests completed with a failing result. Inspect the bounded report.';
+      await (outcome.status.passed ? vscode.window.showInformationMessage(message) : vscode.window.showWarningMessage(message));
+    },
+    async cancelCandidateTests() {
+      if (!testTask || !testTask.requestCancel()) throw new Error('No running candidate test task is available to cancel');
+      status.text = 'SEMAPRAX: cancelling candidate tests';
+    },
     async openHole() {
       requireCandidate();
       const token = holeToken();
@@ -457,6 +516,10 @@ function activate(context) {
   }), vscode.workspace.onDidChangeConfiguration(event => { if (event.affectsConfiguration('semaprax')) stop(); }), { dispose: stop });
   for (const [name, command] of Object.entries(commands)) context.subscriptions.push(vscode.commands.registerCommand('semaprax.' + name, async () => {
     if (name === 'stop') { stop(); return; }
+    if (name === 'cancelCandidateTests') {
+      try { await command(); } catch (error) { void vscode.window.showErrorMessage(String(error.message || error).slice(0, 4096)); }
+      return;
+    }
     if (busy) { void vscode.window.showWarningMessage('A SEMAPRAX command is already pending'); return; }
     busy = true;
     try { await command(); } catch (error) { void vscode.window.showErrorMessage(String(error.message || error).slice(0, 4096)); } finally { busy = false; }
@@ -472,6 +535,8 @@ function activate(context) {
       return {
         running: Boolean(client && !client.closed), stale, image: image || null, candidate: candidate || null,
         target: target || null, status: status.text, scratch: [...scratch],
+        testTask: testTask ? { taskRevision: testTask.taskRevision, state: testTask.state, cancellationRequested: testTask.cancellationRequested } : null,
+        testTaskUsed,
         documents: [...documents].map(([uri, text]) => ({ uri, text }))
       };
     }

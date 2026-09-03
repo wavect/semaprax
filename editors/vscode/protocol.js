@@ -7,7 +7,8 @@ const ALLOWED = new Set(['workspace/open', 'workspace/refresh-preview', 'workspa
   'expression/catalog', 'candidate/contract-expression-catalog', 'hole/open', 'hole/open-expression',
   'hole/open-contract-expression', 'hole/query', 'hole/summary', 'hole/page', 'hole/expression-catalog', 'hole/fill-suggestions', 'hole/fill',
   'hole/complete', 'hole/discard', 'protocol/constructor-schemas',
-  'candidate/attempt', 'attempt/summary', 'attempt/query', 'attempt/repair-catalog', 'attempt/repair-apply', 'attempt/discard']);
+  'candidate/attempt', 'attempt/summary', 'attempt/query', 'attempt/repair-catalog', 'attempt/repair-apply', 'attempt/discard',
+  'candidate/test-task-start', 'candidate/test-task-status', 'candidate/test-task-cancel', 'candidate/test-task-result']);
 const digest = value => typeof value === 'string' && value.length === 71 && /^sha256:[0-9a-f]{64}$/.test(value);
 function exact(value, keys) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Unexpected response fields');

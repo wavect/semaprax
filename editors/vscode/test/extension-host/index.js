@@ -45,7 +45,7 @@ async function run() {
 
   const registered = new Set(await vscode.commands.getCommands(true));
   const contributed = extension.packageJSON.contributes.commands.map(row => row.command);
-  assert.equal(contributed.length, 26);
+  assert.equal(contributed.length, 28);
   for (const command of contributed) assert.ok(registered.has(command), `${command} must be registered`);
 
   const sourceBefore = fs.readFileSync(source);

@@ -447,6 +447,7 @@ fn cli_emits_only_the_canonical_envelope_and_rejects_shim_only_options() {
     assert_eq!(rejected.code(), Some(2));
 }
 
+#[cfg(unix)]
 fn compiler(variable: &str, fallback: &str) -> OsString {
     std::env::var_os(variable).unwrap_or_else(|| OsString::from(fallback))
 }

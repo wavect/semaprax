@@ -81,6 +81,24 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         assert_eq!(current.matches(line).count(), 1);
         current = current.replacen(line, "", 1);
     }
+    const RETENTION_LINES: [&str; 4] = [
+        "semaprax retention-metadata-inventory <declarations.json>\n",
+        "semaprax retention-metadata-plan <inventory.json> <sequence> <max-subjects> <max-bytes> <protected-generations> <previous-checkpoint.json|none> <previous-digest|none> <previous-predecessor-digest|none>\n",
+        "semaprax retention-metadata-persist <store-root> <checkpoint.json> <checkpoint-digest> <previous-digest|none> <plan.json> <plan-digest>\n",
+        "semaprax retention-metadata-load <store-root> <checkpoint-digest> <previous-digest|none> <plan-digest>\n",
+    ];
+    assert_eq!(
+        current.matches(RETENTION_LINES.concat().as_str()).count(),
+        1
+    );
+    for line in RETENTION_LINES {
+        assert_eq!(current.matches(line).count(), 1);
+        current = current.replacen(line, "", 1);
+    }
+    const CXX_PACKAGE_LINE: &str =
+        "semaprax cxx-package <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]\n";
+    assert_eq!(current.matches(CXX_PACKAGE_LINE).count(), 1);
+    current = current.replacen(CXX_PACKAGE_LINE, "", 1);
     const GIT_PUBLISH_LINE: &str = "semaprax project-candidate-git-publish <manifest> <capsule.json> <approved-candidate-digest> <host-policy.json>\n";
     const WORKSPACE_LINE: &str = "semaprax serve-workspace <manifest> <host-policy.json>\n";
     const PROFILE_DOCTOR_LINE: &str =

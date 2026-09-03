@@ -14,8 +14,11 @@ use crate::workspace_graph::WorkspaceGraphProjectionModule;
 pub const IMAGE_FUNCTION_REFERENCE_SCHEMA: &str = "semaprax.image-function-reference.v1";
 pub const IMAGE_FUNCTION_REFERENCE_RESOLUTION_SCHEMA: &str =
     "semaprax.image-function-reference-resolution.v1";
+pub const IMAGE_FUNCTION_REFERENCE_REBIND_SCHEMA: &str =
+    "semaprax.image-function-reference-rebind.v1";
 pub const MAX_IMAGE_FUNCTION_REFERENCE_BYTES: usize = 16 * 1024;
 pub const MAX_IMAGE_FUNCTION_REFERENCE_RESOLUTION_BYTES: usize = 128 * 1024;
+pub const MAX_IMAGE_FUNCTION_REFERENCE_REBIND_BYTES: usize = 256 * 1024;
 
 const TARGET_KIND: &str = "function";
 const MAX_TARGET_BYTES: usize = 4096;
@@ -50,6 +53,14 @@ const RESOLUTION_NONCLAIMS: &[&str] = &[
     "no_cursor_persistence_or_automatic_migration",
     "no_source_execution_candidate_retention_or_publication_authority",
     "no_ranking_or_general_session_recovery",
+];
+const REBIND_NONCLAIMS: &[&str] = &[
+    "no_revision_ancestry_or_semantic_equivalence_inference",
+    "stable_identity_survival_does_not_prove_unchanged_signature_contract_body_or_behavior",
+    "source_change_classification_is_exact_provenance_not_source_compatibility",
+    "rebound_reference_requires_normal_exact_destination_image_resolution",
+    "no_source_execution_candidate_migration_retention_or_publication_authority",
+    "no_filesystem_refresh_persistent_server_state_or_general_session_recovery",
 ];
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -210,6 +221,219 @@ impl ProjectSemanticImage {
         )
         .map_err(|_| bound("image function reference resolution exceeds its byte bound"))
     }
+
+    /// Rebind one exact reference from a separately admitted source image to
+    /// this exact destination image. Only a unique explicit stable function
+    /// identity under the same canonical Project/workspace configuration is
+    /// eligible. The returned reference is still an ordinary exact-image
+    /// selector and must pass normal destination replay before use.
+    pub fn rebind_function_reference(
+        &self,
+        expected_image: &str,
+        source_image: &ProjectSemanticImage,
+        expected_source_image: &str,
+        reference_bytes: &[u8],
+    ) -> Result<String> {
+        require_image(self, expected_image)?;
+        require_image(source_image, expected_source_image)?;
+        // This authenticates canonical bytes, content digest, exact source
+        // image bindings, exact source provenance, and the original target.
+        source_image.resolve_function_reference(expected_source_image, reference_bytes)?;
+        let reference: Value = serde_json::from_slice(reference_bytes)
+            .map_err(|_| invalid("authenticated image function reference is not JSON"))?;
+        let target = string_field(&reference, "target")?;
+        let facet = match &reference["facet"] {
+            Value::Null => None,
+            Value::String(name) => Some(
+                ImageFacet::parse(name)
+                    .map_err(|_| invalid("image function reference names an unknown facet"))?,
+            ),
+            _ => {
+                return Err(invalid(
+                    "image function reference facet must be null or a known name",
+                ));
+            }
+        };
+        let reference_revision = digest_field(&reference, "reference_revision")?;
+        let old_source = reference["source"]
+            .as_object()
+            .expect("exact source reference already resolved");
+        let source_selection = explicit_function(source_image, target)?;
+        let destination_selection = explicit_function(self, target)?;
+        let source_revision = source_image.revision();
+        let destination_revision = self.revision();
+        let same_configuration = source_revision.manifest().to_canonical_toml()
+            == destination_revision.manifest().to_canonical_toml()
+            && source_revision.workspace_manifest() == destination_revision.workspace_manifest();
+
+        let rejection = if source_image.image_digest() == self.image_digest() {
+            Some((
+                "cross_revision",
+                "source_and_destination_images_are_identical",
+            ))
+        } else if !same_configuration {
+            Some((
+                "cross_revision",
+                "project_or_workspace_configuration_changed",
+            ))
+        } else if let FunctionSelection::Rejected(reason) = &source_selection {
+            Some(("source", *reason))
+        } else if let FunctionSelection::Rejected(reason) = &destination_selection {
+            Some(("destination", *reason))
+        } else {
+            None
+        };
+
+        let (accepted, status, destination_source, rebound_reference) = match rejection {
+            Some(_) => (false, "rejected", Value::Null, Value::Null),
+            None => {
+                let FunctionSelection::Accepted(destination) = destination_selection else {
+                    unreachable!("rejected destination handled above")
+                };
+                let path_changed = old_source["path"] != destination.module.path();
+                let module_changed = old_source["module"] != destination.module.module();
+                let revision_changed =
+                    old_source["source_revision"] != destination.module.source_revision();
+                let digest_changed =
+                    old_source["source_digest"] != destination.module.source_digest();
+                let status = if path_changed || module_changed {
+                    "rebound_to_moved_explicit_function"
+                } else if revision_changed || digest_changed {
+                    "rebound_to_changed_source_explicit_function"
+                } else {
+                    "rebound_to_unchanged_source_explicit_function"
+                };
+                let rebound = self.export_function_reference(expected_image, target, facet)?;
+                (
+                    true,
+                    status,
+                    json!({
+                        "path": destination.module.path(),
+                        "module": destination.module.module(),
+                        "source_revision": destination.module.source_revision(),
+                        "source_digest": destination.module.source_digest(),
+                    }),
+                    json!(rebound),
+                )
+            }
+        };
+        let changes = match &destination_source {
+            Value::Object(_) => json!({
+                "image_revision": source_image.image_digest() != self.image_digest(),
+                "project_revision": source_revision.project_revision() != destination_revision.project_revision(),
+                "workspace_revision": source_revision.workspace_revision() != destination_revision.workspace_revision(),
+                "project_graph_digest": source_revision.semantic_graph_digest() != destination_revision.semantic_graph_digest(),
+                "source_path": old_source["path"] != destination_source["path"],
+                "source_module": old_source["module"] != destination_source["module"],
+                "source_revision": old_source["source_revision"] != destination_source["source_revision"],
+                "source_digest": old_source["source_digest"] != destination_source["source_digest"],
+            }),
+            _ => Value::Null,
+        };
+        super::image::render(
+            json!({
+                "schema": IMAGE_FUNCTION_REFERENCE_REBIND_SCHEMA,
+                "source_reference_revision": reference_revision,
+                "source_image": {
+                    "image_revision": source_image.image_digest(),
+                    "project_revision": source_revision.project_revision(),
+                    "workspace_revision": source_revision.workspace_revision(),
+                    "project_graph_digest": source_revision.semantic_graph_digest(),
+                    "project_name": source_revision.manifest().name(),
+                    "source": reference["source"],
+                },
+                "destination_image": {
+                    "image_revision": self.image_digest(),
+                    "project_revision": destination_revision.project_revision(),
+                    "workspace_revision": destination_revision.workspace_revision(),
+                    "project_graph_digest": destination_revision.semantic_graph_digest(),
+                    "project_name": destination_revision.manifest().name(),
+                    "source": destination_source,
+                },
+                "target": target,
+                "facet": facet.map(ImageFacet::name),
+                "accepted": accepted,
+                "status": status,
+                "rejection": rejection.map(|(stage,reason)| json!({"stage":stage,"reason":reason})),
+                "changes": changes,
+                "rebound_reference": rebound_reference,
+                "validation": "exact_source_reference_resolution_and_unique_explicit_destination_identity",
+                "normal_destination_replay_required": true,
+                "source_authority": false,
+                "execution": false,
+                "publication_authority": false,
+                "nonclaims": REBIND_NONCLAIMS,
+            }),
+            false,
+            MAX_IMAGE_FUNCTION_REFERENCE_REBIND_BYTES,
+        )
+        .map_err(|_| bound("image function reference rebind report exceeds its byte bound"))
+    }
+}
+
+enum FunctionSelection<'a> {
+    Accepted(FunctionIdentity<'a>),
+    Rejected(&'static str),
+}
+
+struct FunctionIdentity<'a> {
+    module: &'a WorkspaceGraphProjectionModule,
+}
+
+fn explicit_function<'a>(
+    image: &'a ProjectSemanticImage,
+    target: &str,
+) -> Result<FunctionSelection<'a>> {
+    let graph: Value = serde_json::from_str(image.revision().semantic_graph())
+        .map_err(|_| invalid("retained Project semantic graph is invalid"))?;
+    let declarations = graph["declarations"]
+        .as_array()
+        .ok_or_else(|| invalid("retained Project declaration inventory is absent"))?;
+    let selected = declarations
+        .iter()
+        .filter(|declaration| declaration["id"] == target)
+        .collect::<Vec<_>>();
+    if selected.is_empty() {
+        return Ok(FunctionSelection::Rejected("destination_target_is_absent"));
+    }
+    if selected.len() != 1 {
+        return Ok(FunctionSelection::Rejected("stable_identity_is_not_unique"));
+    }
+    let declaration = selected[0];
+    if declaration["kind"] != "function" {
+        return Ok(FunctionSelection::Rejected(
+            "stable_identity_is_not_a_function",
+        ));
+    }
+    if declaration["identity_origin"] != "explicit" {
+        return Ok(FunctionSelection::Rejected(
+            "function_identity_is_not_explicit",
+        ));
+    }
+    let modules = image
+        .revision()
+        .semantic
+        .image_modules()
+        .iter()
+        .filter(|module| {
+            module
+                .functions()
+                .iter()
+                .any(|function| function.id.as_str() == target)
+        })
+        .collect::<Vec<_>>();
+    if modules.len() != 1 {
+        return Ok(FunctionSelection::Rejected(
+            "retained_function_source_provenance_is_not_unique",
+        ));
+    }
+    let module = modules[0];
+    if declaration["path"] != module.path() || declaration["module"] != module.module() {
+        return Ok(FunctionSelection::Rejected(
+            "retained_function_source_provenance_disagrees",
+        ));
+    }
+    Ok(FunctionSelection::Accepted(FunctionIdentity { module }))
 }
 
 fn validate_shape(reference: &Value) -> Result<()> {

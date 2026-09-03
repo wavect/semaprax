@@ -2,8 +2,9 @@
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, ImageFacet, ProjectSemanticImage,
-    IMAGE_FUNCTION_REFERENCE_RESOLUTION_SCHEMA, IMAGE_FUNCTION_REFERENCE_SCHEMA,
-    MAX_IMAGE_FUNCTION_REFERENCE_BYTES, MAX_IMAGE_FUNCTION_REFERENCE_RESOLUTION_BYTES,
+    IMAGE_FUNCTION_REFERENCE_REBIND_SCHEMA, IMAGE_FUNCTION_REFERENCE_RESOLUTION_SCHEMA,
+    IMAGE_FUNCTION_REFERENCE_SCHEMA, MAX_IMAGE_FUNCTION_REFERENCE_BYTES,
+    MAX_IMAGE_FUNCTION_REFERENCE_REBIND_BYTES, MAX_IMAGE_FUNCTION_REFERENCE_RESOLUTION_BYTES,
 };
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -12,6 +13,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const TARGET: &str = "calculator.add";
+const PRIVATE_TARGET: &str = "calculator.private";
 const FILES: [&str; 4] = [
     "semaprax.toml",
     "src/app.spx",
@@ -32,6 +34,14 @@ const RESOLUTION_NONCLAIMS: [&str; 5] = [
     "no_source_execution_candidate_retention_or_publication_authority",
     "no_ranking_or_general_session_recovery",
 ];
+const REBIND_NONCLAIMS: [&str; 6] = [
+    "no_revision_ancestry_or_semantic_equivalence_inference",
+    "stable_identity_survival_does_not_prove_unchanged_signature_contract_body_or_behavior",
+    "source_change_classification_is_exact_provenance_not_source_compatibility",
+    "rebound_reference_requires_normal_exact_destination_image_resolution",
+    "no_source_execution_candidate_migration_retention_or_publication_authority",
+    "no_filesystem_refresh_persistent_server_state_or_general_session_recovery",
+];
 
 struct Fixture(PathBuf);
 impl Fixture {
@@ -46,7 +56,19 @@ impl Fixture {
         for path in FILES {
             std::fs::copy(sample.join(path), root.join(path)).unwrap();
         }
-        Self(root.canonicalize().unwrap())
+        let fixture = Self(root.canonicalize().unwrap());
+        let core = fixture.0.join("src/core.spx");
+        let source = std::fs::read_to_string(&core).unwrap()
+            + r#"
+@id("calculator.private")
+fn private_helper() -> i64
+{
+    7
+}
+"#;
+        let parsed = semaprax::parse(&source, "src/core.spx").unwrap();
+        std::fs::write(core, semaprax::format::canonical(&parsed)).unwrap();
+        fixture
     }
     fn manifest(&self) -> PathBuf {
         self.0.join("semaprax.toml")
@@ -67,6 +89,26 @@ impl Fixture {
         let path = self.0.join("src/core.spx");
         let source = std::fs::read_to_string(&path).unwrap();
         let changed = source.replacen("left + right", "left + right + 0", 1);
+        assert_ne!(changed, source);
+        let parsed = semaprax::parse(&changed, "src/core.spx").unwrap();
+        std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
+    }
+    fn change_app_body(&self) {
+        let path = self.0.join("src/app.spx");
+        let source = std::fs::read_to_string(&path).unwrap();
+        let changed = source.replacen(
+            "add(multiply(6, 7), subtract(divide(4, 2), 2))",
+            "add(multiply(6, 7), subtract(divide(4, 2), 2)) + 0",
+            1,
+        );
+        assert_ne!(changed, source);
+        let parsed = semaprax::parse(&changed, "src/app.spx").unwrap();
+        std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
+    }
+    fn make_private_identity_automatic(&self) {
+        let path = self.0.join("src/core.spx");
+        let source = std::fs::read_to_string(&path).unwrap();
+        let changed = source.replacen("@id(\"calculator.private\")\n", "", 1);
         assert_ne!(changed, source);
         let parsed = semaprax::parse(&changed, "src/core.spx").unwrap();
         std::fs::write(path, semaprax::format::canonical(&parsed)).unwrap();
@@ -120,6 +162,142 @@ fn facet_handle(summary: &Value, facet: ImageFacet) -> String {
         .as_str()
         .unwrap()
         .to_owned()
+}
+
+fn rebind(
+    destination: &ProjectSemanticImage,
+    source: &ProjectSemanticImage,
+    reference: &str,
+) -> Value {
+    parse(
+        &destination
+            .rebind_function_reference(
+                destination.image_digest(),
+                source,
+                source.image_digest(),
+                reference.as_bytes(),
+            )
+            .unwrap(),
+    )
+}
+
+#[test]
+fn explicit_reference_rebinds_to_changed_source_and_requires_normal_destination_replay() {
+    let fixture = Fixture::new();
+    let source = fixture.image();
+    let source_json = source.to_json().to_owned();
+    let reference = source
+        .export_function_reference(source.image_digest(), TARGET, Some(ImageFacet::Signature))
+        .unwrap();
+    fixture.change_add_body();
+    let destination = fixture.image();
+    let report = rebind(&destination, &source, &reference);
+
+    assert_eq!(report.as_object().unwrap().len(), 17);
+    assert_eq!(report["schema"], IMAGE_FUNCTION_REFERENCE_REBIND_SCHEMA);
+    assert_eq!(report["accepted"], true);
+    assert_eq!(
+        report["status"],
+        "rebound_to_changed_source_explicit_function"
+    );
+    assert_eq!(report["rejection"], Value::Null);
+    assert_eq!(report["target"], TARGET);
+    assert_eq!(report["facet"], ImageFacet::Signature.name());
+    assert_eq!(
+        report["source_image"]["image_revision"],
+        source.image_digest()
+    );
+    assert_eq!(
+        report["destination_image"]["image_revision"],
+        destination.image_digest()
+    );
+    assert_eq!(report["changes"]["image_revision"], true);
+    assert_eq!(report["changes"]["project_revision"], true);
+    assert_eq!(report["changes"]["workspace_revision"], true);
+    assert_eq!(report["changes"]["project_graph_digest"], true);
+    assert_eq!(report["changes"]["source_path"], false);
+    assert_eq!(report["changes"]["source_module"], false);
+    assert_eq!(report["changes"]["source_revision"], true);
+    assert_eq!(report["changes"]["source_digest"], true);
+    assert_eq!(report["normal_destination_replay_required"], true);
+    assert_eq!(report["nonclaims"], json!(REBIND_NONCLAIMS));
+    for field in ["source_authority", "execution", "publication_authority"] {
+        assert_eq!(report[field], false);
+    }
+    let rebound = report["rebound_reference"].as_str().unwrap();
+    let rebound_value = parse(rebound);
+    assert_eq!(rebound_value["target"], TARGET);
+    assert_eq!(rebound_value["facet"], ImageFacet::Signature.name());
+    assert_eq!(rebound_value["image_revision"], destination.image_digest());
+    destination
+        .resolve_function_reference(destination.image_digest(), rebound.as_bytes())
+        .unwrap();
+    code(
+        source.resolve_function_reference(source.image_digest(), rebound.as_bytes()),
+        "SPX-G363",
+    );
+    code(
+        destination.resolve_function_reference(destination.image_digest(), reference.as_bytes()),
+        "SPX-G363",
+    );
+    assert!(
+        serde_json::to_string(&report).unwrap().len() <= MAX_IMAGE_FUNCTION_REFERENCE_REBIND_BYTES
+    );
+    assert_eq!(source.to_json(), source_json);
+}
+
+#[test]
+fn unrelated_source_change_rebinds_without_inventing_target_source_change() {
+    let fixture = Fixture::new();
+    let source = fixture.image();
+    let reference = source
+        .export_function_reference(source.image_digest(), TARGET, None)
+        .unwrap();
+    fixture.change_app_body();
+    let destination = fixture.image();
+    let report = rebind(&destination, &source, &reference);
+
+    assert_eq!(report["accepted"], true);
+    assert_eq!(
+        report["status"],
+        "rebound_to_unchanged_source_explicit_function"
+    );
+    assert_eq!(report["changes"]["project_revision"], true);
+    assert_eq!(report["changes"]["project_graph_digest"], true);
+    assert_eq!(report["changes"]["source_path"], false);
+    assert_eq!(report["changes"]["source_module"], false);
+    assert_eq!(report["changes"]["source_revision"], false);
+    assert_eq!(report["changes"]["source_digest"], false);
+    destination
+        .resolve_function_reference(
+            destination.image_digest(),
+            report["rebound_reference"].as_str().unwrap().as_bytes(),
+        )
+        .unwrap();
+}
+
+#[test]
+fn absent_destination_stable_identity_returns_a_closed_rejection_without_rebinding() {
+    let fixture = Fixture::new();
+    let source = fixture.image();
+    let reference = source
+        .export_function_reference(source.image_digest(), PRIVATE_TARGET, None)
+        .unwrap();
+    fixture.make_private_identity_automatic();
+    let destination = fixture.image();
+    let report = rebind(&destination, &source, &reference);
+
+    assert_eq!(report["accepted"], false);
+    assert_eq!(report["status"], "rejected");
+    assert_eq!(
+        report["rejection"],
+        json!({"stage":"destination","reason":"destination_target_is_absent"})
+    );
+    assert_eq!(report["changes"], Value::Null);
+    assert_eq!(report["rebound_reference"], Value::Null);
+    assert_eq!(report["destination_image"]["source"], Value::Null);
+    assert_eq!(report["normal_destination_replay_required"], true);
+    assert_eq!(report["nonclaims"], json!(REBIND_NONCLAIMS));
 }
 
 #[test]

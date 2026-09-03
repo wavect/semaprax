@@ -787,6 +787,13 @@ Unix pivot. Held private root/file identities and independently supplied
 checkpoint/predecessor/plan selectors guard ordinary restoration. This store
 persists metadata only: it cannot apply the plan, enumerate/delete subjects,
 infer newest state or restore any source/image/candidate authority.
+`src/cli/retention_metadata.rs` is the narrow command-line adapter. It receives
+an explicit existing store root, explicit bounded checkpoint/plan files for
+publication and all exact selectors as positional operands. Load requires the
+same selector tuple and returns the authenticated canonical metadata only. The
+adapter introduces no root creation, store discovery, freshness selection, GC
+execution, subject restoration, approval or publication path. See
+[Semantic Retention Metadata CLI v1](SEMANTIC-RETENTION-METADATA-CLI-V1.md).
 
 `candidate/git_publication.rs` authenticates Git object identities and original
 Project source before constructing canonical replacement blobs, trees and a
@@ -1605,7 +1612,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
 | Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs` |
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
-| Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/` |
+| Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/`, explicit adapter `src/cli/retention_metadata.rs` |
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |

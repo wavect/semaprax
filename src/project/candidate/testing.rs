@@ -7,7 +7,9 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 
 use crate::diagnostic::Diagnostic;
-use crate::project::{ProjectExecution, ProjectExecutionOptions, ProjectRevision};
+use crate::project::{
+    ProjectExecution, ProjectExecutionCancellation, ProjectExecutionOptions, ProjectRevision,
+};
 
 use super::{wire, ProjectCandidate};
 
@@ -88,6 +90,51 @@ impl CandidateTestReport {
     }
     pub fn execution(&self) -> &ProjectExecution {
         &self.execution
+    }
+}
+
+/// Terminal outcome of one cancellation-aware candidate test execution.
+/// Cancellation produces no test report or approval-like evidence.
+pub enum ProjectCandidateTestTaskOutcome {
+    Completed(CandidateTestReport),
+    Cancelled {
+        before_step: usize,
+        steps_used: usize,
+        max_steps: usize,
+    },
+}
+
+struct PreparedCandidateTestReport {
+    replay: ProjectCandidate,
+    report: Value,
+    max_report_bytes: usize,
+}
+
+impl PreparedCandidateTestReport {
+    fn finish(self, execution: ProjectExecution) -> Result<CandidateTestReport> {
+        if execution.stable_id() != self.replay.revision.test_program().entrypoint.as_str()
+            || execution.module() != self.replay.revision.manifest().test_module()
+        {
+            return Err(invalid(
+                "candidate test execution origin differs from its admitted test root",
+            ));
+        }
+        let envelope: Value = serde_json::from_str(execution.envelope())
+            .map_err(|_| invalid("compiler execution envelope is invalid"))?;
+        let outcome = render(envelope["outcome"].clone(), self.max_report_bytes)?;
+        let mut report = self.report;
+        report["execution"] = json!({"envelope":execution.envelope(),
+            "envelope_digest":wire::digest(b"semaprax.candidate-test.execution-envelope.v1\0",execution.envelope().as_bytes()),
+            "outcome_digest":wire::digest(b"semaprax.candidate-test.outcome.v1\0",outcome.as_bytes()),
+            "steps_used":execution.steps_used(),"max_steps":execution.max_steps()});
+        report["passed"] = json!(execution.command_succeeded());
+        let json = render(report, self.max_report_bytes)?;
+        let digest = wire::digest(REPORT_DOMAIN, json.as_bytes());
+        Ok(CandidateTestReport {
+            json,
+            digest,
+            execution,
+        })
     }
 }
 
@@ -236,6 +283,51 @@ impl ProjectCandidate {
         expected_candidate: &str,
         policy: &CandidateTestPolicy,
     ) -> Result<CandidateTestReport> {
+        let prepared = self.prepare_test_report(expected_candidate, policy)?;
+        let execution = prepared.replay.revision.execute_test(
+            &ProjectExecutionOptions::new(policy.max_execution_bytes, policy.max_steps)
+                .map_err(|error| vec![error])?,
+        )?;
+        prepared.finish(execution)
+    }
+
+    /// Independently replay and execute the candidate through the cooperative
+    /// cancellation-aware evaluator. A cancelled execution releases no test
+    /// report; a completed execution uses the exact legacy report renderer.
+    pub fn execute_tests_cancellable(
+        &self,
+        expected_candidate: &str,
+        policy: &CandidateTestPolicy,
+        cancellation: &ProjectExecutionCancellation,
+    ) -> Result<ProjectCandidateTestTaskOutcome> {
+        let prepared = self.prepare_test_report(expected_candidate, policy)?;
+        let options = ProjectExecutionOptions::new(policy.max_execution_bytes, policy.max_steps)
+            .map_err(|error| vec![error])?;
+        match prepared
+            .replay
+            .revision
+            .execute_test_cancellable(&options, cancellation)?
+        {
+            super::super::execution::CancellableProjectExecution::Completed(execution) => prepared
+                .finish(execution)
+                .map(ProjectCandidateTestTaskOutcome::Completed),
+            super::super::execution::CancellableProjectExecution::Cancelled {
+                before_step,
+                steps_used,
+                max_steps,
+            } => Ok(ProjectCandidateTestTaskOutcome::Cancelled {
+                before_step,
+                steps_used,
+                max_steps,
+            }),
+        }
+    }
+
+    fn prepare_test_report(
+        &self,
+        expected_candidate: &str,
+        policy: &CandidateTestPolicy,
+    ) -> Result<PreparedCandidateTestReport> {
         self.require_candidate(expected_candidate)?;
         CandidateTestPolicy::new(
             policy.max_steps,
@@ -257,7 +349,7 @@ impl ProjectCandidate {
         let origin_bytes = render(origins.clone(), policy.max_report_bytes)?;
         let diffs = Value::Array(diff_inventory(&replay)?);
         let diff_bytes = render(diffs.clone(), policy.max_report_bytes)?;
-        let mut report = json!({
+        let report = json!({
             "schema":PROJECT_CANDIDATE_TEST_REPORT_SCHEMA,
             "compiler":{"package_version":env!("CARGO_PKG_VERSION"),"compatibility":"semaprax.candidate-tests.interpreter.v1","binary_identity_claimed":false},
             "candidate_digest":replay.candidate_digest(),"base_project_revision":replay.base.project_revision(),
@@ -275,31 +367,10 @@ impl ProjectCandidate {
         // envelope can still exceed the host report limit: such failure yields
         // no report, never a truncated success receipt.
         let _ = render(report.clone(), policy.max_report_bytes)?;
-        let execution = replay.revision.execute_test(
-            &ProjectExecutionOptions::new(policy.max_execution_bytes, policy.max_steps)
-                .map_err(|error| vec![error])?,
-        )?;
-        if execution.stable_id() != replay.revision.test_program().entrypoint.as_str()
-            || execution.module() != replay.revision.manifest().test_module()
-        {
-            return Err(invalid(
-                "candidate test execution origin differs from its admitted test root",
-            ));
-        }
-        let envelope: Value = serde_json::from_str(execution.envelope())
-            .map_err(|_| invalid("compiler execution envelope is invalid"))?;
-        let outcome = render(envelope["outcome"].clone(), policy.max_report_bytes)?;
-        report["execution"] = json!({"envelope":execution.envelope(),
-            "envelope_digest":wire::digest(b"semaprax.candidate-test.execution-envelope.v1\0",execution.envelope().as_bytes()),
-            "outcome_digest":wire::digest(b"semaprax.candidate-test.outcome.v1\0",outcome.as_bytes()),
-            "steps_used":execution.steps_used(),"max_steps":execution.max_steps()});
-        report["passed"] = json!(execution.command_succeeded());
-        let json = render(report, policy.max_report_bytes)?;
-        let digest = wire::digest(REPORT_DOMAIN, json.as_bytes());
-        Ok(CandidateTestReport {
-            json,
-            digest,
-            execution,
+        Ok(PreparedCandidateTestReport {
+            replay,
+            report,
+            max_report_bytes: policy.max_report_bytes,
         })
     }
 }

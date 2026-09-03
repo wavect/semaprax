@@ -193,6 +193,14 @@ impl ProjectRevision {
         execution::execute(self, ProjectExecutionRole::Test, options)
     }
 
+    pub(super) fn execute_test_cancellable(
+        &self,
+        options: &ProjectExecutionOptions,
+        cancellation: &super::ProjectExecutionCancellation,
+    ) -> Result<super::execution::CancellableProjectExecution, Vec<Diagnostic>> {
+        execution::execute_cancellable(self, ProjectExecutionRole::Test, options, cancellation)
+    }
+
     /// Evaluate one exact retained closure selected by its closed role.
     pub fn execute(
         &self,

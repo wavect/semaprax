@@ -11,7 +11,7 @@ use crate::conformance::NormalizedStatus;
 use crate::diagnostic::Diagnostic;
 use crate::interpreter::{self, ResolvedEvaluation, ResolvedEvaluationOutcome, DEFAULT_MAX_STEPS};
 
-use super::ProjectRevision;
+use super::{ProjectExecutionCancellation, ProjectRevision};
 use report::render;
 pub use report::{verify_execution_envelope, PROJECT_EXECUTION_SCHEMA};
 
@@ -84,6 +84,15 @@ pub struct ProjectExecution {
     envelope: String,
 }
 
+pub(super) enum CancellableProjectExecution {
+    Completed(ProjectExecution),
+    Cancelled {
+        before_step: usize,
+        steps_used: usize,
+        max_steps: usize,
+    },
+}
+
 impl ProjectExecution {
     pub const fn role(&self) -> ProjectExecutionRole {
         self.role
@@ -153,6 +162,93 @@ pub(super) fn execute(
     let evaluated =
         interpreter::evaluate_resolved_zero_arg_i64(program, entry_id, options.max_steps)?;
     finish(snapshot, role, module, entry_id, evaluated, options)
+}
+
+/// Execute through the cancellation-aware prepared evaluator without retaining
+/// or rendering a source trace. Non-cancelled results are finished by the same
+/// Project execution renderer as the legacy path, preserving its exact bytes.
+pub(super) fn execute_cancellable(
+    snapshot: &ProjectRevision,
+    role: ProjectExecutionRole,
+    options: &ProjectExecutionOptions,
+    cancellation: &ProjectExecutionCancellation,
+) -> Result<CancellableProjectExecution, Vec<Diagnostic>> {
+    interpreter::InterpreterOptions::new(options.max_bytes, options.max_steps)
+        .map_err(|error| vec![error])?;
+
+    let (program, module) = match role {
+        ProjectExecutionRole::Entry => (&snapshot.entry_program, snapshot.manifest.entry()),
+        ProjectExecutionRole::Test => (&snapshot.test_program, snapshot.manifest.test_module()),
+    };
+    if program.module != module {
+        return Err(vec![guard_error(format!(
+            "authenticated {role:?} closure module `{}` disagrees with manifest module `{module}`",
+            program.module
+        ))]);
+    }
+    let entry_id = program.entrypoint.as_str();
+    let prepared = interpreter::prepare_resolved_zero_arg_i64(program, entry_id)?;
+    let evaluated = std::thread::scope(|scope| {
+        let worker = std::thread::Builder::new()
+            .name("semaprax-resolved-cancellable".to_owned())
+            .stack_size(interpreter::EVALUATION_STACK_BYTES)
+            .spawn_scoped(scope, || {
+                interpreter::evaluate_prepared_resolved_zero_arg_i64(
+                    program,
+                    &prepared,
+                    options.max_steps,
+                    0,
+                    interpreter::PreparedCancellation::Atomic(cancellation.signal()),
+                )
+            })
+            .map_err(|error| {
+                vec![guard_error(format!(
+                    "cancellable resolved evaluation thread failed to start: {error}"
+                ))]
+            })?;
+        worker.join().map_err(|_| {
+            vec![guard_error(
+                "cancellable resolved evaluation thread panicked after HIR validation".to_owned(),
+            )]
+        })?
+    })?;
+    let outcome = match evaluated.outcome {
+        interpreter::PreparedResolvedEvaluationOutcome::ReturnedI64(value) => {
+            ResolvedEvaluationOutcome::ReturnedI64(value)
+        }
+        interpreter::PreparedResolvedEvaluationOutcome::LanguageFailure(status) => {
+            ResolvedEvaluationOutcome::LanguageFailure(status)
+        }
+        interpreter::PreparedResolvedEvaluationOutcome::FuelExhausted => {
+            ResolvedEvaluationOutcome::FuelExhausted
+        }
+        interpreter::PreparedResolvedEvaluationOutcome::CallDepthExceeded => {
+            ResolvedEvaluationOutcome::CallDepthExceeded
+        }
+        interpreter::PreparedResolvedEvaluationOutcome::Cancelled { before_step } => {
+            return Ok(CancellableProjectExecution::Cancelled {
+                before_step,
+                steps_used: evaluated.steps_used,
+                max_steps: evaluated.max_steps,
+            });
+        }
+        interpreter::PreparedResolvedEvaluationOutcome::GuardError(detail) => {
+            ResolvedEvaluationOutcome::GuardError(detail)
+        }
+    };
+    let execution = finish(
+        snapshot,
+        role,
+        module,
+        entry_id,
+        ResolvedEvaluation {
+            outcome,
+            steps_used: evaluated.steps_used,
+            max_steps: evaluated.max_steps,
+        },
+        options,
+    )?;
+    Ok(CancellableProjectExecution::Completed(execution))
 }
 
 fn finish(

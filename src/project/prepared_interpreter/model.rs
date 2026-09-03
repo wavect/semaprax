@@ -29,6 +29,10 @@ impl ProjectExecutionCancellation {
     pub fn is_cancelled(&self) -> bool {
         self.cancelled.load(Ordering::Acquire)
     }
+
+    pub(crate) fn signal(&self) -> &AtomicBool {
+        self.cancelled.as_ref()
+    }
 }
 
 /// Per-worker ceilings. Every request is independently checked against them.

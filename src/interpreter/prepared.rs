@@ -215,9 +215,9 @@ pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
     max_events: usize,
     cancellation: PreparedCancellation<'_>,
 ) -> Result<PreparedResolvedEvaluation, Vec<Diagnostic>> {
-    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) || max_events == 0 {
+    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(vec![option_error(format!(
-            "prepared evaluation requires max_steps 1..={MAX_STEPS_LIMIT} and max_events greater than zero"
+            "prepared evaluation requires max_steps 1..={MAX_STEPS_LIMIT}"
         ))]);
     }
     if program.entrypoint.as_str() != prepared.entry_id

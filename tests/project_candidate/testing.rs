@@ -2,7 +2,8 @@
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     verify_execution_envelope, with_authenticated_project, CandidateTestPolicy, ProjectCandidate,
-    ProjectExecutionOutcome, SemanticChange, MAX_CANDIDATE_TEST_STEPS,
+    ProjectCandidateTestTaskOutcome, ProjectExecutionCancellation, ProjectExecutionOutcome,
+    SemanticChange, MAX_CANDIDATE_TEST_STEPS,
 };
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -168,6 +169,55 @@ fn explicit_execution_replays_candidate_and_binds_sources_diffs_policy_and_exact
         .execute_tests(candidate.candidate_digest(), &policy(10_000))
         .unwrap();
     assert_eq!(repeated.to_json(), result.to_json());
+}
+
+#[test]
+fn cancellation_aware_completion_preserves_exact_legacy_report_bytes() {
+    let fixture = Fixture::new();
+    let candidate = apply(&fixture.candidate(), rename("test.add", "sum"));
+    let policy = policy(10_000);
+    let legacy = candidate
+        .execute_tests(candidate.candidate_digest(), &policy)
+        .unwrap();
+    let completed = candidate
+        .execute_tests_cancellable(
+            candidate.candidate_digest(),
+            &policy,
+            &ProjectExecutionCancellation::new(),
+        )
+        .unwrap();
+    let ProjectCandidateTestTaskOutcome::Completed(completed) = completed else {
+        panic!("uncancelled candidate test unexpectedly cancelled");
+    };
+    assert_eq!(completed.to_json(), legacy.to_json());
+    assert_eq!(completed.report_digest(), legacy.report_digest());
+    assert_eq!(completed.execution(), legacy.execution());
+}
+
+#[test]
+fn pre_cancelled_candidate_test_releases_no_report_and_uses_zero_fuel() {
+    let fixture = Fixture::new();
+    let candidate = apply(&fixture.candidate(), rename("test.add", "sum"));
+    let policy = policy(10_000);
+    let cancellation = ProjectExecutionCancellation::new();
+    cancellation.cancel();
+    let outcome = candidate
+        .execute_tests_cancellable(candidate.candidate_digest(), &policy, &cancellation)
+        .unwrap();
+    match outcome {
+        ProjectCandidateTestTaskOutcome::Cancelled {
+            before_step,
+            steps_used,
+            max_steps,
+        } => {
+            assert_eq!(before_step, 1);
+            assert_eq!(steps_used, 0);
+            assert_eq!(max_steps, 10_000);
+        }
+        ProjectCandidateTestTaskOutcome::Completed(_) => {
+            panic!("pre-cancelled candidate test released a report")
+        }
+    }
 }
 
 #[test]

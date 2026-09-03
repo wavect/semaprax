@@ -41,6 +41,7 @@ mod extraction;
 mod facet_navigation;
 mod function_reference_rebind;
 mod generated_file_provenance;
+mod generic_rename;
 mod git_publication;
 mod impact_navigation;
 mod intent;
@@ -369,6 +370,7 @@ impl ProjectCandidate {
         let mut implementation_addition = None;
         let mut type_addition = None;
         let mut nominal_rename = None;
+        let generic_rename = generic_rename::plan(&self.revision, &programs, &change.intent)?;
         let (summary, addition) = match change.intent.get("kind").and_then(Value::as_str) {
             Some("rename_declaration")
                 if type_rename::eligible(
@@ -552,6 +554,9 @@ impl ProjectCandidate {
         if let Some(rename) = &nominal_rename {
             type_rename::validate(&candidate, rename)?;
         }
+        if let Some(rename) = &generic_rename {
+            generic_rename::validate(&candidate, rename)?;
+        }
         let rebuilt_programs = parse_revision(&candidate)?;
         interface::identities(&rebuilt_programs)?;
         if interface::inventory(&rebuilt_programs)? != before_implementations {
@@ -604,6 +609,13 @@ impl ProjectCandidate {
         if let Some(added) = implementation_addition {
             operation["new_declaration"] = json!({"id":added.id,"owner":added.owner,"kind":"protocol_implementation","path":added.path,"module":added.module,"runtime_graph_declaration":false});
             operation["source_conformance"] = added.fact;
+        }
+        if generic_rename.is_some() {
+            operation["generic_instances"] = json!({
+                "preserved": true,
+                "evidence": "exact_retained_checked_template_and_concrete_instance_hir",
+                "target_execution": false,
+            });
         }
         summaries.push(operation);
         Self::finish(

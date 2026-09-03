@@ -67,6 +67,8 @@ mod field_places;
 mod function_reference_rebind;
 #[path = "project_candidate/generic_aggregate_expressions.rs"]
 mod generic_aggregate_expressions;
+#[path = "project_candidate/generic_rename.rs"]
+mod generic_rename;
 #[path = "project_candidate/git_publication.rs"]
 mod git_publication;
 #[path = "project_candidate/holes.rs"]

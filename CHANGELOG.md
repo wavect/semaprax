@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Extended authenticated nested-block function extraction with one checked
+  resource-free owned result. Copy-only captures remain unchanged; String,
+  Bytes, or monomorphic owned record/variant results cross the new helper call
+  exactly once through the rebuilt whole provisional-result publication. Exact
+  HIR correspondence and cleanup validation reject borrowed/shared results,
+  projections, resources, owned captures, and scalar/owned commit mismatches.
+  Authored regressions are unrun and do not claim backend runtime conformance.
+
 - Added a zero-authority pinned MCP transport to the packaged TypeScript
   workflow SDK. It initializes MCP 2025-11-25, sends the initialized
   notification, routes the generated v5 request through the exact selected

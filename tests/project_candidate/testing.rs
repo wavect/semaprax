@@ -225,7 +225,8 @@ fn pre_cancelled_candidate_test_releases_no_report_and_uses_zero_fuel() {
                 &policy,
                 &cancellation,
             )
-            .unwrap_err()[0]
+            .err()
+            .expect("stale selector must reject before cancellation")[0]
             .code,
         "SPX-G224",
         "cancellation must not bypass exact candidate authentication"

@@ -53,6 +53,212 @@ pub struct RetentionRegistryState {
     cursor_digest: String,
 }
 
+/// One process-local held identity for an explicitly selected registry root.
+/// It is deliberately crate-private: public callers use the lifecycle
+/// coordinator, which fixes the policy and expected cursor at startup.
+pub(crate) struct RetentionRegistryHandle {
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    ))]
+    root: unix::Root,
+    #[cfg(not(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )))]
+    unsupported: (),
+}
+
+impl RetentionRegistryHandle {
+    pub(crate) fn open(root: &Path) -> Result<Self> {
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        {
+            Ok(Self {
+                root: unix::Root::open(root)?,
+            })
+        }
+        #[cfg(not(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )))]
+        {
+            let _ = root;
+            Err(io(
+                "retention registry requires supported Unix held-root publication",
+            ))
+        }
+    }
+
+    pub(crate) fn initialize(
+        &self,
+        policy: RetentionPolicy,
+        receipts: &[&dyn RetentionReceipt],
+    ) -> Result<RetentionRegistryState> {
+        require_receipts(receipts)?;
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        {
+            unix::transaction_held(&self.root, |current, metadata_root| {
+                if current.is_some() {
+                    return Err(stale("retention registry is already initialized"));
+                }
+                let transition = checkpoint_receipts(None, None, 1, policy, receipts)?;
+                let metadata = settle_transition(metadata_root, &transition)?;
+                let cursor = Cursor::new(transition.checkpoint(), transition.plan())?;
+                Ok((cursor.json.as_bytes().to_vec(), state(metadata, cursor)))
+            })
+        }
+        #[cfg(not(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )))]
+        {
+            let _ = (policy, receipts);
+            Err(io(
+                "retention registry requires supported Unix held-root publication",
+            ))
+        }
+    }
+
+    pub(crate) fn recover(&self) -> Result<RetentionRegistryState> {
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        {
+            unix::read_held(&self.root, |current, metadata_root| {
+                let cursor = Cursor::parse(current)?;
+                let metadata = semantic_retention_store::load_held(
+                    metadata_root,
+                    &cursor.checkpoint,
+                    cursor.previous.as_deref(),
+                    &cursor.plan,
+                )?;
+                validate_metadata(&cursor, &metadata)?;
+                Ok(state(metadata, cursor))
+            })
+        }
+        #[cfg(not(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )))]
+        {
+            Err(io(
+                "retention registry requires supported Unix held-root publication",
+            ))
+        }
+    }
+
+    pub(crate) fn advance(
+        &self,
+        expected_cursor_digest: &str,
+        receipts: &[&dyn RetentionReceipt],
+    ) -> Result<RetentionRegistryState> {
+        validate_digest(expected_cursor_digest)?;
+        require_receipts(receipts)?;
+        #[cfg(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        ))]
+        {
+            unix::transaction_held(&self.root, |current, metadata_root| {
+                let current =
+                    current.ok_or_else(|| stale("retention registry is not initialized"))?;
+                let cursor = Cursor::parse(current)?;
+                if cursor.digest != expected_cursor_digest {
+                    return Err(stale("retention registry CURRENT selector is stale"));
+                }
+                let previous = semantic_retention_store::load_held(
+                    metadata_root,
+                    &cursor.checkpoint,
+                    cursor.previous.as_deref(),
+                    &cursor.plan,
+                )?;
+                validate_metadata(&cursor, &previous)?;
+                let sequence = cursor
+                    .sequence
+                    .checked_add(1)
+                    .ok_or_else(|| capacity("retention registry sequence overflow"))?;
+                let transition = checkpoint_receipts(
+                    Some(previous.checkpoint()),
+                    Some(&cursor.checkpoint),
+                    sequence,
+                    cursor.policy,
+                    receipts,
+                )?;
+                let metadata = settle_transition(metadata_root, &transition)?;
+                let next = Cursor::new(transition.checkpoint(), transition.plan())?;
+                Ok((next.json.as_bytes().to_vec(), state(metadata, next)))
+            })
+        }
+        #[cfg(not(all(
+            unix,
+            any(
+                target_os = "linux",
+                target_os = "android",
+                target_vendor = "apple",
+                target_os = "redox"
+            )
+        )))]
+        {
+            let _ = receipts;
+            Err(io(
+                "retention registry requires supported Unix held-root publication",
+            ))
+        }
+    }
+}
+
 impl RetentionRegistryState {
     pub fn metadata(&self) -> &StoredRetentionMetadata {
         &self.metadata
@@ -87,35 +293,13 @@ pub fn initialize(
     receipts: &[&dyn RetentionReceipt],
 ) -> Result<RetentionRegistryState> {
     require_receipts(receipts)?;
-    supported(|| {
-        unix::transaction(root, |current, metadata_root| {
-            if current.is_some() {
-                return Err(stale("retention registry is already initialized"));
-            }
-            let transition = checkpoint_receipts(None, None, 1, policy, receipts)?;
-            let metadata = settle_transition(metadata_root, &transition)?;
-            let cursor = Cursor::new(transition.checkpoint(), transition.plan())?;
-            Ok((cursor.json.as_bytes().to_vec(), state(metadata, cursor)))
-        })
-    })
+    RetentionRegistryHandle::open(root)?.initialize(policy, receipts)
 }
 
 /// Restore the exact pair selected by this explicit registry's canonical
 /// `CURRENT` cursor. Recovery authenticates metadata only and performs no GC.
 pub fn recover(root: &Path) -> Result<RetentionRegistryState> {
-    supported(|| {
-        unix::read(root, |current, metadata_root| {
-            let cursor = Cursor::parse(current)?;
-            let metadata = semantic_retention_store::load_held(
-                metadata_root,
-                &cursor.checkpoint,
-                cursor.previous.as_deref(),
-                &cursor.plan,
-            )?;
-            validate_metadata(&cursor, &metadata)?;
-            Ok(state(metadata, cursor))
-        })
-    })
+    RetentionRegistryHandle::open(root)?.recover()
 }
 
 /// Compare-and-swap one consecutive generation using the policy fixed by the
@@ -128,36 +312,7 @@ pub fn advance(
 ) -> Result<RetentionRegistryState> {
     validate_digest(expected_cursor_digest)?;
     require_receipts(receipts)?;
-    supported(|| {
-        unix::transaction(root, |current, metadata_root| {
-            let current = current.ok_or_else(|| stale("retention registry is not initialized"))?;
-            let cursor = Cursor::parse(current)?;
-            if cursor.digest != expected_cursor_digest {
-                return Err(stale("retention registry CURRENT selector is stale"));
-            }
-            let previous = semantic_retention_store::load_held(
-                metadata_root,
-                &cursor.checkpoint,
-                cursor.previous.as_deref(),
-                &cursor.plan,
-            )?;
-            validate_metadata(&cursor, &previous)?;
-            let sequence = cursor
-                .sequence
-                .checked_add(1)
-                .ok_or_else(|| capacity("retention registry sequence overflow"))?;
-            let transition = checkpoint_receipts(
-                Some(previous.checkpoint()),
-                Some(&cursor.checkpoint),
-                sequence,
-                cursor.policy,
-                receipts,
-            )?;
-            let metadata = settle_transition(metadata_root, &transition)?;
-            let next = Cursor::new(transition.checkpoint(), transition.plan())?;
-            Ok((next.json.as_bytes().to_vec(), state(metadata, next)))
-        })
-    })
+    RetentionRegistryHandle::open(root)?.advance(expected_cursor_digest, receipts)
 }
 
 fn require_receipts(receipts: &[&dyn RetentionReceipt]) -> Result<()> {
@@ -462,36 +617,6 @@ fn validate_digest(value: &str) -> Result<()> {
         ));
     }
     Ok(())
-}
-
-fn supported<T>(operation: impl FnOnce() -> Result<T>) -> Result<T> {
-    #[cfg(all(
-        unix,
-        any(
-            target_os = "linux",
-            target_os = "android",
-            target_vendor = "apple",
-            target_os = "redox"
-        )
-    ))]
-    {
-        operation()
-    }
-    #[cfg(not(all(
-        unix,
-        any(
-            target_os = "linux",
-            target_os = "android",
-            target_vendor = "apple",
-            target_os = "redox"
-        )
-    )))]
-    {
-        let _ = operation;
-        Err(io(
-            "retention registry requires supported Unix held-root publication",
-        ))
-    }
 }
 
 fn invalid(message: impl Into<String>) -> Vec<Diagnostic> {

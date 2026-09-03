@@ -344,6 +344,44 @@ fn real_image_candidate_and_draft_receipts_share_one_authority_neutral_checkpoin
         "successful_receipts_precede_registry_attempt"
     );
     assert_eq!(lifecycle_json["registry_cursor_status"], "advanced");
+    let first_cursor = lifecycle_report.cursor_digest().unwrap().to_owned();
+    assert_eq!(lifecycle_json["cursor_digest"], first_cursor);
+    let projected = lifecycle_json["successful_store_receipts"]
+        .as_array()
+        .unwrap();
+    assert!(projected.contains(&json!({
+        "kind":"image",
+        "subject_digest":image_receipt.retention_observation().unwrap().subject().subject_digest(),
+        "stored_bytes":image_receipt.retained_image_bytes(),
+        "receipt_digest":image_receipt.receipt_digest(),
+        "image_digest":image_receipt.image_digest(),
+        "revision_store_entry":image_receipt.entry_digest(),
+        "project_revision":image_receipt.project_revision(),
+    })));
+    assert!(projected.contains(&json!({
+        "kind":"candidate",
+        "subject_digest":candidate_receipt.retention_observation().unwrap().subject().subject_digest(),
+        "stored_bytes":candidate_receipt.stored_bytes(),
+        "archive_digest":candidate_receipt.archive_digest(),
+        "candidate_digest":candidate_receipt.candidate_digest(),
+        "base_revision":candidate_receipt.base_revision(),
+    })));
+    assert!(projected.contains(&json!({
+        "kind":"draft",
+        "subject_digest":draft_receipt.retention_observation().unwrap().subject().subject_digest(),
+        "stored_bytes":draft_receipt.stored_bytes(),
+        "archive_digest":draft_receipt.archive_digest(),
+        "draft_digest":draft_receipt.draft_digest(),
+        "base_revision":draft_receipt.base_revision(),
+    })));
+
+    let second = lifecycle.checkpoint(&typed_receipts);
+    assert!(second.registry_advanced());
+    assert_eq!(second.sequence(), Some(2));
+    assert_ne!(second.cursor_digest(), Some(first_cursor.as_str()));
+    let reopened =
+        RetentionLifecycleCoordinator::open(&registry, policy, second.cursor_digest()).unwrap();
+    assert_eq!(reopened.expected_cursor_digest(), second.cursor_digest());
     let stale_report = stale_lifecycle.checkpoint(&typed_receipts);
     assert!(!stale_report.registry_advanced());
     assert_eq!(stale_report.diagnostics()[0].code, "SPX-G467");
@@ -355,6 +393,26 @@ fn real_image_candidate_and_draft_receipts_share_one_authority_neutral_checkpoin
     assert_eq!(
         stale_json["registry_cursor_status"],
         "registry_cursor_not_advanced_stale"
+    );
+    let poisoned = stale_lifecycle.checkpoint(&typed_receipts);
+    assert_eq!(poisoned.diagnostics()[0].code, "SPX-G483");
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(poisoned.to_json()).unwrap()
+            ["registry_cursor_status"],
+        "registry_attempt_blocked_reopen_required"
+    );
+    let over_capacity = vec![SuccessfulRetentionReceipt::Image(&image_receipt); 97];
+    let blocked_over_capacity = stale_lifecycle.checkpoint(&over_capacity);
+    assert_eq!(blocked_over_capacity.diagnostics()[0].code, "SPX-G483");
+    let blocked_json: serde_json::Value =
+        serde_json::from_str(blocked_over_capacity.to_json()).unwrap();
+    assert_eq!(
+        blocked_json["registry_cursor_status"],
+        "registry_attempt_blocked_reopen_required"
+    );
+    assert_eq!(
+        blocked_json["subject_store_status"],
+        "successful_receipts_precede_registry_attempt"
     );
     let transition = checkpoint_receipts(None, None, 1, policy, &receipts).unwrap();
     let reversed = checkpoint_receipts(
@@ -387,6 +445,38 @@ fn real_image_candidate_and_draft_receipts_share_one_authority_neutral_checkpoin
         .exists());
     assert!(fixture.entry(candidate_archive.archive_digest()).exists());
     assert!(fixture.entry(draft_archive.archive_digest()).exists());
+}
+
+#[test]
+fn lifecycle_holds_the_startup_registry_root_across_path_substitution() {
+    let fixture = Fixture::new();
+    let archive =
+        ProjectCandidateArchive::prepare(&fixture.base, fixture.base.candidate_digest()).unwrap();
+    let receipt = persist(&fixture.store, &archive).unwrap();
+    let policy = RetentionPolicy::new(2, MAX_RETENTION_TOTAL_BYTES, 0).unwrap();
+    let registry = fixture.root.join("held-retention-registry");
+    fs::create_dir(&registry).unwrap();
+    fs::create_dir(registry.join("metadata")).unwrap();
+    fs::set_permissions(&registry, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(registry.join("metadata"), fs::Permissions::from_mode(0o700)).unwrap();
+    let mut lifecycle = RetentionLifecycleCoordinator::open(&registry, policy, None).unwrap();
+
+    let displaced = fixture.root.join("displaced-retention-registry");
+    fs::rename(&registry, &displaced).unwrap();
+    fs::create_dir(&registry).unwrap();
+    fs::create_dir(registry.join("metadata")).unwrap();
+    fs::set_permissions(&registry, fs::Permissions::from_mode(0o700)).unwrap();
+    fs::set_permissions(registry.join("metadata"), fs::Permissions::from_mode(0o700)).unwrap();
+
+    let outcome = lifecycle.checkpoint(&[SuccessfulRetentionReceipt::Candidate(&receipt)]);
+    assert_eq!(outcome.diagnostics()[0].code, "SPX-G466");
+    assert!(!registry.join("CURRENT").exists());
+    assert!(!displaced.join("CURRENT").exists());
+
+    fs::remove_dir_all(&registry).unwrap();
+    fs::rename(&displaced, &registry).unwrap();
+    let reopened = RetentionLifecycleCoordinator::open(&registry, policy, None).unwrap();
+    assert_eq!(reopened.expected_cursor_digest(), None);
 }
 
 #[test]

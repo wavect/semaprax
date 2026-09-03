@@ -3,7 +3,7 @@
 //! The coordinator can advance only the explicit semantic-retention registry.
 //! It receives no subject-store handle and cannot restore or delete a subject.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use serde_json::{json, Value};
 
@@ -87,7 +87,7 @@ impl<'a> SuccessfulRetentionReceipt<'a> {
 /// expectation. Failure poisons the coordinator; a host must recover and reopen
 /// with a newly selected exact cursor before another registry attempt.
 pub struct RetentionLifecycleCoordinator {
-    root: PathBuf,
+    registry: semantic_retention_registry::RetentionRegistryHandle,
     policy: RetentionPolicy,
     expected_cursor: Option<String>,
     blocked: bool,
@@ -101,9 +101,10 @@ impl RetentionLifecycleCoordinator {
         policy: RetentionPolicy,
         expected_cursor: Option<&str>,
     ) -> Result<Self> {
+        let registry = semantic_retention_registry::RetentionRegistryHandle::open(root)?;
         if let Some(expected) = expected_cursor {
             validate_digest(expected)?;
-            let state = semantic_retention_registry::recover(root)?;
+            let state = registry.recover()?;
             if state.cursor_digest() != expected || state.metadata().checkpoint().policy() != policy
             {
                 return Err(binding(
@@ -111,7 +112,7 @@ impl RetentionLifecycleCoordinator {
                 ));
             }
         } else {
-            match semantic_retention_registry::recover(root) {
+            match registry.recover() {
                 Ok(_) => {
                     return Err(binding(
                         "retention lifecycle expected an uninitialized registry",
@@ -125,7 +126,7 @@ impl RetentionLifecycleCoordinator {
             }
         }
         Ok(Self {
-            root: root.to_owned(),
+            registry,
             policy,
             expected_cursor: expected_cursor.map(str::to_owned),
             blocked: false,
@@ -157,6 +158,26 @@ impl RetentionLifecycleCoordinator {
                 invalid("retention lifecycle requires at least one successful typed receipt"),
             );
         }
+        if self.blocked {
+            let mut stored_receipts = if receipts.len() <= MAX_RECEIPTS {
+                receipts
+                    .iter()
+                    .filter_map(|receipt| receipt.projection().ok())
+                    .collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
+            sort_receipt_projections(&mut stored_receipts);
+            return RetentionLifecycleOutcome::new(
+                receipts.len(),
+                stored_receipts,
+                "registry_attempt_blocked_reopen_required",
+                "successful_receipts_precede_registry_attempt",
+                None,
+                None,
+                poisoned("retention lifecycle is blocked after a prior registry failure"),
+            );
+        }
         if receipts.len() > MAX_RECEIPTS {
             return RetentionLifecycleOutcome::new(
                 receipts.len(),
@@ -185,30 +206,15 @@ impl RetentionLifecycleCoordinator {
                 }
             }
         }
-        stored_receipts.sort_by(|left, right| {
-            left["subject_digest"]
-                .as_str()
-                .cmp(&right["subject_digest"].as_str())
-        });
-        if self.blocked {
-            return RetentionLifecycleOutcome::new(
-                receipts.len(),
-                stored_receipts,
-                "registry_attempt_blocked_reopen_required",
-                "successful_receipts_precede_registry_attempt",
-                None,
-                None,
-                poisoned("retention lifecycle is blocked after a prior registry failure"),
-            );
-        }
+        sort_receipt_projections(&mut stored_receipts);
         let borrowed = receipts
             .iter()
             .copied()
             .map(SuccessfulRetentionReceipt::receipt)
             .collect::<Vec<_>>();
         let result = match self.expected_cursor.as_deref() {
-            Some(expected) => semantic_retention_registry::advance(&self.root, expected, &borrowed),
-            None => semantic_retention_registry::initialize(&self.root, self.policy, &borrowed),
+            Some(expected) => self.registry.advance(expected, &borrowed),
+            None => self.registry.initialize(self.policy, &borrowed),
         };
         match result {
             Ok(state) => {
@@ -242,6 +248,22 @@ impl RetentionLifecycleCoordinator {
             }
         }
     }
+}
+
+fn sort_receipt_projections(receipts: &mut [Value]) {
+    receipts.sort_by_cached_key(|receipt| {
+        let mut canonical = receipt.clone();
+        canonical.sort_all_objects();
+        (
+            receipt["subject_digest"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned(),
+            receipt["kind"].as_str().unwrap_or_default().to_owned(),
+            serde_json::to_vec(&canonical)
+                .expect("closed successful receipt projection is JSON-encodable"),
+        )
+    });
 }
 
 /// One explicit outcome after typed receipts already prove immutable subject
@@ -394,6 +416,36 @@ fn validate_digest(value: &str) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn equal_subject_digest_rows_have_a_total_canonical_order() {
+        let left = json!({
+            "kind":"candidate",
+            "subject_digest":"a".repeat(64),
+            "stored_bytes":1,
+            "archive_digest":"b".repeat(64),
+            "candidate_digest":"c".repeat(64),
+            "base_revision":"d".repeat(64),
+        });
+        let right = json!({
+            "kind":"draft",
+            "subject_digest":"a".repeat(64),
+            "stored_bytes":1,
+            "archive_digest":"b".repeat(64),
+            "draft_digest":"c".repeat(64),
+            "base_revision":"d".repeat(64),
+        });
+        let mut forward = vec![left.clone(), right.clone()];
+        let mut reversed = vec![right, left];
+        sort_receipt_projections(&mut forward);
+        sort_receipt_projections(&mut reversed);
+        assert_eq!(forward, reversed);
+    }
 }
 
 fn invalid(message: impl Into<String>) -> Vec<Diagnostic> {

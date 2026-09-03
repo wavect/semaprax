@@ -25,8 +25,12 @@ not-initialized result; a busy, malformed, substituted, or initialized root
 fails. The root and expectation come from host startup code, never a request,
 receipt, image, candidate, draft, or generated client.
 
-The coordinator retains the explicit registry path only to initialize or
-compare-and-swap authority-neutral checkpoint metadata. It receives no image,
+The coordinator opens and retains the authenticated registry-root and metadata
+directory identities for its complete lifetime. Every recovery, initialize,
+or compare-and-swap operation uses those held directories and rebinds them to
+the startup-selected path before mutation and before a `CURRENT` pivot. A
+same-owner path substitution therefore fails closed instead of redirecting a
+later checkpoint. It receives no image,
 candidate, or draft store root and cannot reopen a subject. Its
 `RetentionAuthority::None` result means no subject restore/delete, GC, source,
 approval, or publication authority; the startup-selected registry root remains
@@ -46,7 +50,9 @@ successful receipt. One call admits 1 through 96 receipts. It derives only each
 receipt's closed typed identity fields, subject digest, and exact logical
 stored-byte accounting. Image rows also retain the image receipt digest;
 candidate and draft rows retain their exact archive/content/base selectors.
-Canonical report rows sort by subject digest, independent of receipt order.
+Canonical report rows sort by a total key of subject digest, kind, and exact
+canonical projection bytes, independent of receipt order even if equal digest
+keys are presented.
 
 For an explicitly uninitialized root, the first accepted batch calls registry
 `initialize`. Otherwise the coordinator calls registry `advance` with the exact
@@ -91,8 +97,14 @@ Receipt-projection failure uses
 `subject_store_status: "successful_typed_store_receipt_was_supplied"` and makes
 no registry attempt. Empty/over-capacity outcomes permit a corrected bounded
 batch, and projection failure requires inspection of the already successful
-typed receipt. They do not poison the coordinator because no registry mutation
-was attempted.
+typed receipt. They do not poison a previously usable coordinator because no
+registry mutation was attempted. Once a registry attempt has failed, blocked
+status dominates every later nonempty call, including an over-capacity
+inventory or a receipt whose projection cannot be completed. The outcome still
+states that successful receipts precede the blocked no-attempt result; a bounded
+call includes every projection it can authenticate, while an over-capacity call
+does not materialize rows beyond the fixed bound. Only an empty call retains
+the empty-specific input status.
 
 `SPX-G467` maps to a known stale/not-advanced cursor. Metadata-pair publication
 uncertainty (`SPX-I371`) is distinguished from cursor uncertainty. `SPX-G468`
@@ -136,8 +148,14 @@ approval, or a runtime/deployment compatibility result.
 ## Authored evidence
 
 The existing semantic store harness authors a mixed real image/candidate/draft
-receipt batch, startup-uninitialized coordination, generation-one registry
-checkpointing, exact successful-store status, and a second coordinator's stale
-failure without deleting any stored subject. These additions are authored and
-unrun. No test target, filesystem interruption matrix, CLI/session route, GC,
-subject restoration, parallel host, or hosted gate is claimed.
+receipt batch, startup-uninitialized coordination, exact per-family receipt
+projections, generation-one and consecutive generation-two cursors, reopen by
+the returned exact selector, and a second coordinator's stale then poisoned
+failure without deleting any stored subject. A focused substitution regression
+holds an uninitialized root, replaces its pathname with another private root,
+and requires failure before either directory receives `CURRENT`; restoring the
+original binding permits ordinary reopen. Equal-digest synthetic projection
+rows pin total canonical ordering under reversed input. These additions are
+authored and unrun. No test target, broader filesystem interruption matrix,
+CLI/session route, GC, subject restoration, parallel host, or hosted gate is
+claimed.

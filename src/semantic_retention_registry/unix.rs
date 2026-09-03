@@ -41,7 +41,7 @@ impl Identity {
     }
 }
 
-struct Root {
+pub(super) struct Root {
     chain: Vec<(OwnedFd, Identity)>,
     names: Vec<Vec<u8>>,
     metadata_fd: OwnedFd,
@@ -49,7 +49,7 @@ struct Root {
 }
 
 impl Root {
-    fn open(path: &Path) -> Result<Self> {
+    pub(super) fn open(path: &Path) -> Result<Self> {
         let raw = path.as_os_str().as_bytes();
         if !path.is_absolute() || raw.len() > MAX_PATH_BYTES {
             return Err(binding(
@@ -169,11 +169,11 @@ impl Drop for Lock {
     }
 }
 
-pub(super) fn read<T>(
-    root_path: &Path,
+pub(super) fn read_held<T>(
+    root: &Root,
     operation: impl FnOnce(&[u8], &OwnedFd) -> Result<T>,
 ) -> Result<T> {
-    let root = Root::open(root_path)?;
+    root.validate()?;
     let lock = root.lock(false)?;
     let current =
         read_current(&root)?.ok_or_else(|| stale("retention registry is not initialized"))?;
@@ -187,11 +187,20 @@ pub(super) fn read<T>(
     Ok(result)
 }
 
+#[cfg(test)]
 pub(super) fn transaction<T>(
     root_path: &Path,
     operation: impl FnOnce(Option<&[u8]>, &OwnedFd) -> Result<(Vec<u8>, T)>,
 ) -> Result<T> {
     let root = Root::open(root_path)?;
+    transaction_held(&root, operation)
+}
+
+pub(super) fn transaction_held<T>(
+    root: &Root,
+    operation: impl FnOnce(Option<&[u8]>, &OwnedFd) -> Result<(Vec<u8>, T)>,
+) -> Result<T> {
+    root.validate()?;
     let lock = root.lock(true)?;
     let current = read_current(&root)?;
     validate_stage(&root, current.as_deref(), true)?;

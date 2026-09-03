@@ -894,11 +894,14 @@ projections and source-backed dependency facts, then independently replays the
 candidate before verifying exact report bytes. V5 exposes a candidate-granted
 chunk query; this read performs no target generation or execution and adds no
 publication authority.
-`candidate/ownership_delta.rs` compares checked source-function and retained
-instance ownership facts, complete structural inventories, and the existing
-ordered loan/cleanup projections. Exact report verification replays the full
-candidate first. The report neither changes a plan nor turns its actions into
-physical ownership authority; v5 exposes it through candidate-granted chunks.
+`candidate/ownership_delta.rs` compares exact checked source-nominal shapes and
+supported monomorphic aggregate type facts together with source-function and
+retained-instance ownership facts, complete structural inventories, and the
+existing ordered loan/cleanup projections. Generic type facts remain explicitly unavailable;
+layout keys are compiler facts rather than ABI judgments. Exact report
+verification replays the full candidate first. The report neither changes a
+plan nor turns its actions into physical ownership authority; v5 exposes it
+through candidate-granted chunks.
 `candidate/artifact_delta.rs` replays the full candidate before comparing base
 and candidate Web/npm carriers through existing independently verified pathless
 artifact projections. File-content, stable export, source and carrier bindings

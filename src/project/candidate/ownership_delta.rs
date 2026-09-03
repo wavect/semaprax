@@ -11,7 +11,10 @@ use crate::ast::TypeDeclarationKind;
 use crate::cleanup::{CleanupInventory, CleanupStorageOrigin, FieldLivenessShape};
 use crate::cleanup_plan::{CleanupTransition, StagedCopyResultSource};
 use crate::diagnostic::Diagnostic;
-use crate::hir::{OwnershipMode, ResolvedFunction, ResolvedParam, ResolvedType, ValueId};
+use crate::hir::{
+    DeclarationIndex, OwnershipMode, ResolvedFieldDeclaration, ResolvedFunction, ResolvedParam,
+    ResolvedType, ResolvedTypeDeclaration, ResolvedTypeDeclarationKind, TypeFacts, ValueId,
+};
 use crate::project::ProjectRevision;
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -92,6 +95,7 @@ impl Budget {
 
 struct Inventory {
     functions: BTreeMap<String, Value>,
+    types: BTreeMap<String, Value>,
     instances: usize,
 }
 
@@ -122,6 +126,27 @@ impl ProjectCandidate {
             budget.fact(&row)?;
             functions.push(row);
         }
+        let type_ids = before
+            .types
+            .keys()
+            .chain(after.types.keys())
+            .collect::<BTreeSet<_>>();
+        let mut types = Vec::new();
+        let mut unchanged_types = 0usize;
+        for id in type_ids {
+            let base = before.types.get(id);
+            let candidate = after.types.get(id);
+            if base == candidate {
+                unchanged_types += 1;
+                continue;
+            }
+            let (change, comparison) = type_comparison(base, candidate, &mut budget)?;
+            let row = json!({"id":id,"change":change,"comparison":comparison,
+                "base":budget.copy(base.unwrap_or(&Value::Null))?,
+                "candidate":budget.copy(candidate.unwrap_or(&Value::Null))?});
+            budget.fact(&row)?;
+            types.push(row);
+        }
         render(json!({"schema":PROJECT_CANDIDATE_OWNERSHIP_DELTA_SCHEMA,
             "candidate_digest":expected_candidate,
             "base_project_revision":self.base.project_revision(),"project_revision":self.revision.project_revision(),
@@ -129,9 +154,11 @@ impl ProjectCandidate {
             "source_bindings":{"base":sources(&self.base),"candidate":sources(&self.revision)},
             "inventory":{"base_functions":before.functions.len(),"candidate_functions":after.functions.len(),
                 "base_instances":before.instances,"candidate_instances":after.instances,
-                "unchanged_functions":unchanged,"affected_functions":functions.len()},
-            "functions":functions,
-            "selection_basis":"all_source_callable_checked_signatures_and_retained_ownership_plans",
+                "unchanged_functions":unchanged,"affected_functions":functions.len(),
+                "base_types":before.types.len(),"candidate_types":after.types.len(),
+                "unchanged_types":unchanged_types,"affected_types":types.len()},
+            "functions":functions,"types":types,
+            "selection_basis":"all_source_callable_checked_signatures_and_plans_plus_explicit_source_nominal_checked_shapes_and_type_facts",
             "evidence_class":"descriptive_checked_HIR_ownership_and_cleanup_delta",
             "plan_order":"exact_compiler_vector_order",
             "local_identity_scope":"expression_value_loan_storage_block_edge_and_instance_ids_are_revision_scoped",
@@ -141,7 +168,8 @@ impl ProjectCandidate {
             "nonclaims":["not_runtime_liveness_or_destruction_trace","not_behavioral_equivalence",
                 "not_ownership_safety_promotion","not_test_coverage_or_execution","not_new_backend_admission",
                 "not_inferred_return_ownership","no_plan_sorting_repair_or_normalization",
-                "no_external_callable_plans","no_source_or_publication_authority","not_allocator_or_RSS_accounting"]}))
+                "type_layout_keys_are_compiler_facts_not_ABI_compatibility","no_external_callable_plans",
+                "no_source_or_publication_authority","not_allocator_or_RSS_accounting"]}))
     }
 
     pub fn verify_ownership_delta(&self, expected_candidate: &str, bytes: &[u8]) -> Result<String> {
@@ -173,6 +201,7 @@ impl ProjectCandidate {
 fn inventory(revision: &ProjectRevision, budget: &mut Budget) -> Result<Inventory> {
     let mut result = Inventory {
         functions: BTreeMap::new(),
+        types: BTreeMap::new(),
         instances: 0,
     };
     for program in parse_revision(revision)? {
@@ -181,6 +210,33 @@ fn inventory(revision: &ProjectRevision, budget: &mut Budget) -> Result<Inventor
             .iter()
             .find(|s| s.path() == program.path)
             .ok_or_else(invalid)?;
+        for declaration in &program.types {
+            if !declaration.explicit_id {
+                continue;
+            }
+            budget.items(1)?;
+            let fragment = source
+                .source()
+                .get(declaration.span.start..declaration.span.end)
+                .ok_or_else(invalid)?;
+            budget.string_fact(declaration.stable_id.as_str())?;
+            budget.string_fact(declaration.name.as_str())?;
+            let row = json!({"id":declaration.stable_id,"name":declaration.name,
+                "provenance":{"path":source.path(),"module":program.module,"source_revision":source.source_revision(),
+                    "source_digest":source.source_digest(),"span":{"start":declaration.span.start,"end":declaration.span.end}},
+                "source_declaration_digest":wire::digest(SOURCE_DOMAIN,fragment.as_bytes()),
+                "hir_availability":"source_only","declaration_kind":source_type_kind(&declaration.kind),
+                "type_parameters":null,"members":null,"type_facts":null,
+                "type_facts_availability":"source_only"});
+            budget.fact(&row)?;
+            if result
+                .types
+                .insert(declaration.stable_id.clone(), row)
+                .is_some()
+            {
+                return Err(invalid());
+            }
+        }
         let mut functions = program.functions.iter().collect::<Vec<_>>();
         for ty in &program.types {
             if let TypeDeclarationKind::Class { methods, .. } = &ty.kind {
@@ -211,7 +267,21 @@ fn inventory(revision: &ProjectRevision, budget: &mut Budget) -> Result<Inventor
             }
         }
     }
+    let declarations = revision
+        .semantic
+        .image_modules()
+        .iter()
+        .flat_map(|module| module.types().iter())
+        .map(|declaration| (declaration.id.as_str(), declaration))
+        .collect::<BTreeMap<_, _>>();
     for module in revision.semantic.image_modules() {
+        for declaration in module.types() {
+            let Some(row) = result.types.get_mut(declaration.id.as_str()) else {
+                continue;
+            };
+            attach_source(row, module.path(), "retained_checked_type")?;
+            attach_type(row, declaration, &declarations, budget)?;
+        }
         for function in module.functions() {
             let row = result
                 .functions
@@ -271,6 +341,9 @@ fn inventory(revision: &ProjectRevision, budget: &mut Budget) -> Result<Inventor
     for row in result.functions.values() {
         budget.fact(row)?;
     }
+    for row in result.types.values() {
+        budget.fact(row)?;
+    }
     Ok(result)
 }
 
@@ -281,6 +354,105 @@ fn attach_source(row: &mut Value, path: &str, availability: &str) -> Result<()> 
     }
     row["hir_availability"] = json!(availability);
     Ok(())
+}
+
+fn source_type_kind(kind: &TypeDeclarationKind) -> &'static str {
+    match kind {
+        TypeDeclarationKind::Resource { .. } => "resource",
+        TypeDeclarationKind::Record { .. } => "record",
+        TypeDeclarationKind::Class { .. } => "class",
+        TypeDeclarationKind::Variant { .. } => "variant",
+    }
+}
+
+fn resolved_type_kind(kind: &ResolvedTypeDeclarationKind) -> &'static str {
+    match kind {
+        ResolvedTypeDeclarationKind::Resource { .. } => "resource",
+        ResolvedTypeDeclarationKind::Record { .. } => "record",
+        ResolvedTypeDeclarationKind::Class { .. } => "class",
+        ResolvedTypeDeclarationKind::Variant { .. } => "variant",
+    }
+}
+
+fn attach_type(
+    row: &mut Value,
+    declaration: &ResolvedTypeDeclaration,
+    declarations: &BTreeMap<&str, &ResolvedTypeDeclaration>,
+    budget: &mut Budget,
+) -> Result<()> {
+    let kind = resolved_type_kind(&declaration.kind);
+    if row["declaration_kind"] != kind || row["name"] != declaration.name {
+        return Err(invalid());
+    }
+    budget.items(declaration.type_parameters.len())?;
+    row["type_parameters"] = json!(declaration
+        .type_parameters
+        .iter()
+        .map(|parameter| json!({"name":parameter.name,"index":parameter.index}))
+        .collect::<Vec<_>>());
+    row["members"] = match &declaration.kind {
+        ResolvedTypeDeclarationKind::Resource { .. } => json!([]),
+        ResolvedTypeDeclarationKind::Record { fields } => {
+            json!({"fields":resolved_fields(fields, budget)?})
+        }
+        ResolvedTypeDeclarationKind::Class { fields, methods } => {
+            budget.items(methods.len())?;
+            json!({"fields":resolved_fields(fields,budget)?,
+                "methods":methods.iter().map(|id|id.as_str()).collect::<Vec<_>>()})
+        }
+        ResolvedTypeDeclarationKind::Variant { cases } => {
+            budget.items(cases.len())?;
+            let mut rows = Vec::new();
+            for case in cases {
+                budget.string_fact(case.id.as_str())?;
+                budget.string_fact(case.name.as_str())?;
+                rows.push(
+                    json!({"id":case.id.as_str(),"name":case.name,"index":case.index,
+                    "fields":resolved_fields(&case.fields,budget)?}),
+                );
+            }
+            json!({"cases":rows})
+        }
+    };
+    row["type_facts"] = if !declaration.type_parameters.is_empty() {
+        row["type_facts_availability"] = json!("generic_uninstantiated");
+        Value::Null
+    } else {
+        match DeclarationIndex::record_evolution_type_facts(&declaration.id, declarations)
+            .map_err(|_| capacity())?
+        {
+            Some(facts) => {
+                row["type_facts_availability"] = json!("retained_checked");
+                type_facts(&facts, budget)?
+            }
+            None => {
+                row["type_facts_availability"] = json!("unsupported_or_incomplete_type_closure");
+                Value::Null
+            }
+        }
+    };
+    budget.fact(row)
+}
+
+fn resolved_fields(fields: &[ResolvedFieldDeclaration], budget: &mut Budget) -> Result<Vec<Value>> {
+    budget.items(fields.len())?;
+    let mut rows = Vec::new();
+    for field in fields {
+        budget.string_fact(field.id.as_str())?;
+        budget.string_fact(field.name.as_str())?;
+        rows.push(
+            json!({"id":field.id.as_str(),"name":field.name,"index":field.index,
+            "type_id":type_key(&field.ty,budget)?}),
+        );
+    }
+    Ok(rows)
+}
+
+fn type_facts(facts: &TypeFacts, budget: &mut Budget) -> Result<Value> {
+    budget.string_fact(&facts.layout_key)?;
+    Ok(json!({"copy":facts.copy,"needs_drop":facts.needs_drop,
+        "contains_resource":facts.contains_resource,"sized":facts.sized,
+        "layout_key":facts.layout_key}))
 }
 
 fn signature(
@@ -624,6 +796,95 @@ fn comparison(
     };
     equal.insert("exact_equal".into(), json!(base == candidate));
     equal.insert("instances_equal".into(), json!(instances_equal));
+    equal.insert("source_equal".into(), json!(source_equal));
+    equal.insert("reasons".into(), json!(reasons));
+    for (key, side) in [("base_digest", base), ("candidate_digest", candidate)] {
+        let bytes = render(budget.copy(side.unwrap_or(&Value::Null))?)?;
+        equal.insert(
+            key.into(),
+            json!(wire::digest(FACT_DOMAIN, bytes.as_bytes())),
+        );
+    }
+    Ok((change, Value::Object(equal)))
+}
+
+fn type_comparison(
+    base: Option<&Value>,
+    candidate: Option<&Value>,
+    budget: &mut Budget,
+) -> Result<(&'static str, Value)> {
+    let mut reasons = Vec::new();
+    if base.is_none() {
+        reasons.push("added");
+    } else if candidate.is_none() {
+        reasons.push("removed");
+    }
+    let mut equal = serde_json::Map::new();
+    let mut facts_equal = true;
+    for (field, key, changed, unavailable) in [
+        (
+            "declaration_kind",
+            "declaration_kind_equal",
+            "declaration_kind_changed",
+            "declaration_kind_unavailable",
+        ),
+        (
+            "type_parameters",
+            "type_parameters_equal",
+            "type_parameters_changed",
+            "type_parameters_unavailable",
+        ),
+        (
+            "members",
+            "members_equal",
+            "members_changed",
+            "members_unavailable",
+        ),
+        (
+            "type_facts",
+            "type_facts_equal",
+            "type_facts_changed",
+            "type_facts_unavailable",
+        ),
+        (
+            "type_facts_availability",
+            "type_facts_availability_equal",
+            "type_facts_availability_changed",
+            "type_facts_availability_unavailable",
+        ),
+    ] {
+        let left = base.map(|row| &row[field]);
+        let right = candidate.map(|row| &row[field]);
+        let available =
+            left.is_none_or(|value| !value.is_null()) && right.is_none_or(|value| !value.is_null());
+        let same = available.then_some(left == right);
+        if same == Some(false) {
+            reasons.push(changed);
+        } else if same.is_none() {
+            reasons.push(unavailable);
+        }
+        facts_equal &= same == Some(true);
+        equal.insert(key.into(), json!(same));
+    }
+    let source_equal = base.map(|row| &row["source_declaration_digest"])
+        == candidate.map(|row| &row["source_declaration_digest"]);
+    if !source_equal {
+        reasons.push("source_changed");
+    }
+    let provenance_only = facts_equal && source_equal;
+    if provenance_only {
+        reasons.push("provenance_only");
+    }
+    let change = if base.is_none() {
+        "added"
+    } else if candidate.is_none() {
+        "removed"
+    } else if provenance_only {
+        "provenance_only"
+    } else {
+        "modified"
+    };
+    equal.insert("exact_equal".into(), json!(base == candidate));
     equal.insert("source_equal".into(), json!(source_equal));
     equal.insert("reasons".into(), json!(reasons));
     for (key, side) in [("base_digest", base), ("candidate_digest", candidate)] {

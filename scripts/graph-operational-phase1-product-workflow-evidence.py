@@ -306,7 +306,20 @@ def inputs():
 
 
 def clean():
-    if git("status", "--porcelain=v1", "--untracked-files=all"):
+    completed = run(
+        (
+            os.path.abspath(GIT),
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+        )
+    )
+    if completed.returncode:
+        detail = (completed.stderr or completed.stdout).decode("utf-8", "replace").strip()
+        raise Failure(f"cannot determine Git worktree status: {detail[-8192:]}")
+    if len(completed.stdout) > MAX_LOG or len(completed.stderr or b"") > MAX_LOG:
+        raise Failure("Git worktree status output exceeds its bound")
+    if completed.stdout:
         raise Failure("repository worktree is not clean")
 
 

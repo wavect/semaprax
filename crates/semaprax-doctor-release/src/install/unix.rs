@@ -462,13 +462,31 @@ fn read_release(root: &OwnedFd) -> Result<LoadedRelease, String> {
         .collect()
 }
 
-fn release_identity(root: &HeldRoot) -> Result<Vec<(&'static str, Identity, i64)>, String> {
+/// Identify each release member closely enough to catch substitution.
+///
+/// Device, inode, mode, owner and size do not move when a member is replaced
+/// by identical bytes, because a freed inode is commonly reused on Linux while
+/// Darwin allocates a fresh one. Carry the change time as well: any rewrite,
+/// relink or mode change moves it, so the pre-stage recheck refuses a
+/// substituted source on every Unix rather than only where the allocator
+/// happens to help.
+/// One release member's substitution-visible identity.
+type MemberIdentity = (&'static str, Identity, i64, i64, i64);
+
+#[allow(clippy::unnecessary_cast, reason = "stat widths vary across Unix ABIs")]
+fn release_identity(root: &HeldRoot) -> Result<Vec<MemberIdentity>, String> {
     INVENTORY
         .iter()
         .map(|name| {
             let stat = fs::statat(root.fd(), name.as_bytes(), AtFlags::SYMLINK_NOFOLLOW)
                 .map_err(|_| "cannot inspect release member path")?;
-            Ok((*name, Identity::from_stat(&stat), stat.st_size))
+            Ok((
+                *name,
+                Identity::from_stat(&stat),
+                stat.st_size,
+                stat.st_ctime as i64,
+                stat.st_ctime_nsec as i64,
+            ))
         })
         .collect()
 }

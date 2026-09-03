@@ -285,6 +285,54 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.image-candidate-external-api-contract-evidence-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_EVIDENCE_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("declaration_digest", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("report_sha256", digest()),
+            ("source_authority", json!({"const":false})),
+            ("external_io", json!({"const":false})),
+            ("network_observation", json!({"const":false})),
+            ("provider_observation", json!({"const":false})),
+            ("runtime_observation", json!({"const":false})),
+            ("conformance_evidence", json!({"const":false})),
+            ("ambient_authority", json!({"const":false})),
+            ("deployment_authority", json!({"const":false})),
+        ],
+    );
+    put(
+        "semaprax.image-candidate-generated-file-provenance-evidence-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("declaration_digest", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("report_sha256", digest()),
+            ("source_authority", json!({"const":false})),
+            ("filesystem_scan", json!({"const":false})),
+            ("generator_execution", json!({"const":false})),
+            ("artifact_materialization", json!({"const":false})),
+            ("runtime_observation", json!({"const":false})),
+            ("deployment_authority", json!({"const":false})),
+        ],
+    );
+    put(
         "semaprax.image-agent-workspace.v1",
         vec![
             ("state", json!({"const":"open"})),

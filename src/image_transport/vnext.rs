@@ -18,8 +18,10 @@ mod draft_archive;
 mod draft_merge;
 mod draft_rebase;
 mod draft_recovery;
+mod external_api_contract_evidence;
 mod function_instances;
 mod function_reference;
+mod generated_file_provenance;
 mod hole_navigation;
 mod hole_suggestions;
 mod mcp;
@@ -117,6 +119,8 @@ pub(super) enum Action {
     AnalysisCoverage,
     CandidateAnalysisCoverage,
     CandidateDeploymentContractEvidence,
+    CandidateExternalApiContractEvidence,
+    CandidateGeneratedFileProvenanceEvidence,
     PackageSummary,
     PackageConsumers,
     CleanupDependencies,
@@ -575,6 +579,14 @@ impl VNextSession {
                     deployment_contract_evidence::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::CandidateExternalApiContractEvidence) => (
+                    external_api_contract_evidence::prepare(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
+                Operation::VNext(Action::CandidateGeneratedFileProvenanceEvidence) => (
+                    generated_file_provenance::prepare(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(
                     action @ (Action::FunctionInstances | Action::FunctionInstanceFacet),
                 ) => (
@@ -861,6 +873,8 @@ fn session_methods(
         methods.push(merge_preview::method());
         methods.push(analysis_coverage::candidate_method());
         methods.push(deployment_contract_evidence::method());
+        methods.push(external_api_contract_evidence::method());
+        methods.push(generated_file_provenance::method());
         methods.extend(hole_navigation::methods());
         methods.push(hole_suggestions::method());
         methods.push(cleanup_dependencies::candidate_method());

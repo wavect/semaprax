@@ -147,6 +147,18 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/analysis-generated-file-provenance-evidence")
+        {
+            instructions.push_str(" With candidate_prepare, use candidate/analysis-generated-file-provenance-evidence with exact image_revision, candidate_revision, canonical declaration string and declaration_digest. The library declaration bound is 65536 UTF-8 bytes, while the ordinary 64 KiB JSON-RPC frame bound remains tighter after envelope encoding. Each of at most 64 canonically ordered rows must join artifact path, byte count and digest to one exact retained candidate source path, revision and digest; its generator identity is an opaque declared token and canonical digest, never a path, URL, command or capability. Reassemble the independently regenerated report using offset and next_offset with chunk_bytes 1024 through 65536 (default 16384), keeping all declaration bytes and selectors identical; the report is bounded to 2 MiB and report_sha256 must match across chunks. Only generated_file_provenance advances to partial. No generator input, execution, reproducibility, filesystem scan, materialization, freshness, runtime, deployment or consumer claim is made. The request grants no source, artifact, generator, filesystem, process, network, publication or deployment authority and is not in the parallel-read subset.");
+        }
+        if methods
+            .iter()
+            .any(|method| method.name == "candidate/analysis-external-api-contract-evidence")
+        {
+            instructions.push_str(" With candidate_prepare, use candidate/analysis-external-api-contract-evidence with exact image_revision, candidate_revision, canonical declaration string and declaration_digest. The library declaration bound is 131072 UTF-8 bytes, while the ordinary 64 KiB JSON-RPC frame bound remains tighter after envelope encoding. The declaration binds digest-only operation and schema facts to the complete manifest export inventory or a canonical nonempty subset of explicit manifest exports; it contains no endpoint, URL, provider, credential or locator. Reassemble the independently regenerated report using offset and next_offset with chunk_bytes 1024 through 65536 (default 16384), keeping all declaration bytes and selectors identical; the report is bounded to 2 MiB and report_sha256 must match across chunks. Only external_api_behavior advances to partial. Declared digests are not network, provider, runtime, availability, authentication, side-effect or conformance observations. The request grants no source, filesystem, process, network, provider, ambient, publication or deployment authority and is not in the parallel-read subset.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "candidate/dependency-summary")
         {
             instructions.push_str(" With candidate_prepare, use candidate/dependency-summary and candidate/dependency-page to navigate the exact fully admitted revision of one retained candidate, including changed or introduced declarations. Keep image_revision, candidate_revision, target, view, page_size and max_bytes fixed while following next_cursor. Candidate handles and cursors are isolated from base-image and sibling-candidate references and grant no retention, execution, source or publication authority. One signature change can alter several dependency views; these final-candidate pages are not a before/after delta, test coverage, runtime liveness or evidence of external callers. Both queries are eligible for authenticated parallel read batches over detached immutable candidates.");
@@ -363,6 +375,8 @@ fn method_capability(method: &Method) -> &'static str {
         | "candidate/merge-preview"
         | "candidate/analysis-coverage"
         | "candidate/analysis-deployment-contract-evidence"
+        | "candidate/analysis-external-api-contract-evidence"
+        | "candidate/analysis-generated-file-provenance-evidence"
         | "candidate/dependency-summary"
         | "candidate/dependency-page"
         | "candidate/function-summary"
@@ -550,6 +564,12 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             }
             "candidate/analysis-deployment-contract-evidence" => {
                 Some(crate::project::PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_EVIDENCE_SCHEMA)
+            }
+            "candidate/analysis-external-api-contract-evidence" => {
+                Some(crate::project::PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_EVIDENCE_SCHEMA)
+            }
+            "candidate/analysis-generated-file-provenance-evidence" => {
+                Some(crate::project::PROJECT_CANDIDATE_GENERATED_FILE_PROVENANCE_EVIDENCE_SCHEMA)
             }
             "candidate/commit-report" => {
                 Some(crate::project::PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA)

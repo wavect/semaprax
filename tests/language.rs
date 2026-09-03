@@ -1,7 +1,7 @@
 //! Source-level language semantics: scalars, records, variants, generics,
 //! patterns and matching, mutation, ownership, control flow, and the widened
-//! Copy-scalar surface as it reaches the interop, interpreter, schema and
-//! property-generation projections.
+//! Copy-scalar surface as it reaches the interop, interpreter, schema,
+//! property-generation, and public Wasm scalar export projections.
 //!
 //! One harness binary for the language surface itself, as opposed to a
 //! subsystem such as the graph, the HIR, or a backend. Each module below was
@@ -87,5 +87,7 @@ mod string_scalars;
 mod u8_scalars;
 #[path = "language/variants_semantics.rs"]
 mod variants_semantics;
+#[path = "language/wasm_scalar_export_widen.rs"]
+mod wasm_scalar_export_widen;
 #[path = "language/while_loops.rs"]
 mod while_loops;

@@ -387,3 +387,80 @@ fn project_v2_through_v10_reject_before_any_interface_artifact_is_returned() {
         assert_eq!(before, exact_files(&project.0));
     }
 }
+
+/// The WIT projection admits the same Copy-scalar surface as the Public Scalar
+/// Export Profile v1 it describes, and spells each one with its canonical WIT
+/// primitive.
+#[test]
+fn widened_copy_scalars_project_canonical_wit_primitives() {
+    let project = owned_fixture(
+        "witwiden",
+        "schema = \"semaprax.project.v1\"\nname = \"witwiden\"\nentry = \"witwiden.app\"\nsources = [\"source.spx\", \"tests.spx\"]\nweb_exports = [\"witwiden.char\", \"witwiden.f64\", \"witwiden.i32\", \"witwiden.mixed\", \"witwiden.u8\"]\ntests = [\"witwiden.tests\"]\n",
+        "module witwiden.app;\n@id(\"witwiden.char\") fn pick_char(value: char) -> char { value }\n@id(\"witwiden.f64\") fn pick_f64(value: f64) -> f64 { value }\n@id(\"witwiden.i32\") fn pick_i32(value: i32) -> i32 { value }\n@id(\"witwiden.mixed\") fn mixed(flag: bool, small: u8, ratio: f32) -> i64 { 0 }\n@id(\"witwiden.u8\") fn pick_u8(value: u8) -> u8 { value }\n@id(\"witwiden.app.main\") fn main() -> i64 { 0 }\n",
+    );
+    let artifact = retain(&project.0.join("semaprax.toml"))
+        .scalar_wit_interface_v1()
+        .unwrap();
+
+    assert_eq!(
+        artifact
+            .exports()
+            .iter()
+            .map(|export| (export.parameters().to_vec(), export.result()))
+            .collect::<Vec<_>>(),
+        vec![
+            (vec![ScalarWitTypeV1::Char], ScalarWitTypeV1::Char),
+            (vec![ScalarWitTypeV1::F64], ScalarWitTypeV1::F64),
+            (vec![ScalarWitTypeV1::I32], ScalarWitTypeV1::I32),
+            (
+                vec![
+                    ScalarWitTypeV1::Bool,
+                    ScalarWitTypeV1::U8,
+                    ScalarWitTypeV1::F32
+                ],
+                ScalarWitTypeV1::I64
+            ),
+            (vec![ScalarWitTypeV1::U8], ScalarWitTypeV1::U8),
+        ]
+    );
+    for signature in [
+        "func(arg-0: char) -> result<char, status>;",
+        "func(arg-0: f64) -> result<f64, status>;",
+        "func(arg-0: s32) -> result<s32, status>;",
+        "func(arg-0: bool, arg-1: u8, arg-2: f32) -> result<s64, status>;",
+        "func(arg-0: u8) -> result<u8, status>;",
+    ] {
+        assert!(artifact.wit().contains(signature), "missing {signature}");
+    }
+
+    // Every widened row the interface uses is described, appended after the
+    // frozen base rows in canonical order.
+    let descriptor = String::from_utf8(artifact.canonical_bytes()).unwrap();
+    assert!(descriptor.contains(
+        "\"mapping\":{\"i64\":\"s64\",\"bool\":\"bool\",\"i32\":\"s32\",\"u8\":\"u8\",\"char\":\"char\",\"f32\":\"f32\",\"f64\":\"f64\",\"function_result\":"
+    ));
+}
+
+/// Widening the interface is additive: an `i64`/`bool` interface still renders
+/// the frozen v1 `mapping` object byte for byte, so an already-published
+/// descriptor and its two digests replay unchanged.
+#[test]
+fn i64_and_bool_interfaces_keep_the_frozen_mapping_object() {
+    let revision = retain(&fixture_root().join("semaprax.toml"));
+    let artifact = revision.scalar_wit_interface_v1().unwrap();
+    let descriptor = String::from_utf8(artifact.canonical_bytes()).unwrap();
+
+    assert!(descriptor.contains(
+        "\"mapping\":{\"i64\":\"s64\",\"bool\":\"bool\",\"function_result\":\"result<T,status>\","
+    ));
+    for widened in ["\"i32\":", "\"u8\":", "\"char\":", "\"f32\":", "\"f64\":"] {
+        assert!(
+            !descriptor.contains(widened),
+            "an i64/bool descriptor must not carry a {widened} mapping row"
+        );
+    }
+    assert_eq!(
+        artifact.wit_digest(),
+        "sha256:8ecf9bab01745f105841c4e4db2cfcb46883843cf5631b6054f45c4c2f487b93"
+    );
+}

@@ -138,13 +138,13 @@ previously admitted programs, and all pre-existing pinned KATs remain green.
   (`i32` for `bool`/`i32`/`u8`/`char`; exact-width `f32`/`f64`). For widened
   selections these are authenticated byte-level against the ordinary
   Core-Wasm module's type section for the same functions.
-- Remaining nonclaim: the Public Scalar Export Profile v1 adapter lane
-  (`emit_module_with_scalar_exports`) still admits only `i64`/`bool`
-  wrappers today. The `spx_scalar_` export name and bool-boundary note in a
-  widened canonical row therefore document the profile's conventions; they do
-  not claim that the wrapper lane already emits such adapters, and no new
-  diagnostic codes were needed — unsupported shapes keep failing closed under
-  the existing exclusion vocabulary.
+- The Public Scalar Export Profile v1 adapter lane
+  (`emit_module_with_scalar_exports`) has since been widened to the same
+  Copy-scalar surface, so a widened canonical row's `spx_scalar_` export name
+  now names an adapter the wrapper lane really emits. The `bool_boundary` note
+  generalizes there: `u8` and `char` adapters trap on the same principle. No
+  new diagnostic codes were needed — unsupported shapes keep failing closed
+  under the existing exclusion vocabulary.
 
 See also [C-HEADER-V1.md](C-HEADER-V1.md) for the sibling read-only native
 projection tranche and its shared admission profile, and

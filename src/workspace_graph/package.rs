@@ -181,15 +181,9 @@ pub(crate) fn build_package_scalar_sources(
                 !function.effects.is_empty()
                     || function.params.iter().any(|parameter| {
                         parameter.ownership != hir::OwnershipMode::Value
-                            || !matches!(
-                                parameter.ty,
-                                hir::ResolvedType::I64 | hir::ResolvedType::Bool
-                            )
+                            || !hir::copy_scalar_type(&parameter.ty)
                     })
-                    || !matches!(
-                        function.return_type,
-                        hir::ResolvedType::I64 | hir::ResolvedType::Bool
-                    )
+                    || !hir::copy_scalar_type(&function.return_type)
             })
         {
             return Err(vec![package_profile_error(

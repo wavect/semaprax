@@ -30,14 +30,43 @@ const WIT_WORLD: &str = "project-scalar-v1";
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScalarWitTypeV1 {
     I64,
+    I32,
+    U8,
+    Char,
+    F32,
+    F64,
     Bool,
 }
 
 impl ScalarWitTypeV1 {
+    /// The widened Copy scalars, in canonical row order. `I64` and `Bool` are
+    /// the frozen v1 base and are always described, so an already-published
+    /// descriptor over those two replays byte for byte.
+    const WIDENED: [Self; 5] = [Self::I32, Self::U8, Self::Char, Self::F32, Self::F64];
+
     #[must_use]
     pub const fn wit_name(self) -> &'static str {
         match self {
             Self::I64 => "s64",
+            Self::I32 => "s32",
+            Self::U8 => "u8",
+            Self::Char => "char",
+            Self::F32 => "f32",
+            Self::F64 => "f64",
+            Self::Bool => "bool",
+        }
+    }
+
+    /// The SEMAPRAX spelling this WIT type projects, as the descriptor's
+    /// `mapping` object keys it.
+    const fn language_name(self) -> &'static str {
+        match self {
+            Self::I64 => "i64",
+            Self::I32 => "i32",
+            Self::U8 => "u8",
+            Self::Char => "char",
+            Self::F32 => "f32",
+            Self::F64 => "f64",
             Self::Bool => "bool",
         }
     }
@@ -369,12 +398,33 @@ fn validate_stable_id(value: &str) -> Result<(), Diagnostic> {
     Ok(())
 }
 
+/// Exactly the Copy-scalar surface the Public Scalar Export Profile v1 admits;
+/// `usize` and every non-Copy shape stay outside it.
 fn wit_type(ty: &ResolvedType) -> Option<ScalarWitTypeV1> {
     match ty {
         ResolvedType::I64 => Some(ScalarWitTypeV1::I64),
+        ResolvedType::I32 => Some(ScalarWitTypeV1::I32),
+        ResolvedType::U8 => Some(ScalarWitTypeV1::U8),
+        ResolvedType::Char => Some(ScalarWitTypeV1::Char),
+        ResolvedType::F32 => Some(ScalarWitTypeV1::F32),
+        ResolvedType::F64 => Some(ScalarWitTypeV1::F64),
         ResolvedType::Bool => Some(ScalarWitTypeV1::Bool),
         _ => None,
     }
+}
+
+/// The `mapping` rows for the widened scalars this interface actually
+/// projects, appended after the frozen `i64`/`bool` base rows.
+fn widened_mapping_rows(exports: &[ScalarWitExportV1]) -> String {
+    ScalarWitTypeV1::WIDENED
+        .into_iter()
+        .filter(|ty| {
+            exports
+                .iter()
+                .any(|export| export.result == *ty || export.parameters.contains(ty))
+        })
+        .map(|ty| format!("\"{}\":\"{}\",", ty.language_name(), ty.wit_name()))
+        .collect()
 }
 
 fn wit_function_name(stable_id: &str) -> String {
@@ -455,7 +505,9 @@ fn render_descriptor(artifact: &ScalarWitInterfaceArtifactV1) -> String {
     output.push_str(&quote_json(&artifact.wit));
     output.push_str(",\"wit_digest\":");
     output.push_str(&quote_json(&artifact.wit_digest));
-    output.push_str(",\"mapping\":{\"i64\":\"s64\",\"bool\":\"bool\",\"function_result\":\"result<T,status>\",\"status\":{\"schema\":\"semaprax.status.v1\",\"domain\":{\"wit\":\"string\",\"semantic\":\"domain_id\",\"min_utf8_bytes\":1,\"max_utf8_bytes\":255,\"forbid_nul\":true},\"code\":{\"wit\":\"u32\",\"semantic\":\"nonzero\"},\"class\":{\"wit\":\"u8\",\"ordinals\":{\"contract\":1,\"arithmetic\":2,\"import\":3,\"explicit_close\":4,\"adapter\":5}},\"retryable\":{\"wit\":\"option<bool>\",\"false\":false,\"true\":true,\"unknown\":null}}}");
+    output.push_str(",\"mapping\":{\"i64\":\"s64\",\"bool\":\"bool\",");
+    output.push_str(&widened_mapping_rows(&artifact.exports));
+    output.push_str("\"function_result\":\"result<T,status>\",\"status\":{\"schema\":\"semaprax.status.v1\",\"domain\":{\"wit\":\"string\",\"semantic\":\"domain_id\",\"min_utf8_bytes\":1,\"max_utf8_bytes\":255,\"forbid_nul\":true},\"code\":{\"wit\":\"u32\",\"semantic\":\"nonzero\"},\"class\":{\"wit\":\"u8\",\"ordinals\":{\"contract\":1,\"arithmetic\":2,\"import\":3,\"explicit_close\":4,\"adapter\":5}},\"retryable\":{\"wit\":\"option<bool>\",\"false\":false,\"true\":true,\"unknown\":null}}}");
     output.push_str(",\"limits\":{\"exports\":32,\"parameters\":8,\"interface_bytes\":65536,\"descriptor_bytes\":262144}");
     output.push_str(",\"nonclaims\":[\"no_component_binary_or_runtime\",\"no_imports_resources_capabilities_or_wasi\",\"no_filesystem_publication_or_execution_authority\"]}");
     output

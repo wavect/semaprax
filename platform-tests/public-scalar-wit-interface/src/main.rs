@@ -58,9 +58,16 @@ fn retained_revision() -> Arc<ProjectRevision> {
     .expect("the checked-in scalar WIT Project must be admitted")
 }
 
+/// The public Copy-scalar surface of the interface, as an external consumer
+/// must resolve it against the maintained WIT parser's own primitives.
 fn scalar_type(ty: ScalarWitTypeV1) -> Type {
     match ty {
         ScalarWitTypeV1::I64 => Type::S64,
+        ScalarWitTypeV1::I32 => Type::S32,
+        ScalarWitTypeV1::U8 => Type::U8,
+        ScalarWitTypeV1::Char => Type::Char,
+        ScalarWitTypeV1::F32 => Type::F32,
+        ScalarWitTypeV1::F64 => Type::F64,
         ScalarWitTypeV1::Bool => Type::Bool,
     }
 }

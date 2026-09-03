@@ -14,6 +14,12 @@ in [job 100195950702](https://github.com/wavect/semaprax/actions/runs/3360866224
 It authenticates and executes the direct, baseline Project, and display-renamed
 Project fixtures with the pinned TypeScript compiler and real Chromium.
 
+The Copy-scalar widening below carries local Node evidence only. That hosted
+Chromium job predates it and exercises the `i64`/`bool` calculator fixtures, so
+nothing here claims hosted browser execution of an `i32`, `u8`, `char`, `f32`,
+or `f64` export. Those fixtures are unchanged and byte-identical across the
+widening, so the job's existing green result still stands for what it covers.
+
 ## Purpose and command
 
 The profile makes selected SEMAPRAX scalar functions callable from an ordinary
@@ -46,8 +52,11 @@ The complete emitted program must satisfy all of these conditions:
 - every function is monomorphic and effect-free;
 - the program contains at most 256 monomorphic executable functions, and every
   function has an explicit persistent ID;
-- parameters are 0–8 by-value `i64` or `bool` values;
-- results are `i64` or `bool`;
+- parameters are 0–8 by-value Copy scalars, and results are Copy scalars, drawn
+  from `i64`, `i32`, `u8`, `char`, `f32`, `f64`, and `bool` — the same widened
+  surface the reference interpreter, `semaprax.abi-report.v1`, and the schema
+  projections admit. `usize` is deliberately excluded: its width is a host fact
+  rather than a public fact of this profile;
 - no module permits, authored interfaces/imports, resources, records, variants,
   generic templates or instances, borrowed/shared values, callbacks, or async;
 - no implicit ABI fallback for an excluded declaration or expression.
@@ -75,9 +84,40 @@ does not change this scalar profile's admission or bytes.
 
 Each raw adapter name is `spx_scalar_` followed by lowercase hexadecimal for
 the exact stable-ID bytes. This injective spelling is independent of source
-names, declaration order, and the other selected exports. Adapters reject
-non-canonical Wasm booleans; generated JavaScript accepts only `boolean` and
-signed-range `bigint` arguments, and returns `boolean` or `bigint` values.
+names, declaration order, and the other selected exports.
+
+An adapter's Core-Wasm signature is exactly the value-type lowering its
+monomorphic callee already uses, so no conversion happens at the boundary:
+`i64` rides `i64`, `f32` rides `f32`, `f64` rides `f64`, and `bool`, `i32`,
+`u8`, and `char` ride `i32`. Where that lane is wider than the SEMAPRAX type,
+the adapter traps rather than truncating: a `bool` outside `{0, 1}`, a `u8`
+outside `0..=255`, and a `char` that is not a Unicode scalar value — above
+`0x10FFFF`, negative, or a UTF-16 surrogate in `0xD800..=0xDFFF` — reach
+`unreachable` before the verified body runs. `i64`, `i32`, `f32`, and `f64`
+occupy their value type exactly and carry no check. Result values are checked
+the same way on the way out.
+
+Generated JavaScript admits exactly one host representation per scalar and
+throws a `TypeError` for anything else. It never truncates, rounds, or wraps:
+
+| SEMAPRAX | JavaScript / TypeScript | admitted values |
+| --- | --- | --- |
+| `i64` | `bigint` | `-(2**63) ..= 2**63 - 1` |
+| `i32` | `number` | integers `-2147483648 ..= 2147483647` |
+| `u8` | `number` | integers `0 ..= 255` |
+| `char` | `number` | Unicode scalar values: integers `0 ..= 0x10FFFF`, excluding `0xD800..=0xDFFF` |
+| `f32` | `number` | `NaN`, or a value with `Math.fround(v) === v` |
+| `f64` | `number` | every `number`, `NaN` and infinities included |
+| `bool` | `boolean` | `true`, `false` |
+
+`char` is a Unicode scalar value as a number, not a one-character string: the
+profile stays numeric and claims no string ABI. An `f32` argument must already
+be exactly representable, so a narrowing is written `Math.fround(x)` at the
+call site instead of happening silently at the boundary. Returned values use
+the same representations and are re-checked before they leave the facade.
+
+A generated facade carries only the guards for the scalars its package
+projects, so an `i64`/`bool` package renders the same bytes it always has.
 
 The generated facade exposes a frozen, null-prototype `functions` map plus
 `call(stableId, ...arguments)`. Calls return a closed discriminated result:
@@ -152,6 +192,13 @@ test for legacy web v3 output.
 Promotion requires:
 
 - exact positive multi-export `i64`/`bool` calls and boundary values;
+- for the widened Copy scalars, exact positive calls and range endpoints, mixed
+  signatures, adapter reuse of the callee's interned Core-Wasm type, and
+  trapping raw adapters for out-of-range `u8`, non-scalar-value `char`, and
+  non-canonical `bool`, executed under Node
+  (`scripts/verify-wasm-scalar-widening.mjs`);
+- byte-identical Wasm, JavaScript, TypeScript, manifest, WIT, and digests for
+  every `i64`/`bool` program the profile already admitted;
 - all eight arithmetic cases plus precondition and postcondition failures;
 - wrong type/count, unknown ID, duplicate selection, and every excluded shape;
 - exact Wasm export/type inventory with no legacy or unselected export;

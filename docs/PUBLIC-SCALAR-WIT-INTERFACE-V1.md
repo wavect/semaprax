@@ -18,7 +18,10 @@ has exactly schema `semaprax.project.v1` and profile `ScalarV1`. Its selected
 surface is the manifest's complete, strictly ordered `web_exports` list. Each
 selected stable ID must resolve to one explicit, effect-free monomorphic
 function in retained HIR with zero through eight value parameters and one
-value result. Every parameter and result is exactly `i64` or `bool`.
+value result. Every parameter and result is a Copy scalar admitted by the
+[Public Scalar Export Profile v1](WASM-SCALAR-EXPORTS-V1.md): `i64`, `i32`,
+`u8`, `char`, `f32`, `f64`, or `bool`. `usize` and every non-Copy shape stay
+outside the profile and therefore outside this interface.
 
 Ordinary Project-v1 scalar admission remains authoritative. Unsupported
 signatures and capacity failures retain `SPX-W115` and `SPX-W116`; the WIT
@@ -43,8 +46,10 @@ record status {
 
 Each selected function is named `spx-` followed by the lowercase hexadecimal
 UTF-8 bytes of its exact stable declaration ID. Parameter names are the
-ordinal identities `arg-0` through `arg-7`. `i64` maps to `s64`, `bool` maps
-to `bool`, and every result is wrapped as `result<T, status>`. Display names,
+ordinal identities `arg-0` through `arg-7`. Each admitted scalar maps to its
+canonical WIT primitive — `i64` to `s64`, `i32` to `s32`, `u8` to `u8`, `char`
+to `char`, `f32` to `f32`, `f64` to `f64`, and `bool` to `bool` — and every
+result is wrapped as `result<T, status>`. Display names,
 source paths, parameter spelling, declaration order outside `web_exports`, and
 lossy punctuation normalization never determine WIT identities.
 
@@ -65,9 +70,13 @@ The canonical descriptor schema is
   parameter facts, and scalar result fact; and
 - the exact WIT bytes and their digest.
 
-The descriptor's closed mapping object binds `i64` to `s64`, `bool` to
-`bool`, every function result to `result<T, status>`, and each status field to
-its exact WIT type. The status schema is `semaprax.status.v1`;
+The descriptor's closed mapping object always binds `i64` to `s64` and `bool`
+to `bool`, then appends one row for each widened scalar the interface actually
+projects, in the canonical order `i32`, `u8`, `char`, `f32`, `f64`. It binds
+every function result to `result<T, status>` and each status field to its exact
+WIT type. Because the two base rows are frozen and the widened rows appear only
+when used, a descriptor over an `i64`/`bool` interface — and both of its
+digests — replays byte for byte across this widening. The status schema is `semaprax.status.v1`;
 `status.domain` maps to its `domain_id` field and retains the exact 1..=255
 UTF-8 byte/no-NUL constraint; status codes are nonzero; class ordinals are
 Contract 1, Arithmetic 2, Import 3, ExplicitClose 4 and Adapter 5; retryability

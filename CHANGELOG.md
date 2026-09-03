@@ -9,11 +9,53 @@
   workflows (Python, Rust, and explicitly provisioned TypeScript), three
   source-backed handoffs, three exact success transcripts and real local Unix
   bare SHA-256 publications, plus ten closed hostile transitions including
-  result loss after a real ref update. Raw Project source remained unchanged per language. This
-  qualifies only the frozen scalar fixture and profile; MCP/editor transport,
+  result loss after a real ref update. Raw Project source remained unchanged
+  per language. This qualifies only the frozen scalar fixture and profile;
+  MCP/editor transport,
   native/Wasm/deployed runtime, hosted/cross-platform, network isolation,
   packaged SDK, full quality, economics, completion-matrix promotion, and
   programme completion remain unclaimed.
+- Widened the Public Scalar Export Profile v1 from `i64`/`bool` to the full
+  Copy-scalar surface — `i64`, `i32`, `u8`, `char`, `f32`, `f64`, `bool` —
+  matching the surface the reference interpreter, `semaprax.abi-report.v1`,
+  `semaprax.c-header.v1`, `semaprax.cxx-shim.v1`, and the schema projections
+  already admit. `usize` stays excluded, as in those widenings, and every other
+  shape still needs the owned-data memory ABI. The widening reaches the export
+  admission gate, the workspace scalar linker that feeds Project v1 and package
+  builds, the generated JavaScript/TypeScript facade, the scalar-ABI manifest,
+  and the `semaprax.project.scalar-wit-interface.v1` projection, which now
+  spells `s32`, `u8`, `char`, `f32`, and `f64`.
+
+  An exported adapter's Core-Wasm signature is exactly its monomorphic callee's
+  interned type, so nothing is converted at the boundary. Where the Wasm lane
+  is wider than the SEMAPRAX type the adapter traps instead of truncating: a
+  non-canonical `bool`, a `u8` outside `0..=255`, and a `char` that is not a
+  Unicode scalar value — above `0x10FFFF`, negative, or a UTF-16 surrogate —
+  reach `unreachable` before the verified body runs, and results are checked
+  the same way. The generated facade mirrors those ranges exactly and requires
+  `Math.fround(v) === v` for `f32`, so a narrowing is written at the call site
+  rather than happening silently.
+
+  Five independent gates guarded that surface and all five moved together: the
+  export admission gate, the workspace scalar linker (`link_scalar_workspace`,
+  which feeds both Project v1 and package builds), the Project-profile
+  parameter/return gate in the Workspace Semantic Graph, the package-source
+  module gate, and the `semaprax.semantic-package-report.v2` interface
+  vocabulary. `link_useful_text_workspace` and the Useful Text Consumer profile
+  keep their narrow `i64`/`bool` surface, which is unrelated to this ABI. One
+  shared `hir::COPY_SCALAR_NAMES` list now owns the wire vocabulary, with a
+  regression asserting the backend's ABI spellings equal it.
+
+  The change is additive. Guards and mapping rows are rendered only for the
+  scalars a package actually projects, so every program the profile already
+  admitted still produces byte-identical Wasm, JavaScript, TypeScript,
+  manifest, WIT, and digests. Evidence:
+  `tests/language/wasm_scalar_export_widen.rs`,
+  `scripts/verify-wasm-scalar-widening.mjs`, two new cases in
+  `tests/project/scalar_wit_interface.rs`, and widened-lane cases in the
+  effect-free and linked offline package harnesses. Hosted browser execution of
+  the widened scalars is not claimed; the Chromium job covers the unchanged
+  `i64`/`bool` calculator fixtures.
 
 - Executed the Phase 0 graph-operational v2 closure runner at exact local
   subject `4e6751f92525ed8e4bb5e859233616df7adc86d1`. Aggregate bundle

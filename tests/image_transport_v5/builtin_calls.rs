@@ -97,7 +97,8 @@ fn place(name: &str) -> Value {
 }
 fn assert_metadata(value: &Value) {
     let rows = value["builtin_calls"].as_array().unwrap();
-    assert_eq!(rows.len(), 14);
+    // Eight byte operations and seven String operations.
+    assert_eq!(rows.len(), 15);
     let rows = rows
         .iter()
         .filter(|row| row["evidence_owner"] == "compiler_byte_operations")
@@ -151,7 +152,8 @@ fn constructor_schemas_preserve_seven_byte_alternatives_with_string_operations_a
         .iter()
         .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
         .collect::<Vec<_>>();
-    assert_eq!(builtins.len(), 14);
+    // Eight byte operations and seven String operations.
+    assert_eq!(builtins.len(), 15);
     assert_eq!(
         builtins
             .iter()

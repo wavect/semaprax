@@ -22,7 +22,10 @@ the release remains unsigned, not notarized, and pre-alpha.
 
 | You want to… | Start with… |
 | --- | --- |
+| Install a working toolchain | [Install](INSTALL.md) |
 | Try the language | Follow the executable [quickstart](QUICKSTART.md), then explore the root [README](../README.md) |
+| Learn the language itself | Work through the [language tour](LANGUAGE-TOUR.md) |
+| Find a minimal example to point a command at | [Examples index](../examples/README.md) |
 | Find or automate a compiler command | [Using the SEMAPRAX CLI](CLI-GUIDE.md) |
 | Understand the language design | [RFC 0001](RFC-0001.md) |
 | Work with records, variants, matching, `Option`, or `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
@@ -35,7 +38,7 @@ the release remains unsigned, not notarized, and pre-alpha.
 | Query program meaning | [Agent Context v2](AGENT-CONTEXT-V2.md) |
 | Preview or apply a semantic change | [Semantic Patch v2](SEMANTIC-PATCH-V2.md), then [Impact](SEMANTIC-IMPACT-V1.md) and [Review](SEMANTIC-REVIEW-V1.md) |
 | Integrate a compiler report or generated artifact | Use the [reference catalog](#reference-catalog) |
-| Contribute to the compiler | [Development documentation](DEVELOPMENT.md) |
+| Contribute to the compiler | [First contribution](FIRST-CONTRIBUTION.md), then the [development documentation](DEVELOPMENT.md) |
 
 ## Core concepts
 

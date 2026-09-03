@@ -12,6 +12,15 @@ area you are changing. The [architecture](docs/ARCHITECTURE.md) is the single
 module map; the [completion matrix](docs/COMPLETION-MATRIX.md) is the status
 authority.
 
+If this is your first change here, [First
+contribution](docs/FIRST-CONTRIBUTION.md) walks one end to end: how to pick a
+change the quality router keeps narrow, how to find the specification that owns
+the area and the completion-matrix rows it touches, where a test of that shape
+belongs among the `tests/` harnesses, which profile to run and what each one
+compiles, the local hazards a newcomer otherwise hits, and which owner to update
+at the end. It adds no rule; it sequences the ones this file and the development
+guide already state.
+
 Design changes affecting syntax, graph schemas, transactions, effects,
 ownership, contracts, components, or ABIs should begin as an RFC or an explicit
 revision to the owning RFC.

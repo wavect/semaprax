@@ -43,6 +43,10 @@ agent operations.
 - Clang for native compilation
 - Node.js 22 or newer for the WebAssembly examples
 
+[Install](docs/INSTALL.md) owns the complete routes: which of the two CLIs each
+command needs, Cargo `PATH` setup, how to confirm the install, and what a first
+failed command means.
+
 ### Download v0.2.0
 
 The [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
@@ -180,11 +184,11 @@ fn main() -> i64
 `@id` is the declaration's persistent semantic identity. The name `add` is
 for humans; tools can continue to refer to `math.add` after a supported rename.
 
-More examples cover [control flow](examples/control_flow.spx),
-[effects](examples/effects.spx), [ownership](examples/ownership.spx),
-[records](examples/records.spx), [mutation](examples/explicit_mutation.spx),
-[matching](examples/refutable_match.spx), and
-[bounded byte data](examples/bytes_u8.spx).
+The [language tour](docs/LANGUAGE-TOUR.md) walks from this program to
+identity, contracts, records and matching, explicit mutation, ownership,
+cleanup, and effects, one runnable example at a time. The
+[examples index](examples/README.md) says what every committed example
+demonstrates and which command was observed to succeed on it.
 
 ## The programming model
 
@@ -279,7 +283,8 @@ specification paths remain in `docs/` so existing citations keep working.
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) before
-changing semantics. On Unix, the complete repository gate is:
+changing semantics. [First contribution](docs/FIRST-CONTRIBUTION.md) sequences
+one change end to end against them. On Unix, the complete repository gate is:
 
 ```sh
 scripts/quality.sh full

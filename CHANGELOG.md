@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Added a getting-started layer over the existing references: a
+  [language tour](docs/LANGUAGE-TOUR.md) whose every code block is a gated
+  verbatim excerpt of a committed example, an [examples
+  index](examples/README.md) recording what each example demonstrates and which
+  command was observed to succeed on it, an [install guide](docs/INSTALL.md)
+  owning the two-CLI routes and a reproduced first-failure table, and a
+  [first-contribution walkthrough](docs/FIRST-CONTRIBUTION.md) sequencing one
+  change through the existing read order, harness conventions, and quality
+  profiles. Each document is bound to executable gates in `tests/`, and the
+  observed evidence is local to one host and one build.
+
+- The README browser-package walkthrough built an exported-scalar package and
+  handed it to `scripts/verify-web.mjs`, which calls `semaprax_main`; that
+  package has no `app.main` entry, so the documented sequence failed. The
+  README now names the six-export build and the scalar-export verifier that
+  accepts it, and a gate parses the documented commands out of the README and
+  runs them.
+
 - Known commands that reject invalid arguments now point directly to their
   scoped `--help` usage. Recovery hints respect the standalone/full-toolchain
   capability boundary and leave unknown-command diagnostics unchanged.

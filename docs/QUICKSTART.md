@@ -13,6 +13,9 @@ cargo install --locked --path .
 cargo install --locked --path crates/semaprax-toolchain
 ```
 
+[Install](INSTALL.md) covers the prerequisites, the release-archive route,
+`PATH` setup, and what a first failed command means.
+
 The first command installs `semaprax`; the second installs the private
 `semaprax-full`. Ensure Cargo's binary directory is on your `PATH`.
 Installation may fetch Rust dependencies. The project generator itself does

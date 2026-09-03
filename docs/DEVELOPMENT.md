@@ -9,6 +9,11 @@ with the [documentation overview](index.md). Versioned specifications remain
 publicly readable, but documents marked private, proof-only, or internal do not
 describe supported product surfaces.
 
+New contributors and coding agents should read [first
+contribution](FIRST-CONTRIBUTION.md) alongside this page. It states no rule of
+its own: it supplies the concrete, ordered commands for a single change against
+the read order and change protocol this page owns.
+
 ## Read before changing semantics
 
 Read only the documents that own the facts relevant to the change:

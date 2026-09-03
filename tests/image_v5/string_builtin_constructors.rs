@@ -158,15 +158,16 @@ fn payload(response: Value) -> Value {
 }
 fn metadata(catalog: &Value) {
     let rows = catalog["builtin_calls"].as_array().unwrap();
-    assert_eq!(rows.len(), 14);
-    assert!(rows[..7]
+    // Eight byte operations and seven String operations.
+    assert_eq!(rows.len(), 15);
+    assert!(rows[..8]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_byte_operations"));
-    assert!(rows[7..]
+    assert!(rows[8..]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_string_operations"));
     for (index, (id, name, arity, ty, ownership, result)) in OPERATIONS.into_iter().enumerate() {
-        let row = &rows[index + 7];
+        let row = &rows[index + 8];
         assert_eq!(row.as_object().unwrap().len(), 9);
         assert_eq!(row["target"], id);
         assert_eq!(row["name"], name);
@@ -267,7 +268,7 @@ fn every_string_builtin_body_is_replayed_with_exact_selected_identity_and_no_cha
 }
 
 #[test]
-fn schemas_publish_fourteen_exact_arity_branches_and_both_client_type_graphs() {
+fn schemas_publish_fifteen_exact_arity_branches_and_both_client_type_graphs() {
     let fixture = Fixture::new();
     for diagnostics in [false, true] {
         let mut session = fixture.session(diagnostics);
@@ -285,7 +286,7 @@ fn schemas_publish_fourteen_exact_arity_branches_and_both_client_type_graphs() {
                 .iter()
                 .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
                 .count(),
-            14
+            15
         );
         assert!(forms
             .iter()
@@ -308,7 +309,7 @@ fn schemas_publish_fourteen_exact_arity_branches_and_both_client_type_graphs() {
             .iter()
             .find(|doc| doc["$id"] == "urn:semaprax.project-change-catalog.v1")
             .unwrap();
-        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 14);
+        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 15);
         let kinds = catalogue["properties"]["builtin_calls"]["items"]["oneOf"]
             .as_array()
             .unwrap();

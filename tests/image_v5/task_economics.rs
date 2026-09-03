@@ -193,10 +193,13 @@ fn task_comparison_is_closed_generated_and_mcp_catalogued_without_execution() {
     );
     let mut stale = arguments.clone();
     stale["image_revision"] = json!(format!("sha256:{}", "0".repeat(64)));
+    // The v5 transport checks a supplied `image_revision` before any method
+    // runs, so a stale one answers the uniform SPX-G282 rather than the
+    // route's own guard, which covers the absent parameter.
     assert_eq!(
         call(&mut session, "agent/task-comparison", stale)["error"]["data"]["diagnostics"][0]
             ["code"],
-        "SPX-G489"
+        "SPX-G282"
     );
     session.finish().unwrap();
 

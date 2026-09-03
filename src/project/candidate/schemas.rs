@@ -445,10 +445,8 @@ fn intent_schema() -> Value {
         base("replace_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("replace_contract_expression",vec![("expression_id",text(16_384)),("replacement",reference("expression"))]),
         base("add_contract",vec![("phase",json!({"enum":["requires","ensures"]})),("predicate",reference("expression"))]),
-        json!({"oneOf":[
-            closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))]),
-            closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("destination",text(240)),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))])
-        ]}),
+        closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))]),
+        closed(&[("kind",json!({"const":"implement_interface"})),("target",protocol_binding()),("protocol",protocol_binding()),("id",protocol_binding()),("destination",text(240)),("members",json!({"type":"array","minItems":1,"maxItems":64,"items":closed(&[("method",protocol_binding()),("implementation",protocol_binding())])}))]),
         base("add_declaration",vec![("declaration",declaration_schema())]),
         extraction,
         base("move_declaration",vec![("destination",text(MAX_ID_BYTES))]),

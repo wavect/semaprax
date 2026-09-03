@@ -666,16 +666,20 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
             "rename_declaration",
             "change_function_signature",
             "change_function_signature",
+            "change_function_signature",
             "replace_function_body",
             "repair_diagnostic",
             "replace_expression",
             "replace_contract_expression",
             "add_contract",
+            // Two closed forms: with and without a cross-module destination.
+            "implement_interface",
             "implement_interface",
             "add_declaration",
             "extract_function",
             "move_declaration",
-            "add_record_field"
+            "add_record_field",
+            "add_variant_case"
         ]
     );
     let record = intent["$defs"]["intent"]["oneOf"]

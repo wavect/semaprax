@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+- Added a complete canonical benchmark execution matrix over every available
+  task, lane and repetition. Each ordered row binds the exact repository plan
+  and SHA-256 digest of its independently generated trial contract. Matrix
+  generation invokes no agent or validator; observations, comparative results
+  and the pinned external Zero lane remain unrun.
+
+- Connected successful Semantic Workspace Image store receipts to the shared
+  authority-neutral retention contract. One bounded heterogeneous inventory
+  can now plan deterministic image/candidate/draft retention using exact typed
+  identities and logical byte accounting. It performs no store discovery,
+  checkpoint persistence or deletion and recovers no freshness or authority.
+  Regressions are authored and unrun.
+
+- Added conservative cross-revision rebinding for exact function references.
+  Both already admitted images and the original selector are authenticated;
+  one unique explicit stable identity and exact source/module provenance are
+  required before exporting a fresh destination reference. Reports distinguish
+  unchanged, changed and moved source provenance without claiming ancestry,
+  signature/contract/body equivalence, compatibility or authority. Regressions
+  are authored and unrun.
+
+- Added a closed caller-declared deployment-configuration contract attachment
+  for exact candidates. Canonical declaration bytes bind the candidate, the
+  complete uniquely authenticated manifest export inventory, and sorted
+  key/type/required shapes while structurally excluding values, secrets, paths,
+  URLs and locators. It changes only deployment coverage to partial and is not
+  environment observation, artifact/runtime/API verification, deployment
+  execution or authority. Regressions are authored and unrun.
+
+- Extended caller-owned target reuse with a separate exact pathless native-C11
+  carrier. Hits invoke no emitter and replay canonical payload, revision,
+  manifest, source, export, artifact and embedded C-header bindings before
+  returning. The lane remains in-memory and grants no materialization,
+  compilation, linking, runtime, persistence or publication authority.
+  Regressions are authored and unrun.
+
 - Added canonical per-trial contracts to the agent-task comparison harness.
   Each contract binds the exact plan, repository head, task, prompt, fixtures,
   drift, lane, workspace state, acceptance rubric and metric inventory for one

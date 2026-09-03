@@ -69,6 +69,24 @@ manifest edit or schema/compiler change produces a different image and rejects
 the old reference. Selecting another target on the same image produces a
 different reference; it never retargets or invalidates the original reference.
 
+## Conservative cross-revision rebind
+
+`rebind_function_reference` accepts separately admitted source and destination
+images plus an exact source reference. It authenticates both image selectors
+and performs ordinary source resolution before considering migration. The
+images must differ while retaining exactly equal canonical Project/workspace
+configuration, and the target must remain one unique explicit stable function
+identity with exact retained path/module provenance in both images.
+
+The bounded `semaprax.image-function-reference-rebind.v1` report either returns
+a freshly exported destination reference or a closed rejection stage/reason.
+Accepted status distinguishes unchanged source, changed source, and moved
+path/module provenance and records exact revision/digest changes. The rebound
+carrier still requires ordinary destination resolution. Stable identity and
+provenance survival do not establish revision ancestry, unchanged signature,
+contracts, body, behavior or compatibility, and the operation grants no source,
+candidate, execution, retention or publication authority.
+
 ## Digest and grammar
 
 Reference JSON is UTF-8 canonical compact JSON with no terminal LF. The
@@ -138,6 +156,7 @@ MCP, direct and batched parity, older-profile isolation, hostile inputs,
 recovery, and unchanged source bytes.
 
 These tests are authored but intentionally unrun at the user's request.
-Cross-revision rebasing, advisory search/ranking, dynamic consumers, external
+General cross-revision migration, ancestry/compatibility inference, advisory
+search/ranking, dynamic consumers, external
 API compatibility, target artifacts, runtime deployment, execution evidence,
 source materialization and publication remain outside this reference contract.

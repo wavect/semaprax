@@ -16,6 +16,22 @@ package capsule. Candidate Analysis Evidence composes those two reports and
 changes only the `external_consumers` area to `partial` for that explicit
 corpus.
 
+A separate additive declaration attachment addresses the deployment blind spot
+without pretending to observe a deployment. The closed schema
+`semaprax.project-candidate-deployment-contract-declaration.v1` binds exact
+canonical bytes and a length-delimited SHA-256 digest to the candidate, its
+complete ordered manifest export inventory, and 1 through 64 sorted
+`{key,type,required}` rows. Every export must join one retained explicit
+function identity. The grammar has no value, secret, path, URL or provider
+locator field.
+
+`analysis_deployment_contract_evidence` changes only
+`deployment_configuration` and its blind-spot row to `partial`, embeds the
+authenticated declaration bytes/digest, and retains false source, environment,
+deployment and publication authority. Caller-declared key shapes are not
+environment observation, freshness, drift, artifact/runtime/API/consumer
+verification or proof that the declared configuration is present or used.
+
 ## API and exact composition
 
 ```rust

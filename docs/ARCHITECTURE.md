@@ -714,6 +714,12 @@ The v5 `image/analysis-coverage` read shares ordinary source authentication and
 the detached parallel read path. It neither scans external inputs nor mistakes
 missing edges for absent external systems. See
 [Analysis Coverage](SEMANTIC-IMAGE-ANALYSIS-COVERAGE-V1.md).
+`candidate/deployment_contract_evidence.rs` can attach a canonical value-free
+configuration declaration to one exact candidate and its complete explicit
+manifest-export inventory. It accepts only sorted key/type/required shapes and
+changes the deployment row to partial; it never reads environment values,
+secrets, paths, URLs or provider locators and does not verify or perform a
+deployment.
 
 The v5 discovery catalogue generates its granted methods, schemas, instructions
 and typed client helpers together. Opaque nested payload references remain
@@ -745,12 +751,21 @@ disjoint expression holes as well as whole-body holes; completed fills pass
 ordinary candidate admission and reauthenticate surviving selections against
 the resulting canonical source. Neither cache nor draft owns source authority.
 
-`project/target_cache.rs` owns one caller-scoped exact scalar-Web target entry.
-Its key binds the admitted immutable Project/workspace/graph identities,
-canonical manifest, target selectors, compiler compatibility and byte bound.
-Every hit independently verifies and rebinds the retained carrier; it skips
-only target emission and grants no persistence, filesystem, execution or
-publication authority. See [Project Target Cache v1](PROJECT-TARGET-CACHE-V1.md).
+`project/image_reference.rs` exports exact image-bound stable function/facet
+selectors and resolves them only through ordinary admitted image provenance.
+Its conservative cross-revision rebind authenticates both images and the source
+selector, then requires one unique explicit identity and exact source/module
+facts before exporting a fresh destination selector. Provenance classification
+does not infer revision ancestry, semantic equivalence or compatibility.
+
+`project/target_cache.rs` owns separate caller-scoped exact scalar-Web and
+pathless native-C11 target entries. Their keys bind the admitted immutable
+Project/workspace/graph identities, canonical manifest, target selectors,
+compiler compatibility and byte bound. Every hit independently verifies its
+retained carrier; the C lane replays artifact and embedded header-envelope
+bindings without invoking an emitter. Reuse skips only target emission and
+grants no persistence, filesystem, compilation, execution or publication
+authority. See [Project Target Cache v1](PROJECT-TARGET-CACHE-V1.md).
 
 `src/semantic_retention.rs` owns a pure bounded metadata policy for exact image,
 candidate and draft identities. It derives canonical chained checkpoints and
@@ -758,10 +773,11 @@ separately digest-bound GC plans from caller-supplied inventories. Recovery
 authenticates predecessor and policy bytes and returns
 `RetentionAuthority::None`; the module never reads storage, deletes an object,
 establishes freshness, restores approval, or publishes a generation.
-`candidate_archive_store.rs` can translate only successful candidate/draft
-publication receipts into that inventory. Those receipts retain exact stored
-byte counts and identities but no path or store handle; planning still performs
-no discovery, checkpoint persistence, deletion, replay, approval or publication.
+`project/image_store.rs` and `candidate_archive_store.rs` translate only
+successful image/candidate/draft publication receipts into that inventory.
+Those receipts retain exact logical byte counts and identities but no path or
+store handle; heterogeneous planning still performs no discovery, checkpoint
+persistence, deletion, replay, approval or publication.
 
 `candidate/git_publication.rs` authenticates Git object identities and original
 Project source before constructing canonical replacement blobs, trees and a
@@ -1583,6 +1599,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
+| Exact Project semantic references | `src/project/image_reference.rs` |
 | Exact Project target reuse | `src/project/target_cache.rs` |
 | Immutable Project revision inputs | `src/project_revision_store.rs`, `src/project_revision_store/unix.rs` |
 | Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/` |

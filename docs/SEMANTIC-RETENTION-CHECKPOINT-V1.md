@@ -30,6 +30,16 @@ a locator, capability or existence proof. Every later use must invoke the
 ordinary image/revision-store or candidate/draft archive loader and perform its
 complete source/history replay.
 
+Successful real image, candidate and incomplete-draft store operations now
+return receipts implementing the authority-neutral `RetentionReceipt`
+contract. `checkpoint_receipts` accepts a heterogeneous bounded receipt slice
+and derives the same observations without exposing a store root, path or
+handle. Image receipts account exact canonical image bytes; candidate/draft
+receipts account exact canonical archive bytes. These are logical policy bytes,
+not filesystem blocks. A failed or post-pivot uncertain store operation yields
+no successful receipt for this adapter, and planning still performs no store
+enumeration, metadata persistence or deletion.
+
 ## Deterministic policy
 
 `RetentionPolicy::new(max_subjects, max_bytes, protected_generations)` admits:

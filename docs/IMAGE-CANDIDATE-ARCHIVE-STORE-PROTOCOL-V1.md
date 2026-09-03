@@ -2,6 +2,8 @@
 
 Status: **Partial; implementation and regressions authored, unrun.**
 
+Audience: embedding hosts, compiler contributors, and protocol reviewers.
+
 This contract adds one opt-in v5 operation for persisting an already retained,
 complete candidate archive. It composes the existing source-backed candidate
 archive, immutable candidate archive store, and authority-neutral retention

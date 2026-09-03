@@ -5,6 +5,8 @@ regression are authored. Library compilation is the only executed gate. No wire
 method, immutable subject store, test target, hosted run, GC, or restoration is
 claimed.
 
+Audience: embedding hosts, compiler contributors, and protocol reviewers.
+
 ## Startup selection
 
 `VNextSession::with_retention_lifecycle` is an opt-in host API used before the

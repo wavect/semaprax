@@ -4,6 +4,8 @@ Status: **Partial, authored/unrun**. The authority-free library report and
 regressions are authored. No test target, protocol route, generated client, MCP
 surface, hosted run, or executed comparison is claimed.
 
+Audience: agent authors, compiler contributors, and candidate reviewers.
+
 ## Contract
 
 `ProjectCandidate::analysis_coverage_change` accepts the exact final candidate

@@ -3,6 +3,8 @@
 Status: authored, unrun. This is a narrow semantic-change surface, not general
 generic signature evolution.
 
+Audience: compiler contributors, agent authors, and candidate reviewers.
+
 ## Contract
 
 `rename_declaration` accepts an explicit, non-entry generic function template

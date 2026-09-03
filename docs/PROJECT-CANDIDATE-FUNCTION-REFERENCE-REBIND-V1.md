@@ -1,9 +1,9 @@
 # Candidate Function Reference Rebind v1
 
-## Status
-
-Partial, authored and unrun. This contract adds one authority-free candidate
+Status: Partial, authored and unrun. This contract adds one authority-free candidate
 navigation operation. It does not promote cross-revision references generally.
+
+Audience: agent authors, compiler contributors, and embedding hosts.
 
 ## Purpose
 

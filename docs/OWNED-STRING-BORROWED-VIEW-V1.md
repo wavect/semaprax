@@ -2,6 +2,8 @@
 
 Status: **Partial; library implementation and regressions authored, unrun.**
 
+Audience: language users, compiler contributors, and ownership reviewers.
+
 `string_as_str(value)` is the compiler-owned `core.string.as-str` operation. It
 accepts exactly one unprojected named owning `string` place and produces a
 non-escaping `borrow str` view. The operation does not transfer, clone, drop, or

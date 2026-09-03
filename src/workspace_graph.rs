@@ -2428,6 +2428,7 @@ fn semantic_workspace_source_schema(
     module: &WorkspaceResolvedModule,
 ) -> Result<&'static str, Vec<Diagnostic>> {
     let base_schema = graph::graph_schema_from_parts_without_loans(
+        &module.interfaces,
         &module.types,
         &module.functions,
         &module.function_templates,
@@ -2450,6 +2451,9 @@ fn semantic_workspace_source_schema(
             "Shared Loan Plan v1 cannot mask an owned-variant Graph v22 base schema in Semantic Workspace v1",
         )]);
     }
+    if base_schema == "semaprax.graph.v25" {
+        return Ok(base_schema);
+    }
     Ok(if has_loans {
         if module
             .functions
@@ -2470,7 +2474,12 @@ fn semantic_workspace_source_schema(
     } else if instance_has_owned_variant {
         "semaprax.graph.v22"
     } else {
-        graph::graph_schema_from_parts(&module.types, &module.functions, &module.function_templates)
+        graph::graph_schema_from_parts(
+            &module.interfaces,
+            &module.types,
+            &module.functions,
+            &module.function_templates,
+        )
     })
 }
 
@@ -4273,17 +4282,6 @@ fn build_owned_inner(
         // synthetic stubs. A stub must never acquire local implementation
         // authority merely because it has an authenticated imported identity.
         crate::static_protocol::validate(&program).map_err(|error| vec![error])?;
-        if program
-            .interfaces
-            .iter()
-            .flat_map(|interface| &interface.imports)
-            .any(|import| import.native_rust)
-        {
-            return Err(vec![graph_error(
-                "SPX-G218",
-                "Native Rust import declarations are outside the current semantic Graph schemas",
-            )]);
-        }
         let remaining = active_builder_limit().saturating_sub(canonical_bytes);
         // Cached entries originate only from exact canonical source and a
         // successful complete Project build. Preserve cold byte accounting

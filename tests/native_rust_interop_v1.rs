@@ -152,15 +152,32 @@ fn native_rust_import_declaration_set_is_closed_with_exact_diagnostics() {
 }
 
 #[test]
-fn native_rust_imports_are_explicitly_excluded_from_graph_and_wasm_without_fallback() {
+fn native_rust_imports_project_into_graph_v25_and_stay_out_of_wasm() {
     let program = parse(SOURCE, Path::new("native-rust.spx")).unwrap();
-    let graph_error = graph::to_json(&program).unwrap_err();
-    assert_eq!(graph_error.len(), 1);
-    assert_eq!(graph_error[0].code, "SPX-G218");
-    assert_eq!(
-        graph_error[0].message,
-        "Native Rust import declarations are outside the current semantic Graph schemas"
-    );
+    let json = graph::to_json(&program).expect("the module Graph projects native Rust imports");
+    assert!(json.contains("\"schema\":\"semaprax.graph.v25\""));
+
+    // The declaration keeps its real result type and is marked as native.
+    assert!(json.contains(
+        "{\"id\":\"rust.host.combine\",\"kind\":\"import\",\"name\":\"combine\",\"owner\":\"rust.host\""
+    ));
+    assert!(json.contains("\"result\":{\"type\":\"i64\",\"ownership_mode\":\"value\""));
+    assert!(json.contains("\"failure\":{\"kind\":\"status\",\"domain_id\":\"rust.test\""));
+    assert!(json.contains("\"native_rust\":true}"));
+
+    // The call site is projected rather than dropped.
+    assert!(json.contains("\"kind\":\"native_rust_import_call\",\"import\":\"rust.host.combine\""));
+
+    // A program without a native Rust import keeps the schema it already had.
+    let ordinary = parse(
+        "module plain;\n\n@id(\"plain.main\")\nfn main() -> i64\n{\n    42\n}\n",
+        Path::new("plain.spx"),
+    )
+    .unwrap();
+    let ordinary_json = graph::to_json(&ordinary).unwrap();
+    assert!(ordinary_json.contains("\"schema\":\"semaprax.graph.v10\""));
+    assert!(!ordinary_json.contains("native_rust"));
+
     let wasm_error = wasm::emit_module(&program).unwrap_err();
     assert_eq!(wasm_error.code, "SPX-W114");
     assert_eq!(
@@ -168,12 +185,14 @@ fn native_rust_imports_are_explicitly_excluded_from_graph_and_wasm_without_fallb
         "Native Rust imports are unavailable for WebAssembly targets"
     );
 
+    // The projections that omit import nodes by construction stay closed, so a
+    // native Rust import can never be silently dropped from an agent view.
     let context_error = graph::context_json(&program, "test.call_combine", 1).unwrap_err();
     assert_eq!(context_error.len(), 1);
     assert_eq!(context_error[0].code, "SPX-G218");
     assert_eq!(
         context_error[0].message,
-        "Native Rust import declarations are outside the current semantic Graph schemas"
+        "Native Rust import declarations are outside the agent, review, impact, and evidence Graph projections"
     );
     let resolved = hir::resolve(&program).unwrap();
     let resolved_wasm_error = wasm::emit_resolved_module(&resolved).unwrap_err();

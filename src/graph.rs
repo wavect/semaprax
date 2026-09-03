@@ -28,37 +28,10 @@ macro_rules! format {
     };
 }
 
-pub(crate) fn reject_native_rust_imports(program: &ResolvedProgram) -> Result<(), Diagnostic> {
-    if program
-        .interfaces
-        .iter()
-        .flat_map(|interface| &interface.imports)
-        .any(|import| import.native_rust)
-    {
-        Err(Diagnostic::io(
-            "SPX-G218",
-            "Native Rust import declarations are outside the current semantic Graph schemas",
-        ))
-    } else {
-        Ok(())
-    }
-}
+#[path = "graph/native_import.rs"]
+mod native_import;
 
-fn reject_source_native_rust_imports(program: &Program) -> Result<(), Vec<Diagnostic>> {
-    if program
-        .interfaces
-        .iter()
-        .flat_map(|interface| &interface.imports)
-        .any(|import| import.native_rust)
-    {
-        Err(vec![Diagnostic::io(
-            "SPX-G218",
-            "Native Rust import declarations are outside the current semantic Graph schemas",
-        )])
-    } else {
-        Ok(())
-    }
-}
+pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
 
 /// Hash the canonical human-readable source projection and implicit prelude.
 ///
@@ -96,7 +69,6 @@ pub(crate) fn revision_from_canonical_source(source: &str) -> String {
 /// Resolution is deliberately part of this public boundary. Invalid source
 /// cannot be mistaken for a checked semantic graph by library callers.
 pub fn to_json(program: &Program) -> Result<String, Vec<Diagnostic>> {
-    reject_source_native_rust_imports(program)?;
     let revision = revision(program);
     let resolved = hir::resolve(program)?;
     to_hir_json(&resolved, &revision).map_err(|diagnostic| vec![diagnostic])
@@ -1291,6 +1263,9 @@ fn result_propagation_json(expression: &ResolvedExpr) -> String {
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
+    if native_import::declares_native_rust_import(&program.interfaces) {
+        return native_import::NATIVE_RUST_IMPORT_SCHEMA;
+    }
     if program.function_instances.iter().any(|instance| {
         instance
             .function
@@ -1309,6 +1284,7 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
         return "semaprax.graph.v23";
     }
     graph_schema_from_parts(
+        &program.interfaces,
         &program.types,
         &program.functions,
         &program.function_templates,
@@ -1368,6 +1344,11 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
         Err(Diagnostic::io(
             "SPX-G410",
             "portable-indexed-byte-data programs select `semaprax.graph.v17`, which is outside this evidence flow's admission",
+        ))
+    } else if schema == "semaprax.graph.v25" {
+        Err(Diagnostic::io(
+            "SPX-G410",
+            "native Rust import programs select `semaprax.graph.v25`, which is outside this evidence flow's admission",
         ))
     } else if schema == "semaprax.graph.v15" {
         Err(Diagnostic::io(
@@ -1543,10 +1524,14 @@ fn expression_has_explicit_match_mode(expression: &ResolvedExpr) -> bool {
 }
 
 pub(crate) fn graph_schema_from_parts(
+    interfaces: &[hir::ResolvedInterface],
     types: &[hir::ResolvedTypeDeclaration],
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    if native_import::declares_native_rust_import(interfaces) {
+        return native_import::NATIVE_RUST_IMPORT_SCHEMA;
+    }
     if functions.iter().any(|function| {
         function
             .loan_plan
@@ -1562,14 +1547,18 @@ pub(crate) fn graph_schema_from_parts(
     {
         return "semaprax.graph.v23";
     }
-    graph_schema_from_parts_without_loans(types, functions, function_templates)
+    graph_schema_from_parts_without_loans(interfaces, types, functions, function_templates)
 }
 
 pub(crate) fn graph_schema_from_parts_without_loans(
+    interfaces: &[hir::ResolvedInterface],
     types: &[hir::ResolvedTypeDeclaration],
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
 ) -> &'static str {
+    if native_import::declares_native_rust_import(interfaces) {
+        return native_import::NATIVE_RUST_IMPORT_SCHEMA;
+    }
     if functions.iter().any(|function| {
         function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
             || function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6
@@ -3460,7 +3449,6 @@ pub(crate) fn to_hir_json(
     program: &ResolvedProgram,
     source_revision: &str,
 ) -> Result<String, Diagnostic> {
-    reject_native_rust_imports(program)?;
     hir::validate(program)?;
     let selected_functions = program
         .functions
@@ -4360,7 +4348,7 @@ fn graph_json(
             output.push(',');
             write!(
                 output,
-                "{{\"id\":{},\"kind\":\"import\",\"name\":{},\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"import_key\":{},\"parameters\":[{}],\"result\":{{\"type\":\"unit\",\"ownership_mode\":\"value\",\"producer\":{},\"out_slot_initialization\":{},\"ownership_transfer\":{}}},\"effects\":{},\"required_authority\":{},\"failure\":{}}}",
+                "{{\"id\":{},\"kind\":\"import\",\"name\":{},\"owner\":{},\"identity_origin\":{},\"persistent\":{},\"import_key\":{},\"parameters\":[{}],\"result\":{{\"type\":{},\"ownership_mode\":\"value\",\"producer\":{},\"out_slot_initialization\":{},\"ownership_transfer\":{}}},\"effects\":{},\"required_authority\":{},\"failure\":{}",
                 quote_json(import.id.as_str()),
                 quote_json(&import.name),
                 quote_json(interface.id.as_str()),
@@ -4368,6 +4356,7 @@ fn graph_json(
                 origin.is_persistent(),
                 quote_json(&import.import_key),
                 parameters,
+                quote_json(native_import::result_text(&import.result.kind)),
                 quote_json(import.result.producer),
                 quote_json(import.result.out_slot_initialization),
                 quote_json(import.result.ownership_transfer),
@@ -4376,6 +4365,7 @@ fn graph_json(
                 failure
             )
             .expect("writing to a string cannot fail");
+            native_import::append_import_tail(&mut output, schema, import.native_rust);
         }
     }
 
@@ -5211,11 +5201,19 @@ fn expr_json(program: &ResolvedProgram, expression: &ResolvedExpr) -> Result<Str
                 )
             }
         }
-        ResolvedExprKind::NativeRustImportCall(_) => {
-            return Err(Diagnostic::io(
-                "SPX-G218",
-                "Native Rust import declarations are outside the current semantic Graph schemas",
-            ));
+        ResolvedExprKind::NativeRustImportCall(call) => {
+            let args = call
+                .args
+                .iter()
+                .map(|argument| expr_json(program, argument))
+                .collect::<Result<Vec<_>, _>>()?
+                .budgeted_join(",");
+            format!(
+                "{{{header},\"kind\":\"native_rust_import_call\",\"import\":{},\"result\":{},\"args\":[{}]}}",
+                quote_json(call.import.as_str()),
+                quote_json(native_import::result_text(&call.result)),
+                args
+            )
         }
         ResolvedExprKind::HostCommandCall(call) => {
             let args = call
@@ -5739,7 +5737,7 @@ fn collect_type(ty: &ResolvedType, types: &mut BTreeMap<String, ResolvedType>) {
 
 fn type_json(ty: &ResolvedType) -> String {
     match ty {
-        ResolvedType::Unit => unreachable!("native Rust Unit is excluded before Graph projection"),
+        ResolvedType::Unit => "{\"kind\":\"primitive\",\"name\":\"unit\"}".to_owned(),
         ResolvedType::I64 => "{\"kind\":\"primitive\",\"name\":\"i64\"}".to_owned(),
         ResolvedType::I32 => "{\"kind\":\"primitive\",\"name\":\"i32\"}".to_owned(),
         ResolvedType::Char => "{\"kind\":\"primitive\",\"name\":\"char\"}".to_owned(),

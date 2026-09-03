@@ -7,6 +7,7 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
     assert!(is_source_graph_schema("semaprax.graph.v22"));
     assert!(is_source_graph_schema("semaprax.graph.v23"));
     assert!(is_source_graph_schema("semaprax.graph.v24"));
+    assert!(is_source_graph_schema("semaprax.graph.v25"));
 }
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};

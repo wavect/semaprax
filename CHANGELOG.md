@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Added `semaprax.graph.v25` so a program declaring an `import rust fn`
+  callback has a semantic projection. Every Graph-derived route previously
+  rejected such a program with `SPX-G218`, which closed the callback direction
+  of Native Rust interoperability out of the agent-facing interface and out of
+  Semantic Workspaces and Projects entirely. The schema is selected exactly
+  when a native Rust import is declared, and the predicate reads declarations
+  rather than call sites so a declared but uncalled import still selects the
+  schema that can represent its result type. No earlier schema can represent
+  such a declaration, so every program without one keeps the schema it already
+  selected and its previously emitted bytes; the golden snapshots and every
+  frozen digest are unchanged.
+
+  The module Graph projects the declaration with its real result type and a
+  `native_rust` marker, and projects the call as a `native_rust_import_call`
+  node mirroring the existing `host_command_call` shape. `ResolvedType::Unit`
+  gains a projection because a unit-result import can now reach it. The
+  workspace graph gate is lifted, so a Project source may declare a callback.
+
+  The projections that omit import nodes by construction stay closed and now
+  say so in the diagnostic: agent context, review, impact, and target evidence
+  would drop authenticated meaning rather than represent it. Graph v25 is
+  outside the evidence flow's admission, like every schema above v14.
+
 - Extended the `example-checks` and `example-fmt` quality gates to the
   bidirectional Native Rust interoperability example
   `examples/calculator-rust/callback.spx`, which declares an `import rust fn`

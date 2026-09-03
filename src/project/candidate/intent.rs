@@ -44,6 +44,7 @@ pub(super) use aggregate::{
 };
 pub(super) use builtin::{
     builtin_constructors, builtin_dependency_fingerprint, by_id as builtin_operation_by_id,
+    implicit_dependency_fingerprint as implicit_builtin_dependency_fingerprint,
     validate_builtin_namespace, BuiltinOp,
 };
 pub(super) use field_place::{parameter_nominal_scope, NominalScope};

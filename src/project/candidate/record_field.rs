@@ -1,8 +1,8 @@
 //! Append-only record evolution over authenticated canonical Project ASTs.
-//! Defaults are inert literals; existing field evaluation and bindings stay put.
+//! Existing field evaluation and bindings stay put; owning defaults are bounded.
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::ast::{
     Expr, ExprKind, FieldDeclaration, FieldInitializer, MatchPattern, ModuleUseKind, Program,
@@ -20,6 +20,7 @@ type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 const MAX_FIELDS: usize = 64;
 const MAX_DEPTH: usize = 256;
 const MAX_ITEMS: usize = 1_048_576;
+const MAX_OWNING_STRING_SCALARS: usize = intent::MAX_STRING_LITERAL_BYTES / 4;
 
 pub(super) struct FieldAddition {
     pub(super) id: String,
@@ -27,7 +28,77 @@ pub(super) struct FieldAddition {
     pub(super) owner: String,
     pub(super) path: String,
     pub(super) module: String,
-    type_flags: (bool, bool, bool, bool),
+    expected_type: ResolvedType,
+    expected_type_flags: (bool, bool, bool, bool),
+}
+
+#[derive(Clone)]
+enum FieldDefault {
+    Scalar { ty: Type, value: Expr },
+    String(String),
+    Bytes(Vec<u8>),
+}
+
+impl FieldDefault {
+    fn ty(&self) -> Type {
+        match self {
+            Self::Scalar { ty, .. } => ty.clone(),
+            Self::String(_) => Type::String,
+            Self::Bytes(_) => Type::Bytes,
+        }
+    }
+
+    fn resolved_type(&self) -> ResolvedType {
+        match self {
+            Self::Scalar { ty, .. } => match ty {
+                Type::I64 => ResolvedType::I64,
+                Type::Bool => ResolvedType::Bool,
+                Type::I32 => ResolvedType::I32,
+                Type::U8 => ResolvedType::U8,
+                Type::Usize => ResolvedType::Usize,
+                _ => unreachable!("scalar field defaults have a closed type inventory"),
+            },
+            Self::String(_) => ResolvedType::String,
+            Self::Bytes(_) => ResolvedType::Bytes,
+        }
+    }
+
+    fn is_owning(&self) -> bool {
+        matches!(self, Self::String(_) | Self::Bytes(_))
+    }
+
+    fn node_cost(&self) -> usize {
+        match self {
+            Self::Scalar { .. } | Self::String(_) => 1,
+            // bytes_copy(array_as_slice([..])): two calls, one array and its bytes.
+            Self::Bytes(values) => values.len().saturating_add(3),
+        }
+    }
+
+    fn expression(&self, revision: &ProjectRevision, program: &Program) -> Result<Expr> {
+        match self {
+            Self::Scalar { value, .. } => Ok(value.clone()),
+            Self::String(value) => Ok(Expr {
+                kind: ExprKind::String(value.clone()),
+                span: Span::default(),
+            }),
+            Self::Bytes(values) => intent::construct_expression_with_scope(
+                revision,
+                program,
+                &BTreeSet::new(),
+                Default::default(),
+                &json!({
+                    "kind":"builtin_call",
+                    "target":crate::byte_ops::COPY_ID,
+                    "arguments":[{
+                        "kind":"builtin_call",
+                        "target":crate::byte_ops::ARRAY_AS_SLICE_ID,
+                        "arguments":[{"kind":"array_u8","values":values}],
+                    }],
+                }),
+            ),
+        }
+    }
 }
 
 struct Record<'a> {
@@ -71,7 +142,7 @@ pub(super) fn apply(
     object(field, &["id", "name", "type", "default"])?;
     let id = identifier(text(field, "id")?, true)?;
     let name = identifier(text(field, "name")?, false)?;
-    let (ty, default) = default_literal(field)?;
+    let default = field_default(field)?;
     let records = type_inventory(revision);
     let facts = admitted_record(target, &records)?;
     let record = records
@@ -83,6 +154,11 @@ pub(super) fn apply(
     if fields.len() >= MAX_FIELDS {
         return Err(capacity(
             "record field change permits at most sixty-four fields",
+        ));
+    }
+    if default.is_owning() && type_flags(&facts) != (true, false, false, true) {
+        return Err(invalid(
+            "owning field addition requires an originally Copy, sized, resource-free record",
         ));
     }
     let old_names = fields
@@ -141,19 +217,37 @@ pub(super) fn apply(
         }
     }
     let (owner, type_index) = owner.ok_or_else(|| invalid("target record source is absent"))?;
+    let expected_type_flags = if default.is_owning() {
+        (false, true, false, true)
+    } else {
+        type_flags(&facts)
+    };
     let addition = FieldAddition {
         id: id.to_owned(),
         name: name.to_owned(),
         owner: target.to_owned(),
         path: record.path.to_owned(),
         module: record.module.to_owned(),
-        type_flags: type_flags(&facts),
+        expected_type: default.resolved_type(),
+        expected_type_flags,
+    };
+    let owning_constructor_programs = if default.is_owning() {
+        owning_preflight(programs, &records, target)?
+    } else {
+        BTreeSet::new()
     };
     let mut nodes = 0;
     let mut additions = 0;
     let mut pattern_nodes = 0;
     for program in programs.iter_mut() {
         let bindings = type_bindings(program, &records)?;
+        let inserted_default = if !default.is_owning()
+            || owning_constructor_programs.contains(program.path.as_str())
+        {
+            Some(default.expression(revision, program)?)
+        } else {
+            None
+        };
         intent::walk_program(program, &mut nodes, &mut |expression| {
             match &mut expression.kind {
                 ExprKind::ConstructRecord {
@@ -169,11 +263,13 @@ pub(super) fn apply(
                             ));
                         }
                         exact_fields(fields.iter().map(|field| field.name.as_str()), &old_names)?;
-                        charge(&mut additions)?;
+                        charge_by(&mut additions, default.node_cost())?;
                         fields.push(FieldInitializer {
                             name: name.to_owned(),
                             name_span: Span::default(),
-                            value: default.clone(),
+                            value: inserted_default.clone().ok_or_else(|| {
+                                invalid("target constructor default was not authenticated")
+                            })?,
                             span: Span::default(),
                         });
                     }
@@ -205,6 +301,11 @@ pub(super) fn apply(
             "record migration and inserted literals exceed the node bound",
         ));
     }
+    if default.is_owning() && additions == 0 {
+        return Err(invalid(
+            "owning field addition requires an authenticated target constructor",
+        ));
+    }
     let TypeDeclarationKind::Record { fields } = &mut programs[owner].types[type_index].kind else {
         return Err(invalid("record source kind changed during migration"));
     };
@@ -213,7 +314,7 @@ pub(super) fn apply(
         explicit_id: true,
         name: name.to_owned(),
         name_span: Span::default(),
-        ty,
+        ty: default.ty(),
         span: Span::default(),
     });
     Ok((
@@ -254,13 +355,12 @@ pub(super) fn validate(
             ));
         }
     }
-    validate_checked_fields(before, after, request, &addition)
+    validate_checked_fields(before, after, &addition)
 }
 
 fn validate_checked_fields(
     before: &ProjectRevision,
     after: &ProjectRevision,
-    request: &Value,
     addition: &FieldAddition,
 ) -> Result<()> {
     let old_records = type_inventory(before);
@@ -295,31 +395,19 @@ fn validate_checked_fields(
     let field = new_fields
         .last()
         .ok_or_else(|| invalid("evolved record lacks its appended checked field"))?;
-    let ty = match text(&request["field"], "type")? {
-        "i64" => ResolvedType::I64,
-        "bool" => ResolvedType::Bool,
-        "i32" => ResolvedType::I32,
-        "u8" => ResolvedType::U8,
-        "usize" => ResolvedType::Usize,
-        _ => {
-            return Err(invalid(
-                "appended checked field must retain its scalar type",
-            ))
-        }
-    };
     if field.id.as_str() != addition.id
         || field.name != addition.name
         || field.index as usize != old_fields.len()
-        || field.ty != ty
+        || field.ty != addition.expected_type
     {
         return Err(invalid(
             "appended checked field differs from its authenticated request",
         ));
     }
     let facts = admitted_record(&addition.owner, &new_records)?;
-    if type_flags(&facts) != addition.type_flags {
+    if type_flags(&facts) != addition.expected_type_flags {
         return Err(invalid(
-            "inert scalar addition changed checked ownership or resource flags",
+            "field addition produced unexpected checked ownership or resource flags",
         ));
     }
     // Layout intentionally changes. Cleanup plans are independently rebuilt by
@@ -442,6 +530,113 @@ fn type_bindings(
     Ok(bindings)
 }
 
+fn owning_preflight(
+    programs: &[Program],
+    records: &BTreeMap<String, Record<'_>>,
+    target: &str,
+) -> Result<BTreeSet<String>> {
+    let mut nodes = 0;
+    let mut pattern_nodes = 0;
+    let mut constructors = BTreeSet::new();
+    for program in programs {
+        let bindings = type_bindings(program, records)?;
+        let mut probe = program.clone();
+        intent::walk_program(&mut probe, &mut nodes, &mut |expression| {
+            if let ExprKind::ConstructRecord { type_name, .. } = &expression.kind {
+                if bindings.get(type_name).is_some_and(|id| id == target) {
+                    constructors.insert(program.path.clone());
+                }
+            }
+            if let ExprKind::Match { arms, .. } = &expression.kind {
+                for arm in arms {
+                    if pattern_mentions_target(
+                        &arm.pattern,
+                        &bindings,
+                        target,
+                        0,
+                        &mut pattern_nodes,
+                    )? {
+                        return Err(invalid(
+                            "owning field addition rejects existing target record patterns",
+                        ));
+                    }
+                }
+            }
+            Ok(())
+        })?;
+    }
+    Ok(constructors)
+}
+
+fn pattern_mentions_target(
+    pattern: &MatchPattern,
+    bindings: &BTreeMap<String, String>,
+    target: &str,
+    depth: usize,
+    nodes: &mut usize,
+) -> Result<bool> {
+    pattern_budget(depth, nodes)?;
+    match pattern {
+        MatchPattern::Record {
+            type_name, fields, ..
+        } => {
+            if bindings.get(type_name).is_some_and(|id| id == target) {
+                return Ok(true);
+            }
+            for field in fields {
+                if record_field_pattern_mentions_target(
+                    &field.pattern,
+                    bindings,
+                    target,
+                    depth + 1,
+                    nodes,
+                )? {
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        }
+        MatchPattern::Or { alternatives, .. } => {
+            for alternative in alternatives {
+                if pattern_mentions_target(alternative, bindings, target, depth + 1, nodes)? {
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        }
+        MatchPattern::Variant { .. }
+        | MatchPattern::Wildcard { .. }
+        | MatchPattern::Literal { .. }
+        | MatchPattern::Binding { .. } => Ok(false),
+    }
+}
+
+fn record_field_pattern_mentions_target(
+    pattern: &RecordMatchFieldPattern,
+    bindings: &BTreeMap<String, String>,
+    target: &str,
+    depth: usize,
+    nodes: &mut usize,
+) -> Result<bool> {
+    pattern_budget(depth, nodes)?;
+    let RecordMatchFieldPattern::Record {
+        type_name, fields, ..
+    } = pattern
+    else {
+        return Ok(false);
+    };
+    if bindings.get(type_name).is_some_and(|id| id == target) {
+        return Ok(true);
+    }
+    for field in fields {
+        if record_field_pattern_mentions_target(&field.pattern, bindings, target, depth + 1, nodes)?
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 #[allow(clippy::too_many_arguments)]
 fn migrate_pattern(
     pattern: &mut MatchPattern,
@@ -550,21 +745,59 @@ fn pattern_budget(depth: usize, nodes: &mut usize) -> Result<()> {
     charge(nodes)
 }
 fn charge(nodes: &mut usize) -> Result<()> {
-    *nodes += 1;
+    charge_by(nodes, 1)
+}
+fn charge_by(nodes: &mut usize, amount: usize) -> Result<()> {
+    *nodes = nodes
+        .checked_add(amount)
+        .ok_or_else(|| capacity("record migration item accounting overflowed"))?;
     if *nodes > MAX_ITEMS {
         return Err(capacity("record migration exceeds its item bound"));
     }
     Ok(())
 }
-fn default_literal(field: &Value) -> Result<(Type, Expr)> {
+fn field_default(field: &Value) -> Result<FieldDefault> {
     let value = &field["default"];
-    object(value, &["kind", "value"])?;
     let kind = text(value, "kind")?;
     if kind != text(field, "type")? {
         return Err(invalid(
             "new field type and default literal kind must match exactly",
         ));
     }
+    if kind == "string" {
+        object(value, &["kind", "value"])?;
+        let contents = text(value, "value")?;
+        if contents.len() > intent::MAX_STRING_LITERAL_BYTES
+            || contents.chars().count() > MAX_OWNING_STRING_SCALARS
+        {
+            return Err(capacity(
+                "record String default exceeds its scalar or UTF-8 byte bound",
+            ));
+        }
+        return Ok(FieldDefault::String(contents.to_owned()));
+    }
+    if kind == "Bytes" {
+        object(value, &["kind", "values"])?;
+        let values = value["values"]
+            .as_array()
+            .ok_or_else(|| invalid("record Bytes default requires a byte array"))?;
+        if values.len() > intent::MAX_EXPRESSION_NODES.saturating_sub(3) {
+            return Err(capacity(
+                "record Bytes default exceeds its expression item bound",
+            ));
+        }
+        let values = values
+            .iter()
+            .map(|value| {
+                value
+                    .as_u64()
+                    .and_then(|value| u8::try_from(value).ok())
+                    .ok_or_else(|| invalid("record Bytes default requires exact byte values"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        return Ok(FieldDefault::Bytes(values));
+    }
+    object(value, &["kind", "value"])?;
     let (ty, kind) = match kind {
         "i64" => (
             Type::I64,
@@ -614,17 +847,17 @@ fn default_literal(field: &Value) -> Result<(Type, Expr)> {
         ),
         _ => {
             return Err(invalid(
-                "new record field supports only i64/bool/i32/u8/usize literal defaults",
+                "new record field supports only bounded scalar/string/Bytes defaults",
             ))
         }
     };
-    Ok((
+    Ok(FieldDefault::Scalar {
         ty,
-        Expr {
+        value: Expr {
             kind,
             span: Span::default(),
         },
-    ))
+    })
 }
 fn identifier(value: &str, id: bool) -> Result<&str> {
     if value.is_empty()

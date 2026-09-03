@@ -228,6 +228,22 @@ fn apply_rebound(
             ));
         }
     }
+    if change.intent["kind"] == "add_record_field"
+        && change.intent["field"]["type"] == "Bytes"
+        && change.intent["field"]["default"]["kind"] == "Bytes"
+    {
+        for target in [crate::byte_ops::COPY_ID, crate::byte_ops::ARRAY_AS_SLICE_ID] {
+            let before =
+                intent::implicit_builtin_dependency_fingerprint(original_revision, target)?;
+            let after =
+                intent::implicit_builtin_dependency_fingerprint(candidate.revision(), target)?;
+            if before.is_none() || before != after {
+                return Err(conflict(
+                    "implicit record default builtin dependency changed concurrently",
+                ));
+            }
+        }
+    }
     for target in constructor_intent_targets(&change.intent, &["record", "variant", "update"]) {
         let before = normalized_descriptor(intent::aggregate_dependency_fingerprint(
             original_revision,
@@ -540,6 +556,22 @@ fn record_fingerprints(
     revision: &ProjectRevision,
 ) -> Result<BTreeMap<String, String>, Vec<Diagnostic>> {
     let programs = parse_revision(revision)?;
+    let mut checked = BTreeMap::new();
+    for module in revision.semantic.image_modules() {
+        for declaration in module.types() {
+            if checked
+                .insert(
+                    declaration.id.as_str().to_owned(),
+                    (module.path(), module.module(), declaration),
+                )
+                .is_some()
+            {
+                return Err(grammar(
+                    "candidate rebase has ambiguous retained record identities",
+                ));
+            }
+        }
+    }
     let mut result = BTreeMap::new();
     for program in &programs {
         for declaration in &program.types {
@@ -547,10 +579,33 @@ fn record_fingerprints(
                 continue;
             }
             if let crate::ast::TypeDeclarationKind::Record { fields } = &declaration.kind {
+                let (path, module, retained) =
+                    checked.get(&declaration.stable_id).ok_or_else(|| {
+                        grammar("candidate rebase record lacks retained checked type facts")
+                    })?;
+                let crate::hir::ResolvedTypeDeclarationKind::Record {
+                    fields: checked_fields,
+                } = &retained.kind
+                else {
+                    return Err(grammar(
+                        "candidate rebase source and retained record kinds disagree",
+                    ));
+                };
+                if *path != program.path
+                    || *module != program.module
+                    || retained.name != declaration.name
+                    || checked_fields.len() != fields.len()
+                {
+                    return Err(grammar(
+                        "candidate rebase source and retained record origins disagree",
+                    ));
+                }
                 let fingerprint = hash_value(json!({
                     "path":program.path,"module":program.module,"name":declaration.name,
                     "parameters":declaration.type_parameters.iter().map(|p| &p.name).collect::<Vec<_>>(),
                     "fields":fields.iter().map(|f| json!({"id":f.stable_id,"explicit":f.explicit_id,"name":f.name,"type":f.ty.to_string()})).collect::<Vec<_>>(),
+                    "checked_fields":checked_fields.iter().map(|f| json!({"id":f.id.as_str(),"name":f.name,"index":f.index,"type":f.ty.identity_key()})).collect::<Vec<_>>(),
+                    "evidence_owner":"retained_checked_source_module_HIR",
                 }))?;
                 if result
                     .insert(declaration.stable_id.clone(), fingerprint)

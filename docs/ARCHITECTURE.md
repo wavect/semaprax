@@ -1135,8 +1135,12 @@ Checked expression/local/pattern types use retained compiler TypeFacts; nominal
 helper signatures use exact stable-ID type planning and the existing post-rebuild
 signature gate. A separate nested-block lane retains internal resource-free
 owners while keeping captures Copy. It may return one whole checked
-resource-free owner through the ordinary provisional-result commit, while
-borrowed/shared results and owned captures remain closed. It wraps the original
+resource-free owner through the ordinary provisional-result commit. A distinct
+[owning-capture lane](PROJECT-OWNING-CAPTURE-EXTRACTION-V1.md) authenticates one
+exact whole body-local Bytes/String owner with one unconditional consuming use,
+then transfers it through an owning helper parameter at the original expression
+position; parameters, projections, shared/borrowed roots, repeated or
+conditional use and external consumers remain closed. The nested-block lane wraps the original
 nested block in an empty helper root, preserving lexical cleanup before the
 caller resumes and rejecting root-body relocation with owned data. Source/HIR
 correspondence in `candidate/extraction_owned.rs` authenticates local values

@@ -384,8 +384,9 @@ impl ProjectCandidate {
             reason = "constructor_available_payload_requires_full_candidate_admission";
             operations.push(json!({
                 "kind":"add_record_field", "required_fields":["kind","target","field"],
-                "field_fields":["id","name","type","default"], "field_types":["i64","bool","i32","u8","usize"],
-                "constraints":["globally_new_explicit_field_identity", "unique_field_name", "monomorphic_checked_sized_resource_free_record", "matching_pure_literal_default", "append_default_after_existing_field_evaluations", "migrate_all_authenticated_constructors_and_exact_patterns", "preserve_existing_field_identities_and_projection_meaning", "no_new_owned_field_or_ownership_transfer", "preserve_checked_copy_drop_resource_and_sized_flags", "revalidate_layout_ownership_cleanup_and_targets"],
+                "field_fields":["id","name","type","default"], "field_types":["i64","bool","i32","u8","usize","string","Bytes"],
+                "owning_field_lane":{"types":["string","Bytes"],"requires":"original_copy_sized_drop_free_resource_free_record_with_authenticated_constructor_and_no_target_record_patterns","transition":"copy_to_needs_drop","bytes_default":"fresh_bytes_copy_of_bounded_array"},
+                "constraints":["globally_new_explicit_field_identity", "unique_field_name", "monomorphic_checked_sized_resource_free_record", "matching_bounded_literal_default", "append_default_after_existing_field_evaluations", "migrate_all_authenticated_constructors_and_scalar_exact_patterns", "preserve_existing_field_identities_and_projection_meaning", "fresh_owner_per_owning_constructor", "reject_target_patterns_for_owning_addition", "preserve_scalar_flags_or_authenticate_exact_owning_flag_transition", "revalidate_layout_ownership_cleanup_and_targets"],
             }));
         }
         if self.changes.len() < MAX_CHANGES {

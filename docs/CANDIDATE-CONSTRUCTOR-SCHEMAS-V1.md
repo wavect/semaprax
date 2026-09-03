@@ -54,8 +54,11 @@ The [literal constructor extension](PROJECT-LITERAL-CONSTRUCTORS-V1.md) closes
 `string` to `kind` and `value` (including empty text, at most 16,384 UTF-8 bytes),
 and `array_u8` to `kind` and `values` (at most 4,095 integers in `0..=255`).
 Every array element also consumes the shared expression construction budget;
-the schema records this contextual bound as metadata. Neither form extends
-the scalar-only literal grammars for append parameters or record-field defaults.
+the schema records this contextual bound as metadata. Neither form extends the
+scalar-only append-parameter grammar. Record-field defaults have a separate
+closed owning lane: at most 4,096 Unicode scalars/16,384 UTF-8 bytes for
+`string`, or 4,093 exact byte integers for `Bytes`, with semantic eligibility
+and fresh-owner construction enforced outside JSON Schema.
 
 `builtin_call` selects one of seven stable byte-operation or seven stable
 string-operation identities from the compiler's operation tables, with an exact
@@ -409,6 +412,8 @@ checked by the recovery API, not JSON Schema. Addition schemas describe the
 separate bounded function-signature and data-field grammars above; extraction accepts only
 an expression identity and new declaration identity/name. Neither accepts raw
 source, HIR, source spans, or arbitrary filesystem paths.
-The distinct `add_record_field` operation requires a matching inert literal
-from its direct scalar vocabulary; constructor/pattern migration is owned by the compiler. Move
+The distinct `add_record_field` operation requires either a matching inert
+literal from its direct scalar vocabulary, a bounded string literal, or a
+bounded byte array that the compiler materializes as a fresh Bytes owner.
+Constructor/pattern migration is owned by the compiler. Move
 destinations select existing stable identities rather than paths or source text.

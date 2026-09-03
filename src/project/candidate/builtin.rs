@@ -53,8 +53,21 @@ pub(in crate::project::candidate) fn validate_builtin_namespace<'a>(
     intentions: impl Iterator<Item = &'a Value>,
 ) -> Result<()> {
     let mut targets = std::collections::BTreeSet::new();
+    let mut implicit_targets = std::collections::BTreeSet::new();
     let mut visited = 0usize;
     for intention in intentions {
+        if intention.get("kind").and_then(Value::as_str) == Some("add_record_field")
+            && intention.pointer("/field/type").and_then(Value::as_str) == Some("Bytes")
+            && intention
+                .pointer("/field/default/kind")
+                .and_then(Value::as_str)
+                == Some("Bytes")
+        {
+            for target in [byte_ops::COPY_ID, byte_ops::ARRAY_AS_SLICE_ID] {
+                targets.insert(target);
+                implicit_targets.insert(target);
+            }
+        }
         let mut stack = vec![intention];
         while let Some(value) = stack.pop() {
             visited += 1;
@@ -90,6 +103,19 @@ pub(in crate::project::candidate) fn validate_builtin_namespace<'a>(
         return Err(grammar(
             "authored declaration or import collides with a retained builtin selector",
         ));
+    }
+    for target in implicit_targets {
+        let op = by_id(target).ok_or_else(|| {
+            grammar("retained implicit builtin dependency is no longer compiler-owned")
+        })?;
+        if programs
+            .iter()
+            .any(|program| !binding_available(program, op))
+        {
+            return Err(grammar(
+                "authored spelling collides with a retained implicit builtin dependency",
+            ));
+        }
     }
     Ok(())
 }
@@ -173,6 +199,29 @@ pub(in crate::project::candidate) fn builtin_dependency_fingerprint(
         return Ok(None);
     }
     Ok(selected(&source_identities(revision)?, target)?.map(descriptor))
+}
+
+/// Implicit compiler calls have no authored call-site selector that can narrow
+/// their spelling scope, so their rebase fact conservatively covers every
+/// Project module that may receive a migrated constructor.
+pub(in crate::project::candidate) fn implicit_dependency_fingerprint(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<Option<Value>> {
+    if by_id(target).is_none() {
+        return Ok(None);
+    }
+    let programs = super::super::parse_revision(revision)?;
+    let Some(op) = selected(&super::super::interface::identities(&programs)?, target)? else {
+        return Ok(None);
+    };
+    if programs
+        .iter()
+        .any(|program| !binding_available(program, op))
+    {
+        return Ok(None);
+    }
+    Ok(Some(descriptor(op)))
 }
 
 fn descriptor(op: BuiltinOp) -> Value {

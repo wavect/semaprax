@@ -354,7 +354,7 @@ fn intent_schema() -> Value {
         new_parameter(),
         computed_parameter()
     ]});
-    let record_fields = RECORD_FIELD_LITERAL_KINDS
+    let mut record_fields = RECORD_FIELD_LITERAL_KINDS
         .iter()
         .copied()
         .map(|kind| {
@@ -374,6 +374,40 @@ fn intent_schema() -> Value {
             ])
         })
         .collect::<Vec<_>>();
+    record_fields.push(closed(&[
+        ("id", stable_id()),
+        ("name", identifier()),
+        ("type", json!({"const":"string"})),
+        (
+            "default",
+            closed(&[
+                ("kind", json!({"const":"string"})),
+                (
+                    "value",
+                    json!({"type":"string","maxLength":MAX_STRING_LITERAL_BYTES / 4,"x-max-utf8-bytes":MAX_STRING_LITERAL_BYTES}),
+                ),
+            ]),
+        ),
+    ]));
+    record_fields.push(closed(&[
+        ("id", stable_id()),
+        ("name", identifier()),
+        ("type", json!({"const":"Bytes"})),
+        (
+            "default",
+            closed(&[
+                ("kind", json!({"const":"Bytes"})),
+                (
+                    "values",
+                    json!({
+                        "type":"array",
+                        "maxItems":MAX_EXPRESSION_NODES.saturating_sub(3),
+                        "items":{"type":"integer","minimum":0,"maximum":255}
+                    }),
+                ),
+            ]),
+        ),
+    ]));
     let mut extraction = base(
         "extract_function",
         vec![

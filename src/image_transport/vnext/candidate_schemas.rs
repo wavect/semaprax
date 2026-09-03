@@ -928,9 +928,19 @@ fn operation() -> Value {
                 ),
                 ("rejected_kind", json!({"const":"replace_function_body"})),
             ]),
-            "replace_expression" | "extract_function" => {
+            "replace_expression" => {
                 fields.push(("selector_source", json!({"const":"expression/catalog"})))
             }
+            "extract_function" => fields.extend([
+                ("selector_source", json!({"const":"expression/catalog"})),
+                (
+                    "capture_lanes",
+                    json!({"const":[
+                        {"kind":"copy", "admission":"immutable_checked_sized_copy_values"},
+                        {"kind":"single_local_owner", "types":["own Bytes","string"], "admission":"one_exact_whole_unprojected_body_local_consuming_occurrence", "helper_parameter":"owning_hir_boundary", "caller_action":"transfer_at_original_expression_position"}
+                    ]}),
+                ),
+            ]),
             "replace_contract_expression" => fields.extend([
                 (
                     "selector_source",
@@ -959,7 +969,16 @@ fn operation() -> Value {
                 ),
                 (
                     "field_types",
-                    json!({"const":["i64","bool","i32","u8","usize"]}),
+                    json!({"const":["i64","bool","i32","u8","usize","string","Bytes"]}),
+                ),
+                (
+                    "owning_field_lane",
+                    json!({"const":{
+                        "types":["string","Bytes"],
+                        "requires":"original_copy_sized_drop_free_resource_free_record_with_authenticated_constructor_and_no_target_record_patterns",
+                        "transition":"copy_to_needs_drop",
+                        "bytes_default":"fresh_bytes_copy_of_bounded_array"
+                    }}),
                 ),
             ]),
             "implement_interface" => fields.extend([

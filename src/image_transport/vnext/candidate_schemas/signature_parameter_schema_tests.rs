@@ -76,6 +76,43 @@ fn computed_argument_discovery_is_optional_on_mapping_and_absent_on_append() {
 }
 
 #[test]
+fn extraction_and_record_field_catalog_shapes_close_owning_metadata() {
+    let schema = operation();
+    let operations = schema["oneOf"].as_array().unwrap();
+    let extraction = operations
+        .iter()
+        .find(|entry| entry["properties"]["kind"]["const"] == "extract_function")
+        .unwrap();
+    assert_eq!(
+        extraction["properties"]["capture_lanes"]["const"],
+        json!([
+            {"kind":"copy", "admission":"immutable_checked_sized_copy_values"},
+            {"kind":"single_local_owner", "types":["own Bytes","string"], "admission":"one_exact_whole_unprojected_body_local_consuming_occurrence", "helper_parameter":"owning_hir_boundary", "caller_action":"transfer_at_original_expression_position"}
+        ])
+    );
+    let record = operations
+        .iter()
+        .find(|entry| entry["properties"]["kind"]["const"] == "add_record_field")
+        .unwrap();
+    assert_eq!(
+        record["properties"]["field_types"]["const"],
+        json!(["i64", "bool", "i32", "u8", "usize", "string", "Bytes"])
+    );
+    assert_eq!(
+        record["properties"]["owning_field_lane"]["const"],
+        json!({
+            "types":["string","Bytes"],
+            "requires":"original_copy_sized_drop_free_resource_free_record_with_authenticated_constructor_and_no_target_record_patterns",
+            "transition":"copy_to_needs_drop",
+            "bytes_default":"fresh_bytes_copy_of_bounded_array"
+        })
+    );
+    for shape in [extraction, record] {
+        assert_eq!(shape["additionalProperties"], false);
+    }
+}
+
+#[test]
 fn declaration_discovery_adds_exact_type_forms_without_changing_function_placement() {
     let schema = operation();
     let operation = schema["oneOf"]

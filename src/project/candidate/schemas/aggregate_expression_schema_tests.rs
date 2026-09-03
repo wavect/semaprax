@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn storage_literals_are_closed_and_keep_migration_defaults_scalar_only() {
+fn storage_literals_and_record_defaults_have_closed_bounds() {
     let expression = expression_schema();
     let forms = expression["oneOf"].as_array().unwrap();
     let string = forms
@@ -87,7 +87,7 @@ fn contract_replacement_is_a_distinct_closed_typed_intention() {
 }
 
 #[test]
-fn record_field_defaults_remain_the_five_inert_literal_kinds() {
+fn record_field_defaults_close_scalar_string_and_bytes_shapes() {
     let schema = intent_schema();
     let record = schema["oneOf"]
         .as_array()
@@ -96,19 +96,42 @@ fn record_field_defaults_remain_the_five_inert_literal_kinds() {
         .find(|form| form["properties"]["kind"]["const"] == "add_record_field")
         .unwrap();
     let fields = record["properties"]["field"]["oneOf"].as_array().unwrap();
-    assert_eq!(fields.len(), RECORD_FIELD_LITERAL_KINDS.len());
+    assert_eq!(fields.len(), RECORD_FIELD_LITERAL_KINDS.len() + 2);
     assert_eq!(
         fields
             .iter()
             .map(|field| field["properties"]["type"]["const"].as_str().unwrap())
             .collect::<Vec<_>>(),
-        RECORD_FIELD_LITERAL_KINDS
+        ["i64", "bool", "i32", "u8", "usize", "string", "Bytes"]
     );
-    assert!(fields.iter().all(|field| {
-        field["properties"]["default"]["properties"]
-            .get("value")
-            .is_some()
-    }));
+    assert!(fields[..RECORD_FIELD_LITERAL_KINDS.len()]
+        .iter()
+        .all(|field| {
+            field["properties"]["default"]["properties"]
+                .get("value")
+                .is_some()
+        }));
+    let string = &fields[RECORD_FIELD_LITERAL_KINDS.len()];
+    assert_eq!(
+        string["properties"]["default"]["properties"]["value"]["maxLength"],
+        MAX_STRING_LITERAL_BYTES / 4
+    );
+    assert!(string["properties"]["default"]["properties"]["value"]
+        .get("minLength")
+        .is_none());
+    assert_eq!(
+        string["properties"]["default"]["properties"]["value"]["x-max-utf8-bytes"],
+        MAX_STRING_LITERAL_BYTES
+    );
+    let bytes = &fields[RECORD_FIELD_LITERAL_KINDS.len() + 1];
+    assert_eq!(
+        bytes["properties"]["default"]["properties"]["values"]["maxItems"],
+        MAX_EXPRESSION_NODES - 3
+    );
+    assert_eq!(
+        bytes["properties"]["default"]["properties"]["values"]["items"],
+        json!({"type":"integer","minimum":0,"maximum":255})
+    );
 }
 
 #[test]

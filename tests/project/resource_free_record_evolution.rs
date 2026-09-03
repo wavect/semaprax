@@ -263,7 +263,11 @@ fn string_and_nested_string_record_source_constructors_append_defaults_without_c
             .expect("checked owned record must expose scalar field evolution");
         assert_eq!(
             operation["field_types"],
-            json!(["i64", "bool", "i32", "u8", "usize"])
+            json!(["i64", "bool", "i32", "u8", "usize", "string", "Bytes"])
+        );
+        assert_eq!(
+            operation["owning_field_lane"]["requires"],
+            "original_copy_sized_drop_free_resource_free_record_with_authenticated_constructor_and_no_target_record_patterns"
         );
         assert!(operation["constraints"]
             .as_array()

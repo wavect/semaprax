@@ -93,9 +93,11 @@ The owned String request uses lowercase `string` and `mode: value`, matching
 the language's bare String parameter syntax. Its actual HIR mode must be `own`,
 and ordinary type facts must establish sized, non-Copy, resource-free storage
 that needs cleanup. This does not add `own string`, borrowed nominal parameters,
-new imports or a wider callable/target profile. The extraction planner retains
-its separate immutable Copy capture/result rules; sharing append validation
-does not authorize owned capture or result extraction. The independently
+new imports or a wider callable/target profile. Sharing declaration validation
+does not grant extraction capability. The extraction planner retains its
+immutable Copy lane, while the separately guarded
+[owning-capture lane](PROJECT-OWNING-CAPTURE-EXTRACTION-V1.md) admits one exact
+whole local Bytes/String owner under its own source/HIR/cleanup checks. The independently
 guarded [nested-block extraction lane](PROJECT-EXTRACTION-V1.md#nested-blocks-with-internal-owned-data)
 can retain internal owners without passing them across the new call boundary.
 

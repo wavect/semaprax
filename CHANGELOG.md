@@ -11,6 +11,36 @@
   from the executable's capability-visible static catalog; unrelated,
   ambiguous, non-ASCII, and over-limit names retain the prior diagnostic.
 
+- Extended `extract_function` with one exact whole body-local owning
+  `Bytes`/`String` capture. The compiler authenticates source, retained HIR and
+  cleanup facts before mutation, transfers the owner once at its original
+  expression position through an owning helper parameter, and admits an
+  already-supported whole owned result. Conditional, projected, borrowed,
+  shared, repeated, contract, entrypoint, export and external-consumer cases
+  fail closed. Regressions are authored and unrun.
+
+- Added an authority-free package-consumer migration proposal for one exact
+  Copy-scalar signature append. It authenticates the caller-supplied baseline
+  corpus, rebuilds canonical migrated sources and candidate-era provider
+  evidence, and requires independent package replay before returning the
+  proposal. It performs no discovery, write, installation, compatibility
+  inference or publication. Regressions are authored and unrun.
+
+- Extended `add_record_field` with bounded owning `string` and `Bytes`
+  defaults for originally Copy, drop-free, sized resource-free records. Every
+  authenticated constructor receives a fresh appended owner, Bytes defaults
+  use compiler-owned copy operations, target record patterns fail closed, and
+  independent replay requires the exact Copy-to-needs-drop transition.
+  Regressions are authored and unrun.
+
+- Added v5 `draft/archive-store` over the startup-held immutable archive store.
+  The host independently replays the exact image and retained draft before
+  storage and may checkpoint the successful receipt through the distinct
+  retention registry; registry failures never erase or deny the stored draft.
+  The route grants no restore, completion, source, approval, publication,
+  deletion or garbage-collection authority. Regressions are authored and
+  unrun.
+
 - Closed the `graph <file>` command grammar. Unknown options and extra operands
   now reject with status 2 before the compiler reads or verifies the source.
 

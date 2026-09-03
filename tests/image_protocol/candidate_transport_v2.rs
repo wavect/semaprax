@@ -703,7 +703,7 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
             json!({"type":"integer","minimum":0,"maximum":u64::MAX}),
         ),
     ];
-    assert_eq!(fields.len(), expected_fields.len());
+    assert_eq!(fields.len(), expected_fields.len() + 2);
     for (field, (kind, value_schema)) in fields.iter().zip(expected_fields) {
         assert_eq!(field["required"], json!(["id", "name", "type", "default"]));
         assert_eq!(field["additionalProperties"], false);
@@ -721,6 +721,33 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
             value_schema
         );
     }
+    let string = &fields[5];
+    assert_eq!(string["properties"]["type"]["const"], "string");
+    assert_eq!(
+        string["properties"]["default"]["required"],
+        json!(["kind", "value"])
+    );
+    assert!(string["properties"]["default"]["properties"]["value"]
+        .get("minLength")
+        .is_none());
+    assert_eq!(
+        string["properties"]["default"]["properties"]["value"]["maxLength"],
+        4096
+    );
+    assert_eq!(
+        string["properties"]["default"]["properties"]["value"]["x-max-utf8-bytes"],
+        16_384
+    );
+    let bytes = &fields[6];
+    assert_eq!(bytes["properties"]["type"]["const"], "Bytes");
+    assert_eq!(
+        bytes["properties"]["default"]["required"],
+        json!(["kind", "values"])
+    );
+    assert_eq!(
+        bytes["properties"]["default"]["properties"]["values"]["maxItems"],
+        4093
+    );
 }
 
 #[test]

@@ -341,3 +341,245 @@ fn merge_replays_field_migration_after_unrelated_rename_and_rejects_competing_sh
         "SPX-G235",
     );
 }
+
+fn add_private_owned_field_fixture(fixture: &Fixture) {
+    let path = fixture.0.join("src/core.spx");
+    let original = std::fs::read_to_string(&path).unwrap();
+    let changed = format!(
+        r#"{original}
+@id("field.seed") record Seed {{
+    @id("field.seed.number") number: i64,
+}}
+@id("field.preowned") record Preowned {{
+    @id("field.preowned.bytes") bytes: Bytes,
+}}
+@id("field.seed.consume") fn consume_seed(input: i64) -> i64 {{
+    let seed = Seed {{ number: input }};
+    let updated = seed with {{ number: input + 1 }};
+    let other = Seed {{ number: updated.number }};
+    other.number
+}}
+"#
+    );
+    let program = semaprax::parse(&changed, Path::new("src/core.spx")).unwrap();
+    std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
+}
+
+fn owning_request(field_type: &str) -> Value {
+    let default = match field_type {
+        "string" => json!({"kind":"string","value":"agent-owned"}),
+        "Bytes" => json!({"kind":"Bytes","values":[0,1,127,255]}),
+        _ => unreachable!(),
+    };
+    json!({
+        "kind":"add_record_field",
+        "target":"field.seed",
+        "field":{
+            "id":format!("field.seed.{}", field_type.to_ascii_lowercase()),
+            "name":format!("{}_payload", field_type.to_ascii_lowercase()),
+            "type":field_type,
+            "default":default,
+        },
+    })
+}
+
+#[test]
+fn private_copy_record_constructors_gain_fresh_string_and_bytes_owners() {
+    for field_type in ["string", "Bytes"] {
+        let fixture = Fixture::new();
+        add_private_owned_field_fixture(&fixture);
+        let disk = fixture.bytes();
+        let root = fixture.candidate();
+        let change = SemanticChange::new(
+            root.revision().project_revision(),
+            &owning_request(field_type),
+        )
+        .unwrap();
+        let candidate = root.apply(root.candidate_digest(), &change).unwrap();
+        let core = source(&candidate, "src/core.spx");
+        if field_type == "string" {
+            assert!(core.contains("string_payload: string"));
+            assert_eq!(core.matches("string_payload: \"agent-owned\"").count(), 2);
+        } else {
+            assert!(core.contains("bytes_payload: Bytes"));
+            assert_eq!(
+                core.matches("bytes_payload: bytes_copy(array_as_slice([0u8, 1u8, 127u8, 255u8]))")
+                    .count(),
+                2
+            );
+        }
+        assert!(core.contains("let updated = seed with { number: input + 1 };"));
+        let graph: Value = serde_json::from_str(candidate.revision().semantic_graph()).unwrap();
+        assert!(graph["declarations"].as_array().unwrap().iter().any(|row| {
+            row["id"] == format!("field.seed.{}", field_type.to_ascii_lowercase())
+                && row["owner"] == "field.seed"
+        }));
+        let ownership: Value = serde_json::from_str(
+            &candidate
+                .ownership_delta(candidate.candidate_digest())
+                .unwrap(),
+        )
+        .unwrap();
+        let changed = ownership["functions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|row| row["id"] == "field.seed.consume")
+            .unwrap();
+        assert_eq!(changed["comparison"]["cleanup_inventory_equal"], false);
+        assert!(!changed["candidate"]["cleanup_inventory"]["slots"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+        let replay = ProjectCandidate::replay(
+            Arc::clone(root.base_revision()),
+            root.base_revision().project_revision(),
+            &[change],
+            candidate.to_json().as_bytes(),
+        )
+        .unwrap();
+        assert_eq!(replay.to_json(), candidate.to_json());
+        assert_eq!(fixture.bytes(), disk);
+    }
+
+    let fixture = Fixture::new();
+    add_private_owned_field_fixture(&fixture);
+    let root = fixture.candidate();
+    let mut empty = owning_request("string");
+    empty["field"]["default"]["value"] = json!("");
+    let candidate = apply(&root, &empty).unwrap();
+    assert!(source(&candidate, "src/core.spx").contains("string_payload: \"\""));
+}
+
+#[test]
+fn owning_field_lane_rejects_patterns_existing_owners_and_unbounded_defaults() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    let mut pattern = request();
+    pattern["field"]["type"] = json!("string");
+    pattern["field"]["default"] = json!({"kind":"string","value":"x"});
+    diagnostic(apply(&root, &pattern), "SPX-G225");
+
+    add_private_owned_field_fixture(&fixture);
+    let root = fixture.candidate();
+    let mut oversized = owning_request("Bytes");
+    oversized["field"]["default"]["values"] = json!(vec![0u8; 4094]);
+    diagnostic(apply(&root, &oversized), "SPX-G226");
+
+    let mut oversized_string = owning_request("string");
+    oversized_string["field"]["default"]["value"] = json!("é".repeat(4097));
+    diagnostic(apply(&root, &oversized_string), "SPX-G226");
+
+    let mut mismatch = owning_request("Bytes");
+    mismatch["field"]["default"] = json!({"kind":"string","value":"x"});
+    diagnostic(apply(&root, &mismatch), "SPX-G225");
+
+    let mut already_owned = owning_request("string");
+    already_owned["target"] = json!("field.preowned");
+    already_owned["field"]["id"] = json!("field.preowned.text");
+    diagnostic(apply(&root, &already_owned), "SPX-G225");
+}
+
+#[test]
+fn bytes_default_history_reserves_its_implicit_builtin_spellings() {
+    for name in ["bytes_copy", "array_as_slice"] {
+        let fixture = Fixture::new();
+        add_private_owned_field_fixture(&fixture);
+        let root = fixture.candidate();
+        let candidate = apply(&root, &owning_request("Bytes")).unwrap();
+        diagnostic(
+            apply(
+                &candidate,
+                &json!({
+                    "kind":"rename_declaration",
+                    "target":"field.unrelated",
+                    "name":name
+                }),
+            ),
+            "SPX-G225",
+        );
+    }
+}
+
+#[test]
+fn bytes_default_rebase_rejects_concurrent_implicit_builtin_spelling() {
+    let fixture = Fixture::new();
+    add_private_owned_field_fixture(&fixture);
+    let root = fixture.candidate();
+    let candidate = apply(&root, &owning_request("Bytes")).unwrap();
+    let path = fixture.0.join("src/core.spx");
+    let source = std::fs::read_to_string(&path)
+        .unwrap()
+        .replace("fn unrelated()", "fn bytes_copy()");
+    let parsed = semaprax::parse(&source, Path::new("src/core.spx")).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let concurrent = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    diagnostic(
+        candidate.rebase(
+            candidate.candidate_digest(),
+            Arc::clone(&concurrent),
+            concurrent.project_revision(),
+        ),
+        "SPX-G235",
+    );
+}
+
+#[test]
+fn rebase_binds_resolved_nominal_field_identity_beneath_unchanged_alias_spelling() {
+    let fixture = Fixture::new();
+    let core_path = fixture.0.join("src/core.spx");
+    let core = format!(
+        "{}\n{}",
+        std::fs::read_to_string(&core_path).unwrap(),
+        r#"@id("field.pair2") record Pair2 {
+    @id("field.pair2.left") left: i64,
+    @id("field.pair2.right") right: i64,
+}"#
+    );
+    let core = semaprax::parse(&core, Path::new("src/core.spx")).unwrap();
+    std::fs::write(&core_path, semaprax::format::canonical(&core)).unwrap();
+    let app_path = fixture.0.join("src/app.spx");
+    let app = format!(
+        "{}\n{}",
+        std::fs::read_to_string(&app_path).unwrap(),
+        r#"@id("field.wrapper") record Wrapper {
+    @id("field.wrapper.child") child: Metric,
+}
+@id("field.wrapper.read") fn read_wrapper() -> i64 {
+    let wrapper = Wrapper { child: Metric { right: 2, left: 1 } };
+    wrapper.child.left
+}"#
+    );
+    let app = semaprax::parse(&app, Path::new("src/app.spx")).unwrap();
+    std::fs::write(&app_path, semaprax::format::canonical(&app)).unwrap();
+    let root = fixture.candidate();
+    let intent = json!({
+        "kind":"add_record_field",
+        "target":"field.wrapper",
+        "field":{"id":"field.wrapper.tag","name":"tag","type":"i64","default":{"kind":"i64","value":7}}
+    });
+    let candidate = apply(&root, &intent).unwrap();
+
+    let rebound = std::fs::read_to_string(&app_path).unwrap().replacen(
+        "use type @id(\"field.pair\") from field.core as Metric;",
+        "use type @id(\"field.pair2\") from field.core as Metric;",
+        1,
+    );
+    let rebound = semaprax::parse(&rebound, Path::new("src/app.spx")).unwrap();
+    std::fs::write(&app_path, semaprax::format::canonical(&rebound)).unwrap();
+    let concurrent = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.retain_revision())
+    })
+    .unwrap();
+    diagnostic(
+        candidate.rebase(
+            candidate.candidate_digest(),
+            Arc::clone(&concurrent),
+            concurrent.project_revision(),
+        ),
+        "SPX-G235",
+    );
+}

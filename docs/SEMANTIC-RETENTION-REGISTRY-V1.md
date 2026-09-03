@@ -20,10 +20,12 @@ The root inventory is closed to `metadata`, an optional `CURRENT` file and at
 most one interrupted `.CURRENT-stage`. `metadata` remains the unmodified
 `semantic_retention_store` root, so it continues to admit only its fixed
 immutable checkpoint/plan envelopes. The registry holds and rechecks the root,
-ancestor and metadata-directory identities. `CURRENT` and its stage must be
-current-user-owned, single-link regular files with exact mode `0600`; the cursor
-is at most 4,096 bytes. Absolute paths are bounded to 4,096 bytes and 64
-components.
+ancestor and metadata-directory identities. Pair persistence and restoration
+remain descriptor-relative to that held `metadata` directory for the complete
+registry operation; a same-owner path replacement cannot redirect a nested
+store open. `CURRENT` and its stage must be current-user-owned, single-link
+regular files with exact mode `0600`; the cursor is at most 4,096 bytes.
+Absolute paths are bounded to 4,096 bytes and 64 components.
 
 The root is an explicit metadata-selection capability. It is not a subject
 locator, source root, archive root or proof that any retained subject still
@@ -75,10 +77,14 @@ value, remove that obsolete cursor stage and settle the directory.
 If the exact derived pair already exists after an interrupted or uncertain
 attempt, retry loads it by the newly derived checkpoint, predecessor and plan
 selectors. Only exact canonical equality permits reuse; the registry does not
-enumerate or adopt an unrelated pair. If a validated `0600` cursor stage remains,
-the next exclusive transaction removes and settles it before rereading
-`CURRENT`. A malformed, linked, foreign-owned, oversized or wrongly permissioned
-stage fails closed.
+enumerate or adopt an unrelated pair. A remaining cursor stage must parse as an
+exact canonical cursor, select an authenticated immutable pair through the held
+metadata directory, and be either the consecutive next cursor over `CURRENT` or
+the exact checkpoint predecessor exchanged out by `CURRENT`. The next exclusive
+transaction rebinds the stage's identity and file facts immediately before
+removing and settling it. Recovery rejects malformed or unrelated stages rather
+than silently ignoring them. A linked, foreign-owned, oversized or wrongly
+permissioned stage also fails closed.
 
 Failure before the cursor pivot leaves the prior `CURRENT` authoritative. A
 failure after the atomic pivot reports explicit uncertainty: the caller must run
@@ -118,7 +124,7 @@ subject or immutable checkpoint/plan pair.
 The module regression authors initialization, exact recovery, a pre-persisted
 pair left before cursor publication, a stale cursor stage, successful consecutive
 CAS advancement, stale-CAS rejection and preservation of both immutable pairs.
-It also rejects an empty receipt generation and a same-owner replacement of the
-held `metadata` child. These cases are authored and unrun; there is no executed
-interruption, cross-process, cross-platform, CLI, session, subject-replay, GC or
-quality-gate evidence.
+It also rejects an empty receipt generation, malformed/unrelated/unbacked cursor
+stages and a same-owner replacement of the held `metadata` child. These cases
+are authored and unrun; there is no executed interruption, cross-process,
+cross-platform, CLI, session, subject-replay, GC or quality-gate evidence.

@@ -801,13 +801,16 @@ infer newest state or restore any source/image/candidate authority.
 pure planner and that unchanged pair store behind a separate explicit private
 registry root. A held `0700` `metadata` child owns immutable pairs; a canonical
 `0600` `CURRENT` cursor binds the consecutive sequence, exact pair selectors and
-fixed policy. Initialization and CAS advancement settle the pair before the
-cursor pivot. Recovery authenticates only the pair named by `CURRENT`; exact
-pre-pivot pairs may be reused after rederivation, while post-pivot uncertainty
-requires recovery from the same explicit root. Cursor-stage cleanup never
-deletes a retained subject or immutable pair. The registry grants no source,
-subject-store, GC, approval or publication authority and has no CLI or session
-integration. See [Semantic Retention Registry v1](SEMANTIC-RETENTION-REGISTRY-V1.md).
+fixed policy. Pair operations stay descriptor-relative to that held child.
+Initialization and CAS advancement settle the pair before the cursor pivot.
+Recovery authenticates only the pair named by `CURRENT`; exact pre-pivot pairs
+may be reused after rederivation, while post-pivot uncertainty requires recovery
+from the same explicit root. An interrupted cursor stage must be canonical,
+backed by its exact held-directory pair and consecutive with `CURRENT` before
+exclusive cleanup; malformed or unrelated stages fail closed. Cursor-stage
+cleanup never deletes a retained subject or immutable pair. The registry grants
+no source, subject-store, GC, approval or publication authority and has no CLI
+or session integration. See [Semantic Retention Registry v1](SEMANTIC-RETENTION-REGISTRY-V1.md).
 `src/cli/retention_metadata.rs` is the narrow command-line adapter. It receives
 an explicit bounded canonical declaration inventory whose rows contain only a
 closed image/candidate/draft subject and byte accounting. Declaration rows use

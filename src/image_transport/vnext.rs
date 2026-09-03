@@ -19,6 +19,7 @@ mod draft_archive;
 mod draft_merge;
 mod draft_rebase;
 mod draft_recovery;
+mod environment_consumer_review;
 mod environment_review;
 mod external_api_contract_delta;
 mod external_api_contract_evidence;
@@ -124,6 +125,7 @@ pub(super) enum Action {
     CandidateAnalysisBoundaryBundle,
     CandidateDeploymentContractEvidence,
     CandidateEnvironmentReview,
+    CandidateEnvironmentConsumerReview,
     CandidateExternalApiContractDelta,
     CandidateExternalApiContractEvidence,
     CandidateGeneratedFileProvenanceEvidence,
@@ -593,6 +595,10 @@ impl VNextSession {
                     environment_review::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::CandidateEnvironmentConsumerReview) => (
+                    environment_consumer_review::prepare(params, image, registry, package_graph)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(Action::CandidateExternalApiContractDelta) => (
                     external_api_contract_delta::prepare(params, image, registry)?,
                     candidates::Mutation::None,
@@ -893,6 +899,9 @@ fn session_methods(
         methods.push(analysis_boundary_bundle::method());
         methods.push(deployment_contract_evidence::method());
         methods.push(environment_review::method());
+        if package_attached {
+            methods.push(environment_consumer_review::method());
+        }
         methods.push(external_api_contract_delta::method());
         methods.push(external_api_contract_evidence::method());
         methods.push(generated_file_provenance::method());

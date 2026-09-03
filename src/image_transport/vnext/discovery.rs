@@ -153,6 +153,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/environment-consumer-review")
+        {
+            instructions.push_str(" With candidate_prepare and a host-attached package graph, use candidate/environment-consumer-review with exact image_revision, candidate_revision, package_revision, canonical bundle string and bundle_digest, provider_package, provider_version, provider_source_path and target. The compiler independently regenerates the complete environment review and the attached graph's complete package summary and selected consumer report, then requires exact candidate, base, project, workspace, bundle, package graph, provider source and target joins. Reassemble offset/next_offset chunks with chunk_bytes 1024 through 65536 (default 16384), keeping every selector and all bundle bytes identical; the report is bounded to 23265280 bytes and report_sha256 must match across chunks. Its closed operational projection advances only external_consumers to partial; the original environment review remains complete and unchanged. Compatibility is not_assessed. The attached graph is not installed, ambient or deployed consumer discovery; imports and static calls are not runtime use. No filesystem, environment, registry, provider, network, generator, runtime, conformance or deployment observation or authority is granted. Caller bundle bytes keep this query outside the parallel-read subset.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "candidate/analysis-deployment-contract-evidence")
         {
             instructions.push_str(" With candidate_prepare, use candidate/analysis-deployment-contract-evidence with exact image_revision, candidate_revision, canonical declaration string and declaration_digest. The declaration is bounded to 65536 UTF-8 bytes and must bind the exact candidate and complete ordered manifest export inventory; its configuration rows describe only sorted key names, string/integer/boolean shapes and required flags. Reassemble the independently regenerated report using offset and next_offset with chunk_bytes 1024 through 65536 (default 16384), keeping all declaration bytes and selectors identical; the report is bounded to 2 MiB and report_sha256 must match across chunks. This caller declaration changes only deployment_configuration coverage from not_inspected to partial. It is not environment observation, deployed state, artifact/runtime/API/consumer compatibility, freshness, drift or conformance evidence. Requests grant no filesystem, environment, secret, network, provider, deployment, source or publication authority, and this potentially large caller-data query is not in the parallel-read subset.");
@@ -394,6 +400,7 @@ fn method_capability(method: &Method) -> &'static str {
         | "candidate/analysis-coverage"
         | "candidate/analysis-boundary-bundle"
         | "candidate/environment-aware-review"
+        | "candidate/environment-consumer-review"
         | "candidate/external-api-contract-delta"
         | "candidate/analysis-deployment-contract-evidence"
         | "candidate/analysis-external-api-contract-evidence"
@@ -588,6 +595,9 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             }
             "candidate/environment-aware-review" => {
                 Some(crate::project::PROJECT_CANDIDATE_ENVIRONMENT_REVIEW_SCHEMA)
+            }
+            "candidate/environment-consumer-review" => {
+                Some(crate::project::PROJECT_CANDIDATE_ENVIRONMENT_CONSUMER_REVIEW_SCHEMA)
             }
             "candidate/external-api-contract-delta" => {
                 Some(crate::project::PROJECT_CANDIDATE_EXTERNAL_API_CONTRACT_DELTA_SCHEMA)

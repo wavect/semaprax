@@ -1,6 +1,6 @@
 //! Package consumer provenance regressions, authored without execution.
 use semaprax::diagnostic::Diagnostic;
-use semaprax::image_transport::{VNextPolicy, VNextSession};
+use semaprax::image_transport::{McpSession, VNextPolicy, VNextSession};
 use semaprax::package_lock_v2::{self, Coordinate};
 use semaprax::package_report_v2::{self, PackageReportV2Options};
 use semaprax::package_resolver::{self, Requirement, ResolutionInput, ResolutionOptions};
@@ -117,6 +117,16 @@ impl Fixture {
         VNextSession::open(
             &self.root.join("project/semaprax.toml"),
             VNextPolicy::default(),
+        )
+        .unwrap()
+    }
+    fn candidate_session(&self) -> VNextSession {
+        VNextSession::open(
+            &self.root.join("project/semaprax.toml"),
+            VNextPolicy {
+                candidate_prepare: true,
+                ..Default::default()
+            },
         )
         .unwrap()
     }
@@ -634,4 +644,137 @@ fn attachment_is_digest_bound_startup_only_and_cannot_replace_the_selected_subje
     .is_some());
     assert_eq!(graph.summary(graph.graph_digest()).unwrap(), before);
     assert_eq!(std::fs::read_to_string(path).unwrap(), changed);
+}
+
+#[test]
+fn environment_consumer_review_requires_both_host_selections_and_is_closed_but_not_parallel() {
+    const METHOD: &str = "candidate/environment-consumer-review";
+    const CHUNK: &str = "urn:semaprax.image-candidate-environment-consumer-review-chunk.v1";
+    let fixture = Fixture::new("1.0.0");
+    let graph = Arc::new(fixture.graph());
+
+    let mut candidate_only = fixture.candidate_session();
+    assert!(!payload(call(
+        &mut candidate_only,
+        "protocol/capabilities",
+        json!({})
+    ))["methods"]
+        .as_array()
+        .unwrap()
+        .contains(&json!(METHOD)));
+    candidate_only.finish().unwrap();
+
+    let mut graph_only = fixture.session();
+    graph_only
+        .attach_package_graph(Arc::clone(&graph), graph.graph_digest())
+        .unwrap();
+    assert!(
+        !payload(call(&mut graph_only, "protocol/capabilities", json!({})))["methods"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(METHOD))
+    );
+    graph_only.finish().unwrap();
+
+    let mut selected = fixture.candidate_session();
+    selected
+        .attach_package_graph(Arc::clone(&graph), graph.graph_digest())
+        .unwrap();
+    assert!(!selected.parallel_read_methods().contains(&METHOD));
+    let schemas = payload(call(&mut selected, "protocol/schemas", json!({})));
+    let descriptor = schemas["methods"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["method"] == METHOD)
+        .unwrap();
+    assert_eq!(descriptor["capability"], "candidate_prepare");
+    assert_eq!(descriptor["query"], true);
+    let params = &descriptor["request_schema"]["properties"]["params"];
+    assert_eq!(params["additionalProperties"], false);
+    for required in [
+        "image_revision",
+        "candidate_revision",
+        "package_revision",
+        "bundle",
+        "bundle_digest",
+        "provider_package",
+        "provider_version",
+        "provider_source_path",
+        "target",
+    ] {
+        assert!(params["required"]
+            .as_array()
+            .unwrap()
+            .contains(&json!(required)));
+    }
+    assert_eq!(params["properties"]["offset"]["maximum"], 23_265_280);
+    let chunk = schemas["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|document| document["$id"] == CHUNK)
+        .unwrap();
+    assert_eq!(chunk["additionalProperties"], false);
+    assert_eq!(
+        chunk["properties"]["compatibility"]["const"],
+        "not_assessed"
+    );
+    for field in [
+        "source_authority",
+        "filesystem_authority",
+        "network_observation",
+        "installed_consumer_observation",
+        "consumer_discovery_complete",
+        "package_acquisition_authority",
+        "runtime_observation",
+        "publication_authority",
+        "deployment_authority",
+    ] {
+        assert_eq!(chunk["properties"][field]["const"], false);
+    }
+    for language in ["typescript", "python", "rust"] {
+        let client = payload(call(
+            &mut selected,
+            "protocol/client",
+            json!({"language":language}),
+        ));
+        let source = client["source"].as_str().unwrap();
+        assert!(source.contains("request_candidate_environment_consumer_review"));
+        assert!(source.contains("decode_request_candidate_environment_consumer_review"));
+    }
+    selected.finish().unwrap();
+
+    let mut mcp_host = fixture.candidate_session();
+    mcp_host
+        .attach_package_graph(Arc::clone(&graph), graph.graph_digest())
+        .unwrap();
+    let mut mcp = McpSession::new(mcp_host).unwrap();
+    let initialize = json!({"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+        "protocolVersion":"2025-11-25","capabilities":{},
+        "clientInfo":{"name":"environment-consumers","version":"1"}}});
+    mcp.handle_frame(initialize.to_string().as_bytes()).unwrap();
+    mcp.handle_frame(br#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#);
+    let mut names = Vec::new();
+    let mut cursor = None;
+    loop {
+        let request = json!({"jsonrpc":"2.0","id":2,"method":"tools/list","params":
+            cursor.as_ref().map_or_else(||json!({}),|value|json!({"cursor":value}))});
+        let page: Value =
+            serde_json::from_slice(&mcp.handle_frame(request.to_string().as_bytes()).unwrap())
+                .unwrap();
+        names.extend(
+            page["result"]["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter_map(|tool| tool["name"].as_str().map(str::to_owned)),
+        );
+        cursor = page["result"]["nextCursor"].as_str().map(str::to_owned);
+        if cursor.is_none() {
+            break;
+        }
+    }
+    assert!(names.contains(&"candidate__environment-consumer-review".to_owned()));
+    mcp.finish().unwrap();
 }

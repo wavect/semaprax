@@ -66,6 +66,26 @@ automatic, malformed, over-limit, aggregate, generic, resource, imported, or
 effectful selections fail with the profile diagnostics `SPX-W115` or
 `SPX-W116` before output creation.
 
+### What the excluded types use instead
+
+An exclusion here is a profile boundary, not an absence. `usize` and the owned
+and borrowed data types reach a Wasm boundary through the profile built for
+their ABI:
+
+| type | carried by |
+| --- | --- |
+| `borrow str` parameter | the Public Borrowed Text Export Profile v1 |
+| `borrow Slice<u8>` parameter, `usize` result | the Public Useful Data Export v1 scratch/status ABI |
+| owned `Bytes` | [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md) |
+| owned `string` | [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md), and the [internal String Web profile](WASM-INTERNAL-STRINGS-WEB-V1.md) |
+
+`usize` stays out of *this* profile because it is a checked semantic integer
+with no public host width, and every sibling scalar widening excluded it for
+the same reason; the useful-data profile can carry it as a result because that
+ABI already fixes a width for its own transport. `tests/backend_type_parity.rs`
+pins the exact per-profile answer, one probe shape per row, so a narrowing in
+any of these profiles fails a gate rather than passing unnoticed.
+
 The whole-program restriction is deliberate. The existing aggregate Wasm lane
 uses an out-pointer/status ABI and shadow-stack memory, while this profile uses
 direct scalar adapters. Supporting selected scalar declarations inside an

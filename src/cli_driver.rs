@@ -240,6 +240,34 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
+        CommandId::RetentionMetadataPlan => {
+            if args.len() != 9
+                || args[1..]
+                    .iter()
+                    .any(|argument| argument.is_empty() || argument.starts_with('-'))
+            {
+                eprintln!("{command} requires its exact positional operands; see --help");
+                return Err(2);
+            }
+            let no_previous = args[6] == "none";
+            if no_previous != (args[7] == "none") || (no_previous && args[8] != "none") {
+                eprintln!("{command} requires a previous checkpoint file and selector together");
+                return Err(2);
+            }
+            let output = cli::retention_metadata::plan(cli::retention_metadata::PlanOptions {
+                inventory: Path::new(&args[1]),
+                sequence: &args[2],
+                max_subjects: &args[3],
+                max_bytes: &args[4],
+                protected_generations: &args[5],
+                previous_checkpoint: (!no_previous).then(|| Path::new(&args[6])),
+                expected_previous: (!no_previous).then_some(args[7].as_str()),
+                expected_previous_predecessor: (args[8] != "none").then_some(args[8].as_str()),
+            })
+            .map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
         CommandId::RetentionMetadataPersist | CommandId::RetentionMetadataLoad => {
             let arity = if command == "retention-metadata-persist" {
                 7

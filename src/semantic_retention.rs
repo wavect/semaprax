@@ -17,10 +17,13 @@ mod tests;
 
 pub const SEMANTIC_RETENTION_CHECKPOINT_SCHEMA: &str = "semaprax.semantic-retention-checkpoint.v1";
 pub const SEMANTIC_RETENTION_PLAN_SCHEMA: &str = "semaprax.semantic-retention-plan.v1";
+pub const SEMANTIC_RETENTION_INVENTORY_SCHEMA: &str =
+    "semaprax.semantic-retention-observation-inventory.v1";
 pub const MAX_RETENTION_SUBJECTS: usize = 96;
 pub const MAX_RETENTION_TRANSITION_SUBJECTS: usize = MAX_RETENTION_SUBJECTS * 2;
 pub const MAX_RETENTION_CHECKPOINT_BYTES: usize = 1_048_576;
 pub const MAX_RETENTION_PLAN_BYTES: usize = 1_048_576;
+pub const MAX_RETENTION_INVENTORY_BYTES: usize = 1_048_576;
 pub const MAX_RETENTION_SUBJECT_BYTES: u64 = 134_217_728;
 pub const MAX_RETENTION_TOTAL_BYTES: u64 = 8_589_934_592;
 pub const MAX_RETENTION_GENERATIONS: u64 = 32;
@@ -36,6 +39,11 @@ const NONCLAIMS: &[&str] = &[
     "caller_must_apply_evictions_through_separately_selected_store_authority",
     "old_checkpoint_bytes_remain_historical_and_never_become_current_implicitly",
     "no_clock_mtime_access_frequency_or_nondeterministic_ordering",
+];
+const INVENTORY_NONCLAIMS: &[&str] = &[
+    "caller_declared_metadata_not_store_or_filesystem_discovery",
+    "inventory_not_subject_presence_freshness_validation_or_approval_evidence",
+    "inventory_grants_no_source_candidate_image_gc_or_publication_authority",
 ];
 
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
@@ -360,6 +368,81 @@ impl RetentionObservation {
     pub const fn stored_bytes(&self) -> u64 {
         self.stored_bytes
     }
+}
+
+/// Restore one closed caller-declared observation inventory. Canonical rows are
+/// sorted by their derived subject identity and carry no locator or authority.
+pub fn restore_observation_inventory(bytes: &[u8]) -> Result<Vec<RetentionObservation>> {
+    if bytes.is_empty() || bytes.len() > MAX_RETENTION_INVENTORY_BYTES {
+        return Err(capacity(
+            "retention observation inventory bytes are empty or exceed the fixed bound",
+        ));
+    }
+    let value: Value = serde_json::from_slice(bytes)
+        .map_err(|_| invalid("retention observation inventory is not bounded valid JSON"))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| invalid("retention observation inventory must be an object"))?;
+    require_keys(
+        object,
+        &["schema", "observations", "nonclaims"],
+        "retention observation inventory has unknown or missing fields",
+    )?;
+    if value["schema"] != SEMANTIC_RETENTION_INVENTORY_SCHEMA
+        || value["nonclaims"] != json!(INVENTORY_NONCLAIMS)
+    {
+        return Err(invalid(
+            "retention observation inventory schema or authority boundary differs",
+        ));
+    }
+    let rows = object
+        .get("observations")
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid("retention observation inventory rows are missing"))?;
+    if rows.len() > MAX_RETENTION_SUBJECTS {
+        return Err(capacity("retention observation inventory exceeds 96"));
+    }
+    let mut observations = Vec::with_capacity(rows.len());
+    let mut prior = None;
+    for row in rows {
+        let row = row
+            .as_object()
+            .ok_or_else(|| invalid("retention observation row must be an object"))?;
+        require_keys(
+            row,
+            &["subject_digest", "subject", "stored_bytes"],
+            "retention observation row has unknown or missing fields",
+        )?;
+        let subject = RetentionSubject::parse(
+            row.get("subject")
+                .ok_or_else(|| invalid("retention observation subject is missing"))?,
+        )?;
+        let identity = subject.subject_digest();
+        if text(
+            row.get("subject_digest"),
+            "retention observation subject identity is missing",
+        )? != identity
+            || prior.as_ref().is_some_and(|prior| prior >= &identity)
+        {
+            return Err(binding(
+                "retention observation identities are mismatched, repeated, or not canonical",
+            ));
+        }
+        prior = Some(identity);
+        observations.push(RetentionObservation::new(
+            subject,
+            number(
+                row.get("stored_bytes"),
+                "retention observation byte count is missing",
+            )?,
+        )?);
+    }
+    if render_observation_inventory(&observations)?.as_bytes() != bytes {
+        return Err(binding(
+            "retention observation inventory bytes are not canonical",
+        ));
+    }
+    Ok(observations)
 }
 
 /// Authority-neutral metadata emitted by a successful retained-subject store
@@ -992,6 +1075,21 @@ fn make_plan(
         json,
         digest,
     })
+}
+
+fn render_observation_inventory(observations: &[RetentionObservation]) -> Result<String> {
+    render(
+        json!({
+            "schema":SEMANTIC_RETENTION_INVENTORY_SCHEMA,
+            "observations":observations.iter().map(|observation| json!({
+                "subject_digest":observation.subject.subject_digest(),
+                "subject":observation.subject.value(),
+                "stored_bytes":observation.stored_bytes,
+            })).collect::<Vec<_>>(),
+            "nonclaims":INVENTORY_NONCLAIMS,
+        }),
+        MAX_RETENTION_INVENTORY_BYTES,
+    )
 }
 
 fn canonical(value: &Value) -> String {

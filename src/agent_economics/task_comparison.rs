@@ -631,7 +631,7 @@ mod tests {
             "plan_sha256":format!("sha256:{}","1".repeat(64)),
             "task":"signature-migration-v1","lane":lane,"trial":1,"state":"cold",
             "model":"model:v1","tokenizer":"provider:v1","model_configuration":"fixed:v1",
-            "harness":"harness:v1","host":"host:v1","toolchain":format!("{lane}:tool:v1"),
+            "harness":"harness:v1","host":"host:v1","toolchain":"shared-toolchain:v1",
             "prompt_sha256":format!("sha256:{}","2".repeat(64)),
             "artifacts":[{"id":"ledger","path":"ledger.json","bytes":1,
                 "sha256":format!("sha256:{}","3".repeat(64)),"kind":"typed_event_ledger"}],
@@ -646,7 +646,7 @@ mod tests {
         json!({
             "schema":"semaprax.agent-task-comparison-embedded-observation.v1",
             "lane":lane,"task":"signature-migration-v1","corpus":"agent-task-comparison-v1",
-            "tool":format!("{lane}:tool:v1"),"model":"model:v1",
+            "tool":"shared-toolchain:v1","model":"model:v1",
             "source_revision":format!("sha256:{}","4".repeat(64)),
             "image_revision":if lane==REQUIRED_LANES[0]{json!(format!("sha256:{}","5".repeat(64)))}else{Value::Null},
             "candidate_revision":if lane==REQUIRED_LANES[0]{json!(format!("sha256:{}","6".repeat(64)))}else{Value::Null},

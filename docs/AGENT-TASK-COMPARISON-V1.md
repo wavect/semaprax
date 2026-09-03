@@ -247,8 +247,11 @@ model. It requires exactly one `semaprax-graph-operational` and one
 explicitly. Duplicate, missing or unknown lanes fail.
 
 Each lane uses the distinct closed wrapper
-`semaprax.agent-task-comparison-embedded-observation.v1`. It binds its toolchain,
-source revision and, for the semantic lane, image and candidate revisions. It
+`semaprax.agent-task-comparison-embedded-observation.v1`. The paired observations
+must retain the existing contract's same harness, host, tokenizer, model
+configuration and toolchain binding. Lane-specific compiler or tool identities
+belong in authenticated evidence artifacts, not the paired `toolchain` field.
+The wrapper also binds its source revision and, for the semantic lane, image and candidate revisions. It
 also supplies wall time, protocol bytes and source bytes. Its `observation`
 field contains the complete canonical bytes of the existing
 `semaprax.agent-task-comparison-observation.v1` contract and

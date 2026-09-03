@@ -53,6 +53,8 @@ mod agent_workflow;
 mod backend_equivalence;
 #[path = "project/borrowed_bytes_call_interpreter.rs"]
 mod borrowed_bytes_call_interpreter;
+#[path = "project/command_argument_borrow.rs"]
+mod command_argument_borrow;
 #[path = "project/developer_loop.rs"]
 mod developer_loop;
 #[path = "project/draft_expression_catalog.rs"]

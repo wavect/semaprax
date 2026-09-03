@@ -19,11 +19,14 @@ with `-D warnings`, so an unused import fails the build.
 
 ## Known conditions
 
-`cargo test --locked -p semaprax --lib` aborts in
+`cargo test --locked -p semaprax --lib` aborts with a stack overflow on a
+default-stack debug build in two tests:
 `wasm::internal_strings::tests::nesting::nested_if_compile_on_default_stack`
-with a stack overflow on a default-stack debug build. It reproduces on an
-unmodified tree and is not caused by your change; skip it with
-`-- --skip nested_if_compile_on_default_stack`.
+and
+`cleanup_plan::build::iterative_lowering_tests::long_identity_cleanup_dag_owned_census_covers_many_deep_roots`.
+Both reproduce on an unmodified tree and are not caused by your change; skip
+them with `-- --skip nested_if_compile_on_default_stack --skip
+long_identity_cleanup_dag_owned_census_covers_many_deep_roots`.
 
 A full `--workspace --all-targets` test build links several hundred integration
 binaries and needs well over 10 GB. Build with `CARGO_INCREMENTAL=0` and

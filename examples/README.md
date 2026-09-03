@@ -113,22 +113,18 @@ the manifest's `web_exports` already selects the surface.
 | `examples/spxgrep-project` | Project schema v4 under `useful-data-command.v1`: a `command` entry with a single declared `process.stdout.write` capability | `semaprax test examples/spxgrep-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Project Manifest v4](../docs/PROJECT-MANIFEST-V4.md), [Bounded Stdout Transcript v1](../docs/BOUNDED-STDOUT-TRANSCRIPT-V1.md) |
 | `examples/spxgrep-native-command-project` | Project schema v5 under `useful-data-command.v2`: the same command shape with a declared `input` contract and four capabilities | `semaprax test examples/spxgrep-native-command-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Project Manifest v5](../docs/PROJECT-MANIFEST-V5.md) |
 | `examples/frame-payload-project` | Project schema v8 under `owned-data-api.v1`: an `SPX1` frame decoder returning owned `Bytes`, `Option<Bytes>` and `Result<Bytes, i64>`, with a nine-case `corpus.json` | `semaprax test examples/frame-payload-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Public Owned Data API v1](../docs/PUBLIC-OWNED-DATA-API-V1.md), and the directory's own [README](frame-payload-project/README.md) |
-| `examples/spxgrep-language-command-project` | Project schema v6 under `language-command-io.v1`: `argv-utf8+stdin-bytes.v1` input read through `arg_utf8` | `check`, `test` and `run` on the manifest all fail here — see the note below | [Bounded Language Command I/O v1](../docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md) |
-| `examples/spxgrep-lines-project` | Project schema v7 under `line-command-io.v1`: line-at-a-time filtering with `byte_range` over the same argv/stdin input | `check`, `test` and `run` on the manifest all fail here — see the note below | [Project Manifest v1](../docs/PROJECT-MANIFEST-V1.md), section "Additive Project Manifest v7 line-command profile" |
+| `examples/spxgrep-language-command-project` | Project schema v6 under `language-command-io.v1`: `argv-utf8+stdin-bytes.v1` input read through `arg_utf8` | `semaprax test examples/spxgrep-language-command-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Bounded Language Command I/O v1](../docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md) |
+| `examples/spxgrep-lines-project` | Project schema v7 under `line-command-io.v1`: line-at-a-time filtering with `byte_range` over the same argv/stdin input | `semaprax test examples/spxgrep-lines-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Project Manifest v1](../docs/PROJECT-MANIFEST-V1.md), section "Additive Project Manifest v7 line-command profile" |
 
-The last two projects both bind a borrowed `str` local from `arg_utf8`. On this
-CLI build `semaprax check`, `test` and `run` against either manifest each stop
-at
-`error[SPX-H006]: borrowed-str local must be an exact alias or authenticated owning String view`,
-so neither project can be exercised end to end from the command line here.
-Their committed sources are still compiled as fixtures by the repository's own
-gates —
+The last two projects both bind a borrowed `str` local from `arg_utf8`, so they
+are the two examples that exercise the invocation-owned argument arena from the
+command line. `run` executes each project's `main`, not its `command` entry;
+the argv/stdin command entry itself is driven by
 `cargo test --locked -p semaprax --test project` (modules
-`language_command_native`, `line_command_native`, `manifest_v7`) and
+`language_command_native`, `line_command_native`, `command_argument_borrow`) and
 `cargo test --locked -p semaprax --test useful_data` (module
-`line_filter_project_v7`) — which is where their evidence lives.
-[Completion matrix](../docs/COMPLETION-MATRIX.md) owns the status of these
-profiles.
+`line_filter_project_v7`). [Completion matrix](../docs/COMPLETION-MATRIX.md)
+owns the status of these profiles.
 
 ## Target and host projections
 

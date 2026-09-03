@@ -17,6 +17,16 @@ same owner root and prevents overlapping moves for its lifetime. Canonical
 source uses the reserved spelling `string_as_str`; the semantic graph exposes
 `core.string.as-str` and the rooted borrow relationship.
 
+This view is not the only authenticated root of an immutable borrowed-`str`
+local. `arg_utf8(index)`, owned by [Bounded Language Command
+I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), roots such a local on the single
+invocation-owned argument arena, which is not a named in-scope owner and
+therefore mints no loan: repeated or dynamic argument reads neither mint nor
+recharge roots. Checked-HIR validation authenticates exactly the three
+`borrow str` producers the resolver admits — a `borrow str` parameter, this
+owning-String view, and the command-argument view — and rejects every other
+value shape.
+
 Native lowering forms the existing length-aware `spx_str_v1` carrier over the
 owner allocation. Frozen terminated-string profiles use their existing
 terminated representation; length-delimited profiles use the authenticated

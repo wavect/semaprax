@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Added project-route evidence for the Bounded Language Command I/O v1
+  borrowed-`str` argument root. The existing regressions reassembled the
+  committed v7 sources into one module by hand, so nothing pinned the route
+  `check`, `run`, and `test` actually take: all four committed spxgrep
+  manifests now admit and execute through the manifest route, and a mutable
+  command-argument local still fails closed there. Removing the
+  command-argument arm from checked-HIR validation fails all three cases, so
+  the gate is load-bearing. The examples index no longer records the argument
+  root's rejection as expected behavior.
+
 - Added the authority-free C++ scalar package v1 projection. An explicit
   stable-ID selection now produces a bounded canonical envelope containing a
   C++17 header and separately linkable C11 provider over the existing Copy-

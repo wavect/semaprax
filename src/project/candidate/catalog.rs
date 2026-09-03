@@ -135,6 +135,15 @@ impl ProjectCandidate {
                             "existing_parameter_fields":["from"],
                             "existing_parameter_rename_fields":["from","name"],
                             "new_parameter_fields":["name","type","argument"],
+                            "borrowed_parameter_fields":["name","borrow_from"],
+                            "borrowed_parameter":{
+                                "source":"authenticated_original_borrowed_view",
+                                "admitted_views":["borrow str","borrow Slice<u8>"],
+                                "caller_lowering":"reuse_exact_left_to_right_staged_view",
+                                "root_provenance":"ordinary_full_project_loan_and_provenance_replay",
+                                "source_must_be_retained_exactly_once":true,
+                                "new_root_or_lifetime":false,
+                            },
                             "computed_parameter_fields":["name","type","argument_expression"],
                             "computed_argument":{
                                 "constructor_schema":"semaprax.typed-expression.v1",

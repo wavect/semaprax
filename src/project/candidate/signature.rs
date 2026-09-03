@@ -32,6 +32,10 @@ const MAX_PARAMETERS: usize = 4096;
 #[derive(Clone)]
 enum Argument {
     Existing(usize),
+    /// A fresh borrowed parameter derived from one authenticated original
+    /// borrowed-view parameter. The caller reuses the already staged view;
+    /// no new root, projection, copy, or lifetime is synthesized.
+    BorrowedExisting(usize),
     Literal(Expr),
     Computed {
         template: Value,
@@ -128,6 +132,31 @@ pub(super) fn apply(
             param.name = destination.to_owned();
             params.push(param);
             arguments.push(Argument::Existing(index));
+        } else if mapping.get("borrow_from").is_some() {
+            object(mapping, &["name", "borrow_from"])?;
+            let name = identifier(text(mapping, "name")?)?;
+            if original.contains_key(name) || !names.insert(name.to_owned()) {
+                return Err(grammar(
+                    "new borrowed signature parameter must have a fresh binding name",
+                ));
+            }
+            let source = text(mapping, "borrow_from")?;
+            let index = *original.get(source).ok_or_else(|| {
+                grammar("new borrowed signature parameter names an unknown original view")
+            })?;
+            let source = &original_params[index];
+            if !borrowed_view_parameter(source) {
+                return Err(grammar(
+                    "new borrowed signature parameter requires an exact original borrow str or borrow Slice<u8> view",
+                ));
+            }
+            params.push(Param {
+                name: name.to_owned(),
+                mode: ParamMode::Borrow,
+                ty: source.ty.clone(),
+                span: Span::default(),
+            });
+            arguments.push(Argument::BorrowedExisting(index));
         } else {
             let is_computed = mapping.get("argument_expression").is_some();
             if is_computed {
@@ -205,7 +234,9 @@ pub(super) fn apply(
             Argument::Existing(index) => {
                 Some((original_params[*index].name.clone(), param.name.clone()))
             }
-            Argument::Literal(_) | Argument::Computed { .. } => None,
+            Argument::BorrowedExisting(_) | Argument::Literal(_) | Argument::Computed { .. } => {
+                None
+            }
         })
         .collect::<BTreeMap<_, _>>();
     if renames.iter().any(|(old, new)| old != new) {
@@ -263,7 +294,9 @@ pub(super) fn apply(
                 .iter()
                 .map(|argument| match argument {
                     Argument::Literal(expression) => super::literal_nodes(expression),
-                    Argument::Existing(_) | Argument::Computed { .. } => 1,
+                    Argument::Existing(_)
+                    | Argument::BorrowedExisting(_)
+                    | Argument::Computed { .. } => 1,
                 })
                 .sum::<usize>();
             added_nodes = added_nodes
@@ -316,6 +349,10 @@ pub(super) fn apply(
             for (argument, template) in arguments.iter().zip(templates) {
                 mapped.push(match argument {
                     Argument::Existing(index) => Expr {
+                        kind: ExprKind::Var(stages[*index].clone()),
+                        span,
+                    },
+                    Argument::BorrowedExisting(index) => Expr {
                         kind: ExprKind::Var(stages[*index].clone()),
                         span,
                     },

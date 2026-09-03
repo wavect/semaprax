@@ -216,6 +216,21 @@ fn owned_records_and_borrowed_views_advertise_exact_retention_constraints() {
         .as_array()
         .unwrap()
         .contains(&json!("borrowed_views_retained_exactly_once")));
+    assert_eq!(
+        mapping["borrowed_parameter_fields"],
+        json!(["name", "borrow_from"])
+    );
+    assert_eq!(
+        mapping["borrowed_parameter"],
+        json!({
+            "source":"authenticated_original_borrowed_view",
+            "admitted_views":["borrow str","borrow Slice<u8>"],
+            "caller_lowering":"reuse_exact_left_to_right_staged_view",
+            "root_provenance":"ordinary_full_project_loan_and_provenance_replay",
+            "source_must_be_retained_exactly_once":true,
+            "new_root_or_lifetime":false,
+        })
+    );
 }
 
 #[test]
@@ -254,4 +269,91 @@ fn borrowed_slice_and_text_parameters_reorder_rename_and_replay() {
     )
     .unwrap();
     assert_eq!(replayed.to_json(), evolved.to_json());
+}
+
+#[test]
+fn fresh_borrowed_parameters_reuse_authenticated_staged_views_and_replay() {
+    let fixture = Fixture::new();
+    let base = fixture.candidate();
+    let change = semaprax::project::SemanticChange::new(
+        base.revision().project_revision(),
+        &json!({
+            "kind":"change_function_signature",
+            "target":"catalog.borrowed",
+            "parameters":[
+                {"from":"value","name":"bytes"},
+                {"name":"bytes_again","borrow_from":"value"},
+                {"from":"text","name":"label"},
+                {"name":"label_again","borrow_from":"text"},
+                {"from":"flag"}
+            ]
+        }),
+    )
+    .unwrap();
+    let evolved = base.apply(base.candidate_digest(), &change).unwrap();
+    let core = evolved
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/core.spx")
+        .unwrap()
+        .source();
+    assert!(core.contains("fn borrowed(bytes: borrow Slice<u8>, bytes_again: borrow Slice<u8>, label: borrow str, label_again: borrow str, flag: i64)"));
+    assert!(core.contains("let spx_sig_stage_0 = value; let spx_sig_stage_1 = text; let spx_sig_stage_2 = 1; borrowed(spx_sig_stage_0, spx_sig_stage_0, spx_sig_stage_1, spx_sig_stage_1, spx_sig_stage_2)"));
+    let replayed = semaprax::project::ProjectCandidate::replay(
+        Arc::clone(base.base_revision()),
+        base.base_revision().project_revision(),
+        &[change],
+        evolved.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replayed.to_json(), evolved.to_json());
+}
+
+#[test]
+fn fresh_borrowed_parameters_reject_unknown_nonview_unretained_and_open_requests() {
+    let fixture = Fixture::new();
+    let base = fixture.candidate();
+    for parameters in [
+        json!([
+            {"from":"value"},{"from":"text"},{"from":"flag"},
+            {"name":"extra","borrow_from":"missing"}
+        ]),
+        json!([
+            {"from":"value"},{"from":"text"},{"from":"flag"},
+            {"name":"extra","borrow_from":"flag"}
+        ]),
+        json!([
+            {"from":"text"},{"from":"flag"},
+            {"name":"extra","borrow_from":"value"}
+        ]),
+        json!([
+            {"from":"value"},{"from":"text"},{"from":"flag"},
+            {"name":"extra","borrow_from":"value","type":"Slice<u8>"}
+        ]),
+        json!([
+            {"from":"value"},{"from":"text"},{"from":"flag"},
+            {"name":"value","borrow_from":"text"}
+        ]),
+    ] {
+        let change = semaprax::project::SemanticChange::new(
+            base.revision().project_revision(),
+            &json!({
+                "kind":"change_function_signature",
+                "target":"catalog.borrowed",
+                "parameters":parameters,
+            }),
+        )
+        .unwrap();
+        let errors = base
+            .apply(base.candidate_digest(), &change)
+            .err()
+            .expect("unsupported borrowed source must fail closed");
+        assert!(
+            errors
+                .iter()
+                .any(|error| matches!(error.code, "SPX-G225" | "SPX-G260")),
+            "{errors:?}"
+        );
+    }
 }

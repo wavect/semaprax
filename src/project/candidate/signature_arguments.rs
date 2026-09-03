@@ -44,12 +44,6 @@ pub(in crate::project::candidate) fn validate_computed_signature(
     let Some(parameters) = intent.get("parameters").and_then(Value::as_array) else {
         return Ok(());
     };
-    if !parameters.iter().any(|mapping| {
-        mapping.get("argument_expression").is_some()
-            && mapping.get("type").is_some_and(Value::is_object)
-    }) {
-        return Ok(());
-    }
     if parameters.len() > MAX_PARAMETERS {
         return Err(capacity(
             "rebuilt computed signature exceeds its parameter bound",
@@ -76,6 +70,40 @@ pub(in crate::project::candidate) fn validate_computed_signature(
         ));
     }
     for (mapping, parameter) in parameters.iter().zip(&function.params) {
+        if mapping.get("borrow_from").is_some() {
+            object(mapping, &["name", "borrow_from"])?;
+            if parameter.name != text(mapping, "name")?
+                || parameter.ownership != OwnershipMode::Borrow
+                || !matches!(parameter.ty, ResolvedType::Str | ResolvedType::SliceU8)
+            {
+                return Err(grammar(
+                    "rebuilt borrowed parameter disagrees with its exact view request",
+                ));
+            }
+            let source_name = text(mapping, "borrow_from")?;
+            let mut source = None;
+            for (source_mapping, source_parameter) in parameters.iter().zip(&function.params) {
+                if source_mapping.get("from").and_then(Value::as_str) == Some(source_name) {
+                    if source.replace(source_parameter).is_some() {
+                        return Err(grammar(
+                            "rebuilt borrowed parameter source is retained ambiguously",
+                        ));
+                    }
+                }
+            }
+            let source = source.ok_or_else(|| {
+                grammar("rebuilt borrowed parameter source was not retained exactly once")
+            })?;
+            if source.ownership != OwnershipMode::Borrow
+                || source.ty != parameter.ty
+                || !matches!(source.ty, ResolvedType::Str | ResolvedType::SliceU8)
+            {
+                return Err(grammar(
+                    "rebuilt borrowed parameter does not preserve its authenticated source view",
+                ));
+            }
+            continue;
+        }
         if mapping.get("argument_expression").is_none()
             || !mapping.get("type").is_some_and(Value::is_object)
         {

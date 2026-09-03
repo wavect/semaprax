@@ -26,6 +26,21 @@ fn computed_argument_discovery_is_optional_on_mapping_and_absent_on_append() {
         json!(["name", "type", "argument"])
     );
     assert_eq!(
+        mapping["properties"]["borrowed_parameter_fields"]["const"],
+        json!(["name", "borrow_from"])
+    );
+    assert_eq!(
+        mapping["properties"]["borrowed_parameter"]["const"],
+        json!({
+            "source":"authenticated_original_borrowed_view",
+            "admitted_views":["borrow str","borrow Slice<u8>"],
+            "caller_lowering":"reuse_exact_left_to_right_staged_view",
+            "root_provenance":"ordinary_full_project_loan_and_provenance_replay",
+            "source_must_be_retained_exactly_once":true,
+            "new_root_or_lifetime":false,
+        })
+    );
+    assert_eq!(
         mapping["properties"]["computed_parameter_fields"]["const"],
         json!(["name", "type", "argument_expression"])
     );
@@ -37,6 +52,14 @@ fn computed_argument_discovery_is_optional_on_mapping_and_absent_on_append() {
         .as_array()
         .unwrap()
         .contains(&json!("computed_parameter_fields")));
+    assert!(!mapping["required"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("borrowed_parameter_fields")));
+    assert!(!mapping["required"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("borrowed_parameter")));
     assert_eq!(
         mapping["properties"]["computed_argument"]["const"],
         json!({

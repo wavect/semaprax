@@ -348,6 +348,7 @@ fn intent_schema() -> Value {
     let mapped_parameter = json!({"oneOf":[
         closed(&[("from",json!({"type":"string","minLength":1}))]),
         closed(&[("from",json!({"type":"string","minLength":1})),("name",identifier())]),
+        closed(&[("name",identifier()),("borrow_from",json!({"type":"string","minLength":1}))]),
         new_parameter(),
         computed_parameter()
     ]});

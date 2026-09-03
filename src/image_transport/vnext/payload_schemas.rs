@@ -339,6 +339,41 @@ pub(super) fn documents(capabilities: &Value) -> BTreeMap<String, Value> {
         ],
     );
     put(
+        "semaprax.image-candidate-environment-aware-review-chunk.v1",
+        vec![
+            (
+                "report_schema",
+                json!({"const":crate::project::PROJECT_CANDIDATE_ENVIRONMENT_REVIEW_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("candidate_revision", digest()),
+            ("bundle_digest", digest()),
+            ("offset", uint()),
+            ("total_bytes", uint()),
+            ("chunk", text()),
+            ("next_offset", nullable(uint())),
+            ("report_sha256", digest()),
+            ("source_authority", json!({"const":false})),
+            ("approval_authority", json!({"const":false})),
+            ("publication_authority", json!({"const":false})),
+            ("external_io", json!({"const":false})),
+            ("filesystem_observation", json!({"const":false})),
+            ("filesystem_authority", json!({"const":false})),
+            ("environment_observation", json!({"const":false})),
+            ("generator_execution", json!({"const":false})),
+            ("generator_authority", json!({"const":false})),
+            ("network_observation", json!({"const":false})),
+            ("provider_observation", json!({"const":false})),
+            ("provider_authority", json!({"const":false})),
+            ("runtime_observation", json!({"const":false})),
+            ("runtime_authority", json!({"const":false})),
+            ("conformance_evidence", json!({"const":false})),
+            ("conformance_authority", json!({"const":false})),
+            ("semantic_compatibility", json!({"const":"not_assessed"})),
+            ("deployment_authority", json!({"const":false})),
+        ],
+    );
+    put(
         "semaprax.image-candidate-generated-file-provenance-evidence-chunk.v1",
         vec![
             (

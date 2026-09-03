@@ -10,6 +10,7 @@ static SERIAL: AtomicU64 = AtomicU64::new(0);
 const GENERATED_METHOD: &str = "candidate/analysis-generated-file-provenance-evidence";
 const EXTERNAL_METHOD: &str = "candidate/analysis-external-api-contract-evidence";
 const BUNDLE_METHOD: &str = "candidate/analysis-boundary-bundle";
+const ENVIRONMENT_METHOD: &str = "candidate/environment-aware-review";
 const GENERATED_DECLARATION: &str =
     "semaprax.project-candidate-generated-file-provenance-declaration.v1";
 const EXTERNAL_DECLARATION: &str =
@@ -22,6 +23,8 @@ const EXTERNAL_CHUNK: &str = "semaprax.image-candidate-external-api-contract-evi
 const BUNDLE_SCHEMA: &str = "semaprax.project-candidate-analysis-boundary-bundle.v1";
 const BUNDLE_REPORT: &str = "semaprax.project-candidate-analysis-boundary-bundle-report.v1";
 const BUNDLE_CHUNK: &str = "semaprax.image-candidate-analysis-boundary-bundle-report-chunk.v1";
+const ENVIRONMENT_REPORT: &str = "semaprax.project-candidate-environment-aware-review.v1";
+const ENVIRONMENT_CHUNK: &str = "semaprax.image-candidate-environment-aware-review-chunk.v1";
 const FILES: [&str; 4] = [
     "semaprax.toml",
     "src/app.spx",
@@ -94,7 +97,12 @@ fn canonical(value: Value, domain: &[u8]) -> (String, String) {
 fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
     let fixture = Fixture::new();
     let mut unavailable = fixture.session(false);
-    for method in [GENERATED_METHOD, EXTERNAL_METHOD, BUNDLE_METHOD] {
+    for method in [
+        GENERATED_METHOD,
+        EXTERNAL_METHOD,
+        BUNDLE_METHOD,
+        ENVIRONMENT_METHOD,
+    ] {
         assert_eq!(
             call(&mut unavailable, method, json!({}))["error"]["code"],
             -32601
@@ -252,6 +260,38 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
             "external_api_behavior"
         ])
     );
+    let environment = payload(call(
+        &mut session,
+        ENVIRONMENT_METHOD,
+        json!({"candidate_revision":candidate,"bundle":bundle.clone(),"bundle_digest":bundle_digest.clone(),
+            "offset":0,"chunk_bytes":65536}),
+    ));
+    assert_eq!(environment["schema"], ENVIRONMENT_CHUNK);
+    assert_eq!(environment["report_schema"], ENVIRONMENT_REPORT);
+    assert_eq!(environment["candidate_revision"], candidate);
+    assert_eq!(environment["bundle_digest"], bundle_digest);
+    for field in [
+        "source_authority",
+        "approval_authority",
+        "publication_authority",
+        "external_io",
+        "filesystem_observation",
+        "filesystem_authority",
+        "environment_observation",
+        "generator_execution",
+        "generator_authority",
+        "network_observation",
+        "provider_observation",
+        "provider_authority",
+        "runtime_observation",
+        "runtime_authority",
+        "conformance_evidence",
+        "conformance_authority",
+        "deployment_authority",
+    ] {
+        assert_eq!(environment[field], false);
+    }
+    assert_eq!(environment["semantic_compatibility"], "not_assessed");
 
     let schemas = payload(call(&mut session, "protocol/schemas", json!({})));
     for (method, chunk_schema, report_schema, max) in [
@@ -306,6 +346,32 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
         .as_array()
         .unwrap()
         .contains(&json!(format!("urn:{BUNDLE_REPORT}"))));
+    let descriptor = schemas["methods"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["method"] == ENVIRONMENT_METHOD)
+        .unwrap();
+    assert_eq!(descriptor["capability"], "candidate_prepare");
+    let params = &descriptor["request_schema"]["properties"]["params"];
+    assert_eq!(params["additionalProperties"], false);
+    assert_eq!(params["properties"]["bundle"]["maxLength"], 24576);
+    assert_eq!(params["properties"]["offset"]["maximum"], 18939904);
+    let document = schemas["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["$id"] == format!("urn:{ENVIRONMENT_CHUNK}"))
+        .unwrap();
+    assert_eq!(document["additionalProperties"], false);
+    assert_eq!(
+        document["properties"]["report_schema"]["const"],
+        ENVIRONMENT_REPORT
+    );
+    assert!(schemas["unbundled_payload_schemas"]
+        .as_array()
+        .unwrap()
+        .contains(&json!(format!("urn:{ENVIRONMENT_REPORT}"))));
     for language in ["typescript", "python", "rust"] {
         let client = payload(call(
             &mut session,
@@ -317,6 +383,7 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
             "candidate_analysis_generated_file_provenance_evidence",
             "candidate_analysis_external_api_contract_evidence",
             "candidate_analysis_boundary_bundle",
+            "candidate_environment_aware_review",
         ] {
             assert!(source.contains(&format!("request_{name}")));
             assert!(source.contains(&format!("decode_request_{name}")));
@@ -351,6 +418,7 @@ fn candidate_only_attachments_are_closed_chunked_typed_and_mcp_catalogued() {
     assert!(names.contains(&"candidate__analysis-generated-file-provenance-evidence".to_owned()));
     assert!(names.contains(&"candidate__analysis-external-api-contract-evidence".to_owned()));
     assert!(names.contains(&"candidate__analysis-boundary-bundle".to_owned()));
+    assert!(names.contains(&"candidate__environment-aware-review".to_owned()));
     mcp.finish().unwrap();
     session.finish().unwrap();
 }

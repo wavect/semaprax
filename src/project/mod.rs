@@ -82,10 +82,6 @@ pub use candidate::{
     PROJECT_CANDIDATE_TEST_REPORT_SCHEMA, PROJECT_DRAFT_EXPRESSION_CATALOG_SCHEMA,
     SEMANTIC_CHANGE_REQUIREMENTS, SEMANTIC_CHANGE_SCHEMA,
 };
-pub use cxx_owned_data::{
-    replay_cxx_owned_data_package, CxxOwnedDataPackage, MAX_CXX_OWNED_DATA_PACKAGE_BYTES,
-    PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
-};
 pub use candidate::{
     CandidateAnalysisCoverageBoundaryInput, CandidateAnalysisCoverageChangeInput,
     MAX_PROJECT_CANDIDATE_ANALYSIS_COVERAGE_CHANGE_BYTES,
@@ -231,6 +227,10 @@ pub use candidate::{
 pub use candidate::{
     MAX_PROJECT_HOLE_NAVIGATION_BYTES, MAX_PROJECT_HOLE_NAVIGATION_ITEMS, PROJECT_HOLE_PAGE_SCHEMA,
     PROJECT_HOLE_SUMMARY_SCHEMA,
+};
+pub use cxx_owned_data::{
+    replay_cxx_owned_data_package, CxxOwnedDataPackage, MAX_CXX_OWNED_DATA_PACKAGE_BYTES,
+    PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
 };
 pub use execution::{
     verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,

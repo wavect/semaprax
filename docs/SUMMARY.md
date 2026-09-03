@@ -240,6 +240,7 @@ Audience: all documentation readers.
 - [C header emission](C-HEADER-V1.md)
 - [C++ shim projection](CXX-SHIM-V1.md)
 - [C++ scalar package](CXX-PACKAGE-V1.md)
+- [Project v8 C++ owned-data package](PUBLIC-CXX-OWNED-DATA-PACKAGE-V1.md)
 - [Build capability manifest](CAPABILITY-MANIFEST-V1.md)
 - [Freestanding object profile](FREESTANDING-V1.md)
 - [OpenAPI schema generation](OPENAPI-V1.md)

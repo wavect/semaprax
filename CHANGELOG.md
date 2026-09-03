@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+- Added an authority-free Project-v8 C++ owned-data package derived from the
+  exact replayed public descriptor and existing native provider. Its bounded
+  C11 boundary and thread-bound, noncopyable C++17 wrapper enforce cumulative
+  borrowed-input and owned-output limits, poison preservation, copy-before-
+  drop ordering, certain close before exceptions, and fail-stop cleanup
+  uncertainty. Focused local C11/C++17 O0/O2 consumers cover exact/+1 bounds,
+  recovery, hostile handles/tags and injected copy/drop/close failures; target
+  activation, MSVC/cross-platform ABI, distribution and support remain open.
+
+- Executed the generated Project Agent Transport v6 Python, Rust and
+  provisioned Node/TypeScript codecs against retained Project v8-v11 sessions.
+  The Rust codec is byte-pinned and compiled into the owning harness rather
+  than trusting ambient Cargo state; process-backed codecs run with a closed
+  environment and bounded direct-child settlement. Exact profile/schema/
+  subject/build binding and the full cross-profile hostile matrix remain local
+  evidence, not a packaged, registry, hosted or general process-authority
+  claim.
+
+- Hardened signed Linux doctor distribution construction. Archive and release
+  utilities now run through a closed deterministic environment, hostile
+  archive/loader variables cannot change bytes, and independent unpack replay
+  uses the explicitly admitted gzip and tar tools. The script now states its
+  trusted-shell and immutable absolute-tool ancestry precondition; it does not
+  claim held-tool execution or concurrent tool-path mutation resistance. The
+  provisioned child also detaches from the old root into an authenticated,
+  empty, read-only 64-KiB tmpfs before its held launcher executes.
+
 - Added project-route evidence for the Bounded Language Command I/O v1
   borrowed-`str` argument root. The existing regressions reassembled the
   committed v7 sources into one module by hand, so nothing pinned the route

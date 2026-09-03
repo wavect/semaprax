@@ -1260,6 +1260,12 @@ derives and independently replays the sole semantic API descriptor from the
 authenticated linked-HIR subject. Authentic cross-replay regressions distinguish
 its retained-signature checks from digest rejection; equal descriptors alone
 do not prove function-body equivalence or source provenance.
+`src/project/cxx_owned_data.rs` and its bounded renderer compose that same
+replayed descriptor with the existing native provider into an authority-free,
+pathless C11/C++17 package. The C++ wrapper owns one thread-bound invocation
+context, copies owned results before exact handle settlement, and fails stop on
+cleanup uncertainty. This is a Project-v8 library surface, not a target,
+publisher, loader, package-manager integration, or support promotion.
 `src/project/npm/owned_data.rs` and the
 owned-data Wasm lowering consume that descriptor for the npm package. The
 shared `src/project/npm/owned_data_input_v8.js` admits complete input tuples
@@ -1484,6 +1490,11 @@ returning either. `src/project_transport/session/owned_data.rs` owns frozen v5;
 wrapper budgeting; `src/project/npm/carrier.rs` owns profile-specific carrier
 replay and descriptor authentication. These profiles do not add general patch,
 filesystem, process, publication, network, persistence, or recovery authority.
+The generated v6 codecs remain pure request/response codecs. Their conformance
+harness executes Python and provisioned Node/TypeScript adapters as closed-
+environment direct children and compiles the exact generated Rust codec into
+the owning Rust harness. This is local codec evidence, not a general process,
+tool-provenance, registry, or hosted-client authority claim.
 
 ## Reports and projections
 

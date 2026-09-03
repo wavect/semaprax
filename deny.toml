@@ -18,6 +18,10 @@ allow = [
   "BSD-3-Clause",
   "ISC",
   "MIT",
+  # unicode-ident carries its character tables under the Unicode license. It
+  # reaches the normal graph through curve25519-dalek-derive. Already allowed
+  # by platform-tests/component-runtime/deny.toml.
+  "Unicode-3.0",
 ]
 confidence-threshold = 0.8
 
@@ -25,6 +29,18 @@ confidence-threshold = 0.8
 multiple-versions = "deny"
 wildcards = "deny"
 highlight = "all"
+# The signed Linux doctor provisioner needs ed25519-dalek, which is still on
+# the RustCrypto 0.10 line through curve25519-dalek while the rest of the
+# workspace is on 0.11. Only the superseded versions are skipped, pinned
+# exactly, so a change in the duplication shape fails this gate again. Drop
+# each entry when ed25519-dalek publishes a release built on digest 0.11.
+skip = [
+  { crate = "block-buffer@0.10.4", reason = "curve25519-dalek/ed25519-dalek digest 0.10 line" },
+  { crate = "cpufeatures@0.2.17", reason = "curve25519-dalek/ed25519-dalek digest 0.10 line" },
+  { crate = "crypto-common@0.1.7", reason = "curve25519-dalek/ed25519-dalek digest 0.10 line" },
+  { crate = "digest@0.10.7", reason = "curve25519-dalek/ed25519-dalek digest 0.10 line" },
+  { crate = "sha2@0.10.9", reason = "curve25519-dalek/ed25519-dalek digest 0.10 line" },
+]
 
 [sources]
 unknown-registry = "deny"

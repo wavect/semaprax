@@ -1,6 +1,22 @@
 //! Explicit immutable persistence for one authenticated retention checkpoint
 //! and its exact pending GC plan. Stored metadata cannot apply that plan.
 
+#![cfg_attr(
+    not(all(
+        unix,
+        any(
+            target_os = "linux",
+            target_os = "android",
+            target_vendor = "apple",
+            target_os = "redox"
+        )
+    )),
+    allow(
+        dead_code,
+        reason = "unsupported hosts expose only fail-closed store APIs; private envelope helpers are not invoked"
+    )
+)]
+
 use std::path::Path;
 
 use sha2::{Digest, Sha256};

@@ -11,6 +11,7 @@ use std::fs::{File, Metadata};
 use std::io;
 use std::os::fd::AsRawFd;
 use std::os::unix::ffi::OsStrExt;
+#[cfg(target_os = "macos")]
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -304,6 +305,7 @@ fn spawn_linux(
         .map(|value| value.as_ptr())
         .collect::<Vec<_>>();
     env.push(std::ptr::null::<c_char>());
+    let signal_limit = libc::SIGRTMAX();
     let pid = unsafe { libc::fork() };
     if pid < 0 {
         return Err(io::Error::last_os_error());
@@ -323,7 +325,7 @@ fn spawn_linux(
             let mut default_action: libc::sigaction = std::mem::zeroed();
             default_action.sa_sigaction = libc::SIG_DFL;
             default_action.sa_mask = empty_mask.assume_init();
-            for signal in 1..libc::NSIG {
+            for signal in 1..=signal_limit {
                 if signal != libc::SIGKILL && signal != libc::SIGSTOP {
                     if libc::sigaction(signal, &default_action, std::ptr::null_mut()) != 0
                         && *libc::__errno_location() != libc::EINVAL

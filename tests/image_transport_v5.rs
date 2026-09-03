@@ -11,6 +11,7 @@
 
 #[path = "image_transport_v5/analysis_artifact_evidence.rs"]
 mod analysis_artifact_evidence;
+#[path = "image_transport_v5/analysis_boundary_attachments.rs"]
 mod analysis_boundary_attachments;
 #[path = "image_transport_v5/artifact_delta.rs"]
 mod artifact_delta;

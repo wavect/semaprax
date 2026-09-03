@@ -766,15 +766,12 @@ mod tests {
             .unwrap_err();
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].code, "SPX-G292");
-        assert_eq!(
-            cache
-                .native_c
-                .as_ref()
-                .unwrap()
-                .envelope
-                .contains("sha257:"),
-            true
-        );
+        assert!(cache
+            .native_c
+            .as_ref()
+            .unwrap()
+            .envelope
+            .contains("sha257:"));
 
         cache.native_c.as_mut().unwrap().envelope = exact;
         assert!(cache

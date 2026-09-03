@@ -647,6 +647,14 @@ key and keep its static compiler installation immutable from exec. Host-policy
 v5 can select one entry before live source authentication; no RPC gains storage
 or signing authority. Existing source-backed Image/Revision stores stay cold.
 
+`semantic-cache-lifecycle` composes the existing host-selected cache operations
+with authenticated v5 opens and same-revision refresh into one deterministic
+compiler-work receipt. It records cold, authenticated restored, refreshed,
+evicted and cold-rebuilt stages plus exact retained byte counts and semantic
+identity equality. It is an explicit CLI storage effect against an existing
+empty private root; it neither changes canonical source nor supplies wall-time,
+RSS, cross-process, target-execution or publication evidence.
+
 `image_transport/vnext/read_batch.rs` adds an embedding-host batch API for up to
 sixteen selected immutable semantic requests on at most four scoped workers.
 Source authentication surrounds the complete joined batch, and rows remain in

@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- Added an authored Phase 0 aggregate evidence v3 contract. It upgrades the
+  real VS Code child to the closed task-control v2 schema and bundle domain and
+  records current-head, exact-tag, provisioned, default-ignored, and
+  authored/unrun evidence as separate classes. The v3 aggregate has not run;
+  historical v1/v2 bundles retain only their exact-subject claims.
+
+- Added an evidence-honest comparative agent-task benchmark framework for the
+  graph-operational and source-first Semaprax lanes. Two exact cold-state tasks
+  bind common fixture, prompt, drift, acceptance and review protocols; the
+  bounded summarizer authenticates external artifacts and requires observed
+  model tokens, bytes, tool calls, failures, stale recovery, validation time,
+  review time and intervention counts before emitting descriptive paired
+  differences. The pinned Zero lane is explicitly external and unrun. No
+  observations, productivity result, ranking or programme completion is
+  claimed.
+
+- Added deterministic persistent semantic-cache lifecycle telemetry. The new
+  `semantic-cache-lifecycle` command binds cold source admission, authenticated
+  store restoration, unchanged refresh, exact eviction and cold reconstruction
+  into one bounded authority-neutral receipt, including required cold/warm HIR
+  work facts and payload/envelope byte counts. It preserves canonical source
+  and semantic identity and explicitly makes no elapsed-time, RSS,
+  cross-process, crash-recovery, execution or publication claim. Its focused
+  executable evidence is authored but was not run.
+
 - Extended authenticated nested-block function extraction with one checked
   resource-free owned result. Copy-only captures remain unchanged; String,
   Bytes, or monomorphic owned record/variant results cross the new helper call

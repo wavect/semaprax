@@ -141,6 +141,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "candidate/analysis-deployment-contract-evidence")
+        {
+            instructions.push_str(" With candidate_prepare, use candidate/analysis-deployment-contract-evidence with exact image_revision, candidate_revision, canonical declaration string and declaration_digest. The declaration is bounded to 65536 UTF-8 bytes and must bind the exact candidate and complete ordered manifest export inventory; its configuration rows describe only sorted key names, string/integer/boolean shapes and required flags. Reassemble the independently regenerated report using offset and next_offset with chunk_bytes 1024 through 65536 (default 16384), keeping all declaration bytes and selectors identical; the report is bounded to 2 MiB and report_sha256 must match across chunks. This caller declaration changes only deployment_configuration coverage from not_inspected to partial. It is not environment observation, deployed state, artifact/runtime/API/consumer compatibility, freshness, drift or conformance evidence. Requests grant no filesystem, environment, secret, network, provider, deployment, source or publication authority, and this potentially large caller-data query is not in the parallel-read subset.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "candidate/dependency-summary")
         {
             instructions.push_str(" With candidate_prepare, use candidate/dependency-summary and candidate/dependency-page to navigate the exact fully admitted revision of one retained candidate, including changed or introduced declarations. Keep image_revision, candidate_revision, target, view, page_size and max_bytes fixed while following next_cursor. Candidate handles and cursors are isolated from base-image and sibling-candidate references and grant no retention, execution, source or publication authority. One signature change can alter several dependency views; these final-candidate pages are not a before/after delta, test coverage, runtime liveness or evidence of external callers. Both queries are eligible for authenticated parallel read batches over detached immutable candidates.");
@@ -356,6 +362,7 @@ fn method_capability(method: &Method) -> &'static str {
         | "candidate/source-review"
         | "candidate/merge-preview"
         | "candidate/analysis-coverage"
+        | "candidate/analysis-deployment-contract-evidence"
         | "candidate/dependency-summary"
         | "candidate/dependency-page"
         | "candidate/function-summary"
@@ -540,6 +547,9 @@ fn bundle(descriptors: &[Value], capabilities: &Value) -> Result<Value> {
             "candidate/artifact-delta" => Some("semaprax.project-candidate-artifact-delta.v1"),
             "candidate/analysis-artifact-evidence" => {
                 Some(crate::project::PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_SCHEMA)
+            }
+            "candidate/analysis-deployment-contract-evidence" => {
+                Some(crate::project::PROJECT_CANDIDATE_DEPLOYMENT_CONTRACT_EVIDENCE_SCHEMA)
             }
             "candidate/commit-report" => {
                 Some(crate::project::PROJECT_CANDIDATE_GIT_PUBLICATION_SCHEMA)

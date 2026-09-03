@@ -12,6 +12,7 @@ mod cleanup_dependencies;
 mod commit;
 mod contract_holes;
 mod dependencies;
+mod deployment_contract_evidence;
 mod discovery;
 mod draft_archive;
 mod draft_merge;
@@ -115,6 +116,7 @@ pub(super) enum Action {
     Dependencies,
     AnalysisCoverage,
     CandidateAnalysisCoverage,
+    CandidateDeploymentContractEvidence,
     PackageSummary,
     PackageConsumers,
     CleanupDependencies,
@@ -569,6 +571,10 @@ impl VNextSession {
                     analysis_coverage::prepare_candidate(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::CandidateDeploymentContractEvidence) => (
+                    deployment_contract_evidence::prepare(params, image, registry)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(
                     action @ (Action::FunctionInstances | Action::FunctionInstanceFacet),
                 ) => (
@@ -854,6 +860,7 @@ fn session_methods(
         methods.push(source_review::method());
         methods.push(merge_preview::method());
         methods.push(analysis_coverage::candidate_method());
+        methods.push(deployment_contract_evidence::method());
         methods.extend(hole_navigation::methods());
         methods.push(hole_suggestions::method());
         methods.push(cleanup_dependencies::candidate_method());

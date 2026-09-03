@@ -27,6 +27,8 @@ mod contract_holes;
 mod declaration_dependencies;
 #[path = "image_transport_v5/dependency_navigation.rs"]
 mod dependency_navigation;
+#[path = "image_transport_v5/deployment_contract_evidence.rs"]
+mod deployment_contract_evidence;
 #[path = "image_transport_v5/draft_archive.rs"]
 mod draft_archive;
 #[path = "image_transport_v5/draft_merge.rs"]

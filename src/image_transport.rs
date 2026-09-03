@@ -53,6 +53,10 @@ pub enum ImageHostCapability {
 #[derive(Clone, Copy)]
 enum ParameterKind {
     Text(usize),
+    /// Nonempty caller bytes carried as a JSON string. Unlike selectors, the
+    /// decoded value may contain canonical JSON whitespace and escaped control
+    /// characters; the complete framed request keeps the ordinary wire bound.
+    CanonicalJsonText(usize),
     Digest,
     Choice(&'static [&'static str]),
     Integer(usize, usize),
@@ -519,6 +523,9 @@ fn validate_parameters(method: &Method, params: &Map<String, Value>) -> Result<(
             ParameterKind::Text(limit) => value.as_str().is_some_and(|text| {
                 !text.is_empty() && text.len() <= limit && !text.chars().any(char::is_control)
             }),
+            ParameterKind::CanonicalJsonText(limit) => value
+                .as_str()
+                .is_some_and(|text| !text.is_empty() && text.len() <= limit),
             ParameterKind::Digest => value.as_str().is_some_and(|text| {
                 text.len() == 71
                     && text.starts_with("sha256:")
@@ -676,6 +683,7 @@ fn method_description(method: &Method) -> Value {
     let properties = method.parameters.iter().map(|parameter| {
         let schema = match parameter.kind {
             ParameterKind::Text(max) => json!({"type":"string", "minLength":1, "maxLength":max, "x-max-utf8-bytes":max, "pattern":"^[^\\u0000-\\u001f\\u007f-\\u009f]+$"}),
+            ParameterKind::CanonicalJsonText(max) => json!({"type":"string", "minLength":1, "maxLength":max, "x-max-utf8-bytes":max}),
             ParameterKind::Digest => json!({"type":"string", "pattern":"^sha256:[0-9a-f]{64}$"}),
             ParameterKind::Choice(choices) => json!({"type":"string", "enum":choices}),
             ParameterKind::Integer(min, max) => json!({"type":"integer", "minimum":min, "maximum":max}),

@@ -649,6 +649,10 @@ fn variant_fingerprints(
             }
         }
     }
+    let declarations = checked
+        .iter()
+        .map(|(id, (_, _, declaration))| (id.as_str(), *declaration))
+        .collect::<BTreeMap<_, _>>();
     let mut result = BTreeMap::new();
     for program in &programs {
         for declaration in &program.types {
@@ -678,6 +682,20 @@ fn variant_fingerprints(
                     "candidate rebase source and retained variant origins disagree",
                 ));
             }
+            let type_facts = crate::hir::DeclarationIndex::record_evolution_type_facts(
+                &retained.id,
+                &declarations,
+            )
+            .map_err(|diagnostic| vec![diagnostic])?
+            .map(|facts| {
+                json!({
+                    "copy":facts.copy,
+                    "contains_resource":facts.contains_resource,
+                    "sized":facts.sized,
+                    "needs_drop":facts.needs_drop,
+                    "layout_key":facts.layout_key,
+                })
+            });
             let fingerprint = hash_value(json!({
                 "path":program.path,
                 "module":program.module,
@@ -691,6 +709,7 @@ fn variant_fingerprints(
                     "id":case.id.as_str(),"name":case.name,"index":case.index,
                     "fields":case.fields.iter().map(|field| json!({"id":field.id.as_str(),"name":field.name,"index":field.index,"type":field.ty.identity_key()})).collect::<Vec<_>>()
                 })).collect::<Vec<_>>(),
+                "checked_type_facts":type_facts,
                 "evidence_owner":"retained_checked_source_module_HIR",
             }))?;
             if result

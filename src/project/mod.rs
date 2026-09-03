@@ -9,6 +9,7 @@ mod admission;
 mod authority;
 mod build;
 mod candidate;
+mod cxx_owned_data;
 mod execution;
 mod flat_owned_record;
 mod image;
@@ -80,6 +81,10 @@ pub use candidate::{
     PROJECT_CANDIDATE_SEMANTIC_DELTA_SCHEMA, PROJECT_CANDIDATE_TEST_PLAN_SCHEMA,
     PROJECT_CANDIDATE_TEST_REPORT_SCHEMA, PROJECT_DRAFT_EXPRESSION_CATALOG_SCHEMA,
     SEMANTIC_CHANGE_REQUIREMENTS, SEMANTIC_CHANGE_SCHEMA,
+};
+pub use cxx_owned_data::{
+    replay_cxx_owned_data_package, CxxOwnedDataPackage, MAX_CXX_OWNED_DATA_PACKAGE_BYTES,
+    PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
 };
 pub use candidate::{
     CandidateAnalysisCoverageBoundaryInput, CandidateAnalysisCoverageChangeInput,

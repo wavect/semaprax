@@ -1,7 +1,9 @@
 # Project Signature Evolution v1
 
-Status: focused local owning-signature regressions pass; the graph-operational
-programme remains Partial, with full-profile and hosted validation pending.
+Status: the bounded owner-to-borrowed-slice library path is implemented with
+authored, unrun regressions. Earlier focused owning-signature evidence remains
+recorded below; the graph-operational programme remains Partial, with
+full-profile and hosted validation pending.
 
 Audience: agent builders, compiler contributors, and reviewers.
 
@@ -36,6 +38,7 @@ Each element has exactly one of these shapes:
 | --- | --- |
 | `{"from":"old_name"}` | Retain one original parameter with its exact existing name, type, and mode at this position. |
 | `{"from":"old_name","name":"new_name"}` | Retain its exact type and mode and rename the original lexical parameter binding. |
+| `{"name":"new_name","borrow_slice_from_owner":"old_name"}` | Replace one exact original `own Bytes` parameter with `borrow Slice<u8>` under the closed owner-view admission below. |
 | `{"name":"new_name","type":"scalar","argument":literal}` | Add a fresh by-value scalar parameter and supply the explicit matching scalar literal at every migrated call. |
 | `{"name":"new_name","type":type_selector,"argument_expression":expression}` | Compute a new scalar or checked Copy nominal argument from the original staged parameters after all original arguments, then fully revalidate each migrated caller. See [Argument Expressions v1](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md). |
 
@@ -45,6 +48,17 @@ expressions are still evaluated. An empty array therefore removes every
 Copy parameter while preserving argument evaluation at existing calls. Every
 owning or borrowed parameter must be retained exactly once; it cannot be
 removed or copied.
+
+The sole exception is the explicit `borrow_slice_from_owner` replacement. It
+admits at most one exact original `own Bytes` parameter. Retained checked HIR
+must prove that the provider body uses that owner exactly once, as the
+unprojected root of compiler-owned `core.bytes.as-slice`. The provider
+declaration changes that parameter to exact `borrow Slice<u8>` and the
+authenticated `bytes_as_slice(owner)` expression becomes the new parameter
+reference. Any owner root in `requires` or `ensures`, move, return, projection,
+nested owner, second conversion, alternate operation, or concurrent `from`
+mapping rejects. The new binding must be absent from the complete candidate
+lexical inventory so the rewrite cannot capture another binding.
 
 New parameter names must be distinct from all original names, including names
 of removed parameters. They cannot reinterpret an existing body binding.
@@ -174,6 +188,16 @@ unchanged physical move counts, allocation failures, or finalization traces.
 No custom cleanup, physical finalization authority, or hidden settlement-model
 action is introduced here.
 
+For `borrow_slice_from_owner`, every original caller argument is staged exactly
+once in its original left-to-right order, including removed or reordered
+arguments. Only after all original staging completes does a fresh immutable
+local evaluate `bytes_as_slice(staged_owner)`. The final call receives that
+view; it never receives or transfers the owner. The staging block keeps the
+owner caller-owned, and ordinary loan, failure, and cleanup replay remain the
+only authority for its lifetime and exact cleanup. The route does not add a
+second owner or view, extend a loan, change failure selection, or bypass full
+Project/HIR/cleanup/target reconstruction.
+
 Stable-ID provider bindings determine which direct calls migrate. Existing
 import aliases stay unchanged, and provider module identity is checked.
 Traversal includes local calls, imported calls, generic caller bodies, class
@@ -215,7 +239,10 @@ reinterpretation. `SPX-G226` rejects existing structural capacity excess.
 `SPX-G259` rejects unsafe binding substitutions, including contract-result
 capture and a still-referenced removed parameter during renaming. `SPX-G260`
 rejects omitted owners or borrowed views. `SPX-G261` bounds the additional substitution traversal
-and fresh-name allocation with the same depth/node ceilings. Real Project
+and fresh-name allocation with the same depth/node ceilings. `SPX-G469`
+rejects invalid owner-to-view subjects, provider uses, contract references,
+duplicate conversions, additive owner mappings, capture-prone bindings, and
+rebuilt borrowed-parameter mismatches. Real Project
 verification and candidate stale/replay checks retain their existing
 language and `SPX-G222`–`SPX-G224` diagnostics. Failed candidate construction
 never mutates a previously returned candidate or live source files.
@@ -234,8 +261,16 @@ Additional authored regressions cover simultaneous display renames, contract
 references, local mutation, match guard capture avoidance, and removed-binding
 capture. [`tests/project_candidate/signature_ownership.rs`](../tests/project_candidate/signature_ownership.rs)
 authors full Project candidate/replay checks for reordered and renamed owned
-byte arguments, exact original evaluation order, duplicate/removal rejection,
-and unchanged live source files. These tests have not been executed.
+byte arguments, the bounded owner-to-slice replacement, exact original
+evaluation order followed by view derivation, provider
+transfer/duplicate/contract/additive rejection, exact replay, and unchanged
+live source files. These owner-to-slice cases have not been executed. The
+closed intention schema and `change/catalog` expose the exact
+`borrow_slice_from_owner` fields and exclusions. Authored catalogue checks pin
+the lack of external package source rewrite. Authored package-conflict coverage
+requires the ordinary `parameters` facet and the existing
+`no_automatic_consumer_migration_or_candidate_era_consumer_acceptance`
+non-claim; it does not migrate or validate an external consumer.
 [`tests/project/signature_owned_values.rs`](../tests/project/signature_owned_values.rs)
 adds authored cases for bare String and resource-free owned record/variant
 parameters, two local callers per target, preserved argument subtrees and order,
@@ -255,6 +290,13 @@ The pure reference-interpreter probes are authored executable evidence; no
 interpreter, target, compiler check, or local test was run for this change.
 Declared-effect ordering is a structural regression, not hosted effect-runtime
 evidence.
+
+This lane does not admit `String`, `borrow Bytes`, a projected or nested owner,
+multiple conversions, an additive owner alias, borrowed results, parallel
+reads, external source rewriting, target-profile widening, runtime support,
+provider or network behavior, ABI or deployment compatibility, or consumer
+acceptance. Library compilation and static formatting/diff checks passed; the
+new cfg and integration regressions are authored and unrun.
 
 Additional staging changes expression identities, local storage, generated
 code, and interpreter fuel consumption. This is not exact operational-cost

@@ -26,12 +26,18 @@ pub(super) fn check_byte_data_declarations<'p>(
         match &declaration.kind {
             TypeDeclarationKind::Record { fields } => {
                 // The nested owned-Bytes profile is monomorphic, and a generic
-                // declaration has no arguments to substitute into its fields.
-                // Classify only its own directly declared `Bytes`, exactly as
-                // the variant arm below does; concrete instances are admitted
-                // through HIR type reachability.
+                // declaration has no arguments to substitute into its fields,
+                // so classifying its root would read an unsubstituted parameter
+                // as owning. Ask each declared field instead: a type parameter
+                // resolves to no declaration and so owns nothing, while a
+                // `Bytes` field or a field whose record reaches one is refused
+                // here. Concrete instances are admitted through HIR type
+                // reachability.
                 if !declaration.type_parameters.is_empty() {
-                    if fields.iter().any(|field| field.ty == Type::Bytes) {
+                    if fields
+                        .iter()
+                        .any(|field| types.contains_owned_bytes(&field.ty))
+                    {
                         diagnostics.push(error(
                             program,
                             "SPX-T268",

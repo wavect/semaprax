@@ -165,12 +165,13 @@ impl ProjectCandidate {
         let mut owner = None;
         for (program_index, program) in programs.iter().enumerate() {
             for (function_index, function) in program.functions.iter().enumerate() {
-                if function.stable_id == target && function.explicit_id {
-                    if owner.replace((program_index, function_index)).is_some() {
-                        return Err(migration_binding(
-                            "baseline provider function identity is ambiguous",
-                        ));
-                    }
+                if function.stable_id == target
+                    && function.explicit_id
+                    && owner.replace((program_index, function_index)).is_some()
+                {
+                    return Err(migration_binding(
+                        "baseline provider function identity is ambiguous",
+                    ));
                 }
             }
         }

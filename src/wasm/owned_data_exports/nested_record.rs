@@ -192,6 +192,7 @@ fn leaf_kind(kind: NestedOwnedRecordLeafType) -> FlatRecordFieldKind {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn emit_publication(
     body: &mut Vec<u8>,
     layout: &NestedRecordLayout,

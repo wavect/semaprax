@@ -34,7 +34,7 @@ pub(super) struct FieldAddition {
 
 #[derive(Clone)]
 enum FieldDefault {
-    Scalar { ty: Type, value: Expr },
+    Scalar { ty: Type, value: Box<Expr> },
     String(String),
     Bytes(Vec<u8>),
 }
@@ -77,7 +77,7 @@ impl FieldDefault {
 
     fn expression(&self, revision: &ProjectRevision, program: &Program) -> Result<Expr> {
         match self {
-            Self::Scalar { value, .. } => Ok(value.clone()),
+            Self::Scalar { value, .. } => Ok((**value).clone()),
             Self::String(value) => Ok(Expr {
                 kind: ExprKind::String(value.clone()),
                 span: Span::default(),
@@ -853,10 +853,10 @@ fn field_default(field: &Value) -> Result<FieldDefault> {
     };
     Ok(FieldDefault::Scalar {
         ty,
-        value: Expr {
+        value: Box::new(Expr {
             kind,
             span: Span::default(),
-        },
+        }),
     })
 }
 fn identifier(value: &str, id: bool) -> Result<&str> {

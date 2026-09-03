@@ -5,9 +5,12 @@ use semaprax::package_report_v2::{self, PackageReportV2Options};
 use semaprax::package_resolver::{self, Requirement, ResolutionInput, ResolutionOptions};
 use semaprax::package_source_capsule::{self, PackageSource, SourceCapsuleOptions};
 use semaprax::project::{
-    with_authenticated_project, CandidatePackageConsumerReplayInput, ProjectCandidate,
-    ProjectRevision, SemanticChange, MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_BYTES,
+    with_authenticated_project, CandidatePackageConsumerReplayInput,
+    CandidatePackageSignatureConflictInput, ProjectCandidate, ProjectRevision, SemanticChange,
+    MAX_PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_BYTES,
+    MAX_PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_BYTES,
     PROJECT_CANDIDATE_PACKAGE_CONSUMER_REPLAY_SCHEMA,
+    PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_SCHEMA,
 };
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -105,6 +108,16 @@ fn open(revision: &Arc<ProjectRevision>) -> ProjectCandidate {
 fn changed(base: &ProjectCandidate, value: i64) -> ProjectCandidate {
     let intent = json!({"kind":"replace_function_body","target":TARGET,
         "body":{"kind":"i64","value":value}});
+    base.apply(
+        base.candidate_digest(),
+        &SemanticChange::new(base.revision().project_revision(), &intent).unwrap(),
+    )
+    .unwrap()
+}
+fn signature_changed(base: &ProjectCandidate) -> ProjectCandidate {
+    let intent = json!({"kind":"change_function_signature","target":TARGET,
+        "append_parameters":[{"name":"offset","type":"i64",
+            "argument":{"kind":"i64","value":0}}]});
     base.apply(
         base.candidate_digest(),
         &SemanticChange::new(base.revision().project_revision(), &intent).unwrap(),
@@ -228,6 +241,22 @@ fn private_helper()->i64 {answer()}
             capsule_options: &self.capsule_options,
         }
     }
+    fn signature_conflicts<'a>(
+        &'a self,
+        target: &'a str,
+    ) -> CandidatePackageSignatureConflictInput<'a> {
+        CandidatePackageSignatureConflictInput {
+            provider: &self.provider,
+            provider_source_path: PROVIDER_PATH,
+            target,
+            baseline_capsule: &self.capsule,
+            baseline_sources: &self.sources,
+            baseline_resolution_evidence: &self.evidence,
+            baseline_resolution_input: &self.input,
+            baseline_resolution_options: &self.resolution_options,
+            baseline_capsule_options: &self.capsule_options,
+        }
+    }
 }
 
 fn report(candidate: &ProjectCandidate, corpus: &Corpus, target: &str) -> Value {
@@ -244,6 +273,136 @@ fn failed<T>(result: Result<T, Vec<Diagnostic>>, code: &str) {
         diagnostics.iter().any(|error| error.code == code),
         "{diagnostics:?}"
     );
+}
+
+#[test]
+fn changed_provider_signature_marks_exact_baseline_imports_and_calls_for_replay() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let revision = fixture.revision();
+    let base = open(&revision);
+    let candidate = signature_changed(&base);
+    let base_json = base.to_json().to_owned();
+    let candidate_json = candidate.to_json().to_owned();
+    let baseline = Corpus::candidate_era(&fixture.0, &base);
+    let report: Value = serde_json::from_str(
+        &candidate
+            .package_signature_consumer_conflicts(
+                candidate.candidate_digest(),
+                &baseline.signature_conflicts(TARGET),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        report["schema"],
+        PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_SCHEMA
+    );
+    assert_eq!(report["candidate_revision"], candidate.candidate_digest());
+    assert_eq!(report["base_project_revision"], revision.project_revision());
+    assert_eq!(
+        report["provider"],
+        json!({"package":"libmath","version":"1.0.0"})
+    );
+    assert_eq!(report["provider_source"]["path"], PROVIDER_PATH);
+    assert_eq!(report["provider_source"]["changed_from_base"], true);
+    assert_eq!(report["target"], TARGET);
+    assert_eq!(report["signature_changed"], true);
+    assert_eq!(report["changed_facets"], json!(["parameters"]));
+    assert_eq!(report["base_signature"]["parameters"], json!([]));
+    assert_eq!(
+        report["candidate_signature"]["parameters"],
+        json!([{"index":0,"ownership":"value",
+            "type":{"kind":"primitive","name":"i64"}}])
+    );
+    assert_ne!(
+        report["base_signature"]["interface_digest"],
+        report["candidate_signature"]["interface_digest"]
+    );
+    assert_eq!(
+        report["compatibility_status"],
+        "known_source_consumers_require_candidate_era_replay"
+    );
+    assert_eq!(
+        report["required_next_step"],
+        "construct_candidate_era_consumer_sources_and_replay_the_complete_package_capsule"
+    );
+    assert_eq!(
+        report["counts"],
+        json!({"packages":2,"known_imports":1,"known_calls":2,
+            "affected_imports":1,"affected_calls":2})
+    );
+    assert_eq!(report["affected_imports"].as_array().unwrap().len(), 1);
+    assert_eq!(report["affected_calls"].as_array().unwrap().len(), 2);
+    assert!(report["affected_calls"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|row| row["caller"] == "app.main"));
+    assert!(report["affected_calls"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|row| row["caller"] != "app.main"));
+    for field in [
+        "source_authority",
+        "execution",
+        "publication_authority",
+        "candidate_retained",
+        "graph_retained",
+    ] {
+        assert_eq!(report[field], false);
+    }
+    assert!(report["nonclaims"].as_array().unwrap().contains(&json!(
+        "no_ambient_installed_registry_workspace_or_deployment_consumer_discovery"
+    )));
+    assert!(report["nonclaims"].as_array().unwrap().contains(&json!(
+        "no_automatic_consumer_migration_or_candidate_era_consumer_acceptance"
+    )));
+    assert!(report["nonclaims"].as_array().unwrap().contains(&json!(
+        "not_runtime_abi_behavioral_or_deployment_compatibility"
+    )));
+    assert!(
+        serde_json::to_string(&report).unwrap().len()
+            <= MAX_PROJECT_CANDIDATE_PACKAGE_SIGNATURE_CONFLICTS_BYTES
+    );
+    assert_eq!(base.to_json(), base_json);
+    assert_eq!(candidate.to_json(), candidate_json);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn body_only_change_does_not_invent_a_package_signature_conflict() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let revision = fixture.revision();
+    let base = open(&revision);
+    let candidate = changed(&base, 42);
+    let baseline = Corpus::candidate_era(&fixture.0, &base);
+    let report: Value = serde_json::from_str(
+        &candidate
+            .package_signature_consumer_conflicts(
+                candidate.candidate_digest(),
+                &baseline.signature_conflicts(TARGET),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(report["signature_changed"], false);
+    assert_eq!(report["changed_facets"], json!([]));
+    assert_eq!(
+        report["compatibility_status"],
+        "selected_signature_unchanged"
+    );
+    assert_eq!(report["affected_imports"], json!([]));
+    assert_eq!(report["affected_calls"], json!([]));
+    assert_eq!(
+        report["counts"],
+        json!({"packages":2,"known_imports":1,"known_calls":2,
+            "affected_imports":0,"affected_calls":0})
+    );
+    assert_eq!(fixture.bytes(), disk);
 }
 
 #[test]

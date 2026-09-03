@@ -395,3 +395,41 @@ fn identity(fd: impl AsFd) -> Result<Identity> {
         .map(|stat| Identity::from_stat(&stat))
         .map_err(|_| io("cannot inspect retention registry directory"))
 }
+
+#[cfg(test)]
+mod tests {
+    use std::os::unix::fs::PermissionsExt;
+
+    use super::*;
+
+    #[test]
+    fn held_metadata_child_rejects_same_owner_path_replacement() {
+        let root_path = std::env::temp_dir().join(format!(
+            "semaprax-retention-registry-metadata-swap-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root_path);
+        std::fs::create_dir(&root_path).unwrap();
+        std::fs::create_dir(root_path.join("metadata")).unwrap();
+        std::fs::set_permissions(&root_path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        std::fs::set_permissions(
+            root_path.join("metadata"),
+            std::fs::Permissions::from_mode(0o700),
+        )
+        .unwrap();
+
+        let root = Root::open(&root_path).unwrap();
+        std::fs::rename(root_path.join("metadata"), root_path.join("displaced")).unwrap();
+        std::fs::create_dir(root_path.join("metadata")).unwrap();
+        std::fs::set_permissions(
+            root_path.join("metadata"),
+            std::fs::Permissions::from_mode(0o700),
+        )
+        .unwrap();
+
+        assert_eq!(root.validate().unwrap_err()[0].code, "SPX-G465");
+
+        drop(root);
+        std::fs::remove_dir_all(root_path).unwrap();
+    }
+}

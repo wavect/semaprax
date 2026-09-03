@@ -3,6 +3,8 @@
 Status: Partial; library implementation and regression sources authored, not
 executed in this change.
 
+Audience: compiler contributors, semantic tooling authors, and reviewers.
+
 This is a narrow lane of the existing `extract_function` operation. It moves
 one authenticated authored expression into a fresh helper when that expression
 consumes exactly one whole local owning value. The only admitted owner types are

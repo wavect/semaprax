@@ -3,6 +3,8 @@
 Status: **Partial; library implementation and regression sources authored and
 unrun.** This is a read-only proposal artifact for one narrow Copy-scalar lane.
 
+Audience: compiler contributors, package tooling authors, and reviewers.
+
 `ProjectCandidate::package_consumer_migration` accepts an exact authenticated
 baseline package corpus through `CandidatePackageSignatureConflictInput`, plus
 caller-supplied candidate-era provider report and Resolver inputs. The candidate

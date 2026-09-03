@@ -39,10 +39,11 @@ about gates the workflow deliberately does not imply:
    profiles become supported or registry-published surfaces;
 3. broaden the line-filter from hosted native and Node/Core-Wasm evidence to
    real-browser or multi-engine evidence before making that claim;
-4. execute and distribute the authored signed Linux offline-doctor provisioner,
-   close its real-tool, binfmt/kernel-policy and hostile settlement gates, then
-   implement equivalent tool/input, filesystem/broker, network and descendant
-   closure for macOS and Windows; and
+4. connect the installed signed-generation store to the authored Linux
+   offline-doctor provisioner through an authority-preserving held-image
+   handoff, execute the real-tool, binfmt/kernel-policy and hostile settlement
+   gates, then implement equivalent tool/input, filesystem/broker, network and
+   descendant closure for macOS and Windows; and
 5. preserve the exact release gate and artifact inventory for every subsequent
    tag rather than treating v0.2.0 evidence as evidence for a later head.
 
@@ -165,9 +166,15 @@ holds the coordinator for the embedding-session lifetime. A separate optional
 holds a distinct startup-selected private store, persists one exact retained
 complete candidate and automatically checkpoints only its successful typed
 receipt. Requests select neither root, and registry failure never negates store
-success. Automatic draft/branch checkpointing, incomplete-draft lifecycle
-recovery, warm HIR loading, separately authorized eviction/GC and measured
-recovery cost remain future work.
+success. The additive [automatic durable candidate/draft
+lifecycle](AUTOMATIC-CANDIDATE-DRAFT-LIFECYCLE-V1.md) now composes both held
+roots for complete candidates and incomplete drafts. It can reconstruct an
+exact typed receipt from an immutable archive stranded before checkpointing,
+advance once after explicit cursor recovery, or recognize the exact subject as
+already retained without weakening ordinary no-adoption publication. This is a
+host-library boundary; workspace-session startup integration, warm HIR loading,
+separately authorized eviction/GC and measured recovery cost remain future
+work.
 
 The additive [workspace protocol v5](IMAGE-WORKSPACE-PROTOCOL-V5.md) now composes
 host-selected semantic, candidate, diagnostic, test, pathless-build and optional

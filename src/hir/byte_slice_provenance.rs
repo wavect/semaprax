@@ -16,6 +16,36 @@ use super::nodes::{
 };
 use super::{hir_error, DeclarationIndex, PlaceProjection};
 
+fn projected_field_type(
+    declarations: &DeclarationIndex,
+    root: &ResolvedType,
+    projections: &[PlaceProjection],
+) -> Option<ResolvedType> {
+    let mut ty = root.clone();
+    for projection in projections {
+        let PlaceProjection::Field(field) = projection else {
+            return None;
+        };
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = &ty
+        else {
+            return None;
+        };
+        if !arguments.is_empty() {
+            return None;
+        }
+        ty = declarations
+            .record_fields(declaration)?
+            .iter()
+            .find(|candidate| candidate.id == *field)?
+            .ty
+            .clone();
+    }
+    Some(ty)
+}
+
 pub(super) fn derive_byte_slice_provenance(
     functions: &[ResolvedFunction],
     declarations: &DeclarationIndex,
@@ -187,21 +217,12 @@ pub(super) fn derive_byte_slice_provenance(
                             )
                         }
                     }
-                    ResolvedType::Nominal {
-                        declaration,
-                        arguments,
-                    } if arguments.is_empty() && place.projections.len() == 1 => {
-                        let PlaceProjection::Field(field) = &place.projections[0] else {
-                            return true;
-                        };
-                        let Some(fields) = declarations.record_fields(declaration) else {
-                            return true;
-                        };
-                        let Some(resolved) = fields.iter().find(|candidate| candidate.id == *field)
-                        else {
-                            return true;
-                        };
-                        if resolved.ty != ResolvedType::Bytes {
+                    ResolvedType::Nominal { arguments, .. }
+                        if arguments.is_empty() && !place.projections.is_empty() =>
+                    {
+                        if projected_field_type(declarations, root_ty, &place.projections)
+                            != Some(ResolvedType::Bytes)
+                        {
                             return true;
                         }
                         (

@@ -85,6 +85,14 @@
   returning. The lane remains in-memory and grants no materialization,
   compilation, linking, runtime, persistence or publication authority.
   Regressions are authored and unrun.
+- Added the bounded internal acyclic nested owned-`Bytes` record profile across
+  independent source/HIR admission, CleanupPlan v7, Graph v26/v27, the
+  interpreter, native C11 and Core Wasm. Complete stable field-ID paths govern
+  whole-value moves, partial cleanup and synchronous shared loans; exact
+  depth/leaf/field limits, nested mutation/pattern closure, native-import schema
+  conflicts and legacy variant publication fail closed. Public Project, FFI and
+  Component aggregate ABIs remain unchanged, and the completion rows remain
+  Partial pending the full promotion corpus.
 
 - Added canonical per-trial contracts to the agent-task comparison harness.
   Each contract binds the exact plan, repository head, task, prompt, fixtures,

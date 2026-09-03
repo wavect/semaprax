@@ -337,6 +337,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             self.values.push(None);
             return Ok(());
         };
+        if self.types.is_nested_owned_byte_record(&base_value.ty)
+            && !self.types.is_flat_owned_byte_record(&base_value.ty)
+        {
+            self.diagnostics.push(error(
+                self.program,
+                "SPX-O117",
+                "record updates over nested owned-Bytes records remain closed",
+                expression.span,
+            ));
+        }
         if self.types.needs_drop(&base_value.ty) {
             match base_value.mode {
                 ParamMode::Own if self.allow_moves => mark_value_sources_moved(

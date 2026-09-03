@@ -27,7 +27,10 @@ use super::{
 };
 
 mod expression;
+mod nested_owned;
 mod owned_strings;
+
+use nested_owned::{borrowed_aggregate_byte_paths, borrowed_aggregate_path_suffix};
 
 #[path = "../../native_scratch.rs"]
 mod native_scratch;
@@ -975,49 +978,6 @@ fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<boo
     Ok(matches!(ty, ResolvedType::ArrayU8(length) if *length != 0)
         || record_declaration_id(program, ty)?.is_some()
         || variant_declaration_id(program, ty)?.is_some())
-}
-
-fn borrowed_aggregate_byte_paths(
-    program: &ResolvedProgram,
-    record_layouts: &AggregateLayoutCache,
-    variant_layouts: &VariantLayoutCache,
-    ty: &ResolvedType,
-) -> Result<Vec<Vec<DeclarationId>>, Diagnostic> {
-    if record_declaration_id(program, ty)?.is_some() {
-        let layout = record_layouts.layout(ty)?;
-        layout.validate(program)?;
-        return Ok(layout
-            .fields
-            .iter()
-            .filter(|field| matches!(field.ty, ResolvedType::Bytes))
-            .map(|field| vec![field.field.clone()])
-            .collect());
-    }
-    if variant_declaration_id(program, ty)?.is_some() {
-        let layout = variant_layouts.layout(ty)?;
-        layout.validate(program)?;
-        return Ok(layout
-            .cases
-            .iter()
-            .flat_map(|case| {
-                case.fields
-                    .iter()
-                    .filter(|field| matches!(field.ty, ResolvedType::Bytes))
-                    .map(|field| vec![case.case.clone(), field.field.clone()])
-            })
-            .collect());
-    }
-    Ok(Vec::new())
-}
-
-fn borrowed_aggregate_path_suffix(path: &[DeclarationId]) -> Result<String, Diagnostic> {
-    match path {
-        [field] => Ok(c_field_symbol(field)),
-        [case, field] => Ok(format!("{}_{}", c_case_symbol(case), c_field_symbol(field))),
-        _ => Err(backend_error(
-            "borrowed aggregate byte path is not flat record-or-variant v1",
-        )),
-    }
 }
 
 fn record_declaration_id<'a>(
@@ -2016,6 +1976,8 @@ fn emit_function(
     emitter.require_type(&body.ty, &function.return_type, "function body")?;
     if matches!(body.ty, ResolvedType::String) && emitter.owned_strings.is_some() {
         emitter.string_move("spx_result", &body.code);
+    } else if emitter.record_contains_owned_bytes(&body.ty)? {
+        emitter.move_owned_record_fields("spx_result", &body.code, &body.ty)?;
     } else if !matches!(body.ty, ResolvedType::Bytes) {
         emitter.line(&format!("spx_result = {};", body.code));
     }
@@ -2107,18 +2069,38 @@ fn emit_function(
             plan.has_projected_leaves(&crate::cleanup_plan::StorageId::ProvisionalResult)
         })
     {
-        output.push_str("    *spx_result_out = spx_result;\n");
         let plan = bytes_plan
             .as_ref()
             .expect("projected result check requires a plan");
-        let publish = if plan.has_variant_leaves(&crate::cleanup_plan::StorageId::ProvisionalResult)
-        {
+        let publish = if variant_declaration_id(program, &function.return_type)?.is_some() {
+            let layout = emission.variant_layouts.layout(&function.return_type)?;
+            nested_owned::emit_owned_variant_shell(
+                output,
+                program,
+                layout,
+                "(*spx_result_out)",
+                "spx_result",
+            )?;
+            if !plan.has_variant_leaves(&crate::cleanup_plan::StorageId::ProvisionalResult) {
+                return Err(backend_error(
+                    "owned variant result disagrees with its cleanup plan",
+                ));
+            }
             plan.materialize_variant_carrier(
                 &crate::cleanup_plan::StorageId::ProvisionalResult,
                 "(*spx_result_out)",
-                emission.variant_layouts.layout(&function.return_type)?,
+                layout,
             )?
         } else {
+            nested_owned::emit_owned_record_shell(
+                output,
+                program,
+                emission.record_layouts,
+                "(*spx_result_out)",
+                "spx_result",
+                &function.return_type,
+                &mut BTreeSet::new(),
+            )?;
             plan.publish_record_result("(*spx_result_out)")?
         };
         output.push_str(

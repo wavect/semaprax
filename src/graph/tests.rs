@@ -73,7 +73,7 @@ fn match_tail_mut(program: &mut ResolvedProgram) -> &mut crate::hir::ResolvedExp
 #[test]
 fn explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views() {
     let value = resolved_value_match_program();
-    assert_eq!(graph_schema(&value), "semaprax.graph.v13");
+    assert_eq!(graph_schema(&value).unwrap(), "semaprax.graph.v13");
     let value_match = value
         .functions
         .iter()
@@ -93,7 +93,7 @@ fn explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views() {
         panic!("mode fixture tail is a match")
     };
     *mode = ResolvedMatchMode::Own;
-    assert_eq!(graph_schema(&own), "semaprax.graph.v21");
+    assert_eq!(graph_schema(&own).unwrap(), "semaprax.graph.v21");
     let own_match = own
         .functions
         .iter()
@@ -145,7 +145,7 @@ fn explicit_match_modes_select_v21_and_are_distinct_in_graph_and_agent_views() {
         panic!("mode fixture tail is a match")
     };
     *mode = ResolvedMatchMode::Borrow;
-    assert_eq!(graph_schema(&borrow), "semaprax.graph.v21");
+    assert_eq!(graph_schema(&borrow).unwrap(), "semaprax.graph.v21");
     let borrow_function = borrow
         .functions
         .iter()
@@ -228,7 +228,7 @@ module test.graph_instance_loan;
     let mut program = hir::resolve(&parse(source, Path::new("graph-instance-loan.spx")).unwrap())
         .expect("generic instance resolves");
     assert_eq!(program.function_instances.len(), 1);
-    assert_ne!(graph_schema(&program), "semaprax.graph.v23");
+    assert_ne!(graph_schema(&program).unwrap(), "semaprax.graph.v23");
 
     // Generic source admission is intentionally scalar-only today, so an
     // authenticated instance cannot yet acquire a real loan. Exercise the
@@ -257,7 +257,7 @@ module test.graph_instance_loan;
         end_edges: vec![0],
         cause: crate::loan_plan::LoanCause::SliceView,
     });
-    assert_eq!(graph_schema(&program), "semaprax.graph.v23");
+    assert_eq!(graph_schema(&program).unwrap(), "semaprax.graph.v23");
 }
 
 #[test]
@@ -275,7 +275,7 @@ fn main() -> i64 { 0 }
 "#;
     let program = hir::resolve(&parse(source, Path::new("graph-byte-range.spx")).unwrap())
         .expect("range program resolves");
-    assert_eq!(graph_schema(&program), "semaprax.graph.v20");
+    assert_eq!(graph_schema(&program).unwrap(), "semaprax.graph.v20");
     let graph = to_hir_json(&program, "trusted-source-revision").unwrap();
     assert!(graph.contains("\"kind\":\"byte_range\""));
     assert!(graph.contains("\"status_domain\":\"semaprax.byte-range.v1\""));
@@ -295,7 +295,7 @@ fn main() -> i64 { 0 }
 "#;
     let v19 = hir::resolve(&parse(v19_source, Path::new("graph-command-v19.spx")).unwrap())
         .expect("legacy command program resolves");
-    assert_eq!(graph_schema(&v19), "semaprax.graph.v19");
+    assert_eq!(graph_schema(&v19).unwrap(), "semaprax.graph.v19");
     let v19_graph = to_hir_json(&v19, "trusted-source-revision").unwrap();
     assert!(v19_graph.contains("\"bounded_language_command_io\""));
     assert!(!v19_graph.contains("\"bounded_line_command_io\""));
@@ -319,7 +319,7 @@ fn main() -> i64 { 0 }
 "#;
     let v20 = hir::resolve(&parse(v20_source, Path::new("graph-line-command-v20.spx")).unwrap())
         .expect("line command program resolves");
-    assert_eq!(graph_schema(&v20), "semaprax.graph.v20");
+    assert_eq!(graph_schema(&v20).unwrap(), "semaprax.graph.v20");
     let v20_graph = to_hir_json(&v20, "trusted-source-revision").unwrap();
     let exact = "\"bounded_line_command_io\":{\"profile\":\"line-command-io.v1\",\"operations\":[{\"name\":\"stdout_append\",\"id\":\"core.host.stdout-append\",\"effect\":\"process.stdout.write\",\"return\":\"usize\",\"failure\":\"status\"},{\"name\":\"stderr_append\",\"id\":\"core.host.stderr-append\",\"effect\":\"process.stderr.write\",\"return\":\"usize\",\"failure\":\"status\"}],\"status_domain\":\"semaprax.command-output.v1\",\"status_codes\":{\"output_capacity_exceeded\":1},\"status_marker\":\"__spx_command_output_status_v1\",\"write_mode\":\"cumulative-append.v1\",\"max_combined_output_bytes\":65536,\"publication\":\"terminal-success-only\",\"failure\":\"discard-staged-transcripts\"}";
     assert!(v20_graph.contains(exact), "{v20_graph}");

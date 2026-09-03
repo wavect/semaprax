@@ -4486,7 +4486,9 @@ fn file_facts(
             Ok(FileFact {
                 path: parsed.path,
                 module: parsed.program.module.clone(),
-                source_graph_schema: graph::graph_schema(&resolved).to_owned(),
+                source_graph_schema: graph::graph_schema(&resolved)
+                    .map_err(|error| vec![error])?
+                    .to_owned(),
                 source_revision: graph::revision(&parsed.program),
                 source_digest: domain_digest(
                     "semaprax.semantic-review.source-digest.v1\0",
@@ -5604,7 +5606,7 @@ pub(crate) fn evidence_path_is_valid(path: &str) -> bool {
 }
 fn graph_schema_for(program: &Program) -> Result<&'static str, Vec<Diagnostic>> {
     let resolved = hir::resolve(program)?;
-    Ok(graph::graph_schema(&resolved))
+    graph::graph_schema(&resolved).map_err(|error| vec![error])
 }
 fn workspace_revision(manifest: &str) -> String {
     domain_digest("semaprax.workspace-revision.v1\0", manifest.as_bytes())

@@ -110,7 +110,7 @@ pub(super) fn check_argument_ownership(
             .with_help("create or receive an explicitly shared resource before this call"),
         ),
         ParamMode::Borrow
-            if types.is_flat_owned_byte_record(&param.ty)
+            if types.is_nested_owned_byte_record(&param.ty)
                 || types.is_flat_owned_byte_variant(&param.ty) =>
         {
             if !matches!(actual.mode, ParamMode::Own | ParamMode::Borrow)
@@ -149,7 +149,7 @@ pub(super) fn check_argument_ownership(
                         arg.span,
                     )
                     .with_help(
-                        "use an owned Bytes local or one direct Bytes field of a flat owned record",
+                        "use an owned Bytes local or an exact Bytes field path of an admitted owned record",
                     ),
                 );
             }
@@ -161,7 +161,7 @@ pub(super) fn check_argument_ownership(
                 "borrowed owned-Bytes aggregate is outside the closed flat profile",
                 arg.span,
             )
-            .with_help("borrow an exact named flat owned-Bytes aggregate place"),
+            .with_help("borrow an exact named admitted owned-Bytes aggregate place"),
         ),
         ParamMode::Borrow | ParamMode::Shared | ParamMode::Value => {}
     }
@@ -186,10 +186,10 @@ pub(super) fn source_borrowed_bytes_call_place_is_admitted(
         return matches!(expression.kind, ExprKind::Var(_))
             && matches!(place.mode, ParamMode::Own | ParamMode::Borrow);
     }
-    place.projections.len() == 1
+    !place.projections.is_empty()
         && place.mode == ParamMode::Own
         && variables.get(&place.root).is_some_and(|binding| {
-            binding.mode == ParamMode::Own && types.is_flat_owned_byte_record(&binding.ty)
+            binding.mode == ParamMode::Own && types.is_nested_owned_byte_record(&binding.ty)
         })
 }
 
@@ -250,9 +250,9 @@ pub(super) fn source_byte_view_place_is_admitted(
         return matches!(expression.kind, ExprKind::Var(_));
     }
     operation == crate::byte_ops::ByteOp::BytesAsSlice
-        && place.projections.len() == 1
+        && !place.projections.is_empty()
         && place.ty == Type::Bytes
         && variables.get(&place.root).is_some_and(|binding| {
-            binding.mode == ParamMode::Own && types.is_flat_owned_byte_record(&binding.ty)
+            binding.mode == ParamMode::Own && types.is_nested_owned_byte_record(&binding.ty)
         })
 }

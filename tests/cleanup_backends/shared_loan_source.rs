@@ -313,7 +313,7 @@ module test.shared_loan_projected_release;
 }
 
 #[test]
-fn projected_owned_byte_view_rejects_every_shape_outside_the_closed_profile() {
+fn projected_owned_byte_view_rejects_non_places_and_admits_nested_paths() {
     let borrowed_root = r#"
 module test.shared_loan_projected_borrowed_root;
 @id("packet") record Packet { @id("packet.payload") payload: Bytes, }
@@ -351,10 +351,7 @@ module test.shared_loan_projected_deeper;
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
-    let report = diagnostics(deeper);
-    assert!(report.iter().any(|diagnostic| {
-        diagnostic.code == "SPX-T268" && diagnostic.message.contains("nests owned `Bytes`")
-    }));
+    assert!(diagnostics(deeper).is_empty());
 }
 
 #[test]

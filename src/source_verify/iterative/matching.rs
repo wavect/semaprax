@@ -193,6 +193,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         {
             let scrutinee_value = scrutinee_value.expect("record checked above");
             let needs_drop = self.types.needs_drop(&scrutinee_value.ty);
+            if match_mode != MatchMode::Value
+                && self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
+                && !self.types.is_flat_owned_byte_record(&scrutinee_value.ty)
+            {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-O117",
+                    "ownership-aware patterns over nested owned-Bytes records remain closed",
+                    scrutinee.span,
+                ));
+            }
             match match_mode {
                 MatchMode::Value => {
                     if needs_drop || scrutinee_value.mode != ParamMode::Value {

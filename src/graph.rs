@@ -30,8 +30,16 @@ macro_rules! format {
 
 #[path = "graph/native_import.rs"]
 mod native_import;
+#[path = "graph/nested_owned.rs"]
+mod nested_owned;
+
+use nested_owned::{
+    graph_schema_includes_loans, graph_schema_includes_modern_composite_facts,
+    graph_schema_includes_projected_provenance, rejected_evidence_schema,
+};
 
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
+pub(crate) use nested_owned::{graph_schema, graph_schema_from_parts_and_instances};
 
 /// Hash the canonical human-readable source projection and implicit prelude.
 ///
@@ -398,6 +406,12 @@ struct AgentRenderSelection<'a> {
     required_bytes: &'a BTreeMap<DeclarationId, usize>,
 }
 
+#[derive(Clone, Copy)]
+struct SourceGraphIdentity<'a> {
+    schema: &'a str,
+    revision: &'a str,
+}
+
 fn agent_context_hir_json(
     program: &ResolvedProgram,
     source_revision: &str,
@@ -405,6 +419,11 @@ fn agent_context_hir_json(
     options: &AgentContextOptions,
 ) -> Result<Option<String>, Diagnostic> {
     hir::validate(program)?;
+    let source_graph_schema = graph_schema(program)?;
+    let source_identity = SourceGraphIdentity {
+        schema: source_graph_schema,
+        revision: source_revision,
+    };
     let Some(root) = find_context_root(program, symbol) else {
         return Ok(None);
     };
@@ -474,7 +493,7 @@ fn agent_context_hir_json(
     loop {
         let output = render_agent_context(
             program,
-            source_revision,
+            source_identity,
             &root,
             options,
             &facts,
@@ -500,7 +519,7 @@ fn agent_context_hir_json(
             estimated_required
         } else if individual_agent_fact_fits(
             program,
-            source_revision,
+            source_identity,
             options,
             &facts[selected - 1],
         ) {
@@ -522,6 +541,11 @@ fn agent_context_v2_hir_json(
     options: &AgentContextV2Options,
 ) -> Result<Option<String>, Diagnostic> {
     hir::validate(program)?;
+    let source_graph_schema = graph_schema(program)?;
+    let source_identity = SourceGraphIdentity {
+        schema: source_graph_schema,
+        revision: source_revision,
+    };
     let Some(root) = find_context_root(program, symbol) else {
         return Ok(None);
     };
@@ -628,7 +652,7 @@ fn agent_context_v2_hir_json(
     loop {
         let output = render_agent_context_v2(
             program,
-            source_revision,
+            source_identity,
             &root,
             options,
             &facts,
@@ -655,7 +679,7 @@ fn agent_context_v2_hir_json(
             for target in resume_targets {
                 let target_fact =
                     index.build_fact(&target, 0, BTreeSet::new(), &options.base.filters)?;
-                if !individual_agent_v2_fact_fits(program, source_revision, options, &target_fact) {
+                if !individual_agent_v2_fact_fits(program, source_identity, options, &target_fact) {
                     return Err(agent_context_option_error(format!(
                         "agent context reference fact `{target}` is permanently unavailable within the {MAX_AGENT_CONTEXT_BYTES}-byte v2 contract maximum"
                     )));
@@ -675,7 +699,7 @@ fn agent_context_v2_hir_json(
             estimated_required
         } else if individual_agent_v2_fact_fits(
             program,
-            source_revision,
+            source_identity,
             options,
             &facts[selected - 1],
         ) {
@@ -744,7 +768,7 @@ impl AgentContextV2Index<'_> {
 
 fn individual_agent_v2_fact_fits(
     program: &ResolvedProgram,
-    source_revision: &str,
+    source_identity: SourceGraphIdentity<'_>,
     options: &AgentContextV2Options,
     fact: &AgentFunctionFactV2,
 ) -> bool {
@@ -769,7 +793,7 @@ fn individual_agent_v2_fact_fits(
     let root = individual.id.clone();
     render_agent_context_v2(
         program,
-        source_revision,
+        source_identity,
         &root,
         &maximum_options,
         &[individual],
@@ -786,7 +810,7 @@ fn individual_agent_v2_fact_fits(
 
 fn individual_agent_fact_fits(
     program: &ResolvedProgram,
-    source_revision: &str,
+    source_identity: SourceGraphIdentity<'_>,
     options: &AgentContextOptions,
     fact: &AgentFunctionFact,
 ) -> bool {
@@ -802,7 +826,7 @@ fn individual_agent_fact_fits(
     let required_bytes = BTreeMap::new();
     render_agent_context(
         program,
-        source_revision,
+        source_identity,
         &fact.id,
         &maximum_options,
         &facts,
@@ -897,14 +921,8 @@ fn agent_function_json(
         ),
         agent_reference_index_json(program, function)?
     );
-    if matches!(
-        graph_schema(program),
-        "semaprax.graph.v14"
-            | "semaprax.graph.v21"
-            | "semaprax.graph.v22"
-            | "semaprax.graph.v23"
-            | "semaprax.graph.v24"
-    ) {
+    let schema = graph_schema(program)?;
+    if schema == "semaprax.graph.v14" || graph_schema_includes_modern_composite_facts(schema) {
         write!(
             output,
             ",\"call_instances\":[{}],\"body\":{}",
@@ -991,10 +1009,7 @@ fn agent_function_json(
         )
         .expect("writing to a string cannot fail");
     }
-    if matches!(
-        graph_schema(program),
-        "semaprax.graph.v23" | "semaprax.graph.v24"
-    ) {
+    if graph_schema_includes_loans(schema) {
         write!(
             output,
             ",\"loans\":{}",
@@ -1262,50 +1277,21 @@ fn result_propagation_json(expression: &ResolvedExpr) -> String {
     }
 }
 
-pub(crate) fn graph_schema(program: &ResolvedProgram) -> &'static str {
-    if native_import::declares_native_rust_import(&program.interfaces) {
-        return native_import::NATIVE_RUST_IMPORT_SCHEMA;
-    }
-    if program.function_instances.iter().any(|instance| {
-        instance
-            .function
-            .loan_plan
-            .loans
-            .iter()
-            .any(|loan| !loan.origin.projections.is_empty())
-    }) {
-        return "semaprax.graph.v24";
-    }
-    if program
-        .function_instances
-        .iter()
-        .any(|instance| !instance.function.loan_plan.loans.is_empty())
-    {
-        return "semaprax.graph.v23";
-    }
-    graph_schema_from_parts(
-        &program.interfaces,
-        &program.types,
-        &program.functions,
-        &program.function_templates,
-    )
-}
-
 /// Bounded While-Loops v1 nonclaim gate: programs selecting Graph v15 stay
 /// outside every evidence/patch flow until that combination is separately
 /// evidenced. Refutable Match v1 selects Graph v16 above the same lattice,
 /// so the gate rejects both additive schemas; generation fails closed so no
 /// capsule can ever carry a schema the independent verifiers reject as
 /// unsupported.
-/// Public additive view of the evidence-flow schema gate used by executable
-/// evidence: Refutable Match v1 sources select v16, which stays outside every
-/// patch/evidence admission alongside the While-Loops v15 extension.
+/// Public additive view of the evidence-flow schema gate.
 pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
     reject_while_loop_evidence_schema(schema)
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if schema == "semaprax.graph.v24" {
+    if let Some(error) = rejected_evidence_schema(schema) {
+        Err(error)
+    } else if schema == "semaprax.graph.v24" {
         Err(Diagnostic::io(
             "SPX-G410",
             "projected shared-loan programs select `semaprax.graph.v24`, which is outside this evidence flow's admission",
@@ -1523,47 +1509,36 @@ fn expression_has_explicit_match_mode(expression: &ResolvedExpr) -> bool {
     }
 }
 
-pub(crate) fn graph_schema_from_parts(
-    interfaces: &[hir::ResolvedInterface],
-    types: &[hir::ResolvedTypeDeclaration],
-    functions: &[ResolvedFunction],
-    function_templates: &[hir::ResolvedFunctionTemplate],
-) -> &'static str {
-    if native_import::declares_native_rust_import(interfaces) {
-        return native_import::NATIVE_RUST_IMPORT_SCHEMA;
-    }
-    if functions.iter().any(|function| {
-        function
-            .loan_plan
-            .loans
-            .iter()
-            .any(|loan| !loan.origin.projections.is_empty())
-    }) {
-        return "semaprax.graph.v24";
-    }
-    if functions
-        .iter()
-        .any(|function| !function.loan_plan.loans.is_empty())
-    {
-        return "semaprax.graph.v23";
-    }
-    graph_schema_from_parts_without_loans(interfaces, types, functions, function_templates)
-}
-
 pub(crate) fn graph_schema_from_parts_without_loans(
     interfaces: &[hir::ResolvedInterface],
     types: &[hir::ResolvedTypeDeclaration],
     functions: &[ResolvedFunction],
     function_templates: &[hir::ResolvedFunctionTemplate],
-) -> &'static str {
+) -> Result<&'static str, Diagnostic> {
+    if functions
+        .iter()
+        .any(|function| function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V7)
+        && native_import::declares_native_rust_import(interfaces)
+    {
+        return Err(Diagnostic::io(
+            "SPX-G410",
+            "native Rust import Graph v25 cannot mask nested owned-record Graph v26 semantics",
+        ));
+    }
     if native_import::declares_native_rust_import(interfaces) {
-        return native_import::NATIVE_RUST_IMPORT_SCHEMA;
+        return Ok(native_import::NATIVE_RUST_IMPORT_SCHEMA);
+    }
+    if functions
+        .iter()
+        .any(|function| function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V7)
+    {
+        return Ok("semaprax.graph.v26");
     }
     if functions.iter().any(|function| {
         function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
             || function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6
     }) {
-        return "semaprax.graph.v22";
+        return Ok("semaprax.graph.v22");
     }
     if functions.iter().any(|function| {
         function
@@ -1580,7 +1555,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             .chain(&template.ensures)
             .any(expression_has_explicit_match_mode)
     }) {
-        return "semaprax.graph.v21";
+        return Ok("semaprax.graph.v21");
     }
     if functions.iter().any(|function| {
         function
@@ -1590,7 +1565,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             .chain(&function.ensures)
             .any(expression_has_byte_range)
     }) {
-        return "semaprax.graph.v20";
+        return Ok("semaprax.graph.v20");
     }
     if functions.iter().any(|function| {
         function
@@ -1607,7 +1582,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             .chain(&template.ensures)
             .any(expression_has_command_io)
     }) {
-        return "semaprax.graph.v19";
+        return Ok("semaprax.graph.v19");
     }
     if functions.iter().any(|function| {
         function
@@ -1624,7 +1599,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             .chain(&template.ensures)
             .any(expression_has_stdout_write)
     }) {
-        return "semaprax.graph.v18";
+        return Ok("semaprax.graph.v18");
     }
     // Portable Indexed Byte Data v1 selects v17 above the existing v16/v15
     // schemas whenever the authenticated program carries target-independent
@@ -1646,7 +1621,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
                     .any(expression_has_usize)
         })
     {
-        return "semaprax.graph.v17";
+        return Ok("semaprax.graph.v17");
     }
     // Refutable Match v1 selects v16 above the whole lower lattice (including
     // the v15 while extension) only when an authenticated refutable node
@@ -1656,7 +1631,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
         .iter()
         .any(|function| expression_has_refutable_match(&function.body))
     {
-        return "semaprax.graph.v16";
+        return Ok("semaprax.graph.v16");
     }
     // Bounded While-Loops v1 selects v15 above the whole lower lattice only
     // when an authenticated while node exists; programs without while syntax
@@ -1665,10 +1640,10 @@ pub(crate) fn graph_schema_from_parts_without_loans(
         .iter()
         .any(|function| expression_has_while(&function.body))
     {
-        return "semaprax.graph.v15";
+        return Ok("semaprax.graph.v15");
     }
     if !function_templates.is_empty() {
-        return "semaprax.graph.v14";
+        return Ok("semaprax.graph.v14");
     }
     if functions.iter().any(|function| {
         function
@@ -1678,7 +1653,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             .chain(&function.ensures)
             .any(expression_has_record_pattern)
     }) {
-        return "semaprax.graph.v13";
+        return Ok("semaprax.graph.v13");
     }
     if types.iter().any(|declaration| {
         matches!(
@@ -1686,7 +1661,7 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             ResolvedTypeDeclarationKind::Record { .. } | ResolvedTypeDeclarationKind::Class { .. }
         ) && !declaration.type_parameters.is_empty()
     }) {
-        return "semaprax.graph.v12";
+        return Ok("semaprax.graph.v12");
     }
     let has_option_try = functions.iter().any(|function| {
         function
@@ -1703,9 +1678,9 @@ pub(crate) fn graph_schema_from_parts_without_loans(
             })
     });
     if has_option_try {
-        "semaprax.graph.v11"
+        Ok("semaprax.graph.v11")
     } else {
-        "semaprax.graph.v10"
+        Ok("semaprax.graph.v10")
     }
 }
 
@@ -3015,7 +2990,7 @@ fn agent_type_declarations_json(
 
 fn render_agent_context(
     program: &ResolvedProgram,
-    source_revision: &str,
+    source_identity: SourceGraphIdentity<'_>,
     root: &DeclarationId,
     options: &AgentContextOptions,
     facts: &[AgentFunctionFact],
@@ -3144,8 +3119,8 @@ fn render_agent_context(
     let render = |used_bytes: usize| {
         format!(
             "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
-            quote_json(graph_schema(program)),
-            quote_json(source_revision),
+            quote_json(source_identity.schema),
+            quote_json(source_identity.revision),
             quote_json(prelude::SCHEMA_V1),
             quote_json(&prelude::digest_text_v1()),
             quote_json(&program.module),
@@ -3182,7 +3157,7 @@ fn render_agent_context(
 
 fn render_agent_context_v2(
     program: &ResolvedProgram,
-    source_revision: &str,
+    source_identity: SourceGraphIdentity<'_>,
     root: &DeclarationId,
     options: &AgentContextV2Options,
     facts: &[AgentFunctionFactV2],
@@ -3362,8 +3337,8 @@ fn render_agent_context_v2(
     let render = |used_bytes: usize| {
         format!(
             "{{\"schema\":\"semaprax.agent-context.v2\",\"source_graph_schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"direction\":{},\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"reference_closure\":{{\"referenced_unselected_nodes\":{}}},\"resume_contract\":{{\"direction\":\"query.direction\",\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":{{\"traversal\":\"frontier.resume.min_bytes\",\"reference\":\"reference_frontier.resume.min_bytes\"}}}},\"frontier\":[{}],\"reference_frontier\":[{}],\"facts\":[{}]}}",
-            quote_json(graph_schema(program)),
-            quote_json(source_revision),
+            quote_json(source_identity.schema),
+            quote_json(source_identity.revision),
             quote_json(prelude::SCHEMA_V1),
             quote_json(&prelude::digest_text_v1()),
             quote_json(&program.module),
@@ -3618,7 +3593,7 @@ fn byte_slice_fact_json(
         byte_slice_extent_json(provenance.length),
         provenance.producer.as_ref().map_or_else(|| "null".to_owned(), |id| quote_json(id.as_str()))
     );
-    if schema == "semaprax.graph.v24" {
+    if graph_schema_includes_projected_provenance(schema) {
         let projections = provenance
             .projections
             .iter()
@@ -3643,13 +3618,7 @@ fn byte_slice_fact_json(
         );
     }
     if schema != "semaprax.graph.v20"
-        && !(matches!(
-            schema,
-            "semaprax.graph.v21"
-                | "semaprax.graph.v22"
-                | "semaprax.graph.v23"
-                | "semaprax.graph.v24"
-        ) && !provenance.ranges.is_empty())
+        && !(graph_schema_includes_modern_composite_facts(schema) && !provenance.ranges.is_empty())
     {
         return base;
     }
@@ -3678,10 +3647,7 @@ fn portable_indexed_byte_data_json(
     schema: &str,
     program: &ResolvedProgram,
 ) -> Result<String, Diagnostic> {
-    let v21 = matches!(
-        schema,
-        "semaprax.graph.v21" | "semaprax.graph.v22" | "semaprax.graph.v23" | "semaprax.graph.v24"
-    );
+    let v21 = graph_schema_includes_modern_composite_facts(schema);
     let has_portable_indexed_data = program.types.iter().any(type_declaration_has_usize)
         || program.functions.iter().any(function_has_usize)
         || program.function_templates.iter().any(|template| {
@@ -3945,7 +3911,7 @@ fn graph_json(
         }
     }
     close_type_declarations(program, &mut selected_types)?;
-    let schema = graph_schema(program);
+    let schema = graph_schema(program)?;
     let mut output = crate::bounded_output::CappedString::new();
     write!(
         output,
@@ -4445,7 +4411,7 @@ fn graph_json(
             cleanup
         )
         .expect("writing to a string cannot fail");
-        if matches!(schema, "semaprax.graph.v23" | "semaprax.graph.v24") {
+        if graph_schema_includes_loans(schema) {
             write!(
                 output,
                 ",\"loans\":{}}}",
@@ -4559,7 +4525,7 @@ fn graph_json(
             crate::graph_cleanup::cleanup_plan_json(&function.cleanup_plan)
         )
         .expect("writing to a string cannot fail");
-        if matches!(schema, "semaprax.graph.v23" | "semaprax.graph.v24") {
+        if graph_schema_includes_loans(schema) {
             write!(
                 output,
                 ",\"loans\":{}}}",
@@ -5870,3 +5836,7 @@ fn string_array(values: &[String]) -> String {
 #[cfg(test)]
 #[path = "graph/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "graph/nested_owned_records_tests.rs"]
+mod nested_owned_records_tests;

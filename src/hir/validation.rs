@@ -7,20 +7,6 @@
 use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
-fn owned_byte_record_copy_field_is_admitted(ty: &ResolvedType) -> bool {
-    matches!(
-        ty,
-        ResolvedType::I64
-            | ResolvedType::I32
-            | ResolvedType::U8
-            | ResolvedType::Usize
-            | ResolvedType::F32
-            | ResolvedType::F64
-            | ResolvedType::Char
-            | ResolvedType::Bool
-    )
-}
-
 fn resolved_type_contains_owned_bytes(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
     let mut pending = vec![ty.clone()];
     let mut visited = BTreeSet::new();
@@ -75,28 +61,6 @@ fn resolved_type_contains_owned_bytes(program: &ResolvedProgram, ty: &ResolvedTy
     false
 }
 
-fn resolved_type_is_flat_owned_byte_record(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        return false;
-    };
-    if !arguments.is_empty() {
-        return false;
-    }
-    program.types.iter().any(|item| {
-        item.id == *declaration
-            && item.type_parameters.is_empty()
-            && matches!(
-                &item.kind,
-                ResolvedTypeDeclarationKind::Record { fields }
-                    if fields.iter().any(|field| field.ty == ResolvedType::Bytes)
-            )
-    })
-}
-
 fn resolved_type_is_flat_owned_byte_variant(program: &ResolvedProgram, ty: &ResolvedType) -> bool {
     let ResolvedType::Nominal {
         declaration,
@@ -118,7 +82,7 @@ fn resolved_type_is_flat_owned_byte_variant(program: &ResolvedProgram, ty: &Reso
                 if cases.iter().flat_map(|case| &case.fields).any(|field| field.ty == ResolvedType::Bytes)
                     && cases.iter().flat_map(|case| &case.fields).all(|field|
                         field.ty == ResolvedType::Bytes
-                            || owned_byte_record_copy_field_is_admitted(&field.ty)))
+                            || super::type_reachability::nested_record_copy_scalar_is_admitted(&field.ty)))
     })
 }
 
@@ -681,27 +645,19 @@ impl<'a> HirValidator<'a> {
                 }
             }
             match &declaration.kind {
-                ResolvedTypeDeclarationKind::Record { fields } => {
-                    let has_direct_bytes =
-                        fields.iter().any(|field| field.ty == ResolvedType::Bytes);
-                    if has_direct_bytes
-                        && (!declaration.type_parameters.is_empty()
-                            || fields.iter().any(|field| {
-                                field.ty != ResolvedType::Bytes
-                                    && !owned_byte_record_copy_field_is_admitted(&field.ty)
-                            }))
+                ResolvedTypeDeclarationKind::Record { fields: _ } => {
+                    let root = ResolvedType::Nominal {
+                        declaration: declaration.id.clone(),
+                        arguments: Vec::new(),
+                    };
+                    if resolved_type_contains_owned_bytes(self.program, &root)
+                        && !super::type_reachability::is_admitted_nested_owned_byte_record(
+                            &self.program.declarations,
+                            &root,
+                        )
                     {
                         return Err(hir_error(
-                            "resolved owned-Bytes record is not flat and monomorphic",
-                        ));
-                    }
-                    if !has_direct_bytes
-                        && fields.iter().any(|field| {
-                            resolved_type_contains_owned_bytes(self.program, &field.ty)
-                        })
-                    {
-                        return Err(hir_error(
-                            "resolved record nests compiler-owned Bytes outside flat v1",
+                            "resolved owned-Bytes record is outside the bounded acyclic nested profile",
                         ));
                     }
                 }
@@ -726,7 +682,9 @@ impl<'a> HirValidator<'a> {
                         && (!declaration.type_parameters.is_empty()
                             || fields.iter().any(|field| {
                                 field.ty != ResolvedType::Bytes
-                                    && !owned_byte_record_copy_field_is_admitted(&field.ty)
+                                && !super::type_reachability::nested_record_copy_scalar_is_admitted(
+                                    &field.ty,
+                                )
                             }))
                     {
                         return Err(hir_error(
@@ -1081,7 +1039,7 @@ impl<'a> HirValidator<'a> {
                                     | ResolvedType::TypeParameter { .. }
                             ) || (owned_byte_variant
                                 && (field.ty == ResolvedType::Bytes
-                                    || owned_byte_record_copy_field_is_admitted(&field.ty))))
+                                    || super::type_reachability::nested_record_copy_scalar_is_admitted(&field.ty))))
                         {
                             return Err(hir_error(format!(
                                 "field {field_position} of case `{}` is invalid or disagrees with its declaration index",
@@ -2382,6 +2340,16 @@ impl<'a> HirValidator<'a> {
                     {
                         return Err(hir_error(
                             "resolved record pattern references a foreign record",
+                        ));
+                    }
+                    if mode != ResolvedMatchMode::Value
+                        && super::type_reachability::is_nested_nonflat_owned_byte_record(
+                            &self.program.declarations,
+                            &expected,
+                        )
+                    {
+                        return Err(hir_error(
+                            "ownership-aware nested owned-Bytes record patterns remain closed",
                         ));
                     }
                     let facts =
@@ -5055,6 +5023,14 @@ impl<'a> HirValidator<'a> {
                         return Err(hir_error(format!(
                             "record update for `{record}` has an invalid concrete instance"
                         )));
+                    }
+                    if super::type_reachability::is_nested_nonflat_owned_byte_record(
+                        &self.program.declarations,
+                        &base.ty,
+                    ) {
+                        return Err(hir_error(
+                            "SPX-O117: record updates over nested owned-Bytes records remain closed",
+                        ));
                     }
                     let ownership = self.expected_ownership(&base.ty, OwnershipMode::Own)?;
                     if base.ownership != ownership {
@@ -8076,6 +8052,14 @@ impl<'a> HirValidator<'a> {
                         "record update for `{record}` has an invalid concrete instance"
                     )));
                 }
+                if super::type_reachability::is_nested_nonflat_owned_byte_record(
+                    &self.program.declarations,
+                    &ty,
+                ) {
+                    return Err(hir_error(
+                        "SPX-O117: record updates over nested owned-Bytes records remain closed",
+                    ));
+                }
                 self.require_type(&base.ty, &ty, "record update base")?;
                 let ownership = self.expected_ownership(&ty, OwnershipMode::Own)?;
                 if base.ownership != ownership {
@@ -8229,15 +8213,21 @@ impl<'a> HirValidator<'a> {
             return Ok(());
         }
         if operation != crate::byte_ops::ByteOp::BytesAsSlice
-            || place.projections.len() != 1
-            || !matches!(place.projections[0], PlaceProjection::Field(_))
+            || place.projections.is_empty()
+            || place
+                .projections
+                .iter()
+                .any(|projection| !matches!(projection, PlaceProjection::Field(_)))
             || binding.ownership != OwnershipMode::Own
-            || !resolved_type_is_flat_owned_byte_record(self.program, &binding.ty)
+            || !super::type_reachability::is_admitted_nested_owned_byte_record(
+                &self.program.declarations,
+                &binding.ty,
+            )
             || place_ty != ResolvedType::Bytes
             || place_ownership != OwnershipMode::Own
         {
             return Err(hir_error(
-                "projected byte view is outside the exact direct owned-Bytes field profile",
+                "projected byte view is outside the exact nested owned-Bytes field profile",
             ));
         }
         Ok(())
@@ -8820,8 +8810,10 @@ impl<'a> HirValidator<'a> {
                     if param.ty == ResolvedType::Bytes {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow) && exact_place
                     } else if resolved_type_contains_owned_bytes(self.program, &param.ty) {
-                        (resolved_type_is_flat_owned_byte_record(self.program, &param.ty)
-                            || resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
+                        (super::type_reachability::is_admitted_nested_owned_byte_record(
+                            &self.program.declarations,
+                            &param.ty,
+                        ) || resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
                             && matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
                             && matches!(
                                 &argument.kind,
@@ -8893,15 +8885,21 @@ impl<'a> HirValidator<'a> {
         let admitted = if place.projections.is_empty() {
             matches!(place_ownership, OwnershipMode::Own | OwnershipMode::Borrow)
         } else {
-            place.projections.len() == 1
-                && matches!(place.projections[0], PlaceProjection::Field(_))
+            !place.projections.is_empty()
+                && place
+                    .projections
+                    .iter()
+                    .all(|projection| matches!(projection, PlaceProjection::Field(_)))
                 && binding.ownership == OwnershipMode::Own
                 && place_ownership == OwnershipMode::Own
-                && resolved_type_is_flat_owned_byte_record(self.program, &binding.ty)
+                && super::type_reachability::is_admitted_nested_owned_byte_record(
+                    &self.program.declarations,
+                    &binding.ty,
+                )
         };
         if !admitted {
             return Err(hir_error(
-                "borrowed Bytes call is outside the exact named or direct owned-field profile",
+                "borrowed Bytes call is outside the exact named or nested owned-field profile",
             ));
         }
         if binding.ownership == OwnershipMode::Own {

@@ -246,7 +246,7 @@ fn main() -> i64 { 0 }
 }
 
 #[test]
-fn nested_bytes_are_rejected_outside_the_flat_v1_scope() {
+fn nested_bytes_are_admitted_for_monomorphic_record_trees() {
     let source = r#"
 module test.nested_owned_bytes;
 record Inner { payload: Bytes, }
@@ -254,7 +254,7 @@ record Outer { nested: Inner, }
 fn invalid(value: own Outer) -> i64 { 0 }
 fn main() -> i64 { 0 }
 "#;
-    assert_eq!(error_codes(source), ["SPX-T268"]);
+    assert!(error_codes(source).is_empty());
 }
 
 #[test]
@@ -269,12 +269,6 @@ fn main() -> i64 { 0 }
 module test.variant_bytes;
 record Marker { value: i64, }
 variant Packet { Data { payload: Bytes, nested: Marker, }, }
-fn main() -> i64 { 0 }
-"#,
-        r#"
-module test.nested_copy_companion;
-record Marker { value: i64, }
-record Packet { payload: Bytes, marker: Marker, }
 fn main() -> i64 { 0 }
 "#,
         r#"

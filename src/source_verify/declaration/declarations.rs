@@ -11,7 +11,10 @@ use crate::source_verify::declared_type::{
     check_declared_type, native_rust_status_domain, record_layout_is_recursive,
 };
 use crate::source_verify::diagnostics::error;
-use crate::source_verify::type_table::{owned_byte_record_copy_field_is_admitted, TypeTable};
+use crate::source_verify::type_table::{
+    classify_nested_owned_byte_record, owned_byte_record_copy_field_is_admitted,
+    NestedOwnedRecordAdmission, TypeTable,
+};
 use std::collections::{HashMap, HashSet};
 
 pub(super) fn check_byte_data_declarations<'p>(
@@ -21,46 +24,36 @@ pub(super) fn check_byte_data_declarations<'p>(
 ) {
     for declaration in &program.types {
         match &declaration.kind {
-            TypeDeclarationKind::Record { fields } => {
-                let has_direct_bytes = fields.iter().any(|field| field.ty == Type::Bytes);
-                if has_direct_bytes && !declaration.type_parameters.is_empty() {
-                    diagnostics.push(error(
-                        program,
-                        "SPX-T268",
-                        format!(
-                            "owned-Bytes record `{}` must be monomorphic in this tranche",
-                            declaration.name
+            TypeDeclarationKind::Record { fields: _ } => {
+                let root = Type::Named {
+                    name: declaration.name.clone(),
+                    arguments: Vec::new(),
+                };
+                if types.contains_owned_bytes(&root) {
+                    match classify_nested_owned_byte_record(types, &root) {
+                        NestedOwnedRecordAdmission::Admitted
+                        | NestedOwnedRecordAdmission::Recursive => {}
+                        NestedOwnedRecordAdmission::NoOwnedBytes => unreachable!(
+                            "owned-byte precheck and structural classifier disagree"
                         ),
-                        declaration.span,
-                    ));
-                }
-                for field in fields {
-                    if has_direct_bytes
-                        && field.ty != Type::Bytes
-                        && !owned_byte_record_copy_field_is_admitted(&field.ty)
-                    {
-                        diagnostics.push(error(
+                        NestedOwnedRecordAdmission::OutsideProfile => diagnostics.push(error(
                             program,
                             "SPX-T268",
                             format!(
-                                "owned-Bytes record field `{}.{}` must be direct `Bytes` or a direct Copy scalar",
-                                declaration.name, field.name
+                                "owned-Bytes record `{}` must be a monomorphic acyclic record tree with only `Bytes` or direct Copy scalar leaves",
+                                declaration.name
                             ),
-                            field.span,
-                        ));
-                    } else if !has_direct_bytes
-                        && field.ty != Type::Bytes
-                        && types.contains_owned_bytes(&field.ty)
-                    {
-                        diagnostics.push(error(
+                            declaration.span,
+                        )),
+                        NestedOwnedRecordAdmission::LimitExceeded => diagnostics.push(error(
                             program,
                             "SPX-T268",
                             format!(
-                                "aggregate field `{}.{}` nests owned `Bytes`; this tranche admits only direct `Bytes` fields",
-                                declaration.name, field.name
+                                "owned-Bytes record `{}` exceeds the nested record depth, owned-leaf, or field bound",
+                                declaration.name
                             ),
-                            field.span,
-                        ));
+                            declaration.span,
+                        )),
                     }
                 }
             }

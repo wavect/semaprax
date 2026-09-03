@@ -480,6 +480,10 @@ impl<'a> TypeTable<'a> {
         false
     }
 
+    pub(super) fn is_nested_owned_byte_record(&self, ty: &Type) -> bool {
+        classify_nested_owned_byte_record(self, ty) == NestedOwnedRecordAdmission::Admitted
+    }
+
     pub(super) fn is_flat_owned_byte_record(&self, ty: &Type) -> bool {
         let Type::Named { name, arguments } = ty else {
             return false;
@@ -491,6 +495,8 @@ impl<'a> TypeTable<'a> {
             self.declaration(name).map(|declaration| &declaration.kind),
             Some(TypeDeclarationKind::Record { fields })
                 if fields.iter().any(|field| field.ty == Type::Bytes)
+                    && fields.iter().all(|field| field.ty == Type::Bytes
+                        || owned_byte_record_copy_field_is_admitted(&field.ty))
         )
     }
 
@@ -601,6 +607,106 @@ impl<'a> TypeTable<'a> {
                 }
             }
         }
+    }
+}
+
+pub(super) const MAX_NESTED_OWNED_RECORD_DEPTH: usize = 64;
+pub(super) const MAX_NESTED_OWNED_BYTE_LEAVES: usize = 256;
+pub(super) const MAX_NESTED_OWNED_RECORD_FIELDS: usize = 4_096;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum NestedOwnedRecordAdmission {
+    Admitted,
+    NoOwnedBytes,
+    OutsideProfile,
+    Recursive,
+    LimitExceeded,
+}
+
+/// Classify one concrete source type without consulting resolved HIR or its
+/// type-fact cache. Every record occurrence is charged independently: a type
+/// used by two fields represents two storage subtrees, not one memoized node.
+pub(super) fn classify_nested_owned_byte_record(
+    types: &TypeTable<'_>,
+    root: &Type,
+) -> NestedOwnedRecordAdmission {
+    enum Frame<'a> {
+        Type(&'a Type, usize),
+        Fields(&'a [FieldDeclaration], usize, usize),
+        LeaveRecord(&'a str),
+    }
+
+    let mut frames = vec![Frame::Type(root, 1)];
+    let mut active = HashSet::new();
+    let mut owned_leaves = 0usize;
+    let mut visited_fields = 0usize;
+
+    while let Some(frame) = frames.pop() {
+        match frame {
+            Frame::Type(Type::Bytes, _) => {
+                owned_leaves += 1;
+                if owned_leaves > MAX_NESTED_OWNED_BYTE_LEAVES {
+                    return NestedOwnedRecordAdmission::LimitExceeded;
+                }
+            }
+            Frame::Type(ty, _) if owned_byte_record_copy_field_is_admitted(ty) => {}
+            Frame::Type(Type::Named { name, arguments }, depth) => {
+                if depth > MAX_NESTED_OWNED_RECORD_DEPTH {
+                    return NestedOwnedRecordAdmission::LimitExceeded;
+                }
+                if !arguments.is_empty() {
+                    return NestedOwnedRecordAdmission::OutsideProfile;
+                }
+                let Some(declaration) = types.declaration(name) else {
+                    return NestedOwnedRecordAdmission::OutsideProfile;
+                };
+                if !declaration.type_parameters.is_empty() {
+                    return NestedOwnedRecordAdmission::OutsideProfile;
+                }
+                let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+                    return NestedOwnedRecordAdmission::OutsideProfile;
+                };
+                if !active.insert(name.as_str()) {
+                    return NestedOwnedRecordAdmission::Recursive;
+                }
+                frames.push(Frame::LeaveRecord(name));
+                frames.push(Frame::Fields(fields, 0, depth));
+            }
+            Frame::Type(
+                Type::I64
+                | Type::I32
+                | Type::Char
+                | Type::U8
+                | Type::Usize
+                | Type::F32
+                | Type::F64
+                | Type::Bool,
+                _,
+            ) => unreachable!("admitted scalar handled above"),
+            Frame::Type(Type::ArrayU8(_) | Type::String | Type::Str | Type::SliceU8, _) => {
+                return NestedOwnedRecordAdmission::OutsideProfile
+            }
+            Frame::Fields(fields, index, depth) => {
+                let Some(field) = fields.get(index) else {
+                    continue;
+                };
+                visited_fields += 1;
+                if visited_fields > MAX_NESTED_OWNED_RECORD_FIELDS {
+                    return NestedOwnedRecordAdmission::LimitExceeded;
+                }
+                frames.push(Frame::Fields(fields, index + 1, depth));
+                frames.push(Frame::Type(&field.ty, depth + 1));
+            }
+            Frame::LeaveRecord(name) => {
+                active.remove(name);
+            }
+        }
+    }
+
+    if owned_leaves == 0 {
+        NestedOwnedRecordAdmission::NoOwnedBytes
+    } else {
+        NestedOwnedRecordAdmission::Admitted
     }
 }
 

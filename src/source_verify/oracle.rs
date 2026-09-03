@@ -783,6 +783,17 @@ pub(super) fn check_expr(
                 return None;
             }
 
+            if types.is_nested_owned_byte_record(&base_value.ty)
+                && !types.is_flat_owned_byte_record(&base_value.ty)
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-O117",
+                    "record updates over nested owned-Bytes records remain closed",
+                    expr.span,
+                ));
+            }
+
             if types.needs_drop(&base_value.ty) {
                 match base_value.mode {
                     ParamMode::Own if allow_moves => {

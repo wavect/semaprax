@@ -35,6 +35,10 @@ pub enum TracePathOutcome {
     Failure { selected_ordinal: u32 },
 }
 
+#[cfg(test)]
+#[path = "trace_path_certificate/nested_owned_records_tests.rs"]
+mod nested_owned_records_tests;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct DfaState {
     transitions: Vec<(u32, u32)>,
@@ -188,9 +192,9 @@ pub fn build_trace_path_certificate(
     dictionary: &SemanticEventDictionary,
 ) -> Result<TracePathCertificate, Diagnostic> {
     crate::hir::validate(program)?;
-    if function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6 {
+    if !trace_path_schema_is_admitted(function.cleanup_plan.schema) {
         return Err(certificate_error(
-            "conditional owned-variant cleanup is outside trace-path certificate v1",
+            "conditional or nested owned cleanup is outside trace-path certificate v1",
         ));
     }
     if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
@@ -352,6 +356,13 @@ pub fn build_trace_path_certificate(
         return Err(certificate_error("cleanup CFG has no accepting trace path"));
     }
     build_dfa(function.id.clone(), dictionary.fingerprint(), accepted)
+}
+
+fn trace_path_schema_is_admitted(schema: &str) -> bool {
+    !matches!(
+        schema,
+        crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6 | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V7
+    )
 }
 
 fn apply_transition(

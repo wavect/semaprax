@@ -41,6 +41,7 @@ Audience: all documentation readers.
 - [Class inheritance](CLASS-INHERITANCE-V1.md)
 - [Portable indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md)
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
+- [Acyclic Nested Owned-Byte Records](NESTED-OWNED-BYTE-RECORDS-V1.md)
 - [Owned Byte Variant Algebra](OWNED-BYTE-VARIANT-ALGEBRA-V1.md)
 - [Shared Loan Plan](SHARED-LOAN-PLAN-V1.md)
 - [Projected Owned-Byte Field Shared Borrow](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)

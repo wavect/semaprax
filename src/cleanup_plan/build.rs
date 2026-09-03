@@ -22,9 +22,10 @@ use super::{
     ConditionalVariantEntry, ContractPhase, EdgeCondition, EdgeId, ExitContinuation, ExitTarget,
     ExitTargetId, FinalizeAction, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
     StatusSource, StatusSourceId, StorageId, VariantCaseGuard, CLEANUP_PLAN_SCHEMA_V2,
-    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6,
+    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
 };
 
+mod schema;
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
 #[cfg(test)]
 const CLEANUP_EVAL_RESULT_SIZE_CEILING: usize = 192;
@@ -679,11 +680,7 @@ impl<'a> PlanBuilder<'a> {
                 conditional_variants: Vec::new(),
             },
             pending_try_residuals: Vec::new(),
-            schema: if function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2 {
-                CLEANUP_PLAN_SCHEMA_V6
-            } else {
-                CLEANUP_PLAN_SCHEMA_V2
-            },
+            schema: schema::initial(&function.cleanup)?,
         };
         builder.seed_entry(root)?;
         Ok(builder)
@@ -953,6 +950,9 @@ impl<'a> PlanBuilder<'a> {
         let index = u32::try_from(self.slots.len())
             .map_err(|_| plan_error("too many cleanup plan slots"))?;
         let shape = self.shape_for_type(&ty, &storage, &mut Vec::new())?;
+        if schema::shape_is_nested(&shape)? {
+            self.schema = super::CLEANUP_PLAN_SCHEMA_V7;
+        }
         self.slots.push(CleanupSlot {
             id: CleanupSlotId(index),
             storage: storage.clone(),
@@ -2816,7 +2816,7 @@ impl<'a> PlanBuilder<'a> {
                                 "byte range carries an unknown operation identity",
                             ));
                         }
-                        if !matches!(self.schema, CLEANUP_PLAN_SCHEMA_V5 | CLEANUP_PLAN_SCHEMA_V6) {
+                        if !schema::includes_v5(self.schema) {
                             self.schema = CLEANUP_PLAN_SCHEMA_V4;
                         }
                         frames.push(Frame::ByteRangeAfterSource {
@@ -4139,8 +4139,8 @@ impl<'a> PlanBuilder<'a> {
                             .iter()
                             .any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
                         {
-                            self.schema = CLEANUP_PLAN_SCHEMA_V6;
-                        } else if self.schema != CLEANUP_PLAN_SCHEMA_V6 {
+                            schema::promote_v6(&mut self.schema);
+                        } else if !schema::includes_v6(self.schema) {
                             self.schema = CLEANUP_PLAN_SCHEMA_V5;
                         }
                     }
@@ -4891,7 +4891,7 @@ impl<'a> PlanBuilder<'a> {
                         "byte range carries an unknown operation identity",
                     ));
                 }
-                if !matches!(self.schema, CLEANUP_PLAN_SCHEMA_V5 | CLEANUP_PLAN_SCHEMA_V6) {
+                if !schema::includes_v5(self.schema) {
                     self.schema = CLEANUP_PLAN_SCHEMA_V4;
                 }
                 let mut evaluated =
@@ -6422,8 +6422,8 @@ impl<'a> PlanBuilder<'a> {
                 .iter()
                 .any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
             {
-                self.schema = CLEANUP_PLAN_SCHEMA_V6;
-            } else if self.schema != CLEANUP_PLAN_SCHEMA_V6 {
+                schema::promote_v6(&mut self.schema);
+            } else if !schema::includes_v6(self.schema) {
                 self.schema = CLEANUP_PLAN_SCHEMA_V5;
             }
         }

@@ -451,11 +451,11 @@ fn generic_nonrecord_owned_defaults_collision_range_and_field_count_limits_remai
 }
 
 #[test]
-fn broader_candidate_selection_does_not_admit_nested_bytes_or_borrowed_storage_in_source() {
+fn broader_candidate_selection_keeps_nested_owned_patterns_and_borrowed_storage_closed() {
     let fixture = Fixture::new();
     let original = std::fs::read_to_string(fixture.0.join("src/core.spx")).unwrap();
     for (extra,expected) in [
-        ("@id(\"evolve.inner-bytes\") record InnerBytes { @id(\"evolve.inner-bytes.bytes\") bytes:Bytes, }\n@id(\"evolve.outer-bytes\") record OuterBytes { @id(\"evolve.outer-bytes.inner\") inner:InnerBytes, }\nfn invalid(value:own OuterBytes)->i64 {match own value {OuterBytes {inner:InnerBytes {bytes}}=>0,}}", "SPX-T268"),
+        ("@id(\"evolve.inner-bytes\") record InnerBytes { @id(\"evolve.inner-bytes.bytes\") bytes:Bytes, }\n@id(\"evolve.outer-bytes\") record OuterBytes { @id(\"evolve.outer-bytes.inner\") inner:InnerBytes, }\nfn invalid(value:own OuterBytes)->i64 {match own value {OuterBytes {inner:InnerBytes {bytes}}=>0,}}", "SPX-O117"),
         ("@id(\"evolve.borrowed\") record Borrowed { @id(\"evolve.borrowed.value\") value:Slice<u8>, }", "SPX-T264"),
         ("@id(\"evolve.borrowed\") record Borrowed { @id(\"evolve.borrowed.value\") value:str, }", "SPX-O116"),
     ] {

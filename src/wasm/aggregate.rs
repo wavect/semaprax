@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 mod expressions;
 pub(super) mod internal_strings;
+mod nested_owned;
 mod owned_stack;
 mod owned_strings;
 
@@ -976,21 +977,14 @@ fn flatten_byte_leaves(
 ) -> Result<(), Diagnostic> {
     match shape {
         crate::cleanup::FieldLivenessShape::NoDrop => Ok(()),
-        crate::cleanup::FieldLivenessShape::Leaf { flag, lifecycle } => {
-            if projections.len() > 2 {
-                return Err(error(
-                    "nested owned Bytes aggregate leaf is outside Wasm flat variant v1",
-                ));
-            }
-            visit(
-                crate::cleanup_plan::CleanupPlace {
-                    storage: storage.clone(),
-                    projections: projections.clone(),
-                },
-                *flag,
-                lifecycle,
-            )
-        }
+        crate::cleanup::FieldLivenessShape::Leaf { flag, lifecycle } => visit(
+            crate::cleanup_plan::CleanupPlace {
+                storage: storage.clone(),
+                projections: projections.clone(),
+            },
+            *flag,
+            lifecycle,
+        ),
         crate::cleanup::FieldLivenessShape::Record { fields, .. } => {
             for field in fields {
                 projections.push(field.field.clone());
@@ -3198,11 +3192,7 @@ impl Emitter<'_> {
             return Err(error("owned record poison received a scalar carrier"));
         };
         let record_layout = layout(self.program, ty)?;
-        if !record_layout
-            .fields
-            .iter()
-            .any(|field| field.ty == ResolvedType::Bytes)
-        {
+        if !nested_owned::record_contains_owned_bytes(self.program, ty)? {
             return Err(error("owned record poison received a Copy-only record"));
         }
         self.emit_pointer(*pointer);
@@ -7064,17 +7054,8 @@ impl Emitter<'_> {
                 };
                 if is_record(self.program, ty)? {
                     let record_layout = layout(self.program, ty)?;
-                    if record_layout
-                        .fields
-                        .iter()
-                        .any(|field| field.ty == ResolvedType::Bytes)
-                    {
+                    if nested_owned::record_contains_owned_bytes(self.program, ty)? {
                         for field in &record_layout.fields {
-                            if is_aggregate(self.program, &field.ty)? {
-                                return Err(error(
-                                    "nested aggregate reached owned-byte record Wasm copy",
-                                ));
-                            }
                             let destination_field = value_at(
                                 Pointer {
                                     local: destination.local,
@@ -7362,10 +7343,10 @@ impl Emitter<'_> {
 fn borrow_place_shape_is_admitted(operation: &DeclarationId, place: &crate::hir::Place) -> bool {
     place.projections.is_empty()
         || (operation.as_str() == crate::byte_ops::BYTES_AS_SLICE_ID
-            && matches!(
-                place.projections.as_slice(),
-                [crate::hir::PlaceProjection::Field(_)]
-            ))
+            && place
+                .projections
+                .iter()
+                .all(|item| matches!(item, crate::hir::PlaceProjection::Field(_))))
 }
 
 fn value_type(value: &Value) -> &ResolvedType {

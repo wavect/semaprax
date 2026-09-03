@@ -435,8 +435,9 @@ fn build_from_preflight_with_limits(
     } else {
         resolve_checked()?
     };
-    let source_graph_schema = graph::graph_schema(&before_resolved);
-    if graph::graph_schema(&candidate_resolved) != source_graph_schema {
+    let source_graph_schema = graph::graph_schema(&before_resolved).map_err(|error| vec![error])?;
+    if graph::graph_schema(&candidate_resolved).map_err(|error| vec![error])? != source_graph_schema
+    {
         return Err(vec![invariant_error(
             "semantic review base and candidate Graph schemas differ",
         )]);

@@ -2419,60 +2419,14 @@ impl WorkspaceGraphBuild {
 fn semantic_workspace_source_schema(
     module: &WorkspaceResolvedModule,
 ) -> Result<&'static str, Vec<Diagnostic>> {
-    let base_schema = graph::graph_schema_from_parts_without_loans(
+    graph::graph_schema_from_parts_and_instances(
         &module.interfaces,
         &module.types,
         &module.functions,
         &module.function_templates,
-    );
-    let has_loans = module
-        .functions
-        .iter()
-        .any(|function| !function.loan_plan.loans.is_empty())
-        || module
-            .function_instances
-            .iter()
-            .any(|instance| !instance.function.loan_plan.loans.is_empty());
-    let instance_has_owned_variant = module.function_instances.iter().any(|instance| {
-        instance.function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
-            || instance.function.cleanup_plan.schema == crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6
-    });
-    if has_loans && (base_schema == "semaprax.graph.v22" || instance_has_owned_variant) {
-        return Err(vec![graph_error(
-            "SPX-G410",
-            "Shared Loan Plan v1 cannot mask an owned-variant Graph v22 base schema in Semantic Workspace v1",
-        )]);
-    }
-    if base_schema == "semaprax.graph.v25" {
-        return Ok(base_schema);
-    }
-    Ok(if has_loans {
-        if module
-            .functions
-            .iter()
-            .chain(
-                module
-                    .function_instances
-                    .iter()
-                    .map(|instance| &instance.function),
-            )
-            .flat_map(|function| &function.loan_plan.loans)
-            .any(|loan| !loan.origin.projections.is_empty())
-        {
-            "semaprax.graph.v24"
-        } else {
-            "semaprax.graph.v23"
-        }
-    } else if instance_has_owned_variant {
-        "semaprax.graph.v22"
-    } else {
-        graph::graph_schema_from_parts(
-            &module.interfaces,
-            &module.types,
-            &module.functions,
-            &module.function_templates,
-        )
-    })
+        &module.function_instances,
+    )
+    .map_err(|error| vec![error])
 }
 
 fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {

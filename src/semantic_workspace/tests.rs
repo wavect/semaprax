@@ -8,6 +8,16 @@ fn current_source_graph_schemas_are_admitted_without_widening_unknown_schemas() 
     assert!(is_source_graph_schema("semaprax.graph.v23"));
     assert!(is_source_graph_schema("semaprax.graph.v24"));
     assert!(is_source_graph_schema("semaprax.graph.v25"));
+    assert!(is_source_graph_schema("semaprax.graph.v26"));
+    assert!(is_source_graph_schema("semaprax.graph.v27"));
+    for mutation in [
+        "semaprax.graph.v26 ",
+        "semaprax.graph.v026",
+        "semaprax.graph.v27+v25",
+        "semaprax.graph.v28",
+    ] {
+        assert!(!is_source_graph_schema(mutation));
+    }
 }
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};

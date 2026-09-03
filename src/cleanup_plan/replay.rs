@@ -8,16 +8,18 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[cfg(test)]
+use crate::hir::ResolvedTypeDeclarationKind;
+#[cfg(test)]
 use std::cell::Cell;
 
 use crate::ast::{BinaryOp, UnaryOp};
-use crate::cleanup::{CleanupStorageOrigin, FieldLiveness, FieldLivenessShape, LivenessFlagId};
+use crate::cleanup::{CleanupStorageOrigin, FieldLivenessShape, LivenessFlagId};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, DeclarationKind, ExpressionId, FunctionInstanceId, IdentityOrigin,
     OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
     ResolvedMatchArm, ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern,
-    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
+    ResolvedStatement, ResolvedType,
 };
 use crate::prelude;
 
@@ -26,8 +28,11 @@ use super::{
     CleanupTransition, ConditionalVariantCase, ConditionalVariantEntry, EdgeCondition, EdgeId,
     ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
     StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
-    CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6,
+    CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
 };
+
+mod nested_shape;
+use nested_shape::expected_shape_for_type;
 
 const MAX_REPLAY_PATHS: usize = 65_536;
 // Independent fail-closed work cap. Valid admitted shapes are preflighted
@@ -321,7 +326,18 @@ fn validate_structure_with_budget(
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
-    let expected_schema = if function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
+    let has_nested_owned_bytes =
+        function
+            .cleanup
+            .slots
+            .iter()
+            .try_fold(false, |nested, slot| {
+                crate::cleanup::cleanup_shape_profile(&slot.shape)
+                    .map(|profile| nested || profile.has_nested_owned_bytes)
+            })?;
+    let expected_schema = if has_nested_owned_bytes {
+        CLEANUP_PLAN_SCHEMA_V7
+    } else if function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
         || function
             .requires
             .iter()
@@ -1428,9 +1444,24 @@ fn validate_inventory_coverage(
         let storage = inventory_storage_id(&inventory_slot.origin);
         inventory_storage.insert(inventory_slot.id, storage);
     }
+    let mut independently_derived_flag = 0u32;
     for (index, inventory_slot) in function.cleanup.slots.iter().enumerate() {
         let actual = &plan.slots[index];
         let expected_storage = inventory_storage_id(&inventory_slot.origin);
+        let independently_derived = expected_shape_for_type(
+            program,
+            function,
+            &inventory_slot.ty,
+            &mut independently_derived_flag,
+        )?;
+        if inventory_slot.shape != independently_derived {
+            return Err(replay_error(
+                function,
+                format!(
+                    "cleanup inventory base slot {index} disagrees with independently derived typed HIR"
+                ),
+            ));
+        }
         if actual.id.0 != inventory_slot.id.0
             || actual.storage_index != inventory_slot.discovery_index
             || actual.storage != expected_storage
@@ -1442,6 +1473,12 @@ fn validate_inventory_coverage(
                 format!("cleanup plan base slot {index} disagrees with the independent inventory"),
             ));
         }
+    }
+    if usize::try_from(independently_derived_flag).ok() != Some(function.cleanup.flags.len()) {
+        return Err(replay_error(
+            function,
+            "cleanup inventory liveness census disagrees with independently derived typed HIR",
+        ));
     }
 
     let expected_entry = function
@@ -1681,7 +1718,7 @@ fn collect_supplemental_slots(
                         value_expression: argument.id.clone(),
                     };
                     let shape =
-                        expected_shape_for_type(program, function, &argument.ty, next_flag, 0)?;
+                        expected_shape_for_type(program, function, &argument.ty, next_flag)?;
                     slots.push(ExpectedSupplementalSlot {
                         storage,
                         ty: argument.ty.clone(),
@@ -1692,127 +1729,6 @@ fn collect_supplemental_slots(
         }
     }
     Ok(())
-}
-
-fn expected_shape_for_type(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
-    ty: &ResolvedType,
-    next_flag: &mut u32,
-    projection_depth: u8,
-) -> Result<FieldLivenessShape, Diagnostic> {
-    if !type_needs_drop(program, function, ty)? {
-        return Ok(FieldLivenessShape::NoDrop);
-    }
-    if matches!(ty, ResolvedType::Bytes) {
-        if projection_depth > 1 {
-            return Err(replay_error(
-                function,
-                "nested compiler-owned Bytes cleanup leaf is outside flat record v1",
-            ));
-        }
-        let flag = LivenessFlagId(*next_flag);
-        *next_flag = next_flag
-            .checked_add(1)
-            .ok_or_else(|| replay_error(function, "too many cleanup flags"))?;
-        return Ok(FieldLivenessShape::Leaf {
-            flag,
-            lifecycle: DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID),
-        });
-    }
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        return Err(replay_error(
-            function,
-            "droppable supplemental slot is not nominal",
-        ));
-    };
-    let declaration_item = program
-        .types
-        .iter()
-        .find(|item| item.id == *declaration)
-        .ok_or_else(|| replay_error(function, format!("unknown cleanup type `{declaration}`")))?;
-    match &declaration_item.kind {
-        ResolvedTypeDeclarationKind::Resource { drop } => {
-            if !arguments.is_empty() {
-                return Err(replay_error(
-                    function,
-                    "resource cleanup slot has generic arguments",
-                ));
-            }
-            let flag = LivenessFlagId(*next_flag);
-            *next_flag = next_flag
-                .checked_add(1)
-                .ok_or_else(|| replay_error(function, "too many cleanup flags"))?;
-            Ok(FieldLivenessShape::Leaf {
-                flag,
-                lifecycle: drop.id.clone(),
-            })
-        }
-        ResolvedTypeDeclarationKind::Record { fields }
-        | ResolvedTypeDeclarationKind::Class { fields, .. } => {
-            if !arguments.is_empty() {
-                return Err(replay_error(
-                    function,
-                    "record cleanup slot has generic arguments",
-                ));
-            }
-            let mut expected_fields = Vec::with_capacity(fields.len());
-            for field in fields {
-                expected_fields.push(FieldLiveness {
-                    field: field.id.clone(),
-                    field_index: field.index,
-                    shape: expected_shape_for_type(
-                        program,
-                        function,
-                        &field.ty,
-                        next_flag,
-                        projection_depth.checked_add(1).ok_or_else(|| {
-                            replay_error(function, "cleanup projection depth overflows u8")
-                        })?,
-                    )?,
-                });
-            }
-            Ok(FieldLivenessShape::Record {
-                declaration: declaration.clone(),
-                fields: expected_fields,
-            })
-        }
-        ResolvedTypeDeclarationKind::Variant { cases } => {
-            let mut expected_cases = Vec::with_capacity(cases.len());
-            for case in cases {
-                let mut expected_fields = Vec::with_capacity(case.fields.len());
-                for field in &case.fields {
-                    let field_ty = crate::hir::substitute_type(&field.ty, declaration, arguments)?;
-                    expected_fields.push(FieldLiveness {
-                        field: field.id.clone(),
-                        field_index: field.index,
-                        shape: expected_shape_for_type(
-                            program,
-                            function,
-                            &field_ty,
-                            next_flag,
-                            projection_depth.checked_add(1).ok_or_else(|| {
-                                replay_error(function, "cleanup projection depth overflows u8")
-                            })?,
-                        )?,
-                    });
-                }
-                expected_cases.push(crate::cleanup::VariantCaseLiveness {
-                    case: case.id.clone(),
-                    case_index: case.index,
-                    fields: expected_fields,
-                });
-            }
-            Ok(FieldLivenessShape::Variant {
-                declaration: declaration.clone(),
-                cases: expected_cases,
-            })
-        }
-    }
 }
 
 fn type_needs_drop(
@@ -2762,11 +2678,13 @@ fn validate_blocks_and_edges(
             CleanupTerminator::Goto(edge) => {
                 validate_owned_edge(function, block.id, *edge, &mut referenced_edges)?;
                 if !matches!(plan.edges[edge.0 as usize].condition, EdgeCondition::Always)
-                    && !(function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V6
-                        && matches!(
-                            plan.edges[edge.0 as usize].condition,
-                            EdgeCondition::VariantCase { matches: true, .. }
-                        ))
+                    && !(matches!(
+                        function.cleanup_plan.schema,
+                        CLEANUP_PLAN_SCHEMA_V6 | CLEANUP_PLAN_SCHEMA_V7
+                    ) && matches!(
+                        plan.edges[edge.0 as usize].condition,
+                        EdgeCondition::VariantCase { matches: true, .. }
+                    ))
                 {
                     return Err(replay_error(function, "goto edge is conditional"));
                 }
@@ -8118,3 +8036,7 @@ fn replay_error(function: &ResolvedFunction, message: impl Into<String>) -> Diag
 #[cfg(test)]
 #[path = "replay_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "nested_owned_records_tests.rs"]
+mod nested_owned_records_tests;

@@ -262,6 +262,16 @@ Core-Wasm lanes lower that exact profile.
 General nesting, public borrowed ABIs, and hosted promotion remain outside this
 architecture boundary.
 
+The authored [Acyclic Nested Owned-Byte Records
+v1](NESTED-OWNED-BYTE-RECORDS-V1.md) tranche extends only the internal
+monomorphic record tree. Source and HIR independently derive bounded complete
+stable-field-ID paths; CleanupPlan v7 owns recursive construction, whole moves,
+call commits and reverse cleanup; Graph v26/v27 distinguish nested ownership
+from nested projected loans. Interpreter, native C11 and Core Wasm consume that
+validated meaning without shallow owner copies. Project, FFI, package and
+Component boundaries remain closed, and the tranche is not promoted until its
+three-engine and hostile-plan gate executes.
+
 ### Semantic graph
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup

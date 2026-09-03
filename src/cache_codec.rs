@@ -242,6 +242,7 @@ fn static_token(value: &str) -> Result<&'static str> {
         "semaprax.cleanup-plan.v4" => Ok("semaprax.cleanup-plan.v4"),
         "semaprax.cleanup-plan.v5" => Ok("semaprax.cleanup-plan.v5"),
         "semaprax.cleanup-plan.v6" => Ok("semaprax.cleanup-plan.v6"),
+        "semaprax.cleanup-plan.v7" => Ok("semaprax.cleanup-plan.v7"),
         "semaprax.loan-plan.v1" => Ok("semaprax.loan-plan.v1"),
         "callee" => Ok("callee"),
         "success_only" => Ok("success_only"),
@@ -421,3 +422,7 @@ pub(crate) fn grammar(message: &'static str) -> Vec<Diagnostic> {
 pub(crate) fn capacity(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G305", message)]
 }
+
+#[cfg(test)]
+#[path = "cache_codec/nested_owned_records_tests.rs"]
+mod nested_owned_records_tests;

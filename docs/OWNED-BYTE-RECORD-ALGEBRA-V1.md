@@ -13,6 +13,11 @@ zero or more direct Copy-scalar fields. It does not create a public aggregate
 ABI or widen variants, generics, components, Project exports, callable
 interfaces, or native Rust interoperability.
 
+The additive [Acyclic Nested Owned-Byte Records
+v1](NESTED-OWNED-BYTE-RECORDS-V1.md) owns the separate bounded successor
+profile for monomorphic record trees. It does not reinterpret this flat v1
+contract or its frozen schemas.
+
 ## Closed admission
 
 An admitted record:

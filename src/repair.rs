@@ -525,7 +525,6 @@ pub(crate) fn precheck_program(program: &Program) -> Result<(), Vec<Diagnostic>>
     }
     Ok(())
 }
-
 fn validate_closed_program(
     program: &Program,
     resolved: &hir::ResolvedProgram,
@@ -535,12 +534,13 @@ fn validate_closed_program(
             "diagnostic repair program exceeds {MAX_FUNCTIONS} functions"
         ))]);
     }
+    let graph_schema = graph::graph_schema(resolved).map_err(|error| vec![error])?;
     let closed = program.types.is_empty()
         && program.interfaces.is_empty()
         && program.permits.is_empty()
         && resolved.function_templates.is_empty()
         && resolved.function_instances.is_empty()
-        && graph::graph_schema(resolved) == "semaprax.graph.v10"
+        && graph_schema == "semaprax.graph.v10"
         && program.functions.iter().all(|function| {
             function.type_parameters.is_empty()
                 && function.effects.is_empty()

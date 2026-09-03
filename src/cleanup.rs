@@ -153,6 +153,9 @@ fn inventory_builder_live_capacity(builder: &InventoryBuilder<'_>) -> usize {
 
 pub const CLEANUP_INVENTORY_SCHEMA_V1: &str = "semaprax.cleanup-inventory.v1";
 pub const CLEANUP_INVENTORY_SCHEMA_V2: &str = "semaprax.cleanup-inventory.v2";
+pub(crate) const MAX_CLEANUP_SHAPE_DEPTH: usize = 64;
+pub(crate) const MAX_CLEANUP_OWNED_LEAVES: usize = 256;
+pub(crate) const MAX_CLEANUP_VISITED_FIELDS: usize = 4_096;
 /// Canonical compiler-owned lifecycle for one uniquely owned `Bytes` payload.
 ///
 /// This identity is derived from the primitive type by both the inventory and
@@ -253,6 +256,89 @@ pub enum FieldLivenessShape {
         declaration: DeclarationId,
         cases: Vec<VariantCaseLiveness>,
     },
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct CleanupShapeProfile {
+    pub(crate) owned_leaves: usize,
+    pub(crate) visited_fields: usize,
+    pub(crate) maximum_record_depth: usize,
+    pub(crate) has_nested_owned_bytes: bool,
+}
+
+/// Inspect an already-derived cleanup shape without recursion or normalization.
+/// Field order is observed exactly as supplied; callers remain responsible for
+/// deriving and comparing the canonical declaration order independently.
+pub(crate) fn cleanup_shape_profile(
+    shape: &FieldLivenessShape,
+) -> Result<CleanupShapeProfile, Diagnostic> {
+    let mut profile = CleanupShapeProfile::default();
+    let mut pending = vec![(shape, 0usize)];
+    while let Some((shape, record_depth)) = pending.pop() {
+        match shape {
+            FieldLivenessShape::NoDrop => {}
+            FieldLivenessShape::Leaf { lifecycle, .. } => {
+                profile.owned_leaves = profile
+                    .owned_leaves
+                    .checked_add(1)
+                    .ok_or_else(|| cleanup_error("cleanup owned-leaf count overflowed"))?;
+                profile.has_nested_owned_bytes |=
+                    record_depth >= 2 && lifecycle.as_str() == BYTES_DROP_LIFECYCLE_ID;
+            }
+            FieldLivenessShape::Record { fields, .. } => {
+                let child_depth = record_depth
+                    .checked_add(1)
+                    .ok_or_else(|| cleanup_error("cleanup record depth overflowed"))?;
+                profile.maximum_record_depth = profile.maximum_record_depth.max(child_depth);
+                profile.visited_fields = profile
+                    .visited_fields
+                    .checked_add(fields.len())
+                    .ok_or_else(|| cleanup_error("cleanup visited-field count overflowed"))?;
+                pending.try_reserve(fields.len()).map_err(|_| {
+                    cleanup_error("cleanup shape inspection capacity exceeds address space")
+                })?;
+                for field in fields.iter().rev() {
+                    pending.push((&field.shape, child_depth));
+                }
+            }
+            FieldLivenessShape::Variant { cases, .. } => {
+                let field_count = cases
+                    .iter()
+                    .try_fold(0usize, |count, case| count.checked_add(case.fields.len()))
+                    .ok_or_else(|| cleanup_error("cleanup visited-field count overflowed"))?;
+                profile.visited_fields = profile
+                    .visited_fields
+                    .checked_add(field_count)
+                    .ok_or_else(|| cleanup_error("cleanup visited-field count overflowed"))?;
+                pending.try_reserve(field_count).map_err(|_| {
+                    cleanup_error("cleanup shape inspection capacity exceeds address space")
+                })?;
+                for case in cases.iter().rev() {
+                    for field in case.fields.iter().rev() {
+                        pending.push((&field.shape, record_depth));
+                    }
+                }
+            }
+        }
+    }
+    if profile.has_nested_owned_bytes {
+        if profile.maximum_record_depth > MAX_CLEANUP_SHAPE_DEPTH {
+            return Err(cleanup_error(format!(
+                "cleanup shape exceeds the {MAX_CLEANUP_SHAPE_DEPTH} record-depth limit"
+            )));
+        }
+        if profile.owned_leaves > MAX_CLEANUP_OWNED_LEAVES {
+            return Err(cleanup_error(format!(
+                "cleanup shape exceeds the {MAX_CLEANUP_OWNED_LEAVES} owned-leaf limit"
+            )));
+        }
+        if profile.visited_fields > MAX_CLEANUP_VISITED_FIELDS {
+            return Err(cleanup_error(format!(
+                "cleanup shape exceeds the {MAX_CLEANUP_VISITED_FIELDS} visited-field limit"
+            )));
+        }
+    }
+    Ok(profile)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -916,7 +1002,9 @@ impl InventoryBuilder<'_> {
         if shapes.len() != 1 || !projections.is_empty() {
             return Err(cleanup_error("cleanup shape traversal did not settle"));
         }
-        Ok(shapes.pop().expect("shape count checked above"))
+        let shape = shapes.pop().expect("shape count checked above");
+        cleanup_shape_profile(&shape)?;
+        Ok(shape)
     }
 
     fn collect_expression(&mut self, expression: &ResolvedExpr) -> Result<(), Diagnostic> {
@@ -1272,3 +1360,7 @@ fn collect_shape_flags(shape: &FieldLivenessShape, flags: &mut Vec<LivenessFlagI
 fn cleanup_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-H006", message)
 }
+
+#[cfg(test)]
+#[path = "cleanup/nested_owned_records_tests.rs"]
+mod nested_owned_records_tests;

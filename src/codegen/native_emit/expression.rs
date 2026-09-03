@@ -16,10 +16,13 @@ use super::{
     CValue,
 };
 
-#[derive(Clone, Copy)]
+mod nested_owned;
+
+#[derive(Clone)]
 struct RecordMatchBindingMode<'a> {
     mode: hir::ResolvedMatchMode,
     source_storage: Option<&'a crate::cleanup_plan::StorageId>,
+    source_path: Vec<DeclarationId>,
 }
 
 // `format!` resolves to the bounded codegen macro declared before
@@ -1323,6 +1326,16 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 // The expression has already been evaluated;
                                 // its zero-sized Copy value has no C storage.
                                 "UINT8_C(0)".to_owned()
+                            } else if self.record_contains_owned_bytes(&binding.ty)? {
+                                let local = format!("spx_local_{}", self.next_local);
+                                self.next_local += 1;
+                                self.line(&format!(
+                                    "{} {local} = {{0}};",
+                                    c_value_type(self.program, self.resource_abi, &binding.ty)?,
+                                ));
+                                self.move_owned_record_fields(&local, &value.code, &binding.ty)?;
+                                self.line(&format!("(void){local};"));
+                                local
                             } else {
                                 let local = format!("spx_local_{}", self.next_local);
                                 self.next_local += 1;
@@ -1709,6 +1722,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 }
             }
             self.line(&format!("{temporary} = {};", value.code));
+        } else if self.record_contains_owned_bytes(&expr.ty)? {
+            self.zero_owned_record_bytes(temporary, &expr.ty)?;
+            self.move_owned_record_fields(temporary, &value.code, &expr.ty)?;
         } else if matches!(expr.ty, ResolvedType::String) && self.owned_strings.is_some() {
             self.string_move(temporary, &value.code);
         } else if !matches!(expr.ty, ResolvedType::ArrayU8(0)) {
@@ -1729,13 +1745,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 }
                 let temporary = self.temporary(&expr.ty)?;
                 self.initialize_record_carrier(&temporary, &layout);
-                for field in &layout.fields {
-                    if matches!(field.ty, ResolvedType::Bytes) {
-                        self.line(&format!(
-                            "{temporary}.{} = (spx_bytes_v1) {{0}};",
-                            c_field_symbol(&field.field)
-                        ));
-                    }
+                if self.record_contains_owned_bytes(&expr.ty)? {
+                    self.zero_owned_record_bytes(&temporary, &expr.ty)?;
                 }
                 for initializer in fields {
                     let field = layout.field(&initializer.field).cloned().ok_or_else(|| {
@@ -1762,7 +1773,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             self.line(line);
                         }
                     }
-                    if field.size != 0 && !matches!(field.ty, ResolvedType::Bytes) {
+                    if field.size != 0 && self.record_contains_owned_bytes(&field.ty)? {
+                        let destination = format!("{temporary}.{}", c_field_symbol(&field.field));
+                        self.move_owned_record_fields(&destination, &value.code, &field.ty)?;
+                    } else if field.size != 0 && !matches!(field.ty, ResolvedType::Bytes) {
                         self.line(&format!(
                             "{temporary}.{} = {};",
                             c_field_symbol(&field.field),
@@ -1908,7 +1922,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         ));
                     };
                     let staged = self.temporary(&scrutinee.ty)?;
-                    self.line(&format!("{staged} = {};", scrutinee.code));
+                    if self.record_contains_owned_bytes(&scrutinee.ty)? {
+                        self.zero_owned_record_bytes(&staged, &scrutinee.ty)?;
+                        self.move_owned_record_fields(&staged, &scrutinee.code, &scrutinee.ty)?;
+                    } else {
+                        self.line(&format!("{staged} = {};", scrutinee.code));
+                    }
                     if *mode != hir::ResolvedMatchMode::Value {
                         self.line(&format!("(void){staged};"));
                     }
@@ -1934,9 +1953,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             pattern_record,
                             instance,
                             fields,
-                            RecordMatchBindingMode {
+                            &RecordMatchBindingMode {
                                 mode: *mode,
                                 source_storage: source_storage.as_ref(),
+                                source_path: Vec::new(),
                             },
                         )?,
                         hir::ResolvedMatchPattern::Variant { .. } => {
@@ -2509,52 +2529,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         Ok(value)
     }
 
-    fn emit_update_record_expr(&mut self, expr: &ResolvedExpr) -> Result<CValue, Diagnostic> {
-        let value = match &expr.kind {
-            ResolvedExprKind::UpdateRecord {
-                base,
-                record,
-                fields,
-            } => {
-                let base = self.emit_expr(base)?;
-                self.require_type(&base.ty, &expr.ty, "record update base")?;
-                let layout = self.record_layout(&expr.ty)?;
-                if layout.record != *record {
-                    return Err(backend_error(format!(
-                        "native record update `{record}` has result type `{}`",
-                        expr.ty.identity_key()
-                    )));
-                }
-                let temporary = self.temporary(&expr.ty)?;
-                self.line(&format!("{temporary} = {};", base.code));
-                for replacement in fields {
-                    let field = layout.field(&replacement.field).cloned().ok_or_else(|| {
-                        backend_error(format!(
-                            "native record `{record}` has no update field `{}`",
-                            replacement.field
-                        ))
-                    })?;
-                    let value = self.emit_expr(&replacement.value)?;
-                    self.require_type(&value.ty, &field.ty, "record update field")?;
-                    if field.size != 0 {
-                        self.line(&format!(
-                            "{temporary}.{} = {};",
-                            c_field_symbol(&field.field),
-                            value.code
-                        ));
-                    }
-                }
-                CValue {
-                    code: temporary,
-                    ty: expr.ty.clone(),
-                }
-            }
-            _ => unreachable!("non-UpdateRecord expression reached emit_update_record_expr"),
-        };
-        self.require_type(&value.ty, &expr.ty, "expression")?;
-        Ok(value)
-    }
-
     fn emit_place(&mut self, place: &hir::Place) -> Result<CValue, Diagnostic> {
         let binding = self.variables.get(&place.root).cloned().ok_or_else(|| {
             backend_error(format!("resolved value `{}` is not in scope", place.root))
@@ -2562,6 +2536,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let mut code = binding.name;
         let mut ty = binding.ty;
         let storage = crate::cleanup_plan::StorageId::Value(place.root.clone());
+        let mut field_path = Vec::with_capacity(place.projections.len());
         for projection in &place.projections {
             let PlaceProjection::Field(field) = projection else {
                 return Err(backend_error(
@@ -2575,10 +2550,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     layout.record
                 ))
             })?;
+            field_path.push(field.field.clone());
             code = if matches!(field.ty, ResolvedType::Bytes) {
                 self.bytes_plan
                     .ok_or_else(|| backend_error("projected Bytes place has no cleanup plan"))?
-                    .projected_value(&storage, &field.field)?
+                    .projected_value(&storage, &field_path)?
                     .to_owned()
             } else if field.size == 0 {
                 self.emit_erased_record_field_value(&field.ty)?.code
@@ -2658,7 +2634,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         record: &DeclarationId,
         instance: &ResolvedType,
         fields: &[hir::ResolvedRecordMatchPatternField],
-        binding_mode: RecordMatchBindingMode<'_>,
+        binding_mode: &RecordMatchBindingMode<'_>,
     ) -> Result<(), Diagnostic> {
         self.require_type(instance, expected, "record pattern instance")?;
         let layout = self.record_layout(expected)?;
@@ -2713,8 +2689,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                         "borrowed record match source is not one owned place",
                                     )
                                 })?;
+                                let path = binding_mode
+                                    .source_path
+                                    .iter()
+                                    .chain(std::iter::once(&layout_field.field))
+                                    .cloned()
+                                    .collect::<Vec<_>>();
                                 let planned = self.bytes_plan.and_then(|plan| {
-                                    plan.projected_value_if_present(source, &layout_field.field)
+                                    plan.projected_value_if_present(source, &path)
                                         .map(str::to_owned)
                                 });
                                 if let Some(planned) = planned {
@@ -2728,7 +2710,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     self.borrowed_aggregate_bytes
                                         .get(&(
                                             root.clone(),
-                                            vec![layout_field.field.clone()],
+                                            path,
                                         ))
                                         .cloned()
                                         .ok_or_else(|| {
@@ -2770,14 +2752,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     record,
                     instance,
                     fields,
-                } => self.bind_record_match_pattern(
-                    &field_code,
-                    &layout_field.ty,
-                    record,
-                    instance,
-                    fields,
-                    binding_mode,
-                )?,
+                } => {
+                    let mut nested_mode = binding_mode.clone();
+                    nested_mode.source_path.push(layout_field.field.clone());
+                    self.bind_record_match_pattern(
+                        &field_code,
+                        &layout_field.ty,
+                        record,
+                        instance,
+                        fields,
+                        &nested_mode,
+                    )?
+                }
             }
         }
         Ok(())

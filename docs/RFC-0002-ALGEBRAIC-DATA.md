@@ -328,6 +328,14 @@ resources, escaping borrows, general
 lifetime inference, mutable borrowing, or a public borrowed ABI; those remain
 evidence-gated extensions of this RFC.
 
+The additive [Acyclic Nested Owned-Byte Records
+v1](NESTED-OWNED-BYTE-RECORDS-V1.md) authors the next closed internal profile:
+bounded monomorphic record trees containing Copy scalars and transitive owned
+`Bytes`, whole-value movement, CleanupPlan v7, Graph v26/v27, and synchronous
+shared loans through complete stable field-ID paths. It does not admit recursive
+owned patterns, variants, generics, mutation, resources, Project exports, or a
+public aggregate/borrowed ABI. Its executable promotion gate remains separate.
+
 ## Exhaustiveness
 
 Use a constructor-pattern matrix:

@@ -119,7 +119,7 @@ fn assert_hir_rejects(program: &ResolvedProgram, expected: &str) {
 }
 
 #[test]
-fn validation_rejects_non_record_and_non_flat_owned_bytes_declaration_mutations() {
+fn validation_admits_nested_records_but_rejects_non_record_and_forbidden_leaves() {
     let mut class = declaration_fixture();
     set_record_field_type(&mut class, "box.type", "box.payload", ResolvedType::Bytes);
     assert_hir_rejects(
@@ -156,7 +156,7 @@ fn validation_rejects_non_record_and_non_flat_owned_bytes_declaration_mutations(
         "inner.payload",
         ResolvedType::Bytes,
     );
-    assert_hir_rejects(&nested, "record nests compiler-owned Bytes outside flat v1");
+    crate::hir::validate(&nested).expect("nested monomorphic owned-Bytes record is admitted");
 
     let mut mixed = declaration_fixture();
     set_record_field_type(
@@ -165,7 +165,19 @@ fn validation_rejects_non_record_and_non_flat_owned_bytes_declaration_mutations(
         "packet.payload",
         ResolvedType::Bytes,
     );
-    assert_hir_rejects(&mixed, "owned-Bytes record is not flat and monomorphic");
+    crate::hir::validate(&mixed).expect("nested Copy-only record companion is admitted");
+
+    let mut forbidden = mixed;
+    set_record_field_type(
+        &mut forbidden,
+        "marker.type",
+        "marker.value",
+        ResolvedType::String,
+    );
+    assert_hir_rejects(
+        &forbidden,
+        "owned-Bytes record is outside the bounded acyclic nested profile",
+    );
 }
 
 #[test]
@@ -247,6 +259,7 @@ module test.owned_byte_borrow_argument;
   @id("packet.payload") payload: Bytes,
   @id("packet.marker") marker: i64,
 }
+
 @id("packet.inspect") fn inspect(packet: borrow Packet) -> i64 { 0 }
 @id("packet.caller") fn caller(packet: own Packet) -> i64 { inspect(packet) }
 @id("app.main") fn main() -> i64 { 0 }
@@ -285,6 +298,52 @@ module test.owned_byte_borrow_argument;
         diagnostic
             .message
             .contains("argument ownership is incompatible"),
+        "{diagnostic:?}"
+    );
+}
+
+#[test]
+fn validation_rejects_a_forged_nested_owned_byte_record_update() {
+    let source = r#"
+module test.nested_update_hostile;
+@id("update.inner") record Inner { @id("update.inner.marker") marker: i64, }
+@id("update.packet") record Packet {
+  @id("update.packet.payload") payload: Bytes,
+  @id("update.packet.marker") marker: i64,
+}
+@id("update.apply") fn update(value: own Packet) -> Packet {
+  value with { marker: 1 }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = crate::parse(source, std::path::Path::new("nested-update-hostile.spx"))
+        .expect("flat update fixture parses");
+    let mut program = crate::hir::resolve(&parsed).expect("flat update fixture resolves");
+    set_record_field_type(
+        &mut program,
+        "update.packet",
+        "update.packet.marker",
+        ResolvedType::Nominal {
+            declaration: DeclarationId::new("update.inner"),
+            arguments: Vec::new(),
+        },
+    );
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "update.apply")
+        .expect("update function")
+        .clone();
+    let execution = FunctionExecutionId::Monomorphic(function.id.clone());
+    let diagnostic = HirValidator::new(&program)
+        .expect("hostile identities remain indexed")
+        .validate_function(&function, &execution)
+        .expect_err("forged nested update must fail closed");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert!(
+        diagnostic
+            .message
+            .contains("SPX-O117: record updates over nested owned-Bytes records remain closed"),
         "{diagnostic:?}"
     );
 }

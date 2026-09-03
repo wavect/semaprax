@@ -109,6 +109,68 @@ pub fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
     inspection::validate(program)?;
     crate::loan_plan::validate_program(program)
 }
+
+/// Classify an attached loan only after the ordinary HIR/LoanPlan validation
+/// boundary has authenticated its root and canonical origin. This is a schema
+/// selector helper, not an alternative loan validator.
+pub(crate) fn has_authenticated_nested_projected_byte_loan(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+) -> bool {
+    if !program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(|candidate| std::ptr::eq(candidate, function))
+    {
+        return false;
+    }
+    function.loan_plan.loans.iter().any(|loan| {
+        if loan.origin.projections.len() < 2 {
+            return false;
+        }
+        let Some(root) = byte_capacity::resolved_value_type(program, &loan.origin.root) else {
+            return false;
+        };
+        if !type_reachability::is_admitted_nested_owned_byte_record(&program.declarations, &root)
+            || type_reachability::is_flat_owned_byte_record(&program.declarations, &root)
+        {
+            return false;
+        }
+
+        let mut ty = root;
+        for projection in &loan.origin.projections {
+            let PlaceProjection::Field(field) = projection else {
+                return false;
+            };
+            let ResolvedType::Nominal {
+                declaration,
+                arguments,
+            } = &ty
+            else {
+                return false;
+            };
+            if !arguments.is_empty() {
+                return false;
+            }
+            let Some(next) = program
+                .declarations
+                .record_fields(declaration)
+                .and_then(|fields| fields.iter().find(|candidate| candidate.id == *field))
+                .map(|field| field.ty.clone())
+            else {
+                return false;
+            };
+            ty = next;
+        }
+        ty == ResolvedType::Bytes
+    })
+}
 pub(crate) use inspection::visit_resolved_calls;
 use inspection::{
     path_is_prefix, reject_nul_identity, resolved_lifecycle_effects, validate_nul_free_identities,

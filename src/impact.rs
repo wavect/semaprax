@@ -191,8 +191,8 @@ fn build_report_with_complete_limits(
     hir::validate(&candidate).map_err(|error| vec![error])?;
     graph::reject_native_rust_imports(&before).map_err(|error| vec![error])?;
     graph::reject_native_rust_imports(&candidate).map_err(|error| vec![error])?;
-    let base_schema = graph::graph_schema(&before);
-    let candidate_schema = graph::graph_schema(&candidate);
+    let base_schema = graph::graph_schema(&before).map_err(|error| vec![error])?;
+    let candidate_schema = graph::graph_schema(&candidate).map_err(|error| vec![error])?;
     if base_schema != candidate_schema {
         return Err(vec![impact_invariant_error(format!(
             "semantic impact base graph schema `{base_schema}` differs from candidate `{candidate_schema}`"

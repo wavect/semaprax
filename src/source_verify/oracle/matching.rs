@@ -247,6 +247,17 @@ pub(super) fn oracle_match(
             unreachable!("record instance was checked above");
         };
         let needs_drop = types.needs_drop(&scrutinee_value.ty);
+        if *mode != MatchMode::Value
+            && types.is_nested_owned_byte_record(&scrutinee_value.ty)
+            && !types.is_flat_owned_byte_record(&scrutinee_value.ty)
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-O117",
+                "ownership-aware patterns over nested owned-Bytes records remain closed",
+                scrutinee.span,
+            ));
+        }
         match mode {
             MatchMode::Value => {
                 if needs_drop || scrutinee_value.mode != ParamMode::Value {

@@ -96,6 +96,7 @@ This specification does not admit general nested aggregate borrowing, mutable
 borrows, escaping borrows, public borrowed calls, fields reached through
 variants or multiple projections, generic aggregates, resources, constructors
 or temporaries, or a widening of Shared Loan Plan v1 beyond this exact profile.
-Deeper byte-field projections are additionally impossible in the current
-language because Owned Byte Record v1 rejects nested owned-byte fields before
-loan inference.
+The separately versioned [Acyclic Nested Owned-Byte Records
+v1](NESTED-OWNED-BYTE-RECORDS-V1.md) owns the bounded multi-field successor
+profile. It does not reinterpret this direct-field Graph v24 contract or widen
+its admission.

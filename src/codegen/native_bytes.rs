@@ -15,6 +15,8 @@ use crate::variant_layout::VariantLayout;
 
 use super::native_emit::{c_case_symbol, c_field_symbol};
 
+mod nested_owned;
+
 #[derive(Clone, Debug)]
 pub(super) struct NativeBytesPlan {
     slots: BTreeMap<CleanupPlace, ByteSlot>,
@@ -24,6 +26,7 @@ pub(super) struct NativeBytesPlan {
     scope_exits: Vec<(BTreeSet<StorageId>, Vec<ByteSlot>)>,
     referenced_places: BTreeSet<CleanupPlace>,
     inactive_places: BTreeSet<CleanupPlace>,
+    variant_storage: BTreeSet<StorageId>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -164,6 +167,7 @@ impl NativeBytesPlan {
             scope_exits.push((storage, actions));
         }
         let reachable_cases = reachable_variant_cases(function, &variant_domains, &transitions);
+        let variant_storage = variant_domains.keys().cloned().collect();
         let inactive_places = storage_leaves
             .iter()
             .flat_map(|(storage, leaves)| {
@@ -274,6 +278,7 @@ impl NativeBytesPlan {
             scope_exits,
             referenced_places,
             inactive_places,
+            variant_storage,
         }))
     }
 
@@ -360,14 +365,11 @@ impl NativeBytesPlan {
             .ok_or_else(|| error("owned record parameter has no projected Bytes leaves"))?;
         let mut output = String::new();
         for place in leaves {
-            let [field] = place.projections.as_slice() else {
-                return Err(error("owned record parameter Bytes leaf is not direct"));
-            };
             let slot = &self.slots[place];
+            let path = nested_owned::c_field_path(&place.projections)?;
             output.push_str(&format!(
-                "    {} = spx_bytes_move(&({parameter}->{}));\n",
+                "    {} = spx_bytes_move(&({parameter}->{path}));\n",
                 slot.value,
-                c_field_symbol(field)
             ));
         }
         Ok(output)
@@ -430,9 +432,7 @@ impl NativeBytesPlan {
     }
 
     pub(super) fn has_variant_leaves(&self, storage: &StorageId) -> bool {
-        self.storage_leaves
-            .get(storage)
-            .is_some_and(|leaves| leaves.iter().any(|place| place.projections.len() == 2))
+        self.variant_storage.contains(storage)
     }
 
     pub(super) fn apply_at(&self, at: &ExpressionId) -> Result<String, Diagnostic> {
@@ -826,14 +826,11 @@ impl NativeBytesPlan {
             .ok_or_else(|| error("owned record carrier storage has no Bytes leaves"))?;
         let mut output = String::new();
         for place in leaves {
-            let [field] = place.projections.as_slice() else {
-                return Err(error("owned record carrier Bytes leaf is not direct"));
-            };
             let slot = &self.slots[place];
+            let path = nested_owned::c_field_path(&place.projections)?;
             output.push_str(&format!(
-                "if (!{}) spx_runtime_invariant_failure(\"dead owned record field\");\n({carrier}).{} = spx_bytes_move(&{});\n{} = false;\n",
+                "if (!{}) spx_runtime_invariant_failure(\"dead owned record field\");\n({carrier}).{path} = spx_bytes_move(&{});\n{} = false;\n",
                 slot.flag,
-                c_field_symbol(field),
                 slot.value,
                 slot.flag,
             ));
@@ -911,14 +908,11 @@ impl NativeBytesPlan {
         let mut output = String::new();
         for place in self.leaves_under(destination)? {
             let relative = &place.projections[destination.projections.len()..];
-            let [field] = relative else {
-                return Err(error("owned record result Bytes leaf is not direct"));
-            };
+            let path = nested_owned::c_field_path(relative)?;
             let slot = &self.slots[place];
             output.push_str(&format!(
-                "{} = spx_bytes_move(&(({carrier}).{}));\n",
+                "{} = spx_bytes_move(&(({carrier}).{path}));\n",
                 slot.value,
-                c_field_symbol(field),
             ));
         }
         Ok(output)
@@ -989,23 +983,23 @@ impl NativeBytesPlan {
     pub(super) fn projected_value(
         &self,
         storage: &StorageId,
-        field: &crate::hir::DeclarationId,
+        path: &[crate::hir::DeclarationId],
     ) -> Result<&str, Diagnostic> {
         self.value_at(&CleanupPlace {
             storage: storage.clone(),
-            projections: vec![field.clone()],
+            projections: path.to_vec(),
         })
     }
 
     pub(super) fn projected_value_if_present(
         &self,
         storage: &StorageId,
-        field: &crate::hir::DeclarationId,
+        path: &[crate::hir::DeclarationId],
     ) -> Option<&str> {
         self.slots
             .get(&CleanupPlace {
                 storage: storage.clone(),
-                projections: vec![field.clone()],
+                projections: path.to_vec(),
             })
             .map(|slot| slot.value.as_str())
     }
@@ -1312,21 +1306,14 @@ fn flatten_byte_leaves(
 ) -> Result<(), Diagnostic> {
     match shape {
         FieldLivenessShape::NoDrop => Ok(()),
-        FieldLivenessShape::Leaf { flag, lifecycle } => {
-            if projections.len() > 2 {
-                return Err(error(
-                    "nested owned Bytes aggregate leaf is outside flat variant v1",
-                ));
-            }
-            visit(
-                CleanupPlace {
-                    storage: storage.clone(),
-                    projections: projections.clone(),
-                },
-                *flag,
-                lifecycle,
-            )
-        }
+        FieldLivenessShape::Leaf { flag, lifecycle } => visit(
+            CleanupPlace {
+                storage: storage.clone(),
+                projections: projections.clone(),
+            },
+            *flag,
+            lifecycle,
+        ),
         FieldLivenessShape::Record { fields, .. } => {
             for field in fields {
                 projections.push(field.field.clone());
@@ -1482,6 +1469,7 @@ mod tests {
                 scope_exits: Vec::new(),
                 referenced_places: BTreeSet::new(),
                 inactive_places: BTreeSet::new(),
+                variant_storage: BTreeSet::new(),
             },
             source_storage,
             destination_storage,

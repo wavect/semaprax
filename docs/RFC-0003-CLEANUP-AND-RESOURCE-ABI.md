@@ -25,6 +25,14 @@ C11 and
 Wasm core are bootstrap lowering contracts; the portable public component
 boundary remains WIT/WebAssembly Components.
 
+The additive [Acyclic Nested Owned-Byte Records
+v1](NESTED-OWNED-BYTE-RECORDS-V1.md) authors a bounded internal recursive
+record-tree profile over Copy scalars and transitive `Bytes`. CleanupPlan v7
+authenticates full stable field-ID paths, partial construction, whole transfers,
+atomic call commits and reverse cleanup; nested shared loans still add no
+runtime object or cleanup action. This does not widen resource, FFI, Project or
+public aggregate admission, and its executable promotion gate remains open.
+
 ## Safety contract
 
 For every execution in the safe language profile:

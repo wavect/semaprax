@@ -83,6 +83,12 @@ pub(super) fn payload(
         }
         if methods
             .iter()
+            .any(|method| method.name == "agent/task-comparison")
+        {
+            instructions.push_str(" Use agent/task-comparison only with an exact canonical caller-supplied observation set and its SHA-256. Each lane wrapper embeds and authenticates one existing semaprax.agent-task-comparison-observation.v1 document and adds exact source/image/candidate revision selectors plus wall, protocol and source byte observations. Semantic and source-first lanes are mandatory and unique; Zero is optional only when explicitly supplied. The compiler validates closed shapes, bindings, metric and evidence-reference inventories, but performs no filesystem artifact lookup and does not verify the external recorder. Differences are descriptive only when correctness and validation outcomes match; missing Zero or differing outcomes yields not_assessed with no deltas. No model, tool, validator, filesystem, network or runtime is invoked and superiority is always not_assessed.");
+        }
+        if methods
+            .iter()
             .any(|method| method.name == "workspace/retained-subjects")
         {
             instructions.push_str(" With candidate_prepare, use workspace/retained-subjects to recover the deterministic bounded inventory of candidate, draft and rejected-attempt references currently retained by this exact session. Candidate associations on drafts and attempts can outlive removal of the associated candidate handle; the explicit retained flag reports only current registry membership. Every later operation still authenticates its own exact selector. Inventory entries grant no source, execution, materialization or publication authority and do not make drafts or rejected attempts into checked candidates. Refresh preserves candidates and clears drafts and attempts. This live registry query is intentionally excluded from workspace/read-batch and parallel immutable reads.");

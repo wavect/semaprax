@@ -236,3 +236,51 @@ changes, parallel agents, independent reviewers, cross-platform validation and
 an executed Zero port remain separate requirements before a strong comparative
 position is supportable. The graph-operational programme therefore remains
 Partial.
+
+## Authority-free normalized observation report
+
+`agent_economics::normalize_task_comparison_observations` accepts one exact
+canonical `semaprax.agent-task-comparison-observation-set.v1` byte string and
+its SHA-256. The set binds the plan digest, repository head, task, corpus and
+model. It requires exactly one `semaprax-graph-operational` and one
+`semaprax-source-first` lane. `zero-graph-native` is admitted only when supplied
+explicitly. Duplicate, missing or unknown lanes fail.
+
+Each lane uses the distinct closed wrapper
+`semaprax.agent-task-comparison-embedded-observation.v1`. It binds its toolchain,
+source revision and, for the semantic lane, image and candidate revisions. It
+also supplies wall time, protocol bytes and source bytes. Its `observation`
+field contains the complete canonical bytes of the existing
+`semaprax.agent-task-comparison-observation.v1` contract and
+`observation_sha256` authenticates those exact bytes. The library checks that
+document's closed keys, plan/task/lane/model/toolchain bindings, one-based
+trial, state, outcome, complete twelve-metric inventory, artifact metadata,
+evidence-reference closure and acceptance/outcome consistency. It does not read
+or re-hash referenced artifact files; the external Python validator remains the
+evidence-file authentication owner.
+
+The library input bound is 7,340,032 bytes, retaining worst-case JSON string
+escaping room for three existing 1 MiB documents and wrappers. Each embedded
+document retains the 1 MiB bound. The normalized report retains each embedded
+document's digest and parsed metric/acceptance facts, not a second copy of its
+raw string. It is bounded to 8 MiB and has a domain-separated revision.
+It emits signed left-minus-right differences only when the derived existing
+observation outcomes match. Different outcomes and absent Zero produce
+`not_assessed` with no deltas. `superiority` is always `not_assessed`; values are
+descriptive caller assertions, not productivity, causality, significance or
+independently verified correctness.
+
+Project Agent Transport v5 exposes `agent/task-comparison` as a semantic-read
+query, inherited by generated TypeScript, Python and Rust clients and MCP. The
+ordinary request limit gives it a narrower 28 KiB input bound, leaving room for
+worst-case JSON string escaping and the request envelope; the library API
+handles larger valid sets. Its closed envelope returns the complete report up
+to 384 KiB, leaving the same response-envelope margin, with exact input and
+report SHA-256 values. It is outside the
+parallel-read subset. It executes no model, tool, validator, reviewer,
+filesystem, network or runtime operation and grants no source or publication
+authority.
+
+Hostile library regressions are authored but unrun. This tranche records no
+comparative observation, generated-client execution, MCP invocation, test
+result or superiority claim; the framework remains external and unrun.

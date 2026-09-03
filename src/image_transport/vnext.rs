@@ -41,6 +41,7 @@ mod retained_subjects;
 mod review_facets;
 mod source_review;
 pub(super) mod symbol_diagnostics;
+mod task_economics;
 mod test_tasks;
 pub use commit::GitCommitHost;
 pub use mcp::{
@@ -149,6 +150,7 @@ pub(super) enum Action {
     CandidateTestTaskStatus,
     CandidateTestTaskCancel,
     CandidateTestTaskResult,
+    AgentTaskComparison,
 }
 
 const REFRESH: Method = Method {
@@ -611,6 +613,10 @@ impl VNextSession {
                     generated_file_provenance::prepare(params, image, registry)?,
                     candidates::Mutation::None,
                 ),
+                Operation::VNext(Action::AgentTaskComparison) => (
+                    task_economics::prepare(params, image)?,
+                    candidates::Mutation::None,
+                ),
                 Operation::VNext(
                     action @ (Action::FunctionInstances | Action::FunctionInstanceFacet),
                 ) => (
@@ -879,6 +885,7 @@ fn session_methods(
     }
     methods.push(dependencies::method());
     methods.push(analysis_coverage::method());
+    methods.push(task_economics::method());
     methods.extend(function_instances::methods());
     methods.extend(function_reference::methods());
     if package_attached {

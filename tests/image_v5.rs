@@ -36,3 +36,5 @@ mod retained_subjects;
 mod source_review;
 #[path = "image_v5/string_builtin_constructors.rs"]
 mod string_builtin_constructors;
+#[path = "image_v5/task_economics.rs"]
+mod task_economics;

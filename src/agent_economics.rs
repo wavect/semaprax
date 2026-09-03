@@ -14,6 +14,9 @@ use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph::{self, AgentContextFilter, AgentContextOptions};
 use crate::parse;
 
+mod task_comparison;
+pub use task_comparison::*;
+
 const MANIFEST_SCHEMA: &str = "semaprax.agent-context-benchmark.v1";
 const OUTPUT_SCHEMA: &str = "semaprax.agent-context-economics.v1";
 const TOKEN_SCHEMA: &str = "semaprax.lexical-token.v1";

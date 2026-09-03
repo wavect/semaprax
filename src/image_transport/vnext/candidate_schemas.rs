@@ -443,6 +443,32 @@ pub(super) fn documents() -> BTreeMap<String, Value> {
     let mut put = |id: &str, fields| {
         docs.insert(format!("urn:{id}"), document(id, fields));
     };
+    put(
+        crate::image_transport::vnext::task_economics::PAYLOAD_SCHEMA,
+        vec![
+            (
+                "report_schema",
+                json!({"const":crate::agent_economics::AGENT_TASK_COMPARISON_NORMALIZED_REPORT_SCHEMA}),
+            ),
+            ("image_revision", digest()),
+            ("observations_sha256", digest()),
+            (
+                "report",
+                json!({"type":"string","maxLength":crate::image_transport::vnext::task_economics::MAX_TRANSPORT_REPORT_BYTES,
+                    "x-max-utf8-bytes":crate::image_transport::vnext::task_economics::MAX_TRANSPORT_REPORT_BYTES}),
+            ),
+            ("report_sha256", digest()),
+            ("superiority", json!({"const":"not_assessed"})),
+            ("source_authority", json!({"const":false})),
+            ("model_execution", json!({"const":false})),
+            ("tool_execution", json!({"const":false})),
+            ("validation_execution", json!({"const":false})),
+            ("filesystem_observation", json!({"const":false})),
+            ("network_observation", json!({"const":false})),
+            ("runtime_observation", json!({"const":false})),
+            ("publication_authority", json!({"const":false})),
+        ],
+    );
     for (version, tests) in [("v1", false), ("v2", true)] {
         let mut available = vec![
             json!({"method":"candidate/validate","kind":"independent_source_and_target_projection_replay","runtime_execution":false}),

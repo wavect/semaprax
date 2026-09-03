@@ -1,0 +1,9 @@
+module benchmark.owned.tests;
+use function @id("benchmark.owned.evaluate") from benchmark.owned.core as evaluate;
+
+@id("benchmark.owned.test")
+fn main() -> i64
+{
+    let input = [1u8];
+    if evaluate(array_as_slice(input)) == 42 { 0 } else { 1 }
+}

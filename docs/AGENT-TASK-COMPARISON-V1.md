@@ -1,6 +1,6 @@
 # Agent task comparison v1
 
-Status: reproducible framework and two-task corpus authored, unrun. There are no
+Status: reproducible framework and three-task corpus authored, unrun. There are no
 comparative observations or productivity results. The Zero lane is an external,
 unrun reservation rather than an implementation or parity claim.
 
@@ -28,8 +28,8 @@ silently reused, translated, or estimated for that lane.
 ## Corpus and pairing
 
 [`manifest.json`](../benchmarks/agent-task-comparison-v1/manifest.json) binds
-three cold-state repetitions of two tasks. Both tasks start from the same four
-checked-in fixture files and use the same user prompt within each paired trial.
+three cold-state repetitions of three tasks. Each paired trial starts from the
+same task-specific checked-in fixture bytes and uses the same user prompt.
 Lane instructions restrict the available work surface without changing the
 requested outcome.
 
@@ -39,6 +39,12 @@ review material, explicit analysis blind spots and no publication.
 `stale-signature-recovery-v1` adds one exact checked-in sibling-body patch after
 the first identifying inspection. Both lanes must detect or encounter the
 drift, retain the unrelated edit and recover without overwriting source.
+`owned-signature-migration-v1` reorders two `Bytes` owners and one borrowed
+slice view. It requires original left-to-right call evaluation, exact-once owner
+and view retention, rebuilt loan/cleanup admission, ownership-aware review and
+explicit runtime/deployment/generated/API/consumer blind spots. Its separate
+owned-data fixture prevents the scalar result from being reused as ownership
+evidence.
 
 The task JSON freezes the prompt, setup, drift point, ordered acceptance rubric
 and blinded review protocol. A generated plan additionally authenticates every
@@ -124,7 +130,7 @@ to tokens, compute a success rate over omitted trials, impute missing values,
 rank lanes, claim causality, calculate statistical significance, or mention an
 unobserved Zero result.
 
-Three repetitions over two small tasks can support only a descriptive bounded
+Three repetitions over three small tasks can support only a descriptive bounded
 result. Representative repositories, warm-state trials, ownership-sensitive
 changes, parallel agents, independent reviewers, cross-platform validation and
 an executed Zero port remain separate requirements before a strong comparative

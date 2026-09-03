@@ -4,7 +4,8 @@
   "repetitions": 3,
   "tasks": [
     "benchmarks/agent-task-comparison-v1/tasks/signature-migration.json",
-    "benchmarks/agent-task-comparison-v1/tasks/stale-signature-recovery.json"
+    "benchmarks/agent-task-comparison-v1/tasks/stale-signature-recovery.json",
+    "benchmarks/agent-task-comparison-v1/tasks/owned-signature-migration.json"
   ],
   "lanes": [
     {

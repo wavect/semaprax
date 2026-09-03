@@ -1,0 +1,32 @@
+module benchmark.owned.core;
+
+@id("benchmark.owned.select")
+fn select(left: own Bytes, right: own Bytes, view: borrow Slice<u8>, flag: usize) -> Bytes
+{
+    let observed = byte_len(view);
+    if flag == observed { left } else { right }
+}
+
+@id("benchmark.owned.call")
+fn call(input: borrow Slice<u8>) -> Bytes
+{
+    select(bytes_copy(input), bytes_copy(input), input, 0usize)
+}
+
+@id("benchmark.owned.consume")
+fn consume(value: own Bytes) -> i64
+{
+    42
+}
+
+@id("benchmark.owned.evaluate")
+fn evaluate(input: borrow Slice<u8>) -> i64
+{
+    consume(call(input))
+}
+
+@id("benchmark.owned.public")
+fn public_value(value: i64) -> i64
+{
+    value
+}

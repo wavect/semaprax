@@ -1,0 +1,9 @@
+module benchmark.owned.app;
+use function @id("benchmark.owned.evaluate") from benchmark.owned.core as evaluate;
+
+@id("benchmark.owned.main")
+fn main() -> i64
+{
+    let input = [1u8];
+    evaluate(array_as_slice(input))
+}

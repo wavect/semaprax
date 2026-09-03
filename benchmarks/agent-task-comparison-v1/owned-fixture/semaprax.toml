@@ -1,0 +1,8 @@
+schema = "semaprax.project.v8"
+name = "agent-owned-comparison"
+version = "1.0.0"
+profile = "owned-data-api.v1"
+entry = "benchmark.owned.app"
+sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
+web_exports = ["benchmark.owned.public"]
+tests = ["benchmark.owned.tests"]

@@ -1,0 +1,24 @@
+{
+  "schema": "semaprax.agent-task-comparison-task.v1",
+  "id": "owned-signature-migration-v1",
+  "prompt": "Change benchmark.owned.select from select(left: own Bytes, right: own Bytes, view: borrow Slice<u8>, flag: usize) to select(view: borrow Slice<u8>, right: own Bytes, flag: usize, left: own Bytes). Preserve its stable identity, migrate every authenticated caller with left-to-right argument evaluation, retain each owner and borrowed view exactly once, and produce a review package. Do not publish. Report ownership, cleanup, runtime, deployment, generated-file, external-API, and external-consumer blind spots.",
+  "setup": "Start from an isolated, clean copy of the ownership fixture at the exact subject bound by the plan. The harness supplies identical source and manifest bytes to both Semaprax lanes and no warm image, cache, candidate, draft, compiler output, generated consumer, deployment configuration, or external API contract.",
+  "fixture_files": [
+    "benchmarks/agent-task-comparison-v1/owned-fixture/semaprax.toml",
+    "benchmarks/agent-task-comparison-v1/owned-fixture/src/app.spx",
+    "benchmarks/agent-task-comparison-v1/owned-fixture/src/core.spx",
+    "benchmarks/agent-task-comparison-v1/owned-fixture/src/tests.spx"
+  ],
+  "drift_injection": "none",
+  "drift_patch": null,
+  "acceptance": [
+    {"id": "signature", "requirement": "The selected function has the requested ordered owning and borrowed parameters."},
+    {"id": "identity", "requirement": "Stable declaration identity is unchanged."},
+    {"id": "callers", "requirement": "Every authenticated local caller is migrated with original left-to-right argument evaluation preserved."},
+    {"id": "ownership", "requirement": "Both Bytes owners and the borrowed Slice view are retained exactly once and the rebuilt loan and cleanup plans are admitted."},
+    {"id": "meaning", "requirement": "Contracts, effects, ownership modes, selected interpreter behavior, and the declared Project profile remain admitted."},
+    {"id": "review", "requirement": "Canonical before/after source, source diff, semantic, ownership and cleanup deltas, selected validation, and explicit analysis blind spots are reviewable."},
+    {"id": "authority", "requirement": "No canonical source or publication target is changed by review or evidence collection."}
+  ],
+  "review_protocol": "A blinded reviewer receives only the canonical source diff, declared semantic/ownership/cleanup evidence, validation transcript, and blind-spot inventory. Measure active time from first reveal until every criterion is accepted or rejected; pauses and tool time are recorded separately by the harness."
+}

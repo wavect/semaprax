@@ -71,6 +71,7 @@ impl CandidateTestPolicy {
 }
 
 /// An immutable report of one completed interpreter attempt, not a gate token.
+#[derive(Debug)]
 pub struct CandidateTestReport {
     json: String,
     digest: String,
@@ -95,6 +96,7 @@ impl CandidateTestReport {
 
 /// Terminal outcome of one cancellation-aware candidate test execution.
 /// Cancellation produces no test report or approval-like evidence.
+#[derive(Debug)]
 pub enum ProjectCandidateTestTaskOutcome {
     Completed(CandidateTestReport),
     Cancelled {

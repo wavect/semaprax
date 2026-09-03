@@ -42,6 +42,87 @@ fn diagnostics(source: &str) -> Vec<semaprax::diagnostic::Diagnostic> {
     verify::verify(&program)
 }
 
+#[test]
+fn owned_string_view_is_rooted_borrow_only_and_reaches_graph_native_and_wasm() {
+    let source = r#"
+module test.owned_string_view;
+@id("text.owned-view")
+fn owned_view(value: string) -> i64 {
+    let view = string_as_str(value);
+    str_len_bytes(view)
+}
+@id("app.main")
+fn main() -> i64 { owned_view("aé") }
+"#;
+    let program = parse(source, Path::new("owned-string-view.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let projected = graph::to_json(&program).unwrap();
+    assert!(projected.contains("core.string.as-str"));
+    let native = semaprax::codegen::emit_c(&program).unwrap();
+    assert!(native.contains("spx_string_as_str"));
+    let wasm = semaprax::wasm::emit_module(&program).unwrap();
+    assert_eq!(wasm, semaprax::wasm::emit_module(&program).unwrap());
+}
+
+#[test]
+fn owned_string_view_rejects_temporary_literal_and_projected_roots() {
+    for body in [
+        "string_as_str(\"temporary\")",
+        "string_as_str(string_concat(\"left\", \"right\"))",
+        "string_as_str(packet.text)",
+    ] {
+        let declaration = if body.contains("packet") {
+            "record Packet { text: string, }\n@id(\"bad.id\") fn bad(packet: own Packet) -> i64"
+        } else {
+            "@id(\"bad.id\") fn bad() -> i64"
+        };
+        let source = format!(
+            "module test.invalid_owned_view;\n{declaration} {{ let view = {body}; str_len_bytes(view) }}\n"
+        );
+        let found = diagnostics(&source);
+        assert!(
+            found.iter().any(|item| item.code == "SPX-T266"),
+            "{found:?}"
+        );
+    }
+}
+
+#[test]
+fn owned_string_cannot_move_while_its_borrowed_str_view_remains_live() {
+    let source = r#"
+module test.invalid_owned_view_move;
+@id("bad.id")
+fn bad(value: string) -> i64 {
+    let view = string_as_str(value);
+    let moved = value;
+    str_len_bytes(view)
+}
+"#;
+    let found = diagnostics(source);
+    assert!(
+        found.iter().any(|item| item.code == "SPX-T265"),
+        "{found:?}"
+    );
+}
+
+#[test]
+fn borrowed_str_parameter_can_still_form_an_immutable_local_alias() {
+    let source = r#"
+module test.borrowed_str_alias;
+@id("alias.id")
+fn alias(value: borrow str) -> i64 {
+    let local = value;
+    str_len_bytes(local)
+}
+"#;
+    let program = parse(source, Path::new("borrowed-str-alias.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+}
+
 fn temporary_source(source: &str) -> PathBuf {
     let ordinal = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     let path = std::env::temp_dir().join(format!(

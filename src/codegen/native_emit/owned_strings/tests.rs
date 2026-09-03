@@ -130,6 +130,27 @@ fn ordinary_and_provider_discovery_include_instantiated_string_runtime_groups() 
 }
 
 #[test]
+fn instance_only_string_view_includes_borrowed_carrier_before_view_helper() {
+    let program = resolved(
+        r#"module test.instance_string_view;
+@id("measure") fn measure<T>(value: T) -> i64 {
+    let owned = "hé";
+    let view = string_as_str(owned);
+    str_len_bytes(view)
+}
+@id("main") fn main() -> i64 { measure<i64>(1) }
+"#,
+    );
+    assert_eq!(program.function_instances.len(), 1);
+    assert!(!super::super::program_uses_borrowed_str(&program, false));
+    assert!(super::super::program_uses_borrowed_str(&program, true));
+    let native = crate::codegen::emit_hir_c(&program).unwrap();
+    let carrier = native.find("} spx_str_v1;").unwrap();
+    let helper = native.find("spx_str_v1 spx_string_as_str(").unwrap();
+    assert!(carrier < helper);
+}
+
+#[test]
 fn string_free_function_emission_matches_frozen_route_bytes_and_budget() {
     use super::super::NativeOutputProfile as Profile;
     let program = resolved("module test.scalar; @id(\"main\") fn main() -> i64 { 40 + 2 }");

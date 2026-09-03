@@ -18,7 +18,7 @@ pub(super) fn local_borrow_origin(
     types: &TypeTable<'_>,
 ) -> Option<BorrowOrigin> {
     let (root, projections, parent_loan) = match &expression.kind {
-        ExprKind::Var(source) if variables.get(source)?.ty == Type::SliceU8 => {
+        ExprKind::Var(source) if matches!(variables.get(source)?.ty, Type::SliceU8 | Type::Str) => {
             let parent = variables.get(source)?.borrow_origin.clone();
             parent.map_or_else(
                 || Some((source.clone(), Vec::new(), None)),

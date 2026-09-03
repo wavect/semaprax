@@ -1,4 +1,4 @@
-//! Compiler-owned operations over non-escaping borrowed byte slices.
+//! Compiler-owned operations over non-escaping borrowed byte and UTF-8 views.
 
 use crate::ast::{Expr, ExprKind, MatchPattern, Span, Type};
 use crate::hir::{DeclarationId, OwnershipMode, ResolvedParam, ResolvedType, ValueId};
@@ -20,6 +20,8 @@ pub(crate) const ARRAY_AS_SLICE_NAME: &str = "array_as_slice";
 pub(crate) const ARRAY_AS_SLICE_ID: &str = "core.array-u8.as-slice";
 pub(crate) const STR_AS_BYTES_NAME: &str = "str_as_bytes";
 pub(crate) const STR_AS_BYTES_ID: &str = "core.str.as-bytes";
+pub(crate) const STRING_AS_STR_NAME: &str = "string_as_str";
+pub(crate) const STRING_AS_STR_ID: &str = "core.string.as-str";
 pub(crate) const MAX_EXTERNAL_ROOT_BYTES: u64 = 65_536;
 pub(crate) const MAX_RANGE_DEPTH: usize = 64;
 
@@ -32,10 +34,11 @@ pub(crate) enum ByteOp {
     BytesAsSlice,
     ArrayAsSlice,
     StrAsBytes,
+    StringAsStr,
 }
 
 impl ByteOp {
-    pub(crate) const ALL: [Self; 7] = [
+    pub(crate) const ALL: [Self; 8] = [
         Self::Len,
         Self::Get,
         Self::Range,
@@ -43,6 +46,7 @@ impl ByteOp {
         Self::BytesAsSlice,
         Self::ArrayAsSlice,
         Self::StrAsBytes,
+        Self::StringAsStr,
     ];
 
     pub(crate) const fn name(self) -> &'static str {
@@ -54,6 +58,7 @@ impl ByteOp {
             Self::BytesAsSlice => BYTES_AS_SLICE_NAME,
             Self::ArrayAsSlice => ARRAY_AS_SLICE_NAME,
             Self::StrAsBytes => STR_AS_BYTES_NAME,
+            Self::StringAsStr => STRING_AS_STR_NAME,
         }
     }
     pub(crate) const fn id(self) -> &'static str {
@@ -65,6 +70,7 @@ impl ByteOp {
             Self::BytesAsSlice => BYTES_AS_SLICE_ID,
             Self::ArrayAsSlice => ARRAY_AS_SLICE_ID,
             Self::StrAsBytes => STR_AS_BYTES_ID,
+            Self::StringAsStr => STRING_AS_STR_ID,
         }
     }
     pub(crate) const fn arity(self) -> usize {
@@ -72,7 +78,11 @@ impl ByteOp {
             Self::Len => 1,
             Self::Get => 2,
             Self::Range => 3,
-            Self::Copy | Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => 1,
+            Self::Copy
+            | Self::BytesAsSlice
+            | Self::ArrayAsSlice
+            | Self::StrAsBytes
+            | Self::StringAsStr => 1,
         }
     }
     pub(crate) fn param_types(self) -> &'static [ResolvedType] {
@@ -88,6 +98,7 @@ impl ByteOp {
             Self::BytesAsSlice => &[ResolvedType::Bytes],
             Self::ArrayAsSlice => &[ResolvedType::ArrayU8(0)],
             Self::StrAsBytes => &[ResolvedType::Str],
+            Self::StringAsStr => &[ResolvedType::String],
         }
     }
     pub(crate) fn return_type(self) -> ResolvedType {
@@ -100,6 +111,7 @@ impl ByteOp {
             Self::Range => ResolvedType::SliceU8,
             Self::Copy => ResolvedType::Bytes,
             Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => ResolvedType::SliceU8,
+            Self::StringAsStr => ResolvedType::Str,
         }
     }
     pub(crate) fn ast_return_type(self) -> Type {
@@ -112,6 +124,7 @@ impl ByteOp {
             Self::Range => Type::SliceU8,
             Self::Copy => Type::Bytes,
             Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes => Type::SliceU8,
+            Self::StringAsStr => Type::Str,
         }
     }
 
@@ -125,6 +138,7 @@ impl ByteOp {
             (Self::BytesAsSlice, 0) => *ty == ResolvedType::Bytes,
             (Self::ArrayAsSlice, 0) => matches!(ty, ResolvedType::ArrayU8(_)),
             (Self::StrAsBytes, 0) => *ty == ResolvedType::Str,
+            (Self::StringAsStr, 0) => *ty == ResolvedType::String,
             _ => false,
         }
     }
@@ -139,6 +153,7 @@ impl ByteOp {
             (Self::BytesAsSlice, 0) => *ty == Type::Bytes,
             (Self::ArrayAsSlice, 0) => matches!(ty, Type::ArrayU8(_)),
             (Self::StrAsBytes, 0) => *ty == Type::Str,
+            (Self::StringAsStr, 0) => *ty == Type::String,
             _ => false,
         }
     }
@@ -146,7 +161,7 @@ impl ByteOp {
     pub(crate) const fn is_view(self) -> bool {
         matches!(
             self,
-            Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes
+            Self::BytesAsSlice | Self::ArrayAsSlice | Self::StrAsBytes | Self::StringAsStr
         )
     }
 }
@@ -160,6 +175,7 @@ pub(crate) fn by_name(name: &str) -> Option<ByteOp> {
         BYTES_AS_SLICE_NAME => Some(ByteOp::BytesAsSlice),
         ARRAY_AS_SLICE_NAME => Some(ByteOp::ArrayAsSlice),
         STR_AS_BYTES_NAME => Some(ByteOp::StrAsBytes),
+        STRING_AS_STR_NAME => Some(ByteOp::StringAsStr),
         _ => None,
     }
 }
@@ -172,6 +188,7 @@ pub(crate) fn by_id(id: &str) -> Option<ByteOp> {
         BYTES_AS_SLICE_ID => Some(ByteOp::BytesAsSlice),
         ARRAY_AS_SLICE_ID => Some(ByteOp::ArrayAsSlice),
         STR_AS_BYTES_ID => Some(ByteOp::StrAsBytes),
+        STRING_AS_STR_ID => Some(ByteOp::StringAsStr),
         _ => None,
     }
 }

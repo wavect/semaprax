@@ -131,7 +131,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             ));
                         }
                     }
-                    let borrow_origin = (binding_ty == Type::SliceU8)
+                    let borrow_origin = matches!(binding_ty, Type::SliceU8 | Type::Str)
                         .then(|| {
                             local_borrow_origin(
                                 value,

@@ -65,6 +65,27 @@ fn internal_string_parameters_require_canonical_owned_hir() {
 }
 
 #[test]
+fn standalone_profile_rejects_string_view_without_authenticated_carrier_conversion() {
+    let source = program(
+        r#"module test.standalone_string_view;
+@id("s.main") fn main() -> i64 {
+    let owned = "view";
+    let borrowed = string_as_str(owned);
+    str_len_bytes(borrowed)
+}
+"#,
+    );
+    let error = emit_module(
+        &source,
+        &["s.main".to_owned()],
+        InternalStringOptions::default(),
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "SPX-W111");
+    assert!(error.message.contains("outside the closed profile"));
+}
+
+#[test]
 fn canonical_selection_validates_guarded_module_and_exact_closed_inventory() {
     let source = program(SOURCE);
     let canonical = crate::format::canonical(&source);

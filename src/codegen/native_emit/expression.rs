@@ -440,9 +440,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
             crate::byte_ops::ByteOp::BytesAsSlice
             | crate::byte_ops::ByteOp::ArrayAsSlice
-            | crate::byte_ops::ByteOp::StrAsBytes => {
+            | crate::byte_ops::ByteOp::StrAsBytes
+            | crate::byte_ops::ByteOp::StringAsStr => {
                 return Err(backend_error(format!(
-                    "byte view `{}` reached native lowering without authenticated BorrowPlace HIR",
+                    "borrowed view `{}` reached native lowering without authenticated BorrowPlace HIR",
                     op.id()
                 )));
             }
@@ -616,7 +617,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     )));
                 }
                 let source = self.emit_place(place)?;
-                let temporary = self.temporary(&ResolvedType::SliceU8)?;
+                let temporary = self.temporary(&expr.ty)?;
                 match op {
                     crate::byte_ops::ByteOp::BytesAsSlice => {
                         self.require_type(
@@ -660,6 +661,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         ));
                         self.line(&format!("spx_slice_u8_require_valid({temporary});"));
                     }
+                    crate::byte_ops::ByteOp::StringAsStr => {
+                        self.require_type(
+                            &source.ty,
+                            &ResolvedType::String,
+                            "owned UTF-8 borrow source",
+                        )?;
+                        self.line(&format!(
+                            "{temporary} = spx_string_as_str({});",
+                            source.code
+                        ));
+                        self.line(&format!("spx_str_require_valid({temporary});"));
+                    }
                     crate::byte_ops::ByteOp::Len
                     | crate::byte_ops::ByteOp::Get
                     | crate::byte_ops::ByteOp::Range
@@ -667,7 +680,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 }
                 CValue {
                     code: temporary,
-                    ty: ResolvedType::SliceU8,
+                    ty: expr.ty.clone(),
                 }
             }
             _ => unreachable!("non-leaf expression reached native leaf lowering"),

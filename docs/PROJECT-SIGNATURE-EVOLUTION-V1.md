@@ -39,6 +39,7 @@ Each element has exactly one of these shapes:
 | `{"from":"old_name"}` | Retain one original parameter with its exact existing name, type, and mode at this position. |
 | `{"from":"old_name","name":"new_name"}` | Retain its exact type and mode and rename the original lexical parameter binding. |
 | `{"name":"new_name","borrow_slice_from_owner":"old_name"}` | Replace one of at most eight distinct exact original `own Bytes` parameters with `borrow Slice<u8>` under the closed owner-view admission below. |
+| `{"name":"new_name","borrow_str_from_owner":"old_name"}` | Replace one of the same bounded set of exact original owning `string` parameters with `borrow str`. |
 | `{"name":"new_name","type":"scalar","argument":literal}` | Add a fresh by-value scalar parameter and supply the explicit matching scalar literal at every migrated call. |
 | `{"name":"new_name","type":type_selector,"argument_expression":expression}` | Compute a new scalar or checked Copy nominal argument from the original staged parameters after all original arguments, then fully revalidate each migrated caller. See [Argument Expressions v1](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md). |
 
@@ -49,13 +50,16 @@ Copy parameter while preserving argument evaluation at existing calls. Every
 owning or borrowed parameter must be retained exactly once; it cannot be
 removed or copied.
 
-The sole exception is the explicit `borrow_slice_from_owner` replacement. One
-change admits one through eight distinct exact original `own Bytes` parameters.
+The sole exception is the explicit `borrow_slice_from_owner` or
+`borrow_str_from_owner` replacement. One change admits one through eight
+distinct exact original `own Bytes` or bare owning `string` parameters,
+including a closed mix of both kinds.
 Retained checked HIR must independently prove that the provider body uses each
-selected owner exactly once, as the unprojected root of compiler-owned
-`core.bytes.as-slice`. The provider declaration changes each selected parameter
-to exact `borrow Slice<u8>` and each authenticated `bytes_as_slice(owner)`
-expression becomes its corresponding new parameter reference. Any selected
+selected owner exactly once, as the unprojected root of its matching
+compiler-owned `core.bytes.as-slice` or `core.string.as-str` operation. The
+provider declaration changes each selected parameter to exact `borrow Slice<u8>`
+or `borrow str`, and each authenticated view expression becomes its
+corresponding new parameter reference. Any selected
 owner root in `requires` or `ensures`, move, return, projection, nested owner,
 duplicate or cross-owner alias, alternate operation, ninth conversion, or
 concurrent `from` mapping rejects. Every new binding must be unique and absent
@@ -190,10 +194,11 @@ unchanged physical move counts, allocation failures, or finalization traces.
 No custom cleanup, physical finalization authority, or hidden settlement-model
 action is introduced here.
 
-For one or more `borrow_slice_from_owner` mappings, every original caller
+For one or more owner-view mappings, every original caller
 argument is staged exactly once in its original left-to-right order, including
 removed or reordered arguments. Only after all original staging completes do
-fresh immutable locals evaluate `bytes_as_slice(staged_owner)` in
+fresh immutable locals evaluate the matching `bytes_as_slice(staged_owner)` or
+`string_as_str(staged_owner)` in
 mapped-parameter order. The
 final call receives those views; it never receives or transfers the owners. The
 staging block keeps every owner caller-owned, and ordinary loan, failure, and
@@ -203,6 +208,11 @@ spans the callee, whereas the original provider created its view inside the
 body after preconditions. Ordinary full Project/HIR/loan/cleanup/target replay
 must prove that changed lifetime is legal at every caller. The route claims no
 equivalent lifetime, failure, cleanup trace, or external-consumer behavior.
+The interpreter represents a String-derived borrowed view with copied immutable
+UTF-8 bytes plus the exact logical owner `ValueId`; that implementation detail
+is not observable language storage and does not support a physical allocation,
+performance, or economics equivalence claim. Native and Wasm lowering retain
+their admitted runtime carrier without transferring the owner.
 
 Stable-ID provider bindings determine which direct calls migrate. Existing
 import aliases stay unchanged, and provider module identity is checked.
@@ -269,12 +279,12 @@ Additional authored regressions cover simultaneous display renames, contract
 references, local mutation, match guard capture avoidance, and removed-binding
 capture. [`tests/project_candidate/signature_ownership.rs`](../tests/project_candidate/signature_ownership.rs)
 authors full Project candidate/replay checks for reordered and renamed owned
-byte arguments, one and multiple bounded owner-to-slice replacements, exact original
+byte arguments, one and multiple bounded Bytes/String owner-to-view replacements, exact original
 evaluation order followed by mapped-order view derivation, provider
-transfer/duplicate/contract/additive/mixed-kind/over-cap rejection, exact replay, and unchanged
-live source files. These owner-to-slice cases have not been executed. The
+transfer/duplicate/contract/additive/wrong-kind/over-cap rejection, exact replay, and unchanged
+live source files. These owner-to-view cases have not been executed. The
 closed intention schema and `change/catalog` expose the exact
-`borrow_slice_from_owner` fields and exclusions. Authored catalogue checks pin
+`borrow_slice_from_owner` and `borrow_str_from_owner` fields and exclusions. Authored catalogue checks pin
 the lack of external package source rewrite. Authored package-conflict coverage
 requires the ordinary `parameters` facet and the existing
 `no_automatic_consumer_migration_or_candidate_era_consumer_acceptance`

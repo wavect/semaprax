@@ -1,12 +1,56 @@
-//! Exact `own Bytes` provider-use authentication for signature replacement.
+//! Exact owning provider-use authentication for signature replacement.
 //!
 //! This module admits up to eight independent narrow rewrites: each old owner
 //! may occur exactly once, as the unprojected root of the compiler builtin
-//! `bytes_as_slice(owner)`.
+//! compiler-owned view operation for that owner kind.
 
 use super::*;
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedExpr, ResolvedExprKind};
+
+#[derive(Clone, Copy)]
+pub(super) enum Kind {
+    BytesSlice,
+    StringStr,
+}
+
+impl Kind {
+    pub(super) fn source_matches(self, parameter: &Param) -> bool {
+        match self {
+            Self::BytesSlice => parameter.mode == ParamMode::Own && parameter.ty == Type::Bytes,
+            Self::StringStr => parameter.mode == ParamMode::Value && parameter.ty == Type::String,
+        }
+    }
+
+    fn checked_matches(self, ownership: OwnershipMode, ty: &ResolvedType) -> bool {
+        ownership == OwnershipMode::Own
+            && match self {
+                Self::BytesSlice => *ty == ResolvedType::Bytes,
+                Self::StringStr => *ty == ResolvedType::String,
+            }
+    }
+
+    pub(super) const fn result_type(self) -> Type {
+        match self {
+            Self::BytesSlice => Type::SliceU8,
+            Self::StringStr => Type::Str,
+        }
+    }
+
+    pub(super) const fn operation_name(self) -> &'static str {
+        match self {
+            Self::BytesSlice => crate::byte_ops::BYTES_AS_SLICE_NAME,
+            Self::StringStr => crate::byte_ops::STRING_AS_STR_NAME,
+        }
+    }
+
+    const fn operation_id(self) -> &'static str {
+        match self {
+            Self::BytesSlice => crate::byte_ops::BYTES_AS_SLICE_ID,
+            Self::StringStr => crate::byte_ops::STRING_AS_STR_ID,
+        }
+    }
+}
 
 pub(super) fn invalid(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G469", message)]
@@ -25,7 +69,7 @@ pub(super) fn alias(message: &'static str) -> Vec<Diagnostic> {
 }
 
 pub(super) struct AuthenticatedOwnerViews {
-    replacements: Vec<(Param, String)>,
+    replacements: Vec<(Param, String, Kind)>,
 }
 
 impl AuthenticatedOwnerViews {
@@ -33,8 +77,8 @@ impl AuthenticatedOwnerViews {
     /// provider only after every bounded rewrite traversal succeeds.
     pub(super) fn rewrite_all(self, function: &mut Function) -> Result<()> {
         let mut rewritten = function.clone();
-        for (owner, replacement) in self.replacements {
-            rewrite_source(&mut rewritten, &owner, &replacement)?;
+        for (owner, replacement, kind) in self.replacements {
+            rewrite_source(&mut rewritten, &owner, &replacement, kind)?;
         }
         *function = rewritten;
         Ok(())
@@ -45,7 +89,7 @@ pub(super) fn authenticate_all(
     revision: &ProjectRevision,
     function: &Function,
     original_params: &[Param],
-    replacements: &[(usize, String)],
+    replacements: &[(usize, String, Kind)],
 ) -> Result<AuthenticatedOwnerViews> {
     let mut checked = None;
     for module in revision.semantic.image_modules() {
@@ -65,7 +109,7 @@ pub(super) fn authenticate_all(
         invalid("owner-to-view replacement has no authenticated checked provider")
     })?;
     let mut authenticated = Vec::with_capacity(replacements.len());
-    for (owner_index, replacement) in replacements {
+    for (owner_index, replacement, kind) in replacements {
         let owner = original_params.get(*owner_index).ok_or_else(|| {
             invalid("owner-to-view replacement source parameter inventory disagrees")
         })?;
@@ -73,8 +117,8 @@ pub(super) fn authenticate_all(
             invalid("owner-to-view replacement checked parameter inventory disagrees")
         })?;
         if parameter.name != owner.name
-            || parameter.ownership != OwnershipMode::Own
-            || parameter.ty != ResolvedType::Bytes
+            || !kind.source_matches(owner)
+            || !kind.checked_matches(parameter.ownership, &parameter.ty)
         {
             return Err(invalid(
                 "owner-to-view replacement source and checked owner disagree",
@@ -97,11 +141,9 @@ pub(super) fn authenticate_all(
                 ResolvedExprKind::BorrowPlace { operation, place }
                     if place.root == parameter.id =>
                 {
-                    if operation.as_str() != crate::byte_ops::BYTES_AS_SLICE_ID
-                        || !place.projections.is_empty()
-                    {
+                    if operation.as_str() != kind.operation_id() || !place.projections.is_empty() {
                         return Err(invalid(
-                            "owner-to-view replacement requires the exact unprojected bytes_as_slice builtin use",
+                            "owner-to-view replacement requires its exact unprojected compiler-owned view use",
                         ));
                     }
                     uses += 1;
@@ -118,27 +160,27 @@ pub(super) fn authenticate_all(
         }
         if uses != 1 {
             return Err(invalid(
-                "owner-to-view replacement requires exactly one authenticated bytes_as_slice owner use",
+                "owner-to-view replacement requires exactly one authenticated owner view use",
             ));
         }
-        authenticated.push((owner.clone(), replacement.clone(), uses));
+        authenticated.push((owner.clone(), replacement.clone(), *kind, uses));
     }
     authenticate_sources(function, authenticated)
 }
 
 fn authenticate_sources(
     function: &Function,
-    authenticated: Vec<(Param, String, usize)>,
+    authenticated: Vec<(Param, String, Kind, usize)>,
 ) -> Result<AuthenticatedOwnerViews> {
     // Source/HIR parity for the complete batch is authenticated before any
     // provider mutation. A late owner mismatch cannot expose a partial rewrite.
-    for (owner, _, uses) in &authenticated {
-        authenticate_source(function, owner, *uses)?;
+    for (owner, _, kind, uses) in &authenticated {
+        authenticate_source(function, owner, *kind, *uses)?;
     }
     Ok(AuthenticatedOwnerViews {
         replacements: authenticated
             .into_iter()
-            .map(|(owner, replacement, _)| (owner, replacement))
+            .map(|(owner, replacement, kind, _)| (owner, replacement, kind))
             .collect(),
     })
 }
@@ -146,6 +188,7 @@ fn authenticate_sources(
 fn authenticate_source(
     function: &Function,
     owner: &Param,
+    kind: Kind,
     authenticated_uses: usize,
 ) -> Result<()> {
     let mut inspected = function.clone();
@@ -157,7 +200,7 @@ fn authenticate_source(
             source_places += 1;
         }
         if matches!(&expression.kind, ExprKind::Call { name, type_arguments, args }
-            if name == crate::byte_ops::BYTES_AS_SLICE_NAME
+            if name == kind.operation_name()
                 && type_arguments.is_empty()
                 && matches!(args.as_slice(), [Expr { kind: ExprKind::Var(name), .. }] if name == &owner.name))
         {
@@ -173,11 +216,16 @@ fn authenticate_source(
     Ok(())
 }
 
-fn rewrite_source(function: &mut Function, owner: &Param, replacement: &str) -> Result<()> {
+fn rewrite_source(
+    function: &mut Function,
+    owner: &Param,
+    replacement: &str,
+    kind: Kind,
+) -> Result<()> {
     let mut rewrite_nodes = 0usize;
     super::super::walk_function(function, &mut rewrite_nodes, &mut |expression| {
         if matches!(&expression.kind, ExprKind::Call { name, type_arguments, args }
-            if name == crate::byte_ops::BYTES_AS_SLICE_NAME
+            if name == kind.operation_name()
                 && type_arguments.is_empty()
                 && matches!(args.as_slice(), [Expr { kind: ExprKind::Var(name), .. }] if name == &owner.name))
         {
@@ -218,8 +266,8 @@ mod tests {
         )
         .unwrap();
         let owner = program.functions[0].params[0].clone();
-        authenticate_source(&program.functions[0], &owner, 1).unwrap();
-        rewrite_source(&mut program.functions[0], &owner, "view").unwrap();
+        authenticate_source(&program.functions[0], &owner, Kind::BytesSlice, 1).unwrap();
+        rewrite_source(&mut program.functions[0], &owner, "view", Kind::BytesSlice).unwrap();
         let source = crate::format::canonical(&program);
         assert!(source.contains("byte_len(view)"));
         assert!(!source.contains("bytes_as_slice(input)"));
@@ -233,7 +281,8 @@ mod tests {
         )
         .unwrap();
         let owner = program.functions[0].params[0].clone();
-        let errors = authenticate_source(&program.functions[0], &owner, 1).unwrap_err();
+        let errors =
+            authenticate_source(&program.functions[0], &owner, Kind::BytesSlice, 1).unwrap_err();
         assert!(errors.iter().any(|error| error.code == "SPX-G469"));
     }
 
@@ -247,8 +296,18 @@ mod tests {
         let before = crate::format::canonical(&program);
         let function = &program.functions[0];
         let evidence = vec![
-            (function.params[0].clone(), "left_view".to_owned(), 1),
-            (function.params[1].clone(), "right_view".to_owned(), 1),
+            (
+                function.params[0].clone(),
+                "left_view".to_owned(),
+                Kind::BytesSlice,
+                1,
+            ),
+            (
+                function.params[1].clone(),
+                "right_view".to_owned(),
+                Kind::BytesSlice,
+                1,
+            ),
         ];
         let errors = match authenticate_sources(function, evidence) {
             Ok(_) => panic!("later owner source mismatch was admitted"),

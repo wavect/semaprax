@@ -405,7 +405,7 @@ mod loan {
     codec_tuple!(LoanId(0));
     codec_enum!(LoanPointPhase { 0 => Before, 1 => After });
     codec_struct!(LoanProgramPoint { expression, phase });
-    codec_enum!(LoanCause { 0 => SliceView, 1 => BorrowedCall { argument }, 2 => MatchBorrow { arm } });
+    codec_enum!(LoanCause { 0 => SliceView, 1 => BorrowedCall { argument }, 2 => MatchBorrow { arm }, 3 => StrView });
     codec_struct!(Loan {
         id,
         site,

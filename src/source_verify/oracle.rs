@@ -1019,7 +1019,7 @@ pub(super) fn check_expr(
                                     ));
                                 }
                             }
-                            let borrow_origin = (actual.ty == Type::SliceU8)
+                            let borrow_origin = matches!(actual.ty, Type::SliceU8 | Type::Str)
                                 .then(|| {
                                     local_borrow_origin(
                                         value,

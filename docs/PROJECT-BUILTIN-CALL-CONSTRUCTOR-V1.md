@@ -38,6 +38,7 @@ backend operation.
 | `core.bytes.as-slice` | `bytes_as_slice` | borrowed `Bytes` place | byte slice |
 | `core.array-u8.as-slice` | `array_as_slice` | borrowed fixed byte-array place | byte slice |
 | `core.str.as-bytes` | `str_as_bytes` | borrowed `str` | byte slice |
+| `core.string.as-str` | `string_as_str` | unprojected owning `string` place | borrowed `str` |
 | `core.string.len` | `string_len` | borrowed String read | `i64` |
 | `core.string.concat` | `string_concat` | two consumed Strings | owned `string` |
 | `core.string.is_empty` | `string_is_empty` | borrowed String read | `bool` |
@@ -118,7 +119,7 @@ parameters, return type identity, effects, evidence owner, and the requirement
 for full candidate validation. These are available operation descriptors,
 not a result-type-filtered list of proven valid replacements.
 
-The seven byte descriptors retain their existing contents and order; the seven
+The eight borrowed byte/view descriptors retain their existing contents and order; the seven
 string descriptors follow them. String parameter types and ownership come from
 the owner's resolved signatures, with `type_family: null` and
 `evidence_owner: compiler_string_operations`. Byte descriptors keep

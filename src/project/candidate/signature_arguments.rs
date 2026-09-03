@@ -70,21 +70,26 @@ pub(in crate::project::candidate) fn validate_computed_signature(
         ));
     }
     for (mapping, parameter) in parameters.iter().zip(&function.params) {
-        if mapping.get("borrow_slice_from_owner").is_some() {
-            object(mapping, &["name", "borrow_slice_from_owner"])?;
+        if mapping.get("borrow_slice_from_owner").is_some()
+            || mapping.get("borrow_str_from_owner").is_some()
+        {
+            let (field, expected) = if mapping.get("borrow_slice_from_owner").is_some() {
+                ("borrow_slice_from_owner", ResolvedType::SliceU8)
+            } else {
+                ("borrow_str_from_owner", ResolvedType::Str)
+            };
+            object(mapping, &["name", field])?;
             if parameter.name != text(mapping, "name")?
                 || parameter.ownership != OwnershipMode::Borrow
-                || parameter.ty != ResolvedType::SliceU8
+                || parameter.ty != expected
             {
                 return Err(super::owner_view::invalid(
-                    "rebuilt owner-to-view parameter disagrees with borrow Slice<u8>",
+                    "rebuilt owner-to-view parameter disagrees with its exact borrowed view",
                 ));
             }
             if parameters.iter().any(|other| {
                 other.get("from").and_then(Value::as_str)
-                    == mapping
-                        .get("borrow_slice_from_owner")
-                        .and_then(Value::as_str)
+                    == mapping.get(field).and_then(Value::as_str)
             }) {
                 return Err(super::owner_view::invalid(
                     "rebuilt owner-to-view source was also retained",

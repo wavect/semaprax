@@ -82,6 +82,7 @@ fn point_json(point: &LoanProgramPoint) -> String {
 fn cause_json(cause: &LoanCause) -> String {
     match cause {
         LoanCause::SliceView => "{\"kind\":\"slice_view\"}".to_owned(),
+        LoanCause::StrView => "{\"kind\":\"str_view\"}".to_owned(),
         LoanCause::BorrowedCall { argument } => {
             format!("{{\"kind\":\"borrowed_call\",\"argument\":{argument}}}")
         }

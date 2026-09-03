@@ -63,6 +63,16 @@ impl Fixture {
 @id("frame.owner-contract") fn owner_contract(input: own Bytes) -> usize
 requires byte_len(bytes_as_slice(input)) > 0usize
 { byte_len(bytes_as_slice(input)) }
+@id("frame.mixed-owner-views") fn mixed_owner_views(input: own Bytes, text: string, flag: i64) -> usize {
+    byte_len(bytes_as_slice(input)) + str_len_bytes(string_as_str(text))
+        + if flag == 0 { 0usize } else { 1usize }
+}
+@id("frame.mixed-owner-views-call") fn mixed_owner_views_call(input: borrow Slice<u8>) -> usize {
+    mixed_owner_views(bytes_copy(input), string_from_char('x'), 6 / 2)
+}
+@id("frame.string-owner-contract") fn string_owner_contract(text: string) -> i64
+requires str_len_bytes(string_as_str(text)) > 0
+{ str_len_bytes(string_as_str(text)) }
 "#,
         );
         let program = semaprax::parse(&source, &path).unwrap();
@@ -75,6 +85,101 @@ requires byte_len(bytes_as_slice(input)) > 0usize
         })
         .unwrap();
         ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap()
+    }
+}
+
+#[test]
+fn mixed_owned_bytes_and_string_views_stage_left_to_right_then_derive_in_mapping_order() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    let change = SemanticChange::new(
+        root.revision().project_revision(),
+        &json!({
+            "kind":"change_function_signature", "target":"frame.mixed-owner-views", "parameters":[
+                {"name":"text_view","borrow_str_from_owner":"text"},
+                {"from":"flag"},
+                {"name":"input_view","borrow_slice_from_owner":"input"}
+            ]
+        }),
+    )
+    .unwrap();
+    let evolved = root.apply(root.candidate_digest(), &change).unwrap();
+    let source = evolved
+        .revision()
+        .sources()
+        .iter()
+        .find(|source| source.path() == "src/frame.spx")
+        .unwrap()
+        .source();
+    assert!(source.contains(
+        "fn mixed_owner_views(text_view: borrow str, flag: i64, input_view: borrow Slice<u8>)"
+    ));
+    assert!(source.contains("str_len_bytes(text_view)"));
+    assert!(source.contains("byte_len(input_view)"));
+    let stage_bytes = source
+        .find("let spx_sig_stage_0 = bytes_copy(input)")
+        .unwrap();
+    let stage_string = source
+        .find("let spx_sig_stage_1 = string_from_char('x')")
+        .unwrap();
+    let stage_flag = source.find("let spx_sig_stage_2 = 6 / 2").unwrap();
+    let derive_string = source
+        .find("let spx_sig_stage_3 = string_as_str(spx_sig_stage_1)")
+        .unwrap();
+    let derive_bytes = source
+        .find("let spx_sig_stage_4 = bytes_as_slice(spx_sig_stage_0)")
+        .unwrap();
+    let migrated = source
+        .find("mixed_owner_views(spx_sig_stage_3, spx_sig_stage_2, spx_sig_stage_4)")
+        .unwrap();
+    assert!(stage_bytes < stage_string && stage_string < stage_flag);
+    assert!(stage_flag < derive_string && derive_string < derive_bytes && derive_bytes < migrated);
+    let replayed = ProjectCandidate::replay(
+        Arc::clone(root.base_revision()),
+        root.base_revision().project_revision(),
+        &[change],
+        evolved.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replayed.to_json(), evolved.to_json());
+}
+
+#[test]
+fn string_owner_view_rejects_contract_roots_and_mismatched_mapping_kinds() {
+    let fixture = Fixture::new();
+    let root = fixture.candidate();
+    for (target, parameters) in [
+        (
+            "frame.string-owner-contract",
+            json!([{"name":"view","borrow_str_from_owner":"text"}]),
+        ),
+        (
+            "frame.mixed-owner-views",
+            json!([
+                {"name":"wrong","borrow_str_from_owner":"input"},
+                {"from":"text"},
+                {"from":"flag"}
+            ]),
+        ),
+        (
+            "frame.mixed-owner-views",
+            json!([
+                {"name":"input_view","borrow_slice_from_owner":"input"},
+                {"name":"wrong","borrow_slice_from_owner":"text"},
+                {"from":"flag"}
+            ]),
+        ),
+    ] {
+        let change = SemanticChange::new(
+            root.revision().project_revision(),
+            &json!({"kind":"change_function_signature","target":target,"parameters":parameters}),
+        )
+        .unwrap();
+        let errors = root.apply(root.candidate_digest(), &change).unwrap_err();
+        assert!(
+            errors.iter().any(|error| error.code == "SPX-G469"),
+            "{errors:?}"
+        );
     }
 }
 

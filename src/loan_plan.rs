@@ -37,6 +37,7 @@ pub struct LoanProgramPoint {
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum LoanCause {
     SliceView,
+    StrView,
     BorrowedCall { argument: u16 },
     MatchBorrow { arm: u16 },
 }
@@ -265,7 +266,7 @@ fn has_own_root_candidate(
             for statement in statements {
                 if let ResolvedStatement::Let { binding, value, .. } = statement {
                     ownership.insert(binding.id.clone(), binding.ownership);
-                    if binding.ty == ResolvedType::SliceU8 {
+                    if matches!(binding.ty, ResolvedType::SliceU8 | ResolvedType::Str) {
                         if let Some(place) = expression_place(value) {
                             aliases.insert(binding.id.clone(), place);
                             bound.insert(value.id.clone(), binding.id.clone());
@@ -439,7 +440,7 @@ fn build_cfg_plan_counted(
             for statement in statements {
                 if let ResolvedStatement::Let { binding, value, .. } = statement {
                     ownership.insert(binding.id.clone(), binding.ownership);
-                    if binding.ty == ResolvedType::SliceU8 {
+                    if matches!(binding.ty, ResolvedType::SliceU8 | ResolvedType::Str) {
                         if let Some(place) = expression_place(value) {
                             aliases.insert(binding.id.clone(), place);
                             bound.insert(value.id.clone(), binding.id.clone());
@@ -471,7 +472,11 @@ fn build_cfg_plan_counted(
                 binding: bound.get(&expression.id).cloned(),
                 start: cfg.node(expression, LoanPointPhase::Before)?,
                 seeds: BTreeSet::new(),
-                cause: LoanCause::SliceView,
+                cause: if expression.ty == ResolvedType::Str {
+                    LoanCause::StrView
+                } else {
+                    LoanCause::SliceView
+                },
             });
         }
         if let ResolvedExprKind::Call {

@@ -181,6 +181,7 @@ pub(super) struct HirValidator<'a> {
     expression_ids: BTreeSet<ExpressionId>,
     value_ids: BTreeSet<ValueId>,
     byte_slice_aliases: BTreeMap<ValueId, Place>,
+    borrowed_str_aliases: BTreeMap<ValueId, Place>,
     canonical_loan_ids: BTreeMap<(ExpressionId, LoanCause), LoanId>,
     canonical_loan_liveness: BTreeMap<(ExpressionId, LoanPointPhase, LoanId), Place>,
 }
@@ -352,6 +353,7 @@ impl<'a> HirValidator<'a> {
             expression_ids: BTreeSet::new(),
             value_ids: BTreeSet::new(),
             byte_slice_aliases: BTreeMap::new(),
+            borrowed_str_aliases: BTreeMap::new(),
             canonical_loan_ids,
             canonical_loan_liveness,
         })
@@ -2184,6 +2186,15 @@ impl<'a> HirValidator<'a> {
                     },
                 );
             }
+            if param.ty == ResolvedType::Str {
+                self.borrowed_str_aliases.insert(
+                    param.id.clone(),
+                    Place {
+                        root: param.id.clone(),
+                        projections: Vec::new(),
+                    },
+                );
+            }
             scope.insert(
                 param.id.clone(),
                 ValidationBinding {
@@ -3302,14 +3313,12 @@ impl<'a> HirValidator<'a> {
                             let op = crate::byte_ops::by_id(operation.as_str())
                                 .filter(|op| op.is_view())
                                 .ok_or_else(|| {
-                                    hir_error("byte view has an invalid compiler-owned operation")
+                                    hir_error(
+                                        "borrowed view has an invalid compiler-owned operation",
+                                    )
                                 })?;
                             self.validate_byte_view_place(op, place, &scope)?;
-                            self.finish_expr(
-                                expression,
-                                &ResolvedType::SliceU8,
-                                OwnershipMode::Borrow,
-                            )?;
+                            self.finish_expr(expression, &op.return_type(), OwnershipMode::Borrow)?;
                             scopes.push(scope);
                         }
                         ResolvedExprKind::ByteRange {
@@ -4676,6 +4685,49 @@ impl<'a> HirValidator<'a> {
                                 function,
                                 &value.id,
                                 &LoanCause::SliceView,
+                            )?);
+                        }
+                    } else if binding.ty == ResolvedType::Str {
+                        let (origin, creates_loan) = match &value.kind {
+                            ResolvedExprKind::Place(place) if place.projections.is_empty() => {
+                                let origin = self
+                                    .borrowed_str_aliases
+                                    .get(&place.root)
+                                    .cloned()
+                                    .ok_or_else(|| {
+                                        hir_error(
+                                            "borrowed-str local alias lacks authenticated root provenance",
+                                        )
+                                    })?;
+                                (origin, false)
+                            }
+                            ResolvedExprKind::BorrowPlace { operation, place }
+                                if operation.as_str() == crate::byte_ops::STRING_AS_STR_ID
+                                    && place.projections.is_empty() =>
+                            {
+                                (place.clone(), true)
+                            }
+                            _ => {
+                                return Err(hir_error(
+                                    "borrowed-str local must be an exact alias or authenticated owning String view",
+                                ))
+                            }
+                        };
+                        if *mutable {
+                            return Err(hir_error(
+                                "borrowed-str local alias must be immutable and unprojected",
+                            ));
+                        }
+                        self.borrowed_str_aliases
+                            .insert(binding.id.clone(), origin.clone());
+                        if creates_loan {
+                            let owner = scope.get_mut(&origin.root).ok_or_else(|| {
+                                hir_error("String view owner disappeared before lexical borrow")
+                            })?;
+                            owner.active_loans.extend(self.exact_loan_id(
+                                function,
+                                &value.id,
+                                &LoanCause::StrView,
                             )?);
                         }
                     }
@@ -6403,10 +6455,10 @@ impl<'a> HirValidator<'a> {
                 let op = crate::byte_ops::by_id(operation.as_str())
                     .filter(|op| op.is_view())
                     .ok_or_else(|| {
-                        hir_error("byte view has an invalid compiler-owned operation")
+                        hir_error("borrowed view has an invalid compiler-owned operation")
                     })?;
                 self.validate_byte_view_place(op, place, scope)?;
-                (ResolvedType::SliceU8, OwnershipMode::Borrow)
+                (op.return_type(), OwnershipMode::Borrow)
             }
             ResolvedExprKind::ByteRange {
                 operation,
@@ -6911,6 +6963,55 @@ impl<'a> HirValidator<'a> {
                                         function,
                                         &value.id,
                                         &LoanCause::SliceView,
+                                    )?);
+                                }
+                            } else if binding.ty == ResolvedType::Str {
+                                let (origin, creates_loan) = match &value.kind {
+                                    ResolvedExprKind::Place(place)
+                                        if place.projections.is_empty() =>
+                                    {
+                                        let origin = self
+                                            .borrowed_str_aliases
+                                            .get(&place.root)
+                                            .cloned()
+                                            .ok_or_else(|| {
+                                                hir_error(
+                                                    "borrowed-str local alias lacks authenticated root provenance",
+                                                )
+                                            })?;
+                                        (origin, false)
+                                    }
+                                    ResolvedExprKind::BorrowPlace { operation, place }
+                                        if operation.as_str()
+                                            == crate::byte_ops::STRING_AS_STR_ID
+                                            && place.projections.is_empty() =>
+                                    {
+                                        (place.clone(), true)
+                                    }
+                                    _ => {
+                                        return Err(hir_error(
+                                            "borrowed-str local must be an exact alias or authenticated owning String view",
+                                        ))
+                                    }
+                                };
+                                if *mutable {
+                                    return Err(hir_error(
+                                        "borrowed-str local alias must be immutable and unprojected",
+                                    ));
+                                }
+                                self.borrowed_str_aliases
+                                    .insert(binding.id.clone(), origin.clone());
+                                if creates_loan {
+                                    let owner =
+                                        block_scope.get_mut(&origin.root).ok_or_else(|| {
+                                            hir_error(
+                                            "String view owner disappeared before lexical borrow",
+                                        )
+                                        })?;
+                                    owner.active_loans.extend(self.exact_loan_id(
+                                        function,
+                                        &value.id,
+                                        &LoanCause::StrView,
                                     )?);
                                 }
                             }
@@ -8242,16 +8343,23 @@ impl<'a> HirValidator<'a> {
     ) -> Result<(), Diagnostic> {
         let binding = scope
             .get(&place.root)
-            .ok_or_else(|| hir_error("byte view root is out of scope"))?;
+            .ok_or_else(|| hir_error("borrowed view root is out of scope"))?;
         if Self::place_availability(binding, &place.projections) != Availability::Available {
-            return Err(hir_error("byte view place is moved or conditionally moved"));
+            return Err(hir_error(
+                "borrowed view place is moved or conditionally moved",
+            ));
         }
         let (place_ty, place_ownership) = self.resolve_place(place, binding)?;
         if place.projections.is_empty() {
             if !operation.accepts_resolved(0, &place_ty) {
-                return Err(hir_error("byte view root has the wrong storage type"));
+                return Err(hir_error("borrowed view root has the wrong storage type"));
             }
             return Ok(());
+        }
+        if operation == crate::byte_ops::ByteOp::StringAsStr {
+            return Err(hir_error(
+                "owned String view requires one unprojected named storage root",
+            ));
         }
         if operation != crate::byte_ops::ByteOp::BytesAsSlice
             || place.projections.is_empty()

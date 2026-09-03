@@ -1002,7 +1002,7 @@ impl Resolver<'_> {
                             return Err(self.error(
                                 "SPX-T266",
                                 format!(
-                                    "byte view `{}` requires an exact named storage root",
+                                    "borrowed view `{}` requires an exact named storage root",
                                     op.name()
                                 ),
                                 args[0].span,

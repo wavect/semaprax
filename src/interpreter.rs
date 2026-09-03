@@ -4254,6 +4254,12 @@ impl Evaluator<'_> {
                             value.bytes,
                         )))
                     }
+                    (crate::byte_ops::ByteOp::StringAsStr, Value::String(value)) => {
+                        Ok(Value::BorrowedStr(BorrowedStrValue {
+                            invocation_root: place.root.clone(),
+                            bytes: Arc::from(value.as_bytes()),
+                        }))
+                    }
                     _ => Err(Flow::Guard("ill-typed compiler-owned byte view")),
                 }
             }

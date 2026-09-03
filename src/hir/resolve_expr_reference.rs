@@ -365,7 +365,9 @@ impl Resolver<'_> {
                         let ResolvedExprKind::Place(place) = &args[0].kind else {
                             return Err(self.error(
                                 "SPX-T266",
-                                format!("byte view `{name}` requires an exact named storage root"),
+                                format!(
+                                    "borrowed view `{name}` requires an exact named storage root"
+                                ),
                                 args[0].span,
                             ));
                         };

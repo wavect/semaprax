@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
-const OPERATIONS: [(&str, &str, usize); 7] = [
+const OPERATIONS: [(&str, &str, usize); 8] = [
     ("core.bytes.len", "byte_len", 1),
     ("core.bytes.get", "byte_get", 2),
     ("core.bytes.range", "byte_range", 3),
@@ -14,6 +14,7 @@ const OPERATIONS: [(&str, &str, usize); 7] = [
     ("core.bytes.as-slice", "bytes_as_slice", 1),
     ("core.array-u8.as-slice", "array_as_slice", 1),
     ("core.str.as-bytes", "str_as_bytes", 1),
+    ("core.string.as-str", "string_as_str", 1),
 ];
 struct Fixture(PathBuf);
 impl Fixture {

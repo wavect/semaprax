@@ -5608,6 +5608,9 @@ impl Emitter<'_> {
             crate::byte_ops::ByteOp::ArrayAsSlice | crate::byte_ops::ByteOp::StrAsBytes => Err(
                 error("byte view operation must lower from authenticated BorrowPlace HIR"),
             ),
+            crate::byte_ops::ByteOp::StringAsStr => Err(error(
+                "owned String view must lower from authenticated BorrowPlace HIR",
+            )),
             crate::byte_ops::ByteOp::Range => Err(error(
                 "byte range must lower from authenticated ByteRange HIR",
             )),
@@ -5736,7 +5739,7 @@ impl Emitter<'_> {
     ) -> Result<Value, Diagnostic> {
         if !borrow_place_shape_is_admitted(operation, place) {
             return Err(error(
-                "borrowed place is outside the exact direct owned-Bytes field profile",
+                "borrowed place is outside the exact admitted direct-root or owned-Bytes field profile",
             ));
         }
         let source = self.place_value(place)?;
@@ -5777,17 +5780,31 @@ impl Emitter<'_> {
                 self.output.push(0x10);
                 write_u32(self.output, BYTE_AS_SLICE_IMPORT);
             }
-            _ => {
-                return Err(error(
-                    "borrowed byte view root disagrees with its operation",
-                ))
+            (
+                crate::byte_ops::STRING_AS_STR_ID,
+                Value::Scalar { .. } | Value::ScalarMemory { .. },
+            ) => {
+                require_type(
+                    value_type(&source),
+                    &ResolvedType::String,
+                    "String view root",
+                )?;
+                if self.standalone_strings {
+                    return Err(error(
+                        "standalone internal-String profile does not admit borrowed str views",
+                    ));
+                }
+                self.get_scalar(&source);
+                self.output.push(0x10);
+                write_u32(self.output, BYTE_AS_SLICE_IMPORT);
             }
+            _ => return Err(error("borrowed view root disagrees with its operation")),
         }
         self.output.push(0x21);
         write_u32(self.output, local);
         Ok(Value::Scalar {
             local,
-            ty: ResolvedType::SliceU8,
+            ty: expr.ty.clone(),
         })
     }
 

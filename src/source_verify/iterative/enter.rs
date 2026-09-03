@@ -259,7 +259,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T266",
-                            format!("byte view `{name}` requires an exact admitted storage place"),
+                            format!(
+                                "borrowed view `{name}` requires an exact admitted storage place"
+                            ),
                             expression.span,
                         ));
                     }

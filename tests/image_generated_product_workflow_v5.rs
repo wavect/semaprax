@@ -1292,7 +1292,10 @@ fn run_supported_workflow(language: Language) {
     assert_eq!(receipt["working_tree_rewritten"], false);
     assert_eq!(receipt["project_manifest_changed"], false);
     assert_eq!(receipt["managed_active_changed"], false);
-    assert_eq!(receipt["source_authority"], "explicit_host_git_ref_authority");
+    assert_eq!(
+        receipt["source_authority"],
+        "explicit_host_git_ref_authority"
+    );
     assert_eq!(receipt["tests"], "not_run");
     assert_eq!(
         receipt["nonclaims"],

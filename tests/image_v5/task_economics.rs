@@ -127,6 +127,13 @@ fn task_comparison_is_closed_generated_and_mcp_catalogued_without_execution() {
         .find(|row| row["method"] == "agent/task-comparison")
         .unwrap();
     assert_eq!(descriptor["capability"], "semantic_read");
+    let instructions = call(&mut session, "protocol/instructions", json!({}));
+    let instructions = instructions["result"]["payload"]["instructions"]
+        .as_str()
+        .unwrap();
+    assert!(instructions.contains("any supplied Zero observation is rejected"));
+    assert!(instructions.contains("exact raw outcome fields are equal"));
+    assert!(instructions.contains("including failed versus aborted"));
     assert_eq!(
         descriptor["request_schema"]["properties"]["params"]["additionalProperties"],
         false

@@ -901,6 +901,7 @@ fn operation() -> Value {
         "extract_function",
         "move_declaration",
         "add_record_field",
+        "add_variant_case",
         "implement_interface",
     ] {
         let mut fields = vec![
@@ -980,6 +981,12 @@ fn operation() -> Value {
                         "bytes_default":"fresh_bytes_copy_of_bounded_array"
                     }}),
                 ),
+            ]),
+            "add_variant_case" => fields.extend([
+                ("case_fields", json!({"const":["id","name","field"]})),
+                ("field_fields", json!({"const":["id","name","type"]})),
+                ("field_types", json!({"const":["Bytes"]})),
+                ("unsupported_field_types", json!({"const":["string"]})),
             ]),
             "implement_interface" => fields.extend([
                 (

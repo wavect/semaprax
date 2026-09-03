@@ -894,11 +894,14 @@ projections and source-backed dependency facts, then independently replays the
 candidate before verifying exact report bytes. V5 exposes a candidate-granted
 chunk query; this read performs no target generation or execution and adds no
 publication authority.
-`candidate/ownership_delta.rs` compares checked source-function and retained
-instance ownership facts, complete structural inventories, and the existing
-ordered loan/cleanup projections. Exact report verification replays the full
-candidate first. The report neither changes a plan nor turns its actions into
-physical ownership authority; v5 exposes it through candidate-granted chunks.
+`candidate/ownership_delta.rs` compares exact checked source-nominal shapes and
+supported monomorphic aggregate type facts together with source-function and
+retained-instance ownership facts, complete structural inventories, and the
+existing ordered loan/cleanup projections. Generic type facts remain explicitly unavailable;
+layout keys are compiler facts rather than ABI judgments. Exact report
+verification replays the full candidate first. The report neither changes a
+plan nor turns its actions into physical ownership authority; v5 exposes it
+through candidate-granted chunks.
 `candidate/artifact_delta.rs` replays the full candidate before comparing base
 and candidate Web/npm carriers through existing independently verified pathless
 artifact projections. File-content, stable export, source and carrier bindings
@@ -1471,11 +1474,16 @@ cleanup, recovery, eviction, or garbage collection is exposed.
 `src/project_transport/` and `src/bin/semapraxd.rs` retain one authenticated
 Project revision for bounded requests. Read-only v2 is the default. Explicit
 opt-ins add one server-derived rename, the bounded workflow, or the additive
-read-only Project v8 descriptor/npm carrier surface. Transport v5 compares the
-carrier's independently replayed typed descriptor binding with the retained
-canonical descriptor before returning either. These profiles do not add
-general patch, filesystem, process, publication, network, persistence, or
-recovery authority.
+read-only Project v8 descriptor/npm carrier surface. Additive Transport v6 is
+a separate opt-in read-only surface over exactly Project v8-v11. The retained
+manifest profile, never a request field, selects the typed descriptor and npm
+carrier schema. V5 and v6 compare each independently replayed carrier's typed
+descriptor binding with the separately replayed retained descriptor before
+returning either. `src/project_transport/session/owned_data.rs` owns frozen v5;
+`src/project_transport/session/public_api.rs` owns v6 dispatch and complete
+wrapper budgeting; `src/project/npm/carrier.rs` owns profile-specific carrier
+replay and descriptor authentication. These profiles do not add general patch,
+filesystem, process, publication, network, persistence, or recovery authority.
 
 ## Reports and projections
 

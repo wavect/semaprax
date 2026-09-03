@@ -13,6 +13,8 @@
 //! `mod` in a test crate root resolves against `tests/`, so each module names
 //! its file explicitly.
 
+#[path = "project_candidate/abi_delta.rs"]
+mod abi_delta;
 #[path = "project_candidate/aggregate_expressions.rs"]
 mod aggregate_expressions;
 #[path = "project_candidate/analysis_artifact_evidence.rs"]
@@ -139,3 +141,5 @@ mod string_builtin_calls;
 mod testing;
 #[path = "project_candidate/type_declarations.rs"]
 mod type_declarations;
+#[path = "project_candidate/variant_case.rs"]
+mod variant_case;

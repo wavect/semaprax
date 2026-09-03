@@ -28,6 +28,31 @@
   accepts it, and a gate parses the documented commands out of the README and
   runs them.
 
+- Added a candidate-bound ABI delta that compares manifest-selected callable
+  signatures, reachable concrete record/variant shapes, checked type facts and
+  already-retained native/Wasm structural projections. Exact verification
+  replays the candidate; compatibility, runtime, deployment and external
+  consumers remain explicitly unassessed. Regressions are authored and unrun.
+
+- Extended ownership deltas with explicit source-nominal rows, ordered member
+  identities, resolved types and available checked Copy/drop/resource/layout
+  facts. Generic and unsupported/incomplete type closures remain explicitly
+  unavailable rather than receiving inferred facts. Regressions are authored
+  and unrun.
+
+- Extended the package-consumer migration proposal with one exact authenticated
+  `own Bytes` to `borrow Slice<u8>` provider and caller transition. Calls stage
+  the original bare owner before deriving its view, preserve ordinary cleanup,
+  and require complete candidate-era package replay; discovery, writes and
+  compatibility remain outside the artifact. Regressions are authored and
+  unrun.
+
+- Added bounded `add_variant_case` for one appended owning `Bytes` case on an
+  eligible originally Copy variant. Exact old member prefixes and checked
+  Copy-to-needs-drop facts survive replay and conservative rebase; String
+  variants, handler synthesis and ABI compatibility remain unsupported.
+  Regressions are authored and unrun.
+
 - Known commands that reject invalid arguments now point directly to their
   scoped `--help` usage. Recovery hints respect the standalone/full-toolchain
   capability boundary and leave unknown-command diagnostics unchanged.
@@ -41,9 +66,13 @@
   six agent types and six harness operations; compilation emits a deterministic
   digest-bound AgentGraph and derives a canonical Agent Runtime Profile v1 from
   structured model, tool, policy, and limit material. The fixture projection is
-  byte-identical to the frozen Runtime v1 known answer and executes through the unchanged
-  `Agent<H>` kernel. This adds no `.spx` syntax, generated proposal grammar,
-  transition execution, effects, durability, provider transport, or authority.
+  byte-identical to the frozen Runtime v1 known answer and executes through the
+  unchanged `Agent<H>` kernel. AgentGraph exposes model, context, proposal,
+  capability, effect, limit, terminal, and evidence contracts; represents the
+  opaque single-use authorization and `AgentStep` boundaries; and supports exact
+  definition/profile/graph bundle replay. This adds no `.spx` syntax, generated
+  proposal grammar, transition execution, effects, durability, provider
+  transport, or authority.
 
 - Added bounded, deterministic typo guidance for unknown CLI commands. The
   nearest unique command within edit distance one or two is suggested only
@@ -331,6 +360,14 @@
   plus-one rejection and successful reuse. Corrected Wasm cleanup lowering so
   a nested record with two-segment owned paths cannot be misclassified as a
   conditional variant.
+
+- Added opt-in read-only Project Agent Transport v6 for exact Project v8-v11
+  public descriptors and npm carriers. The manifest selects the closed profile;
+  every carrier is independently replayed and compared with its retained typed
+  descriptor, response budgets include the complete discriminated wrapper, and
+  v2-v5 behavior remains unchanged. Focused local evidence covers all four
+  profiles without granting write, build-process, execution, or publication
+  authority.
 
 - Added canonical per-trial contracts to the agent-task comparison harness.
   Each contract binds the exact plan, repository head, task, prompt, fixtures,

@@ -12,6 +12,7 @@ use crate::workspace_analysis::{WorkspaceAnalysisTargetKind, WorkspaceImpactOpti
 
 use super::{build, ProjectRevision, MAX_TOTAL_SOURCE_BYTES};
 
+mod abi_delta;
 mod analysis_artifact_evidence;
 mod analysis_boundary_bundle;
 mod analysis_coverage;
@@ -60,8 +61,13 @@ mod source_review;
 mod testing;
 mod type_declaration;
 mod type_rename;
+mod variant_case;
 mod wire;
 
+pub use abi_delta::{
+    MAX_PROJECT_CANDIDATE_ABI_DELTA_BYTES, PROJECT_CANDIDATE_ABI_DELTA_SCHEMA,
+    PROJECT_CANDIDATE_ABI_DELTA_VERIFICATION_SCHEMA,
+};
 pub use analysis_artifact_evidence::{
     MAX_PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_BYTES,
     PROJECT_CANDIDATE_ANALYSIS_ARTIFACT_EVIDENCE_SCHEMA,
@@ -368,6 +374,7 @@ impl ProjectCandidate {
         let mut before_implementations = interface::inventory(&programs)?;
         let mut before = invariant_facts(&programs);
         let mut field_addition = None;
+        let mut variant_case_addition = None;
         let mut movement = None;
         let mut implementation_addition = None;
         let mut type_addition = None;
@@ -405,6 +412,12 @@ impl ProjectCandidate {
                 let (summary, field) =
                     record_field::apply(&self.revision, &mut programs, &change.intent)?;
                 field_addition = Some(field);
+                (summary, None)
+            }
+            Some("add_variant_case") => {
+                let (summary, case) =
+                    variant_case::apply(&self.revision, &mut programs, &change.intent)?;
+                variant_case_addition = Some(case);
                 (summary, None)
             }
             Some("move_declaration") => {
@@ -541,6 +554,7 @@ impl ProjectCandidate {
             &candidate,
             addition.as_ref(),
             field_addition.as_ref(),
+            variant_case_addition.as_ref(),
             movement.as_ref(),
             type_addition.as_ref(),
         )?;
@@ -576,6 +590,9 @@ impl ProjectCandidate {
         if summary.kind == "add_record_field" {
             record_field::validate(&self.revision, &candidate, &change.intent)?;
         }
+        if summary.kind == "add_variant_case" {
+            variant_case::validate(&self.revision, &candidate, &change.intent)?;
+        }
         if summary.kind == "move_declaration" {
             movement::validate(&self.revision, &candidate, &change.intent)?;
         }
@@ -604,6 +621,10 @@ impl ProjectCandidate {
         }
         if let Some(field) = field_addition {
             operation["new_declaration"] = json!({"id":field.id,"name":field.name,"owner":field.owner,"kind":"field","path":field.path,"module":field.module});
+        }
+        if let Some(case) = variant_case_addition {
+            operation["new_declaration"] = json!({"id":case.id,"name":case.name,"owner":case.owner,"kind":"variant_case","path":case.path,"module":case.module});
+            operation["new_case_field"] = json!({"id":case.field_id,"name":case.field_name,"owner":case.id,"kind":"variant_field"});
         }
         if let Some(moved) = movement {
             operation["relocation"] = json!({"id":moved.id,"source_path":moved.source_path,"source_module":moved.source_module,"destination_path":moved.destination_path,"destination_module":moved.destination_module});
@@ -903,6 +924,7 @@ fn preserve_explicit_identities(
     candidate: &ProjectRevision,
     addition: Option<&declaration::DeclarationAddition>,
     field: Option<&record_field::FieldAddition>,
+    variant_case: Option<&variant_case::VariantCaseAddition>,
     movement: Option<&movement::DeclarationMove>,
     type_addition: Option<&type_declaration::TypeAddition>,
 ) -> Result<(), Vec<Diagnostic>> {
@@ -946,6 +968,19 @@ fn preserve_explicit_identities(
         if before.contains_key(&field.id) || after.remove(&field.id).as_ref() != Some(&expected) {
             return Err(invalid(
                 "candidate does not contain exactly the planned added field identity",
+            ));
+        }
+    }
+    if let Some(case) = variant_case {
+        let expected_case = json!({"id":case.id,"kind":"variant_case","identity_origin":"explicit","owner":case.owner,"path":case.path,"module":case.module});
+        let expected_field = json!({"id":case.field_id,"kind":"case_field","identity_origin":"explicit","owner":case.id,"path":case.path,"module":case.module});
+        if before.contains_key(&case.id)
+            || before.contains_key(&case.field_id)
+            || after.remove(&case.id).as_ref() != Some(&expected_case)
+            || after.remove(&case.field_id).as_ref() != Some(&expected_field)
+        {
+            return Err(invalid(
+                "candidate does not contain exactly the planned variant case identities",
             ));
         }
     }

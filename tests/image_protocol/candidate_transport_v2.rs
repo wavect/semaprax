@@ -751,6 +751,39 @@ fn constructor_schemas_are_closed_and_resolve_recursion_locally() {
 }
 
 #[test]
+fn constructor_schemas_expose_closed_variant_case_addition_with_explicit_string_refusal() {
+    let schemas: Value =
+        serde_json::from_str(&SemanticChange::constructor_schemas().unwrap()).unwrap();
+    let intent = schemas["documents"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|document| document["$id"] == "urn:semaprax.semantic-change-intent.v1")
+        .unwrap();
+    let addition = intent["$defs"]["intent"]["oneOf"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|form| form["properties"]["kind"]["const"] == "add_variant_case")
+        .unwrap();
+    assert_eq!(addition["additionalProperties"], false);
+    let case = &addition["properties"]["case"];
+    assert_eq!(case["additionalProperties"], false);
+    assert_eq!(case["required"], json!(["id", "name", "field"]));
+    let field = &case["properties"]["field"];
+    assert_eq!(field["additionalProperties"], false);
+    assert_eq!(field["required"], json!(["id", "name", "type"]));
+    assert_eq!(
+        field["properties"]["type"]["enum"],
+        json!(["Bytes", "string"])
+    );
+    assert_eq!(
+        field["properties"]["type"]["x-semantic-admission"],
+        "Bytes_only_string_is_explicitly_unsupported"
+    );
+}
+
+#[test]
 fn expression_discovery_selects_replacement_and_added_contract_uses_typed_predicate() {
     let fixture = Fixture::new();
     let mut session = fixture.session(ImageHostCapability::CandidateOnly);

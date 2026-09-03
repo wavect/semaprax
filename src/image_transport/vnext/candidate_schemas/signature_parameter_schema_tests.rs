@@ -76,7 +76,7 @@ fn computed_argument_discovery_is_optional_on_mapping_and_absent_on_append() {
 }
 
 #[test]
-fn extraction_and_record_field_catalog_shapes_close_owning_metadata() {
+fn extraction_and_data_evolution_catalog_shapes_close_owning_metadata() {
     let schema = operation();
     let operations = schema["oneOf"].as_array().unwrap();
     let extraction = operations
@@ -110,6 +110,27 @@ fn extraction_and_record_field_catalog_shapes_close_owning_metadata() {
     for shape in [extraction, record] {
         assert_eq!(shape["additionalProperties"], false);
     }
+    let variant = operations
+        .iter()
+        .find(|entry| entry["properties"]["kind"]["const"] == "add_variant_case")
+        .unwrap();
+    assert_eq!(
+        variant["properties"]["case_fields"]["const"],
+        json!(["id", "name", "field"])
+    );
+    assert_eq!(
+        variant["properties"]["field_fields"]["const"],
+        json!(["id", "name", "type"])
+    );
+    assert_eq!(
+        variant["properties"]["field_types"]["const"],
+        json!(["Bytes"])
+    );
+    assert_eq!(
+        variant["properties"]["unsupported_field_types"]["const"],
+        json!(["string"])
+    );
+    assert_eq!(variant["additionalProperties"], false);
 }
 
 #[test]

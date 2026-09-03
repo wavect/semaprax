@@ -71,8 +71,10 @@ const PROJECT_OWNED_DATA_METHODS: [&str; 12] = [
     "workspace/snapshot",
     "workspace/status",
 ];
+const PROJECT_PUBLIC_API_METHODS: [&str; 12] = PROJECT_OWNED_DATA_METHODS;
 
 mod owned_data;
+mod public_api;
 mod rename;
 mod workflow;
 
@@ -115,10 +117,21 @@ pub(super) fn serve<R: BufRead, W: Write>(
     let snapshot = crate::project::load_snapshot(&manifest_path)
         .map_err(|diagnostics| io::Error::other(diagnostic_message(&diagnostics)))?;
     if config.profile() == ServerProfile::ProjectOwnedDataV1
-        && snapshot.manifest().project_profile() != crate::project::ProjectProfile::OwnedDataApiV1
+        && !config
+            .profile()
+            .accepts_project_profile(snapshot.manifest().project_profile())
     {
         return Err(io::Error::other(
             "SPX-J105: Agent Transport v5 requires Project v8 owned-data-api.v1",
+        ));
+    }
+    if config.profile() == ServerProfile::ProjectPublicApiV1
+        && !config
+            .profile()
+            .accepts_project_profile(snapshot.manifest().project_profile())
+    {
+        return Err(io::Error::other(
+            "SPX-J105: Agent Transport v6 requires a Project v8-v11 public owned-data API profile",
         ));
     }
     let mut session = Session {
@@ -257,7 +270,13 @@ impl Session {
             "impact" => self.change_impact(id, params),
             "review" => self.change_review(id, params),
             "build" => self.build(id, params),
+            "project/api-describe" if self.profile == ServerProfile::ProjectPublicApiV1 => {
+                self.public_api_describe(id, params)
+            }
             "project/api-describe" => self.api_describe(id, params),
+            "project/npm-build-inline" if self.profile == ServerProfile::ProjectPublicApiV1 => {
+                self.public_npm_build_inline(id, params)
+            }
             "project/npm-build-inline" => self.npm_build_inline(id, params),
             unknown => self.error(
                 id,
@@ -439,6 +458,11 @@ impl Session {
                 super::PROJECT_OWNED_DATA_TRANSPORT_SCHEMA,
                 PROJECT_OWNED_DATA_METHODS.as_slice(),
                 "[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_path_source_patch_output_target_tool_or_environment_authority\",\"project_v8_owned_data_descriptor_and_npm_carrier_only\",\"read_only_no_source_write_rename_change_or_publication_authority\",\"no_filesystem_write_process_launch_target_execution_or_package_materialization\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]",
+            ),
+            ServerProfile::ProjectPublicApiV1 => (
+                super::PROJECT_PUBLIC_API_TRANSPORT_SCHEMA,
+                PROJECT_PUBLIC_API_METHODS.as_slice(),
+                "[\"no_network_socket_tls_or_peer_authentication\",\"no_request_selected_root_path_source_patch_output_target_tool_or_environment_authority\",\"project_v8_v11_public_api_descriptors_and_npm_carriers_only\",\"read_only_no_source_write_rename_change_or_publication_authority\",\"no_filesystem_write_process_launch_target_execution_or_package_materialization\",\"no_persistent_disk_cache_or_incremental_refresh\",\"no_concurrent_batch_or_out_of_order_processing\"]",
             ),
         };
         Ok(format!(

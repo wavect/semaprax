@@ -38,6 +38,24 @@ impl DeclarationIndex {
         selected: &DeclarationId,
         declarations: &BTreeMap<&str, &ResolvedTypeDeclaration>,
     ) -> Result<Option<TypeFacts>, Diagnostic> {
+        Self::record_evolution_concrete_type_facts(
+            &ResolvedType::Nominal {
+                declaration: selected.clone(),
+                arguments: Vec::new(),
+            },
+            declarations,
+        )
+    }
+
+    /// Reconstruct checked facts for one exact concrete record/variant type.
+    /// This is retained-HIR analysis only and grants no source or target authority.
+    pub(crate) fn record_evolution_concrete_type_facts(
+        ty: &ResolvedType,
+        declarations: &BTreeMap<&str, &ResolvedTypeDeclaration>,
+    ) -> Result<Option<TypeFacts>, Diagnostic> {
+        let ResolvedType::Nominal { declaration, .. } = ty else {
+            return Ok(None);
+        };
         let mut index = compiler_prelude_declarations()?;
         let mut visited = BTreeSet::new();
         let mut budget = Budget {
@@ -45,7 +63,7 @@ impl DeclarationIndex {
             bytes: 0,
         };
         if !retain_declaration(
-            selected,
+            declaration,
             declarations,
             &mut index,
             &mut visited,
@@ -54,15 +72,11 @@ impl DeclarationIndex {
         )? {
             return Ok(None);
         }
-        let ty = ResolvedType::Nominal {
-            declaration: selected.clone(),
-            arguments: Vec::new(),
-        };
         // The ordinary owner computes concrete generic substitutions, layout,
         // Copy/resource/drop flags, and recursive-type rejection. Its layout
         // output is bounded here even when this query has no outer builder.
         let (facts, overflowed) =
-            crate::bounded_output::with_limit(MAX_BYTES, || index.type_facts(&ty));
+            crate::bounded_output::with_limit(MAX_BYTES, || index.type_facts(ty));
         if overflowed {
             return Err(capacity());
         }

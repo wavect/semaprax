@@ -1,4 +1,4 @@
-use semaprax::agent_definition::compile_agent_definition;
+use semaprax::agent_definition::{compile_agent_definition, verify_agent_graph_bundle};
 use semaprax::agent_runtime::{Agent, AgentCancellation, AgentRunStatus};
 
 use super::{profile, raw_sha, task, Host};
@@ -48,7 +48,7 @@ fn definition_compiles_to_deterministic_graph_and_exact_v1_profile() {
     );
     assert_eq!(
         first.graph().digest(),
-        "sha256:04f1aa2c674a4b65b78504007e87686c3163aa9ef7cf46b2e845d3448d24024f"
+        "sha256:0dc7ce1d50d43077042577cf6ac3dcfb5d2a744fb3acd2ca6cea12a6e296ff61"
     );
     assert_eq!(first.runtime_v1_profile().as_bytes(), profile.as_bytes());
     assert_eq!(raw_sha(first.runtime_v1_profile()), raw_sha(&profile));
@@ -66,7 +66,25 @@ fn definition_compiles_to_deterministic_graph_and_exact_v1_profile() {
         .graph()
         .canonical_json()
         .contains("\"kind\":\"model\""));
+    assert!(first
+        .graph()
+        .canonical_json()
+        .contains("\"to\":\"@authorized_proposal\""));
+    assert!(first
+        .graph()
+        .canonical_json()
+        .contains("\"model_cannot_mint\":true"));
+    assert!(first.graph().canonical_json().contains("\"max_turns\":2"));
     assert!(!first.graph().canonical_json().contains("fake.bytes-v1"));
+    assert!(!first
+        .graph()
+        .canonical_json()
+        .contains("input_usd_microunits_per_million_tokens"));
+    assert!(!first
+        .graph()
+        .canonical_json()
+        .contains("output_usd_microunits_per_million_tokens"));
+    verify_agent_graph_bundle(&source, &profile, first.graph().canonical_json()).unwrap();
 }
 
 #[test]
@@ -121,4 +139,117 @@ fn definition_rejects_noncanonical_and_semantically_invalid_inputs() {
         error[0].message,
         "AgentDefinition invariant failed: semantic_ids"
     );
+}
+
+#[test]
+fn graph_bundle_replay_rejects_tamper_cross_pair_and_capacity() {
+    let profile = profile();
+    let source = definition(&profile);
+    let compiled = compile_agent_definition(&source).unwrap();
+
+    let tampered_graph = compiled.graph().canonical_json().replacen(
+        "\"single_use\":true",
+        "\"single_use\":false",
+        1,
+    );
+    let error = verify_agent_graph_bundle(&source, &profile, &tampered_graph)
+        .err()
+        .unwrap();
+    assert_eq!(error[0].code, "SPX-G503");
+
+    let tampered_profile = profile.replacen("\"max_turns\":2", "\"max_turns\":3", 1);
+    let error = verify_agent_graph_bundle(
+        &source,
+        &tampered_profile,
+        compiled.graph().canonical_json(),
+    )
+    .err()
+    .unwrap();
+    assert_eq!(error[0].code, "SPX-G504");
+
+    let other_source = source.replacen(
+        "fixture.agent.type.observation",
+        "fixture.agent.type.other_observation",
+        1,
+    );
+    let error =
+        verify_agent_graph_bundle(&other_source, &profile, compiled.graph().canonical_json())
+            .err()
+            .unwrap();
+    assert_eq!(error[0].code, "SPX-G503");
+
+    let oversized = "x".repeat(1_572_865);
+    let error = verify_agent_graph_bundle(&source, &profile, &oversized)
+        .err()
+        .unwrap();
+    assert_eq!(error[0].code, "SPX-G503");
+}
+
+#[test]
+fn graph_sections_track_definition_semantics_without_changing_stable_v1_behavior() {
+    let profile = profile();
+    let source = definition(&profile);
+    let baseline = compile_agent_definition(&source).unwrap();
+
+    for (old, new, graph_witness) in [
+        (
+            "\"required_locality\":\"local_only\"",
+            "\"required_locality\":\"remote_allowed\"",
+            "\"required_locality\":\"remote_allowed\"",
+        ),
+        (
+            "\"quality_tier\":\"basic\"",
+            "\"quality_tier\":\"standard\"",
+            "\"minimum_quality_tier\":\"standard\"",
+        ),
+        (
+            "tool.read",
+            "tool.read.v2",
+            "\"granted\":[\"tool.read.v2\"]",
+        ),
+        (
+            "Return one bounded fixture value.",
+            "Return one other bounded fixture value.",
+            "Return one other bounded fixture value.",
+        ),
+        (
+            "\"name\":\"query\"",
+            "\"name\":\"question\"",
+            "\"name\":\"question\"",
+        ),
+        (
+            "\"name\":\"value\"",
+            "\"name\":\"payload\"",
+            "\"name\":\"payload\"",
+        ),
+        ("\"max_turns\":2", "\"max_turns\":3", "\"max_turns\":3"),
+    ] {
+        let mut changed_source = source.replace(old, new);
+        if old == "\"quality_tier\":\"basic\"" {
+            changed_source = changed_source.replace(
+                "\"minimum_quality_tier\":\"basic\"",
+                "\"minimum_quality_tier\":\"standard\"",
+            );
+        }
+        let changed = compile_agent_definition(&changed_source).unwrap();
+        assert_ne!(changed.runtime_v1_profile(), baseline.runtime_v1_profile());
+        assert_ne!(changed.graph().digest(), baseline.graph().digest());
+        assert!(changed.graph().canonical_json().contains(graph_witness));
+    }
+
+    let identity_source = source.replacen(
+        "fixture.agent.type.observation",
+        "fixture.agent.type.renamed_observation",
+        1,
+    );
+    let identity_changed = compile_agent_definition(&identity_source).unwrap();
+    assert_eq!(
+        identity_changed.runtime_v1_profile(),
+        baseline.runtime_v1_profile()
+    );
+    assert_ne!(
+        identity_changed.definition().digest(),
+        baseline.definition().digest()
+    );
+    assert_ne!(identity_changed.graph().digest(), baseline.graph().digest());
 }

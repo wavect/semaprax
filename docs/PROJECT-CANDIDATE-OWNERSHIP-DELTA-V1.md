@@ -4,12 +4,13 @@ Status: Partial; implementation and regression evidence authored, unrun.
 
 Audience: compiler contributors and agents reviewing ownership-sensitive changes.
 
-This additive whole-candidate report compares checked parameter ownership,
-structural cleanup inventories, Shared Loan Plans and CleanupPlans between a
-candidate's original base and final admitted Project revision. It makes changed
-ownership evidence discoverable without querying every function or generating
-target artifacts. It does not introduce a new ownership analysis or alter the
-compiler's plan builders, validators or execution backends.
+This additive whole-candidate report compares checked nominal type shapes and
+type facts alongside parameter ownership, structural cleanup inventories,
+Shared Loan Plans and CleanupPlans between a candidate's original base and
+final admitted Project revision. It makes changed ownership evidence
+discoverable without querying every function or generating target artifacts.
+It does not introduce a new ownership analysis or alter the compiler's type,
+plan, validator or execution logic.
 
 ## API and binding
 
@@ -60,6 +61,27 @@ before/after fact digests, `exact_equal`, per-facet equality, `instances_equal`,
 `source_equal` and explicit reasons. Per-facet equality is null if a present
 side lacks that checked fact. Inventory counts include unchanged functions;
 their full payloads are omitted.
+
+Each `types` row is keyed by the explicit persistent declaration ID and binds
+the exact authenticated source span. A retained checked side reports its
+declaration kind, ordered type parameters, and ordered members with persistent
+member IDs, names, indices and exact resolved type identities. Records and
+classes expose fields, classes also expose method IDs, variants expose cases and
+their fields, and resources expose an empty member vector. A retained
+monomorphic record or variant also reports the compiler's `copy`, `needs_drop`,
+`contains_resource`, `sized` and `layout_key` facts. Generic declaration facts
+remain null because the report does not invent a type argument or summarize all
+possible instances. Other facts remain null when the bounded reconstruction
+does not support the declaration kind or cannot complete its retained type
+closure. Each row names that broader unavailability explicitly instead of
+treating a missing fact as false or claiming a more specific cause.
+
+Type comparisons separate declaration kind, type parameters, members, type
+facts, fact availability and source bytes, and bind exact before/after fact digests. Inventory
+counts include changed and unchanged explicit source nominal declarations.
+The layout key is a checked compiler fact for this retained HIR; it is not an
+ABI compatibility judgment. The report deliberately leaves runtime,
+deployment and external-consumer compatibility unassessed.
 
 Source-level generic templates retain their checked signatures where available;
 they do not receive invented monomorphic plans. Retained concrete instances are
@@ -118,7 +140,7 @@ Digests use the domains `semaprax.candidate-ownership-delta.fact.v1`,
 `semaprax.candidate-ownership-delta.report.v1`, each followed by NUL, then the
 little-endian u64 byte length and exact bytes. Canonical JSON facts/reports
 include their LF; source-declaration digests bind the exact authenticated
-function span bytes.
+function or nominal declaration span bytes.
 
 `SPX-G328` reports inconsistent ownership-delta facts, `SPX-G329` capacity
 overflow, and `SPX-G330` exact replay mismatch. Existing stale candidate, source,
@@ -126,9 +148,11 @@ compiler and plan projection diagnostics may propagate unchanged.
 
 `tests/project_candidate/ownership_delta.rs` owns focused library evidence;
 `tests/image_transport_v5/ownership_delta.rs` covers the v5 surface. Cases are
-authored and unrun. No tests, compiler checks, interpreter, target executable or
-long local quality gate was run for this batch, and no completion row is promoted.
+authored and unrun. A library-only `cargo check` passed; no tests, interpreter,
+target executable or long local quality gate was run for this batch, and no
+completion row is promoted.
 
-General ownership/lifetime reasoning, reverse field-to-obligation queries,
-physical settlement, runtime equivalence, target execution, broader resource
-admission and full graph-operational completion remain outstanding.
+General ownership/lifetime reasoning, ABI compatibility classification,
+reverse field-to-obligation queries, physical settlement, runtime equivalence,
+target execution, broader resource admission and full graph-operational
+completion remain outstanding.

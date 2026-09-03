@@ -23,7 +23,7 @@ const DEFINITION_DOMAIN: &[u8] = b"semaprax.agent-definition.digest.v1\0";
 const GRAPH_DOMAIN: &[u8] = b"semaprax.agent-graph.digest.v1\0";
 const PROFILE_DOMAIN: &[u8] = b"semaprax.agent-runtime.profile-digest.v1\0";
 const MAX_DEFINITION_BYTES: usize = 1_310_720;
-const MAX_GRAPH_BYTES: usize = 262_144;
+const MAX_GRAPH_BYTES: usize = 1_572_864;
 const MAX_IDENTIFIER_BYTES: usize = 240;
 const MAX_JSON_DEPTH: usize = 16;
 
@@ -176,6 +176,25 @@ pub fn compile_agent_definition(source: &str) -> Result<CompiledAgentDefinition,
     compile(source).map_err(|diagnostic| vec![diagnostic])
 }
 
+/// Independently recompiles a definition and verifies its exact profile and graph.
+pub fn verify_agent_graph_bundle(
+    definition_source: &str,
+    runtime_v1_profile_source: &str,
+    graph_source: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    if graph_source.len() > MAX_GRAPH_BYTES {
+        return Err(vec![graph_mismatch()]);
+    }
+    let compiled = compile_agent_definition(definition_source)?;
+    if compiled.runtime_v1_profile().as_bytes() != runtime_v1_profile_source.as_bytes() {
+        return Err(vec![profile_mismatch()]);
+    }
+    if compiled.graph().canonical_json().as_bytes() != graph_source.as_bytes() {
+        return Err(vec![graph_mismatch()]);
+    }
+    Ok(())
+}
+
 fn compile(source: &str) -> Result<CompiledAgentDefinition, Diagnostic> {
     let body = canonical_body(source)?;
     let value: Value = serde_json::from_str(body).map_err(|_| malformed())?;
@@ -208,7 +227,7 @@ fn compile(source: &str) -> Result<CompiledAgentDefinition, Diagnostic> {
     }
     let runtime_v1 = top.get("runtime_v1").cloned().ok_or_else(malformed)?;
     let profile_source = render_runtime_v1_profile(&agent_id, &runtime_v1)?;
-    validate_profile(&profile_source, &agent_id)?;
+    validate_profile(&profile_source)?;
 
     let definition = AgentDefinition {
         agent_id,
@@ -473,22 +492,7 @@ fn render_json(value: &Value) -> Result<String, Diagnostic> {
     serde_json::to_string(value).map_err(|_| malformed())
 }
 
-fn validate_profile(profile: &str, agent_id: &str) -> Result<(), Diagnostic> {
-    let value: Value = serde_json::from_str(profile.trim_end()).map_err(|_| profile_failure())?;
-    let profile_id = value
-        .as_object()
-        .and_then(|object| object.get("agent_id"))
-        .and_then(Value::as_str)
-        .ok_or_else(profile_failure)?;
-    if value
-        .as_object()
-        .and_then(|object| object.get("schema"))
-        .and_then(Value::as_str)
-        != Some(PROFILE_SCHEMA)
-        || profile_id != agent_id
-    {
-        return Err(invariant("runtime_v1_profile.agent_id"));
-    }
+fn validate_profile(profile: &str) -> Result<(), Diagnostic> {
     Agent::new(profile, ValidationHost, AgentCancellation::new())
         .map(|_| ())
         .map_err(|_| profile_failure())
@@ -561,8 +565,19 @@ fn render_graph(definition: &AgentDefinition) -> String {
             quote_json(operation.kind)
         ));
     }
-    output.push_str("],\"relationships\":[");
-    let relationships = [
+    output.push_str(
+        "],\"derived_types\":[{\"node_id\":\"@authorized_proposal\",\"kind\":\"opaque_authorized\",\"value_type\":"
+    );
+    output.push_str(&quote_json(&definition.types[3].stable_id));
+    output.push_str(",\"runtime_minted\":true,\"single_use\":true},{\"node_id\":\"@rejection\",\"kind\":\"runtime_rejection\"},{\"node_id\":\"@authorization_result\",\"kind\":\"result\",\"ok\":\"@authorized_proposal\",\"error\":\"@rejection\"},{\"node_id\":\"@suspension\",\"kind\":\"runtime_suspension\"},{\"node_id\":\"@agent_failure\",\"kind\":\"runtime_failure\"},{\"node_id\":\"@agent_step\",\"kind\":\"closed_runtime_variant\",\"variants\":[{\"kind\":\"continue\",\"fields\":[");
+    output.push_str(&quote_json(&definition.types[1].stable_id));
+    output.push_str("]},{\"kind\":\"complete\",\"fields\":[");
+    output.push_str(&quote_json(&definition.types[5].stable_id));
+    output.push_str("]},{\"kind\":\"suspend\",\"fields\":[");
+    output.push_str(&quote_json(&definition.types[1].stable_id));
+    output.push_str(",\"@suspension\"]},{\"kind\":\"fail\",\"fields\":[\"@agent_failure\"]}]}],\"relationships\":[");
+    let typed_relationships = [
+        (0, "consumes", 0),
         (0, "returns", 1),
         (1, "borrows", 1),
         (1, "returns", 2),
@@ -570,14 +585,8 @@ fn render_graph(definition: &AgentDefinition) -> String {
         (2, "returns", 3),
         (3, "borrows", 1),
         (3, "borrows", 3),
-        (4, "consumes", 3),
-        (4, "returns", 4),
-        (5, "consumes", 1),
-        (5, "uses", 3),
-        (5, "uses", 4),
-        (5, "returns", 5),
     ];
-    for (index, (operation, relationship, ty)) in relationships.iter().enumerate() {
+    for (index, (operation, relationship, ty)) in typed_relationships.iter().enumerate() {
         if index > 0 {
             output.push(',');
         }
@@ -588,7 +597,103 @@ fn render_graph(definition: &AgentDefinition) -> String {
             quote_json(&definition.types[*ty].stable_id)
         ));
     }
-    output.push_str("],\"runtime_v1_profile_digest\":");
+    for (operation, relationship, target) in [
+        (3, "returns", "@authorization_result"),
+        (4, "consumes", "@authorized_proposal"),
+    ] {
+        output.push_str(&format!(
+            ",{{\"from\":{},\"relationship\":{},\"to\":{}}}",
+            quote_json(&definition.operations[operation].stable_id),
+            quote_json(relationship),
+            quote_json(target)
+        ));
+    }
+    for (operation, relationship, ty) in [
+        (4, "returns", 4),
+        (5, "consumes", 1),
+        (5, "uses", 3),
+        (5, "uses", 4),
+    ] {
+        output.push_str(&format!(
+            ",{{\"from\":{},\"relationship\":{},\"to\":{}}}",
+            quote_json(&definition.operations[operation].stable_id),
+            quote_json(relationship),
+            quote_json(&definition.types[ty].stable_id)
+        ));
+    }
+    output.push_str(&format!(
+        ",{{\"from\":{},\"relationship\":\"returns\",\"to\":\"@agent_step\"}}",
+        quote_json(&definition.operations[5].stable_id)
+    ));
+    let runtime = definition
+        .runtime_v1
+        .as_object()
+        .expect("admitted Runtime v1 material remains an object");
+    let policy = runtime
+        .get("policy")
+        .and_then(Value::as_object)
+        .expect("admitted Runtime v1 policy remains an object");
+    output.push_str("],\"model_contract\":{\"operation_id\":");
+    output.push_str(&quote_json(&definition.operations[2].stable_id));
+    output.push_str(",\"requirements\":{\"required_locality\":");
+    output.push_str(&render_admitted(policy, "required_locality"));
+    output.push_str(",\"minimum_quality_tier\":");
+    output.push_str(&render_admitted(policy, "minimum_quality_tier"));
+    output.push_str(",\"required_capabilities\":");
+    output.push_str(&render_admitted(policy, "required_model_capabilities"));
+    output.push_str("},\"compatibility_route\":{\"allowed_provider_ids\":");
+    output.push_str(&render_admitted(policy, "allowed_provider_ids"));
+    output.push_str(",\"allowed_model_ids\":");
+    output.push_str(&render_admitted(policy, "allowed_model_ids"));
+    output.push_str("}},\"context_plan\":{\"task_schema\":\"semaprax.agent-runtime-task.v1\",\"objective\":\"ordered_utf8\",\"context\":\"ordered_provenance_labelled_utf8\",\"deterministic_order\":true},\"proposal_contract\":{\"type_id\":");
+    output.push_str(&quote_json(&definition.types[3].stable_id));
+    output.push_str(",\"wire_schema\":\"semaprax.agent-runtime-action.v1\",\"variants\":[{\"kind\":\"final\"},{\"kind\":\"tool\",\"allowed_tool_ids\":");
+    output.push_str(&render_admitted(policy, "allowed_tool_ids"));
+    output.push_str("}],\"untrusted_output\":true},\"capability_manifest\":{\"granted\":");
+    output.push_str(&render_admitted(policy, "granted_capabilities"));
+    output.push_str(",\"model_cannot_mint\":true},\"effect_bindings\":");
+    output.push_str(
+        &render_tools(
+            runtime
+                .get("tools")
+                .expect("admitted Runtime v1 tools remain present"),
+        )
+        .expect("admitted Runtime v1 tools remain canonical"),
+    );
+    output.push_str(",\"limits\":");
+    output.push_str(
+        &render_plain_object(
+            runtime
+                .get("limits")
+                .expect("admitted Runtime v1 limits remain present"),
+            &[
+                "max_turns",
+                "max_provider_attempts",
+                "max_retries_per_turn",
+                "max_concurrency",
+                "max_elapsed_ms",
+                "max_provider_request_bytes",
+                "max_provider_response_bytes",
+                "max_stream_chunks",
+                "max_total_provider_input_bytes",
+                "max_total_provider_output_bytes",
+                "max_reported_model_input_tokens",
+                "max_reported_model_output_tokens",
+                "max_usd_microunits",
+                "max_tool_calls",
+                "max_tool_arguments_bytes",
+                "max_tool_result_bytes",
+                "max_total_tool_bytes",
+                "max_retained_state_bytes",
+                "max_trace_events",
+                "max_trace_bytes",
+                "max_evidence_bytes",
+                "max_builder_bytes",
+            ],
+        )
+        .expect("admitted Runtime v1 limits remain canonical"),
+    );
+    output.push_str(",\"approval_requirements\":[],\"terminal_conditions\":[\"completed\",\"cancelled\",\"deadline_exceeded\",\"budget_exhausted\",\"provider_failed\",\"tool_failed\",\"policy_rejected\"],\"evidence_obligations\":{\"trace_schema\":\"semaprax.agent-runtime-trace.v1\",\"evidence_schema\":\"semaprax.agent-runtime-evidence.v1\",\"binds_profile_digest\":true,\"binds_task_digest\":true,\"replay_required\":true},\"references\":{\"program_declarations\":[],\"workspace_operations\":[],\"tests\":[],\"validations\":[]},\"runtime_v1_profile_digest\":");
     output.push_str(&quote_json(&profile_digest));
     output.push_str(",\"nonclaims\":[");
     for (index, nonclaim) in NONCLAIMS.iter().enumerate() {
@@ -603,6 +708,15 @@ fn render_graph(definition: &AgentDefinition) -> String {
 
 fn exact_keys(object: &Map<String, Value>, keys: &[&str]) -> bool {
     object.len() == keys.len() && keys.iter().all(|key| object.contains_key(*key))
+}
+
+fn render_admitted(object: &Map<String, Value>, key: &str) -> String {
+    render_json(
+        object
+            .get(key)
+            .expect("admitted Runtime v1 material retains every canonical field"),
+    )
+    .expect("admitted Runtime v1 material remains renderable")
 }
 
 fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Diagnostic> {
@@ -653,6 +767,20 @@ fn profile_failure() -> Diagnostic {
     Diagnostic::io(
         "SPX-G502",
         "AgentDefinition invariant failed: runtime_v1_profile",
+    )
+}
+
+fn graph_mismatch() -> Diagnostic {
+    Diagnostic::io(
+        "SPX-G503",
+        "AgentGraph is not the exact replay of its canonical AgentDefinition",
+    )
+}
+
+fn profile_mismatch() -> Diagnostic {
+    Diagnostic::io(
+        "SPX-G504",
+        "Agent Runtime Profile v1 is not the exact AgentDefinition projection",
     )
 }
 

@@ -1289,6 +1289,7 @@ fn candidate_payloads_and_optional_frontend_work_are_concrete() {
         "extract_function",
         "move_declaration",
         "add_record_field",
+        "add_variant_case",
         "implement_interface",
     ] {
         let operation = operations

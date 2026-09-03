@@ -389,6 +389,17 @@ impl ProjectCandidate {
                 "constraints":["globally_new_explicit_field_identity", "unique_field_name", "monomorphic_checked_sized_resource_free_record", "matching_bounded_literal_default", "append_default_after_existing_field_evaluations", "migrate_all_authenticated_constructors_and_scalar_exact_patterns", "preserve_existing_field_identities_and_projection_meaning", "fresh_owner_per_owning_constructor", "reject_target_patterns_for_owning_addition", "preserve_scalar_flags_or_authenticate_exact_owning_flag_transition", "revalidate_layout_ownership_cleanup_and_targets"],
             }));
         }
+        if self.changes.len() < MAX_CHANGES
+            && super::variant_case::eligible(&self.revision, target)?
+        {
+            reason = "constructor_available_payload_requires_full_candidate_admission";
+            operations.push(json!({
+                "kind":"add_variant_case", "required_fields":["kind","target","case"],
+                "case_fields":["id","name","field"], "field_fields":["id","name","type"],
+                "field_types":["Bytes"], "unsupported_field_types":["string"],
+                "constraints":["explicit_monomorphic_originally_copy_drop_free_sized_resource_free_variant", "at_least_one_authenticated_existing_constructor", "no_exact_target_variant_patterns", "globally_fresh_case_and_field_ids_and_names", "append_declaration_case_only", "preserve_all_existing_cases_constructors_and_evaluation_order", "exact_retained_hir_case_prefix", "copy_to_needs_drop_resource_free_sized_transition", "full_candidate_native_wasm_interpreter_admission"],
+            }));
+        }
         if self.changes.len() < MAX_CHANGES {
             let protocols = super::interface::discover(&self.revision, target)?;
             if protocols

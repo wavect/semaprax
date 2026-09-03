@@ -52,6 +52,14 @@ tests = ["ownership.tests"]
 }
 @id("ownership.evaluate") fn evaluate()->i64 {let input=[7u8,8u8,9u8]; loans(array_as_slice(input))+consume(forward(call_select(array_as_slice(input))))}
 @id("ownership.public") fn public_value(value:i64)->i64 {value}
+@id("ownership.packet") record Packet {
+    @id("ownership.packet.count") count: i64,
+}
+@id("ownership.packet.make") fn make_packet(value:i64)->Packet {Packet {count:value}}
+@id("ownership.box") record Box<T> {
+    @id("ownership.box.value") value: T,
+}
+@id("ownership.box.make") fn make_box(value:i64)->Box<i64> {Box<i64> {value:value}}
 "#,
             ),
             (
@@ -147,6 +155,14 @@ fn row<'a>(report: &'a Value, id: &str) -> &'a Value {
         .find(|f| f["id"] == id)
         .expect("ownership function missing")
 }
+fn type_row<'a>(report: &'a Value, id: &str) -> &'a Value {
+    report["types"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|declaration| declaration["id"] == id)
+        .expect("ownership type missing")
+}
 fn checked<'a>(candidate: &'a ProjectCandidate, id: &str) -> &'a semaprax::hir::ResolvedFunction {
     candidate
         .revision()
@@ -174,6 +190,112 @@ fn fact_digest(value: &Value) -> String {
 fn code<T>(result: Result<T, Vec<Diagnostic>>, expected: &str) {
     let errors = result.err().expect("hostile ownership report accepted");
     assert!(errors.iter().any(|e| e.code == expected), "{errors:?}");
+}
+
+#[test]
+fn owning_nominal_transition_reports_exact_members_type_facts_and_cleanup_consequences() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let base = fixture.candidate();
+    let candidate = apply(
+        &base,
+        json!({
+            "kind":"add_record_field",
+            "target":"ownership.packet",
+            "field":{
+                "id":"ownership.packet.payload",
+                "name":"payload",
+                "type":"Bytes",
+                "default":{"kind":"Bytes","values":[1,2,3]},
+            },
+        }),
+    )
+    .unwrap();
+    let value = report(&candidate);
+    let declaration = type_row(&value, "ownership.packet");
+    assert_eq!(declaration["change"], "modified");
+    assert_eq!(declaration["comparison"]["members_equal"], false);
+    assert_eq!(declaration["comparison"]["type_facts_equal"], false);
+    assert_eq!(
+        declaration["comparison"]["type_facts_availability_equal"],
+        true
+    );
+    assert_eq!(declaration["base"]["declaration_kind"], "record");
+    assert_eq!(
+        declaration["base"]["type_facts_availability"],
+        "retained_checked"
+    );
+    assert_eq!(declaration["base"]["type_facts"]["copy"], true);
+    assert_eq!(declaration["base"]["type_facts"]["needs_drop"], false);
+    assert_eq!(declaration["candidate"]["type_facts"]["copy"], false);
+    assert_eq!(declaration["candidate"]["type_facts"]["needs_drop"], true);
+    assert_ne!(
+        declaration["base"]["type_facts"]["layout_key"],
+        declaration["candidate"]["type_facts"]["layout_key"]
+    );
+    let fields = declaration["candidate"]["members"]["fields"]
+        .as_array()
+        .unwrap();
+    assert_eq!(fields[0]["id"], "ownership.packet.count");
+    assert_eq!(fields[0]["index"], 0);
+    assert_eq!(fields[1]["id"], "ownership.packet.payload");
+    assert_eq!(fields[1]["index"], 1);
+    assert_eq!(fields[1]["type_id"], "Bytes");
+    assert_eq!(
+        declaration["comparison"]["base_digest"],
+        fact_digest(&declaration["base"])
+    );
+    assert_eq!(
+        declaration["comparison"]["candidate_digest"],
+        fact_digest(&declaration["candidate"])
+    );
+
+    let constructor = row(&value, "ownership.packet.make");
+    assert_eq!(constructor["comparison"]["cleanup_inventory_equal"], false);
+    assert!(
+        constructor["candidate"]["cleanup_inventory"]["slots"]
+            .as_array()
+            .unwrap()
+            .len()
+            > constructor["base"]["cleanup_inventory"]["slots"]
+                .as_array()
+                .unwrap()
+                .len()
+    );
+    replay(&candidate);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
+fn generic_nominal_transition_keeps_uninstantiated_type_facts_explicitly_unavailable() {
+    let fixture = Fixture::new();
+    let disk = fixture.bytes();
+    let base = fixture.candidate();
+    let candidate = apply(
+        &base,
+        json!({"kind":"rename_declaration","target":"ownership.box","name":"Crate"}),
+    )
+    .unwrap();
+    let value = report(&candidate);
+    let declaration = type_row(&value, "ownership.box");
+    assert_eq!(declaration["change"], "modified");
+    for side in ["base", "candidate"] {
+        assert!(declaration[side]["type_facts"].is_null());
+        assert_eq!(
+            declaration[side]["type_facts_availability"],
+            "generic_uninstantiated"
+        );
+        assert_eq!(declaration[side]["type_parameters"][0]["name"], "T");
+    }
+    assert!(declaration["comparison"]["type_facts_equal"].is_null());
+    assert_eq!(
+        declaration["comparison"]["type_facts_availability_equal"],
+        true
+    );
+    assert_eq!(declaration["base"]["name"], "Box");
+    assert_eq!(declaration["candidate"]["name"], "Crate");
+    replay(&candidate);
+    assert_eq!(fixture.bytes(), disk);
 }
 
 #[test]

@@ -135,6 +135,32 @@ fn record_field_defaults_close_scalar_string_and_bytes_shapes() {
 }
 
 #[test]
+fn variant_case_schema_closes_one_owned_bytes_field_and_names_string_refusal() {
+    let schema = intent_schema();
+    let addition = schema["oneOf"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|form| form["properties"]["kind"]["const"] == "add_variant_case")
+        .unwrap();
+    assert_eq!(addition["additionalProperties"], false);
+    let case = &addition["properties"]["case"];
+    assert_eq!(case["required"], json!(["id", "name", "field"]));
+    assert_eq!(case["additionalProperties"], false);
+    let field = &case["properties"]["field"];
+    assert_eq!(field["required"], json!(["id", "name", "type"]));
+    assert_eq!(field["additionalProperties"], false);
+    assert_eq!(
+        field["properties"]["type"]["enum"],
+        json!(["Bytes", "string"])
+    );
+    assert_eq!(
+        field["properties"]["type"]["x-semantic-admission"],
+        "Bytes_only_string_is_explicitly_unsupported"
+    );
+}
+
+#[test]
 fn computed_signature_arguments_are_a_separate_recursive_mapping_only_form() {
     let schema = intent_schema();
     let forms = schema["oneOf"].as_array().unwrap();

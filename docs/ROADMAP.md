@@ -83,12 +83,21 @@ bounded inline npm carrier. Promotion must still prove exact revision and typed
 descriptor replay, zero write/process/publication authority, and byte-frozen
 v2–v4 behavior before any broader agent workflow is considered.
 
+The additive read-only [Project Agent Transport
+v6](PROJECT-AGENT-TRANSPORT-V6.md) carries the same narrow operation class
+across exactly Project v8-v11 with manifest-selected typed descriptor/carrier
+bindings. It is implementation and focused evidence, not promotion: complete
+hosted and generated-client conformance and the prerequisite v9-v11 package
+support decisions remain sequenced before a supported public-agent API claim.
+
 Records, authored variants, nested algebraic data, owned UTF-8 strings,
 allocator transfer, callbacks, async work, and general public aggregate ABIs
 remain outside the Project v8 preview. Project v9 flat owned records and
 Project v10 owned UTF-8 are additive implementation tranches, not promotions
 of the Project v8 preview; internal record/variant support is not a public
 aggregate ABI.
+Project v11 nested owned records are likewise an additive implementation
+tranche and remain blocked on explicit v9 and v10 promotion decisions.
 The versioned specification owns exact identifiers, admission, lifetime,
 compatibility, and promotion gates.
 

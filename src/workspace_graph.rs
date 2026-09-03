@@ -1417,6 +1417,9 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::OwnedUtf8ApiV1 => {
                 unreachable!("Project v10 uses the exact function-reachable linker")
             }
+            crate::project::ProjectProfile::NestedOwnedRecordApiV1 => {
+                unreachable!("Project v11 uses the exact aggregate-aware linker")
+            }
         }
         .map_err(|error| vec![error])
     }
@@ -1577,6 +1580,9 @@ impl WorkspaceGraphBuild {
             }
             crate::project::ProjectProfile::OwnedUtf8ApiV1 => {
                 unreachable!("Project v10 uses the exact function-reachable linker")
+            }
+            crate::project::ProjectProfile::NestedOwnedRecordApiV1 => {
+                unreachable!("Project v11 uses the exact aggregate-aware linker")
             }
         }
         .map_err(|error| vec![error])
@@ -2187,7 +2193,8 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::LineCommandIoV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
-                    | crate::project::ProjectProfile::OwnedUtf8ApiV1 => {
+                    | crate::project::ProjectProfile::OwnedUtf8ApiV1
+                    | crate::project::ProjectProfile::NestedOwnedRecordApiV1 => {
                         hir::useful_data_workspace_parameter_admitted(
                             &parameter.ty,
                             parameter.ownership,
@@ -2217,6 +2224,7 @@ impl WorkspaceGraphBuild {
                         hir::owned_data_api_workspace_return_admitted(&function.return_type)
                             || function.return_type == hir::ResolvedType::String
                     }
+                    crate::project::ProjectProfile::NestedOwnedRecordApiV1 => true,
                 };
                 let effects_admitted = function.effects.is_empty()
                     || natives.effects_admitted(&function.effects)
@@ -2271,6 +2279,9 @@ impl WorkspaceGraphBuild {
                         }
                         crate::project::ProjectProfile::OwnedUtf8ApiV1 => {
                             "Owned UTF-8 API v1 linker"
+                        }
+                        crate::project::ProjectProfile::NestedOwnedRecordApiV1 => {
+                            "Nested Owned Record API v1 linker"
                         }
                     };
                     return Err(vec![graph_error(

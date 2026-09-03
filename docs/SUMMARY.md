@@ -181,6 +181,7 @@ Audience: all documentation readers.
 - [Project Profile Admission v1](PROJECT-PROFILE-ADMISSION-V1.md)
 - [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md)
 - [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md)
+- [Public Nested Owned-Record API v1](PUBLIC-NESTED-OWNED-RECORD-API-V1.md)
 - [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md)
 - [Owned npm invocation failure state v1](OWNED-NPM-INVOCATION-V1.md)
 - [Useful Text Consumer v1](USEFUL-TEXT-CONSUMER-V1.md)

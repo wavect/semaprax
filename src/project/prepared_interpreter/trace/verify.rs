@@ -5,9 +5,9 @@ use crate::interpreter::ResolvedTracePhase;
 
 use super::super::super::{
     ProjectExecutionRole, ProjectRevision, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
-    MAX_STABLE_ID_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
-    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
-    PROJECT_SCHEMA_V9,
+    MAX_STABLE_ID_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2,
+    PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
+    PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 use super::super::{PreparedProjectExecutionOptions, MAX_PROJECT_SOURCE_TRACE_BYTES};
 use super::model::{
@@ -213,6 +213,7 @@ fn parse(envelope: &str) -> Result<ParsedTrace, Diagnostic> {
             | PROJECT_SCHEMA_V8
             | PROJECT_SCHEMA_V9
             | PROJECT_SCHEMA_V10
+            | PROJECT_SCHEMA_V11
     ) || project.len() > MAX_NAME_BYTES
         || module.len() > MAX_MODULE_BYTES
         || stable_id.len() > MAX_STABLE_ID_BYTES

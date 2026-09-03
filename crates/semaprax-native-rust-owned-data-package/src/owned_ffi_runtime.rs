@@ -84,6 +84,25 @@ impl Drop for Guard<'_>{
 "#);
 }
 
+pub(super) fn append_multi_owner_operations(output: &mut String) {
+    output.push_str(r#"
+pub fn copy_many_and_settle(&mut self,handles:&[Handle])->Result<Vec<Vec<u8>>,Failure>{
+    if handles.is_empty()||handles.len()>256{return Err(Failure::Adapter)}
+    for(index,handle)in handles.iter().enumerate(){if *handle==0||handles[..index].contains(handle){std::process::abort()}}
+    let mut guard=ManyGuard{context:self,handles:handles.to_vec(),armed:true};
+    let mut lengths=Vec::with_capacity(handles.len());let mut total=0u64;
+    for handle in handles{let mut length=0u64;if unsafe{spx_owned_bytes_len_v1(guard.context.raw.as_ptr(),*handle,&mut length)}!=0{std::process::abort()}total=total.checked_add(length).filter(|total|*total<=65536).ok_or(Failure::Adapter)?;lengths.push(usize::try_from(length).map_err(|_|Failure::Adapter)?)}
+    let mut values=Vec::with_capacity(handles.len());for length in lengths{values.push(vec![0u8;length])}
+    for(index,handle)in handles.iter().enumerate(){let bytes=&mut values[index];let pointer=if bytes.is_empty(){core::ptr::null_mut()}else{bytes.as_mut_ptr()};if unsafe{spx_owned_bytes_copy_v1(guard.context.raw.as_ptr(),*handle,pointer,bytes.len()as u64)}!=0{return Err(Failure::Adapter)}}
+    for handle in handles{if unsafe{spx_owned_bytes_drop_v1(guard.context.raw.as_ptr(),*handle)}!=0{std::process::abort()}}
+    guard.armed=false;Ok(values)
+}
+}
+struct ManyGuard<'a>{context:&'a mut Context,handles:Vec<Handle>,armed:bool}
+impl Drop for ManyGuard<'_>{fn drop(&mut self){if self.armed{for handle in &self.handles{if unsafe{spx_owned_bytes_drop_v1(self.context.raw.as_ptr(),*handle)}!=0{std::process::abort()}}}}}
+"#);
+}
+
 // Always emitted, even when all selected results are scalars: successful
 // copying is not the proof that the complete provider context has settled.
 pub(super) const INVOCATION: &str = r#"// Owner guards are nested inside the invocation callback. Rust unwinds those

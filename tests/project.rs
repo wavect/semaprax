@@ -71,6 +71,8 @@ mod language_command_native;
 mod line_command_native;
 #[path = "project/manifest_v10.rs"]
 mod manifest_v10;
+#[path = "project/manifest_v11.rs"]
+mod manifest_v11;
 #[path = "project/manifest_v4.rs"]
 mod manifest_v4;
 #[path = "project/manifest_v5.rs"]
@@ -87,6 +89,8 @@ mod native_publication;
 mod native_rust_owned_data;
 #[path = "project/native_rust_scalar_callback.rs"]
 mod native_rust_scalar_callback;
+#[path = "project/nested_owned_record_api.rs"]
+mod nested_owned_record_api;
 #[path = "project/owned_bytes_npm.rs"]
 mod owned_bytes_npm;
 #[path = "project/owned_failure_fsm.rs"]

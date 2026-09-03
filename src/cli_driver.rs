@@ -601,10 +601,11 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                             if !snapshot.manifest().is_v8()
                                 && !snapshot.manifest().is_v9()
                                 && !snapshot.manifest().is_v10()
+                                && !snapshot.manifest().is_v11()
                             {
                                 return Err(vec![Diagnostic::io(
                                     "SPX-J114",
-                                    "the rust target requires the exact Project v8 owned-data-api.v1, Project v9 flat-owned-record-api.v1, or Project v10 owned-utf8-api.v1 profile",
+                                    "the rust target requires the exact Project v8 owned-data-api.v1, Project v9 flat-owned-record-api.v1, Project v10 owned-utf8-api.v1, or Project v11 nested-owned-record-api.v1 profile",
                                 )]);
                             }
                         }
@@ -615,12 +616,13 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                         if matches!(options.target.as_str(), "web" | "wasm" | "npm")
                             && (snapshot.manifest().is_v8()
                                 || snapshot.manifest().is_v9()
-                                || snapshot.manifest().is_v10())
+                                || snapshot.manifest().is_v10()
+                                || snapshot.manifest().is_v11())
                         {
                             let host = host.ok_or_else(|| {
                                 vec![Diagnostic::io(
                                     "SPX-W120",
-                                    "Project v8-v10 npm publication requires semaprax-full with safe handle-relative Windows authority",
+                                    "Project v8-v11 npm publication requires semaprax-full with safe handle-relative Windows authority",
                                 )]
                             })?;
                             (host.build_owned_npm)(snapshot, &output)?;
@@ -651,7 +653,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                     .map_err(|errors| report(&errors, false))?;
                     println!(
                         "{}",
-                        project_build_success(&options.target, output.1, &output.0)
+                        cli::project_runtime::build_success(&options.target, output.1, &output.0)
                     );
                 }
             }
@@ -662,7 +664,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             match &options.input {
                 cli::execution::ExecutionInput::Source(path) => run_legacy_source(path),
                 cli::execution::ExecutionInput::Project(manifest_path) => {
-                    project_execution_held("run", manifest_path, &options)
+                    cli::project_runtime::execute_held("run", manifest_path, &options)
                 }
             }
         }
@@ -671,7 +673,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let cli::execution::ExecutionInput::Project(manifest_path) = &options.input else {
                 unreachable!("project test parser rejects source inputs")
             };
-            project_execution_held("test", manifest_path, &options)
+            cli::project_runtime::execute_held("test", manifest_path, &options)
         }
         CommandId::Fmt => {
             let options = cli::fmt::parse(&args[1..])?;
@@ -2555,94 +2557,6 @@ fn run_legacy_source(path: &Path) -> Result<(), u8> {
     Ok(())
 }
 
-fn project_execution_held(
-    command: &str,
-    manifest_path: &Path,
-    options: &cli::execution::ExecutionOptions,
-) -> Result<(), u8> {
-    let defaults = project::ProjectExecutionOptions::default();
-    let execution_options = project::ProjectExecutionOptions::new(
-        options.max_bytes.unwrap_or(defaults.max_bytes),
-        options.max_steps.unwrap_or(defaults.max_steps),
-    )
-    .map_err(|error| report(&[error], options.json))?;
-    let execution = project::with_authenticated_project(manifest_path, |snapshot| match command {
-        "run" => snapshot.execute_entry(&execution_options),
-        "test" => snapshot.execute_test(&execution_options),
-        _ => unreachable!("validated project execution command"),
-    })
-    .map_err(|errors| report(&errors, options.json))?;
-
-    if options.json {
-        println!("{}", execution.envelope());
-    }
-
-    match (command, execution.outcome()) {
-        ("run", project::ProjectExecutionOutcome::Returned(value)) => {
-            if !options.json {
-                println!("{value}");
-            }
-            Ok(())
-        }
-        ("test", project::ProjectExecutionOutcome::Returned(0)) => {
-            if !options.json {
-                println!("project tests passed");
-            }
-            Ok(())
-        }
-        ("test", project::ProjectExecutionOutcome::Returned(value)) => {
-            if !options.json {
-                eprintln!("project tests failed with result {value}");
-            }
-            Err(1)
-        }
-        (_, project::ProjectExecutionOutcome::LanguageFailure(status)) => {
-            if !options.json {
-                eprintln!(
-                    "project execution failed with language status {}",
-                    status.to_json()
-                );
-            }
-            Err(1)
-        }
-        (_, project::ProjectExecutionOutcome::FuelExhausted) => {
-            if !options.json {
-                eprintln!("project execution exhausted its step budget");
-            }
-            Err(1)
-        }
-        (_, project::ProjectExecutionOutcome::CallDepthExceeded) => {
-            if !options.json {
-                eprintln!("project execution exceeded its call-depth bound");
-            }
-            Err(1)
-        }
-        _ => unreachable!("validated project execution command"),
-    }
-}
-
-fn project_build_success(
-    target: &str,
-    profile: project::ProjectProfile,
-    output: &std::path::Path,
-) -> String {
-    let product = match (target, profile) {
-        ("native", _) => "project native executable",
-        ("rust", project::ProjectProfile::FlatOwnedRecordApiV1) => {
-            "Project v9 Native Rust flat owned-record package"
-        }
-        ("rust", project::ProjectProfile::OwnedUtf8ApiV1) => {
-            "Project v10 Native Rust owned-data package"
-        }
-        ("rust", _) => "Project v8 Native Rust owned-data package",
-        ("npm", project::ProjectProfile::FlatOwnedRecordApiV1) => "Project v9 npm package",
-        ("npm", project::ProjectProfile::OwnedUtf8ApiV1) => "Project v10 npm package",
-        ("npm", _) => "Project v2 npm package",
-        _ => "project web package",
-    };
-    format!("built {product} {}", output.display())
-}
-
 fn report(errors: &[Diagnostic], json: bool) -> u8 {
     report_all(errors, json);
     1
@@ -2679,34 +2593,4 @@ fn print_scoped_help(command: &str, has_private_host: bool) -> Result<(), u8> {
 
 fn global_help(has_private_host: bool) -> String {
     cli::help::global(has_private_host)
-}
-
-#[cfg(test)]
-mod project_build_success_tests {
-    use super::*;
-
-    #[test]
-    fn profile_selected_success_labels_are_exact() {
-        let output = std::path::Path::new("dist");
-        assert_eq!(
-            project_build_success(
-                "rust",
-                project::ProjectProfile::FlatOwnedRecordApiV1,
-                output,
-            ),
-            "built Project v9 Native Rust flat owned-record package dist"
-        );
-        assert_eq!(
-            project_build_success("npm", project::ProjectProfile::FlatOwnedRecordApiV1, output,),
-            "built Project v9 npm package dist"
-        );
-        assert_eq!(
-            project_build_success("rust", project::ProjectProfile::OwnedDataApiV1, output),
-            "built Project v8 Native Rust owned-data package dist"
-        );
-        assert_eq!(
-            project_build_success("npm", project::ProjectProfile::OwnedUtf8ApiV1, output),
-            "built Project v10 npm package dist"
-        );
-    }
 }

@@ -8,6 +8,7 @@
 mod flat_record;
 mod legacy;
 mod native_callback;
+mod nested_record;
 mod owned;
 
 #[cfg(test)]
@@ -17,8 +18,8 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::ResolvedProgram;
 
 use super::{
-    FlatOwnedRecordApiDescriptor, ProjectManifest, ProjectProfile, PublicApiDescriptor,
-    PublicApiSubject, ScalarWitInterfaceArtifactV1,
+    FlatOwnedRecordApiDescriptor, NestedOwnedRecordApiDescriptor, ProjectManifest, ProjectProfile,
+    PublicApiDescriptor, PublicApiSubject, ScalarWitInterfaceArtifactV1,
 };
 
 /// One completely admitted schema-selected Project profile.
@@ -40,6 +41,7 @@ pub(super) enum PreparedProjectAdmission {
     OwnedDataApiV1(Box<PublicApiDescriptor>),
     FlatOwnedRecordApiV1(Box<FlatOwnedRecordApiDescriptor>),
     OwnedUtf8ApiV1(Box<PublicApiDescriptor>),
+    NestedOwnedRecordApiV1(Box<NestedOwnedRecordApiDescriptor>),
 }
 
 impl PreparedProjectAdmission {
@@ -55,6 +57,7 @@ impl PreparedProjectAdmission {
             Self::OwnedDataApiV1(_descriptor) => ProjectProfile::OwnedDataApiV1,
             Self::FlatOwnedRecordApiV1(_descriptor) => ProjectProfile::FlatOwnedRecordApiV1,
             Self::OwnedUtf8ApiV1(_descriptor) => ProjectProfile::OwnedUtf8ApiV1,
+            Self::NestedOwnedRecordApiV1(_descriptor) => ProjectProfile::NestedOwnedRecordApiV1,
         }
     }
 
@@ -70,6 +73,13 @@ impl PreparedProjectAdmission {
     pub(super) fn flat_record_descriptor(&self) -> Option<&FlatOwnedRecordApiDescriptor> {
         match self {
             Self::FlatOwnedRecordApiV1(descriptor) => Some(descriptor.as_ref()),
+            _ => None,
+        }
+    }
+
+    pub(super) fn nested_record_descriptor(&self) -> Option<&NestedOwnedRecordApiDescriptor> {
+        match self {
+            Self::NestedOwnedRecordApiV1(descriptor) => Some(descriptor.as_ref()),
             _ => None,
         }
     }
@@ -151,5 +161,10 @@ pub(super) fn prepare(
         ProjectProfile::OwnedUtf8ApiV1 => owned::prepare(program, manifest, subject)
             .map(Box::new)
             .map(PreparedProjectAdmission::OwnedUtf8ApiV1),
+        ProjectProfile::NestedOwnedRecordApiV1 => {
+            nested_record::prepare(program, manifest, subject)
+                .map(Box::new)
+                .map(PreparedProjectAdmission::NestedOwnedRecordApiV1)
+        }
     }
 }

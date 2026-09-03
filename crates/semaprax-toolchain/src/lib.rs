@@ -79,6 +79,7 @@ pub fn build_rust(snapshot: &mut ProjectSnapshot, output: &Path) -> Result<(), V
             ProjectNativeRustPackageMode::OwnedData => (package::PackageMode::ProjectV8, "v8"),
             ProjectNativeRustPackageMode::FlatOwnedRecord => (package::PackageMode::ProjectV9FlatRecord, "v9"),
             ProjectNativeRustPackageMode::OwnedUtf8 => (package::PackageMode::ProjectV10OwnedUtf8, "v10"),
+            ProjectNativeRustPackageMode::NestedOwnedRecord => (package::PackageMode::ProjectV11NestedRecord, "v11"),
         };
         let plan = package::PackagePlan::new(
             subject.descriptor().to_vec(),
@@ -88,10 +89,10 @@ pub fn build_rust(snapshot: &mut ProjectSnapshot, output: &Path) -> Result<(), V
             package::provider_sha256(subject.provider()),
             mode,
         );
-        let result = if subject.mode() == ProjectNativeRustPackageMode::FlatOwnedRecord {
-            package::build_flat_record_and_publish(plan, output)
-        } else {
-            package::build_and_publish(plan, output)
+        let result = match subject.mode() {
+            ProjectNativeRustPackageMode::FlatOwnedRecord => package::build_flat_record_and_publish(plan, output),
+            ProjectNativeRustPackageMode::NestedOwnedRecord => package::build_nested_record_and_publish(plan, output),
+            ProjectNativeRustPackageMode::OwnedData | ProjectNativeRustPackageMode::OwnedUtf8 => package::build_and_publish(plan, output),
         };
         result.map(|_| ()).map_err(|error| {
             let (code, message) = match error.kind() {

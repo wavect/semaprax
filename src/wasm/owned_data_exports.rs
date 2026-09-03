@@ -11,6 +11,9 @@ use crate::variant_layout::{VariantLayoutCache, VariantTarget};
 
 use super::{write_i64, write_u32, I32, I64};
 
+#[path = "owned_data_exports/nested_record.rs"]
+mod nested_record;
+
 pub(super) const BOUNDARY_STATUS: i32 = 11;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -31,6 +34,7 @@ pub(super) enum ResultLayout {
         public_size: u32,
         fields: Vec<FlatRecordFieldLayout>,
     },
+    NestedRecord(nested_record::NestedRecordLayout),
 }
 
 impl ResultLayout {
@@ -40,12 +44,14 @@ impl ResultLayout {
             Self::I64 | Self::Usize | Self::Bytes | Self::Utf8 => 8,
             Self::OptionBytes { .. } | Self::ResultBytesI64 { .. } => 16,
             Self::FlatRecord { private_size, .. } => *private_size,
+            Self::NestedRecord(layout) => layout.private_size,
         }
     }
 
     fn public_size(&self) -> u32 {
         match self {
             Self::FlatRecord { public_size, .. } => *public_size,
+            Self::NestedRecord(layout) => layout.public_size,
             _ => self.private_size(),
         }
     }
@@ -396,6 +402,17 @@ impl OwnedDataExportPlan {
                 // is therefore always the final public write.
                 store_i64(&mut body, result_out, owned.public_offset, carrier);
             }
+            ResultLayout::NestedRecord(layout) => nested_record::emit_publication(
+                &mut body,
+                layout,
+                temporary_out,
+                result_out,
+                private_size,
+                charged,
+                scalar,
+                old_stack,
+                bytes_drop_index,
+            ),
         }
         local_get(&mut body, old_stack);
         body.push(0x24);
@@ -584,6 +601,13 @@ pub(super) fn prepare_flat_records(
             })
         })
         .collect()
+}
+
+pub(super) fn prepare_nested_records(
+    program: &ResolvedProgram,
+    descriptor: &crate::project::NestedOwnedRecordApiDescriptor,
+) -> Result<Vec<OwnedDataExportPlan>, Diagnostic> {
+    nested_record::prepare(program, descriptor)
 }
 
 fn result_layout(

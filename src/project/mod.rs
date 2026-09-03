@@ -22,6 +22,7 @@ mod image_targets;
 pub(crate) mod incremental;
 mod manifest;
 mod native_sdk;
+mod nested_owned_record;
 mod npm;
 mod prepared_interpreter;
 mod profile;
@@ -278,18 +279,28 @@ use manifest::{capacity, grammar};
 pub use manifest::{
     ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
     MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS,
-    PROJECT_SCHEMA, PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4,
-    PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+    PROJECT_SCHEMA, PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
+    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
+    PROJECT_SCHEMA_V9,
 };
 pub use native_sdk::{
     with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
     ProjectNativeSdkExport, ProjectNativeSdkSubject, ProjectOwnedDataNativeSdkSubject,
 };
+pub use nested_owned_record::{
+    derive_nested_owned_record_api_descriptor, replay_nested_owned_record_api_descriptor,
+    NestedOwnedRecordApiDescriptor, NestedOwnedRecordExport, NestedOwnedRecordField,
+    NestedOwnedRecordFieldType, NestedOwnedRecordLeaf, NestedOwnedRecordLeafType,
+    NestedOwnedRecordType, MAX_NESTED_RECORD_DEPTH, MAX_NESTED_RECORD_DESCRIPTOR_BYTES,
+    MAX_NESTED_RECORD_OWNED_LEAVES, MAX_NESTED_RECORD_OWNED_OUTPUT_BYTES,
+    MAX_NESTED_RECORD_VISITED_FIELDS, NESTED_OWNED_RECORD_API_SCHEMA,
+    NESTED_OWNED_RECORD_PROJECT_SCHEMA,
+};
 pub use npm::{
     ProjectNpmBuild, ProjectNpmPublication, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
-    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
-    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
-    PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
+    PROJECT_NPM_BUILD_SCHEMA_V10, PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3,
+    PROJECT_NPM_BUILD_SCHEMA_V4, PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
+    PROJECT_NPM_BUILD_SCHEMA_V7, PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
 };
 pub use prepared_interpreter::{
     prepare_project_interpreter, verify_project_source_trace,
@@ -324,9 +335,10 @@ pub use profile::{
     PROJECT_COMMAND_STDIN_READ_CAPABILITY, PROJECT_COMMAND_STDOUT_CAPABILITY,
     PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1,
     PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1, PROJECT_PROFILE_LINE_COMMAND_IO_V1,
-    PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_OWNED_UTF8_API_V1,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
-    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1, PROJECT_PROFILE_OWNED_DATA_API_V1,
+    PROJECT_PROFILE_OWNED_UTF8_API_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
+    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 pub use public_api::{
     derive_public_api_descriptor, replay_public_api_descriptor, PublicApiDescriptor,
@@ -562,6 +574,13 @@ impl ProjectSnapshot {
         self.revision.owned_utf8_api_descriptor()
     }
 
+    /// Derive and replay Project v11's target-neutral nested record descriptor.
+    pub fn nested_owned_record_api_descriptor(
+        &self,
+    ) -> Result<NestedOwnedRecordApiDescriptor, Vec<Diagnostic>> {
+        self.revision.nested_owned_record_api_descriptor()
+    }
+
     pub fn test_wasm_module(&self) -> Result<Vec<u8>, Vec<Diagnostic>> {
         self.revision.test_wasm_module()
     }
@@ -669,10 +688,14 @@ impl ProjectSnapshot {
         output: &Path,
         publish: impl FnOnce(&ProjectNpmPublication, &Path) -> Result<(), Vec<Diagnostic>>,
     ) -> Result<(), Vec<Diagnostic>> {
-        if !self.manifest.is_v8() && !self.manifest.is_v9() && !self.manifest.is_v10() {
+        if !self.manifest.is_v8()
+            && !self.manifest.is_v9()
+            && !self.manifest.is_v10()
+            && !self.manifest.is_v11()
+        {
             return Err(vec![Diagnostic::io(
                 "SPX-J114",
-                "owned npm publication requires the exact Project v8, v9, or v10 profile",
+                "owned npm publication requires the exact Project v8, v9, v10, or v11 profile",
             )]);
         }
         let prepared = npm::prepare(
@@ -716,6 +739,12 @@ impl ProjectSnapshot {
             return Err(vec![Diagnostic::io(
                 "SPX-I308",
                 "Project v10 owned-utf8-api.v1 does not admit native executable publication",
+            )]);
+        }
+        if self.manifest.project_profile() == ProjectProfile::NestedOwnedRecordApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-B104",
+                "Project v11 does not expose a native executable aggregate ABI",
             )]);
         }
         match std::fs::symlink_metadata(output) {

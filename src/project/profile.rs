@@ -10,6 +10,7 @@ pub const PROJECT_PROFILE_LINE_COMMAND_IO_V1: &str = "line-command-io.v1";
 pub const PROJECT_PROFILE_OWNED_DATA_API_V1: &str = "owned-data-api.v1";
 pub const PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1: &str = "flat-owned-record-api.v1";
 pub const PROJECT_PROFILE_OWNED_UTF8_API_V1: &str = "owned-utf8-api.v1";
+pub const PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1: &str = "nested-owned-record-api.v1";
 
 /// Frozen Project-v4 semantic stdout authority.
 pub const PROJECT_COMMAND_STDOUT_CAPABILITY: &str = "process.stdout.write";
@@ -44,13 +45,17 @@ pub enum ProjectProfile {
     OwnedDataApiV1,
     FlatOwnedRecordApiV1,
     OwnedUtf8ApiV1,
+    NestedOwnedRecordApiV1,
 }
 
 impl ProjectProfile {
     pub(crate) const fn is_owned_api(self) -> bool {
         matches!(
             self,
-            Self::OwnedDataApiV1 | Self::FlatOwnedRecordApiV1 | Self::OwnedUtf8ApiV1
+            Self::OwnedDataApiV1
+                | Self::FlatOwnedRecordApiV1
+                | Self::OwnedUtf8ApiV1
+                | Self::NestedOwnedRecordApiV1
         )
     }
 
@@ -66,6 +71,7 @@ impl ProjectProfile {
             Self::OwnedDataApiV1 => Some(PROJECT_PROFILE_OWNED_DATA_API_V1),
             Self::FlatOwnedRecordApiV1 => Some(PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1),
             Self::OwnedUtf8ApiV1 => Some(PROJECT_PROFILE_OWNED_UTF8_API_V1),
+            Self::NestedOwnedRecordApiV1 => Some(PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1),
         }
     }
 }

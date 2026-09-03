@@ -18,6 +18,8 @@ mod build_script;
 mod descriptor;
 mod flat_descriptor;
 mod flat_render;
+mod nested_descriptor;
+mod nested_render;
 mod owned_ffi_runtime;
 mod project_publication;
 mod publication;
@@ -30,10 +32,15 @@ pub use descriptor::{Descriptor, ParameterKind, ResultKind};
 
 pub const NATIVE_RUST_OWNED_DATA_SDK_SCHEMA: &str = "semaprax.native-rust-owned-data-sdk.v1";
 pub const NATIVE_RUST_OWNED_UTF8_SDK_SCHEMA: &str = "semaprax.native-rust-owned-utf8-sdk.v1";
+pub const NATIVE_RUST_NESTED_OWNED_RECORD_SDK_SCHEMA: &str =
+    "semaprax.native-rust-nested-owned-record-sdk.v1";
 pub const PUBLIC_OWNED_DATA_API_SCHEMA: &str = "semaprax.public-owned-data-api.v1";
 pub const PUBLIC_OWNED_DATA_PROJECT_SCHEMA: &str = "semaprax.project.v8";
 pub const PUBLIC_OWNED_UTF8_API_SCHEMA: &str = "semaprax.public-owned-utf8-api.v1";
 pub const PUBLIC_OWNED_UTF8_PROJECT_SCHEMA: &str = "semaprax.project.v10";
+pub const PUBLIC_NESTED_OWNED_RECORD_API_SCHEMA: &str =
+    "semaprax.public-nested-owned-record-api.v1";
+pub const PUBLIC_NESTED_OWNED_RECORD_PROJECT_SCHEMA: &str = "semaprax.project.v11";
 pub const OWNED_CRATE_NAME: &str = "semaprax-generated-native-rust-owned-data-sdk";
 pub const OWNED_CRATE_VERSION: &str = "0.1.0";
 pub const MAX_DESCRIPTOR_BYTES: usize = 1024 * 1024;
@@ -43,8 +50,12 @@ pub const MAX_ARCHIVE_BYTES: usize = 8 * 1024 * 1024;
 const DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"semaprax.public-owned-data-api.digest.v1\0";
 const UTF8_DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"semaprax.public-owned-utf8-api.digest.v1\0";
 const FLAT_DESCRIPTOR_DIGEST_DOMAIN: &[u8] = b"semaprax.public-flat-owned-record-api.digest.v1\0";
+const NESTED_DESCRIPTOR_DIGEST_DOMAIN: &[u8] =
+    b"semaprax.public-nested-owned-record-api.digest.v1\0";
 const MANIFEST_DIGEST_DOMAIN: &[u8] = b"semaprax.native-rust-owned-data-sdk.manifest.v1\0";
 const UTF8_MANIFEST_DIGEST_DOMAIN: &[u8] = b"semaprax.native-rust-owned-utf8-sdk.manifest.v1\0";
+const NESTED_MANIFEST_DIGEST_DOMAIN: &[u8] =
+    b"semaprax.native-rust-nested-owned-record-sdk.manifest.v1\0";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HostTarget {
@@ -105,6 +116,73 @@ pub enum PackageMode {
     ProjectV8,
     ProjectV9FlatRecord,
     ProjectV10OwnedUtf8,
+    ProjectV11NestedRecord,
+}
+
+pub fn build_nested_record_and_publish(
+    plan: PackagePlan,
+    output: &Path,
+) -> Result<PackageBundle, PackageError> {
+    if plan.mode != PackageMode::ProjectV11NestedRecord {
+        return Err(PackageError::descriptor());
+    }
+    let target = HostTarget::current().ok_or_else(PackageError::tool)?;
+    if plan.provider_c.is_empty()
+        || plan.provider_c.len() > MAX_PROVIDER_BYTES
+        || raw_sha256(&plan.provider_c) != plan.provider_sha256
+        || !provider_binds_descriptor(&plan.provider_c, &plan.descriptor_digest)
+    {
+        return Err(PackageError::provider());
+    }
+    descriptor::validate_input(&plan.descriptor)?;
+    if nested_descriptor_digest(&plan.descriptor) != plan.descriptor_digest {
+        return Err(PackageError::provider());
+    }
+    let descriptor = nested_descriptor::replay(
+        &plan.descriptor,
+        &plan.descriptor_digest,
+        &plan.selected_exports,
+    )?;
+    let sources = nested_render::render_sources(&descriptor, target);
+    let publication = publication::PublicationAuthority::new(output)?;
+    let tools = publication::HeldTools::from_environment()?;
+    let archive = publication::build_archive(&plan.provider_c, target, &publication, &tools)?;
+    let archive_name = target.archive_name();
+    let manifest = nested_render::render_manifest(
+        target,
+        &plan.descriptor,
+        &plan.descriptor_digest,
+        archive_name,
+        &plan.provider_sha256,
+        [
+            ("Cargo.toml", sources.cargo_toml.as_bytes()),
+            ("build.rs", sources.build_rs.as_bytes()),
+            ("lib.rs", sources.lib_rs.as_bytes()),
+            ("owned_data_ffi.rs", sources.ffi_rs.as_bytes()),
+            (archive_name, archive.as_slice()),
+            ("descriptor.json", &plan.descriptor),
+        ],
+    );
+    nested_render::verify_manifest(manifest.as_bytes(), &manifest)?;
+    let manifest_name = "semaprax.native-rust-nested-owned-record-sdk.json";
+    let files = [
+        ("Cargo.toml", sources.cargo_toml.as_bytes()),
+        ("build.rs", sources.build_rs.as_bytes()),
+        ("lib.rs", sources.lib_rs.as_bytes()),
+        ("owned_data_ffi.rs", sources.ffi_rs.as_bytes()),
+        (archive_name, archive.as_slice()),
+        ("descriptor.json", plan.descriptor.as_slice()),
+        (manifest_name, manifest.as_bytes()),
+    ];
+    let published = publication::publish_package(&publication, files)?;
+    publication::verify_published(&publication, &published, files)?;
+    Ok(PackageBundle {
+        output_directory: output.to_path_buf(),
+        manifest_path: output.join(manifest_name),
+        manifest_digest: domain_digest(NESTED_MANIFEST_DIGEST_DOMAIN, manifest.as_bytes()),
+        descriptor_digest: plan.descriptor_digest,
+        target_triple: target.triple().to_owned(),
+    })
 }
 
 pub fn build_flat_record_and_publish(
@@ -432,13 +510,14 @@ fn mode_accepts_descriptor(mode: PackageMode, schema: &str) -> bool {
             schema == PUBLIC_OWNED_DATA_API_SCHEMA
         }
         PackageMode::ProjectV10OwnedUtf8 => schema == PUBLIC_OWNED_UTF8_API_SCHEMA,
-        PackageMode::ProjectV9FlatRecord => false,
+        PackageMode::ProjectV9FlatRecord | PackageMode::ProjectV11NestedRecord => false,
     }
 }
 
 const fn manifest_digest_domain(mode: PackageMode) -> &'static [u8] {
     match mode {
         PackageMode::ProjectV10OwnedUtf8 => UTF8_MANIFEST_DIGEST_DOMAIN,
+        PackageMode::ProjectV11NestedRecord => NESTED_MANIFEST_DIGEST_DOMAIN,
         _ => MANIFEST_DIGEST_DOMAIN,
     }
 }
@@ -459,6 +538,14 @@ fn flat_descriptor_digest(bytes: &[u8]) -> String {
     });
     let mut hasher = Sha256::new();
     hasher.update(FLAT_DESCRIPTOR_DIGEST_DOMAIN);
+    hasher.update((bytes.len() as u64).to_le_bytes());
+    hasher.update(bytes);
+    format!("sha256:{:x}", LowerHex(hasher.finalize()))
+}
+
+fn nested_descriptor_digest(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(NESTED_DESCRIPTOR_DIGEST_DOMAIN);
     hasher.update((bytes.len() as u64).to_le_bytes());
     hasher.update(bytes);
     format!("sha256:{:x}", LowerHex(hasher.finalize()))

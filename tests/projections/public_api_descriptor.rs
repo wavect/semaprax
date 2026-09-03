@@ -586,9 +586,15 @@ fn legacy_project_v1_through_v7_canonical_manifest_bytes_are_unchanged() {
 fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
     let manifest = include_str!("../../src/project/manifest.rs");
     let profile = include_str!("../../src/project/profile.rs");
-    let npm = include_str!("../../src/project/npm.rs");
+    let npm = concat!(
+        include_str!("../../src/project/npm.rs"),
+        include_str!("../../src/project/npm/nested_owned_record.rs")
+    );
     let native_sdk = include_str!("../../src/project/native_sdk.rs");
-    let wasm = include_str!("../../src/wasm.rs");
+    let wasm = concat!(
+        include_str!("../../src/wasm.rs"),
+        include_str!("../../src/wasm/owned_data_public.rs")
+    );
 
     assert!(manifest.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));
     assert!(profile.contains("PROJECT_PROFILE_OWNED_DATA_API_V1"));

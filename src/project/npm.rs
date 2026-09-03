@@ -11,6 +11,7 @@ mod command_v3;
 mod command_v4;
 mod data;
 mod flat_owned_record;
+mod nested_owned_record;
 mod owned_data;
 mod owned_utf8;
 mod publication_plan;
@@ -35,9 +36,9 @@ use carrier::{
 };
 pub use carrier::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
-    PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4,
-    PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7,
-    PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
+    PROJECT_NPM_BUILD_SCHEMA_V10, PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3,
+    PROJECT_NPM_BUILD_SCHEMA_V4, PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
+    PROJECT_NPM_BUILD_SCHEMA_V7, PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
 };
 
 pub(crate) fn prepare_owned_data(
@@ -48,6 +49,16 @@ pub(crate) fn prepare_owned_data(
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
     owned_data::prepare(program, descriptor, package, version, max_bytes)
+}
+
+pub(crate) fn prepare_nested_owned_record(
+    program: &crate::hir::ResolvedProgram,
+    descriptor: &crate::project::NestedOwnedRecordApiDescriptor,
+    package: &str,
+    version: &str,
+    max_bytes: usize,
+) -> Result<ProjectNpmBuild, Diagnostic> {
+    nested_owned_record::prepare(program, descriptor, package, version, max_bytes)
 }
 
 pub(crate) const USEFUL_TEXT_PACKAGE_PATHS: [&str; 6] = [
@@ -177,6 +188,41 @@ pub(crate) fn prepare(
     project_graph_digest: &str,
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
+    if manifest.is_v11() {
+        let version = manifest
+            .package_version()
+            .ok_or_else(|| package_error("nested record npm facade requires a package version"))?;
+        let subject = crate::project::PublicApiSubject {
+            project_schema: manifest.schema(),
+            project_revision,
+            workspace_revision,
+            project_graph_digest,
+        };
+        let derived = crate::project::derive_nested_owned_record_api_descriptor(
+            program,
+            manifest.web_exports(),
+            subject,
+        )?;
+        let replayed = crate::project::replay_nested_owned_record_api_descriptor(
+            program,
+            manifest.web_exports(),
+            subject,
+            &derived.canonical_bytes(),
+            &derived.digest(),
+        )?;
+        if replayed != derived {
+            return Err(package_error(
+                "nested record descriptor derivation and replay disagree",
+            ));
+        }
+        return prepare_nested_owned_record(
+            program,
+            &replayed,
+            manifest.name(),
+            version,
+            max_bytes,
+        );
+    }
     if manifest.is_v9() {
         let version = manifest
             .package_version()

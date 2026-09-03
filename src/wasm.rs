@@ -32,6 +32,7 @@ mod nested_record_component_v6;
 mod option_propagation_component_v10;
 mod owned;
 mod owned_data_exports;
+mod owned_data_public;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod record_pattern_component_v8;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -42,6 +43,12 @@ mod scalar_exports;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod source_result_component_v4;
 mod text_exports;
+
+pub use owned_data_public::{
+    emit_resolved_module_with_flat_owned_record_exports,
+    emit_resolved_module_with_nested_owned_record_exports,
+    emit_resolved_module_with_owned_data_exports,
+};
 
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 pub(crate) use generic_function_component_v9::{
@@ -843,75 +850,6 @@ pub(crate) fn owned_arena_capacity(
     roots: &[crate::hir::DeclarationId],
 ) -> Result<u32, Diagnostic> {
     aggregate::owned_arena_capacity(program, roots)
-}
-
-/// Emit descriptor-driven raw adapters for the closed WP-10/WP-11 results.
-pub fn emit_resolved_module_with_owned_data_exports(
-    program: &ResolvedProgram,
-    descriptor: &crate::project::PublicApiDescriptor,
-) -> Result<Vec<u8>, Diagnostic> {
-    let selected = descriptor
-        .exports()
-        .iter()
-        .map(|export| export.stable_id().as_str().to_owned())
-        .collect::<Vec<_>>();
-    let subject = crate::project::PublicApiSubject {
-        project_schema: descriptor.project_schema(),
-        project_revision: descriptor.project_revision(),
-        workspace_revision: descriptor.workspace_revision(),
-        project_graph_digest: descriptor.project_graph_digest(),
-    };
-    let replayed = crate::project::replay_public_api_descriptor(
-        program,
-        &selected,
-        subject,
-        &descriptor.canonical_bytes(),
-        &descriptor.digest(),
-    )?;
-    if &replayed != descriptor {
-        return Err(Diagnostic::io(
-            "SPX-W124",
-            "owned-data target descriptor does not match held HIR",
-        ));
-    }
-    let plans = owned_data_exports::prepare(program, descriptor)?;
-    aggregate::emit_owned_data_exports(program, &plans)
-}
-
-/// Emit descriptor-driven private flat-record carriers for Project v9. The
-/// carrier exposes no target aggregate layout: each declaration-ordered field
-/// occupies one private eight-byte slot and the sole owned handle is written
-/// last.
-pub fn emit_resolved_module_with_flat_owned_record_exports(
-    program: &ResolvedProgram,
-    descriptor: &crate::project::FlatOwnedRecordApiDescriptor,
-) -> Result<Vec<u8>, Diagnostic> {
-    let selected = descriptor
-        .exports()
-        .iter()
-        .map(|export| export.stable_id().as_str().to_owned())
-        .collect::<Vec<_>>();
-    let subject = crate::project::PublicApiSubject {
-        project_schema: crate::project::FLAT_OWNED_RECORD_PROJECT_SCHEMA,
-        project_revision: descriptor.project_revision(),
-        workspace_revision: descriptor.workspace_revision(),
-        project_graph_digest: descriptor.project_graph_digest(),
-    };
-    let replayed = crate::project::replay_flat_owned_record_api_descriptor(
-        program,
-        &selected,
-        subject,
-        &descriptor.canonical_bytes(),
-        &descriptor.digest(),
-    )?;
-    if &replayed != descriptor {
-        return Err(Diagnostic::io(
-            "SPX-W124",
-            "flat owned-record target descriptor does not match held HIR",
-        ));
-    }
-    let plans = owned_data_exports::prepare_flat_records(program, descriptor)?;
-    aggregate::emit_owned_data_exports(program, &plans)
 }
 
 /// Emit selected Useful Data wrappers plus success-only stdout transcript

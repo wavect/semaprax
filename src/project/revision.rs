@@ -224,6 +224,7 @@ impl ProjectRevision {
                 ProjectProfile::OwnedDataApiV1 => "v8",
                 ProjectProfile::FlatOwnedRecordApiV1 => "v9",
                 ProjectProfile::OwnedUtf8ApiV1 => "v10",
+                ProjectProfile::NestedOwnedRecordApiV1 => "v11",
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",
@@ -475,6 +476,42 @@ impl ProjectRevision {
             )]
         })?;
         super::replay_public_api_descriptor(
+            &self.entry_program,
+            self.manifest.web_exports(),
+            subject,
+            &descriptor.canonical_bytes(),
+            &descriptor.digest(),
+        )
+        .map_err(|error| vec![error])
+    }
+
+    /// Independently replay the retained canonical Project-v11 nested
+    /// owned-record descriptor. This grants no target or publication authority.
+    pub fn nested_owned_record_api_descriptor(
+        &self,
+    ) -> Result<super::NestedOwnedRecordApiDescriptor, Vec<Diagnostic>> {
+        if self.manifest.project_profile() != ProjectProfile::NestedOwnedRecordApiV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-J118",
+                "public nested owned-record API description requires Project v11 nested-owned-record-api.v1",
+            )]);
+        }
+        let subject = super::PublicApiSubject {
+            project_schema: self.manifest.schema(),
+            project_revision: &self.project_revision,
+            workspace_revision: &self.workspace_revision,
+            project_graph_digest: self.semantic.graph_digest(),
+        };
+        let descriptor = self
+            .profile_admission
+            .nested_record_descriptor()
+            .ok_or_else(|| {
+                vec![Diagnostic::io(
+                    "SPX-J118",
+                    "retained Project v11 admission has no nested owned-record descriptor",
+                )]
+            })?;
+        super::replay_nested_owned_record_api_descriptor(
             &self.entry_program,
             self.manifest.web_exports(),
             subject,

@@ -4,10 +4,10 @@ use super::profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_INPUT_V1,
     PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_LANGUAGE_COMMAND_INPUT_V1,
     PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1, PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1,
-    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_OWNED_DATA_API_V1,
-    PROJECT_PROFILE_OWNED_UTF8_API_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
-    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
-    PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
+    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1,
+    PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_OWNED_UTF8_API_V1,
+    PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
+    PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
 };
 
 /// Frozen scalar Project Manifest v1 schema.
@@ -36,6 +36,8 @@ pub const PROJECT_SCHEMA_V8: &str = "semaprax.project.v8";
 pub const PROJECT_SCHEMA_V9: &str = "semaprax.project.v9";
 /// Additive Project Manifest v10 schema for length-delimited owned UTF-8.
 pub const PROJECT_SCHEMA_V10: &str = "semaprax.project.v10";
+/// Additive Project Manifest v11 schema for bounded nested owned-record results.
+pub const PROJECT_SCHEMA_V11: &str = "semaprax.project.v11";
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 pub const MAX_NAME_BYTES: usize = 64;
 pub const MAX_VERSION_BYTES: usize = 128;
@@ -444,9 +446,42 @@ impl ProjectManifest {
                         parse_array_assignment(lines[7], "tests")?,
                     )
                 }
+                PROJECT_SCHEMA_V11 => {
+                    if lines.len() != 9 || lines.last() != Some(&"") {
+                        return Err(grammar(
+                            "Project v11 manifest must contain exactly eight ordered assignments and one terminal LF",
+                        ));
+                    }
+                    let version = parse_string_assignment(lines[2], "version")?;
+                    if !valid_semver(&version) {
+                        return Err(grammar(
+                            "Project v11 version must be canonical Semantic Versioning text of at most 128 bytes",
+                        ));
+                    }
+                    if parse_string_assignment(lines[3], "profile")?
+                        != PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1
+                    {
+                        return Err(grammar(
+                            "Project v11 profile is not nested-owned-record-api.v1",
+                        ));
+                    }
+                    (
+                        PROJECT_SCHEMA_V11,
+                        parse_string_assignment(lines[1], "name")?,
+                        Some(version),
+                        ProjectProfile::NestedOwnedRecordApiV1,
+                        parse_string_assignment(lines[4], "entry")?,
+                        parse_array_assignment(lines[5], "sources")?,
+                        parse_array_assignment(lines[6], "web_exports")?,
+                        None,
+                        None,
+                        Vec::new(),
+                        parse_array_assignment(lines[7], "tests")?,
+                    )
+                }
                 _ => {
                     return Err(grammar(
-                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, semaprax.project.v4, semaprax.project.v5, semaprax.project.v6, semaprax.project.v7, semaprax.project.v8, semaprax.project.v9, nor semaprax.project.v10",
+                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, semaprax.project.v4, semaprax.project.v5, semaprax.project.v6, semaprax.project.v7, semaprax.project.v8, semaprax.project.v9, semaprax.project.v10, nor semaprax.project.v11",
                     ))
                 }
             };
@@ -461,6 +496,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V8 => "Project v8",
             PROJECT_SCHEMA_V9 => "Project v9",
             PROJECT_SCHEMA_V10 => "Project v10",
+            PROJECT_SCHEMA_V11 => "Project v11",
             _ => unreachable!("schema was selected by the closed parser"),
         };
         if !valid_name(&name) {
@@ -604,6 +640,10 @@ impl ProjectManifest {
 
     pub fn is_v10(&self) -> bool {
         self.schema == PROJECT_SCHEMA_V10
+    }
+
+    pub fn is_v11(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V11
     }
 
     pub fn entry(&self) -> &str {
@@ -763,13 +803,25 @@ impl ProjectManifest {
                 render_array(&self.web_exports),
                 self.test_module,
             )
-        } else {
+        } else if self.schema == PROJECT_SCHEMA_V10 {
             debug_assert_eq!(self.schema, PROJECT_SCHEMA_V10);
             format!(
                 "schema = \"{PROJECT_SCHEMA_V10}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
                 self.name,
                 self.package_version.as_deref().expect("Project v10 carries a package version"),
                 self.profile.name().expect("Project v10 carries a named profile"),
+                self.entry,
+                render_array(&self.sources),
+                render_array(&self.web_exports),
+                self.test_module,
+            )
+        } else {
+            debug_assert_eq!(self.schema, PROJECT_SCHEMA_V11);
+            format!(
+                "schema = \"{PROJECT_SCHEMA_V11}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
+                self.name,
+                self.package_version.as_deref().expect("Project v11 carries a package version"),
+                self.profile.name().expect("Project v11 carries a named profile"),
                 self.entry,
                 render_array(&self.sources),
                 render_array(&self.web_exports),

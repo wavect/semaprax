@@ -76,10 +76,10 @@ use native_emit::{emit_hir_c_with_labels, NativeOutputProfile};
 
 pub use native_owned_data_provider::{
     emit_native_owned_data_provider, emit_project_v10_native_owned_utf8_provider,
+    emit_project_v11_native_nested_owned_record_provider,
     emit_project_v8_native_owned_data_provider, emit_project_v9_native_flat_owned_record_provider,
     NativeOwnedDataProviderArtifact,
 };
-
 #[doc(hidden)]
 pub fn native_owned_data_provider_symbol(rust_method: &str) -> String {
     native_owned_data_provider::public_provider_call_symbol(rust_method)

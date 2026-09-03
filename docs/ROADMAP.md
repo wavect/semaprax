@@ -117,6 +117,12 @@ likewise have exact-tag regression coverage while remaining unpublished.
 Neither tranche is promoted, and regression execution alone is not a
 publication or support decision.
 
+Project v11 is the next additive, still-unpromoted tranche described by
+[Public Nested Owned-Record API v1](PUBLIC-NESTED-OWNED-RECORD-API-V1.md). It
+uses complete stable-field-ID paths and private multi-handle carriers for
+bounded acyclic result records; it adds no public aggregate ABI and does not
+promote or widen v8-v10.
+
 Before string promotion, execute the v10 inline Wasm ownership and derived
 arena-capacity regressions together with the native provider's physical
 allocation-settlement and sanitizer regressions, and establish cross-backend

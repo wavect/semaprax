@@ -17,6 +17,9 @@ const RUST_FLAT_OWNED_RECORD_PUBLICATION_SUBJECT: &str =
     "Project v9 Native Rust flat owned-record package";
 #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 const RUST_OWNED_UTF8_PUBLICATION_SUBJECT: &str = "Project v10 Native Rust owned-UTF8 package";
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+const RUST_NESTED_OWNED_RECORD_PUBLICATION_SUBJECT: &str =
+    "Project v11 Native Rust nested owned-record package";
 
 /// Invocation-borrowed, target-neutral subject for the standalone owned-data
 /// Rust SDK builder and the activated Project-v8 route. Construction always
@@ -197,6 +200,7 @@ pub enum ProjectNativeRustPackageMode {
     OwnedData,
     FlatOwnedRecord,
     OwnedUtf8,
+    NestedOwnedRecord,
 }
 
 impl ProjectNativeRustPackage {
@@ -228,7 +232,7 @@ impl ProjectSnapshot {
         })
     }
 
-    /// Build the exact profile-selected Project-v8/v9/v10 closure as a safe
+    /// Build the exact profile-selected Project-v8/v9/v10/v11 closure as a safe
     /// Rust package. Descriptor and semantic-recipe replay are completed
     /// before the lower held-tool/publication layer receives any bytes.
     #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
@@ -239,6 +243,9 @@ impl ProjectSnapshot {
     ) -> Result<(), Vec<Diagnostic>> {
         if self.manifest().is_v9() {
             return self.build_flat_owned_record_rust(output, publish);
+        }
+        if self.manifest().is_v11() {
+            return self.build_nested_owned_record_rust(output, publish);
         }
         if !self.manifest().is_v8() && !self.manifest().is_v10() {
             return Err(vec![Diagnostic::io(
@@ -433,6 +440,78 @@ impl ProjectSnapshot {
         };
         publish(plan, output)?;
         self.published_subject = Some(RUST_FLAT_OWNED_RECORD_PUBLICATION_SUBJECT);
+        self.recheck()
+            .map_err(|drift| self.publication_uncertainty(drift))
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
+    fn build_nested_owned_record_rust(
+        &mut self,
+        output: &Path,
+        publish: impl FnOnce(ProjectNativeRustPackage, &Path) -> Result<(), Vec<Diagnostic>>,
+    ) -> Result<(), Vec<Diagnostic>> {
+        let selected = self.manifest().web_exports().to_vec();
+        let subject = super::PublicApiSubject {
+            project_schema: self.manifest().schema(),
+            project_revision: self.project_revision(),
+            workspace_revision: self.workspace_revision(),
+            project_graph_digest: self.semantic.graph_digest(),
+        };
+        let descriptor = super::derive_nested_owned_record_api_descriptor(
+            self.entry_program(),
+            &selected,
+            subject,
+        )
+        .map_err(|error| vec![error])?;
+        let bytes = descriptor.canonical_bytes();
+        let digest = descriptor.digest();
+        let replay = |program| {
+            super::replay_nested_owned_record_api_descriptor(
+                program, &selected, subject, &bytes, &digest,
+            )
+        };
+        if replay(self.entry_program()).map_err(|error| vec![error])? != descriptor {
+            return Err(vec![rust_build_error(
+                "Project v11 descriptor derivation and replay disagree",
+            )]);
+        }
+        let recipe = super::npm::render_owned_data_semantic_recipe(self.entry_program())
+            .map_err(|error| vec![error])?;
+        let replayed_program =
+            super::npm::replay_owned_data_semantic_recipe(self.entry_program(), &recipe)
+                .map_err(|error| vec![error])?;
+        if replay(&replayed_program).map_err(|error| vec![error])? != descriptor {
+            return Err(vec![rust_build_error(
+                "Project v11 descriptor disagrees with semantic-recipe replay",
+            )]);
+        }
+        let emit = |program| {
+            crate::codegen::emit_project_v11_native_nested_owned_record_provider(
+                program, &selected, subject, &bytes, &digest,
+            )
+        };
+        let provider = emit(self.entry_program()).map_err(|error| vec![error])?;
+        let replayed_provider = emit(&replayed_program).map_err(|error| vec![error])?;
+        if provider != replayed_provider
+            || provider.descriptor() != bytes
+            || provider.descriptor_digest() != digest
+        {
+            return Err(vec![rust_build_error(
+                "Project v11 native provider disagrees with independent replay",
+            )]);
+        }
+        self.recheck()?;
+        publish(
+            ProjectNativeRustPackage {
+                descriptor: bytes,
+                descriptor_digest: digest,
+                selected,
+                provider: provider.source().as_bytes().to_vec(),
+                mode: ProjectNativeRustPackageMode::NestedOwnedRecord,
+            },
+            output,
+        )?;
+        self.published_subject = Some(RUST_NESTED_OWNED_RECORD_PUBLICATION_SUBJECT);
         self.recheck()
             .map_err(|drift| self.publication_uncertainty(drift))
     }

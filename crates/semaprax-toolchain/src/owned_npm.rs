@@ -28,7 +28,10 @@ type Failure = Vec<Diagnostic>;
 pub(super) fn publish(plan: &ProjectNpmPublication, output: &Path) -> Result<(), Failure> {
     if !matches!(
         plan.project_schema(),
-        "semaprax.project.v8" | "semaprax.project.v9" | "semaprax.project.v10"
+        "semaprax.project.v8"
+            | "semaprax.project.v9"
+            | "semaprax.project.v10"
+            | "semaprax.project.v11"
     ) {
         return Err(failure("unsupported owned npm Project schema"));
     }

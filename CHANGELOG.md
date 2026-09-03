@@ -285,6 +285,12 @@
   Component aggregate ABIs remain unchanged, and the completion rows remain
   Partial pending the full promotion corpus.
 
+- Added the unpromoted Project v11 public nested owned-record tranche with a
+  separate canonical stable-path descriptor, retained Project admission,
+  bounded Core-Wasm/npm multi-owner settlement, and a replayed native
+  provider/safe-Rust package. V8-v10 identities and public aggregate ABIs stay
+  unchanged; complete current-tree and hosted promotion evidence remains open.
+
 - Added canonical per-trial contracts to the agent-task comparison harness.
   Each contract binds the exact plan, repository head, task, prompt, fixtures,
   drift, lane, workspace state, acceptance rubric and metric inventory for one

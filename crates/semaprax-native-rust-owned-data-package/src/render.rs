@@ -6,8 +6,8 @@ use serde_json::Value;
 use super::descriptor::{json_string, Descriptor, ParameterKind, ResultKind};
 use super::{
     descriptor_digest_for_schema, raw_sha256, HostTarget, PackageError, PackageMode,
-    NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, NATIVE_RUST_OWNED_UTF8_SDK_SCHEMA, OWNED_CRATE_NAME,
-    OWNED_CRATE_VERSION,
+    NATIVE_RUST_NESTED_OWNED_RECORD_SDK_SCHEMA, NATIVE_RUST_OWNED_DATA_SDK_SCHEMA,
+    NATIVE_RUST_OWNED_UTF8_SDK_SCHEMA, OWNED_CRATE_NAME, OWNED_CRATE_VERSION,
 };
 
 pub(crate) struct Sources {
@@ -389,6 +389,12 @@ pub(crate) fn verify_manifest(
             "no_allocator_oom_abort_or_panic_recovery_proof",
             "no_send_sync",
         ],
+        PackageMode::ProjectV11NestedRecord => &[
+            "no_raw_handle_or_context_public_api",
+            "no_allocator_transfer",
+            "no_allocator_oom_abort_or_panic_recovery_proof",
+            "no_send_sync",
+        ],
     };
     if !exact_strings(
         root.get("nonclaims").and_then(Value::as_array),
@@ -457,6 +463,7 @@ const fn descriptor_bound(mode: PackageMode) -> bool {
 const fn manifest_schema(mode: PackageMode) -> &'static str {
     match mode {
         PackageMode::ProjectV10OwnedUtf8 => NATIVE_RUST_OWNED_UTF8_SDK_SCHEMA,
+        PackageMode::ProjectV11NestedRecord => NATIVE_RUST_NESTED_OWNED_RECORD_SDK_SCHEMA,
         _ => NATIVE_RUST_OWNED_DATA_SDK_SCHEMA,
     }
 }
@@ -464,6 +471,7 @@ const fn manifest_schema(mode: PackageMode) -> &'static str {
 const fn descriptor_schema(mode: PackageMode) -> &'static str {
     match mode {
         PackageMode::ProjectV10OwnedUtf8 => super::PUBLIC_OWNED_UTF8_API_SCHEMA,
+        PackageMode::ProjectV11NestedRecord => super::PUBLIC_NESTED_OWNED_RECORD_API_SCHEMA,
         _ => super::PUBLIC_OWNED_DATA_API_SCHEMA,
     }
 }

@@ -1405,6 +1405,16 @@ no HIR and cannot independently prove provider semantics; root HIR/codegen
 replay alone owns that proof. V8/v9 renderer and carrier identities remain
 separate. See [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md).
 
+Project v11 keeps nested owned-record results in a separate descriptor and
+carrier family. `src/project/nested_owned_record/` owns target-neutral shape
+and stable-path authentication; `src/wasm/owned_data_exports/nested_record.rs`
+and `src/codegen/native_owned_data_provider/nested_record.rs` independently
+replay target layouts. The npm and safe-Rust consumers validate every private
+owner before copying any payload, copy the full bounded batch, settle all
+owners, and publish the nested value last. No target aggregate layout or raw
+owner handle enters the public API. See [Public Nested Owned-Record API
+v1](PUBLIC-NESTED-OWNED-RECORD-API-V1.md).
+
 For v10 Wasm, `src/wasm/aggregate/owned_strings.rs` owns inline String cell
 settlement derived from validated HIR and exact emitter locals, separately
 from resource CleanupPlan liveness. Place reads clone; temporary moves clear;

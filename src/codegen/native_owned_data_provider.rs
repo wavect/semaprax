@@ -18,6 +18,10 @@ use crate::variant_layout::{VariantLayout, VariantTarget};
 use super::native_emit::c_record_symbol;
 use super::native_emit::{c_case_symbol, c_field_symbol, c_function_symbol, c_variant_symbol};
 
+mod nested_record;
+
+pub use nested_record::emit_project_v11_native_nested_owned_record_provider;
+
 const STATUS_CAPACITY: usize = 64;
 const HANDLE_CAPACITY: usize = 4096;
 

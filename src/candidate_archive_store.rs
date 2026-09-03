@@ -8,6 +8,10 @@ use crate::project::{
     ProjectCandidate, ProjectCandidateArchive, ProjectCandidateDraft, ProjectCandidateDraftArchive,
     MAX_PROJECT_CANDIDATE_ARCHIVE_BYTES, MAX_PROJECT_CANDIDATE_DRAFT_ARCHIVE_BYTES,
 };
+use crate::semantic_retention::{
+    self, RetentionCheckpoint, RetentionObservation, RetentionPolicy, RetentionSubject,
+    RetentionTransition,
+};
 
 #[cfg(all(
     test,
@@ -42,6 +46,7 @@ pub struct CandidateArchiveStoreReceipt {
     archive_digest: String,
     candidate_digest: String,
     base_revision: String,
+    stored_bytes: u64,
 }
 impl CandidateArchiveStoreReceipt {
     pub fn archive_digest(&self) -> &str {
@@ -53,6 +58,21 @@ impl CandidateArchiveStoreReceipt {
     pub fn base_revision(&self) -> &str {
         &self.base_revision
     }
+    /// Exact canonical archive bytes published by the successful store pivot.
+    /// This is accounting metadata, not a locator or reusable store authority.
+    pub const fn stored_bytes(&self) -> u64 {
+        self.stored_bytes
+    }
+    pub fn retention_observation(&self) -> Result<RetentionObservation> {
+        RetentionObservation::new(
+            RetentionSubject::candidate(
+                &self.archive_digest,
+                &self.candidate_digest,
+                &self.base_revision,
+            )?,
+            self.stored_bytes,
+        )
+    }
 }
 
 /// Draft identity only. This receipt carries no completed candidate, store path,
@@ -62,6 +82,7 @@ pub struct CandidateDraftArchiveStoreReceipt {
     archive_digest: String,
     draft_digest: String,
     base_revision: String,
+    stored_bytes: u64,
 }
 impl CandidateDraftArchiveStoreReceipt {
     pub fn archive_digest(&self) -> &str {
@@ -73,6 +94,63 @@ impl CandidateDraftArchiveStoreReceipt {
     pub fn base_revision(&self) -> &str {
         &self.base_revision
     }
+    /// Exact canonical draft archive bytes published by the successful store
+    /// pivot. This receipt still cannot name or mutate the store.
+    pub const fn stored_bytes(&self) -> u64 {
+        self.stored_bytes
+    }
+    pub fn retention_observation(&self) -> Result<RetentionObservation> {
+        RetentionObservation::new(
+            RetentionSubject::draft(
+                &self.archive_digest,
+                &self.draft_digest,
+                &self.base_revision,
+            )?,
+            self.stored_bytes,
+        )
+    }
+}
+
+/// A successful store receipt selected for the next authority-neutral
+/// retention generation. It borrows metadata only and cannot reopen the store.
+#[derive(Clone, Copy, Debug)]
+pub enum RetainedArchiveReceipt<'a> {
+    Candidate(&'a CandidateArchiveStoreReceipt),
+    Draft(&'a CandidateDraftArchiveStoreReceipt),
+}
+
+impl RetainedArchiveReceipt<'_> {
+    fn observation(self) -> Result<RetentionObservation> {
+        match self {
+            Self::Candidate(receipt) => receipt.retention_observation(),
+            Self::Draft(receipt) => receipt.retention_observation(),
+        }
+    }
+}
+
+/// Derive the next deterministic retention checkpoint and pending GC plan from
+/// receipts returned by real successful archive publications. This function
+/// performs no filesystem discovery or deletion and cannot restore a candidate,
+/// draft, approval, or publication authority. Applying the returned eviction
+/// identities remains a separate host-authorized operation.
+pub fn checkpoint_retained_archives(
+    previous: Option<&RetentionCheckpoint>,
+    expected_previous: Option<&str>,
+    sequence: u64,
+    policy: RetentionPolicy,
+    receipts: &[RetainedArchiveReceipt<'_>],
+) -> Result<RetentionTransition> {
+    if receipts.len() > MAX_CANDIDATE_ARCHIVE_STORE_ENTRIES {
+        return Err(capacity(
+            "archive retention receipt inventory exceeds the store bound of 32",
+        ));
+    }
+    let observations = receipts
+        .iter()
+        .copied()
+        .map(RetainedArchiveReceipt::observation)
+        .collect::<Result<Vec<_>>>()?;
+    semantic_retention::checkpoint(previous, expected_previous, sequence, policy, &observations)
 }
 
 /// Replay source, valid history and pending selectors before opening the root,
@@ -102,6 +180,7 @@ pub fn persist_draft(
         archive_digest: archive.archive_digest().to_owned(),
         draft_digest: archive.draft_digest().to_owned(),
         base_revision: archive.base_revision().to_owned(),
+        stored_bytes: archive.to_json().len() as u64,
     };
     #[cfg(all(
         unix,
@@ -198,6 +277,7 @@ pub fn persist(
         archive_digest: archive.archive_digest().to_owned(),
         candidate_digest: archive.candidate_digest().to_owned(),
         base_revision: archive.base_revision().to_owned(),
+        stored_bytes: archive.to_json().len() as u64,
     };
     #[cfg(all(
         unix,

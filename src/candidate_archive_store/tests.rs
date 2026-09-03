@@ -140,6 +140,50 @@ fn exact_archive_survives_original_source_removal_without_becoming_source_author
 }
 
 #[test]
+fn successful_store_receipts_produce_a_deterministic_authority_neutral_gc_plan() {
+    let fixture = Fixture::new();
+    let first_archive = fixture.archive();
+    let second_archive = fixture.other_archive();
+    let first_receipt = persist(&fixture.store, &first_archive).unwrap();
+    let second_receipt = persist(&fixture.store, &second_archive).unwrap();
+    assert_eq!(
+        first_receipt.stored_bytes(),
+        first_archive.to_json().len() as u64
+    );
+    assert_eq!(
+        second_receipt.stored_bytes(),
+        second_archive.to_json().len() as u64
+    );
+
+    let policy = RetentionPolicy::new(1, semantic_retention::MAX_RETENTION_TOTAL_BYTES, 0).unwrap();
+    let receipts = [
+        RetainedArchiveReceipt::Candidate(&first_receipt),
+        RetainedArchiveReceipt::Candidate(&second_receipt),
+    ];
+    let transition = checkpoint_retained_archives(None, None, 1, policy, &receipts).unwrap();
+    let reversed =
+        checkpoint_retained_archives(None, None, 1, policy, &[receipts[1], receipts[0]]).unwrap();
+
+    assert_eq!(
+        transition.checkpoint().to_json(),
+        reversed.checkpoint().to_json()
+    );
+    assert_eq!(transition.plan_json(), reversed.plan_json());
+    assert_eq!(
+        transition.checkpoint().authority(),
+        semantic_retention::RetentionAuthority::None
+    );
+    assert_eq!(
+        transition.plan().authority(),
+        semantic_retention::RetentionAuthority::None
+    );
+    assert_eq!(transition.checkpoint().retained_subjects().len(), 1);
+    assert_eq!(transition.evicted_subjects().len(), 1);
+    assert!(fixture.entry(&first_archive).exists());
+    assert!(fixture.entry(&second_archive).exists());
+}
+
+#[test]
 fn no_adoption_wrong_binding_and_same_length_content_tamper_fail_closed() {
     let fixture = Fixture::new();
     let archive = fixture.archive();

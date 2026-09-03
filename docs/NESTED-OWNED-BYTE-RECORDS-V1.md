@@ -34,6 +34,11 @@ remain closed. The existing recursive-type diagnostic remains authoritative.
 Shapes outside this closed profile retain `SPX-T268` rather than being
 partially lowered.
 
+The separately versioned [Acyclic Nested Owned-Record Exact Destructuring
+v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) owns the bounded successor profile
+for recursive `match own` and `match borrow`. It does not reinterpret this
+contract's v7/v26/v27 bytes or widen its public boundaries.
+
 ## Stable places and type facts
 
 Every transitive leaf is addressed by one root `ValueId` and the complete

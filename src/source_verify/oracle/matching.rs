@@ -248,13 +248,13 @@ pub(super) fn oracle_match(
         };
         let needs_drop = types.needs_drop(&scrutinee_value.ty);
         if *mode != MatchMode::Value
-            && types.is_nested_owned_byte_record(&scrutinee_value.ty)
-            && !types.is_flat_owned_byte_record(&scrutinee_value.ty)
+            && types.contains_owned_bytes(&scrutinee_value.ty)
+            && !types.is_nested_owned_byte_record(&scrutinee_value.ty)
         {
             diagnostics.push(error(
                 program,
                 "SPX-O117",
-                "ownership-aware patterns over nested owned-Bytes records remain closed",
+                "ownership-aware record pattern is outside the bounded nested owned-Bytes profile",
                 scrutinee.span,
             ));
         }
@@ -270,13 +270,18 @@ pub(super) fn oracle_match(
                 }
             }
             MatchMode::Own => {
-                if !needs_drop || scrutinee_value.mode != ParamMode::Own {
-                    diagnostics.push(error(
-                        program,
-                        "SPX-O117",
-                        "`match own` requires an owned non-Copy record scrutinee",
-                        scrutinee.span,
-                    ));
+                let recursive_profile = types.is_nested_owned_byte_record(&scrutinee_value.ty)
+                    && !types.is_flat_owned_byte_record(&scrutinee_value.ty);
+                let nested_exact_place = !recursive_profile
+                    || source_place(scrutinee, variables, types)
+                        .is_some_and(|place| place.projections.is_empty());
+                if !needs_drop || scrutinee_value.mode != ParamMode::Own || !nested_exact_place {
+                    let message = if recursive_profile {
+                        "nested `match own` requires an exact named owned record place"
+                    } else {
+                        "`match own` requires an owned non-Copy record scrutinee"
+                    };
+                    diagnostics.push(error(program, "SPX-O117", message, scrutinee.span));
                 } else if allow_moves {
                     mark_value_sources_moved(program, scrutinee, variables, types, diagnostics);
                 } else {

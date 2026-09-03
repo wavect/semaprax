@@ -361,7 +361,9 @@ pub fn build_trace_path_certificate(
 fn trace_path_schema_is_admitted(schema: &str) -> bool {
     !matches!(
         schema,
-        crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6 | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V7
+        crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V6
+            | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V7
+            | crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V8
     )
 }
 

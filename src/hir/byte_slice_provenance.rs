@@ -7,14 +7,255 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::diagnostic::Diagnostic;
 
-use super::expr_nodes::{ResolvedExpr, ResolvedExprKind, ResolvedStatement};
+use super::expr_nodes::{
+    ResolvedExpr, ResolvedExprKind, ResolvedMatchPattern, ResolvedRecordMatchFieldPattern,
+    ResolvedRecordMatchPatternField, ResolvedStatement,
+};
 use super::ids::ValueId;
 use super::nodes::{
     ByteSliceExtent, ByteSliceProvenance, ByteSliceRangeStep, ByteSliceRootKind, OwnershipMode,
     ResolvedBinding, ResolvedFunction, ResolvedHostCommandCall, ResolvedHostCommandOperation,
-    ResolvedType,
+    ResolvedMatchMode, ResolvedType,
 };
-use super::{hir_error, DeclarationIndex, PlaceProjection};
+use super::{hir_error, DeclarationIndex, Place, PlaceProjection};
+
+const MAX_PATTERN_ORIGIN_FIELDS: usize = 64;
+
+fn resolve_pattern_origin(
+    mut place: Place,
+    origins: &BTreeMap<ValueId, Place>,
+) -> Result<Place, Diagnostic> {
+    let mut seen = BTreeSet::new();
+    while let Some(parent) = origins.get(&place.root) {
+        if !seen.insert(place.root.clone()) {
+            return Err(hir_error(
+                "borrowed record-pattern provenance contains a cycle",
+            ));
+        }
+        let field_count = parent
+            .projections
+            .len()
+            .checked_add(place.projections.len())
+            .ok_or_else(|| hir_error("borrowed record-pattern field path overflows"))?;
+        if field_count > MAX_PATTERN_ORIGIN_FIELDS {
+            return Err(hir_error(
+                "borrowed record-pattern field path exceeds the 64-field limit",
+            ));
+        }
+        let mut projections = Vec::with_capacity(field_count);
+        projections.extend(parent.projections.iter().cloned());
+        projections.extend(place.projections);
+        place = Place {
+            root: parent.root.clone(),
+            projections,
+        };
+    }
+    Ok(place)
+}
+
+fn register_pattern_binding_type(
+    root_types: &mut BTreeMap<ValueId, ResolvedType>,
+    binding: &ResolvedBinding,
+) -> Result<(), Diagnostic> {
+    if root_types
+        .insert(binding.id.clone(), binding.ty.clone())
+        .is_some()
+    {
+        return Err(hir_error(
+            "resolved match pattern contains a duplicate binding identity",
+        ));
+    }
+    Ok(())
+}
+
+fn inventory_record_pattern_bindings(
+    pattern: &ResolvedMatchPattern,
+    mode: ResolvedMatchMode,
+    origin: Option<Place>,
+    declarations: &DeclarationIndex,
+    root_types: &mut BTreeMap<ValueId, ResolvedType>,
+    borrowed_origins: &mut BTreeMap<ValueId, Place>,
+) -> Result<(), Diagnostic> {
+    enum Frame<'a> {
+        Record {
+            record: &'a super::DeclarationId,
+            instance: &'a ResolvedType,
+            fields: &'a [ResolvedRecordMatchPatternField],
+            origin: Option<Place>,
+        },
+    }
+
+    match pattern {
+        ResolvedMatchPattern::Record {
+            record,
+            instance,
+            fields,
+        } => {
+            let mut pending = vec![Frame::Record {
+                record,
+                instance,
+                fields,
+                origin,
+            }];
+            let mut visited_fields = 0usize;
+            while let Some(Frame::Record {
+                record,
+                instance,
+                fields,
+                origin,
+            }) = pending.pop()
+            {
+                let ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } = instance
+                else {
+                    return Err(hir_error(
+                        "resolved record-pattern provenance has a non-record instance",
+                    ));
+                };
+                if declaration != record
+                    || declarations
+                        .declaration(record)
+                        .is_none_or(|item| item.kind != super::DeclarationKind::Record)
+                {
+                    return Err(hir_error(
+                        "resolved record-pattern provenance references a foreign record",
+                    ));
+                }
+                let declared = declarations.record_fields(record).ok_or_else(|| {
+                    hir_error("resolved record-pattern provenance has no field inventory")
+                })?;
+                if fields.len() != declared.len() {
+                    return Err(hir_error(
+                        "resolved record-pattern provenance has an incomplete field inventory",
+                    ));
+                }
+                let mut seen = BTreeSet::new();
+                for field in fields.iter().rev() {
+                    visited_fields = visited_fields
+                        .checked_add(1)
+                        .ok_or_else(|| hir_error("record-pattern provenance work overflowed"))?;
+                    if visited_fields > 4_096 {
+                        return Err(hir_error(
+                            "record-pattern provenance exceeds the 4,096-field limit",
+                        ));
+                    }
+                    let declaration = declared
+                        .iter()
+                        .find(|candidate| candidate.id == field.field)
+                        .ok_or_else(|| {
+                            hir_error("resolved record-pattern provenance contains a foreign field")
+                        })?;
+                    if !seen.insert(field.field.clone()) {
+                        return Err(hir_error(
+                            "resolved record-pattern provenance contains a duplicate field",
+                        ));
+                    }
+                    let field_ty = super::substitute_type(&declaration.ty, record, arguments)?;
+                    let field_origin = if let Some(origin) = &origin {
+                        if origin.projections.len() >= MAX_PATTERN_ORIGIN_FIELDS {
+                            return Err(hir_error(
+                                "borrowed record-pattern field path exceeds the 64-field limit",
+                            ));
+                        }
+                        let mut projected = origin.clone();
+                        projected
+                            .projections
+                            .push(PlaceProjection::Field(field.field.clone()));
+                        Some(projected)
+                    } else {
+                        None
+                    };
+                    match &field.pattern {
+                        ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                            if binding.ty != field_ty {
+                                return Err(hir_error(
+                                    "resolved record-pattern binding type disagrees with its field",
+                                ));
+                            }
+                            register_pattern_binding_type(root_types, binding)?;
+                            if mode == ResolvedMatchMode::Borrow {
+                                let facts =
+                                    declarations.type_facts(&binding.ty).ok_or_else(|| {
+                                        hir_error(
+                                        "resolved record-pattern binding has no exact type facts",
+                                    )
+                                    })?;
+                                let expected = if facts.needs_drop {
+                                    OwnershipMode::Borrow
+                                } else {
+                                    OwnershipMode::Value
+                                };
+                                if binding.ownership != expected {
+                                    return Err(hir_error(
+                                        "resolved borrowed record-pattern binding has the wrong ownership",
+                                    ));
+                                }
+                                if binding.ownership == OwnershipMode::Borrow
+                                    && borrowed_origins
+                                        .insert(
+                                            binding.id.clone(),
+                                            field_origin.ok_or_else(|| {
+                                                hir_error(
+                                                    "borrowed record-pattern binding lacks an exact scrutinee origin",
+                                                )
+                                            })?,
+                                        )
+                                        .is_some()
+                                {
+                                    return Err(hir_error(
+                                        "borrowed record-pattern binding has duplicate provenance",
+                                    ));
+                                }
+                            }
+                        }
+                        ResolvedRecordMatchFieldPattern::Record {
+                            record,
+                            instance,
+                            fields,
+                        } => {
+                            if instance != &field_ty {
+                                return Err(hir_error(
+                                    "nested record-pattern provenance has the wrong instance",
+                                ));
+                            }
+                            pending.push(Frame::Record {
+                                record,
+                                instance,
+                                fields,
+                                origin: field_origin,
+                            });
+                        }
+                        ResolvedRecordMatchFieldPattern::Wildcard => {}
+                    }
+                }
+            }
+        }
+        ResolvedMatchPattern::Variant { fields, .. } => {
+            for field in fields {
+                register_pattern_binding_type(root_types, &field.binding)?;
+            }
+        }
+        ResolvedMatchPattern::Binding(binding) => {
+            register_pattern_binding_type(root_types, binding)?;
+        }
+        ResolvedMatchPattern::Or(alternatives) => {
+            for alternative in alternatives {
+                inventory_record_pattern_bindings(
+                    alternative,
+                    mode,
+                    None,
+                    declarations,
+                    root_types,
+                    borrowed_origins,
+                )?;
+            }
+        }
+        ResolvedMatchPattern::Wildcard | ResolvedMatchPattern::Literal(_) => {}
+    }
+    Ok(())
+}
 
 fn projected_field_type(
     declarations: &DeclarationIndex,
@@ -55,6 +296,7 @@ pub(super) fn derive_byte_slice_provenance(
     let command_argument_root =
         ValueId::intrinsic_parameter(crate::command_io_ops::ARG_UTF8_ID, usize::MAX);
     let mut command_argument_views = BTreeSet::<ValueId>::new();
+    let mut borrowed_pattern_origins = BTreeMap::<ValueId, Place>::new();
     let mut aliases = Vec::<(&ResolvedBinding, bool, &ResolvedExpr)>::new();
     for function in functions {
         for parameter in &function.params {
@@ -150,10 +392,33 @@ pub(super) fn derive_byte_slice_provenance(
                     pending.extend(fields.iter().map(|field| &field.value));
                 }
                 ResolvedExprKind::Match {
-                    scrutinee, arms, ..
+                    mode,
+                    scrutinee,
+                    arms,
                 } => {
+                    let origin = if *mode == ResolvedMatchMode::Borrow {
+                        let ResolvedExprKind::Place(place) = &scrutinee.kind else {
+                            return Err(hir_error(
+                                "borrowed record pattern lacks an exact place scrutinee",
+                            ));
+                        };
+                        Some(resolve_pattern_origin(
+                            place.clone(),
+                            &borrowed_pattern_origins,
+                        )?)
+                    } else {
+                        None
+                    };
                     pending.push(scrutinee);
                     for arm in arms {
+                        inventory_record_pattern_bindings(
+                            &arm.pattern,
+                            *mode,
+                            origin.clone(),
+                            declarations,
+                            &mut root_types,
+                            &mut borrowed_pattern_origins,
+                        )?;
                         if let Some(guard) = &arm.guard {
                             pending.push(guard);
                         }
@@ -188,6 +453,10 @@ pub(super) fn derive_byte_slice_provenance(
                 if *mutable {
                     return true;
                 }
+                let Ok(place) = resolve_pattern_origin(place.clone(), &borrowed_pattern_origins)
+                else {
+                    return true;
+                };
                 let Some(root_ty) = root_types.get(&place.root) else {
                     return true;
                 };

@@ -21,7 +21,7 @@ module test.nested_owned_record_runtime;
 @id("runtime.envelope") record Envelope {
     @id("runtime.envelope.left") left: Branch,
     @id("runtime.envelope.right") right: Branch,
-    @id("runtime.envelope.sequence") sequence: usize,
+    @id("runtime.envelope.sequence") sequence: i64,
 }
 
 @id("runtime.identity")
@@ -32,6 +32,39 @@ fn inspect(packet: own Envelope) -> i64 {
     let left = bytes_as_slice(packet.left.leaf.payload);
     let right = bytes_as_slice(packet.right.leaf.payload);
     if byte_len(left) == 1usize && byte_len(right) == 2usize { 42 } else { 0 }
+}
+
+@id("runtime.destructure-borrow")
+fn destructure_borrow(packet: borrow Envelope) -> i64 {
+    match borrow packet {
+        Envelope {
+            left: Branch { leaf: Leaf { payload: left_payload, marker: _ }, enabled: _ },
+            right: Branch { leaf: Leaf { payload: right_payload, marker: _ }, enabled: _ },
+            sequence: _,
+        } => {
+            let left = bytes_as_slice(left_payload);
+            let left_again = byte_range(left, 0usize, byte_len(left));
+            let right = bytes_as_slice(right_payload);
+            if byte_len(left_again) == 1usize && byte_len(right) == 2usize { 5 } else { 0 }
+        },
+    }
+}
+
+@id("runtime.destructure-own")
+fn destructure_own(packet: own Envelope) -> i64 {
+    match own packet {
+        Envelope {
+            left: Branch { leaf: Leaf { payload: left_payload, marker: left_marker }, enabled: _ },
+            right: Branch { leaf: Leaf { payload: right_payload, marker: right_marker }, enabled: _ },
+            sequence,
+        } => if byte_len(bytes_as_slice(left_payload)) == 1usize
+            && byte_len(bytes_as_slice(right_payload)) == 2usize
+            && left_marker + right_marker + sequence == 6 {
+                37
+            } else {
+                0
+            },
+    }
 }
 
 @id("runtime.run")
@@ -47,10 +80,11 @@ fn run() -> i64 {
             leaf: Leaf { payload: bytes_copy(array_as_slice(right)), marker: 2 },
             enabled: false,
         },
-        sequence: 3usize,
+        sequence: 3,
     };
+    let borrowed = destructure_borrow(packet);
     let moved = identity(packet);
-    inspect(moved)
+    borrowed + destructure_own(moved)
 }
 
 @id("app.main") fn main() -> i64 { run() }
@@ -66,19 +100,21 @@ fn symbol(id: &str) -> String {
 }
 
 #[test]
-fn interpreter_executes_two_simultaneous_nested_views_after_a_whole_move() {
-    let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
-    let path = std::env::temp_dir().join(format!(
-        "semaprax-nested-owned-interpreter-{}-{serial}.spx",
-        std::process::id()
-    ));
-    std::fs::write(&path, SOURCE).unwrap();
-    let result =
-        interpreter::interpret(&path, "app.main", &[], &InterpreterOptions::default()).unwrap();
-    let _ = std::fs::remove_file(path);
-    let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
-    assert_eq!(envelope["payload"]["outcome"]["value"], "42");
-    interpreter::verify_envelope(&result.envelope).unwrap();
+fn interpreter_executes_nested_own_and_borrow_destructuring_repeatedly() {
+    for _ in 0..4 {
+        let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "semaprax-nested-owned-interpreter-{}-{serial}.spx",
+            std::process::id()
+        ));
+        std::fs::write(&path, SOURCE).unwrap();
+        let result =
+            interpreter::interpret(&path, "app.main", &[], &InterpreterOptions::default()).unwrap();
+        let _ = std::fs::remove_file(path);
+        let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
+        assert_eq!(envelope["payload"]["outcome"]["value"], "42");
+        interpreter::verify_envelope(&result.envelope).unwrap();
+    }
 }
 
 #[test]
@@ -103,8 +139,11 @@ int main(void) {{
     struct spx_context context = {{0}};
     if (!spx_context_init(&context, UINT64_C(97), entries, UINT32_C(16), NULL, NULL, NULL)) return 10;
     int64_t result = INT64_C(0);
-    if ({main}(&context, &result) != SPX_STATUS_SUCCESS) return 11;
-    return result == INT64_C(42) ? 0 : 12;
+    for (uint32_t iteration = UINT32_C(0); iteration < UINT32_C(4); ++iteration) {{
+        if ({main}(&context, &result) != SPX_STATUS_SUCCESS) return 11;
+        if (result != INT64_C(42)) return 12;
+    }}
+    return 0;
 }}
 "#,
         main = symbol("app.main"),

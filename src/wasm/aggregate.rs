@@ -2932,21 +2932,9 @@ impl Emitter<'_> {
         let crate::hir::ResolvedMatchPattern::Record { fields, .. } = pattern else {
             return Err(error("owned record match cleanup has a non-record pattern"));
         };
-        let storage = fields
-            .iter()
-            .filter_map(|field| match &field.pattern {
-                crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding)
-                    if binding.ty == ResolvedType::Bytes =>
-                {
-                    Some(crate::cleanup_plan::StorageId::Value(binding.id.clone()))
-                }
-                crate::hir::ResolvedRecordMatchFieldPattern::Binding(_)
-                | crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => None,
-                crate::hir::ResolvedRecordMatchFieldPattern::Record { .. } => None,
-            })
-            .collect::<std::collections::BTreeSet<_>>();
+        let storage = nested_owned::owned_record_pattern_anchors(fields)?;
         if storage.is_empty() {
-            return Err(error("owned record match has no direct Bytes bindings"));
+            return Err(error("owned record match has no Bytes bindings"));
         }
         let mut regions = self.cleanup_plan.regions.iter().filter(|region| {
             storage
@@ -3533,6 +3521,31 @@ impl Emitter<'_> {
         Ok(())
     }
 
+    fn authenticate_record_match_transfers(
+        &mut self,
+        expression: &ExpressionId,
+    ) -> Result<(), Diagnostic> {
+        let transfers = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .flat_map(|block| &block.transitions)
+            .filter_map(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    at,
+                    source,
+                    destination,
+                } if at == expression => Some((source.clone(), destination.clone())),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        for (source, destination) in transfers {
+            self.assert_storage_flag_state(&source, true)?;
+            self.assert_storage_flag_state(&destination, false)?;
+        }
+        Ok(())
+    }
+
     fn apply_variant_transfer_group(
         &mut self,
         sources: &[crate::cleanup_plan::CleanupPlace],
@@ -4031,15 +4044,18 @@ impl Emitter<'_> {
                         ty: expr.ty.clone(),
                     };
                     let saved = self.bindings.clone();
+                    if *mode == crate::hir::ResolvedMatchMode::Own {
+                        self.authenticate_record_match_transfers(&expr.id)?;
+                    }
                     match &arm.pattern {
                         crate::hir::ResolvedMatchPattern::Wildcard => {}
                         crate::hir::ResolvedMatchPattern::Record {
                             record,
                             instance,
                             fields,
-                        } => {
-                            self.bind_record_match_pattern(&scrutinee, record, instance, fields)?
-                        }
+                        } => self.bind_record_match_pattern(
+                            &scrutinee, *mode, record, instance, fields,
+                        )?,
                         crate::hir::ResolvedMatchPattern::Variant { .. } => {
                             return Err(error("variant pattern has a record match scrutinee"));
                         }
@@ -4769,92 +4785,12 @@ impl Emitter<'_> {
     fn bind_record_match_pattern(
         &mut self,
         base: &Value,
+        mode: crate::hir::ResolvedMatchMode,
         record: &DeclarationId,
         instance: &ResolvedType,
         fields: &[crate::hir::ResolvedRecordMatchPatternField],
     ) -> Result<(), Diagnostic> {
-        require_type(value_type(base), instance, "record pattern instance")?;
-        let record_layout = layout(self.program, instance)?;
-        if record_layout.record != *record || record_layout.fields.len() != fields.len() {
-            return Err(error(
-                "record pattern disagrees with its exact aggregate layout",
-            ));
-        }
-        let mut seen = std::collections::BTreeSet::new();
-        for field in fields {
-            if !seen.insert(field.field.clone()) {
-                return Err(error(format!(
-                    "record pattern `{record}` repeats field `{}`",
-                    field.field
-                )));
-            }
-            let projected = self.project_value(base, &field.field)?;
-            match &field.pattern {
-                crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
-                    require_type(
-                        &binding.ty,
-                        value_type(&projected),
-                        "record pattern binding",
-                    )?;
-                    let destination = if is_aggregate(self.program, &binding.ty)? {
-                        let offset = self
-                            .plan
-                            .aggregate_bindings
-                            .get(&binding.id)
-                            .copied()
-                            .ok_or_else(|| {
-                                error(format!(
-                                    "missing aggregate record match binding `{}`",
-                                    binding.id
-                                ))
-                            })?;
-                        Value::Aggregate {
-                            pointer: Pointer {
-                                local: self.plan.frame_base,
-                                offset,
-                            },
-                            ty: binding.ty.clone(),
-                        }
-                    } else {
-                        Value::Scalar {
-                            local: self
-                                .plan
-                                .scalar_bindings
-                                .get(&binding.id)
-                                .copied()
-                                .ok_or_else(|| {
-                                    error(format!(
-                                        "missing scalar record match binding `{}`",
-                                        binding.id
-                                    ))
-                                })?,
-                            ty: binding.ty.clone(),
-                        }
-                    };
-                    if binding.ty == ResolvedType::Bytes
-                        && binding.ownership == crate::hir::OwnershipMode::Borrow
-                    {
-                        self.copy_borrowed_scalar_alias(&destination, &projected)?;
-                    } else {
-                        self.copy_value(&destination, &projected, "record pattern binding")?;
-                    }
-                    if self
-                        .bindings
-                        .insert(binding.id.clone(), destination)
-                        .is_some()
-                    {
-                        return Err(error("record match binding is not fresh"));
-                    }
-                }
-                crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
-                crate::hir::ResolvedRecordMatchFieldPattern::Record {
-                    record,
-                    instance,
-                    fields,
-                } => self.bind_record_match_pattern(&projected, record, instance, fields)?,
-            }
-        }
-        Ok(())
+        nested_owned::bind_record_match_pattern(self, base, mode, record, instance, fields)
     }
 
     fn emit_command_transcript_write(

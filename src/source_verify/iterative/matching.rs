@@ -194,13 +194,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             let scrutinee_value = scrutinee_value.expect("record checked above");
             let needs_drop = self.types.needs_drop(&scrutinee_value.ty);
             if match_mode != MatchMode::Value
-                && self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
-                && !self.types.is_flat_owned_byte_record(&scrutinee_value.ty)
+                && self.types.contains_owned_bytes(&scrutinee_value.ty)
+                && !self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
             {
                 self.diagnostics.push(error(
                     self.program,
                     "SPX-O117",
-                    "ownership-aware patterns over nested owned-Bytes records remain closed",
+                    "ownership-aware record pattern is outside the bounded nested owned-Bytes profile",
                     scrutinee.span,
                 ));
             }
@@ -216,11 +216,23 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     }
                 }
                 MatchMode::Own => {
-                    if !needs_drop || scrutinee_value.mode != ParamMode::Own {
+                    let recursive_profile =
+                        self.types.is_nested_owned_byte_record(&scrutinee_value.ty)
+                            && !self.types.is_flat_owned_byte_record(&scrutinee_value.ty);
+                    let nested_exact_place = !recursive_profile
+                        || source_place(scrutinee, &self.scopes[scope].bindings, self.types)
+                            .is_some_and(|place| place.projections.is_empty());
+                    if !needs_drop || scrutinee_value.mode != ParamMode::Own || !nested_exact_place
+                    {
+                        let message = if recursive_profile {
+                            "nested `match own` requires an exact named owned record place"
+                        } else {
+                            "`match own` requires an owned non-Copy record scrutinee"
+                        };
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-O117",
-                            "`match own` requires an owned non-Copy record scrutinee",
+                            message,
                             scrutinee.span,
                         ));
                     } else if self.allow_moves {

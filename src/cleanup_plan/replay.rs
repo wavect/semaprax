@@ -29,9 +29,11 @@ use super::{
     ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
     StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
     CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
+    CLEANUP_PLAN_SCHEMA_V8,
 };
 
 mod nested_shape;
+mod record_destructure;
 use nested_shape::expected_shape_for_type;
 
 const MAX_REPLAY_PATHS: usize = 65_536;
@@ -335,7 +337,10 @@ fn validate_structure_with_budget(
                 crate::cleanup::cleanup_shape_profile(&slot.shape)
                     .map(|profile| nested || profile.has_nested_owned_bytes)
             })?;
-    let expected_schema = if has_nested_owned_bytes {
+    let has_nested_record_destructure = record_destructure::function_contains(function);
+    let expected_schema = if has_nested_record_destructure {
+        CLEANUP_PLAN_SCHEMA_V8
+    } else if has_nested_owned_bytes {
         CLEANUP_PLAN_SCHEMA_V7
     } else if function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
         || function
@@ -2680,7 +2685,7 @@ fn validate_blocks_and_edges(
                 if !matches!(plan.edges[edge.0 as usize].condition, EdgeCondition::Always)
                     && !(matches!(
                         function.cleanup_plan.schema,
-                        CLEANUP_PLAN_SCHEMA_V6 | CLEANUP_PLAN_SCHEMA_V7
+                        CLEANUP_PLAN_SCHEMA_V6 | CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8
                     ) && matches!(
                         plan.edges[edge.0 as usize].condition,
                         EdgeCondition::VariantCase { matches: true, .. }
@@ -4548,14 +4553,42 @@ fn expression_skeleton(
                                         "owned record match path has no owned source",
                                     )
                                 })?;
-                                let ResolvedMatchPattern::Record { record, fields, .. } =
-                                    &arm.pattern
+                                let ResolvedMatchPattern::Record {
+                                    record,
+                                    instance,
+                                    fields,
+                                } = &arm.pattern
                                 else {
                                     return Err(replay_error(
                                         function,
                                         "owned record match lacks an exact record pattern",
                                     ));
                                 };
+                                if record_destructure::contains_nested(fields) {
+                                    let expected = record_destructure::replay(
+                                        program, function, record, instance, fields, *mode,
+                                    )?;
+                                    if !expected.nested {
+                                        return Err(replay_error(
+                                            function,
+                                            "recursive record destructure lost its nested shape",
+                                        ));
+                                    }
+                                    for binding in expected.bindings {
+                                        let mut field_source = source.clone();
+                                        for field in binding.path {
+                                            field_source.projections.push(field);
+                                        }
+                                        path.observations.push(SkeletonObservation::Transfer {
+                                            at: expression.id.clone(),
+                                            source: field_source,
+                                            destination: CleanupPlace::whole(StorageId::Value(
+                                                binding.binding,
+                                            )),
+                                        });
+                                    }
+                                    continue;
+                                }
                                 // Transfers follow the authenticated declaration
                                 // inventory, independently of pattern spelling order.
                                 // Derive the expected sequence here; never reorder
@@ -4993,6 +5026,20 @@ fn validate_match_skeleton_shape(
             let declarations = program.declarations.record_fields(record).ok_or_else(|| {
                 replay_error(function, "explicit record match has no field inventory")
             })?;
+            if record_destructure::contains_nested(fields) {
+                let ResolvedMatchPattern::Record { instance, .. } = &arm.pattern else {
+                    unreachable!("record pattern matched above")
+                };
+                let expected =
+                    record_destructure::replay(program, function, record, instance, fields, *mode)?;
+                if !expected.nested {
+                    return Err(replay_error(
+                        function,
+                        "recursive record destructure replay lost its nested shape",
+                    ));
+                }
+                return Ok(is_record);
+            }
             for declaration in declarations {
                 let field = fields
                     .iter()
@@ -7558,6 +7605,23 @@ fn expression_has_explicit_record_match(expression: &ResolvedExpr) -> bool {
     })
 }
 
+fn expression_has_nested_record_destructure(expression: &ResolvedExpr) -> bool {
+    expression_has_kind(expression, |kind| {
+        matches!(
+            kind,
+            ResolvedExprKind::Match {
+                mode: crate::hir::ResolvedMatchMode::Own | crate::hir::ResolvedMatchMode::Borrow,
+                arms,
+                ..
+            } if arms.iter().any(|arm| matches!(
+                &arm.pattern,
+                ResolvedMatchPattern::Record { fields, .. }
+                    if record_destructure::contains_nested(fields)
+            ))
+        )
+    })
+}
+
 fn expression_has_explicit_variant_match(expression: &ResolvedExpr) -> bool {
     expression_has_kind(expression, |kind| {
         matches!(
@@ -8040,3 +8104,7 @@ mod tests;
 #[cfg(test)]
 #[path = "nested_owned_records_tests.rs"]
 mod nested_owned_records_tests;
+
+#[cfg(test)]
+#[path = "nested_record_destructure_tests.rs"]
+mod nested_record_destructure_tests;

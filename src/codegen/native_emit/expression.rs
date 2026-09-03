@@ -1921,20 +1921,54 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "irrefutable record match must have exactly one arm",
                         ));
                     };
-                    let staged = self.temporary(&scrutinee.ty)?;
-                    if self.record_contains_owned_bytes(&scrutinee.ty)? {
-                        self.zero_owned_record_bytes(&staged, &scrutinee.ty)?;
-                        self.move_owned_record_fields(&staged, &scrutinee.code, &scrutinee.ty)?;
-                    } else {
-                        self.line(&format!("{staged} = {};", scrutinee.code));
+                    if *mode == hir::ResolvedMatchMode::Own {
+                        let preflight = self
+                            .bytes_plan
+                            .ok_or_else(|| backend_error("owned record match has no cleanup plan"))?
+                            .authenticate_transfers_at(&expr.id)?;
+                        for line in preflight.lines() {
+                            self.line(line);
+                        }
                     }
-                    if *mode != hir::ResolvedMatchMode::Value {
-                        self.line(&format!("(void){staged};"));
-                    }
+                    let contains_owned_bytes = self.record_contains_owned_bytes(&scrutinee.ty)?;
+                    let staged = match mode {
+                        hir::ResolvedMatchMode::Own => {
+                            let staged = self.temporary(&scrutinee.ty)?;
+                            if contains_owned_bytes {
+                                self.zero_owned_record_bytes(&staged, &scrutinee.ty)?;
+                                self.move_owned_record_fields(
+                                    &staged,
+                                    &scrutinee.code,
+                                    &scrutinee.ty,
+                                )?;
+                            } else {
+                                self.line(&format!("{staged} = {};", scrutinee.code));
+                            }
+                            self.line(&format!("(void){staged};"));
+                            staged
+                        }
+                        hir::ResolvedMatchMode::Borrow => {
+                            // A borrow match retains the caller's authoritative
+                            // carrier. Bytes leaves bind through separately
+                            // authenticated full-path aliases below; Copy leaves
+                            // read directly from this carrier.
+                            scrutinee.code.clone()
+                        }
+                        hir::ResolvedMatchMode::Value => {
+                            if contains_owned_bytes {
+                                return Err(backend_error(
+                                    "Value record match cannot copy owned Bytes",
+                                ));
+                            }
+                            let staged = self.temporary(&scrutinee.ty)?;
+                            self.line(&format!("{staged} = {};", scrutinee.code));
+                            staged
+                        }
+                    };
                     if *mode == hir::ResolvedMatchMode::Own {
                         let transitions = self
                             .bytes_plan
-                            .ok_or_else(|| backend_error("owned record match has no cleanup plan"))?
+                            .expect("owned match plan checked above")
                             .apply_at(&expr.id)?;
                         for line in transitions.lines() {
                             self.line(line);
@@ -1985,17 +2019,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 "owned record match requires one exact record pattern",
                             ));
                         };
-                        let anchors = fields
-                            .iter()
-                            .filter_map(|field| match &field.pattern {
-                                hir::ResolvedRecordMatchFieldPattern::Binding(binding)
-                                    if matches!(binding.ty, ResolvedType::Bytes) =>
-                                {
-                                    Some(crate::cleanup_plan::StorageId::Value(binding.id.clone()))
-                                }
-                                _ => None,
-                            })
-                            .collect::<BTreeSet<_>>();
+                        let anchors = nested_owned::owned_record_pattern_anchors(fields)?;
                         let cleanup = self
                             .bytes_plan
                             .expect("owned match plan checked above")
@@ -2636,137 +2660,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         fields: &[hir::ResolvedRecordMatchPatternField],
         binding_mode: &RecordMatchBindingMode<'_>,
     ) -> Result<(), Diagnostic> {
-        self.require_type(instance, expected, "record pattern instance")?;
-        let layout = self.record_layout(expected)?;
-        if layout.record != *record || fields.len() != layout.fields.len() {
-            return Err(backend_error(
-                "record pattern disagrees with its exact aggregate layout",
-            ));
-        }
-        let mut seen = BTreeSet::new();
-        for field in fields {
-            let layout_field = layout.field(&field.field).cloned().ok_or_else(|| {
-                backend_error(format!(
-                    "record pattern `{record}` has unknown field `{}`",
-                    field.field
-                ))
-            })?;
-            if !seen.insert(field.field.clone()) {
-                return Err(backend_error(format!(
-                    "record pattern `{record}` repeats field `{}`",
-                    field.field
-                )));
-            }
-            let field_code = if layout_field.size == 0 {
-                self.emit_erased_record_field_value(&layout_field.ty)?.code
-            } else {
-                format!("({base}).{}", c_field_symbol(&layout_field.field))
-            };
-            match &field.pattern {
-                hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
-                    self.require_type(&binding.ty, &layout_field.ty, "record pattern binding")?;
-                    let name = if matches!(layout_field.ty, ResolvedType::Bytes) {
-                        match binding_mode.mode {
-                            hir::ResolvedMatchMode::Own
-                                if binding.ownership == hir::OwnershipMode::Own =>
-                            {
-                                self.bytes_plan
-                                    .ok_or_else(|| {
-                                        backend_error(
-                                            "owned record pattern has no Bytes cleanup plan",
-                                        )
-                                    })?
-                                    .value(&crate::cleanup_plan::StorageId::Value(
-                                        binding.id.clone(),
-                                    ))?
-                                    .to_owned()
-                            }
-                            hir::ResolvedMatchMode::Borrow
-                                if binding.ownership == hir::OwnershipMode::Borrow =>
-                            {
-                                let source = binding_mode.source_storage.ok_or_else(|| {
-                                    backend_error(
-                                        "borrowed record match source is not one owned place",
-                                    )
-                                })?;
-                                let path = binding_mode
-                                    .source_path
-                                    .iter()
-                                    .chain(std::iter::once(&layout_field.field))
-                                    .cloned()
-                                    .collect::<Vec<_>>();
-                                let planned = self.bytes_plan.and_then(|plan| {
-                                    plan.projected_value_if_present(source, &path)
-                                        .map(str::to_owned)
-                                });
-                                if let Some(planned) = planned {
-                                    planned
-                                } else {
-                                    let crate::cleanup_plan::StorageId::Value(root) = source else {
-                                        return Err(backend_error(
-                                            "borrowed record parameter alias is not value-rooted",
-                                        ));
-                                    };
-                                    self.borrowed_aggregate_bytes
-                                        .get(&(
-                                            root.clone(),
-                                            path,
-                                        ))
-                                        .cloned()
-                                        .ok_or_else(|| {
-                                            backend_error(
-                                                "borrowed record Bytes field has no authenticated alias",
-                                            )
-                                        })?
-                                }
-                            }
-                            _ => {
-                                return Err(backend_error(
-                                    "record Bytes binding ownership disagrees with match mode",
-                                ));
-                            }
-                        }
-                    } else if binding.ownership == hir::OwnershipMode::Value {
-                        field_code
-                    } else {
-                        return Err(backend_error(
-                            "scalar record binding has non-Value ownership",
-                        ));
-                    };
-                    if self
-                        .variables
-                        .insert(
-                            binding.id.clone(),
-                            CBinding {
-                                name,
-                                ty: layout_field.ty,
-                            },
-                        )
-                        .is_some()
-                    {
-                        return Err(backend_error("record pattern binding is not fresh"));
-                    }
-                }
-                hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
-                hir::ResolvedRecordMatchFieldPattern::Record {
-                    record,
-                    instance,
-                    fields,
-                } => {
-                    let mut nested_mode = binding_mode.clone();
-                    nested_mode.source_path.push(layout_field.field.clone());
-                    self.bind_record_match_pattern(
-                        &field_code,
-                        &layout_field.ty,
-                        record,
-                        instance,
-                        fields,
-                        &nested_mode,
-                    )?
-                }
-            }
-        }
-        Ok(())
+        nested_owned::bind_record_match_pattern(
+            self,
+            base,
+            expected,
+            record,
+            instance,
+            fields,
+            binding_mode,
+        )
     }
 
     fn emit_binary(

@@ -1,5 +1,5 @@
 use crate::cleanup::FieldLivenessShape;
-use crate::cleanup_plan::{StorageId, CLEANUP_PLAN_SCHEMA_V7};
+use crate::cleanup_plan::{StorageId, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{PlaceProjection, ResolvedFunction, ResolvedProgram};
 
@@ -9,48 +9,67 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
     has_native_import: bool,
 ) -> Result<Option<&'static str>, Diagnostic> {
     let functions = functions.into_iter().collect::<Vec<_>>();
-    let has_nested_cleanup = functions
+    let has_nested_destructure = functions
         .iter()
-        .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V7);
+        .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V8);
+    let has_nested_cleanup = has_nested_destructure
+        || functions
+            .iter()
+            .any(|function| function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V7);
     if !has_nested_cleanup {
         return Ok(None);
     }
     reject_nested_native_flags(has_nested_cleanup, has_native_import)?;
 
-    let mut has_any_loan = false;
-    let mut locally_authenticated_nested_projected_loan = false;
-    for function in &functions {
-        for loan in &function.loan_plan.loans {
-            has_any_loan = true;
-            if loan.origin.projections.len() < 2 {
-                continue;
-            }
-            if function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V7
-                || !loan_origin_is_nested_owned_leaf(function, loan)
-            {
-                return Err(composition_error(
-                    "nested owned-record Graph composition contains an unauthenticated projected loan",
-                ));
-            }
-            locally_authenticated_nested_projected_loan = true;
+    let has_attached_loans = functions
+        .iter()
+        .any(|function| !function.loan_plan.loans.is_empty());
+    if has_attached_loans {
+        if let Some(program) = program {
+            crate::loan_plan::validate_program(program).map_err(|_| {
+                composition_error(
+                    "nested owned-record Graph composition contains forged shared-loan evidence",
+                )
+            })?;
         }
     }
-    let has_authenticated_nested_projected_loan =
-        program.map_or(locally_authenticated_nested_projected_loan, |program| {
-            functions.iter().any(|function| {
-                crate::hir::has_authenticated_nested_projected_byte_loan(program, function)
-            })
-        });
-    if has_any_loan && !has_authenticated_nested_projected_loan {
-        return Err(composition_error(
-            "nested owned-record Graph composition has loans but no authenticated nested projected loan",
-        ));
+
+    let mut has_authenticated_nested_projected_loan = false;
+    for function in &functions {
+        if function.loan_plan.loans.is_empty() {
+            continue;
+        }
+        for loan in &function.loan_plan.loans {
+            if loan.origin.projections.len() < 2
+                || !matches!(
+                    function.cleanup_plan.schema,
+                    CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8
+                )
+                || !loan_origin_is_nested_owned_leaf(function, loan)
+                || program.is_some_and(|program| {
+                    !crate::hir::is_authenticated_nested_projected_byte_loan(
+                        program, function, loan,
+                    )
+                })
+            {
+                return Err(composition_error(
+                    "nested owned-record Graph composition contains a loan that is not an exactly authenticated nested projected Bytes loan",
+                ));
+            }
+            has_authenticated_nested_projected_loan = true;
+        }
     }
-    Ok(Some(if has_authenticated_nested_projected_loan {
-        "semaprax.graph.v27"
-    } else {
-        "semaprax.graph.v26"
-    }))
+    Ok(Some(
+        if has_nested_destructure && has_authenticated_nested_projected_loan {
+            "semaprax.graph.v29"
+        } else if has_nested_destructure {
+            "semaprax.graph.v28"
+        } else if has_authenticated_nested_projected_loan {
+            "semaprax.graph.v27"
+        } else {
+            "semaprax.graph.v26"
+        },
+    ))
 }
 
 pub(super) fn select_schema<'a>(
@@ -180,24 +199,31 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v24"
             | "semaprax.graph.v26"
             | "semaprax.graph.v27"
+            | "semaprax.graph.v28"
+            | "semaprax.graph.v29"
     )
 }
 
 pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
     matches!(
         schema,
-        "semaprax.graph.v23" | "semaprax.graph.v24" | "semaprax.graph.v27"
+        "semaprax.graph.v23" | "semaprax.graph.v24" | "semaprax.graph.v27" | "semaprax.graph.v29"
     )
 }
 
 pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
-    matches!(schema, "semaprax.graph.v24" | "semaprax.graph.v27")
+    matches!(
+        schema,
+        "semaprax.graph.v24" | "semaprax.graph.v27" | "semaprax.graph.v29"
+    )
 }
 
 pub(super) fn rejected_evidence_schema(schema: &str) -> Option<Diagnostic> {
     let message = match schema {
         "semaprax.graph.v27" => "nested owned-record programs composed with shared loans select `semaprax.graph.v27`, which is outside this evidence flow's admission",
         "semaprax.graph.v26" => "nested owned-record programs select `semaprax.graph.v26`, which is outside this evidence flow's admission",
+        "semaprax.graph.v29" => "nested owned-record destructuring composed with authenticated projected loans selects `semaprax.graph.v29`, which is outside this evidence flow's admission",
+        "semaprax.graph.v28" => "nested owned-record destructuring selects `semaprax.graph.v28`, which is outside this evidence flow's admission",
         _ => return None,
     };
     Some(Diagnostic::io("SPX-G410", message))
@@ -210,7 +236,7 @@ pub(super) fn reject_nested_native_flags(
     if has_nested_cleanup && has_native_import {
         return Err(Diagnostic::io(
             "SPX-G410",
-            "native Rust import Graph v25 cannot mask nested owned-record Graph v26/v27 semantics",
+            "native Rust import Graph v25 cannot mask nested owned-record Graph v26-v29 semantics",
         ));
     }
     Ok(())

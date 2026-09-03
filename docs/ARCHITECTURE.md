@@ -272,6 +272,14 @@ validated meaning without shallow owner copies. Project, FFI, package and
 Component boundaries remain closed, and the tranche is not promoted until its
 three-engine and hostile-plan gate executes.
 
+The additive [Acyclic Nested Owned-Record Exact Destructuring
+v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) consumes the same bounded record
+shape and stable paths for recursive `match own` and `match borrow` only.
+CleanupPlan v8 authenticates the exact recursive pattern and atomic whole-owner
+transition; Graph v28/v29 distinguish destructuring without and with an
+authenticated nested projected loan. The interpreter, native C11 and Core Wasm
+remain fieldwise, while variants, mutation and every public ABI stay closed.
+
 ### Semantic graph
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup

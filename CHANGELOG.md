@@ -27,6 +27,15 @@
   source restoration, approval or publication. Regressions are authored and
   unrun.
 
+- Added bounded exact recursive `match own` and `match borrow` for the existing
+  acyclic monomorphic owned-`Bytes` record profile. Independent source/HIR
+  admission, canonical byte-slice provenance, CleanupPlan v8, Graph v28/v29,
+  interpreter, native C11 and Core Wasm retain complete stable field-ID paths;
+  owned destructuring preflights and commits every descendant together while
+  borrowed patterns mint no owner or cleanup action. Variants, mutation,
+  generics, resources, escaping loans and public aggregate ABIs remain closed,
+  and the completion rows remain Partial pending the complete promotion corpus.
+
 - Added one environment-aware candidate review that independently regenerates
   the complete source review and the three-declaration analysis-boundary bundle,
   validates their exact candidate/source/Project/Workspace/graph joins, and

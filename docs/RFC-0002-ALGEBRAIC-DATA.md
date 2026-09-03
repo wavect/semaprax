@@ -336,6 +336,13 @@ shared loans through complete stable field-ID paths. It does not admit recursive
 owned patterns, variants, generics, mutation, resources, Project exports, or a
 public aggregate/borrowed ABI. Its executable promotion gate remains separate.
 
+The separately additive [Acyclic Nested Owned-Record Exact Destructuring
+v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) admits exact recursive
+`match own` and `match borrow` only for that bounded record-tree profile.
+CleanupPlan v8 and Graph v28/v29 preserve complete stable field-ID paths and
+keep variants, generics, mutation, resources, non-Copy arm results and public
+ABIs closed.
+
 ## Exhaustiveness
 
 Use a constructor-pattern matrix:

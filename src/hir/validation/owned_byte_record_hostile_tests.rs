@@ -347,3 +347,226 @@ module test.nested_update_hostile;
         "{diagnostic:?}"
     );
 }
+
+const NESTED_PATTERN_FIXTURE: &str = r#"
+module test.nested_pattern_hostile;
+@id("pattern.leaf") record Leaf {
+  @id("pattern.leaf.payload") payload: Bytes,
+  @id("pattern.leaf.marker") marker: i64,
+}
+@id("pattern.root") record Root {
+  @id("pattern.root.leaf") leaf: Leaf,
+  @id("pattern.root.sequence") sequence: i64,
+}
+@id("pattern.holder") record Holder {
+  @id("pattern.holder.root") root: i64,
+}
+@id("pattern.consume") fn consume(value: own Root) -> i64 {
+  match own value {
+    Root { leaf: Leaf { payload, marker: _ }, sequence } => sequence,
+  }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
+fn nested_pattern_fixture() -> ResolvedProgram {
+    let parsed = crate::parse(
+        NESTED_PATTERN_FIXTURE,
+        std::path::Path::new("nested-pattern-hostile.spx"),
+    )
+    .expect("nested pattern fixture parses");
+    crate::hir::resolve(&parsed).expect("nested pattern fixture resolves")
+}
+
+fn nested_pattern_fields_mut(
+    program: &mut ResolvedProgram,
+) -> &mut Vec<ResolvedRecordMatchPatternField> {
+    let function = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "pattern.consume")
+        .expect("nested pattern function");
+    let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+        panic!("nested pattern body remains a block")
+    };
+    let ResolvedExprKind::Match { arms, .. } = &mut tail.kind else {
+        panic!("nested pattern tail remains a match")
+    };
+    let ResolvedMatchPattern::Record { fields, .. } = &mut arms[0].pattern else {
+        panic!("nested pattern arm remains a record")
+    };
+    fields
+}
+
+fn nested_borrow_pattern_fixture() -> ResolvedProgram {
+    let source = NESTED_PATTERN_FIXTURE
+        .replace("value: own Root", "value: borrow Root")
+        .replace("match own value", "match borrow value");
+    let parsed = crate::parse(
+        &source,
+        std::path::Path::new("nested-borrow-pattern-hostile.spx"),
+    )
+    .expect("nested borrow pattern fixture parses");
+    crate::hir::resolve(&parsed).expect("nested borrow pattern fixture resolves")
+}
+
+#[test]
+fn validation_rejects_a_forged_nested_record_pattern_field_identity() {
+    let mut program = nested_pattern_fixture();
+    nested_pattern_fields_mut(&mut program)[0].field = DeclarationId::new("pattern.foreign-field");
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "pattern.consume")
+        .expect("nested pattern function")
+        .clone();
+    let execution = FunctionExecutionId::Monomorphic(function.id.clone());
+    let diagnostic = HirValidator::new(&program)
+        .expect("hostile identities remain indexed")
+        .validate_function(&function, &execution)
+        .expect_err("foreign nested pattern field must fail closed");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert!(
+        diagnostic
+            .message
+            .contains("resolved record pattern contains foreign field"),
+        "{diagnostic:?}"
+    );
+}
+
+#[test]
+fn validation_rejects_a_wildcard_concealing_a_nested_owned_subtree() {
+    let mut program = nested_pattern_fixture();
+    nested_pattern_fields_mut(&mut program)[0].pattern = ResolvedRecordMatchFieldPattern::Wildcard;
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "pattern.consume")
+        .expect("nested pattern function")
+        .clone();
+    let execution = FunctionExecutionId::Monomorphic(function.id.clone());
+    let diagnostic = HirValidator::new(&program)
+        .expect("hostile identities remain indexed")
+        .validate_function(&function, &execution)
+        .expect_err("owned wildcard over a nested subtree must fail closed");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert!(
+        diagnostic
+            .message
+            .contains("resolved exact owned-record pattern wildcards a droppable field"),
+        "{diagnostic:?}"
+    );
+}
+
+#[test]
+fn validation_rejects_a_nonplace_nested_owned_match_scrutinee() {
+    let mut program = nested_pattern_fixture();
+    let root_ty = ResolvedType::Nominal {
+        declaration: DeclarationId::new("pattern.root"),
+        arguments: Vec::new(),
+    };
+    set_record_field_type(
+        &mut program,
+        "pattern.holder",
+        "pattern.holder.root",
+        root_ty.clone(),
+    );
+    let function = {
+        let function = program
+            .functions
+            .iter_mut()
+            .find(|function| function.id.as_str() == "pattern.consume")
+            .expect("nested pattern function");
+        function.params[0].ty = ResolvedType::Nominal {
+            declaration: DeclarationId::new("pattern.holder"),
+            arguments: Vec::new(),
+        };
+        let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+            panic!("nested pattern body remains a block")
+        };
+        let ResolvedExprKind::Match { scrutinee, .. } = &mut tail.kind else {
+            panic!("nested pattern tail remains a match")
+        };
+        scrutinee.ty = root_ty;
+        let ResolvedExprKind::Place(place) = &mut scrutinee.kind else {
+            panic!("nested pattern scrutinee remains a place")
+        };
+        place.projections = vec![PlaceProjection::Field(DeclarationId::new(
+            "pattern.holder.root",
+        ))];
+        function.clone()
+    };
+    let execution = FunctionExecutionId::Monomorphic(function.id.clone());
+    let diagnostic = HirValidator::new(&program)
+        .expect("hostile identities remain indexed")
+        .validate_function(&function, &execution)
+        .expect_err("nested owned match over a forged temporary must fail closed");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert!(
+        diagnostic
+            .message
+            .contains("resolved record match mode disagrees with its scrutinee"),
+        "{diagnostic:?}"
+    );
+}
+
+#[test]
+fn validation_rejects_a_whole_nested_record_field_binding() {
+    let mut program = nested_pattern_fixture();
+    nested_pattern_fields_mut(&mut program)[0].pattern =
+        ResolvedRecordMatchFieldPattern::Binding(ResolvedBinding {
+            id: ValueId::local(
+                &FunctionExecutionId::Monomorphic(DeclarationId::new("pattern.consume")),
+                "forged-whole-nested-binding",
+            ),
+            name: "leaf".to_owned(),
+            ownership: OwnershipMode::Own,
+            ty: ResolvedType::Nominal {
+                declaration: DeclarationId::new("pattern.leaf"),
+                arguments: Vec::new(),
+            },
+            span: crate::ast::Span::default(),
+        });
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "pattern.consume")
+        .expect("nested pattern function")
+        .clone();
+    let execution = FunctionExecutionId::Monomorphic(function.id.clone());
+    let diagnostic = HirValidator::new(&program)
+        .expect("hostile identities remain indexed")
+        .validate_function(&function, &execution)
+        .expect_err("whole nested record binding must fail closed");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert!(
+        diagnostic
+            .message
+            .contains("resolved nested owned-record field lacks a recursive record pattern"),
+        "{diagnostic:?}"
+    );
+}
+
+#[test]
+fn validation_rejects_a_borrow_wildcard_concealing_an_owned_subtree() {
+    let mut program = nested_borrow_pattern_fixture();
+    nested_pattern_fields_mut(&mut program)[0].pattern = ResolvedRecordMatchFieldPattern::Wildcard;
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "pattern.consume")
+        .expect("nested pattern function")
+        .clone();
+    let execution = FunctionExecutionId::Monomorphic(function.id.clone());
+    let diagnostic = HirValidator::new(&program)
+        .expect("hostile identities remain indexed")
+        .validate_function(&function, &execution)
+        .expect_err("borrow wildcard over a nested subtree must fail closed");
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert!(
+        diagnostic
+            .message
+            .contains("resolved exact owned-record pattern wildcards a droppable field"),
+        "{diagnostic:?}"
+    );
+}

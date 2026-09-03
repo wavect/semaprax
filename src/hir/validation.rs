@@ -2285,6 +2285,11 @@ impl<'a> HirValidator<'a> {
         path: &str,
         mode: ResolvedMatchMode,
     ) -> Result<(), Diagnostic> {
+        let exact_recursive = mode != ResolvedMatchMode::Value
+            && super::type_reachability::is_nested_nonflat_owned_byte_record(
+                &self.program.declarations,
+                expected,
+            );
         enum Frame<'a> {
             Enter {
                 expected: ResolvedType,
@@ -2343,13 +2348,14 @@ impl<'a> HirValidator<'a> {
                         ));
                     }
                     if mode != ResolvedMatchMode::Value
-                        && super::type_reachability::is_nested_nonflat_owned_byte_record(
+                        && resolved_type_contains_owned_bytes(self.program, &expected)
+                        && !super::type_reachability::is_admitted_nested_owned_byte_record(
                             &self.program.declarations,
                             &expected,
                         )
                     {
                         return Err(hir_error(
-                            "ownership-aware nested owned-Bytes record patterns remain closed",
+                            "ownership-aware record pattern is outside the bounded nested owned-Bytes profile",
                         ));
                     }
                     let facts =
@@ -2434,6 +2440,21 @@ impl<'a> HirValidator<'a> {
                                 self.program.declarations.type_facts(&field_ty).ok_or_else(
                                     || hir_error("resolved record field has no exact type facts"),
                                 )?;
+                            if exact_recursive
+                                && matches!(
+                                    &field_ty,
+                                    ResolvedType::Nominal { declaration, .. }
+                                        if self
+                                            .program
+                                            .declarations
+                                            .declaration(declaration)
+                                            .is_some_and(|item| item.kind == DeclarationKind::Record)
+                                )
+                            {
+                                return Err(hir_error(
+                                    "resolved nested owned-record field lacks a recursive record pattern",
+                                ));
+                            }
                             let ownership = if field_facts.needs_drop {
                                 match mode {
                                     ResolvedMatchMode::Own => OwnershipMode::Own,
@@ -2472,16 +2493,19 @@ impl<'a> HirValidator<'a> {
                             );
                         }
                         ResolvedRecordMatchFieldPattern::Wildcard => {
-                            if mode == ResolvedMatchMode::Own
+                            if (mode == ResolvedMatchMode::Own || exact_recursive)
                                 && self
                                     .program
                                     .declarations
                                     .type_facts(&field_ty)
                                     .is_some_and(|facts| facts.needs_drop)
                             {
-                                return Err(hir_error(
-                                    "resolved owned record pattern leaves a droppable field unbound",
-                                ));
+                                let message = if exact_recursive {
+                                    "resolved exact owned-record pattern wildcards a droppable field"
+                                } else {
+                                    "resolved owned record pattern leaves a droppable field unbound"
+                                };
+                                return Err(hir_error(message));
                             }
                         }
                         ResolvedRecordMatchFieldPattern::Record {
@@ -5239,7 +5263,15 @@ impl<'a> HirValidator<'a> {
                             ResolvedMatchMode::Own
                                 if facts.needs_drop
                                     && !facts.copy
-                                    && scrutinee.ownership == OwnershipMode::Own =>
+                                    && scrutinee.ownership == OwnershipMode::Own
+                                    && (!super::type_reachability::is_nested_nonflat_owned_byte_record(
+                                        &self.program.declarations,
+                                        &scrutinee.ty,
+                                    ) || matches!(
+                                        &scrutinee.kind,
+                                        ResolvedExprKind::Place(place)
+                                            if place.projections.is_empty()
+                                    )) =>
                             {
                                 self.mark_value_sources_moved(scrutinee, &mut outer)?;
                             }
@@ -7450,7 +7482,16 @@ impl<'a> HirValidator<'a> {
                         ResolvedMatchMode::Own
                             if facts.needs_drop
                                 && !facts.copy
-                                && scrutinee.ownership == OwnershipMode::Own =>
+                                && scrutinee.ownership == OwnershipMode::Own
+                                && (!super::type_reachability::is_nested_nonflat_owned_byte_record(
+                                    &self.program.declarations,
+                                    &scrutinee.ty,
+                                )
+                                    || matches!(
+                                        &scrutinee.kind,
+                                        ResolvedExprKind::Place(place)
+                                            if place.projections.is_empty()
+                                    )) =>
                         {
                             self.mark_value_sources_moved(scrutinee, scope)?;
                         }

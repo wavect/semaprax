@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use semaprax::hir::{self, DeclarationId, PlaceProjection, ResolvedProgram};
+use semaprax::hir::{
+    self, DeclarationId, OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind,
+    ResolvedMatchMode, ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern,
+};
 use semaprax::loan_plan::LoanCause;
 use semaprax::{parse, verify};
 
@@ -40,6 +43,60 @@ fn identity(packet: own Envelope) -> Envelope { packet }
 fn main() -> i64 { 0 }
 "#;
 
+const NESTED_MATCH_SOURCE: &str = r#"
+module test.nested_owned_record_exact_destructuring;
+
+@id("nested.match.leaf")
+record Leaf {
+    @id("nested.match.leaf.payload") payload: Bytes,
+    @id("nested.match.leaf.marker") marker: i64,
+}
+
+@id("nested.match.branch")
+record Branch {
+    @id("nested.match.branch.leaf") leaf: Leaf,
+    @id("nested.match.branch.enabled") enabled: bool,
+}
+
+@id("nested.match.envelope")
+record Envelope {
+    @id("nested.match.envelope.left") left: Branch,
+    @id("nested.match.envelope.right") right: Branch,
+    @id("nested.match.envelope.sequence") sequence: i64,
+}
+
+@id("nested.match.consume")
+fn consume(packet: own Envelope) -> i64 {
+    match own packet {
+        Envelope {
+            left: Branch { leaf: Leaf { payload: left_payload, marker: _ }, enabled: _ },
+            right: Branch { leaf: Leaf { payload: right_payload, marker: _ }, enabled: _ },
+            sequence,
+        } => sequence,
+    }
+}
+
+@id("nested.match.inspect")
+fn inspect(packet: own Envelope) -> i64 {
+    let measured = match borrow packet {
+        Envelope {
+            left: Branch { leaf: Leaf { payload: left_payload, marker: _ }, enabled: _ },
+            right: Branch { leaf: Leaf { payload: right_payload, marker: _ }, enabled: _ },
+            sequence: _,
+        } => {
+            let left_view = bytes_as_slice(left_payload);
+            let right_view = bytes_as_slice(right_payload);
+            if byte_len(left_view) == byte_len(right_view) { 1 } else { 0 }
+        },
+    };
+    let after = bytes_as_slice(packet.right.leaf.payload);
+    if byte_len(after) == 0usize { measured } else { measured }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
 fn diagnostics(source: &str) -> Vec<semaprax::diagnostic::Diagnostic> {
     let parsed = parse(source, Path::new("nested-owned-records-v1.spx")).expect("source parses");
     verify::verify(&parsed)
@@ -66,6 +123,142 @@ fn projection_ids(projections: &[PlaceProjection]) -> Vec<&str> {
             PlaceProjection::VariantField { .. } => panic!("record path contains variant step"),
         })
         .collect()
+}
+
+fn block_tail(expression: &ResolvedExpr) -> &ResolvedExpr {
+    let ResolvedExprKind::Block { tail, .. } = &expression.kind else {
+        panic!("resolved function body is not a block")
+    };
+    tail
+}
+
+fn pattern_binding<'a>(pattern: &'a ResolvedMatchPattern, name: &str) -> &'a hir::ResolvedBinding {
+    fn find<'a>(
+        fields: &'a [hir::ResolvedRecordMatchPatternField],
+        name: &str,
+    ) -> Option<&'a hir::ResolvedBinding> {
+        fields.iter().find_map(|field| match &field.pattern {
+            ResolvedRecordMatchFieldPattern::Binding(binding) if binding.name == name => {
+                Some(binding)
+            }
+            ResolvedRecordMatchFieldPattern::Record { fields, .. } => find(fields, name),
+            ResolvedRecordMatchFieldPattern::Binding(_)
+            | ResolvedRecordMatchFieldPattern::Wildcard => None,
+        })
+    }
+
+    let ResolvedMatchPattern::Record { fields, .. } = pattern else {
+        panic!("expected a resolved record pattern")
+    };
+    find(fields, name).unwrap_or_else(|| panic!("missing nested binding {name}"))
+}
+
+#[test]
+fn exact_nested_owned_and_borrowed_patterns_retain_binding_modes_and_owner() {
+    let parsed = parse(
+        NESTED_MATCH_SOURCE,
+        Path::new("nested-owned-record-exact-destructuring-v1.spx"),
+    )
+    .expect("nested match fixture parses");
+    let report = verify::verify(&parsed);
+    assert!(
+        report
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
+        "nested match fixture source verification failed: {report:?}"
+    );
+    let program = hir::resolve(&parsed).expect("nested match fixture resolves and validates");
+
+    let consume = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "nested.match.consume")
+        .expect("consume function");
+    let ResolvedExprKind::Match { mode, arms, .. } = &block_tail(&consume.body).kind else {
+        panic!("consume tail is not a match")
+    };
+    assert_eq!(*mode, ResolvedMatchMode::Own);
+    for name in ["left_payload", "right_payload"] {
+        let binding = pattern_binding(&arms[0].pattern, name);
+        assert_eq!(binding.ownership, OwnershipMode::Own);
+        assert_eq!(binding.ty, hir::ResolvedType::Bytes);
+    }
+
+    let inspect = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "nested.match.inspect")
+        .expect("inspect function");
+    let ResolvedExprKind::Block { statements, .. } = &inspect.body.kind else {
+        panic!("inspect body is not a block")
+    };
+    let hir::ResolvedStatement::Let { value, .. } = &statements[0] else {
+        panic!("inspect first statement is not a let")
+    };
+    let ResolvedExprKind::Match { mode, arms, .. } = &value.kind else {
+        panic!("inspect binding is not a match")
+    };
+    assert_eq!(*mode, ResolvedMatchMode::Borrow);
+    for name in ["left_payload", "right_payload"] {
+        let binding = pattern_binding(&arms[0].pattern, name);
+        assert_eq!(binding.ownership, OwnershipMode::Borrow);
+        assert_eq!(binding.ty, hir::ResolvedType::Bytes);
+    }
+    let ResolvedExprKind::Block { statements, .. } = &arms[0].value.kind else {
+        panic!("borrowed match arm is not a block")
+    };
+    let expected = [
+        (
+            "left_view",
+            vec![
+                "nested.match.envelope.left",
+                "nested.match.branch.leaf",
+                "nested.match.leaf.payload",
+            ],
+        ),
+        (
+            "right_view",
+            vec![
+                "nested.match.envelope.right",
+                "nested.match.branch.leaf",
+                "nested.match.leaf.payload",
+            ],
+        ),
+    ];
+    for (statement, (name, path)) in statements.iter().zip(expected) {
+        let hir::ResolvedStatement::Let { binding, .. } = statement else {
+            panic!("borrowed match view is not a let")
+        };
+        assert_eq!(binding.name, name);
+        let provenance = program
+            .declarations
+            .byte_slice_provenance(&binding.id)
+            .expect("borrowed pattern view has canonical provenance");
+        assert_eq!(provenance.root, inspect.params[0].id);
+        assert_eq!(projection_ids(&provenance.projections), path);
+    }
+}
+
+#[test]
+fn excluded_owned_byte_pattern_shape_retains_stable_source_diagnostic() {
+    let source = r#"
+module test.nested_pattern_closed_shape;
+record Packet { payload: Bytes, text: string, }
+fn invalid(packet: own Packet) -> i64 {
+    match own packet { Packet { payload, text } => 0, }
+}
+fn main() -> i64 { 0 }
+"#;
+    let errors = diagnostics(source);
+    assert!(
+        errors.iter().any(|diagnostic| {
+            diagnostic.code == "SPX-O117"
+                && diagnostic
+                    .message
+                    .contains("outside the bounded nested owned-Bytes profile")
+        }),
+        "excluded ownership-aware pattern must retain SPX-O117: {errors:?}"
+    );
 }
 
 #[test]
@@ -280,4 +473,61 @@ fn nested_record_depth_and_owned_leaf_bounds_are_exact() {
 fn nested_record_visited_field_bound_is_exact() {
     assert!(error_codes(&wide_record_source(4_096, 1)).is_empty());
     assert!(error_codes(&wide_record_source(4_097, 1)).contains(&"SPX-T268"));
+}
+
+#[test]
+fn recursive_destructuring_rejects_nonplace_own_and_concealed_owned_subtrees() {
+    let prefix = r#"
+module test.nested_pattern_exact_closure;
+@id("exact.leaf") record Leaf {
+  @id("exact.leaf.payload") payload: Bytes,
+  @id("exact.leaf.marker") marker: i64,
+}
+@id("exact.branch") record Branch {
+  @id("exact.branch.leaf") leaf: Leaf,
+  @id("exact.branch.enabled") enabled: bool,
+}
+@id("exact.root") record Root {
+  @id("exact.root.branch") branch: Branch,
+  @id("exact.root.marker") marker: i64,
+}
+"#;
+    let cases = [
+        (
+            r#"
+@id("exact.projected") fn invalid(root: own Root) -> i64 {
+  match own root.branch {
+    Branch { leaf: Leaf { payload, marker: _ }, enabled: _ } => 0,
+  }
+}
+"#,
+            "nested `match own` requires an exact named owned record place",
+        ),
+        (
+            r#"
+@id("exact.whole-binding") fn invalid(root: own Root) -> i64 {
+  match own root { Root { branch, marker: _ } => 0, }
+}
+"#,
+            "nested owned-record fields require recursive record patterns",
+        ),
+        (
+            r#"
+@id("exact.borrow-wildcard") fn invalid(root: borrow Root) -> i64 {
+  match borrow root { Root { branch: _, marker: _ } => 0, }
+}
+"#,
+            "exact owned-record patterns cannot wildcard an owned field",
+        ),
+    ];
+    for (body, expected) in cases {
+        let source = format!("{prefix}{body}@id(\"app.main\") fn main() -> i64 {{ 0 }}\n");
+        let errors = diagnostics(&source);
+        assert!(
+            errors.iter().any(|diagnostic| {
+                diagnostic.code == "SPX-O117" && diagnostic.message.contains(expected)
+            }),
+            "missing exact recursive-pattern closure `{expected}`: {errors:?}"
+        );
+    }
 }

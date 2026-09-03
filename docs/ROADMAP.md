@@ -291,7 +291,10 @@ ABIs prematurely.
   resource, flat owned-byte record, and flat owned-byte variant slices; the
   authored [Acyclic Nested Owned-Byte Records
   v1](NESTED-OWNED-BYTE-RECORDS-V1.md) is the next internal movement/cleanup
-  tranche and remains unpromoted until its complete three-engine gate runs;
+  tranche; the additive [Nested Exact Destructuring
+  v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) extends it with bounded recursive
+  `match own`/`match borrow`. Both remain unpromoted until their complete
+  three-engine gates run;
 - use the bounded [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) as the
   independently replayed proof foundation; the exact-tag nonignored
   [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)

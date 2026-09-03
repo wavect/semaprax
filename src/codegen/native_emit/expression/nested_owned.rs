@@ -4,10 +4,300 @@ use std::collections::BTreeSet;
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedType, ResolvedTypeDeclarationKind,
+    self, DeclarationId, ResolvedExpr, ResolvedExprKind, ResolvedType, ResolvedTypeDeclarationKind,
 };
 
-use super::{backend_error, c_field_symbol, CEmitter, COutput, CValue};
+use super::{
+    backend_error, c_field_symbol, CBinding, CEmitter, COutput, CValue, RecordMatchBindingMode,
+};
+
+pub(super) fn owned_record_pattern_anchors(
+    fields: &[crate::hir::ResolvedRecordMatchPatternField],
+) -> Result<BTreeSet<crate::cleanup_plan::StorageId>, Diagnostic> {
+    let mut pending = fields
+        .iter()
+        .map(|field| (&field.pattern, 1usize))
+        .collect::<Vec<_>>();
+    let mut anchors = BTreeSet::new();
+    let mut visited = 0usize;
+    while let Some((pattern, depth)) = pending.pop() {
+        if depth > crate::cleanup::MAX_CLEANUP_SHAPE_DEPTH {
+            return Err(backend_error(
+                "owned record match cleanup exceeds the pattern depth limit",
+            ));
+        }
+        visited = visited
+            .checked_add(1)
+            .ok_or_else(|| backend_error("owned record match field count overflowed"))?;
+        if visited > crate::cleanup::MAX_CLEANUP_VISITED_FIELDS {
+            return Err(backend_error(
+                "owned record match cleanup exceeds the field limit",
+            ));
+        }
+        match pattern {
+            crate::hir::ResolvedRecordMatchFieldPattern::Binding(binding)
+                if binding.ty == ResolvedType::Bytes =>
+            {
+                anchors.insert(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
+            }
+            crate::hir::ResolvedRecordMatchFieldPattern::Record { fields, .. } => {
+                pending.extend(fields.iter().rev().map(|field| (&field.pattern, depth + 1)));
+            }
+            crate::hir::ResolvedRecordMatchFieldPattern::Binding(_)
+            | crate::hir::ResolvedRecordMatchFieldPattern::Wildcard => {}
+        }
+    }
+    Ok(anchors)
+}
+
+pub(super) fn bind_record_match_pattern<O: COutput>(
+    emitter: &mut CEmitter<'_, O>,
+    base: &str,
+    expected: &ResolvedType,
+    record: &DeclarationId,
+    instance: &ResolvedType,
+    fields: &[hir::ResolvedRecordMatchPatternField],
+    binding_mode: &RecordMatchBindingMode<'_>,
+) -> Result<(), Diagnostic> {
+    struct Frame<'p, 's> {
+        base: String,
+        expected: ResolvedType,
+        record: &'p DeclarationId,
+        instance: &'p ResolvedType,
+        fields: &'p [hir::ResolvedRecordMatchPatternField],
+        binding_mode: RecordMatchBindingMode<'s>,
+        index: usize,
+        seen: BTreeSet<DeclarationId>,
+        depth: usize,
+    }
+    let mut pending = vec![Frame {
+        base: base.to_owned(),
+        expected: expected.clone(),
+        record,
+        instance,
+        fields,
+        binding_mode: binding_mode.clone(),
+        index: 0,
+        seen: BTreeSet::new(),
+        depth: 1,
+    }];
+    let mut visited_fields = 0usize;
+    while let Some(mut frame) = pending.pop() {
+        if frame.depth > crate::cleanup::MAX_CLEANUP_SHAPE_DEPTH {
+            return Err(backend_error(
+                "nested record pattern exceeds the native depth limit",
+            ));
+        }
+        emitter.require_type(&frame.expected, frame.instance, "record pattern instance")?;
+        let layout = emitter.record_layout(&frame.expected)?;
+        if layout.record != *frame.record || frame.fields.len() != layout.fields.len() {
+            return Err(backend_error(
+                "record pattern disagrees with its exact aggregate layout",
+            ));
+        }
+        if frame.index == 0 {
+            visited_fields = visited_fields
+                .checked_add(frame.fields.len())
+                .ok_or_else(|| backend_error("record pattern field count overflowed"))?;
+            if visited_fields > crate::cleanup::MAX_CLEANUP_VISITED_FIELDS {
+                return Err(backend_error(
+                    "nested record pattern exceeds the native field limit",
+                ));
+            }
+        }
+        let Some(field) = frame.fields.get(frame.index) else {
+            continue;
+        };
+        let layout_field = layout.field(&field.field).cloned().ok_or_else(|| {
+            backend_error(format!(
+                "record pattern `{}` has unknown field `{}`",
+                frame.record, field.field
+            ))
+        })?;
+        if !frame.seen.insert(field.field.clone()) {
+            return Err(backend_error(format!(
+                "record pattern `{}` repeats field `{}`",
+                frame.record, field.field
+            )));
+        }
+        let field_code = if layout_field.size == 0 {
+            emitter
+                .emit_erased_record_field_value(&layout_field.ty)?
+                .code
+        } else {
+            format!("({}).{}", frame.base, c_field_symbol(&layout_field.field))
+        };
+        match &field.pattern {
+            hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                emitter.require_type(&binding.ty, &layout_field.ty, "record pattern binding")?;
+                let name = if matches!(layout_field.ty, ResolvedType::Bytes) {
+                    match frame.binding_mode.mode {
+                        hir::ResolvedMatchMode::Own
+                            if binding.ownership == hir::OwnershipMode::Own =>
+                        {
+                            emitter
+                                .bytes_plan
+                                .ok_or_else(|| {
+                                    backend_error("owned record pattern has no Bytes cleanup plan")
+                                })?
+                                .value(&crate::cleanup_plan::StorageId::Value(binding.id.clone()))?
+                                .to_owned()
+                        }
+                        hir::ResolvedMatchMode::Borrow
+                            if binding.ownership == hir::OwnershipMode::Borrow =>
+                        {
+                            let source = frame.binding_mode.source_storage.ok_or_else(|| {
+                                backend_error("borrowed record match source is not one owned place")
+                            })?;
+                            let path = frame
+                                .binding_mode
+                                .source_path
+                                .iter()
+                                .chain(std::iter::once(&layout_field.field))
+                                .cloned()
+                                .collect::<Vec<_>>();
+                            let planned = emitter.bytes_plan.and_then(|plan| {
+                                plan.projected_value_if_present(source, &path)
+                                    .map(str::to_owned)
+                            });
+                            if let Some(planned) = planned {
+                                planned
+                            } else {
+                                let crate::cleanup_plan::StorageId::Value(root) = source else {
+                                    return Err(backend_error(
+                                        "borrowed record parameter alias is not value-rooted",
+                                    ));
+                                };
+                                emitter.borrowed_aggregate_bytes
+                                    .get(&(
+                                        root.clone(),
+                                        path,
+                                    ))
+                                    .cloned()
+                                    .ok_or_else(|| {
+                                        backend_error(
+                                            "borrowed record Bytes field has no authenticated alias",
+                                        )
+                                    })?
+                            }
+                        }
+                        _ => {
+                            return Err(backend_error(
+                                "record Bytes binding ownership disagrees with match mode",
+                            ));
+                        }
+                    }
+                } else if !nested_record_binding_is_exact(
+                    emitter.record_contains_owned_bytes(&layout_field.ty)?,
+                ) {
+                    return Err(backend_error(
+                        "owning nested record binding reached exact destructuring lowering",
+                    ));
+                } else if binding.ownership == hir::OwnershipMode::Value {
+                    field_code
+                } else {
+                    return Err(backend_error(
+                        "scalar record binding has non-Value ownership",
+                    ));
+                };
+                if emitter
+                    .variables
+                    .insert(
+                        binding.id.clone(),
+                        CBinding {
+                            name,
+                            ty: layout_field.ty,
+                        },
+                    )
+                    .is_some()
+                {
+                    return Err(backend_error("record pattern binding is not fresh"));
+                }
+            }
+            hir::ResolvedRecordMatchFieldPattern::Wildcard => {
+                let owns_bytes = layout_field.ty == ResolvedType::Bytes
+                    || emitter.record_contains_owned_bytes(&layout_field.ty)?;
+                if !wildcard_is_exact(frame.binding_mode.mode, owns_bytes) {
+                    return Err(backend_error(
+                        "owned Bytes subtree reached a record pattern wildcard",
+                    ));
+                }
+            }
+            hir::ResolvedRecordMatchFieldPattern::Record {
+                record,
+                instance,
+                fields,
+            } => {
+                let mut nested_mode = frame.binding_mode.clone();
+                nested_mode.source_path.push(layout_field.field.clone());
+                let child_depth = frame.depth + 1;
+                let next = Frame {
+                    base: frame.base,
+                    expected: frame.expected,
+                    record: frame.record,
+                    instance: frame.instance,
+                    fields: frame.fields,
+                    binding_mode: frame.binding_mode,
+                    index: frame.index + 1,
+                    seen: frame.seen,
+                    depth: frame.depth,
+                };
+                pending.push(next);
+                pending.push(Frame {
+                    base: field_code,
+                    expected: layout_field.ty,
+                    record,
+                    instance,
+                    fields,
+                    binding_mode: nested_mode,
+                    index: 0,
+                    seen: BTreeSet::new(),
+                    depth: child_depth,
+                });
+                continue;
+            }
+        }
+        frame.index += 1;
+        pending.push(frame);
+    }
+    Ok(())
+}
+
+fn wildcard_is_exact(mode: hir::ResolvedMatchMode, owns_bytes: bool) -> bool {
+    !owns_bytes
+        || !matches!(
+            mode,
+            hir::ResolvedMatchMode::Own | hir::ResolvedMatchMode::Borrow
+        )
+}
+
+fn nested_record_binding_is_exact(contains_owned_bytes: bool) -> bool {
+    !contains_owned_bytes
+}
+
+#[cfg(test)]
+mod match_admission_tests {
+    use super::{nested_record_binding_is_exact, wildcard_is_exact};
+    use crate::hir::ResolvedMatchMode;
+
+    #[test]
+    fn hostile_ownership_aware_hir_cannot_hide_owned_subtrees_with_wildcards() {
+        assert!(!wildcard_is_exact(ResolvedMatchMode::Own, true));
+        assert!(!wildcard_is_exact(ResolvedMatchMode::Borrow, true));
+    }
+
+    #[test]
+    fn hostile_hir_cannot_bind_an_owning_record_as_one_terminal() {
+        assert!(!nested_record_binding_is_exact(true));
+        assert!(nested_record_binding_is_exact(false));
+    }
+
+    #[test]
+    fn copy_only_wildcards_remain_admitted() {
+        assert!(wildcard_is_exact(ResolvedMatchMode::Own, false));
+        assert!(wildcard_is_exact(ResolvedMatchMode::Borrow, false));
+    }
+}
 
 impl<'a, O: COutput> CEmitter<'a, O> {
     pub(super) fn emit_update_record_expr(

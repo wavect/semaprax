@@ -475,6 +475,13 @@ impl NativeBytesPlan {
         Ok(output)
     }
 
+    pub(super) fn authenticate_transfers_at(
+        &self,
+        at: &ExpressionId,
+    ) -> Result<String, Diagnostic> {
+        nested_owned::authenticate_transfers_at(self, at)
+    }
+
     pub(super) fn apply_variant_case_at(
         &self,
         at: &ExpressionId,

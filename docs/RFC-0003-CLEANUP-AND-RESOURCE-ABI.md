@@ -33,6 +33,12 @@ atomic call commits and reverse cleanup; nested shared loans still add no
 runtime object or cleanup action. This does not widen resource, FFI, Project or
 public aggregate admission, and its executable promotion gate remains open.
 
+The separately additive [Acyclic Nested Owned-Record Exact Destructuring
+v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) uses CleanupPlan v8 to authenticate
+one atomic whole-source recursive destructure, exact descendant transfers, and
+borrowed patterns with no new owner or cleanup action. It does not reinterpret
+v2-v7 or grant target, resource, FFI, Project, or publication authority.
+
 ## Safety contract
 
 For every execution in the safe language profile:

@@ -30,6 +30,11 @@ impl Resolver<'_> {
         span: Span,
         mode: ResolvedMatchMode,
     ) -> Result<ResolvedMatchPattern, Diagnostic> {
+        let exact_recursive = mode != ResolvedMatchMode::Value
+            && super::type_reachability::is_nested_nonflat_owned_byte_record(
+                &self.declarations,
+                expected,
+            );
         enum Frame<'a> {
             Enter {
                 expected: ResolvedType,
@@ -170,6 +175,22 @@ impl Resolver<'_> {
                                         *span,
                                     )
                                 })?;
+                            if exact_recursive
+                                && matches!(
+                                    &field_ty,
+                                    ResolvedType::Nominal { declaration, .. }
+                                        if self
+                                            .declarations
+                                            .declaration(declaration)
+                                            .is_some_and(|item| item.kind == DeclarationKind::Record)
+                                )
+                            {
+                                return Err(self.error(
+                                    "SPX-O117",
+                                    "nested owned-record fields require recursive record patterns",
+                                    *span,
+                                ));
+                            }
                             let ownership = if field_facts.needs_drop {
                                 match mode {
                                     ResolvedMatchMode::Own => OwnershipMode::Own,
@@ -210,7 +231,19 @@ impl Resolver<'_> {
                                 path,
                             });
                         }
-                        crate::ast::RecordMatchFieldPattern::Wildcard { .. } => {
+                        crate::ast::RecordMatchFieldPattern::Wildcard { span } => {
+                            if exact_recursive
+                                && self
+                                    .declarations
+                                    .type_facts(&field_ty)
+                                    .is_some_and(|facts| facts.needs_drop)
+                            {
+                                return Err(self.error(
+                                    "SPX-O117",
+                                    "exact owned-record patterns cannot wildcard an owned field",
+                                    *span,
+                                ));
+                            }
                             resolved.push(ResolvedRecordMatchPatternField {
                                 field: field_id,
                                 pattern: ResolvedRecordMatchFieldPattern::Wildcard,

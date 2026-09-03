@@ -5,7 +5,11 @@ use crate::hir::{
 };
 
 use super::{replay_error, type_needs_drop};
-use crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V7;
+use crate::cleanup_plan::{CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8};
+
+fn nested_schema(schema: &str) -> bool {
+    matches!(schema, CLEANUP_PLAN_SCHEMA_V7 | CLEANUP_PLAN_SCHEMA_V8)
+}
 
 #[derive(Default)]
 struct Budget {
@@ -34,7 +38,7 @@ fn derive(
         return Ok(FieldLivenessShape::NoDrop);
     }
     if matches!(ty, ResolvedType::Bytes) {
-        if depth > 1 && function.cleanup_plan.schema != CLEANUP_PLAN_SCHEMA_V7 {
+        if depth > 1 && !nested_schema(function.cleanup_plan.schema) {
             return Err(replay_error(
                 function,
                 "nested compiler-owned Bytes cleanup leaf is outside flat record v1",
@@ -87,7 +91,7 @@ fn derive(
             let child_depth = depth
                 .checked_add(1)
                 .ok_or_else(|| replay_error(function, "cleanup projection depth overflowed"))?;
-            if function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V7
+            if nested_schema(function.cleanup_plan.schema)
                 && child_depth > crate::cleanup::MAX_CLEANUP_SHAPE_DEPTH
             {
                 return Err(replay_error(
@@ -156,7 +160,7 @@ fn charge_leaf(function: &ResolvedFunction, budget: &mut Budget) -> Result<(), D
         .owned_leaves
         .checked_add(1)
         .ok_or_else(|| replay_error(function, "cleanup owned-leaf count overflowed"))?;
-    if function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V7
+    if nested_schema(function.cleanup_plan.schema)
         && budget.owned_leaves > crate::cleanup::MAX_CLEANUP_OWNED_LEAVES
     {
         return Err(replay_error(
@@ -179,7 +183,7 @@ fn charge_fields(
         .visited_fields
         .checked_add(count)
         .ok_or_else(|| replay_error(function, "cleanup visited-field count overflowed"))?;
-    if function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V7
+    if nested_schema(function.cleanup_plan.schema)
         && budget.visited_fields > crate::cleanup::MAX_CLEANUP_VISITED_FIELDS
     {
         return Err(replay_error(

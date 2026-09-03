@@ -568,6 +568,9 @@ pub(super) fn check_record_pattern(
     span: Span,
     mode: MatchMode,
 ) {
+    let exact_recursive = mode != MatchMode::Value
+        && types.is_nested_owned_byte_record(expected)
+        && !types.is_flat_owned_byte_record(expected);
     enum Frame<'a, 't> {
         Enter {
             pattern_type: &'a str,
@@ -693,7 +696,14 @@ pub(super) fn check_record_pattern(
                 });
                 match &field.pattern {
                     RecordMatchFieldPattern::Binding { name, span } => {
-                        if !source_identifier(name) || variables.contains_key(name) {
+                        if exact_recursive && types.record_fields(&field_ty).is_some() {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-O117",
+                                "nested owned-record fields require recursive record patterns",
+                                *span,
+                            ));
+                        } else if !source_identifier(name) || variables.contains_key(name) {
                             diagnostics.push(error(
                                 program,
                                 "SPX-M104",
@@ -726,13 +736,15 @@ pub(super) fn check_record_pattern(
                         }
                     }
                     RecordMatchFieldPattern::Wildcard { span } => {
-                        if mode == MatchMode::Own && types.needs_drop(&field_ty) {
-                            diagnostics.push(error(
-                                program,
-                                "SPX-O117",
-                                "`match own` must bind every owned record field in this tranche",
-                                *span,
-                            ));
+                        if (mode == MatchMode::Own || exact_recursive)
+                            && types.needs_drop(&field_ty)
+                        {
+                            let message = if exact_recursive {
+                                "exact owned-record patterns cannot wildcard an owned field"
+                            } else {
+                                "`match own` must bind every owned record field in this tranche"
+                            };
+                            diagnostics.push(error(program, "SPX-O117", message, *span));
                         }
                     }
                     RecordMatchFieldPattern::Record {

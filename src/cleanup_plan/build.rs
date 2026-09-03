@@ -22,9 +22,10 @@ use super::{
     ConditionalVariantEntry, ContractPhase, EdgeCondition, EdgeId, ExitContinuation, ExitTarget,
     ExitTargetId, FinalizeAction, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
     StatusSource, StatusSourceId, StorageId, VariantCaseGuard, CLEANUP_PLAN_SCHEMA_V2,
-    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
+    CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4,
 };
 
+mod record_destructure;
 mod schema;
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
 #[cfg(test)]
@@ -951,7 +952,7 @@ impl<'a> PlanBuilder<'a> {
             .map_err(|_| plan_error("too many cleanup plan slots"))?;
         let shape = self.shape_for_type(&ty, &storage, &mut Vec::new())?;
         if schema::shape_is_nested(&shape)? {
-            self.schema = super::CLEANUP_PLAN_SCHEMA_V7;
+            schema::promote_v7(&mut self.schema);
         }
         self.slots.push(CleanupSlot {
             id: CleanupSlotId(index),
@@ -4135,14 +4136,7 @@ impl<'a> PlanBuilder<'a> {
                     arms,
                 } => {
                     if mode != ResolvedMatchMode::Value {
-                        if arms
-                            .iter()
-                            .any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
-                        {
-                            schema::promote_v6(&mut self.schema);
-                        } else if !schema::includes_v6(self.schema) {
-                            self.schema = CLEANUP_PLAN_SCHEMA_V5;
-                        }
+                        schema::promote_match(&mut self.schema, arms);
                     }
                     let scrutinee_result = results.pop().expect("match scrutinee result retained");
                     if scrutinee_result.owned_source.is_some() && mode == ResolvedMatchMode::Value {
@@ -6167,6 +6161,7 @@ impl<'a> PlanBuilder<'a> {
                 }
             }
             ResolvedMatchMode::Borrow => {
+                record_destructure::observe_borrow(self, arm)?;
                 let ResolvedExprKind::Match { scrutinee, .. } = &expression.kind else {
                     return Err(plan_error("borrowed record match is not a match"));
                 };
@@ -6188,6 +6183,17 @@ impl<'a> PlanBuilder<'a> {
                     .owned_source
                     .take()
                     .ok_or_else(|| plan_error("owned record match has no transfer source"))?;
+                if record_destructure::transfer_if_nested(
+                    self,
+                    expression,
+                    entry,
+                    arm_region,
+                    &source,
+                    &mut evaluated.state,
+                    arm,
+                )? {
+                    return Ok((entry, evaluated.state, arm_region));
+                }
                 let ResolvedMatchPattern::Record { record, fields, .. } = &arm.pattern else {
                     unreachable!("explicit record pattern checked above")
                 };
@@ -6418,14 +6424,7 @@ impl<'a> PlanBuilder<'a> {
             return Err(plan_error("match oracle received a non-match expression"));
         };
         if *mode != ResolvedMatchMode::Value {
-            if arms
-                .iter()
-                .any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
-            {
-                schema::promote_v6(&mut self.schema);
-            } else if !schema::includes_v6(self.schema) {
-                self.schema = CLEANUP_PLAN_SCHEMA_V5;
-            }
+            schema::promote_match(&mut self.schema, arms);
         }
         if arms.is_empty() {
             return Err(plan_error("copy-variant match has no arms"));

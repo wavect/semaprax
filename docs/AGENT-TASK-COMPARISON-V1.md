@@ -63,6 +63,22 @@ python3 scripts/agent-task-comparison.py plan \
 The plan is a protocol artifact, not execution evidence. Its claims remain
 `not_observed` and `not_claimed`.
 
+Generate the canonical complete available execution matrix with:
+
+```sh
+python3 scripts/agent-task-comparison.py matrix \
+  --manifest benchmarks/agent-task-comparison-v1/manifest.json \
+  --output /absolute/path/to/matrix.json
+```
+
+`semaprax.agent-task-comparison-matrix.v1` binds one plan/head and enumerates
+every available task/lane/trial tuple in deterministic order. Each row carries
+the SHA-256 digest of the exact trial contract produced by the command below,
+so an external dispatcher can verify what it ran without embedding repeated
+prompts and fixtures in the matrix. External lanes remain separately listed as
+unrun. Matrix generation invokes no agent, validator or publication host and
+contains no observations or comparative result.
+
 Generate one canonical external-harness trial contract with:
 
 ```sh

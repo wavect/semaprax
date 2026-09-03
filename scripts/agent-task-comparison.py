@@ -15,6 +15,7 @@ TASK_SCHEMA = "semaprax.agent-task-comparison-task.v1"
 OBSERVATION_SCHEMA = "semaprax.agent-task-comparison-observation.v1"
 PLAN_SCHEMA = "semaprax.agent-task-comparison-plan.v1"
 TRIAL_SCHEMA = "semaprax.agent-task-comparison-trial.v1"
+MATRIX_SCHEMA = "semaprax.agent-task-comparison-matrix.v1"
 REPORT_SCHEMA = "semaprax.agent-task-comparison-report.v1"
 MAX_JSON = 1024 * 1024
 MAX_EVIDENCE = 32 * 1024 * 1024
@@ -217,6 +218,7 @@ def load_manifest(path):
                 "prompt_sha256": digest(task["prompt"].encode()),
                 "fixture": fixture,
                 "drift_patch": drift,
+                "task": task,
             }
         )
     return value, body, loaded_tasks
@@ -234,8 +236,7 @@ def head():
     return value
 
 
-def make_plan(manifest_path):
-    manifest, body, tasks = load_manifest(manifest_path)
+def make_plan_from_loaded(manifest_path, manifest, body, tasks, repository_head):
     lanes = []
     for lane in manifest["lanes"]:
         lanes.append(
@@ -251,10 +252,20 @@ def make_plan(manifest_path):
     plan = {
         "schema": PLAN_SCHEMA,
         "manifest": {"path": manifest_path, "sha256": digest(body)},
-        "repository_head": head(),
+        "repository_head": repository_head,
         "repetitions": manifest["repetitions"],
         "pairing": manifest["pairing"],
-        "tasks": tasks,
+        "tasks": [
+            {
+                "id": task["id"],
+                "path": task["path"],
+                "sha256": task["sha256"],
+                "prompt_sha256": task["prompt_sha256"],
+                "fixture": task["fixture"],
+                "drift_patch": task["drift_patch"],
+            }
+            for task in tasks
+        ],
         "lanes": lanes,
         "required_metrics": list(METRICS),
         "claims": {
@@ -266,9 +277,14 @@ def make_plan(manifest_path):
     return plan
 
 
-def make_trial(manifest_path, task_id, lane_id, trial):
-    manifest, manifest_body, loaded_tasks = load_manifest(manifest_path)
-    plan = make_plan(manifest_path)
+def make_plan(manifest_path):
+    manifest, body, tasks = load_manifest(manifest_path)
+    return make_plan_from_loaded(manifest_path, manifest, body, tasks, head())
+
+
+def trial_from_loaded(
+    manifest_path, manifest, manifest_body, loaded_tasks, plan, task_id, lane_id, trial
+):
     task_binding = next((item for item in loaded_tasks if item["id"] == task_id), None)
     lane = next((item for item in manifest["lanes"] if item["id"] == lane_id), None)
     if task_binding is None:
@@ -279,7 +295,7 @@ def make_trial(manifest_path, task_id, lane_id, trial):
         raise Failure(f"trial lane is not available: {lane_id}")
     if trial < 1 or trial > manifest["repetitions"]:
         raise Failure("trial number is outside the manifest")
-    task = object_json(relative_file(ROOT, task_binding["path"], MAX_JSON, "task"), "task")
+    task = task_binding["task"]
     resolved_subject = (
         plan["repository_head"]
         if lane["subject"] == "repository-head-resolved-by-plan"
@@ -323,6 +339,84 @@ def make_trial(manifest_path, task_id, lane_id, trial):
             "execution": "not_performed_by_trial_generation",
             "acceptance": "not_observed",
             "comparative_result": "not_observed",
+            "publication_authority": False,
+        },
+    }
+
+
+def make_trial(manifest_path, task_id, lane_id, trial):
+    manifest, manifest_body, loaded_tasks = load_manifest(manifest_path)
+    plan = make_plan_from_loaded(
+        manifest_path, manifest, manifest_body, loaded_tasks, head()
+    )
+    return trial_from_loaded(
+        manifest_path,
+        manifest,
+        manifest_body,
+        loaded_tasks,
+        plan,
+        task_id,
+        lane_id,
+        trial,
+    )
+
+
+def make_matrix(manifest_path):
+    manifest, manifest_body, loaded_tasks = load_manifest(manifest_path)
+    plan = make_plan_from_loaded(
+        manifest_path, manifest, manifest_body, loaded_tasks, head()
+    )
+    rows = []
+    for task in loaded_tasks:
+        for lane in manifest["lanes"]:
+            if lane["availability"] != "available":
+                continue
+            for trial in range(1, manifest["repetitions"] + 1):
+                contract = trial_from_loaded(
+                    manifest_path,
+                    manifest,
+                    manifest_body,
+                    loaded_tasks,
+                    plan,
+                    task["id"],
+                    lane["id"],
+                    trial,
+                )
+                rows.append(
+                    {
+                        "task": task["id"],
+                        "lane": lane["id"],
+                        "trial": trial,
+                        "trial_sha256": digest(canonical(contract)),
+                        "resolved_subject": contract["lane"]["resolved_subject"],
+                    }
+                )
+    external = [
+        {
+            "lane": lane["id"],
+            "subject": lane["subject"],
+            "status": "external_unrun",
+        }
+        for lane in manifest["lanes"]
+        if lane["availability"] == "external_unrun"
+    ]
+    return {
+        "schema": MATRIX_SCHEMA,
+        "plan": plan,
+        "plan_sha256": digest(canonical(plan)),
+        "repository_head": plan["repository_head"],
+        "trial_contract_command": (
+            "python3 scripts/agent-task-comparison.py trial --manifest <manifest> "
+            "--task <task> --lane <lane> --trial <trial> --output <absolute-path>"
+        ),
+        "rows": rows,
+        "row_count": len(rows),
+        "external_lanes": external,
+        "claims": {
+            "execution": "not_performed_by_matrix_generation",
+            "observations": "not_present",
+            "comparative_result": "not_observed",
+            "external_lanes": "not_observed",
             "publication_authority": False,
         },
     }
@@ -522,7 +616,7 @@ def write(value, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("plan", "trial", "report"))
+    parser.add_argument("command", choices=("plan", "matrix", "trial", "report"))
     parser.add_argument("--manifest", default="benchmarks/agent-task-comparison-v1/manifest.json")
     parser.add_argument("--observation", action="append", default=[])
     parser.add_argument("--task")
@@ -534,6 +628,10 @@ def main():
         if arguments.observation or arguments.task or arguments.lane or arguments.trial is not None:
             raise Failure("plan does not accept observations or trial selectors")
         value = make_plan(arguments.manifest)
+    elif arguments.command == "matrix":
+        if arguments.observation or arguments.task or arguments.lane or arguments.trial is not None:
+            raise Failure("matrix does not accept observations or trial selectors")
+        value = make_matrix(arguments.manifest)
     elif arguments.command == "trial":
         if arguments.observation:
             raise Failure("trial does not accept observations")

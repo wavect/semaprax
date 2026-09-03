@@ -81,7 +81,38 @@ impl<'a> SuccessfulRetentionReceipt<'a> {
             }),
         })
     }
+
+    fn ordering_key(self) -> ReceiptOrderingKey {
+        match self {
+            Self::Image(receipt) => (
+                0,
+                receipt.image_digest().to_owned(),
+                receipt.entry_digest().to_owned(),
+                receipt.project_revision().to_owned(),
+                receipt.receipt_digest().to_owned(),
+                receipt.retained_image_bytes(),
+            ),
+            Self::Candidate(receipt) => (
+                1,
+                receipt.archive_digest().to_owned(),
+                receipt.candidate_digest().to_owned(),
+                receipt.base_revision().to_owned(),
+                String::new(),
+                receipt.stored_bytes(),
+            ),
+            Self::Draft(receipt) => (
+                2,
+                receipt.archive_digest().to_owned(),
+                receipt.draft_digest().to_owned(),
+                receipt.base_revision().to_owned(),
+                String::new(),
+                receipt.stored_bytes(),
+            ),
+        }
+    }
 }
+
+type ReceiptOrderingKey = (u8, String, String, String, String, u64);
 
 /// One startup-fixed registry root, policy, and exact current-cursor
 /// expectation. Failure poisons the coordinator; a host must recover and reopen
@@ -189,24 +220,24 @@ impl RetentionLifecycleCoordinator {
                 capacity("retention lifecycle receipt inventory exceeds 96"),
             );
         }
-        let mut stored_receipts = Vec::with_capacity(receipts.len());
-        for receipt in receipts {
-            match receipt.projection() {
-                Ok(projection) => stored_receipts.push(projection),
-                Err(diagnostics) => {
-                    return RetentionLifecycleOutcome::new(
-                        receipts.len(),
-                        stored_receipts,
-                        "no_registry_attempt_receipt_projection_failed",
-                        "successful_typed_store_receipt_was_supplied",
-                        None,
-                        None,
-                        diagnostics,
-                    )
-                }
-            }
+        let (stored_receipts, projection_diagnostics) = collect_projection_results(
+            receipts
+                .iter()
+                .copied()
+                .map(|receipt| (receipt.ordering_key(), receipt.projection()))
+                .collect(),
+        );
+        if !projection_diagnostics.is_empty() {
+            return RetentionLifecycleOutcome::new(
+                receipts.len(),
+                stored_receipts,
+                "no_registry_attempt_receipt_projection_failed",
+                "successful_typed_store_receipt_was_supplied",
+                None,
+                None,
+                projection_diagnostics,
+            );
         }
-        sort_receipt_projections(&mut stored_receipts);
         let borrowed = receipts
             .iter()
             .copied()
@@ -264,6 +295,41 @@ fn sort_receipt_projections(receipts: &mut [Value]) {
                 .expect("closed successful receipt projection is JSON-encodable"),
         )
     });
+}
+
+fn collect_projection_results(
+    mut projections: Vec<(ReceiptOrderingKey, Result<Value>)>,
+) -> (Vec<Value>, Vec<Diagnostic>) {
+    projections.sort_by(|left, right| left.0.cmp(&right.0));
+    let mut receipts = Vec::with_capacity(projections.len());
+    let mut diagnostics = Vec::new();
+    for (_, result) in projections {
+        match result {
+            Ok(receipt) => receipts.push(receipt),
+            Err(mut errors) => {
+                errors.sort_by(|left, right| {
+                    left.code
+                        .cmp(right.code)
+                        .then_with(|| left.message.cmp(&right.message))
+                        .then_with(|| left.severity.as_str().cmp(right.severity.as_str()))
+                        .then_with(|| left.path.cmp(&right.path))
+                        .then_with(|| {
+                            left.span
+                                .map(|span| (span.start, span.end, span.line, span.column))
+                                .cmp(
+                                    &right
+                                        .span
+                                        .map(|span| (span.start, span.end, span.line, span.column)),
+                                )
+                        })
+                        .then_with(|| left.help.cmp(&right.help))
+                });
+                diagnostics.extend(errors);
+            }
+        }
+    }
+    sort_receipt_projections(&mut receipts);
+    (receipts, diagnostics)
 }
 
 /// One explicit outcome after typed receipts already prove immutable subject
@@ -445,6 +511,47 @@ mod tests {
         sort_receipt_projections(&mut forward);
         sort_receipt_projections(&mut reversed);
         assert_eq!(forward, reversed);
+    }
+
+    #[test]
+    fn mixed_projection_failure_inventory_is_independent_of_input_order() {
+        let success = json!({
+            "kind":"candidate",
+            "subject_digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stored_bytes":1,
+        });
+        let first_key = (0, "a".into(), "a".into(), "a".into(), "a".into(), 1);
+        let failed_key = (1, "b".into(), "b".into(), "b".into(), String::new(), 2);
+        let last_key = (2, "c".into(), "c".into(), "c".into(), String::new(), 3);
+        let inputs = vec![
+            (last_key, Ok(success.clone())),
+            (
+                failed_key,
+                Err(vec![
+                    Diagnostic::io("SPX-G999", "later deterministic error"),
+                    Diagnostic::io("SPX-G998", "earlier deterministic error"),
+                ]),
+            ),
+            (first_key, Ok(success)),
+        ];
+        let mut reversed = inputs.clone();
+        reversed.reverse();
+        let forward = collect_projection_results(inputs);
+        let backward = collect_projection_results(reversed);
+        assert_eq!(forward.0, backward.0);
+        assert_eq!(
+            forward
+                .1
+                .iter()
+                .map(|diagnostic| (diagnostic.code, diagnostic.message.as_str()))
+                .collect::<Vec<_>>(),
+            backward
+                .1
+                .iter()
+                .map(|diagnostic| (diagnostic.code, diagnostic.message.as_str()))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(forward.1[0].code, "SPX-G998");
     }
 }
 

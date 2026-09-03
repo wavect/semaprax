@@ -95,10 +95,13 @@ over-capacity batch still states that successful receipts preceded the rejected
 registry attempt; it does not project all rows beyond the 96-receipt bound.
 Receipt-projection failure uses
 `subject_store_status: "successful_typed_store_receipt_was_supplied"` and makes
-no registry attempt. Empty/over-capacity outcomes permit a corrected bounded
-batch, and projection failure requires inspection of the already successful
-typed receipt. They do not poison a previously usable coordinator because no
-registry mutation was attempted. Once a registry attempt has failed, blocked
+no registry attempt. The complete bounded typed inventory is projected before
+that decision: successful rows are retained in total canonical order and every
+projection failure is selected in exact typed-identity order, independent of
+caller order. Empty/over-capacity outcomes permit a corrected bounded batch,
+and projection failure requires inspection of the already successful typed
+receipt. They do not poison a previously usable coordinator because no registry
+mutation was attempted. Once a registry attempt has failed, blocked
 status dominates every later nonempty call, including an over-capacity
 inventory or a receipt whose projection cannot be completed. The outcome still
 states that successful receipts precede the blocked no-attempt result; a bounded

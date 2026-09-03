@@ -42,6 +42,8 @@ mod patch_evidence_v2;
 mod patch_v2;
 #[path = "semantic/patch_v3.rs"]
 mod patch_v3;
+#[path = "semantic/retention_store.rs"]
+mod retention_store;
 #[path = "semantic/review.rs"]
 mod review;
 #[path = "semantic/target_evidence.rs"]

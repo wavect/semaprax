@@ -16,6 +16,7 @@ const ROOT_NAMES: [&str; 3] = ["README.md", "AGENTS.md", "semaprax.toml"];
 const CALCULATOR_SOURCE_NAMES: [&str; 2] = ["app.spx", "tests.spx"];
 const LIBRARY_SOURCE_NAMES: [&str; 3] = ["examples.spx", "lib.spx", "tests.spx"];
 
+#[allow(clippy::large_enum_variant)]
 enum SourceInventory {
     Calculator(platform::PreparedDiscardInventory<2>),
     Library(platform::PreparedDiscardInventory<3>),

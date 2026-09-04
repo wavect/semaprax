@@ -156,6 +156,18 @@ pub fn parse_with_comments(
     parser::Parser::parse_with_comments(source, path.as_ref())
 }
 
+/// Parse `source` and render it canonically with its `//` comments restored:
+/// the text a route that rewrites a source file publishes, so the comments of
+/// the file survive the rewrite. The returned program is the parsed input.
+pub fn parse_canonical(
+    source: &str,
+    path: impl AsRef<Path>,
+) -> Result<(Program, String), Diagnostic> {
+    let (program, comments) = parse_with_comments(source, path)?;
+    let canonical = format::comments::canonical_with_comments(&program, &comments);
+    Ok((program, canonical))
+}
+
 pub fn check(source: &str, path: impl AsRef<Path>) -> Result<Program, Vec<Diagnostic>> {
     let program = parse(source, path).map_err(|error| vec![error])?;
     let diagnostics = verify::verify(&program);

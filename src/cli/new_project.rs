@@ -1,24 +1,26 @@
 //! The `new` invocation grammar shared by both executables.
 //!
-//! `semaprax new <destination> [--name project-name] [--template calculator]`.
+//! `semaprax new <destination> [--name project-name] [--template calculator|library]`.
 //! The full toolchain parses the same grammar inside its private publication
-//! module; the diagnostics here spell every rejection identically so the two
-//! binaries disagree only in how they publish, never in what they accept.
+//! module and spells every shared rejection identically; it publishes only the
+//! calculator template through its held-parent authority, and says so when
+//! asked for another one.
 
 use std::path::PathBuf;
 
-use semaprax::project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR;
+use semaprax::project::{PROJECT_SCAFFOLD_TEMPLATES, PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct NewOptions {
     pub(crate) destination: PathBuf,
     pub(crate) name: String,
+    pub(crate) template: &'static str,
 }
 
 pub(crate) fn parse(arguments: &[String]) -> Result<NewOptions, String> {
     let mut destination = None::<PathBuf>;
     let mut explicit_name = None::<String>;
-    let mut template_seen = false;
+    let mut template = None::<&'static str>;
     let mut index = 0usize;
     while index < arguments.len() {
         match arguments[index].as_str() {
@@ -27,14 +29,9 @@ pub(crate) fn parse(arguments: &[String]) -> Result<NewOptions, String> {
                 index += 2;
             }
             "--name" => return Err("duplicate new option `--name`".to_owned()),
-            "--template" if !template_seen => {
+            "--template" if template.is_none() => {
                 let value = option_value(arguments, index, "--template")?;
-                if value != PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR {
-                    return Err(format!(
-                        "unknown new template `{value}`; expected calculator"
-                    ));
-                }
-                template_seen = true;
+                template = Some(known_template(value)?);
                 index += 2;
             }
             "--template" => return Err("duplicate new option `--template`".to_owned()),
@@ -60,7 +57,23 @@ pub(crate) fn parse(arguments: &[String]) -> Result<NewOptions, String> {
             .to_owned(),
     };
     validate_name(&name)?;
-    Ok(NewOptions { destination, name })
+    Ok(NewOptions {
+        destination,
+        name,
+        template: template.unwrap_or(PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR),
+    })
+}
+
+fn known_template(value: &str) -> Result<&'static str, String> {
+    PROJECT_SCAFFOLD_TEMPLATES
+        .into_iter()
+        .find(|known| *known == value)
+        .ok_or_else(|| {
+            format!(
+                "unknown new template `{value}`; expected {}",
+                PROJECT_SCAFFOLD_TEMPLATES.join(" or ")
+            )
+        })
 }
 
 fn option_value<'a>(
@@ -106,6 +119,7 @@ mod tests {
             NewOptions {
                 destination: PathBuf::from("apps/first-semaprax"),
                 name: "first-semaprax".to_owned(),
+                template: "calculator",
             }
         );
         assert_eq!(
@@ -119,6 +133,20 @@ mod tests {
             .unwrap()
             .name,
             "demo"
+        );
+        let library = parse(&strings(&["lib", "--template", "library"])).unwrap();
+        assert_eq!(library.template, "library");
+        assert_eq!(library.name, "lib");
+        assert_eq!(
+            parse(&strings(&[
+                "x",
+                "--template",
+                "library",
+                "--template",
+                "library"
+            ]))
+            .unwrap_err(),
+            "duplicate new option `--template`"
         );
         assert_eq!(
             parse(&strings(&[])).unwrap_err(),
@@ -134,7 +162,7 @@ mod tests {
         );
         assert_eq!(
             parse(&strings(&["x", "--template", "web"])).unwrap_err(),
-            "unknown new template `web`; expected calculator"
+            "unknown new template `web`; expected calculator or library"
         );
         assert_eq!(
             parse(&strings(&["x", "--name"])).unwrap_err(),

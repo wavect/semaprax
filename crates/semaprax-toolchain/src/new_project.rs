@@ -223,9 +223,22 @@ fn parse(arguments: &[String]) -> Result<NewProjectOptions, NewProjectFailure> {
             "--template" if !template_seen => {
                 let value = option_value(arguments, index, "--template")?;
                 if value != project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR {
-                    return Err(NewProjectFailure::invocation(format!(
-                        "unknown new template `{value}`; expected calculator"
-                    )));
+                    // The held-parent authority publishes the calculator
+                    // inventory only; the standalone compiler's `new` creates
+                    // the other templates through its bounded route.
+                    return Err(NewProjectFailure::invocation(
+                        if project::PROJECT_SCAFFOLD_TEMPLATES.contains(&value) {
+                            format!(
+                                "the full toolchain's new publishes only the calculator template; \
+                                 create a `{value}` project with the standalone `semaprax new`"
+                            )
+                        } else {
+                            format!(
+                                "unknown new template `{value}`; expected {}",
+                                project::PROJECT_SCAFFOLD_TEMPLATES.join(" or ")
+                            )
+                        },
+                    ));
                 }
                 template_seen = true;
                 index += 2;

@@ -78,8 +78,8 @@ fn read_tree(root: &Path) -> BTreeMap<String, Vec<u8>> {
     files
 }
 
-fn scaffold_files(name: &str) -> BTreeMap<String, Vec<u8>> {
-    derive_project_scaffold_v1(name, "calculator")
+fn scaffold_files(name: &str, template: &str) -> BTreeMap<String, Vec<u8>> {
+    derive_project_scaffold_v1(name, template)
         .unwrap()
         .files()
         .iter()
@@ -98,7 +98,10 @@ fn standalone_new_creates_the_exact_template_and_the_project_works() {
         "created calculator project first-semaprax\n"
     );
     let project = fixture.root.join("first-semaprax");
-    assert_eq!(read_tree(&project), scaffold_files("first-semaprax"));
+    assert_eq!(
+        read_tree(&project),
+        scaffold_files("first-semaprax", "calculator")
+    );
 
     let named = cli(
         &fixture.root,
@@ -114,7 +117,7 @@ fn standalone_new_creates_the_exact_template_and_the_project_works() {
     assert!(named.status.success(), "{}", stderr(&named));
     assert_eq!(
         read_tree(&fixture.root.join("elsewhere")),
-        scaffold_files("demo-project")
+        scaffold_files("demo-project", "calculator")
     );
 
     // The created project is a working project for the same binary.
@@ -133,7 +136,44 @@ fn standalone_new_creates_the_exact_template_and_the_project_works() {
     assert!(nested.status.success(), "{}", stderr(&nested));
     assert_eq!(
         read_tree(&fixture.root.join("apps/second")),
-        scaffold_files("second")
+        scaffold_files("second", "calculator")
+    );
+}
+
+#[test]
+fn standalone_new_creates_the_library_template_and_the_project_works() {
+    let fixture = Fixture::new("library");
+    let created = cli(
+        &fixture.root,
+        &["new", "notes-lib", "--template", "library"],
+    );
+    assert!(created.status.success(), "{}", stderr(&created));
+    assert!(created.stderr.is_empty());
+    assert_eq!(stdout(&created), "created library project notes-lib\n");
+    let project = fixture.root.join("notes-lib");
+    assert_eq!(read_tree(&project), scaffold_files("notes-lib", "library"));
+    assert!(project.join("src/lib.spx").is_file());
+    assert!(project.join("src/examples.spx").is_file());
+
+    let check = cli(&project, &["check", "."]);
+    assert!(check.status.success(), "{}", stderr(&check));
+    assert!(stdout(&check).starts_with("verified project notes-lib (sha256:"));
+    let tested = cli(&project, &["test", "."]);
+    assert!(tested.status.success(), "{}", stderr(&tested));
+    assert_eq!(stdout(&tested), "project tests passed\n");
+    let ran = cli(&project, &["run", "."]);
+    assert!(ran.status.success(), "{}", stderr(&ran));
+    assert_eq!(stdout(&ran), "0\n");
+    // The generated files are canonical, comments included.
+    let formatted = cli(&project, &["fmt", ".", "--check"]);
+    assert!(formatted.status.success(), "{}", stderr(&formatted));
+
+    // The template is selected explicitly; the default stays the calculator.
+    let default = cli(&fixture.root, &["new", "plain"]);
+    assert_eq!(stdout(&default), "created calculator project plain\n");
+    assert_eq!(
+        read_tree(&fixture.root.join("plain")),
+        scaffold_files("plain", "calculator")
     );
 }
 
@@ -178,7 +218,7 @@ hint: run `semaprax new --help` for usage\n"
     assert_eq!(template.status.code(), Some(2));
     assert_eq!(
         stderr(&template),
-        "new: unknown new template `web`; expected calculator\nhint: run `semaprax new --help` for usage\n"
+        "new: unknown new template `web`; expected calculator or library\nhint: run `semaprax new --help` for usage\n"
     );
     assert!(!fixture.root.join("fine").exists());
 
@@ -210,7 +250,7 @@ fn standalone_new_is_listed_by_help_and_describes_its_grammar() {
     assert!(scoped.status.success());
     assert_eq!(
         stdout(&scoped),
-        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator]\n"
+        "Usage:\n  semaprax new <destination> [--name project-name] [--template calculator|library]\n"
     );
     let guided = cli(&fixture.root, &["--help"]);
     assert!(stdout(&guided).contains("\n  new <destination>"));

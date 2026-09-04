@@ -10,9 +10,9 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
-    format, freestanding_object, graph, hygienic, impact, interpreter, openapi, package_report,
-    parse, patch, patch_evidence, plugin_manifest, project, properties, protocol_check,
-    quality_route, region_report, repair, review, semantic_workspace, semantic_workspace_change,
+    freestanding_object, graph, hygienic, impact, interpreter, openapi, package_report, parse,
+    patch, patch_evidence, plugin_manifest, project, properties, protocol_check, quality_route,
+    region_report, repair, review, semantic_workspace, semantic_workspace_change,
     semantic_workspace_operations, semantic_workspace_structural_change, simd_report,
     target_evidence, ui_schema, verify, wasm, workspace, workspace_analysis, workspace_graph,
     workspace_patch_evidence,
@@ -29,7 +29,9 @@ mod native_scratch_tests;
 
 /// Explicit private-host hooks supplied only by the unpublished toolchain.
 pub type DoctorHook = fn(&[String]) -> Result<(String, u8), String>;
-pub type NewProjectHook = fn(&[String]) -> Result<PathBuf, (String, u8)>;
+/// Creates a project and returns the destination as spelled plus the
+/// template it published.
+pub type NewProjectHook = fn(&[String]) -> Result<(PathBuf, &'static str), (String, u8)>;
 
 pub struct PrivateHost {
     pub doctor: DoctorHook,
@@ -559,7 +561,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
         }
         CommandId::New => {
-            let destination = match host {
+            let (destination, template) = match host {
                 // The full toolchain publishes through its held-parent staged
                 // authority; the standalone compiler through the bounded
                 // create-new route in the compiler library.
@@ -572,14 +574,19 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                         eprintln!("new: {error}");
                         2
                     })?;
-                    project::create_calculator_project(&options.destination, &options.name)
-                        .map_err(|error| {
-                            eprintln!("new: {error}");
-                            1
-                        })?
+                    let destination = project::create_project(
+                        &options.destination,
+                        &options.name,
+                        options.template,
+                    )
+                    .map_err(|error| {
+                        eprintln!("new: {error}");
+                        1
+                    })?;
+                    (destination, options.template)
                 }
             };
-            println!("created calculator project {}", destination.display());
+            println!("created {template} project {}", destination.display());
             Ok(())
         }
         CommandId::ProjectScaffold => {
@@ -709,25 +716,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         }
         CommandId::Fmt => {
             let options = cli::fmt::parse(&args[1..])?;
-            let path = options.path;
-            let source = std::fs::read_to_string(&path).map_err(|error| {
-                eprintln!("cannot read {}: {error}", path.display());
-                1
-            })?;
-            let (program, comments) = semaprax::parse_with_comments(&source, &path)
-                .map_err(|error| report(&[error], false))?;
-            let canonical = format::comments::canonical_with_comments(&program, &comments);
-            if options.check && source != canonical {
-                eprintln!("{} is not canonically formatted", path.display());
-                Err(1)
-            } else if options.check {
-                Ok(())
-            } else {
-                std::fs::write(&path, canonical).map_err(|error| {
-                    eprintln!("cannot write {}: {error}", path.display());
-                    1
-                })
-            }
+            cli::fmt::run(options, |errors| report(errors, false))
         }
         CommandId::Patch => {
             let source_path = required_path(&args, 1)?;

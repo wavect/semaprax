@@ -190,6 +190,16 @@ fn directory_operands_select_the_project_manifest() {
     let test = cli(&fixture.root, &["test", root]);
     assert!(test.status.success(), "{}", stderr(&test));
     assert_eq!(stdout(&test), "project tests passed\n");
+    // `fmt` resolves the same operands; the committed example is canonical.
+    for operand in [".", "semaprax.toml", root] {
+        let formatted = cli(&fixture.root, &["fmt", operand, "--check"]);
+        assert!(
+            formatted.status.success(),
+            "fmt {operand}: {}",
+            stderr(&formatted)
+        );
+        assert!(formatted.stdout.is_empty() && formatted.stderr.is_empty());
+    }
     // `--manifest-path` stays exact: a directory there is not a manifest.
     let exact = cli(&fixture.root, &["check", "--manifest-path", "."]);
     assert_eq!(exact.status.code(), Some(1));

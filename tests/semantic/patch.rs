@@ -97,6 +97,54 @@ fn main() -> i64
     assert_eq!(returned_revision, graph::revision(&reparsed));
 }
 
+/// A patched file keeps every `//` comment, and the comment above a renamed
+/// function stays above it; the result is canonical, so `fmt --check` accepts
+/// it. Canonical comments v1 owns the placement rules.
+#[test]
+fn semantic_patch_keeps_comments_and_stays_canonical() {
+    let source = "// Arithmetic helpers.\nmodule patch.demo;\n\n// Adds two numbers.\n@id(\"math.add\")\nfn add(a: i64, b: i64) -> i64\n{\n    a + b\n    // the sum\n}\n\n// Entry point.\n@id(\"app.main\")\nfn main() -> i64\n{\n    // forty-two\n    add(40, 2)\n}\n// end of file\n";
+    let expected = source
+        .replace("fn add(", "fn sum(")
+        .replace("add(40, 2)", "sum(40, 2)");
+    let program = parse(source, Path::new("patch.spx")).unwrap();
+    let revision = graph::revision(&program);
+    let directory =
+        std::env::temp_dir().join(format!("semaprax-patch-comments-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let source_path = directory.join("module.spx");
+    let patch_path = directory.join("rename.spatch");
+    std::fs::write(&source_path, source).unwrap();
+    std::fs::write(
+        &patch_path,
+        format!("base {revision}\nrename math.add to sum\nrequire no-new-effects\n"),
+    )
+    .unwrap();
+    let returned_revision = patch::apply(&source_path, &patch_path).unwrap();
+    let changed = std::fs::read_to_string(&source_path).unwrap();
+    assert_eq!(changed, expected);
+    assert!(changed.contains("// Adds two numbers.\n@id(\"math.add\")\nfn sum("));
+    // Comments never reach the graph: the revision is the comment-free one.
+    let stripped: String = expected
+        .lines()
+        .filter(|line| !line.trim_start().starts_with("//"))
+        .map(|line| format!("{line}\n"))
+        .collect();
+    assert_eq!(
+        returned_revision,
+        graph::revision(&parse(&stripped, &source_path).unwrap())
+    );
+    let check = std::process::Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(["fmt", source_path.to_str().unwrap(), "--check"])
+        .output()
+        .unwrap();
+    assert!(
+        check.status.success(),
+        "{}",
+        String::from_utf8_lossy(&check.stderr)
+    );
+    std::fs::remove_dir_all(&directory).unwrap();
+}
+
 #[test]
 fn function_rename_does_not_retarget_same_named_interface_import() {
     let source = r#"module patch.import_collision;

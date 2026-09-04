@@ -29,8 +29,9 @@ The API names keep their `_v1` suffix; only the schema string and digest domain
 are v2, and the returned `ProjectScaffoldV1` and its `ProjectScaffoldFileV1`
 entries expose the same facts as before. The standalone `semaprax
 project-scaffold --name <name> [--template calculator|library]` command prints
-the v2 capsule bytes to stdout exactly as v1 described, and `semaprax new` in
-both executables writes the five calculator files.
+the v2 capsule bytes to stdout exactly as v1 described. The standalone
+`semaprax new` writes either template; the full toolchain's `new` writes the
+five calculator files.
 
 ## Closed capsule
 
@@ -73,7 +74,8 @@ authenticates and publishes a three-file root inventory (`README.md`,
 `AGENTS.md`, `semaprax.toml`) plus `src`; its staging, failure precedence,
 and no-replace guarantees are unchanged. The standalone `new` of
 [standalone project creation v1](NEW-PROJECT-STANDALONE-V1.md) writes the same
-five calculator files; `new` still admits only the calculator template.
+five calculator files by default and the six library files for `--template
+library`; the full toolchain's `new` still admits only the calculator template.
 Project v1 manifest semantics, source semantics, and every other command are
 unchanged.
 

@@ -12,21 +12,25 @@ toolchain, because its publication went through a held-parent staged authority
 that lives in a private platform crate. A developer or agent who installed the
 published compiler had to install a second binary from a source checkout to
 create a first project. This version gives the standalone compiler its own
-`new`, with the same grammar, template, file bytes, and success line, through
+`new`, with the same grammar, templates, file bytes, and success line, through
 a bounded route the compiler library can implement with the standard library.
 
 ## Grammar and template
 
 ```text
-semaprax new <destination> [--name project-name] [--template calculator]
+semaprax new <destination> [--name project-name] [--template calculator|library]
 ```
 
-The grammar and every rejection message are those of the full toolchain's
-`new`. The project name defaults to the destination's final component and
-must match lowercase `[a-z][a-z0-9-]*` within 64 bytes. The only template is
-`calculator`. The files are exactly the [Public Project Scaffold Capsule
-v2](PROJECT-SCAFFOLD-V2.md) files for that name, in that order; this route adds
-no bytes and no file.
+The grammar and every shared rejection message are those of the full
+toolchain's `new`. The project name defaults to the destination's final
+component and must match lowercase `[a-z][a-z0-9-]*` within 64 bytes. The
+template defaults to `calculator`; every template of the [Public Project
+Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md) is admitted, and an unknown one is
+rejected with `unknown new template <name>; expected calculator or library`.
+The files are exactly the capsule's files for that template and name, in that
+order; this route adds no bytes and no file. The full toolchain's `new`
+publishes only the calculator inventory through its held-parent authority and
+refuses `--template library` with a message that names this route.
 
 ## Route
 
@@ -37,12 +41,13 @@ On success the standalone compiler has performed exactly these steps:
 2. Resolve the destination to an absolute path. Its parent must exist and be a
    directory when inspected without following a final symbolic link; the
    destination itself must not exist as any kind of entry.
-3. Create the destination directory with create-new semantics, then its `src`
-   directory, then each file with create-new semantics, in scaffold order.
+3. Create the destination directory with create-new semantics, then each
+   directory the scaffold needs (`src`), then each file with create-new
+   semantics, in scaffold order.
 4. Read every file back and require byte equality with the scaffold.
 5. Authenticate the written project through the ordinary Project v1 snapshot
    path and run its `check`.
-6. Print `created calculator project <destination>` with the destination as
+6. Print `created <template> project <destination>` with the destination as
    the caller spelled it, and exit zero.
 
 Invocation errors exit two with `new: <message>` and the scoped-help recovery
@@ -68,8 +73,10 @@ evidence is not hosted, cross-platform, release, or support evidence.
 `tests/project/new_cli.rs` pins, against the standalone binary: the exact
 template bytes for a default and an explicit name, nested destinations under an
 existing parent, the success line, that the created project checks, tests, and
-runs, refusal of existing directories and files without touching them, the
-exit-two invocation rejections and their messages, the missing-parent failure,
-and the guided and scoped help entries. The standalone help harness pins the
+runs, the library template's bytes, success line, and check/test/run/`fmt
+--check` results, that the default template stays the calculator, refusal of
+existing directories and files without touching them, the exit-two invocation
+rejections and their messages, the missing-parent failure, and the guided and
+scoped help entries. The standalone help harness pins the
 public catalog entry; the quickstart harness executes the documented flow with
 the standalone binary alone.

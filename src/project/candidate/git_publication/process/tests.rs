@@ -8,6 +8,11 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static PROCESS_SERIAL: AtomicU64 = AtomicU64::new(0);
 const SURROGATE_FILTER: &str = "held_git_process_native_surrogate";
+/// Generous ceiling for the tests whose subject is not the deadline. Spawning
+/// and inspecting the suspended child takes seconds when the whole test binary
+/// runs in parallel, and a tight bound makes those runs report a deadline error
+/// instead of the outcome being asserted.
+const SETTLED_DEADLINE: Duration = Duration::from_secs(60);
 
 struct ProcessFixture {
     root: PathBuf,
@@ -144,7 +149,7 @@ fn held_git_process_native_surrogate() {
 fn held_runner_preserves_exact_status_and_stdout() {
     let fixture = ProcessFixture::new("exact");
     let (status, output) = fixture
-        .run(4096, 4096, Instant::now() + Duration::from_secs(5))
+        .run(4096, 4096, Instant::now() + SETTLED_DEADLINE)
         .unwrap();
     assert_eq!(status, 23);
     assert!(output.ends_with(b"exact-output"), "{output:?}");
@@ -176,7 +181,7 @@ fn held_runner_executes_the_real_git_image() {
         &[],
         4096,
         4096,
-        Instant::now() + Duration::from_secs(5),
+        Instant::now() + SETTLED_DEADLINE,
     )
     .unwrap();
     assert_eq!(status, 0);
@@ -201,7 +206,7 @@ fn held_runner_never_executes_a_replacement_path() {
     std::fs::rename(&trusted, &retained).unwrap();
     std::fs::copy("/usr/bin/false", &trusted).unwrap();
     std::fs::set_permissions(&trusted, std::fs::Permissions::from_mode(0o755)).unwrap();
-    let result = fixture.run(4096, 4096, Instant::now() + Duration::from_secs(5));
+    let result = fixture.run(4096, 4096, Instant::now() + SETTLED_DEADLINE);
     match result {
         Ok((status, output)) => {
             assert_eq!(status, 23);
@@ -237,7 +242,7 @@ fn held_runner_clears_environment_and_non_whitelisted_descriptors() {
     .unwrap();
 
     let (status, _) = fixture
-        .run(4096, 4096, Instant::now() + Duration::from_secs(5))
+        .run(4096, 4096, Instant::now() + SETTLED_DEADLINE)
         .unwrap();
     assert_eq!(status, 17);
     assert_eq!(
@@ -251,7 +256,7 @@ fn held_runner_clears_environment_and_non_whitelisted_descriptors() {
 fn output_overflow_settles_the_entire_owned_process_group() {
     let fixture = ProcessFixture::new("overflow");
     let error = fixture
-        .run(4096, 4096, Instant::now() + Duration::from_secs(5))
+        .run(4096, 4096, Instant::now() + SETTLED_DEADLINE)
         .expect_err("surrogate output must exceed the exact bound");
     assert_eq!(error.to_string(), "Git stdout exceeded byte bound");
     assert_group_quiescent(fixture.process_group());
@@ -261,7 +266,7 @@ fn output_overflow_settles_the_entire_owned_process_group() {
 fn stderr_overflow_settles_the_entire_owned_process_group() {
     let fixture = ProcessFixture::new("stderr-overflow");
     let error = fixture
-        .run(4096, 4096, Instant::now() + Duration::from_secs(5))
+        .run(4096, 4096, Instant::now() + SETTLED_DEADLINE)
         .expect_err("surrogate stderr must exceed the exact bound");
     assert_eq!(error.to_string(), "Git stderr exceeded byte bound");
     assert_group_quiescent(fixture.process_group());
@@ -271,7 +276,7 @@ fn stderr_overflow_settles_the_entire_owned_process_group() {
 fn successful_leader_cannot_leave_a_live_descendant() {
     let fixture = ProcessFixture::new("success-descendant");
     let (status, _) = fixture
-        .run(4096, 4096, Instant::now() + Duration::from_secs(5))
+        .run(4096, 4096, Instant::now() + SETTLED_DEADLINE)
         .unwrap();
     assert_eq!(status, 0);
     assert_group_quiescent(fixture.process_group());

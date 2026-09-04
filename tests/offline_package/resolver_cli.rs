@@ -46,11 +46,22 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // so every historical witness below still measures the shape it recorded:
     // `semaprax lock` is new, directory inputs were added to check/build/run
     // /test, the scaffold gained a library template, and `new` became public.
-    const RESTORED: [(&str, &str); 7] = [
-        ("semaprax lock <manifest> [--write|--verify]\n", ""),
+    const RESTORED: [(&str, &str); 9] = [
+        (
+            "semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n",
+            "",
+        ),
+        (
+            "semaprax resolve <manifest> --target <native64|wasm32> --cache <dir> [--write|--verify] [--max-bytes N]\n",
+            "",
+        ),
         (
             "semaprax check [<file>|<dir>|semaprax.toml|--manifest-path path] [--json]\n",
             "semaprax check [<file>|semaprax.toml|--manifest-path path] [--json]\n",
+        ),
+        (
+            "semaprax fmt <file>|<dir>|semaprax.toml [--check]\n",
+            "semaprax fmt <file> [--check]\n",
         ),
         (
             "semaprax project-scaffold --name project-name [--template calculator|library]\n",
@@ -69,7 +80,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
         ),
         (
-            "semaprax new <destination> [--name project-name] [--template calculator]\n",
+            "semaprax new <destination> [--name project-name] [--template calculator|library]\n",
             "",
         ),
     ];

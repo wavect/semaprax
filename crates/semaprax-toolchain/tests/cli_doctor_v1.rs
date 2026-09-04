@@ -387,7 +387,7 @@ fn malformed_offline_profile_selectors_are_cli_errors() {
         assert!(output.stdout.is_empty(), "{selector:?}");
         assert_eq!(
             output.stderr,
-            b"doctor: invalid doctor profile identifier; expected [a-z][a-z0-9-]{0,63}\n"
+            b"doctor: invalid doctor profile identifier; expected [a-z][a-z0-9-]{0,63}\nhint: run `semaprax doctor --help` for usage\n"
         );
     }
 }

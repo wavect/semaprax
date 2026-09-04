@@ -288,7 +288,6 @@ Audience: all documentation readers.
 - [Architecture](ARCHITECTURE.md)
 - [Quality gates](QUALITY-GATES.md)
 - [Release process and tag evidence](RELEASE-PROCESS.md)
-- [Changelog summary](CHANGELOG-SUMMARY.md)
 - [Roadmap](ROADMAP.md)
 - [Protocol migrations](MIGRATIONS.md)
 

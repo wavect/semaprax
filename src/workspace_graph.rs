@@ -1325,7 +1325,8 @@ impl WorkspaceGraphBuild {
                     return Err(vec![graph_error(
                         "SPX-G172",
                         "workspace scalar provider modules may not declare `main`",
-                    )]);
+                    )
+                    .with_help(PROVIDER_MAIN_HELP)]);
                 }
                 let Some(fact) = self.hir.declarations.get(function.id.as_str()) else {
                     return Err(vec![graph_error(
@@ -2165,7 +2166,8 @@ impl WorkspaceGraphBuild {
                 return Err(vec![graph_error(
                     "SPX-G172",
                     "workspace scalar provider modules may not declare `main`",
-                )]);
+                )
+                .with_help(PROVIDER_MAIN_HELP)]);
             }
             // Project v8 target admission is reachability-gated. Irrelevant
             // verified functions receive no runtime or target authority and
@@ -6752,6 +6754,8 @@ fn use_error(program: &Program, module_use: &ModuleUse, message: &str) -> Diagno
 fn graph_error(code: &'static str, message: impl Into<String>) -> Diagnostic {
     Diagnostic::io(code, message)
 }
+
+const PROVIDER_MAIN_HELP: &str = "`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`";
 
 fn limit_error(field: &'static str, maximum: usize) -> Diagnostic {
     graph_error(

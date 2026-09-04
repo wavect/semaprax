@@ -64,7 +64,10 @@ pub(super) fn unknown_function(
     }
     match nearest_function_name(name, functions) {
         Some(candidate) => diagnostic.with_help(format!("did you mean `{candidate}`?")),
-        None => diagnostic,
+        None => diagnostic.with_help(format!(
+            "declare `{name}` in this module, or in a project import it directly after the \\
+             `module` line: `use function @id(\"stable.id\") from other.module as {name};`"
+        )),
     }
 }
 

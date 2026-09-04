@@ -132,8 +132,9 @@ impl ProjectManifest {
             match schema.as_str() {
                 PROJECT_SCHEMA => {
                     if lines.len() != 7 || lines.last() != Some(&"") {
-                        return Err(grammar(
+                        return Err(grammar_with_help(
                             "Project v1 manifest must contain exactly six ordered assignments and one terminal LF",
+                            V1_SHAPE_HELP,
                         ));
                     }
                     (
@@ -1032,6 +1033,18 @@ fn valid_stable_id(value: &str) -> bool {
 
 pub(super) fn grammar(message: impl Into<String>) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-J100", message)]
+}
+
+/// The exact line shape of a Project v1 manifest, for the reader who wrote
+/// the keys in another order or left one out.
+const V1_SHAPE_HELP: &str = "write exactly these six lines in this order, then one final newline: \
+                             `schema = \"semaprax.project.v1\"`, `name = \"…\"`, \
+                             `entry = \"module.with.main\"`, `sources = [\"src/….spx\", …]`, \
+                             `web_exports = [\"stable.id\", …]` (byte-sorted), \
+                             `tests = [\"module.tests\"]`";
+
+fn grammar_with_help(message: impl Into<String>, help: &str) -> Vec<Diagnostic> {
+    vec![Diagnostic::io("SPX-J100", message).with_help(help)]
 }
 
 pub(super) fn capacity(field: &str, limit: usize) -> Vec<Diagnostic> {

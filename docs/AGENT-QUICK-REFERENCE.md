@@ -521,15 +521,17 @@ web = ["calculator.add"]
 
 The bytes must be canonical: tables in that order, one blank line between
 them, arrays on one line, no comments. A non-canonical manifest fails with
-`SPX-J100` and a `help` line naming the first differing line; an unknown or
-reserved table or key fails with `SPX-J120`. `[package] profile` selects a
-command or owned-data profile, `[dependencies]` is admitted but fails every
-build closed with `SPX-J121` until resolution exists, and `[targets]
-matrix = ["wasm32"]` rejects native builds with `SPX-J122`.
+`SPX-J100` and a `help` line naming the first differing line (for the frozen
+one-line-per-key layout, the six lines in order); an unknown or reserved table
+or key fails with `SPX-J120`. `[package] profile` selects a command or
+owned-data profile, `[dependencies]` is admitted but fails every build closed
+with `SPX-J121` until resolution exists, and `[targets] matrix = ["wasm32"]`
+rejects native builds with `SPX-J122`.
 
 Modules import by stable identity, not by path:
-`use function @id("calculator.add") from calculator.core as add;` at the top of
-the importing file. A test module is an ordinary module whose `main` returns
+`use function @id("calculator.add") from calculator.core as add;` directly
+after the `module` line of the importing file; `entry` names the one module
+that declares `main`. A test module is an ordinary module whose `main` returns
 `0` on success; `semaprax test semaprax.toml` prints `project tests passed`.
 A failure prints only `project tests failed with result N`, so return a
 distinct non-zero value from each failing check (`if a { if b { 0 } else { 2 } }

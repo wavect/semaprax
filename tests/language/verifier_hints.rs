@@ -97,12 +97,15 @@ fn print_family_points_at_stdout_write() {
 }
 
 #[test]
-fn distant_or_ambiguous_names_get_no_suggestion() {
+fn distant_names_get_the_declare_or_import_hint_instead_of_a_guess() {
     let diagnostic = only(
         "module habit.far;\n@id(\"app.main\")\nfn main() -> i64\n{\n    frobnicate(1)\n}\n",
         "SPX-T203",
     );
-    assert!(diagnostic.help.is_none(), "{diagnostic}");
+    assert!(
+        help(&diagnostic).contains("from other.module as frobnicate;"),
+        "no near name, so the declare-or-import hint applies: {diagnostic}"
+    );
 }
 
 #[test]

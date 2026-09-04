@@ -1959,7 +1959,11 @@ fn emit_function(
         "{} spx_result = {{0}};",
         c_value_type(program, resource_abi, &function.return_type)?
     ));
-    if matches!(function.return_type, ResolvedType::Bytes) {
+    // An owned-Bytes result moves field by field, and a contract-failure lane
+    // leaves even that unreached, so the slot can go unnamed in valid C.
+    if matches!(function.return_type, ResolvedType::Bytes)
+        || emitter.record_contains_owned_bytes(&function.return_type)?
+    {
         emitter.line("(void)spx_result;");
     }
     for index in 0..function.params.len() {

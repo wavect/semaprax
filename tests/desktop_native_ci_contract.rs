@@ -162,6 +162,10 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
             "expected_executable_images='/usr/lib/libiconv.2.dylib\n/usr/lib/libSystem.B.dylib'",
             "expected_executable_images='/usr/lib/foreign.dylib'",
         ),
+        source.replace(
+            "sorted_images() { printf '%s\\n' \"$1\" | LC_ALL=C sort -u; }",
+            "sorted_images() { printf 'any\\n'; }",
+        ),
         source.replace("load_commands=$(otool -l \"$binary\")", "load_commands=''"),
         source.replace(
             "$(printf '%s\\n' \"$load_commands\" | sed -n '1p')",
@@ -407,7 +411,9 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "otool -L",
             "actual_executable_images",
             "expected_executable_images='/usr/lib/libiconv.2.dylib\n/usr/lib/libSystem.B.dylib'",
-            "if [ \"$actual_executable_images\" != \"$expected_executable_images\" ]; then",
+            "sorted_images() { printf '%s\\n' \"$1\" | LC_ALL=C sort -u; }",
+            "if [ \"$(sorted_images \"$actual_executable_images\")\" != \"$(sorted_images \"$expected_executable_images\")\" ]; then",
+            "if [ \"$(sorted_images \"$actual_provider_images\")\" != \"$(sorted_images \"$expected_provider_images\")\" ]; then",
             "actual_provider_images",
             "nm -gjU",
             "actual_provider_exports",

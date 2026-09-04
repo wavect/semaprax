@@ -104,11 +104,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     CheckedValue { ty: binding.ty.clone(), mode: binding.mode, native_unit: binding.native_unit_discard }
                 });
                 if value.is_none() {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T202",
-                        format!("unknown value `{name}` in `{}`", self.current.name),
-                        expression.span,
+                    self.diagnostics.push(hints::with_optional_help(
+                        error(
+                            self.program,
+                            "SPX-T202",
+                            format!("unknown value `{name}` in `{}`", self.current.name),
+                            expression.span,
+                        ),
+                        hints::variant_shorthand_help(name).map(str::to_owned),
                     ));
                 }
                 self.values.push(value);

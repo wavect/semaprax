@@ -39,6 +39,16 @@ const MISSING_ELSE_HELP: &str = "`if` is an expression and always has an `else` 
 const CALL_PATTERN_HELP: &str =
     "variant patterns name the case and its fields: `Option::Some { value: v }`, not `Some(v)`";
 const TUPLE_HELP: &str = "tuples are not admitted; declare a `record` with named fields";
+const RETURN_TYPE_HELP: &str = "every function declares its result type after `->`; there is no \
+                                unit or implicit result, so return `i64` or `bool`";
+const UNIT_TYPE_HELP: &str =
+    "there is no unit type; return `i64` (conventionally `0`) or `bool` instead of `()`";
+const LET_VALUE_HELP: &str =
+    "every `let` binds a value at its declaration; there is no uninitialised binding";
+const CONDITION_ASSIGN_HELP: &str =
+    "comparison is `==`; a single `=` is assignment, which is a statement and never a condition";
+const INDEX_HELP: &str = "there is no indexing syntax; read a byte with `byte_get(view, index)`, which \
+                          returns `Option<u8>`, after `array_as_slice(array)` or `bytes_as_slice(bytes)`";
 
 impl Parser {
     /// `return <expr>`, `for <name> …`, or `loop {` where a statement or the
@@ -117,6 +127,104 @@ impl Parser {
                     .with_help(CALL_PATTERN_HELP)
             },
         )
+    }
+
+    /// A declaration keyword from another language where `fn` or a type
+    /// declaration was expected.
+    pub(super) fn foreign_declaration(&self) -> Option<Diagnostic> {
+        let TokenKind::Ident(word) = &self.current().kind else {
+            return None;
+        };
+        let help = match word.as_str() {
+            "struct" => "a product type is `record Name { @id(\"…\") field: Type, }`",
+            "enum" => {
+                "a sum type is `variant Name { @id(\"…\") Case, @id(\"…\") Case { @id(\"…\") field: Type, }, }`"
+            }
+            "pub" | "public" | "export" => {
+                "declarations are reachable through their `@id`; there is no visibility keyword"
+            }
+            "const" | "static" | "let" | "var" => {
+                "there are no module-level values; declare `fn name() -> i64 { value }` and call it"
+            }
+            "trait" => "`class Child : Parent` inherits methods and `protocol` declares method requirements",
+            "type" | "typedef" => "type aliases are not admitted; write the type at each use",
+            _ => return None,
+        };
+        Some(self.error_here("SPX-P104", "expected `fn`").with_help(help))
+    }
+
+    /// `x += 1;` and friends where a statement was expected.
+    pub(super) fn compound_assignment(&self) -> Option<Diagnostic> {
+        let TokenKind::Ident(name) = &self.current().kind else {
+            return None;
+        };
+        let operator = match self.tokens.get(self.cursor + 1).map(|token| &token.kind)? {
+            TokenKind::Plus => "+",
+            TokenKind::Minus => "-",
+            TokenKind::Star => "*",
+            TokenKind::Slash => "/",
+            TokenKind::Percent => "%",
+            _ => return None,
+        };
+        let follows_eq = matches!(
+            self.tokens.get(self.cursor + 2).map(|token| &token.kind),
+            Some(TokenKind::Eq)
+        );
+        follows_eq.then(|| {
+            Diagnostic::error(
+                "SPX-P201",
+                "compound assignment is not admitted",
+                self.tokens[self.cursor + 1]
+                    .span
+                    .merge(self.tokens[self.cursor + 2].span),
+            )
+            .at_path(&self.path)
+            .with_help(format!(
+                "write `{name} = {name} {operator} …;`; assignment is a statement with a plain `=`"
+            ))
+        })
+    }
+
+    /// `()` where a type was expected.
+    pub(super) fn unit_type(&self) -> Option<Diagnostic> {
+        (self.at(&TokenKind::LParen)
+            && matches!(
+                self.tokens.get(self.cursor + 1).map(|token| &token.kind),
+                Some(TokenKind::RParen)
+            ))
+        .then(|| {
+            self.error_here("SPX-P105", "expected type")
+                .with_help(UNIT_TYPE_HELP)
+        })
+    }
+
+    /// Attach the fix for the common ways an `expected …` rejection arises.
+    pub(super) fn decorate_expected(
+        &self,
+        diagnostic: Diagnostic,
+        description: &str,
+    ) -> Diagnostic {
+        if self.at(&TokenKind::LBracket) {
+            return diagnostic.with_help(INDEX_HELP);
+        }
+        if let Some(noun) = description.strip_prefix("`,` after ") {
+            if self.at(&TokenKind::RBrace) {
+                return diagnostic.with_help(format!(
+                    "every {noun} ends with `,`, including the last one before `}}`"
+                ));
+            }
+            return diagnostic;
+        }
+        match description {
+            "`->` before return type" => diagnostic.with_help(RETURN_TYPE_HELP),
+            "`=` in local binding" if self.at(&TokenKind::Semicolon) => {
+                diagnostic.with_help(LET_VALUE_HELP)
+            }
+            "`{` before `if` condition" | "`{` before `while` body" if self.at(&TokenKind::Eq) => {
+                diagnostic.with_help(CONDITION_ASSIGN_HELP)
+            }
+            _ => diagnostic,
+        }
     }
 
     /// A parenthesised expression followed by `,`: a tuple literal.

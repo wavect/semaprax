@@ -12,7 +12,8 @@
 use std::collections::HashMap;
 
 use super::diagnostics::error;
-use crate::ast::{Expr, ExprKind, Function, Program, Span, Type};
+use super::type_table::TypeTable;
+use crate::ast::{Expr, ExprKind, Function, Program, Span, Type, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
 
 /// Foreign output routines and the one admitted way to write bytes.
@@ -46,6 +47,9 @@ pub(super) fn unknown_function(
     );
     if PRINT_FAMILY.contains(&name) {
         return diagnostic.with_help(PRINT_HELP);
+    }
+    if let Some(help) = variant_shorthand_help(name) {
+        return diagnostic.with_help(help);
     }
     match nearest_function_name(name, functions) {
         Some(candidate) => diagnostic.with_help(format!("did you mean `{candidate}`?")),
@@ -207,6 +211,122 @@ pub(super) fn argument_view_help(name: &str, expected: &Type, actual: &Type) -> 
         _ => return None,
     };
     Some(help)
+}
+
+/// `Some(1)`, `None`, `Ok(x)`, or `Err(e)` used as a bare constructor or value.
+pub(super) fn variant_shorthand_help(name: &str) -> Option<&'static str> {
+    match name {
+        "Some" | "None" => Some(
+            "variant constructors spell the type and fields: `Option<i64>::Some { value: 1 }` and \
+             `Option<i64>::None {}`",
+        ),
+        "Ok" | "Err" => Some(
+            "variant constructors spell the type and fields: `Result<i64, bool>::Ok { value: 1 }` \
+             and `Result<i64, bool>::Err { error: false }`",
+        ),
+        "null" | "nil" | "undefined" | "nullptr" => Some(
+            "there is no null; an absent value is `Option<T>::None {}` and a present one \
+             `Option<T>::Some { value: … }`",
+        ),
+        _ => None,
+    }
+}
+
+/// A method call on a value whose type has no methods.
+pub(super) fn method_receiver_help(receiver: &Type, method: &str) -> Option<String> {
+    let (family, replacement) = match receiver {
+        Type::String => (
+            "strings",
+            match method {
+                "len" | "length" | "size" | "byte_len" => Some("string_len(s)"),
+                "chars" | "char_count" | "len_chars" | "count" => Some("string_len_chars(s)"),
+                "is_empty" | "empty" => Some("string_is_empty(s)"),
+                "contains" | "includes" | "find" | "index_of" => Some("string_contains(s, needle)"),
+                "starts_with" | "has_prefix" => Some("string_starts_with(s, prefix)"),
+                "concat" | "push_str" | "append" | "add" | "join" => Some("string_concat(a, b)"),
+                "as_str" | "borrow" | "view" => Some("string_as_str(binding)"),
+                "as_bytes" | "bytes" | "to_bytes" => Some("str_as_bytes(string_as_str(binding))"),
+                _ => None,
+            },
+        ),
+        Type::Str => (
+            "borrowed `str` views",
+            match method {
+                "len" | "length" | "size" | "len_bytes" => Some("str_len_bytes(s)"),
+                "is_empty" | "empty" => Some("str_is_empty(s)"),
+                "contains" | "includes" | "find" => Some("str_contains(s, needle)"),
+                "starts_with" | "has_prefix" => Some("str_starts_with(s, prefix)"),
+                "as_bytes" | "bytes" => Some("str_as_bytes(s)"),
+                _ => None,
+            },
+        ),
+        Type::SliceU8 | Type::Bytes | Type::ArrayU8(_) => (
+            "byte values",
+            match method {
+                "len" | "length" | "size" | "count" => Some("byte_len(view)"),
+                "get" | "at" | "index" | "nth" => Some("byte_get(view, index)"),
+                "slice" | "range" | "sub" | "window" => Some("byte_range(view, start, end)"),
+                "copy" | "clone" | "to_vec" | "to_owned" => Some("bytes_copy(view)"),
+                "as_slice" | "view" | "borrow" => Some("bytes_as_slice(bytes)"),
+                _ => None,
+            },
+        ),
+        Type::Named { .. } => {
+            return Some(
+                "records and variants have no methods; call a function with the value as an \
+                 argument, or declare a `class` when methods are needed"
+                    .to_owned(),
+            );
+        }
+        _ => return None,
+    };
+    Some(match replacement {
+        Some(replacement) => format!(
+            "{family} have no methods; write `{replacement}` with the compiler-owned function"
+        ),
+        None => format!("{family} have no methods; call a compiler-owned function with the value as its argument"),
+    })
+}
+
+/// A method looked up on a declared type that is not a class.
+pub(super) fn non_class_method_help(types: &TypeTable<'_>, name: &str) -> Option<String> {
+    let declaration = types.declaration(name)?;
+    let noun = match declaration.kind {
+        TypeDeclarationKind::Record { .. } => "records",
+        TypeDeclarationKind::Variant { .. } => "variants",
+        TypeDeclarationKind::Resource { .. } => "resources",
+        _ => return None,
+    };
+    Some(format!(
+        "{noun} have no methods; call a function with the value as an argument, or declare a \
+         `class` when methods are needed"
+    ))
+}
+
+/// A type name from another language.
+pub(super) fn unknown_type_help(name: &str) -> Option<&'static str> {
+    match name {
+        "String" | "str" | "Str" | "text" | "Text" => Some(
+            "owned text is `string`; a borrowed view is `borrow str` in a parameter position",
+        ),
+        "int" | "Int" | "i8" | "i16" | "u16" | "u32" | "u64" | "i128" | "u128" | "isize"
+        | "long" | "short" | "byte" | "integer" | "Integer" | "number" | "Number" => Some(
+            "the integer types are `i64` (the literal default), `i32`, `u8`, and `usize`; there is no other width",
+        ),
+        "float" | "Float" | "double" | "Double" | "f16" | "decimal" => {
+            Some("the floating-point types are `f64` and `f32`")
+        }
+        "boolean" | "Boolean" | "Bool" => Some("the boolean type is spelled `bool`"),
+        "Vec" | "vec" | "Array" | "array" | "List" | "list" | "Slice" | "slice" => Some(
+            "sequences are fixed `[u8; N]` arrays, owned `Bytes`, and borrowed `Slice<u8>` views; there is no general collection type",
+        ),
+        "unit" | "void" | "Unit" | "Void" | "never" => {
+            Some("there is no unit type; functions return `i64` or `bool`")
+        }
+        "char8" | "Char" | "character" | "rune" => Some("a Unicode scalar is `char`"),
+        "Option" | "Result" => None,
+        _ => None,
+    }
 }
 
 /// Attach `help` when a hint applies.

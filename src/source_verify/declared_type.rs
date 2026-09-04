@@ -168,7 +168,10 @@ pub(super) fn check_declared_type(
                     format!("`{name}` is not an in-scope type parameter"),
                 )
             };
-            diagnostics.push(error(program, code, message, span));
+            diagnostics.push(super::hints::with_optional_help(
+                error(program, code, message, span),
+                super::hints::unknown_type_help(name).map(str::to_owned),
+            ));
             continue;
         };
         if arguments.len() != declaration.type_parameters.len() {

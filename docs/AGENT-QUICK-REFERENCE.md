@@ -480,6 +480,14 @@ Other first-attempt diagnostics and their fixes:
 | `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |
 | `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; `0` conventionally means success |
 | a second `consume(b)` after `own` | `SPX-O101` | Take `borrow` in the callee or pass a fresh value |
+| `struct`, `enum`, `pub`, `const` | `SPX-P104` | `record`, `variant`, no visibility keyword, a function returning the value |
+| `x: i64` as the last field without `,` | `SPX-P106` | Every field and every match arm ends with `,`, including the last |
+| `x += 1;` | `SPX-P201` | `x = x + 1;` |
+| `fn f()` or `-> ()` | `SPX-P106`, `SPX-P105` | Every function returns `i64` or `bool`; there is no unit |
+| `a[0]` | `SPX-P106` | `byte_get(array_as_slice(a), 0usize)` returns `Option<u8>` |
+| `Some(1)`, `None` | `SPX-T203`, `SPX-T202` | `Option<i64>::Some { value: 1 }`, `Option<i64>::None {}` |
+| `s.len()` on a `string` | `SPX-T203` | `string_len(s)`; no type but a `class` has methods |
+| `String`, `int`, `Vec` as types | `SPX-T001` | `string`, `i64`/`i32`/`u8`/`usize`, `[u8; N]`/`Bytes`/`Slice<u8>` |
 
 ## Projects
 

@@ -169,3 +169,83 @@ fn owned_string_into_stdout_write_names_the_conversion() {
     );
     assert!(help(&diagnostic).contains("str_as_bytes"), "{diagnostic}");
 }
+
+#[test]
+fn variant_shorthand_constructors_show_the_typed_spelling() {
+    let some = only(
+        "module habit.some;\n@id(\"habit.f\")\nfn f(flag: bool) -> Option<i64>\n{\n    if flag { Some(1) } else { Option<i64>::None {} }\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+        "SPX-T203",
+    );
+    assert_eq!(some.message, "unknown function `Some`");
+    assert!(
+        help(&some).contains("Option<i64>::Some { value: 1 }"),
+        "{some}"
+    );
+
+    let none = only(
+        "module habit.none;\n@id(\"habit.f\")\nfn f() -> Option<i64>\n{\n    None\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+        "SPX-T202",
+    );
+    assert!(help(&none).contains("Option<i64>::None {}"), "{none}");
+}
+
+#[test]
+fn method_on_a_string_names_the_compiler_owned_function() {
+    let diagnostic = only(
+        "module habit.method;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let s = \"abc\";\n    s.len()\n}\n",
+        "SPX-T203",
+    );
+    assert_eq!(
+        diagnostic.message,
+        "method `len` requires a class receiver, found `string`"
+    );
+    assert!(help(&diagnostic).contains("string_len(s)"), "{diagnostic}");
+}
+
+#[test]
+fn method_on_a_record_explains_that_records_have_no_methods() {
+    let diagnostic = only(
+        "module habit.rec;\n@id(\"m.p\")\nrecord P {\n    @id(\"m.p.x\")\n    x: i64,\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let p = P { x: 1 };\n    p.total()\n}\n",
+        "SPX-T203",
+    );
+    assert!(
+        help(&diagnostic).contains("records have no methods"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn foreign_type_names_point_at_the_admitted_types() {
+    let cases = [
+        ("String", "owned text is `string`"),
+        ("int", "`i64` (the literal default)"),
+        ("double", "`f64` and `f32`"),
+        ("boolean", "spelled `bool`"),
+        ("Vec", "no general collection type"),
+    ];
+    for (name, expected_help) in cases {
+        let diagnostic = only(
+            &format!(
+                "module habit.ty;\n@id(\"habit.f\")\nfn f(v: {name}) -> i64\n{{\n    1\n}}\n@id(\"app.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
+            ),
+            "SPX-T001",
+        );
+        assert!(
+            help(&diagnostic).contains(expected_help),
+            "{name}: {diagnostic}"
+        );
+    }
+}
+
+#[test]
+fn a_genuinely_unknown_type_keeps_the_resource_message_without_a_hint() {
+    let diagnostic = only(
+        "module habit.unk;\n@id(\"habit.f\")\nfn f(v: Widget) -> i64\n{\n    1\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+        "SPX-T001",
+    );
+    assert_eq!(
+        diagnostic.message,
+        "unknown type `Widget`; declare it with `resource Widget;`"
+    );
+    assert!(diagnostic.help.is_none(), "{diagnostic}");
+}

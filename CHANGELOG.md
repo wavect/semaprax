@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- More first-attempt habits now carry their fix: `struct`/`enum`/`pub`/`const`
+  declarations, a missing trailing `,` after the last field or match arm,
+  `x += 1`, a missing `->` result type or a `()` unit type, an uninitialised
+  `let`, `=` in an `if` condition, `a[0]` indexing, `Some(1)`/`None` shorthand,
+  a method call on a `string`, byte, record, or variant value, and foreign type
+  names such as `String`, `int`, `double`, `boolean`, or `Vec`. Codes and
+  messages are unchanged; `tests/language/foreign_syntax_hints.rs` and
+  `tests/language/verifier_hints.rs` pin each case. Type syntax parsing moved
+  verbatim into `src/parser/types.rs` to keep the grammar root under budget.
+
 - An owned `string` or byte value passed to a user function's `borrow str` or
   `borrow Slice<u8>` parameter now names the view conversion in its `SPX-T205`
   help, the parser's expression-statement hint shows the admitted `let _ = …;`

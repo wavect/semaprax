@@ -23,7 +23,7 @@ with `SPX-J121` until a build path exists.
 ## Command
 
 ```text
-semaprax resolve <manifest> --target <native64|wasm32> --cache <dir> [--max-bytes N]
+semaprax resolve <manifest> --target <native64|wasm32> --cache <dir> [--write|--verify] [--max-bytes N]
 ```
 
 `resolve` parses the manifest (it does not build the project, so it resolves a
@@ -65,7 +65,7 @@ and cache files; it acquires nothing and builds nothing.
 
 | Code | Meaning |
 | --- | --- |
-| `SPX-J126` | The manifest declares no dependencies, the target is outside the declared matrix, or the cache is missing, oversized, unreadable, or holds a subject that is not content-addressed. |
+| `SPX-J126` | The manifest declares no dependencies, the target is outside the declared matrix, the cache is missing, oversized, unreadable, or holds a subject that is not content-addressed, or a `--verify` pin is missing or stale. |
 | resolver `SPX-PR6xx` | The requirements cannot be satisfied from the cache: a missing package, an unsatisfiable range, a cycle, or a bound exceeded. |
 
 Usage errors exit with status 2 and a `semaprax resolve --help` hint. A bad

@@ -1,10 +1,11 @@
-//! `semaprax resolve <manifest> --target <native64|wasm32> --cache <dir>`:
-//! deterministically resolve a project's `[dependencies]` against a local
-//! content-addressed cache of Semantic Package Subject-v3 envelopes, using the
-//! offline resolver. Reading the cache is the explicit effect of this command;
-//! it is never an implicit action of `check` or `build`, and no registry is
-//! contacted. The cache is caller-populated: a registry, `fetch`, or vendoring
-//! step places subjects into it, each file named by its own digest.
+//! `semaprax resolve <manifest> --target <native64|wasm32> --cache <dir>
+//! [--write|--verify]`: deterministically resolve a project's `[dependencies]`
+//! against a local content-addressed cache of Semantic Package Subject-v3
+//! envelopes, using the offline resolver, and optionally pin the resolution
+//! beside the manifest. Reading the cache is the explicit effect of this
+//! command; it is never an implicit action of `check` or `build`, and no
+//! registry is contacted. The cache is caller-populated: a registry, `fetch`,
+//! or vendoring step places subjects into it, each file named by its own digest.
 
 use std::path::{Path, PathBuf};
 
@@ -22,9 +23,17 @@ pub(crate) enum ResolveCliError {
     Domain(Vec<Diagnostic>),
 }
 
+/// The largest resolution-lock file this command reads back on `--verify`.
+const MAX_RESOLUTION_LOCK_BYTES: usize = 32 * 1024 * 1024;
 const CODE_CACHE: &str = "SPX-J126";
 
-/// Run `resolve` and return the resolution evidence to print on stdout.
+enum Mode {
+    Print,
+    Write,
+    Verify,
+}
+
+/// Run `resolve` and return the text to print on stdout.
 pub(crate) fn run(arguments: &[String]) -> Result<String, ResolveCliError> {
     let parsed = parse(arguments)?;
     let manifest = read_manifest(&parsed.manifest)?;
@@ -36,10 +45,92 @@ pub(crate) fn run(arguments: &[String]) -> Result<String, ResolveCliError> {
     let input = ResolutionInput {
         requirements,
         subjects,
-        target,
+        target: target.clone(),
         allowed_capabilities: manifest.capabilities().to_vec(),
     };
-    package_resolver_v2::generate(&input, &options).map_err(ResolveCliError::Domain)
+    let evidence =
+        package_resolver_v2::generate(&input, &options).map_err(ResolveCliError::Domain)?;
+    match parsed.mode {
+        Mode::Print => Ok(evidence),
+        Mode::Write => write_resolution(&parsed.manifest, &manifest, &target, &evidence),
+        Mode::Verify => verify_resolution(&parsed.manifest, &manifest, &target, &evidence),
+    }
+}
+
+/// The per-target resolution-lock file name beside the manifest.
+fn resolution_file(target: &str) -> String {
+    format!("semaprax.resolution-{target}.json")
+}
+
+fn resolution_path(manifest_path: &Path, target: &str) -> PathBuf {
+    let parent = manifest_path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty());
+    match parent {
+        Some(parent) => parent.join(resolution_file(target)),
+        None => PathBuf::from(resolution_file(target)),
+    }
+}
+
+fn write_resolution(
+    manifest_path: &Path,
+    manifest: &ProjectManifest,
+    target: &str,
+    evidence: &str,
+) -> Result<String, ResolveCliError> {
+    let path = resolution_path(manifest_path, target);
+    let staged = path.with_extension(format!("json.{}.staging", std::process::id()));
+    let write = std::fs::write(&staged, evidence).and_then(|()| std::fs::rename(&staged, &path));
+    if let Err(error) = write {
+        let _ = std::fs::remove_file(&staged);
+        return Err(domain(format!(
+            "{} could not be written: {error}",
+            resolution_file(target)
+        )));
+    }
+    Ok(format!(
+        "wrote {} for {} ({target})",
+        resolution_file(target),
+        manifest.name()
+    ))
+}
+
+fn verify_resolution(
+    manifest_path: &Path,
+    manifest: &ProjectManifest,
+    target: &str,
+    evidence: &str,
+) -> Result<String, ResolveCliError> {
+    let path = resolution_path(manifest_path, target);
+    let metadata = std::fs::symlink_metadata(&path).map_err(|error| {
+        domain(format!(
+            "{} is not present beside the manifest: {error}",
+            resolution_file(target)
+        ))
+    })?;
+    if !metadata.is_file() || metadata.len() > MAX_RESOLUTION_LOCK_BYTES as u64 {
+        return Err(domain(format!(
+            "{} must be a plain file of at most {MAX_RESOLUTION_LOCK_BYTES} bytes",
+            resolution_file(target)
+        )));
+    }
+    let stored = std::fs::read_to_string(&path).map_err(|error| {
+        domain(format!(
+            "{} is not readable UTF-8: {error}",
+            resolution_file(target)
+        ))
+    })?;
+    if stored == evidence {
+        return Ok(format!(
+            "verified {} for {} ({target})",
+            resolution_file(target),
+            manifest.name()
+        ));
+    }
+    Err(domain(format!(
+        "{} is stale: the cache no longer produces the recorded resolution; re-run `semaprax resolve --target {target} --cache <dir> --write`",
+        resolution_file(target)
+    )))
 }
 
 struct Parsed {
@@ -47,18 +138,28 @@ struct Parsed {
     target: String,
     cache: PathBuf,
     max_bytes: usize,
+    mode: Mode,
 }
 
 fn parse(arguments: &[String]) -> Result<Parsed, ResolveCliError> {
     let mut manifest = None;
     let mut target = None;
     let mut cache = None;
+    let mut mode = None;
     let mut max_bytes = ResolutionOptions::default().max_bytes;
     let mut index = 0usize;
     while index < arguments.len() {
         match arguments[index].as_str() {
             "--target" => target = Some(value(arguments, &mut index, "--target")?),
             "--cache" => cache = Some(PathBuf::from(value(arguments, &mut index, "--cache")?)),
+            "--write" => {
+                set_mode(&mut mode, Mode::Write)?;
+                index += 1;
+            }
+            "--verify" => {
+                set_mode(&mut mode, Mode::Verify)?;
+                index += 1;
+            }
             "--max-bytes" => {
                 let raw = value(arguments, &mut index, "--max-bytes")?;
                 max_bytes = raw
@@ -84,7 +185,18 @@ fn parse(arguments: &[String]) -> Result<Parsed, ResolveCliError> {
         target: target.ok_or_else(|| usage("resolve requires `--target native64|wasm32`"))?,
         cache: cache.ok_or_else(|| usage("resolve requires `--cache <dir>`"))?,
         max_bytes,
+        mode: mode.unwrap_or(Mode::Print),
     })
+}
+
+fn set_mode(mode: &mut Option<Mode>, next: Mode) -> Result<(), ResolveCliError> {
+    if mode.is_some() {
+        return Err(usage(
+            "resolve accepts at most one of `--write` or `--verify`",
+        ));
+    }
+    *mode = Some(next);
+    Ok(())
 }
 
 fn value(arguments: &[String], index: &mut usize, option: &str) -> Result<String, ResolveCliError> {

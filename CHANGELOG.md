@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `semaprax resolve` gains `--write` and `--verify`: `--write` pins the
+  resolution evidence to `semaprax.resolution-<target>.json` beside the
+  manifest, and `--verify` re-resolves and confirms that pin still holds byte
+  for byte, failing closed with `SPX-J126` when the cache no longer produces the
+  recorded selection. Because resolution is deterministic the pin is a stable
+  per-target dependency lockfile a CI job can check.
+  `tests/project.rs::dependency_resolution_v1` pins it.
+
 - `semaprax lock <manifest> --compare <baseline.lock>` classifies a project's
   current interface against a baseline `semaprax.lock` and prints a
   `semaprax.project-lock-compatibility.v1` verdict, exiting nonzero on a

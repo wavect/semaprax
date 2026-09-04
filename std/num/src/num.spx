@@ -79,3 +79,92 @@ fn gcd(left: i64, right: i64) -> i64
     }
     a
 }
+
+@id("std.num.pow")
+fn pow(base: i64, exponent: i64) -> i64
+    requires exponent >= 0
+    ensures exponent > 0 || result == 1
+{
+    let mut remaining = exponent;
+    let mut product = 1;
+    while remaining > 0 {
+        product = product * base;
+        remaining = remaining - 1;
+        remaining > 0
+    }
+    product
+}
+
+@id("std.num.isqrt")
+fn isqrt(value: i64) -> i64
+    requires value >= 0
+    ensures result >= 0 && result <= 3037000499
+    ensures result * result <= value
+{
+    let mut low = 0;
+    let mut high = if value < 3037000499 { value } else { 3037000499 };
+    while low < high {
+        let middle = low + (high - low + 1) / 2;
+        let fits = middle * middle <= value;
+        low = if fits { middle } else { low };
+        high = if fits { high } else { middle - 1 };
+        low < high
+    }
+    low
+}
+
+@id("std.num.digit_count")
+fn digit_count(value: i64) -> i64
+    ensures result >= 1 && result <= 19
+{
+    let mut remaining = value / 10;
+    let mut digits = 1;
+    while remaining != 0 {
+        remaining = remaining / 10;
+        digits = digits + 1;
+        remaining != 0
+    }
+    digits
+}
+
+@id("std.num.is_power_of_two")
+fn is_power_of_two(value: i64) -> bool
+    ensures !result || value > 0
+{
+    let mut remaining = value;
+    while remaining > 1 && remaining % 2 == 0 {
+        remaining = remaining / 2;
+        remaining > 1 && remaining % 2 == 0
+    }
+    remaining == 1
+}
+
+@id("std.num.log2_floor")
+fn log2_floor(value: i64) -> i64
+    requires value > 0
+    ensures result >= 0 && result <= 62
+{
+    let mut remaining = value / 2;
+    let mut exponent = 0;
+    while remaining > 0 {
+        remaining = remaining / 2;
+        exponent = exponent + 1;
+        remaining > 0
+    }
+    exponent
+}
+
+@id("std.num.log10_floor")
+fn log10_floor(value: i64) -> i64
+    requires value > 0
+    ensures result >= 0 && result <= 18
+{
+    let mut remaining = value / 10;
+    let mut exponent = 0;
+    while remaining > 0 {
+        remaining = remaining / 10;
+        exponent = exponent + 1;
+        remaining > 0
+    }
+    exponent
+}

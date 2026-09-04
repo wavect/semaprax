@@ -174,6 +174,53 @@ fn gcd(left: i64, right: i64) -> i64
     ensures result >= 0
 ```
 
+### `std.num.pow`
+
+```semaprax
+fn pow(base: i64, exponent: i64) -> i64
+    requires exponent >= 0
+    ensures exponent > 0 || result == 1
+```
+
+### `std.num.isqrt`
+
+```semaprax
+fn isqrt(value: i64) -> i64
+    requires value >= 0
+    ensures result >= 0 && result <= 3037000499
+    ensures result * result <= value
+```
+
+### `std.num.digit_count`
+
+```semaprax
+fn digit_count(value: i64) -> i64
+    ensures result >= 1 && result <= 19
+```
+
+### `std.num.is_power_of_two`
+
+```semaprax
+fn is_power_of_two(value: i64) -> bool
+    ensures !result || value > 0
+```
+
+### `std.num.log2_floor`
+
+```semaprax
+fn log2_floor(value: i64) -> i64
+    requires value > 0
+    ensures result >= 0 && result <= 62
+```
+
+### `std.num.log10_floor`
+
+```semaprax
+fn log10_floor(value: i64) -> i64
+    requires value > 0
+    ensures result >= 0 && result <= 18
+```
+
 ## `std.num.overflow`
 
 Package `std/num-overflow`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.

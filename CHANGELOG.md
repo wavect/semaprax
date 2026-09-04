@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `std.num` gains checked `pow`, `isqrt`, `digit_count`, `is_power_of_two`,
+  `log2_floor`, and `log10_floor`, each with contracts and conformance checks
+  on every lane; the catalogs are regenerated.
+
 - `semaprax project-scaffold --template library` prints a library package in
   the standard-library shape: `src/lib.spx` with one contracted function,
   `src/examples.spx` as the entry, and `src/tests.spx` as the conformance

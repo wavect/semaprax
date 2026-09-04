@@ -88,7 +88,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | Module | Required scope | Status |
 | --- | --- | --- |
 | `std.core` | Option, Result, ordering, equality, ranges, conversion, and core traits/interfaces | Partial: `i64` ordering as `-1`/`0`/`1`, extrema, clamping, range membership, `bool` conversions and connectives; `Option` and `Result` remain compiler-owned |
-| `std.num` | Checked, wrapping, saturating, and conversion operations | Partial: sign, absolute value, parity, Euclidean division and remainder, and greatest common divisor in `std.num`; overflow predicates and wrapping and saturating addition, subtraction, negation, absolute value, and multiplication in `std.num.overflow`; checked arithmetic is the language default; wrapping multiplication is Missing |
+| `std.num` | Checked, wrapping, saturating, and conversion operations | Partial: sign, absolute value, parity, Euclidean division and remainder, greatest common divisor, checked power, integer square root, digit count, power-of-two test, and floor logarithms in base 2 and 10 in `std.num`; overflow predicates and wrapping and saturating addition, subtraction, negation, absolute value, and multiplication in `std.num.overflow`; checked arithmetic is the language default; wrapping multiplication is Missing |
 | `std.iter` | Iterators, adapters, folds, collection, and ranges | Missing; needs interfaces and closures |
 | `std.mem` | Ownership helpers, regions, arenas, boxes, shared immutable values | Missing |
 | `std.collections` | Vector, deque, map, set, heap, and fixed-capacity collections | Missing; needs the `alloc` tier |

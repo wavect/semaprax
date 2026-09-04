@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "apex-supply-chain"
+entry = "apex.app"
+sources = ["src/app.spx", "src/demand.spx", "src/finance.spx", "src/inventory.spx", "src/optimization.spx", "src/pricing.spx", "src/risk.spx", "src/routing.spx", "src/tests.spx"]
+web_exports = ["apex.demand.forecast", "apex.demand.moving-average", "apex.finance.compound", "apex.inventory.carrying-cost", "apex.inventory.reorder-point", "apex.optimization.landed-cost", "apex.pricing.dynamic-price", "apex.pricing.margin", "apex.risk.supplier-score", "apex.routing.distance", "apex.routing.fuel-cost"]
+tests = ["apex.tests"]

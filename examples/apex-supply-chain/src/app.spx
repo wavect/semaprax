@@ -1,0 +1,18 @@
+module apex.app;
+use function @id("apex.demand.forecast") from apex.demand as forecast;
+use function @id("apex.demand.moving-average") from apex.demand as moving_average;
+use function @id("apex.demand.safety-stock") from apex.demand as safety_stock;
+use function @id("apex.demand.seasonal-factor") from apex.demand as seasonal_factor;
+use function @id("apex.finance.compound") from apex.finance as compound;
+use function @id("apex.inventory.reorder-point") from apex.inventory as reorder_point;
+use function @id("apex.pricing.final-price") from apex.pricing as final_price;
+use function @id("apex.risk.supplier-score") from apex.risk as supplier_score;
+use function @id("apex.routing.distance") from apex.routing as distance;
+use function @id("apex.routing.fuel-cost") from apex.routing as fuel_cost;
+
+@id("apex.app.main")
+fn main() -> i64
+{
+    let avg = moving_average(100, 110, 120);
+    if avg != 110 { 0 } else { let seasonal = seasonal_factor(12); if seasonal != 15 { 0 } else { let forecasted = forecast(100, 10, seasonal); if forecasted != 125 { 0 } else { let safety = safety_stock(forecasted, 5, 10); if safety != 72 { 0 } else { let reorder = reorder_point(20, 5, safety); if reorder != 172 { 0 } else { let dist = distance(0, 0, 10, 15); if dist != 25 { 0 } else { let fuel = fuel_cost(dist, 500, 5); if fuel != 62 { 0 } else { let final = final_price(100, 60, 20, 5); if final != 122 { 0 } else { let score = supplier_score(80, 70, 60); if score != 730 { 0 } else { let compounded = compound(1000, 5, 3); if compounded != 1157 { 0 } else { 42 } } } } } } } } } }
+}

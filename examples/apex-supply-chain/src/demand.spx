@@ -1,0 +1,37 @@
+module apex.demand;
+
+@id("apex.demand.moving-average")
+fn moving_average(first: i64, second: i64, third: i64) -> i64
+{
+    (first + second + third) / 3
+}
+
+@id("apex.demand.seasonal-factor")
+fn seasonal_factor(month: i64) -> i64
+    requires month >= 1
+    requires month <= 12
+{
+    if month == 12 { 15 } else { if month == 6 { 10 } else { if month == 1 { 5 } else { 0 } } }
+}
+
+@id("apex.demand.forecast")
+fn forecast(base: i64, trend: i64, seasonal: i64) -> i64
+{
+    base + trend + seasonal
+}
+
+@id("apex.demand.safety-stock")
+fn safety_stock(demand: i64, lead_time: i64, variability: i64) -> i64
+    requires demand >= 0
+    requires lead_time >= 0
+    requires variability >= 0
+{
+    demand * lead_time / 10 + variability
+}
+
+@id("apex.demand.variance")
+fn variance(first: i64, second: i64) -> i64
+{
+    let diff = first - second;
+    if diff < 0 { 0 - diff } else { diff }
+}

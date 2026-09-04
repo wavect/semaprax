@@ -1,0 +1,38 @@
+module apex.tests;
+use function @id("apex.demand.forecast") from apex.demand as forecast;
+use function @id("apex.demand.moving-average") from apex.demand as moving_average;
+use function @id("apex.finance.compound") from apex.finance as compound;
+use function @id("apex.inventory.reorder-point") from apex.inventory as reorder_point;
+use function @id("apex.pricing.dynamic-price") from apex.pricing as dynamic_price;
+use function @id("apex.risk.supplier-score") from apex.risk as supplier_score;
+use function @id("apex.routing.distance") from apex.routing as distance;
+
+@id("apex.tests.main")
+fn main() -> i64
+{
+    if moving_average(10, 20, 30) == 20 && forecast(50, 5, 10) == 65 && reorder_point(10, 3, 5) == 35 && dynamic_price(100, 5, 10) == 100 && supplier_score(10, 10, 10) == 100 && distance(0, 0, 3, 4) == 7 { 0 } else { 1 }
+}
+
+@id("apex.tests.test-demand")
+fn test_demand() -> i64
+{
+    if moving_average(3, 6, 9) == 6 { 0 } else { 1 }
+}
+
+@id("apex.tests.test-routing")
+fn test_routing() -> i64
+{
+    if distance(1, 1, 4, 5) == 7 { 0 } else { 1 }
+}
+
+@id("apex.tests.test-finance")
+fn test_finance() -> i64
+{
+    if compound(100, 10, 2) == 121 { 0 } else { 1 }
+}
+
+@id("apex.tests.test-inventory")
+fn test_inventory() -> i64
+{
+    if reorder_point(5, 4, 10) == 30 { 0 } else { 1 }
+}

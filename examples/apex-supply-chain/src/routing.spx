@@ -1,0 +1,34 @@
+module apex.routing;
+
+@id("apex.routing.distance")
+fn distance(first_x: i64, first_y: i64, second_x: i64, second_y: i64) -> i64
+{
+    let diff_x = first_x - second_x;
+    let abs_x = if diff_x < 0 { 0 - diff_x } else { diff_x };
+    let diff_y = first_y - second_y;
+    let abs_y = if diff_y < 0 { 0 - diff_y } else { diff_y };
+    abs_x + abs_y
+}
+
+@id("apex.routing.distance-squared")
+fn distance_squared(first_x: i64, first_y: i64, second_x: i64, second_y: i64) -> i64
+{
+    let diff_x = first_x - second_x;
+    let diff_y = first_y - second_y;
+    diff_x * diff_x + diff_y * diff_y
+}
+
+@id("apex.routing.fuel-cost")
+fn fuel_cost(distance: i64, weight: i64, rate: i64) -> i64
+    requires distance >= 0
+    requires weight >= 0
+    requires rate >= 0
+{
+    distance * weight * rate / 1000
+}
+
+@id("apex.routing.leg-cost")
+fn leg_cost(distance: i64, traffic_factor: i64) -> i64
+{
+    distance * traffic_factor / 100
+}

@@ -1,0 +1,34 @@
+module apex.pricing;
+
+@id("apex.pricing.dynamic-price")
+fn dynamic_price(base: i64, demand_factor: i64, competition: i64) -> i64
+{
+    base + demand_factor * 2 - competition
+}
+
+@id("apex.pricing.margin")
+fn margin(price: i64, cost: i64) -> i64
+{
+    price - cost
+}
+
+@id("apex.pricing.elasticity")
+fn elasticity(price: i64, base: i64) -> i64
+    requires base != 0
+{
+    (price - base) * 100 / base
+}
+
+@id("apex.pricing.discount-tier")
+fn discount_tier(quantity: i64) -> i64
+{
+    if quantity >= 100 { 20 } else { if quantity >= 50 { 10 } else { if quantity >= 10 { 5 } else { 0 } } }
+}
+
+@id("apex.pricing.final-price")
+fn final_price(base: i64, quantity: i64, demand_factor: i64, competition: i64) -> i64
+{
+    let raw = dynamic_price(base, demand_factor, competition);
+    let tier = discount_tier(quantity);
+    raw - raw * tier / 100
+}

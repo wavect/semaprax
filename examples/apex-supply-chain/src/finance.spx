@@ -1,0 +1,55 @@
+module apex.finance;
+
+@id("apex.finance.compound")
+fn compound(principal: i64, rate: i64, years: i64) -> i64
+    requires principal >= 0
+    requires rate >= 0
+    requires years >= 0
+    requires years <= 10
+{
+    let mut balance = principal;
+    let mut year = 0;
+    while year < years {
+        balance = balance + balance * rate / 100;
+        year = year + 1;
+        year < years
+    }
+    balance
+}
+
+@id("apex.finance.npv")
+fn npv(cash_flow: i64, rate: i64) -> i64
+{
+    cash_flow * 100 / (100 + rate)
+}
+
+@id("apex.finance.breakeven")
+fn breakeven(fixed: i64, price: i64, variable: i64) -> i64
+    requires price != variable
+{
+    fixed / (price - variable)
+}
+
+@id("apex.finance.amortization")
+fn amortization(principal: i64, rate: i64, periods: i64) -> i64
+    requires periods != 0
+{
+    principal * rate / 100 / periods + principal / periods
+}
+
+@id("apex.finance.rolling-npv")
+fn rolling_npv(seed: i64, periods: i64) -> i64
+    requires periods >= 0
+    requires periods <= 10
+{
+    let mut total = seed;
+    let mut index = 0;
+    while index < periods {
+        let flow = 100 + index * 20;
+        let discounted = npv(flow, 5);
+        total = total + discounted;
+        index = index + 1;
+        index < periods
+    }
+    total
+}

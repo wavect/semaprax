@@ -1,0 +1,28 @@
+module apex.risk;
+
+@id("apex.risk.supplier-score")
+fn supplier_score(reliability: i64, financial: i64, geopolitical: i64) -> i64
+    requires reliability >= 0
+    requires financial >= 0
+    requires geopolitical >= 0
+{
+    reliability * 5 + financial * 3 + geopolitical * 2
+}
+
+@id("apex.risk.disruption")
+fn disruption(risk_score: i64) -> i64
+{
+    risk_score * 2 / 10
+}
+
+@id("apex.risk.adjusted-cost")
+fn adjusted_cost(base_cost: i64, risk: i64) -> i64
+{
+    base_cost + risk * 10
+}
+
+@id("apex.risk.mitigation")
+fn mitigation(before: i64, after: i64) -> i64
+{
+    before - after
+}

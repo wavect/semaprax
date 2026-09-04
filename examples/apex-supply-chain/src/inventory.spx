@@ -1,0 +1,55 @@
+module apex.inventory;
+
+@id("apex.inventory.reorder-point")
+fn reorder_point(daily_demand: i64, lead_time: i64, safety: i64) -> i64
+    requires daily_demand >= 0
+    requires lead_time >= 0
+    requires safety >= 0
+{
+    daily_demand * lead_time + safety
+}
+
+@id("apex.inventory.carrying-cost")
+fn carrying_cost(quantity: i64, holding_percent: i64) -> i64
+    requires quantity >= 0
+    requires holding_percent >= 0
+{
+    quantity * holding_percent / 100
+}
+
+@id("apex.inventory.eoq-simple")
+fn eoq_simple(demand: i64, order_cost: i64, holding_cost: i64) -> i64
+    requires demand >= 0
+    requires holding_cost != 0
+{
+    2 * demand * order_cost / holding_cost
+}
+
+@id("apex.inventory.stockout-risk")
+fn stockout_risk(current: i64, reorder: i64) -> i64
+{
+    if current < reorder { 1 } else { 0 }
+}
+
+@id("apex.inventory.turnover")
+fn turnover(sold: i64, avg_inventory: i64) -> i64
+    requires avg_inventory != 0
+{
+    sold * 100 / avg_inventory
+}
+
+@id("apex.inventory.iterative-optimization")
+fn iterative_optimization(initial: i64, steps: i64) -> i64
+    requires steps >= 0
+    requires steps <= 20
+{
+    let mut level = initial;
+    let mut index = 0;
+    while index < steps {
+        level = level + index * 2 - 1;
+        level = if level < 0 { 0 } else { level };
+        index = index + 1;
+        index < steps
+    }
+    level
+}

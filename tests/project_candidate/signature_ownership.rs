@@ -1,33 +1,33 @@
-//! Authored, unrun ownership signature regressions; no local gate was executed.
+//! Authored ownership signature regressions over a self-contained project.
+//!
+//! The project is written here rather than copied from an example so the
+//! ownership surface these tests need stays inside the published workspace
+//! `max_builder_bytes` budget.
 use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
 use serde_json::json;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
-struct Fixture(PathBuf);
-impl Fixture {
-    fn new() -> Self {
-        let root = std::env::temp_dir().join(format!(
-            "spx-own-signature-{}-{}",
-            std::process::id(),
-            SERIAL.fetch_add(1, Ordering::Relaxed)
-        ));
-        std::fs::create_dir_all(root.join("src")).unwrap();
-        let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/frame-payload-project");
-        for file in [
-            "semaprax.toml",
-            "src/app.spx",
-            "src/frame.spx",
-            "src/tests.spx",
-        ] {
-            std::fs::copy(example.join(file), root.join(file)).unwrap();
-        }
-        let path = root.join("src/frame.spx");
-        let mut source = std::fs::read_to_string(&path).unwrap();
-        source.push_str(
-            r#"
+const MANIFEST: &str = r#"schema = "semaprax.project.v8"
+name = "own-signature"
+version = "1.0.0"
+profile = "owned-data-api.v1"
+entry = "frame_payload.app"
+sources = ["src/app.spx", "src/frame.spx", "src/tests.spx"]
+web_exports = ["frame.public"]
+tests = ["frame_payload.tests"]
+"#;
+const APP: &str = r#"module frame_payload.app;
+use function @id("frame.public") from frame_payload.frame as public_value;
+@id("frame-payload.app.main") fn main() -> i64 { public_value(0) }
+"#;
+const TESTS: &str = r#"module frame_payload.tests;
+use function @id("frame.public") from frame_payload.frame as public_value;
+@id("frame-payload.tests.main") fn main() -> i64 { if public_value(0) == 0 { 0 } else { 1 } }
+"#;
+const FRAME: &str = r#"module frame_payload.frame;
 @id("frame.own-select") fn own_select(left: own Bytes, right: own Bytes, flag: i64) -> Bytes {
     if flag == 0 { left } else { right }
 }
@@ -64,7 +64,8 @@ impl Fixture {
 requires byte_len(bytes_as_slice(input)) > 0usize
 { byte_len(bytes_as_slice(input)) }
 @id("frame.mixed-owner-views") fn mixed_owner_views(input: own Bytes, text: string, flag: i64) -> usize {
-    byte_len(bytes_as_slice(input)) + str_len_bytes(string_as_str(text))
+    byte_len(bytes_as_slice(input))
+        + if str_len_bytes(string_as_str(text)) == 0 { 0usize } else { 1usize }
         + if flag == 0 { 0usize } else { 1usize }
 }
 @id("frame.mixed-owner-views-call") fn mixed_owner_views_call(input: borrow Slice<u8>) -> usize {
@@ -82,6 +83,15 @@ requires str_len_bytes(string_as_str(text)) > 0
 @id("frame.bytes-envelope-wide") record BytesEnvelopeWide {
     @id("frame.bytes-envelope-wide.value") value: Bytes,
     @id("frame.bytes-envelope-wide.flag") flag: bool,
+}
+@id("frame.make-bytes-envelope") fn make_bytes_envelope(input: borrow Slice<u8>) -> BytesEnvelope {
+    BytesEnvelope { value: bytes_copy(input) }
+}
+@id("frame.make-string-envelope") fn make_string_envelope(value: char) -> StringEnvelope {
+    StringEnvelope { value: string_from_char(value) }
+}
+@id("frame.make-bytes-envelope-wide") fn make_bytes_envelope_wide(input: borrow Slice<u8>) -> BytesEnvelopeWide {
+    BytesEnvelopeWide { value: bytes_copy(input), flag: true }
 }
 @id("frame.make-owned-bytes") fn make_owned_bytes(input: borrow Slice<u8>) -> Bytes {
     bytes_copy(input)
@@ -101,10 +111,26 @@ requires str_len_bytes(string_as_str(text)) > 0
 @id("frame.call-echo-owned-string") fn call_echo_owned_string(value: char) -> string {
     echo_owned_string(string_from_char(value))
 }
-"#,
-        );
-        let program = semaprax::parse(&source, &path).unwrap();
-        std::fs::write(&path, semaprax::format::canonical(&program)).unwrap();
+@id("frame.public") fn public_value(value: i64) -> i64 { value }
+"#;
+struct Fixture(PathBuf);
+impl Fixture {
+    fn new() -> Self {
+        let root = std::env::temp_dir().join(format!(
+            "spx-own-signature-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        std::fs::write(root.join("semaprax.toml"), MANIFEST).unwrap();
+        for (path, source) in [
+            ("src/app.spx", APP),
+            ("src/frame.spx", FRAME),
+            ("src/tests.spx", TESTS),
+        ] {
+            let program = semaprax::parse(source, std::path::Path::new(path)).unwrap();
+            std::fs::write(root.join(path), semaprax::format::canonical(&program)).unwrap();
+        }
         Self(root.canonicalize().unwrap())
     }
     fn candidate(&self) -> ProjectCandidate {
@@ -328,9 +354,9 @@ fn bounded_owner_view_set_rejects_duplicate_partial_mixed_and_more_than_eight() 
         ),
         (
             json!([
-                {"name":"shared","borrow_slice_from_owner":"left"},
+                {"name":"aliased","borrow_slice_from_owner":"left"},
                 {"from":"flag"},
-                {"name":"shared","borrow_slice_from_owner":"right"}
+                {"name":"aliased","borrow_slice_from_owner":"right"}
             ]),
             "SPX-G479",
         ),
@@ -518,22 +544,22 @@ fn whole_owned_results_wrap_once_and_local_callers_move_the_exact_field() {
             "frame.make-owned-bytes",
             "frame.bytes-envelope",
             "frame.bytes-envelope.value",
-            "fn make_owned_bytes(input: borrow Slice<u8>) -> BytesEnvelope { BytesEnvelope { value: bytes_copy(input) } }",
-            "fn forward_owned_bytes(input: borrow Slice<u8>) -> Bytes { make_owned_bytes(input).value }",
+            "fn make_owned_bytes(input: borrow Slice<u8>) -> BytesEnvelope\n{\n    BytesEnvelope { value: { bytes_copy(input) } }\n}",
+            "fn forward_owned_bytes(input: borrow Slice<u8>) -> Bytes\n{\n    ({ let spx_sig_stage_0 = input; make_owned_bytes(spx_sig_stage_0) }).value\n}",
         ),
         (
             "frame.make-owned-string",
             "frame.string-envelope",
             "frame.string-envelope.value",
-            "fn make_owned_string(value: char) -> StringEnvelope { StringEnvelope { value: string_from_char(value) } }",
-            "fn forward_owned_string(value: char) -> string { make_owned_string(value).value }",
+            "fn make_owned_string(value: char) -> StringEnvelope\n{\n    StringEnvelope { value: { string_from_char(value) } }\n}",
+            "fn forward_owned_string(value: char) -> string\n{\n    ({ let spx_sig_stage_0 = value; make_owned_string(spx_sig_stage_0) }).value\n}",
         ),
         (
             "frame.echo-owned-string",
             "frame.string-envelope",
             "frame.string-envelope.value",
-            "fn echo_owned_string(value: string) -> StringEnvelope { StringEnvelope { value: value } }",
-            "fn call_echo_owned_string(value: char) -> string { echo_owned_string(string_from_char(value)).value }",
+            "fn echo_owned_string(value: string) -> StringEnvelope\n{\n    StringEnvelope { value: { value } }\n}",
+            "fn call_echo_owned_string(value: char) -> string\n{\n    ({ let spx_sig_stage_0 = string_from_char(value); echo_owned_string(spx_sig_stage_0) }).value\n}",
         ),
     ] {
         let root = fixture.candidate();

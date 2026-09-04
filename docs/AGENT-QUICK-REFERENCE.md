@@ -315,7 +315,7 @@ fn main() -> i64
 | `string_starts_with`, `string_contains` | `(s: string, other: string) -> bool` |
 | `string_from_char` | `(c: char) -> string` |
 | `string_as_str` | `(binding: string) -> borrow str` |
-| `str_len_bytes` | `(s: borrow str) -> usize` |
+| `str_len_bytes` | `(s: borrow str) -> i64` |
 | `str_is_empty` | `(s: borrow str) -> bool` |
 | `str_starts_with`, `str_contains` | `(s: borrow str, other: borrow str) -> bool` |
 | `str_as_bytes` | `(s: borrow str) -> Slice<u8>` |

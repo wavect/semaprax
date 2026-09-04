@@ -104,11 +104,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     CheckedValue { ty: binding.ty.clone(), mode: binding.mode, native_unit: binding.native_unit_discard }
                 });
                 if value.is_none() {
-                    self.diagnostics.push(error(
-                        self.program,
-                        "SPX-T202",
-                        format!("unknown value `{name}` in `{}`", self.current.name),
-                        expression.span,
+                    self.diagnostics.push(hints::with_optional_help(
+                        error(
+                            self.program,
+                            "SPX-T202",
+                            format!("unknown value `{name}` in `{}`", self.current.name),
+                            expression.span,
+                        ),
+                        hints::variant_shorthand_help(name).map(str::to_owned),
                     ));
                 }
                 self.values.push(value);
@@ -257,14 +260,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             )
                         })
                     {
-                        self.diagnostics.push(error(
+                        let diagnostic = error(
                             self.program,
                             "SPX-T266",
                             format!(
                                 "borrowed view `{name}` requires an exact admitted storage place"
                             ),
                             expression.span,
-                        ));
+                        );
+                        self.diagnostics.push(match args.first() {
+                            Some(argument) => {
+                                diagnostic.with_help(hints::view_place_help(name, argument))
+                            }
+                            None => diagnostic,
+                        });
                     }
                     VerifierCallTarget::Byte(op)
                 } else if let Some(op) = crate::host_io_ops::by_name(name) {

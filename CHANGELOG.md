@@ -45,6 +45,26 @@
   otherwise unchanged; scoped help, typo guidance, and recovery hints are
   unchanged. [Guided CLI Help v4](docs/CLI-HELP-V4.md) owns the contract and
   the standalone and full-toolchain help harnesses pin it.
+- A borrowed view taken directly from a string literal, an array literal, or a
+  call result (`str_as_bytes("hi")`, `array_as_slice([1u8])`) now names the
+  `let` binding step in its `SPX-T266` help, and the README routes coding agents
+  to the agent quick reference.
+
+- More first-attempt habits now carry their fix: `struct`/`enum`/`pub`/`const`
+  declarations, a missing trailing `,` after the last field or match arm,
+  `x += 1`, a missing `->` result type or a `()` unit type, an uninitialised
+  `let`, `=` in an `if` condition, `a[0]` indexing, `Some(1)`/`None` shorthand,
+  a method call on a `string`, byte, record, or variant value, and foreign type
+  names such as `String`, `int`, `double`, `boolean`, or `Vec`. Codes and
+  messages are unchanged; `tests/language/foreign_syntax_hints.rs` and
+  `tests/language/verifier_hints.rs` pin each case. Type syntax parsing moved
+  verbatim into `src/parser/types.rs` to keep the grammar root under budget.
+
+- An owned `string` or byte value passed to a user function's `borrow str` or
+  `borrow Slice<u8>` parameter now names the view conversion in its `SPX-T205`
+  help, the parser's expression-statement hint shows the admitted `let _ = …;`
+  discard, and the agent quick reference explains that a failing project test
+  reports only its return value.
 
 - Verifier diagnostics now carry fix hints for the type-level habits an agent
   brings from other languages: an unknown function names the nearest declared

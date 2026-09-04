@@ -5,14 +5,15 @@ use crate::ast::{
     ImportDeclaration, ImportFailure, ImportResult, InterfaceDeclaration, MatchArm, ModuleUse,
     ModuleUseKind, Param, ParamMode, Program, ProtocolDeclaration, ProtocolImplementation,
     ProtocolImplementationMember, ProtocolMethod, ResourceLifecycleDeclaration,
-    ResourceLifecycleKind, Span, Statement, Type, TypeDeclaration, TypeDeclarationKind,
-    TypeParameterDeclaration, UnaryOp, VariantCaseDeclaration,
+    ResourceLifecycleKind, Span, Statement, TypeDeclaration, TypeDeclarationKind, UnaryOp,
+    VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{lex, Token, TokenKind};
 
 mod hints;
 mod patterns;
+mod types;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -85,6 +86,9 @@ impl Parser {
                 }
                 implementations.push(self.protocol_implementation(stable_id)?);
             } else {
+                if let Some(diagnostic) = self.foreign_declaration() {
+                    return Err(diagnostic);
+                }
                 functions.push(self.function(&module, stable_id)?);
             }
         }
@@ -1280,7 +1284,10 @@ impl Parser {
         if self.at(&TokenKind::RBrace) {
             return Err(self.error_here("SPX-P203", "block requires a final value expression"));
         }
-        if let Some(diagnostic) = self.foreign_statement() {
+        if let Some(diagnostic) = self
+            .foreign_statement()
+            .or_else(|| self.compound_assignment())
+        {
             return Err(diagnostic);
         }
         let tail = self.expression(0)?;
@@ -1725,127 +1732,6 @@ impl Parser {
         })
     }
 
-    fn ty(&mut self) -> Result<Type, Diagnostic> {
-        if self.take(&TokenKind::LBracket) {
-            let (element, _) = self.qualified_ident("fixed-array element type")?;
-            if element != "u8" {
-                return Err(self.error_here(
-                    "SPX-T268",
-                    "Portable Indexed Byte Data v1 admits only fixed `[u8; N]` arrays",
-                ));
-            }
-            self.expect(&TokenKind::Semicolon, "`;` after fixed-array element type")?;
-            let length = self.fixed_array_count()?;
-            self.expect(&TokenKind::RBracket, "`]` after fixed-array length")?;
-            return Ok(Type::ArrayU8(length));
-        }
-        let (name, _) = self.qualified_ident("type")?;
-        if name == "Slice" {
-            self.expect(&TokenKind::Lt, "`<` after `Slice`")?;
-            let (element, _element_span) = self.qualified_ident("slice element type")?;
-            if element != "u8" {
-                return Err(self.error_here(
-                    "SPX-T268",
-                    "Portable Indexed Byte Data v1 admits only `Slice<u8>`",
-                ));
-            }
-            self.expect(&TokenKind::Gt, "`>` after `Slice<u8`")?;
-            return Ok(Type::SliceU8);
-        }
-        let is_primitive = matches!(
-            name.as_str(),
-            "i64"
-                | "i32"
-                | "u8"
-                | "usize"
-                | "char"
-                | "f32"
-                | "f64"
-                | "bool"
-                | "string"
-                | "str"
-                | "Bytes"
-        );
-        if is_primitive && self.at(&TokenKind::Lt) {
-            return Err(self.error_here(
-                "SPX-P106",
-                format!("primitive type `{name}` does not accept generic arguments"),
-            ));
-        }
-        match name.as_str() {
-            "i64" => Ok(Type::I64),
-            "i32" => Ok(Type::I32),
-            "u8" => Ok(Type::U8),
-            "usize" => Ok(Type::Usize),
-            "char" => Ok(Type::Char),
-            "f32" => Ok(Type::F32),
-            "f64" => Ok(Type::F64),
-            "bool" => Ok(Type::Bool),
-            "string" => Ok(Type::String),
-            "Bytes" => Ok(Type::Bytes),
-            "str" => Ok(Type::Str),
-            _ => Ok(Type::Named {
-                name,
-                arguments: self.type_arguments()?,
-            }),
-        }
-    }
-
-    fn type_parameters(&mut self) -> Result<Vec<TypeParameterDeclaration>, Diagnostic> {
-        if !self.take(&TokenKind::Lt) {
-            return Ok(Vec::new());
-        }
-        if self.at(&TokenKind::Gt) {
-            return Err(self.error_here("SPX-P106", "generic parameter list cannot be empty"));
-        }
-        let mut parameters = Vec::new();
-        loop {
-            if !matches!(self.current().kind, TokenKind::Ident(_)) {
-                return Err(self.error_here("SPX-P106", "expected generic type parameter"));
-            }
-            let (name, span) = self.ident("generic type parameter")?;
-            parameters.push(TypeParameterDeclaration { name, span });
-            if self.at(&TokenKind::Gt) {
-                break;
-            }
-            if !self.take(&TokenKind::Comma) || self.at(&TokenKind::Gt) {
-                return Err(self.error_here(
-                    "SPX-P106",
-                    "generic type parameters require comma-separated names without a trailing comma",
-                ));
-            }
-        }
-        self.expect(&TokenKind::Gt, "`>` after generic type parameters")?;
-        Ok(parameters)
-    }
-
-    fn type_arguments(&mut self) -> Result<Vec<Type>, Diagnostic> {
-        if !self.take(&TokenKind::Lt) {
-            return Ok(Vec::new());
-        }
-        if self.at(&TokenKind::Gt) {
-            return Err(self.error_here("SPX-P106", "generic argument list cannot be empty"));
-        }
-        let mut arguments = Vec::new();
-        loop {
-            if !matches!(self.current().kind, TokenKind::Ident(_)) {
-                return Err(self.error_here("SPX-P106", "expected generic type argument"));
-            }
-            arguments.push(self.ty()?);
-            if self.at(&TokenKind::Gt) {
-                break;
-            }
-            if !self.take(&TokenKind::Comma) || self.at(&TokenKind::Gt) {
-                return Err(self.error_here(
-                    "SPX-P106",
-                    "generic type arguments require comma-separated types without a trailing comma",
-                ));
-            }
-        }
-        self.expect(&TokenKind::Gt, "`>` after generic type arguments")?;
-        Ok(arguments)
-    }
-
     fn looks_like_generic_variant_qualifier(&self) -> bool {
         self.looks_like_generic_qualifier(TokenKind::ColonColon)
     }
@@ -1992,7 +1878,8 @@ impl Parser {
         if self.at(expected) {
             Ok(self.bump().clone())
         } else {
-            Err(self.error_here("SPX-P106", format!("expected {description}")))
+            let diagnostic = self.error_here("SPX-P106", format!("expected {description}"));
+            Err(self.decorate_expected(diagnostic, description))
         }
     }
 

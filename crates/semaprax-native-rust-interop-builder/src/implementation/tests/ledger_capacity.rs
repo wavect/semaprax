@@ -135,7 +135,10 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/validation/type_profiles.rs"),
         include_str!("../../../../../src/hir/validation/unsafe_scan.rs"),
     );
-    let verifier = include_str!("../../../../../src/source_verify.rs");
+    let verifier = concat!(
+        include_str!("../../../../../src/source_verify.rs"),
+        include_str!("../../../../../src/source_verify/hints.rs"),
+    );
     let cleanup = include_str!("../../../../../src/cleanup.rs");
     let lower = concat!(
         include_str!("../../../../../src/cleanup_plan/build.rs"),

@@ -150,11 +150,14 @@ pub(super) fn check_expr(
                 }
             })
             .or_else(|| {
-                diagnostics.push(error(
-                    program,
-                    "SPX-T202",
-                    format!("unknown value `{name}` in `{}`", current.name),
-                    expr.span,
+                diagnostics.push(hints::with_optional_help(
+                    error(
+                        program,
+                        "SPX-T202",
+                        format!("unknown value `{name}` in `{}`", current.name),
+                        expr.span,
+                    ),
+                    hints::variant_shorthand_help(name).map(str::to_owned),
                 ));
                 None
             }),

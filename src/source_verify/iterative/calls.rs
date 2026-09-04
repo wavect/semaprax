@@ -53,20 +53,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if let Some(actual) = &actual {
                         reject_native_unit_value(self.program, argument, actual, self.diagnostics);
                     }
-                    if actual
+                    if let Some(actual) = actual
                         .as_ref()
-                        .is_some_and(|actual| !actual.native_unit && actual.ty != param.ty)
+                        .filter(|actual| !actual.native_unit && actual.ty != param.ty)
                     {
-                        self.diagnostics.push(error(
-                            self.program,
-                            "SPX-T205",
-                            format!(
-                                "argument `{}` to `{name}` expects {}, received {}",
-                                param.name,
-                                param.ty,
-                                actual.as_ref().expect("type checked above").ty
+                        self.diagnostics.push(hints::with_optional_help(
+                            error(
+                                self.program,
+                                "SPX-T205",
+                                format!(
+                                    "argument `{}` to `{name}` expects {}, received {}",
+                                    param.name, param.ty, actual.ty
+                                ),
+                                argument.span,
                             ),
-                            argument.span,
+                            hints::argument_view_help(name, &param.ty, &actual.ty),
                         ));
                     }
                     check_argument_ownership(
@@ -225,14 +226,17 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             arguments: class_arguments,
         } = &receiver_value.ty
         else {
-            self.diagnostics.push(error(
-                self.program,
-                "SPX-T203",
-                format!(
-                    "method `{method}` requires a class receiver, found `{}`",
-                    receiver_value.ty
+            self.diagnostics.push(hints::with_optional_help(
+                error(
+                    self.program,
+                    "SPX-T203",
+                    format!(
+                        "method `{method}` requires a class receiver, found `{}`",
+                        receiver_value.ty
+                    ),
+                    receiver.span,
                 ),
-                receiver.span,
+                hints::method_receiver_help(&receiver_value.ty, method),
             ));
             self.values.push(None);
             return Ok(());
@@ -256,11 +260,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         // declared class owns the expected `self` type.
         let Some((holder_name, method_fn)) = resolve_class_method(self.types, class_name, method)
         else {
-            self.diagnostics.push(error(
-                self.program,
-                "SPX-T203",
-                format!("unknown method `{method}` on `{class_name}`"),
-                expression.span,
+            self.diagnostics.push(hints::with_optional_help(
+                error(
+                    self.program,
+                    "SPX-T203",
+                    format!("unknown method `{method}` on `{class_name}`"),
+                    expression.span,
+                ),
+                hints::non_class_method_help(self.types, class_name),
             ));
             self.values.push(None);
             return Ok(());

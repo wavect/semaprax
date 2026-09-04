@@ -191,20 +191,21 @@ pub(super) fn oracle_call(
         if let Some(actual) = &actual {
             reject_native_unit_value(program, arg, actual, diagnostics);
         }
-        if actual
+        if let Some(actual) = actual
             .as_ref()
-            .is_some_and(|actual| !actual.native_unit && actual.ty != param.ty)
+            .filter(|actual| !actual.native_unit && actual.ty != param.ty)
         {
-            diagnostics.push(error(
-                program,
-                "SPX-T205",
-                format!(
-                    "argument `{}` to `{name}` expects {}, received {}",
-                    param.name,
-                    param.ty,
-                    actual.as_ref().expect("type checked above").ty
+            diagnostics.push(hints::with_optional_help(
+                error(
+                    program,
+                    "SPX-T205",
+                    format!(
+                        "argument `{}` to `{name}` expects {}, received {}",
+                        param.name, param.ty, actual.ty
+                    ),
+                    arg.span,
                 ),
-                arg.span,
+                hints::argument_view_help(name, &param.ty, &actual.ty),
             ));
         }
         check_argument_ownership(
@@ -271,14 +272,17 @@ pub(super) fn oracle_method_call(
         arguments: class_arguments,
     } = &receiver_value.ty
     else {
-        diagnostics.push(error(
-            program,
-            "SPX-T203",
-            format!(
-                "method `{method}` requires a class receiver, found `{}`",
-                receiver_value.ty
+        diagnostics.push(hints::with_optional_help(
+            error(
+                program,
+                "SPX-T203",
+                format!(
+                    "method `{method}` requires a class receiver, found `{}`",
+                    receiver_value.ty
+                ),
+                receiver.span,
             ),
-            receiver.span,
+            hints::method_receiver_help(&receiver_value.ty, method),
         ));
         return None;
     };
@@ -296,11 +300,14 @@ pub(super) fn oracle_method_call(
     // Class Inheritance v1: nearest-definition ancestor walk; the
     // declaring class owns the expected `self` type.
     let Some((holder_name, method_fn)) = resolve_class_method(types, class_name, method) else {
-        diagnostics.push(error(
-            program,
-            "SPX-T203",
-            format!("unknown method `{method}` on `{class_name}`"),
-            expr.span,
+        diagnostics.push(hints::with_optional_help(
+            error(
+                program,
+                "SPX-T203",
+                format!("unknown method `{method}` on `{class_name}`"),
+                expr.span,
+            ),
+            hints::non_class_method_help(types, class_name),
         ));
         return None;
     };

@@ -340,9 +340,10 @@ These names are reserved; declaring your own `string_len` is `SPX-S113`.
 ## Habits from other languages and what the compiler says
 
 Each block below is what an agent typically writes first. The marker names
-the diagnostic it produces; the fix is in the text after it. The compiler
-prints the same fix as the diagnostic's `help` line, so act on `help` before
-re-reading this page.
+the diagnostic it produces; the fix is in the text after it. For parser and
+source-verifier rejections the compiler prints the same fix as the diagnostic's
+`help` line, and for the rest the message itself names the accepted form, so
+act on the diagnostic before re-reading this page.
 
 <!-- expect: SPX-P106 -->
 ```semaprax
@@ -475,16 +476,24 @@ Other first-attempt diagnostics and their fixes:
 | You wrote | Code | Fix |
 | --- | --- | --- |
 | `for i in 0..n { … }` | `SPX-P106` | Use `while` with a `let mut` counter and a `bool` tail |
-| `f(x);` as a statement | `SPX-P106` | Bind it: `let _result = f(x);` or make it the tail |
+| `f(x);` as a statement | `SPX-P106` | Discard it with `let _ = f(x);` or make it the tail |
 | `let t = (1, 2);` | `SPX-P106` | No tuples; declare a `record` |
 | `id(4)` for `fn id<T>` | `SPX-T225` | `id<i64>(4)` |
 | `Option::Some { value: 1 }` | `SPX-T221` | `Option<i64>::Some { value: 1 }` |
 | `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |
-| `f("abc")` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
+| `f("abc")` or `f(owned)` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |
 | `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |
 | `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; `0` conventionally means success |
 | a second `consume(b)` after `own` | `SPX-O101` | Take `borrow` in the callee or pass a fresh value |
+| `struct`, `enum`, `pub`, `const` | `SPX-P104` | `record`, `variant`, no visibility keyword, a function returning the value |
+| `x: i64` as the last field without `,` | `SPX-P106` | Every field and every match arm ends with `,`, including the last |
+| `x += 1;` | `SPX-P201` | `x = x + 1;` |
+| `fn f()` or `-> ()` | `SPX-P106`, `SPX-P105` | Every function returns `i64` or `bool`; there is no unit |
+| `a[0]` | `SPX-P106` | `byte_get(array_as_slice(a), 0usize)` returns `Option<u8>` |
+| `Some(1)`, `None` | `SPX-T203`, `SPX-T202` | `Option<i64>::Some { value: 1 }`, `Option<i64>::None {}` |
+| `s.len()` on a `string` | `SPX-T203` | `string_len(s)`; no type but a `class` has methods |
+| `String`, `int`, `Vec` as types | `SPX-T001` | `string`, `i64`/`i32`/`u8`/`usize`, `[u8; N]`/`Bytes`/`Slice<u8>` |
 
 ## Projects
 
@@ -503,6 +512,10 @@ Modules import by stable identity, not by path:
 `use function @id("calculator.add") from calculator.core as add;` at the top of
 the importing file. A test module is an ordinary module whose `main` returns
 `0` on success; `semaprax test semaprax.toml` prints `project tests passed`.
+A failure prints only `project tests failed with result N`, so return a
+distinct non-zero value from each failing check (`if a { if b { 0 } else { 2 } }
+else { 1 }`) instead of a single `1`; the number is the only clue to which
+check failed.
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) owns the manifest,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is
 the committed instance, and `semaprax project-scaffold --name <name>` prints a

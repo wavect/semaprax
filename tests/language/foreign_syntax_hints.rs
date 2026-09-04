@@ -104,7 +104,7 @@ fn main() -> i64
     );
     assert_eq!(diagnostic.code, "SPX-P106");
     assert_eq!(diagnostic.message, "expected `}` after block");
-    assert!(help(&diagnostic).contains("let name = …;"), "{diagnostic}");
+    assert!(help(&diagnostic).contains("let _ = …;"), "{diagnostic}");
 }
 
 #[test]
@@ -223,4 +223,112 @@ fn unrelated_parser_errors_carry_no_hint() {
     );
     assert_eq!(diagnostic.code, "SPX-P106");
     assert!(diagnostic.help.is_none(), "{diagnostic}");
+}
+
+#[test]
+fn foreign_declaration_keywords_name_the_local_form() {
+    let cases = [
+        (
+            "struct P {\n    @id(\"m.p.x\")\n    x: i64,\n}\n",
+            "record Name",
+        ),
+        ("enum E {\n    @id(\"m.e.a\")\n    A,\n}\n", "variant Name"),
+        ("pub fn f() -> i64\n{\n    1\n}\n", "no visibility keyword"),
+        ("const LIMIT: i64 = 10;\n", "fn name() -> i64 { value }"),
+    ];
+    for (declaration, expected_help) in cases {
+        let source = format!(
+            "module habit.decl;\n@id(\"m.d\")\n{declaration}@id(\"app.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
+        );
+        let diagnostic = rejection(&source);
+        assert_eq!(diagnostic.code, "SPX-P104", "{diagnostic}");
+        assert_eq!(diagnostic.message, "expected `fn`", "{diagnostic}");
+        assert!(help(&diagnostic).contains(expected_help), "{diagnostic}");
+    }
+}
+
+#[test]
+fn missing_trailing_comma_names_the_rule_for_fields_and_arms() {
+    let record = rejection(
+        "module habit.comma;\n@id(\"m.p\")\nrecord P {\n    @id(\"m.p.x\")\n    x: i64\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    );
+    assert_eq!(record.code, "SPX-P106");
+    assert_eq!(record.message, "expected `,` after record field");
+    assert!(
+        help(&record).contains("every record field ends with `,`, including the last"),
+        "{record}"
+    );
+
+    let arm = rejection(
+        "module habit.comma;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let x = 1;\n    match x { 0 => 0, _ => 1 }\n}\n",
+    );
+    assert_eq!(arm.code, "SPX-P106");
+    assert_eq!(arm.message, "expected `,` after match arm");
+    assert!(
+        help(&arm).contains("every match arm ends with `,`, including the last"),
+        "{arm}"
+    );
+}
+
+#[test]
+fn compound_assignment_shows_the_plain_form() {
+    let diagnostic = rejection(
+        "module habit.compound;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let mut x = 1;\n    x += 1;\n    x\n}\n",
+    );
+    assert_eq!(diagnostic.code, "SPX-P201");
+    assert_eq!(diagnostic.message, "compound assignment is not admitted");
+    assert!(help(&diagnostic).contains("x = x + …;"), "{diagnostic}");
+}
+
+#[test]
+fn missing_return_type_and_unit_type_name_the_result_rule() {
+    let missing = rejection(
+        "module habit.ret;\n@id(\"m.f\")\nfn f()\n{\n    1\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    );
+    assert_eq!(missing.code, "SPX-P106");
+    assert_eq!(missing.message, "expected `->` before return type");
+    assert!(
+        help(&missing).contains("return `i64` or `bool`"),
+        "{missing}"
+    );
+
+    let unit = rejection(
+        "module habit.unit;\n@id(\"m.f\")\nfn f() -> ()\n{\n    1\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    );
+    assert_eq!(unit.code, "SPX-P105");
+    assert_eq!(unit.message, "expected type");
+    assert!(help(&unit).contains("no unit type"), "{unit}");
+}
+
+#[test]
+fn uninitialised_let_and_assignment_condition_name_their_rules() {
+    let uninitialised = rejection(
+        "module habit.let;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let x: i64;\n    0\n}\n",
+    );
+    assert_eq!(uninitialised.code, "SPX-P106");
+    assert!(
+        help(&uninitialised).contains("no uninitialised binding"),
+        "{uninitialised}"
+    );
+
+    let condition = rejection(
+        "module habit.cond;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let x = 1;\n    if x = 1 { 1 } else { 0 }\n}\n",
+    );
+    assert_eq!(condition.code, "SPX-P106");
+    assert!(
+        help(&condition).contains("comparison is `==`"),
+        "{condition}"
+    );
+}
+
+#[test]
+fn indexing_syntax_points_at_byte_get() {
+    let diagnostic = rejection(
+        "module habit.index;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let a = [1u8, 2u8];\n    if a[0] == 1u8 { 0 } else { 1 }\n}\n",
+    );
+    assert_eq!(diagnostic.code, "SPX-P106");
+    assert!(
+        help(&diagnostic).contains("byte_get(view, index)"),
+        "{diagnostic}"
+    );
 }

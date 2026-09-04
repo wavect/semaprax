@@ -146,6 +146,43 @@ fn mismatched_non_literal_operands_get_no_literal_hint() {
 }
 
 #[test]
+fn owned_string_into_a_borrow_str_parameter_names_the_conversion() {
+    let diagnostic = only(
+        "module habit.param;\n@id(\"habit.f\")\nfn f(s: borrow str) -> i64\n{\n    if str_is_empty(s) { 0 } else { 1 }\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let owned = \"abc\";\n    f(owned)\n}\n",
+        "SPX-T205",
+    );
+    assert_eq!(
+        diagnostic.message,
+        "argument `s` to `f` expects str, received string"
+    );
+    assert!(
+        help(&diagnostic).contains("f(string_as_str(binding))"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn owned_bytes_into_a_slice_parameter_names_the_views() {
+    let diagnostic = only(
+        "module habit.slice;\n@id(\"habit.f\")\nfn f(v: borrow Slice<u8>) -> usize\n{\n    byte_len(v)\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let sample = [1u8, 2u8];\n    let n = f(sample);\n    0\n}\n",
+        "SPX-T205",
+    );
+    assert!(
+        help(&diagnostic).contains("array_as_slice(array)"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn scalar_argument_mismatch_gets_no_view_hint() {
+    let diagnostic = only(
+        "module habit.scalar;\n@id(\"habit.f\")\nfn f(v: i64) -> i64\n{\n    v\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    f(true)\n}\n",
+        "SPX-T205",
+    );
+    assert!(diagnostic.help.is_none(), "{diagnostic}");
+}
+
+#[test]
 fn owned_string_into_a_byte_view_names_the_conversion() {
     let diagnostic = only(
         "module habit.view;\npermit { process.stdout.write }\n@id(\"app.main\")\nfn main() -> i64\n    uses { process.stdout.write }\n{\n    let text = \"hi\";\n    let n = stdout_write(str_as_bytes(text));\n    0\n}\n",
@@ -161,4 +198,112 @@ fn owned_string_into_stdout_write_names_the_conversion() {
         "SPX-T269",
     );
     assert!(help(&diagnostic).contains("str_as_bytes"), "{diagnostic}");
+}
+
+#[test]
+fn variant_shorthand_constructors_show_the_typed_spelling() {
+    let some = only(
+        "module habit.some;\n@id(\"habit.f\")\nfn f(flag: bool) -> Option<i64>\n{\n    if flag { Some(1) } else { Option<i64>::None {} }\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+        "SPX-T203",
+    );
+    assert_eq!(some.message, "unknown function `Some`");
+    assert!(
+        help(&some).contains("Option<i64>::Some { value: 1 }"),
+        "{some}"
+    );
+
+    let none = only(
+        "module habit.none;\n@id(\"habit.f\")\nfn f() -> Option<i64>\n{\n    None\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+        "SPX-T202",
+    );
+    assert!(help(&none).contains("Option<i64>::None {}"), "{none}");
+}
+
+#[test]
+fn method_on_a_string_names_the_compiler_owned_function() {
+    let diagnostic = only(
+        "module habit.method;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let s = \"abc\";\n    s.len()\n}\n",
+        "SPX-T203",
+    );
+    assert_eq!(
+        diagnostic.message,
+        "method `len` requires a class receiver, found `string`"
+    );
+    assert!(help(&diagnostic).contains("string_len(s)"), "{diagnostic}");
+}
+
+#[test]
+fn method_on_a_record_explains_that_records_have_no_methods() {
+    let diagnostic = only(
+        "module habit.rec;\n@id(\"m.p\")\nrecord P {\n    @id(\"m.p.x\")\n    x: i64,\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let p = P { x: 1 };\n    p.total()\n}\n",
+        "SPX-T203",
+    );
+    assert!(
+        help(&diagnostic).contains("records have no methods"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn foreign_type_names_point_at_the_admitted_types() {
+    let cases = [
+        ("String", "owned text is `string`"),
+        ("int", "`i64` (the literal default)"),
+        ("double", "`f64` and `f32`"),
+        ("boolean", "spelled `bool`"),
+        ("Vec", "no general collection type"),
+    ];
+    for (name, expected_help) in cases {
+        let diagnostic = only(
+            &format!(
+                "module habit.ty;\n@id(\"habit.f\")\nfn f(v: {name}) -> i64\n{{\n    1\n}}\n@id(\"app.main\")\nfn main() -> i64\n{{\n    0\n}}\n"
+            ),
+            "SPX-T001",
+        );
+        assert!(
+            help(&diagnostic).contains(expected_help),
+            "{name}: {diagnostic}"
+        );
+    }
+}
+
+#[test]
+fn a_genuinely_unknown_type_keeps_the_resource_message_without_a_hint() {
+    let diagnostic = only(
+        "module habit.unk;\n@id(\"habit.f\")\nfn f(v: Widget) -> i64\n{\n    1\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n",
+        "SPX-T001",
+    );
+    assert_eq!(
+        diagnostic.message,
+        "unknown type `Widget`; declare it with `resource Widget;`"
+    );
+    assert!(diagnostic.help.is_none(), "{diagnostic}");
+}
+
+#[test]
+fn borrowed_view_of_a_literal_names_the_binding_step() {
+    let diagnostic = only(
+        "module habit.view;\npermit { process.stdout.write }\n@id(\"app.main\")\nfn main() -> i64\n    uses { process.stdout.write }\n{\n    let n = stdout_write(str_as_bytes(\"hi\"));\n    0\n}\n",
+        "SPX-T266",
+    );
+    assert_eq!(
+        diagnostic.message,
+        "borrowed view `str_as_bytes` requires an exact admitted storage place"
+    );
+    assert!(
+        help(&diagnostic).contains("str_as_bytes(string_as_str(text))"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn borrowed_view_of_an_array_literal_names_the_binding_step() {
+    let diagnostic = only(
+        "module habit.arr;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let n = byte_len(array_as_slice([1u8, 2u8]));\n    0\n}\n",
+        "SPX-T266",
+    );
+    assert!(
+        help(&diagnostic).contains("array_as_slice(bytes)"),
+        "{diagnostic}"
+    );
 }

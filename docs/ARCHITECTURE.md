@@ -208,11 +208,12 @@ contract](DOCTOR-PROBE-V1.md).
 The parser separates recursive prefix atoms from postfix construction so
 inactive postfix temporaries do not accumulate during nested atom parsing.
 Token order, contextual grammar, spans and diagnostics are unchanged.
-`src/parser/patterns.rs` holds match-pattern parsing verbatim, and
-`src/parser/hints.rs` attaches fix hints to rejections of habits from other
-languages (`return`, `for`, `else if`, expression statements, tuples, `Some(x)`
-patterns, valueless blocks) without admitting any new syntax or changing a
-stable code.
+`src/parser/patterns.rs` holds match-pattern parsing and `src/parser/types.rs`
+type syntax, both moved verbatim, and `src/parser/hints.rs` attaches fix hints to rejections of habits from other
+languages (`return`, `for`, `else if`, expression statements, compound
+assignment, tuples, indexing, `Some(x)` patterns, `struct`/`enum`/`pub`/`const`
+declarations, missing trailing commas, missing or unit result types, valueless
+blocks) without admitting any new syntax or changing a stable code.
 `src/format.rs` is the canonical source projection. Revision digests bind the
 canonical bytes, not incidental whitespace.
 

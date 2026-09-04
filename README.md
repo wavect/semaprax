@@ -8,7 +8,7 @@ An experimental systems programming language with a stable semantic program
 graph designed for humans and software agents.
 
 [![CI](https://github.com/wavect/semaprax/actions/workflows/ci.yml/badge.svg)](https://github.com/wavect/semaprax/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.2.0-7c3aed.svg)](Cargo.toml)
+[![Version](https://img.shields.io/badge/version-0.3.0-7c3aed.svg)](Cargo.toml)
 [![Status](https://img.shields.io/badge/status-pre--alpha-f59e0b.svg)](#project-status)
 [![Rust](https://img.shields.io/badge/Rust-1.88%2B-000000.svg?logo=rust)](Cargo.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb.svg)](LICENSE)

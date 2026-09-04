@@ -661,7 +661,7 @@ fn run_v4() -> HostResult<()> {
         EXPECTED_GENERATED_CORE_V4_SHA256,
     )
     .map_err(|error| failure(format!("v4 component profile validation failed: {error:?}")))?;
-    if validated.interface_export_name() != "semaprax:private/evaluation@0.2.0"
+    if validated.interface_export_name() != "semaprax:private/evaluation@0.3.0"
         || validated.function_export_name() != "evaluate"
         || validated.source_revision() != expected_revision
     {

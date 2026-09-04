@@ -12,7 +12,7 @@ license = "Apache-2.0"
 resolver = "2"
 
 [dependencies]
-semaprax = { version = "=0.2.0", path = "../..", default-features = false }
+semaprax = { version = "=0.3.0", path = "../..", default-features = false }
 wit-parser = { version = "=0.252.0", default-features = false, features = ["std"] }
 
 [lints.rust]

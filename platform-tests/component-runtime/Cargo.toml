@@ -11,7 +11,7 @@ license = "Apache-2.0"
 resolver = "2"
 
 [dependencies]
-semaprax = { version = "=0.2.0", path = "../..", default-features = false, features = ["unstable-wit-component-harness"] }
+semaprax = { version = "=0.3.0", path = "../..", default-features = false, features = ["unstable-wit-component-harness"] }
 sha2 = { version = "=0.11.0", default-features = false }
 wasmtime = { version = "=47.0.4", default-features = false, features = ["component-model", "cranelift", "runtime", "std"] }
 

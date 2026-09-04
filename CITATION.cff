@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use Semaprax, cite this repository state and the exact evidence document that supports your claim."
 title: "Semaprax"
 type: software
-version: "0.2.0"
+version: "0.3.0"
 date-released: 2026-09-02
 abstract: "Semaprax is an experimental agent-native systems programming language built around a stable semantic program graph. Its v0.2 prototype lets coding agents query typed meaning, submit revision-bound semantic patches, and lower a verified subset to native executables and browser/Wasm packages."
 authors:

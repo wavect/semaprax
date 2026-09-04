@@ -8,7 +8,7 @@ description = "Bounded Native Rust SDK builder for SEMAPRAX"
 license = "Apache-2.0"
 
 [dependencies]
-semaprax = { version = "=0.2.0", path = "../..", default-features = false }
+semaprax = { version = "=0.3.0", path = "../..", default-features = false }
 semaprax-native-rust-interop-platform = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform" }
 semaprax-native-rust-owned-data-package = { version = "=0.1.0", path = "../semaprax-native-rust-owned-data-package" }
 serde_json = "=1.0.151"

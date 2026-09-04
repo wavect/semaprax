@@ -25,7 +25,7 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
         "license = \"Apache-2.0\"",
         "[workspace]",
         "resolver = \"2\"",
-        "semaprax = { version = \"=0.2.0\", path = \"../..\", default-features = false, features = [\"unstable-wit-component-harness\"] }",
+        "semaprax = { version = \"=0.3.0\", path = \"../..\", default-features = false, features = [\"unstable-wit-component-harness\"] }",
         "sha2 = { version = \"=0.11.0\", default-features = false }",
         "wasmtime = { version = \"=47.0.4\", default-features = false, features = [\"component-model\", \"cranelift\", \"runtime\", \"std\"] }",
         "unsafe_code = \"forbid\"",
@@ -102,7 +102,7 @@ fn runtime_wits_are_the_exact_private_result_contracts() {
     assert_eq!(checked_in_v3, expected_v3);
 
     let checked_in_v4 = read("platform-tests/component-runtime/wit/semaprax-private-v4.wit");
-    let expected_v4 = "package semaprax:private@0.2.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type language-result = result<bool, bool>;\n  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;\n}\n\nworld semaprax-private-v4 {\n  export evaluation;\n}\n";
+    let expected_v4 = "package semaprax:private@0.3.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type language-result = result<bool, bool>;\n  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;\n}\n\nworld semaprax-private-v4 {\n  export evaluation;\n}\n";
     assert_eq!(checked_in_v4, expected_v4);
 
     let checked_in_v5 = read("platform-tests/component-runtime/wit/semaprax-private-v5.wit");

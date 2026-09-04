@@ -8,7 +8,7 @@ description = "Safe create-new publication for verified SEMAPRAX effect-free Cor
 license = "Apache-2.0"
 
 [dependencies]
-semaprax = { version = "=0.2.0", path = "../.." }
+semaprax = { version = "=0.3.0", path = "../.." }
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 semaprax-native-rust-interop-platform = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform" }

@@ -20,7 +20,7 @@ pub(super) fn expected_for_selector(
     };
     let profile = format!("offline profile `{selector}`; checks describe this profile only");
     let mut rows = vec![
-        ("semaprax", "ok", "0.2.0"),
+        ("semaprax", "ok", "0.3.0"),
         ("os", "ok", "linux"),
         ("arch", "ok", arch),
         ("release", "ok", build),
@@ -68,7 +68,7 @@ fn default_selector_preserves_literal_canonical_report_bytes() {
     };
     let literal = format!(concat!(
         "{{\"schema\":\"semaprax.doctor.v1\",\"target\":\"native\",\"checks\":[",
-        "{{\"id\":\"semaprax\",\"required\":true,\"status\":\"ok\",\"detail\":\"0.2.0\"}},",
+        "{{\"id\":\"semaprax\",\"required\":true,\"status\":\"ok\",\"detail\":\"0.3.0\"}},",
         "{{\"id\":\"os\",\"required\":true,\"status\":\"ok\",\"detail\":\"linux\"}},",
         "{{\"id\":\"arch\",\"required\":true,\"status\":\"ok\",\"detail\":\"{}\"}},",
         "{{\"id\":\"release\",\"required\":true,\"status\":\"ok\",\"detail\":\"debug\"}},",
@@ -92,7 +92,7 @@ fn explicit_selector_preserves_order_and_escapes_independent_detail_bytes() {
     };
     let literal = format!(concat!(
         "{{\"schema\":\"semaprax.doctor.v1\",\"target\":\"all\",\"checks\":[",
-        "{{\"id\":\"semaprax\",\"required\":true,\"status\":\"ok\",\"detail\":\"0.2.0\"}},",
+        "{{\"id\":\"semaprax\",\"required\":true,\"status\":\"ok\",\"detail\":\"0.3.0\"}},",
         "{{\"id\":\"os\",\"required\":true,\"status\":\"ok\",\"detail\":\"linux\"}},",
         "{{\"id\":\"arch\",\"required\":true,\"status\":\"ok\",\"detail\":\"{}\"}},",
         "{{\"id\":\"release\",\"required\":true,\"status\":\"ok\",\"detail\":\"release\"}},",

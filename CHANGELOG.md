@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.0 — 2026-09-04
+
 - Fixed the owning `add_record_field` Bytes lane, which emitted
   `bytes_copy(array_as_slice([...]))` and was rejected by its own admission:
   the indexed byte-data contract never lets a view borrow an array temporary.

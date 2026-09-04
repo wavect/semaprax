@@ -5,7 +5,7 @@
   "name": "Semaprax",
   "alternateName": "SEMAPRAX",
   "description": "Semaprax is an experimental agent-native systems programming language built around a stable semantic program graph. Its v0.2 prototype lets coding agents query typed meaning, submit revision-bound semantic patches, and lower a verified subset to native executables and browser/Wasm packages.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "developmentStatus": "https://www.repostatus.org/#wip",
   "license": "https://spdx.org/licenses/Apache-2.0",
   "url": "https://wavect.io/semaprax/",

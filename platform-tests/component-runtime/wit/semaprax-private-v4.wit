@@ -1,4 +1,4 @@
-package semaprax:private@0.2.0;
+package semaprax:private@0.3.0;
 
 interface evaluation {
   record status { domain: string, code: u32, class: u8, retryable: option<bool> }

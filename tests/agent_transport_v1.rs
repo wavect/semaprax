@@ -93,7 +93,7 @@ fn protocol_ping_and_shutdown_have_canonical_envelopes() {
     assert!(responses[0].starts_with(
         "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"protocol\":\"semaprax.agent-transport.v1\",\"revision\":\"sha256:"
     ));
-    assert!(responses[0].contains("\"version\":\"0.2.0\""));
+    assert!(responses[0].contains("\"version\":\"0.3.0\""));
     assert!(responses[0].contains(
         "\"methods\":[\"context\",\"context_v2\",\"graph\",\"ping\",\"protocol\",\"shutdown\"]"
     ));

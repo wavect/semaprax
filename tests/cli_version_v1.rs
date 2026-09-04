@@ -16,11 +16,11 @@ fn cli(arguments: &[&str]) -> Output {
 fn human_output_is_deterministic_with_known_and_absent_commits() {
     assert_eq!(
         version::render_human_with_commit(Some(COMMIT)).unwrap(),
-        "semaprax 0.2.0 (8b2d397f164ff93338d7b3935d1c2df291434458)\n"
+        "semaprax 0.3.0 (8b2d397f164ff93338d7b3935d1c2df291434458)\n"
     );
     assert_eq!(
         version::render_human_with_commit(None).unwrap(),
-        "semaprax 0.2.0 (commit unknown)\n"
+        "semaprax 0.3.0 (commit unknown)\n"
     );
 }
 
@@ -28,11 +28,11 @@ fn human_output_is_deterministic_with_known_and_absent_commits() {
 fn json_output_is_canonical_and_has_one_terminal_lf() {
     assert_eq!(
         version::render_json_with_commit(Some(COMMIT)).unwrap(),
-        "{\"schema\":\"semaprax.version.v1\",\"version\":\"0.2.0\",\"commit\":\"8b2d397f164ff93338d7b3935d1c2df291434458\",\"maturity\":\"pre-alpha\",\"rust_min\":\"1.88\"}\n"
+        "{\"schema\":\"semaprax.version.v1\",\"version\":\"0.3.0\",\"commit\":\"8b2d397f164ff93338d7b3935d1c2df291434458\",\"maturity\":\"pre-alpha\",\"rust_min\":\"1.88\"}\n"
     );
     assert_eq!(
         version::render_json_with_commit(None).unwrap(),
-        "{\"schema\":\"semaprax.version.v1\",\"version\":\"0.2.0\",\"commit\":null,\"maturity\":\"pre-alpha\",\"rust_min\":\"1.88\"}\n"
+        "{\"schema\":\"semaprax.version.v1\",\"version\":\"0.3.0\",\"commit\":null,\"maturity\":\"pre-alpha\",\"rust_min\":\"1.88\"}\n"
     );
 }
 

@@ -15,11 +15,11 @@ use super::{
     COMPONENT_HEADER,
 };
 
-const INTERFACE_EXPORT: &str = "semaprax:private/evaluation@0.2.0";
+const INTERFACE_EXPORT: &str = "semaprax:private/evaluation@0.3.0";
 const FUNCTION_EXPORT: &str = "evaluate";
 const LANGUAGE_RESULT_EXPORT: &str = "language-result";
 
-const WIT_V4: &str = "package semaprax:private@0.2.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type language-result = result<bool, bool>;\n  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;\n}\n\nworld semaprax-private-v4 {\n  export evaluation;\n}\n";
+const WIT_V4: &str = "package semaprax:private@0.3.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type language-result = result<bool, bool>;\n  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;\n}\n\nworld semaprax-private-v4 {\n  export evaluation;\n}\n";
 
 const PROFILE: &[u8] = b"semaprax.private-source-result-component.v4\0canonical-abi-memory32-utf8\0nested-language-result-never-flattened\0status-first-known-v3-domains\0invalid-tag-and-unknown-status-trap\0canonical-result-area-256-size20-align4\0outer-payload-offset4-inner-tag-offset4-inner-bool-offset5\0compiler-result-layout-v2-field-reconstruction\0cleanup-plan-v2\0";
 const PROFILE_DIGEST_DOMAIN: &[u8] = b"semaprax.private-source-result-component-profile.v4\0";

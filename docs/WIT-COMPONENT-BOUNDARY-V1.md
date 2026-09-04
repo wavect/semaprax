@@ -145,7 +145,7 @@ V4 is a separate WIT 0.2 profile that connects one exact verified source
 closure to an engine-native Component boundary:
 
 ```wit
-package semaprax:private@0.2.0;
+package semaprax:private@0.3.0;
 
 interface evaluation {
   record status { domain: string, code: u32, class: u8, retryable: option<bool> }

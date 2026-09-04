@@ -17,7 +17,7 @@ fn external_consumer_is_isolated_default_feature_and_exactly_locked() {
     let manifest = read("platform-tests/public-scalar-wit-interface/Cargo.toml");
     assert!(manifest.contains("[workspace]\nresolver = \"2\""));
     assert!(manifest.contains(
-        "semaprax = { version = \"=0.2.0\", path = \"../..\", default-features = false }"
+        "semaprax = { version = \"=0.3.0\", path = \"../..\", default-features = false }"
     ));
     assert!(!manifest.contains("unstable-wit-component-harness"));
     assert!(manifest.contains(

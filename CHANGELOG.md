@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `AGENTS.md` forbids pointing a worktree's Cargo `target-dir` at another
+  worktree or at any path a different checkout's tests depend on, and the
+  development guide gives the private `CARGO_TARGET_DIR`,
+  `CARGO_INCREMENTAL=0`, and `CARGO_PROFILE_TEST_DEBUG=0` setup with the disk
+  a full gate needs.
+
 - The VS Code extension checks on save. Saving a `.spx` file or
   `semaprax.toml` runs the user-selected `semaprax.compilerPath` binary as
   `check <nearest semaprax.toml or file> --json`, maps each JSON diagnostic to

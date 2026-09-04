@@ -174,6 +174,22 @@ For documentation-only changes, the routed gate still checks formatting,
 examples, rustdoc, and local links. See [Quality gates](QUALITY-GATES.md) for
 profiles and change-specific evidence ownership.
 
+When several worktrees build on one machine, give each its own target
+directory and keep debug data out of it:
+
+```sh
+export CARGO_TARGET_DIR="$PWD/target/private"
+export CARGO_INCREMENTAL=0 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0
+```
+
+`CARGO_TARGET_DIR` must stay under the worktree it serves; a `target-dir`
+shared with another checkout lets that checkout's build replace this one's
+binaries and fingerprints while its tests run. The `full` profile's
+`--workspace --all-targets` test build links several hundred integration
+binaries and needs well over 10 GB in that directory even with the variables
+above; a `-p semaprax` harness build needs roughly 1 GB. Remove the private
+directory when the work is done.
+
 ## Documentation maintenance rules
 
 - Put every document's audience and status within its first 12 lines.

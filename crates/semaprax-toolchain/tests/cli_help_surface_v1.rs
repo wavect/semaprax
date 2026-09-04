@@ -7,7 +7,7 @@ const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web
 const NEW_LINE: &str =
     "semaprax new <destination> [--name project-name] [--template calculator|library]\n";
 const PROJECT_SCAFFOLD_LINE: &str =
-    "semaprax project-scaffold --name project-name [--template calculator|library]\n";
+    "semaprax project-scaffold --name project-name [--template calculator|library] [--layout frozen|tables]\n";
 const BUILD_LINE: &str = "semaprax build [<file>|<dir>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm|rust] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n";
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 const GUIDE_MAX_BYTES: usize = 2048;

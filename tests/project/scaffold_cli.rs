@@ -1,4 +1,6 @@
-use semaprax::project::derive_project_scaffold_v1;
+use semaprax::project::{
+    derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout, ScaffoldLayout,
+};
 use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -112,4 +114,53 @@ fn semantic_and_capacity_failures_publish_no_partial_document() {
         assert!(stderr.contains(code), "{stderr}");
         std::fs::remove_dir(root).unwrap();
     }
+}
+
+#[test]
+fn public_cli_emits_the_table_layout_capsule_with_layout_tables() {
+    let (output, root) = invoke(&[
+        "project-scaffold",
+        "--name",
+        "demo-project",
+        "--layout",
+        "tables",
+    ]);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(output.stderr.is_empty());
+    let expected = derive_project_scaffold_v1_with_layout(
+        "demo-project",
+        "calculator",
+        ScaffoldLayout::Tables,
+    )
+    .unwrap()
+    .canonical_bytes();
+    assert_eq!(output.stdout, expected);
+    // The default output is the frozen capsule, distinct from the table one.
+    assert_ne!(output.stdout, expected_default("demo-project"));
+    std::fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn a_bad_layout_value_fails_before_any_output() {
+    let (output, root) = invoke(&[
+        "project-scaffold",
+        "--name",
+        "demo-project",
+        "--layout",
+        "bogus",
+    ]);
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("layout must be frozen or tables"));
+    std::fs::remove_dir(root).unwrap();
+}
+
+fn expected_default(name: &str) -> Vec<u8> {
+    derive_project_scaffold_v1(name, "calculator")
+        .unwrap()
+        .canonical_bytes()
 }

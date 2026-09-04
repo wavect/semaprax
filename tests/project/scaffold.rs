@@ -1,4 +1,7 @@
-use semaprax::project::{derive_project_scaffold_v1, replay_project_scaffold_v1};
+use semaprax::project::{
+    derive_project_scaffold_v1, derive_project_scaffold_v1_with_layout, replay_project_scaffold_v1,
+    ScaffoldLayout,
+};
 use sha2::{Digest, Sha256};
 
 const NAME: &str = "demo-project";
@@ -292,4 +295,80 @@ fn replay_rejects_noncanonical_and_semantically_reminted_capsules() {
     let error =
         replay_project_scaffold_v1(NAME, "calculator", &exact, artifact.digest()).unwrap_err();
     assert_eq!(error[0].code, "SPX-J115");
+}
+
+const CALCULATOR_TABLES_MANIFEST: &[u8] = b"schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"demo-project\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"demo_project.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"demo_project.tests\"]\n\n[exports]\nweb = [\"demo-project.add\"]\n";
+
+const LIBRARY_TABLES_MANIFEST: &[u8] = b"schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"demo-project\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"demo_project.examples\"\nsources = [\"src/examples.spx\", \"src/lib.spx\", \"src/tests.spx\"]\ntests = [\"demo_project.tests\"]\n\n[exports]\nweb = [\"demo-project.twice\"]\n";
+
+#[test]
+fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
+    let frozen = derive_project_scaffold_v1(NAME, "calculator").unwrap();
+    let tables =
+        derive_project_scaffold_v1_with_layout(NAME, "calculator", ScaffoldLayout::Tables).unwrap();
+
+    // A distinct capsule schema; the frozen default stays v2 and byte-for-byte
+    // unchanged (the `derivation_is_literal_...` test is the byte guard).
+    assert_eq!(tables.schema(), "semaprax.project-scaffold.v3");
+    assert_eq!(tables.project_schema(), "semaprax.project.v1");
+    assert_eq!(tables.template(), "calculator");
+    assert_eq!(tables.project_name(), NAME);
+    assert_digest(tables.digest());
+    assert_ne!(tables.digest(), frozen.digest());
+    assert_ne!(tables.canonical_bytes(), frozen.canonical_bytes());
+
+    // Only the manifest file differs from the frozen capsule; the layout is the
+    // extensible table manifest, and everything else is identical.
+    assert_eq!(tables.files().len(), frozen.files().len());
+    for (table_file, frozen_file) in tables.files().iter().zip(frozen.files()) {
+        assert_eq!(table_file.path(), frozen_file.path());
+        if table_file.path() == "semaprax.toml" {
+            assert_eq!(table_file.bytes(), CALCULATOR_TABLES_MANIFEST);
+            assert_ne!(table_file.bytes(), frozen_file.bytes());
+            assert_eq!(table_file.sha256(), sha256(table_file.bytes()));
+        } else {
+            assert_eq!(table_file.bytes(), frozen_file.bytes());
+        }
+    }
+
+    // Deterministic and self-replaying under its own schema.
+    let again =
+        derive_project_scaffold_v1_with_layout(NAME, "calculator", ScaffoldLayout::Tables).unwrap();
+    assert_eq!(again.canonical_bytes(), tables.canonical_bytes());
+    let replayed = replay_project_scaffold_v1(
+        NAME,
+        "calculator",
+        &tables.canonical_bytes(),
+        tables.digest(),
+    )
+    .unwrap();
+    assert_eq!(replayed.schema(), "semaprax.project-scaffold.v3");
+    assert_eq!(replayed.canonical_bytes(), tables.canonical_bytes());
+
+    // The frozen digest cannot validate the table bytes, and vice versa.
+    assert!(replay_project_scaffold_v1(
+        NAME,
+        "calculator",
+        &tables.canonical_bytes(),
+        frozen.digest()
+    )
+    .is_err());
+    assert!(replay_project_scaffold_v1(
+        NAME,
+        "calculator",
+        &frozen.canonical_bytes(),
+        tables.digest()
+    )
+    .is_err());
+
+    // The library template also lowers to a v3 table capsule.
+    let library =
+        derive_project_scaffold_v1_with_layout(NAME, "library", ScaffoldLayout::Tables).unwrap();
+    assert_eq!(library.schema(), "semaprax.project-scaffold.v3");
+    let manifest = library
+        .files()
+        .iter()
+        .find(|file| file.path() == "semaprax.toml")
+        .unwrap();
+    assert_eq!(manifest.bytes(), LIBRARY_TABLES_MANIFEST);
 }

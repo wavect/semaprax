@@ -28,6 +28,7 @@ the release remains unsigned, not notarized, and pre-alpha.
 | Write SEMAPRAX as a coding agent with a small context window | Load the compiler-checked [agent quick reference](AGENT-QUICK-REFERENCE.md) |
 | Find a minimal example to point a command at | [Examples index](../examples/README.md) |
 | Find or automate a compiler command | [Using the SEMAPRAX CLI](CLI-GUIDE.md) |
+| Highlight `.spx` files in Visual Studio Code | The repository's [VS Code extension](../editors/vscode/README.md) |
 | Understand the language design | [RFC 0001](RFC-0001.md) |
 | Work with records, variants, matching, `Option`, or `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
 | Understand ownership and cleanup | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |

@@ -36,7 +36,8 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 "SPX-G172",
                 "source module imports require Workspace Semantic Graph resolution",
             )
-            .at_path(&program.path),
+            .at_path(&program.path)
+            .with_help(super::hints::PROJECT_IMPORTS_HELP),
         );
         return diagnostics;
     }
@@ -128,7 +129,8 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                     .first()
                     .map_or(Span::default(), |function| function.span),
             )
-            .at_path(&program.path),
+            .at_path(&program.path)
+            .with_help(super::hints::LIBRARY_MODULE_HELP),
         );
     }
     if let Err(capacity) = verify_byte_data_capacity(program, &types) {

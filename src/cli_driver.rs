@@ -133,6 +133,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{}", cli::help::catalog(host.is_some()));
             return Ok(());
         }
+        if args[1] == "language" {
+            print!("{}", cli::help::LANGUAGE_REFERENCE);
+            return Ok(());
+        }
         return print_scoped_help(&args[1], host.is_some());
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {

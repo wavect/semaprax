@@ -1,7 +1,7 @@
 {
   "name": "semaprax-saved-source",
   "displayName": "SEMAPRAX Saved Source",
-  "description": "Explicit, read-only source previews and semantic candidates through a host-selected local MCP session.",
+  "description": "SEMAPRAX syntax highlighting for .spx files, plus explicit, read-only source previews and semantic candidates through a host-selected local MCP session.",
   "version": "0.1.0",
   "publisher": "semaprax",
   "engines": { "vscode": "^1.85.0" },
@@ -11,6 +11,21 @@
   "activationEvents": ["onCommand:semaprax.start"],
   "scripts": { "test": "node --test test/*.test.js" },
   "contributes": {
+    "languages": [
+      {
+        "id": "semaprax",
+        "aliases": ["SEMAPRAX", "semaprax"],
+        "extensions": [".spx"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "semaprax",
+        "scopeName": "source.semaprax",
+        "path": "./syntaxes/semaprax.tmLanguage.json"
+      }
+    ],
     "commands": [
       { "command": "semaprax.start", "title": "SEMAPRAX: Start Saved-Source Session" },
       { "command": "semaprax.stop", "title": "SEMAPRAX: Stop Session" },

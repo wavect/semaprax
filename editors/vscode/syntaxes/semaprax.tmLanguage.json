@@ -1,0 +1,120 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "SEMAPRAX",
+  "scopeName": "source.semaprax",
+  "fileTypes": ["spx"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#attributes" },
+    { "include": "#strings" },
+    { "include": "#chars" },
+    { "include": "#numbers" },
+    { "include": "#declarations" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#calls" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        { "name": "comment.line.double-slash.semaprax", "match": "//.*$" }
+      ]
+    },
+    "attributes": {
+      "name": "meta.attribute.id.semaprax",
+      "begin": "(@)(id)\\s*(\\()",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.attribute.semaprax" },
+        "2": { "name": "entity.other.attribute-name.semaprax" },
+        "3": { "name": "punctuation.section.parens.begin.semaprax" }
+      },
+      "end": "\\)",
+      "endCaptures": { "0": { "name": "punctuation.section.parens.end.semaprax" } },
+      "patterns": [
+        { "name": "string.quoted.double.stable-id.semaprax", "match": "\"[^\"]*\"" }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.semaprax",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.semaprax", "match": "\\\\(u\\{[0-9A-Fa-f]+\\}|.)" }
+      ]
+    },
+    "chars": {
+      "name": "string.quoted.single.semaprax",
+      "match": "'(\\\\(u\\{[0-9A-Fa-f]+\\}|.)|[^'\\\\])'"
+    },
+    "numbers": {
+      "patterns": [
+        { "name": "constant.numeric.float.semaprax", "match": "\\b[0-9]+\\.[0-9]+(f32)?\\b" },
+        { "name": "constant.numeric.integer.semaprax", "match": "\\b[0-9]+(i32|u8|usize)?\\b" }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(fn)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.function.semaprax" },
+            "2": { "name": "entity.name.function.semaprax" }
+          }
+        },
+        {
+          "match": "\\b(record|variant|class|resource|interface|protocol)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.type.semaprax" },
+            "2": { "name": "entity.name.type.semaprax" }
+          }
+        },
+        {
+          "match": "\\b(module)\\s+([A-Za-z_][A-Za-z0-9_.]*)",
+          "captures": {
+            "1": { "name": "keyword.declaration.module.semaprax" },
+            "2": { "name": "entity.name.namespace.semaprax" }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.semaprax",
+          "match": "\\b(module|use|permit|fn|record|variant|class|resource|interface|protocol|impl|import|type|drop|trivial)\\b"
+        },
+        {
+          "name": "keyword.control.semaprax",
+          "match": "\\b(if|else|match|while|unsafe|with)\\b"
+        },
+        {
+          "name": "storage.modifier.semaprax",
+          "match": "\\b(let|mut|own|borrow|shared|rust)\\b"
+        },
+        {
+          "name": "keyword.other.contract.semaprax",
+          "match": "\\b(requires|ensures|uses|effects|permits|failure|infallible|status|consumes|always)\\b"
+        },
+        {
+          "name": "keyword.other.import.semaprax",
+          "match": "\\b(function|from|as|for)\\b"
+        },
+        { "name": "constant.language.boolean.semaprax", "match": "\\b(true|false)\\b" },
+        { "name": "variable.language.semaprax", "match": "\\b(self|super|result)\\b" }
+      ]
+    },
+    "types": {
+      "name": "storage.type.semaprax",
+      "match": "\\b(i64|i32|u8|usize|f64|f32|bool|char|string|str|unit|Bytes|Slice|Option|Result)\\b"
+    },
+    "calls": {
+      "name": "entity.name.function.call.semaprax",
+      "match": "\\b([A-Za-z_][A-Za-z0-9_]*)(?=\\s*(<[^<>]*>)?\\s*\\()"
+    },
+    "operators": {
+      "name": "keyword.operator.semaprax",
+      "match": "->|=>|==|!=|<=|>=|&&|\\|\\||::|[-+*/%<>=!?|]"
+    }
+  }
+}

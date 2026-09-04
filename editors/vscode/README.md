@@ -8,6 +8,19 @@ VS Code APIs and Node built-ins. No npm dependencies, bundling, telemetry,
 webviews, language server, automatic process startup, or publication command.
 It is not a packaged or marketplace release. The exact local execution claim is bounded by the evidence contract below.
 
+## Syntax highlighting
+
+Opening a `.spx` file gives SEMAPRAX highlighting, `//` comment toggling,
+bracket matching, and auto-closing pairs without starting a session. This is
+the declarative `languages` and `grammars` contribution in `package.json`
+backed by `syntaxes/semaprax.tmLanguage.json` and
+`language-configuration.json`; it runs no code and needs no compiler path.
+The repository's documentation gate checks that the grammar names every
+keyword the parser recognises, so the highlighting cannot silently lag the
+language. It is highlighting only: no diagnostics, completion, or navigation.
+
+## Saved-source session
+
 Load this directory as a development extension using VS Code's extension
 development host. Configure these **user/machine settings**, all absolute paths:
 

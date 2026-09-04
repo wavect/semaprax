@@ -224,7 +224,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -288,6 +288,13 @@ fn edit_distance(left: &[u8], right: &[u8]) -> usize {
     previous[right.len()]
 }
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
+
+/// The compiler-checked language card, printed by `semaprax help language` so
+/// an agent or developer with only the installed binary can read the admitted
+/// shapes, the diagnostics foreign habits trigger, and their fixes offline.
+/// The bytes are the repository document; `tests/documentation.rs` checks its
+/// code blocks against this compiler.
+pub(crate) const LANGUAGE_REFERENCE: &str = include_str!("../../docs/AGENT-QUICK-REFERENCE.md");
 
 /// Upper bound on the guided global help, in bytes, for either capability
 /// class. An agent reads this page before its first command; it must stay one
@@ -412,6 +419,11 @@ static GUIDE: &[GuideGroup] = &[
                 id: CommandId::Help,
                 shape: "help all",
                 summary: "Every command, including tool-author protocol surfaces",
+            },
+            GuideEntry {
+                id: CommandId::Help,
+                shape: "help language",
+                summary: "The language card: admitted shapes, diagnostics, fixes",
             },
         ],
     },
@@ -676,12 +688,20 @@ mod tests {
                 help.len()
             );
             assert!(help.contains("\n  help all "));
+            assert!(help.contains("\n  help language "));
             let names_private = help.contains("\n  new ") || help.contains("\n  doctor ");
             assert_eq!(names_private, private);
             assert!(!help.contains("|rust"));
             assert!(catalog(private).starts_with(BANNER));
             assert!(catalog(private).contains("\nsemaprax check "));
         }
+    }
+
+    #[test]
+    fn language_reference_is_the_repository_card() {
+        assert!(LANGUAGE_REFERENCE.starts_with("# Agent quick reference\n"));
+        assert!(LANGUAGE_REFERENCE.contains("```semaprax\n"));
+        assert!(LANGUAGE_REFERENCE.ends_with('\n'));
     }
 
     #[test]

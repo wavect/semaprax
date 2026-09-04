@@ -94,6 +94,137 @@ fn documentation_catalog_and_metadata_are_complete() {
     }
 }
 
+/// The VS Code extension's declarative `.spx` language contribution. These
+/// cases bind the manifest, grammar, and language configuration to each other
+/// and to the parser's keyword vocabulary, so highlighting cannot silently lag
+/// the language.
+mod editor_grammar {
+    use std::collections::BTreeSet;
+    use std::path::{Path, PathBuf};
+
+    const EXTENSION: &str = "editors/vscode";
+
+    fn root() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join(EXTENSION)
+    }
+
+    fn json(path: &Path) -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(path).unwrap())
+            .unwrap_or_else(|error| panic!("{}: {error}", path.display()))
+    }
+
+    /// Every identifier the parser tests for with `keyword("…")` or
+    /// `at_keyword("…")`, plus the contextual words it matches by value.
+    fn parser_keywords() -> BTreeSet<String> {
+        let parser = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/parser");
+        let mut sources = vec![parser.with_extension("rs")];
+        for entry in std::fs::read_dir(&parser).unwrap() {
+            let path = entry.unwrap().path();
+            if path.extension().is_some_and(|extension| extension == "rs") {
+                sources.push(path);
+            }
+        }
+        let mut keywords: BTreeSet<String> = ["match", "true", "false", "super"]
+            .into_iter()
+            .map(str::to_owned)
+            .collect();
+        for source in sources {
+            let text = std::fs::read_to_string(&source).unwrap();
+            for marker in ["at_keyword(\"", "keyword(\""] {
+                for (index, _) in text.match_indices(marker) {
+                    let rest = &text[index + marker.len()..];
+                    let name: String = rest
+                        .chars()
+                        .take_while(|c| c.is_ascii_lowercase() || *c == '_')
+                        .collect();
+                    if !name.is_empty() && rest[name.len()..].starts_with('"') {
+                        keywords.insert(name);
+                    }
+                }
+            }
+        }
+        assert!(
+            keywords.len() > 30,
+            "parser keyword extraction found {keywords:?}"
+        );
+        keywords
+    }
+
+    /// Every identifier-shaped run inside every `match` pattern of the grammar.
+    fn grammar_words(value: &serde_json::Value, words: &mut BTreeSet<String>) {
+        match value {
+            serde_json::Value::Object(map) => {
+                for (key, value) in map {
+                    if key == "match" {
+                        if let Some(pattern) = value.as_str() {
+                            let mut word = String::new();
+                            for c in pattern.chars().chain(std::iter::once(' ')) {
+                                if c.is_ascii_alphanumeric() || c == '_' {
+                                    word.push(c);
+                                } else if !word.is_empty() {
+                                    words.insert(std::mem::take(&mut word));
+                                }
+                            }
+                        }
+                    }
+                    grammar_words(value, words);
+                }
+            }
+            serde_json::Value::Array(items) => {
+                items.iter().for_each(|item| grammar_words(item, words))
+            }
+            _ => {}
+        }
+    }
+
+    #[test]
+    fn manifest_grammar_and_configuration_agree_on_the_spx_language() {
+        let root = root();
+        let manifest = json(&root.join("package.json"));
+        let languages = manifest["contributes"]["languages"].as_array().unwrap();
+        assert_eq!(languages.len(), 1);
+        let language = &languages[0];
+        assert_eq!(language["id"], "semaprax");
+        assert_eq!(language["extensions"], serde_json::json!([".spx"]));
+        let configuration = root.join(language["configuration"].as_str().unwrap());
+        let configuration = json(&configuration);
+        assert_eq!(configuration["comments"]["lineComment"], "//");
+
+        let grammars = manifest["contributes"]["grammars"].as_array().unwrap();
+        assert_eq!(grammars.len(), 1);
+        assert_eq!(grammars[0]["language"], "semaprax");
+        let grammar = json(&root.join(grammars[0]["path"].as_str().unwrap()));
+        assert_eq!(grammar["scopeName"], grammars[0]["scopeName"]);
+        assert_eq!(grammar["fileTypes"], serde_json::json!(["spx"]));
+        // A declarative contribution must not widen the extension's activation.
+        assert_eq!(
+            manifest["activationEvents"],
+            serde_json::json!(["onCommand:semaprax.start"])
+        );
+    }
+
+    #[test]
+    fn grammar_names_every_parser_keyword() {
+        let grammar = json(&root().join("syntaxes/semaprax.tmLanguage.json"));
+        let mut words = BTreeSet::new();
+        grammar_words(&grammar, &mut words);
+        let missing: Vec<_> = parser_keywords()
+            .into_iter()
+            .filter(|keyword| !words.contains(keyword))
+            .collect();
+        assert!(
+            missing.is_empty(),
+            "syntaxes/semaprax.tmLanguage.json does not highlight parser keywords {missing:?}"
+        );
+        for suffix in ["i32", "u8", "usize", "f32"] {
+            assert!(
+                words.contains(suffix),
+                "literal suffix {suffix} is not highlighted"
+            );
+        }
+    }
+}
+
 mod language_tour {
     use std::path::{Path, PathBuf};
 

@@ -26,6 +26,14 @@ surfaces intended for tool authors:
 semaprax help all
 ```
 
+Print the compiler-checked language quick reference, the one-page card of
+admitted shapes, the diagnostics that habits from other languages trigger, and
+their fixes, without a source checkout:
+
+```sh
+semaprax help language
+```
+
 Show the exact accepted form of one command without reading source files,
 probing tools, or starting a build:
 

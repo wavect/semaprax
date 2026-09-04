@@ -32,8 +32,8 @@ static, source-owned guide:
   two-space-indented entries: `Write, check, and run` (`check`, `fmt`, `run`,
   `test`, `build`), `Inspect meaning` (`graph`, `context`), `Change by
   meaning` (`patch`, `impact`, `review`), `Start a project` (`new`,
-  `project-scaffold`), and `Toolchain` (`doctor`, `version`, `help <command>`,
-  `help all`);
+  `project-scaffold`), and `Toolchain` (`doctor`, `version`, `help <command>`, `help all`,
+  `help language`);
 - each entry is an abbreviated command shape, padded to one column, followed
   by a one-line purpose;
 - a two-line footer naming the first command to run and the `--json`
@@ -52,7 +52,7 @@ guided shape must not be parsed as an admission rule.
 
 ## Exhaustive catalog
 
-`semaprax help all` is one new admitted form. For either executable it returns
+`semaprax help all` is one of two new admitted forms. For either executable it returns
 status zero, empty stderr, and exactly the bytes v1 defined for the global
 page: the banner, a blank line, `Usage:`, and every capability-visible global
 catalog line in catalog order. Scoped help for `help` lists both of its
@@ -62,6 +62,7 @@ shapes:
 Usage:
   semaprax help <command>
   semaprax help all
+  semaprax help language
 ```
 
 `all` is not a command. `semaprax help all extra`, `semaprax all`, and other
@@ -69,6 +70,17 @@ placements keep the existing unknown-command and malformed-position behavior
 and print the guided page where v1 printed the exhaustive one. The
 unknown-command surface, the typo suggestion, and the hidden-command refusal
 are otherwise unchanged in bytes and status.
+
+## Language card
+
+`semaprax help language` is the third `help` shape. For either executable it
+returns status zero, empty stderr, and exactly the bytes of the repository's
+[agent quick reference](AGENT-QUICK-REFERENCE.md), compiled into the binary.
+An agent or developer working from an installed compiler, without the source
+checkout, can read the admitted shapes, the diagnostics that habits from other
+languages trigger, and their fixes offline. The document's own gate checks its
+code blocks against the compiler, so the card cannot describe syntax the
+binary rejects. Scoped help for `help` lists all three shapes.
 
 ## Preservation
 

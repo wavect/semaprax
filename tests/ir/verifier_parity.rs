@@ -47,7 +47,7 @@ fn helper(value: Buffer, number: own i64) -> bool
 {"code":"SPX-O002","severity":"error","message":"ownership mode `own` is only valid for resource types; `i64` is a value type","path":"fixtures/verifier-mixed.spx","location":{"line":8,"column":26,"start":159,"end":165},"help":null}
 {"code":"SPX-T203","severity":"error","message":"unknown function `missing`","path":"fixtures/verifier-mixed.spx","location":{"line":11,"column":5,"start":216,"end":230},"help":null}
 {"code":"SPX-E101","severity":"error","message":"function `helper` uses `network.send` but module `test.verifier_parity` does not permit it","path":"fixtures/verifier-mixed.spx","location":{"line":8,"column":1,"start":134,"end":232},"help":null}
-{"code":"SPX-T105","severity":"error","message":"executable module must define `fn main() -> i64`","path":"fixtures/verifier-mixed.spx","location":{"line":8,"column":1,"start":134,"end":232},"help":null}"#
+{"code":"SPX-T105","severity":"error","message":"executable module must define `fn main() -> i64`","path":"fixtures/verifier-mixed.spx","location":{"line":8,"column":1,"start":134,"end":232},"help":"a module without `fn main() -> i64` is a library module: check it through the project that owns it with `semaprax check <project-dir>`, or add `main` to run this file alone"}"#
     );
 }
 

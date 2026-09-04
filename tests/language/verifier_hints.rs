@@ -32,6 +32,36 @@ fn help(diagnostic: &Diagnostic) -> &str {
 }
 
 #[test]
+fn one_project_module_checked_alone_names_the_project_command() {
+    let imports = only(
+        "module habit.app;\nuse function @id(\"habit.core.add\") from habit.core as add;\n@id(\"app.main\")\nfn main() -> i64\n{\n    add(1, 2)\n}\n",
+        "SPX-G172",
+    );
+    assert_eq!(
+        imports.message,
+        "source module imports require Workspace Semantic Graph resolution"
+    );
+    assert!(
+        help(&imports).contains("semaprax check <project-dir>"),
+        "{imports}"
+    );
+
+    let library = only(
+        "module habit.core;\n@id(\"habit.core.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n",
+        "SPX-T105",
+    );
+    assert_eq!(
+        library.message,
+        "executable module must define `fn main() -> i64`"
+    );
+    assert!(help(&library).contains("library module"), "{library}");
+    assert!(
+        help(&library).contains("semaprax check <project-dir>"),
+        "{library}"
+    );
+}
+
+#[test]
 fn misspelled_builtin_suggests_the_nearest_reserved_name() {
     let diagnostic = only(
         "module habit.name;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let s = \"abc\";\n    string_length(s)\n}\n",

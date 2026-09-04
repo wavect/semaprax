@@ -78,7 +78,11 @@ semaprax run examples/meaning.spx
 
 Use `semaprax <command> --help` for the exact accepted command shape, or see
 the [CLI user guide](docs/CLI-GUIDE.md) for common source, project, formatting,
-and automation workflows.
+and automation workflows. `semaprax help language` prints the compiler-checked
+[agent quick reference](docs/AGENT-QUICK-REFERENCE.md), the one-page card for
+writing `.spx`, without a checkout. Opening a `.spx` file in Visual Studio Code
+with the [repository extension](editors/vscode/README.md) loaded gives syntax
+highlighting.
 
 Private-host commands require the unpublished full toolchain, not the
 standalone crates.io compiler package. Install it from the same checkout to

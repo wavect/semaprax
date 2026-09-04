@@ -15,6 +15,9 @@ rule: [RFC 0001](RFC-0001.md) is the contract and the
 [completion matrix](COMPLETION-MATRIX.md) is the status authority. The
 [language tour](LANGUAGE-TOUR.md) explains the same shapes at length.
 
+The installed compiler prints this page verbatim with `semaprax help language`,
+so it is available without the source checkout.
+
 ## Spend tokens on source, not on dumps
 
 - Edit loop: write the file, `semaprax fmt <file>` (rewrites canonically),

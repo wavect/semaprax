@@ -15,6 +15,17 @@ use super::diagnostics::error;
 use crate::ast::{Expr, ExprKind, Function, Program, Span, Type};
 use crate::diagnostic::Diagnostic;
 
+/// A single file of a multi-file project checked on its own. Both diagnostics
+/// are correct and both leave an agent editing one project module without a
+/// next step, so each names the project-level command.
+pub(super) const PROJECT_IMPORTS_HELP: &str = "this module imports other modules, so check it \
+                                              through the project that owns it: `semaprax check \
+                                              <project-dir>` or its `semaprax.toml`";
+pub(super) const LIBRARY_MODULE_HELP: &str = "a module without `fn main() -> i64` is a library \
+                                             module: check it through the project that owns it with \
+                                             `semaprax check <project-dir>`, or add `main` to run \
+                                             this file alone";
+
 /// Foreign output routines and the one admitted way to write bytes.
 const PRINT_FAMILY: [&str; 8] = [
     "print",

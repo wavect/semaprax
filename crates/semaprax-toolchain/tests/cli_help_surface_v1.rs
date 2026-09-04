@@ -154,6 +154,22 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         }
     }
 
+    let (language, language_dir) = invoke(&["help", "language"]);
+    assert!(language.status.success());
+    assert!(language.stderr.is_empty());
+    let card = std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../docs/AGENT-QUICK-REFERENCE.md"),
+    )
+    .unwrap();
+    assert_eq!(language.stdout, card);
+    assert!(language.stdout.starts_with(b"# Agent quick reference\n"));
+    std::fs::remove_dir(language_dir).unwrap();
+    let (language_extra, language_extra_dir) = invoke(&["help", "language", "extra"]);
+    assert_eq!(language_extra.status.code(), Some(2));
+    assert_eq!(language_extra.stdout, global.stdout);
+    assert_eq!(language_extra.stderr, b"unknown command `help`\n\n");
+    std::fs::remove_dir(language_extra_dir).unwrap();
     let (version_alias, version_alias_dir) = invoke(&["-V", "--help"]);
     assert!(version_alias.status.success());
     assert!(version_alias.stderr.is_empty());
@@ -164,7 +180,7 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         assert!(output.status.success(), "{name}");
         assert_eq!(
             output.stdout,
-            b"Usage:\n  semaprax help <command>\n  semaprax help all\n"
+            b"Usage:\n  semaprax help <command>\n  semaprax help all\n  semaprax help language\n"
         );
         assert!(output.stderr.is_empty());
         std::fs::remove_dir(directory).unwrap();

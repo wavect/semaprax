@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- `semaprax help language` prints the compiler-checked agent quick reference
+  byte for byte from the installed binary, so an agent or developer without the
+  source checkout can read the admitted shapes, the diagnostics foreign habits
+  trigger, and their fixes offline. Both help harnesses pin the bytes and the
+  guided page lists the form.
+
+- The VS Code extension now contributes the `.spx` language declaratively:
+  a TextMate grammar and language configuration give highlighting, `//`
+  comment toggling, bracket matching, and auto-closing pairs without starting a
+  session or running code. The documentation gate checks that the grammar
+  names every keyword the parser recognises and every literal suffix.
+
+- Checking one module of a multi-file project on its own now explains the
+  next step: `SPX-G172` (the module imports other modules) and `SPX-T105`
+  (the module has no `main`) keep their codes and messages and gain a hint
+  naming `semaprax check <project-dir>`.
+
 - `check`, `run`, `test`, and `build` accept a project directory as their
   positional operand and select the `semaprax.toml` inside it, so
   `semaprax check examples/calculator-project` and `semaprax run .` work

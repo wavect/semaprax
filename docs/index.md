@@ -17,12 +17,15 @@ The [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
 contains smoke-tested Linux x86-64, Apple Silicon macOS, and Windows x86-64
 archives. See the [exact tagged evidence and checksums](RELEASE-PROCESS.md#v020-hosted-release-evidence);
 the release remains unsigned, not notarized, and pre-alpha.
+Recent project and tooling notes are summarized in [CHANGELOG.md](../CHANGELOG.md),
+with full history in [docs/CHANGELOG-ARCHIVE.md](CHANGELOG-ARCHIVE.md).
 
 ## Choose a path
 
 | You want to… | Start with… |
 | --- | --- |
 | Install a working toolchain | [Install](INSTALL.md) |
+| Track recent changes | [CHANGELOG](../CHANGELOG.md) |
 | Try the language | Follow the executable [quickstart](QUICKSTART.md), then explore the root [README](../README.md) |
 | Learn the language itself | Work through the [language tour](LANGUAGE-TOUR.md) |
 | Write SEMAPRAX as a coding agent with a small context window | Load the compiler-checked [agent quick reference](AGENT-QUICK-REFERENCE.md) |

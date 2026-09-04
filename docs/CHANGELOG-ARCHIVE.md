@@ -1,20 +1,6 @@
 # Changelog
 
-Project log follows a compact [Keep a Changelog](https://keepachangelog.com/)
-format: `Unreleased` then release buckets, grouped by impact.
-
-> For full historical detail of every entry, refer to
-> [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
-
 ## Unreleased
-
-<<<<<<< HEAD
-- `semaprax lock` and `semaprax resolve` accept `[<dir>|semaprax.toml]`,
-  resolving directory arguments to `<dir>/semaprax.toml` and defaulting to
-  `./semaprax.toml` when omitted, matching `check`, `fmt`, `run`, `test`, and
-  `build`. Outside a project without arguments, both commands attach the
-  standard missing-manifest guidance hint. `tests/project.rs::project_lock_v1`
-  and `tests/project.rs::dependency_resolution_v1` pin the ergonomics.
 
 - Canonical project comments now remain valid inputs to Project semantic-graph
   construction and persisted frontend-cache replay, while the parsed semantic
@@ -5342,24 +5328,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   `SPX-B104` claim.
 - Migrated browser manifests from `semaprax.web.v2` to `semaprax.web.v3`. Version 3 retains module, graph revision, Wasm entry, and capabilities while adding the required `owned_abi` object with schema `semaprax.wasm-owned.v1` and a declaration-ordered function mapping; scalar-only packages use an empty function array. Version-2-only consumers must reject or explicitly migrate rather than inferring ownership ABI metadata.
 
-## 0.3.0
+## 0.1.0 — 2026-08-07
 
-This is the most recent published tag and the full historical changelog is archived in
-[docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
-
-### Added
-- Expanded project CLI workflows for lock generation/verification, dependency
-  resolution, and interface comparison.
-- Added support for richer manifest and contract diagnostics, including repair
-  guidance.
-- Editor and quality-tooling updates for `check`, `fmt`, and `test` flows.
-
-### Changed
-- CLI diagnostics now surface stable-id and argument context on `semaprax run/test`
-  failures.
-- Changelog documentation is now centralized and compressed at the repository
-  root.
-
-### Fixed
-- Improved route selection and command discovery for CLI help/catalog behavior.
-- Tightened evidence and diagnostics alignment across human and machine paths.
+- Introduced the typed SEMAPRAX source subset and canonical formatter.
+- Added stable semantic identities, revisioned graph output, and context slicing.
+- Added effect/capability verification and typed runtime contracts.
+- Added checked arithmetic and native C11/Clang compilation.
+- Added machine-readable diagnostics and atomic semantic rename patches.
+- Published RFC 0001 and the staged compiler roadmap.

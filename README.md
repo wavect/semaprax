@@ -47,14 +47,15 @@ agent operations.
 command needs, Cargo `PATH` setup, how to confirm the install, and what a first
 failed command means.
 
-### Download v0.2.0
+### Releases and changelog
 
-The [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
-provides smoke-tested archives for Linux x86-64, Apple Silicon macOS, and
-Windows x86-64, plus `SHA256SUMS`. It is still unsigned, not notarized, and
-pre-alpha; checksums verify integrity, not publisher identity. The exact
-release evidence and archive digests are recorded in the
-[release process](docs/RELEASE-PROCESS.md#v020-hosted-release-evidence).
+The published tag is the
+[v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
+with smoke-test archives, SHA256 checksums, and release evidence in the
+[release process](docs/RELEASE-PROCESS.md#v020-hosted-release-evidence). The
+development changelog is now summarized in [CHANGELOG.md](CHANGELOG.md), with
+full historical detail archived at
+[docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
 
 ### Check and run a program
 
@@ -262,7 +263,7 @@ and [Public Owned UTF-8 API v1](docs/PUBLIC-OWNED-UTF8-API-V1.md).
 
 ## Project status
 
-**Release:** [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0) · **Maturity:** pre-alpha research · **Overall goal:**
+**Release:** [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0) · **Changelog:** [CHANGELOG.md](CHANGELOG.md) · **Maturity:** pre-alpha research · **Overall goal:**
 Partial
 
 SEMAPRAX has executable vertical slices across its language, semantic graph,

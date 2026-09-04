@@ -309,11 +309,18 @@ fn help_pins_the_optional_mcp_command_without_replacing_v5() {
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
     let help = String::from_utf8(output.stdout).unwrap();
+    let help_lines = help.lines().collect::<Vec<_>>();
     for line in [
-        "semaprax serve-workspace-mcp <manifest> <host-policy.json>\n",
-        "semaprax serve-workspace <manifest> <host-policy.json>\n",
+        "semaprax serve-workspace-mcp <manifest> <host-policy.json>",
+        "semaprax serve-workspace <manifest> <host-policy.json>",
     ] {
-        assert_eq!(help.matches(line).count(), 1);
+        assert_eq!(
+            help_lines
+                .iter()
+                .filter(|candidate| **candidate == line)
+                .count(),
+            1
+        );
     }
 }
 

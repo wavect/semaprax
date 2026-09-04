@@ -517,198 +517,84 @@ impl FunctionPlan {
 
         match &expr.kind {
             ResolvedExprKind::Call { args, .. } => {
-                for arg in args {
-                    self.collect_expr(program, variant_layouts, arg, parameter_count, frame)?;
-                }
+                self.collect_exprs(program, variant_layouts, args, parameter_count, frame)?
             }
             ResolvedExprKind::NativeRustImportCall(call) => {
-                for arg in &call.args {
-                    self.collect_expr(program, variant_layouts, arg, parameter_count, frame)?;
-                }
+                self.collect_exprs(program, variant_layouts, &call.args, parameter_count, frame)?
             }
             ResolvedExprKind::HostCommandCall(call) => {
-                for arg in &call.args {
-                    self.collect_expr(program, variant_layouts, arg, parameter_count, frame)?;
-                }
+                self.collect_exprs(program, variant_layouts, &call.args, parameter_count, frame)?
             }
             ResolvedExprKind::ByteRange {
                 source, start, end, ..
-            } => {
-                self.collect_expr(program, variant_layouts, source, parameter_count, frame)?;
-                self.collect_expr(program, variant_layouts, start, parameter_count, frame)?;
-                self.collect_expr(program, variant_layouts, end, parameter_count, frame)?;
-            }
+            } => self.collect_byte_range(
+                program,
+                variant_layouts,
+                source,
+                start,
+                end,
+                parameter_count,
+                frame,
+            )?,
             ResolvedExprKind::Unary { value, .. } => {
                 self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
             }
             ResolvedExprKind::Try { operand, .. } | ResolvedExprKind::TryOption { operand, .. } => {
                 self.collect_expr(program, variant_layouts, operand, parameter_count, frame)?;
             }
-            ResolvedExprKind::Binary { left, right, .. } => {
-                self.collect_expr(program, variant_layouts, left, parameter_count, frame)?;
-                self.collect_expr(program, variant_layouts, right, parameter_count, frame)?;
-            }
-            ResolvedExprKind::Block { statements, tail } => {
-                for statement in statements {
-                    let ResolvedStatement::Let { binding, value, .. } = statement else {
-                        // Assignment targets reuse their `let` slot and while
-                        // statements contribute their condition and body; only
-                        // evaluated expressions join the local walk.
-                        for index in 0..statement.child_count() {
-                            if let Some(child) = statement.child(index) {
-                                self.collect_expr(
-                                    program,
-                                    variant_layouts,
-                                    child,
-                                    parameter_count,
-                                    frame,
-                                )?;
-                            }
-                        }
-                        continue;
-                    };
-                    self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
-                    if is_aggregate(program, &binding.ty)? {
-                        let (size, align) =
-                            aggregate_size_align(program, variant_layouts, &binding.ty)?;
-                        let offset = frame.allocate(size, align)?;
-                        if self
-                            .aggregate_bindings
-                            .insert(binding.id.clone(), offset)
-                            .is_some()
-                        {
-                            return Err(error(format!(
-                                "duplicate aggregate binding identity `{}`",
-                                binding.id
-                            )));
-                        }
-                    } else {
-                        let local =
-                            self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
-                        if binding.ty == ResolvedType::String {
-                            self.owned_strings.insert(local)?;
-                        }
-                        if self
-                            .scalar_bindings
-                            .insert(binding.id.clone(), local)
-                            .is_some()
-                        {
-                            return Err(error(format!(
-                                "duplicate scalar binding identity `{}`",
-                                binding.id
-                            )));
-                        }
-                    }
-                }
-                self.collect_expr(program, variant_layouts, tail, parameter_count, frame)?;
-            }
+            ResolvedExprKind::Binary { left, right, .. } => self.collect_binary(
+                program,
+                variant_layouts,
+                left,
+                right,
+                parameter_count,
+                frame,
+            )?,
+            ResolvedExprKind::Block { statements, tail } => self.collect_block(
+                program,
+                variant_layouts,
+                statements,
+                tail,
+                parameter_count,
+                frame,
+            )?,
             ResolvedExprKind::If {
                 condition,
                 then_branch,
                 else_branch,
-            } => {
-                self.collect_expr(program, variant_layouts, condition, parameter_count, frame)?;
-                self.collect_expr(
-                    program,
-                    variant_layouts,
-                    then_branch,
-                    parameter_count,
-                    frame,
-                )?;
-                self.collect_expr(
-                    program,
-                    variant_layouts,
-                    else_branch,
-                    parameter_count,
-                    frame,
-                )?;
-            }
-            ResolvedExprKind::ConstructRecord { fields, .. } => {
-                for field in fields {
-                    self.collect_expr(
-                        program,
-                        variant_layouts,
-                        &field.value,
-                        parameter_count,
-                        frame,
-                    )?;
-                }
-            }
-            ResolvedExprKind::ConstructVariant { fields, .. } => {
-                for field in fields {
-                    self.collect_expr(
-                        program,
-                        variant_layouts,
-                        &field.value,
-                        parameter_count,
-                        frame,
-                    )?;
-                }
-            }
+            } => self.collect_if(
+                program,
+                variant_layouts,
+                condition,
+                then_branch,
+                else_branch,
+                parameter_count,
+                frame,
+            )?,
+            ResolvedExprKind::ConstructRecord { fields, .. } => self.collect_record_fields(
+                program,
+                variant_layouts,
+                fields,
+                parameter_count,
+                frame,
+            )?,
+            ResolvedExprKind::ConstructVariant { fields, .. } => self.collect_variant_fields(
+                program,
+                variant_layouts,
+                fields,
+                parameter_count,
+                frame,
+            )?,
             ResolvedExprKind::Match {
                 scrutinee, arms, ..
-            } => {
-                self.collect_expr(program, variant_layouts, scrutinee, parameter_count, frame)?;
-                for arm in arms {
-                    match &arm.pattern {
-                        crate::hir::ResolvedMatchPattern::Variant { fields, .. } => {
-                            for field in fields {
-                                let local = self.add_local(
-                                    parameter_count,
-                                    scalar_wasm_type(&field.binding.ty)?,
-                                )?;
-                                if self
-                                    .scalar_bindings
-                                    .insert(field.binding.id.clone(), local)
-                                    .is_some()
-                                {
-                                    return Err(error(format!(
-                                        "duplicate match binding identity `{}`",
-                                        field.binding.id
-                                    )));
-                                }
-                            }
-                        }
-                        crate::hir::ResolvedMatchPattern::Record { fields, .. } => self
-                            .collect_record_match_bindings(
-                                program,
-                                variant_layouts,
-                                fields,
-                                parameter_count,
-                                frame,
-                            )?,
-                        crate::hir::ResolvedMatchPattern::Wildcard => {}
-                        // Refutable Match v1: a binding arm owns one scalar
-                        // local; literals and or-patterns own nothing.
-                        crate::hir::ResolvedMatchPattern::Binding(binding) => {
-                            let local =
-                                self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
-                            if self
-                                .scalar_bindings
-                                .insert(binding.id.clone(), local)
-                                .is_some()
-                            {
-                                return Err(error(format!(
-                                    "duplicate match binding identity `{}`",
-                                    binding.id
-                                )));
-                            }
-                        }
-                        crate::hir::ResolvedMatchPattern::Literal(_)
-                        | crate::hir::ResolvedMatchPattern::Or(_) => {}
-                    }
-                    if let Some(guard) = &arm.guard {
-                        self.collect_expr(program, variant_layouts, guard, parameter_count, frame)?;
-                    }
-                    self.collect_expr(
-                        program,
-                        variant_layouts,
-                        &arm.value,
-                        parameter_count,
-                        frame,
-                    )?;
-                }
-            }
+            } => self.collect_match(
+                program,
+                variant_layouts,
+                scrutinee,
+                arms,
+                parameter_count,
+                frame,
+            )?,
             ResolvedExprKind::Project { base, .. } => {
                 self.collect_expr(program, variant_layouts, base, parameter_count, frame)?;
             }
@@ -746,6 +632,233 @@ impl FunctionPlan {
             .and_then(|base| base.checked_add(u32::try_from(self.local_types.len()).ok()?))
             .ok_or_else(|| error("String scope local index overflows"))?;
         self.owned_strings.scope(&expr.id, first, end)?;
+        Ok(())
+    }
+
+    fn collect_exprs(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        expressions: &[ResolvedExpr],
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        for expression in expressions {
+            self.collect_expr(program, variant_layouts, expression, parameter_count, frame)?;
+        }
+        Ok(())
+    }
+
+    fn collect_byte_range(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        source: &ResolvedExpr,
+        start: &ResolvedExpr,
+        end: &ResolvedExpr,
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        self.collect_expr(program, variant_layouts, source, parameter_count, frame)?;
+        self.collect_expr(program, variant_layouts, start, parameter_count, frame)?;
+        self.collect_expr(program, variant_layouts, end, parameter_count, frame)
+    }
+
+    fn collect_binary(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        left: &ResolvedExpr,
+        right: &ResolvedExpr,
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        self.collect_expr(program, variant_layouts, left, parameter_count, frame)?;
+        self.collect_expr(program, variant_layouts, right, parameter_count, frame)
+    }
+
+    fn collect_if(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        condition: &ResolvedExpr,
+        then_branch: &ResolvedExpr,
+        else_branch: &ResolvedExpr,
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        self.collect_expr(program, variant_layouts, condition, parameter_count, frame)?;
+        self.collect_expr(
+            program,
+            variant_layouts,
+            then_branch,
+            parameter_count,
+            frame,
+        )?;
+        self.collect_expr(
+            program,
+            variant_layouts,
+            else_branch,
+            parameter_count,
+            frame,
+        )
+    }
+
+    fn collect_record_fields(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        for field in fields {
+            self.collect_expr(
+                program,
+                variant_layouts,
+                &field.value,
+                parameter_count,
+                frame,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn collect_variant_fields(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        fields: &[crate::hir::ResolvedFieldInitializer],
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        for field in fields {
+            self.collect_expr(
+                program,
+                variant_layouts,
+                &field.value,
+                parameter_count,
+                frame,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn collect_block(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        statements: &[ResolvedStatement],
+        tail: &ResolvedExpr,
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        for statement in statements {
+            let ResolvedStatement::Let { binding, value, .. } = statement else {
+                // Assignment targets reuse their `let` slot and while
+                // statements contribute their condition and body; only
+                // evaluated expressions join the local walk.
+                for index in 0..statement.child_count() {
+                    if let Some(child) = statement.child(index) {
+                        self.collect_expr(program, variant_layouts, child, parameter_count, frame)?;
+                    }
+                }
+                continue;
+            };
+            self.collect_expr(program, variant_layouts, value, parameter_count, frame)?;
+            if is_aggregate(program, &binding.ty)? {
+                let (size, align) = aggregate_size_align(program, variant_layouts, &binding.ty)?;
+                let offset = frame.allocate(size, align)?;
+                if self
+                    .aggregate_bindings
+                    .insert(binding.id.clone(), offset)
+                    .is_some()
+                {
+                    return Err(error(format!(
+                        "duplicate aggregate binding identity `{}`",
+                        binding.id
+                    )));
+                }
+            } else {
+                let local = self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
+                if binding.ty == ResolvedType::String {
+                    self.owned_strings.insert(local)?;
+                }
+                if self
+                    .scalar_bindings
+                    .insert(binding.id.clone(), local)
+                    .is_some()
+                {
+                    return Err(error(format!(
+                        "duplicate scalar binding identity `{}`",
+                        binding.id
+                    )));
+                }
+            }
+        }
+        self.collect_expr(program, variant_layouts, tail, parameter_count, frame)
+    }
+
+    fn collect_match(
+        &mut self,
+        program: &ResolvedProgram,
+        variant_layouts: &VariantLayoutCache,
+        scrutinee: &ResolvedExpr,
+        arms: &[crate::hir::ResolvedMatchArm],
+        parameter_count: u32,
+        frame: &mut FrameAllocator,
+    ) -> Result<(), Diagnostic> {
+        self.collect_expr(program, variant_layouts, scrutinee, parameter_count, frame)?;
+        for arm in arms {
+            match &arm.pattern {
+                crate::hir::ResolvedMatchPattern::Variant { fields, .. } => {
+                    for field in fields {
+                        let local =
+                            self.add_local(parameter_count, scalar_wasm_type(&field.binding.ty)?)?;
+                        if self
+                            .scalar_bindings
+                            .insert(field.binding.id.clone(), local)
+                            .is_some()
+                        {
+                            return Err(error(format!(
+                                "duplicate match binding identity `{}`",
+                                field.binding.id
+                            )));
+                        }
+                    }
+                }
+                crate::hir::ResolvedMatchPattern::Record { fields, .. } => self
+                    .collect_record_match_bindings(
+                        program,
+                        variant_layouts,
+                        fields,
+                        parameter_count,
+                        frame,
+                    )?,
+                crate::hir::ResolvedMatchPattern::Wildcard => {}
+                // Refutable Match v1: a binding arm owns one scalar local;
+                // literals and or-patterns own nothing.
+                crate::hir::ResolvedMatchPattern::Binding(binding) => {
+                    let local = self.add_local(parameter_count, scalar_wasm_type(&binding.ty)?)?;
+                    if self
+                        .scalar_bindings
+                        .insert(binding.id.clone(), local)
+                        .is_some()
+                    {
+                        return Err(error(format!(
+                            "duplicate match binding identity `{}`",
+                            binding.id
+                        )));
+                    }
+                }
+                crate::hir::ResolvedMatchPattern::Literal(_)
+                | crate::hir::ResolvedMatchPattern::Or(_) => {}
+            }
+            if let Some(guard) = &arm.guard {
+                self.collect_expr(program, variant_layouts, guard, parameter_count, frame)?;
+            }
+            self.collect_expr(program, variant_layouts, &arm.value, parameter_count, frame)?;
+        }
         Ok(())
     }
 

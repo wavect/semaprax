@@ -22,6 +22,8 @@ use semaprax::{
 mod cli;
 #[path = "native_scratch.rs"]
 mod native_scratch;
+#[path = "cli_driver/supply_chain.rs"]
+mod supply_chain;
 
 #[cfg(test)]
 #[path = "cli/native_scratch_tests.rs"]
@@ -1192,44 +1194,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{envelope}");
             Ok(())
         }
-        CommandId::PackageLock => match cli::package_lock::run(&args[1..]) {
-            Ok(lock) => {
-                println!("{lock}");
-                Ok(())
-            }
-            Err(cli::package_lock::PackageLockCliError::Usage(message)) => {
-                eprintln!("{message}");
-                Err(2)
-            }
-            Err(cli::package_lock::PackageLockCliError::Domain(errors)) => {
-                Err(report(&errors, false))
-            }
-        },
-        CommandId::Lock => match cli::project_lock::run(&args[1..]) {
-            Ok(output) => {
-                print!("{output}");
-                Ok(())
-            }
-            Err(cli::project_lock::ProjectLockCliError::Usage(message)) => {
-                eprintln!("{message}");
-                Err(2)
-            }
-            Err(cli::project_lock::ProjectLockCliError::Domain(errors)) => {
-                Err(report(&errors, false))
-            }
-        },
-        CommandId::PackageResolve => match cli::package_resolver::run(&args[1..]) {
-            Ok(evidence) => {
-                write_package_resolver_stdout(&evidence).map_err(|error| report(&[error], false))
-            }
-            Err(cli::package_resolver::PackageResolverCliError::Usage(message)) => {
-                eprintln!("{message}");
-                Err(2)
-            }
-            Err(cli::package_resolver::PackageResolverCliError::Domain(errors)) => {
-                Err(report(&errors, false))
-            }
-        },
+        CommandId::PackageLock => supply_chain::package_lock(&args[1..]),
+        CommandId::Lock => supply_chain::project_lock(&args[1..]),
+        CommandId::PackageResolve => supply_chain::package_resolve(&args[1..]),
         CommandId::RegionReport => {
             let path = required_path(&args, 1)?;
             let options = region_report_options(&args)?;

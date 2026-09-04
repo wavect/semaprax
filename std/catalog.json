@@ -929,6 +929,80 @@
       "declarations": [
         {
           "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn equal_i64(actual: i64, expected: i64) -> bool",
+            "    ensures result == (actual == expected)"
+          ],
+          "id": "std.test.equal_i64",
+          "kind": "function",
+          "name": "equal_i64",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn equal_bool(actual: bool, expected: bool) -> bool",
+            "    ensures result == (actual == expected)"
+          ],
+          "id": "std.test.equal_bool",
+          "kind": "function",
+          "name": "equal_bool",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn failure_unless(condition: bool) -> i64",
+            "    ensures result == 0 || result == 1"
+          ],
+          "id": "std.test.failure_unless",
+          "kind": "function",
+          "name": "failure_unless",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn failure_if(condition: bool) -> i64",
+            "    ensures result == 0 || result == 1"
+          ],
+          "id": "std.test.failure_if",
+          "kind": "function",
+          "name": "failure_if",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn failure_bit_unless(condition: bool, failure_bit: i64) -> i64",
+            "    requires failure_bit > 0",
+            "    ensures result == 0 || result == failure_bit"
+          ],
+          "id": "std.test.failure_bit_unless",
+          "kind": "function",
+          "name": "failure_bit_unless",
+          "requires": 1
+        }
+      ],
+      "module": "std.test",
+      "package": "std/test",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "test"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
           "ensures": 0,
           "head": [
             "fn text_byte_len(value: borrow str) -> i64"

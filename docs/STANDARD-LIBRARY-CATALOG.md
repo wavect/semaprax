@@ -528,6 +528,46 @@ fn sample_below(seed: i64, upper: i64) -> i64
     ensures result >= 0 && result < upper
 ```
 
+## `std.test`
+
+Package `std/test`, tier `test`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.test.equal_i64`
+
+```semaprax
+fn equal_i64(actual: i64, expected: i64) -> bool
+    ensures result == (actual == expected)
+```
+
+### `std.test.equal_bool`
+
+```semaprax
+fn equal_bool(actual: bool, expected: bool) -> bool
+    ensures result == (actual == expected)
+```
+
+### `std.test.failure_unless`
+
+```semaprax
+fn failure_unless(condition: bool) -> i64
+    ensures result == 0 || result == 1
+```
+
+### `std.test.failure_if`
+
+```semaprax
+fn failure_if(condition: bool) -> i64
+    ensures result == 0 || result == 1
+```
+
+### `std.test.failure_bit_unless`
+
+```semaprax
+fn failure_bit_unless(condition: bool, failure_bit: i64) -> i64
+    requires failure_bit > 0
+    ensures result == 0 || result == failure_bit
+```
+
 ## `std.text`
 
 Package `std/text`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.

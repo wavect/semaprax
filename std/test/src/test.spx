@@ -1,0 +1,37 @@
+module std.test;
+
+@id("std.test.equal_i64")
+fn equal_i64(actual: i64, expected: i64) -> bool
+    ensures result == (actual == expected)
+{
+    actual == expected
+}
+
+@id("std.test.equal_bool")
+fn equal_bool(actual: bool, expected: bool) -> bool
+    ensures result == (actual == expected)
+{
+    actual == expected
+}
+
+@id("std.test.failure_unless")
+fn failure_unless(condition: bool) -> i64
+    ensures result == 0 || result == 1
+{
+    if condition { 0 } else { 1 }
+}
+
+@id("std.test.failure_if")
+fn failure_if(condition: bool) -> i64
+    ensures result == 0 || result == 1
+{
+    if condition { 1 } else { 0 }
+}
+
+@id("std.test.failure_bit_unless")
+fn failure_bit_unless(condition: bool, failure_bit: i64) -> i64
+    requires failure_bit > 0
+    ensures result == 0 || result == failure_bit
+{
+    if condition { 0 } else { failure_bit }
+}

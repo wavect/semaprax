@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the first executable `test`-tier package, `std.test`, with scalar
+  equality predicates and deterministic 0/1 or caller-selected failure status
+  helpers for the current Project return-code test model. It is portable and
+  compiler-bundled; rich diagnostics, fixtures, property tests, fuzzing, and
+  snapshots remain Missing.
 - Added the first executable `portable`-tier data-format package,
   `std.data.csv`, with allocation-free single-record field counting that
   respects quoted commas and escaped quotes, plus balanced-quote validation.

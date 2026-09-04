@@ -1,0 +1,24 @@
+module std.test.tests;
+use function @id("std.test.equal_bool") from std.test as equal_bool;
+use function @id("std.test.equal_i64") from std.test as equal_i64;
+use function @id("std.test.failure_bit_unless") from std.test as failure_bit_unless;
+use function @id("std.test.failure_if") from std.test as failure_if;
+use function @id("std.test.failure_unless") from std.test as failure_unless;
+
+@id("std.test.tests.predicates")
+fn predicates() -> bool
+{
+    equal_i64(7, 7) && !equal_i64(7, 8) && equal_bool(true, true) && equal_bool(false, false) && !equal_bool(true, false)
+}
+
+@id("std.test.tests.statuses")
+fn statuses() -> bool
+{
+    failure_unless(true) == 0 && failure_unless(false) == 1 && failure_if(false) == 0 && failure_if(true) == 1 && failure_bit_unless(true, 8) == 0 && failure_bit_unless(false, 8) == 8
+}
+
+@id("std.test.tests.main")
+fn main() -> i64
+{
+    failure_bit_unless(predicates(), 1) + failure_bit_unless(statuses(), 2)
+}

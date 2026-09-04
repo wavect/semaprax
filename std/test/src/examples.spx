@@ -1,0 +1,9 @@
+module std.test.examples;
+use function @id("std.test.equal_i64") from std.test as equal_i64;
+use function @id("std.test.failure_bit_unless") from std.test as failure_bit_unless;
+
+@id("std.test.examples.main")
+fn main() -> i64
+{
+    failure_bit_unless(equal_i64(2 + 2, 4), 1)
+}

@@ -1,0 +1,13 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-test"
+version = "0.1.0"
+
+[modules]
+entry = "std.test.examples"
+sources = ["src/examples.spx", "src/test.spx", "src/tests.spx"]
+tests = ["std.test.tests"]
+
+[exports]
+web = ["std.test.equal_bool", "std.test.equal_i64", "std.test.failure_bit_unless", "std.test.failure_if", "std.test.failure_unless"]

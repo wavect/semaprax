@@ -1,8 +1,8 @@
 # Standard Library v1
 
-- Status: versioned reference; eight `core`-tier packages and one
-  `portable`-tier package under `std/` are executable, every other module in
-  the required set is Missing.
+- Status: versioned reference; eight `core`-tier packages, one
+  `portable`-tier package, and one `test`-tier package under `std/` are
+  executable; every other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
   choosing between a compiler-owned function and a library declaration.
 
@@ -144,7 +144,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.task` | Structured tasks, cancellation, scheduling, and channels | Missing; [Scoped Task Model v1](SCOPED-TASKS-V1.md) is the design |
 | `std.log` | Structured logging with field identities and redaction | Missing |
 | `std.metrics` | Counters, gauges, histograms, and effect-neutral instrumentation | Missing |
-| `std.test` | Assertions, fixtures, property tests, fuzz targets, and snapshots | Missing; conformance modules use the bitmask convention above |
+| `std.test` | Assertions, fixtures, property tests, fuzz targets, and snapshots | Partial: scalar equality predicates and deterministic unit or caller-selected failure status helpers for the current return-code test model; rich diagnostics, fixtures, property tests, fuzz targets, and snapshots are Missing |
 | `std.agent` | Agent types, model roles, context, Proposal grammar, approval, effects, checkpoints, and evidence | Missing; [Agent Runtime v1](AGENT-RUNTIME-V1.md) is the design |
 
 A module is Partial when its package passes the gate on every listed target

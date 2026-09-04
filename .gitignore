@@ -11,6 +11,7 @@ platform-tests/wasm-scalar-browser-v1/playwright-report/
 platform-tests/wasm-scalar-browser-v1/test-results/
 
 .agent-worktrees/
+.claude/worktrees/
 
 # Shared agent configuration is committed; personal overrides are not.
 /.claude/settings.local.json

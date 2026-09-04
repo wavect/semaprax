@@ -4,9 +4,18 @@ use std::path::Path;
 fn bench_project_parse(c: &mut Criterion) {
     let mut group = c.benchmark_group("project-parse");
     for (id, path) in [
-        ("calculator-project-app", "examples/calculator-project/src/app.spx"),
-        ("apex-supply-chain-demand", "examples/apex-supply-chain/src/demand.spx"),
-        ("analytics-pipeline-core", "examples/analytics-pipeline-project/src/core.spx"),
+        (
+            "calculator-project-app",
+            "examples/calculator-project/src/app.spx",
+        ),
+        (
+            "apex-supply-chain-demand",
+            "examples/apex-supply-chain/src/demand.spx",
+        ),
+        (
+            "analytics-pipeline-core",
+            "examples/analytics-pipeline-project/src/core.spx",
+        ),
     ] {
         let source = std::fs::read_to_string(path).unwrap();
         group.bench_function(id, |b| {

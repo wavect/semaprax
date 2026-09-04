@@ -6,7 +6,10 @@ fn bench_interpreter_parse(c: &mut Criterion) {
     for (id, path) in [
         ("meaning", "examples/meaning.spx"),
         ("math-algorithms", "examples/math_algorithms.spx"),
-        ("apex-supply-chain-app", "examples/apex-supply-chain/src/app.spx"),
+        (
+            "apex-supply-chain-app",
+            "examples/apex-supply-chain/src/app.spx",
+        ),
     ] {
         let source = std::fs::read_to_string(path).unwrap();
         let bytes = source.len() as u64;

@@ -99,5 +99,12 @@ fn bench_check(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_parse, bench_verify, bench_graph, bench_format, bench_check);
+criterion_group!(
+    benches,
+    bench_parse,
+    bench_verify,
+    bench_graph,
+    bench_format,
+    bench_check
+);
 criterion_main!(benches);

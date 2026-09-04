@@ -25,7 +25,7 @@ const LOOP_HELP: &str =
     "write `while <condition> { <statements>; <condition> }`; the body's final \
                          expression is the bool that decides whether to loop again";
 const EXPRESSION_STATEMENT_HELP: &str = "a block is statements followed by exactly one final value \
-                                         expression; bind an intermediate call with `let name = …;` \
+                                         expression; discard an intermediate call with `let _ = …;` \
                                          or move it to the end of the block";
 const WHILE_BODY_HELP: &str = "end the `while` body with the bool that decides whether to loop \
                                again, usually the loop condition repeated";

@@ -192,6 +192,23 @@ pub(super) fn view_argument_help(operation: &str, actual: &Type) -> Option<Strin
     Some(help.to_owned())
 }
 
+/// An owned or mismatched value reaches a user function parameter declared
+/// as a borrowed view.
+pub(super) fn argument_view_help(name: &str, expected: &Type, actual: &Type) -> Option<String> {
+    let help = match (expected, actual) {
+        (Type::Str, Type::String) => format!(
+            "`{name}` takes a `str` view; borrow the owned string first: \
+             `{name}(string_as_str(binding))`, binding a literal with `let` before that"
+        ),
+        (Type::SliceU8, Type::String | Type::Str | Type::Bytes | Type::ArrayU8(_)) => format!(
+            "`{name}` takes `borrow Slice<u8>`; produce one with `str_as_bytes(view)`, \
+             `array_as_slice(array)`, or `bytes_as_slice(bytes)`"
+        ),
+        _ => return None,
+    };
+    Some(help)
+}
+
 /// Attach `help` when a hint applies.
 pub(super) fn with_optional_help(diagnostic: Diagnostic, help: Option<String>) -> Diagnostic {
     match help {

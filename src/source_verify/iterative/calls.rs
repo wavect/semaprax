@@ -53,20 +53,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     if let Some(actual) = &actual {
                         reject_native_unit_value(self.program, argument, actual, self.diagnostics);
                     }
-                    if actual
+                    if let Some(actual) = actual
                         .as_ref()
-                        .is_some_and(|actual| !actual.native_unit && actual.ty != param.ty)
+                        .filter(|actual| !actual.native_unit && actual.ty != param.ty)
                     {
-                        self.diagnostics.push(error(
-                            self.program,
-                            "SPX-T205",
-                            format!(
-                                "argument `{}` to `{name}` expects {}, received {}",
-                                param.name,
-                                param.ty,
-                                actual.as_ref().expect("type checked above").ty
+                        self.diagnostics.push(hints::with_optional_help(
+                            error(
+                                self.program,
+                                "SPX-T205",
+                                format!(
+                                    "argument `{}` to `{name}` expects {}, received {}",
+                                    param.name, param.ty, actual.ty
+                                ),
+                                argument.span,
                             ),
-                            argument.span,
+                            hints::argument_view_help(name, &param.ty, &actual.ty),
                         ));
                     }
                     check_argument_ownership(

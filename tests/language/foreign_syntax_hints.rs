@@ -88,7 +88,7 @@ fn main() -> i64
     );
     assert_eq!(diagnostic.code, "SPX-P106");
     assert_eq!(diagnostic.message, "expected `}` after block");
-    assert!(help(&diagnostic).contains("let name = …;"), "{diagnostic}");
+    assert!(help(&diagnostic).contains("let _ = …;"), "{diagnostic}");
 }
 
 #[test]

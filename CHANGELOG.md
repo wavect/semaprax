@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- An owned `string` or byte value passed to a user function's `borrow str` or
+  `borrow Slice<u8>` parameter now names the view conversion in its `SPX-T205`
+  help, the parser's expression-statement hint shows the admitted `let _ = …;`
+  discard, and the agent quick reference explains that a failing project test
+  reports only its return value.
+
 - Verifier diagnostics now carry fix hints for the type-level habits an agent
   brings from other languages: an unknown function names the nearest declared
   or compiler-owned function (`did you mean `string_len`?`) or, for the

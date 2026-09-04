@@ -116,6 +116,43 @@ fn mismatched_non_literal_operands_get_no_literal_hint() {
 }
 
 #[test]
+fn owned_string_into_a_borrow_str_parameter_names_the_conversion() {
+    let diagnostic = only(
+        "module habit.param;\n@id(\"habit.f\")\nfn f(s: borrow str) -> i64\n{\n    if str_is_empty(s) { 0 } else { 1 }\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let owned = \"abc\";\n    f(owned)\n}\n",
+        "SPX-T205",
+    );
+    assert_eq!(
+        diagnostic.message,
+        "argument `s` to `f` expects str, received string"
+    );
+    assert!(
+        help(&diagnostic).contains("f(string_as_str(binding))"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn owned_bytes_into_a_slice_parameter_names_the_views() {
+    let diagnostic = only(
+        "module habit.slice;\n@id(\"habit.f\")\nfn f(v: borrow Slice<u8>) -> usize\n{\n    byte_len(v)\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    let sample = [1u8, 2u8];\n    let n = f(sample);\n    0\n}\n",
+        "SPX-T205",
+    );
+    assert!(
+        help(&diagnostic).contains("array_as_slice(array)"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn scalar_argument_mismatch_gets_no_view_hint() {
+    let diagnostic = only(
+        "module habit.scalar;\n@id(\"habit.f\")\nfn f(v: i64) -> i64\n{\n    v\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    f(true)\n}\n",
+        "SPX-T205",
+    );
+    assert!(diagnostic.help.is_none(), "{diagnostic}");
+}
+
+#[test]
 fn owned_string_into_a_byte_view_names_the_conversion() {
     let diagnostic = only(
         "module habit.view;\npermit { process.stdout.write }\n@id(\"app.main\")\nfn main() -> i64\n    uses { process.stdout.write }\n{\n    let text = \"hi\";\n    let n = stdout_write(str_as_bytes(text));\n    0\n}\n",

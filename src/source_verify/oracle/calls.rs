@@ -191,20 +191,21 @@ pub(super) fn oracle_call(
         if let Some(actual) = &actual {
             reject_native_unit_value(program, arg, actual, diagnostics);
         }
-        if actual
+        if let Some(actual) = actual
             .as_ref()
-            .is_some_and(|actual| !actual.native_unit && actual.ty != param.ty)
+            .filter(|actual| !actual.native_unit && actual.ty != param.ty)
         {
-            diagnostics.push(error(
-                program,
-                "SPX-T205",
-                format!(
-                    "argument `{}` to `{name}` expects {}, received {}",
-                    param.name,
-                    param.ty,
-                    actual.as_ref().expect("type checked above").ty
+            diagnostics.push(hints::with_optional_help(
+                error(
+                    program,
+                    "SPX-T205",
+                    format!(
+                        "argument `{}` to `{name}` expects {}, received {}",
+                        param.name, param.ty, actual.ty
+                    ),
+                    arg.span,
                 ),
-                arg.span,
+                hints::argument_view_help(name, &param.ty, &actual.ty),
             ));
         }
         check_argument_ownership(

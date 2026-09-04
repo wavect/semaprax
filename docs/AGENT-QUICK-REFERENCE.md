@@ -470,12 +470,12 @@ Other first-attempt diagnostics and their fixes:
 | You wrote | Code | Fix |
 | --- | --- | --- |
 | `for i in 0..n { … }` | `SPX-P106` | Use `while` with a `let mut` counter and a `bool` tail |
-| `f(x);` as a statement | `SPX-P106` | Bind it: `let _result = f(x);` or make it the tail |
+| `f(x);` as a statement | `SPX-P106` | Discard it with `let _ = f(x);` or make it the tail |
 | `let t = (1, 2);` | `SPX-P106` | No tuples; declare a `record` |
 | `id(4)` for `fn id<T>` | `SPX-T225` | `id<i64>(4)` |
 | `Option::Some { value: 1 }` | `SPX-T221` | `Option<i64>::Some { value: 1 }` |
 | `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |
-| `f("abc")` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
+| `f("abc")` or `f(owned)` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |
 | `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |
 | `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; `0` conventionally means success |
@@ -498,6 +498,10 @@ Modules import by stable identity, not by path:
 `use function @id("calculator.add") from calculator.core as add;` at the top of
 the importing file. A test module is an ordinary module whose `main` returns
 `0` on success; `semaprax test semaprax.toml` prints `project tests passed`.
+A failure prints only `project tests failed with result N`, so return a
+distinct non-zero value from each failing check (`if a { if b { 0 } else { 2 } }
+else { 1 }`) instead of a single `1`; the number is the only clue to which
+check failed.
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) owns the manifest,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is
 the committed instance, and `semaprax project-scaffold --name <name>` prints a

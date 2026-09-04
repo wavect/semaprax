@@ -166,7 +166,19 @@ Two compiler bounds decide how large one package can be:
   each check in its own function so the cleanup-plan replay stays under its
   path budget.
 
-Both bounds are compiler facts, not library design. Lifting them is tracked
+- The byte-data profile (`useful-data.v1`) validates its complete function
+  inventory as contract-free: the Core-Wasm data emitter rejects any
+  `requires` or `ensures` with `SPX-W121`, and the npm recipe rejects them
+  again with `SPX-W120`, although the interpreter and native lanes run the
+  same contracted functions. A contracted `std.bytes` therefore waits on a
+  profile revision that lowers contract failures through the data status
+  global and its facade.
+- The text profile (`useful-text-consumer.v1`) admits `borrow str` only on
+  functions defined in the calling file: a cross-file `use function` of a
+  `borrow str` signature is rejected with `SPX-G172`, so `std.text` cannot be
+  a package until the workspace graph links borrowed-text providers.
+
+These bounds are compiler facts, not library design. Lifting them is tracked
 in the [roadmap](ROADMAP.md#standard-library-outcomes).
 
 ## Effect vocabulary

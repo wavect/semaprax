@@ -9,7 +9,7 @@ license = "Apache-2.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 semaprax-native-rust-interop-platform-sys = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform-sys" }
-semaprax-toolchain = { version = "=0.3.0", path = "../semaprax-toolchain" }
+semaprax-toolchain = { version = "=0.3.5", path = "../semaprax-toolchain" }
 
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 libc = "=0.2.189"

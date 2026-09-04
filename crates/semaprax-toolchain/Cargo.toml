@@ -1,6 +1,6 @@
 [package]
 name = "semaprax-toolchain"
-version = "0.3.0"
+version = "0.3.5"
 edition = "2021"
 rust-version = "1.88"
 publish = false
@@ -8,7 +8,7 @@ description = "Private SEMAPRAX full-toolchain CLI and host adapters"
 license = "Apache-2.0"
 
 [dependencies]
-semaprax = { version = "=0.3.0", path = "../.." }
+semaprax = { version = "=0.3.5", path = "../.." }
 same-file = "=1.0.6"
 serde_json = "=1.0.151"
 

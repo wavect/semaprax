@@ -17,7 +17,7 @@ unstable-desktop-app-harness = []
 unstable-ios-simulator-harness = []
 
 [dependencies]
-semaprax = { path = "../..", version = "0.3.0", features = ["unstable-native-host-internal"] }
+semaprax = { path = "../..", version = "0.3.5", features = ["unstable-native-host-internal"] }
 hmac = "=0.13.0"
 sha2 = "=0.11.0"
 

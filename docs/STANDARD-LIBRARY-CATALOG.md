@@ -543,3 +543,56 @@ fn is_empty(value: borrow str) -> bool
 ```semaprax
 fn starts_with(value: borrow str, prefix: borrow str) -> bool
 ```
+
+## `std.time`
+
+Package `std/time`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.time.milliseconds`
+
+```semaprax
+fn milliseconds(seconds: i64) -> i64
+    requires seconds >= 0 && seconds <= 9223372036854775
+    ensures result >= 0
+    ensures result % 1000 == 0
+```
+
+### `std.time.seconds_floor`
+
+```semaprax
+fn seconds_floor(milliseconds: i64) -> i64
+    requires milliseconds >= 0
+    ensures result >= 0
+```
+
+### `std.time.subsecond_milliseconds`
+
+```semaprax
+fn subsecond_milliseconds(milliseconds: i64) -> i64
+    requires milliseconds >= 0
+    ensures result >= 0 && result < 1000
+```
+
+### `std.time.deadline_reached`
+
+```semaprax
+fn deadline_reached(now_milliseconds: i64, deadline_milliseconds: i64) -> bool
+    requires now_milliseconds >= 0 && deadline_milliseconds >= 0
+    ensures result == now_milliseconds >= deadline_milliseconds
+```
+
+### `std.time.remaining_milliseconds`
+
+```semaprax
+fn remaining_milliseconds(now_milliseconds: i64, deadline_milliseconds: i64) -> i64
+    requires now_milliseconds >= 0 && deadline_milliseconds >= 0
+    ensures result >= 0
+```
+
+### `std.time.saturating_add_milliseconds`
+
+```semaprax
+fn saturating_add_milliseconds(left: i64, right: i64) -> i64
+    requires left >= 0 && right >= 0
+    ensures result >= left && result >= right
+```

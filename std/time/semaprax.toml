@@ -1,0 +1,13 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-time"
+version = "0.1.0"
+
+[modules]
+entry = "std.time.examples"
+sources = ["src/examples.spx", "src/tests.spx", "src/time.spx"]
+tests = ["std.time.tests"]
+
+[exports]
+web = ["std.time.deadline_reached", "std.time.milliseconds", "std.time.remaining_milliseconds", "std.time.saturating_add_milliseconds", "std.time.seconds_floor", "std.time.subsecond_milliseconds"]

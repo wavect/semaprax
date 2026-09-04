@@ -955,6 +955,98 @@
         "core-wasm"
       ],
       "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 2,
+          "head": [
+            "fn milliseconds(seconds: i64) -> i64",
+            "    requires seconds >= 0 && seconds <= 9223372036854775",
+            "    ensures result >= 0",
+            "    ensures result % 1000 == 0"
+          ],
+          "id": "std.time.milliseconds",
+          "kind": "function",
+          "name": "milliseconds",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn seconds_floor(milliseconds: i64) -> i64",
+            "    requires milliseconds >= 0",
+            "    ensures result >= 0"
+          ],
+          "id": "std.time.seconds_floor",
+          "kind": "function",
+          "name": "seconds_floor",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn subsecond_milliseconds(milliseconds: i64) -> i64",
+            "    requires milliseconds >= 0",
+            "    ensures result >= 0 && result < 1000"
+          ],
+          "id": "std.time.subsecond_milliseconds",
+          "kind": "function",
+          "name": "subsecond_milliseconds",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn deadline_reached(now_milliseconds: i64, deadline_milliseconds: i64) -> bool",
+            "    requires now_milliseconds >= 0 && deadline_milliseconds >= 0",
+            "    ensures result == now_milliseconds >= deadline_milliseconds"
+          ],
+          "id": "std.time.deadline_reached",
+          "kind": "function",
+          "name": "deadline_reached",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn remaining_milliseconds(now_milliseconds: i64, deadline_milliseconds: i64) -> i64",
+            "    requires now_milliseconds >= 0 && deadline_milliseconds >= 0",
+            "    ensures result >= 0"
+          ],
+          "id": "std.time.remaining_milliseconds",
+          "kind": "function",
+          "name": "remaining_milliseconds",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn saturating_add_milliseconds(left: i64, right: i64) -> i64",
+            "    requires left >= 0 && right >= 0",
+            "    ensures result >= left && result >= right"
+          ],
+          "id": "std.time.saturating_add_milliseconds",
+          "kind": "function",
+          "name": "saturating_add_milliseconds",
+          "requires": 1
+        }
+      ],
+      "module": "std.time",
+      "package": "std/time",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
     }
   ],
   "schema": "semaprax.standard-library-catalog.v1"

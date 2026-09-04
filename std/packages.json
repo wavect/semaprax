@@ -7,6 +7,7 @@
     {"directory": "num", "module": "std.num", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "num-overflow", "module": "std.num.overflow", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "random", "module": "std.random", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
-    {"directory": "text", "module": "std.text", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"}
+    {"directory": "text", "module": "std.text", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "time", "module": "std.time", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"}
   ]
 }

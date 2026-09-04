@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the eighth executable `core`-tier package, `std.time`, with
+  nonnegative millisecond conversion and decomposition, deadline comparison,
+  remaining-duration calculation, and saturating addition. The package is
+  effect-free and portable; clock reads, sleeps, timers, and other
+  authority-bearing time operations remain explicitly Missing.
 - Added the seventh executable `core`-tier package, `std.random`, with a pure
   Park–Miller generator, total seed normalization, bounded deterministic
   advancement, and range sampling. Secure randomness remains unavailable

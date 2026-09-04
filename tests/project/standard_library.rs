@@ -616,6 +616,43 @@ fn package_manifest_links_multiple_bundled_std_packages() {
 }
 
 #[test]
+fn package_manifest_links_bundled_std_time() {
+    let scratch = temporary("manifest-time-dependency");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"time-consumer\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"consumer.time\"\nsources = [\"src/tests.spx\", \"src/time.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.remaining\"]\n\n[dependencies]\nstd.time = \"~0.1.0\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/time.spx"),
+        "module consumer.time;\nuse function @id(\"std.time.remaining_milliseconds\") from std.time as remaining_milliseconds;\n\n@id(\"consumer.remaining\")\nfn remaining(now: i64, deadline: i64) -> i64\n    requires now >= 0 && deadline >= 0\n{\n    remaining_milliseconds(now, deadline)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if remaining(250, 1000) == 750 { 0 } else { 1 }\n}\n",
+    )
+    .unwrap();
+
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        assert_eq!(
+            snapshot
+                .execute_entry(&project::ProjectExecutionOptions::default())?
+                .outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.time/0.1.0/time.spx"));
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+#[test]
 fn package_manifest_links_borrowed_text_from_std_text() {
     let scratch = temporary("manifest-text-dependency");
     std::fs::create_dir_all(scratch.join("src")).unwrap();

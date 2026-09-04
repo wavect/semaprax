@@ -1,0 +1,11 @@
+module std.time.examples;
+use function @id("std.time.deadline_reached") from std.time as deadline_reached;
+use function @id("std.time.milliseconds") from std.time as milliseconds;
+use function @id("std.time.remaining_milliseconds") from std.time as remaining_milliseconds;
+
+@id("std.time.examples.main")
+fn main() -> i64
+{
+    let deadline = milliseconds(5);
+    if !deadline_reached(1250, deadline) && remaining_milliseconds(1250, deadline) == 3750 { 0 } else { 1 }
+}

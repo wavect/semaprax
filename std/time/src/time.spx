@@ -1,0 +1,50 @@
+module std.time;
+
+@id("std.time.milliseconds")
+fn milliseconds(seconds: i64) -> i64
+    requires seconds >= 0 && seconds <= 9223372036854775
+    ensures result >= 0
+    ensures result % 1000 == 0
+{
+    seconds * 1000
+}
+
+@id("std.time.seconds_floor")
+fn seconds_floor(milliseconds: i64) -> i64
+    requires milliseconds >= 0
+    ensures result >= 0
+{
+    milliseconds / 1000
+}
+
+@id("std.time.subsecond_milliseconds")
+fn subsecond_milliseconds(milliseconds: i64) -> i64
+    requires milliseconds >= 0
+    ensures result >= 0 && result < 1000
+{
+    milliseconds % 1000
+}
+
+@id("std.time.deadline_reached")
+fn deadline_reached(now_milliseconds: i64, deadline_milliseconds: i64) -> bool
+    requires now_milliseconds >= 0 && deadline_milliseconds >= 0
+    ensures result == now_milliseconds >= deadline_milliseconds
+{
+    now_milliseconds >= deadline_milliseconds
+}
+
+@id("std.time.remaining_milliseconds")
+fn remaining_milliseconds(now_milliseconds: i64, deadline_milliseconds: i64) -> i64
+    requires now_milliseconds >= 0 && deadline_milliseconds >= 0
+    ensures result >= 0
+{
+    if now_milliseconds >= deadline_milliseconds { 0 } else { deadline_milliseconds - now_milliseconds }
+}
+
+@id("std.time.saturating_add_milliseconds")
+fn saturating_add_milliseconds(left: i64, right: i64) -> i64
+    requires left >= 0 && right >= 0
+    ensures result >= left && result >= right
+{
+    if left > 9223372036854775807 - right { 9223372036854775807 } else { left + right }
+}

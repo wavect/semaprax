@@ -170,9 +170,9 @@ fn replay(base: &ProjectCandidate, candidate: &ProjectCandidate, change: Semanti
     .unwrap();
     assert_eq!(restored.to_json(), candidate.to_json());
 }
-fn grammar<T>(result: Result<T, Vec<Diagnostic>>) {
+fn closed<T>(result: Result<T, Vec<Diagnostic>>, code: &str) {
     let errors = result.err().expect("unsupported extraction accepted");
-    assert!(errors.iter().any(|e| e.code == "SPX-G225"), "{errors:?}");
+    assert!(errors.iter().any(|e| e.code == code), "{errors:?}");
 }
 fn named(name: &str, args: Vec<Type>) -> Type {
     Type::Named {
@@ -205,7 +205,12 @@ fn repeated_field_reads_capture_one_whole_immutable_nominal_root() {
     assert!(constraints.contains(&json!("preserve_nested_block_cleanup_scope")));
     assert!(constraints.contains(&json!("no_owned_pattern_bindings_or_assignments")));
     assert!(constraints.contains(&json!("no_mutable_or_escaping_owned_captures")));
-    assert!(constraints.contains(&json!("no_borrowed_or_resource_values")));
+    assert!(constraints.contains(&json!(
+        "no_borrowed_shared_projected_resource_or_multiple_owner_capture"
+    )));
+    assert!(constraints.contains(&json!(
+        "single_owner_capture_excludes_parameters_conditions_lazy_operators_contracts_entrypoints_exports_and_internal_owning_storage"
+    )));
     let (candidate, change) =
         extract(&base, "extract.read", Some("pair.amount + pair.amount")).unwrap();
     let helper = function(&candidate, "extract.helper");
@@ -299,13 +304,15 @@ fn mutable_nominal_roots_owned_values_borrows_and_contract_regions_remain_closed
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let before = base.to_json().to_owned();
-    for (target, snippet) in [
-        ("extract.mutable", "pair.amount + pair.amount"),
-        ("extract.owned", "bytes"),
-        ("extract.borrowed", "byte_len(bytes)"),
-        ("extract.contracted", "value >= 0"),
+    for (target, snippet, code) in [
+        ("extract.mutable", "pair.amount + pair.amount", "SPX-G225"),
+        // The owning-capture lane owns this refusal now: the owner is a
+        // parameter, not a body local, so it never reaches the grammar.
+        ("extract.owned", "bytes", "SPX-G506"),
+        ("extract.borrowed", "byte_len(bytes)", "SPX-G225"),
+        ("extract.contracted", "value >= 0", "SPX-G225"),
     ] {
-        grammar(extract(&base, target, Some(snippet)));
+        closed(extract(&base, target, Some(snippet)), code);
     }
     let mut forged = selected(&base, "extract.read", Some("pair.amount + pair.amount"));
     forged["expression_id"] = json!("not-a-retained-expression");

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The help catalog test's dispatcher inventory lists the `lock` command that
+  landed with the deterministic `semaprax.lock`, so the catalog and dispatcher
+  closure check passes again in both executables.
+
 - `semaprax help library` prints the generated standard-library catalog, the
   fourth `help` shape beside `help language`, so an installed compiler lists
   every `std.*` function and contract offline.

@@ -638,6 +638,7 @@ mod tests {
         "protocol-check",
         "interpret",
         "interpret-strings",
+        "lock",
         "ui-schema",
         "plugin-manifest",
         "cxx-shim",

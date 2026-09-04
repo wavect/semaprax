@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-path"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.path.examples"
+sources = ["src/examples.spx", "src/path.spx", "src/tests.spx"]
+tests = ["std.path.tests"]
+
+[exports]
+web = ["std.path.file_name_start", "std.path.has_trailing_separator", "std.path.is_absolute", "std.path.segment_count"]

@@ -1,0 +1,45 @@
+module std.path.tests;
+use function @id("std.path.file_name_start") from std.path as file_name_start;
+use function @id("std.path.has_trailing_separator") from std.path as has_trailing_separator;
+use function @id("std.path.is_absolute") from std.path as is_absolute;
+use function @id("std.path.segment_count") from std.path as segment_count;
+
+@id("std.path.tests.shape")
+fn shape() -> bool
+{
+    let empty = [0u8; 0];
+    let root = [47u8];
+    let absolute = [47u8, 97u8, 47u8, 98u8];
+    let relative = [97u8, 47u8, 98u8];
+    !is_absolute(array_as_slice(empty)) && is_absolute(array_as_slice(root)) && is_absolute(array_as_slice(absolute)) && !is_absolute(array_as_slice(relative)) && !has_trailing_separator(array_as_slice(empty)) && has_trailing_separator(array_as_slice(root)) && !has_trailing_separator(array_as_slice(absolute))
+}
+
+@id("std.path.tests.segments")
+fn segments() -> bool
+{
+    let empty = [0u8; 0];
+    let root = [47u8];
+    let repeated = [47u8, 47u8, 97u8, 47u8, 47u8, 98u8, 47u8];
+    let relative = [97u8, 47u8, 98u8];
+    segment_count(array_as_slice(empty)) == 0usize && segment_count(array_as_slice(root)) == 0usize && segment_count(array_as_slice(repeated)) == 2usize && segment_count(array_as_slice(relative)) == 2usize
+}
+
+@id("std.path.tests.file_names")
+fn file_names() -> bool
+{
+    let empty = [0u8; 0];
+    let plain = [102u8, 105u8, 108u8, 101u8];
+    let absolute = [47u8, 117u8, 115u8, 114u8, 47u8, 98u8, 105u8, 110u8];
+    let trailing = [97u8, 47u8];
+    file_name_start(array_as_slice(empty)) == 0usize && file_name_start(array_as_slice(plain)) == 0usize && file_name_start(array_as_slice(absolute)) == 5usize && file_name_start(array_as_slice(trailing)) == 2usize
+}
+
+@id("std.path.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if shape() { 0 } else { 1 };
+    failed = failed + if segments() { 0 } else { 2 };
+    failed = failed + if file_names() { 0 } else { 4 };
+    failed
+}

@@ -1,0 +1,48 @@
+module std.path;
+
+@id("std.path.is_absolute")
+fn is_absolute(path: borrow Slice<u8>) -> bool
+{
+    match byte_get(path, 0usize) { Option::Some { value: byte } => byte == 47u8, Option::None {} => false, }
+}
+
+@id("std.path.has_trailing_separator")
+fn has_trailing_separator(path: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(path);
+    if length == 0usize { false } else { match byte_get(path, length - 1usize) { Option::Some { value: byte } => byte == 47u8, Option::None {} => false, } }
+}
+
+@id("std.path.segment_count")
+fn segment_count(path: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(path)
+{
+    let length = byte_len(path);
+    let mut index = 0usize;
+    let mut segments = 0usize;
+    let mut inside = false;
+    while index < length {
+        let separator = match byte_get(path, index) { Option::Some { value: byte } => byte == 47u8, Option::None {} => false, };
+        segments = if !separator && !inside { segments + 1usize } else { segments };
+        inside = !separator;
+        index = index + 1usize;
+        index < length
+    }
+    segments
+}
+
+@id("std.path.file_name_start")
+fn file_name_start(path: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(path)
+{
+    let length = byte_len(path);
+    let mut index = 0usize;
+    let mut start = 0usize;
+    while index < length {
+        let separator = match byte_get(path, index) { Option::Some { value: byte } => byte == 47u8, Option::None {} => false, };
+        start = if separator { index + 1usize } else { start };
+        index = index + 1usize;
+        index < length
+    }
+    start
+}

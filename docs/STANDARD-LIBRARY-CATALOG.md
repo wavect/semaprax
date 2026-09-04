@@ -491,6 +491,36 @@ fn saturating_abs(value: i64) -> i64
 fn saturating_mul(left: i64, right: i64) -> i64
 ```
 
+## `std.path`
+
+Package `std/path`, tier `portable`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.path.is_absolute`
+
+```semaprax
+fn is_absolute(path: borrow Slice<u8>) -> bool
+```
+
+### `std.path.has_trailing_separator`
+
+```semaprax
+fn has_trailing_separator(path: borrow Slice<u8>) -> bool
+```
+
+### `std.path.segment_count`
+
+```semaprax
+fn segment_count(path: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(path)
+```
+
+### `std.path.file_name_start`
+
+```semaprax
+fn file_name_start(path: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(path)
+```
+
 ## `std.random`
 
 Package `std/random`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.

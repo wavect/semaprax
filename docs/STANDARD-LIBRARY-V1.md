@@ -1,6 +1,6 @@
 # Standard Library v1
 
-- Status: versioned reference; eight `core`-tier packages, two
+- Status: versioned reference; eight `core`-tier packages, three
   `portable`-tier packages, and one `test`-tier package under `std/` are
   executable; every other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
@@ -125,7 +125,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Partial: borrowed byte length, emptiness, exact equality, prefix, and substring search; iteration, split, trim, and normalization are Missing |
 | `std.format` | Type-safe formatting without runtime format-string ambiguity | Missing |
 | `std.io` | Reader, Writer, buffered I/O, streams, line processing, and standard streams | Missing; `stdout_write`, `stderr_write`, and `stdin_read` are the current surface |
-| `std.path` | Platform-neutral path values and explicit platform conversion | Missing |
+| `std.path` | Platform-neutral path values and explicit platform conversion | Partial: allocation-free inspection of canonical slash-separated path bytes for absoluteness, trailing separators, nonempty segment count, and filename start; typed path values, normalization, safe joining, traversal policy, and platform conversion are Missing |
 | `std.fs` | Scoped file and directory access, metadata, and atomic file operations | Missing |
 | `std.env` | Explicit environment access with capability and deterministic test replacement | Missing; `args_len` and `arg_utf8` are the current surface |
 | `std.process` | Bounded process launch, pipes, exit, and settlement | Missing |

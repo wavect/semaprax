@@ -863,6 +863,65 @@
       "declarations": [
         {
           "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_absolute(path: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.path.is_absolute",
+          "kind": "function",
+          "name": "is_absolute",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn has_trailing_separator(path: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.path.has_trailing_separator",
+          "kind": "function",
+          "name": "has_trailing_separator",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn segment_count(path: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(path)"
+          ],
+          "id": "std.path.segment_count",
+          "kind": "function",
+          "name": "segment_count",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn file_name_start(path: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(path)"
+          ],
+          "id": "std.path.file_name_start",
+          "kind": "function",
+          "name": "file_name_start",
+          "requires": 0
+        }
+      ],
+      "module": "std.path",
+      "package": "std/path",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
           "ensures": 1,
           "head": [
             "fn normalize_seed(value: i64) -> i64",

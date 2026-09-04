@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `std.path` as the third executable `portable`-tier package, with
+  allocation-free inspection of canonical slash-separated path bytes for
+  absoluteness, trailing separators, nonempty segment counts, and filename
+  position. Typed values, normalization, traversal policy, safe joining, and
+  host-platform conversion remain Missing.
 - Added the second executable `portable`-tier package, `std.url`, with ASCII
   scheme and unreserved-byte classification plus percent-triplet validation
   and decoding. The package depends on `std.encoding`; a consumer that names

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `semaprax fmt` keeps `//` comments. The lexer records each comment's
+  position, and the canonical formatter prints it above the item it preceded
+  or right after the item it followed, at that item's depth; formatting is
+  idempotent and a comment-free file formats to the same bytes as before.
+  Only `fmt` restores comments; `patch` and other rewriting transactions still
+  emit comment-free text. [Canonical comments v1](docs/CANONICAL-COMMENTS-V1.md)
+  owns the placement rules, `src/format/comments.rs` and
+  `tests/projections/fmt_comments.rs` pin them, and the formatter's capacity
+  accounting moved verbatim into `src/format/capacity.rs`.
+
 - Every generated project now carries an `AGENTS.md`: the commands to check,
   test, run, format, and build it, and the rules that differ from other
   languages, written for coding agents and people alike. The scaffold capsule

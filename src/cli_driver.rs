@@ -713,8 +713,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 eprintln!("cannot read {}: {error}", path.display());
                 1
             })?;
-            let program = parse(&source, &path).map_err(|error| report(&[error], false))?;
-            let canonical = format::canonical(&program);
+            let (program, comments) = semaprax::parse_with_comments(&source, &path)
+                .map_err(|error| report(&[error], false))?;
+            let canonical = format::comments::canonical_with_comments(&program, &comments);
             if options.check && source != canonical {
                 eprintln!("{} is not canonically formatted", path.display());
                 Err(1)

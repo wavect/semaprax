@@ -146,6 +146,16 @@ pub fn parse(source: &str, path: impl AsRef<Path>) -> Result<Program, Diagnostic
     parser::Parser::new(source, path.as_ref()).and_then(parser::Parser::parse)
 }
 
+/// Parse `source` and also return its `//` comments, in source order, for
+/// [`format::comments::canonical_with_comments`]. The program is identical to
+/// [`parse`].
+pub fn parse_with_comments(
+    source: &str,
+    path: impl AsRef<Path>,
+) -> Result<(Program, lexer::Comments), Diagnostic> {
+    parser::Parser::parse_with_comments(source, path.as_ref())
+}
+
 pub fn check(source: &str, path: impl AsRef<Path>) -> Result<Program, Vec<Diagnostic>> {
     let program = parse(source, path).map_err(|error| vec![error])?;
     let diagnostics = verify::verify(&program);

@@ -24,8 +24,10 @@ so it is available without the source checkout.
   `semaprax check <file> --json`, `semaprax run <file>`. One diagnostic per
   line with `code`, `message`, `location`, and `help`; stop on the first
   error's line and column.
-- `fmt` deletes comments. Nothing you write after `//` survives, so put intent
-  into `@id` names, contracts, and tests, not comments.
+- `fmt` keeps `//` comments, each printed on its own line above the item it
+  precedes or right after the item it follows. Only `fmt` does: `patch` and
+  other rewriting transactions still emit comment-free text, so intent that
+  must survive a semantic change belongs in `@id` names, contracts, and tests.
 - Read the `.spx` source when it fits. On the committed calculator example,
   the source is 606 bytes, `semaprax graph` emits 24,419 bytes, and
   `semaprax context <file> app.main --depth 1` emits 2,279 bytes. `graph` is

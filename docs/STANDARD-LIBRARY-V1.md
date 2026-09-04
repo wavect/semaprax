@@ -1,7 +1,7 @@
 # Standard Library v1
 
-- Status: versioned reference; eight `core`-tier packages, one
-  `portable`-tier package, and one `test`-tier package under `std/` are
+- Status: versioned reference; eight `core`-tier packages, two
+  `portable`-tier packages, and one `test`-tier package under `std/` are
   executable; every other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
   choosing between a compiler-owned function and a library declaration.
@@ -138,7 +138,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.data.toml` | TOML parsing and encoding | Missing |
 | `std.data.csv` | Streaming CSV reading and writing | Partial: allocation-free single-record field counting with quoted-comma and escaped-quote handling, plus balanced-quote validation; typed fields, record iteration, dialects, streaming reads, and writing are Missing |
 | `std.encoding` | Base encodings, hex, UTF, and safe binary conversion | Partial: ASCII-byte classification, hexadecimal nibble conversion, byte-pair decoding, lowercase/uppercase hex digit encoding, and standard Base64 digit conversion plus unpadded quad decoding; buffer codecs, padded/streaming base encodings, and UTF conversion are Missing |
-| `std.url` | URL parsing, normalization, and query handling | Missing |
+| `std.url` | URL parsing, normalization, and query handling | Partial: RFC-style ASCII scheme and unreserved-byte classification plus percent-triplet validation and decoding through `std.encoding`; structured URLs, parsing, normalization, resolution, query handling, and encoding are Missing |
 | `std.regex` | Bounded regular-expression API or a first-party bundled package | Missing |
 | `std.sync` | Mutexes, read/write locks, atomics, and synchronization contracts | Missing |
 | `std.task` | Structured tasks, cancellation, scheduling, and channels | Missing; [Scoped Task Model v1](SCOPED-TASKS-V1.md) is the design |

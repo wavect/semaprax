@@ -693,6 +693,43 @@ fn package_manifest_links_bundled_std_csv() {
 }
 
 #[test]
+fn package_manifest_links_transitive_std_url_encoding() {
+    let scratch = temporary("manifest-url-dependency");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"url-consumer\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"consumer.url\"\nsources = [\"src/tests.spx\", \"src/url.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.percent-byte\"]\n\n[dependencies]\nstd.url = \"=0.1.0\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/url.spx"),
+        "module consumer.url;\nuse function @id(\"std.url.decode_percent_triplet\") from std.url as decode_percent_triplet;\n\n@id(\"consumer.percent-byte\")\nfn percent_byte(marker: u8, high: u8, low: u8) -> i64\n{\n    decode_percent_triplet(marker, high, low)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if percent_byte(37u8, 50u8, 70u8) == 47 { 0 } else { 1 }\n}\n",
+    )
+    .unwrap();
+
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        assert_eq!(
+            snapshot
+                .execute_entry(&project::ProjectExecutionOptions::default())?
+                .outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        let workspace = snapshot.workspace_manifest();
+        assert!(workspace.contains("dependencies/std.url/0.1.0/url.spx"));
+        assert!(workspace.contains("dependencies/std.encoding/0.1.0/encoding.spx"));
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+#[test]
 fn package_manifest_links_borrowed_text_from_std_text() {
     let scratch = temporary("manifest-text-dependency");
     std::fs::create_dir_all(scratch.join("src")).unwrap();

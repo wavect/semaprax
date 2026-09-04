@@ -83,6 +83,12 @@ const PACKAGES: &[BundledPackage] = &[
         source: include_str!("../../std/time/src/time.spx"),
         dependencies: &[],
     },
+    BundledPackage {
+        name: "std.url",
+        path: "dependencies/std.url/0.1.0/url.spx",
+        source: include_str!("../../std/url/src/url.spx"),
+        dependencies: &["std.encoding"],
+    },
 ];
 
 pub(super) fn extend_sources(

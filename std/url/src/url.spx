@@ -1,0 +1,34 @@
+module std.url;
+use function @id("std.encoding.decode_hex_byte") from std.encoding as decode_hex_byte;
+use function @id("std.encoding.is_hex_digit") from std.encoding as is_hex_digit;
+
+@id("std.url.is_scheme_start")
+fn is_scheme_start(byte: u8) -> bool
+{
+    byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8
+}
+
+@id("std.url.is_scheme_continue")
+fn is_scheme_continue(byte: u8) -> bool
+{
+    is_scheme_start(byte) || byte >= 48u8 && byte <= 57u8 || byte == 43u8 || byte == 45u8 || byte == 46u8
+}
+
+@id("std.url.is_unreserved")
+fn is_unreserved(byte: u8) -> bool
+{
+    is_scheme_start(byte) || byte >= 48u8 && byte <= 57u8 || byte == 45u8 || byte == 46u8 || byte == 95u8 || byte == 126u8
+}
+
+@id("std.url.is_percent_triplet")
+fn is_percent_triplet(marker: u8, high: u8, low: u8) -> bool
+{
+    marker == 37u8 && is_hex_digit(high) && is_hex_digit(low)
+}
+
+@id("std.url.decode_percent_triplet")
+fn decode_percent_triplet(marker: u8, high: u8, low: u8) -> i64
+    ensures result >= -1 && result <= 255
+{
+    if marker == 37u8 { decode_hex_byte(high, low) } else { -1 }
+}

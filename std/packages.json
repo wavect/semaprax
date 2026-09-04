@@ -10,6 +10,7 @@
     {"directory": "random", "module": "std.random", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "test", "module": "std.test", "tier": "test", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "text", "module": "std.text", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
-    {"directory": "time", "module": "std.time", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"}
+    {"directory": "time", "module": "std.time", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "url", "module": "std.url", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"}
   ]
 }

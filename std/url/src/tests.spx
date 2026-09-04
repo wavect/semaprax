@@ -1,0 +1,34 @@
+module std.url.tests;
+use function @id("std.url.decode_percent_triplet") from std.url as decode_percent_triplet;
+use function @id("std.url.is_percent_triplet") from std.url as is_percent_triplet;
+use function @id("std.url.is_scheme_continue") from std.url as is_scheme_continue;
+use function @id("std.url.is_scheme_start") from std.url as is_scheme_start;
+use function @id("std.url.is_unreserved") from std.url as is_unreserved;
+
+@id("std.url.tests.scheme")
+fn scheme() -> bool
+{
+    is_scheme_start(65u8) && is_scheme_start(122u8) && !is_scheme_start(48u8) && is_scheme_continue(65u8) && is_scheme_continue(57u8) && is_scheme_continue(43u8) && is_scheme_continue(45u8) && is_scheme_continue(46u8) && !is_scheme_continue(47u8)
+}
+
+@id("std.url.tests.unreserved")
+fn unreserved() -> bool
+{
+    is_unreserved(65u8) && is_unreserved(122u8) && is_unreserved(48u8) && is_unreserved(45u8) && is_unreserved(46u8) && is_unreserved(95u8) && is_unreserved(126u8) && !is_unreserved(37u8) && !is_unreserved(47u8)
+}
+
+@id("std.url.tests.percent_encoding")
+fn percent_encoding() -> bool
+{
+    is_percent_triplet(37u8, 50u8, 70u8) && is_percent_triplet(37u8, 102u8, 102u8) && !is_percent_triplet(45u8, 50u8, 70u8) && !is_percent_triplet(37u8, 71u8, 48u8) && decode_percent_triplet(37u8, 48u8, 48u8) == 0 && decode_percent_triplet(37u8, 50u8, 70u8) == 47 && decode_percent_triplet(37u8, 102u8, 102u8) == 255 && decode_percent_triplet(37u8, 71u8, 48u8) == -1 && decode_percent_triplet(45u8, 50u8, 70u8) == -1
+}
+
+@id("std.url.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if scheme() { 0 } else { 1 };
+    failed = failed + if unreserved() { 0 } else { 2 };
+    failed = failed + if percent_encoding() { 0 } else { 4 };
+    failed
+}

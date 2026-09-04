@@ -1,0 +1,16 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-url"
+version = "0.1.0"
+
+[modules]
+entry = "std.url.examples"
+sources = ["src/examples.spx", "src/tests.spx", "src/url.spx"]
+tests = ["std.url.tests"]
+
+[exports]
+web = ["std.url.decode_percent_triplet", "std.url.is_percent_triplet", "std.url.is_scheme_continue", "std.url.is_scheme_start", "std.url.is_unreserved"]
+
+[dependencies]
+std.encoding = "^0.1.0"

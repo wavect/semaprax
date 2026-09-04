@@ -1158,6 +1158,75 @@
         "core-wasm"
       ],
       "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_scheme_start(byte: u8) -> bool"
+          ],
+          "id": "std.url.is_scheme_start",
+          "kind": "function",
+          "name": "is_scheme_start",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_scheme_continue(byte: u8) -> bool"
+          ],
+          "id": "std.url.is_scheme_continue",
+          "kind": "function",
+          "name": "is_scheme_continue",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_unreserved(byte: u8) -> bool"
+          ],
+          "id": "std.url.is_unreserved",
+          "kind": "function",
+          "name": "is_unreserved",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_percent_triplet(marker: u8, high: u8, low: u8) -> bool"
+          ],
+          "id": "std.url.is_percent_triplet",
+          "kind": "function",
+          "name": "is_percent_triplet",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn decode_percent_triplet(marker: u8, high: u8, low: u8) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.url.decode_percent_triplet",
+          "kind": "function",
+          "name": "decode_percent_triplet",
+          "requires": 0
+        }
+      ],
+      "module": "std.url",
+      "package": "std/url",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
     }
   ],
   "schema": "semaprax.standard-library-catalog.v1"

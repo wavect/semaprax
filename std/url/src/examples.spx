@@ -1,0 +1,10 @@
+module std.url.examples;
+use function @id("std.url.decode_percent_triplet") from std.url as decode_percent_triplet;
+use function @id("std.url.is_scheme_continue") from std.url as is_scheme_continue;
+use function @id("std.url.is_scheme_start") from std.url as is_scheme_start;
+
+@id("std.url.examples.main")
+fn main() -> i64
+{
+    if is_scheme_start(104u8) && is_scheme_continue(43u8) && decode_percent_triplet(37u8, 50u8, 70u8) == 47 { 0 } else { 1 }
+}

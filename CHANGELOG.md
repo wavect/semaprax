@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the second executable `portable`-tier package, `std.url`, with ASCII
+  scheme and unreserved-byte classification plus percent-triplet validation
+  and decoding. The package depends on `std.encoding`; a consumer that names
+  only `std.url` receives both bundled sources through deterministic transitive
+  closure, with no acquisition authority.
 - Added the first executable `test`-tier package, `std.test`, with scalar
   equality predicates and deterministic 0/1 or caller-selected failure status
   helpers for the current Project return-code test model. It is portable and

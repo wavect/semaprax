@@ -654,3 +654,38 @@ fn saturating_add_milliseconds(left: i64, right: i64) -> i64
     requires left >= 0 && right >= 0
     ensures result >= left && result >= right
 ```
+
+## `std.url`
+
+Package `std/url`, tier `portable`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.url.is_scheme_start`
+
+```semaprax
+fn is_scheme_start(byte: u8) -> bool
+```
+
+### `std.url.is_scheme_continue`
+
+```semaprax
+fn is_scheme_continue(byte: u8) -> bool
+```
+
+### `std.url.is_unreserved`
+
+```semaprax
+fn is_unreserved(byte: u8) -> bool
+```
+
+### `std.url.is_percent_triplet`
+
+```semaprax
+fn is_percent_triplet(marker: u8, high: u8, low: u8) -> bool
+```
+
+### `std.url.decode_percent_triplet`
+
+```semaprax
+fn decode_percent_triplet(marker: u8, high: u8, low: u8) -> i64
+    ensures result >= -1 && result <= 255
+```

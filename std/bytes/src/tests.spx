@@ -1,0 +1,79 @@
+module std.bytes.tests;
+use function @id("std.bytes.byte_to_i64") from std.bytes as byte_to_i64;
+use function @id("std.bytes.count") from std.bytes as count;
+use function @id("std.bytes.equals") from std.bytes as equals;
+use function @id("std.bytes.get_or") from std.bytes as get_or;
+use function @id("std.bytes.index_of") from std.bytes as index_of;
+use function @id("std.bytes.is_ascii") from std.bytes as is_ascii;
+use function @id("std.bytes.position_of") from std.bytes as position_of;
+use function @id("std.bytes.read_u16_be") from std.bytes as read_u16_be;
+use function @id("std.bytes.read_u16_le") from std.bytes as read_u16_le;
+use function @id("std.bytes.read_u32_be") from std.bytes as read_u32_be;
+use function @id("std.bytes.read_u32_le") from std.bytes as read_u32_le;
+use function @id("std.bytes.starts_with") from std.bytes as starts_with;
+
+@id("std.bytes.tests.access")
+fn access() -> bool
+{
+    let text = [104u8, 101u8, 108u8, 108u8, 111u8, 255u8];
+    let view = array_as_slice(text);
+    byte_to_i64(0u8) == 0 && byte_to_i64(255u8) == 255 && get_or(view, 0usize, -1) == 104 && get_or(view, 5usize, -1) == 255 && get_or(view, 6usize, -1) == -1 && position_of(1usize) == 0 && position_of(4usize) == 3
+}
+
+@id("std.bytes.tests.search")
+fn search() -> bool
+{
+    let text = [104u8, 101u8, 108u8, 108u8, 111u8, 255u8];
+    let view = array_as_slice(text);
+    let empty = [0u8; 0];
+    let none = array_as_slice(empty);
+    count(view, 108u8) == 2usize && count(view, 7u8) == 0usize && count(none, 7u8) == 0usize && index_of(view, 104u8) == 0 && index_of(view, 108u8) == 2 && index_of(view, 255u8) == 5 && index_of(view, 7u8) == -1 && index_of(none, 7u8) == -1
+}
+
+@id("std.bytes.tests.classification")
+fn classification() -> bool
+{
+    let text = [104u8, 101u8, 108u8, 108u8, 111u8, 255u8];
+    let view = array_as_slice(text);
+    let ascii = [104u8, 105u8];
+    let ascii_view = array_as_slice(ascii);
+    let empty = [0u8; 0];
+    let none = array_as_slice(empty);
+    !is_ascii(view) && is_ascii(ascii_view) && is_ascii(none)
+}
+
+@id("std.bytes.tests.comparison")
+fn comparison() -> bool
+{
+    let text = [104u8, 101u8, 108u8];
+    let view = array_as_slice(text);
+    let same = [104u8, 101u8, 108u8];
+    let same_view = array_as_slice(same);
+    let prefix = [104u8, 101u8];
+    let prefix_view = array_as_slice(prefix);
+    let other = [104u8, 102u8];
+    let other_view = array_as_slice(other);
+    let empty = [0u8; 0];
+    let none = array_as_slice(empty);
+    equals(view, same_view) && !equals(view, prefix_view) && equals(none, none) && starts_with(view, prefix_view) && starts_with(view, none) && !starts_with(view, other_view) && !starts_with(prefix_view, view)
+}
+
+@id("std.bytes.tests.endian")
+fn endian() -> bool
+{
+    let frame = [1u8, 2u8, 3u8, 4u8, 255u8];
+    let view = array_as_slice(frame);
+    read_u16_le(view, 0usize) == 513 && read_u16_be(view, 0usize) == 258 && read_u16_le(view, 3usize) == 65284 && read_u32_le(view, 0usize) == 67305985 && read_u32_be(view, 0usize) == 16909060 && read_u32_be(view, 1usize) == 33752319
+}
+
+@id("std.bytes.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if access() { 0 } else { 1 };
+    failed = failed + if search() { 0 } else { 2 };
+    failed = failed + if classification() { 0 } else { 4 };
+    failed = failed + if comparison() { 0 } else { 8 };
+    failed = failed + if endian() { 0 } else { 16 };
+    failed
+}

@@ -54,7 +54,8 @@ The gate enforces 1, 3, 5, 6, 7, and 8 today. Contracts (4) are required by
 this document and reviewed; a declaration without one is a review finding, not
 yet a gate failure. Records, variants, and generic declarations are admitted
 by the language but not yet by the cross-file Project route, so the current
-slice holds functions over `i64` and `bool` only.
+slice holds functions over `i64`, `bool`, `u8`, `usize`, and `borrow
+Slice<u8>` only.
 
 `std/packages.json` lists every package directory with its module, tier,
 targets, and status. The gate fails when the list and the directories under
@@ -75,7 +76,9 @@ The library module keeps its `std.*` module name and identities inside the
 consuming project. Every current package is a single self-contained file
 with `i64`/`bool` signatures, so any Project v1 manifest admits it;
 `tests/project.rs::standard_library` vendors each one into a fresh project
-and runs its examples and conformance suite there.
+that keeps the package's manifest schema and profile, and runs its examples
+and conformance suite there. `std.bytes` needs the `useful-data.v1` profile of
+Project Manifest v3 in the consuming manifest.
 
 ## Portability tiers
 
@@ -109,7 +112,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.iter` | Iterators, adapters, folds, collection, and ranges | Missing; needs interfaces and closures |
 | `std.mem` | Ownership helpers, regions, arenas, boxes, shared immutable values | Missing |
 | `std.collections` | Vector, deque, map, set, heap, and fixed-capacity collections | Missing; needs the `alloc` tier |
-| `std.bytes` | Buffers, spans, readers, writers, endian operations, and encoding | Missing; the compiler-owned byte functions are the current surface |
+| `std.bytes` | Buffers, spans, readers, writers, endian operations, and encoding | Partial: byte-to-integer conversion, guarded indexing, first-index search, counting, ASCII classification, slice equality and prefix tests, and little- and big-endian 16- and 32-bit reads over `borrow Slice<u8>`; buffers, writers, and encodings are Missing |
 | `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Missing; the compiler-owned string and `str` functions are the current surface |
 | `std.format` | Type-safe formatting without runtime format-string ambiguity | Missing |
 | `std.io` | Reader, Writer, buffered I/O, streams, line processing, and standard streams | Missing; `stdout_write`, `stderr_write`, and `stdin_read` are the current surface |
@@ -166,13 +169,12 @@ Two compiler bounds decide how large one package can be:
   each check in its own function so the cleanup-plan replay stays under its
   path budget.
 
-- The byte-data profile (`useful-data.v1`) validates its complete function
-  inventory as contract-free: the Core-Wasm data emitter rejects any
-  `requires` or `ensures` with `SPX-W121`, and the npm recipe rejects them
-  again with `SPX-W120`, although the interpreter and native lanes run the
-  same contracted functions. A contracted `std.bytes` therefore waits on a
-  profile revision that lowers contract failures through the data status
-  global and its facade.
+- The byte-data profile (`useful-data.v1`) admits contracts throughout its
+  inventory since the data emitter and npm recipe learned to lower and record
+  them; `std.bytes` is a Project v3 package on that profile. Its web exports
+  may take only `borrow Slice<u8>` parameters, so a function with a scalar
+  parameter such as `count(view, needle)` is exported to the interpreter and
+  native lanes but not selected as a web export.
 - The text profile (`useful-text-consumer.v1`) admits `borrow str` only on
   functions defined in the calling file: a cross-file `use function` of a
   `borrow str` signature is rejected with `SPX-G172`, so `std.text` cannot be

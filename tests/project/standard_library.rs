@@ -321,8 +321,13 @@ fn examples_and_conformance_return_zero_on_interpreter_native_and_wasm() {
 import {{ readFile }} from "node:fs/promises";
 const bytes = await readFile("./{}");
 const checked = (operation) => (a, b) => {{ const value = operation(a, b); if (value < -(1n<<63n) || value > (1n<<63n)-1n) throw new RangeError(); return value; }};
-const imports = {{env:{{spx_add:checked((a,b)=>a+b),spx_sub:checked((a,b)=>a-b),spx_mul:checked((a,b)=>a*b),spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:(a)=>-a,spx_contract_fail:()=>{{throw new Error();}}}}}};
-const linked = await WebAssembly.instantiate(bytes, imports);
+const entries = new Map(); let next = 1; let linked;
+const decode = carrier => {{ const word = BigInt.asUintN(64, carrier), length = Number(word & 0xffffffffn), root = Number((word >> 32n) & 0xffffffffn); return {{ word, length, root, tagged: (root & 0x80000000) !== 0, token: root & 0x7fffffff }}; }};
+const read = decoded => {{ if (decoded.tagged) {{ const value = entries.get(decoded.token); if (!(value instanceof Uint8Array) || value.length !== decoded.length) throw new Error("stale byte token"); return value; }} const memory = new Uint8Array((linked.instance.exports.__spx_byte_memory ?? linked.instance.exports.memory).buffer); if (decoded.root > memory.length - decoded.length) throw new Error("byte range"); return memory.slice(decoded.root, decoded.root + decoded.length); }};
+const allocate = bytes => {{ const token = next++, owned = new Uint8Array(bytes); entries.set(token, owned); return BigInt.asIntN(64, ((0x80000000n | BigInt(token)) << 32n) | BigInt(owned.length)); }};
+const imports = {{env:{{spx_add:checked((a,b)=>a+b),spx_sub:checked((a,b)=>a-b),spx_mul:checked((a,b)=>a*b),spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:(a)=>-a,spx_contract_fail:()=>{{throw new Error();}},
+spx_bytes_copy:c=>allocate(read(decode(c))),spx_bytes_get:(c,i)=>{{ const b = read(decode(c)), u = BigInt.asUintN(64, i); return u >= BigInt(b.length) ? -1 : b[Number(u)]; }},spx_bytes_drop:c=>{{ const d = decode(c); read(d); entries.delete(d.token); }},spx_bytes_as_slice:c=>{{ const d = decode(c); read(d); return BigInt.asIntN(64, d.word); }}}}}};
+linked = await WebAssembly.instantiate(bytes, imports);
 assert.equal(linked.instance.exports.semaprax_main(), 0n);
 "#,
                     wasm_path.file_name().unwrap().to_string_lossy()
@@ -367,15 +372,27 @@ fn every_library_module_is_self_contained_when_vendored() {
             )
             .unwrap();
         }
-        let export = &library.program.functions[0].stable_id;
-        std::fs::write(
-            project.join("semaprax.toml"),
-            format!(
-                "schema = \"semaprax.project.v1\"\nname = \"vendored-{}\"\nentry = \"{entry}\"\nsources = [\"src/examples.spx\", \"src/tests.spx\", \"src/vendored.spx\"]\nweb_exports = [\"{export}\"]\ntests = [\"{tests}\"]\n",
-                package.directory
-            ),
-        )
-        .unwrap();
+        // Keep the package's own schema, profile, exports, and test module;
+        // only the source inventory and name change.
+        let manifest = std::fs::read_to_string(package_root.join("semaprax.toml"))
+            .unwrap()
+            .lines()
+            .map(|line| {
+                if line.starts_with("sources = ") {
+                    "sources = [\"src/examples.spx\", \"src/tests.spx\", \"src/vendored.spx\"]"
+                        .to_owned()
+                } else if line.starts_with("name = ") {
+                    format!("name = \"vendored-{}\"", package.directory)
+                } else {
+                    line.to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+            + "\n";
+        assert!(manifest.contains(&format!("entry = \"{entry}\"")));
+        assert!(manifest.contains(&format!("tests = [\"{tests}\"]")));
+        std::fs::write(project.join("semaprax.toml"), manifest).unwrap();
         project::with_authenticated_project(&project.join("semaprax.toml"), |snapshot| {
             snapshot.check()?;
             let options = project::ProjectExecutionOptions::default();

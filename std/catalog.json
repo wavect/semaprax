@@ -6,6 +6,166 @@
           "effects": [],
           "ensures": 1,
           "head": [
+            "fn byte_to_i64(byte: u8) -> i64",
+            "    ensures result >= 0 && result <= 255"
+          ],
+          "id": "std.bytes.byte_to_i64",
+          "kind": "function",
+          "name": "byte_to_i64",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn get_or(view: borrow Slice<u8>, index: usize, fallback: i64) -> i64",
+            "    requires fallback >= -1 && fallback <= 255",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.bytes.get_or",
+          "kind": "function",
+          "name": "get_or",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn index_of(view: borrow Slice<u8>, needle: u8) -> i64",
+            "    ensures result >= -1"
+          ],
+          "id": "std.bytes.index_of",
+          "kind": "function",
+          "name": "index_of",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn position_of(next_index: usize) -> i64",
+            "    requires next_index >= 1usize",
+            "    ensures result >= 0"
+          ],
+          "id": "std.bytes.position_of",
+          "kind": "function",
+          "name": "position_of",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn count(view: borrow Slice<u8>, needle: u8) -> usize",
+            "    ensures result <= byte_len(view)"
+          ],
+          "id": "std.bytes.count",
+          "kind": "function",
+          "name": "count",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_ascii(view: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.bytes.is_ascii",
+          "kind": "function",
+          "name": "is_ascii",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn equals(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.bytes.equals",
+          "kind": "function",
+          "name": "equals",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn starts_with(view: borrow Slice<u8>, prefix: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.bytes.starts_with",
+          "kind": "function",
+          "name": "starts_with",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn read_u16_le(view: borrow Slice<u8>, offset: usize) -> i64",
+            "    requires offset + 2usize <= byte_len(view)",
+            "    ensures result >= 0 && result <= 65535"
+          ],
+          "id": "std.bytes.read_u16_le",
+          "kind": "function",
+          "name": "read_u16_le",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn read_u16_be(view: borrow Slice<u8>, offset: usize) -> i64",
+            "    requires offset + 2usize <= byte_len(view)",
+            "    ensures result >= 0 && result <= 65535"
+          ],
+          "id": "std.bytes.read_u16_be",
+          "kind": "function",
+          "name": "read_u16_be",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn read_u32_le(view: borrow Slice<u8>, offset: usize) -> i64",
+            "    requires offset + 4usize <= byte_len(view)",
+            "    ensures result >= 0 && result <= 4294967295"
+          ],
+          "id": "std.bytes.read_u32_le",
+          "kind": "function",
+          "name": "read_u32_le",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn read_u32_be(view: borrow Slice<u8>, offset: usize) -> i64",
+            "    requires offset + 4usize <= byte_len(view)",
+            "    ensures result >= 0 && result <= 4294967295"
+          ],
+          "id": "std.bytes.read_u32_be",
+          "kind": "function",
+          "name": "read_u32_be",
+          "requires": 1
+        }
+      ],
+      "module": "std.bytes",
+      "package": "std/bytes",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
             "fn ordering_less() -> i64",
             "    ensures result == -1"
           ],

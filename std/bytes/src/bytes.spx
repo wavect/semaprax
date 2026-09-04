@@ -1,0 +1,142 @@
+module std.bytes;
+
+@id("std.bytes.byte_to_i64")
+fn byte_to_i64(byte: u8) -> i64
+    ensures result >= 0 && result <= 255
+{
+    let mut value = 0;
+    let mut probe = 0u8;
+    while probe != byte {
+        value = value + 1;
+        probe = probe + 1u8;
+        probe != byte
+    }
+    value
+}
+
+@id("std.bytes.get_or")
+fn get_or(view: borrow Slice<u8>, index: usize, fallback: i64) -> i64
+    requires fallback >= -1 && fallback <= 255
+    ensures result >= -1 && result <= 255
+{
+    match byte_get(view, index) { Option::Some { value: byte } => byte_to_i64(byte), Option::None {} => fallback, }
+}
+
+@id("std.bytes.index_of")
+fn index_of(view: borrow Slice<u8>, needle: u8) -> i64
+    ensures result >= -1
+{
+    let length = byte_len(view);
+    let mut index = 0usize;
+    let mut found = -1;
+    while index < length && found < 0 {
+        found = match byte_get(view, index) { Option::Some { value: byte } => if byte == needle { 0 } else { -1 }, Option::None {} => -1, };
+        index = index + 1usize;
+        index < length && found < 0
+    }
+    if found == 0 { position_of(index) } else { -1 }
+}
+
+@id("std.bytes.position_of")
+fn position_of(next_index: usize) -> i64
+    requires next_index >= 1usize
+    ensures result >= 0
+{
+    let mut remaining = next_index - 1usize;
+    let mut position = 0;
+    while remaining > 0usize {
+        remaining = remaining - 1usize;
+        position = position + 1;
+        remaining > 0usize
+    }
+    position
+}
+
+@id("std.bytes.count")
+fn count(view: borrow Slice<u8>, needle: u8) -> usize
+    ensures result <= byte_len(view)
+{
+    let length = byte_len(view);
+    let mut index = 0usize;
+    let mut hits = 0usize;
+    while index < length {
+        hits = match byte_get(view, index) { Option::Some { value: byte } => if byte == needle { hits + 1usize } else { hits }, Option::None {} => hits, };
+        index = index + 1usize;
+        index < length
+    }
+    hits
+}
+
+@id("std.bytes.is_ascii")
+fn is_ascii(view: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(view);
+    let mut index = 0usize;
+    let mut ascii = true;
+    while index < length && ascii {
+        ascii = match byte_get(view, index) { Option::Some { value: byte } => byte < 128u8, Option::None {} => false, };
+        index = index + 1usize;
+        index < length && ascii
+    }
+    ascii
+}
+
+@id("std.bytes.equals")
+fn equals(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(left);
+    let mut index = 0usize;
+    let mut same = length == byte_len(right);
+    while index < length && same {
+        same = get_or(left, index, -1) == get_or(right, index, -1);
+        index = index + 1usize;
+        index < length && same
+    }
+    same
+}
+
+@id("std.bytes.starts_with")
+fn starts_with(view: borrow Slice<u8>, prefix: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(prefix);
+    let mut index = 0usize;
+    let mut matched = length <= byte_len(view);
+    while index < length && matched {
+        matched = get_or(view, index, -1) == get_or(prefix, index, -1);
+        index = index + 1usize;
+        index < length && matched
+    }
+    matched
+}
+
+@id("std.bytes.read_u16_le")
+fn read_u16_le(view: borrow Slice<u8>, offset: usize) -> i64
+    requires offset + 2usize <= byte_len(view)
+    ensures result >= 0 && result <= 65535
+{
+    get_or(view, offset, 0) + get_or(view, offset + 1usize, 0) * 256
+}
+
+@id("std.bytes.read_u16_be")
+fn read_u16_be(view: borrow Slice<u8>, offset: usize) -> i64
+    requires offset + 2usize <= byte_len(view)
+    ensures result >= 0 && result <= 65535
+{
+    get_or(view, offset, 0) * 256 + get_or(view, offset + 1usize, 0)
+}
+
+@id("std.bytes.read_u32_le")
+fn read_u32_le(view: borrow Slice<u8>, offset: usize) -> i64
+    requires offset + 4usize <= byte_len(view)
+    ensures result >= 0 && result <= 4294967295
+{
+    read_u16_le(view, offset) + read_u16_le(view, offset + 2usize) * 65536
+}
+
+@id("std.bytes.read_u32_be")
+fn read_u32_be(view: borrow Slice<u8>, offset: usize) -> i64
+    requires offset + 4usize <= byte_len(view)
+    ensures result >= 0 && result <= 4294967295
+{
+    read_u16_be(view, offset) * 65536 + read_u16_be(view, offset + 2usize)
+}

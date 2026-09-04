@@ -499,9 +499,9 @@ fn render_semantic_recipe_profile(
             function.effects.is_empty()
                 || function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT]
         };
-        if !effects_admitted || !function.requires.is_empty() || !function.ensures.is_empty() {
+        if !effects_admitted {
             return Err(package_error(
-                "npm semantic recipe does not admit these effects or contracts",
+                "npm semantic recipe does not admit these effects",
             ));
         }
         let mut values = BTreeMap::<String, String>::new();
@@ -550,6 +550,21 @@ fn render_semantic_recipe_profile(
             },
         ));
         let mut local_index = 0_usize;
+        for contract in &function.requires {
+            output.push_str(&format!(
+                "    requires {}\n",
+                render_recipe_expr(contract, &names, &mut values, &mut local_index)?
+            ));
+        }
+        if !function.ensures.is_empty() {
+            values.insert(function.result_id.as_str().to_owned(), "result".to_owned());
+        }
+        for contract in &function.ensures {
+            output.push_str(&format!(
+                "    ensures {}\n",
+                render_recipe_expr(contract, &names, &mut values, &mut local_index)?
+            ));
+        }
         output.push_str(&render_recipe_expr(
             &function.body,
             &names,

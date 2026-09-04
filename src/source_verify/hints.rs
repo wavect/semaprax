@@ -329,6 +329,27 @@ pub(super) fn unknown_type_help(name: &str) -> Option<&'static str> {
     }
 }
 
+/// A borrowed-view operation applied to something other than a plain binding.
+pub(super) fn view_place_help(operation: &str, argument: &Expr) -> String {
+    let (source, binding) = match (operation, &argument.kind) {
+        ("str_as_bytes", ExprKind::String(_)) | ("string_as_str", ExprKind::String(_)) => (
+            "a string literal",
+            "`let text = \"…\"; str_as_bytes(string_as_str(text))`",
+        ),
+        ("array_as_slice", ExprKind::ArrayU8(_) | ExprKind::RepeatArrayU8 { .. }) => (
+            "an array literal",
+            "`let bytes = [1u8, 2u8]; array_as_slice(bytes)`",
+        ),
+        (_, ExprKind::Call { .. } | ExprKind::MethodCall { .. }) => {
+            ("a call result", "`let owner = …; <view>(owner)`")
+        }
+        _ => ("this expression", "`let owner = …; <view>(owner)`"),
+    };
+    format!(
+        "`{operation}` borrows from a named `let` binding, not from {source}; bind the owner first: {binding}"
+    )
+}
+
 /// Attach `help` when a hint applies.
 pub(super) fn with_optional_help(diagnostic: Diagnostic, help: Option<String>) -> Diagnostic {
     match help {

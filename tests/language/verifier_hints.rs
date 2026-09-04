@@ -249,3 +249,31 @@ fn a_genuinely_unknown_type_keeps_the_resource_message_without_a_hint() {
     );
     assert!(diagnostic.help.is_none(), "{diagnostic}");
 }
+
+#[test]
+fn borrowed_view_of_a_literal_names_the_binding_step() {
+    let diagnostic = only(
+        "module habit.view;\npermit { process.stdout.write }\n@id(\"app.main\")\nfn main() -> i64\n    uses { process.stdout.write }\n{\n    let n = stdout_write(str_as_bytes(\"hi\"));\n    0\n}\n",
+        "SPX-T266",
+    );
+    assert_eq!(
+        diagnostic.message,
+        "borrowed view `str_as_bytes` requires an exact admitted storage place"
+    );
+    assert!(
+        help(&diagnostic).contains("str_as_bytes(string_as_str(text))"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
+fn borrowed_view_of_an_array_literal_names_the_binding_step() {
+    let diagnostic = only(
+        "module habit.arr;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let n = byte_len(array_as_slice([1u8, 2u8]));\n    0\n}\n",
+        "SPX-T266",
+    );
+    assert!(
+        help(&diagnostic).contains("array_as_slice(bytes)"),
+        "{diagnostic}"
+    );
+}

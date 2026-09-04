@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- A borrowed view taken directly from a string literal, an array literal, or a
+  call result (`str_as_bytes("hi")`, `array_as_slice([1u8])`) now names the
+  `let` binding step in its `SPX-T266` help, and the README routes coding agents
+  to the agent quick reference.
+
 - More first-attempt habits now carry their fix: `struct`/`enum`/`pub`/`const`
   declarations, a missing trailing `,` after the last field or match arm,
   `x += 1`, a missing `->` result type or a `()` unit type, an uninitialised

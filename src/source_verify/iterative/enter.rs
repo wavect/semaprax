@@ -260,14 +260,20 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             )
                         })
                     {
-                        self.diagnostics.push(error(
+                        let diagnostic = error(
                             self.program,
                             "SPX-T266",
                             format!(
                                 "borrowed view `{name}` requires an exact admitted storage place"
                             ),
                             expression.span,
-                        ));
+                        );
+                        self.diagnostics.push(match args.first() {
+                            Some(argument) => {
+                                diagnostic.with_help(hints::view_place_help(name, argument))
+                            }
+                            None => diagnostic,
+                        });
                     }
                     VerifierCallTarget::Byte(op)
                 } else if let Some(op) = crate::host_io_ops::by_name(name) {

@@ -1,7 +1,7 @@
 use super::*;
 
 fn canonical_source(path: &str, source: &str) -> WorkspaceSource {
-    let program = parse(source, Path::new(path)).expect("type-proof fixture must parse");
+    let program = crate::parse(source, Path::new(path)).expect("type-proof fixture must parse");
     WorkspaceSource {
         path: path.to_owned(),
         source: format::canonical(&program),
@@ -100,7 +100,7 @@ mod projection_tests {
     }
 
     fn canonical_source(path: &str, source: &str) -> WorkspaceSource {
-        let program = parse(source, Path::new(path)).expect("projection source must parse");
+        let program = crate::parse(source, Path::new(path)).expect("projection source must parse");
         WorkspaceSource {
             path: path.to_owned(),
             source: format::canonical(&program),

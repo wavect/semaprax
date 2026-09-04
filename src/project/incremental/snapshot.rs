@@ -133,10 +133,11 @@ pub(crate) fn decode_snapshot(bytes: &[u8]) -> Result<ProjectFrontendCache> {
         // Source is canonical authority. Reconstruct its AST independently;
         // the subsequent ordinary builder rederives the complete synthetic
         // input before permitting any decoded checked-module hit.
-        let program = crate::parse(&entry.source, &entry.path).map_err(|error| vec![error])?;
+        let (program, comments) =
+            crate::parse_with_comments(&entry.source, &entry.path).map_err(|error| vec![error])?;
         let (canonical, overflowed) =
             crate::bounded_output::with_limit(MAX_TOTAL_SOURCE_BYTES, || {
-                crate::format::canonical(&program)
+                crate::format::comments::canonical_with_comments(&program, &comments)
             });
         if overflowed || canonical != entry.source {
             return Err(invalid("semantic snapshot source is not canonical"));

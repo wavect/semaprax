@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Canonical project comments now remain valid inputs to Project semantic-graph
+  construction and persisted frontend-cache replay, while the parsed semantic
+  program remains comment-free. Project-format and install-guide fixtures use
+  native path spelling on every host and explicitly create the required lock
+  before executing a freshly formatted project.
+
 - `semaprax lock` gains `--emit-interface` and `--compare-interface
   <baseline.json>`: a fine-grained per-export compatibility for Project v1
   scalar packages. `--emit-interface` prints the scalar WIT interface

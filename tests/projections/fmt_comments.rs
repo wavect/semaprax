@@ -13,7 +13,7 @@ const COMMENTED: &str = "// Calculator with notes.\nmodule app.calc;\n\n// Adds 
 const CANONICAL: &str = "// Calculator with notes.\nmodule app.calc;\n\n// Adds two numbers.\n// only non-negative\n@id(\"calc.add\")\nfn add(left: i64, right: i64) -> i64\n    requires left >= 0\n{\n    left + right\n    // the sum\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    // start\n    let base = add(19, 23);\n    base\n    // done\n}\n// trailing note\n";
 
 fn fixture(label: &str) -> PathBuf {
-    let root = std::env::temp_dir().join(format!(
+    let root = std::env::temp_dir().canonicalize().unwrap().join(format!(
         "semaprax-fmt-comments-{label}-{}-{}",
         std::process::id(),
         SERIAL.fetch_add(1, Ordering::Relaxed)
@@ -128,7 +128,9 @@ fn fmt_formats_every_project_source_in_manifest_order() {
     assert_eq!(
         stderr,
         format!(
-            "{dir}/src/app.spx is not canonically formatted\n{dir}/src/tests.spx is not canonically formatted\n"
+            "{} is not canonically formatted\n{} is not canonically formatted\n",
+            root.join("src/app.spx").display(),
+            root.join("src/tests.spx").display()
         )
     );
     assert_eq!(
@@ -145,6 +147,8 @@ fn fmt_formats_every_project_source_in_manifest_order() {
     assert_eq!(read(&root, "src/tests.spx"), TESTS_CANONICAL);
 
     let (status, _, stderr) = cli(&["fmt", manifest.to_str().unwrap(), "--check"]);
+    assert_eq!(status, 0, "{stderr}");
+    let (status, _, stderr) = cli(&["lock", manifest.to_str().unwrap(), "--write"]);
     assert_eq!(status, 0, "{stderr}");
     let (status, stdout, _) = cli(&["test", dir]);
     assert_eq!(status, 0);
@@ -181,7 +185,10 @@ fn fmt_project_failures_write_nothing() {
     assert_eq!(status, 1);
     assert!(stdout.is_empty());
     assert!(
-        stderr.starts_with(&format!("cannot read {}/semaprax.toml: ", empty.display())),
+        stderr.starts_with(&format!(
+            "cannot read {}: ",
+            empty.join("semaprax.toml").display()
+        )),
         "{stderr}"
     );
     std::fs::remove_dir_all(root).unwrap();

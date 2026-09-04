@@ -524,7 +524,12 @@ use the unpublished semaprax-full toolchain CLI\n"
         let directory = standalone(checkout(), &["check", "examples"]);
         assert_eq!(directory.status.code(), Some(1));
         assert!(stderr(&directory).starts_with(DIRECTORY_OPERAND_STDERR_PREFIX));
-        assert!(stderr(&directory).contains("examples/semaprax.toml"));
+        assert!(stderr(&directory).contains(
+            std::path::Path::new("examples")
+                .join("semaprax.toml")
+                .to_string_lossy()
+                .as_ref()
+        ));
 
         let manifest = standalone(&fixture.root, &["check", "semaprax.toml"]);
         assert_eq!(manifest.status.code(), Some(1));

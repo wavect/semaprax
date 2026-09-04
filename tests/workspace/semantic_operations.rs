@@ -148,7 +148,7 @@ fn public_api_cli_getters_kats_and_no_write_are_exact() {
     );
     assert_eq!(
         bundle.derivation_digest(),
-        "sha256:96a59df0075175d78d01e2766dfcf3b26018230fca68694f226a9f1f45a3789e"
+        "sha256:ebac6f928c56b586a6e77d0909a9eac4f3238c1140eab10c88b4a1afc1e21083"
     );
     assert!(bundle.derivation().ends_with('\n'));
     assert!(bundle.derived_change_proposal().ends_with('\n'));
@@ -289,7 +289,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     );
     assert_eq!(
         bundle.derivation_digest(),
-        "sha256:96a59df0075175d78d01e2766dfcf3b26018230fca68694f226a9f1f45a3789e"
+        "sha256:ebac6f928c56b586a6e77d0909a9eac4f3238c1140eab10c88b4a1afc1e21083"
     );
     assert_eq!(
         bundle.derived_change_proposal_digest(),
@@ -301,7 +301,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     );
     assert_eq!(
         raw_sha256(bundle.operations_evidence().as_bytes()),
-        "sha256:f8ff338a71491cdaf3c0a9c6b73539123f7e9d41c1f81e0181674dbdd2d61f46"
+        "sha256:fe16c777aae733bafc01c7466a853d27c81c4febdbedee83546414ccec946501"
     );
     assert!(bundle
         .workspace_change_evidence_digest()
@@ -327,7 +327,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
             .unwrap();
     assert_eq!(
         raw_sha256(verification.as_bytes()),
-        "sha256:3e093b5888fe578e08929914f50780bf2dc8e66b95520378a4054c30daca1931"
+        "sha256:2c5e9b42836cfd3f3085120851f0d22ab1d96a681a6e8255b673371a0976c98a"
     );
     let cli_verify = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .arg("verify-semantic-workspace-operations-evidence")
@@ -356,7 +356,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     .unwrap();
     assert_eq!(
         raw_sha256(application.as_bytes()),
-        "sha256:141f0fdd2b26d54eb43230291ce8a772ea9520f59cfeb348c8a4b7c8a1184e24"
+        "sha256:b2d94679ef0dbcbe05287384cb61de656fd9c7f24ca8adb725d5aa61ababa992"
     );
     apply_fixture.assert_exclusive_reacquire();
 

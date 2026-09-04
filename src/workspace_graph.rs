@@ -35,7 +35,7 @@ use crate::ast::{
     TypeDeclaration, TypeDeclarationKind,
 };
 use crate::diagnostic::Diagnostic;
-use crate::{format, graph, hir, parse, prelude, workspace};
+use crate::{format, graph, hir, prelude, workspace};
 
 #[cfg(test)]
 use expected_projection::dependency_depths;
@@ -4230,29 +4230,31 @@ fn build_owned_inner(
             .as_deref_mut()
             .and_then(|cache| cache.lookup(&source.path, &source.source));
         let reused = cached.is_some();
-        let program = if let Some(program) = cached {
-            program
+        let (program, comments) = if let Some(program) = cached {
+            (program, None)
         } else {
-            let program =
-                parse(&source.source, Path::new(&source.path)).map_err(|error| vec![error])?;
+            let (program, comments) =
+                crate::parse_with_comments(&source.source, Path::new(&source.path))
+                    .map_err(|error| vec![error])?;
             if let Some(frontend) = frontend.as_deref_mut() {
                 frontend.parsed(source.source.len());
             }
-            program
+            (program, Some(comments))
         };
         // Check source-local conformance before imported declarations become
         // synthetic stubs. A stub must never acquire local implementation
         // authority merely because it has an authenticated imported identity.
         crate::static_protocol::validate(&program).map_err(|error| vec![error])?;
         let remaining = active_builder_limit().saturating_sub(canonical_bytes);
-        // Cached entries originate only from exact canonical source and a
-        // successful complete Project build. Preserve cold byte accounting
-        // while actually avoiding this formatter invocation on a cache hit.
         let canonical_len = if reused {
             source.source.len()
         } else {
-            let (canonical, overflowed) =
-                crate::bounded_output::with_limit(remaining, || format::canonical(&program));
+            let comments = comments
+                .as_ref()
+                .expect("cold workspace parse retains its exact comments");
+            let (canonical, overflowed) = crate::bounded_output::with_limit(remaining, || {
+                format::comments::canonical_with_comments(&program, comments)
+            });
             if overflowed {
                 return Err(vec![limit_error("builder_bytes", active_builder_limit())]);
             }

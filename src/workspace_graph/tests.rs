@@ -2,7 +2,7 @@ use super::*;
 #[path = "tests/static_protocol.rs"]
 mod static_protocol;
 fn checked_value_fixture() -> hir::ResolvedProgram {
-    let program = parse(r#"module values;
+    let program = crate::parse(r#"module values;
 @id("values.config") record Config { @id("values.config.value") value: i64, }
 @id("values.envelope") record Envelope { @id("values.envelope.item") item: Config, }
 @id("values.choice") variant Choice { @id("values.choice.some") Some { @id("values.choice.item") item: i64, }, @id("values.choice.none") None, }
@@ -133,7 +133,7 @@ fn source(path: &str, source: &str) -> WorkspaceSource {
 }
 
 fn canonical_source(path: &str, source: &str) -> WorkspaceSource {
-    let program = parse(source, Path::new(path)).expect("test source must parse");
+    let program = crate::parse(source, Path::new(path)).expect("test source must parse");
     WorkspaceSource {
         path: path.to_owned(),
         source: format::canonical(&program),
@@ -672,7 +672,7 @@ fn parsed_sources(sources: &[WorkspaceSource]) -> Vec<Program> {
     sources
         .iter()
         .map(|source| {
-            parse(&source.source, Path::new(&source.path))
+            crate::parse(&source.source, Path::new(&source.path))
                 .expect("canonical workspace fixture must parse")
         })
         .collect()
@@ -1174,7 +1174,7 @@ fn indexed_proof_replays_many_permits_and_zero_effect_calls() {
 #[test]
 fn canonical_use_parses_formats_and_single_file_rejects() {
     let text = "module app.main;\nuse function @id(\"lib.answer\") from lib.core as answer;\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    answer()\n}\n";
-    let program = parse(text, Path::new("app/main.spx")).unwrap();
+    let program = crate::parse(text, Path::new("app/main.spx")).unwrap();
     assert_eq!(format::canonical(&program), text);
     let error = hir::resolve(&program).expect_err("single-file HIR must reject workspace use");
     assert_eq!(error[0].code, "SPX-G172");
@@ -2009,7 +2009,7 @@ fn mixed_declaration_limit_exact_advances_and_one_over_is_g171() {
         "module leaf;\n@id(\"leaf.f\") fn f() -> i64 { 0 }\n",
     );
     let exact = declaration_boundary_source(MAX_DECLARATIONS - 10);
-    let exact_program = parse(&exact.source, Path::new(&exact.path)).unwrap();
+    let exact_program = crate::parse(&exact.source, Path::new(&exact.path)).unwrap();
     assert_eq!(
         declaration_count(&exact_program),
         Some(MAX_DECLARATIONS - 1)

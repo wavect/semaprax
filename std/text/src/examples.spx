@@ -1,12 +1,13 @@
 module std.text.examples;
 use function @id("std.text.byte_len") from std.text as text_byte_len;
 use function @id("std.text.contains") from std.text as contains;
+use function @id("std.text.equals") from std.text as equals;
 use function @id("std.text.starts_with") from std.text as starts_with;
 
 @id("std.text.examples.demonstrate")
 fn demonstrate(value: borrow str, needle: borrow str) -> bool
 {
-    contains(value, needle)
+    contains(value, needle) && equals(value, value)
 }
 
 @id("std.text.examples.main")

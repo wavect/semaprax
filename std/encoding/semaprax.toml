@@ -1,0 +1,13 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-encoding"
+version = "0.1.0"
+
+[modules]
+entry = "std.encoding.examples"
+sources = ["src/encoding.spx", "src/examples.spx", "src/tests.spx"]
+tests = ["std.encoding.tests"]
+
+[exports]
+web = ["std.encoding.base64_value", "std.encoding.decode_base64_quad", "std.encoding.decode_hex_byte", "std.encoding.encode_base64_digit", "std.encoding.encode_hex_lower", "std.encoding.encode_hex_upper", "std.encoding.hex_value", "std.encoding.is_base64_digit", "std.encoding.is_hex_digit"]

@@ -23,6 +23,19 @@ format: `Unreleased` then release buckets, grouped by impact.
   to the same Project v1 contract. `tests/project.rs::scaffold` and
   `::scaffold_cli` pin it.
 
+- Added the sixth executable `core`-tier package, `std.encoding`, with bounded
+  ASCII-byte classification, hexadecimal value conversion, byte-pair decoding,
+  lowercase/uppercase hex digit encoding, standard Base64 digit conversion,
+  and unpadded four-digit decoding to a 24-bit value. Its contracted examples and
+  conformance suite run on the interpreter, native C11, and Core Wasm lanes,
+  and package manifests can import the compiler-bundled module at version
+  `0.1.0` without acquisition authority.
+- Extended `std.bytes` with length-aware suffix matching over borrowed byte
+  slices, including empty, exact, proper-suffix, prefix-only, and longer-suffix
+  conformance cases on every listed backend.
+- Extended `std.text` with exact, length-aware borrowed UTF-8 equality and
+  direct empty, Unicode, embedded-NUL, equal, and unequal interpreter,
+  native-C11, and Core-Wasm assertions.
 - Project manifests can now link the closed compiler-bundled `std.*` inventory
   at version `0.1.0` without cache, network, or acquisition authority. Exact,
   tilde, and caret ranges are checked, transitive standard dependencies are

@@ -1,0 +1,87 @@
+module std.encoding;
+
+@id("std.encoding.byte_value")
+fn byte_value(byte: u8) -> i64
+    ensures result >= 0 && result <= 255
+{
+    let mut value = 0;
+    let mut probe = 0u8;
+    while probe != byte {
+        value = value + 1;
+        probe = probe + 1u8;
+        probe != byte
+    }
+    value
+}
+
+@id("std.encoding.hex_value")
+fn hex_value(byte: u8) -> i64
+    ensures result >= -1 && result <= 15
+{
+    if byte >= 48u8 && byte <= 57u8 { byte_value(byte) - 48 } else { if byte >= 65u8 && byte <= 70u8 { byte_value(byte) - 55 } else { if byte >= 97u8 && byte <= 102u8 { byte_value(byte) - 87 } else { -1 } } }
+}
+
+@id("std.encoding.is_hex_digit")
+fn is_hex_digit(byte: u8) -> bool
+    ensures result == (byte >= 48u8 && byte <= 57u8 || byte >= 65u8 && byte <= 70u8 || byte >= 97u8 && byte <= 102u8)
+{
+    hex_value(byte) >= 0
+}
+
+@id("std.encoding.decode_hex_byte")
+fn decode_hex_byte(high: u8, low: u8) -> i64
+    ensures result >= -1 && result <= 255
+{
+    let upper = hex_value(high);
+    let lower = hex_value(low);
+    if upper < 0 || lower < 0 { -1 } else { upper * 16 + lower }
+}
+
+@id("std.encoding.encode_hex_lower")
+fn encode_hex_lower(value: i64) -> i64
+    requires value >= 0 && value <= 15
+    ensures result >= 48 && result <= 102
+{
+    if value < 10 { 48 + value } else { 87 + value }
+}
+
+@id("std.encoding.encode_hex_upper")
+fn encode_hex_upper(value: i64) -> i64
+    requires value >= 0 && value <= 15
+    ensures result >= 48 && result <= 70
+{
+    if value < 10 { 48 + value } else { 55 + value }
+}
+
+@id("std.encoding.base64_value")
+fn base64_value(byte: u8) -> i64
+    ensures result >= -1 && result <= 63
+{
+    if byte >= 65u8 && byte <= 90u8 { byte_value(byte) - 65 } else { if byte >= 97u8 && byte <= 122u8 { byte_value(byte) - 71 } else { if byte >= 48u8 && byte <= 57u8 { byte_value(byte) + 4 } else { if byte == 43u8 { 62 } else { if byte == 47u8 { 63 } else { -1 } } } } }
+}
+
+@id("std.encoding.is_base64_digit")
+fn is_base64_digit(byte: u8) -> bool
+    ensures result == (byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 43u8 || byte == 47u8)
+{
+    base64_value(byte) >= 0
+}
+
+@id("std.encoding.encode_base64_digit")
+fn encode_base64_digit(value: i64) -> i64
+    requires value >= 0 && value <= 63
+    ensures result >= 43 && result <= 122
+{
+    if value < 26 { 65 + value } else { if value < 52 { 71 + value } else { if value < 62 { value - 4 } else { if value == 62 { 43 } else { 47 } } } }
+}
+
+@id("std.encoding.decode_base64_quad")
+fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64
+    ensures result >= -1 && result <= 16777215
+{
+    let a = base64_value(first);
+    let b = base64_value(second);
+    let c = base64_value(third);
+    let d = base64_value(fourth);
+    if a < 0 || b < 0 || c < 0 || d < 0 { -1 } else { ((a * 64 + b) * 64 + c) * 64 + d }
+}

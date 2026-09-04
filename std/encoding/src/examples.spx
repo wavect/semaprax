@@ -1,0 +1,11 @@
+module std.encoding.examples;
+use function @id("std.encoding.decode_base64_quad") from std.encoding as decode_base64_quad;
+use function @id("std.encoding.decode_hex_byte") from std.encoding as decode_hex_byte;
+use function @id("std.encoding.encode_base64_digit") from std.encoding as encode_base64_digit;
+use function @id("std.encoding.encode_hex_lower") from std.encoding as encode_hex_lower;
+
+@id("std.encoding.examples.main")
+fn main() -> i64
+{
+    if decode_hex_byte(52u8, 97u8) == 74 && encode_hex_lower(15) == 102 && decode_base64_quad(84u8, 87u8, 70u8, 117u8) == 5071214 && encode_base64_digit(62) == 43 { 0 } else { 1 }
+}

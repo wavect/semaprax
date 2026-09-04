@@ -99,6 +99,17 @@
         },
         {
           "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn ends_with(view: borrow Slice<u8>, suffix: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.bytes.ends_with",
+          "kind": "function",
+          "name": "ends_with",
+          "requires": 0
+        },
+        {
+          "effects": [],
           "ensures": 1,
           "head": [
             "fn read_u16_le(view: borrow Slice<u8>, offset: usize) -> i64",
@@ -315,6 +326,142 @@
       ],
       "module": "std.core",
       "package": "std/core",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn byte_value(byte: u8) -> i64",
+            "    ensures result >= 0 && result <= 255"
+          ],
+          "id": "std.encoding.byte_value",
+          "kind": "function",
+          "name": "byte_value",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn hex_value(byte: u8) -> i64",
+            "    ensures result >= -1 && result <= 15"
+          ],
+          "id": "std.encoding.hex_value",
+          "kind": "function",
+          "name": "hex_value",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn is_hex_digit(byte: u8) -> bool",
+            "    ensures result == (byte >= 48u8 && byte <= 57u8 || byte >= 65u8 && byte <= 70u8 || byte >= 97u8 && byte <= 102u8)"
+          ],
+          "id": "std.encoding.is_hex_digit",
+          "kind": "function",
+          "name": "is_hex_digit",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn decode_hex_byte(high: u8, low: u8) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.encoding.decode_hex_byte",
+          "kind": "function",
+          "name": "decode_hex_byte",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn encode_hex_lower(value: i64) -> i64",
+            "    requires value >= 0 && value <= 15",
+            "    ensures result >= 48 && result <= 102"
+          ],
+          "id": "std.encoding.encode_hex_lower",
+          "kind": "function",
+          "name": "encode_hex_lower",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn encode_hex_upper(value: i64) -> i64",
+            "    requires value >= 0 && value <= 15",
+            "    ensures result >= 48 && result <= 70"
+          ],
+          "id": "std.encoding.encode_hex_upper",
+          "kind": "function",
+          "name": "encode_hex_upper",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn base64_value(byte: u8) -> i64",
+            "    ensures result >= -1 && result <= 63"
+          ],
+          "id": "std.encoding.base64_value",
+          "kind": "function",
+          "name": "base64_value",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn is_base64_digit(byte: u8) -> bool",
+            "    ensures result == (byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 43u8 || byte == 47u8)"
+          ],
+          "id": "std.encoding.is_base64_digit",
+          "kind": "function",
+          "name": "is_base64_digit",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn encode_base64_digit(value: i64) -> i64",
+            "    requires value >= 0 && value <= 63",
+            "    ensures result >= 43 && result <= 122"
+          ],
+          "id": "std.encoding.encode_base64_digit",
+          "kind": "function",
+          "name": "encode_base64_digit",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64",
+            "    ensures result >= -1 && result <= 16777215"
+          ],
+          "id": "std.encoding.decode_base64_quad",
+          "kind": "function",
+          "name": "decode_base64_quad",
+          "requires": 0
+        }
+      ],
+      "module": "std.encoding",
+      "package": "std/encoding",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -697,6 +844,17 @@
           "id": "std.text.contains",
           "kind": "function",
           "name": "contains",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn equals(left: borrow str, right: borrow str) -> bool"
+          ],
+          "id": "std.text.equals",
+          "kind": "function",
+          "name": "equals",
           "requires": 0
         },
         {

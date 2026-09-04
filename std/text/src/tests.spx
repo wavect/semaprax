@@ -1,6 +1,7 @@
 module std.text.tests;
 use function @id("std.text.byte_len") from std.text as text_byte_len;
 use function @id("std.text.contains") from std.text as contains;
+use function @id("std.text.equals") from std.text as equals;
 use function @id("std.text.is_empty") from std.text as is_empty;
 use function @id("std.text.starts_with") from std.text as starts_with;
 
@@ -26,6 +27,12 @@ fn prefix(value: borrow str, expected: borrow str) -> bool
 fn substring(value: borrow str, expected: borrow str) -> bool
 {
     contains(value, expected)
+}
+
+@id("std.text.tests.equality")
+fn equality(value: borrow str, expected: borrow str) -> bool
+{
+    equals(value, expected)
 }
 
 @id("std.text.tests.main")

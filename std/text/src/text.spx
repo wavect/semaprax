@@ -12,6 +12,12 @@ fn contains(value: borrow str, needle: borrow str) -> bool
     str_contains(value, needle)
 }
 
+@id("std.text.equals")
+fn equals(left: borrow str, right: borrow str) -> bool
+{
+    str_len_bytes(left) == str_len_bytes(right) && str_contains(left, right)
+}
+
 @id("std.text.is_empty")
 fn is_empty(value: borrow str) -> bool
 {

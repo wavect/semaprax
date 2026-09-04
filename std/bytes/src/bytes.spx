@@ -109,6 +109,22 @@ fn starts_with(view: borrow Slice<u8>, prefix: borrow Slice<u8>) -> bool
     matched
 }
 
+@id("std.bytes.ends_with")
+fn ends_with(view: borrow Slice<u8>, suffix: borrow Slice<u8>) -> bool
+{
+    let view_length = byte_len(view);
+    let suffix_length = byte_len(suffix);
+    let mut index = 0usize;
+    let mut matched = suffix_length <= view_length;
+    let offset = if matched { view_length - suffix_length } else { 0usize };
+    while index < suffix_length && matched {
+        matched = get_or(view, offset + index, -1) == get_or(suffix, index, -1);
+        index = index + 1usize;
+        index < suffix_length && matched
+    }
+    matched
+}
+
 @id("std.bytes.read_u16_le")
 fn read_u16_le(view: borrow Slice<u8>, offset: usize) -> i64
     requires offset + 2usize <= byte_len(view)

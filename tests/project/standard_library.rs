@@ -291,6 +291,9 @@ assert.equal(runtime.functions["std.text.starts_with"]("a\0é世界", "a\0"), tr
 assert.equal(runtime.functions["std.text.starts_with"]("a\0", "a\0é世界"), false);
 assert.equal(runtime.functions["std.text.contains"]("a\0é世界", "é世"), true);
 assert.equal(runtime.functions["std.text.contains"]("a\0é世界", "界a"), false);
+assert.equal(runtime.functions["std.text.equals"]("a\0é世界", "a\0é世界"), true);
+assert.equal(runtime.functions["std.text.equals"]("a\0é世界", "a\0é世"), false);
+assert.equal(runtime.functions["std.text.equals"]("", ""), true);
 "#,
     )
     .unwrap();
@@ -340,6 +343,20 @@ fn assert_text_interpreter_conformance(snapshot: &project::ProjectSnapshot) {
         ),
         Outcome::Returned(PublicApiValue::Bool(true))
     );
+    assert_eq!(
+        evaluate(
+            "std.text.equals",
+            &[Arg::BorrowStr("a\0é世界"), Arg::BorrowStr("a\0é世界"),],
+        ),
+        Outcome::Returned(PublicApiValue::Bool(true))
+    );
+    assert_eq!(
+        evaluate(
+            "std.text.equals",
+            &[Arg::BorrowStr("a\0é世界"), Arg::BorrowStr("a\0é世")],
+        ),
+        Outcome::Returned(PublicApiValue::Bool(false))
+    );
 }
 
 fn native_symbol(id: &str) -> String {
@@ -375,12 +392,16 @@ fn run_text_package_native_conformance(
          if ({starts_with}(&context, value, prefix, &result) != SPX_STATUS_SUCCESS || !result) return 13;\n\
          if ({contains}(&context, value, middle, &result) != SPX_STATUS_SUCCESS || !result) return 14;\n\
          if ({contains}(&context, value, absent, &result) != SPX_STATUS_SUCCESS || result) return 15;\n\
+         if ({equals}(&context, value, value, &result) != SPX_STATUS_SUCCESS || !result) return 16;\n\
+         if ({equals}(&context, value, absent, &result) != SPX_STATUS_SUCCESS || result) return 17;\n\
+         if ({equals}(&context, empty, empty, &result) != SPX_STATUS_SUCCESS || !result) return 18;\n\
          return 0;\n\
          }}\n",
         byte_len = native_symbol("std.text.byte_len"),
         is_empty = native_symbol("std.text.is_empty"),
         starts_with = native_symbol("std.text.starts_with"),
         contains = native_symbol("std.text.contains"),
+        equals = native_symbol("std.text.equals"),
     );
     for optimization in ["-O0", "-O2"] {
         let binary = scratch.join(format!("text-native-{}", optimization.to_lowercase()));
@@ -551,12 +572,12 @@ fn package_manifest_links_multiple_bundled_std_packages() {
     std::fs::create_dir_all(scratch.join("src")).unwrap();
     std::fs::write(
         scratch.join("semaprax.toml"),
-        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"std-consumer\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.sign\"]\n\n[dependencies]\nstd.core = \"~0.1.0\"\nstd.num = \"^0.1.0\"\n",
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"std-consumer\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.sign\"]\n\n[dependencies]\nstd.core = \"~0.1.0\"\nstd.encoding = \"=0.1.0\"\nstd.num = \"^0.1.0\"\n",
     )
     .unwrap();
     std::fs::write(
         scratch.join("src/app.spx"),
-        "module consumer.app;\nuse function @id(\"std.num.sign\") from std.num as sign;\n\n@id(\"consumer.sign\")\nfn classify(value: i64) -> i64\n{\n    sign(value)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if classify(-4) == -1 && classify(0) == 0 && classify(8) == 1 { 0 } else { 1 }\n}\n",
+        "module consumer.app;\nuse function @id(\"std.encoding.decode_hex_byte\") from std.encoding as decode_hex_byte;\nuse function @id(\"std.num.sign\") from std.num as sign;\n\n@id(\"consumer.sign\")\nfn classify(value: i64) -> i64\n{\n    sign(value)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if classify(-4) == -1 && classify(0) == 0 && classify(8) == 1 && decode_hex_byte(52u8, 97u8) == 74 { 0 } else { 1 }\n}\n",
     )
     .unwrap();
     std::fs::write(
@@ -582,6 +603,9 @@ fn package_manifest_links_multiple_bundled_std_packages() {
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.num/0.1.0/num.spx"));
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.encoding/0.1.0/encoding.spx"));
         Ok(())
     })
     .unwrap();

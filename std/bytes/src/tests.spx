@@ -1,6 +1,7 @@
 module std.bytes.tests;
 use function @id("std.bytes.byte_to_i64") from std.bytes as byte_to_i64;
 use function @id("std.bytes.count") from std.bytes as count;
+use function @id("std.bytes.ends_with") from std.bytes as ends_with;
 use function @id("std.bytes.equals") from std.bytes as equals;
 use function @id("std.bytes.get_or") from std.bytes as get_or;
 use function @id("std.bytes.index_of") from std.bytes as index_of;
@@ -58,6 +59,22 @@ fn comparison() -> bool
     equals(view, same_view) && !equals(view, prefix_view) && equals(none, none) && starts_with(view, prefix_view) && starts_with(view, none) && !starts_with(view, other_view) && !starts_with(prefix_view, view)
 }
 
+@id("std.bytes.tests.suffixes")
+fn suffixes() -> bool
+{
+    let text = [104u8, 101u8, 108u8];
+    let view = array_as_slice(text);
+    let same = [104u8, 101u8, 108u8];
+    let same_view = array_as_slice(same);
+    let prefix = [104u8, 101u8];
+    let prefix_view = array_as_slice(prefix);
+    let suffix = [101u8, 108u8];
+    let suffix_view = array_as_slice(suffix);
+    let empty = [0u8; 0];
+    let none = array_as_slice(empty);
+    ends_with(view, same_view) && ends_with(view, suffix_view) && ends_with(view, none) && !ends_with(view, prefix_view) && !ends_with(prefix_view, view)
+}
+
 @id("std.bytes.tests.endian")
 fn endian() -> bool
 {
@@ -75,5 +92,6 @@ fn main() -> i64
     failed = failed + if classification() { 0 } else { 4 };
     failed = failed + if comparison() { 0 } else { 8 };
     failed = failed + if endian() { 0 } else { 16 };
+    failed = failed + if suffixes() { 0 } else { 32 };
     failed
 }

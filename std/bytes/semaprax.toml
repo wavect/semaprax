@@ -4,5 +4,5 @@ version = "0.1.0"
 profile = "useful-data.v1"
 entry = "std.bytes.examples"
 sources = ["src/bytes.spx", "src/examples.spx", "src/tests.spx"]
-web_exports = ["std.bytes.equals", "std.bytes.is_ascii", "std.bytes.starts_with"]
+web_exports = ["std.bytes.ends_with", "std.bytes.equals", "std.bytes.is_ascii", "std.bytes.starts_with"]
 tests = ["std.bytes.tests"]

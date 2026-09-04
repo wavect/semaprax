@@ -1,6 +1,6 @@
 # Standard Library v1
 
-- Status: versioned reference; five `core`-tier packages under `std/` are
+- Status: versioned reference; six `core`-tier packages under `std/` are
   executable, every other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
   choosing between a compiler-owned function and a library declaration.
@@ -120,8 +120,8 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.iter` | Iterators, adapters, folds, collection, and ranges | Missing; needs interfaces and closures |
 | `std.mem` | Ownership helpers, regions, arenas, boxes, shared immutable values | Missing |
 | `std.collections` | Vector, deque, map, set, heap, and fixed-capacity collections | Missing; needs the `alloc` tier |
-| `std.bytes` | Buffers, spans, readers, writers, endian operations, and encoding | Partial: byte-to-integer conversion, guarded indexing, first-index search, counting, ASCII classification, slice equality and prefix tests, and little- and big-endian 16- and 32-bit reads over `borrow Slice<u8>`; buffers, writers, and encodings are Missing |
-| `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Partial: borrowed byte length, emptiness, prefix, and substring search; iteration, split, trim, and normalization are Missing |
+| `std.bytes` | Buffers, spans, readers, writers, endian operations, and encoding | Partial: byte-to-integer conversion, guarded indexing, first-index search, counting, ASCII classification, slice equality, prefix and suffix tests, and little- and big-endian 16- and 32-bit reads over `borrow Slice<u8>`; buffers, writers, and encodings are Missing |
+| `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Partial: borrowed byte length, emptiness, exact equality, prefix, and substring search; iteration, split, trim, and normalization are Missing |
 | `std.format` | Type-safe formatting without runtime format-string ambiguity | Missing |
 | `std.io` | Reader, Writer, buffered I/O, streams, line processing, and standard streams | Missing; `stdout_write`, `stderr_write`, and `stdin_read` are the current surface |
 | `std.path` | Platform-neutral path values and explicit platform conversion | Missing |
@@ -136,7 +136,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.data.json` | Typed and value-based JSON parsing and encoding | Missing |
 | `std.data.toml` | TOML parsing and encoding | Missing |
 | `std.data.csv` | Streaming CSV reading and writing | Missing |
-| `std.encoding` | Base encodings, hex, UTF, and safe binary conversion | Missing |
+| `std.encoding` | Base encodings, hex, UTF, and safe binary conversion | Partial: ASCII-byte classification, hexadecimal nibble conversion, byte-pair decoding, lowercase/uppercase hex digit encoding, and standard Base64 digit conversion plus unpadded quad decoding; buffer codecs, padded/streaming base encodings, and UTF conversion are Missing |
 | `std.url` | URL parsing, normalization, and query handling | Missing |
 | `std.regex` | Bounded regular-expression API or a first-party bundled package | Missing |
 | `std.sync` | Mutexes, read/write locks, atomics, and synchronization contracts | Missing |

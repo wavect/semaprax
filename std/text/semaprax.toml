@@ -11,4 +11,4 @@ sources = ["src/examples.spx", "src/tests.spx", "src/text.spx"]
 tests = ["std.text.tests"]
 
 [exports]
-web = ["std.text.byte_len", "std.text.contains", "std.text.is_empty", "std.text.starts_with"]
+web = ["std.text.byte_len", "std.text.contains", "std.text.equals", "std.text.is_empty", "std.text.starts_with"]

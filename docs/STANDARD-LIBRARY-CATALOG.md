@@ -65,6 +65,12 @@ fn equals(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
 fn starts_with(view: borrow Slice<u8>, prefix: borrow Slice<u8>) -> bool
 ```
 
+### `std.bytes.ends_with`
+
+```semaprax
+fn ends_with(view: borrow Slice<u8>, suffix: borrow Slice<u8>) -> bool
+```
+
 ### `std.bytes.read_u16_le`
 
 ```semaprax
@@ -189,6 +195,83 @@ fn xor(left: bool, right: bool) -> bool
 ```semaprax
 fn implies(premise: bool, conclusion: bool) -> bool
     ensures result == (!premise || conclusion)
+```
+
+## `std.encoding`
+
+Package `std/encoding`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.encoding.byte_value`
+
+```semaprax
+fn byte_value(byte: u8) -> i64
+    ensures result >= 0 && result <= 255
+```
+
+### `std.encoding.hex_value`
+
+```semaprax
+fn hex_value(byte: u8) -> i64
+    ensures result >= -1 && result <= 15
+```
+
+### `std.encoding.is_hex_digit`
+
+```semaprax
+fn is_hex_digit(byte: u8) -> bool
+    ensures result == (byte >= 48u8 && byte <= 57u8 || byte >= 65u8 && byte <= 70u8 || byte >= 97u8 && byte <= 102u8)
+```
+
+### `std.encoding.decode_hex_byte`
+
+```semaprax
+fn decode_hex_byte(high: u8, low: u8) -> i64
+    ensures result >= -1 && result <= 255
+```
+
+### `std.encoding.encode_hex_lower`
+
+```semaprax
+fn encode_hex_lower(value: i64) -> i64
+    requires value >= 0 && value <= 15
+    ensures result >= 48 && result <= 102
+```
+
+### `std.encoding.encode_hex_upper`
+
+```semaprax
+fn encode_hex_upper(value: i64) -> i64
+    requires value >= 0 && value <= 15
+    ensures result >= 48 && result <= 70
+```
+
+### `std.encoding.base64_value`
+
+```semaprax
+fn base64_value(byte: u8) -> i64
+    ensures result >= -1 && result <= 63
+```
+
+### `std.encoding.is_base64_digit`
+
+```semaprax
+fn is_base64_digit(byte: u8) -> bool
+    ensures result == (byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 43u8 || byte == 47u8)
+```
+
+### `std.encoding.encode_base64_digit`
+
+```semaprax
+fn encode_base64_digit(value: i64) -> i64
+    requires value >= 0 && value <= 63
+    ensures result >= 43 && result <= 122
+```
+
+### `std.encoding.decode_base64_quad`
+
+```semaprax
+fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64
+    ensures result >= -1 && result <= 16777215
 ```
 
 ## `std.num`
@@ -404,6 +487,12 @@ fn text_byte_len(value: borrow str) -> i64
 
 ```semaprax
 fn contains(value: borrow str, needle: borrow str) -> bool
+```
+
+### `std.text.equals`
+
+```semaprax
+fn equals(left: borrow str, right: borrow str) -> bool
 ```
 
 ### `std.text.is_empty`

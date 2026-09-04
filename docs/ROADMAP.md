@@ -494,8 +494,8 @@ versioned ecosystem surface.
 ### Standard library outcomes
 
 [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract and the
-required module set; five `core`-tier packages (`std.bytes`, `std.core`,
-`std.num`, `std.num.overflow`, and `std.text`) pass their conformance suites
+required module set; six `core`-tier packages (`std.bytes`, `std.core`,
+`std.encoding`, `std.num`, `std.num.overflow`, and `std.text`) pass their conformance suites
 on the interpreter, native C11, and Core Wasm lanes.
 
 - widen the Project route so records, variants, generics, strings, and bytes

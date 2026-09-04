@@ -1,0 +1,74 @@
+module std.encoding.tests;
+use function @id("std.encoding.base64_value") from std.encoding as base64_value;
+use function @id("std.encoding.byte_value") from std.encoding as byte_value;
+use function @id("std.encoding.decode_base64_quad") from std.encoding as decode_base64_quad;
+use function @id("std.encoding.decode_hex_byte") from std.encoding as decode_hex_byte;
+use function @id("std.encoding.encode_base64_digit") from std.encoding as encode_base64_digit;
+use function @id("std.encoding.encode_hex_lower") from std.encoding as encode_hex_lower;
+use function @id("std.encoding.encode_hex_upper") from std.encoding as encode_hex_upper;
+use function @id("std.encoding.hex_value") from std.encoding as hex_value;
+use function @id("std.encoding.is_base64_digit") from std.encoding as is_base64_digit;
+use function @id("std.encoding.is_hex_digit") from std.encoding as is_hex_digit;
+
+@id("std.encoding.tests.classification")
+fn classification() -> bool
+{
+    is_hex_digit(48u8) && is_hex_digit(57u8) && is_hex_digit(65u8) && is_hex_digit(70u8) && is_hex_digit(97u8) && is_hex_digit(102u8) && !is_hex_digit(47u8) && !is_hex_digit(58u8) && !is_hex_digit(71u8) && !is_hex_digit(103u8)
+}
+
+@id("std.encoding.tests.values")
+fn values() -> bool
+{
+    hex_value(48u8) == 0 && hex_value(57u8) == 9 && hex_value(65u8) == 10 && hex_value(70u8) == 15 && hex_value(97u8) == 10 && hex_value(102u8) == 15 && hex_value(120u8) == -1 && byte_value(0u8) == 0 && byte_value(255u8) == 255
+}
+
+@id("std.encoding.tests.decoding")
+fn decoding() -> bool
+{
+    decode_hex_byte(48u8, 48u8) == 0 && decode_hex_byte(52u8, 97u8) == 74 && decode_hex_byte(70u8, 70u8) == 255 && decode_hex_byte(102u8, 102u8) == 255 && decode_hex_byte(120u8, 48u8) == -1 && decode_hex_byte(48u8, 120u8) == -1
+}
+
+@id("std.encoding.tests.encoding")
+fn encoding() -> bool
+{
+    encode_hex_lower(0) == 48 && encode_hex_lower(9) == 57 && encode_hex_lower(10) == 97 && encode_hex_lower(15) == 102 && encode_hex_upper(0) == 48 && encode_hex_upper(9) == 57 && encode_hex_upper(10) == 65 && encode_hex_upper(15) == 70
+}
+
+@id("std.encoding.tests.base64_classification")
+fn base64_classification() -> bool
+{
+    is_base64_digit(65u8) && is_base64_digit(90u8) && is_base64_digit(97u8) && is_base64_digit(122u8) && is_base64_digit(48u8) && is_base64_digit(57u8) && is_base64_digit(43u8) && is_base64_digit(47u8) && !is_base64_digit(61u8) && !is_base64_digit(45u8)
+}
+
+@id("std.encoding.tests.base64_values")
+fn base64_values() -> bool
+{
+    base64_value(65u8) == 0 && base64_value(90u8) == 25 && base64_value(97u8) == 26 && base64_value(122u8) == 51 && base64_value(48u8) == 52 && base64_value(57u8) == 61 && base64_value(43u8) == 62 && base64_value(47u8) == 63 && base64_value(61u8) == -1
+}
+
+@id("std.encoding.tests.base64_encoding")
+fn base64_encoding() -> bool
+{
+    encode_base64_digit(0) == 65 && encode_base64_digit(25) == 90 && encode_base64_digit(26) == 97 && encode_base64_digit(51) == 122 && encode_base64_digit(52) == 48 && encode_base64_digit(61) == 57 && encode_base64_digit(62) == 43 && encode_base64_digit(63) == 47
+}
+
+@id("std.encoding.tests.base64_quads")
+fn base64_quads() -> bool
+{
+    decode_base64_quad(65u8, 65u8, 65u8, 65u8) == 0 && decode_base64_quad(47u8, 47u8, 47u8, 47u8) == 16777215 && decode_base64_quad(84u8, 87u8, 70u8, 117u8) == 5071214 && decode_base64_quad(84u8, 61u8, 70u8, 117u8) == -1
+}
+
+@id("std.encoding.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if classification() { 0 } else { 1 };
+    failed = failed + if values() { 0 } else { 2 };
+    failed = failed + if decoding() { 0 } else { 4 };
+    failed = failed + if encoding() { 0 } else { 8 };
+    failed = failed + if base64_classification() { 0 } else { 16 };
+    failed = failed + if base64_values() { 0 } else { 32 };
+    failed = failed + if base64_encoding() { 0 } else { 64 };
+    failed = failed + if base64_quads() { 0 } else { 128 };
+    failed
+}

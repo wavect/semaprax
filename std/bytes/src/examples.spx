@@ -1,5 +1,6 @@
 module std.bytes.examples;
 use function @id("std.bytes.count") from std.bytes as count;
+use function @id("std.bytes.ends_with") from std.bytes as ends_with;
 use function @id("std.bytes.is_ascii") from std.bytes as is_ascii;
 use function @id("std.bytes.read_u16_le") from std.bytes as read_u16_le;
 
@@ -8,5 +9,6 @@ fn main() -> i64
 {
     let frame = [104u8, 101u8, 108u8, 108u8, 111u8, 1u8, 2u8];
     let view = array_as_slice(frame);
-    if is_ascii(view) && count(view, 108u8) == 2usize && read_u16_le(view, 5usize) == 513 { 0 } else { 1 }
+    let suffix = [1u8, 2u8];
+    if is_ascii(view) && count(view, 108u8) == 2usize && read_u16_le(view, 5usize) == 513 && ends_with(view, array_as_slice(suffix)) { 0 } else { 1 }
 }

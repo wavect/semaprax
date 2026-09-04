@@ -523,7 +523,7 @@ impl Codec {
             &["decode", if build { "build" } else { "describe" }],
             response,
         );
-        output.status.success() && is_confirmation(&output.stdout)
+        output.status.success() && output.stdout == b"ok\n"
     }
 
     fn assert_hostile_requests(&self) {
@@ -541,18 +541,8 @@ impl Codec {
         }
         let output = self.invoke(&["hostile"], b"");
         assert_success(&output, "generated-client hostile request checks");
-        assert!(
-            is_confirmation(&output.stdout),
-            "{:?}",
-            String::from_utf8_lossy(&output.stdout)
-        );
+        assert_eq!(output.stdout, b"ok\n");
     }
-}
-
-/// The generated Python client confirms through a text-mode stdout, which the
-/// host renders with its own line ending. The confirmation itself stays exact.
-fn is_confirmation(stdout: &[u8]) -> bool {
-    stdout == b"ok\n" || stdout == b"ok\r\n"
 }
 
 impl Fixture {
@@ -889,15 +879,15 @@ mode=sys.argv[1]
 if mode in ('describe','build'):
     subject={'project_revision':sys.argv[2],'workspace_revision':sys.argv[3]}
     value=describe(7,subject) if mode=='describe' else build_inline(7,subject)
-    sys.stdout.write(value)
+    sys.stdout.buffer.write(value.encode()); sys.stdout.buffer.flush()
 elif mode=='decode':
-    decode(sys.stdin.read(),7,sys.argv[2]=='build'); print('ok')
+    decode(sys.stdin.read(),7,sys.argv[2]=='build'); sys.stdout.buffer.write(b'ok\n'); sys.stdout.buffer.flush()
 elif mode=='hostile':
     bad=[lambda:describe(-1,{'project_revision':'x','workspace_revision':'x'}),lambda:describe('',{'project_revision':'sha256:'+'0'*64,'workspace_revision':'sha256:'+'1'*64}),lambda:build_inline(7,{'project_revision':'sha256:'+'0'*64,'workspace_revision':'sha256:'+'1'*64},0),lambda:build_inline(7,{'project_revision':'sha256:'+'0'*64,'workspace_revision':'sha256:'+'1'*64},41943041)]
     for call in bad:
         try: call(); raise AssertionError('hostile request admitted')
         except ValueError: pass
-    print('ok')
+    sys.stdout.buffer.write(b'ok\n'); sys.stdout.buffer.flush()
 else: raise AssertionError('unknown mode')
 "#;
 

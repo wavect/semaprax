@@ -24,8 +24,10 @@ so it is available without the source checkout.
   `semaprax check <file> --json`, `semaprax run <file>`. One diagnostic per
   line with `code`, `message`, `location`, and `help`; stop on the first
   error's line and column.
-- `fmt` deletes comments. Nothing you write after `//` survives, so put intent
-  into `@id` names, contracts, and tests, not comments.
+- `fmt` keeps `//` comments, each printed on its own line above the item it
+  precedes or right after the item it follows. Only `fmt` does: `patch` and
+  other rewriting transactions still emit comment-free text, so intent that
+  must survive a semantic change belongs in `@id` names, contracts, and tests.
 - Read the `.spx` source when it fits. On the committed calculator example,
   the source is 606 bytes, `semaprax graph` emits 24,419 bytes, and
   `semaprax context <file> app.main --depth 1` emits 2,279 bytes. `graph` is
@@ -497,16 +499,33 @@ Other first-attempt diagnostics and their fixes:
 
 ## Projects
 
-A project is a `semaprax.toml` beside a `src/` directory:
+A project is a `semaprax.toml` beside a `src/` directory. Write the
+extensible table layout; the frozen one-line-per-key `semaprax.project.v1`
+layout of the committed examples stays admitted:
 
 ```toml
-schema = "semaprax.project.v1"
+schema = "semaprax.manifest.v1"
+
+[package]
 name = "calculator"
+version = "0.1.0"
+
+[modules]
 entry = "calculator.app"
 sources = ["src/app.spx", "src/core.spx", "src/tests.spx"]
-web_exports = ["calculator.add"]
 tests = ["calculator.tests"]
+
+[exports]
+web = ["calculator.add"]
 ```
+
+The bytes must be canonical: tables in that order, one blank line between
+them, arrays on one line, no comments. A non-canonical manifest fails with
+`SPX-J100` and a `help` line naming the first differing line; an unknown or
+reserved table or key fails with `SPX-J120`. `[package] profile` selects a
+command or owned-data profile, `[dependencies]` is admitted but fails every
+build closed with `SPX-J121` until resolution exists, and `[targets]
+matrix = ["wasm32"]` rejects native builds with `SPX-J122`.
 
 Modules import by stable identity, not by path:
 `use function @id("calculator.add") from calculator.core as add;` at the top of
@@ -520,7 +539,8 @@ The [standard library catalog](STANDARD-LIBRARY-CATALOG.md), printed offline
 by `semaprax help library`, lists every `std.*` function with its contract; to use one, copy its package's library
 file from `std/` into `src/`, list it in `sources`, and import the function by
 its `@id` as above.
-[Project Manifest v1](PROJECT-MANIFEST-V1.md) owns the manifest,
+[Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns the table layout,
+[Project Manifest v1](PROJECT-MANIFEST-V1.md) the frozen one,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is
 the committed instance, and `semaprax project-scaffold --name <name>` prints a
 complete scaffold to stdout without writing files.

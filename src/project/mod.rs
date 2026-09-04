@@ -9,6 +9,7 @@ mod admission;
 mod authority;
 mod build;
 mod candidate;
+mod create;
 mod cxx_owned_data;
 mod execution;
 mod flat_owned_record;
@@ -27,6 +28,7 @@ mod nested_owned_record;
 mod npm;
 mod prepared_interpreter;
 mod profile;
+mod project_lock;
 mod public_api;
 mod public_utf8_api;
 #[cfg(test)]
@@ -287,11 +289,13 @@ pub use incremental::{
 };
 use manifest::{capacity, grammar};
 pub use manifest::{
-    ProjectManifest, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES,
-    MAX_SOURCES, MAX_STABLE_ID_BYTES, MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS,
-    PROJECT_SCHEMA, PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
-    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
-    PROJECT_SCHEMA_V9,
+    ManifestLayout, PackageDependency, ProjectManifest, MAX_DEPENDENCIES, MAX_MANIFEST_BYTES,
+    MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES, MAX_SOURCES, MAX_STABLE_ID_BYTES,
+    MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS, PACKAGE_MANIFEST_RESERVED_TABLES,
+    PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_TABLES, PACKAGE_RESERVED_KEYS,
+    PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
+    PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
+    PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 pub use native_sdk::{
     with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
@@ -321,6 +325,10 @@ pub use prepared_interpreter::{
     DEFAULT_PROJECT_SOURCE_TRACE_EVENTS, MAX_PROJECT_SOURCE_TRACE_BYTES,
     MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
 };
+pub use project_lock::{
+    render_project_lock, verify_project_lock, VerifiedProjectLock, MAX_PROJECT_LOCK_BYTES,
+    PROJECT_LOCK_FILE, PROJECT_LOCK_SCHEMA,
+};
 pub use target_cache::{
     ProjectCTargetBuild, ProjectNpmTargetBuild, ProjectTargetBuild, ProjectTargetCache,
     MAX_PROJECT_TARGET_CACHE_REPORT_BYTES, PROJECT_C_TARGET_CACHE_COMPATIBILITY,
@@ -346,6 +354,7 @@ pub fn prepare_owned_data_npm_build(
 ) -> Result<ProjectNpmBuild, Diagnostic> {
     npm::prepare_owned_data(program, descriptor, package, version, max_bytes)
 }
+pub use create::{create_calculator_project, CreateProjectError};
 pub use profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_ARGS_READ_CAPABILITY,
     PROJECT_COMMAND_INPUT_V1, PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,

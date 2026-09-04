@@ -105,6 +105,8 @@ mod nested_owned_record_api;
 mod nested_owned_record_native;
 #[path = "project/nested_owned_record_npm.rs"]
 mod nested_owned_record_npm;
+#[path = "project/new_cli.rs"]
+mod new_cli;
 #[path = "project/owned_bytes_npm.rs"]
 mod owned_bytes_npm;
 #[path = "project/owned_failure_fsm.rs"]
@@ -131,8 +133,12 @@ mod owned_utf8_interpreter;
 mod owned_utf8_lifetimes;
 #[path = "project/owned_utf8_npm.rs"]
 mod owned_utf8_npm;
+#[path = "project/package_manifest_v1.rs"]
+mod package_manifest_v1;
 #[path = "project/profile_admission.rs"]
 mod profile_admission;
+#[path = "project/project_lock_v1.rs"]
+mod project_lock_v1;
 #[path = "project/resource_free_record_evolution.rs"]
 mod resource_free_record_evolution;
 #[path = "project/retained_owned_api.rs"]

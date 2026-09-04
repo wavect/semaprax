@@ -79,7 +79,7 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert_eq!(guide.matches("\n  help all ").count(), 1);
     assert_eq!(guide.matches("\n  help language ").count(), 1);
     assert_eq!(guide.matches("\n  project-scaffold ").count(), 1);
-    assert_eq!(guide.matches("\n  new ").count(), 0);
+    assert_eq!(guide.matches("\n  new ").count(), 1);
     assert_eq!(guide.matches("\n  doctor ").count(), 0);
     assert_eq!(guide.matches("|rust").count(), 0);
     assert_eq!(guide.matches("\nsemaprax ").count(), 0);
@@ -104,8 +104,9 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert!(help.starts_with(&format!("{BANNER}\nUsage:\nsemaprax check ")));
     assert_eq!(help.matches(BUILD_LINE).count(), 1);
     assert_eq!(help.matches(DOCTOR_LINE).count(), 0);
-    assert_eq!(help.matches(NEW_LINE).count(), 0);
+    assert_eq!(help.matches(NEW_LINE).count(), 1);
     assert_eq!(help.matches(PROJECT_SCAFFOLD_LINE).count(), 1);
+    assert!(help.find(NEW_LINE).unwrap() < help.find(PROJECT_SCAFFOLD_LINE).unwrap());
     assert!(help.find(PROJECT_SCAFFOLD_LINE).unwrap() < help.find(BUILD_LINE).unwrap());
     assert_eq!(
         help.matches("native|native-callable|web|wasm|npm|rust")
@@ -193,16 +194,12 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         }
     }
 
-    for private in ["doctor", "new"] {
-        let (output, directory) = invoke(&["help", private]);
-        assert_eq!(output.status.code(), Some(2));
-        assert_eq!(output.stdout, global.stdout);
-        assert_eq!(
-            output.stderr,
-            format!("unknown command `{private}`\n\n").as_bytes()
-        );
-        std::fs::remove_dir(directory).unwrap();
-    }
+    // The one command still hidden by the standalone capability boundary.
+    let (hidden, hidden_dir) = invoke(&["help", "doctor"]);
+    assert_eq!(hidden.status.code(), Some(2));
+    assert_eq!(hidden.stdout, global.stdout);
+    assert_eq!(hidden.stderr, b"unknown command `doctor`\n\n");
+    std::fs::remove_dir(hidden_dir).unwrap();
     let (language, language_dir) = invoke(&["help", "language"]);
     assert!(language.status.success());
     assert!(language.stderr.is_empty());

@@ -12,7 +12,7 @@ mod tests;
 
 use semaprax_native_rust_interop_platform as platform;
 
-const ROOT_NAMES: [&str; 2] = ["README.md", "semaprax.toml"];
+const ROOT_NAMES: [&str; 3] = ["README.md", "AGENTS.md", "semaprax.toml"];
 const SOURCE_NAMES: [&str; 2] = ["app.spx", "tests.spx"];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -34,7 +34,7 @@ pub struct NewProjectAuthority {
     output_name: OsString,
     parent_path: PathBuf,
     output_path: PathBuf,
-    root: platform::PreparedDiscardInventory<2>,
+    root: platform::PreparedDiscardInventory<3>,
     source_files: platform::PreparedDiscardInventory<2>,
     published: bool,
     #[cfg(test)]
@@ -128,20 +128,44 @@ impl NewProjectAuthority {
             .source
             .as_ref()
             .ok_or(NewProjectAuthorityError::Changed)?;
-        let (directory, inventory, name) = match relative_path {
-            "README.md" => (&self.stage, &mut self.root, "README.md"),
-            "semaprax.toml" => (&self.stage, &mut self.root, "semaprax.toml"),
-            "src/app.spx" => (source, &mut self.source_files, "app.spx"),
-            "src/tests.spx" => (source, &mut self.source_files, "tests.spx"),
+        // The root and source inventories have different arities, so each
+        // branch names its own inventory instead of sharing one tuple.
+        match relative_path {
+            "README.md" | "AGENTS.md" | "semaprax.toml" => platform::write_file_new_prepared(
+                &self.stage,
+                &mut self.root,
+                relative_path,
+                bytes,
+                0o600,
+            ),
+            "src/app.spx" => platform::write_file_new_prepared(
+                source,
+                &mut self.source_files,
+                "app.spx",
+                bytes,
+                0o600,
+            ),
+            "src/tests.spx" => platform::write_file_new_prepared(
+                source,
+                &mut self.source_files,
+                "tests.spx",
+                bytes,
+                0o600,
+            ),
             _ => return Err(NewProjectAuthorityError::Invalid),
-        };
-        platform::write_file_new_prepared(directory, inventory, name, bytes, 0o600)
-            .map_err(map_create)
+        }
+        .map_err(map_create)
     }
 
-    pub fn authenticate(&self, files: [(&str, &[u8]); 4]) -> Result<(), NewProjectAuthorityError> {
+    pub fn authenticate(&self, files: [(&str, &[u8]); 5]) -> Result<(), NewProjectAuthorityError> {
         if files.map(|(name, _)| name)
-            != ["README.md", "semaprax.toml", "src/app.spx", "src/tests.spx"]
+            != [
+                "README.md",
+                "AGENTS.md",
+                "semaprax.toml",
+                "src/app.spx",
+                "src/tests.spx",
+            ]
         {
             return Err(NewProjectAuthorityError::Invalid);
         }
@@ -154,16 +178,20 @@ impl NewProjectAuthority {
             files[0].1,
         )?;
         authenticate_file(
-            self.root.file("semaprax.toml").map_err(map_changed)?,
+            self.root.file("AGENTS.md").map_err(map_changed)?,
             files[1].1,
         )?;
         authenticate_file(
-            self.source_files.file("app.spx").map_err(map_changed)?,
+            self.root.file("semaprax.toml").map_err(map_changed)?,
             files[2].1,
         )?;
         authenticate_file(
-            self.source_files.file("tests.spx").map_err(map_changed)?,
+            self.source_files.file("app.spx").map_err(map_changed)?,
             files[3].1,
+        )?;
+        authenticate_file(
+            self.source_files.file("tests.spx").map_err(map_changed)?,
+            files[4].1,
         )?;
         let mut source_scan =
             platform::prepare_inventory_exact(&self.source_files).map_err(map_invalid)?;
@@ -172,10 +200,11 @@ impl NewProjectAuthority {
         let mut root_scan = platform::prepare_inventory_entries_exact(
             [
                 OsStr::new("README.md"),
+                OsStr::new("AGENTS.md"),
                 OsStr::new("semaprax.toml"),
                 OsStr::new("src"),
             ],
-            2,
+            3,
         )
         .map_err(map_invalid)?;
         platform::inventory_entries_exact_prepared(
@@ -183,6 +212,7 @@ impl NewProjectAuthority {
             &self.stage,
             [
                 self.root.file("README.md").map_err(map_changed)?,
+                self.root.file("AGENTS.md").map_err(map_changed)?,
                 self.root.file("semaprax.toml").map_err(map_changed)?,
             ],
             [source],
@@ -192,7 +222,7 @@ impl NewProjectAuthority {
 
     pub fn publish_and_verify(
         &mut self,
-        files: [(&str, &[u8]); 4],
+        files: [(&str, &[u8]); 5],
     ) -> Result<(), NewProjectAuthorityError> {
         self.authenticate(files)?;
         self.source_files
@@ -238,16 +268,17 @@ impl NewProjectAuthority {
 
     fn authenticate_published(
         &self,
-        files: [(&str, &[u8]); 4],
+        files: [(&str, &[u8]); 5],
     ) -> Result<(), NewProjectAuthorityError> {
         let source = self
             .source
             .as_ref()
             .ok_or(NewProjectAuthorityError::Changed)?;
         let readme = hold_matching(&self.stage, OsStr::new("README.md"), files[0].1)?;
-        let manifest = hold_matching(&self.stage, OsStr::new("semaprax.toml"), files[1].1)?;
-        let app = hold_matching(source, OsStr::new("app.spx"), files[2].1)?;
-        let tests = hold_matching(source, OsStr::new("tests.spx"), files[3].1)?;
+        let agents = hold_matching(&self.stage, OsStr::new("AGENTS.md"), files[1].1)?;
+        let manifest = hold_matching(&self.stage, OsStr::new("semaprax.toml"), files[2].1)?;
+        let app = hold_matching(source, OsStr::new("app.spx"), files[3].1)?;
+        let tests = hold_matching(source, OsStr::new("tests.spx"), files[4].1)?;
         let mut source_scan = platform::prepare_inventory_entries_exact(
             [OsStr::new("app.spx"), OsStr::new("tests.spx")],
             2,
@@ -258,16 +289,17 @@ impl NewProjectAuthority {
         let mut root_scan = platform::prepare_inventory_entries_exact(
             [
                 OsStr::new("README.md"),
+                OsStr::new("AGENTS.md"),
                 OsStr::new("semaprax.toml"),
                 OsStr::new("src"),
             ],
-            2,
+            3,
         )
         .map_err(map_invalid)?;
         platform::inventory_entries_exact_prepared(
             &mut root_scan,
             &self.stage,
-            [&readme, &manifest],
+            [&readme, &agents, &manifest],
             [source],
         )
         .map_err(map_changed)?;

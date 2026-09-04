@@ -199,7 +199,7 @@ pub(crate) fn validate_template_inventory(paths: &[&str]) -> Result<(), String> 
     if observed == expected && observed.windows(2).all(|pair| pair[0] != pair[1]) {
         Ok(())
     } else {
-        Err("calculator template inventory must contain exactly README.md, semaprax.toml, src/app.spx, and src/tests.spx".to_owned())
+        Err("calculator template inventory must contain exactly README.md, AGENTS.md, semaprax.toml, src/app.spx, and src/tests.spx".to_owned())
     }
 }
 

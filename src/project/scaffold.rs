@@ -1,6 +1,10 @@
 //! Authority-free preparation and replay of the built-in project templates:
 //! the calculator application and the library package.
 //!
+//! Version 2 adds `AGENTS.md`, the in-project guide for coding agents and
+//! people, to every template; [Public Project Scaffold Capsule
+//! v2](../../docs/PROJECT-SCAFFOLD-V2.md) owns the contract.
+//!
 //! The returned artifact is only checked bytes. It owns no filesystem,
 //! process, environment, current-directory, target-emission, or publication
 //! authority.
@@ -12,24 +16,30 @@ use crate::diagnostic::{quote_json, Diagnostic};
 
 use super::{validate_owned_project_test, ProjectExecutionOptions, PROJECT_SCHEMA};
 
-pub const PROJECT_SCAFFOLD_SCHEMA: &str = "semaprax.project-scaffold.v1";
+pub const PROJECT_SCAFFOLD_SCHEMA: &str = "semaprax.project-scaffold.v2";
 pub const PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR: &str = "calculator";
 pub const PROJECT_SCAFFOLD_TEMPLATE_LIBRARY: &str = "library";
 pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 2] = [
     PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
     PROJECT_SCAFFOLD_TEMPLATE_LIBRARY,
 ];
-pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 4;
-pub const PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT: usize = 5;
+pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 5;
+pub const PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT: usize = 6;
 pub const MAX_PROJECT_SCAFFOLD_NAME_BYTES: usize = 64;
 pub const MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES: usize = 65_536;
 
-pub const PROJECT_SCAFFOLD_INVENTORY: [&str; PROJECT_SCAFFOLD_FILE_COUNT] =
-    ["README.md", "semaprax.toml", "src/app.spx", "src/tests.spx"];
+pub const PROJECT_SCAFFOLD_INVENTORY: [&str; PROJECT_SCAFFOLD_FILE_COUNT] = [
+    "README.md",
+    "AGENTS.md",
+    "semaprax.toml",
+    "src/app.spx",
+    "src/tests.spx",
+];
 /// The library template mirrors a standard-library package: one library
 /// module, an examples module as the entry, and a conformance test module.
 pub const PROJECT_SCAFFOLD_LIBRARY_INVENTORY: [&str; PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT] = [
     "README.md",
+    "AGENTS.md",
     "semaprax.toml",
     "src/examples.spx",
     "src/lib.spx",
@@ -46,12 +56,13 @@ pub fn project_scaffold_inventory(template: &str) -> &'static [&'static str] {
     }
 }
 
-const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v1\0";
-const README: &str = "# {{name}}\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check semaprax.toml\nsemaprax test semaprax.toml\nsemaprax run semaprax.toml\nsemaprax build semaprax.toml --target web -o web\n```\n";
+const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
+const README: &str = "# {{name}}\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build . --target web -o web\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
+const AGENTS: &str = "# Agent guide for {{name}}\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules; the compiler\nis the authority on what the language admits. Read `semaprax help language`\nbefore writing source.\n\n## Commands\n\n- `semaprax check .` parses, resolves, type-checks, and verifies every module.\n- `semaprax test .` runs `{{module}}.tests`; `semaprax run .` runs the entry and prints its `i64`.\n- `semaprax fmt <file>` rewrites one file in canonical form.\n- `semaprax build . --target web -o dist/web` emits a browser package.\n- `semaprax help <command>` prints one command's exact grammar.\n\n## Rules that differ from other languages\n\n- Every file starts with `module dotted.name;`, and every declaration carries\n  `@id(\"...\")`. The id is the stable identity: rename freely, never change an id.\n- A function body is statements followed by exactly one tail expression. There\n  is no `return`, `for`, `else if`, tuple, or unit value.\n- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.\n- Contracts are `requires` and `ensures` lines; effects are `permit` at module\n  level plus `uses` on every function that performs or calls into one.\n- Check the whole project, not one file: modules import each other, so a\n  single file reports `SPX-G172` or `SPX-T105`.\n- A new module must be listed in `sources` in `semaprax.toml`, and a test\n  module in `tests`.\n- Diagnostics carry stable `SPX-` codes and, where the compiler knows the fix,\n  a `help:` line. `semaprax check . --json` prints one diagnostic per line.\n";
 const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.add\"]\ntests = [\"{{module}}.tests\"]\n";
 const APP: &str = "module {{module}}.app;\n\n@id(\"{{name}}.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
 const TESTS: &str = "module {{module}}.tests;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    if 19 + 23 == 42 { 0 } else { 1 }\n}\n";
-const LIBRARY_README: &str = "# {{name}}\n\nA library package created by SEMAPRAX. `src/lib.spx` holds the public functions with their contracts, `src/examples.spx` is the entry that shows how to call them, and `src/tests.spx` is the conformance suite; both return `0` on success.\n\n```sh\nsemaprax check semaprax.toml\nsemaprax test semaprax.toml\nsemaprax run semaprax.toml\n```\n";
+const LIBRARY_README: &str = "# {{name}}\n\nA library package created by SEMAPRAX. `src/lib.spx` holds the public functions with their contracts, `src/examples.spx` is the entry that shows how to call them, and `src/tests.spx` is the conformance suite; both return `0` on success.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
 const LIBRARY_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.examples\"\nsources = [\"src/examples.spx\", \"src/lib.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.twice\"]\ntests = [\"{{module}}.tests\"]\n";
 const LIBRARY_EXAMPLES: &str = "module {{module}}.examples;\nuse function @id(\"{{name}}.twice\") from {{module}}.lib as twice;\n\n@id(\"{{name}}.examples.main\")\nfn main() -> i64\n{\n    if twice(21) == 42 { 0 } else { 1 }\n}\n";
 const LIBRARY_LIB: &str = "module {{module}}.lib;\n\n@id(\"{{name}}.twice\")\nfn twice(value: i64) -> i64\n    requires value >= -4611686018427387904 && value <= 4611686018427387903\n    ensures result == value * 2\n{\n    value * 2\n}\n";
@@ -149,13 +160,14 @@ pub fn derive_project_scaffold_v1(
     let sources: &[&str] = if template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
         &[
             LIBRARY_README,
+            AGENTS,
             LIBRARY_MANIFEST,
             LIBRARY_EXAMPLES,
             LIBRARY_LIB,
             LIBRARY_TESTS,
         ]
     } else {
-        &[README, MANIFEST, APP, TESTS]
+        &[README, AGENTS, MANIFEST, APP, TESTS]
     };
     let inventory = project_scaffold_inventory(template);
     debug_assert_eq!(sources.len(), inventory.len());
@@ -289,8 +301,8 @@ fn validate_rendered_project(
     template: &str,
     files: &[ProjectScaffoldFileV1],
 ) -> Result<(), Vec<Diagnostic>> {
-    let manifest = files[1].utf8();
-    let sources = files[2..]
+    let manifest = files[2].utf8();
+    let sources = files[3..]
         .iter()
         .map(|file| (file.path, file.utf8()))
         .collect::<Vec<_>>();

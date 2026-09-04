@@ -17,6 +17,8 @@ mod capability_manifest;
 mod cxx_package;
 #[path = "projections/cxx_shim_projection.rs"]
 mod cxx_shim_projection;
+#[path = "projections/fmt_comments.rs"]
+mod fmt_comments;
 #[path = "projections/freestanding_object.rs"]
 mod freestanding_object;
 #[path = "projections/hygienic_gen.rs"]

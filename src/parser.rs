@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldDeclaration, FieldInitializer, FieldTarget, Function,
     ImportDeclaration, ImportFailure, ImportResult, InterfaceDeclaration, MatchArm, ModuleUse,
@@ -9,8 +7,9 @@ use crate::ast::{
     VariantCaseDeclaration,
 };
 use crate::diagnostic::Diagnostic;
-use crate::lexer::{lex, Token, TokenKind};
+use crate::lexer::{Token, TokenKind};
 
+mod entry;
 mod hints;
 mod patterns;
 mod types;
@@ -22,15 +21,6 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(source: &str, path: &Path) -> Result<Self, Diagnostic> {
-        let path = path.display().to_string();
-        Ok(Self {
-            tokens: lex(source, &path)?,
-            cursor: 0,
-            path,
-        })
-    }
-
     pub fn parse(mut self) -> Result<Program, Diagnostic> {
         self.module_header()?;
         let (module, _) = self.qualified_ident("module name")?;

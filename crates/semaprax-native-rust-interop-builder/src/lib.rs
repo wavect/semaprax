@@ -9,9 +9,9 @@
 
 #[cfg(test)]
 pub(crate) use semaprax::format;
+pub(crate) use semaprax::{ast, cleanup, cleanup_plan, diagnostic, hir, lexer};
 #[cfg(test)]
-pub(crate) use semaprax::parse;
-pub(crate) use semaprax::{ast, cleanup, cleanup_plan, diagnostic, hir};
+pub(crate) use semaprax::{parse, parse_with_comments};
 #[path = "../../../src/private_capacity_contract.rs"]
 pub(crate) mod private_capacity_contract;
 #[allow(dead_code, clippy::all)]

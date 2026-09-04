@@ -2,20 +2,28 @@ use semaprax::project::{derive_project_scaffold_v1, replay_project_scaffold_v1};
 use sha2::{Digest, Sha256};
 
 const NAME: &str = "demo-project";
-const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v1\0";
+const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
 const ARTIFACT_DIGEST: &str =
-    "sha256:e212785bd021824aa58d556449f83295da2741d9dd6bfe8f719560991b6e2f2d";
-const FILE_DIGESTS: [&str; 4] = [
-    "sha256:d3d33366e262e196edb88d42dbaf8b467ca27005df665eaa9234baaf9595a8ce",
+    "sha256:1dc3a351d11baa83a8d2c82cbc7eab528798b58386d977ea5f7e56b830d476f3";
+const FILE_DIGESTS: [&str; 5] = [
+    "sha256:abf54a4e33e0f6fa1a6be76dc0d324b713de081bc2529b7cc2b2598477e643ec",
+    "sha256:84d80abf5e7327a753c1f48e0a3f48a8a94f8217863cdd5f08c487338215447a",
     "sha256:158830289b7204499bd5ab0854ecf57caaa3e2654e6de36aab387ba94f869db3",
     "sha256:f5508160f8d4bd6a406b9a9a51e7765146a79185f6e042cb7b9b8def7765e975",
     "sha256:e570c4d28171cd826038c3f881a51d87693ef1071e14a3c6323d0c69815d8a00",
 ];
-const PATHS: [&str; 4] = ["README.md", "semaprax.toml", "src/app.spx", "src/tests.spx"];
+const PATHS: [&str; 5] = [
+    "README.md",
+    "AGENTS.md",
+    "semaprax.toml",
+    "src/app.spx",
+    "src/tests.spx",
+];
 
-fn expected_files() -> [Vec<u8>; 4] {
+fn expected_files() -> [Vec<u8>; 5] {
     [
-        b"# demo-project\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check semaprax.toml\nsemaprax test semaprax.toml\nsemaprax run semaprax.toml\nsemaprax build semaprax.toml --target web -o web\n```\n".to_vec(),
+        b"# demo-project\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build . --target web -o web\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n".to_vec(),
+        b"# Agent guide for demo-project\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules; the compiler\nis the authority on what the language admits. Read `semaprax help language`\nbefore writing source.\n\n## Commands\n\n- `semaprax check .` parses, resolves, type-checks, and verifies every module.\n- `semaprax test .` runs `demo_project.tests`; `semaprax run .` runs the entry and prints its `i64`.\n- `semaprax fmt <file>` rewrites one file in canonical form.\n- `semaprax build . --target web -o dist/web` emits a browser package.\n- `semaprax help <command>` prints one command's exact grammar.\n\n## Rules that differ from other languages\n\n- Every file starts with `module dotted.name;`, and every declaration carries\n  `@id(\"...\")`. The id is the stable identity: rename freely, never change an id.\n- A function body is statements followed by exactly one tail expression. There\n  is no `return`, `for`, `else if`, tuple, or unit value.\n- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.\n- Contracts are `requires` and `ensures` lines; effects are `permit` at module\n  level plus `uses` on every function that performs or calls into one.\n- Check the whole project, not one file: modules import each other, so a\n  single file reports `SPX-G172` or `SPX-T105`.\n- A new module must be listed in `sources` in `semaprax.toml`, and a test\n  module in `tests`.\n- Diagnostics carry stable `SPX-` codes and, where the compiler knows the fix,\n  a `help:` line. `semaprax check . --json` prints one diagnostic per line.\n".to_vec(),
         b"schema = \"semaprax.project.v1\"\nname = \"demo-project\"\nentry = \"demo_project.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"demo-project.add\"]\ntests = [\"demo_project.tests\"]\n".to_vec(),
         b"module demo_project.app;\n\n@id(\"demo-project.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"demo-project.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n".to_vec(),
         b"module demo_project.tests;\n\n@id(\"demo-project.tests.main\")\nfn main() -> i64\n{\n    if 19 + 23 == 42 { 0 } else { 1 }\n}\n".to_vec(),
@@ -55,13 +63,13 @@ fn artifact_digest(bytes_without_digest: &[u8]) -> String {
 #[test]
 fn derivation_is_literal_ordered_deterministic_and_self_replaying() {
     let derived = derive_project_scaffold_v1(NAME, "calculator").unwrap();
-    assert_eq!(derived.schema(), "semaprax.project-scaffold.v1");
+    assert_eq!(derived.schema(), "semaprax.project-scaffold.v2");
     assert_eq!(derived.template(), "calculator");
     assert_eq!(derived.project_schema(), "semaprax.project.v1");
     assert_eq!(derived.project_name(), NAME);
     assert_digest(derived.digest());
     assert_eq!(derived.digest(), ARTIFACT_DIGEST);
-    assert_eq!(derived.canonical_bytes().len(), 1_693);
+    assert_eq!(derived.canonical_bytes().len(), 3511);
 
     let expected = expected_files();
     assert_eq!(derived.files().len(), PATHS.len());
@@ -137,7 +145,7 @@ fn names_templates_and_expected_replay_subject_are_bounded() {
 #[test]
 fn library_template_derives_the_package_shape_and_replays_only_as_itself() {
     let derived = derive_project_scaffold_v1(NAME, "library").unwrap();
-    assert_eq!(derived.schema(), "semaprax.project-scaffold.v1");
+    assert_eq!(derived.schema(), "semaprax.project-scaffold.v2");
     assert_eq!(derived.template(), "library");
     assert_eq!(derived.project_schema(), "semaprax.project.v1");
     assert_digest(derived.digest());
@@ -149,16 +157,21 @@ fn library_template_derives_the_package_shape_and_replays_only_as_itself() {
             .collect::<Vec<_>>(),
         [
             "README.md",
+            "AGENTS.md",
             "semaprax.toml",
             "src/examples.spx",
             "src/lib.spx",
             "src/tests.spx",
         ]
     );
-    let manifest = derived.files()[1].utf8();
+    assert_eq!(
+        derived.files()[1].bytes(),
+        calculator_agents_guide().as_bytes()
+    );
+    let manifest = derived.files()[2].utf8();
     assert!(manifest.contains("entry = \"demo_project.examples\"\n"));
     assert!(manifest.contains("tests = [\"demo_project.tests\"]\n"));
-    let lib = derived.files()[3].utf8();
+    let lib = derived.files()[4].utf8();
     assert!(lib.starts_with("module demo_project.lib;\n"));
     assert!(lib.contains("@id(\"demo-project.twice\")\n"));
     assert!(lib.contains("    ensures result == value * 2\n"));
@@ -188,6 +201,11 @@ fn library_template_derives_the_package_shape_and_replays_only_as_itself() {
     assert_eq!(error[0].code, "SPX-J115");
 }
 
+/// Both templates ship the same `AGENTS.md` for the same project name.
+fn calculator_agents_guide() -> String {
+    String::from_utf8(expected_files()[1].clone()).unwrap()
+}
+
 fn replay_error(bytes: &[u8], digest: &str) {
     let error = replay_project_scaffold_v1(NAME, "calculator", bytes, digest).unwrap_err();
     assert_eq!(error[0].code, "SPX-J115");
@@ -204,12 +222,12 @@ fn replay_rejects_noncanonical_and_semantically_reminted_capsules() {
     replay_error(&trailing, artifact.digest());
 
     let mut wrong_schema = canonical.to_vec();
-    let schema = b"semaprax.project-scaffold.v1";
+    let schema = b"semaprax.project-scaffold.v2";
     let at = wrong_schema
         .windows(schema.len())
         .position(|window| window == schema)
         .unwrap();
-    wrong_schema[at + schema.len() - 1] = b'2';
+    wrong_schema[at + schema.len() - 1] = b'3';
     replay_error(&wrong_schema, artifact.digest());
 
     let mut wrong_name = canonical.to_vec();

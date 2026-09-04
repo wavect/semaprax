@@ -4,8 +4,9 @@ use std::fs;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
-const FILES: [(&str, &[u8]); 4] = [
+const FILES: [(&str, &[u8]); 5] = [
     ("README.md", b"readme\n"),
+    ("AGENTS.md", b"agents\n"),
     ("semaprax.toml", b"manifest\n"),
     ("src/app.spx", b"app\n"),
     ("src/tests.spx", b"tests\n"),
@@ -76,7 +77,10 @@ fn remove_file(path: &Path, bytes: &[u8]) {
 }
 
 fn assert_project(path: &Path) {
-    assert_eq!(names(path), ["README.md", "semaprax.toml", "src"]);
+    assert_eq!(
+        names(path),
+        ["AGENTS.md", "README.md", "semaprax.toml", "src"]
+    );
     assert_eq!(names(&path.join("src")), ["app.spx", "tests.spx"]);
     for (relative, bytes) in FILES {
         let file = path.join(relative);
@@ -383,7 +387,10 @@ fn failed_publish_preserves_exists_when_source_is_missing_or_a_link() {
         assert_eq!(names(&foreign), ["sentinel"]);
         assert_eq!(names(&root.join("project")), ["foreign"]);
         if link {
-            assert_eq!(names(&stage), ["README.md", "semaprax.toml", "src"]);
+            assert_eq!(
+                names(&stage),
+                ["AGENTS.md", "README.md", "semaprax.toml", "src"]
+            );
             assert!(fs::symlink_metadata(stage.join("src"))
                 .unwrap()
                 .file_type()
@@ -391,17 +398,17 @@ fn failed_publish_preserves_exists_when_source_is_missing_or_a_link() {
             assert_eq!(fs::read_link(stage.join("src")).unwrap(), foreign);
             fs::remove_file(stage.join("src")).unwrap();
         } else {
-            assert_eq!(names(&stage), ["README.md", "semaprax.toml"]);
+            assert_eq!(names(&stage), ["AGENTS.md", "README.md", "semaprax.toml"]);
             assert_eq!(
                 fs::symlink_metadata(stage.join("src")).unwrap_err().kind(),
                 std::io::ErrorKind::NotFound
             );
         }
-        for (path, bytes) in FILES[..2].iter().copied() {
+        for (path, bytes) in FILES[..3].iter().copied() {
             remove_file(&stage.join(path), bytes);
         }
-        remove_file(&displaced.join("app.spx"), FILES[2].1);
-        remove_file(&displaced.join("tests.spx"), FILES[3].1);
+        remove_file(&displaced.join("app.spx"), FILES[3].1);
+        remove_file(&displaced.join("tests.spx"), FILES[4].1);
         remove_file(&foreign.join("sentinel"), b"foreign source\n");
         remove_file(&root.join("project/foreign"), b"collision\n");
         for directory in [&stage, &displaced, &foreign, &root.join("project")] {

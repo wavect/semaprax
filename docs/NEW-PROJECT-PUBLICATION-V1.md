@@ -14,17 +14,25 @@ See the [quickstart](QUICKSTART.md) for the user workflow and
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) for checked project semantics.
 The separate [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
 derives and replays the same four file bytes without a destination or write
-authority; it does not replace this held-parent publication protocol.
+authority; it does not replace this held-parent publication protocol. The
+standalone compiler's `new`, owned by [standalone project creation
+v1](NEW-PROJECT-STANDALONE-V1.md), writes the same bytes through a bounded
+create-new route without this protocol's staging or identity re-verification.
 
 This correction changes publication verification, not the command grammar,
 template names, Project schema, source semantics, or successful file bytes.
 Only the existing optional `--name` and `--template calculator` are admitted.
-The exact generated inventory remains:
+The exact generated inventory is the [Public Project Scaffold Capsule
+v2](PROJECT-SCAFFOLD-V2.md) inventory:
 
 - `README.md`
+- `AGENTS.md`
 - `semaprax.toml`
 - `src/app.spx`
 - `src/tests.spx`
+
+(`AGENTS.md` was added by scaffold v2; the root inventory the held-parent
+authority authenticates and publishes grew from two files to three.)
 
 There is no template discovery, arbitrary template input, network access,
 dependency installation, Git initialization, recursive cleanup API, general

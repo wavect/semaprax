@@ -23,19 +23,23 @@ the documentation. They are not three products.
 
 | Name | Where it comes from | What it can do |
 | --- | --- | --- |
-| `semaprax` | `cargo install --locked --path .`, or the crates.io compiler package | The standalone compiler: format, check, run, test, inspect, patch, and build existing source and projects. |
-| `semaprax-full` | `cargo install --locked --path crates/semaprax-toolchain`, from a source checkout only | Everything the standalone compiler does, plus the private host surfaces the published package excludes: `new`, `doctor`, Native Rust package publication, and Windows revision-store host operations. |
-| `semaprax` inside a tag archive | The [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0) archives | The archive's `semaprax` *is* the `semaprax-full` binary, renamed during staging, so archive users write `semaprax new`, not `semaprax-full new`. |
+| `semaprax` | `cargo install --locked --path .`, or the crates.io compiler package | The standalone compiler: create a calculator project with `new`, then format, check, run, test, inspect, patch, and build source and projects. |
+| `semaprax-full` | `cargo install --locked --path crates/semaprax-toolchain`, from a source checkout only | Everything the standalone compiler does, plus the private host surfaces the published package excludes: `doctor`, Native Rust package publication, Windows revision-store host operations, and the held-parent staged publication route behind its `new`. |
+| `semaprax` inside a tag archive | The [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0) archives | The archive's `semaprax` *is* the `semaprax-full` binary, renamed during staging, so archive users write `semaprax doctor`, not `semaprax-full doctor`. |
 
 The `semaprax-toolchain` package is `publish = false`; it is never fetched
 from a registry. The naming split and what the standalone package excludes are
 owned by the [release process](RELEASE-PROCESS.md#tag-admission).
 
 Every command shown in this document runs on the standalone `semaprax` except
-`new` and `doctor`, and so does every command in the [quickstart](QUICKSTART.md)
-after the project has been created. If a documented command is missing from
-`semaprax --help`, you installed the standalone compiler and the command is
-private; that is a capability boundary, not a broken install.
+`doctor`, and so does every command in the [quickstart](QUICKSTART.md). Both
+binaries accept `semaprax new <destination>`; the standalone compiler creates
+the project through the bounded create-new route in
+[standalone project creation](NEW-PROJECT-STANDALONE-V1.md), while the full
+toolchain publishes it through a held-parent staged rename. If a documented
+command is missing from `semaprax help all`, you installed the standalone
+compiler and the command is private; that is a capability boundary, not a
+broken install.
 
 ## Prerequisites
 
@@ -153,9 +157,9 @@ semaprax --version
 semaprax new first-semaprax
 ```
 
-Wherever the quickstart writes `semaprax-full new`, an archive user writes
-`semaprax new`. The reverse substitution does not work: the standalone
-compiler refuses `new` outright, as shown in the failure table below.
+Wherever this document writes `semaprax-full doctor`, an archive user writes
+`semaprax doctor`. The reverse substitution does not work: the standalone
+compiler refuses `doctor` outright, as shown in the failure table below.
 
 ## Confirm the install works
 
@@ -210,16 +214,27 @@ The build prints `built web package <path>` and the verifier prints `42`.
 `scripts/verify-web.mjs` is a repository script, so this check is available in
 a source checkout, not from an unpacked archive.
 
-### Confirm the private toolchain, if you installed it
+### Create a project
+
+```sh
+semaprax new first-semaprax
+```
+
+This creates and verifies the built-in calculator project and prints
+`created calculator project first-semaprax`. The standalone route is owned by
+[standalone project creation](NEW-PROJECT-STANDALONE-V1.md): it writes into a
+fresh destination under an existing parent and never replaces an entry. It
+does not delete a reported failure's output automatically.
+
+### Confirm the full toolchain, if you installed it
 
 ```sh
 semaprax-full new first-semaprax
 ```
 
-This creates and validates the built-in calculator project. Its publication
-rules are owned by [calculator project
-publication](NEW-PROJECT-PUBLICATION-V1.md); do not delete a reported
-failure's output or staging residue automatically. The quickstart continues
+This creates the same files through the held-parent staged publication owned
+by [calculator project publication](NEW-PROJECT-PUBLICATION-V1.md), which
+also never deletes a reported failure's output or staging residue. The quickstart continues
 from here.
 
 ## When your first command fails
@@ -232,8 +247,9 @@ stdout. Invocation errors exit `2` and compiler or execution failures exit `1`.
 | --- | --- | --- |
 | `zsh: command not found: semaprax` (or `sh: semaprax: command not found`) | Cargo's binary directory is not on `PATH`, or the install never ran. | Follow [Put Cargo's binary directory on your PATH](#put-cargos-binary-directory-on-your-path), open a new shell, and check `command -v semaprax`. |
 | Global help on stdout, empty stderr, exit `2` | No subcommand was given. | Pick a subcommand from `semaprax --help`, or read the [CLI user guide](CLI-GUIDE.md). |
-| `new is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI` | A private full-toolchain command was run on the standalone compiler. Same message for `doctor`. | Install the full toolchain from the same checkout and run `semaprax-full new`, or use an archive binary, where the command is simply `semaprax new`. |
-| ``unknown command `new` `` followed by global help | Same cause, reached through `semaprax new --help`. Names hidden by the capability boundary get no suggestion, by design. | As above. |
+| `doctor is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI` | A private full-toolchain command was run on the standalone compiler. | Install the full toolchain from the same checkout and run `semaprax-full doctor`, or use an archive binary, where the command is simply `semaprax doctor`. |
+| ``unknown command `doctor` `` followed by global help | Same cause, reached through `semaprax doctor --help`. Names hidden by the capability boundary get no suggestion, by design. | As above. |
+| `new: cannot create project first-semaprax: an entry already exists` | The destination already exists. `new` never replaces or writes into an existing entry. | Choose a fresh destination name, or remove the entry yourself. |
 | ``unknown command `chekc`; did you mean `check`?`` | A misspelled command name. The suggestion compares only names already visible in that binary's catalog; see [capability-aware CLI typo guidance](CLI-HELP-V2.md). | Run the suggested name. |
 | `error[SPX-I001]: cannot read missing.spx: No such file or directory (os error 2)` | The source path does not exist, usually because the shell is in the wrong directory. | Check the working directory and the path. Paths are resolved relative to the process working directory. |
 | `error[SPX-J102]: cannot inspect declared Project v1 manifest <dir>/semaprax.toml: No such file or directory (os error 2)` | `check`, `run`, `test`, or `build` was given no input or a directory, and that directory holds no Project v1 manifest. A directory operand always means the `semaprax.toml` inside it. When no input was given, the diagnostic carries a `help:` line naming the admitted inputs. | Pass the `.spx` file, the project directory, or its `semaprax.toml`; from inside a project, `semaprax check .` works. See [Project Manifest v1](PROJECT-MANIFEST-V1.md). |
@@ -270,7 +286,7 @@ hint: run `semaprax project-scaffold --help` for usage
 A private command on the standalone compiler:
 
 ```text
-new is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI
+doctor is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI
 ```
 
 A misspelling, whose global help still goes to stdout:

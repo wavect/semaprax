@@ -563,11 +563,26 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
         }
         CommandId::New => {
-            let destination = (require_private_host(host, "new")?.new_project)(&args[1..])
-                .map_err(|(error, code)| {
+            let destination = match host {
+                // The full toolchain publishes through its held-parent staged
+                // authority; the standalone compiler through the bounded
+                // create-new route in the compiler library.
+                Some(host) => (host.new_project)(&args[1..]).map_err(|(error, code)| {
                     eprintln!("new: {error}");
                     code
-                })?;
+                })?,
+                None => {
+                    let options = cli::new_project::parse(&args[1..]).map_err(|error| {
+                        eprintln!("new: {error}");
+                        2
+                    })?;
+                    project::create_calculator_project(&options.destination, &options.name)
+                        .map_err(|error| {
+                            eprintln!("new: {error}");
+                            1
+                        })?
+                }
+            };
             println!("created calculator project {}", destination.display());
             Ok(())
         }
@@ -597,6 +612,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 cli::build::BuildInput::Project(manifest_path) => {
                     let output = project::with_authenticated_project(manifest_path, |snapshot| {
                         snapshot.check()?;
+                        snapshot.manifest().admit_build_target(&options.target)?;
                         let mut output = options.output.clone().unwrap_or_else(|| {
                             let suffix = match options.target.as_str() {
                                 "web" | "wasm" => "web".to_owned(),
@@ -702,8 +718,9 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 eprintln!("cannot read {}: {error}", path.display());
                 1
             })?;
-            let program = parse(&source, &path).map_err(|error| report(&[error], false))?;
-            let canonical = format::canonical(&program);
+            let (program, comments) = semaprax::parse_with_comments(&source, &path)
+                .map_err(|error| report(&[error], false))?;
+            let canonical = format::comments::canonical_with_comments(&program, &comments);
             if options.check && source != canonical {
                 eprintln!("{} is not canonically formatted", path.display());
                 Err(1)
@@ -1185,6 +1202,19 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Err(2)
             }
             Err(cli::package_lock::PackageLockCliError::Domain(errors)) => {
+                Err(report(&errors, false))
+            }
+        },
+        CommandId::Lock => match cli::project_lock::run(&args[1..]) {
+            Ok(output) => {
+                print!("{output}");
+                Ok(())
+            }
+            Err(cli::project_lock::ProjectLockCliError::Usage(message)) => {
+                eprintln!("{message}");
+                Err(2)
+            }
+            Err(cli::project_lock::ProjectLockCliError::Domain(errors)) => {
                 Err(report(&errors, false))
             }
         },

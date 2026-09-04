@@ -1,7 +1,8 @@
 # Public Project Scaffold Capsule v1
 
-Status: authored implementation with focused local evidence; unpublished and
-unpromoted. Required-host and release-artifact gates remain open.
+Status: superseded by [Public Project Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md),
+which adds `AGENTS.md` and renders schema `semaprax.project-scaffold.v2`; this
+document records the v1 contract. Unpublished and unpromoted.
 
 Audience: new SEMAPRAX users, tool integrators, and compiler contributors.
 

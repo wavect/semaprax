@@ -49,7 +49,10 @@ graph projection or backend.
 
 The registry compiler and unpublished full toolchain share one compiler library
 and `src/cli_driver.rs`. The standalone binary supplies no private-host hooks.
-`crates/semaprax-toolchain` owns the `new` and `doctor` implementations,
+`crates/semaprax-toolchain` owns the `doctor` implementation and the held-parent
+staged publication behind its `new`; the compiler library owns the bounded
+standalone `new` route (`src/project/create.rs`), and both share one grammar and
+one scaffold. The toolchain also owns the
 Project Native Rust package publication adapter, and safe Windows revision-store
 host. No private crate is a normal or optional dependency of the registry
 package. Compiler-owned SDK replay and Windows carrier preparation/replay remain
@@ -75,11 +78,12 @@ after that latch cannot regain cleanup authority. See [Calculator project
 publication v1](NEW-PROJECT-PUBLICATION-V1.md) for the correction and unrun gates.
 
 `src/project/scaffold.rs` separately derives and independently replays the same
-four calculator files as a bounded `semaprax.project-scaffold.v1` artifact.
+five calculator files, including the in-project `AGENTS.md` guide, as a bounded
+`semaprax.project-scaffold.v2` artifact.
 The standalone CLI prints those canonical bytes directly to stdout. The
 artifact owns no path, file handle, staging namespace, process, or publication
 authority; materialization remains entirely caller-owned. See [Public Project
-Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md).
+Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md).
 
 The toolchain library's shared doctor module owns strict bounded `--profile` selection and one
 scoped offline-profile admission per report. Missing/unavailable profiles fail
@@ -1259,7 +1263,9 @@ authority before candidate replay, authenticates Project and managed base source
 and delegates the sole `ACTIVE` publication to the existing Workspace engine.
 It grants neither a reusable authority token nor raw Git-source writes.
 
-`src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.
+`src/project/manifest.rs` parses the bounded `semaprax.toml` profiles; its
+`tables` submodule parses the extensible `semaprax.manifest.v1` table layout
+and lowers it onto the same frozen profile contracts.
 `src/project/` owns held input authority, immutable revisions, semantic
 admission, linking, execution, builds, npm carriers, rename planning, and the
 unpublished native Rust SDK bridge.

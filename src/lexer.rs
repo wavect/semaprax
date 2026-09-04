@@ -75,13 +75,50 @@ pub struct Token {
     pub span: Span,
 }
 
+/// One `//` comment the lexer skipped, kept so the canonical formatter can
+/// put it back. The grammar never sees comments; they are trivia with a
+/// position.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Comment {
+    /// The comment text after the leading `//`, with trailing whitespace
+    /// removed. Interior text is verbatim, so `//x` and `// x` stay distinct.
+    pub text: String,
+    /// Byte offset of the leading `//` in the source.
+    pub offset: usize,
+    /// One-based line of the comment.
+    pub line: usize,
+    /// `true` when only whitespace precedes the comment on its line; `false`
+    /// when it trails a token on the same line.
+    pub own_line: bool,
+    /// One-based line on which the previous token ended, or zero before the
+    /// first token. A comment on the very next line sticks to that token's
+    /// item when the formatter puts it back.
+    pub previous_token_line: usize,
+}
+
+/// Every comment of one source file plus the offset of its first token, which
+/// separates file-header comments from comments inside the module.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct Comments {
+    pub items: Vec<Comment>,
+    pub first_token_offset: usize,
+}
+
 pub fn lex(source: &str, path: &str) -> Result<Vec<Token>, Diagnostic> {
+    lex_with_comments(source, path).map(|(tokens, _)| tokens)
+}
+
+/// Lex the source and also return every comment, in source order.
+pub fn lex_with_comments(source: &str, path: &str) -> Result<(Vec<Token>, Comments), Diagnostic> {
     Lexer {
         source,
         path,
         offset: 0,
         line: 1,
         column: 1,
+        token_on_line: false,
+        previous_token_line: 0,
+        comments: Vec::new(),
     }
     .lex_all()
 }
@@ -92,10 +129,15 @@ struct Lexer<'a> {
     offset: usize,
     line: usize,
     column: usize,
+    /// Whether a token has already been produced on the current line, which
+    /// decides whether a comment is on its own line or trails a token.
+    token_on_line: bool,
+    previous_token_line: usize,
+    comments: Vec<Comment>,
 }
 
 impl Lexer<'_> {
-    fn lex_all(mut self) -> Result<Vec<Token>, Diagnostic> {
+    fn lex_all(mut self) -> Result<(Vec<Token>, Comments), Diagnostic> {
         let mut tokens = Vec::new();
         while self.offset < self.source.len() {
             self.skip_trivia();
@@ -103,12 +145,21 @@ impl Lexer<'_> {
                 break;
             }
             tokens.push(self.next_token()?);
+            self.token_on_line = true;
+            self.previous_token_line = self.line;
         }
         tokens.push(Token {
             kind: TokenKind::Eof,
             span: self.span_from(self.offset, self.line, self.column),
         });
-        Ok(tokens)
+        let first_token_offset = tokens[0].span.start;
+        Ok((
+            tokens,
+            Comments {
+                items: self.comments,
+                first_token_offset,
+            },
+        ))
     }
 
     fn skip_trivia(&mut self) {
@@ -117,9 +168,19 @@ impl Lexer<'_> {
                 self.bump();
             }
             if self.starts_with("//") {
+                let offset = self.offset;
+                let line = self.line;
+                let own_line = !self.token_on_line;
                 while !matches!(self.peek(), None | Some('\n')) {
                     self.bump();
                 }
+                self.comments.push(Comment {
+                    text: self.source[offset + 2..self.offset].trim_end().to_owned(),
+                    offset,
+                    line,
+                    own_line,
+                    previous_token_line: self.previous_token_line,
+                });
                 continue;
             }
             break;
@@ -620,6 +681,7 @@ impl Lexer<'_> {
         if character == '\n' {
             self.line += 1;
             self.column = 1;
+            self.token_on_line = false;
         } else {
             self.column += 1;
         }

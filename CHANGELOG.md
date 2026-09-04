@@ -5,6 +5,58 @@
 - `semaprax help library` prints the generated standard-library catalog, the
   fourth `help` shape beside `help language`, so an installed compiler lists
   every `std.*` function and contract offline.
+- `semaprax lock <manifest>` renders the deterministic `semaprax.lock` beside a
+  project ([Project Lock v1](docs/PROJECT-LOCK-V1.md)): the canonical manifest
+  and its contract, the project revision as the program root, every source
+  file's revision and digest, the retained interface descriptor digest, the
+  declared target matrix, required capabilities, the compiler, and the
+  resolution policy. `--write` persists it atomically and `--verify` re-renders
+  and compares bytes, failing closed with `SPX-J123` when a source, manifest,
+  or compiler drifts and naming the drifted fields. Like every package
+  operation the lock is explicit and never touched by `check`;
+  `tests/project.rs::project_lock_v1` is the gate.
+
+- `semaprax fmt` keeps `//` comments. The lexer records each comment's
+  position, and the canonical formatter prints it above the item it preceded
+  or right after the item it followed, at that item's depth; formatting is
+  idempotent and a comment-free file formats to the same bytes as before.
+  Only `fmt` restores comments; `patch` and other rewriting transactions still
+  emit comment-free text. [Canonical comments v1](docs/CANONICAL-COMMENTS-V1.md)
+  owns the placement rules, `src/format/comments.rs` and
+  `tests/projections/fmt_comments.rs` pin them, and the formatter's capacity
+  accounting moved verbatim into `src/format/capacity.rs`.
+
+- Every generated project now carries an `AGENTS.md`: the commands to check,
+  test, run, format, and build it, and the rules that differ from other
+  languages, written for coding agents and people alike. The scaffold capsule
+  becomes `semaprax.project-scaffold.v2` with five files and a new digest
+  domain, the generated `README.md` points at `AGENTS.md` and uses directory
+  operands, and both `new` routes publish the same five files. The library
+  template gains the same file. The `_v1` API names are unchanged; the schema
+  string and digest domain are v2.
+  [Public Project Scaffold Capsule v2](docs/PROJECT-SCAFFOLD-V2.md) owns the
+  contract.
+
+- `semaprax new <destination>` now works on the standalone compiler. It
+  derives the same calculator template as the full toolchain, refuses anything
+  but a fresh destination under an existing real directory, writes every file
+  with create-new semantics, reads the files back, authenticates the project,
+  and prints the same success line. The full toolchain keeps its held-parent
+  staged publication; [Standalone project creation v1](docs/NEW-PROJECT-STANDALONE-V1.md)
+  owns the bounded route and its non-claims, `tests/project/new_cli.rs` pins
+  it, and the install guide, quickstart, and README no longer require the
+  full toolchain to create a project.
+- `semaprax.toml` gains one extensible table layout, `semaprax.manifest.v1`
+  ([Package Manifest v1](docs/PACKAGE-MANIFEST-V1.md)): `[package]`,
+  `[modules]`, `[exports]`, `[command]`, `[capabilities]`, `[dependencies]`,
+  and `[targets]` tables lower onto the frozen Project v1-v11 profile
+  contracts, so every project route, descriptor, and generated artifact is
+  unchanged and only the manifest bytes differ. Reserved and unknown tables or
+  keys reject with `SPX-J120`, a declared dependency fails every build closed
+  with `SPX-J121`, a build target outside `[targets] matrix` rejects with
+  `SPX-J122`, and a non-canonical manifest names its first differing line.
+  The frozen layouts remain admitted byte-for-byte;
+  `tests/project.rs::package_manifest_v1` is the gate.
 
 - The standard-library contract and the agent quick reference explain how a
   Project consumes a `std.*` module today, by vendoring its library file and

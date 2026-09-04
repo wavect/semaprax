@@ -224,7 +224,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help library"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -295,6 +295,12 @@ const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 /// The bytes are the repository document; `tests/documentation.rs` checks its
 /// code blocks against this compiler.
 pub(crate) const LANGUAGE_REFERENCE: &str = include_str!("../../docs/AGENT-QUICK-REFERENCE.md");
+
+/// The generated standard-library catalog, printed by `semaprax help library`:
+/// every `std.*` declaration with its signature and contracts, so an agent can
+/// pick a library function offline. The bytes are the repository document that
+/// `tests/project.rs::standard_library` regenerates from `std/` and pins.
+pub(crate) const LIBRARY_CATALOG: &str = include_str!("../../docs/STANDARD-LIBRARY-CATALOG.md");
 
 /// Upper bound on the guided global help, in bytes, for either capability
 /// class. An agent reads this page before its first command; it must stay one
@@ -424,6 +430,11 @@ static GUIDE: &[GuideGroup] = &[
                 id: CommandId::Help,
                 shape: "help language",
                 summary: "The language card: admitted shapes, diagnostics, fixes",
+            },
+            GuideEntry {
+                id: CommandId::Help,
+                shape: "help library",
+                summary: "The standard-library catalog: std functions and contracts",
             },
         ],
     },
@@ -695,6 +706,14 @@ mod tests {
             assert!(catalog(private).starts_with(BANNER));
             assert!(catalog(private).contains("\nsemaprax check "));
         }
+    }
+
+    #[test]
+    fn library_catalog_is_the_generated_repository_document() {
+        assert!(LIBRARY_CATALOG.starts_with("# Standard library catalog\n"));
+        assert!(LIBRARY_CATALOG.contains("\n## `std.core`\n"));
+        assert!(LIBRARY_CATALOG.contains("```semaprax\n"));
+        assert!(LIBRARY_CATALOG.ends_with('\n'));
     }
 
     #[test]

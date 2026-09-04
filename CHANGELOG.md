@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- `semaprax help library` prints the generated standard-library catalog, the
+  fourth `help` shape beside `help language`, so an installed compiler lists
+  every `std.*` function and contract offline.
+
 - The standard-library contract and the agent quick reference explain how a
   Project consumes a `std.*` module today, by vendoring its library file and
   importing by `@id`; the gate vendors every package into a fresh project and

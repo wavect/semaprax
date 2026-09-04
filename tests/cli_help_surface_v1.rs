@@ -213,6 +213,16 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert_eq!(language.stdout, card);
     assert!(language.stdout.starts_with(b"# Agent quick reference\n"));
     std::fs::remove_dir(language_dir).unwrap();
+    let (library, library_dir) = invoke(&["help", "library"]);
+    assert!(library.status.success());
+    assert!(library.stderr.is_empty());
+    let catalog = std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/STANDARD-LIBRARY-CATALOG.md"),
+    )
+    .unwrap();
+    assert_eq!(library.stdout, catalog);
+    assert!(library.stdout.starts_with(b"# Standard library catalog\n"));
+    std::fs::remove_dir(library_dir).unwrap();
     let (language_extra, language_extra_dir) = invoke(&["help", "language", "extra"]);
     assert_eq!(language_extra.status.code(), Some(2));
     assert_eq!(language_extra.stdout, global.stdout);
@@ -228,7 +238,7 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         assert!(output.status.success(), "{name}");
         assert_eq!(
             output.stdout,
-            b"Usage:\n  semaprax help <command>\n  semaprax help all\n  semaprax help language\n"
+            b"Usage:\n  semaprax help <command>\n  semaprax help all\n  semaprax help language\n  semaprax help library\n"
         );
         assert!(output.stderr.is_empty());
         std::fs::remove_dir(directory).unwrap();

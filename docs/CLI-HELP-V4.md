@@ -33,7 +33,7 @@ static, source-owned guide:
   `test`, `build`), `Inspect meaning` (`graph`, `context`), `Change by
   meaning` (`patch`, `impact`, `review`), `Start a project` (`new`,
   `project-scaffold`), and `Toolchain` (`doctor`, `version`, `help <command>`, `help all`,
-  `help language`);
+  `help language`, `help library`);
 - each entry is an abbreviated command shape, padded to one column, followed
   by a one-line purpose;
 - a two-line footer naming the first command to run and the `--json`
@@ -63,6 +63,7 @@ Usage:
   semaprax help <command>
   semaprax help all
   semaprax help language
+  semaprax help library
 ```
 
 `all` is not a command. `semaprax help all extra`, `semaprax all`, and other
@@ -80,7 +81,17 @@ An agent or developer working from an installed compiler, without the source
 checkout, can read the admitted shapes, the diagnostics that habits from other
 languages trigger, and their fixes offline. The document's own gate checks its
 code blocks against the compiler, so the card cannot describe syntax the
-binary rejects. Scoped help for `help` lists all three shapes.
+binary rejects. Scoped help for `help` lists all four shapes.
+
+## Standard-library catalog
+
+`semaprax help library` is the fourth `help` shape. For either executable it
+returns status zero, empty stderr, and exactly the bytes of the repository's
+generated [standard library catalog](STANDARD-LIBRARY-CATALOG.md), compiled
+into the binary: every `std.*` declaration with its signature, effects, and
+contracts. `tests/project.rs::standard_library` regenerates that document from
+`std/` and pins it, so the printed catalog cannot list a function the compiler
+does not ship.
 
 ## Preservation
 

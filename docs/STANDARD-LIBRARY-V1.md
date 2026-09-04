@@ -10,8 +10,8 @@ composed, what every public declaration must carry, the portability tiers, the
 required module set, the effect vocabulary hosted modules declare, and the
 Everyday profile. The [completion matrix](COMPLETION-MATRIX.md) owns status;
 the generated [standard library catalog](STANDARD-LIBRARY-CATALOG.md) lists the
-declarations that exist today; `tests/project.rs::standard_library` is the
-executable gate.
+declarations that exist today and `semaprax help library` prints it offline;
+`tests/project.rs::standard_library` is the executable gate.
 
 ## Library architecture
 

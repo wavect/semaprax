@@ -34,6 +34,13 @@ their fixes, without a source checkout:
 semaprax help language
 ```
 
+Print the generated standard-library catalog, every `std.*` function with its
+signature and contracts, without a source checkout:
+
+```sh
+semaprax help library
+```
+
 Show the exact accepted form of one command without reading source files,
 probing tools, or starting a build:
 

@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+- `scripts/quality.sh changed` routes CLI and editor changes narrowly. Paths
+  under `src/cli/` and `src/bin/`, plus `src/cli_driver.rs` and
+  `src/main.rs`, classify as `cli-surface` and append a `test-cli` gate that
+  runs the CLI harnesses of the standalone package and the full toolchain;
+  paths under `editors/` classify as `editor-adapter` and append `test-editor`,
+  which runs the extension's `node --test` suite and the documentation
+  harness. Both follow the fixed `changed` gates in one order, and the
+  executor rejects a repeated or reordered surface gate. Other paths route as
+  before, `full`'s gate list is unchanged, and the plan schema stays
+  `semaprax.quality-route.v2`; `tests/quality_routing.rs` pins the routes and
+  the executor's dispatch.
+
+- `AGENTS.md` forbids pointing a worktree's Cargo `target-dir` at another
+  worktree or at any path a different checkout's tests depend on, and the
+  development guide gives the private `CARGO_TARGET_DIR`,
+  `CARGO_INCREMENTAL=0`, and `CARGO_PROFILE_TEST_DEBUG=0` setup with the disk
+  a full gate needs.
+
+- The VS Code extension checks on save. Saving a `.spx` file or
+  `semaprax.toml` runs the user-selected `semaprax.compilerPath` binary as
+  `check <nearest semaprax.toml or file> --json`, maps each JSON diagnostic to
+  an editor diagnostic (`code: message` plus the help on a new line, range
+  from the reported line and column), and clears entries the re-check no
+  longer reports. `SEMAPRAX: Check Project` runs the same check explicitly and
+  names the setting to fill when none is set; the machine setting
+  `semaprax.checkOnSave` (default `true`) turns the save trigger off. The
+  child is spawned without a shell, capped at 4 MiB of output and 30 seconds,
+  and writes nothing. Activation adds `onLanguage:semaprax` and the new
+  command; `editors/vscode/diagnostics.js` holds the pure logic and
+  `test/diagnostics.test.js` covers it.
 - Cross-platform CI now preserves the exact verifier hint while accepting
   native line endings in CLI help, and deep standalone-String Wasm planning
   uses narrow recursive walkers so the contracted nesting depth fits the

@@ -75,10 +75,11 @@ pub fn plan_with_base(
     let mut output = format!(
         "schema\t{SCHEMA}\nrequested\t{requested}\neffective\t{effective}\nreason\t{reason}\nbase\t{base}\n"
     );
+    let extra = surface_gates(effective, &paths);
     for (path, invariant, evidence) in paths {
         output.push_str(&format!("path\t{path}\t{invariant}\t{evidence}\n"));
     }
-    for gate in gates(effective) {
+    for gate in gates(effective).iter().chain(&extra) {
         output.push_str(&format!("gate\t{gate}\n"));
     }
     output.push_str("end\tquality-plan\n");
@@ -440,10 +441,38 @@ fn mapping(path: &str) -> (&'static str, &'static str, bool) {
             true,
         );
     }
-    if matches!(path, "src/main.rs" | "src/graph.rs") {
+    if path.starts_with("src/cli/")
+        || path.starts_with("src/bin/")
+        || matches!(path, "src/cli_driver.rs" | "src/main.rs")
+    {
+        return ("cli-surface", "cli-harnesses,documentation,rustdoc", true);
+    }
+    if path.starts_with("editors/") {
+        return ("editor-adapter", "editor-tests,documentation", true);
+    }
+    if path == "src/graph.rs" {
         return ("broad-compiler-or-graph-dispatch", "full-workspace", false);
     }
     ("unmapped-or-wide", "full-workspace", false)
+}
+
+/// Gates the `changed` profile appends, in fixed order, when the change set
+/// includes a surface class whose evidence is not in the base gate list. The
+/// `quick` and `full` gate lists never vary.
+fn surface_gates(profile: &str, paths: &[PathRow]) -> Vec<&'static str> {
+    let mut extra = Vec::new();
+    if profile != "changed" {
+        return extra;
+    }
+    for (class, gate) in [
+        ("cli-surface", "test-cli"),
+        ("editor-adapter", "test-editor"),
+    ] {
+        if paths.iter().any(|(_, invariant, _)| *invariant == class) {
+            extra.push(gate);
+        }
+    }
+    extra
 }
 
 fn gates(profile: &str) -> &'static [&'static str] {

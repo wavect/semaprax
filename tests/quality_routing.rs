@@ -13,11 +13,70 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     assert_plan(&repository, "quick", "effective\tquick\n");
     assert_plan(&repository, "full", "effective\tfull\n");
 
-    repository.write("src/main.rs", "fn main() { println!(\"changed\"); }\n");
+    repository.write("src/graph.rs", "pub fn graph() { /* changed */ }\n");
     let plan = repository.changed_plan(&[]).unwrap();
     assert!(plan.contains("effective\tfull\n"));
-    assert!(plan.contains("path\tsrc/main.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"));
+    assert!(plan.contains("path\tsrc/graph.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"));
     assert!(plan.contains("gate\ttest-workspace\n"));
+    assert!(!plan.contains("gate\ttest-cli\n"));
+}
+
+const BASE_CHANGED_GATES: &str = "gate\tdiff-check\ngate\tfmt-check\ngate\tcheck-workspace\ngate\ttest-advisory\ngate\tclippy-package\ngate\ttest-agent-context\ngate\trustdoc-package\n";
+
+#[test]
+fn cli_and_editor_surfaces_route_changed_with_their_own_gates_in_fixed_order() {
+    let repository = Repository::new();
+    repository.write("src/cli/help.rs", "pub fn help() { /* changed */ }\n");
+    repository.write("src/main.rs", "fn main() { println!(\"cli\"); }\n");
+    let plan = repository.changed_plan(&[]).unwrap();
+    assert!(plan.contains("effective\tchanged\n"));
+    assert!(plan.contains("reason\tcomplete-git-state-has-narrow-mappings\n"));
+    assert!(
+        plan.contains("path\tsrc/cli/help.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n")
+    );
+    assert!(plan.contains("path\tsrc/main.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"));
+    assert!(plan.contains(&format!(
+        "{BASE_CHANGED_GATES}gate\ttest-cli\nend\tquality-plan\n"
+    )));
+    assert!(!plan.contains("test-editor"));
+
+    repository.write("editors/vscode/extension.js", "'use strict'; // changed\n");
+    let plan = repository.changed_plan(&[]).unwrap();
+    assert!(plan.contains("effective\tchanged\n"));
+    assert!(plan.contains(
+        "path\teditors/vscode/extension.js\teditor-adapter\teditor-tests,documentation\n"
+    ));
+    assert!(plan.contains(&format!(
+        "{BASE_CHANGED_GATES}gate\ttest-cli\ngate\ttest-editor\nend\tquality-plan\n"
+    )));
+
+    // A wide path still forces full and full's gate list never grows.
+    repository.write("src/graph.rs", "pub fn graph() { /* wide */ }\n");
+    let plan = repository.changed_plan(&[]).unwrap();
+    assert!(plan.contains("effective\tfull\n"));
+    assert!(plan.contains("reason\tgit-state-includes-wide-or-unmapped-path\n"));
+    assert!(!plan.contains("gate\ttest-cli\n"));
+    assert!(!plan.contains("gate\ttest-editor\n"));
+    assert!(plan.contains("gate\texample-fmt\nend\tquality-plan\n"));
+}
+
+#[test]
+fn editor_and_documentation_changes_route_changed_with_only_the_editor_gate() {
+    let repository = Repository::new();
+    repository.write("editors/vscode/test/new.test.js", "'use strict';\n");
+    repository.write("docs/staged.md", "editor notes\n");
+    let plan = repository.changed_plan(&[]).unwrap();
+    assert!(plan.contains("effective\tchanged\n"));
+    assert!(plan.contains(&format!(
+        "{BASE_CHANGED_GATES}gate\ttest-editor\nend\tquality-plan\n"
+    )));
+    assert!(!plan.contains("test-cli"));
+
+    // Other unmapped paths keep widening to full.
+    repository.write("src/lib.rs", "pub fn lib() {}\n");
+    let plan = repository.changed_plan(&[]).unwrap();
+    assert!(plan.contains("effective\tfull\n"));
+    assert!(plan.contains("path\tsrc/lib.rs\tunmapped-or-wide\tfull-workspace\n"));
 }
 
 #[test]
@@ -124,10 +183,7 @@ fn changed_rejects_symlink_paths_even_when_the_target_stays_inside_the_repo() {
 fn committed_wide_change_and_dirty_documentation_route_full_from_exact_base() {
     let repository = Repository::new();
     let base = repository.baseline.clone();
-    repository.write(
-        "src/main.rs",
-        "fn main() { println!(\"committed wide\"); }\n",
-    );
+    repository.write("src/graph.rs", "pub fn graph() { /* committed wide */ }\n");
     fs::remove_file(repository.directory.join("docs/deleted.md")).unwrap();
     repository.git(&["add", "-A"]);
     repository.commit("wide change");
@@ -137,7 +193,7 @@ fn committed_wide_change_and_dirty_documentation_route_full_from_exact_base() {
         quality_route::plan_with_base(&repository.directory, "changed", &[], Some(&base)).unwrap();
     assert!(plan.contains(&format!("base\t{base}\n")));
     assert!(plan.contains("effective\tfull\n"));
-    assert!(plan.contains("path\tsrc/main.rs\tbroad-compiler-or-graph-dispatch"));
+    assert!(plan.contains("path\tsrc/graph.rs\tbroad-compiler-or-graph-dispatch"));
     assert!(plan.contains("path\tdocs/deleted.md\tdocumentation-truth"));
     assert!(plan.contains("path\tdocs/staged.md\tdocumentation-truth"));
 }
@@ -249,6 +305,7 @@ fn quality_executor_requires_each_profiles_exact_ordered_gate_sequence() {
     let fixture = TempDirectory::new("quality-executor");
     fs::create_dir(fixture.path.join("scripts")).unwrap();
     fs::create_dir(fixture.path.join("bin")).unwrap();
+    fs::create_dir_all(fixture.path.join("editors/vscode")).unwrap();
     fs::copy(
         root().join("scripts/quality.sh"),
         fixture.path.join("scripts/quality.sh"),
@@ -278,7 +335,17 @@ case "$*" in
     printf 'end\tquality-plan\n'
     ;;
   *"quality-plan changed"*)
-    printf 'schema\tsemaprax.quality-route.v2\nrequested\tchanged\neffective\tchanged\nreason\ttest\nbase\t0000000000000000000000000000000000000000\ngate\tdiff-check\ngate\tfmt-check\ngate\tcheck-workspace\ngate\ttest-advisory\ngate\tclippy-package\ngate\ttest-agent-context\ngate\trustdoc-package\nend\tquality-plan\n'
+    printf 'schema\tsemaprax.quality-route.v2\nrequested\tchanged\neffective\tchanged\nreason\ttest\nbase\t0000000000000000000000000000000000000000\ngate\tdiff-check\ngate\tfmt-check\ngate\tcheck-workspace\ngate\ttest-advisory\ngate\tclippy-package\ngate\ttest-agent-context\ngate\trustdoc-package\n'
+    case "${CHANGED_SURFACE:-none}" in
+      none) ;;
+      cli) printf 'gate\ttest-cli\n' ;;
+      editor) printf 'gate\ttest-editor\n' ;;
+      both) printf 'gate\ttest-cli\ngate\ttest-editor\n' ;;
+      reordered) printf 'gate\ttest-editor\ngate\ttest-cli\n' ;;
+      duplicate) printf 'gate\ttest-editor\ngate\ttest-editor\n' ;;
+      overflow) printf 'gate\ttest-cli\ngate\ttest-editor\ngate\ttest-cli\n' ;;
+    esac
+    printf 'end\tquality-plan\n'
     ;;
   *"quality-plan full"*)
     printf 'schema\tsemaprax.quality-route.v2\nrequested\tfull\neffective\tfull\nreason\ttest\nbase\tnot-applicable\ngate\tdiff-check\ngate\tfmt-check\ngate\tcheck-workspace\ngate\ttest-advisory\ngate\tclippy-workspace\ngate\ttest-workspace\ngate\tdoctest-workspace\ngate\trustdoc-workspace\ngate\tbuild-release\ngate\tpackage\ngate\texample-checks\ngate\texample-fmt\nend\tquality-plan\n'
@@ -293,8 +360,15 @@ esac
         "#!/bin/sh\nprintf 'git:%s\\n' \"$*\" >>\"$QUALITY_LOG\"\n",
     )
     .unwrap();
+    let node = fixture.path.join("bin/node");
+    fs::write(
+        &node,
+        "#!/bin/sh\nprintf 'node:%s\\n' \"$*\" >>\"$QUALITY_LOG\"\n",
+    )
+    .unwrap();
     make_executable(&cargo);
     make_executable(&git);
+    make_executable(&node);
 
     let log = fixture.path.join("quality.log");
     let path = format!(
@@ -366,6 +440,62 @@ esac
         );
     }
 
+    for (surface, expect_cli, expect_editor) in [
+        ("cli", true, false),
+        ("editor", false, true),
+        ("both", true, true),
+    ] {
+        fs::write(&log, "").unwrap();
+        let output = Command::new("sh")
+            .arg("scripts/quality.sh")
+            .arg("changed")
+            .current_dir(&fixture.path)
+            .env("PATH", &path)
+            .env("QUALITY_LOG", &log)
+            .env("CHANGED_SURFACE", surface)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "surface {surface}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let executed = fs::read_to_string(&log).unwrap();
+        assert_eq!(
+            executed.contains("--test cli_check_routing_v1"),
+            expect_cli,
+            "surface {surface}: {executed}"
+        );
+        assert_eq!(
+            executed.contains("-p semaprax-toolchain --test cli_help_surface_v1"),
+            expect_cli,
+            "surface {surface}: {executed}"
+        );
+        assert_eq!(
+            executed.contains("node:--test test/*.test.js\n"),
+            expect_editor,
+            "surface {surface}: {executed}"
+        );
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert_eq!(stderr.contains("==> test-cli"), expect_cli);
+        assert_eq!(stderr.contains("==> test-editor"), expect_editor);
+    }
+
+    for hostile in ["reordered", "duplicate", "overflow"] {
+        fs::write(&log, "").unwrap();
+        let rejected = Command::new("sh")
+            .arg("scripts/quality.sh")
+            .arg("changed")
+            .current_dir(&fixture.path)
+            .env("PATH", &path)
+            .env("QUALITY_LOG", &log)
+            .env("CHANGED_SURFACE", hostile)
+            .output()
+            .unwrap();
+        assert_eq!(rejected.status.code(), Some(2), "hostile: {hostile}");
+        assert_eq!(fs::read_to_string(&log).unwrap(), "", "hostile: {hostile}");
+    }
+
     for hostile in [
         "missing",
         "duplicate",
@@ -414,11 +544,25 @@ impl Repository {
         let directory = temporary.path.clone();
         fs::create_dir(directory.join("docs")).unwrap();
         fs::create_dir(directory.join("src")).unwrap();
+        fs::create_dir(directory.join("src/cli")).unwrap();
+        fs::create_dir_all(directory.join("editors/vscode/test")).unwrap();
         fs::write(directory.join("README.md"), "baseline\n").unwrap();
         fs::write(directory.join("docs/staged.md"), "baseline\n").unwrap();
         fs::write(directory.join("docs/deleted.md"), "baseline\n").unwrap();
         fs::write(directory.join("docs/renamed-old.md"), "baseline\n").unwrap();
         fs::write(directory.join("src/main.rs"), "fn main() {}\n").unwrap();
+        fs::write(directory.join("src/graph.rs"), "pub fn graph() {}\n").unwrap();
+        fs::write(directory.join("src/cli/help.rs"), "pub fn help() {}\n").unwrap();
+        fs::write(
+            directory.join("editors/vscode/extension.js"),
+            "'use strict';\n",
+        )
+        .unwrap();
+        fs::write(
+            directory.join("editors/vscode/test/base.test.js"),
+            "'use strict';\n",
+        )
+        .unwrap();
         git_at(&directory, &["init", "-q"]);
         git_at(&directory, &["add", "."]);
         git_at(
@@ -585,7 +729,7 @@ mod first_contribution {
     const PROFILES: [&str; 3] = ["quick", "changed", "full"];
 
     /// Gate identifiers the walkthrough lists for those profiles.
-    const GATES: [&str; 15] = [
+    const GATES: [&str; 17] = [
         "diff-check",
         "fmt-check",
         "check-workspace",
@@ -593,6 +737,8 @@ mod first_contribution {
         "clippy-package",
         "test-agent-context",
         "rustdoc-package",
+        "test-cli",
+        "test-editor",
         "clippy-workspace",
         "test-workspace",
         "doctest-workspace",
@@ -605,9 +751,11 @@ mod first_contribution {
 
     /// Path classifications and routing reasons the walkthrough quotes. The
     /// router decides these; they never appear in the executor.
-    const ROUTES: [&str; 7] = [
+    const ROUTES: [&str; 9] = [
         "documentation-truth",
         "agent-context-economics",
+        "cli-surface",
+        "editor-adapter",
         "broad-compiler-or-graph-dispatch",
         "unmapped-or-wide",
         "complete-git-state-has-narrow-mappings",

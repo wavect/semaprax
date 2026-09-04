@@ -3,12 +3,85 @@ const vscode = require('vscode');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const { McpClient, parse, digest, invalidates } = require('./protocol');
 const { fetchReview } = require('./review');
 const { HoleDraft } = require('./holes');
 const { Repairs, validateCandidateHandle } = require('./repairs');
 const { CandidateTestTask, METHODS: TEST_TASK_METHODS } = require('./tasks');
+const checks = require('./diagnostics');
 let stopActive = () => {};
+// Check-on-save: run the user-selected compiler's read-only `check --json` on
+// the saved file's project and publish the result as editor diagnostics. It
+// starts no session, writes no file and never discovers a binary; an empty
+// `semaprax.compilerPath` disables it entirely.
+function activateChecks(context, testMode) {
+  const collection = vscode.languages.createDiagnosticCollection('semaprax');
+  const output = vscode.window.createOutputChannel('SEMAPRAX Check');
+  const ledger = new checks.DiagnosticLedger();
+  const running = new Map();
+  const severity = { error: vscode.DiagnosticSeverity.Error, warning: vscode.DiagnosticSeverity.Warning };
+  const machineSetting = key => {
+    const inspected = vscode.workspace.getConfiguration('semaprax').inspect(key);
+    if (!inspected || inspected.workspaceValue !== undefined || inspected.workspaceFolderValue !== undefined) return undefined;
+    return inspected.globalValue;
+  };
+  const compiler = () => {
+    const value = machineSetting('compilerPath');
+    return typeof value === 'string' && path.isAbsolute(value) && !/[\u0000-\u001f\u007f]/.test(value) ? value : undefined;
+  };
+  const enabled = () => machineSetting('checkOnSave') !== false;
+  const isSource = doc => doc.uri.scheme === 'file' && (doc.uri.fsPath.endsWith('.spx') || path.basename(doc.uri.fsPath) === checks.MANIFEST);
+  const exists = candidate => { try { return fs.statSync(candidate).isFile(); } catch { return false; } };
+  async function check(subject, binary) {
+    running.get(subject)?.kill();
+    let own;
+    const result = await checks.runCheck(spawn, binary, subject, { onChild: child => { own = child; running.set(subject, child); } });
+    if (running.get(subject) !== own) return { ...result, failure: 'superseded by a newer check of the same subject' };
+    running.delete(subject);
+    if (result.error || result.timedOut || result.truncated || (result.code !== 0 && result.code !== 1)) {
+      const reason = result.error ? `could not start ${binary}: ${result.error}` : result.timedOut ? `check timed out after ${checks.TIMEOUT_MS / 1000}s` : result.truncated ? `check output exceeded ${checks.MAX_OUTPUT_BYTES} bytes` : `check exited with status ${result.code}`;
+      output.appendLine(`${subject}: ${reason}`);
+      if (result.stderr) output.appendLine(result.stderr.trimEnd());
+      return { ...result, failure: reason };
+    }
+    const records = checks.toDiagnosticRecords(checks.parseDiagnosticLines(result.stdout), subject);
+    const update = ledger.apply(subject, records);
+    for (const file of update.clear) collection.delete(vscode.Uri.file(file));
+    for (const [file, rows] of update.set) {
+      collection.set(vscode.Uri.file(file), rows.map(row => {
+        const range = new vscode.Range(row.range.startLine, row.range.startColumn, row.range.endLine, row.range.endColumn);
+        const diagnostic = new vscode.Diagnostic(range, row.message, severity[row.severity]);
+        diagnostic.source = 'semaprax'; diagnostic.code = row.code;
+        return diagnostic;
+      }));
+    }
+    return { ...result, records };
+  }
+  const onSave = doc => {
+    const binary = compiler();
+    if (!binary || !enabled() || !vscode.workspace.isTrusted || !isSource(doc)) return;
+    void check(checks.checkSubject(doc.uri.fsPath, exists), binary);
+  };
+  async function checkProject() {
+    const binary = compiler();
+    if (!binary) throw new Error('Set the user setting semaprax.compilerPath to the absolute path of a semaprax binary to check a project');
+    if (!vscode.workspace.isTrusted) throw new Error('A trusted workspace is required');
+    const doc = vscode.window.activeTextEditor?.document;
+    let subject;
+    if (doc && isSource(doc)) subject = checks.checkSubject(doc.uri.fsPath, exists);
+    else if (vscode.workspace.workspaceFolders?.length) subject = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, checks.MANIFEST);
+    else throw new Error('Open a .spx file or a folder containing semaprax.toml first');
+    const result = await check(subject, binary);
+    if (result.failure) throw new Error(result.failure);
+    const count = result.records.length;
+    void vscode.window.showInformationMessage(count ? `SEMAPRAX check of ${path.basename(subject)}: ${count} diagnostic${count === 1 ? '' : 's'}` : `SEMAPRAX check of ${path.basename(subject)}: no diagnostics`);
+    return result.records;
+  }
+  const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); };
+  context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose });
+  return { checkProject, test: testMode ? { check, ledger, collection } : undefined };
+}
 function activate(context) {
   let client, config, image, candidate, target, stale = true, epoch = 0, busy = false;
   let holes, selectedHole, holeNavigation;
@@ -16,6 +89,7 @@ function activate(context) {
   let testTask, testTaskUsed = false;
   let watchers = [];
   const testMode = context.extensionMode === vscode.ExtensionMode.Test;
+  const checking = activateChecks(context, testMode);
   const testInputs = [], testPicks = [];
   const input = options => testMode && testInputs.length ? Promise.resolve(testInputs.shift()) : vscode.window.showInputBox(options);
   const pick = (items, options) => {
@@ -492,6 +566,7 @@ function activate(context) {
       await draftOperation(() => holes.discard()); ensureHoleToken(token, true);
       holes = undefined; selectedHole = undefined; changedDraft();
     },
+    async checkProject() { await checking.checkProject(); },
     async refresh() {
       saved(); if (!client || !image) throw new Error('Start a session first');
       const refreshEpoch = epoch, refreshClient = client, refreshImage = image, refreshDraft = holes, refreshRevision = holes?.draftRevision;

@@ -22,6 +22,14 @@ overrides. These choices follow the VS Code
 [configuration scope](https://code.visualstudio.com/api/references/contribution-points#contributes.configuration)
 boundaries. Opening a repository does not start a compiler process.
 
+Additively, saving a `.spx` file or manifest, or running `SEMAPRAX: Check
+Project`, invokes the same user-selected binary directly as
+`check <nearest semaprax.toml or file> --json` and shows its diagnostics in
+the editor. The route is read-only and bounded (4 MiB of output, 30 seconds),
+starts no session, is disabled by an empty `semaprax.compilerPath`, and can be
+switched off with the machine setting `semaprax.checkOnSave`. The extension's
+[README](../editors/vscode/README.md#check-on-save) owns the behavior.
+
 Startup invokes the selected executable directly with
 `serve-workspace-mcp <manifest> <host-policy>` and no shell. The executable and
 policy are host choices, not values inferred from source or tool responses.

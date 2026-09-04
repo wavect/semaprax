@@ -22,11 +22,14 @@ else widens the whole run to `full`. The classifications live in
 | --- | --- |
 | `documentation-truth` | `README.md`, `CHANGELOG.md`, any path under `docs/` ending `.md` |
 | `agent-context-economics` | `src/agent_economics.rs`, `tests/agent_economics.rs`, `benchmarks/agent-context-v1/`, `tests/snapshots/agent_context_*`, `tests/snapshots/agent_economics.*` |
-| `broad-compiler-or-graph-dispatch` | `src/main.rs`, `src/graph.rs` |
+| `cli-surface` | `src/cli/`, `src/bin/`, `src/cli_driver.rs`, `src/main.rs`; adds the `test-cli` gate |
+| `editor-adapter` | `editors/`; adds the `test-editor` gate |
+| `broad-compiler-or-graph-dispatch` | `src/graph.rs` |
 | `unmapped-or-wide` | every other path |
 
-So a first change confined to documentation or an example costs the narrow
-route; any other `.rs` edit costs a full-workspace run. Cheap first shapes:
+So a first change confined to documentation, an example, the CLI surface, or
+the editor extension costs the narrow route; any other `.rs` edit costs a
+full-workspace run. Cheap first shapes:
 
 - a broken local link, a missing `Status:`/`Audience:` line, or a missing
   `SUMMARY.md` entry — `tests/documentation.rs` already names the failure;
@@ -149,7 +152,7 @@ reason `git-state-includes-wide-or-unmapped-path`.
 | Profile | Gate ids | What it costs |
 | --- | --- | --- |
 | `quick` | `diff-check`, `fmt-check`, `check-workspace`, `test-advisory` | A workspace check and the four advisory test targets. No Clippy, no rustdoc, no release build |
-| `changed` | `quick`'s four plus `clippy-package`, `test-agent-context`, `rustdoc-package` | Adds strict package Clippy, the compiler and agent-context integration targets, and package rustdoc |
+| `changed` | `quick`'s four plus `clippy-package`, `test-agent-context`, `rustdoc-package`; then `test-cli` when the change set touches `cli-surface` paths and `test-editor` when it touches `editor-adapter` paths | Adds strict package Clippy, the compiler and agent-context integration targets, and package rustdoc; the CLI harnesses (including the full toolchain's help surface) or the extension's `node --test` run only for their own paths |
 | `full` | `diff-check`, `fmt-check`, `check-workspace`, `test-advisory`, `clippy-workspace`, `test-workspace`, `doctest-workspace`, `rustdoc-workspace`, `build-release`, `package`, `example-checks`, `example-fmt` | Adds workspace Clippy, the whole workspace test and doctest run, workspace rustdoc, a release build, the package check, and the canonical example loops. `test-workspace` is the disk hazard below |
 
 `scripts/quality.sh` is the source of truth for each gate's exact command; do

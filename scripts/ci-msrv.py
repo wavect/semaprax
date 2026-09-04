@@ -50,12 +50,20 @@ def plan(metadata, excluded_packages=()):
             kind = target["kind"]
             # Do not silently omit a newly introduced example, benchmark, or
             # other target kind: extend this partition and its tests first.
-            if kind not in (["lib"], ["bin"], ["test"]):
+            # Bench targets are for `cargo bench` (criterion) and are not
+            # part of `cargo test` sharding; they are inventoried but not
+            # routed to a test shard.
+            if kind not in (["lib"], ["bin"], ["test"], ["bench"]):
                 raise ValueError(f"unrouted target kind: {kind}")
             key = (package["id"], kind[0], target["name"])
             if key in seen:
                 raise ValueError(f"duplicate workspace target: {key}")
             seen.add(key)
+            # Only test-related kinds are part of `cargo test` inventory;
+            # bench is inventoried for completeness but excluded from shards
+            # (it is run via `cargo bench --benches` separately).
+            if kind == ["bench"]:
+                continue
             targets.append(dict(package=key[0], kind=key[1], name=key[2]))
     targets.sort(key=lambda t: (t["package"], t["kind"], t["name"]))
     # Cargo's --test selector applies to every selected workspace package.

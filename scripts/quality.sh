@@ -45,6 +45,7 @@ effective_seen=0
 reason_seen=0
 base_seen=0
 gate_count=0
+surface_rank=0
 ended=0
 effective=
 while IFS="$tab" read -r kind first second third extra; do
@@ -95,6 +96,13 @@ while IFS="$tab" read -r kind first second third extra; do
             case "$effective:$gate_count:$first" in
                 quick:0:diff-check|quick:1:fmt-check|quick:2:check-workspace|quick:3:test-advisory) ;;
                 changed:0:diff-check|changed:1:fmt-check|changed:2:check-workspace|changed:3:test-advisory|changed:4:clippy-package|changed:5:test-agent-context|changed:6:rustdoc-package) ;;
+                changed:7:test-cli|changed:7:test-editor|changed:8:test-editor)
+                    # Surface gates follow the base seven in one fixed order,
+                    # each at most once: test-cli, then test-editor.
+                    case "$first" in test-cli) rank=1 ;; test-editor) rank=2 ;; esac
+                    [ "$rank" -gt "$surface_rank" ] || { echo "quality plan repeats or reorders surface gate: $first" >&2; exit 2; }
+                    surface_rank=$rank
+                    ;;
                 full:0:diff-check|full:1:fmt-check|full:2:check-workspace|full:3:test-advisory|full:4:clippy-workspace|full:5:test-workspace|full:6:doctest-workspace|full:7:rustdoc-workspace|full:8:build-release|full:9:package|full:10:example-checks|full:11:example-fmt) ;;
                 *) echo "quality plan gate sequence does not match effective profile: $first" >&2; exit 2 ;;
             esac
@@ -108,7 +116,7 @@ while IFS="$tab" read -r kind first second third extra; do
     esac
 done <"$plan_file"
 
-case "$effective:$gate_count" in quick:4|changed:7|full:12) ;; *) gate_count=0 ;; esac
+case "$effective:$gate_count" in quick:4|changed:7|changed:8|changed:9|full:12) ;; *) gate_count=0 ;; esac
 [ "$schema_seen" -eq 1 ] && [ "$requested_seen" -eq 1 ] && [ "$effective_seen" -eq 1 ] && [ "$reason_seen" -eq 1 ] && [ "$base_seen" -eq 1 ] && [ "$gate_count" -gt 0 ] && [ "$ended" -eq 1 ] || {
     echo "quality plan is incomplete" >&2
     exit 2
@@ -130,6 +138,14 @@ while IFS="$tab" read -r kind gate _rest; do
         clippy-package) cargo clippy --locked -p semaprax --all-targets --all-features -- -D warnings ;;
         test-agent-context) cargo test --locked -p semaprax --all-features --test compiler --test agent_context --test agent_economics --test quality_routing --test documentation --test examples ;;
         rustdoc-package) RUSTDOCFLAGS="-D warnings" cargo doc --locked -p semaprax --all-features --no-deps ;;
+        test-cli)
+            cargo test --locked -p semaprax --all-features --test cli_help_surface_v1 --test cli_check_routing_v1 --test quickstart_v1 --test project_cli_v1 --test projections --test documentation
+            cargo test --locked -p semaprax-toolchain --test cli_help_surface_v1
+            ;;
+        test-editor)
+            (cd editors/vscode && node --test test/*.test.js)
+            cargo test --locked -p semaprax --all-features --test documentation
+            ;;
         clippy-workspace) cargo clippy --locked --workspace --all-targets --all-features -- -D warnings ;;
         test-workspace) cargo test --locked --workspace --all-targets --all-features ;;
         doctest-workspace) cargo test --locked --workspace --all-features --doc ;;

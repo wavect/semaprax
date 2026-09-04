@@ -59,9 +59,14 @@
 //! changes no source.
 
 mod expression_children;
+mod failure_detail;
 pub mod internal_strings;
 mod nested_owned;
 mod prepared;
+mod resolved_case;
+
+pub use failure_detail::{ContractArgument, ContractFailureDetail};
+pub(crate) use resolved_case::evaluate_resolved_zero_arg_i64_function;
 
 use expression_children::child_expressions;
 
@@ -522,6 +527,9 @@ pub struct ResolvedEvaluation {
     pub outcome: ResolvedEvaluationOutcome,
     pub steps_used: usize,
     pub max_steps: usize,
+    /// The violated clause and call frame when `outcome` is a contract failure
+    /// observed by an evaluator that records frame detail.
+    pub failure: Option<ContractFailureDetail>,
 }
 
 /// Closed outcomes for the zero-argument `i64` resolved-entry profile.
@@ -736,108 +744,40 @@ pub(crate) fn evaluate_resolved_zero_arg_i64(
     entry_id: &str,
     max_steps: usize,
 ) -> Result<ResolvedEvaluation, Vec<Diagnostic>> {
-    if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
-        return Err(vec![option_error(format!(
-            "resolved evaluation max_steps must be between 1 and {MAX_STEPS_LIMIT}"
-        ))]);
-    }
-    if program.entrypoint.as_str() != entry_id {
-        return Err(vec![selection_error(
-            REASON_UNSUPPORTED_CALLEE,
-            format!(
-                "selection `{entry_id}` is not the resolved entry point `{}`",
-                program.entrypoint
-            ),
-        )]);
-    }
-    let entry = program
-        .functions
-        .iter()
-        .find(|function| function.id.as_str() == entry_id)
-        .ok_or_else(|| {
-            vec![selection_error(
-                REASON_UNSUPPORTED_CALLEE,
-                format!("resolved entry `{entry_id}` is absent from the function index"),
-            )]
-        })?;
-    let explicit_entry = program
-        .declarations
-        .declaration(&entry.id)
-        .is_some_and(|declaration| declaration.identity_origin == hir::IdentityOrigin::Explicit);
-    if !explicit_entry {
-        return Err(vec![selection_error(
-            REASON_AUTOMATIC_IDENTITY,
-            format!("resolved entry `{entry_id}` does not have an explicit stable identity"),
-        )]);
-    }
-    if !entry.params.is_empty() || entry.return_type != ResolvedType::I64 {
-        return Err(vec![selection_error(
-            REASON_UNSUPPORTED_RESULT_TYPE,
-            format!("resolved entry `{entry_id}` must have type `fn main() -> i64`"),
-        )]);
-    }
-    if !resolved_signature_is_admitted(entry, &program.declarations) {
-        return Err(vec![selection_error(
-            REASON_UNSUPPORTED_CALLEE,
-            format!("resolved entry `{entry_id}` is outside the interpreter profile"),
-        )]);
-    }
-
-    let admitted = admitted_resolved_functions(program);
-    scan_closure(entry_id, &admitted, &program.declarations)?;
-
-    std::thread::scope(|scope| {
-        let worker = std::thread::Builder::new()
-            .name("semaprax-resolved-evaluate".to_owned())
-            .stack_size(EVALUATION_STACK_BYTES)
-            .spawn_scoped(scope, || {
-                let (outcome, steps_used, _) = evaluate_resolved_entry(
-                    entry,
-                    &[],
-                    &admitted,
-                    &program.declarations,
-                    max_steps,
-                    false,
-                );
-                let outcome = match outcome {
-                    Ok(Value::Int(value)) => ResolvedEvaluationOutcome::ReturnedI64(value),
-                    Ok(_) => ResolvedEvaluationOutcome::GuardError(
-                        "zero-argument i64 entry returned a non-i64 value".to_owned(),
-                    ),
-                    Err(Flow::Failure(status)) => {
-                        ResolvedEvaluationOutcome::LanguageFailure(status)
-                    }
-                    Err(Flow::Exhausted) => ResolvedEvaluationOutcome::FuelExhausted,
-                    Err(Flow::DepthExceeded) => ResolvedEvaluationOutcome::CallDepthExceeded,
-                    Err(Flow::Cancelled { .. }) => ResolvedEvaluationOutcome::GuardError(
-                        "unexpected cancellation in legacy resolved evaluation".to_owned(),
-                    ),
-                    Err(Flow::Utf8MaterializationLimitExceeded { .. }) => {
-                        ResolvedEvaluationOutcome::GuardError(
-                            "unexpected UTF-8 materialization limit in legacy resolved evaluation"
-                                .to_owned(),
-                        )
-                    }
-                    Err(Flow::Guard(detail)) => {
-                        ResolvedEvaluationOutcome::GuardError(detail.to_owned())
-                    }
-                };
-                ResolvedEvaluation {
-                    outcome,
-                    steps_used,
-                    max_steps,
-                }
-            })
-            .map_err(|error| {
-                vec![guard_error(&format!(
-                    "resolved evaluation thread failed to start: {error}"
-                ))]
-            })?;
-        worker.join().map_err(|_| {
-            vec![guard_error(
-                "resolved evaluation thread panicked after HIR validation",
-            )]
-        })
+    let evaluated = resolved_case::evaluate_resolved_zero_arg_i64_function(
+        program,
+        entry_id,
+        max_steps,
+        true,
+        PreparedCancellation::Never,
+    )?;
+    let outcome = match evaluated.outcome {
+        PreparedResolvedEvaluationOutcome::ReturnedI64(value) => {
+            ResolvedEvaluationOutcome::ReturnedI64(value)
+        }
+        PreparedResolvedEvaluationOutcome::LanguageFailure(status) => {
+            ResolvedEvaluationOutcome::LanguageFailure(status)
+        }
+        PreparedResolvedEvaluationOutcome::FuelExhausted => {
+            ResolvedEvaluationOutcome::FuelExhausted
+        }
+        PreparedResolvedEvaluationOutcome::CallDepthExceeded => {
+            ResolvedEvaluationOutcome::CallDepthExceeded
+        }
+        PreparedResolvedEvaluationOutcome::Cancelled { .. } => {
+            ResolvedEvaluationOutcome::GuardError(
+                "unexpected cancellation in legacy resolved evaluation".to_owned(),
+            )
+        }
+        PreparedResolvedEvaluationOutcome::GuardError(detail) => {
+            ResolvedEvaluationOutcome::GuardError(detail)
+        }
+    };
+    Ok(ResolvedEvaluation {
+        outcome,
+        steps_used: evaluated.steps_used,
+        max_steps: evaluated.max_steps,
+        failure: evaluated.failure,
     })
 }
 
@@ -3278,6 +3218,7 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
             outcome,
             steps_used,
             max_steps,
+            failure: None,
         },
         transcript,
     ))
@@ -3399,6 +3340,7 @@ pub(crate) fn evaluate_resolved_language_command(
         current_function: None,
         trace_identities: BTreeMap::new(),
         trace_phase: ResolvedTracePhase::Body,
+        failure_detail: None,
     };
     let evaluated = evaluator.call_frame(entry, Vec::new(), 0);
     let outcome = match evaluated {
@@ -3783,6 +3725,7 @@ struct Evaluator<'a> {
     current_function: Option<Arc<str>>,
     trace_identities: BTreeMap<String, Arc<str>>,
     trace_phase: ResolvedTracePhase,
+    failure_detail: Option<ContractFailureDetail>,
 }
 
 struct CommandInputState {
@@ -3838,6 +3781,7 @@ fn evaluate_resolved_entry_with_utf8_budget<'a>(
         current_function: None,
         trace_identities: BTreeMap::new(),
         trace_phase: ResolvedTracePhase::Body,
+        failure_detail: None,
     };
     let outcome = evaluator.evaluate_entry(entry, arguments);
     let utf8_usage = evaluator.utf8_materialization_budget.usage();
@@ -3875,6 +3819,7 @@ impl Evaluator<'_> {
             current_function: None,
             trace_identities: BTreeMap::new(),
             trace_phase: ResolvedTracePhase::Body,
+            failure_detail: None,
         }
     }
 
@@ -4170,12 +4115,17 @@ impl Evaluator<'_> {
     ) -> Result<Value, Flow> {
         let mut frame: Environment = values;
         self.set_trace_phase(ResolvedTracePhase::Requires);
-        for clause in &function.requires {
+        for (index, clause) in function.requires.iter().enumerate() {
             self.charge()?;
             match self.evaluate(clause, &mut frame, depth)? {
                 Value::Bool(true) => {}
                 Value::Bool(false) => {
-                    return Err(Flow::Failure(normalize_contract(ContractPhase::Requires)))
+                    return Err(self.contract_failure(
+                        function,
+                        &frame,
+                        ContractPhase::Requires,
+                        index,
+                    ))
                 }
                 _ => return Err(Flow::Guard("non-boolean requires clause")),
             }
@@ -4187,12 +4137,17 @@ impl Evaluator<'_> {
             frame.push((function.result_id.clone(), result_value));
         }
         self.set_trace_phase(ResolvedTracePhase::Ensures);
-        for clause in &function.ensures {
+        for (index, clause) in function.ensures.iter().enumerate() {
             self.charge()?;
             match self.evaluate(clause, &mut frame, depth)? {
                 Value::Bool(true) => {}
                 Value::Bool(false) => {
-                    return Err(Flow::Failure(normalize_contract(ContractPhase::Ensures)))
+                    return Err(self.contract_failure(
+                        function,
+                        &frame,
+                        ContractPhase::Ensures,
+                        index,
+                    ))
                 }
                 _ => return Err(Flow::Guard("non-boolean ensures clause")),
             }
@@ -6235,6 +6190,7 @@ mod tests {
                 current_function: None,
                 trace_identities: BTreeMap::new(),
                 trace_phase: ResolvedTracePhase::Body,
+                failure_detail: None,
             };
             let outcome = evaluator.call_frame(
                 inspect,

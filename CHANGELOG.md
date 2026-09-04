@@ -12,6 +12,66 @@
   with byte conversion, guarded indexing, search, counting, ASCII
   classification, equality and prefix tests, and endian reads, all
   contracted and run on every lane; the catalogs are regenerated.
+- `semaprax test` runs every `fn test_<name>() -> i64` of the manifest-declared
+  test module as a named case after `main`, each with its own step budget, and
+  names each failing case with its outcome (`failed
+  calculator.tests.test_add: returned 2`) followed by `project tests failed: K
+  of N in <module>` and a `help` line; a failing `main` is reported the same
+  way instead of the bare `project tests failed with result N`. The
+  `semaprax.project-execution.v1` test envelope gains an always-present
+  additive `cases` array under the unchanged schema string and payload-digest
+  domain, and `project::verify_execution_envelope` verifies it. Entry envelopes
+  and the passing-test line without cases are unchanged.
+  [Project Test Cases v1](docs/PROJECT-TEST-CASES-V1.md) owns the rule and
+  `tests/project.rs::developer_loop` pins it.
+
+- A violated `requires` or `ensures` under `semaprax run` or `semaprax test`
+  now names the failing function's stable id, the clause kind and source text,
+  and the call's argument values, both as two indented lines after the
+  unchanged language-status line and as an additive `failure` member of the
+  `language_failure` outcome. The interpreter records the detail at the failing
+  frame (`src/interpreter/failure_detail.rs`); the status object, cleanup, and
+  exit status are untouched, and the native path is unchanged. The legacy
+  resolved-entry evaluator moved verbatim into `src/interpreter/resolved_case.rs`
+  so a named function can be evaluated without being the entrypoint.
+
+- `semaprax check` on a project whose `use` names a module no listed source
+  declares keeps `SPX-G172` and its message and adds a `help` line: it names
+  the unlisted `.spx` file that declares the module and the `sources` key in
+  `semaprax.toml`, or says that no listed file declares the module. The hint is
+  added by the project loader in `src/project/source_hint.rs`, so human and
+  JSON diagnostics agree; [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md)
+  owns the rule and `tests/project_cli_v1.rs` pins it.
+- `scripts/quality.sh changed` routes CLI and editor changes narrowly. Paths
+  under `src/cli/` and `src/bin/`, plus `src/cli_driver.rs` and
+  `src/main.rs`, classify as `cli-surface` and append a `test-cli` gate that
+  runs the CLI harnesses of the standalone package and the full toolchain;
+  paths under `editors/` classify as `editor-adapter` and append `test-editor`,
+  which runs the extension's `node --test` suite and the documentation
+  harness. Both follow the fixed `changed` gates in one order, and the
+  executor rejects a repeated or reordered surface gate. Other paths route as
+  before, `full`'s gate list is unchanged, and the plan schema stays
+  `semaprax.quality-route.v2`; `tests/quality_routing.rs` pins the routes and
+  the executor's dispatch.
+
+- `AGENTS.md` forbids pointing a worktree's Cargo `target-dir` at another
+  worktree or at any path a different checkout's tests depend on, and the
+  development guide gives the private `CARGO_TARGET_DIR`,
+  `CARGO_INCREMENTAL=0`, and `CARGO_PROFILE_TEST_DEBUG=0` setup with the disk
+  a full gate needs.
+
+- The VS Code extension checks on save. Saving a `.spx` file or
+  `semaprax.toml` runs the user-selected `semaprax.compilerPath` binary as
+  `check <nearest semaprax.toml or file> --json`, maps each JSON diagnostic to
+  an editor diagnostic (`code: message` plus the help on a new line, range
+  from the reported line and column), and clears entries the re-check no
+  longer reports. `SEMAPRAX: Check Project` runs the same check explicitly and
+  names the setting to fill when none is set; the machine setting
+  `semaprax.checkOnSave` (default `true`) turns the save trigger off. The
+  child is spawned without a shell, capped at 4 MiB of output and 30 seconds,
+  and writes nothing. Activation adds `onLanguage:semaprax` and the new
+  command; `editors/vscode/diagnostics.js` holds the pure logic and
+  `test/diagnostics.test.js` covers it.
 - The `SPX-J121` build rejection for a manifest with `[dependencies]` now points
   at `semaprax resolve --write` to resolve and pin the dependency graph, instead
   of claiming no resolution route exists; only a build that links resolved

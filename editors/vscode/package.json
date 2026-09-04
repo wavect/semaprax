@@ -1,14 +1,14 @@
 {
   "name": "semaprax-saved-source",
   "displayName": "SEMAPRAX Saved Source",
-  "description": "SEMAPRAX syntax highlighting for .spx files, plus explicit, read-only source previews and semantic candidates through a host-selected local MCP session.",
+  "description": "SEMAPRAX syntax highlighting and check-on-save diagnostics for .spx files, plus explicit, read-only source previews and semantic candidates through a host-selected local MCP session.",
   "version": "0.1.0",
   "publisher": "semaprax",
   "engines": { "vscode": "^1.85.0" },
   "main": "./extension.js",
   "extensionKind": ["workspace"],
   "capabilities": { "untrustedWorkspaces": { "supported": false }, "virtualWorkspaces": false },
-  "activationEvents": ["onCommand:semaprax.start"],
+  "activationEvents": ["onCommand:semaprax.start", "onLanguage:semaprax", "onCommand:semaprax.checkProject"],
   "scripts": { "test": "node --test test/*.test.js" },
   "contributes": {
     "languages": [
@@ -54,12 +54,14 @@
       { "command": "semaprax.fillHole", "title": "SEMAPRAX: Fill Selected Hole from Active Scratch" },
       { "command": "semaprax.completeDraft", "title": "SEMAPRAX: Complete Ready Draft as Candidate" },
       { "command": "semaprax.discardDraft", "title": "SEMAPRAX: Discard Typed-Hole Draft" },
-      { "command": "semaprax.refresh", "title": "SEMAPRAX: Preview and Explicitly Refresh Saved Source" }
+      { "command": "semaprax.refresh", "title": "SEMAPRAX: Preview and Explicitly Refresh Saved Source" },
+      { "command": "semaprax.checkProject", "title": "SEMAPRAX: Check Project" }
     ],
     "configuration": {
       "title": "SEMAPRAX Saved Source",
       "properties": {
         "semaprax.compilerPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute compiler binary path. Never read from workspace settings." },
+        "semaprax.checkOnSave": { "type": "boolean", "default": true, "scope": "machine", "description": "Run the selected compiler's read-only `check --json` on the saved file's project and show its diagnostics. Effective only when semaprax.compilerPath is set." },
         "semaprax.manifestPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute saved semaprax.toml path." },
         "semaprax.hostPolicyPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute existing v1-v7 host-policy JSON path. Candidate tests remain unavailable unless that policy explicitly selects its fixed interpreter limits; this extension cannot invoke builds, approval, or publication." }
       }

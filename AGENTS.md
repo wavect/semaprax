@@ -114,6 +114,13 @@ convention and the cases that must stay standalone.
   worktree of this repository, and dozens are usually registered, so a push or
   pop reaches another agent's uncommitted work rather than your own. Commit to a
   scratch branch, or use a worktree, instead.
+- Do not point a worktree's Cargo `target-dir` (in `.cargo/config.toml` or
+  `CARGO_TARGET_DIR`) at another worktree's `target/` or at any path a different
+  checkout's tests depend on. Cargo fingerprints by source path, so one
+  worktree's build of older source overwrites the other's binaries and
+  fingerprints mid-test. When several agents build on one machine, use a
+  private `CARGO_TARGET_DIR` under the worktree's own `target/`;
+  [development](docs/DEVELOPMENT.md#verification) gives the variables.
 - Do not introduce build-time network access or ambient authority.
 - Do not bypass verification in a backend or report generator.
 - Do not sort, repair, or reinterpret canonical cleanup plans downstream.

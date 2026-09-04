@@ -185,6 +185,20 @@ complete package or executable was published, the operation reports `SPX-J103`.
 The output may remain at its output path; callers must reconcile the retained
 output with the current inputs and must never delete it automatically.
 
+When a listed source imports a module that no listed source declares, the
+Workspace Semantic Graph reports `SPX-G172` "target module is missing or
+equals the caller module" at the `use`. The project loader keeps that code,
+message, and span and adds a `help` line: when an unlisted `.spx` file in a
+directory that holds a listed source declares the module, the help names that
+file and the `sources` key (`` `src/util.spx` declares module `app.util` but is
+not listed under `sources` in semaprax.toml; add it there ``); when no such file
+exists, it says that no listed file declares the module; when the module
+imports from itself, it says so. The scan reads at most 512 `.spx` files of at
+most 1 MiB each, runs only after the build has already failed, and produces
+advisory text only. Human and `--json` output carry the same `help`.
+`tests/project_cli_v1.rs::unresolved_import_hint_names_the_unlisted_source_file`
+is the gate.
+
 | Diagnostic | Meaning |
 | --- | --- |
 | `SPX-J100` | Canonical manifest/path grammar rejection. |

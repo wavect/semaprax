@@ -422,3 +422,78 @@ fn project_build_rejections_happen_before_any_output_clobber() {
     );
     assert_eq!(std::fs::read(&blocked_output).unwrap(), sentinel);
 }
+
+/// A `use` of a module no listed source declares keeps its `SPX-G172` code and
+/// message; the project layer adds the `help` that names the unlisted file, or
+/// says that no listed file declares the module.
+#[test]
+fn unresolved_import_hint_names_the_unlisted_source_file() {
+    let fixture = fixture("unlisted-module");
+    let app = fixture.root.join("src/app.spx");
+    let source = std::fs::read_to_string(&app).unwrap();
+    let source = source.replacen(
+        "use function @id(\"calculator.divide\") from calculator.core as divide;\n",
+        "use function @id(\"calculator.divide\") from calculator.core as divide;\nuse function @id(\"calculator.util.double\") from calculator.util as double;\n",
+        1,
+    );
+    let source = source.replacen(
+        "add(multiply(6, 7), subtract(divide(4, 2), 2))",
+        "double(add(multiply(6, 7), subtract(divide(4, 2), 2)))",
+        1,
+    );
+    std::fs::write(&app, &source).unwrap();
+    std::fs::write(
+        fixture.root.join("src/util.spx"),
+        "module calculator.util;\n\n@id(\"calculator.util.double\")\nfn double(value: i64) -> i64\n{\n    value * 2\n}\n",
+    )
+    .unwrap();
+
+    let unlisted = cli(&fixture.root, &["check", "."]);
+    assert_eq!(unlisted.status.code(), Some(1));
+    assert_eq!(
+        stderr(&unlisted),
+        "error[SPX-G172]: target module is missing or equals the caller module at src/app.spx:4:1\n  help: `src/util.spx` declares module `calculator.util` but is not listed under `sources` in semaprax.toml; add it there\n"
+    );
+    let json = cli(&fixture.root, &["check", ".", "--json"]);
+    assert_eq!(json.status.code(), Some(1));
+    let diagnostic: serde_json::Value = serde_json::from_str(stdout(&json).trim_end()).unwrap();
+    assert_eq!(diagnostic["code"], "SPX-G172");
+    assert_eq!(
+        diagnostic["message"],
+        "target module is missing or equals the caller module"
+    );
+    assert_eq!(
+        diagnostic["help"],
+        "`src/util.spx` declares module `calculator.util` but is not listed under `sources` in semaprax.toml; add it there"
+    );
+
+    std::fs::remove_file(fixture.root.join("src/util.spx")).unwrap();
+    let missing = cli(&fixture.root, &["check", "."]);
+    assert_eq!(missing.status.code(), Some(1));
+    assert_eq!(
+        stderr(&missing),
+        "error[SPX-G172]: target module is missing or equals the caller module at src/app.spx:4:1\n  help: no file listed under `sources` in semaprax.toml declares module `calculator.util`; declare it in a listed `.spx` file or add that file to `sources`\n"
+    );
+
+    // Listing the file resolves the import without any hint.
+    std::fs::write(
+        fixture.root.join("src/util.spx"),
+        "module calculator.util;\n\n@id(\"calculator.util.double\")\nfn double(value: i64) -> i64\n{\n    value * 2\n}\n",
+    )
+    .unwrap();
+    let manifest = fixture.root.join("semaprax.toml");
+    let toml = std::fs::read_to_string(&manifest).unwrap();
+    std::fs::write(
+        &manifest,
+        toml.replacen(
+            "\"src/tests.spx\"]",
+            "\"src/tests.spx\", \"src/util.spx\"]",
+            1,
+        ),
+    )
+    .unwrap();
+    let listed = cli(&fixture.root, &["check", "."]);
+    assert!(listed.status.success(), "{}", stderr(&listed));
+    let run = cli(&fixture.root, &["run", "."]);
+    assert_eq!(stdout(&run), "84\n", "{}", stderr(&run));
+}

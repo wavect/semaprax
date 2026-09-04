@@ -38,6 +38,7 @@ mod revision;
 mod scaffold;
 mod scalar_wit;
 mod semantic;
+mod source_hint;
 mod target_cache;
 #[cfg(test)]
 mod tests;
@@ -1039,7 +1040,9 @@ fn load_snapshot_building<T>(
         declared_inputs.push(selection);
     }
 
-    let (revision, result) = build(manifest, workspace_sources)?;
+    let declared_sources = manifest.sources().to_vec();
+    let (revision, result) = build(manifest, workspace_sources)
+        .map_err(|errors| source_hint::hint_unlisted_module(errors, &root, &declared_sources))?;
     let mut snapshot = ProjectSnapshot {
         root,
         revision,

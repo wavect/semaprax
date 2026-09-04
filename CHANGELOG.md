@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- `semaprax check` on a project whose `use` names a module no listed source
+  declares keeps `SPX-G172` and its message and adds a `help` line: it names
+  the unlisted `.spx` file that declares the module and the `sources` key in
+  `semaprax.toml`, or says that no listed file declares the module. The hint is
+  added by the project loader in `src/project/source_hint.rs`, so human and
+  JSON diagnostics agree; [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md)
+  owns the rule and `tests/project_cli_v1.rs` pins it.
+
 - `semaprax lock <manifest>` renders the deterministic `semaprax.lock` beside a
   project ([Project Lock v1](docs/PROJECT-LOCK-V1.md)): the canonical manifest
   and its contract, the project revision as the program root, every source

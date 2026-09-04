@@ -67,6 +67,14 @@ fn report_test(execution: &project::ProjectExecution, json: bool) -> Result<(), 
         project::ProjectExecutionOutcome::Returned(0)
     );
     let cases = execution.cases();
+    if !json {
+        for skipped in execution.skipped_cases() {
+            eprintln!(
+                "note: `{}` is not a test case: {}; a case is `fn test_<name>() -> i64` with an `@id` and no parameters",
+                skipped.name, skipped.reason
+            );
+        }
+    }
     let failed_cases = cases.iter().filter(|case| !case.passed()).count();
     if !main_failed && failed_cases == 0 {
         if !json {

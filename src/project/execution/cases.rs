@@ -46,6 +46,15 @@ pub struct ProjectContractArgument {
     pub value: String,
 }
 
+/// A `test_`-prefixed function of the declared test module that is not a
+/// case, with the shape rule it misses, so the report can say so instead of
+/// skipping it silently.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SkippedTestCase {
+    pub name: String,
+    pub reason: &'static str,
+}
+
 /// One executed `test_` case of the declared test module.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectTestCase {
@@ -157,6 +166,48 @@ pub(super) fn case_selection<'a>(
             && declared_here)
             .then(|| (function.id.as_str(), function.name.as_str()))
     })
+}
+
+/// The `test_`-prefixed functions of `module` that are not cases, in the
+/// program's stable-identity order, each with the first rule it misses.
+pub(super) fn skipped_selection(
+    snapshot: &ProjectRevision,
+    program: &hir::ResolvedProgram,
+    module: &str,
+) -> Vec<SkippedTestCase> {
+    program
+        .functions
+        .iter()
+        .filter(|function| function.name.starts_with(TEST_CASE_PREFIX))
+        .filter(|function| {
+            snapshot
+                .semantic
+                .rename_function(function.id.as_str())
+                .is_some_and(|declared| declared.module == module)
+        })
+        .filter_map(|function| {
+            let explicit =
+                program
+                    .declarations
+                    .declaration(&function.id)
+                    .is_some_and(|declaration| {
+                        declaration.identity_origin == hir::IdentityOrigin::Explicit
+                    });
+            let reason = if !function.params.is_empty() {
+                "it takes parameters"
+            } else if function.return_type != hir::ResolvedType::I64 {
+                "it does not return `i64`"
+            } else if !explicit {
+                "it has no explicit `@id`"
+            } else {
+                return None;
+            };
+            Some(SkippedTestCase {
+                name: function.name.clone(),
+                reason,
+            })
+        })
+        .collect()
 }
 
 /// Execute every case with its own full step budget. A cancellation observed

@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- `semaprax test` names a `test_`-prefixed function that is not a case (it
+  takes parameters, does not return `i64`, or has no explicit `@id`) with a
+  `note:` line on stderr instead of skipping it silently; the JSON envelope is
+  unchanged. The generated `AGENTS.md` now explains the test module and named
+  cases, so the scaffold capsule digests change.
+
 - Project manifests can now link the closed compiler-bundled `std.*` inventory
   at version `0.1.0` without cache, network, or acquisition authority. Exact,
   tilde, and caret ranges are checked, transitive standard dependencies are

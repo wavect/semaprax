@@ -63,7 +63,8 @@ is and where to read the language card (`semaprax help language`); the five
 commands; and the rules that differ from other languages, namely the `module`
 header and `@id` identities, the tail-expression body rule, `if`/`else` and
 `while` shape, contracts and effects, whole-project checking, manifest
-registration of new modules, and the diagnostic code and `help:` convention.
+registration of new modules, the test module with its named `test_` cases, and
+the diagnostic code and `help:` convention.
 It states no rule of its own; every sentence restates a rule the compiler
 enforces and the [agent quick reference](AGENT-QUICK-REFERENCE.md) documents.
 

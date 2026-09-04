@@ -14,7 +14,8 @@ use crate::interpreter::{self, ResolvedEvaluation, ResolvedEvaluationOutcome, DE
 
 use super::{ProjectExecutionCancellation, ProjectRevision};
 pub use cases::{
-    ProjectContractArgument, ProjectContractFailure, ProjectTestCase, TEST_CASE_PREFIX,
+    ProjectContractArgument, ProjectContractFailure, ProjectTestCase, SkippedTestCase,
+    TEST_CASE_PREFIX,
 };
 #[cfg(test)]
 use report::render;
@@ -89,6 +90,7 @@ pub struct ProjectExecution {
     max_steps: usize,
     failure: Option<ProjectContractFailure>,
     cases: Vec<ProjectTestCase>,
+    skipped_cases: Vec<SkippedTestCase>,
     envelope: String,
 }
 
@@ -142,6 +144,13 @@ impl ProjectExecution {
         &self.cases
     }
 
+    /// `test_`-prefixed functions of the test module that are not cases, with
+    /// the shape rule each misses; always empty for the entry role. Reports
+    /// name them so a mis-shaped case is never skipped silently.
+    pub fn skipped_cases(&self) -> &[SkippedTestCase] {
+        &self.skipped_cases
+    }
+
     /// Command-level success: any returned entry value is a successful run;
     /// the declared test closure passes only when `main` and every named case
     /// return zero.
@@ -193,7 +202,30 @@ pub(super) fn execute(
             }
         }
     };
+    let cases = TestCases {
+        cases,
+        skipped: skipped(snapshot, program, module, role),
+    };
     finish(snapshot, role, module, entry_id, evaluated, cases, options)
+}
+
+/// The executed named cases of one test run and the `test_` functions that
+/// were not admitted as cases.
+struct TestCases {
+    cases: Vec<ProjectTestCase>,
+    skipped: Vec<SkippedTestCase>,
+}
+
+fn skipped(
+    snapshot: &ProjectRevision,
+    program: &crate::hir::ResolvedProgram,
+    module: &str,
+    role: ProjectExecutionRole,
+) -> Vec<SkippedTestCase> {
+    match role {
+        ProjectExecutionRole::Entry => Vec::new(),
+        ProjectExecutionRole::Test => cases::skipped_selection(snapshot, program, module),
+    }
 }
 
 /// Execute through the cancellation-aware prepared evaluator without retaining
@@ -289,6 +321,10 @@ pub(super) fn execute_cancellable(
             }
         }
     };
+    let cases = TestCases {
+        cases,
+        skipped: skipped(snapshot, program, module, role),
+    };
     let execution = finish(
         snapshot,
         role,
@@ -312,9 +348,13 @@ fn finish(
     module: &str,
     entry_id: &str,
     evaluated: ResolvedEvaluation,
-    cases: Vec<ProjectTestCase>,
+    cases: TestCases,
     options: &ProjectExecutionOptions,
 ) -> Result<ProjectExecution, Vec<Diagnostic>> {
+    let TestCases {
+        cases,
+        skipped: skipped_cases,
+    } = cases;
     let failure = evaluated
         .failure
         .as_ref()
@@ -362,6 +402,7 @@ fn finish(
         max_steps: evaluated.max_steps,
         failure,
         cases,
+        skipped_cases,
         envelope,
     })
 }

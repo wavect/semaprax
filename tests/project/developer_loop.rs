@@ -290,7 +290,8 @@ fn named_test_cases_are_executed_and_reported_individually() {
     assert!(stdout(&test).is_empty());
     assert_eq!(
         stderr(&test),
-        "failed calculator.tests.test_divide_by_zero: language status {\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.contract.v1\",\"code\":1,\"class\":\"contract\",\"retryable\":false}\n\
+        "note: `test_helper` is not a test case: it takes parameters; a case is `fn test_<name>() -> i64` with an `@id` and no parameters\n\
+         failed calculator.tests.test_divide_by_zero: language status {\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.contract.v1\",\"code\":1,\"class\":\"contract\",\"retryable\":false}\n\
          \x20 contract: requires right != 0 in calculator.divide\n\
          \x20 arguments: left = 7, right = 0\n\
          failed calculator.tests.test_subtract: returned 2\n\

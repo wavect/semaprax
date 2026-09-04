@@ -163,5 +163,8 @@ keeps working, while one that pins whole test-envelope bytes observes the new
   ([Prepared Project Interpreter v1](PROJECT-PREPARED-INTERPRETER-V1.md))
   retain the detail internally but render neither `failure` nor `cases`; their
   wire bytes are unchanged.
-- A `test_` function of a non-admitted shape is silently not a case; there is
-  no diagnostic for it.
+- A `test_` function of a non-admitted shape is not a case. The human report
+  of `semaprax test` prints one stderr line per such function, `note: `<name>`
+  is not a test case: <rule>; …`, naming the first rule it misses (parameters,
+  a non-`i64` result, or a missing explicit `@id`); the JSON envelope is
+  unchanged and no compiler diagnostic is emitted.

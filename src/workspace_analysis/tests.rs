@@ -548,10 +548,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             .each_ref()
             .map(|artifact| document_sha(&artifact.json)),
         [
-            "sha256:1771fa620515cd0cd71ef8203ca8e5b68a01d5e9458bc030218c02d84c44ffd0",
-            "sha256:7db8060ee2153acde922174c82d99dfbef5e814475e0f07cfb098ea876215b86",
-            "sha256:58dc068ed868974c224bc99903f9df0d80597c5c6131873ef3176782f748bbed",
-            "sha256:0cfe38cf81820e420266a08a167321ebd5d300e93704cab8d4245f739afbb10b"
+            "sha256:034357caffca26d6ffd07ae880aaa2afa1c28061d857a5a677293eb33dd885e9",
+            "sha256:872ab2a3c6a1d066c464c6e30fd155a8da3606b2934e0fcc406623cdefd99881",
+            "sha256:343129156efde7075cbee6aedab4e0795f31d110bcd161acba82cbc7e99c9259",
+            "sha256:940fbcbf25ba83e20030e879076ccff88fa0ddc6420728b4b704e3bd9b140126"
         ]
     );
     for artifact in &contexts {
@@ -608,8 +608,8 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             .each_ref()
             .map(|artifact| document_sha(&artifact.json)),
         [
-            "sha256:79c358035992c65f525b132e707465f2764a7d65d1023c08b0804d88cba2fa3d",
-            "sha256:dbeecd330b1e23874005c965b94f51155ba68b4f04ef1d6ee5ca653853cee4e8",
+            "sha256:c3196a4f38a64565f437eb01b3b21fa7d784ebeb286fd4aa9315e68af6dd8cfc",
+            "sha256:49a5f12b2afa110c9f3076894e6e6b259ac159e850ca7946f8539f796a92f4a3",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -744,7 +744,7 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
     let review = analysis.render_review(declaration_target.clone()).unwrap();
     assert_eq!(
         document_sha(&review.json),
-        "sha256:15ee77a8c18047fd6836ffa2c528edb86adfc60cec4156512a9309947e0a79ea"
+        "sha256:4c9c8216822550837fa48efc9f33ee3932cb0cf5a45d84a203e9850b32a5d005"
     );
     let direct_context = analysis
         .render_context(

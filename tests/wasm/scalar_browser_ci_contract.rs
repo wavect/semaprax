@@ -23,8 +23,12 @@ fn assert_only_checked_value_cursor_budget_changed(graph: &str, previous_digest:
     assert_eq!(hash(&payload), parsed["graph_digest"]);
     // Three checked modules each reserve a 257-entry cursor stack. On the
     // supported 64-bit hosts its tagged reference plus index occupy 24 bytes.
-    // Replaying the historical whole payload after removing only that debit
-    // proves the source, declarations, edges and other budgets stayed frozen.
+    // Replaying the whole payload after removing only that debit against a
+    // pinned digest proves the source, declarations, edges and other budgets
+    // stayed frozen. The pinned digests were re-taken when the builder
+    // pre-bound split structural, string, and identity charges, which moved
+    // `used_builder_bytes` and therefore both graph digests; nothing else in
+    // the payload changed.
     let current = parsed["budget"]["used_builder_bytes"].as_u64().unwrap();
     let previous = current.checked_sub(3 * 257 * 24).unwrap();
     let field = format!("\"used_builder_bytes\":{current}");
@@ -102,8 +106,8 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
                 assert_only_checked_value_cursor_budget_changed(
                     revision.semantic_graph(),
                     [
-                        "sha256:4427bce376eee8d4b27c4df1d7090e58dbf19fca3ab3691644a1fd8f9dd36e04",
-                        "sha256:ce68020f8cf6b47e2f81686c4708641dfdc27ab7d8f91d02de00c8799717c70a",
+                        "sha256:3ced2c7765327b2737a36756091f2b802e55e73076976a3ee089fb9e31a20553",
+                        "sha256:9d298409cc5d2cbcf14c2ec2af64f17ad1ed399fa26708b1b9649332eb3d29e8",
                     ][index],
                 );
                 let actual = [

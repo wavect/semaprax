@@ -385,7 +385,7 @@ fn authenticated_derivation_kat_binds_refs_budget_nonclaims_and_build_counts() {
     );
     assert_eq!(
         output.derivation_digest(),
-        "sha256:7f1928af677e0fac3721279366d7fefb995ab28f82523a6923f16027998856ed"
+        "sha256:96a59df0075175d78d01e2766dfcf3b26018230fca68694f226a9f1f45a3789e"
     );
 }
 
@@ -1513,11 +1513,11 @@ fn operations_evidence_and_verification_are_exact_one_build_kats() {
         .starts_with("sha256:"));
     assert_eq!(
         raw_sha256(artifacts.workspace_change_evidence().as_bytes()),
-        "sha256:f4a9902f2b7cd0dfc3e3390cd820ab98d51d42843081778b9e02590c977ae46a"
+        "sha256:f71545b90d68b6a35c68f062640dd19d9076a0a4b0ad6cfefd81ffce1170cb74"
     );
     assert_eq!(
         raw_sha256(artifacts.operations_evidence().as_bytes()),
-        "sha256:4eb70fa0f2905dd5d9fd34a0c29b8363bca915427ecaf8494f2b71f2a963f20f"
+        "sha256:f8ff338a71491cdaf3c0a9c6b73539123f7e9d41c1f81e0181674dbdd2d61f46"
     );
     assert_eq!(
         artifacts.operations_proposal_digest(),
@@ -1546,7 +1546,7 @@ fn operations_evidence_and_verification_are_exact_one_build_kats() {
     });
     assert_eq!(
         raw_sha256(receipt.as_bytes()),
-        "sha256:d9d04447e5e36b0a90eeebc28db54f8f68fbdda950ec44b5bd444712dc25303f"
+        "sha256:3e093b5888fe578e08929914f50780bf2dc8e66b95520378a4054c30daca1931"
     );
     let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
     assert_eq!(
@@ -2236,7 +2236,7 @@ fn operations_apply_is_exact_stale_and_zero_write_before_replay() {
     let receipt = apply(&fixture.root, &fixture.proposal_path, &evidence_path).unwrap();
     assert_eq!(
         raw_sha256(receipt.as_bytes()),
-        "sha256:e588d641061d0b6c093dd63599c13d0368fd97e01f33b1a8c3d819c0b28a29ea"
+        "sha256:141f0fdd2b26d54eb43230291ce8a772ea9520f59cfeb348c8a4b7c8a1184e24"
     );
     let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
     assert_eq!(

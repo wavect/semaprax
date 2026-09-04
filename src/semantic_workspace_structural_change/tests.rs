@@ -1264,11 +1264,11 @@ fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() 
             raw_sha(artifacts.evidence()),
         ],
         [
-            "sha256:9eee0f5f6c895c587cb2e1e9a1d67d4b25d2fe42f5061d95cda63b9f2236d8e7",
-            "sha256:af9043f1efe13160793614eb7254586d1ed7c00cb98aa2862a9862b0245b77e2",
-            "sha256:a55e9b56f2c156c7e90613099b29a52c32b1cd518a35075c0dd5730272a77a88",
-            "sha256:2f7b02e4fc2da147ebc40671cc5ed6de6143e7261b816e883f5ea4c0cbbcb1d4",
-            "sha256:ca90f1fa3dd850eadd93feece34be160c1e26f22ca02125dd6f3ab180c970e44",
+            "sha256:a75df633070dd45fa8ff7b87fe745a30439c02522119d8119b748af17706a522",
+            "sha256:b46553f786753c0ac46d50372fdf49e937c780309f55d0caa1baa1325d6496c4",
+            "sha256:2e2a109ea9977b81c5ee7a45daf229a2f859ad7e43831bf5dca950b9da125e9a",
+            "sha256:be8a532079c6cacd5db8eea77acb7ccbd0b6fdf6aac53880419fd9cfb2032370",
+            "sha256:467ca252b092762b35a7113635480e7013e2d3d5ec387d97ccc44da44e89fe5a",
         ]
     );
 
@@ -1315,7 +1315,7 @@ fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() 
     assert_eq!(value["budget"]["used_receipt_bytes"], receipt.len());
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:65ddd9b5db116a8ced3ba226b1e84541865ffb2486a4df6a805fabe898ff4c30"
+        "sha256:12ac098a4d27f81df384251f8380f4e2d35dda7c5008800430bf66509de63a83"
     );
     fixture.assert_exclusive_reacquire();
 }
@@ -1983,7 +1983,7 @@ fn structural_apply_publishes_exact_candidate_once_without_raw_writes() {
     assert_eq!(receipt_value["result"], "applied");
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:217a81f0b6570a4ffa7d80710c2df4e360b9dd8bc29377793ad165ef513498cd"
+        "sha256:f24700f4a38d9311e899439b707158f021a9179a65bee4d8425c3e2994980de4"
     );
     assert_eq!(fixture.raw_inventory(), raw_before);
     assert_ne!(

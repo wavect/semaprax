@@ -95,13 +95,22 @@ const NONCLAIMS: [&str; 18] = [
 thread_local! {
     static ACTIVE_BUILDER_LIMIT: Cell<usize> = const { Cell::new(MAX_BUILDER_BYTES) };
 }
+// Fixed resolver nodes are bounded by the structural bundles asserted below:
+// every HIR node, cleanup slot, and plan entry derived from one AST node fits
+// in sixteen footprints of that node. Eight further footprints cover the
+// map/tree node bookkeeping retained around each node, so structural source
+// bytes expand by at most 24. Generic materializations are charged as
+// additional complete function trees before applying the factor.
+const HIR_FIXED_EXPANSION_FACTOR: usize = 16;
+const HIR_STRUCTURE_BOOKKEEPING_FACTOR: usize = 8;
+const HIR_STRUCTURE_EXPANSION_FACTOR: usize =
+    HIR_FIXED_EXPANSION_FACTOR + HIR_STRUCTURE_BOOKKEEPING_FACTOR;
 // The resolver retains at most 48 owned copies of any source string across its
 // AST clone, declaration/name/type indexes, resolved HIR, cleanup structures,
-// and validation indexes. Fixed nodes are bounded by the structural bundles
-// asserted below. Use 64 source-tree footprints to leave sixteen footprints
-// for map/tree node bookkeeping. Generic materializations are charged as
-// additional complete function trees before applying the factor.
-const HIR_FIXED_EXPANSION_FACTOR: usize = 64;
+// and validation indexes. String contents therefore expand by 64 to leave
+// sixteen copies for map/tree node bookkeeping; the string headers themselves
+// are structural bytes.
+const HIR_STRING_COPY_FACTOR: usize = 64;
 // A declaration identity at one resolved occurrence can be present in the
 // retained HIR, declaration/type/call indexes, validation sets, cleanup
 // inventory, cleanup-plan projections, and transient resolver maps. The

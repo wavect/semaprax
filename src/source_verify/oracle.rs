@@ -11,6 +11,7 @@ use super::declared_type::{
     check_declared_type, ordinary_option_argument, ordinary_result_arguments,
 };
 use super::diagnostics::{error, reject_native_unit_value, source_identifier};
+use super::hints;
 use super::loans::{
     activate_local_loan, join_conditional, local_borrow_origin, mark_value_sources_moved,
     merge_moved, release_dead_local_loans,
@@ -366,11 +367,14 @@ pub(super) fn check_expr(
                 && (left_ty.as_ref().is_some_and(|value| value.ty != expected)
                     || right_ty.as_ref().is_some_and(|value| value.ty != expected))
             {
-                diagnostics.push(error(
-                    program,
-                    "SPX-T208",
-                    format!("operator `{}` expects {expected} operands", op.text()),
-                    expr.span,
+                diagnostics.push(hints::with_optional_help(
+                    error(
+                        program,
+                        "SPX-T208",
+                        format!("operator `{}` expects {expected} operands", op.text()),
+                        expr.span,
+                    ),
+                    hints::literal_suffix_help(&expected, left, right),
                 ));
             }
             Some(CheckedValue::value(output))

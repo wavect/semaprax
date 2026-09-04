@@ -172,7 +172,7 @@ pub(super) fn check_declared_type(
             continue;
         };
         if arguments.len() != declaration.type_parameters.len() {
-            diagnostics.push(error(
+            let mut diagnostic = error(
                 program,
                 "SPX-T221",
                 format!(
@@ -181,7 +181,14 @@ pub(super) fn check_declared_type(
                     arguments.len()
                 ),
                 span,
-            ));
+            );
+            if arguments.is_empty() {
+                diagnostic = diagnostic.with_help(super::hints::type_arguments_help(
+                    name,
+                    declaration.type_parameters.len(),
+                ));
+            }
+            diagnostics.push(diagnostic);
         }
         if arguments
             .iter()

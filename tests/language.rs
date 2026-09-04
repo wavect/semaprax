@@ -89,6 +89,8 @@ mod string_scalars;
 mod u8_scalars;
 #[path = "language/variants_semantics.rs"]
 mod variants_semantics;
+#[path = "language/verifier_hints.rs"]
+mod verifier_hints;
 #[path = "language/wasm_scalar_export_widen.rs"]
 mod wasm_scalar_export_widen;
 #[path = "language/while_loops.rs"]

@@ -5,6 +5,7 @@ use crate::ast::{BinaryOp, Expr, ExprKind, Type, UnaryOp};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding, CheckedValue};
 use crate::source_verify::diagnostics::{error, reject_native_unit_value};
+use crate::source_verify::hints;
 use crate::source_verify::loans::join_conditional;
 use crate::source_verify::place::{join_definitely_partial, join_moved_places};
 use crate::source_verify::scope::{VerifierFrame, VerifierScope};
@@ -226,11 +227,14 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     .as_ref()
                     .is_some_and(|value| value.ty != expected))
         {
-            self.diagnostics.push(error(
-                self.program,
-                "SPX-T208",
-                format!("operator `{}` expects {expected} operands", op.text()),
-                expression.span,
+            self.diagnostics.push(hints::with_optional_help(
+                error(
+                    self.program,
+                    "SPX-T208",
+                    format!("operator `{}` expects {expected} operands", op.text()),
+                    expression.span,
+                ),
+                hints::literal_suffix_help(&expected, left, right),
             ));
         }
         self.values.push(Some(CheckedValue::value(output)));

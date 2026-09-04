@@ -8,7 +8,8 @@
 //! - [`scope`] declares the verifier's scope and frame state; [`iterative`]
 //!   drives the frame loop that checks expressions.
 //! - [`loans`], [`arguments`], and [`diagnostics`] own invocation-local loans,
-//!   call-boundary ownership, and diagnostic construction.
+//!   call-boundary ownership, and diagnostic construction; [`hints`] holds the
+//!   fix hints both verifiers attach to the same diagnostics.
 //! - [`capacity`] projects storage capacity; [`oracle`] is the test-only
 //!   recursive cross-check of the frame loop.
 
@@ -30,6 +31,7 @@ mod capacity;
 mod declaration;
 mod declared_type;
 mod diagnostics;
+mod hints;
 mod iterative;
 mod loans;
 mod place;

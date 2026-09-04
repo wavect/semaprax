@@ -11,6 +11,7 @@ use crate::source_verify::declared_type::{
     check_declared_type, direct_function_type_argument, validation_specialize_signature,
 };
 use crate::source_verify::diagnostics::{error, source_identifier};
+use crate::source_verify::hints;
 use crate::source_verify::place::{
     check_source_place_availability, overlapping_place_state, source_place,
 };
@@ -291,10 +292,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 } else {
                     let target = self.functions.get(name.as_str()).copied();
                     if target.is_none() {
-                        self.diagnostics.push(error(
+                        self.diagnostics.push(hints::unknown_function(
                             self.program,
-                            "SPX-T203",
-                            format!("unknown function `{name}`"),
+                            name,
+                            self.functions,
                             expression.span,
                         ));
                     }
@@ -338,7 +339,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 "SPX-T225",
                                 format!("generic function `{name}` expects {} explicit type arguments, received {}", target.type_parameters.len(), type_arguments.len()),
                                 expression.span,
-                            ));
+                            ).with_help(hints::generic_call_help(name)));
                             return None;
                         }
                         if type_arguments.iter().any(|argument| !direct_function_type_argument(argument)) {

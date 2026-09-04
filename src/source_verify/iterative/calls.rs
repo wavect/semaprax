@@ -9,6 +9,7 @@ use crate::source_verify::arguments::{
 use crate::source_verify::binding::{CheckedValue, SourceLoanId};
 use crate::source_verify::declared_type::{ordinary_option_argument, ordinary_result_arguments};
 use crate::source_verify::diagnostics::{error, reject_native_unit_value};
+use crate::source_verify::hints;
 use crate::source_verify::scope::{VerifierCallTarget, VerifierFrame, VerifierFunctionSignature};
 use crate::source_verify::type_table::{effective_record_fields, resolve_class_method};
 use crate::source_verify::IterativeVerifier;
@@ -94,11 +95,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 if let Some(actual) = &actual {
                     reject_native_unit_value(self.program, argument, actual, self.diagnostics);
                     if !actual.native_unit && !op.accepts_ast(index, &actual.ty) {
-                        self.diagnostics.push(error(
-                            self.program,
-                            "SPX-T263",
-                            format!("byte operation `{name}` argument {index} has the wrong type"),
-                            argument.span,
+                        self.diagnostics.push(hints::with_optional_help(
+                            error(
+                                self.program,
+                                "SPX-T263",
+                                format!(
+                                    "byte operation `{name}` argument {index} has the wrong type"
+                                ),
+                                argument.span,
+                            ),
+                            hints::view_argument_help(name, &actual.ty),
                         ));
                     }
                 }
@@ -107,13 +113,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 if let Some(actual) = &actual {
                     reject_native_unit_value(self.program, argument, actual, self.diagnostics);
                     if !actual.native_unit && !op.accepts_ast(index, &actual.ty) {
-                        self.diagnostics.push(error(
-                            self.program,
-                            "SPX-T269",
-                            format!(
-                                "host I/O operation `{name}` argument {index} has the wrong type"
+                        self.diagnostics.push(hints::with_optional_help(
+                            error(
+                                self.program,
+                                "SPX-T269",
+                                format!(
+                                    "host I/O operation `{name}` argument {index} has the wrong type"
+                                ),
+                                argument.span,
                             ),
-                            argument.span,
+                            hints::view_argument_help(name, &actual.ty),
                         ));
                     }
                 }

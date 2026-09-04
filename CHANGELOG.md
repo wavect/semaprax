@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Verifier diagnostics now carry fix hints for the type-level habits an agent
+  brings from other languages: an unknown function names the nearest declared
+  or compiler-owned function (`did you mean `string_len`?`) or, for the
+  print family, the one admitted output route; a generic call or generic type
+  without explicit type arguments shows the `id<i64>(…)` and
+  `Option<i64>::Some { value: … }` shapes; an unsuffixed integer literal against
+  a `usize`, `i32`, or `u8` operand names the suffix to write; and an owned
+  `string` handed to `str_as_bytes`, a byte operation, or `stdout_write` names
+  the `string_as_str`/`str_as_bytes` conversion. Codes, messages, and spans are
+  unchanged, and the iterative verifier and the test-only oracle share the
+  helpers in `src/source_verify/hints.rs`; `tests/language/verifier_hints.rs`
+  pins each case and the no-hint baselines.
+
 ## 0.3.0 — 2026-09-04
 
 - Fixed the owning `add_record_field` Bytes lane, which emitted

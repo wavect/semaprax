@@ -10,6 +10,7 @@ use crate::source_verify::declared_type::{
     direct_function_type_argument, validation_specialize_function,
 };
 use crate::source_verify::diagnostics::{error, reject_native_unit_value};
+use crate::source_verify::hints;
 use crate::source_verify::oracle::check_expr;
 use crate::source_verify::type_table::{resolve_class_method, TypeTable};
 use std::collections::HashMap;
@@ -93,12 +94,7 @@ pub(super) fn oracle_call(
     }
     let target = functions.get(name.as_str()).copied();
     if target.is_none() {
-        diagnostics.push(error(
-            program,
-            "SPX-T203",
-            format!("unknown function `{name}`"),
-            expr.span,
-        ));
+        diagnostics.push(hints::unknown_function(program, name, functions, expr.span));
     }
     if target.is_some_and(|target| args.len() != target.params.len()) {
         let target = target.expect("checked above");
@@ -138,16 +134,19 @@ pub(super) fn oracle_call(
             ));
         }
         if type_arguments.len() != target.type_parameters.len() {
-            diagnostics.push(error(
-                program,
-                "SPX-T225",
-                format!(
-                    "generic function `{name}` expects {} explicit type arguments, received {}",
-                    target.type_parameters.len(),
-                    type_arguments.len()
-                ),
-                expr.span,
-            ));
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-T225",
+                    format!(
+                        "generic function `{name}` expects {} explicit type arguments, received {}",
+                        target.type_parameters.len(),
+                        type_arguments.len()
+                    ),
+                    expr.span,
+                )
+                .with_help(hints::generic_call_help(name)),
+            );
             return None;
         }
         if type_arguments

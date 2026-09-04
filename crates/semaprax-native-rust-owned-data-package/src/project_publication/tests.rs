@@ -11,6 +11,14 @@ const FILES: [(&str, &[u8]); 5] = [
     ("src/app.spx", b"app\n"),
     ("src/tests.spx", b"tests\n"),
 ];
+const LIBRARY_FILES: [(&str, &[u8]); 6] = [
+    ("README.md", b"readme\n"),
+    ("AGENTS.md", b"agents\n"),
+    ("semaprax.toml", b"manifest\n"),
+    ("src/examples.spx", b"examples\n"),
+    ("src/lib.spx", b"library\n"),
+    ("src/tests.spx", b"tests\n"),
+];
 
 #[test]
 fn stage_and_output_collision_rejects_before_creating_children() {
@@ -114,11 +122,39 @@ fn remove_project(path: &Path) {
 fn published_tree_binds_the_original_parent_and_output() {
     let root = fixture();
     let mut authority = authority(&root);
-    authority.publish_and_verify(FILES).unwrap();
+    authority.publish_and_verify(&FILES).unwrap();
     assert!(authority.published);
     drop(authority);
     assert_eq!(names(&root), ["project"]);
     remove_project(&root.join("project"));
+    fs::remove_dir(root).unwrap();
+}
+
+#[test]
+fn library_inventory_is_closed_and_published_through_the_same_authority() {
+    let root = fixture();
+    let mut authority =
+        NewProjectAuthority::create_library(&root, OsStr::new("library"), OsStr::new("stage"))
+            .unwrap();
+    assert_eq!(
+        authority.write("src/app.spx", b"foreign\n"),
+        Err(NewProjectAuthorityError::Invalid)
+    );
+    for (path, bytes) in LIBRARY_FILES {
+        authority.write(path, bytes).unwrap();
+    }
+    authority.publish_and_verify(&LIBRARY_FILES).unwrap();
+    drop(authority);
+    assert_eq!(names(&root), ["library"]);
+    assert_eq!(
+        names(&root.join("library/src")),
+        ["examples.spx", "lib.spx", "tests.spx"]
+    );
+    for (relative, bytes) in LIBRARY_FILES {
+        remove_file(&root.join("library").join(relative), bytes);
+    }
+    fs::remove_dir(root.join("library/src")).unwrap();
+    fs::remove_dir(root.join("library")).unwrap();
     fs::remove_dir(root).unwrap();
 }
 
@@ -137,7 +173,7 @@ fn post_rename_output_displacement_is_changed_without_rollback() {
             }
         }));
         assert_eq!(
-            authority.publish_and_verify(FILES),
+            authority.publish_and_verify(&FILES),
             Err(NewProjectAuthorityError::Changed)
         );
         assert!(authority.published);
@@ -162,7 +198,7 @@ fn post_rename_unwind_cannot_recover_staging_cleanup_authority() {
     let mut authority = authority(&root);
     authority.after_rename = Some(Box::new(|| panic!("after publication")));
     let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
-        authority.publish_and_verify(FILES).unwrap();
+        authority.publish_and_verify(&FILES).unwrap();
     }));
     assert!(outcome.is_err());
     assert_eq!(names(&root), ["project"]);
@@ -184,7 +220,7 @@ fn post_rename_parent_displacement_is_changed_without_rollback() {
         fs::write(target.join("parent/foreign"), b"foreign\n").unwrap();
     }));
     assert_eq!(
-        authority.publish_and_verify(FILES),
+        authority.publish_and_verify(&FILES),
         Err(NewProjectAuthorityError::Changed)
     );
     assert!(authority.published);
@@ -208,7 +244,7 @@ fn partial_untracked_stage_is_not_adopted_for_cleanup() {
     authority.write("README.md", FILES[0].1).unwrap();
     fs::write(root.join("stage/src/foreign"), b"foreign\n").unwrap();
     assert_eq!(
-        authority.publish_and_verify(FILES),
+        authority.publish_and_verify(&FILES),
         Err(NewProjectAuthorityError::Changed)
     );
     assert!(!authority.published);
@@ -272,7 +308,7 @@ fn failed_publish_does_not_adopt_replacement_source_for_cleanup() {
     }));
 
     assert_eq!(
-        authority.publish_and_verify(FILES),
+        authority.publish_and_verify(&FILES),
         Err(NewProjectAuthorityError::Exists)
     );
     assert!(!authority.published);
@@ -321,7 +357,7 @@ fn failed_publish_retains_inert_stage_and_cannot_retry_publication() {
         fs::write(target.join("project/foreign"), b"collision\n").unwrap();
     }));
     assert_eq!(
-        authority.publish_and_verify(FILES),
+        authority.publish_and_verify(&FILES),
         Err(NewProjectAuthorityError::Exists)
     );
     assert!(!authority.published);
@@ -329,7 +365,7 @@ fn failed_publish_retains_inert_stage_and_cannot_retry_publication() {
     assert_project(&root.join("stage"));
     assert_eq!(names(&root.join("project")), ["foreign"]);
     assert_eq!(
-        authority.publish_and_verify(FILES),
+        authority.publish_and_verify(&FILES),
         Err(NewProjectAuthorityError::Changed)
     );
     assert!(!authority.published);
@@ -369,13 +405,13 @@ fn failed_publish_preserves_exists_when_source_is_missing_or_a_link() {
         // Failed source reopen would select Changed and hide this actual
         // collision. Publication failure must instead end the operation first.
         assert_eq!(
-            authority.publish_and_verify(FILES),
+            authority.publish_and_verify(&FILES),
             Err(NewProjectAuthorityError::Exists)
         );
         assert!(!authority.published);
         assert!(authority.source.is_none());
         assert_eq!(
-            authority.publish_and_verify(FILES),
+            authority.publish_and_verify(&FILES),
             Err(NewProjectAuthorityError::Changed)
         );
         drop(authority);

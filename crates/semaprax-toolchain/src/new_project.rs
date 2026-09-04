@@ -21,6 +21,7 @@ const MAX_STAGING_ATTEMPTS: usize = 32;
 struct NewProjectOptions {
     destination: PathBuf,
     name: String,
+    template: String,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -76,24 +77,67 @@ impl WriteHook for NoopWriteHook {
     }
 }
 
-pub(crate) fn run(arguments: &[String]) -> Result<PathBuf, NewProjectFailure> {
+pub(crate) fn run(arguments: &[String]) -> Result<(PathBuf, &'static str), NewProjectFailure> {
     let options = parse(arguments)?;
-    create_with_hook(&options.destination, &options.name, &NoopWriteHook)
+    let template = if options.template == project::PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
+        project::PROJECT_SCAFFOLD_TEMPLATE_LIBRARY
+    } else {
+        project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR
+    };
+    create_template_with_hook(
+        &options.destination,
+        &options.name,
+        template,
+        &NoopWriteHook,
+    )
+    .map(|destination| (destination, template))
 }
 
+#[cfg(test)]
 pub(crate) fn create_with_hook(
     destination: &Path,
     name: &str,
     hook: &dyn WriteHook,
 ) -> Result<PathBuf, NewProjectFailure> {
-    create_with_serial(destination, name, hook, &mut || {
+    create_template_with_hook(
+        destination,
+        name,
+        project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
+        hook,
+    )
+}
+
+fn create_template_with_hook(
+    destination: &Path,
+    name: &str,
+    template: &str,
+    hook: &dyn WriteHook,
+) -> Result<PathBuf, NewProjectFailure> {
+    create_with_serial_template(destination, name, template, hook, &mut || {
         STAGING_SERIAL.fetch_add(1, Ordering::Relaxed)
     })
 }
 
+#[cfg(test)]
 fn create_with_serial(
     destination: &Path,
     name: &str,
+    hook: &dyn WriteHook,
+    serial: &mut dyn FnMut() -> u64,
+) -> Result<PathBuf, NewProjectFailure> {
+    create_with_serial_template(
+        destination,
+        name,
+        project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
+        hook,
+        serial,
+    )
+}
+
+fn create_with_serial_template(
+    destination: &Path,
+    name: &str,
+    template: &str,
     hook: &dyn WriteHook,
     serial: &mut dyn FnMut() -> u64,
 ) -> Result<PathBuf, NewProjectFailure> {
@@ -102,24 +146,22 @@ fn create_with_serial(
         NewProjectFailure::creation(format!("cannot resolve new project destination: {error}"))
     })?;
     validate_name(name).map_err(NewProjectFailure::creation)?;
-    let scaffold =
-        project::derive_project_scaffold_v1(name, project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR)
-            .map_err(|diagnostics| {
-                NewProjectFailure::creation(format!(
-                    "generated calculator project failed exact scaffold derivation: {}",
-                    diagnostics
-                        .iter()
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join("; ")
-                ))
-            })?;
+    let scaffold = project::derive_project_scaffold_v1(name, template).map_err(|diagnostics| {
+        NewProjectFailure::creation(format!(
+            "generated {template} project failed exact scaffold derivation: {}",
+            diagnostics
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("; ")
+        ))
+    })?;
     let files = scaffold.files();
     let paths = files
         .iter()
         .map(ProjectScaffoldFileV1::path)
         .collect::<Vec<_>>();
-    validate_template_inventory(&paths).map_err(NewProjectFailure::creation)?;
+    validate_template_inventory(template, &paths).map_err(NewProjectFailure::creation)?;
     let expected = expected_files(files)?;
 
     let file_name = requested_destination.file_name().ok_or_else(|| {
@@ -154,7 +196,7 @@ fn create_with_serial(
             "new project parent identity changed during canonicalization",
         ));
     }
-    let (mut authority, staging) = create_staging_authority(&parent, file_name, serial)?;
+    let (mut authority, staging) = create_staging_authority(&parent, file_name, template, serial)?;
     hook.after_stage_created().map_err(|error| {
         NewProjectFailure::creation(format!(
             "injected failure after staged project creation: {error}"
@@ -174,11 +216,11 @@ fn create_with_serial(
             .map_err(|error| authority_failure("write staged project", error))?;
     }
     authority
-        .authenticate(expected)
+        .authenticate(&expected)
         .map_err(|error| authority_failure("authenticate staged project", error))?;
     require_ambient_binding(&authority, &parent, &staging)?;
     authority
-        .publish_and_verify(expected)
+        .publish_and_verify(&expected)
         .map_err(|error| authority_failure("publish and verify new project", error))?;
     #[cfg(test)]
     hook.after_publish().map_err(|error| {
@@ -191,15 +233,17 @@ fn create_with_serial(
     Ok(destination.to_path_buf())
 }
 
-pub(crate) fn validate_template_inventory(paths: &[&str]) -> Result<(), String> {
+pub(crate) fn validate_template_inventory(template: &str, paths: &[&str]) -> Result<(), String> {
     let mut observed = paths.to_vec();
     observed.sort_unstable();
-    let mut expected = project::PROJECT_SCAFFOLD_INVENTORY.to_vec();
+    let mut expected = project::project_scaffold_inventory(template).to_vec();
     expected.sort_unstable();
     if observed == expected && observed.windows(2).all(|pair| pair[0] != pair[1]) {
         Ok(())
     } else {
-        Err("calculator template inventory must contain exactly README.md, AGENTS.md, semaprax.toml, src/app.spx, and src/tests.spx".to_owned())
+        Err(format!(
+            "{template} template inventory is not the exact closed scaffold inventory"
+        ))
     }
 }
 
@@ -207,6 +251,7 @@ fn parse(arguments: &[String]) -> Result<NewProjectOptions, NewProjectFailure> {
     let mut destination = None::<PathBuf>;
     let mut explicit_name = None::<String>;
     let mut template_seen = false;
+    let mut template = project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR.to_owned();
     let mut index = 0usize;
     while index < arguments.len() {
         match arguments[index].as_str() {
@@ -222,24 +267,13 @@ fn parse(arguments: &[String]) -> Result<NewProjectOptions, NewProjectFailure> {
             }
             "--template" if !template_seen => {
                 let value = option_value(arguments, index, "--template")?;
-                if value != project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR {
-                    // The held-parent authority publishes the calculator
-                    // inventory only; the standalone compiler's `new` creates
-                    // the other templates through its bounded route.
-                    return Err(NewProjectFailure::invocation(
-                        if project::PROJECT_SCAFFOLD_TEMPLATES.contains(&value) {
-                            format!(
-                                "the full toolchain's new publishes only the calculator template; \
-                                 create a `{value}` project with the standalone `semaprax new`"
-                            )
-                        } else {
-                            format!(
-                                "unknown new template `{value}`; expected {}",
-                                project::PROJECT_SCAFFOLD_TEMPLATES.join(" or ")
-                            )
-                        },
-                    ));
+                if !project::PROJECT_SCAFFOLD_TEMPLATES.contains(&value) {
+                    return Err(NewProjectFailure::invocation(format!(
+                        "unknown new template `{value}`; expected {}",
+                        project::PROJECT_SCAFFOLD_TEMPLATES.join(" or ")
+                    )));
                 }
+                template = value.to_owned();
                 template_seen = true;
                 index += 2;
             }
@@ -279,7 +313,11 @@ fn parse(arguments: &[String]) -> Result<NewProjectOptions, NewProjectFailure> {
             .to_owned(),
     };
     validate_name(&name).map_err(NewProjectFailure::invocation)?;
-    Ok(NewProjectOptions { destination, name })
+    Ok(NewProjectOptions {
+        destination,
+        name,
+        template,
+    })
 }
 
 fn option_value<'a>(
@@ -315,6 +353,7 @@ fn validate_name(name: &str) -> Result<(), String> {
 fn create_staging_authority(
     parent: &Path,
     output_name: &std::ffi::OsStr,
+    template: &str,
     serial: &mut dyn FnMut() -> u64,
 ) -> Result<(NewProjectAuthority, PathBuf), NewProjectFailure> {
     for _ in 0..MAX_STAGING_ATTEMPTS {
@@ -328,7 +367,12 @@ fn create_staging_authority(
         {
             continue;
         }
-        match NewProjectAuthority::create(parent, output_name, std::ffi::OsStr::new(&name)) {
+        let created = if template == project::PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
+            NewProjectAuthority::create_library(parent, output_name, std::ffi::OsStr::new(&name))
+        } else {
+            NewProjectAuthority::create(parent, output_name, std::ffi::OsStr::new(&name))
+        };
+        match created {
             Ok(authority) => return Ok((authority, parent.join(name))),
             Err(NewProjectAuthorityError::StageExists) => continue,
             Err(error) => return Err(authority_failure("create staged project", error)),
@@ -341,13 +385,27 @@ fn create_staging_authority(
 
 fn expected_files(
     files: &[ProjectScaffoldFileV1],
-) -> Result<[(&str, &[u8]); project::PROJECT_SCAFFOLD_FILE_COUNT], NewProjectFailure> {
-    files
+) -> Result<Vec<(&str, &[u8])>, NewProjectFailure> {
+    let expected = files
         .iter()
         .map(|file| (file.path(), file.bytes()))
-        .collect::<Vec<_>>()
-        .try_into()
-        .map_err(|_| NewProjectFailure::creation("calculator template inventory is not exact"))
+        .collect::<Vec<_>>();
+    if expected.len()
+        == project::project_scaffold_inventory(
+            if expected.len() == project::PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT {
+                project::PROJECT_SCAFFOLD_TEMPLATE_LIBRARY
+            } else {
+                project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR
+            },
+        )
+        .len()
+    {
+        Ok(expected)
+    } else {
+        Err(NewProjectFailure::creation(
+            "project template inventory is not exact",
+        ))
+    }
 }
 
 fn require_ambient_binding(

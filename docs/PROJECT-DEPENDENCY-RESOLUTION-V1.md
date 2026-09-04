@@ -17,8 +17,9 @@ selects one version per package that satisfies the manifest's ranges and their
 transitive requirements, and prints the resolver's evidence, which embeds an
 [Offline Semantic Lock v3](OFFLINE-SEMANTIC-PACKAGE-LOCK-V3.md). Reading the
 cache is the explicit effect of this command; `check`, `build`, `run`, and
-`test` never touch it, and a declared dependency still fails the build closed
-with `SPX-J121` until a build path exists.
+`test` never touch it. Those Project routes link only the separate closed
+compiler-bundled `std.*` inventory; an ordinary resolved dependency still
+fails closed with `SPX-J121` until its build path exists.
 
 ## Command
 

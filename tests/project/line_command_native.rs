@@ -105,12 +105,12 @@ fn project_v7_builds_and_runs_the_real_multimodule_line_filter() {
 }
 
 #[test]
-fn project_v7_cross_module_borrow_boundary_is_slice_only_and_non_escaping() {
+fn project_v7_cross_module_borrow_boundary_rejects_owned_text() {
     let project = fixture();
     let hostile = r#"module spxgrep_lines.filter;
 
 @id("spxgrep-lines.contains")
-fn contains(input: borrow str, needle: borrow str) -> bool
+fn contains(input: own str, needle: borrow str) -> bool
 {
     str_contains(input, needle)
 }

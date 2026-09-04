@@ -5563,7 +5563,6 @@ fn type_contains_name_from(ty: &Type, names: &BTreeSet<&str>) -> bool {
         }
     }
 }
-
 fn validate_imported_function(
     caller: &Program,
     module_use: &ModuleUse,
@@ -5586,10 +5585,11 @@ fn validate_imported_function(
             | Type::Bool
     );
     if !function.type_parameters.is_empty()
-        || function
-            .params
-            .iter()
-            .any(|param| param.mode != ParamMode::Value && !byte_parameter(param))
+        || function.params.iter().any(|param| {
+            param.mode != ParamMode::Value
+                && !byte_parameter(param)
+                && !(param.mode == ParamMode::Borrow && param.ty == Type::Str)
+        })
         || (has_byte_parameter && !scalar_return)
     {
         return Err(vec![use_error(

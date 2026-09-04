@@ -1,6 +1,6 @@
 # Standard Library v1
 
-- Status: versioned reference; the `core`-tier slice under `std/` is
+- Status: versioned reference; five `core`-tier packages under `std/` are
   executable, every other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
   choosing between a compiler-owned function and a library declaration.
@@ -54,31 +54,39 @@ The gate enforces 1, 3, 5, 6, 7, and 8 today. Contracts (4) are required by
 this document and reviewed; a declaration without one is a review finding, not
 yet a gate failure. Records, variants, and generic declarations are admitted
 by the language but not yet by the cross-file Project route, so the current
-slice holds functions over `i64`, `bool`, `u8`, `usize`, and `borrow
-Slice<u8>` only.
+slice holds functions over `i64`, `bool`, `u8`, `usize`, `borrow Slice<u8>`,
+and `borrow str` only. The Useful Text public export profile remains
+contract-free, so `std.text` cannot yet satisfy the reviewed contract
+requirement even though its bounded conformance package is executable.
 
 `std/packages.json` lists every package directory with its module, tier,
 targets, and status. The gate fails when the list and the directories under
 `std/` disagree.
 
-### Consuming a package today
+### Consuming a package
 
-There is no cross-package `use` yet, so a Project consumes a standard-library
-module by vendoring its library file: copy `std/<package>/src/<name>.spx`
-into the project's `src/`, list it in `sources`, and import its functions by
-stable identity:
+A canonical `semaprax.manifest.v1` Project may depend on one of the compiler's
+exact bundled standard-library packages through `[dependencies]`, then import
+its functions by stable identity:
+
+```toml
+[dependencies]
+std.num = "^0.1.0"
+```
 
 ```text
 use function @id("std.num.gcd") from std.num as gcd;
 ```
 
-The library module keeps its `std.*` module name and identities inside the
-consuming project. Every current package is a single self-contained file
-with `i64`/`bool` signatures, so any Project v1 manifest admits it;
-`tests/project.rs::standard_library` vendors each one into a fresh project
-that keeps the package's manifest schema and profile, and runs its examples
-and conformance suite there. `std.bytes` needs the `useful-data.v1` profile of
-Project Manifest v3 in the consuming manifest.
+The compiler admits only the closed `std.*` inventory at bundled version
+`0.1.0`, validates the declared exact/tilde/caret range, adds its immutable
+source and transitive standard dependencies to the authenticated in-memory
+workspace, and performs ordinary stable-ID linking. It reads no cache and
+gains no filesystem or network authority. Unknown packages and ranges that do
+not contain the bundled version retain `SPX-J121`; ordinary resolved packages
+are not yet linked by Project builds. A source file may still vendor a library
+module explicitly. `std.bytes` requires the `useful-data.v1` profile and
+`std.text` requires `useful-text-consumer.v1`.
 
 ## Portability tiers
 
@@ -113,7 +121,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.mem` | Ownership helpers, regions, arenas, boxes, shared immutable values | Missing |
 | `std.collections` | Vector, deque, map, set, heap, and fixed-capacity collections | Missing; needs the `alloc` tier |
 | `std.bytes` | Buffers, spans, readers, writers, endian operations, and encoding | Partial: byte-to-integer conversion, guarded indexing, first-index search, counting, ASCII classification, slice equality and prefix tests, and little- and big-endian 16- and 32-bit reads over `borrow Slice<u8>`; buffers, writers, and encodings are Missing |
-| `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Missing; the compiler-owned string and `str` functions are the current surface |
+| `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Partial: borrowed byte length, emptiness, prefix, and substring search; iteration, split, trim, and normalization are Missing |
 | `std.format` | Type-safe formatting without runtime format-string ambiguity | Missing |
 | `std.io` | Reader, Writer, buffered I/O, streams, line processing, and standard streams | Missing; `stdout_write`, `stderr_write`, and `stdin_read` are the current surface |
 | `std.path` | Platform-neutral path values and explicit platform conversion | Missing |
@@ -164,8 +172,9 @@ Two compiler bounds decide how large one package can be:
 - The Workspace Semantic Graph pre-bound charges an upper estimate of resolver
   memory against a 16 MiB budget before linking. The split pre-bound
   described in [Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md#limits-and-budget)
-  admits the three current packages; before it, a 4.9 KiB module of twenty
-  scalar functions was rejected with `SPX-G171`. A conformance module keeps
+  admits the current packages and a consumer that links both `std.core` and
+  `std.num`; before it, a 4.9 KiB module of twenty scalar functions was rejected with
+  `SPX-G171`. A conformance module keeps
   each check in its own function so the cleanup-plan replay stays under its
   path budget.
 
@@ -175,10 +184,9 @@ Two compiler bounds decide how large one package can be:
   may take only `borrow Slice<u8>` parameters, so a function with a scalar
   parameter such as `count(view, needle)` is exported to the interpreter and
   native lanes but not selected as a web export.
-- The text profile (`useful-text-consumer.v1`) admits `borrow str` only on
-  functions defined in the calling file: a cross-file `use function` of a
-  `borrow str` signature is rejected with `SPX-G172`, so `std.text` cannot be
-  a package until the workspace graph links borrowed-text providers.
+- The text profile (`useful-text-consumer.v1`) links imported functions with
+  exact non-escaping `borrow str` parameters across files. Other borrowed,
+  shared, owning, stored, or returned text shapes remain outside the profile.
 
 These bounds are compiler facts, not library design. Lifting them is tracked
 in the [roadmap](ROADMAP.md#standard-library-outcomes).
@@ -256,10 +264,10 @@ Of the default project templates, `library` exists offline through the
 public capsule: `semaprax project-scaffold --name <name> --template library`
 prints a package in the shape described under
 [library architecture](#library-architecture), verified and tested at
-derivation. `semaprax new --template library` is Missing because the private
-staging authority admits only the calculator inventory, and the `cli`,
-`service`, `web`, and `agent` templates are Missing. `new` stays in the full
-toolchain by release policy.
+derivation. Both standalone `semaprax new --template library` and the full
+toolchain's hardened held-parent route publish that exact six-file inventory.
+The `cli`, `service`, `web`, and `agent` templates are Missing. `new` stays in
+the full toolchain by release policy.
 
 ## Evidence and nonclaims
 
@@ -274,6 +282,6 @@ toolchain by release policy.
 - the committed catalogs equal the generated ones.
 
 `tests/examples.rs` additionally holds every `.spx` file below `std/` to the
-canonical form. Nothing here claims a package registry, cross-package
-imports, hosted effects, deterministic handlers, or any module other than the
-three listed packages.
+canonical form. Nothing here claims a package registry, ordinary-package
+build integration, hosted effects, deterministic handlers, or any module
+outside the packages listed in `std/packages.json`.

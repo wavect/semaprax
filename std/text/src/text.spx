@@ -1,0 +1,25 @@
+module std.text;
+
+@id("std.text.byte_len")
+fn text_byte_len(value: borrow str) -> i64
+{
+    str_len_bytes(value)
+}
+
+@id("std.text.contains")
+fn contains(value: borrow str, needle: borrow str) -> bool
+{
+    str_contains(value, needle)
+}
+
+@id("std.text.is_empty")
+fn is_empty(value: borrow str) -> bool
+{
+    str_len_bytes(value) == 0
+}
+
+@id("std.text.starts_with")
+fn starts_with(value: borrow str, prefix: borrow str) -> bool
+{
+    str_starts_with(value, prefix)
+}

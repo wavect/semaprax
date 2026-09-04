@@ -104,12 +104,11 @@ The capsule is additive. It does not change:
 - standalone Project check, test, run, graph, or build behavior; or
 - CLI help for any existing command except the additive public scaffold entry.
 
-Private `new` and public scaffold derivation must converge on the same four
+Private `new` and public scaffold derivation converge on the same four
 calculator template files for the same name. That equality is evidence about
-bytes, not a shared publication capability. The library template is available
-only through the public stdout capsule: the private `new` staging authority
-admits exactly the four calculator files, so `semaprax new --template library`
-is rejected until that authority is widened.
+bytes, not a shared publication capability. The additive v2 scaffold extends
+the inventory with `AGENTS.md` and a library template; the current private
+staging authority admits both exact v2 inventories.
 
 ## Required evidence
 

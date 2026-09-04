@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-text"
+version = "0.1.0"
+profile = "useful-text-consumer.v1"
+
+[modules]
+entry = "std.text.examples"
+sources = ["src/examples.spx", "src/tests.spx", "src/text.spx"]
+tests = ["std.text.tests"]
+
+[exports]
+web = ["std.text.byte_len", "std.text.contains", "std.text.is_empty", "std.text.starts_with"]

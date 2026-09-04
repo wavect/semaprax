@@ -389,3 +389,31 @@ fn saturating_abs(value: i64) -> i64
 ```semaprax
 fn saturating_mul(left: i64, right: i64) -> i64
 ```
+
+## `std.text`
+
+Package `std/text`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.text.byte_len`
+
+```semaprax
+fn text_byte_len(value: borrow str) -> i64
+```
+
+### `std.text.contains`
+
+```semaprax
+fn contains(value: borrow str, needle: borrow str) -> bool
+```
+
+### `std.text.is_empty`
+
+```semaprax
+fn is_empty(value: borrow str) -> bool
+```
+
+### `std.text.starts_with`
+
+```semaprax
+fn starts_with(value: borrow str, prefix: borrow str) -> bool
+```

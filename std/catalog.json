@@ -674,6 +674,63 @@
         "core-wasm"
       ],
       "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn text_byte_len(value: borrow str) -> i64"
+          ],
+          "id": "std.text.byte_len",
+          "kind": "function",
+          "name": "text_byte_len",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn contains(value: borrow str, needle: borrow str) -> bool"
+          ],
+          "id": "std.text.contains",
+          "kind": "function",
+          "name": "contains",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_empty(value: borrow str) -> bool"
+          ],
+          "id": "std.text.is_empty",
+          "kind": "function",
+          "name": "is_empty",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn starts_with(value: borrow str, prefix: borrow str) -> bool"
+          ],
+          "id": "std.text.starts_with",
+          "kind": "function",
+          "name": "starts_with",
+          "requires": 0
+        }
+      ],
+      "module": "std.text",
+      "package": "std/text",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
     }
   ],
   "schema": "semaprax.standard-library-catalog.v1"

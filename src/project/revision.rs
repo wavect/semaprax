@@ -297,6 +297,41 @@ impl ProjectRevision {
         .map_err(|error| vec![error])
     }
 
+    /// Evaluate one manifest-selected Project-v2 borrowed-text export from
+    /// this immutable revision. Selection and argument-shape checks remain
+    /// bound to the already-admitted manifest and linked HIR; the evaluator
+    /// receives no filesystem, process, or publication authority.
+    pub fn evaluate_text_api_v1(
+        &self,
+        entry_id: &str,
+        arguments: &[PublicApiArgument<'_>],
+        max_steps: usize,
+    ) -> Result<PublicApiEvaluation, Vec<Diagnostic>> {
+        if self.manifest.project_profile() != ProjectProfile::UsefulTextConsumerV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-F102",
+                "borrowed-text API evaluation requires the useful-text-consumer.v1 Project profile",
+            )]);
+        }
+        if !self
+            .manifest
+            .web_exports()
+            .iter()
+            .any(|selected| selected == entry_id)
+        {
+            return Err(vec![Diagnostic::io(
+                "SPX-F102",
+                format!("borrowed-text API export `{entry_id}` is not selected by the manifest"),
+            )]);
+        }
+        crate::interpreter::evaluate_resolved_public_api(
+            &self.entry_program,
+            entry_id,
+            arguments,
+            max_steps,
+        )
+    }
+
     /// Evaluate one manifest-selected Project v8 export from this immutable
     /// retained subject. Descriptor replay and exact invocation-shape checks
     /// precede the authority-free interpreter call.

@@ -1,4 +1,4 @@
-# Calculator project publication v1
+# Built-in project publication v1
 
 Status: correction with local macOS/Linux evidence; Windows and hosted gates
 remain required.
@@ -8,31 +8,34 @@ Audience: toolchain contributors, host integrators, and reviewers.
 ## Scope and unchanged interface
 
 The unpublished full toolchain owns `semaprax-full new <destination>` and the
-built-in calculator template. Tag archives expose that full CLI as `semaprax`;
+built-in calculator and library templates. Tag archives expose that full CLI as `semaprax`;
 the standalone registry compiler does not gain private-host dependencies.
 See the [quickstart](QUICKSTART.md) for the user workflow and
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) for checked project semantics.
 The separate [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
-derives and replays the same four file bytes without a destination or write
+derives and replays the same template bytes without a destination or write
 authority; it does not replace this held-parent publication protocol. The
 standalone compiler's `new`, owned by [standalone project creation
 v1](NEW-PROJECT-STANDALONE-V1.md), writes the same bytes through a bounded
 create-new route without this protocol's staging or identity re-verification.
 
-This correction changes publication verification, not the command grammar,
-template names, Project schema, source semantics, or successful file bytes.
-Only the existing optional `--name` and `--template calculator` are admitted.
-The scaffold's `library` template is created by the standalone compiler's
-`new` alone; this route's fixed-arity inventory authority publishes the
-calculator, and `semaprax-full new --template library` exits two with a
-message that says so instead of the unknown-template rejection.
-The exact generated inventory is the [Public Project Scaffold Capsule
-v2](PROJECT-SCAFFOLD-V2.md) inventory:
+This protocol changes publication verification, not the command grammar,
+Project schema, source semantics, or successful file bytes. The existing
+`--name` and closed `--template calculator|library` choices are admitted. The
+authority holds one of two exact fixed-arity source inventories selected
+before staging. The exact generated inventories are those of [Public Project
+Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md):
 
 - `README.md`
 - `AGENTS.md`
 - `semaprax.toml`
 - `src/app.spx`
+- `src/tests.spx`
+
+or the same three root files plus:
+
+- `src/examples.spx`
+- `src/lib.spx`
 - `src/tests.spx`
 
 (`AGENTS.md` was added by scaffold v2; the root inventory the held-parent
@@ -72,7 +75,7 @@ The CLI skips an exact or ASCII-case-equivalent candidate within its existing
 The lower authority independently rejects that pair with `Invalid` before
 namespace creation; an already-existing output retains `Exists` precedence.
 This prevents `.semaprax-new-<pid>-<serial>` from becoming the final path while
-the calculator is still being staged. It does not reject that CLI destination:
+a built-in template is still being staged. It does not reject that CLI destination:
 the next noncolliding staging candidate can still publish to it.
 
 The generated names are ASCII, and Windows already limits these child names
@@ -209,7 +212,7 @@ old ordering on both macOS arm64/Rust 1.98 and Linux arm64/Rust 1.88: dropping
 the failed authority actually removed the replacement source directory and
 stage. The same unchanged regression passes after propagating the rename
 failure before reopening. All nine lower project-publication tests and all
-15 calculator CLI cases pass on both hosts; the complete lower package's
+16 calculator-and-library CLI cases pass on both hosts; the complete lower package's
 46 unit tests and warnings-denied package Clippy also pass on macOS. Linux
 used the existing offline, capability-dropped container with read-only source.
 The CLI's relative-path fixture requires a writable working directory: the

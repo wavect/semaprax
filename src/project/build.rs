@@ -22,19 +22,31 @@ pub(super) struct BuiltProject {
 /// bytes. This helper has no path, handle, read, write, or commit authority.
 pub(super) fn build_owned(
     manifest: &ProjectManifest,
-    sources: Vec<SemanticWorkspaceSource>,
+    mut sources: Vec<SemanticWorkspaceSource>,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
-    let path_set = semantic_workspace::render_path_set(manifest.sources())?;
+    super::standard_dependencies::extend_sources(manifest, &mut sources)?;
+    sources.sort_by(|left, right| left.path.cmp(&right.path));
+    let paths = sources
+        .iter()
+        .map(|source| source.path.clone())
+        .collect::<Vec<_>>();
+    let path_set = semantic_workspace::render_path_set(&paths)?;
     let preflight = semantic_workspace::preflight_owned(&path_set, sources)?;
     finish_build(manifest, preflight)
 }
 
 pub(super) fn build_owned_with_frontend(
     manifest: &ProjectManifest,
-    sources: Vec<SemanticWorkspaceSource>,
+    mut sources: Vec<SemanticWorkspaceSource>,
     frontend: &mut super::incremental::FrontendPass,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
-    let path_set = semantic_workspace::render_path_set(manifest.sources())?;
+    super::standard_dependencies::extend_sources(manifest, &mut sources)?;
+    sources.sort_by(|left, right| left.path.cmp(&right.path));
+    let paths = sources
+        .iter()
+        .map(|source| source.path.clone())
+        .collect::<Vec<_>>();
+    let path_set = semantic_workspace::render_path_set(&paths)?;
     let preflight =
         semantic_workspace::preflight_owned_with_frontend(&path_set, sources, frontend)?;
     finish_build(manifest, preflight)
@@ -44,7 +56,6 @@ fn finish_build(
     manifest: &ProjectManifest,
     preflight: semantic_workspace::SemanticWorkspacePreflight,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
-    manifest.admit_dependency_free_build()?;
     let (files, workspace_manifest, workspace_revision, graph) = preflight.into_snapshot_parts();
     let canonical_manifest = manifest.to_canonical_toml();
     let project_revision = project_revision(&canonical_manifest, &workspace_revision);

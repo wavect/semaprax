@@ -417,7 +417,7 @@ fn non_canonical_bytes_name_the_first_differing_line() {
 }
 
 #[test]
-fn dependency_grammar_is_admitted_and_builds_fail_closed_with_spx_j121() {
+fn dependency_grammar_is_admitted_and_ordinary_builds_fail_closed_with_spx_j121() {
     let source = format!(
         "{CALCULATOR_TABLES}\n[dependencies]\nalpha = \"^1.2.0\"\nexamples.meaning = \"~0.4.1\"\nnum_util-2 = \"=3.0.0\"\n"
     );
@@ -483,9 +483,7 @@ fn dependency_grammar_is_admitted_and_builds_fail_closed_with_spx_j121() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("SPX-J121"), "{stderr}");
     assert!(
-        stderr.contains(
-            "declares 3 dependencies but a build does not yet consume resolved dependencies"
-        ),
+        stderr.contains("dependency `alpha` is not a compiler-bundled standard-library package"),
         "{stderr}"
     );
     assert!(!fixture.root.join("calculator-web").exists());

@@ -1,0 +1,35 @@
+module std.text.tests;
+use function @id("std.text.byte_len") from std.text as text_byte_len;
+use function @id("std.text.contains") from std.text as contains;
+use function @id("std.text.is_empty") from std.text as is_empty;
+use function @id("std.text.starts_with") from std.text as starts_with;
+
+@id("std.text.tests.byte_length")
+fn byte_length(value: borrow str) -> bool
+{
+    text_byte_len(value) == 10
+}
+
+@id("std.text.tests.empty")
+fn empty(value: borrow str) -> bool
+{
+    is_empty(value)
+}
+
+@id("std.text.tests.prefix")
+fn prefix(value: borrow str, expected: borrow str) -> bool
+{
+    starts_with(value, expected)
+}
+
+@id("std.text.tests.substring")
+fn substring(value: borrow str, expected: borrow str) -> bool
+{
+    contains(value, expected)
+}
+
+@id("std.text.tests.main")
+fn main() -> i64
+{
+    0
+}

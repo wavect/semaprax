@@ -62,7 +62,6 @@ pub const PACKAGE_MANIFEST_RESERVED_TABLES: [&str; 6] = [
 pub const PACKAGE_RESERVED_KEYS: [&str; 3] = ["compatibility", "license", "description"];
 
 const CODE_UNADMITTED: &str = "SPX-J120";
-const CODE_UNRESOLVED_DEPENDENCIES: &str = "SPX-J121";
 const CODE_TARGET_OUTSIDE_MATRIX: &str = "SPX-J122";
 const LABEL: &str = "Package Manifest v1";
 const MAX_RANGE_BYTES: usize = 33;
@@ -528,29 +527,6 @@ impl ProjectManifest {
     /// target admitted.
     pub fn target_matrix(&self) -> Option<&[String]> {
         self.target_matrix.as_deref()
-    }
-
-    /// Fail closed when a manifest declares dependencies: no resolution, lock,
-    /// or acquisition route exists yet, so a build cannot honor them.
-    pub(crate) fn admit_dependency_free_build(&self) -> Result<(), Vec<Diagnostic>> {
-        if self.dependencies.is_empty() {
-            return Ok(());
-        }
-        Err(vec![Diagnostic::io(
-            CODE_UNRESOLVED_DEPENDENCIES,
-            format!(
-                "{LABEL} declares {} {} but a build does not yet consume resolved dependencies",
-                self.dependencies.len(),
-                if self.dependencies.len() == 1 {
-                    "dependency"
-                } else {
-                    "dependencies"
-                }
-            ),
-        )
-        .with_help(
-            "run `semaprax resolve <manifest> --target <native64|wasm32> --cache <dir> --write` to resolve and pin the dependency graph; a build that links resolved dependencies is not implemented, so remove the `[dependencies]` table to build today",
-        )])
     }
 
     /// Reject a CLI build target that the declared `[targets] matrix` excludes.

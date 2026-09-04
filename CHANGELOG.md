@@ -8,6 +8,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Project manifests can now link the closed compiler-bundled `std.*` inventory
+  at version `0.1.0` without cache, network, or acquisition authority. Exact,
+  tilde, and caret ranges are checked, transitive standard dependencies are
+  expanded deterministically, and one Project can link multiple packages by
+  stable identity; ordinary resolved-package builds remain open.
+- The Useful Text workspace boundary now links exact non-escaping `borrow str`
+  providers across files, enabling the new partial `std.text` package with
+  byte-length, emptiness, prefix, and substring operations across interpreter,
+  native C11, and Core Wasm conformance lanes.
+- The full toolchain's held-parent `new` authority now admits the exact
+  six-file library scaffold as well as the calculator, preserving fixed
+  inventories, create-new writes, no-replace publication, and post-publication
+  authentication.
+
 - `semaprax lock` and `semaprax resolve` accept `[<dir>|semaprax.toml]`,
   resolving directory arguments to `<dir>/semaprax.toml` and defaulting to
   `./semaprax.toml` when omitted, matching `check`, `fmt`, `run`, `test`, and
@@ -1807,8 +1821,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   inert staging and its primary diagnostic; successful publication, templates,
   schemas and platform rename behavior remain unchanged. The destructive
   regression fails before and passes after the fix on macOS and Linux; all nine
-  publication tests and 15 calculator CLI cases pass on both. The full lower
-  package's 46 tests and package Clippy pass on macOS. No hosted or Windows
+  publication tests and 16 calculator-and-library CLI cases pass on both. The
+  full lower package's 46 tests and package Clippy pass on macOS. No hosted or Windows
   promotion is implied.
 
 - Corrected a doctor report test oracle that omitted a byte after partial writes;

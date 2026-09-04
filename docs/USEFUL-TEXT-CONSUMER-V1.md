@@ -33,13 +33,19 @@ pointer-plus-`u64`-length carrier and checks null, length bounds, and UTF-8 for
 storage that the host is responsible for making readable; C cannot authenticate
 an arbitrary non-null pointer. Native root-call admission charges all borrowed
 parameters once in invocation-local context, while nested calls retain that
-root depth. Callbacks and imports are excluded from this profile, so there is
+root depth. Callbacks and host imports are excluded from this profile, so there is
 no reentrant host entry inside that depth. The Wasm public adapter additionally validates
 the public 64-KiB scratch range and cumulative byte charge before the call.
 The module has fixed three-page memory: page zero is the only public scratch
 region and pages one and two are a caller-visible reserved fixed `u16` KMP
 table whose read-before-use sentinel is reset on every call. It never
 grows memory, scans for NUL, or retains the borrowed bytes after return.
+
+Workspace `use function` linking admits the same exact non-escaping `borrow
+str` parameters across source files. The import stub must match the provider's
+ownership and type exactly; `borrow string`, shared/owned text, borrowed
+nominals, and borrowed results remain rejected. This is the boundary used by
+the `std.text` package and does not widen the public host ABI above.
 
 ## Public export profile
 

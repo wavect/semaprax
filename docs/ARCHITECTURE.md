@@ -68,8 +68,10 @@ post-publication byte, inventory and path rechecks cannot regain rollback.
 See [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md) for
 admission restrictions and the unrun physical gates.
 
-The full toolchain's calculator generator checks exact owned template bytes
-before staging through `NewProjectAuthority` in the lower package crate.
+The full toolchain's calculator and library generators check exact owned
+template bytes before staging through `NewProjectAuthority` in the lower
+package crate. The template choice fixes either the two-file calculator or
+three-file library `src` inventory before namespace creation.
 Staging selection excludes exact/ASCII-case-equivalent destination names before
 creation; the lower authority independently rejects the same collision.
 Publication latches before final held-byte and destination-path authentication;
@@ -1748,7 +1750,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules; candidate replay/conflict projection in `src/project/candidate/package_consumer_replay.rs` |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
-| Standard library | `std/<package>/` Project packages, `std/packages.json` tier and target metadata, generated `std/catalog.json`; gate `tests/project/standard_library.rs` |
+| Standard library | `std/<package>/` Project packages, `src/project/standard_dependencies.rs` for closed bundled dependency expansion, `std/packages.json` tier and target metadata, generated `std/catalog.json`; gate `tests/project/standard_library.rs` |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
 
 This table is the single module-level map. Other contributor documents should

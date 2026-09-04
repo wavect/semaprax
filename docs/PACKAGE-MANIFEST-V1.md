@@ -1,9 +1,9 @@
 # Package Manifest v1
 
-Status: additive implementation with a local executable gate
-(`tests/project.rs::package_manifest_v1`); unpromoted. The table layout is
-admitted by every project route on the current tree. No dependency
-resolution, lock, acquisition, registry, or publication claim is made.
+Status: additive implementation with local executable gates; unpromoted. The
+table layout is admitted by every project route, and Project builds link the
+closed compiler-bundled `std.*` inventory. No ordinary-package build,
+acquisition, registry, or publication claim is made.
 
 Audience: people and agents writing `semaprax.toml`, package-tooling authors,
 and compiler contributors.
@@ -156,12 +156,14 @@ normalization.
 
 ## Semantics of the optional tables
 
-`[dependencies]` admits the requirement grammar so that a manifest need not
-change when resolution lands, but this toolchain has no dependency
-resolution, lock, or acquisition route. Any project build, check, test, run,
-image, or publication over a manifest with a non-empty `[dependencies]` table
-fails closed with `SPX-J121` before any output effect. Declared requirements
-are readable through `ProjectManifest::dependencies`.
+`[dependencies]` admits the requirement grammar and has two deliberately
+separate routes. `semaprax resolve` selects ordinary packages from its explicit
+caller-populated cache, but Project builds do not yet consume those results.
+Project build/check/test/run instead recognize only the closed compiler-bundled
+`std.*` inventory at version `0.1.0`, validate the range, and link its immutable
+source plus transitive standard dependencies in memory. This requires no cache
+and performs no acquisition or network access. An unknown dependency or a
+range excluding the bundled version fails with `SPX-J121` before output.
 
 `[targets] matrix` gates the CLI `build` route: `web`, `wasm`, and `npm`
 require `wasm32`, and every other target requires `native64`. A target the
@@ -176,7 +178,7 @@ that a target builds, runs, or is supported on any host.
 | `SPX-J100` | Manifest grammar: missing or mistyped required key, foreign profile facts, dependency or target grammar, or non-canonical bytes (with a first-differing-line `help`). |
 | `SPX-J101` | Capacity: manifest bytes, source count, export count, or dependency count over the frozen bounds. |
 | `SPX-J120` | A reserved or unknown table or key. The message names the reserved name or the admitted catalog. |
-| `SPX-J121` | A build over a manifest that declares dependencies. |
+| `SPX-J121` | A dependency is not in the bundled standard-library inventory or its range excludes the bundled version. |
 | `SPX-J122` | A CLI build target outside the declared `[targets] matrix`. |
 
 ## Evidence and nonclaims

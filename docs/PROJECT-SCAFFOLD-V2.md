@@ -71,11 +71,11 @@ enforces and the [agent quick reference](AGENT-QUICK-REFERENCE.md) documents.
 
 The private held-parent authority behind the full toolchain's `new` now
 authenticates and publishes a three-file root inventory (`README.md`,
-`AGENTS.md`, `semaprax.toml`) plus `src`; its staging, failure precedence,
+`AGENTS.md`, `semaprax.toml`) plus either closed `src` inventory; its staging, failure precedence,
 and no-replace guarantees are unchanged. The standalone `new` of
 [standalone project creation v1](NEW-PROJECT-STANDALONE-V1.md) writes the same
 five calculator files by default and the six library files for `--template
-library`; the full toolchain's `new` still admits only the calculator template.
+library`; the full toolchain's hardened route now admits both exact templates.
 Project v1 manifest semantics, source semantics, and every other command are
 unchanged.
 

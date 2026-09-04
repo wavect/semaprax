@@ -5,14 +5,7 @@ mod new_project;
 static HOST: driver::PrivateHost = driver::PrivateHost {
     doctor: semaprax_toolchain::run_doctor,
     new_project: |arguments| {
-        new_project::run(arguments)
-            .map(|destination| {
-                (
-                    destination,
-                    semaprax::project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
-                )
-            })
-            .map_err(|error| (error.to_string(), error.exit_code()))
+        new_project::run(arguments).map_err(|error| (error.to_string(), error.exit_code()))
     },
     build_rust: semaprax_toolchain::build_rust,
     #[cfg(windows)]

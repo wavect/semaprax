@@ -13,7 +13,13 @@ mod tests;
 use semaprax_native_rust_interop_platform as platform;
 
 const ROOT_NAMES: [&str; 3] = ["README.md", "AGENTS.md", "semaprax.toml"];
-const SOURCE_NAMES: [&str; 2] = ["app.spx", "tests.spx"];
+const CALCULATOR_SOURCE_NAMES: [&str; 2] = ["app.spx", "tests.spx"];
+const LIBRARY_SOURCE_NAMES: [&str; 3] = ["examples.spx", "lib.spx", "tests.spx"];
+
+enum SourceInventory {
+    Calculator(platform::PreparedDiscardInventory<2>),
+    Library(platform::PreparedDiscardInventory<3>),
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[doc(hidden)]
@@ -35,7 +41,7 @@ pub struct NewProjectAuthority {
     parent_path: PathBuf,
     output_path: PathBuf,
     root: platform::PreparedDiscardInventory<3>,
-    source_files: platform::PreparedDiscardInventory<2>,
+    source_files: SourceInventory,
     published: bool,
     #[cfg(test)]
     before_rename: Option<Box<dyn FnOnce()>>,
@@ -48,6 +54,26 @@ impl NewProjectAuthority {
         parent_path: &Path,
         output_name: &OsStr,
         stage_name: &OsStr,
+    ) -> Result<Self, NewProjectAuthorityError> {
+        Self::create_for_template(parent_path, output_name, stage_name, false)
+    }
+
+    /// Create the same held publication authority for the closed library
+    /// scaffold inventory. The two constructors deliberately keep the
+    /// template decision outside the filesystem layer.
+    pub fn create_library(
+        parent_path: &Path,
+        output_name: &OsStr,
+        stage_name: &OsStr,
+    ) -> Result<Self, NewProjectAuthorityError> {
+        Self::create_for_template(parent_path, output_name, stage_name, true)
+    }
+
+    fn create_for_template(
+        parent_path: &Path,
+        output_name: &OsStr,
+        stage_name: &OsStr,
+        library: bool,
     ) -> Result<Self, NewProjectAuthorityError> {
         let parent = platform::hold_directory(parent_path).map_err(map_changed)?;
         let output = platform::prepare_child_name(output_name).map_err(map_invalid)?;
@@ -66,8 +92,17 @@ impl NewProjectAuthority {
         let empty = platform::prepare_discard_inventory([]).map_err(map_invalid)?;
         let root =
             platform::prepare_discard_inventory(ROOT_NAMES.map(OsStr::new)).map_err(map_invalid)?;
-        let source_files = platform::prepare_discard_inventory(SOURCE_NAMES.map(OsStr::new))
-            .map_err(map_invalid)?;
+        let source_files = if library {
+            SourceInventory::Library(
+                platform::prepare_discard_inventory(LIBRARY_SOURCE_NAMES.map(OsStr::new))
+                    .map_err(map_invalid)?,
+            )
+        } else {
+            SourceInventory::Calculator(
+                platform::prepare_discard_inventory(CALCULATOR_SOURCE_NAMES.map(OsStr::new))
+                    .map_err(map_invalid)?,
+            )
+        };
         // Prepare expected namespace bindings before creating any directory.
         let parent_path = parent_path.to_path_buf();
         let output_path = parent_path.join(output_name);
@@ -130,42 +165,56 @@ impl NewProjectAuthority {
             .ok_or(NewProjectAuthorityError::Changed)?;
         // The root and source inventories have different arities, so each
         // branch names its own inventory instead of sharing one tuple.
-        match relative_path {
-            "README.md" | "AGENTS.md" | "semaprax.toml" => platform::write_file_new_prepared(
+        match (relative_path, &mut self.source_files) {
+            ("README.md" | "AGENTS.md" | "semaprax.toml", _) => platform::write_file_new_prepared(
                 &self.stage,
                 &mut self.root,
                 relative_path,
                 bytes,
                 0o600,
             ),
-            "src/app.spx" => platform::write_file_new_prepared(
-                source,
-                &mut self.source_files,
-                "app.spx",
-                bytes,
-                0o600,
-            ),
-            "src/tests.spx" => platform::write_file_new_prepared(
-                source,
-                &mut self.source_files,
-                "tests.spx",
-                bytes,
-                0o600,
-            ),
+            ("src/app.spx", SourceInventory::Calculator(files)) => {
+                platform::write_file_new_prepared(source, files, "app.spx", bytes, 0o600)
+            }
+            ("src/examples.spx", SourceInventory::Library(files)) => {
+                platform::write_file_new_prepared(source, files, "examples.spx", bytes, 0o600)
+            }
+            ("src/lib.spx", SourceInventory::Library(files)) => {
+                platform::write_file_new_prepared(source, files, "lib.spx", bytes, 0o600)
+            }
+            ("src/tests.spx", SourceInventory::Calculator(files)) => {
+                platform::write_file_new_prepared(source, files, "tests.spx", bytes, 0o600)
+            }
+            ("src/tests.spx", SourceInventory::Library(files)) => {
+                platform::write_file_new_prepared(source, files, "tests.spx", bytes, 0o600)
+            }
             _ => return Err(NewProjectAuthorityError::Invalid),
         }
         .map_err(map_create)
     }
 
-    pub fn authenticate(&self, files: [(&str, &[u8]); 5]) -> Result<(), NewProjectAuthorityError> {
-        if files.map(|(name, _)| name)
-            != [
+    pub fn authenticate(&self, files: &[(&str, &[u8])]) -> Result<(), NewProjectAuthorityError> {
+        let expected_names: &[&str] = match &self.source_files {
+            SourceInventory::Calculator(_) => &[
                 "README.md",
                 "AGENTS.md",
                 "semaprax.toml",
                 "src/app.spx",
                 "src/tests.spx",
-            ]
+            ],
+            SourceInventory::Library(_) => &[
+                "README.md",
+                "AGENTS.md",
+                "semaprax.toml",
+                "src/examples.spx",
+                "src/lib.spx",
+                "src/tests.spx",
+            ],
+        };
+        if files
+            .iter()
+            .map(|(name, _)| *name)
+            .ne(expected_names.iter().copied())
         {
             return Err(NewProjectAuthorityError::Invalid);
         }
@@ -185,18 +234,46 @@ impl NewProjectAuthority {
             self.root.file("semaprax.toml").map_err(map_changed)?,
             files[2].1,
         )?;
-        authenticate_file(
-            self.source_files.file("app.spx").map_err(map_changed)?,
-            files[3].1,
-        )?;
-        authenticate_file(
-            self.source_files.file("tests.spx").map_err(map_changed)?,
-            files[4].1,
-        )?;
-        let mut source_scan =
-            platform::prepare_inventory_exact(&self.source_files).map_err(map_invalid)?;
-        platform::inventory_exact_prepared(&mut source_scan, source, &self.source_files)
-            .map_err(map_changed)?;
+        match &self.source_files {
+            SourceInventory::Calculator(source_files) => {
+                authenticate_file(
+                    source_files.file("app.spx").map_err(map_changed)?,
+                    files[3].1,
+                )?;
+                authenticate_file(
+                    source_files.file("tests.spx").map_err(map_changed)?,
+                    files[4].1,
+                )?;
+            }
+            SourceInventory::Library(source_files) => {
+                authenticate_file(
+                    source_files.file("examples.spx").map_err(map_changed)?,
+                    files[3].1,
+                )?;
+                authenticate_file(
+                    source_files.file("lib.spx").map_err(map_changed)?,
+                    files[4].1,
+                )?;
+                authenticate_file(
+                    source_files.file("tests.spx").map_err(map_changed)?,
+                    files[5].1,
+                )?;
+            }
+        }
+        match &self.source_files {
+            SourceInventory::Calculator(source_files) => {
+                let mut source_scan =
+                    platform::prepare_inventory_exact(source_files).map_err(map_invalid)?;
+                platform::inventory_exact_prepared(&mut source_scan, source, source_files)
+                    .map_err(map_changed)?;
+            }
+            SourceInventory::Library(source_files) => {
+                let mut source_scan =
+                    platform::prepare_inventory_exact(source_files).map_err(map_invalid)?;
+                platform::inventory_exact_prepared(&mut source_scan, source, source_files)
+                    .map_err(map_changed)?;
+            }
+        }
         let mut root_scan = platform::prepare_inventory_entries_exact(
             [
                 OsStr::new("README.md"),
@@ -222,12 +299,14 @@ impl NewProjectAuthority {
 
     pub fn publish_and_verify(
         &mut self,
-        files: [(&str, &[u8]); 5],
+        files: &[(&str, &[u8])],
     ) -> Result<(), NewProjectAuthorityError> {
         self.authenticate(files)?;
-        self.source_files
-            .settle_for_publish()
-            .map_err(map_changed)?;
+        match &mut self.source_files {
+            SourceInventory::Calculator(source_files) => source_files.settle_for_publish(),
+            SourceInventory::Library(source_files) => source_files.settle_for_publish(),
+        }
+        .map_err(map_changed)?;
         self.root.settle_for_publish().map_err(map_changed)?;
         drop(self.source.take());
         let mut publish =
@@ -268,7 +347,7 @@ impl NewProjectAuthority {
 
     fn authenticate_published(
         &self,
-        files: [(&str, &[u8]); 5],
+        files: &[(&str, &[u8])],
     ) -> Result<(), NewProjectAuthorityError> {
         let source = self
             .source
@@ -277,15 +356,45 @@ impl NewProjectAuthority {
         let readme = hold_matching(&self.stage, OsStr::new("README.md"), files[0].1)?;
         let agents = hold_matching(&self.stage, OsStr::new("AGENTS.md"), files[1].1)?;
         let manifest = hold_matching(&self.stage, OsStr::new("semaprax.toml"), files[2].1)?;
-        let app = hold_matching(source, OsStr::new("app.spx"), files[3].1)?;
-        let tests = hold_matching(source, OsStr::new("tests.spx"), files[4].1)?;
-        let mut source_scan = platform::prepare_inventory_entries_exact(
-            [OsStr::new("app.spx"), OsStr::new("tests.spx")],
-            2,
-        )
-        .map_err(map_invalid)?;
-        platform::inventory_entries_exact_prepared(&mut source_scan, source, [&app, &tests], [])
-            .map_err(map_changed)?;
+        match &self.source_files {
+            SourceInventory::Calculator(_) => {
+                let app = hold_matching(source, OsStr::new("app.spx"), files[3].1)?;
+                let tests = hold_matching(source, OsStr::new("tests.spx"), files[4].1)?;
+                let mut source_scan = platform::prepare_inventory_entries_exact(
+                    [OsStr::new("app.spx"), OsStr::new("tests.spx")],
+                    2,
+                )
+                .map_err(map_invalid)?;
+                platform::inventory_entries_exact_prepared(
+                    &mut source_scan,
+                    source,
+                    [&app, &tests],
+                    [],
+                )
+                .map_err(map_changed)?;
+            }
+            SourceInventory::Library(_) => {
+                let examples = hold_matching(source, OsStr::new("examples.spx"), files[3].1)?;
+                let library = hold_matching(source, OsStr::new("lib.spx"), files[4].1)?;
+                let tests = hold_matching(source, OsStr::new("tests.spx"), files[5].1)?;
+                let mut source_scan = platform::prepare_inventory_entries_exact(
+                    [
+                        OsStr::new("examples.spx"),
+                        OsStr::new("lib.spx"),
+                        OsStr::new("tests.spx"),
+                    ],
+                    3,
+                )
+                .map_err(map_invalid)?;
+                platform::inventory_entries_exact_prepared(
+                    &mut source_scan,
+                    source,
+                    [&examples, &library, &tests],
+                    [],
+                )
+                .map_err(map_changed)?;
+            }
+        }
         let mut root_scan = platform::prepare_inventory_entries_exact(
             [
                 OsStr::new("README.md"),
@@ -315,12 +424,22 @@ impl Drop for NewProjectAuthority {
             return;
         }
         if self.source.as_ref().is_some_and(|source| {
-            platform::discard_owned_stage_prepared(
-                &self.stage,
-                source,
-                &self.source_name,
-                &self.source_files,
-            )
+            match &self.source_files {
+                SourceInventory::Calculator(source_files) => {
+                    platform::discard_owned_stage_prepared(
+                        &self.stage,
+                        source,
+                        &self.source_name,
+                        source_files,
+                    )
+                }
+                SourceInventory::Library(source_files) => platform::discard_owned_stage_prepared(
+                    &self.stage,
+                    source,
+                    &self.source_name,
+                    source_files,
+                ),
+            }
             .is_ok()
         }) {
             let _ = platform::discard_owned_stage_prepared(

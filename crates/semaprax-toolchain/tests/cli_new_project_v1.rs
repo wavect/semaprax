@@ -145,6 +145,42 @@ fn calculator_template_has_exact_deterministic_bytes() {
 }
 
 #[test]
+fn library_template_has_exact_bytes_and_passes_the_developer_loop() {
+    let fixture = Fixture::new("library");
+    let created = cli(&fixture.root, &["new", "demo-lib", "--template", "library"]);
+    assert_success(&created);
+    assert_eq!(
+        String::from_utf8(created.stdout).unwrap(),
+        "created library project demo-lib\n"
+    );
+
+    let files = read_tree(&fixture.root.join("demo-lib"));
+    assert_eq!(
+        files.keys().map(String::as_str).collect::<Vec<_>>(),
+        [
+            "AGENTS.md",
+            "README.md",
+            "semaprax.toml",
+            "src/examples.spx",
+            "src/lib.spx",
+            "src/tests.spx"
+        ]
+    );
+    let scaffold = semaprax::project::derive_project_scaffold_v1("demo-lib", "library").unwrap();
+    assert_eq!(
+        scaffold
+            .files()
+            .iter()
+            .map(|file| (file.path().to_owned(), file.bytes().to_vec()))
+            .collect::<BTreeMap<_, _>>(),
+        files
+    );
+    for command in ["check", "test", "run"] {
+        assert_success(&cli(&fixture.root, &[command, "demo-lib/semaprax.toml"]));
+    }
+}
+
+#[test]
 fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
     let implementation = include_str!("../src/new_project.rs");
     let scaffold = include_str!("../../../src/project/scaffold.rs");
@@ -384,36 +420,50 @@ fn stage_substitution_cannot_receive_writes_or_be_published() {
 
 #[test]
 fn unexpected_template_entries_are_rejected_without_filesystem_authority() {
-    assert!(new_project::validate_template_inventory(&[
-        "README.md",
-        "AGENTS.md",
-        "semaprax.toml",
-        "src/app.spx",
-        "src/tests.spx",
-    ])
+    assert!(new_project::validate_template_inventory(
+        "calculator",
+        &[
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/tests.spx",
+        ]
+    )
     .is_ok());
-    assert!(new_project::validate_template_inventory(&[
-        "README.md",
-        "semaprax.toml",
-        "src/app.spx",
-        "src/tests.spx",
-    ])
+    assert!(new_project::validate_template_inventory(
+        "library",
+        &[
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/examples.spx",
+            "src/lib.spx",
+            "src/tests.spx",
+        ]
+    )
+    .is_ok());
+    assert!(new_project::validate_template_inventory(
+        "calculator",
+        &["README.md", "semaprax.toml", "src/app.spx", "src/tests.spx",]
+    )
     .is_err());
-    assert!(new_project::validate_template_inventory(&[
-        "README.md",
-        "AGENTS.md",
-        "semaprax.toml",
-        "src/app.spx",
-        "src/tests.spx",
-        "src/extra.spx",
-    ])
+    assert!(new_project::validate_template_inventory(
+        "calculator",
+        &[
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/tests.spx",
+            "src/extra.spx",
+        ]
+    )
     .is_err());
-    assert!(new_project::validate_template_inventory(&[
-        "README.md",
-        "semaprax.toml",
-        "src/app.spx",
-        "../outside",
-    ])
+    assert!(new_project::validate_template_inventory(
+        "calculator",
+        &["README.md", "semaprax.toml", "src/app.spx", "../outside",]
+    )
     .is_err());
 }
 
@@ -448,14 +498,11 @@ fn publication_is_confined_to_the_selected_parent() {
         assert_eq!(output.status.code(), Some(2), "{arguments:?}");
     }
 
-    // The library template exists in the public scaffold, but only the
-    // standalone compiler's bounded route creates it; the held-parent authority
-    // publishes the calculator inventory alone and says so.
     let library = cli(&fixture.root, &["new", "project", "--template", "library"]);
-    assert_eq!(library.status.code(), Some(2));
-    assert!(String::from_utf8(library.stderr)
-        .unwrap()
-        .starts_with("new: the full toolchain's new publishes only the calculator template"));
-    assert!(!fixture.root.join("project").exists());
-    assert_eq!(parent_names(&fixture.root), ["chosen", "outside"]);
+    assert_success(&library);
+    assert!(fixture.root.join("project/src/lib.spx").is_file());
+    assert_eq!(
+        parent_names(&fixture.root),
+        ["chosen", "outside", "project"]
+    );
 }

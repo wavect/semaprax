@@ -40,6 +40,7 @@ mod scalar_wit;
 mod scalar_wit_compare;
 mod semantic;
 mod source_hint;
+mod standard_dependencies;
 mod target_cache;
 #[cfg(test)]
 mod tests;

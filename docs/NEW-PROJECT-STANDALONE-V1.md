@@ -29,8 +29,7 @@ Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md) is admitted, and an unknown one is
 rejected with `unknown new template <name>; expected calculator or library`.
 The files are exactly the capsule's files for that template and name, in that
 order; this route adds no bytes and no file. The full toolchain's `new`
-publishes only the calculator inventory through its held-parent authority and
-refuses `--template library` with a message that names this route.
+publishes both inventories through its stricter held-parent staged authority.
 
 ## Route
 

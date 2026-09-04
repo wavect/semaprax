@@ -13,6 +13,7 @@ Audience: all documentation readers.
 - [Language tour](LANGUAGE-TOUR.md)
 - [Agent quick reference](AGENT-QUICK-REFERENCE.md)
 - [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
+- [Public Project Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md)
 - [Capability-aware CLI help](CLI-HELP-V1.md)
 - [Capability-aware CLI typo guidance](CLI-HELP-V2.md)
 - [Capability-aware CLI recovery](CLI-HELP-V3.md)

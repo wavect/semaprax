@@ -118,7 +118,13 @@ fn calculator_template_has_exact_deterministic_bytes() {
     assert_eq!(first, second);
     assert_eq!(
         first.keys().map(String::as_str).collect::<Vec<_>>(),
-        ["README.md", "semaprax.toml", "src/app.spx", "src/tests.spx"]
+        [
+            "AGENTS.md",
+            "README.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/tests.spx"
+        ]
     );
     assert_eq!(parent_names(&fixture.root), ["first", "second"]);
     assert!(String::from_utf8(first["semaprax.toml"].clone())
@@ -126,7 +132,7 @@ fn calculator_template_has_exact_deterministic_bytes() {
         .contains("name = \"demo-project\"\nentry = \"demo_project.app\""));
 
     let scaffold =
-        semaprax::project::derive_project_scaffold_v1("demo-project", "calculator").unwrap();
+        semaprax::project::derive_project_scaffold("demo-project", "calculator").unwrap();
     assert_eq!(
         scaffold
             .files()
@@ -146,7 +152,7 @@ fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
     assert!(!implementation.contains("project::with_authenticated_project"));
     assert!(
         implementation
-            .find("project::derive_project_scaffold_v1")
+            .find("project::derive_project_scaffold")
             .unwrap()
             < implementation.find("create_staging_authority").unwrap()
     );
@@ -380,6 +386,7 @@ fn stage_substitution_cannot_receive_writes_or_be_published() {
 fn unexpected_template_entries_are_rejected_without_filesystem_authority() {
     assert!(new_project::validate_template_inventory(&[
         "README.md",
+        "AGENTS.md",
         "semaprax.toml",
         "src/app.spx",
         "src/tests.spx",
@@ -387,6 +394,14 @@ fn unexpected_template_entries_are_rejected_without_filesystem_authority() {
     .is_ok());
     assert!(new_project::validate_template_inventory(&[
         "README.md",
+        "semaprax.toml",
+        "src/app.spx",
+        "src/tests.spx",
+    ])
+    .is_err());
+    assert!(new_project::validate_template_inventory(&[
+        "README.md",
+        "AGENTS.md",
         "semaprax.toml",
         "src/app.spx",
         "src/tests.spx",

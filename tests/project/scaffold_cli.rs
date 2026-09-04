@@ -1,4 +1,4 @@
-use semaprax::project::derive_project_scaffold_v1;
+use semaprax::project::derive_project_scaffold;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -22,7 +22,7 @@ fn invoke(arguments: &[&str]) -> (Output, PathBuf) {
 }
 
 fn expected(name: &str) -> Vec<u8> {
-    let artifact = derive_project_scaffold_v1(name, "calculator").unwrap();
+    let artifact = derive_project_scaffold(name, "calculator").unwrap();
     artifact.canonical_bytes()
 }
 

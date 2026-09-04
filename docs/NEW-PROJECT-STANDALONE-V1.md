@@ -25,7 +25,7 @@ The grammar and every rejection message are those of the full toolchain's
 `new`. The project name defaults to the destination's final component and
 must match lowercase `[a-z][a-z0-9-]*` within 64 bytes. The only template is
 `calculator`. The files are exactly the [Public Project Scaffold Capsule
-v1](PROJECT-SCAFFOLD-V1.md) files for that name, in that order; this route adds
+v2](PROJECT-SCAFFOLD-V2.md) files for that name, in that order; this route adds
 no bytes and no file.
 
 ## Route

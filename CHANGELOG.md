@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Every generated project now carries an `AGENTS.md`: the commands to check,
+  test, run, format, and build it, and the rules that differ from other
+  languages, written for coding agents and people alike. The scaffold capsule
+  becomes `semaprax.project-scaffold.v2` with five files and a new digest
+  domain, the generated `README.md` points at `AGENTS.md` and uses directory
+  operands, and both `new` routes publish the same five files. The library
+  API drops its `_v1` suffixes (`derive_project_scaffold`,
+  `replay_project_scaffold`, `ProjectScaffold`, `ProjectScaffoldFile`).
+  [Public Project Scaffold Capsule v2](docs/PROJECT-SCAFFOLD-V2.md) owns the
+  contract.
+
 - `semaprax new <destination>` now works on the standalone compiler. It
   derives the same calculator template as the full toolchain, refuses anything
   but a fresh destination under an existing real directory, writes every file

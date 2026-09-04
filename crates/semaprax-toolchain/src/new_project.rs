@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use same_file::Handle;
-use semaprax::project::{self, ProjectScaffoldFileV1};
+use semaprax::project::{self, ProjectScaffoldFile};
 use semaprax_native_rust_owned_data_package::{NewProjectAuthority, NewProjectAuthorityError};
 
 static STAGING_SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -103,7 +103,7 @@ fn create_with_serial(
     })?;
     validate_name(name).map_err(NewProjectFailure::creation)?;
     let scaffold =
-        project::derive_project_scaffold_v1(name, project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR)
+        project::derive_project_scaffold(name, project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR)
             .map_err(|diagnostics| {
                 NewProjectFailure::creation(format!(
                     "generated calculator project failed exact scaffold derivation: {}",
@@ -117,7 +117,7 @@ fn create_with_serial(
     let files = scaffold.files();
     let paths = files
         .iter()
-        .map(ProjectScaffoldFileV1::path)
+        .map(ProjectScaffoldFile::path)
         .collect::<Vec<_>>();
     validate_template_inventory(&paths).map_err(NewProjectFailure::creation)?;
     let expected = expected_files(files)?;
@@ -199,7 +199,7 @@ pub(crate) fn validate_template_inventory(paths: &[&str]) -> Result<(), String> 
     if observed == expected && observed.windows(2).all(|pair| pair[0] != pair[1]) {
         Ok(())
     } else {
-        Err("calculator template inventory must contain exactly README.md, semaprax.toml, src/app.spx, and src/tests.spx".to_owned())
+        Err("calculator template inventory must contain exactly README.md, AGENTS.md, semaprax.toml, src/app.spx, and src/tests.spx".to_owned())
     }
 }
 
@@ -327,7 +327,7 @@ fn create_staging_authority(
 }
 
 fn expected_files(
-    files: &[ProjectScaffoldFileV1; project::PROJECT_SCAFFOLD_FILE_COUNT],
+    files: &[ProjectScaffoldFile; project::PROJECT_SCAFFOLD_FILE_COUNT],
 ) -> Result<[(&str, &[u8]); project::PROJECT_SCAFFOLD_FILE_COUNT], NewProjectFailure> {
     files
         .iter()

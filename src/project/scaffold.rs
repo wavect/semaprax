@@ -1,5 +1,9 @@
 //! Authority-free preparation and replay of the built-in calculator project.
 //!
+//! Version 2 adds `AGENTS.md`, the in-project guide for coding agents and
+//! people, to the four v1 files; [Public Project Scaffold Capsule
+//! v2](../../docs/PROJECT-SCAFFOLD-V2.md) owns the contract.
+//!
 //! The returned artifact is only checked bytes. It owns no filesystem,
 //! process, environment, current-directory, target-emission, or publication
 //! authority.
@@ -11,17 +15,23 @@ use crate::diagnostic::{quote_json, Diagnostic};
 
 use super::{validate_owned_project_test, ProjectExecutionOptions, PROJECT_SCHEMA};
 
-pub const PROJECT_SCAFFOLD_SCHEMA: &str = "semaprax.project-scaffold.v1";
+pub const PROJECT_SCAFFOLD_SCHEMA: &str = "semaprax.project-scaffold.v2";
 pub const PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR: &str = "calculator";
-pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 4;
+pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 5;
 pub const MAX_PROJECT_SCAFFOLD_NAME_BYTES: usize = 64;
 pub const MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES: usize = 65_536;
 
-pub const PROJECT_SCAFFOLD_INVENTORY: [&str; PROJECT_SCAFFOLD_FILE_COUNT] =
-    ["README.md", "semaprax.toml", "src/app.spx", "src/tests.spx"];
+pub const PROJECT_SCAFFOLD_INVENTORY: [&str; PROJECT_SCAFFOLD_FILE_COUNT] = [
+    "README.md",
+    "AGENTS.md",
+    "semaprax.toml",
+    "src/app.spx",
+    "src/tests.spx",
+];
 
-const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v1\0";
-const README: &str = "# {{name}}\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check semaprax.toml\nsemaprax test semaprax.toml\nsemaprax run semaprax.toml\nsemaprax build semaprax.toml --target web -o web\n```\n";
+const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
+const README: &str = "# {{name}}\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build . --target web -o web\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
+const AGENTS: &str = "# Agent guide for {{name}}\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules; the compiler\nis the authority on what the language admits. Read `semaprax help language`\nbefore writing source.\n\n## Commands\n\n- `semaprax check .` parses, resolves, type-checks, and verifies every module.\n- `semaprax test .` runs `{{module}}.tests`; `semaprax run .` runs the entry and prints its `i64`.\n- `semaprax fmt <file>` rewrites one file in canonical form.\n- `semaprax build . --target web -o dist/web` emits a browser package.\n- `semaprax help <command>` prints one command's exact grammar.\n\n## Rules that differ from other languages\n\n- Every file starts with `module dotted.name;`, and every declaration carries\n  `@id(\"...\")`. The id is the stable identity: rename freely, never change an id.\n- A function body is statements followed by exactly one tail expression. There\n  is no `return`, `for`, `else if`, tuple, or unit value.\n- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.\n- Contracts are `requires` and `ensures` lines; effects are `permit` at module\n  level plus `uses` on every function that performs or calls into one.\n- Check the whole project, not one file: modules import each other, so a\n  single file reports `SPX-G172` or `SPX-T105`.\n- A new module must be listed in `sources` in `semaprax.toml`, and a test\n  module in `tests`.\n- Diagnostics carry stable `SPX-` codes and, where the compiler knows the fix,\n  a `help:` line. `semaprax check . --json` prints one diagnostic per line.\n";
 const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.add\"]\ntests = [\"{{module}}.tests\"]\n";
 const APP: &str = "module {{module}}.app;\n\n@id(\"{{name}}.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
 const TESTS: &str = "module {{module}}.tests;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    if 19 + 23 == 42 { 0 } else { 1 }\n}\n";
@@ -33,13 +43,13 @@ const NONCLAIMS: [&str; 4] = [
 ];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProjectScaffoldFileV1 {
+pub struct ProjectScaffoldFile {
     path: &'static str,
     bytes: Vec<u8>,
     sha256: String,
 }
 
-impl ProjectScaffoldFileV1 {
+impl ProjectScaffoldFile {
     #[must_use]
     pub const fn path(&self) -> &'static str {
         self.path
@@ -63,13 +73,13 @@ impl ProjectScaffoldFileV1 {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProjectScaffoldV1 {
+pub struct ProjectScaffold {
     project_name: String,
-    files: [ProjectScaffoldFileV1; PROJECT_SCAFFOLD_FILE_COUNT],
+    files: [ProjectScaffoldFile; PROJECT_SCAFFOLD_FILE_COUNT],
     digest: String,
 }
 
-impl ProjectScaffoldV1 {
+impl ProjectScaffold {
     #[must_use]
     pub const fn schema(&self) -> &'static str {
         PROJECT_SCAFFOLD_SCHEMA
@@ -91,7 +101,7 @@ impl ProjectScaffoldV1 {
     }
 
     #[must_use]
-    pub fn files(&self) -> &[ProjectScaffoldFileV1; PROJECT_SCAFFOLD_FILE_COUNT] {
+    pub fn files(&self) -> &[ProjectScaffoldFile; PROJECT_SCAFFOLD_FILE_COUNT] {
         &self.files
     }
 
@@ -107,26 +117,26 @@ impl ProjectScaffoldV1 {
 }
 
 /// Derive the exact built-in Project-v1 calculator subject in memory.
-pub fn derive_project_scaffold_v1(
+pub fn derive_project_scaffold(
     project_name: &str,
     template: &str,
-) -> Result<ProjectScaffoldV1, Vec<Diagnostic>> {
+) -> Result<ProjectScaffold, Vec<Diagnostic>> {
     validate_template(template)?;
     validate_project_name(project_name)?;
     let module = project_name.replace('-', "_");
-    let rendered = [README, MANIFEST, APP, TESTS].map(|source| {
+    let rendered = [README, AGENTS, MANIFEST, APP, TESTS].map(|source| {
         source
             .replace("{{name}}", project_name)
             .replace("{{module}}", &module)
             .into_bytes()
     });
-    let files = std::array::from_fn(|index| ProjectScaffoldFileV1 {
+    let files = std::array::from_fn(|index| ProjectScaffoldFile {
         path: PROJECT_SCAFFOLD_INVENTORY[index],
         sha256: ordinary_sha256(&rendered[index]),
         bytes: rendered[index].clone(),
     });
     validate_rendered_project(&files)?;
-    let mut artifact = ProjectScaffoldV1 {
+    let mut artifact = ProjectScaffold {
         project_name: project_name.to_owned(),
         files,
         digest: String::new(),
@@ -141,12 +151,12 @@ pub fn derive_project_scaffold_v1(
 }
 
 /// Replay submitted bytes against the exact selected name and built-in template.
-pub fn replay_project_scaffold_v1(
+pub fn replay_project_scaffold(
     project_name: &str,
     template: &str,
     descriptor_bytes: &[u8],
     digest: &str,
-) -> Result<ProjectScaffoldV1, Vec<Diagnostic>> {
+) -> Result<ProjectScaffold, Vec<Diagnostic>> {
     validate_template(template)?;
     validate_project_name(project_name)?;
     if descriptor_bytes.len() > MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES {
@@ -198,7 +208,7 @@ pub fn replay_project_scaffold_v1(
             "project scaffold descriptor digest does not match the submitted digest",
         ));
     }
-    let rebuilt = derive_project_scaffold_v1(project_name, template)?;
+    let rebuilt = derive_project_scaffold(project_name, template)?;
     if digest != rebuilt.digest() || descriptor_bytes != rebuilt.canonical_bytes().as_slice() {
         return Err(scaffold_error(
             "project scaffold descriptor does not replay against the built-in template",
@@ -238,14 +248,14 @@ fn validate_project_name(project_name: &str) -> Result<(), Vec<Diagnostic>> {
 }
 
 fn validate_rendered_project(
-    files: &[ProjectScaffoldFileV1; PROJECT_SCAFFOLD_FILE_COUNT],
+    files: &[ProjectScaffoldFile; PROJECT_SCAFFOLD_FILE_COUNT],
 ) -> Result<(), Vec<Diagnostic>> {
-    let manifest = files[1].utf8();
-    let app = files[2].utf8();
-    let tests = files[3].utf8();
+    let manifest = files[2].utf8();
+    let app = files[3].utf8();
+    let tests = files[4].utf8();
     let execution = validate_owned_project_test(
         manifest,
-        &[(files[2].path, app), (files[3].path, tests)],
+        &[(files[3].path, app), (files[4].path, tests)],
         &ProjectExecutionOptions::default(),
     )
     .map_err(|_| scaffold_error("built-in calculator project failed exact check or test"))?;
@@ -258,7 +268,7 @@ fn validate_rendered_project(
     }
 }
 
-fn render_descriptor(artifact: &ProjectScaffoldV1) -> String {
+fn render_descriptor(artifact: &ProjectScaffold) -> String {
     let body = render_descriptor_tail(artifact);
     format!(
         "{{\"schema\":{},\"digest\":{},{}",
@@ -268,7 +278,7 @@ fn render_descriptor(artifact: &ProjectScaffoldV1) -> String {
     )
 }
 
-fn render_descriptor_without_digest(artifact: &ProjectScaffoldV1) -> String {
+fn render_descriptor_without_digest(artifact: &ProjectScaffold) -> String {
     let body = render_descriptor_tail(artifact);
     format!(
         "{{\"schema\":{},{}",
@@ -277,7 +287,7 @@ fn render_descriptor_without_digest(artifact: &ProjectScaffoldV1) -> String {
     )
 }
 
-fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String {
+fn render_descriptor_tail(artifact: &ProjectScaffold) -> String {
     let files = artifact
         .files
         .iter()

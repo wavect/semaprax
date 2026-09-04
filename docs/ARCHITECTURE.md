@@ -78,11 +78,12 @@ after that latch cannot regain cleanup authority. See [Calculator project
 publication v1](NEW-PROJECT-PUBLICATION-V1.md) for the correction and unrun gates.
 
 `src/project/scaffold.rs` separately derives and independently replays the same
-four calculator files as a bounded `semaprax.project-scaffold.v1` artifact.
+five calculator files, including the in-project `AGENTS.md` guide, as a bounded
+`semaprax.project-scaffold.v2` artifact.
 The standalone CLI prints those canonical bytes directly to stdout. The
 artifact owns no path, file handle, staging namespace, process, or publication
 authority; materialization remains entirely caller-owned. See [Public Project
-Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md).
+Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md).
 
 The toolchain library's shared doctor module owns strict bounded `--profile` selection and one
 scoped offline-profile admission per report. Missing/unavailable profiles fail

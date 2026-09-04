@@ -98,14 +98,16 @@ destination, and does not initialize Git, install dependencies, or access a
 network. Continue with the executable [quickstart](docs/QUICKSTART.md) to run,
 inspect, and build the project.
 
-To obtain the exact same four calculator files as a replayable stdout document
-without granting SEMAPRAX a destination or publication authority:
+Every generated project carries an `AGENTS.md`: the commands and the rules
+that differ from other languages, for coding agents and people alike. To
+obtain the exact same five files as a replayable stdout document without
+granting SEMAPRAX a destination or publication authority:
 
 ```sh
 semaprax project-scaffold --name first-semaprax
 ```
 
-The `semaprax.project-scaffold.v1` capsule is caller-materialized data, not an
+The `semaprax.project-scaffold.v2` capsule is caller-materialized data, not an
 archive or atomic filesystem publication API.
 
 ### Inspect the semantic graph

@@ -22,12 +22,17 @@ create-new route without this protocol's staging or identity re-verification.
 This correction changes publication verification, not the command grammar,
 template names, Project schema, source semantics, or successful file bytes.
 Only the existing optional `--name` and `--template calculator` are admitted.
-The exact generated inventory remains:
+The exact generated inventory is the [Public Project Scaffold Capsule
+v2](PROJECT-SCAFFOLD-V2.md) inventory:
 
 - `README.md`
+- `AGENTS.md`
 - `semaprax.toml`
 - `src/app.spx`
 - `src/tests.spx`
+
+(`AGENTS.md` was added by scaffold v2; the root inventory the held-parent
+authority authenticates and publishes grew from two files to three.)
 
 There is no template discovery, arbitrary template input, network access,
 dependency installation, Git initialization, recursive cleanup API, general

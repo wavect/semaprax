@@ -142,10 +142,10 @@ fn documented_public_scaffold_is_stdout_only_and_precedes_publication() {
     assert!(output.stderr.is_empty());
     assert_eq!(std::fs::read_dir(&fixture.root).unwrap().count(), 0);
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(value["schema"], "semaprax.project-scaffold.v1");
+    assert_eq!(value["schema"], "semaprax.project-scaffold.v2");
     assert_eq!(value["project_name"], "first-semaprax");
     assert_eq!(value["project_schema"], "semaprax.project.v1");
-    assert_eq!(value["files"].as_array().unwrap().len(), 4);
+    assert_eq!(value["files"].as_array().unwrap().len(), 5);
 }
 
 #[test]

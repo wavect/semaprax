@@ -29,7 +29,7 @@ SEMAPRAX a destination or write authority, print the public scaffold capsule:
 semaprax project-scaffold --name first-semaprax
 ```
 
-This writes one canonical `semaprax.project-scaffold.v1` document to stdout and
+This writes one canonical `semaprax.project-scaffold.v2` document to stdout and
 does not materialize a project. The capsule is not a publication primitive; a
 consumer that writes its files owns that filesystem and publication policy.
 

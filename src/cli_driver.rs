@@ -584,7 +584,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         }
         CommandId::ProjectScaffold => {
             let (name, template) = parse_project_scaffold_options(&args[1..])?;
-            let artifact = project::derive_project_scaffold_v1(name, template)
+            let artifact = project::derive_project_scaffold(name, template)
                 .map_err(|errors| report(&errors, false))?;
             let bytes = artifact.canonical_bytes();
             let stdout = std::io::stdout();

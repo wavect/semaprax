@@ -370,8 +370,8 @@ pub use public_api::{
 };
 pub use public_utf8_api::{PUBLIC_OWNED_UTF8_API_SCHEMA, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA};
 pub use scaffold::{
-    derive_project_scaffold_v1, replay_project_scaffold_v1, ProjectScaffoldFileV1,
-    ProjectScaffoldV1, MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES, MAX_PROJECT_SCAFFOLD_NAME_BYTES,
+    derive_project_scaffold, replay_project_scaffold, ProjectScaffold, ProjectScaffoldFile,
+    MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES, MAX_PROJECT_SCAFFOLD_NAME_BYTES,
     PROJECT_SCAFFOLD_FILE_COUNT, PROJECT_SCAFFOLD_INVENTORY, PROJECT_SCAFFOLD_SCHEMA,
     PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
 };

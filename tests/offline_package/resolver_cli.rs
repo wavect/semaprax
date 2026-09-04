@@ -64,7 +64,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax fmt <file> [--check]\n",
         ),
         (
-            "semaprax project-scaffold --name project-name [--template calculator|library]\n",
+            "semaprax project-scaffold --name project-name [--template calculator|library] [--layout frozen|tables]\n",
             "semaprax project-scaffold --name project-name [--template calculator]\n",
         ),
         (

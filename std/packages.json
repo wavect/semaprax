@@ -3,6 +3,7 @@
   "packages": [
     {"directory": "bytes", "module": "std.bytes", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "core", "module": "std.core", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "data-csv", "module": "std.data.csv", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "encoding", "module": "std.encoding", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "num", "module": "std.num", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "num-overflow", "module": "std.num.overflow", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

@@ -197,6 +197,24 @@ fn implies(premise: bool, conclusion: bool) -> bool
     ensures result == (!premise || conclusion)
 ```
 
+## `std.data.csv`
+
+Package `std/data-csv`, tier `portable`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.csv.field_count`
+
+```semaprax
+fn field_count(record: borrow Slice<u8>) -> usize
+    ensures result >= 1usize
+    ensures result <= byte_len(record) + 1usize
+```
+
+### `std.data.csv.has_balanced_quotes`
+
+```semaprax
+fn has_balanced_quotes(record: borrow Slice<u8>) -> bool
+```
+
 ## `std.encoding`
 
 Package `std/encoding`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.

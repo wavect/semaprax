@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-data-csv"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.data.csv.examples"
+sources = ["src/csv.spx", "src/examples.spx", "src/tests.spx"]
+tests = ["std.data.csv.tests"]
+
+[exports]
+web = ["std.data.csv.field_count", "std.data.csv.has_balanced_quotes"]

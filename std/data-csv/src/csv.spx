@@ -1,0 +1,38 @@
+module std.data.csv;
+
+@id("std.data.csv.field_count")
+fn field_count(record: borrow Slice<u8>) -> usize
+    ensures result >= 1usize
+    ensures result <= byte_len(record) + 1usize
+{
+    let length = byte_len(record);
+    let mut index = 0usize;
+    let mut fields = 1usize;
+    let mut quoted = false;
+    while index < length {
+        let quote = match byte_get(record, index) { Option::Some { value: byte } => byte == 34u8, Option::None {} => false, };
+        let comma = match byte_get(record, index) { Option::Some { value: byte } => byte == 44u8, Option::None {} => false, };
+        let next_quote = if quote && quoted && index + 1usize < length { match byte_get(record, index + 1usize) { Option::Some { value: byte } => byte == 34u8, Option::None {} => false, } } else { false };
+        quoted = if quote && !next_quote { !quoted } else { quoted };
+        fields = if comma && !quoted { fields + 1usize } else { fields };
+        index = index + if next_quote { 2usize } else { 1usize };
+        index < length
+    }
+    fields
+}
+
+@id("std.data.csv.has_balanced_quotes")
+fn has_balanced_quotes(record: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(record);
+    let mut index = 0usize;
+    let mut quoted = false;
+    while index < length {
+        let quote = match byte_get(record, index) { Option::Some { value: byte } => byte == 34u8, Option::None {} => false, };
+        let next_quote = if quote && quoted && index + 1usize < length { match byte_get(record, index + 1usize) { Option::Some { value: byte } => byte == 34u8, Option::None {} => false, } } else { false };
+        quoted = if quote && !next_quote { !quoted } else { quoted };
+        index = index + if next_quote { 2usize } else { 1usize };
+        index < length
+    }
+    !quoted
+}

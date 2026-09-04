@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the first executable `portable`-tier data-format package,
+  `std.data.csv`, with allocation-free single-record field counting that
+  respects quoted commas and escaped quotes, plus balanced-quote validation.
+  It runs on every standard-library backend and is available through the
+  closed compiler-bundled dependency inventory; streaming, typed fields,
+  dialects, and writing remain Missing.
 - Added the eighth executable `core`-tier package, `std.time`, with
   nonnegative millisecond conversion and decomposition, deadline comparison,
   remaining-duration calculation, and saturating addition. The package is

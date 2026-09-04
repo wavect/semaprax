@@ -1,0 +1,32 @@
+module std.data.csv.tests;
+use function @id("std.data.csv.field_count") from std.data.csv as field_count;
+use function @id("std.data.csv.has_balanced_quotes") from std.data.csv as has_balanced_quotes;
+
+@id("std.data.csv.tests.fields")
+fn fields() -> bool
+{
+    let empty = [0u8; 0];
+    let plain = [97u8, 44u8, 98u8, 44u8, 99u8];
+    let quoted = [34u8, 97u8, 44u8, 98u8, 34u8, 44u8, 99u8];
+    let escaped = [34u8, 97u8, 34u8, 34u8, 98u8, 34u8, 44u8, 99u8];
+    field_count(array_as_slice(empty)) == 1usize && field_count(array_as_slice(plain)) == 3usize && field_count(array_as_slice(quoted)) == 2usize && field_count(array_as_slice(escaped)) == 2usize
+}
+
+@id("std.data.csv.tests.quotes")
+fn quotes() -> bool
+{
+    let empty = [0u8; 0];
+    let quoted = [34u8, 97u8, 44u8, 98u8, 34u8, 44u8, 99u8];
+    let escaped = [34u8, 97u8, 34u8, 34u8, 98u8, 34u8];
+    let open = [34u8, 97u8];
+    has_balanced_quotes(array_as_slice(empty)) && has_balanced_quotes(array_as_slice(quoted)) && has_balanced_quotes(array_as_slice(escaped)) && !has_balanced_quotes(array_as_slice(open))
+}
+
+@id("std.data.csv.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if fields() { 0 } else { 1 };
+    failed = failed + if quotes() { 0 } else { 2 };
+    failed
+}

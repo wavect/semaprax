@@ -653,6 +653,43 @@ fn package_manifest_links_bundled_std_time() {
 }
 
 #[test]
+fn package_manifest_links_bundled_std_csv() {
+    let scratch = temporary("manifest-csv-dependency");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"csv-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.csv\"\nsources = [\"src/csv.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.csv-fields\"]\n\n[dependencies]\nstd.data.csv = \"^0.1.0\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/csv.spx"),
+        "module consumer.csv;\nuse function @id(\"std.data.csv.field_count\") from std.data.csv as field_count;\n\n@id(\"consumer.csv-fields\")\nfn csv_fields(record: borrow Slice<u8>) -> usize\n{\n    field_count(record)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let record = [97u8, 44u8, 98u8];\n    if csv_fields(array_as_slice(record)) == 2usize { 0 } else { 1 }\n}\n",
+    )
+    .unwrap();
+
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        assert_eq!(
+            snapshot
+                .execute_entry(&project::ProjectExecutionOptions::default())?
+                .outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.csv/0.1.0/csv.spx"));
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+#[test]
 fn package_manifest_links_borrowed_text_from_std_text() {
     let scratch = temporary("manifest-text-dependency");
     std::fs::create_dir_all(scratch.join("src")).unwrap();

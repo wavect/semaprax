@@ -1,0 +1,11 @@
+module std.data.csv.examples;
+use function @id("std.data.csv.field_count") from std.data.csv as field_count;
+use function @id("std.data.csv.has_balanced_quotes") from std.data.csv as has_balanced_quotes;
+
+@id("std.data.csv.examples.main")
+fn main() -> i64
+{
+    let record = [34u8, 97u8, 44u8, 98u8, 34u8, 44u8, 99u8];
+    let view = array_as_slice(record);
+    if field_count(view) == 2usize && has_balanced_quotes(view) { 0 } else { 1 }
+}

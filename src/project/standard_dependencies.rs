@@ -36,6 +36,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.data.csv",
+        path: "dependencies/std.data.csv/0.1.0/csv.spx",
+        source: include_str!("../../std/data-csv/src/csv.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.encoding",
         path: "dependencies/std.encoding/0.1.0/encoding.spx",
         source: include_str!("../../std/encoding/src/encoding.spx"),

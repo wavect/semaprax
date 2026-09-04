@@ -1,0 +1,394 @@
+//! Project Lock v1: `semaprax lock`, the `semaprax.lock` it writes, and the
+//! explicit `--verify` that fails closed on drift. `check` is never involved.
+
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use serde_json::Value;
+use sha2::{Digest, Sha256};
+
+static SERIAL: AtomicU64 = AtomicU64::new(0);
+
+const CALCULATOR_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"calculator\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"calculator.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\ntests = [\"calculator.tests\"]\n\n[exports]\nweb = [\"calculator.add\", \"calculator.divide\", \"calculator.is-negative\", \"calculator.multiply\", \"calculator.not\", \"calculator.subtract\"]\n";
+
+const SPXGREP_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"spxgrep\"\nversion = \"0.1.0\"\nprofile = \"useful-data-command.v1\"\n\n[modules]\nentry = \"spxgrep.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"spxgrep.tests\"]\n\n[exports]\nweb = [\"spxgrep.contains\"]\n\n[command]\nfunction = \"spxgrep.contains\"\n\n[capabilities]\nrequired = [\"process.stdout.write\"]\n";
+
+fn digest(domain: &[u8], bytes: &[u8]) -> String {
+    let mut digest = Sha256::new();
+    digest.update(domain);
+    digest.update((bytes.len() as u64).to_le_bytes());
+    digest.update(bytes);
+    let mut hex = String::from("sha256:");
+    for byte in digest.finalize() {
+        hex.push_str(&format!("{byte:02x}"));
+    }
+    hex
+}
+
+fn stdout(output: &Output) -> String {
+    String::from_utf8(output.stdout.clone()).unwrap()
+}
+
+fn stderr(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stderr).into_owned()
+}
+
+#[test]
+fn lock_is_deterministic_authenticated_and_binds_the_program_root() {
+    let fixture = example_fixture("calculator-frozen", "examples/calculator-project", None);
+    let first = cli(&fixture.root, &["lock", "semaprax.toml"]);
+    assert!(first.status.success(), "{}", stderr(&first));
+    let second = cli(&fixture.root, &["lock", "semaprax.toml"]);
+    assert_eq!(
+        first.stdout, second.stdout,
+        "two renders are byte-identical"
+    );
+    assert!(
+        !fixture.root.join("semaprax.lock").exists(),
+        "no --write, no file"
+    );
+
+    let text = stdout(&first);
+    assert!(text.ends_with("}\n"));
+    let lock: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(lock["schema"], "semaprax.project-lock.v1");
+    let payload = serde_json::to_string(&lock["payload"]).unwrap();
+    assert_eq!(lock["bytes"].as_u64().unwrap() as usize, payload.len());
+    assert_eq!(
+        lock["digest"].as_str().unwrap(),
+        digest(b"semaprax.project-lock.v1\0", payload.as_bytes()),
+        "the digest is independently recomputable from the payload bytes"
+    );
+    let payload = &lock["payload"];
+    assert_eq!(payload["schema"], "semaprax.project-lock.v1");
+    assert_eq!(payload["package"]["name"], "calculator");
+    assert_eq!(payload["package"]["version"], Value::Null);
+    assert_eq!(payload["package"]["manifest_schema"], "semaprax.project.v1");
+    assert_eq!(payload["package"]["contract"], "semaprax.project.v1");
+    assert_eq!(payload["package"]["profile"], "scalar");
+    assert!(payload["package"]["manifest_digest"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
+
+    // The program root equals the revision `check` prints; the lock never
+    // affects `check`, which passes with or without a lock file present.
+    let check = cli(&fixture.root, &["check", "semaprax.toml"]);
+    assert!(check.status.success(), "{}", stderr(&check));
+    let verified = stdout(&check);
+    let revision = verified
+        .trim_end()
+        .strip_prefix("verified project calculator (")
+        .and_then(|rest| rest.strip_suffix(')'))
+        .unwrap_or_else(|| panic!("{verified}"));
+    assert_eq!(payload["program_root"].as_str().unwrap(), revision);
+
+    let files = payload["source"]["files"].as_array().unwrap();
+    assert_eq!(
+        files
+            .iter()
+            .map(|file| file["path"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["src/app.spx", "src/core.spx", "src/tests.spx"]
+    );
+    for file in files {
+        assert!(file["source_digest"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:"));
+        assert!(!file["source_revision"].as_str().unwrap().is_empty());
+        assert!(
+            file.get("source").is_none(),
+            "the lock carries digests, never source"
+        );
+    }
+    assert!(payload["source"]["workspace_revision"].as_str().is_some());
+
+    assert_eq!(payload["interface"]["kind"], "scalar-wit.v1");
+    assert!(payload["interface"]["digest"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
+    assert_eq!(payload["interface"]["exports"].as_array().unwrap().len(), 6);
+    assert_eq!(payload["dependencies"], Value::Array(Vec::new()));
+    assert_eq!(
+        payload["targets"],
+        serde_json::json!([
+            {"state": "default", "target": "native64"},
+            {"state": "default", "target": "wasm32"},
+        ])
+    );
+    assert_eq!(payload["capabilities"], Value::Array(Vec::new()));
+    assert_eq!(payload["compiler"]["package"], "semaprax");
+    assert_eq!(payload["compiler"]["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(payload["resolution_policy"]["dependencies"], "none");
+    assert_eq!(payload["resolution_policy"]["registry"], "none");
+    assert!(payload["nonclaims"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|claim| claim == "no_target_execution_or_availability_proof"));
+}
+
+#[test]
+fn write_persists_the_lock_and_verify_fails_closed_on_drift() {
+    let fixture = example_fixture(
+        "calculator-tables",
+        "examples/calculator-project",
+        Some(CALCULATOR_TABLES),
+    );
+    let lock_path = fixture.root.join("semaprax.lock");
+
+    // Verifying before any lock exists reports the missing file, and check is
+    // unaffected either way.
+    assert!(cli(&fixture.root, &["check", "semaprax.toml"])
+        .status
+        .success());
+    let missing = cli(&fixture.root, &["lock", "semaprax.toml", "--verify"]);
+    assert!(!missing.status.success());
+    assert!(
+        stderr(&missing).contains("SPX-J124"),
+        "{}",
+        stderr(&missing)
+    );
+
+    let written = cli(&fixture.root, &["lock", "semaprax.toml", "--write"]);
+    assert!(written.status.success(), "{}", stderr(&written));
+    let lock = std::fs::read_to_string(&lock_path).unwrap();
+    let rendered = stdout(&cli(&fixture.root, &["lock", "semaprax.toml"]));
+    assert_eq!(
+        lock, rendered,
+        "--write persists exactly the rendered bytes"
+    );
+    let parsed: Value = serde_json::from_str(&lock).unwrap();
+    assert_eq!(
+        stdout(&written),
+        format!(
+            "wrote semaprax.lock for calculator ({})\n",
+            parsed["digest"].as_str().unwrap()
+        )
+    );
+    assert_eq!(parsed["payload"]["package"]["version"], "0.1.0");
+    assert_eq!(
+        parsed["payload"]["package"]["manifest_schema"],
+        "semaprax.manifest.v1"
+    );
+    assert_eq!(
+        parsed["payload"]["package"]["contract"],
+        "semaprax.project.v1"
+    );
+    assert!(std::fs::read_dir(&fixture.root).unwrap().all(|entry| !entry
+        .unwrap()
+        .file_name()
+        .to_string_lossy()
+        .contains("staging")));
+
+    let verified = cli(&fixture.root, &["lock", "semaprax.toml", "--verify"]);
+    assert!(verified.status.success(), "{}", stderr(&verified));
+    assert_eq!(
+        stdout(&verified),
+        format!(
+            "verified semaprax.lock for calculator ({})\n",
+            parsed["digest"].as_str().unwrap()
+        )
+    );
+    let again = cli(&fixture.root, &["lock", "semaprax.toml", "--write"]);
+    assert!(again.status.success());
+    assert_eq!(
+        std::fs::read_to_string(&lock_path).unwrap(),
+        lock,
+        "idempotent"
+    );
+
+    // Source drift changes the program root and the source rows, not the
+    // interface. `check` still passes; only `--verify` reports the drift.
+    let core = fixture.root.join("src/core.spx");
+    let original = std::fs::read_to_string(&core).unwrap();
+    std::fs::write(&core, original.replace("left + right", "right + left")).unwrap();
+    assert!(cli(&fixture.root, &["check", "semaprax.toml"])
+        .status
+        .success());
+    let drifted = cli(&fixture.root, &["lock", "semaprax.toml", "--verify"]);
+    assert!(!drifted.status.success());
+    let message = stderr(&drifted);
+    assert!(message.contains("SPX-J123"), "{message}");
+    assert!(
+        message.contains(
+            "semaprax.lock is stale: program_root, source differ from the checked project"
+        ),
+        "{message}"
+    );
+    assert!(
+        message.contains("semaprax lock semaprax.toml --write"),
+        "{message}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(&lock_path).unwrap(),
+        lock,
+        "--verify never rewrites"
+    );
+    std::fs::write(&core, original).unwrap();
+    assert!(cli(&fixture.root, &["lock", "semaprax.toml", "--verify"])
+        .status
+        .success());
+
+    // Manifest drift changes the manifest digest, the program root, and the
+    // targets rows.
+    std::fs::write(
+        fixture.root.join("semaprax.toml"),
+        format!("{CALCULATOR_TABLES}\n[targets]\nmatrix = [\"wasm32\"]\n"),
+    )
+    .unwrap();
+    let message = stderr(&cli(&fixture.root, &["lock", "semaprax.toml", "--verify"]));
+    assert!(
+        message.contains("semaprax.lock is stale: package, program_root, targets differ"),
+        "{message}"
+    );
+    let relocked = cli(&fixture.root, &["lock", "semaprax.toml", "--write"]);
+    assert!(relocked.status.success());
+    let relocked: Value =
+        serde_json::from_str(&std::fs::read_to_string(&lock_path).unwrap()).unwrap();
+    assert_eq!(
+        relocked["payload"]["targets"],
+        serde_json::json!([{"state": "declared", "target": "wasm32"}])
+    );
+    assert!(cli(&fixture.root, &["lock", "semaprax.toml", "--verify"])
+        .status
+        .success());
+
+    // Foreign or unreadable lock bytes reject before any rendering claim.
+    for (bytes, fragment) in [
+        (&b"not json"[..], "is not a JSON object"),
+        (
+            &br#"{"schema":"semaprax.offline-semantic-package-lock.v3"}"#[..],
+            "does not carry schema semaprax.project-lock.v1",
+        ),
+    ] {
+        std::fs::write(&lock_path, bytes).unwrap();
+        let foreign = cli(&fixture.root, &["lock", "semaprax.toml", "--verify"]);
+        assert!(!foreign.status.success());
+        let message = stderr(&foreign);
+        assert!(message.contains("SPX-J124"), "{message}");
+        assert!(message.contains(fragment), "{message}");
+    }
+    std::fs::remove_file(&lock_path).unwrap();
+    std::fs::create_dir(&lock_path).unwrap();
+    assert!(
+        stderr(&cli(&fixture.root, &["lock", "semaprax.toml", "--verify"])).contains("SPX-J124")
+    );
+    std::fs::remove_dir(&lock_path).unwrap();
+}
+
+#[test]
+fn lock_reports_the_interface_kind_per_profile_and_rejects_bad_usage() {
+    let spxgrep = example_fixture("spxgrep", "examples/spxgrep-project", Some(SPXGREP_TABLES));
+    let lock = cli(&spxgrep.root, &["lock", "semaprax.toml"]);
+    assert!(lock.status.success(), "{}", stderr(&lock));
+    let lock: Value = serde_json::from_str(&stdout(&lock)).unwrap();
+    assert_eq!(lock["payload"]["interface"]["kind"], "unproven");
+    assert_eq!(lock["payload"]["interface"]["digest"], Value::Null);
+    assert_eq!(
+        lock["payload"]["package"]["profile"],
+        "useful-data-command.v1"
+    );
+    assert_eq!(
+        lock["payload"]["package"]["contract"],
+        "semaprax.project.v4"
+    );
+    assert_eq!(
+        lock["payload"]["capabilities"],
+        serde_json::json!(["process.stdout.write"])
+    );
+
+    let frame = example_fixture("frame-payload", "examples/frame-payload-project", None);
+    let lock = cli(&frame.root, &["lock", "semaprax.toml"]);
+    assert!(lock.status.success(), "{}", stderr(&lock));
+    let lock: Value = serde_json::from_str(&stdout(&lock)).unwrap();
+    assert_eq!(
+        lock["payload"]["interface"]["kind"],
+        "public-owned-data-api.v1"
+    );
+    assert!(lock["payload"]["interface"]["digest"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
+    assert_eq!(
+        lock["payload"]["package"]["contract"],
+        "semaprax.project.v8"
+    );
+
+    for (arguments, fragment) in [
+        (&["lock"][..], "lock requires a manifest path"),
+        (
+            &["lock", "semaprax.toml", "extra.toml"],
+            "exactly one manifest path",
+        ),
+        (
+            &["lock", "semaprax.toml", "--write", "--verify"],
+            "at most one of `--write` or `--verify`",
+        ),
+        (
+            &["lock", "semaprax.toml", "--force"],
+            "unknown lock option `--force`",
+        ),
+    ] {
+        let output = cli(&frame.root, arguments);
+        assert_eq!(output.status.code(), Some(2), "{arguments:?}");
+        assert!(output.stdout.is_empty());
+        assert!(
+            stderr(&output).contains(fragment),
+            "{arguments:?}: {}",
+            stderr(&output)
+        );
+    }
+    assert!(!frame.root.join("semaprax.lock").exists());
+
+    let help = cli(&frame.root, &["lock", "--help"]);
+    assert!(help.status.success());
+    assert_eq!(
+        stdout(&help),
+        "Usage:\n  semaprax lock <manifest> [--write|--verify]\n"
+    );
+}
+
+struct Fixture {
+    root: PathBuf,
+}
+
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.root);
+    }
+}
+
+fn example_fixture(label: &str, example: &str, manifest: Option<&str>) -> Fixture {
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-project-lock-v1-{label}-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join(example);
+    for entry in std::fs::read_dir(source.join("src")).unwrap() {
+        let entry = entry.unwrap();
+        std::fs::copy(entry.path(), root.join("src").join(entry.file_name())).unwrap();
+    }
+    match manifest {
+        Some(manifest) => std::fs::write(root.join("semaprax.toml"), manifest).unwrap(),
+        None => {
+            std::fs::copy(source.join("semaprax.toml"), root.join("semaprax.toml")).unwrap();
+        }
+    }
+    Fixture {
+        root: root.canonicalize().unwrap(),
+    }
+}
+
+fn cli(root: &Path, arguments: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(arguments)
+        .current_dir(root)
+        .output()
+        .unwrap()
+}

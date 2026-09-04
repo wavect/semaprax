@@ -28,6 +28,7 @@ mod nested_owned_record;
 mod npm;
 mod prepared_interpreter;
 mod profile;
+mod project_lock;
 mod public_api;
 mod public_utf8_api;
 #[cfg(test)]
@@ -323,6 +324,10 @@ pub use prepared_interpreter::{
     ProjectSourceTraceEvent, DEFAULT_PROJECT_SOURCE_TRACE_BYTES,
     DEFAULT_PROJECT_SOURCE_TRACE_EVENTS, MAX_PROJECT_SOURCE_TRACE_BYTES,
     MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
+};
+pub use project_lock::{
+    render_project_lock, verify_project_lock, VerifiedProjectLock, MAX_PROJECT_LOCK_BYTES,
+    PROJECT_LOCK_FILE, PROJECT_LOCK_SCHEMA,
 };
 pub use target_cache::{
     ProjectCTargetBuild, ProjectNpmTargetBuild, ProjectTargetBuild, ProjectTargetCache,

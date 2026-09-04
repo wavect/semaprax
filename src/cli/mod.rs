@@ -13,6 +13,7 @@ pub(crate) mod package_resolver;
 pub(crate) mod project;
 pub(crate) mod project_candidate;
 pub(crate) mod project_image;
+pub(crate) mod project_lock;
 pub(crate) mod project_runtime;
 pub(crate) mod retention_metadata;
 pub(crate) mod semantic_cache;

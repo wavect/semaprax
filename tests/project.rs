@@ -137,6 +137,8 @@ mod owned_utf8_npm;
 mod package_manifest_v1;
 #[path = "project/profile_admission.rs"]
 mod profile_admission;
+#[path = "project/project_lock_v1.rs"]
+mod project_lock_v1;
 #[path = "project/resource_free_record_evolution.rs"]
 mod resource_free_record_evolution;
 #[path = "project/retained_owned_api.rs"]

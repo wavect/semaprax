@@ -2,7 +2,17 @@
 
 ## Unreleased
 
-<<<<<<< HEAD
+- `semaprax lock <manifest>` renders the deterministic `semaprax.lock` beside a
+  project ([Project Lock v1](docs/PROJECT-LOCK-V1.md)): the canonical manifest
+  and its contract, the project revision as the program root, every source
+  file's revision and digest, the retained interface descriptor digest, the
+  declared target matrix, required capabilities, the compiler, and the
+  resolution policy. `--write` persists it atomically and `--verify` re-renders
+  and compares bytes, failing closed with `SPX-J123` when a source, manifest,
+  or compiler drifts and naming the drifted fields. Like every package
+  operation the lock is explicit and never touched by `check`;
+  `tests/project.rs::project_lock_v1` is the gate.
+
 - `semaprax fmt` keeps `//` comments. The lexer records each comment's
   position, and the canonical formatter prints it above the item it preceded
   or right after the item it followed, at that item's depth; formatting is
@@ -33,7 +43,6 @@
   owns the bounded route and its non-claims, `tests/project/new_cli.rs` pins
   it, and the install guide, quickstart, and README no longer require the
   full toolchain to create a project.
-=======
 - `semaprax.toml` gains one extensible table layout, `semaprax.manifest.v1`
   ([Package Manifest v1](docs/PACKAGE-MANIFEST-V1.md)): `[package]`,
   `[modules]`, `[exports]`, `[command]`, `[capabilities]`, `[dependencies]`,
@@ -45,7 +54,6 @@
   `SPX-J122`, and a non-canonical manifest names its first differing line.
   The frozen layouts remain admitted byte-for-byte;
   `tests/project.rs::package_manifest_v1` is the gate.
->>>>>>> origin/main
 
 - The standard-library contract and the agent quick reference explain how a
   Project consumes a `std.*` module today, by vendoring its library file and

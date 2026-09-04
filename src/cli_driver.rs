@@ -1201,6 +1201,19 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 Err(report(&errors, false))
             }
         },
+        CommandId::Lock => match cli::project_lock::run(&args[1..]) {
+            Ok(output) => {
+                print!("{output}");
+                Ok(())
+            }
+            Err(cli::project_lock::ProjectLockCliError::Usage(message)) => {
+                eprintln!("{message}");
+                Err(2)
+            }
+            Err(cli::project_lock::ProjectLockCliError::Domain(errors)) => {
+                Err(report(&errors, false))
+            }
+        },
         CommandId::PackageResolve => match cli::package_resolver::run(&args[1..]) {
             Ok(evidence) => {
                 write_package_resolver_stdout(&evidence).map_err(|error| report(&[error], false))

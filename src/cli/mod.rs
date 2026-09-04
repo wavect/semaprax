@@ -7,6 +7,7 @@ pub(crate) mod fmt;
 pub(crate) mod graph;
 pub(crate) mod help;
 pub(crate) mod manifest_hint;
+pub(crate) mod new_project;
 pub(crate) mod package_lock;
 pub(crate) mod package_resolver;
 pub(crate) mod project;

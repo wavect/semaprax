@@ -19,6 +19,7 @@ Audience: all documentation readers.
 - [Guided CLI help](CLI-HELP-V4.md)
 - [Human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md)
 - [Calculator project publication](NEW-PROJECT-PUBLICATION-V1.md)
+- [Standalone project creation](NEW-PROJECT-STANDALONE-V1.md)
 - [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)
 - [Doctor version-probe lifecycle](DOCTOR-PROBE-V1.md)
 - [Doctor sealed input](DOCTOR-SEALED-INPUT-V1.md)

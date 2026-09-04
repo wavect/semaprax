@@ -559,11 +559,26 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
         }
         CommandId::New => {
-            let destination = (require_private_host(host, "new")?.new_project)(&args[1..])
-                .map_err(|(error, code)| {
+            let destination = match host {
+                // The full toolchain publishes through its held-parent staged
+                // authority; the standalone compiler through the bounded
+                // create-new route in the compiler library.
+                Some(host) => (host.new_project)(&args[1..]).map_err(|(error, code)| {
                     eprintln!("new: {error}");
                     code
-                })?;
+                })?,
+                None => {
+                    let options = cli::new_project::parse(&args[1..]).map_err(|error| {
+                        eprintln!("new: {error}");
+                        2
+                    })?;
+                    project::create_calculator_project(&options.destination, &options.name)
+                        .map_err(|error| {
+                            eprintln!("new: {error}");
+                            1
+                        })?
+                }
+            };
             println!("created calculator project {}", destination.display());
             Ok(())
         }

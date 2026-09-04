@@ -10,7 +10,6 @@ fn standalone_rejects_private_commands_before_creating_output() {
     let output = root.join("nested/package");
     for arguments in [
         vec!["doctor".to_owned(), "--json".to_owned()],
-        vec!["new".to_owned(), output.display().to_string()],
         vec![
             "build".to_owned(),
             manifest.display().to_string(),

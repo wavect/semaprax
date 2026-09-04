@@ -49,7 +49,10 @@ graph projection or backend.
 
 The registry compiler and unpublished full toolchain share one compiler library
 and `src/cli_driver.rs`. The standalone binary supplies no private-host hooks.
-`crates/semaprax-toolchain` owns the `new` and `doctor` implementations,
+`crates/semaprax-toolchain` owns the `doctor` implementation and the held-parent
+staged publication behind its `new`; the compiler library owns the bounded
+standalone `new` route (`src/project/create.rs`), and both share one grammar and
+one scaffold. The toolchain also owns the
 Project Native Rust package publication adapter, and safe Windows revision-store
 host. No private crate is a normal or optional dependency of the registry
 package. Compiler-owned SDK replay and Windows carrier preparation/replay remain

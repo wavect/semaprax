@@ -84,21 +84,19 @@ writing `.spx`, without a checkout. Opening a `.spx` file in Visual Studio Code
 with the [repository extension](editors/vscode/README.md) loaded gives syntax
 highlighting.
 
-Private-host commands require the unpublished full toolchain, not the
-standalone crates.io compiler package. Install it from the same checkout to
-create a checked calculator project from the built-in template:
+Create a checked calculator project from the built-in template:
 
 ```sh
-cargo install --locked --path crates/semaprax-toolchain
-semaprax-full new first-semaprax
+semaprax new first-semaprax
 cd first-semaprax
-semaprax check semaprax.toml
-semaprax test semaprax.toml
+semaprax check .
+semaprax test .
 ```
 
-The generator uses only compiled-in files and does not initialize Git, install
-dependencies, or access a network. Continue with the executable
-[quickstart](docs/QUICKSTART.md) to run, inspect, and build the project.
+The generator uses only compiled-in files, writes only into a fresh
+destination, and does not initialize Git, install dependencies, or access a
+network. Continue with the executable [quickstart](docs/QUICKSTART.md) to run,
+inspect, and build the project.
 
 To obtain the exact same four calculator files as a replayable stdout document
 without granting SEMAPRAX a destination or publication authority:
@@ -224,7 +222,7 @@ publication authority.
 | --- | --- |
 | `semaprax --version` / `version --json` | Report deterministic package and injected commit identity. |
 | `semaprax-full doctor [--profile <id>] [--target …] [--json]` | Private offline-profile checks; production profiles currently unavailable, with no ambient-tool fallback. |
-| `semaprax-full new <destination>` | Private full-toolchain creation and validation of a Project v1 calculator. |
+| `semaprax new <destination>` | Create and verify a Project v1 calculator from the built-in template; the full toolchain publishes the same files through a staged rename. |
 | `semaprax check …` | Parse, resolve, type-check, and verify a file or project manifest. |
 | `semaprax fmt <file> [--check]` | Write or check canonical formatting. |
 | `semaprax run …` / `semaprax test …` | Execute an admitted file or project through the development path. |

@@ -1,7 +1,3 @@
-#[path = "support/full_toolchain.rs"]
-mod full_toolchain;
-#[path = "support/native_rust_cargo.rs"]
-mod native_rust_cargo;
 #[path = "support/project_directory_link.rs"]
 mod project_directory_link;
 
@@ -23,10 +19,9 @@ mod build_cli;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
-const QUICKSTART_INSTALL_COMMANDS: &str = "cargo install --locked --path .\n\
-cargo install --locked --path crates/semaprax-toolchain";
+const QUICKSTART_INSTALL_COMMANDS: &str = "cargo install --locked --path .";
 
-const QUICKSTART_COMMANDS: &str = "semaprax-full new first-semaprax\n\
+const QUICKSTART_COMMANDS: &str = "semaprax new first-semaprax\n\
 cd first-semaprax\n\
 semaprax check semaprax.toml\n\
 semaprax test semaprax.toml\n\
@@ -66,12 +61,7 @@ fn standalone_binary() -> &'static Path {
 }
 
 fn cli(root: &Path, arguments: &[&str]) -> Output {
-    let binary = if arguments.first() == Some(&"new") {
-        full_toolchain::binary()
-    } else {
-        standalone_binary()
-    };
-    Command::new(binary)
+    Command::new(standalone_binary())
         .args(arguments)
         .current_dir(root)
         .output()
@@ -96,9 +86,9 @@ fn documented_quickstart_executes_the_exact_seven_commands() {
     assert!(documentation.contains(&format!("```sh\n{QUICKSTART_COMMANDS}\n```")));
     let installs = documentation
         .find(&format!("```sh\n{QUICKSTART_INSTALL_COMMANDS}\n```"))
-        .expect("the source quickstart must install both CLIs it invokes");
+        .expect("the source quickstart must install the CLI it invokes");
     let flow = documentation.find(QUICKSTART_COMMANDS).unwrap();
-    assert!(installs < flow, "install both CLIs before invoking either");
+    assert!(installs < flow, "install the CLI before invoking it");
 
     let fixture = Fixture::new("flow");
     success(&fixture.root, &["new", "first-semaprax"]);
@@ -290,14 +280,15 @@ mod install_guide {
     use std::process::{Command, Output};
 
     /// Commands the standalone compiler hides behind its capability boundary.
-    const FULL_TOOLCHAIN_ONLY: &[&str] = &["new", "doctor"];
+    const FULL_TOOLCHAIN_ONLY: &[&str] = &["doctor"];
 
     const GLOBAL_HELP_BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 
-    const PRIVATE_NEW_STDERR: &str = "new is unavailable in the standalone crates.io package; \
+    const PRIVATE_DOCTOR_STDERR: &str =
+        "doctor is unavailable in the standalone crates.io package; \
 use the unpublished semaprax-full toolchain CLI\n";
 
-    const HIDDEN_NEW_STDERR: &str = "unknown command `new`\n";
+    const HIDDEN_DOCTOR_STDERR: &str = "unknown command `doctor`\n";
 
     const TYPO_SUGGESTION_STDERR: &str = "unknown command `chekc`; did you mean `check`?\n";
 
@@ -454,8 +445,8 @@ use the unpublished semaprax-full toolchain CLI\n"
         let fixture = super::Fixture::new("install-guide-failures");
 
         for quoted in [
-            PRIVATE_NEW_STDERR,
-            HIDDEN_NEW_STDERR,
+            PRIVATE_DOCTOR_STDERR,
+            HIDDEN_DOCTOR_STDERR,
             TYPO_SUGGESTION_STDERR,
             MISSING_GRAPH_OPERAND_STDERR,
             UNSUPPORTED_TARGET_STDERR,
@@ -475,7 +466,7 @@ use the unpublished semaprax-full toolchain CLI\n"
             MISSING_GRAPH_OPERAND_STDERR,
             UNSUPPORTED_TARGET_STDERR,
             MISSING_SCAFFOLD_NAME_STDERR,
-            PRIVATE_NEW_STDERR,
+            PRIVATE_DOCTOR_STDERR,
             TYPO_SUGGESTION_STDERR,
         ] {
             assert!(
@@ -490,13 +481,13 @@ use the unpublished semaprax-full toolchain CLI\n"
         assert!(empty.stderr.is_empty());
         assert!(stdout(&empty).starts_with(GLOBAL_HELP_BANNER));
 
-        let private = standalone(&fixture.root, &["new", "first-semaprax"]);
+        let private = standalone(&fixture.root, &["doctor"]);
         assert_eq!(private.status.code(), Some(2));
-        assert_eq!(stderr(&private), PRIVATE_NEW_STDERR);
+        assert_eq!(stderr(&private), PRIVATE_DOCTOR_STDERR);
 
-        let hidden = standalone(&fixture.root, &["new", "--help"]);
+        let hidden = standalone(&fixture.root, &["doctor", "--help"]);
         assert_eq!(hidden.status.code(), Some(2));
-        assert!(stderr(&hidden).starts_with(HIDDEN_NEW_STDERR));
+        assert!(stderr(&hidden).starts_with(HIDDEN_DOCTOR_STDERR));
         assert!(stdout(&hidden).starts_with(GLOBAL_HELP_BANNER));
 
         let typo = standalone(&fixture.root, &["chekc"]);
@@ -610,8 +601,8 @@ use the unpublished semaprax-full toolchain CLI\n"
             source < archive,
             "describe the source route before the archive"
         );
-        assert!(documentation.contains("semaprax-full new first-semaprax"));
         assert!(documentation.contains("semaprax new first-semaprax"));
+        assert!(documentation.contains("semaprax-full new first-semaprax"));
         assert!(documentation.contains("The archives are unsigned and are not notarized."));
         assert!(documentation.contains("(RELEASE-PROCESS.md#nonclaims)"));
         assert!(documentation.contains("(COMPLETION-MATRIX.md)"));

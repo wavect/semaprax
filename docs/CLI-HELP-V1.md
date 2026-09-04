@@ -20,7 +20,9 @@ Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md).
 ## Capability boundary
 
 The standalone `semaprax` executable has no private host. Its help omits the
-private `doctor` and `new` commands and the private Rust-package build target.
+private `doctor` command and the private Rust-package build target. (`new`
+was private when this version was authored; [standalone project creation
+v1](NEW-PROJECT-STANDALONE-V1.md) later made it public in both executables.)
 It does include the public stdout-only `project-scaffold --name project-name
 [--template calculator]` route, which has no private host hook.
 The unpublished `semaprax-full` executable receives one explicit

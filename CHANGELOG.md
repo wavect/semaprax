@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- `semaprax new <destination>` now works on the standalone compiler. It
+  derives the same calculator template as the full toolchain, refuses anything
+  but a fresh destination under an existing real directory, writes every file
+  with create-new semantics, reads the files back, authenticates the project,
+  and prints the same success line. The full toolchain keeps its held-parent
+  staged publication; [Standalone project creation v1](docs/NEW-PROJECT-STANDALONE-V1.md)
+  owns the bounded route and its non-claims, `tests/project/new_cli.rs` pins
+  it, and the install guide, quickstart, and README no longer require the
+  full toolchain to create a project.
+
 - `check`, `run`, `test`, and `build` invoked with no input outside a project
   now attach a hint to the unchanged `SPX-J102` missing-manifest diagnostic
   naming the three admitted inputs: a `.spx` file, a project directory, or

@@ -9,6 +9,7 @@ mod admission;
 mod authority;
 mod build;
 mod candidate;
+mod create;
 mod cxx_owned_data;
 mod execution;
 mod flat_owned_record;
@@ -346,6 +347,7 @@ pub fn prepare_owned_data_npm_build(
 ) -> Result<ProjectNpmBuild, Diagnostic> {
     npm::prepare_owned_data(program, descriptor, package, version, max_bytes)
 }
+pub use create::{create_calculator_project, CreateProjectError};
 pub use profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_ARGS_READ_CAPABILITY,
     PROJECT_COMMAND_INPUT_V1, PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,

@@ -159,7 +159,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Serve, canonical: "serve", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax serve <file> [--max-request-bytes N]"] },
     CommandSpec { id: CommandId::QualityPlan, canonical: "quality-plan", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax quality-plan <quick|changed|full> [exact-changed-path ...]"] },
     CommandSpec { id: CommandId::Doctor, canonical: "doctor", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax doctor [--profile <id>] [--target native|web|all] [--json]"] },
-    CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator]"] },
+    CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator]"] },
     CommandSpec { id: CommandId::ProjectScaffold, canonical: "project-scaffold", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-scaffold --name project-name [--template calculator]"] },
     CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build [<file>|<dir>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm|rust] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]"] },
     CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file>", "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
@@ -689,8 +689,8 @@ mod tests {
             );
             assert!(help.contains("\n  help all "));
             assert!(help.contains("\n  help language "));
-            let names_private = help.contains("\n  new ") || help.contains("\n  doctor ");
-            assert_eq!(names_private, private);
+            assert!(help.contains("\n  new "));
+            assert_eq!(help.contains("\n  doctor "), private);
             assert!(!help.contains("|rust"));
             assert!(catalog(private).starts_with(BANNER));
             assert!(catalog(private).contains("\nsemaprax check "));

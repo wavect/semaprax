@@ -105,6 +105,8 @@ mod nested_owned_record_api;
 mod nested_owned_record_native;
 #[path = "project/nested_owned_record_npm.rs"]
 mod nested_owned_record_npm;
+#[path = "project/new_cli.rs"]
+mod new_cli;
 #[path = "project/owned_bytes_npm.rs"]
 mod owned_bytes_npm;
 #[path = "project/owned_failure_fsm.rs"]

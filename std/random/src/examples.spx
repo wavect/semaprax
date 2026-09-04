@@ -1,0 +1,11 @@
+module std.random.examples;
+use function @id("std.random.advance") from std.random as advance;
+use function @id("std.random.normalize_seed") from std.random as normalize_seed;
+use function @id("std.random.sample_below") from std.random as sample_below;
+
+@id("std.random.examples.main")
+fn main() -> i64
+{
+    let seed = normalize_seed(0);
+    if advance(seed, 5) == 1144108930 && sample_below(seed, 10) == 7 { 0 } else { 1 }
+}

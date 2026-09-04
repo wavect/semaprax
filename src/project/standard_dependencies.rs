@@ -54,6 +54,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.random",
+        path: "dependencies/std.random/0.1.0/random.spx",
+        source: include_str!("../../std/random/src/random.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.text",
         path: "dependencies/std.text/0.1.0/text.spx",
         source: include_str!("../../std/text/src/text.spx"),

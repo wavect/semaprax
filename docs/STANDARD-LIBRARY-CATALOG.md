@@ -473,6 +473,43 @@ fn saturating_abs(value: i64) -> i64
 fn saturating_mul(left: i64, right: i64) -> i64
 ```
 
+## `std.random`
+
+Package `std/random`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.random.normalize_seed`
+
+```semaprax
+fn normalize_seed(value: i64) -> i64
+    ensures result >= 1 && result <= 2147483646
+```
+
+### `std.random.next_seed`
+
+```semaprax
+fn next_seed(seed: i64) -> i64
+    requires seed >= 1 && seed <= 2147483646
+    ensures result >= 1 && result <= 2147483646
+```
+
+### `std.random.advance`
+
+```semaprax
+fn advance(seed: i64, steps: i64) -> i64
+    requires seed >= 1 && seed <= 2147483646
+    requires steps >= 0 && steps <= 100000
+    ensures result >= 1 && result <= 2147483646
+```
+
+### `std.random.sample_below`
+
+```semaprax
+fn sample_below(seed: i64, upper: i64) -> i64
+    requires seed >= 1 && seed <= 2147483646
+    requires upper > 0 && upper <= 2147483647
+    ensures result >= 0 && result < upper
+```
+
 ## `std.text`
 
 Package `std/text`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.

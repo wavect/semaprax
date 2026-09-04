@@ -826,6 +826,72 @@
       "declarations": [
         {
           "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn normalize_seed(value: i64) -> i64",
+            "    ensures result >= 1 && result <= 2147483646"
+          ],
+          "id": "std.random.normalize_seed",
+          "kind": "function",
+          "name": "normalize_seed",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn next_seed(seed: i64) -> i64",
+            "    requires seed >= 1 && seed <= 2147483646",
+            "    ensures result >= 1 && result <= 2147483646"
+          ],
+          "id": "std.random.next_seed",
+          "kind": "function",
+          "name": "next_seed",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn advance(seed: i64, steps: i64) -> i64",
+            "    requires seed >= 1 && seed <= 2147483646",
+            "    requires steps >= 0 && steps <= 100000",
+            "    ensures result >= 1 && result <= 2147483646"
+          ],
+          "id": "std.random.advance",
+          "kind": "function",
+          "name": "advance",
+          "requires": 2
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn sample_below(seed: i64, upper: i64) -> i64",
+            "    requires seed >= 1 && seed <= 2147483646",
+            "    requires upper > 0 && upper <= 2147483647",
+            "    ensures result >= 0 && result < upper"
+          ],
+          "id": "std.random.sample_below",
+          "kind": "function",
+          "name": "sample_below",
+          "requires": 2
+        }
+      ],
+      "module": "std.random",
+      "package": "std/random",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
           "ensures": 0,
           "head": [
             "fn text_byte_len(value: borrow str) -> i64"

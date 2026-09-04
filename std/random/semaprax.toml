@@ -1,0 +1,13 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-random"
+version = "0.1.0"
+
+[modules]
+entry = "std.random.examples"
+sources = ["src/examples.spx", "src/random.spx", "src/tests.spx"]
+tests = ["std.random.tests"]
+
+[exports]
+web = ["std.random.advance", "std.random.next_seed", "std.random.normalize_seed", "std.random.sample_below"]

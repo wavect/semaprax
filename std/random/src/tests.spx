@@ -1,0 +1,43 @@
+module std.random.tests;
+use function @id("std.random.advance") from std.random as advance;
+use function @id("std.random.next_seed") from std.random as next_seed;
+use function @id("std.random.normalize_seed") from std.random as normalize_seed;
+use function @id("std.random.sample_below") from std.random as sample_below;
+
+@id("std.random.tests.normalization")
+fn normalization() -> bool
+{
+    normalize_seed(0) == 1 && normalize_seed(1) == 2 && normalize_seed(-1) == 2 && normalize_seed(2147483645) == 2147483646 && normalize_seed(2147483646) == 1 && normalize_seed(-9223372036854775807 - 1) >= 1
+}
+
+@id("std.random.tests.sequence")
+fn sequence() -> bool
+{
+    let first = next_seed(1);
+    let second = next_seed(first);
+    let third = next_seed(second);
+    first == 16807 && second == 282475249 && third == 1622650073 && next_seed(2147483646) == 2147466840
+}
+
+@id("std.random.tests.advancement")
+fn advancement() -> bool
+{
+    advance(1, 0) == 1 && advance(1, 1) == 16807 && advance(1, 2) == 282475249 && advance(1, 5) == 1144108930
+}
+
+@id("std.random.tests.sampling")
+fn sampling() -> bool
+{
+    sample_below(1, 10) == 7 && sample_below(16807, 10) == 9 && sample_below(1, 1) == 0 && sample_below(2147483646, 100) == 40
+}
+
+@id("std.random.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if normalization() { 0 } else { 1 };
+    failed = failed + if sequence() { 0 } else { 2 };
+    failed = failed + if advancement() { 0 } else { 4 };
+    failed = failed + if sampling() { 0 } else { 8 };
+    failed
+}

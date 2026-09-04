@@ -1,6 +1,6 @@
 # Standard Library v1
 
-- Status: versioned reference; six `core`-tier packages under `std/` are
+- Status: versioned reference; seven `core`-tier packages under `std/` are
   executable, every other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
   choosing between a compiler-owned function and a library declaration.
@@ -129,7 +129,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.env` | Explicit environment access with capability and deterministic test replacement | Missing; `args_len` and `arg_utf8` are the current surface |
 | `std.process` | Bounded process launch, pipes, exit, and settlement | Missing |
 | `std.time` | Durations, monotonic time, wall time, and deadlines | Missing |
-| `std.random` | Deterministic seeded generators and separately capability-gated secure randomness | Missing |
+| `std.random` | Deterministic seeded generators and separately capability-gated secure randomness | Partial: pure Park–Miller seed normalization, next-step generation, bounded advancement, and sampling below an upper bound; stateful generators, unbiased range sampling, byte filling, and capability-gated secure randomness are Missing |
 | `std.net` | Addresses, DNS, TCP, UDP, and explicit target support | Missing |
 | `std.tls` | Vetted provider-backed TLS interface and certificate policy | Missing |
 | `std.http` | HTTP request/response types, client and server interfaces, streaming, and limits | Missing |

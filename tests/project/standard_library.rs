@@ -572,12 +572,12 @@ fn package_manifest_links_multiple_bundled_std_packages() {
     std::fs::create_dir_all(scratch.join("src")).unwrap();
     std::fs::write(
         scratch.join("semaprax.toml"),
-        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"std-consumer\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.sign\"]\n\n[dependencies]\nstd.core = \"~0.1.0\"\nstd.encoding = \"=0.1.0\"\nstd.num = \"^0.1.0\"\n",
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"std-consumer\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.sign\"]\n\n[dependencies]\nstd.core = \"~0.1.0\"\nstd.encoding = \"=0.1.0\"\nstd.num = \"^0.1.0\"\nstd.random = \"=0.1.0\"\n",
     )
     .unwrap();
     std::fs::write(
         scratch.join("src/app.spx"),
-        "module consumer.app;\nuse function @id(\"std.encoding.decode_hex_byte\") from std.encoding as decode_hex_byte;\nuse function @id(\"std.num.sign\") from std.num as sign;\n\n@id(\"consumer.sign\")\nfn classify(value: i64) -> i64\n{\n    sign(value)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if classify(-4) == -1 && classify(0) == 0 && classify(8) == 1 && decode_hex_byte(52u8, 97u8) == 74 { 0 } else { 1 }\n}\n",
+        "module consumer.app;\nuse function @id(\"std.encoding.decode_hex_byte\") from std.encoding as decode_hex_byte;\nuse function @id(\"std.num.sign\") from std.num as sign;\nuse function @id(\"std.random.sample_below\") from std.random as sample_below;\n\n@id(\"consumer.sign\")\nfn classify(value: i64) -> i64\n{\n    sign(value)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    if classify(-4) == -1 && classify(0) == 0 && classify(8) == 1 && decode_hex_byte(52u8, 97u8) == 74 && sample_below(1, 10) == 7 { 0 } else { 1 }\n}\n",
     )
     .unwrap();
     std::fs::write(
@@ -606,6 +606,9 @@ fn package_manifest_links_multiple_bundled_std_packages() {
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.encoding/0.1.0/encoding.spx"));
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.random/0.1.0/random.spx"));
         Ok(())
     })
     .unwrap();

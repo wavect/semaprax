@@ -1,0 +1,45 @@
+module std.random;
+
+@id("std.random.normalize_seed")
+fn normalize_seed(value: i64) -> i64
+    ensures result >= 1 && result <= 2147483646
+{
+    let remainder = value % 2147483646;
+    if remainder < 0 { 1 - remainder } else { remainder + 1 }
+}
+
+@id("std.random.next_seed")
+fn next_seed(seed: i64) -> i64
+    requires seed >= 1 && seed <= 2147483646
+    ensures result >= 1 && result <= 2147483646
+{
+    let quotient = seed / 127773;
+    let remainder = seed % 127773;
+    let candidate = 16807 * remainder - 2836 * quotient;
+    if candidate > 0 { candidate } else { candidate + 2147483647 }
+}
+
+@id("std.random.advance")
+fn advance(seed: i64, steps: i64) -> i64
+    requires seed >= 1 && seed <= 2147483646
+    requires steps >= 0 && steps <= 100000
+    ensures result >= 1 && result <= 2147483646
+{
+    let mut current = seed;
+    let mut remaining = steps;
+    while remaining > 0 {
+        current = next_seed(current);
+        remaining = remaining - 1;
+        remaining > 0
+    }
+    current
+}
+
+@id("std.random.sample_below")
+fn sample_below(seed: i64, upper: i64) -> i64
+    requires seed >= 1 && seed <= 2147483646
+    requires upper > 0 && upper <= 2147483647
+    ensures result >= 0 && result < upper
+{
+    next_seed(seed) % upper
+}

@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the seventh executable `core`-tier package, `std.random`, with a pure
+  Park–Miller generator, total seed normalization, bounded deterministic
+  advancement, and range sampling. Secure randomness remains unavailable
+  without a future explicit capability boundary; the deterministic package
+  runs on the interpreter, native C11, and Core Wasm lanes and is included in
+  the closed compiler-bundled dependency inventory.
 - `semaprax test` names a `test_`-prefixed function that is not a case (it
   takes parameters, does not return `i64`, or has no explicit `@id`) with a
   `note:` line on stderr instead of skipping it silently; the JSON envelope is

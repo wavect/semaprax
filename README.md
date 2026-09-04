@@ -53,8 +53,9 @@ The published tag is the
 [v0.3.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.0)
 smoke-test archives, SHA256 checksums, and release evidence in the
 [release process](docs/RELEASE-PROCESS.md). The
-development changelog is now summarized in [CHANGELOG.md](CHANGELOG.md), with
-full historical detail archived at
+development changelog is now summarized in [CHANGELOG.md](CHANGELOG.md),
+with compact highlights in [docs/CHANGELOG-SUMMARY.md](docs/CHANGELOG-SUMMARY.md)
+and full historical detail archived at
 [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
 
 ### Check and run a program

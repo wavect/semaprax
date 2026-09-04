@@ -22,6 +22,7 @@ Audience: all documentation readers.
 - [Human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md)
 - [Changelog](../CHANGELOG.md)
 - [Changelog archive](CHANGELOG-ARCHIVE.md)
+- [Changelog summary](CHANGELOG-SUMMARY.md)
 - [Examples index](../examples/README.md)
 - [Canonical comments](CANONICAL-COMMENTS-V1.md)
 - [Calculator project publication](NEW-PROJECT-PUBLICATION-V1.md)
@@ -287,6 +288,7 @@ Audience: all documentation readers.
 - [Architecture](ARCHITECTURE.md)
 - [Quality gates](QUALITY-GATES.md)
 - [Release process and tag evidence](RELEASE-PROCESS.md)
+- [Changelog summary](CHANGELOG-SUMMARY.md)
 - [Roadmap](ROADMAP.md)
 - [Protocol migrations](MIGRATIONS.md)
 

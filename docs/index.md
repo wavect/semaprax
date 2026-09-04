@@ -18,7 +18,8 @@ contains smoke-tested Linux x86-64, Apple Silicon macOS, and Windows x86-64
 archives. See the [exact tagged evidence and checksums](RELEASE-PROCESS.md);
 the release remains unsigned, not notarized, and pre-alpha.
 Recent project and tooling notes are summarized in [CHANGELOG.md](../CHANGELOG.md),
-with full history in [docs/CHANGELOG-ARCHIVE.md](CHANGELOG-ARCHIVE.md).
+with compact highlights in [CHANGELOG-SUMMARY.md](CHANGELOG-SUMMARY.md),
+and full history in [docs/CHANGELOG-ARCHIVE.md](CHANGELOG-ARCHIVE.md).
 
 ## Choose a path
 
@@ -148,6 +149,7 @@ The exhaustive, audience-separated list is in [SUMMARY.md](SUMMARY.md):
 - [Completion matrix](COMPLETION-MATRIX.md) owns current status and completion
   criteria.
 - [Changelog](../CHANGELOG.md) owns historical implementation changes.
+- [Changelog summary](CHANGELOG-SUMMARY.md) gives a compact latest-notes view.
 - [Roadmap](ROADMAP.md) owns future sequencing, not implementation claims.
 
 Keeping these responsibilities separate prevents the same status narrative

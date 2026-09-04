@@ -174,10 +174,12 @@ fn selection(fixture: &Fixture, saved: &Value) -> Value {
 
 #[test]
 fn help_describes_both_explicit_draft_store_commands_exactly_once() {
+    // The bare invocation prints the guided page; the catalog is `help all`.
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(["help", "all"])
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(2));
+    assert_eq!(output.status.code(), Some(0));
     let stdout = String::from_utf8(output.stdout).unwrap();
     for line in [
         "semaprax project-draft-persist <manifest> <draft-capsule.json> <store-root>\n",

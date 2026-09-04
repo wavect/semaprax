@@ -641,6 +641,7 @@ mod tests {
         "interpret",
         "interpret-strings",
         "lock",
+        "resolve",
         "ui-schema",
         "plugin-manifest",
         "cxx-shim",

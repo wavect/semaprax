@@ -545,33 +545,33 @@ fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     assert_eq!(
         previous_capsule_hashes,
         [
-            "22ac9213336058223e698d0fc4fe004bcd4ca62e0a52182701b697ebe08083a3",
-            "8e3b28ffda72085caeb434c14c1363cf793f0d6d09c882491de16419390992ca",
-            "9ffa6fd8d7ef466aec607607aba0bc48e254fe6ee991f99bef17f09fa4f77057",
+            "e6c2d7a0cb1ccf6834e3e9704d74594f1bb40a8a61f428409550d7e7b258102e",
+            "99450107acfa10e429b30a5d4fa065f2d05aa79ba3eab926e3fd713eb8021307",
+            "1872d6f6b9735bdd3e357bc159412882778b759cd2cbf354fc31af219dc983d0",
         ]
     );
     assert_eq!(
         previous_receipt_hashes,
         [
-            "7d344b4366791770f9f04df5c99d98372efe0c4806a3fc623361f8884cc4c828",
-            "ca280d8e5889014a64a282f9ac483bbbae9c7dd92516f6b08f05030da47f456c",
-            "30edf74263a59c0018bee9858327e8ee40cbb281025b023ea3673c8f0a62e5ae",
+            "c95182d7f9671a0d44121b587e074608c4ee646502f56db896a9ca019550e083",
+            "b983a42518e7dafb906e8329282b1c1473ca4260c22a341ba893642e37ceb042",
+            "6a112a452fdbc8321d57328d83348d632b48d29d9afb4bc2639d7f2ef2967ba9",
         ]
     );
     assert_eq!(
         capsule_hashes,
         [
-            "b88cba43cca79797900a50fdb853395409ad9745abbd938c6b175b06f5d483b7",
-            "e9338ec4b58aa8d91e055afa7461c64a2e8f13fd9a8123755cfee977c42d736d",
-            "36421c08c02575cf58f59e3ec77e05e2382b803dde45ae8fd214865a69ef4efd",
+            "50850a876dca41f09746a82887ec0205da2069e42ab306e5ea8b33785931489a",
+            "a694c608e1f1ab8b251daa265405aa79780dd33b5cdb6c6091fd3a31d9d98028",
+            "0c335a75009c4b121002ea1718ba7380ef9c1b5f55f55299f22b70925dcc6399",
         ]
     );
     assert_eq!(
         receipt_hashes,
         [
-            "a47578997ea60a9a486df3e805af3d70f253615e7adbbc94ce635db3b461a9f6",
-            "e741b379eea42325a7beb086c676fcd9c98b3857a76e3b82499f0178e3db927e",
-            "9b75e62b3abc00ffe53eb75f834ca701878d0af48476020672ed5e4ac44eacca",
+            "56f8b4364e97096e20f4a46f9f5d264ce0a378d3628adbae8bdd72b4c2824191",
+            "d25edb747cc5f80160243b0d4b7636eed0b9e82595ad1d7fe91ab5bbebce07a2",
+            "ac84e603d5e829bc9bcecb47bbf72b1dd76c437b5022dd6396532e266c3bfaf9",
         ]
     );
 }

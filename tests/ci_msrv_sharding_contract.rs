@@ -45,7 +45,13 @@ fn msrv_shards_select_every_actual_workspace_target_exactly_once() {
             let kinds = target["kind"].as_array().unwrap();
             assert_eq!(kinds.len(), 1);
             let kind = kinds[0].as_str().unwrap();
-            assert!(["lib", "bin", "test"].contains(&kind));
+            assert!(["lib", "bin", "test", "bench"].contains(&kind));
+            if kind == "bench" {
+                // bench targets are for `cargo bench` (criterion) and are
+                // inventoried via cargo metadata but excluded from `cargo test`
+                // sharding; see scripts/ci-msrv.py
+                continue;
+            }
             assert!(expected.insert((
                 package["id"].as_str().unwrap().to_owned(),
                 kind.to_owned(),

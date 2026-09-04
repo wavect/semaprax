@@ -439,7 +439,7 @@ mod tests {
         // lands inside the admitted range, which left this rejection resting on
         // the environment. `F_DUPFD_CLOEXEC` allocates at or above the floor
         // without displacing anything the harness already holds.
-        let extra = unsafe { libc::fcntl(0, libc::F_DUPFD_CLOEXEC, PROC_FD + 1) };
+        let extra = unsafe { libc::fcntl(0, libc::F_DUPFD_CLOEXEC, super::PROC_FD + 1) };
         if extra < 0 {
             return;
         }

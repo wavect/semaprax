@@ -34,12 +34,51 @@ fn minimally_shaped(path: &std::path::Path) -> Command {
 
 #[test]
 fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
+    // The bare invocation now prints the guided one-screen page; the complete
+    // usage catalog this snapshot pins moved to `help all`.
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(["help", "all"])
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(2));
+    assert_eq!(output.status.code(), Some(0));
     const NEW_LINE: &str = "semaprax package-resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n";
-    let stdout = String::from_utf8(output.stdout).unwrap();
+    // Undo the intentional surface changes made after this ledger was frozen,
+    // so every historical witness below still measures the shape it recorded:
+    // `semaprax lock` is new, directory inputs were added to check/build/run
+    // /test, the scaffold gained a library template, and `new` became public.
+    const RESTORED: [(&str, &str); 7] = [
+        ("semaprax lock <manifest> [--write|--verify]\n", ""),
+        (
+            "semaprax check [<file>|<dir>|semaprax.toml|--manifest-path path] [--json]\n",
+            "semaprax check [<file>|semaprax.toml|--manifest-path path] [--json]\n",
+        ),
+        (
+            "semaprax project-scaffold --name project-name [--template calculator|library]\n",
+            "semaprax project-scaffold --name project-name [--template calculator]\n",
+        ),
+        (
+            "semaprax build [<file>|<dir>|semaprax.toml|--manifest-path path] [--target",
+            "semaprax build [<file>|semaprax.toml|--manifest-path path] [--target",
+        ),
+        (
+            "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
+            "semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
+        ),
+        (
+            "semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
+            "semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
+        ),
+        (
+            "semaprax new <destination> [--name project-name] [--template calculator]\n",
+            "",
+        ),
+    ];
+    let mut stdout = String::from_utf8(output.stdout).unwrap();
+    for (current_line, restored) in RESTORED {
+        assert_eq!(stdout.matches(current_line).count(), 1, "{current_line}");
+        stdout = stdout.replacen(current_line, restored, 1);
+    }
+    let stdout = stdout;
     assert_eq!(stdout.matches(NEW_LINE).count(), 1);
     let mut current = stdout.replacen(NEW_LINE, "", 1);
     const MCP_LINE: &str = "semaprax serve-workspace-mcp <manifest> <host-policy.json>\n";

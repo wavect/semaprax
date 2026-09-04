@@ -539,7 +539,7 @@ impl ProjectManifest {
         Err(vec![Diagnostic::io(
             CODE_UNRESOLVED_DEPENDENCIES,
             format!(
-                "{LABEL} declares {} {} but this toolchain admits no dependency resolution",
+                "{LABEL} declares {} {} but a build does not yet consume resolved dependencies",
                 self.dependencies.len(),
                 if self.dependencies.len() == 1 {
                     "dependency"
@@ -549,7 +549,7 @@ impl ProjectManifest {
             ),
         )
         .with_help(
-            "remove the `[dependencies]` table until a semantic lock route exists; dependency ranges are admitted so the manifest need not change when it does",
+            "run `semaprax resolve <manifest> --target <native64|wasm32> --cache <dir> --write` to resolve and pin the dependency graph; a build that links resolved dependencies is not implemented, so remove the `[dependencies]` table to build today",
         )])
     }
 

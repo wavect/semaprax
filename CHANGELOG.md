@@ -3,6 +3,7 @@
 ## Unreleased
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 - `semaprax test` runs every `fn test_<name>() -> i64` of the manifest-declared
   test module as a named case after `main`, each with its own step budget, and
   names each failing case with its outcome (`failed
@@ -64,6 +65,14 @@
   command; `editors/vscode/diagnostics.js` holds the pure logic and
   `test/diagnostics.test.js` covers it.
 =======
+=======
+- The `SPX-J121` build rejection for a manifest with `[dependencies]` now points
+  at `semaprax resolve --write` to resolve and pin the dependency graph, instead
+  of claiming no resolution route exists; only a build that links resolved
+  dependencies is still unimplemented. The agent quick reference gains a short
+  locking-and-dependencies note covering `lock` and `resolve`.
+
+>>>>>>> origin/main
 - `semaprax resolve` gains `--write` and `--verify`: `--write` pins the
   resolution evidence to `semaprax.resolution-<target>.json` beside the
   manifest, and `--verify` re-resolves and confirms that pin still holds byte

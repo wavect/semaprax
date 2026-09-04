@@ -550,6 +550,17 @@ its `@id` as above.
 the committed instance, and `semaprax project-scaffold --name <name>` prints a
 complete scaffold to stdout without writing files.
 
+`semaprax lock semaprax.toml --write` pins the project to a deterministic
+`semaprax.lock` (identity, source digests, interface digest, targets,
+capabilities); `--verify` re-checks it and `--compare <base.lock>` reports
+whether the interface change is breaking, exiting nonzero for CI. A
+`[dependencies]` table names dotted package identities with `^`/`~`/`=` ranges;
+`semaprax resolve semaprax.toml --target native64 --cache <dir> --write` selects
+them against a local content-addressed cache and pins the per-target
+resolution, and `--verify` re-checks it. A build does not yet link resolved
+dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md) and
+[Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md).
+
 ## Where the rules live
 
 - [RFC 0001](RFC-0001.md): language and toolchain contract.

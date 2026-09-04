@@ -483,8 +483,9 @@ fn dependency_grammar_is_admitted_and_builds_fail_closed_with_spx_j121() {
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("SPX-J121"), "{stderr}");
     assert!(
-        stderr
-            .contains("declares 3 dependencies but this toolchain admits no dependency resolution"),
+        stderr.contains(
+            "declares 3 dependencies but a build does not yet consume resolved dependencies"
+        ),
         "{stderr}"
     );
     assert!(!fixture.root.join("calculator-web").exists());

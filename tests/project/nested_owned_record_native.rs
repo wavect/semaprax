@@ -96,6 +96,12 @@ fn configured_tool(variable: &str, candidates: &[&str]) -> PathBuf {
         .map(PathBuf::from)
         .filter(|path| path.is_absolute() && path.is_file())
     {
+        // The Windows archiver is held as configured; canonicalizing it there
+        // rewrites the verbatim prefix the toolchain expects.
+        #[cfg(windows)]
+        if variable == "SEMAPRAX_ARCHIVER" {
+            return configured;
+        }
         if let Ok(canonical) = configured.canonicalize() {
             return canonical;
         }

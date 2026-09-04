@@ -612,10 +612,19 @@ fn assert_direct_child_contract() {
         include_str!("../../../src/project_transport/session/public_api.rs"),
         include_str!("../../../src/project/npm.rs"),
         include_str!("../../../src/project/npm/carrier.rs"),
-        include_str!("../../../src/project/npm/owned_data.rs"),
+        include_str!("../../../src/project/npm/command.rs"),
+        include_str!("../../../src/project/npm/command_v2.rs"),
+        include_str!("../../../src/project/npm/command_v3.rs"),
+        include_str!("../../../src/project/npm/command_v4.rs"),
+        include_str!("../../../src/project/npm/data.rs"),
         include_str!("../../../src/project/npm/flat_owned_record.rs"),
-        include_str!("../../../src/project/npm/owned_utf8.rs"),
         include_str!("../../../src/project/npm/nested_owned_record.rs"),
+        include_str!("../../../src/project/npm/owned_data.rs"),
+        include_str!("../../../src/project/npm/owned_utf8.rs"),
+        include_str!("../../../src/project/npm/publication_plan.rs"),
+        include_str!("../../../src/project/npm/publication.rs"),
+        include_str!("../../../src/project/npm/semantic_recipe_v8.rs"),
+        include_str!("../../../src/project/npm/semantic_recipe_v8/type_names.rs"),
     ] {
         for forbidden in ["Command::new", ".spawn(", "std::process"] {
             assert!(

@@ -329,7 +329,11 @@ fn capture_plan(
                         "owning extraction capture requires one whole local Bytes or String place",
                     ));
                 }
-                if !used.insert(id) || owner_capture.replace(id.to_owned()).is_some() {
+                if !used.insert(id)
+                    || owner_capture
+                        .replace((id.to_owned(), binding.ty.clone()))
+                        .is_some()
+                {
                     return Err(owner_invalid(
                         "owning extraction requires exactly one occurrence of one owner",
                     ));
@@ -370,13 +374,20 @@ fn capture_plan(
             }
         }
     }
-    if let Some(owner) = owner_capture.as_deref() {
+    if let Some((owner, owner_type)) = owner_capture.as_ref() {
         if extended {
             return Err(owner_invalid(
                 "owning extraction cannot combine an external owner with internal owning storage",
             ));
         }
-        authenticate_owner_cleanup(revision, target, owner, selection.expression, conditional)?;
+        authenticate_owner_cleanup(
+            revision,
+            target,
+            owner,
+            owner_type,
+            selection.expression,
+            conditional,
+        )?;
     } else {
         extended |= selected_result_owned;
     }
@@ -435,6 +446,7 @@ fn authenticate_owner_cleanup(
     revision: &ProjectRevision,
     target: &str,
     owner: &str,
+    owner_type: &ResolvedType,
     selected: &hir::ResolvedExpr,
     selection_contains_conditional: bool,
 ) -> Result<()> {
@@ -515,10 +527,16 @@ fn authenticate_owner_cleanup(
             if value.as_str() == owner)
         })
         .collect::<Vec<_>>();
-    if inventory.len() != 1
-        || plans.len() != 1
-        || inventory[0].ty != plans[0].ty
-        || !matches!(inventory[0].ty, ResolvedType::Bytes | ResolvedType::String)
+    // A String owner whose value carries no runtime free is authenticated
+    // source evidence with nothing to release, so both projections agree by
+    // holding no slot. Every other owner still presents exactly one.
+    let released_by_scope =
+        *owner_type == ResolvedType::String && inventory.is_empty() && plans.is_empty();
+    if !released_by_scope
+        && (inventory.len() != 1
+            || plans.len() != 1
+            || inventory[0].ty != plans[0].ty
+            || !matches!(inventory[0].ty, ResolvedType::Bytes | ResolvedType::String))
     {
         return Err(owner_auth(
             "owning extraction local lacks one exact authenticated cleanup slot",

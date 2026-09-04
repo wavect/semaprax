@@ -54,8 +54,25 @@ pub(super) fn validate(
             ));
         }
         inner.as_ref()
-    } else {
+    } else if matches!(selected.expression.kind, ResolvedExprKind::Block { .. }) {
         &helper.body
+    } else {
+        // A helper whose authored body is not itself a block reappears inside
+        // the function's root block once the projection is re-parsed, so the
+        // correspondence descends that one synthetic level.
+        let ResolvedExprKind::Block {
+            statements,
+            tail: inner,
+        } = &helper.body.kind
+        else {
+            return Err(invalid("extraction helper has no root block wrapper"));
+        };
+        if !statements.is_empty() {
+            return Err(invalid(
+                "extraction helper root block gained authored statements",
+            ));
+        }
+        inner.as_ref()
     };
     let mut ids = Ids::default();
     for (capture, parameter) in captures.iter().zip(&helper.params) {
@@ -81,7 +98,7 @@ pub(super) fn validate(
                 "extraction helper changed an authenticated capture boundary",
             ));
         }
-        helper_types.check(&parameter.ty)?;
+        helper_types.internal(&parameter.ty, parameter.ownership)?;
         ids.insert(binding.id, parameter.id.as_str())?;
     }
     pair(selected.expression, inner, &mut ids, &mut helper_types)?;
@@ -102,12 +119,18 @@ pub(super) fn validate(
             })
             .map(|(_, parameter)| parameter)
             .ok_or_else(|| owner_replay("extraction helper lost its owning parameter"))?;
-        if plan.entry_state.live_owned_parameters.len() != 1
-            || plan.entry_state.live_owned_parameters[0].storage
-                != crate::cleanup_plan::StorageId::Value(owner_parameter.id.clone())
-            || !plan.entry_state.live_owned_parameters[0]
-                .projections
-                .is_empty()
+        // A String owner carries no runtime free in this profile, so the checked
+        // plan holds no live owned parameter for it. Every other owner must
+        // arrive as the one exact whole live owner.
+        let released_by_scope = matches!(owner_parameter.ty, ResolvedType::String)
+            && plan.entry_state.live_owned_parameters.is_empty();
+        if !released_by_scope
+            && (plan.entry_state.live_owned_parameters.len() != 1
+                || plan.entry_state.live_owned_parameters[0].storage
+                    != crate::cleanup_plan::StorageId::Value(owner_parameter.id.clone())
+                || !plan.entry_state.live_owned_parameters[0]
+                    .projections
+                    .is_empty())
         {
             return Err(owner_replay(
                 "extraction helper does not receive one exact whole live owner",
@@ -161,6 +184,14 @@ pub(super) fn validate(
     if roots.len() != 1 {
         return Err(invalid("extraction helper cleanup root is ambiguous"));
     }
+    // An owning capture lands in the root region, so its type is admitted at
+    // the parameter boundary above rather than on the Copy-only path.
+    let owned_boundary = helper
+        .params
+        .iter()
+        .filter(|parameter| parameter.ownership == OwnershipMode::Own)
+        .map(|parameter| &parameter.ty)
+        .collect::<Vec<_>>();
     // Inspect slots in their original order. The rebuilt plan remains the
     // authority; this correspondence never filters or repairs it.
     for storage in &roots[0].slots {
@@ -169,6 +200,9 @@ pub(super) fn validate(
             .iter()
             .find(|slot| &slot.storage == storage)
             .ok_or_else(|| invalid("extraction helper root storage has no checked slot"))?;
+        if owned_boundary.contains(&&slot.ty) {
+            continue;
+        }
         helper_types.check(&slot.ty)?;
     }
     Ok(())

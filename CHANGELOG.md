@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- `semaprax lock <manifest> --compare <baseline.lock>` classifies a project's
+  current interface against a baseline `semaprax.lock` and prints a
+  `semaprax.project-lock-compatibility.v1` verdict, exiting nonzero on a
+  breaking change so a CI gate fails. A removed export, a widened required
+  capability, a removed target, a changed package name or contract, or a
+  changed interface descriptor digest with the same export set are breaking; an
+  added export, a narrowed capability, an added target are not; a pure display
+  rename or a version-only change is not. It is a coarse project-level
+  counterpart to the offline Compatibility Evidence; `tests/project.rs::project_lock_v1`
+  pins it.
+
 - `semaprax resolve <manifest> --target <native64|wasm32> --cache <dir>`
   resolves a project's `[dependencies]` against a local content-addressed cache
   of Subject-v3 envelopes and prints the offline resolver's evidence

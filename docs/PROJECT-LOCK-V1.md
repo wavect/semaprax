@@ -23,9 +23,10 @@ and checked only by an explicit command, never as an implicit effect of
 ## Commands
 
 ```text
-semaprax lock <manifest>            # print the canonical lock to stdout
-semaprax lock <manifest> --write    # replace semaprax.lock beside the manifest
-semaprax lock <manifest> --verify   # verify an existing semaprax.lock
+semaprax lock <manifest>                      # print the canonical lock to stdout
+semaprax lock <manifest> --write              # replace semaprax.lock beside the manifest
+semaprax lock <manifest> --verify             # verify an existing semaprax.lock
+semaprax lock <manifest> --compare <base.lock># classify the project against a baseline lock
 ```
 
 Each mode authenticates and checks the project exactly as `check` does, then
@@ -39,8 +40,38 @@ acts:
   a fresh rendering, printing `verified semaprax.lock for <name> (<digest>)`
   on success.
 
-`--write` and `--verify` are mutually exclusive. `check`, `run`, `test`, and
-`build` never read or write the lock.
+`--compare <baseline.lock>` renders the project's current lock and classifies
+it against the baseline (see below). `--write`, `--verify`, and `--compare` are
+mutually exclusive. `check`, `run`, `test`, and `build` never read or write the
+lock.
+
+## Compatibility comparison
+
+`--compare` is a coarse, digest-level compatibility verdict over the facts the
+lock records, the project-level counterpart of the fine-grained offline
+[Compatibility Evidence v1](OFFLINE-PACKAGE-COMPATIBILITY-EVIDENCE-V1.md). It
+prints a `semaprax.project-lock-compatibility.v1` report to stdout and exits 0
+when the change is compatible and 1 when it is breaking, so a CI gate can fail
+on a break. The classification:
+
+| Change | Verdict |
+| --- | --- |
+| Package name or frozen contract changed | breaking |
+| An export was removed | breaking |
+| An export was added | nonbreaking |
+| The interface descriptor digest changed with the same export set | breaking |
+| A required capability was added (widened) | breaking |
+| A required capability was removed | nonbreaking |
+| A target was removed | breaking |
+| A target was added | nonbreaking |
+| Only the version changed | informational |
+
+A pure display rename does not change the interface descriptor digest, which is
+normalized without display names, so it is not breaking. The overall verdict is
+breaking if any change is breaking, else compatible. This verdict is over the
+lock's recorded facts; the per-export type, ownership, effect, and contract
+classification remains the offline Compatibility Evidence over Report-v2
+subjects.
 
 ## Envelope and payload
 
@@ -70,7 +101,7 @@ payload length, and the exact payload bytes.
 | Code | Meaning |
 | --- | --- |
 | `SPX-J123` | `semaprax.lock` is stale: the message lists the drifted payload fields. |
-| `SPX-J124` | `semaprax.lock` is missing, is not a plain file of at most 1 MiB, is not readable UTF-8, or is not a Project Lock v1 JSON object. |
+| `SPX-J124` | `semaprax.lock` or a `--compare` baseline is missing, is not a plain file of at most 1 MiB, is not readable UTF-8, or is not a Project Lock v1 JSON object. |
 | `SPX-J125` | `--write` could not stage or rename the lock. |
 
 Usage errors of `lock` exit with status 2 and a `semaprax lock --help` hint.

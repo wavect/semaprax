@@ -1,5 +1,6 @@
-//! `semaprax lock <manifest> [--write|--verify]`: render, write, or verify the
-//! deterministic `semaprax.lock` beside a project. Rendering and verification
+//! `semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>]`:
+//! render, write, verify, or compatibility-compare the deterministic
+//! `semaprax.lock` beside a project. Rendering, verification, and comparison
 //! are pure library functions; this boundary owns the only filesystem effects,
 //! and each is explicit — the lock is never touched by `check`.
 
@@ -11,12 +12,16 @@ use semaprax::project::{self, ProjectSnapshot, MAX_PROJECT_LOCK_BYTES, PROJECT_L
 pub(crate) enum ProjectLockCliError {
     Usage(String),
     Domain(Vec<Diagnostic>),
+    /// A successful comparison whose verdict is breaking: the report is printed
+    /// to stdout and the command exits nonzero so a CI gate fails.
+    Breaking(String),
 }
 
 enum Mode {
     Print,
     Write,
     Verify,
+    Compare(PathBuf),
 }
 
 const CODE_WRITE: &str = "SPX-J125";
@@ -25,15 +30,36 @@ const CODE_MISSING: &str = "SPX-J124";
 /// Run the `lock` command and return the text to print on stdout.
 pub(crate) fn run(arguments: &[String]) -> Result<String, ProjectLockCliError> {
     let (manifest, mode) = parse(arguments)?;
-    project::with_authenticated_project(&manifest, |snapshot| {
+    let outcome = project::with_authenticated_project(&manifest, |snapshot| {
         snapshot.check()?;
-        match mode {
-            Mode::Print => project::render_project_lock(snapshot),
-            Mode::Write => write_mode(snapshot),
-            Mode::Verify => verify_mode(snapshot),
+        match &mode {
+            Mode::Print => Ok(Outcome::Text(project::render_project_lock(snapshot)?)),
+            Mode::Write => Ok(Outcome::Text(write_mode(snapshot)?)),
+            Mode::Verify => Ok(Outcome::Text(verify_mode(snapshot)?)),
+            Mode::Compare(baseline) => compare_mode(snapshot, baseline),
         }
     })
-    .map_err(ProjectLockCliError::Domain)
+    .map_err(ProjectLockCliError::Domain)?;
+    match outcome {
+        Outcome::Text(text) => Ok(text),
+        Outcome::Breaking(report) => Err(ProjectLockCliError::Breaking(report)),
+    }
+}
+
+enum Outcome {
+    Text(String),
+    Breaking(String),
+}
+
+fn compare_mode(snapshot: &ProjectSnapshot, baseline: &Path) -> Result<Outcome, Vec<Diagnostic>> {
+    let candidate = project::render_project_lock(snapshot)?;
+    let base = read_lock(baseline)?;
+    let compatibility = project::classify_lock_change(&base, &candidate)?;
+    Ok(if compatibility.breaking() {
+        Outcome::Breaking(compatibility.report().to_owned())
+    } else {
+        Outcome::Text(compatibility.report().to_owned())
+    })
 }
 
 fn write_mode(snapshot: &ProjectSnapshot) -> Result<String, Vec<Diagnostic>> {
@@ -61,48 +87,62 @@ fn verify_mode(snapshot: &ProjectSnapshot) -> Result<String, Vec<Diagnostic>> {
 
 fn parse(arguments: &[String]) -> Result<(PathBuf, Mode), ProjectLockCliError> {
     let mut manifest = None;
-    let mut mode = None;
-    for argument in arguments {
-        let next = match argument.as_str() {
+    let mut mode: Option<Mode> = None;
+    let mut index = 0usize;
+    while index < arguments.len() {
+        let next = match arguments[index].as_str() {
             "--write" => Mode::Write,
             "--verify" => Mode::Verify,
+            "--compare" => {
+                let baseline = arguments.get(index + 1).ok_or_else(|| {
+                    usage("lock option `--compare` requires a baseline lock path")
+                })?;
+                index += 1;
+                Mode::Compare(PathBuf::from(baseline))
+            }
             option if option.starts_with('-') => {
                 return Err(usage(format!("unknown lock option `{option}`")))
             }
             path if manifest.is_none() => {
                 manifest = Some(PathBuf::from(path));
+                index += 1;
                 continue;
             }
             _ => return Err(usage("lock accepts exactly one manifest path")),
         };
         if mode.is_some() {
-            return Err(usage("lock accepts at most one of `--write` or `--verify`"));
+            return Err(usage(
+                "lock accepts at most one of `--write`, `--verify`, or `--compare`",
+            ));
         }
         mode = Some(next);
+        index += 1;
     }
     let manifest = manifest.ok_or_else(|| usage("lock requires a manifest path"))?;
     Ok((manifest, mode.unwrap_or(Mode::Print)))
 }
 
 fn read_lock(path: &Path) -> Result<String, Vec<Diagnostic>> {
+    let subject = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(PROJECT_LOCK_FILE);
     let metadata = std::fs::symlink_metadata(path).map_err(|error| {
         vec![Diagnostic::io(
             CODE_MISSING,
-            format!("{PROJECT_LOCK_FILE} is not present beside the manifest: {error}"),
+            format!("{subject} is not present: {error}"),
         )]
     })?;
     if !metadata.is_file() || metadata.len() > MAX_PROJECT_LOCK_BYTES as u64 {
         return Err(vec![Diagnostic::io(
             CODE_MISSING,
-            format!(
-                "{PROJECT_LOCK_FILE} must be a plain file of at most {MAX_PROJECT_LOCK_BYTES} bytes"
-            ),
+            format!("{subject} must be a plain file of at most {MAX_PROJECT_LOCK_BYTES} bytes"),
         )]);
     }
     std::fs::read_to_string(path).map_err(|error| {
         vec![Diagnostic::io(
             CODE_MISSING,
-            format!("{PROJECT_LOCK_FILE} is not readable UTF-8: {error}"),
+            format!("{subject} is not readable UTF-8: {error}"),
         )]
     })
 }

@@ -28,6 +28,10 @@ pub(super) fn project_lock(args: &[String]) -> Result<(), u8> {
             Err(2)
         }
         Err(cli::project_lock::ProjectLockCliError::Domain(errors)) => Err(report(&errors, false)),
+        Err(cli::project_lock::ProjectLockCliError::Breaking(report)) => {
+            print!("{report}");
+            Err(1)
+        }
     }
 }
 

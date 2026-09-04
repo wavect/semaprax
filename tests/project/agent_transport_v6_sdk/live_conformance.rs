@@ -523,7 +523,7 @@ impl Codec {
             &["decode", if build { "build" } else { "describe" }],
             response,
         );
-        output.status.success() && output.stdout == b"ok\n"
+        output.status.success() && is_confirmation(&output.stdout)
     }
 
     fn assert_hostile_requests(&self) {
@@ -541,8 +541,18 @@ impl Codec {
         }
         let output = self.invoke(&["hostile"], b"");
         assert_success(&output, "generated-client hostile request checks");
-        assert_eq!(output.stdout, b"ok\n");
+        assert!(
+            is_confirmation(&output.stdout),
+            "{:?}",
+            String::from_utf8_lossy(&output.stdout)
+        );
     }
+}
+
+/// The generated Python client confirms through a text-mode stdout, which the
+/// host renders with its own line ending. The confirmation itself stays exact.
+fn is_confirmation(stdout: &[u8]) -> bool {
+    stdout == b"ok\n" || stdout == b"ok\r\n"
 }
 
 impl Fixture {

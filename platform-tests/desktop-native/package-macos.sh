@@ -232,17 +232,19 @@ for binary in "$executable" "$provider"; do
   fi
 done
 
-actual_executable_images=$(otool -L "$executable" | sed -n '2,$s/^[[:space:]]*\([^[:space:]]*\).*/\1/p')
-expected_executable_images='/usr/lib/libiconv.2.dylib
-/usr/lib/libSystem.B.dylib'
+# The allowlists below fix which dynamic images may be linked, not the order
+# `otool -L` prints them: load-command order follows the linker's emission
+# order, which moves between toolchain releases. Both sides are sorted so the
+# membership assertion stays exact, as the export allowlists already do.
+actual_executable_images=$(otool -L "$executable" | sed -n '2,$s/^[[:space:]]*\([^[:space:]]*\).*/\1/p' | LC_ALL=C sort -u)
+expected_executable_images=$(printf '%s\n' '/usr/lib/libiconv.2.dylib' '/usr/lib/libSystem.B.dylib' | LC_ALL=C sort -u)
 if [ "$actual_executable_images" != "$expected_executable_images" ]; then
   echo "private desktop executable dependency allowlist changed" >&2
   printf '%s\n' "$actual_executable_images" >&2
   exit 1
 fi
-actual_provider_images=$(otool -L "$provider" | sed -n '2,$s/^[[:space:]]*\([^[:space:]]*\).*/\1/p')
-expected_provider_images="$readonly_provider_id
-/usr/lib/libSystem.B.dylib"
+actual_provider_images=$(otool -L "$provider" | sed -n '2,$s/^[[:space:]]*\([^[:space:]]*\).*/\1/p' | LC_ALL=C sort -u)
+expected_provider_images=$(printf '%s\n' "$readonly_provider_id" '/usr/lib/libSystem.B.dylib' | LC_ALL=C sort -u)
 if [ "$actual_provider_images" != "$expected_provider_images" ]; then
   echo "private desktop provider dependency allowlist changed" >&2
   printf '%s\n' "$actual_provider_images" >&2

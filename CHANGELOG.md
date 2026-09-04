@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Cross-platform CI now preserves the exact verifier hint while accepting
+  native line endings in CLI help, and deep standalone-String Wasm planning
+  uses narrow recursive walkers so the contracted nesting depth fits the
+  default macOS test stack. Supply-chain command dispatch also moved into its
+  audited submodule to restore the CLI driver's source-size budget.
+
 - The help catalog test's dispatcher inventory lists the `lock` command that
   landed with the deterministic `semaprax.lock`, so the catalog and dispatcher
   closure check passes again in both executables.

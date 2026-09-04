@@ -68,7 +68,9 @@ requires bounded unique matching, exact diagnostics, and standalone/full
 capability separation owned by [CLI Help v2](CLI-HELP-V2.md).
 Known-command recovery additionally requires exact status-2 hints, capability
 separation, and preservation of unknown and malformed-help diagnostics owned by
-[CLI Help v3](CLI-HELP-V3.md).
+[CLI Help v3](CLI-HELP-V3.md). The guided global page additionally requires
+its 2048-byte bound, fixed groups, capability filtering, and the exhaustive
+`help all` catalog owned by [CLI Help v4](CLI-HELP-V4.md).
 
 Human diagnostic rendering requires exact path/span combinations,
 control-character escaping, unchanged JSON, and a physical compiler failure as

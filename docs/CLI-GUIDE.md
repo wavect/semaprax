@@ -11,10 +11,19 @@ build existing source and projects.
 
 ## Find the exact command shape
 
-List the commands available in the installed binary:
+Start from the guided overview. It is one screen: the commands for writing,
+checking, running, inspecting, and changing programs, grouped by task, each
+with its purpose:
 
 ```sh
 semaprax --help
+```
+
+List every command the installed binary accepts, including the protocol
+surfaces intended for tool authors:
+
+```sh
+semaprax help all
 ```
 
 Show the exact accepted form of one command without reading source files,
@@ -114,7 +123,8 @@ than installing the private source package beside it.
 For a complete first project, continue with the executable
 [quickstart](QUICKSTART.md). The exact capability boundary and byte-level help
 contract are defined by [Capability-Aware CLI Help v1](CLI-HELP-V1.md), with
-bounded typo guidance added by [v2](CLI-HELP-V2.md) and known-command recovery
-added by [v3](CLI-HELP-V3.md).
+bounded typo guidance added by [v2](CLI-HELP-V2.md), known-command recovery
+added by [v3](CLI-HELP-V3.md), and the guided overview plus `help all` added by
+[v4](CLI-HELP-V4.md).
 Human diagnostic rendering is defined by
 [Human Diagnostic Locations v1](HUMAN-DIAGNOSTICS-V1.md).

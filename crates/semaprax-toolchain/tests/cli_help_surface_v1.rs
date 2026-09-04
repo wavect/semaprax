@@ -8,6 +8,16 @@ const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--temp
 const PROJECT_SCAFFOLD_LINE: &str =
     "semaprax project-scaffold --name project-name [--template calculator]\n";
 const BUILD_LINE: &str = "semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm|rust] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n";
+const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
+const GUIDE_MAX_BYTES: usize = 2048;
+
+fn guide_commands(guide: &str) -> Vec<&str> {
+    guide
+        .lines()
+        .filter_map(|line| line.strip_prefix("  "))
+        .map(|entry| entry.split_whitespace().next().unwrap())
+        .collect()
+}
 
 fn empty_working_directory() -> PathBuf {
     let path = std::env::temp_dir().join(format!(
@@ -45,7 +55,28 @@ fn full_help_is_exact_capability_aware_and_inert() {
         std::fs::remove_dir(working_directory).unwrap();
     }
 
-    let help = String::from_utf8(empty.stdout.clone()).unwrap();
+    let guide = String::from_utf8(empty.stdout.clone()).unwrap();
+    assert!(guide.starts_with(BANNER));
+    assert!(guide.len() <= GUIDE_MAX_BYTES, "{} bytes", guide.len());
+    assert_eq!(guide.matches("\n  new ").count(), 1);
+    assert_eq!(guide.matches("\n  doctor ").count(), 1);
+    assert_eq!(guide.matches("\n  help all ").count(), 1);
+    assert_eq!(guide.matches("\nsemaprax ").count(), 0);
+    for name in guide_commands(&guide) {
+        let (output, directory) = invoke(&["help", name]);
+        assert!(
+            output.status.success(),
+            "guided entry `{name}` must have scoped help"
+        );
+        assert!(output.stderr.is_empty(), "{name}");
+        std::fs::remove_dir(directory).unwrap();
+    }
+
+    let (all, all_dir) = invoke(&["help", "all"]);
+    assert!(all.status.success());
+    assert!(all.stderr.is_empty());
+    let help = String::from_utf8(all.stdout.clone()).unwrap();
+    assert!(help.starts_with(&format!("{BANNER}\nUsage:\nsemaprax check ")));
     assert_eq!(help.matches(DOCTOR_LINE).count(), 1);
     assert_eq!(help.matches(NEW_LINE).count(), 1);
     assert_eq!(help.matches(PROJECT_SCAFFOLD_LINE).count(), 1);
@@ -55,6 +86,7 @@ fn full_help_is_exact_capability_aware_and_inert() {
     let scaffold = help.find(PROJECT_SCAFFOLD_LINE).unwrap();
     let build = help.find(BUILD_LINE).unwrap();
     assert!(doctor < new && new < scaffold && scaffold < build);
+    std::fs::remove_dir(all_dir).unwrap();
 
     let (unknown, unknown_dir) = invoke(&["not-a-command"]);
     assert_eq!(unknown.status.code(), Some(2));
@@ -86,7 +118,9 @@ fn full_help_is_exact_capability_aware_and_inert() {
 #[test]
 fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     let (global, global_dir) = invoke(&["--help"]);
-    let global_text = String::from_utf8(global.stdout.clone()).unwrap();
+    let (catalog, catalog_dir) = invoke(&["help", "all"]);
+    let global_text = String::from_utf8(catalog.stdout.clone()).unwrap();
+    std::fs::remove_dir(catalog_dir).unwrap();
     let usages: Vec<_> = global_text
         .lines()
         .filter_map(|line| line.trim_start().strip_prefix("semaprax "))
@@ -128,7 +162,10 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     for name in ["help", "--help", "-h"] {
         let (output, directory) = invoke(&["help", name]);
         assert!(output.status.success(), "{name}");
-        assert_eq!(output.stdout, b"Usage:\n  semaprax help <command>\n");
+        assert_eq!(
+            output.stdout,
+            b"Usage:\n  semaprax help <command>\n  semaprax help all\n"
+        );
         assert!(output.stderr.is_empty());
         std::fs::remove_dir(directory).unwrap();
     }

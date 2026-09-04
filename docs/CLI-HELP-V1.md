@@ -6,7 +6,10 @@ completion matrix and release evidence own product status.
 Audience: CLI users, release engineers, and compiler contributors.
 
 This version is extended by the bounded, capability-aware typo guidance in
-[Capability-Aware CLI Help v2](CLI-HELP-V2.md).
+[Capability-Aware CLI Help v2](CLI-HELP-V2.md). [Guided CLI Help v4](CLI-HELP-V4.md)
+later moved the exhaustive global page defined below to `semaprax help all`
+and made the global forms print a guided overview; the catalog and scoped-help
+contract here are unchanged.
 
 This additive command-help surface makes the closed CLI grammar inspectable
 without acquiring command authority. The help mechanism itself does not add an

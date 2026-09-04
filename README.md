@@ -226,7 +226,8 @@ publication authority.
 | `semaprax patch` | Apply a supported single-file semantic transaction. |
 | `semaprax workspace-*` | Use the bounded managed multi-file protocols. |
 
-Run `semaprax --help` for the complete command list. Many report, evidence,
+`semaprax --help` is a one-screen guided overview of these commands. Run
+`semaprax help all` for the complete command list. Many report, evidence,
 workspace, and host-integration commands are narrow protocol surfaces intended
 for tool authors; their versioned reference documents define the exact
 admission rules and non-claims.

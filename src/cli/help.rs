@@ -224,7 +224,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -287,8 +287,190 @@ fn edit_distance(left: &[u8], right: &[u8]) -> usize {
     }
     previous[right.len()]
 }
+const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
+
+/// Upper bound on the guided global help, in bytes, for either capability
+/// class. An agent reads this page before its first command; it must stay one
+/// screen, so the bound is a contract and the unit test below enforces it.
+pub(crate) const GUIDE_MAX_BYTES: usize = 2048;
+
+struct GuideEntry {
+    id: CommandId,
+    shape: &'static str,
+    summary: &'static str,
+}
+
+struct GuideGroup {
+    heading: &'static str,
+    entries: &'static [GuideEntry],
+}
+
+/// The guided global help: the commands a developer or coding agent needs to
+/// write, check, run, inspect, and change a program, grouped by task, each
+/// with a one-line purpose. Shapes are abbreviated; the catalog rendered by
+/// `help all` and by scoped help remains the exact grammar authority.
+static GUIDE: &[GuideGroup] = &[
+    GuideGroup {
+        heading: "Write, check, and run",
+        entries: &[
+            GuideEntry {
+                id: CommandId::Check,
+                shape: "check [<file>|semaprax.toml] [--json]",
+                summary: "Parse, resolve, type-check, and verify",
+            },
+            GuideEntry {
+                id: CommandId::Fmt,
+                shape: "fmt <file> [--check]",
+                summary: "Rewrite canonically, or report drift with --check",
+            },
+            GuideEntry {
+                id: CommandId::Run,
+                shape: "run <file>|semaprax.toml",
+                summary: "Execute main and print its i64 result",
+            },
+            GuideEntry {
+                id: CommandId::Test,
+                shape: "test [semaprax.toml]",
+                summary: "Run the project's declared test modules",
+            },
+            GuideEntry {
+                id: CommandId::Build,
+                shape: "build <file>|semaprax.toml --target <target> -o <path>",
+                summary: "Emit a native, web, wasm, or npm artifact",
+            },
+        ],
+    },
+    GuideGroup {
+        heading: "Inspect meaning",
+        entries: &[
+            GuideEntry {
+                id: CommandId::Graph,
+                shape: "graph <file>",
+                summary: "Emit the complete semantic graph as JSON",
+            },
+            GuideEntry {
+                id: CommandId::Context,
+                shape: "context <file> <stable-id> [--depth N] [--filters ...]",
+                summary: "Bounded facts about one declaration as JSON",
+            },
+        ],
+    },
+    GuideGroup {
+        heading: "Change by meaning",
+        entries: &[
+            GuideEntry {
+                id: CommandId::Patch,
+                shape: "patch <file> <patch.spatch>",
+                summary: "Apply a replay-checked semantic patch",
+            },
+            GuideEntry {
+                id: CommandId::Impact,
+                shape: "impact <file> <patch.spatch>",
+                summary: "Preview what a patch would change",
+            },
+            GuideEntry {
+                id: CommandId::Review,
+                shape: "review <file> <patch.spatch>",
+                summary: "Review a patch without writing",
+            },
+        ],
+    },
+    GuideGroup {
+        heading: "Start a project",
+        entries: &[
+            GuideEntry {
+                id: CommandId::New,
+                shape: "new <destination>",
+                summary: "Create and verify a calculator project",
+            },
+            GuideEntry {
+                id: CommandId::ProjectScaffold,
+                shape: "project-scaffold --name <name>",
+                summary: "Print the calculator template as one JSON capsule",
+            },
+        ],
+    },
+    GuideGroup {
+        heading: "Toolchain",
+        entries: &[
+            GuideEntry {
+                id: CommandId::Doctor,
+                shape: "doctor [--profile <id>] [--json]",
+                summary: "Check the local toolchain against an offline profile",
+            },
+            GuideEntry {
+                id: CommandId::Version,
+                shape: "version [--json]",
+                summary: "Package and commit identity",
+            },
+            GuideEntry {
+                id: CommandId::Help,
+                shape: "help <command>",
+                summary: "Exact grammar for one command (also <command> --help)",
+            },
+            GuideEntry {
+                id: CommandId::Help,
+                shape: "help all",
+                summary: "Every command, including tool-author protocol surfaces",
+            },
+        ],
+    },
+];
+
+const GUIDE_FOOTER: &str =
+    "Start with `semaprax check <file>`. Diagnostics carry stable SPX codes and, where the\n\
+compiler knows the fix, a `help:` line; `check <file> --json` emits one diagnostic per line.\n";
+
+fn guide_spec(id: CommandId) -> &'static CommandSpec {
+    COMMANDS
+        .iter()
+        .find(|spec| spec.id == id)
+        .expect("every guide entry names a catalog command")
+}
+
+/// The guided global help for `semaprax`, `semaprax help`, `--help`, and `-h`.
 pub(crate) fn global(private: bool) -> String {
-    let mut out = String::from("SEMAPRAX — Meaning in. Verified machine code out.\n\nUsage:\n");
+    let visible = |entry: &&GuideEntry| available(guide_spec(entry.id), private);
+    let width = GUIDE
+        .iter()
+        .flat_map(|group| group.entries.iter().filter(visible))
+        .map(|entry| entry.shape.len())
+        .max()
+        .unwrap_or(0);
+    let mut out = String::from(BANNER);
+    out.push_str("\nUsage: semaprax <command> [arguments]\n");
+    for group in GUIDE {
+        let entries: Vec<_> = group.entries.iter().filter(visible).collect();
+        if entries.is_empty() {
+            continue;
+        }
+        out.push('\n');
+        out.push_str(group.heading);
+        out.push_str(":\n");
+        for entry in entries {
+            out.push_str("  ");
+            out.push_str(entry.shape);
+            for _ in entry.shape.len()..width + 2 {
+                out.push(' ');
+            }
+            out.push_str(entry.summary);
+            out.push('\n');
+        }
+    }
+    out.push('\n');
+    out.push_str(GUIDE_FOOTER);
+    debug_assert!(
+        out.len() <= GUIDE_MAX_BYTES,
+        "guided help must stay one screen"
+    );
+    out
+}
+
+/// The exhaustive command catalog for `semaprax help all`: every
+/// capability-visible global usage line, in catalog order.
+pub(crate) fn catalog(private: bool) -> String {
+    let mut out = String::from(BANNER);
+    out.push_str("\nUsage:\n");
     for spec in COMMANDS
         .iter()
         .filter(|s| s.global && available(s, private))
@@ -468,6 +650,37 @@ mod tests {
         assert_eq!(dispatcher.len(), DISPATCHER_INVENTORY.len());
         assert_eq!(catalog, dispatcher);
         assert!(ids.into_iter().all(|present| present));
+    }
+
+    #[test]
+    fn guide_names_only_catalog_commands_and_stays_one_screen() {
+        for group in GUIDE {
+            assert!(!group.heading.is_empty() && !group.heading.ends_with(':'));
+            for entry in group.entries {
+                let spec = guide_spec(entry.id);
+                let name = entry.shape.split_whitespace().next().unwrap();
+                assert_eq!(
+                    name, spec.canonical,
+                    "guide shape must start with the canonical name"
+                );
+                assert!(!entry.summary.is_empty() && !entry.summary.ends_with('.'));
+            }
+        }
+        for private in [false, true] {
+            let help = global(private);
+            assert!(help.starts_with(BANNER));
+            assert!(
+                help.len() <= GUIDE_MAX_BYTES,
+                "guided help is {} bytes for private={private}",
+                help.len()
+            );
+            assert!(help.contains("\n  help all "));
+            let names_private = help.contains("\n  new ") || help.contains("\n  doctor ");
+            assert_eq!(names_private, private);
+            assert!(!help.contains("|rust"));
+            assert!(catalog(private).starts_with(BANNER));
+            assert!(catalog(private).contains("\nsemaprax check "));
+        }
     }
 
     #[test]

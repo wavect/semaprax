@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- `semaprax --help`, `help`, `-h`, and the empty invocation now print a guided
+  one-screen overview: the commands for writing, checking, running, inspecting,
+  and changing programs, grouped by task with a one-line purpose each, bounded
+  to 2048 bytes and filtered by the executable's capability class. The former
+  7 KB exhaustive page moved to the new `semaprax help all` form with its bytes
+  otherwise unchanged; scoped help, typo guidance, and recovery hints are
+  unchanged. [Guided CLI Help v4](docs/CLI-HELP-V4.md) owns the contract and
+  the standalone and full-toolchain help harnesses pin it.
+
 - Verifier diagnostics now carry fix hints for the type-level habits an agent
   brings from other languages: an unknown function names the nearest declared
   or compiler-owned function (`did you mean `string_len`?`) or, for the

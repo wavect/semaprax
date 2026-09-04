@@ -31,8 +31,10 @@ rule: [RFC 0001](RFC-0001.md) is the contract and the
   file, use `semaprax context <file> <stable-id> --depth 1 --filters
   contracts,ownership --max-bytes 4096` and read `truncation` before trusting
   the answer. [Agent Context v2](AGENT-CONTEXT-V2.md) owns the schema.
-- `semaprax --help` is 7 KB and lists every command. Use
-  `semaprax help <command>` for one command's exact grammar.
+- `semaprax --help` is a guided overview under 2 KB: the commands above,
+  grouped by task, with one-line purposes. `semaprax help all` is the 7 KB
+  exhaustive catalog; use `semaprax help <command>` for one command's exact
+  grammar.
 - Diagnostics carry stable `SPX-…` codes. Bind tests and repair logic to the
   code, never to the message text.
 

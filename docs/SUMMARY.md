@@ -16,6 +16,7 @@ Audience: all documentation readers.
 - [Capability-aware CLI help](CLI-HELP-V1.md)
 - [Capability-aware CLI typo guidance](CLI-HELP-V2.md)
 - [Capability-aware CLI recovery](CLI-HELP-V3.md)
+- [Guided CLI help](CLI-HELP-V4.md)
 - [Human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md)
 - [Calculator project publication](NEW-PROJECT-PUBLICATION-V1.md)
 - [Windows owned npm publication](WINDOWS-OWNED-NPM-PUBLICATION-V1.md)

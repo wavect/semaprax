@@ -8,6 +8,25 @@ const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web
 const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator]\n";
 const PROJECT_SCAFFOLD_LINE: &str =
     "semaprax project-scaffold --name project-name [--template calculator]\n";
+const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
+/// The guided overview must stay one screen; CLI Help v4 fixes the bound.
+const GUIDE_MAX_BYTES: usize = 2048;
+const GUIDE_HEADINGS: &[&str] = &[
+    "Write, check, and run",
+    "Inspect meaning",
+    "Change by meaning",
+    "Start a project",
+    "Toolchain",
+];
+
+/// The command named by every indented entry of the guided overview.
+fn guide_commands(guide: &str) -> Vec<&str> {
+    guide
+        .lines()
+        .filter_map(|line| line.strip_prefix("  "))
+        .map(|entry| entry.split_whitespace().next().unwrap())
+        .collect()
+}
 
 fn empty_working_directory() -> PathBuf {
     let path = std::env::temp_dir().join(format!(
@@ -45,7 +64,43 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
         std::fs::remove_dir(working_directory).unwrap();
     }
 
-    let help = String::from_utf8(empty.stdout.clone()).unwrap();
+    // The global form is the guided one-screen overview owned by CLI Help v4.
+    let guide = String::from_utf8(empty.stdout.clone()).unwrap();
+    assert!(guide.starts_with(BANNER));
+    assert!(guide.len() <= GUIDE_MAX_BYTES, "{} bytes", guide.len());
+    assert!(guide.contains("\nUsage: semaprax <command> [arguments]\n"));
+    for heading in GUIDE_HEADINGS {
+        assert_eq!(
+            guide.matches(&format!("\n{heading}:\n")).count(),
+            1,
+            "{heading}"
+        );
+    }
+    assert_eq!(guide.matches("\n  help all ").count(), 1);
+    assert_eq!(guide.matches("\n  project-scaffold ").count(), 1);
+    assert_eq!(guide.matches("\n  new ").count(), 0);
+    assert_eq!(guide.matches("\n  doctor ").count(), 0);
+    assert_eq!(guide.matches("|rust").count(), 0);
+    assert_eq!(guide.matches("\nsemaprax ").count(), 0);
+    for name in guide_commands(&guide) {
+        let (output, directory) = invoke(&["help", name]);
+        assert!(
+            output.status.success(),
+            "guided entry `{name}` must have scoped help"
+        );
+        assert!(output.stderr.is_empty(), "{name}");
+        assert!(String::from_utf8(output.stdout)
+            .unwrap()
+            .starts_with("Usage:\n  semaprax "));
+        std::fs::remove_dir(directory).unwrap();
+    }
+
+    // `help all` is the exhaustive catalog: the exact global bytes of v1..v3.
+    let (all, all_dir) = invoke(&["help", "all"]);
+    assert!(all.status.success());
+    assert!(all.stderr.is_empty());
+    let help = String::from_utf8(all.stdout.clone()).unwrap();
+    assert!(help.starts_with(&format!("{BANNER}\nUsage:\nsemaprax check ")));
     assert_eq!(help.matches(BUILD_LINE).count(), 1);
     assert_eq!(help.matches(DOCTOR_LINE).count(), 0);
     assert_eq!(help.matches(NEW_LINE).count(), 0);
@@ -56,6 +111,8 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
             .count(),
         0
     );
+    assert!(help.len() > guide.len());
+    std::fs::remove_dir(all_dir).unwrap();
 
     let (unknown, unknown_dir) = invoke(&["not-a-command"]);
     assert_eq!(unknown.status.code(), Some(2));
@@ -99,7 +156,9 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
 #[test]
 fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     let (global, global_dir) = invoke(&["--help"]);
-    let global_text = String::from_utf8(global.stdout.clone()).unwrap();
+    let (catalog, catalog_dir) = invoke(&["help", "all"]);
+    let global_text = String::from_utf8(catalog.stdout.clone()).unwrap();
+    std::fs::remove_dir(catalog_dir).unwrap();
     let usages: Vec<_> = global_text
         .lines()
         .filter_map(|line| line.trim_start().strip_prefix("semaprax "))
@@ -151,10 +210,18 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     for name in ["help", "--help", "-h"] {
         let (output, directory) = invoke(&["help", name]);
         assert!(output.status.success(), "{name}");
-        assert_eq!(output.stdout, b"Usage:\n  semaprax help <command>\n");
+        assert_eq!(
+            output.stdout,
+            b"Usage:\n  semaprax help <command>\n  semaprax help all\n"
+        );
         assert!(output.stderr.is_empty());
         std::fs::remove_dir(directory).unwrap();
     }
+    let (all_extra, all_extra_dir) = invoke(&["help", "all", "extra"]);
+    assert_eq!(all_extra.status.code(), Some(2));
+    assert_eq!(all_extra.stdout, global.stdout);
+    assert_eq!(all_extra.stderr, b"unknown command `help`\n\n");
+    std::fs::remove_dir(all_extra_dir).unwrap();
     let (typo, typo_dir) = invoke(&["help", "buidl"]);
     assert_eq!(typo.status.code(), Some(2));
     assert_eq!(typo.stdout, global.stdout);

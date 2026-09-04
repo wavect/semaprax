@@ -79,6 +79,8 @@ mod hole_navigation;
 mod language_command_native;
 #[path = "project/line_command_native.rs"]
 mod line_command_native;
+#[path = "project/manifest_hints.rs"]
+mod manifest_hints;
 #[path = "project/manifest_v10.rs"]
 mod manifest_v10;
 #[path = "project/manifest_v11.rs"]

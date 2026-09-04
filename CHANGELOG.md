@@ -9,6 +9,13 @@
 - `semaprax help library` prints the generated standard-library catalog, the
   fourth `help` shape beside `help language`, so an installed compiler lists
   every `std.*` function and contract offline.
+- Project-shape rejections now carry their fix: a Project v1 manifest whose six
+  lines are missing, extra, or unterminated lists the exact lines in order, an
+  `entry` that names a module without `main` explains the `entry` key, and an
+  unknown function with no near name shows the `use function @id(…) from
+  module as name;` import line. `tests/project/manifest_hints.rs` pins the
+  manifest and CLI cases.
+
 - `semaprax lock <manifest>` renders the deterministic `semaprax.lock` beside a
   project ([Project Lock v1](docs/PROJECT-LOCK-V1.md)): the canonical manifest
   and its contract, the project revision as the program root, every source

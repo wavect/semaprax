@@ -64,6 +64,9 @@ pub(crate) struct PreparedResolvedEvaluation {
     pub(crate) max_steps: usize,
     pub(crate) events: Vec<ResolvedTraceEvent>,
     pub(crate) dropped_events: usize,
+    /// Retained contract-failure frame detail; `None` unless `outcome` is a
+    /// contract failure.
+    pub(crate) failure: Option<super::ContractFailureDetail>,
 }
 
 /// Authority-free cached closure index. It contains only owned identities and
@@ -269,6 +272,7 @@ pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
         max_steps,
         events: evaluator.trace_events,
         dropped_events: evaluator.dropped_trace_events,
+        failure: evaluator.failure_detail.take(),
     })
 }
 

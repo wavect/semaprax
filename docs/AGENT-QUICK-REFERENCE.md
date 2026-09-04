@@ -531,10 +531,13 @@ Modules import by stable identity, not by path:
 `use function @id("calculator.add") from calculator.core as add;` at the top of
 the importing file. A test module is an ordinary module whose `main` returns
 `0` on success; `semaprax test semaprax.toml` prints `project tests passed`.
-A failure prints only `project tests failed with result N`, so return a
-distinct non-zero value from each failing check (`if a { if b { 0 } else { 2 } }
-else { 1 }`) instead of a single `1`; the number is the only clue to which
-check failed.
+Give each check its own `fn test_<name>() -> i64` with an `@id` in the test
+module: every such zero-parameter function runs on its own and a failure is
+reported by stable id and outcome (`failed calculator.tests.test_add: returned
+2`), with `cases` in the `--json` envelope. A violated `requires` or `ensures`
+reports the function, the clause, and the argument values (`contract: requires
+right != 0 in calculator.divide` / `arguments: left = 1, right = 0`).
+[Project Test Cases v1](PROJECT-TEST-CASES-V1.md) owns both.
 The [standard library catalog](STANDARD-LIBRARY-CATALOG.md) lists every
 `std.*` function with its contract; to use one, copy its package's library
 file from `std/` into `src/`, list it in `sources`, and import the function by

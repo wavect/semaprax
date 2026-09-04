@@ -130,9 +130,13 @@ The routing and naming regressions in `tests/cli_check_routing_v1.rs` and
 `run` and `test` execute in process from the already authenticated linked HIR.
 They do not emit C or Wasm, create a temporary executable, spawn a process,
 reparse sources, relink declarations, or create project state. `run` evaluates
-the exact entry-module `main` and prints its `i64` result. `test` evaluates only
-the manifest-declared test-module `main`; zero passes and any nonzero result
-fails. There is no filesystem test discovery. Both commands distinguish a
+the exact entry-module `main` and prints its `i64` result. `test` evaluates the
+manifest-declared test-module `main`, and then each zero-parameter `i64`
+function of that module whose name starts with `test_` as a named case; zero
+passes and any nonzero result fails. There is no filesystem test discovery.
+[Project Test Cases v1](PROJECT-TEST-CASES-V1.md) owns the case rule, the
+human report, the additive `cases` array, and the contract-failure detail that
+accompanies a language failure. Both commands distinguish a
 language failure, fuel exhaustion, and call-depth exhaustion, and `--json`
 emits a deterministic `semaprax.project-execution.v1` envelope binding the
 project and Workspace revisions, closure role and module, stable entry ID,

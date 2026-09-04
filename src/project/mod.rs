@@ -237,8 +237,9 @@ pub use cxx_owned_data::{
     PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
 };
 pub use execution::{
-    verify_execution_envelope, ProjectExecution, ProjectExecutionOptions, ProjectExecutionOutcome,
-    ProjectExecutionRole, PROJECT_EXECUTION_SCHEMA,
+    verify_execution_envelope, ProjectContractArgument, ProjectContractFailure, ProjectExecution,
+    ProjectExecutionOptions, ProjectExecutionOutcome, ProjectExecutionRole, ProjectTestCase,
+    PROJECT_EXECUTION_SCHEMA, TEST_CASE_PREFIX,
 };
 pub use flat_owned_record::{
     derive_flat_owned_record_api_descriptor, render_flat_owned_record_metadata,

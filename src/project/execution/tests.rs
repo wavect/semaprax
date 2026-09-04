@@ -282,3 +282,127 @@ fn rendering_and_verification_honor_the_exact_max_bytes_boundary() {
     )
     .is_err());
 }
+
+fn contract_failure_fixture() -> ProjectContractFailure {
+    ProjectContractFailure {
+        function_id: "calculator.divide".to_owned(),
+        phase: "requires",
+        clause: "right != 0".to_owned(),
+        arguments: vec![
+            ProjectContractArgument {
+                name: "left".to_owned(),
+                ty: "i64".to_owned(),
+                value: "1".to_owned(),
+            },
+            ProjectContractArgument {
+                name: "right".to_owned(),
+                ty: "i64".to_owned(),
+                value: "0".to_owned(),
+            },
+        ],
+    }
+}
+
+fn test_envelope_with_cases(
+    cases: &[ProjectTestCase],
+    failure: Option<&ProjectContractFailure>,
+) -> String {
+    let outcome = match failure {
+        Some(_) => ProjectExecutionOutcome::LanguageFailure(runtime_status::normalize_contract(
+            crate::cleanup_plan::ContractPhase::Requires,
+        )),
+        None => ProjectExecutionOutcome::Returned(0),
+    };
+    report::render_full(
+        PROJECT_SCHEMA,
+        PROJECT_REVISION,
+        WORKSPACE_REVISION,
+        "calculator",
+        ProjectExecutionRole::Test,
+        "calculator.tests",
+        "calculator.tests.main",
+        7,
+        100,
+        65_536,
+        &outcome,
+        failure,
+        cases,
+    )
+    .unwrap()
+}
+
+#[test]
+fn test_envelopes_carry_cases_and_contract_detail_that_replay_and_verify() {
+    let failing = ProjectTestCase {
+        stable_id: "calculator.tests.test_divide".to_owned(),
+        name: "test_divide".to_owned(),
+        outcome: ProjectExecutionOutcome::LanguageFailure(runtime_status::normalize_contract(
+            crate::cleanup_plan::ContractPhase::Requires,
+        )),
+        steps_used: 8,
+        max_steps: 100,
+        failure: Some(contract_failure_fixture()),
+    };
+    let passing = ProjectTestCase {
+        stable_id: "calculator.tests.test_add".to_owned(),
+        name: "test_add".to_owned(),
+        outcome: ProjectExecutionOutcome::Returned(0),
+        steps_used: 13,
+        max_steps: 100,
+        failure: None,
+    };
+    let envelope = test_envelope_with_cases(&[passing, failing], None);
+    verify_execution_envelope(&envelope).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&envelope).unwrap();
+    assert_eq!(value["cases"][0]["name"], "test_add");
+    assert_eq!(
+        value["cases"][1]["outcome"]["failure"]["clause"],
+        "right != 0"
+    );
+    assert_eq!(
+        value["cases"][1]["outcome"]["failure"]["arguments"][1]["value"],
+        "0"
+    );
+    let empty = test_envelope_with_cases(&[], None);
+    verify_execution_envelope(&empty).unwrap();
+    assert!(empty.contains("\"outcome\":{\"kind\":\"returned\",\"type\":\"i64\",\"value\":\"0\"},\"cases\":[],\"nonclaims\""));
+
+    let detailed = test_envelope_with_cases(&[], Some(&contract_failure_fixture()));
+    verify_execution_envelope(&detailed).unwrap();
+    assert!(detailed.contains(
+        "\"failure\":{\"function\":\"calculator.divide\",\"phase\":\"requires\",\"clause\":\"right != 0\",\"arguments\":[{\"name\":\"left\",\"type\":\"i64\",\"value\":\"1\"},{\"name\":\"right\",\"type\":\"i64\",\"value\":\"0\"}]}"
+    ));
+
+    let mutations = [
+        // A test envelope must carry `cases`; an entry envelope must not.
+        envelope.replacen(",\"cases\":[", ",\"extra\":[", 1),
+        empty.replacen("\"role\":\"test\"", "\"role\":\"entry\"", 1),
+        // Case shape: prefix, fuel, keys, order.
+        envelope.replacen("\"name\":\"test_add\"", "\"name\":\"add\"", 1),
+        envelope.replacen(
+            "\"steps_used\":13,\"max_steps\":100",
+            "\"steps_used\":13,\"max_steps\":99",
+            1,
+        ),
+        envelope.replacen(
+            "\"steps_used\":13,\"max_steps\":100",
+            "\"steps_used\":101,\"max_steps\":100",
+            1,
+        ),
+        envelope.replacen("\"stable_id\":\"calculator.tests.test_add\",", "", 1),
+        // Detail shape: phase agrees with the status code, exact keys, bounded text.
+        detailed.replacen("\"phase\":\"requires\"", "\"phase\":\"ensures\"", 1),
+        detailed.replacen("\"phase\":\"requires\"", "\"phase\":\"body\"", 1),
+        detailed.replacen("\"clause\":\"right != 0\"", "\"clause\":\"\"", 1),
+        detailed.replacen("\"clause\":\"right != 0\",", "", 1),
+        detailed.replacen("\"type\":\"i64\",\"value\":\"1\"", "\"value\":\"1\"", 1),
+        detailed.replacen("\"value\":\"0\"", "\"value\":\"1\"", 1),
+    ];
+    for mutation in mutations {
+        assert_ne!(mutation, envelope);
+        assert!(
+            verify_execution_envelope(&mutation).is_err(),
+            "mutation unexpectedly verified: {mutation}"
+        );
+    }
+}

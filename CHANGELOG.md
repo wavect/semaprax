@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- `semaprax test` runs every `fn test_<name>() -> i64` of the manifest-declared
+  test module as a named case after `main`, each with its own step budget, and
+  names each failing case with its outcome (`failed
+  calculator.tests.test_add: returned 2`) followed by `project tests failed: K
+  of N in <module>` and a `help` line; a failing `main` is reported the same
+  way instead of the bare `project tests failed with result N`. The
+  `semaprax.project-execution.v1` test envelope gains an always-present
+  additive `cases` array under the unchanged schema string and payload-digest
+  domain, and `project::verify_execution_envelope` verifies it. Entry envelopes
+  and the passing-test line without cases are unchanged.
+  [Project Test Cases v1](docs/PROJECT-TEST-CASES-V1.md) owns the rule and
+  `tests/project.rs::developer_loop` pins it.
+
+- A violated `requires` or `ensures` under `semaprax run` or `semaprax test`
+  now names the failing function's stable id, the clause kind and source text,
+  and the call's argument values, both as two indented lines after the
+  unchanged language-status line and as an additive `failure` member of the
+  `language_failure` outcome. The interpreter records the detail at the failing
+  frame (`src/interpreter/failure_detail.rs`); the status object, cleanup, and
+  exit status are untouched, and the native path is unchanged. The legacy
+  resolved-entry evaluator moved verbatim into `src/interpreter/resolved_case.rs`
+  so a named function can be evaluated without being the entrypoint.
+
 - `semaprax check` on a project whose `use` names a module no listed source
   declares keeps `SPX-G172` and its message and adds a `help` line: it names
   the unlisted `.spx` file that declares the module and the `sources` key in

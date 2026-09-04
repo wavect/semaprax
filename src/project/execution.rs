@@ -5,6 +5,7 @@
 //! spawns, or invokes a backend. The enclosing authenticated-project operation
 //! retains ownership of the final held-input recheck.
 
+mod cases;
 mod report;
 
 use crate::conformance::NormalizedStatus;
@@ -12,7 +13,12 @@ use crate::diagnostic::Diagnostic;
 use crate::interpreter::{self, ResolvedEvaluation, ResolvedEvaluationOutcome, DEFAULT_MAX_STEPS};
 
 use super::{ProjectExecutionCancellation, ProjectRevision};
+pub use cases::{
+    ProjectContractArgument, ProjectContractFailure, ProjectTestCase, TEST_CASE_PREFIX,
+};
+#[cfg(test)]
 use report::render;
+use report::render_full;
 pub use report::{verify_execution_envelope, PROJECT_EXECUTION_SCHEMA};
 
 #[cfg(test)]
@@ -81,11 +87,13 @@ pub struct ProjectExecution {
     outcome: ProjectExecutionOutcome,
     steps_used: usize,
     max_steps: usize,
+    failure: Option<ProjectContractFailure>,
+    cases: Vec<ProjectTestCase>,
     envelope: String,
 }
 
 pub(super) enum CancellableProjectExecution {
-    Completed(ProjectExecution),
+    Completed(Box<ProjectExecution>),
     Cancelled {
         before_step: usize,
         steps_used: usize,
@@ -122,19 +130,29 @@ impl ProjectExecution {
         &self.envelope
     }
 
+    /// The violated clause and call frame when the outcome is a contract
+    /// failure the evaluator could attribute.
+    pub const fn failure(&self) -> Option<&ProjectContractFailure> {
+        self.failure.as_ref()
+    }
+
+    /// The individually executed `test_` cases of the test module, ordered by
+    /// stable identity; always empty for the entry role.
+    pub fn cases(&self) -> &[ProjectTestCase] {
+        &self.cases
+    }
+
     /// Command-level success: any returned entry value is a successful run;
-    /// the exact declared test closure passes only by returning zero.
-    pub const fn command_succeeded(&self) -> bool {
-        matches!(
-            (&self.role, &self.outcome),
-            (
-                ProjectExecutionRole::Entry,
-                ProjectExecutionOutcome::Returned(_)
-            ) | (
-                ProjectExecutionRole::Test,
-                ProjectExecutionOutcome::Returned(0)
-            )
-        )
+    /// the declared test closure passes only when `main` and every named case
+    /// return zero.
+    pub fn command_succeeded(&self) -> bool {
+        match (&self.role, &self.outcome) {
+            (ProjectExecutionRole::Entry, ProjectExecutionOutcome::Returned(_)) => true,
+            (ProjectExecutionRole::Test, ProjectExecutionOutcome::Returned(0)) => {
+                self.cases.iter().all(ProjectTestCase::passed)
+            }
+            _ => false,
+        }
     }
 }
 
@@ -161,7 +179,21 @@ pub(super) fn execute(
     let entry_id = program.entrypoint.as_str();
     let evaluated =
         interpreter::evaluate_resolved_zero_arg_i64(program, entry_id, options.max_steps)?;
-    finish(snapshot, role, module, entry_id, evaluated, options)
+    let cases = match role {
+        ProjectExecutionRole::Entry => Vec::new(),
+        ProjectExecutionRole::Test => {
+            match cases::run_cases(snapshot, program, module, options, None)? {
+                cases::CaseRun::Completed(cases) => cases,
+                cases::CaseRun::Cancelled { .. } => {
+                    return Err(vec![guard_error(
+                        "test cases observed a cancellation without a cancellation signal"
+                            .to_owned(),
+                    )])
+                }
+            }
+        }
+    };
+    finish(snapshot, role, module, entry_id, evaluated, cases, options)
 }
 
 /// Execute through the cancellation-aware prepared evaluator without retaining
@@ -236,6 +268,27 @@ pub(super) fn execute_cancellable(
             ResolvedEvaluationOutcome::GuardError(detail)
         }
     };
+    let cases = match role {
+        ProjectExecutionRole::Entry => Vec::new(),
+        ProjectExecutionRole::Test => {
+            match cases::run_cases(
+                snapshot,
+                program,
+                module,
+                options,
+                Some(cancellation.signal()),
+            )? {
+                cases::CaseRun::Completed(cases) => cases,
+                cases::CaseRun::Cancelled { before_step } => {
+                    return Ok(CancellableProjectExecution::Cancelled {
+                        before_step,
+                        steps_used: evaluated.steps_used,
+                        max_steps: evaluated.max_steps,
+                    });
+                }
+            }
+        }
+    };
     let execution = finish(
         snapshot,
         role,
@@ -245,10 +298,12 @@ pub(super) fn execute_cancellable(
             outcome,
             steps_used: evaluated.steps_used,
             max_steps: evaluated.max_steps,
+            failure: evaluated.failure,
         },
+        cases,
         options,
     )?;
-    Ok(CancellableProjectExecution::Completed(execution))
+    Ok(CancellableProjectExecution::Completed(Box::new(execution)))
 }
 
 fn finish(
@@ -257,8 +312,19 @@ fn finish(
     module: &str,
     entry_id: &str,
     evaluated: ResolvedEvaluation,
+    cases: Vec<ProjectTestCase>,
     options: &ProjectExecutionOptions,
 ) -> Result<ProjectExecution, Vec<Diagnostic>> {
+    let failure = evaluated
+        .failure
+        .as_ref()
+        .filter(|_| {
+            matches!(
+                evaluated.outcome,
+                ResolvedEvaluationOutcome::LanguageFailure(_)
+            )
+        })
+        .map(|detail| cases::contract_failure(snapshot, detail));
     let outcome = match evaluated.outcome {
         ResolvedEvaluationOutcome::ReturnedI64(value) => ProjectExecutionOutcome::Returned(value),
         ResolvedEvaluationOutcome::LanguageFailure(status) => {
@@ -272,7 +338,7 @@ fn finish(
             ))]);
         }
     };
-    let envelope = render(
+    let envelope = render_full(
         snapshot.manifest.schema(),
         snapshot.project_revision(),
         snapshot.workspace_revision(),
@@ -284,6 +350,8 @@ fn finish(
         evaluated.max_steps,
         options.max_bytes,
         &outcome,
+        failure.as_ref(),
+        &cases,
     )?;
     Ok(ProjectExecution {
         role,
@@ -292,6 +360,8 @@ fn finish(
         outcome,
         steps_used: evaluated.steps_used,
         max_steps: evaluated.max_steps,
+        failure,
+        cases,
         envelope,
     })
 }

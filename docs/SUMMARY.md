@@ -79,6 +79,7 @@ Audience: all documentation readers.
 - [Project Manifest v5](PROJECT-MANIFEST-V5.md)
 - [Package Manifest v1](PACKAGE-MANIFEST-V1.md)
 - [Project Lock v1](PROJECT-LOCK-V1.md)
+- [Project Test Cases and Runtime Failure Report v1](PROJECT-TEST-CASES-V1.md)
 - [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Project Candidates and Semantic Change IR v1](PROJECT-CANDIDATES-V1.md)
 - [Project Lexical Binding Constructor v1](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md)

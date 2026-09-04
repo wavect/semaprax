@@ -2,6 +2,10 @@
 
 Status: bounded tag-release procedure with exact published evidence.
 
+The main sections below record the most recently published tagged milestone.
+Later releases inherit the same release workflow; this archive keeps the detailed
+evidence for that milestone.
+
 Audience: maintainers and release reviewers.
 
 SEMAPRAX tag releases are produced only by the repository CI workflow after

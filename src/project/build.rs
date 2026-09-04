@@ -44,6 +44,7 @@ fn finish_build(
     manifest: &ProjectManifest,
     preflight: semantic_workspace::SemanticWorkspacePreflight,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
+    manifest.admit_dependency_free_build()?;
     let (files, workspace_manifest, workspace_revision, graph) = preflight.into_snapshot_parts();
     let canonical_manifest = manifest.to_canonical_toml();
     let project_revision = project_revision(&canonical_manifest, &workspace_revision);

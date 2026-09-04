@@ -42,6 +42,7 @@ Additional required references:
 | Managed multi-file publication | [Workspace Transaction v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md), [Workspace Patch Evidence v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) |
 | Cross-file semantic analysis or change | [Workspace overview](SEMANTIC-WORKSPACE-V1.md), [graph](WORKSPACE-SEMANTIC-GRAPH-V1.md), [analysis](WORKSPACE-ANALYSIS-V1.md), [change](SEMANTIC-WORKSPACE-CHANGE-V1.md), [operations](SEMANTIC-WORKSPACE-OPERATIONS-V1.md) |
 | Project daemon rename/workflow | [Project Transport v2](PROJECT-AGENT-TRANSPORT-V2.md), [Rename Transaction v1](PROJECT-RENAME-TRANSACTION-V1.md), [Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md) |
+| `semaprax.toml` layout, tables, or lowering | [Package Manifest v1](PACKAGE-MANIFEST-V1.md) and the frozen [Project Manifest v1](PROJECT-MANIFEST-V1.md) profile it lowers to |
 | Native Rust SDK or host integration | [Native Rust Interoperability v1](NATIVE-RUST-INTEROP-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
 | Authenticated Project input persistence | [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md), and the additive manifest profile selected by the subject |
 | Offline semantic lock snapshot or fixed-inventory publication | [Published Semantic Lock Snapshot v1](OFFLINE-PUBLISHED-SEMANTIC-LOCK-SNAPSHOT-V1.md), [Offline Resolver v1](OFFLINE-PACKAGE-RESOLVER-V1.md), and [Offline Semantic Lock v2](OFFLINE-SEMANTIC-PACKAGE-LOCK-V2.md) |

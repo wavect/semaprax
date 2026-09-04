@@ -1263,7 +1263,9 @@ authority before candidate replay, authenticates Project and managed base source
 and delegates the sole `ACTIVE` publication to the existing Workspace engine.
 It grants neither a reusable authority token nor raw Git-source writes.
 
-`src/project/manifest.rs` parses the bounded `semaprax.toml` profiles.
+`src/project/manifest.rs` parses the bounded `semaprax.toml` profiles; its
+`tables` submodule parses the extensible `semaprax.manifest.v1` table layout
+and lowers it onto the same frozen profile contracts.
 `src/project/` owns held input authority, immutable revisions, semantic
 admission, linking, execution, builds, npm carriers, rename planning, and the
 unpublished native Rust SDK bridge.

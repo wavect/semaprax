@@ -133,6 +133,8 @@ mod owned_utf8_interpreter;
 mod owned_utf8_lifetimes;
 #[path = "project/owned_utf8_npm.rs"]
 mod owned_utf8_npm;
+#[path = "project/package_manifest_v1.rs"]
+mod package_manifest_v1;
 #[path = "project/profile_admission.rs"]
 mod profile_admission;
 #[path = "project/resource_free_record_evolution.rs"]

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+<<<<<<< HEAD
 - `semaprax fmt` keeps `//` comments. The lexer records each comment's
   position, and the canonical formatter prints it above the item it preceded
   or right after the item it followed, at that item's depth; formatting is
@@ -32,6 +33,19 @@
   owns the bounded route and its non-claims, `tests/project/new_cli.rs` pins
   it, and the install guide, quickstart, and README no longer require the
   full toolchain to create a project.
+=======
+- `semaprax.toml` gains one extensible table layout, `semaprax.manifest.v1`
+  ([Package Manifest v1](docs/PACKAGE-MANIFEST-V1.md)): `[package]`,
+  `[modules]`, `[exports]`, `[command]`, `[capabilities]`, `[dependencies]`,
+  and `[targets]` tables lower onto the frozen Project v1-v11 profile
+  contracts, so every project route, descriptor, and generated artifact is
+  unchanged and only the manifest bytes differ. Reserved and unknown tables or
+  keys reject with `SPX-J120`, a declared dependency fails every build closed
+  with `SPX-J121`, a build target outside `[targets] matrix` rejects with
+  `SPX-J122`, and a non-canonical manifest names its first differing line.
+  The frozen layouts remain admitted byte-for-byte;
+  `tests/project.rs::package_manifest_v1` is the gate.
+>>>>>>> origin/main
 
 - The standard-library contract and the agent quick reference explain how a
   Project consumes a `std.*` module today, by vendoring its library file and

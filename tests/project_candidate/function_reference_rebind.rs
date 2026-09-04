@@ -184,14 +184,11 @@ fn reference_from_a_different_base_fails_ordinary_source_resolution() {
     let other = Fixture::new();
     let core = other.0.join("src/core.spx");
     let source = std::fs::read_to_string(&core).unwrap();
-    std::fs::write(
-        &core,
-        source.replace(
-            "module calculator.core;",
-            "module calculator.core;\n// foreign base",
-        ),
-    )
-    .unwrap();
+    // Canonical formatting carries no comments, so move the foreign base with
+    // an authored body edit that leaves `calculator.add` untouched.
+    let foreign_source = source.replace("    value < 0\n", "    value < 1\n");
+    assert_ne!(foreign_source, source);
+    std::fs::write(&core, &foreign_source).unwrap();
     let foreign = other.open();
     let foreign_image = ProjectSemanticImage::derive(
         Arc::clone(foreign.revision()),

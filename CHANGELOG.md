@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `semaprax resolve <manifest> --target <native64|wasm32> --cache <dir>`
+  resolves a project's `[dependencies]` against a local content-addressed cache
+  of Subject-v3 envelopes and prints the offline resolver's evidence
+  ([Project Dependency Resolution v1](docs/PROJECT-DEPENDENCY-RESOLUTION-V1.md)).
+  It selects one version per package that satisfies the manifest ranges and
+  their transitive requirements, deterministically and per target, reading the
+  cache as an explicit effect with no registry, acquisition, or build. Cache
+  files are named by their subject digest, so a misfiled subject is rejected;
+  `SPX-J126` covers missing dependencies, a target outside the matrix, and
+  cache faults. Manifest dependency names are now dotted lowercase package
+  identities matching the resolver, so `examples.meaning` is admitted;
+  `tests/project.rs::dependency_resolution_v1` is the gate.
+
 - Cross-platform CI now preserves the exact verifier hint while accepting
   native line endings in CLI help, and deep standalone-String Wasm planning
   uses narrow recursive walkers so the contracted nesting depth fits the

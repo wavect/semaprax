@@ -45,3 +45,17 @@ pub(super) fn package_resolve(args: &[String]) -> Result<(), u8> {
         }
     }
 }
+
+pub(super) fn resolve(args: &[String]) -> Result<(), u8> {
+    match cli::resolve::run(args) {
+        Ok(evidence) => {
+            println!("{evidence}");
+            Ok(())
+        }
+        Err(cli::resolve::ResolveCliError::Usage(message)) => {
+            eprintln!("{message}");
+            Err(2)
+        }
+        Err(cli::resolve::ResolveCliError::Domain(errors)) => Err(report(&errors, false)),
+    }
+}

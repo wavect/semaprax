@@ -419,7 +419,7 @@ fn non_canonical_bytes_name_the_first_differing_line() {
 #[test]
 fn dependency_grammar_is_admitted_and_builds_fail_closed_with_spx_j121() {
     let source = format!(
-        "{CALCULATOR_TABLES}\n[dependencies]\nalpha = \"^1.2.0\"\nbeta = \"~0.4.1\"\ngamma = \"=3.0.0\"\n"
+        "{CALCULATOR_TABLES}\n[dependencies]\nalpha = \"^1.2.0\"\nexamples.meaning = \"~0.4.1\"\nnum_util-2 = \"=3.0.0\"\n"
     );
     let manifest = ProjectManifest::parse(&source).unwrap();
     assert_eq!(manifest.to_canonical_toml(), source);
@@ -430,7 +430,12 @@ fn dependency_grammar_is_admitted_and_builds_fail_closed_with_spx_j121() {
         .collect::<Vec<_>>();
     assert_eq!(
         rows,
-        [("alpha", "^1.2.0"), ("beta", "~0.4.1"), ("gamma", "=3.0.0")]
+        [
+            ("alpha", "^1.2.0"),
+            ("examples.meaning", "~0.4.1"),
+            ("num_util-2", "=3.0.0"),
+        ],
+        "dotted and underscored package identities are admitted dependency names"
     );
 
     for (bad, fragment) in [
@@ -439,9 +444,24 @@ fn dependency_grammar_is_admitted_and_builds_fail_closed_with_spx_j121() {
         ("alpha = \"^01.2.0\"\n", "dependency"),
         (
             "Alpha = \"^1.2.0\"\n",
-            "keys are lowercase [a-z0-9_-]+; found `Alpha` in `[dependencies]`",
+            "keys are lowercase [a-z0-9._-]+; found `Alpha` in `[dependencies]`",
         ),
-        ("1alpha = \"^1.2.0\"\n", "dependency names match lowercase"),
+        (
+            "1alpha = \"^1.2.0\"\n",
+            "dependency names are dotted lowercase package identities",
+        ),
+        (
+            ".alpha = \"^1.2.0\"\n",
+            "dependency names are dotted lowercase package identities",
+        ),
+        (
+            "alpha. = \"^1.2.0\"\n",
+            "dependency names are dotted lowercase package identities",
+        ),
+        (
+            "a..b = \"^1.2.0\"\n",
+            "dependency names are dotted lowercase package identities",
+        ),
         ("alpha = [\"^1.2.0\"]\n", "must be one range string"),
         (
             "beta = \"^1.0.0\"\nalpha = \"^1.0.0\"\n",

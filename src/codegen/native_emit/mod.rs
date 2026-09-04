@@ -2428,8 +2428,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 return Ok(name);
             }
         }
+        // A runtime helper writes its out-parameter only on success and the
+        // caller jumps to the epilogue first, but a compiler that cannot prove
+        // that across the status check reports the slot as maybe-uninitialized.
+        // Zero it the way the function result slot already is.
         self.line(&format!(
-            "{} {name};",
+            "{} {name} = {{0}};",
             c_value_type(self.program, self.resource_abi, ty)?
         ));
         Ok(name)

@@ -12,6 +12,19 @@
   with byte conversion, guarded indexing, search, counting, ASCII
   classification, equality and prefix tests, and endian reads, all
   contracted and run on every lane; the catalogs are regenerated.
+- The `SPX-J121` build rejection for a manifest with `[dependencies]` now points
+  at `semaprax resolve --write` to resolve and pin the dependency graph, instead
+  of claiming no resolution route exists; only a build that links resolved
+  dependencies is still unimplemented. The agent quick reference gains a short
+  locking-and-dependencies note covering `lock` and `resolve`.
+
+- `semaprax resolve` gains `--write` and `--verify`: `--write` pins the
+  resolution evidence to `semaprax.resolution-<target>.json` beside the
+  manifest, and `--verify` re-resolves and confirms that pin still holds byte
+  for byte, failing closed with `SPX-J126` when the cache no longer produces the
+  recorded selection. Because resolution is deterministic the pin is a stable
+  per-target dependency lockfile a CI job can check.
+  `tests/project.rs::dependency_resolution_v1` pins it.
 
 - `semaprax lock <manifest> --compare <baseline.lock>` classifies a project's
   current interface against a baseline `semaprax.lock` and prints a

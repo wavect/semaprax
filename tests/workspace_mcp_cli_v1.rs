@@ -304,10 +304,12 @@ impl Drop for LiveMcp {
 
 #[test]
 fn help_pins_the_optional_mcp_command_without_replacing_v5() {
+    // The bare invocation prints the guided page; the catalog is `help all`.
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(["help", "all"])
         .output()
         .unwrap();
-    assert_eq!(output.status.code(), Some(2));
+    assert_eq!(output.status.code(), Some(0));
     let help = String::from_utf8(output.stdout).unwrap();
     let help_lines = help.lines().collect::<Vec<_>>();
     for line in [

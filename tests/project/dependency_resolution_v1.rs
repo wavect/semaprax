@@ -356,6 +356,127 @@ fn resolve_usage_and_help_are_exact() {
     assert!(help.status.success());
     assert_eq!(
         String::from_utf8(help.stdout).unwrap(),
-        "Usage:\n  semaprax resolve <manifest> --target <native64|wasm32> --cache <dir> [--max-bytes N]\n"
+        "Usage:\n  semaprax resolve <manifest> --target <native64|wasm32> --cache <dir> [--write|--verify] [--max-bytes N]\n"
     );
+}
+
+#[test]
+fn write_pins_the_resolution_and_verify_fails_closed_on_cache_drift() {
+    let meaning = report("examples/meaning.spx");
+    let primary = fixture("pin", &manifest("examples.meaning = \"^1.0.0\"\n", None));
+    cache_subject(
+        &primary.cache,
+        &subject("examples.meaning", "1.0.0", &meaning, &[]),
+    );
+    let base = [
+        "resolve",
+        "semaprax.toml",
+        "--target",
+        "native64",
+        "--cache",
+        "cache",
+    ];
+
+    // Verifying before a pin exists reports the missing file.
+    let missing = cli(&primary.root, &[base.as_slice(), &["--verify"]].concat());
+    assert!(!missing.status.success());
+    assert!(
+        stderr(&missing).contains("SPX-J126"),
+        "{}",
+        stderr(&missing)
+    );
+    assert!(
+        stderr(&missing).contains("is not present"),
+        "{}",
+        stderr(&missing)
+    );
+
+    // --write pins the exact resolver evidence beside the manifest.
+    let written = cli(&primary.root, &[base.as_slice(), &["--write"]].concat());
+    assert!(written.status.success(), "{}", stderr(&written));
+    assert_eq!(
+        String::from_utf8(written.stdout.clone()).unwrap(),
+        "wrote semaprax.resolution-native64.json for consumer (native64)\n"
+    );
+    let pinned = primary.root.join("semaprax.resolution-native64.json");
+    let stored = std::fs::read_to_string(&pinned).unwrap();
+    let printed = String::from_utf8(cli(&primary.root, &base).stdout).unwrap();
+    assert_eq!(
+        stored,
+        printed.strip_suffix('\n').unwrap(),
+        "the pin is exactly the printed evidence without the trailing newline"
+    );
+    assert!(std::fs::read_dir(&primary.root).unwrap().all(|entry| !entry
+        .unwrap()
+        .file_name()
+        .to_string_lossy()
+        .contains("staging")));
+
+    // --verify against the unchanged cache passes.
+    let verified = cli(&primary.root, &[base.as_slice(), &["--verify"]].concat());
+    assert!(verified.status.success(), "{}", stderr(&verified));
+    assert_eq!(
+        String::from_utf8(verified.stdout.clone()).unwrap(),
+        "verified semaprax.resolution-native64.json for consumer (native64)\n"
+    );
+
+    // Adding a higher version to the cache changes the selection, so the pin is
+    // now stale and --verify fails closed without rewriting it.
+    cache_subject(
+        &primary.cache,
+        &subject("examples.meaning", "1.1.0", &meaning, &[]),
+    );
+    let stale = cli(&primary.root, &[base.as_slice(), &["--verify"]].concat());
+    assert!(!stale.status.success());
+    assert!(stderr(&stale).contains("is stale"), "{}", stderr(&stale));
+    assert_eq!(
+        std::fs::read_to_string(&pinned).unwrap(),
+        stored,
+        "--verify never rewrites"
+    );
+
+    // Re-pinning records the new selection, and --verify passes again.
+    assert!(
+        cli(&primary.root, &[base.as_slice(), &["--write"]].concat())
+            .status
+            .success()
+    );
+    assert_ne!(std::fs::read_to_string(&pinned).unwrap(), stored);
+    assert!(
+        cli(&primary.root, &[base.as_slice(), &["--verify"]].concat())
+            .status
+            .success()
+    );
+
+    // The pin is per target: a wasm32 pin is a distinct file.
+    let bounded = fixture(
+        "pin-wasm",
+        &manifest("examples.meaning = \"^1.0.0\"\n", Some("[\"wasm32\"]")),
+    );
+    cache_subject(
+        &bounded.cache,
+        &subject("examples.meaning", "1.0.0", &meaning, &[]),
+    );
+    assert!(cli(
+        &bounded.root,
+        &[
+            "resolve",
+            "semaprax.toml",
+            "--target",
+            "wasm32",
+            "--cache",
+            "cache",
+            "--write"
+        ]
+    )
+    .status
+    .success());
+    assert!(bounded
+        .root
+        .join("semaprax.resolution-wasm32.json")
+        .is_file());
+    assert!(!bounded
+        .root
+        .join("semaprax.resolution-native64.json")
+        .exists());
 }

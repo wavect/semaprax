@@ -1,0 +1,8 @@
+{
+  "schema": "benchmark.performance.v1",
+  "host": "darwin-arm64",
+  "rustc": "1.88.0",
+  "commit": "4f835caa",
+  "timestamp": "2026-09-04T00:00:00Z",
+  "scenarios": []
+}

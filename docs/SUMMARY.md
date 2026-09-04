@@ -22,6 +22,7 @@ Audience: all documentation readers.
 - [Human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md)
 - [Changelog](../CHANGELOG.md)
 - [Changelog archive](CHANGELOG-ARCHIVE.md)
+- [Examples index](../examples/README.md)
 - [Canonical comments](CANONICAL-COMMENTS-V1.md)
 - [Calculator project publication](NEW-PROJECT-PUBLICATION-V1.md)
 - [Standalone project creation](NEW-PROJECT-STANDALONE-V1.md)

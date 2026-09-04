@@ -160,7 +160,7 @@ above exact offline resolution. [Linked Scalar Core-Wasm Package Build
 v2](docs/OFFLINE-LINKED-SCALAR-WASM-PACKAGE-BUILD-V2.md) consumes only that
 replayed closure and retained HIR, while the separate safe publisher reuses the
 existing exact three-file authority state machine. Both surfaces and their
-nonignored hostile evidence ran in the v0.2.0 tag matrix, but they remain
+nonignored hostile evidence ran in the tagged-release matrix for this route,
 unpromoted; they are not a package manager, target-conformance result,
 trusted-provenance system, or hermetic build sandbox.
 

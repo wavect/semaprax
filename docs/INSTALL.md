@@ -239,7 +239,7 @@ from here.
 
 ## When your first command fails
 
-Every symptom below was reproduced against a local `0.2.0` standalone
+Every symptom below was reproduced against a local
 `semaprax` on macOS arm64. Diagnostics go to stderr; global help goes to
 stdout. Invocation errors exit `2` and compiler or execution failures exit `1`.
 
@@ -307,7 +307,7 @@ is owned by [human diagnostic locations](HUMAN-DIAGNOSTICS-V1.md).
 ## Evidence and limits
 
 The symptoms and success output above were observed locally on macOS arm64
-against a `0.2.0` standalone `semaprax` built from this checkout. That is local
+against a standalone `semaprax` built from this checkout. That is local
 developer evidence, not hosted release evidence and not a support claim for any
 platform.
 

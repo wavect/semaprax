@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `check`, `run`, `test`, and `build` invoked with no input outside a project
+  now attach a hint to the unchanged `SPX-J102` missing-manifest diagnostic
+  naming the three admitted inputs: a `.spx` file, a project directory, or
+  running from inside a project. An explicitly named manifest is unchanged.
+
 - `semaprax help language` prints the compiler-checked agent quick reference
   byte for byte from the installed binary, so an agent or developer without the
   source checkout can read the admitted shapes, the diagnostics foreign habits

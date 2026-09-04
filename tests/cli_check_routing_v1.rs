@@ -126,6 +126,35 @@ fn directory_without_a_manifest_reports_the_missing_manifest() {
 }
 
 #[test]
+fn no_input_outside_a_project_names_the_admitted_inputs() {
+    let root = fixture();
+    const HELP: &str = "help: no `semaprax.toml` in the current directory: pass a `.spx` file, a project directory, or run from inside a project";
+    for arguments in [&[][..], &["semaprax.toml"][..]] {
+        let output = cli(&root, arguments);
+        assert_eq!(output.status.code(), Some(1), "{arguments:?}");
+        assert!(output.stdout.is_empty());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.starts_with("error[SPX-J102]: "), "{stderr}");
+        assert!(stderr.contains(HELP), "{arguments:?}: {stderr}");
+    }
+    let json = cli(&root, &["--json"]);
+    assert_eq!(json.status.code(), Some(1));
+    let diagnostic: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!(diagnostic["code"], "SPX-J102");
+    assert!(diagnostic["help"]
+        .as_str()
+        .unwrap()
+        .starts_with("no `semaprax.toml`"));
+    // An explicitly named manifest is the caller's: no hint.
+    let explicit = cli(&root, &["--manifest-path", "elsewhere/semaprax.toml"]);
+    assert_eq!(explicit.status.code(), Some(1));
+    assert!(!String::from_utf8(explicit.stderr)
+        .unwrap()
+        .contains("help:"));
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 0);
+}
+
+#[test]
 fn malformed_selectors_reject_before_attempting_source_io() {
     let root = fixture();
     for arguments in [

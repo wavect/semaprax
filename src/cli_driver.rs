@@ -170,7 +170,11 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                                 snapshot.project_revision().to_owned(),
                             ))
                         })
-                        .map_err(|errors| report(&errors, json))?;
+                        .map_err(|errors| {
+                            let errors =
+                                cli::manifest_hint::hint_missing_manifest(errors, &manifest_path);
+                            report(&errors, json)
+                        })?;
                     if !json {
                         println!("verified project {name} ({revision})");
                     }
@@ -658,7 +662,11 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                         }
                         Ok((output, snapshot.manifest().project_profile()))
                     })
-                    .map_err(|errors| report(&errors, false))?;
+                    .map_err(|errors| {
+                        let errors =
+                            cli::manifest_hint::hint_missing_manifest(errors, manifest_path);
+                        report(&errors, false)
+                    })?;
                     println!(
                         "{}",
                         cli::project_runtime::build_success(&options.target, output.1, &output.0)

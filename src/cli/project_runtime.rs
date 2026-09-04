@@ -21,7 +21,10 @@ pub(crate) fn execute_held(
         "test" => snapshot.execute_test(&execution_options),
         _ => unreachable!("validated project execution command"),
     })
-    .map_err(|errors| report(&errors, options.json))?;
+    .map_err(|errors| {
+        let errors = super::manifest_hint::hint_missing_manifest(errors, manifest_path);
+        report(&errors, options.json)
+    })?;
 
     if options.json {
         println!("{}", execution.envelope());

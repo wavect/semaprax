@@ -25,7 +25,7 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
         "license = \"Apache-2.0\"",
         "[workspace]",
         "resolver = \"2\"",
-        "semaprax = { version = \"=0.3.0\", path = \"../..\", default-features = false, features = [\"unstable-wit-component-harness\"] }",
+        "semaprax = { version = \"=0.3.5\", path = \"../..\", default-features = false, features = [\"unstable-wit-component-harness\"] }",
         "sha2 = { version = \"=0.11.0\", default-features = false }",
         "wasmtime = { version = \"=47.0.4\", default-features = false, features = [\"component-model\", \"cranelift\", \"runtime\", \"std\"] }",
         "unsafe_code = \"forbid\"",
@@ -102,11 +102,11 @@ fn runtime_wits_are_the_exact_private_result_contracts() {
     assert_eq!(checked_in_v3, expected_v3);
 
     let checked_in_v4 = read("platform-tests/component-runtime/wit/semaprax-private-v4.wit");
-    let expected_v4 = "package semaprax:private@0.3.0;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type language-result = result<bool, bool>;\n  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;\n}\n\nworld semaprax-private-v4 {\n  export evaluation;\n}\n";
+    let expected_v4 = "package semaprax:private@0.3.5;\n\ninterface evaluation {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type language-result = result<bool, bool>;\n  evaluate: func(value: s64, reject: bool, divisor: s64) -> result<language-result, status>;\n}\n\nworld semaprax-private-v4 {\n  export evaluation;\n}\n";
     assert_eq!(checked_in_v4, expected_v4);
 
     let checked_in_v5 = read("platform-tests/component-runtime/wit/semaprax-private-v5.wit");
-    let expected_v5 = "package semaprax:private@0.3.0;\n\ninterface scalar-algebra {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type maybe-i64 = option<s64>;\n  type maybe-bool = option<bool>;\n  type language-result-i64-i64 = result<s64, s64>;\n  type language-result-i64-bool = result<s64, bool>;\n  type language-result-bool-i64 = result<bool, s64>;\n  type language-result-bool-bool = result<bool, bool>;\n  option-i64: func(value: s64, select: bool, divisor: s64) -> result<maybe-i64, status>;\n  option-bool: func(value: s64, select: bool, divisor: s64) -> result<maybe-bool, status>;\n  result-i64-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-i64, status>;\n  result-i64-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-bool, status>;\n  result-bool-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-i64, status>;\n  result-bool-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-bool, status>;\n}\n\nworld semaprax-private-v5 {\n  export scalar-algebra;\n}\n";
+    let expected_v5 = "package semaprax:private@0.3.5;\n\ninterface scalar-algebra {\n  record status { domain: string, code: u32, class: u8, retryable: option<bool> }\n  type maybe-i64 = option<s64>;\n  type maybe-bool = option<bool>;\n  type language-result-i64-i64 = result<s64, s64>;\n  type language-result-i64-bool = result<s64, bool>;\n  type language-result-bool-i64 = result<bool, s64>;\n  type language-result-bool-bool = result<bool, bool>;\n  option-i64: func(value: s64, select: bool, divisor: s64) -> result<maybe-i64, status>;\n  option-bool: func(value: s64, select: bool, divisor: s64) -> result<maybe-bool, status>;\n  result-i64-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-i64, status>;\n  result-i64-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-i64-bool, status>;\n  result-bool-i64: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-i64, status>;\n  result-bool-bool: func(value: s64, select: bool, divisor: s64) -> result<language-result-bool-bool, status>;\n}\n\nworld semaprax-private-v5 {\n  export scalar-algebra;\n}\n";
     assert_eq!(checked_in_v5, expected_v5);
 
     let checked_in_v6 = read("platform-tests/component-runtime/wit/semaprax-private-v6.wit");
@@ -476,7 +476,7 @@ fn capability_and_dependency_policy_are_fail_closed() {
         "call_result_i64_bool",
         "call_result_bool_i64",
         "call_result_bool_bool",
-        "semaprax:private/scalar-algebra@0.3.0",
+        "semaprax:private/scalar-algebra@0.3.5",
         "semaprax:private/nested-records@0.4.0",
         "semaprax:private/generic-records@0.5.0",
         "semaprax:private/record-pattern-projections@0.6.0",

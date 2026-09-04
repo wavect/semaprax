@@ -127,7 +127,7 @@ fn default_is_source_contributor_mode_and_json_is_canonical() {
     assert_eq!(outcome.exit_code, 0);
     assert_eq!(
         outcome.output,
-        "{\"schema\":\"semaprax.doctor.v1\",\"target\":\"contributor\",\"checks\":[{\"id\":\"semaprax\",\"required\":true,\"status\":\"ok\",\"detail\":\"0.3.0\"},{\"id\":\"os\",\"required\":true,\"status\":\"ok\",\"detail\":\"test-os\"},{\"id\":\"arch\",\"required\":true,\"status\":\"ok\",\"detail\":\"test-arch\"},{\"id\":\"release\",\"required\":true,\"status\":\"ok\",\"detail\":\"debug\"},{\"id\":\"rust\",\"required\":true,\"status\":\"ok\",\"detail\":\"rustc 1.88.0 (fake 2026-01-01)\"}]}\n"
+        "{\"schema\":\"semaprax.doctor.v1\",\"target\":\"contributor\",\"checks\":[{\"id\":\"semaprax\",\"required\":true,\"status\":\"ok\",\"detail\":\"0.3.5\"},{\"id\":\"os\",\"required\":true,\"status\":\"ok\",\"detail\":\"test-os\"},{\"id\":\"arch\",\"required\":true,\"status\":\"ok\",\"detail\":\"test-arch\"},{\"id\":\"release\",\"required\":true,\"status\":\"ok\",\"detail\":\"debug\"},{\"id\":\"rust\",\"required\":true,\"status\":\"ok\",\"detail\":\"rustc 1.88.0 (fake 2026-01-01)\"}]}\n"
     );
     assert_eq!(
         *host.calls.borrow(),
@@ -146,7 +146,7 @@ fn all_target_human_output_is_deterministic_and_reports_every_check() {
         first.output,
         format!(
             "semaprax doctor (all)\n\
-ok semaprax: 0.3.0\n\
+ok semaprax: 0.3.5\n\
 ok os: test-os\n\
 ok arch: test-arch\n\
 ok release: release\n\

@@ -76,9 +76,12 @@ fn complete_exact_local_inventory_is_required() {
         &SOURCE.replace("\"has-x.get\" =", "\"other.method\" ="),
         "SPX-Q107",
     );
+    // A member function that is not local is a cross-module dependency, so the
+    // sidecar lane requires its exact typed import before any local binding
+    // check can apply.
     reject(
         &SOURCE.replace("= \"point.get\"", "= \"missing.function\""),
-        "SPX-Q107",
+        "SPX-Q106",
     );
     reject(
         &SOURCE.replace("impl \"has-x\"", "impl \"missing.protocol\""),
@@ -88,7 +91,7 @@ fn complete_exact_local_inventory_is_required() {
         &SOURCE.replace("for \"point\"", "for \"missing.record\""),
         "SPX-Q106",
     );
-    reject(&SOURCE.replace("@id(\"point.get\") fn", "fn"), "SPX-Q107");
+    reject(&SOURCE.replace("@id(\"point.get\") fn", "fn"), "SPX-Q106");
     reject(
         &SOURCE.replace("@id(\"point\") record", "record"),
         "SPX-Q106",

@@ -16,7 +16,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const BRANCH: &str = "refs/heads/review";
@@ -834,7 +834,16 @@ fn write_success_artifacts(
     .unwrap();
 }
 
+/// macOS ships `/usr/bin/git` as an `xcrun` shim that resolves its developer
+/// directory through a system service. The publication host spawns its Git tool
+/// with a cleared environment, so the shim cannot be told that directory and
+/// fails under concurrent invocation, exiting 1 with no output. That is
+/// indistinguishable from an absent ref, so the publication reports the branch
+/// as moved. One workflow drives the host at a time.
+static GIT_HOST: Mutex<()> = Mutex::new(());
+
 fn run_supported_workflow(language: Language) {
+    let _serialized = GIT_HOST.lock().unwrap_or_else(|error| error.into_inner());
     let fixture = Fixture::new(language.name());
     let source_before = sources_digest(&fixture);
     let mut review_profile = VNextSession::open(&fixture.manifest(), policy()).unwrap();

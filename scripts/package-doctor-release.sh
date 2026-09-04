@@ -190,12 +190,24 @@ verify_directory() {
 verify_directory "$package_root" || fail "staged distribution replay failed"
 
 set -C
+# GNU tar and bsdtar spell canonical ownership differently and neither accepts
+# the other's option, so the flavor is selected from the tool's own identity
+# and any third flavor is refused rather than silently archiving host
+# ownership. Both spellings record uid/gid 0 with the names `root`.
+tar_identity=$(run_closed "$tar_tool" --version) \
+    || fail "archive tool identity is unavailable"
+case "$tar_identity" in
+    *bsdtar*) tar_ownership="--uid 0 --gid 0 --uname root --gname root" ;;
+    *"GNU tar"*) tar_ownership="--owner=root:0 --group=root:0" ;;
+    *) fail "archive tool is not a recognized canonical tar" ;;
+esac
+
 # `--no-recursion` plus the explicit sorted inventory prevents filesystem
 # enumeration order from entering the archive. ustar excludes ambient xattrs;
 # numeric ownership and gzip -n exclude release-user and wall-clock metadata.
 run_archive_closed "$tar_tool" \
     --format ustar \
-    --uid 0 --gid 0 --uname root --gname root \
+    $tar_ownership \
     --no-recursion \
     -cf - -C "$output_root" \
     "$package_name" \

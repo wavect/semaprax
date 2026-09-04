@@ -37,6 +37,7 @@ mod rename;
 mod revision;
 mod scaffold;
 mod scalar_wit;
+mod scalar_wit_compare;
 mod semantic;
 mod source_hint;
 mod target_cache;
@@ -330,6 +331,9 @@ pub use prepared_interpreter::{
 pub use project_lock::{
     classify_lock_change, render_project_lock, verify_project_lock, LockCompatibility,
     VerifiedProjectLock, MAX_PROJECT_LOCK_BYTES, PROJECT_LOCK_FILE, PROJECT_LOCK_SCHEMA,
+};
+pub use scalar_wit_compare::{
+    classify_scalar_wit_change, ScalarWitCompatibility, SCALAR_WIT_COMPATIBILITY_SCHEMA,
 };
 pub use target_cache::{
     ProjectCTargetBuild, ProjectNpmTargetBuild, ProjectTargetBuild, ProjectTargetCache,

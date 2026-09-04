@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- `semaprax lock` gains `--emit-interface` and `--compare-interface
+  <baseline.json>`: a fine-grained per-export compatibility for Project v1
+  scalar packages. `--emit-interface` prints the scalar WIT interface
+  descriptor to store as a baseline; `--compare-interface` diffs the current
+  project against it and names exactly which export was added or removed, or had
+  its parameter or result type change, exiting nonzero on a breaking change. It
+  is purely additive and does not touch the `semaprax.lock` format; the coarse
+  `--compare` stays. `tests/project.rs::project_lock_v1` and the
+  `scalar_wit_compare` unit tests pin it.
+
+
 - The `useful-data.v1` byte-data profile admits `requires` and `ensures`
   contracts throughout its function inventory. The Core-Wasm data emitter
   walks contracts with bodies and lets a false contract publish status 9 or

@@ -26,7 +26,9 @@ and checked only by an explicit command, never as an implicit effect of
 semaprax lock <manifest>                      # print the canonical lock to stdout
 semaprax lock <manifest> --write              # replace semaprax.lock beside the manifest
 semaprax lock <manifest> --verify             # verify an existing semaprax.lock
-semaprax lock <manifest> --compare <base.lock># classify the project against a baseline lock
+semaprax lock <manifest> --compare <base.lock>       # coarse: classify against a baseline lock
+semaprax lock <manifest> --emit-interface            # emit the scalar interface descriptor
+semaprax lock <manifest> --compare-interface <b.json># fine: per-export scalar interface diff
 ```
 
 Each mode authenticates and checks the project exactly as `check` does, then
@@ -72,6 +74,31 @@ breaking if any change is breaking, else compatible. This verdict is over the
 lock's recorded facts; the per-export type, ownership, effect, and contract
 classification remains the offline Compatibility Evidence over Report-v2
 subjects.
+
+### Fine-grained scalar interface comparison
+
+For a Project v1 scalar package, `--emit-interface` prints the
+`semaprax.project.scalar-wit-interface.v1` descriptor, which carries each
+export's stable id, parameter WIT types, and result WIT type. Store it as a
+baseline and later run `--compare-interface <baseline.json>` to get a per-export
+verdict, printed as `semaprax.project-scalar-wit-compatibility.v1` and exiting
+nonzero when breaking. Unlike the coarse `--compare`, this names the exact
+export and how its signature changed:
+
+| Change | Verdict |
+| --- | --- |
+| An export was removed | breaking |
+| An export was added | nonbreaking |
+| A retained export's result type changed | breaking |
+| A retained export's parameter count changed | breaking |
+| A retained export's parameter type changed | breaking (names the position) |
+
+Only export signatures and the interface digest are compared, never the project
+revision, so two descriptors of the same interface at different revisions are
+compatible. `--emit-interface` and `--compare-interface` are scalar-profile
+only; other profiles have no scalar WIT interface and return the existing
+`SPX-J105` diagnostic. A missing or foreign baseline descriptor rejects with
+`SPX-J124`.
 
 ## Envelope and payload
 

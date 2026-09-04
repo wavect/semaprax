@@ -22,6 +22,8 @@ enum Mode {
     Write,
     Verify,
     Compare(PathBuf),
+    EmitInterface,
+    CompareInterface(PathBuf),
 }
 
 const CODE_WRITE: &str = "SPX-J125";
@@ -37,6 +39,8 @@ pub(crate) fn run(arguments: &[String]) -> Result<String, ProjectLockCliError> {
             Mode::Write => Ok(Outcome::Text(write_mode(snapshot)?)),
             Mode::Verify => Ok(Outcome::Text(verify_mode(snapshot)?)),
             Mode::Compare(baseline) => compare_mode(snapshot, baseline),
+            Mode::EmitInterface => Ok(Outcome::Text(emit_interface_mode(snapshot)?)),
+            Mode::CompareInterface(baseline) => compare_interface_mode(snapshot, baseline),
         }
     })
     .map_err(ProjectLockCliError::Domain)?;
@@ -55,6 +59,33 @@ fn compare_mode(snapshot: &ProjectSnapshot, baseline: &Path) -> Result<Outcome, 
     let candidate = project::render_project_lock(snapshot)?;
     let base = read_lock(baseline)?;
     let compatibility = project::classify_lock_change(&base, &candidate)?;
+    Ok(if compatibility.breaking() {
+        Outcome::Breaking(compatibility.report().to_owned())
+    } else {
+        Outcome::Text(compatibility.report().to_owned())
+    })
+}
+
+/// Emit the scalar WIT interface descriptor of a Project v1 project, so it can
+/// be stored as a baseline for `--compare-interface`. Non-scalar profiles have
+/// no scalar WIT interface and return the existing domain diagnostic.
+fn emit_interface_mode(snapshot: &ProjectSnapshot) -> Result<String, Vec<Diagnostic>> {
+    let descriptor = snapshot.scalar_wit_interface_v1()?.canonical_bytes();
+    String::from_utf8(descriptor).map_err(|_| {
+        vec![Diagnostic::io(
+            CODE_MISSING,
+            "scalar interface descriptor is not UTF-8",
+        )]
+    })
+}
+
+fn compare_interface_mode(
+    snapshot: &ProjectSnapshot,
+    baseline: &Path,
+) -> Result<Outcome, Vec<Diagnostic>> {
+    let candidate = emit_interface_mode(snapshot)?;
+    let base = read_descriptor(baseline)?;
+    let compatibility = project::classify_scalar_wit_change(&base, &candidate)?;
     Ok(if compatibility.breaking() {
         Outcome::Breaking(compatibility.report().to_owned())
     } else {
@@ -100,6 +131,14 @@ fn parse(arguments: &[String]) -> Result<(PathBuf, Mode), ProjectLockCliError> {
                 index += 1;
                 Mode::Compare(PathBuf::from(baseline))
             }
+            "--emit-interface" => Mode::EmitInterface,
+            "--compare-interface" => {
+                let baseline = arguments.get(index + 1).ok_or_else(|| {
+                    usage("lock option `--compare-interface` requires a baseline descriptor path")
+                })?;
+                index += 1;
+                Mode::CompareInterface(PathBuf::from(baseline))
+            }
             option if option.starts_with('-') => {
                 return Err(usage(format!("unknown lock option `{option}`")))
             }
@@ -112,7 +151,7 @@ fn parse(arguments: &[String]) -> Result<(PathBuf, Mode), ProjectLockCliError> {
         };
         if mode.is_some() {
             return Err(usage(
-                "lock accepts at most one of `--write`, `--verify`, or `--compare`",
+                "lock accepts at most one of `--write`, `--verify`, `--compare`, `--emit-interface`, or `--compare-interface`",
             ));
         }
         mode = Some(next);
@@ -137,6 +176,36 @@ fn read_lock(path: &Path) -> Result<String, Vec<Diagnostic>> {
         return Err(vec![Diagnostic::io(
             CODE_MISSING,
             format!("{subject} must be a plain file of at most {MAX_PROJECT_LOCK_BYTES} bytes"),
+        )]);
+    }
+    std::fs::read_to_string(path).map_err(|error| {
+        vec![Diagnostic::io(
+            CODE_MISSING,
+            format!("{subject} is not readable UTF-8: {error}"),
+        )]
+    })
+}
+
+fn read_descriptor(path: &Path) -> Result<String, Vec<Diagnostic>> {
+    let subject = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("scalar interface descriptor");
+    let metadata = std::fs::symlink_metadata(path).map_err(|error| {
+        vec![Diagnostic::io(
+            CODE_MISSING,
+            format!("{subject} is not present: {error}"),
+        )]
+    })?;
+    if !metadata.is_file()
+        || metadata.len() > semaprax::project::MAX_SCALAR_WIT_DESCRIPTOR_BYTES as u64
+    {
+        return Err(vec![Diagnostic::io(
+            CODE_MISSING,
+            format!(
+                "{subject} must be a plain file of at most {} bytes",
+                semaprax::project::MAX_SCALAR_WIT_DESCRIPTOR_BYTES
+            ),
         )]);
     }
     std::fs::read_to_string(path).map_err(|error| {

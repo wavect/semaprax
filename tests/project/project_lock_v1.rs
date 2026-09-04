@@ -326,7 +326,7 @@ fn lock_reports_the_interface_kind_per_profile_and_rejects_bad_usage() {
         ),
         (
             &["lock", "semaprax.toml", "--write", "--verify"],
-            "at most one of `--write`, `--verify`, or `--compare`",
+            "at most one of `--write`, `--verify`, `--compare`, `--emit-interface`, or `--compare-interface`",
         ),
         (
             &["lock", "semaprax.toml", "--force"],
@@ -348,7 +348,7 @@ fn lock_reports_the_interface_kind_per_profile_and_rejects_bad_usage() {
     assert!(help.status.success());
     assert_eq!(
         stdout(&help),
-        "Usage:\n  semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>]\n"
+        "Usage:\n  semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n"
     );
 }
 
@@ -506,7 +506,7 @@ fn compare_classifies_the_project_interface_against_a_baseline_lock() {
     let help = cli(&fixture.root, &["lock", "--help"]);
     assert_eq!(
         stdout(&help),
-        "Usage:\n  semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>]\n"
+        "Usage:\n  semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n"
     );
     let both = cli(
         &fixture.root,
@@ -519,7 +519,7 @@ fn compare_classifies_the_project_interface_against_a_baseline_lock() {
         ],
     );
     assert_eq!(both.status.code(), Some(2));
-    assert!(stderr(&both).contains("at most one of `--write`, `--verify`, or `--compare`"));
+    assert!(stderr(&both).contains("at most one of `--write`, `--verify`, `--compare`, `--emit-interface`, or `--compare-interface`"));
 }
 
 #[test]
@@ -675,4 +675,135 @@ fn classifier_branches_are_exact() {
 
     // A foreign baseline is rejected.
     assert!(semaprax::project::classify_lock_change("{}", &base).is_err());
+}
+
+#[test]
+fn emit_and_compare_interface_classify_exports_fine_grained() {
+    let fixture = example_fixture("wit", "examples/calculator-project", None);
+
+    // Emit the scalar interface descriptor as a baseline.
+    let emitted = cli(
+        &fixture.root,
+        &["lock", "semaprax.toml", "--emit-interface"],
+    );
+    assert!(emitted.status.success(), "{}", stderr(&emitted));
+    let descriptor: Value = serde_json::from_str(&stdout(&emitted)).unwrap();
+    assert_eq!(
+        descriptor["schema"],
+        "semaprax.project.scalar-wit-interface.v1"
+    );
+    assert_eq!(descriptor["exports"].as_array().unwrap().len(), 6);
+    std::fs::write(fixture.root.join("base.wit.json"), stdout(&emitted)).unwrap();
+
+    // Identical: compatible, exit 0, no changes.
+    let same = cli(
+        &fixture.root,
+        &[
+            "lock",
+            "semaprax.toml",
+            "--compare-interface",
+            "base.wit.json",
+        ],
+    );
+    assert!(same.status.success(), "{}", stderr(&same));
+    let report: Value = serde_json::from_str(&stdout(&same)).unwrap();
+    assert_eq!(
+        report["schema"],
+        "semaprax.project-scalar-wit-compatibility.v1"
+    );
+    assert_eq!(report["verdict"], "compatible");
+    assert!(report["changes"].as_array().unwrap().is_empty());
+
+    // Removing an export is breaking and names the export; exit 1.
+    std::fs::write(
+        fixture.root.join("semaprax.toml"),
+        std::fs::read_to_string(fixture.root.join("semaprax.toml"))
+            .unwrap()
+            .replace(", \"calculator.subtract\"", ""),
+    )
+    .unwrap();
+    let removed = cli(
+        &fixture.root,
+        &[
+            "lock",
+            "semaprax.toml",
+            "--compare-interface",
+            "base.wit.json",
+        ],
+    );
+    assert_eq!(removed.status.code(), Some(1));
+    let report: Value = serde_json::from_str(&stdout(&removed)).unwrap();
+    assert_eq!(report["verdict"], "breaking");
+    assert_eq!(report["changes"][0]["kind"], "export-removed");
+    assert_eq!(report["changes"][0]["export"], "calculator.subtract");
+
+    // Symmetrically, a baseline with fewer exports sees the export as added,
+    // which is not breaking (exit 0).
+    let base_five = cli(
+        &fixture.root,
+        &["lock", "semaprax.toml", "--emit-interface"],
+    );
+    std::fs::write(fixture.root.join("five.wit.json"), stdout(&base_five)).unwrap();
+    std::fs::write(
+        fixture.root.join("semaprax.toml"),
+        std::fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project/semaprax.toml"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let added = cli(
+        &fixture.root,
+        &[
+            "lock",
+            "semaprax.toml",
+            "--compare-interface",
+            "five.wit.json",
+        ],
+    );
+    assert!(added.status.success(), "{}", stderr(&added));
+    let report: Value = serde_json::from_str(&stdout(&added)).unwrap();
+    assert_eq!(report["verdict"], "compatible");
+    assert_eq!(report["changes"][0]["kind"], "export-added");
+    assert_eq!(report["changes"][0]["export"], "calculator.subtract");
+
+    // A missing or foreign baseline fails closed.
+    let missing = cli(
+        &fixture.root,
+        &[
+            "lock",
+            "semaprax.toml",
+            "--compare-interface",
+            "absent.json",
+        ],
+    );
+    assert!(!missing.status.success());
+    assert!(
+        stderr(&missing).contains("SPX-J124"),
+        "{}",
+        stderr(&missing)
+    );
+    std::fs::write(fixture.root.join("foreign.json"), "{}").unwrap();
+    let foreign = cli(
+        &fixture.root,
+        &[
+            "lock",
+            "semaprax.toml",
+            "--compare-interface",
+            "foreign.json",
+        ],
+    );
+    assert!(
+        stderr(&foreign).contains("does not carry schema"),
+        "{}",
+        stderr(&foreign)
+    );
+
+    // A command project has no scalar WIT interface.
+    let spxgrep = example_fixture("wit-cmd", "examples/spxgrep-project", Some(SPXGREP_TABLES));
+    let no_interface = cli(
+        &spxgrep.root,
+        &["lock", "semaprax.toml", "--emit-interface"],
+    );
+    assert!(!no_interface.status.success());
 }

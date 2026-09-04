@@ -1,6 +1,7 @@
 # Project Record Field Change v1
 
-Status: Partial; implementation and regression evidence authored, unrun.
+Status: Partial. The `tests/project_candidate/record_field.rs` cases now execute
+and pass locally; the remaining authored evidence is still unrun.
 
 Audience: compiler contributors and agents editing immutable Project candidates.
 
@@ -33,8 +34,16 @@ and `Bytes`. A string default is `{"kind":"string","value":"..."}` and is
 bounded to 4,096 Unicode scalar values and 16,384 UTF-8 bytes. A Bytes default is
 `{"kind":"Bytes","values":[0,1,255]}` and contains at most 4,093 exact byte
 integers. Every migrated constructor materializes a fresh Bytes owner through
-the compiler-owned `bytes_copy(array_as_slice([...]))` operations; ambiguous
-authored identities or bindings fail closed.
+the compiler-owned `bytes_copy`/`array_as_slice` operations; ambiguous authored
+identities or bindings fail closed. The ordinary
+[indexed byte data contract](PORTABLE-INDEXED-BYTE-DATA-V1.md) forbids a view of
+an array temporary, so the default is a block that binds its bounded array to a
+reserved `spx_field_bytes_<n>` name and then derives the view from that named
+place: `{ let spx_field_bytes_0 = [0u8, 1u8]; bytes_copy(array_as_slice(spx_field_bytes_0)) }`.
+The index is the first whose spelling occurs in no retained canonical source, so
+the binder shadows no authored binding, alias, type or field; an exhausted
+inventory fails closed with `SPX-G226`. This borrows no temporary and relaxes no
+loan lifetime.
 Integer literals must be exact JSON integers with a source-representable
 magnitude: `-i64::MAX..=i64::MAX`, `-i32::MAX..=i32::MAX`, unsigned 8-bit,
 or unsigned 64-bit `usize`, respectively. The frozen lexer parses the positive
@@ -96,9 +105,11 @@ sequence remains unchanged and the default is appended last.
 This preserves left-to-right evaluation of the old values and their checked
 failure order; an initializer that was lazy remains at its original position.
 Scalar and string source literals are direct expressions. Bytes construction
-uses only the two authenticated compiler-owned byte operations and a bounded
-array literal. Negative scalar defaults retain the ordinary checked
-unary-negation representation.
+uses only the two authenticated compiler-owned byte operations, a bounded array
+literal, and the reserved block-local binding that names it. The block is the
+default expression itself: it occupies exactly the appended initializer
+position and inserts no statement into the enclosing body. Negative scalar
+defaults retain the ordinary checked unary-negation representation.
 
 For scalar additions, exact record patterns are traversed recursively, including nested field
 patterns. Each affected exact pattern must match the old field inventory and
@@ -152,7 +163,12 @@ Appending a scalar field adds no owned cleanup leaf. Appending `string` or
 record to a checked droppable value. Cleanup inventories and plans are rebuilt
 from the complete candidate, retaining the compiler's
 canonical order; they are not copied, sorted, repaired, or declared byte-equal
-merely because the old owned field identities remain unchanged.
+merely because the old owned field identities remain unchanged. Only a `Bytes`
+owner is a cleanup-plan resource leaf: an owned `String` settles through the
+separate native String settlement lane, so a `string` addition changes the
+record's checked type facts while its callers' resource cleanup inventories stay
+empty. That is a reported fact, not a claim that aggregate String targets
+execute.
 
 After admission, the operation independently reconstructs the field declaration
 and every migration from the prior immutable revision. All canonical candidate
@@ -195,7 +211,7 @@ Git changes.
 
 ## Authored evidence and remaining scope
 
-`tests/project_candidate/record_field.rs` contains authored, unrun cases for
+`tests/project_candidate/record_field.rs` contains locally executed cases for
 cross-module aliases, constructor ordering, contract constructors, nested exact
 patterns, unchanged updates, lazy failure placement, exact replay, recovery, and tampering,
 stale requests, global ID/name collisions, default/type rejection, boolean
@@ -214,8 +230,10 @@ scalar default ranges.
 target cases and their ordinary source-admission boundaries. These cases are
 unrun; they do not establish new runtime, matching, borrowing or ABI support.
 
-No local tests or long gates were executed, as requested by the user. Static
-format/compiler checks are development checks only; these authored cases are not
-passing completion evidence. General record evolution, field removal/reordering,
+The `project_candidate` and `project` harnesses above were run locally on a
+developer machine, together with `cargo fmt`, `cargo clippy -D warnings` and the
+library unit tests. No long or platform gate profile was executed, so this is
+local development evidence rather than completion evidence.
+General record evolution, field removal/reordering,
 generic record migration, owning pattern migration, arbitrary defaults, public
 ABI compatibility, and the full graph-operational roadmap remain open.

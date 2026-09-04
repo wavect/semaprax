@@ -240,7 +240,8 @@ fn owning_nominal_transition_reports_exact_members_type_facts_and_cleanup_conseq
     assert_eq!(fields[0]["index"], 0);
     assert_eq!(fields[1]["id"], "ownership.packet.payload");
     assert_eq!(fields[1]["index"], 1);
-    assert_eq!(fields[1]["type_id"], "Bytes");
+    // Member rows carry the checked type identity key, not the source spelling.
+    assert_eq!(fields[1]["type_id"], "bytes");
     assert_eq!(
         declaration["comparison"]["base_digest"],
         fact_digest(&declaration["base"])

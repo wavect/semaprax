@@ -70,35 +70,78 @@ impl FieldDefault {
     fn node_cost(&self) -> usize {
         match self {
             Self::Scalar { .. } | Self::String(_) => 1,
-            // bytes_copy(array_as_slice([..])): two calls, one array and its bytes.
-            Self::Bytes(values) => values.len().saturating_add(3),
+            // `{ let b = [..]; bytes_copy(array_as_slice(b)) }`: the block, its
+            // let statement, the array root and its bytes, the named view
+            // place, and the two compiler-owned calls.
+            Self::Bytes(values) => values.len().saturating_add(6),
         }
     }
 
-    fn expression(&self, revision: &ProjectRevision, program: &Program) -> Result<Expr> {
+    fn expression(
+        &self,
+        revision: &ProjectRevision,
+        program: &Program,
+        binder: Option<&str>,
+    ) -> Result<Expr> {
         match self {
             Self::Scalar { value, .. } => Ok((**value).clone()),
             Self::String(value) => Ok(Expr {
                 kind: ExprKind::String(value.clone()),
                 span: Span::default(),
             }),
-            Self::Bytes(values) => intent::construct_expression_with_scope(
-                revision,
-                program,
-                &BTreeSet::new(),
-                Default::default(),
-                &json!({
-                    "kind":"builtin_call",
-                    "target":crate::byte_ops::COPY_ID,
-                    "arguments":[{
-                        "kind":"builtin_call",
-                        "target":crate::byte_ops::ARRAY_AS_SLICE_ID,
-                        "arguments":[{"kind":"array_u8","values":values}],
-                    }],
-                }),
-            ),
+            // `array_as_slice` never borrows a temporary, so the materialized
+            // array is bound in the default's own block before its view is
+            // derived. The block keeps the default one expression at its
+            // authored initializer position; the enclosing body is untouched.
+            Self::Bytes(values) => {
+                let binder = binder
+                    .ok_or_else(|| invalid("Bytes default has no authenticated array binder"))?;
+                intent::construct_expression_with_scope(
+                    revision,
+                    program,
+                    &BTreeSet::new(),
+                    Default::default(),
+                    &json!({
+                        "kind":"let",
+                        "name":binder,
+                        "value":{"kind":"array_u8","values":values},
+                        "body":{
+                            "kind":"builtin_call",
+                            "target":crate::byte_ops::COPY_ID,
+                            "arguments":[{
+                                "kind":"builtin_call",
+                                "target":crate::byte_ops::ARRAY_AS_SLICE_ID,
+                                "arguments":[{"kind":"place","name":binder}],
+                            }],
+                        },
+                    }),
+                )
+            }
         }
     }
+}
+
+/// Reserved spelling for the array a materialized `Bytes` default binds before
+/// deriving its view. The retained canonical sources are the exact byte
+/// projection of every declaration, binding, alias and field spelling the
+/// candidate may collide with, so an unused substring is unused everywhere.
+const BYTES_ARRAY_BINDER_PREFIX: &str = "spx_field_bytes_";
+const MAX_BYTES_ARRAY_BINDERS: usize = 1024;
+
+fn bytes_array_binder(revision: &ProjectRevision) -> Result<String> {
+    for index in 0..MAX_BYTES_ARRAY_BINDERS {
+        let candidate = format!("{BYTES_ARRAY_BINDER_PREFIX}{index}");
+        if revision
+            .sources()
+            .iter()
+            .all(|source| !source.source().contains(candidate.as_str()))
+        {
+            return Ok(candidate);
+        }
+    }
+    Err(capacity(
+        "record Bytes default binder inventory exceeds its bound",
+    ))
 }
 
 struct Record<'a> {
@@ -236,6 +279,10 @@ pub(super) fn apply(
     } else {
         BTreeSet::new()
     };
+    let binder = match &default {
+        FieldDefault::Bytes(_) => Some(bytes_array_binder(revision)?),
+        FieldDefault::Scalar { .. } | FieldDefault::String(_) => None,
+    };
     let mut nodes = 0;
     let mut additions = 0;
     let mut pattern_nodes = 0;
@@ -244,7 +291,7 @@ pub(super) fn apply(
         let inserted_default = if !default.is_owning()
             || owning_constructor_programs.contains(program.path.as_str())
         {
-            Some(default.expression(revision, program)?)
+            Some(default.expression(revision, program, binder.as_deref())?)
         } else {
             None
         };

@@ -151,8 +151,9 @@ fn appends_one_owned_bytes_case_without_rewriting_existing_constructors() {
     .unwrap();
     let candidate = root.apply(root.candidate_digest(), &change).unwrap();
     let source = core(&candidate);
-    assert!(source.contains("@id(\"variant.choice.data\") Data"));
-    assert!(source.contains("@id(\"variant.choice.data.bytes\") payload: Bytes"));
+    // Canonical formatting puts an `@id` attribute on its own line.
+    assert!(source.contains("@id(\"variant.choice.data\")\n    Data {"));
+    assert!(source.contains("@id(\"variant.choice.data.bytes\")\n        payload: Bytes,"));
     assert_eq!(source.matches("Choice::Empty {}").count(), 1);
     assert!(!source.contains("Choice::Data"));
     let graph: Value = serde_json::from_str(candidate.revision().semantic_graph()).unwrap();

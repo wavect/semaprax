@@ -402,9 +402,14 @@ fn private_copy_record_constructors_gain_fresh_string_and_bytes_owners() {
             assert_eq!(core.matches("string_payload: \"agent-owned\"").count(), 2);
         } else {
             assert!(core.contains("bytes_payload: Bytes"));
+            // `array_as_slice` never borrows a temporary, so the materialized
+            // array is bound in the default's own block before its view.
             assert_eq!(
-                core.matches("bytes_payload: bytes_copy(array_as_slice([0u8, 1u8, 127u8, 255u8]))")
-                    .count(),
+                core.matches(
+                    "bytes_payload: { let spx_field_bytes_0 = [0u8, 1u8, 127u8, 255u8]; \
+                     bytes_copy(array_as_slice(spx_field_bytes_0)) }"
+                )
+                .count(),
                 2
             );
         }
@@ -426,11 +431,20 @@ fn private_copy_record_constructors_gain_fresh_string_and_bytes_owners() {
             .iter()
             .find(|row| row["id"] == "field.seed.consume")
             .unwrap();
-        assert_eq!(changed["comparison"]["cleanup_inventory_equal"], false);
-        assert!(!changed["candidate"]["cleanup_inventory"]["slots"]
+        // A fresh `Bytes` owner is a cleanup-plan resource leaf. An owned
+        // `String` settles through the separate native String settlement lane
+        // and contributes no resource cleanup slot, so its inventory is
+        // unchanged and still empty.
+        let slots = changed["candidate"]["cleanup_inventory"]["slots"]
             .as_array()
-            .unwrap()
-            .is_empty());
+            .unwrap();
+        if field_type == "Bytes" {
+            assert_eq!(changed["comparison"]["cleanup_inventory_equal"], false);
+            assert!(!slots.is_empty());
+        } else {
+            assert_eq!(changed["comparison"]["cleanup_inventory_equal"], true);
+            assert!(slots.is_empty());
+        }
         let replay = ProjectCandidate::replay(
             Arc::clone(root.base_revision()),
             root.base_revision().project_revision(),
@@ -508,9 +522,12 @@ fn bytes_default_rebase_rejects_concurrent_implicit_builtin_spelling() {
     let root = fixture.candidate();
     let candidate = apply(&root, &owning_request("Bytes")).unwrap();
     let path = fixture.0.join("src/core.spx");
+    // A function named `bytes_copy` is rejected outright by `SPX-S113`, so the
+    // concurrent revision binds the reserved spelling with the declaration kind
+    // the compiler does admit.
     let source = std::fs::read_to_string(&path)
         .unwrap()
-        .replace("fn unrelated()", "fn bytes_copy()");
+        .replace("record Preowned", "record bytes_copy");
     let parsed = semaprax::parse(&source, Path::new("src/core.spx")).unwrap();
     std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
     let concurrent = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {

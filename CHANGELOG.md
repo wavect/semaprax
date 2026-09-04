@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- Fixed the owning `add_record_field` Bytes lane, which emitted
+  `bytes_copy(array_as_slice([...]))` and was rejected by its own admission:
+  the indexed byte-data contract never lets a view borrow an array temporary.
+  A migrated constructor now materializes its owner as
+  `{ let spx_field_bytes_0 = [..]; bytes_copy(array_as_slice(spx_field_bytes_0)) }`,
+  a block that occupies exactly the appended initializer position, binds a
+  reserved name proven absent from every retained canonical source, and adds no
+  statement to the enclosing body. The record-field, variant-case, and
+  ownership-delta candidate cases for owned Bytes and String fields now execute
+  and pass; three of them also corrected assertions that contradicted canonical
+  `@id` formatting, the checked `bytes` type identity key, and the `SPX-S113`
+  reservation of compiler-owned function spellings.
+
 - Added a Unix-only signed doctor generation store with lifetime-held root
   authority, exact signed-byte replay, no-adoption installation, settled
   generation publication, cooperative expected-current activation/rollback,

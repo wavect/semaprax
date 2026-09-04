@@ -66,10 +66,13 @@ semaprax run examples/meaning.spx
 
 `fmt <file> --check` reports non-canonical source without rewriting it. Run
 `fmt <file>` without `--check` when you want the compiler to rewrite that file
-canonically. `//` comments survive formatting: each is printed on its own line
-above the declaration, field, or statement it precedes, or right after the one
-it followed; [canonical comments](CANONICAL-COMMENTS-V1.md) owns the exact
-placement rules and the routes that still drop comments.
+canonically. `fmt` also takes a project directory or `semaprax.toml`: `fmt .
+--check` names every listed source that drifts, one line each in manifest
+order, and `fmt .` rewrites them, parsing every file before writing any. `//`
+comments survive formatting: each is printed on its own line above the
+declaration, field, or statement it precedes, or right after the one it
+followed; [canonical comments](CANONICAL-COMMENTS-V1.md) owns the exact
+placement rules and lists the routes that preserve comments.
 
 Inspect checked meaning by stable identity rather than searching formatted
 source text:

@@ -22,6 +22,10 @@ create-new route without this protocol's staging or identity re-verification.
 This correction changes publication verification, not the command grammar,
 template names, Project schema, source semantics, or successful file bytes.
 Only the existing optional `--name` and `--template calculator` are admitted.
+The scaffold's `library` template is created by the standalone compiler's
+`new` alone; this route's fixed-arity inventory authority publishes the
+calculator, and `semaprax-full new --template library` exits two with a
+message that says so instead of the unknown-template rejection.
 The exact generated inventory is the [Public Project Scaffold Capsule
 v2](PROJECT-SCAFFOLD-V2.md) inventory:
 

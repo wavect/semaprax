@@ -49,12 +49,28 @@ Because canonical formatting orders declarations by kind rather than by source
 position, a comment travels with the declaration it leads or trails, not with
 its line number.
 
+## Routes that preserve comments
+
+`fmt`, for one file or for every source of a project directory or manifest,
+restores comments as described above.
+
+The single-file semantic patch routes (`patch`, `patch-with-evidence`, and
+`patch-with-evidence-v2`) publish the patched file through the same
+projection: the candidate text is the source with the patch's exact edits
+applied, parsed with its comments, and rendered canonically, so every comment
+of the file survives and the comment above a renamed declaration stays above
+it. The graph revision and the candidate revision are computed from the syntax
+tree as before and do not see comments; the evidence source digest binds the
+exact source bytes, which already included the comments. A patched file is
+canonical, so `fmt --check` accepts it.
+
 ## Non-claims
 
-Only `fmt` restores comments. Semantic transactions that rewrite a source file
-(`patch`, workspace and candidate publication) still emit comment-free
-canonical text; comments in a file those routes rewrite are lost as before.
-The semantic graph, HIR, diagnostics, and every backend ignore comments;
+Whether workspace-level transactions (`workspace-apply`, candidate and
+generation publication) and Project rename transactions preserve comments is
+not claimed by this version. Semantic Patch v3 identity assignment renders its
+candidate without comments. The semantic graph, HIR, diagnostics, and every
+backend ignore comments;
 `graph` output is byte-identical with or without them. Comments are not
 documentation attached to declarations, are not part of a declaration's
 identity, and are not visible to `context`. Block comments (`/* */`) are not
@@ -67,6 +83,11 @@ leading, trailing, in-signature, block-end, field, method, and loop-body
 comments and the idempotence and comment-free-identity properties.
 `tests/projections/fmt_comments.rs` exercises the CLI: `fmt` rewrites a
 commented file to the pinned bytes, `fmt --check` accepts the result, a second
-`fmt` changes nothing, and `graph` of the commented and comment-free files is
-byte-identical. The examples and documentation gates keep the comment-free
+`fmt` changes nothing, `graph` of the commented and comment-free files is
+byte-identical, and `fmt <dir>` formats every manifest source in manifest
+order, names each drifting file under `--check`, and writes nothing when one
+file does not parse. `tests/semantic/patch.rs` pins that a rename patch keeps
+every comment of a commented file, keeps the renamed function's leading
+comment above it, returns the comment-free revision, and leaves a file `fmt
+--check` accepts. The examples and documentation gates keep the comment-free
 canonical form unchanged.

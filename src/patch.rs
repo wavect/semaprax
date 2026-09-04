@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use crate::ast::{Program, Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
-use crate::{format, graph, hir, lexer, parse, verify};
+use crate::{graph, hir, lexer, parse, verify};
 
 use self::source_index::SemanticSourceIndex;
 
@@ -1949,7 +1949,8 @@ fn preflight_parsed_owned(
         changed
     };
 
-    let candidate = parse(&changed, &diagnostic_path).map_err(|error| vec![error])?;
+    let (candidate, canonical_candidate) =
+        crate::parse_canonical(&changed, &diagnostic_path).map_err(|error| vec![error])?;
     if candidate_validation == CandidateValidation::Standalone {
         let diagnostics = verify::verify(&candidate);
         if diagnostics.iter().any(|item| item.severity.is_error()) {
@@ -1976,7 +1977,6 @@ fn preflight_parsed_owned(
             expected_call_arguments: &expected_call_arguments,
         })?;
     }
-    let canonical_candidate = format::canonical(&candidate);
     let candidate_revision = graph::revision(&candidate);
     let operations = patch.operations.clone();
     Ok(PatchPreflight {

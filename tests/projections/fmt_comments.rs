@@ -93,3 +93,96 @@ fn comments_do_not_reach_the_semantic_graph() {
     assert_eq!(normalize(with_comments), normalize(without_comments));
     std::fs::remove_dir_all(root).unwrap();
 }
+
+const PROJECT_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"notes\"\nentry = \"notes.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\nweb_exports = [\"notes.add\"]\ntests = [\"notes.tests\"]\n";
+const APP_DRIFTED: &str = "module notes.app;\nuse function @id(\"notes.add\") from notes.core as add;\n\n@id(\"notes.app.main\")\nfn main() -> i64\n{\n    add(40, 2) // the answer\n}\n";
+const APP_CANONICAL: &str = "module notes.app;\nuse function @id(\"notes.add\") from notes.core as add;\n\n@id(\"notes.app.main\")\nfn main() -> i64\n{\n    add(40, 2)\n    // the answer\n}\n";
+const CORE_CANONICAL: &str = "module notes.core;\n\n// Adds two numbers.\n@id(\"notes.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n";
+const TESTS_DRIFTED: &str = "// Conformance suite.\nmodule notes.tests;\nuse function @id(\"notes.add\") from notes.core as add;\n\n@id(\"notes.tests.main\")\nfn main() -> i64\n{\n        if add(19, 23) == 42 { 0 } else { 1 }\n}\n";
+const TESTS_CANONICAL: &str = "// Conformance suite.\nmodule notes.tests;\nuse function @id(\"notes.add\") from notes.core as add;\n\n@id(\"notes.tests.main\")\nfn main() -> i64\n{\n    if add(19, 23) == 42 { 0 } else { 1 }\n}\n";
+
+fn write_project(root: &std::path::Path) {
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::write(root.join("semaprax.toml"), PROJECT_MANIFEST).unwrap();
+    std::fs::write(root.join("src/app.spx"), APP_DRIFTED).unwrap();
+    std::fs::write(root.join("src/core.spx"), CORE_CANONICAL).unwrap();
+    std::fs::write(root.join("src/tests.spx"), TESTS_DRIFTED).unwrap();
+}
+
+fn read(root: &std::path::Path, relative: &str) -> String {
+    std::fs::read_to_string(root.join(relative)).unwrap()
+}
+
+/// `fmt <dir>` and `fmt <dir>/semaprax.toml` format every manifest source in
+/// manifest order through the same comment-preserving projection.
+#[test]
+fn fmt_formats_every_project_source_in_manifest_order() {
+    let root = fixture("project");
+    write_project(&root);
+    let dir = root.to_str().unwrap();
+    let manifest = root.join("semaprax.toml");
+
+    let (status, stdout, stderr) = cli(&["fmt", dir, "--check"]);
+    assert_eq!(status, 1);
+    assert!(stdout.is_empty());
+    assert_eq!(
+        stderr,
+        format!(
+            "{dir}/src/app.spx is not canonically formatted\n{dir}/src/tests.spx is not canonically formatted\n"
+        )
+    );
+    assert_eq!(
+        read(&root, "src/app.spx"),
+        APP_DRIFTED,
+        "--check never writes"
+    );
+
+    let (status, stdout, stderr) = cli(&["fmt", dir]);
+    assert_eq!(status, 0, "{stderr}");
+    assert!(stdout.is_empty() && stderr.is_empty());
+    assert_eq!(read(&root, "src/app.spx"), APP_CANONICAL);
+    assert_eq!(read(&root, "src/core.spx"), CORE_CANONICAL);
+    assert_eq!(read(&root, "src/tests.spx"), TESTS_CANONICAL);
+
+    let (status, _, stderr) = cli(&["fmt", manifest.to_str().unwrap(), "--check"]);
+    assert_eq!(status, 0, "{stderr}");
+    let (status, stdout, _) = cli(&["test", dir]);
+    assert_eq!(status, 0);
+    assert_eq!(stdout, b"project tests passed\n");
+    let (status, stdout, _) = cli(&["run", dir]);
+    assert_eq!(status, 0);
+    assert_eq!(stdout, b"42\n");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// A parse error in one source reports that file and writes nothing, and a
+/// directory without a manifest is reported as the unreadable manifest.
+#[test]
+fn fmt_project_failures_write_nothing() {
+    let root = fixture("project-failures");
+    write_project(&root);
+    std::fs::write(root.join("src/app.spx"), "module notes.app;\n\nfn {\n").unwrap();
+    let dir = root.to_str().unwrap();
+
+    let (status, stdout, stderr) = cli(&["fmt", dir]);
+    assert_eq!(status, 1);
+    assert!(stdout.is_empty());
+    assert!(stderr.starts_with("error[SPX-"), "{stderr}");
+    assert!(stderr.contains("app.spx"), "{stderr}");
+    assert_eq!(
+        read(&root, "src/tests.spx"),
+        TESTS_DRIFTED,
+        "no file is rewritten when another one does not parse"
+    );
+
+    let empty = root.join("empty");
+    std::fs::create_dir(&empty).unwrap();
+    let (status, stdout, stderr) = cli(&["fmt", empty.to_str().unwrap()]);
+    assert_eq!(status, 1);
+    assert!(stdout.is_empty());
+    assert!(
+        stderr.starts_with(&format!("cannot read {}/semaprax.toml: ", empty.display())),
+        "{stderr}"
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}

@@ -447,4 +447,15 @@ fn publication_is_confined_to_the_selected_parent() {
         let output = cli(&fixture.root, arguments);
         assert_eq!(output.status.code(), Some(2), "{arguments:?}");
     }
+
+    // The library template exists in the public scaffold, but only the
+    // standalone compiler's bounded route creates it; the held-parent authority
+    // publishes the calculator inventory alone and says so.
+    let library = cli(&fixture.root, &["new", "project", "--template", "library"]);
+    assert_eq!(library.status.code(), Some(2));
+    assert!(String::from_utf8(library.stderr)
+        .unwrap()
+        .starts_with("new: the full toolchain's new publishes only the calculator template"));
+    assert!(!fixture.root.join("project").exists());
+    assert_eq!(parent_names(&fixture.root), ["chosen", "outside"]);
 }

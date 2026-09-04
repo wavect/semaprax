@@ -1,4 +1,4 @@
-//! Standalone creation of the built-in calculator project.
+//! Standalone creation of a built-in project template.
 //!
 //! The published compiler has no private host, so it cannot use the
 //! held-parent staged publication behind the full toolchain's `new`. This is
@@ -18,8 +18,8 @@ use std::fs;
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 
+use super::MANIFEST_FILE;
 use super::{derive_project_scaffold_v1, with_authenticated_project};
-use super::{MANIFEST_FILE, PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR};
 
 /// Why standalone project creation stopped. Every variant maps to exit status
 /// one at the CLI; invocation errors are rejected before this is reached.
@@ -44,25 +44,26 @@ impl fmt::Display for CreateProjectError {
 
 impl std::error::Error for CreateProjectError {}
 
-/// Create and verify the built-in calculator project at `destination`.
+/// Create and verify the built-in project `template` at `destination`.
 ///
-/// Returns the destination as the caller spelled it.
-pub fn create_calculator_project(
+/// `template` is one of `PROJECT_SCAFFOLD_TEMPLATES`; an unknown template is
+/// reported before the filesystem is touched. Returns the destination as the
+/// caller spelled it.
+pub fn create_project(
     destination: &Path,
     name: &str,
+    template: &str,
 ) -> Result<PathBuf, CreateProjectError> {
-    let scaffold = derive_project_scaffold_v1(name, PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR).map_err(
-        |diagnostics| {
-            CreateProjectError::new(format!(
-                "cannot derive the calculator template: {}",
-                diagnostics
-                    .iter()
-                    .map(ToString::to_string)
-                    .collect::<Vec<_>>()
-                    .join("; ")
-            ))
-        },
-    )?;
+    let scaffold = derive_project_scaffold_v1(name, template).map_err(|diagnostics| {
+        CreateProjectError::new(format!(
+            "cannot derive the {template} template: {}",
+            diagnostics
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("; ")
+        ))
+    })?;
     let absolute = std::path::absolute(destination).map_err(|error| {
         CreateProjectError::new(format!("cannot resolve new project destination: {error}"))
     })?;

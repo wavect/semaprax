@@ -119,6 +119,29 @@
   unknown function with no near name shows the `use function @id(…) from
   module as name;` import line. `tests/project/manifest_hints.rs` pins the
   manifest and CLI cases.
+- `semaprax fmt` accepts a project directory or `semaprax.toml`, like `check`,
+  `run`, `test`, and `build`: it formats every `sources` entry in manifest
+  order through the comment-preserving projection, parses every file before
+  writing any, and with `--check` prints one `<path> is not canonically
+  formatted` line per drifting file. Previously `fmt .` failed with `cannot
+  read .: Is a directory`. `tests/projections/fmt_comments.rs` and
+  `tests/project_cli_v1.rs` pin it.
+
+- `semaprax new --template library` creates the scaffold's library template
+  in the standalone compiler; the success line is now `created <template>
+  project <destination>`, and an unknown template is rejected with `expected
+  calculator or library`. The full toolchain's `new` still publishes only the
+  calculator inventory and refuses `library` with a message naming the
+  standalone route. `tests/project/new_cli.rs` pins the library project's
+  bytes and that it checks, tests, runs, and is canonical.
+
+- `semaprax patch`, `patch-with-evidence`, and `patch-with-evidence-v2` keep
+  the file's `//` comments: the patched candidate is parsed with its comments
+  and rendered through the same projection as `fmt`, so a comment above a
+  renamed function stays above it and the patched file passes `fmt --check`.
+  Graph revisions and evidence digests are unchanged. [Canonical comments
+  v1](docs/CANONICAL-COMMENTS-V1.md) lists the preserved routes;
+  `tests/semantic/patch.rs` pins the regression.
 
 - `semaprax lock <manifest>` renders the deterministic `semaprax.lock` beside a
   project ([Project Lock v1](docs/PROJECT-LOCK-V1.md)): the canonical manifest

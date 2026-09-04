@@ -42,6 +42,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.data.toml",
+        path: "dependencies/std.data.toml/0.1.0/toml.spx",
+        source: include_str!("../../std/data-toml/src/toml.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.encoding",
         path: "dependencies/std.encoding/0.1.0/encoding.spx",
         source: include_str!("../../std/encoding/src/encoding.spx"),

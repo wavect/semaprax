@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `std.data.toml` as the fourth executable `portable`-tier package, with
+  allocation-free bare-key validation, blank/comment line recognition, and
+  first assignment-delimiter location over borrowed bytes. Full keys, values,
+  tables, decoding, validation, and encoding remain Missing.
 - Added `std.path` as the third executable `portable`-tier package, with
   allocation-free inspection of canonical slash-separated path bytes for
   absoluteness, trailing separators, nonempty segment counts, and filename

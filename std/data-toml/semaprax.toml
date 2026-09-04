@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-data-toml"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.data.toml.examples"
+sources = ["src/examples.spx", "src/tests.spx", "src/toml.spx"]
+tests = ["std.data.toml.tests"]
+
+[exports]
+web = ["std.data.toml.assignment_index", "std.data.toml.is_bare_key", "std.data.toml.is_blank", "std.data.toml.is_comment"]

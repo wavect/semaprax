@@ -375,6 +375,64 @@
       "declarations": [
         {
           "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_bare_key(value: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.toml.is_bare_key",
+          "kind": "function",
+          "name": "is_bare_key",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_blank(line: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.toml.is_blank",
+          "kind": "function",
+          "name": "is_blank",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_comment(line: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.toml.is_comment",
+          "kind": "function",
+          "name": "is_comment",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn assignment_index(line: borrow Slice<u8>) -> i64",
+            "    ensures result >= -1"
+          ],
+          "id": "std.data.toml.assignment_index",
+          "kind": "function",
+          "name": "assignment_index",
+          "requires": 0
+        }
+      ],
+      "module": "std.data.toml",
+      "package": "std/data-toml",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
           "ensures": 1,
           "head": [
             "fn byte_value(byte: u8) -> i64",

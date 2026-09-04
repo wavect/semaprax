@@ -1,0 +1,45 @@
+module std.data.toml.tests;
+use function @id("std.data.toml.assignment_index") from std.data.toml as assignment_index;
+use function @id("std.data.toml.is_bare_key") from std.data.toml as is_bare_key;
+use function @id("std.data.toml.is_blank") from std.data.toml as is_blank;
+use function @id("std.data.toml.is_comment") from std.data.toml as is_comment;
+
+@id("std.data.toml.tests.keys")
+fn keys() -> bool
+{
+    let empty = [0u8; 0];
+    let bare = [97u8, 45u8, 98u8, 95u8, 50u8];
+    let space = [97u8, 32u8, 98u8];
+    let dot = [97u8, 46u8, 98u8];
+    !is_bare_key(array_as_slice(empty)) && is_bare_key(array_as_slice(bare)) && !is_bare_key(array_as_slice(space)) && !is_bare_key(array_as_slice(dot))
+}
+
+@id("std.data.toml.tests.lines")
+fn lines() -> bool
+{
+    let empty = [0u8; 0];
+    let blank = [32u8, 9u8, 32u8];
+    let comment = [32u8, 32u8, 35u8, 32u8, 104u8, 105u8];
+    let value = [97u8, 32u8, 61u8, 32u8, 49u8];
+    is_blank(array_as_slice(empty)) && is_blank(array_as_slice(blank)) && !is_blank(array_as_slice(comment)) && is_comment(array_as_slice(comment)) && !is_comment(array_as_slice(blank)) && !is_comment(array_as_slice(value))
+}
+
+@id("std.data.toml.tests.assignments")
+fn assignments() -> bool
+{
+    let empty = [0u8; 0];
+    let first = [61u8, 49u8];
+    let middle = [97u8, 32u8, 61u8, 32u8, 49u8];
+    let absent = [97u8, 32u8, 49u8];
+    assignment_index(array_as_slice(empty)) == -1 && assignment_index(array_as_slice(first)) == 0 && assignment_index(array_as_slice(middle)) == 2 && assignment_index(array_as_slice(absent)) == -1
+}
+
+@id("std.data.toml.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if keys() { 0 } else { 1 };
+    failed = failed + if lines() { 0 } else { 2 };
+    failed = failed + if assignments() { 0 } else { 4 };
+    failed
+}

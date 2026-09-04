@@ -496,8 +496,9 @@ versioned ecosystem surface.
 [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract and the
 required module set; eight `core`-tier packages (`std.bytes`, `std.core`,
 `std.encoding`, `std.num`, `std.num.overflow`, `std.random`, `std.text`, and
-`std.time`), three `portable`-tier packages (`std.data.csv`, `std.path`, and
-`std.url`), and one `test`-tier package (`std.test`) pass their conformance suites
+`std.time`), four `portable`-tier packages (`std.data.csv`, `std.data.toml`,
+`std.path`, and `std.url`), and one `test`-tier package (`std.test`) pass their
+conformance suites
 on the interpreter, native C11, and Core Wasm lanes.
 
 - widen the Project route so records, variants, generics, strings, and bytes

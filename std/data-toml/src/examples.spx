@@ -1,0 +1,11 @@
+module std.data.toml.examples;
+use function @id("std.data.toml.assignment_index") from std.data.toml as assignment_index;
+use function @id("std.data.toml.is_bare_key") from std.data.toml as is_bare_key;
+
+@id("std.data.toml.examples.main")
+fn main() -> i64
+{
+    let key = [115u8, 101u8, 114u8, 118u8, 101u8, 114u8, 45u8, 112u8, 111u8, 114u8, 116u8];
+    let line = [112u8, 111u8, 114u8, 116u8, 32u8, 61u8, 32u8, 56u8, 48u8];
+    if is_bare_key(array_as_slice(key)) && assignment_index(array_as_slice(line)) == 5 { 0 } else { 1 }
+}

@@ -656,12 +656,12 @@ fn package_manifest_links_bundled_std_test_and_time() {
 }
 
 #[test]
-fn package_manifest_links_bundled_std_csv_and_path() {
+fn package_manifest_links_bundled_std_csv_toml_and_path() {
     let scratch = temporary("manifest-csv-dependency");
     std::fs::create_dir_all(scratch.join("src")).unwrap();
     std::fs::write(
         scratch.join("semaprax.toml"),
-        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"csv-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.csv\"\nsources = [\"src/csv.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.csv-fields\"]\n\n[dependencies]\nstd.data.csv = \"^0.1.0\"\nstd.path = \"=0.1.0\"\n",
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"csv-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.csv\"\nsources = [\"src/csv.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.csv-fields\"]\n\n[dependencies]\nstd.data.csv = \"^0.1.0\"\nstd.data.toml = \"~0.1.0\"\nstd.path = \"=0.1.0\"\n",
     )
     .unwrap();
     std::fs::write(
@@ -671,7 +671,7 @@ fn package_manifest_links_bundled_std_csv_and_path() {
     .unwrap();
     std::fs::write(
         scratch.join("src/csv.spx"),
-        "module consumer.csv;\nuse function @id(\"std.data.csv.field_count\") from std.data.csv as field_count;\nuse function @id(\"std.path.segment_count\") from std.path as segment_count;\n\n@id(\"consumer.csv-fields\")\nfn csv_fields(record: borrow Slice<u8>) -> usize\n{\n    field_count(record)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let record = [97u8, 44u8, 98u8];\n    let path = [97u8, 47u8, 98u8];\n    if csv_fields(array_as_slice(record)) == 2usize && segment_count(array_as_slice(path)) == 2usize { 0 } else { 1 }\n}\n",
+        "module consumer.csv;\nuse function @id(\"std.data.csv.field_count\") from std.data.csv as field_count;\nuse function @id(\"std.data.toml.assignment_index\") from std.data.toml as assignment_index;\nuse function @id(\"std.path.segment_count\") from std.path as segment_count;\n\n@id(\"consumer.csv-fields\")\nfn csv_fields(record: borrow Slice<u8>) -> usize\n{\n    field_count(record)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let record = [97u8, 44u8, 98u8];\n    let line = [97u8, 61u8, 49u8];\n    let path = [97u8, 47u8, 98u8];\n    if csv_fields(array_as_slice(record)) == 2usize && assignment_index(array_as_slice(line)) == 1 && segment_count(array_as_slice(path)) == 2usize { 0 } else { 1 }\n}\n",
     )
     .unwrap();
 
@@ -686,6 +686,9 @@ fn package_manifest_links_bundled_std_csv_and_path() {
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.data.csv/0.1.0/csv.spx"));
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.toml/0.1.0/toml.spx"));
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.path/0.1.0/path.spx"));

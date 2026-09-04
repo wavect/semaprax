@@ -215,6 +215,35 @@ fn field_count(record: borrow Slice<u8>) -> usize
 fn has_balanced_quotes(record: borrow Slice<u8>) -> bool
 ```
 
+## `std.data.toml`
+
+Package `std/data-toml`, tier `portable`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.toml.is_bare_key`
+
+```semaprax
+fn is_bare_key(value: borrow Slice<u8>) -> bool
+```
+
+### `std.data.toml.is_blank`
+
+```semaprax
+fn is_blank(line: borrow Slice<u8>) -> bool
+```
+
+### `std.data.toml.is_comment`
+
+```semaprax
+fn is_comment(line: borrow Slice<u8>) -> bool
+```
+
+### `std.data.toml.assignment_index`
+
+```semaprax
+fn assignment_index(line: borrow Slice<u8>) -> i64
+    ensures result >= -1
+```
+
 ## `std.encoding`
 
 Package `std/encoding`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.

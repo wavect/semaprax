@@ -1,0 +1,64 @@
+module std.data.toml;
+
+@id("std.data.toml.is_bare_key")
+fn is_bare_key(value: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(value);
+    let mut index = 0usize;
+    let mut valid = length > 0usize;
+    while index < length && valid {
+        valid = match byte_get(value, index) { Option::Some { value: byte } => byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 45u8 || byte == 95u8, Option::None {} => false, };
+        index = index + 1usize;
+        index < length && valid
+    }
+    valid
+}
+
+@id("std.data.toml.is_blank")
+fn is_blank(line: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(line);
+    let mut index = 0usize;
+    let mut blank = true;
+    while index < length && blank {
+        blank = match byte_get(line, index) { Option::Some { value: byte } => byte == 32u8 || byte == 9u8, Option::None {} => false, };
+        index = index + 1usize;
+        index < length && blank
+    }
+    blank
+}
+
+@id("std.data.toml.is_comment")
+fn is_comment(line: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(line);
+    let mut index = 0usize;
+    let mut scanning = true;
+    let mut comment = false;
+    while index < length && scanning {
+        let space = match byte_get(line, index) { Option::Some { value: byte } => byte == 32u8 || byte == 9u8, Option::None {} => false, };
+        comment = if space { false } else { match byte_get(line, index) { Option::Some { value: byte } => byte == 35u8, Option::None {} => false, } };
+        scanning = space;
+        index = index + 1usize;
+        index < length && scanning
+    }
+    comment
+}
+
+@id("std.data.toml.assignment_index")
+fn assignment_index(line: borrow Slice<u8>) -> i64
+    ensures result >= -1
+{
+    let length = byte_len(line);
+    let mut index = 0usize;
+    let mut position = 0;
+    let mut found = -1;
+    while index < length && found < 0 {
+        let assignment = match byte_get(line, index) { Option::Some { value: byte } => byte == 61u8, Option::None {} => false, };
+        found = if assignment { position } else { -1 };
+        index = index + 1usize;
+        position = position + 1;
+        index < length && found < 0
+    }
+    found
+}

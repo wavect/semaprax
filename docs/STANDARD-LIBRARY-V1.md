@@ -1,6 +1,6 @@
 # Standard Library v1
 
-- Status: versioned reference; eight `core`-tier packages, three
+- Status: versioned reference; eight `core`-tier packages, four
   `portable`-tier packages, and one `test`-tier package under `std/` are
   executable; every other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
@@ -135,7 +135,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.tls` | Vetted provider-backed TLS interface and certificate policy | Missing |
 | `std.http` | HTTP request/response types, client and server interfaces, streaming, and limits | Missing |
 | `std.data.json` | Typed and value-based JSON parsing and encoding | Missing |
-| `std.data.toml` | TOML parsing and encoding | Missing |
+| `std.data.toml` | TOML parsing and encoding | Partial: allocation-free bare-key validation, blank/comment line recognition, and first assignment-delimiter location over borrowed bytes; quoted keys, values, tables, decoding, validation, and encoding are Missing |
 | `std.data.csv` | Streaming CSV reading and writing | Partial: allocation-free single-record field counting with quoted-comma and escaped-quote handling, plus balanced-quote validation; typed fields, record iteration, dialects, streaming reads, and writing are Missing |
 | `std.encoding` | Base encodings, hex, UTF, and safe binary conversion | Partial: ASCII-byte classification, hexadecimal nibble conversion, byte-pair decoding, lowercase/uppercase hex digit encoding, and standard Base64 digit conversion plus unpadded quad decoding; buffer codecs, padded/streaming base encodings, and UTF conversion are Missing |
 | `std.url` | URL parsing, normalization, and query handling | Partial: RFC-style ASCII scheme and unreserved-byte classification plus percent-triplet validation and decoding through `std.encoding`; structured URLs, parsing, normalization, resolution, query handling, and encoding are Missing |

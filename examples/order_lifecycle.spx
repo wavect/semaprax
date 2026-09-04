@@ -1,0 +1,146 @@
+module examples.order_lifecycle;
+
+@id("order.status")
+variant Status {
+    @id("order.status.created")
+    Created,
+    @id("order.status.paid")
+    Paid,
+    @id("order.status.shipped")
+    Shipped,
+    @id("order.status.delivered")
+    Delivered,
+    @id("order.status.cancelled")
+    Cancelled,
+}
+
+@id("order.decision")
+variant Decision {
+    @id("order.decision.approve")
+    Approve,
+    @id("order.decision.reject")
+    Reject,
+    @id("order.decision.hold")
+    Hold,
+}
+
+@id("order.line")
+record Line {
+    @id("order.line.sku")
+    sku: i64,
+    @id("order.line.quantity")
+    quantity: i64,
+    @id("order.line.unit_price")
+    unit_price: i64,
+}
+
+@id("order.inventory")
+class Inventory {
+    @id("order.inventory.stock")
+    stock: i64,
+    @id("order.inventory.reserved")
+    reserved: i64,
+
+    @id("order.inventory.available")
+    fn available(self: Inventory) -> i64
+{
+        self.stock - self.reserved
+    }
+
+    @id("order.inventory.reserve")
+    fn reserve(self: Inventory, amount: i64) -> Inventory
+{
+        Inventory { stock: self.stock, reserved: self.reserved + amount }
+    }
+
+    @id("order.inventory.commit")
+    fn commit(self: Inventory, amount: i64) -> Inventory
+{
+        Inventory { stock: self.stock - amount, reserved: self.reserved - amount }
+    }
+}
+
+@id("order.status_value")
+fn status_value(status: Status) -> i64
+{
+    match status { Status::Created {} => 0, Status::Paid {} => 1, Status::Shipped {} => 2, Status::Delivered {} => 3, Status::Cancelled {} => 4, }
+}
+
+@id("order.is_terminal")
+fn is_terminal(status: Status) -> bool
+{
+    match status { Status::Delivered {} => true, Status::Cancelled {} => true, _ => false, }
+}
+
+@id("order.decide")
+fn decide(line: Line, inventory: Inventory) -> Decision
+{
+    let available = inventory.available();
+    if line.quantity <= 0 { Decision::Reject {} } else { if line.unit_price <= 0 { Decision::Reject {} } else { if line.quantity > available { Decision::Hold {} } else { Decision::Approve {} } } }
+}
+
+@id("order.decision_value")
+fn decision_value(decision: Decision) -> i64
+{
+    match decision { Decision::Approve {} => 1, Decision::Reject {} => 0, Decision::Hold {} => 2, }
+}
+
+@id("order.line_total")
+fn line_total(line: Line) -> i64
+{
+    line.quantity * line.unit_price
+}
+
+@id("order.process_steps")
+fn process_steps(count: i64) -> i64
+{
+    let mut processed = 0;
+    let mut index = 0;
+    while index < count {
+        processed = processed + 1;
+        index = index + 1;
+        index < count
+    }
+    processed
+}
+
+@id("order.apply_batch")
+fn apply_batch(total: i64, items: i64) -> i64
+{
+    let mut remaining = items;
+    let mut accumulated = total;
+    while remaining > 0 {
+        accumulated = accumulated + remaining;
+        remaining = remaining - 1;
+        remaining > 0
+    }
+    accumulated
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let created = status_value(Status::Created {});
+    let paid_val = status_value(Status::Paid {});
+    let terminal_delivered = is_terminal(Status::Delivered {});
+    let terminal_paid = is_terminal(Status::Paid {});
+    let line = Line { sku: 101, quantity: 3, unit_price: 14 };
+    let total = line_total(line);
+    let inventory = Inventory { stock: 10, reserved: 2 };
+    let available = inventory.available();
+    let decision = decide(line, inventory);
+    let decision_code = decision_value(decision);
+    let reserved = inventory.reserve(line.quantity);
+    let committed = reserved.commit(line.quantity);
+    let final_stock = committed.stock;
+    let steps = process_steps(4);
+    let batched = apply_batch(10, 5);
+    let checked_total = match safe_total(total) { Result::Ok { value: v } => v, Result::Err { error: code } => code, };
+    if created == 0 && paid_val == 1 && terminal_delivered && !terminal_paid && total == 42 && available == 8 && decision_code == 1 && final_stock == 7 && steps == 4 && batched == 25 && checked_total == 42 { 42 } else { 0 }
+}
+
+@id("order.safe_total")
+fn safe_total(amount: i64) -> Result<i64, i64>
+{
+    if amount < 0 { Result<i64, i64>::Err { error: 1 } } else { if amount > 1000 { Result<i64, i64>::Err { error: 2 } } else { Result<i64, i64>::Ok { value: amount } } }
+}

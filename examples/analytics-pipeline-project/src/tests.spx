@@ -1,0 +1,13 @@
+module analytics.tests;
+use function @id("analytics.average") from analytics.core as average;
+use function @id("analytics.filtered-sum") from analytics.pipeline as filtered_sum;
+use function @id("analytics.max-value") from analytics.core as max_value;
+use function @id("analytics.min-value") from analytics.core as min_value;
+use function @id("analytics.rolling-sum") from analytics.pipeline as rolling_sum;
+use function @id("analytics.sum-squares") from analytics.core as sum_squares;
+
+@id("analytics.tests.main")
+fn main() -> i64
+{
+    if sum_squares(1, 2, 3) == 14 && max_value(5, 9) == 9 && min_value(5, 9) == 5 && average(10, 2) == 5 && rolling_sum(0, 3) == 12 && filtered_sum(4) == 6 { 0 } else { 1 }
+}

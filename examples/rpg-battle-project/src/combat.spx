@@ -1,0 +1,60 @@
+module rpg.combat;
+use function @id("rpg.is-alive-stats") from rpg.stats as is_alive_stats;
+
+@id("rpg.calculate-damage")
+fn calculate_damage(attack: i64, defense: i64) -> i64
+    requires attack >= 0
+    requires defense >= 0
+{
+    let raw = attack - defense;
+    if raw < 1 { 1 } else { raw }
+}
+
+@id("rpg.is-alive")
+fn is_alive(health: i64) -> bool
+{
+    health > 0
+}
+
+@id("rpg.resolve-round")
+fn resolve_round(left_health: i64, left_attack: i64, left_defense: i64, right_health: i64, right_attack: i64, right_defense: i64) -> i64
+{
+    let damage_to_right = calculate_damage(left_attack, right_defense);
+    let damage_to_left = calculate_damage(right_attack, left_defense);
+    let left_after = left_health - damage_to_left;
+    let right_after = right_health - damage_to_right;
+    let left_alive = is_alive(left_after);
+    let right_alive = is_alive(right_after);
+    if left_alive && !right_alive { 2 } else { if !left_alive && right_alive { 0 } else { if !left_alive && !right_alive { 1 } else { 3 } } }
+}
+
+@id("rpg.battle-sim")
+fn battle_sim(health: i64, defense: i64, enemy_attack: i64) -> i64
+    requires health >= 0
+    requires defense >= 0
+    requires enemy_attack >= 0
+{
+    let mut hp = health;
+    let mut rounds = 0;
+    while hp > 0 && rounds < 10 {
+        let damage = calculate_damage(enemy_attack, defense);
+        hp = hp - damage;
+        rounds = rounds + 1;
+        hp > 0 && rounds < 10
+    }
+    rounds
+}
+
+@id("rpg.power-of")
+fn power_of(attack: i64, defense: i64) -> i64
+{
+    attack + defense
+}
+
+@id("rpg.after-damage")
+fn after_damage(health: i64, amount: i64) -> i64
+    requires health >= 0
+    requires amount >= 0
+{
+    health - amount
+}

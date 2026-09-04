@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "analytics-pipeline"
+entry = "analytics.app"
+sources = ["src/app.spx", "src/core.spx", "src/pipeline.spx", "src/tests.spx"]
+web_exports = ["analytics.average", "analytics.max-value", "analytics.min-value", "analytics.sum-squares"]
+tests = ["analytics.tests"]

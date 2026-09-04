@@ -1,0 +1,80 @@
+module examples.math_algorithms;
+
+@id("math.gcd")
+fn gcd(left: i64, right: i64) -> i64
+    requires left >= 0
+    requires right >= 0
+    ensures result >= 0
+{
+    let mut a = left;
+    let mut b = right;
+    while a != 0 && b != 0 {
+        if a > b { a = a % b; a != 0 && b != 0 } else { b = b % a; a != 0 && b != 0 }
+    }
+    if a == 0 { b } else { a }
+}
+
+@id("math.lcm")
+fn lcm(left: i64, right: i64) -> i64
+    requires left > 0
+    requires right > 0
+{
+    left / gcd(left, right) * right
+}
+
+@id("math.is_prime")
+fn is_prime(value: i64) -> bool
+    requires value >= 0
+{
+    if value < 2 { false } else { if value == 2 { true } else { if value % 2 == 0 { false } else { let mut divisor = 3; let mut prime = true; while divisor * divisor <= value && prime { prime = if value % divisor == 0 { false } else { prime }; divisor = divisor + 2; divisor * divisor <= value && prime } prime } } }
+}
+
+@id("math.fibonacci")
+fn fibonacci(nth: i64) -> i64
+    requires nth >= 0
+    requires nth <= 30
+{
+    if nth == 0 { 0 } else { if nth == 1 { 1 } else { let mut previous = 0; let mut current = 1; let mut index = 1; while index < nth { let next = previous + current; previous = current; current = next; index = index + 1; index < nth } current } }
+}
+
+@id("math.factorial")
+fn factorial(value: i64) -> i64
+    requires value >= 0
+    requires value <= 12
+{
+    let mut counter = value;
+    let mut product = 1;
+    while counter > 1 {
+        product = product * counter;
+        counter = counter - 1;
+        counter > 1
+    }
+    product
+}
+
+@id("math.digital_root")
+fn digital_root(value: i64) -> i64
+    requires value >= 0
+{
+    let mut remaining = value;
+    let mut total = 0;
+    while remaining > 0 {
+        total = total + remaining % 10;
+        remaining = remaining / 10;
+        remaining > 0
+    }
+    if total >= 10 { digital_root(total) } else { total }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let g = gcd(48, 18);
+    let l = lcm(6, 8);
+    let prime_a = is_prime(17);
+    let prime_b = is_prime(18);
+    let fib = fibonacci(10);
+    let fact = factorial(5);
+    let root = digital_root(98765);
+    if g == 6 && l == 24 && prime_a && !prime_b && fib == 55 && fact == 120 && root == 8 { 42 } else { 0 }
+}

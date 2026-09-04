@@ -1,0 +1,13 @@
+module rpg.tests;
+use function @id("rpg.buff-attack") from rpg.stats as buff_attack;
+use function @id("rpg.calculate-damage") from rpg.combat as calculate_damage;
+use function @id("rpg.is-alive") from rpg.combat as is_alive;
+use function @id("rpg.make-stats-health") from rpg.stats as make_health;
+use function @id("rpg.resolve-round") from rpg.combat as resolve_round;
+
+@id("rpg.tests.main")
+fn main() -> i64
+{
+    let health = make_health(10, 0);
+    if !is_alive(0) && is_alive(1) && calculate_damage(10, 3) == 7 && calculate_damage(3, 10) == 1 && buff_attack(5, 3) == 8 && resolve_round(10, 10, 0, 5, 1, 0) == 2 { 0 } else { 1 }
+}

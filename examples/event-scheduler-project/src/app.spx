@@ -1,0 +1,16 @@
+module scheduler.app;
+use function @id("scheduler.batch-cost") from scheduler.policy as batch_cost;
+use function @id("scheduler.best-priority") from scheduler.policy as best_priority;
+use function @id("scheduler.evaluate") from scheduler.policy as evaluate;
+use function @id("scheduler.priority-score") from scheduler.core as priority_score;
+
+@id("scheduler.app.main")
+fn main() -> i64
+{
+    let score = priority_score(5, 8);
+    let cost = evaluate(4, 6, 5, 10, 3);
+    let overdue_cost = evaluate(4, 6, 5, 2, 10);
+    let batch = batch_cost(0, 3);
+    let best = best_priority(6);
+    if score == 90 && cost == 40 && overdue_cost == 140 && batch == 59 && best == 80 { 42 } else { 0 }
+}

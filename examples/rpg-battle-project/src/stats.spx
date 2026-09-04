@@ -1,0 +1,37 @@
+module rpg.stats;
+
+@id("rpg.make-stats-health")
+fn make_health(base: i64, bonus: i64) -> i64
+    requires base >= 0
+    requires bonus >= 0
+{
+    base + bonus
+}
+
+@id("rpg.buff-attack")
+fn buff_attack(attack: i64, amount: i64) -> i64
+    requires attack >= 0
+    requires amount >= 0
+{
+    attack + amount
+}
+
+@id("rpg.buff-defense")
+fn buff_defense(defense: i64, amount: i64) -> i64
+    requires defense >= 0
+    requires amount >= 0
+{
+    defense + amount
+}
+
+@id("rpg.is-alive-stats")
+fn is_alive_stats(health: i64) -> bool
+{
+    health > 0
+}
+
+@id("rpg.total-power")
+fn total_power(attack: i64, defense: i64) -> i64
+{
+    attack + defense
+}

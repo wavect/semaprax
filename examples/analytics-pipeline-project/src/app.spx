@@ -1,0 +1,17 @@
+module analytics.app;
+use function @id("analytics.filtered-sum") from analytics.pipeline as filtered_sum;
+use function @id("analytics.process") from analytics.pipeline as process;
+use function @id("analytics.rolling-sum") from analytics.pipeline as rolling_sum;
+use function @id("analytics.score-batch") from analytics.pipeline as score_batch;
+use function @id("analytics.sum-squares") from analytics.core as sum_squares;
+
+@id("analytics.app.main")
+fn main() -> i64
+{
+    let squares = sum_squares(3, 4, 5);
+    let rolled = rolling_sum(10, 4);
+    let filtered = filtered_sum(6);
+    let scored = score_batch(3, 7, 4);
+    let pipeline = process(5);
+    if squares == 50 && rolled == 32 && filtered == 15 && scored == 15 && pipeline == 83 { 42 } else { 0 }
+}

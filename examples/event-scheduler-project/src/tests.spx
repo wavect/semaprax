@@ -1,0 +1,11 @@
+module scheduler.tests;
+use function @id("scheduler.batch-cost") from scheduler.policy as batch_cost;
+use function @id("scheduler.is-overdue") from scheduler.core as is_overdue;
+use function @id("scheduler.priority-score") from scheduler.core as priority_score;
+use function @id("scheduler.schedule-cost") from scheduler.core as schedule_cost;
+
+@id("scheduler.tests.main")
+fn main() -> i64
+{
+    if priority_score(2, 3) == 35 && schedule_cost(10, 20) == 30 && !is_overdue(10, 5) && is_overdue(5, 10) && batch_cost(5, 2) == 30 { 0 } else { 1 }
+}

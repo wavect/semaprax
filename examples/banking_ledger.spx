@@ -1,0 +1,114 @@
+module examples.banking_ledger;
+
+@id("ledger.account")
+record Account {
+    @id("ledger.account.id")
+    id: i64,
+    @id("ledger.account.balance")
+    balance: i64,
+}
+
+@id("ledger.tx_kind")
+variant TxKind {
+    @id("ledger.tx_kind.deposit")
+    Deposit,
+    @id("ledger.tx_kind.withdraw")
+    Withdraw,
+    @id("ledger.tx_kind.transfer")
+    Transfer,
+}
+
+@id("ledger.portfolio")
+class Portfolio {
+    @id("ledger.portfolio.holdings")
+    holdings: i64,
+    @id("ledger.portfolio.credits")
+    credits: i64,
+
+    @id("ledger.portfolio.total")
+    fn total(self: Portfolio) -> i64
+{
+        self.holdings + self.credits
+    }
+
+    @id("ledger.portfolio.deposited")
+    fn deposited(self: Portfolio, amount: i64) -> Portfolio
+{
+        Portfolio { holdings: self.holdings + amount, credits: self.credits }
+    }
+
+    @id("ledger.portfolio.charged")
+    fn charged(self: Portfolio, amount: i64) -> Portfolio
+{
+        Portfolio { holdings: self.holdings, credits: self.credits - amount }
+    }
+}
+
+@id("ledger.is_deposit")
+fn is_deposit(kind: TxKind) -> bool
+{
+    match kind { TxKind::Deposit {} => true, _ => false, }
+}
+
+@id("ledger.apply")
+fn apply(account: Account, kind: TxKind, amount: i64) -> Account
+    requires amount >= 0
+{
+    let deposit = is_deposit(kind);
+    let withdraw = match kind { TxKind::Withdraw {} => true, _ => false, };
+    let transfer = match kind { TxKind::Transfer {} => true, _ => false, };
+    if deposit { account with { balance: account.balance + amount } } else { if withdraw { account with { balance: account.balance - amount } } else { if transfer { account with { balance: account.balance - amount - 1 } } else { account } } }
+}
+
+@id("ledger.safe_withdraw")
+fn safe_withdraw(account: Account, amount: i64) -> Result<i64, i64>
+    requires amount >= 0
+{
+    if account.balance < amount { Result<i64, i64>::Err { error: 1 } } else { Result<i64, i64>::Ok { value: account.balance - amount } }
+}
+
+@id("ledger.find_balance")
+fn find_balance(left: Account, right: Account, wanted: i64) -> Option<i64>
+{
+    if left.id == wanted { Option<i64>::Some { value: left.balance } } else { if right.id == wanted { Option<i64>::Some { value: right.balance } } else { Option<i64>::None {} } }
+}
+
+@id("ledger.compound")
+fn compound(principal: i64, rate_percent: i64, years: i64) -> i64
+    requires principal >= 0
+    requires rate_percent >= 0
+    requires rate_percent <= 100
+    requires years >= 0
+    requires years <= 10
+{
+    let mut balance = principal;
+    let mut year = 0;
+    while year < years {
+        balance = balance + balance * rate_percent / 100;
+        year = year + 1;
+        year < years
+    }
+    balance
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let mut alice = Account { id: 1, balance: 1000 };
+    alice.balance = alice.balance + 500;
+    let after_deposit = apply(alice, TxKind::Deposit {}, 200);
+    let after_withdraw = apply(after_deposit, TxKind::Withdraw {}, 300);
+    let withdrawn = safe_withdraw(after_withdraw, 400);
+    let checked_balance = match withdrawn { Result::Ok { value: v } => v, Result::Err { error: code } => 0 - code, };
+    let failed = safe_withdraw(after_withdraw, 5000);
+    let failed_code = match failed { Result::Ok { value: v } => 0, Result::Err { error: code } => code, };
+    let bob = Account { id: 2, balance: 800 };
+    let found = find_balance(after_withdraw, bob, 2);
+    let found_balance = match found { Option::Some { value: v } => v, Option::None {} => 0, };
+    let portfolio = Portfolio { holdings: checked_balance, credits: 200 };
+    let grown = portfolio.deposited(100);
+    let charged = grown.charged(50);
+    let final_total = charged.total();
+    let compounded = compound(100, 10, 2);
+    if checked_balance == 1000 && failed_code == 1 && found_balance == 800 && final_total == 1250 && compounded == 121 { 42 } else { 0 }
+}

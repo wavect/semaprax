@@ -1,0 +1,45 @@
+module analytics.core;
+
+@id("analytics.sum")
+fn sum(left: i64, right: i64) -> i64
+{
+    left + right
+}
+
+@id("analytics.sum-squares")
+fn sum_squares(first: i64, second: i64, third: i64) -> i64
+{
+    first * first + second * second + third * third
+}
+
+@id("analytics.max-value")
+fn max_value(left: i64, right: i64) -> i64
+{
+    if left > right { left } else { right }
+}
+
+@id("analytics.min-value")
+fn min_value(left: i64, right: i64) -> i64
+{
+    if left < right { left } else { right }
+}
+
+@id("analytics.clamp")
+fn clamp(value: i64, low: i64, high: i64) -> i64
+    requires low <= high
+{
+    if value < low { low } else { if value > high { high } else { value } }
+}
+
+@id("analytics.average")
+fn average(total: i64, count: i64) -> i64
+    requires count != 0
+{
+    total / count
+}
+
+@id("analytics.weighted")
+fn weighted(base: i64, weight: i64) -> i64
+{
+    base * weight / 100
+}

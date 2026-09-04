@@ -1,0 +1,28 @@
+module rpg.app;
+use function @id("rpg.calculate-damage") from rpg.combat as calculate_damage;
+use function @id("rpg.battle-sim") from rpg.combat as battle_sim;
+use function @id("rpg.is-alive") from rpg.combat as is_alive;
+use function @id("rpg.resolve-round") from rpg.combat as resolve_round;
+use function @id("rpg.make-stats-health") from rpg.stats as make_health;
+use function @id("rpg.buff-attack") from rpg.stats as buff_attack;
+use function @id("rpg.is-alive-stats") from rpg.stats as is_alive_stats;
+
+@id("rpg.app.main")
+fn main() -> i64
+{
+    let hero_health = 100;
+    let hero_attack = 20;
+    let hero_defense = 5;
+    let monster_health = 80;
+    let monster_attack = 15;
+    let monster_defense = 3;
+    let damage = calculate_damage(hero_attack, monster_defense);
+    let outcome_code = resolve_round(hero_health, hero_attack, hero_defense, monster_health, monster_attack, monster_defense);
+    let rounds = battle_sim(hero_health, hero_defense, monster_attack);
+    let health = make_health(50, 0);
+    let buffed_attack = buff_attack(10, 5);
+    let alive = is_alive_stats(health);
+    let power = hero_attack + hero_defense;
+    let hurt = hero_health - 10;
+    if damage == 17 && outcome_code == 3 && rounds == 10 && buffed_attack == 15 && alive && power == 25 && hurt == 90 && is_alive(hurt) { 42 } else { 0 }
+}

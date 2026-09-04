@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "rpg-battle"
+entry = "rpg.app"
+sources = ["src/app.spx", "src/combat.spx", "src/stats.spx", "src/tests.spx"]
+web_exports = ["rpg.calculate-damage", "rpg.is-alive", "rpg.resolve-round"]
+tests = ["rpg.tests"]

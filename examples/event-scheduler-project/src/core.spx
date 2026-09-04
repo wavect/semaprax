@@ -1,0 +1,35 @@
+module scheduler.core;
+
+@id("scheduler.priority-score")
+fn priority_score(urgency: i64, importance: i64) -> i64
+    requires urgency >= 0
+    requires importance >= 0
+{
+    urgency * 10 + importance * 5
+}
+
+@id("scheduler.schedule-cost")
+fn schedule_cost(duration: i64, priority: i64) -> i64
+    requires duration >= 0
+    requires priority >= 0
+{
+    duration * priority / 10 + duration
+}
+
+@id("scheduler.is-overdue")
+fn is_overdue(deadline: i64, now: i64) -> bool
+{
+    now > deadline
+}
+
+@id("scheduler.days-until")
+fn days_until(deadline: i64, now: i64) -> i64
+{
+    if deadline > now { deadline - now } else { 0 }
+}
+
+@id("scheduler.clamp-priority")
+fn clamp_priority(value: i64) -> i64
+{
+    if value < 0 { 0 } else { if value > 100 { 100 } else { value } }
+}

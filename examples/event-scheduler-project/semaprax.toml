@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "event-scheduler"
+entry = "scheduler.app"
+sources = ["src/app.spx", "src/core.spx", "src/policy.spx", "src/tests.spx"]
+web_exports = ["scheduler.is-overdue", "scheduler.priority-score", "scheduler.schedule-cost"]
+tests = ["scheduler.tests"]

@@ -1,0 +1,51 @@
+module scheduler.policy;
+use function @id("scheduler.clamp-priority") from scheduler.core as clamp_priority;
+use function @id("scheduler.days-until") from scheduler.core as days_until;
+use function @id("scheduler.is-overdue") from scheduler.core as is_overdue;
+use function @id("scheduler.priority-score") from scheduler.core as priority_score;
+use function @id("scheduler.schedule-cost") from scheduler.core as schedule_cost;
+
+@id("scheduler.evaluate")
+fn evaluate(urgency: i64, importance: i64, duration: i64, deadline: i64, now: i64) -> i64
+{
+    let priority = priority_score(urgency, importance);
+    let clamped = clamp_priority(priority);
+    let cost = schedule_cost(duration, clamped);
+    let overdue = is_overdue(deadline, now);
+    if overdue { cost + 100 } else { cost }
+}
+
+@id("scheduler.batch-cost")
+fn batch_cost(seed: i64, count: i64) -> i64
+    requires count >= 0
+    requires count <= 10
+{
+    let mut total = seed;
+    let mut index = 0;
+    while index < count {
+        let urgency = index * 2 + 1;
+        let importance = index + 3;
+        let duration = index + 2;
+        let cost = evaluate(urgency, importance, duration, 20, index * 3);
+        total = total + cost;
+        index = index + 1;
+        index < count
+    }
+    total
+}
+
+@id("scheduler.best-priority")
+fn best_priority(limit: i64) -> i64
+    requires limit >= 0
+{
+    let mut best = 0;
+    let mut candidate = 0;
+    while candidate < limit {
+        let score = priority_score(candidate, candidate + 1);
+        let clamped = clamp_priority(score);
+        best = if clamped > best { clamped } else { best };
+        candidate = candidate + 1;
+        candidate < limit
+    }
+    best
+}

@@ -85,7 +85,23 @@ does emit.
 | `examples/field_mutation.spx` | Assignment to record and class fields, including inside both arms of an `if` | `semaprax run examples/field_mutation.spx` → `96` | [Field Mutation v1](../docs/FIELD-MUTATION-V1.md) |
 | `examples/while_loops.spx` | Two `while` loops with their loop-continuation expressions, over mutable locals | `semaprax run examples/while_loops.spx` → `41` | [While Loops v1](../docs/WHILE-LOOPS-V1.md) |
 
+## Expressive standalone examples
+
+These extend the minimal subjects above with multi-concept programs that
+still run in the reference interpreter (`run` returns `42`) and verify
+(`check` and `graph` pass). Each combines contracts, mutation, loops,
+records, variants, classes, strings and bytes in a small domain.
+
+| Example | Teaches | Command (observed) | Reference |
+| --- | --- | --- | --- |
+| `examples/math_algorithms.spx` | GCD, LCM, primality, Fibonacci, factorial and digital root with `requires`/`ensures`, `let mut` and `while` | `semaprax run examples/math_algorithms.spx` → `42` | [RFC 0001](../docs/RFC-0001.md), [Explicit Mutation v1](../docs/EXPLICIT-MUTATION-V1.md), [While Loops v1](../docs/WHILE-LOOPS-V1.md) |
+| `examples/expression_evaluator.spx` | `variant Op`/`UnaryOp`, `record Pair`, `Option`/`Result` pipelines, scalar `match` and a `while`-driven Fibonacci fold | `semaprax run examples/expression_evaluator.spx` → `42` | [RFC 0002](../docs/RFC-0002-ALGEBRAIC-DATA.md), [Refutable Match v1](../docs/REFUTABLE-MATCH-V1.md) |
+| `examples/banking_ledger.spx` | `record Account`, `class Portfolio` with methods, `variant TxKind` dispatched to `bool`, `Option`/`Result` over `i64` and interest compounding via `while` | `semaprax run examples/banking_ledger.spx` → `42` | [Class Inheritance v1](../docs/CLASS-INHERITANCE-V1.md), [Field Mutation v1](../docs/FIELD-MUTATION-V1.md) |
+| `examples/text_analytics.spx` | `string_concat`/`string_len`/`string_contains`, `borrow str` views, `str_as_bytes`/`byte_len`/`byte_get` word-count and palindrome via indexed `while` | `semaprax run examples/text_analytics.spx` → `42` | [String Operations v1](../docs/STRING-OPS-V1.md), [Portable Indexed Byte Data v1](../docs/PORTABLE-INDEXED-BYTE-DATA-V1.md) |
+| `examples/order_lifecycle.spx` | `variant Status`/`Decision`, `record Line`, `class Inventory` with resource tracking, `Result` validation and batch `while` loops | `semaprax run examples/order_lifecycle.spx` → `42` | [RFC 0002](../docs/RFC-0002-ALGEBRAIC-DATA.md), [Field Mutation v1](../docs/FIELD-MUTATION-V1.md) |
+
 ## Ownership, resources and cleanup
+
 
 These three declare a `resource`. All three verify, but `run` does not reach a
 result: on this CLI build each reports
@@ -115,6 +131,9 @@ the manifest's `web_exports` already selects the surface.
 | `examples/frame-payload-project` | Project schema v8 under `owned-data-api.v1`: an `SPX1` frame decoder returning owned `Bytes`, `Option<Bytes>` and `Result<Bytes, i64>`, with a nine-case `corpus.json` | `semaprax test examples/frame-payload-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Public Owned Data API v1](../docs/PUBLIC-OWNED-DATA-API-V1.md), and the directory's own [README](frame-payload-project/README.md) |
 | `examples/spxgrep-language-command-project` | Project schema v6 under `language-command-io.v1`: `argv-utf8+stdin-bytes.v1` input read through `arg_utf8` | `semaprax test examples/spxgrep-language-command-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Bounded Language Command I/O v1](../docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md) |
 | `examples/spxgrep-lines-project` | Project schema v7 under `line-command-io.v1`: line-at-a-time filtering with `byte_range` over the same argv/stdin input | `semaprax test examples/spxgrep-lines-project/semaprax.toml` → `project tests passed`; `run` → `0` | [Project Manifest v1](../docs/PROJECT-MANIFEST-V1.md), section "Additive Project Manifest v7 line-command profile" |
+| `examples/rpg-battle-project` | Project schema v1: four modules (`stats`, `combat`, `app`, `tests`), scalar combat with contracts, `while` battle simulation and cross-module `use function` | `semaprax test examples/rpg-battle-project/semaprax.toml` → `project tests passed`; `run` → `42` | [Project Manifest v1](../docs/PROJECT-MANIFEST-V1.md) |
+| `examples/analytics-pipeline-project` | Project schema v1: rolling sums, filtered sums, weighted scoring and a multi-stage `process` pipeline over four modules | `semaprax test examples/analytics-pipeline-project/semaprax.toml` → `project tests passed`; `run` → `42` | [Project Manifest v1](../docs/PROJECT-MANIFEST-V1.md) |
+| `examples/event-scheduler-project` | Project schema v1: priority scoring, cost scheduling, overdue detection and `while` batch evaluation across `core`, `policy`, `app` | `semaprax test examples/event-scheduler-project/semaprax.toml` → `project tests passed`; `run` → `42` | [Project Manifest v1](../docs/PROJECT-MANIFEST-V1.md) |
 
 The last two projects both bind a borrowed `str` local from `arg_utf8`, so they
 are the two examples that exercise the invocation-owned argument arena from the

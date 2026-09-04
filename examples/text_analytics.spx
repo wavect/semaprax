@@ -1,0 +1,107 @@
+module examples.text_analytics;
+
+@id("text.count_byte")
+fn count_byte(text: borrow str, target: u8) -> usize
+{
+    let view = str_as_bytes(text);
+    let length = byte_len(view);
+    let mut index = 0usize;
+    let mut hits = 0usize;
+    while index < length {
+        hits = match byte_get(view, index) { Option::Some { value: byte } => if byte == target { hits + 1usize } else { hits }, Option::None {} => hits, };
+        index = index + 1usize;
+        index < length
+    }
+    hits
+}
+
+@id("text.count_words")
+fn count_words(text: borrow str) -> usize
+{
+    let view = str_as_bytes(text);
+    let length = byte_len(view);
+    let mut index = 0usize;
+    let mut words = 0usize;
+    let mut in_word = false;
+    while index < length {
+        let is_space = match byte_get(view, index) { Option::Some { value: byte } => byte == 32u8, Option::None {} => false, };
+        let next_in_word = if is_space { false } else { if in_word { true } else { true } };
+        let became_word = if is_space { false } else { if in_word { false } else { true } };
+        words = if became_word { words + 1usize } else { words };
+        in_word = next_in_word;
+        index = index + 1usize;
+        index < length
+    }
+    words
+}
+
+@id("text.is_empty_str")
+fn is_empty_str(text: borrow str) -> bool
+{
+    str_is_empty(text)
+}
+
+@id("text.starts_with_hello")
+fn starts_with_hello(text: string) -> bool
+{
+    let other = "hello";
+    string_starts_with(text, other)
+}
+
+@id("text.contains_world")
+fn contains_world(text: string) -> bool
+{
+    let needle = "world";
+    string_contains(text, needle)
+}
+
+@id("text.build_greeting")
+fn build_greeting(prefix: string, suffix: string) -> string
+{
+    string_concat(prefix, suffix)
+}
+
+@id("text.palindrome_bytes")
+fn palindrome_bytes(text: string) -> bool
+{
+    let borrowed = string_as_str(text);
+    let view = str_as_bytes(borrowed);
+    let length = byte_len(view);
+    let mut left = 0usize;
+    let mut right = if length == 0usize { 0usize } else { length - 1usize };
+    let mut ok = true;
+    while left < right && ok {
+        let left_byte = match byte_get(view, left) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+        let right_byte = match byte_get(view, right) { Option::Some { value: byte } => byte, Option::None {} => 0u8, };
+        ok = left_byte == right_byte;
+        left = left + 1usize;
+        right = if right == 0usize { 0usize } else { right - 1usize };
+        left < right && ok
+    }
+    ok
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let hello_for_len = "hello world";
+    let hello_len = string_len(hello_for_len);
+    let hello_for_starts = "hello world";
+    let starts = starts_with_hello(hello_for_starts);
+    let hello_for_contains = "hello world";
+    let contains = contains_world(hello_for_contains);
+    let hello_for_empty = "hello world";
+    let is_empty = string_is_empty(hello_for_empty);
+    let built = build_greeting("hello ", "world");
+    let borrowed = string_as_str(built);
+    let built_len = str_len_bytes(borrowed);
+    let spaces = count_byte(borrowed, 32u8);
+    let words = count_words(borrowed);
+    let e_count = count_byte(borrowed, 101u8);
+    let palindrome = palindrome_bytes("racecar");
+    let not_palindrome = palindrome_bytes("hello");
+    let view_for_empty = "hello world";
+    let borrowed_for_empty = string_as_str(view_for_empty);
+    let empty_check = is_empty_str(borrowed_for_empty);
+    if hello_len == 11 && !is_empty && starts && contains && built_len == 11 && spaces == 1usize && words == 2usize && e_count == 1usize && palindrome && !not_palindrome && !empty_check { 42 } else { 0 }
+}

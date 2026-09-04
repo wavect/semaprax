@@ -1,0 +1,65 @@
+module analytics.pipeline;
+use function @id("analytics.average") from analytics.core as average;
+use function @id("analytics.clamp") from analytics.core as clamp;
+use function @id("analytics.max-value") from analytics.core as max_value;
+use function @id("analytics.min-value") from analytics.core as min_value;
+use function @id("analytics.sum") from analytics.core as sum;
+use function @id("analytics.sum-squares") from analytics.core as sum_squares;
+use function @id("analytics.weighted") from analytics.core as weighted;
+
+@id("analytics.rolling-sum")
+fn rolling_sum(seed: i64, steps: i64) -> i64
+    requires steps >= 0
+    requires steps <= 20
+{
+    let mut total = seed;
+    let mut index = 0;
+    while index < steps {
+        total = total + index * 3 + 1;
+        index = index + 1;
+        index < steps
+    }
+    total
+}
+
+@id("analytics.filtered-sum")
+fn filtered_sum(limit: i64) -> i64
+    requires limit >= 0
+{
+    let mut total = 0;
+    let mut value = 0;
+    while value < limit {
+        let clamped = clamp(value, 0, 10);
+        total = if clamped == value { total + value } else { total };
+        value = value + 1;
+        value < limit
+    }
+    total
+}
+
+@id("analytics.score-batch")
+fn score_batch(first: i64, second: i64, third: i64) -> i64
+{
+    let squares = sum_squares(first, second, third);
+    let biggest = max_value(first, max_value(second, third));
+    let smallest = min_value(first, min_value(second, third));
+    let range = biggest - smallest;
+    let avg = average(first + second + third, 3);
+    weighted(squares, 10) + range + avg
+}
+
+@id("analytics.normalize")
+fn normalize(value: i64) -> i64
+{
+    clamp(value, 0, 100)
+}
+
+@id("analytics.process")
+fn process(seed: i64) -> i64
+{
+    let rolled = rolling_sum(seed, 5);
+    let filtered = filtered_sum(8);
+    let scored = score_batch(3, 7, 4);
+    let normalized = normalize(scored);
+    rolled + filtered + normalized
+}

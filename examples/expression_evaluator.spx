@@ -1,0 +1,104 @@
+module examples.expression_evaluator;
+
+@id("expr.op")
+variant Op {
+    @id("expr.op.add")
+    Add,
+    @id("expr.op.subtract")
+    Subtract,
+    @id("expr.op.multiply")
+    Multiply,
+    @id("expr.op.divide")
+    Divide,
+}
+
+@id("expr.pair")
+record Pair {
+    @id("expr.pair.left")
+    left: i64,
+    @id("expr.pair.right")
+    right: i64,
+}
+
+@id("expr.unary")
+variant UnaryOp {
+    @id("expr.unary.negate")
+    Negate,
+    @id("expr.unary.double")
+    Double,
+}
+
+@id("expr.is_divide")
+fn is_divide(op: Op) -> bool
+{
+    match op { Op::Divide {} => true, _ => false, }
+}
+
+@id("expr.apply_unary")
+fn apply_unary(value: i64, operation: UnaryOp) -> i64
+{
+    match operation { UnaryOp::Negate {} => 0 - value, UnaryOp::Double {} => value * 2, }
+}
+
+@id("expr.evaluate")
+fn evaluate(pair: Pair, op: Op) -> i64
+{
+    match op { Op::Add {} => pair.left + pair.right, Op::Subtract {} => pair.left - pair.right, Op::Multiply {} => pair.left * pair.right, Op::Divide {} => pair.left / pair.right, }
+}
+
+@id("expr.safe_divide")
+fn safe_divide(left: i64, right: i64) -> Result<i64, i64>
+{
+    if right == 0 { Result<i64, i64>::Err { error: 1 } } else { Result<i64, i64>::Ok { value: left / right } }
+}
+
+@id("expr.safe_evaluate")
+fn safe_evaluate(pair: Pair, op: Op) -> Result<i64, i64>
+{
+    let divide = is_divide(op);
+    if pair.right == 0 && divide { Result<i64, i64>::Err { error: 1 } } else { Result<i64, i64>::Ok { value: evaluate(pair, op) } }
+}
+
+@id("expr.chain_scalars")
+fn chain_scalars(first: Pair, left_op: Op, second: Pair, right_op: Op, combine: Op) -> i64
+{
+    let left_value = evaluate(first, left_op);
+    let right_value = evaluate(second, right_op);
+    evaluate(Pair { left: left_value, right: right_value }, combine)
+}
+
+@id("expr.fibonacci")
+fn fibonacci(nth: i64) -> i64
+    requires nth >= 0
+    requires nth <= 20
+{
+    if nth == 0 { 0 } else { if nth == 1 { 1 } else { let mut previous = 0; let mut current = 1; let mut index = 1; while index < nth { let next = previous + current; previous = current; current = next; index = index + 1; index < nth } current } }
+}
+
+@id("expr.fold_many")
+fn fold_many() -> i64
+{
+    let mut total = 0;
+    let mut index = 0;
+    while index < 6 {
+        let value = fibonacci(index);
+        total = total + value;
+        index = index + 1;
+        index < 6
+    }
+    total
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let simple = evaluate(Pair { left: 19, right: 23 }, Op::Add {});
+    let chained = chain_scalars(Pair { left: 6, right: 7 }, Op::Multiply {}, Pair { left: 20, right: 8 }, Op::Subtract {}, Op::Add {});
+    let divided = safe_evaluate(Pair { left: 10, right: 0 }, Op::Divide {});
+    let is_error = match divided { Result::Ok { value: v } => 0, Result::Err { error: code } => code, };
+    let safe = safe_divide(100, 5);
+    let safe_value = match safe { Result::Ok { value: v } => v, Result::Err { error: code } => code, };
+    let unary = apply_unary(21, UnaryOp::Double {});
+    let folded = fold_many();
+    if simple == 42 && chained == 54 && is_error == 1 && safe_value == 20 && unary == 42 && folded == 12 { 42 } else { 0 }
+}

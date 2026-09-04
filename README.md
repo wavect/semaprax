@@ -244,10 +244,10 @@ workspace, and host-integration commands are narrow protocol surfaces intended
 for tool authors; their versioned reference documents define the exact
 admission rules and non-claims.
 
-The v0.2.0 source tree contains an exact Project v8
+This source tree contains a Project v8
 `owned-data-api.v1` developer-preview route for `--target npm` and
 `--target rust`, plus the `examples/frame-payload-*` validation fixtures. Its
-nonignored repository regressions ran in the exact tag workflow, including the
+nonignored repository regressions include exact-tag evidence, including the
 three-host Rust matrices and selected external-consumer jobs. This is hosted
 developer-preview evidence, not a registry publication or formal support
 decision: generated packages remain unpublished and must not be treated as a

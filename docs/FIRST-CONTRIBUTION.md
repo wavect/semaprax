@@ -33,8 +33,9 @@ full-workspace run. Cheap first shapes:
 
 - a broken local link, a missing `Status:`/`Audience:` line, or a missing
   `SUMMARY.md` entry — `tests/documentation.rs` already names the failure;
-- an example under `examples/` plus its entry in the `example-checks` and
-  `example-fmt` loops in `scripts/quality.sh`;
+- an example project under `examples/` plus its entry in the `example-checks` and
+  `example-fmt` loops in `scripts/quality.sh`; keep the project's `README.md`
+  in sync with any new build/run/test instructions.
 - one diagnostic's wording together with its regression;
 - a module split that lowers an entry in `tests/module-size-budget.tsv`.
 

@@ -30,7 +30,7 @@ CLI instead, and say so.
 - `build` emits a target package into a directory you name with `-o`.
 
 Every command and result in the tables below was executed locally against the
-standalone `semaprax 0.2.0` CLI on macOS arm64. That is local evidence for one
+standalone `semaprax` CLI on macOS arm64. That is local evidence for one
 host and one build. It is not hosted, release, or cross-platform evidence, and
 the repository's own gates in [quality gates](../docs/QUALITY-GATES.md) remain
 the authority on what is covered.

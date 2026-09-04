@@ -92,6 +92,30 @@ fn every_example_below_the_top_level_is_canonical() {
     }
 }
 
+/// Every standard-library source is canonical. Library modules verify only
+/// inside their package, which `tests/project.rs::standard_library` proves;
+/// this gate keeps the text in the quick `test-advisory` profile so an
+/// unformatted `std/` module fails before the project harness is built.
+#[test]
+fn every_standard_library_source_is_canonical() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("std");
+    let mut paths = Vec::new();
+    collect_sources(&root, &mut paths);
+    paths.sort();
+    assert!(!paths.is_empty(), "std/ carries .spx modules");
+
+    for path in paths {
+        let source = std::fs::read_to_string(&path).unwrap();
+        let program = parse(&source, &path).unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(
+            format::canonical(&program),
+            source,
+            "{} is not canonical; run `semaprax fmt` on it",
+            path.display()
+        );
+    }
+}
+
 fn collect_sources(directory: &Path, output: &mut Vec<PathBuf>) {
     for entry in std::fs::read_dir(directory).unwrap() {
         let path = entry.unwrap().path();

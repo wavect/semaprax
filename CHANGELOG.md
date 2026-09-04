@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- Added the standard-library contract, [Standard Library v1](docs/STANDARD-LIBRARY-V1.md),
+  and its first `core`-tier packages under `std/`: `std.core` (ordering as
+  `-1`/`0`/`1`, extrema, clamping, range membership, `bool` conversions and
+  connectives), `std.num` (sign, absolute value, parity, Euclidean division and
+  remainder, greatest common divisor), and `std.num.overflow` (overflow
+  predicates and wrapping and saturating arithmetic). Each package is a
+  Project whose entry is its examples module and whose test module is its
+  conformance suite; `tests/project.rs::standard_library` runs both on the
+  interpreter, native C11 at O0/O2, and Core Wasm under Node, checks
+  identities and conformance coverage, and generates the human
+  [catalog](docs/STANDARD-LIBRARY-CATALOG.md) and `std/catalog.json`.
+
+- The Workspace Semantic Graph builder pre-bound now charges structural bytes,
+  string contents, and per-shape identity slots separately instead of the
+  `Try` and string rates for every node. The 16 MiB budget and every reported
+  field are unchanged, but `used_builder_bytes` values move, so the frozen
+  known-answer digests in the workspace change, operations, structural-change,
+  and analysis tests, the workspace CLI harness, and the browser fixture's
+  `project_graph_digest` answers were re-pinned. Before the split a 4.9 KiB
+  module of twenty scalar functions was rejected with `SPX-G171`; the `std/`
+  packages are the regression.
+
+- The workspace CLI tests that assert exact command usages now read them from
+  `semaprax help all`, the exhaustive catalog, instead of the guided one-screen
+  `--help` page that replaced it.
 - `check`, `run`, `test`, and `build` invoked with no input outside a project
   now attach a hint to the unchanged `SPX-J102` missing-manifest diagnostic
   naming the three admitted inputs: a `.spx` file, a project directory, or

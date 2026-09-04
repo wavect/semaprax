@@ -1,0 +1,11 @@
+module std.num.examples;
+use function @id("std.num.abs") from std.num as abs;
+use function @id("std.num.gcd") from std.num as gcd;
+use function @id("std.num.rem_euclid") from std.num as rem_euclid;
+
+@id("std.num.examples.main")
+fn main() -> i64
+{
+    let wrapped_index = rem_euclid(-1, 5);
+    if gcd(abs(-12), 18) == 6 && wrapped_index == 4 { 0 } else { 1 }
+}

@@ -1,0 +1,91 @@
+module std.core;
+
+@id("std.core.ordering.less")
+fn ordering_less() -> i64
+    ensures result == -1
+{
+    -1
+}
+
+@id("std.core.ordering.equal")
+fn ordering_equal() -> i64
+    ensures result == 0
+{
+    0
+}
+
+@id("std.core.ordering.greater")
+fn ordering_greater() -> i64
+    ensures result == 1
+{
+    1
+}
+
+@id("std.core.compare")
+fn compare(left: i64, right: i64) -> i64
+    ensures result >= -1 && result <= 1
+    ensures result != 0 || left == right
+    ensures result == 0 || left != right
+{
+    if left < right { -1 } else { if left > right { 1 } else { 0 } }
+}
+
+@id("std.core.min")
+fn min(left: i64, right: i64) -> i64
+    ensures result <= left && result <= right
+    ensures result == left || result == right
+{
+    if left < right { left } else { right }
+}
+
+@id("std.core.max")
+fn max(left: i64, right: i64) -> i64
+    ensures result >= left && result >= right
+    ensures result == left || result == right
+{
+    if left > right { left } else { right }
+}
+
+@id("std.core.clamp")
+fn clamp(value: i64, low: i64, high: i64) -> i64
+    requires low <= high
+    ensures result >= low && result <= high
+{
+    if value < low { low } else { if value > high { high } else { value } }
+}
+
+@id("std.core.in_range")
+fn in_range(value: i64, low: i64, high: i64) -> bool
+    requires low <= high
+    ensures result == (value >= low && value <= high)
+{
+    value >= low && value <= high
+}
+
+@id("std.core.bool_to_i64")
+fn bool_to_i64(value: bool) -> i64
+    ensures result == 0 || result == 1
+{
+    if value { 1 } else { 0 }
+}
+
+@id("std.core.i64_to_bool")
+fn i64_to_bool(value: i64) -> bool
+    ensures result == (value != 0)
+{
+    value != 0
+}
+
+@id("std.core.xor")
+fn xor(left: bool, right: bool) -> bool
+    ensures result == (left != right)
+{
+    left != right
+}
+
+@id("std.core.implies")
+fn implies(premise: bool, conclusion: bool) -> bool
+    ensures result == (!premise || conclusion)
+{
+    !premise || conclusion
+}

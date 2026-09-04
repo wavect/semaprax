@@ -12,6 +12,7 @@ Audience: all documentation readers.
 - [Using the SEMAPRAX CLI](CLI-GUIDE.md)
 - [Language tour](LANGUAGE-TOUR.md)
 - [Agent quick reference](AGENT-QUICK-REFERENCE.md)
+- [Standard library catalog](STANDARD-LIBRARY-CATALOG.md)
 - [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
 - [Capability-aware CLI help](CLI-HELP-V1.md)
 - [Capability-aware CLI typo guidance](CLI-HELP-V2.md)
@@ -36,6 +37,7 @@ Audience: all documentation readers.
 - [RFC 0001: SEMAPRAX programming system](RFC-0001.md)
 - [RFC 0002: Algebraic data](RFC-0002-ALGEBRAIC-DATA.md)
 - [RFC 0003: Cleanup and resource ABI](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md)
+- [Standard Library v1](STANDARD-LIBRARY-V1.md)
 
 ## Bounded language references
 

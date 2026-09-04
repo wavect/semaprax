@@ -1,0 +1,81 @@
+module std.num;
+
+@id("std.num.i64_min")
+fn i64_min() -> i64
+    ensures result == -9223372036854775807 - 1
+{
+    -9223372036854775807 - 1
+}
+
+@id("std.num.i64_max")
+fn i64_max() -> i64
+    ensures result == 9223372036854775807
+{
+    9223372036854775807
+}
+
+@id("std.num.sign")
+fn sign(value: i64) -> i64
+    ensures result >= -1 && result <= 1
+    ensures result == 0 || value != 0
+{
+    if value < 0 { -1 } else { if value > 0 { 1 } else { 0 } }
+}
+
+@id("std.num.abs")
+fn abs(value: i64) -> i64
+    requires value != -9223372036854775807 - 1
+    ensures result >= 0
+    ensures result == value || result == 0 - value
+{
+    if value < 0 { 0 - value } else { value }
+}
+
+@id("std.num.is_even")
+fn is_even(value: i64) -> bool
+    ensures result == (value % 2 == 0)
+{
+    value % 2 == 0
+}
+
+@id("std.num.is_odd")
+fn is_odd(value: i64) -> bool
+    ensures result == (value % 2 != 0)
+{
+    value % 2 != 0
+}
+
+@id("std.num.div_euclid")
+fn div_euclid(dividend: i64, divisor: i64) -> i64
+    requires divisor != 0
+    requires dividend != -9223372036854775807 - 1 || divisor != -1
+{
+    let quotient = dividend / divisor;
+    if dividend % divisor < 0 { if divisor > 0 { quotient - 1 } else { quotient + 1 } } else { quotient }
+}
+
+@id("std.num.rem_euclid")
+fn rem_euclid(dividend: i64, divisor: i64) -> i64
+    requires divisor != 0
+    requires dividend != -9223372036854775807 - 1 || divisor != -1
+    ensures result >= 0
+{
+    let remainder = dividend % divisor;
+    if remainder < 0 { if divisor > 0 { remainder + divisor } else { remainder - divisor } } else { remainder }
+}
+
+@id("std.num.gcd")
+fn gcd(left: i64, right: i64) -> i64
+    requires left >= 0 && right >= 0
+    ensures result >= 0
+{
+    let mut a = left;
+    let mut b = right;
+    while b != 0 {
+        let next = a % b;
+        a = b;
+        b = next;
+        b != 0
+    }
+    a
+}

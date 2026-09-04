@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "std-core"
+entry = "std.core.examples"
+sources = ["src/core.spx", "src/examples.spx", "src/tests.spx"]
+web_exports = ["std.core.clamp", "std.core.compare"]
+tests = ["std.core.tests"]

@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "std-num"
+entry = "std.num.examples"
+sources = ["src/examples.spx", "src/num.spx", "src/tests.spx"]
+web_exports = ["std.num.gcd", "std.num.rem_euclid"]
+tests = ["std.num.tests"]

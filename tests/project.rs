@@ -159,6 +159,8 @@ mod signature_nominal_arguments;
 mod signature_nominal_rebase;
 #[path = "project/signature_owned_values.rs"]
 mod signature_owned_values;
+#[path = "project/standard_library.rs"]
+mod standard_library;
 #[path = "project/v10_recipe_consumer.rs"]
 mod v10_recipe_consumer;
 #[path = "project/v1_ci_contract.rs"]

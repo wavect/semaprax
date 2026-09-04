@@ -35,6 +35,7 @@ Additional required references:
 | Change area | Owning references |
 | --- | --- |
 | Records, variants, generics, matching, `Option`, `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
+| Standard-library packages under `std/`, their catalogs, tiers, and gates | [Standard Library v1](STANDARD-LIBRARY-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
 | Cleanup, resource ownership, callable settlement | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) |
 | Immutable borrowing, loan provenance, or path-sensitive loan edges | [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md), [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md), [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
 | Single-file semantic changes | [Patch v2](SEMANTIC-PATCH-V2.md), [Impact](SEMANTIC-IMPACT-V1.md), [Review](SEMANTIC-REVIEW-V1.md), and the relevant evidence version |

@@ -26,6 +26,7 @@ the release remains unsigned, not notarized, and pre-alpha.
 | Try the language | Follow the executable [quickstart](QUICKSTART.md), then explore the root [README](../README.md) |
 | Learn the language itself | Work through the [language tour](LANGUAGE-TOUR.md) |
 | Write SEMAPRAX as a coding agent with a small context window | Load the compiler-checked [agent quick reference](AGENT-QUICK-REFERENCE.md) |
+| Find a standard-library declaration and its contract | Read the generated [standard library catalog](STANDARD-LIBRARY-CATALOG.md); [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the tiers and required modules |
 | Find a minimal example to point a command at | [Examples index](../examples/README.md) |
 | Find or automate a compiler command | [Using the SEMAPRAX CLI](CLI-GUIDE.md) |
 | Highlight `.spx` files in Visual Studio Code | The repository's [VS Code extension](../editors/vscode/README.md) |

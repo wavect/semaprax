@@ -1,0 +1,443 @@
+{
+  "modules": [
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn ordering_less() -> i64",
+            "    ensures result == -1"
+          ],
+          "id": "std.core.ordering.less",
+          "kind": "function",
+          "name": "ordering_less",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn ordering_equal() -> i64",
+            "    ensures result == 0"
+          ],
+          "id": "std.core.ordering.equal",
+          "kind": "function",
+          "name": "ordering_equal",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn ordering_greater() -> i64",
+            "    ensures result == 1"
+          ],
+          "id": "std.core.ordering.greater",
+          "kind": "function",
+          "name": "ordering_greater",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 3,
+          "head": [
+            "fn compare(left: i64, right: i64) -> i64",
+            "    ensures result >= -1 && result <= 1",
+            "    ensures result != 0 || left == right",
+            "    ensures result == 0 || left != right"
+          ],
+          "id": "std.core.compare",
+          "kind": "function",
+          "name": "compare",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 2,
+          "head": [
+            "fn min(left: i64, right: i64) -> i64",
+            "    ensures result <= left && result <= right",
+            "    ensures result == left || result == right"
+          ],
+          "id": "std.core.min",
+          "kind": "function",
+          "name": "min",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 2,
+          "head": [
+            "fn max(left: i64, right: i64) -> i64",
+            "    ensures result >= left && result >= right",
+            "    ensures result == left || result == right"
+          ],
+          "id": "std.core.max",
+          "kind": "function",
+          "name": "max",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn clamp(value: i64, low: i64, high: i64) -> i64",
+            "    requires low <= high",
+            "    ensures result >= low && result <= high"
+          ],
+          "id": "std.core.clamp",
+          "kind": "function",
+          "name": "clamp",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn in_range(value: i64, low: i64, high: i64) -> bool",
+            "    requires low <= high",
+            "    ensures result == (value >= low && value <= high)"
+          ],
+          "id": "std.core.in_range",
+          "kind": "function",
+          "name": "in_range",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn bool_to_i64(value: bool) -> i64",
+            "    ensures result == 0 || result == 1"
+          ],
+          "id": "std.core.bool_to_i64",
+          "kind": "function",
+          "name": "bool_to_i64",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn i64_to_bool(value: i64) -> bool",
+            "    ensures result == (value != 0)"
+          ],
+          "id": "std.core.i64_to_bool",
+          "kind": "function",
+          "name": "i64_to_bool",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn xor(left: bool, right: bool) -> bool",
+            "    ensures result == (left != right)"
+          ],
+          "id": "std.core.xor",
+          "kind": "function",
+          "name": "xor",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn implies(premise: bool, conclusion: bool) -> bool",
+            "    ensures result == (!premise || conclusion)"
+          ],
+          "id": "std.core.implies",
+          "kind": "function",
+          "name": "implies",
+          "requires": 0
+        }
+      ],
+      "module": "std.core",
+      "package": "std/core",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn i64_min() -> i64",
+            "    ensures result == -9223372036854775807 - 1"
+          ],
+          "id": "std.num.i64_min",
+          "kind": "function",
+          "name": "i64_min",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn i64_max() -> i64",
+            "    ensures result == 9223372036854775807"
+          ],
+          "id": "std.num.i64_max",
+          "kind": "function",
+          "name": "i64_max",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 2,
+          "head": [
+            "fn sign(value: i64) -> i64",
+            "    ensures result >= -1 && result <= 1",
+            "    ensures result == 0 || value != 0"
+          ],
+          "id": "std.num.sign",
+          "kind": "function",
+          "name": "sign",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 2,
+          "head": [
+            "fn abs(value: i64) -> i64",
+            "    requires value != -9223372036854775807 - 1",
+            "    ensures result >= 0",
+            "    ensures result == value || result == 0 - value"
+          ],
+          "id": "std.num.abs",
+          "kind": "function",
+          "name": "abs",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn is_even(value: i64) -> bool",
+            "    ensures result == (value % 2 == 0)"
+          ],
+          "id": "std.num.is_even",
+          "kind": "function",
+          "name": "is_even",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn is_odd(value: i64) -> bool",
+            "    ensures result == (value % 2 != 0)"
+          ],
+          "id": "std.num.is_odd",
+          "kind": "function",
+          "name": "is_odd",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn div_euclid(dividend: i64, divisor: i64) -> i64",
+            "    requires divisor != 0",
+            "    requires dividend != -9223372036854775807 - 1 || divisor != -1"
+          ],
+          "id": "std.num.div_euclid",
+          "kind": "function",
+          "name": "div_euclid",
+          "requires": 2
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn rem_euclid(dividend: i64, divisor: i64) -> i64",
+            "    requires divisor != 0",
+            "    requires dividend != -9223372036854775807 - 1 || divisor != -1",
+            "    ensures result >= 0"
+          ],
+          "id": "std.num.rem_euclid",
+          "kind": "function",
+          "name": "rem_euclid",
+          "requires": 2
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn gcd(left: i64, right: i64) -> i64",
+            "    requires left >= 0 && right >= 0",
+            "    ensures result >= 0"
+          ],
+          "id": "std.num.gcd",
+          "kind": "function",
+          "name": "gcd",
+          "requires": 1
+        }
+      ],
+      "module": "std.num",
+      "package": "std/num",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn add_overflows(left: i64, right: i64) -> bool"
+          ],
+          "id": "std.num.overflow.add_overflows",
+          "kind": "function",
+          "name": "add_overflows",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn sub_overflows(left: i64, right: i64) -> bool"
+          ],
+          "id": "std.num.overflow.sub_overflows",
+          "kind": "function",
+          "name": "sub_overflows",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn neg_overflows(value: i64) -> bool",
+            "    ensures result == (value == -9223372036854775807 - 1)"
+          ],
+          "id": "std.num.overflow.neg_overflows",
+          "kind": "function",
+          "name": "neg_overflows",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn mul_overflows(left: i64, right: i64) -> bool"
+          ],
+          "id": "std.num.overflow.mul_overflows",
+          "kind": "function",
+          "name": "mul_overflows",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn wrapping_add(left: i64, right: i64) -> i64"
+          ],
+          "id": "std.num.overflow.wrapping_add",
+          "kind": "function",
+          "name": "wrapping_add",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn wrapping_sub(left: i64, right: i64) -> i64"
+          ],
+          "id": "std.num.overflow.wrapping_sub",
+          "kind": "function",
+          "name": "wrapping_sub",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn wrapping_neg(value: i64) -> i64"
+          ],
+          "id": "std.num.overflow.wrapping_neg",
+          "kind": "function",
+          "name": "wrapping_neg",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn saturating_add(left: i64, right: i64) -> i64"
+          ],
+          "id": "std.num.overflow.saturating_add",
+          "kind": "function",
+          "name": "saturating_add",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn saturating_sub(left: i64, right: i64) -> i64"
+          ],
+          "id": "std.num.overflow.saturating_sub",
+          "kind": "function",
+          "name": "saturating_sub",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn saturating_neg(value: i64) -> i64"
+          ],
+          "id": "std.num.overflow.saturating_neg",
+          "kind": "function",
+          "name": "saturating_neg",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn saturating_abs(value: i64) -> i64",
+            "    ensures result >= 0"
+          ],
+          "id": "std.num.overflow.saturating_abs",
+          "kind": "function",
+          "name": "saturating_abs",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn saturating_mul(left: i64, right: i64) -> i64"
+          ],
+          "id": "std.num.overflow.saturating_mul",
+          "kind": "function",
+          "name": "saturating_mul",
+          "requires": 0
+        }
+      ],
+      "module": "std.num.overflow",
+      "package": "std/num-overflow",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
+    }
+  ],
+  "schema": "semaprax.standard-library-catalog.v1"
+}

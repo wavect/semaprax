@@ -400,7 +400,11 @@ mod agent_quick_reference {
     }
 
     fn blocks() -> Vec<Block> {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(REFERENCE);
+        blocks_of(REFERENCE)
+    }
+
+    fn blocks_of(reference: &str) -> Vec<Block> {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join(reference);
         let text = std::fs::read_to_string(&path)
             .unwrap()
             .replace("\r\n", "\n");
@@ -431,7 +435,7 @@ mod agent_quick_reference {
             }
             assert!(
                 end < lines.len(),
-                "{REFERENCE} line {}: unterminated {FENCE} block",
+                "{reference} line {}: unterminated {FENCE} block",
                 index + 1
             );
             let mut source = lines[start..end].join("\n");
@@ -514,5 +518,48 @@ mod agent_quick_reference {
             checked >= 5,
             "{REFERENCE} must keep at least five diagnostic demonstrations, found {checked}"
         );
+    }
+
+    /// The effect-vocabulary block in the standard-library contract is a
+    /// complete verified module too, so the hosted signatures it teaches
+    /// cannot drift from the verifier.
+    #[test]
+    fn standard_library_effect_blocks_verify_cleanly_and_are_canonical() {
+        const STANDARD_LIBRARY: &str = "docs/STANDARD-LIBRARY-V1.md";
+        let blocks = blocks_of(STANDARD_LIBRARY);
+        assert!(
+            !blocks.is_empty(),
+            "{STANDARD_LIBRARY} must keep its verified effect-vocabulary module"
+        );
+        for block in blocks {
+            assert!(
+                block.expect.is_none(),
+                "{STANDARD_LIBRARY} line {}: the contract demonstrates verified modules only",
+                block.line
+            );
+            let path = format!("standard-library-{}.spx", block.line);
+            let program = parse(&block.source, Path::new(&path)).unwrap_or_else(|diagnostic| {
+                panic!(
+                    "{STANDARD_LIBRARY} line {}: block does not parse: {diagnostic}",
+                    block.line
+                )
+            });
+            let diagnostics = verify::verify(&program);
+            assert!(
+                diagnostics.is_empty(),
+                "{STANDARD_LIBRARY} line {}: block must verify without diagnostics, found {:?}",
+                block.line,
+                diagnostics
+                    .iter()
+                    .map(|diagnostic| diagnostic.to_string())
+                    .collect::<Vec<_>>()
+            );
+            assert_eq!(
+                format::canonical(&program),
+                block.source,
+                "{STANDARD_LIBRARY} line {}: block is not canonical; paste the formatter output",
+                block.line
+            );
+        }
     }
 }

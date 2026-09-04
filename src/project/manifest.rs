@@ -1,3 +1,11 @@
+mod tables;
+
+pub use tables::{
+    ManifestLayout, PackageDependency, MAX_DEPENDENCIES, PACKAGE_MANIFEST_RESERVED_TABLES,
+    PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_TABLES, PACKAGE_RESERVED_KEYS,
+    PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32,
+};
+
 use crate::diagnostic::Diagnostic;
 
 use super::profile::{
@@ -48,11 +56,14 @@ pub const MAX_SOURCES: usize = 16;
 pub const MAX_WEB_EXPORTS: usize = 32;
 pub const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
 
-/// One exact, closed Project manifest. The schema selects the frozen v1
-/// scalar shape or one additive, schema-bound public profile.
+/// One exact, closed Project manifest. `schema` is the frozen profile contract
+/// the manifest lowers to: a frozen `semaprax.project.v1`-`v11` layout names it
+/// directly, and the extensible `semaprax.manifest.v1` table layout selects it
+/// through `[package] profile`. Every project route reads only the contract.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectManifest {
     schema: &'static str,
+    layout: ManifestLayout,
     name: String,
     package_version: Option<String>,
     profile: ProjectProfile,
@@ -63,10 +74,13 @@ pub struct ProjectManifest {
     command_input: Option<String>,
     capabilities: Vec<String>,
     test_module: String,
+    dependencies: Vec<PackageDependency>,
+    target_matrix: Option<Vec<String>>,
 }
 
 impl ProjectManifest {
-    /// Parse one frozen Project v1-v7 canonical manifest.
+    /// Parse one canonical manifest: a frozen Project v1-v11 layout or the
+    /// extensible Package Manifest v1 table layout.
     pub fn parse(source: &str) -> Result<Self, Vec<Diagnostic>> {
         if source.len() > MAX_MANIFEST_BYTES {
             return Err(capacity("manifest_bytes", MAX_MANIFEST_BYTES));
@@ -81,7 +95,40 @@ impl ProjectManifest {
             .copied()
             .ok_or_else(|| grammar("Project manifest is empty"))
             .and_then(|line| parse_string_assignment(line, "schema"))?;
-        let (schema, name, package_version, profile, entry, sources, web_exports, command, command_input, capabilities, tests) =
+        let mut layout = ManifestLayout::Frozen;
+        let mut dependencies = Vec::new();
+        let mut target_matrix = None;
+        let (
+            schema,
+            name,
+            package_version,
+            profile,
+            entry,
+            sources,
+            web_exports,
+            command,
+            command_input,
+            capabilities,
+            tests,
+        ) = if schema == PACKAGE_MANIFEST_SCHEMA {
+            let parts = tables::parse(&lines)?;
+            layout = ManifestLayout::Tables;
+            dependencies = parts.dependencies;
+            target_matrix = parts.target_matrix;
+            (
+                parts.schema,
+                parts.name,
+                Some(parts.version),
+                parts.profile,
+                parts.entry,
+                parts.sources,
+                parts.web_exports,
+                parts.command,
+                parts.command_input,
+                parts.capabilities,
+                parts.tests,
+            )
+        } else {
             match schema.as_str() {
                 PROJECT_SCHEMA => {
                     if lines.len() != 7 || lines.last() != Some(&"") {
@@ -481,11 +528,13 @@ impl ProjectManifest {
                 }
                 _ => {
                     return Err(grammar(
-                        "Project manifest schema is neither semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, semaprax.project.v4, semaprax.project.v5, semaprax.project.v6, semaprax.project.v7, semaprax.project.v8, semaprax.project.v9, semaprax.project.v10, nor semaprax.project.v11",
+                        "Project manifest schema is neither semaprax.manifest.v1, semaprax.project.v1, semaprax.project.v2, semaprax.project.v3, semaprax.project.v4, semaprax.project.v5, semaprax.project.v6, semaprax.project.v7, semaprax.project.v8, semaprax.project.v9, semaprax.project.v10, nor semaprax.project.v11",
                     ))
                 }
-            };
+            }
+        };
         let version_label = match schema {
+            _ if layout == ManifestLayout::Tables => "Package Manifest v1",
             PROJECT_SCHEMA => "Project v1",
             PROJECT_SCHEMA_V2 => "Project v2",
             PROJECT_SCHEMA_V3 => "Project v3",
@@ -567,6 +616,7 @@ impl ProjectManifest {
 
         let manifest = Self {
             schema,
+            layout,
             name,
             package_version,
             profile,
@@ -577,11 +627,16 @@ impl ProjectManifest {
             command_input,
             capabilities,
             test_module: tests.into_iter().next().expect("one test module"),
+            dependencies,
+            target_matrix,
         };
-        if manifest.to_canonical_toml() != source {
-            return Err(grammar(format!(
-                "{version_label} manifest is not canonical"
-            )));
+        let canonical = manifest.to_canonical_toml();
+        if canonical != source {
+            return Err(if layout == ManifestLayout::Tables {
+                tables::canonical_mismatch(source, &canonical)
+            } else {
+                grammar(format!("{version_label} manifest is not canonical"))
+            });
         }
         Ok(manifest)
     }
@@ -675,7 +730,9 @@ impl ProjectManifest {
     }
 
     pub fn to_canonical_toml(&self) -> String {
-        if self.schema == PROJECT_SCHEMA {
+        if self.layout == ManifestLayout::Tables {
+            tables::render(self)
+        } else if self.schema == PROJECT_SCHEMA {
             format!(
                 "schema = \"{PROJECT_SCHEMA}\"\nname = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ntests = [\"{}\"]\n",
                 self.name,

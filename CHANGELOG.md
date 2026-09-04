@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- `semaprax.toml` gains one extensible table layout, `semaprax.manifest.v1`
+  ([Package Manifest v1](docs/PACKAGE-MANIFEST-V1.md)): `[package]`,
+  `[modules]`, `[exports]`, `[command]`, `[capabilities]`, `[dependencies]`,
+  and `[targets]` tables lower onto the frozen Project v1-v11 profile
+  contracts, so every project route, descriptor, and generated artifact is
+  unchanged and only the manifest bytes differ. Reserved and unknown tables or
+  keys reject with `SPX-J120`, a declared dependency fails every build closed
+  with `SPX-J121`, a build target outside `[targets] matrix` rejects with
+  `SPX-J122`, and a non-canonical manifest names its first differing line.
+  The frozen layouts remain admitted byte-for-byte;
+  `tests/project.rs::package_manifest_v1` is the gate.
+
 - The standard-library contract and the agent quick reference explain how a
   Project consumes a `std.*` module today, by vendoring its library file and
   importing by `@id`; the gate vendors every package into a fresh project and

@@ -593,6 +593,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 cli::build::BuildInput::Project(manifest_path) => {
                     let output = project::with_authenticated_project(manifest_path, |snapshot| {
                         snapshot.check()?;
+                        snapshot.manifest().admit_build_target(&options.target)?;
                         let mut output = options.output.clone().unwrap_or_else(|| {
                             let suffix = match options.target.as_str() {
                                 "web" | "wasm" => "web".to_owned(),

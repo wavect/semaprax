@@ -184,14 +184,18 @@ pub(super) fn validate(
     if roots.len() != 1 {
         return Err(invalid("extraction helper cleanup root is ambiguous"));
     }
-    // An owning capture lands in the root region, so its type is admitted at
-    // the parameter boundary above rather than on the Copy-only path.
-    let owned_boundary = helper
+    // An owning capture and an owned result both land in the root region, so
+    // their types are admitted at the boundaries checked above rather than on
+    // the Copy-only path.
+    let mut owned_boundary = helper
         .params
         .iter()
         .filter(|parameter| parameter.ownership == OwnershipMode::Own)
         .map(|parameter| &parameter.ty)
         .collect::<Vec<_>>();
+    if helper.body.ownership == OwnershipMode::Own {
+        owned_boundary.push(&helper.return_type);
+    }
     // Inspect slots in their original order. The rebuilt plan remains the
     // authority; this correspondence never filters or repairs it.
     for storage in &roots[0].slots {

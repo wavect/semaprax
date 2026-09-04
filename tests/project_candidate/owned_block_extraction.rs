@@ -564,7 +564,7 @@ fn owning_capture_rejects_parameters_projections_conditions_and_multiple_roots_a
         ("block.owner-param", "consume(input)"),
         ("block.owner-conditional", "if value > 0"),
         ("block.two-owners", "consume(left) + consume(right)"),
-        ("block.projected-owner", "consume(packet.bytes)"),
+        ("block.projected-owner", "consume_bytes(packet.bytes)"),
     ] {
         code(extract(&base, target, marker, false), "SPX-G506");
     }

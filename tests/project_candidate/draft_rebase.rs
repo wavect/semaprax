@@ -482,7 +482,45 @@ fn copy_record_forwarding_binds_field_identity_even_when_owner_body_and_signatur
             base.revision().project_revision(),
         )
         .unwrap();
-    assert_eq!(unchanged.draft().to_json(), draft.to_json());
+    // A rebase onto the same revision leaves the draft's own content untouched.
+    // Recording it is still lineage, which lifts the projection from v1 to v2,
+    // so pin exactly what the lineage adds and compare everything else.
+    let rebased: Value = serde_json::from_str(unchanged.draft().to_json()).unwrap();
+    let before: Value = serde_json::from_str(draft.to_json()).unwrap();
+    assert_eq!(before["schema"], "semaprax.project-candidate-draft.v1");
+    assert_eq!(rebased["schema"], "semaprax.project-candidate-draft.v2");
+    assert_eq!(
+        rebased["branch_ancestry"],
+        json!([{
+            "onto_revision": before["last_valid_revision"],
+            "operation": "rebase",
+            "parents": [draft.draft_digest()],
+        }])
+    );
+    assert_eq!(rebased["filled_hole_lineage"], json!([]));
+    let lineage_nonclaim =
+        json!("lineage_does_not_authenticate_parent_draft_contents_or_grant_authority");
+    let mut nonclaims = rebased["nonclaims"].as_array().unwrap().clone();
+    assert_eq!(
+        nonclaims.iter().filter(|c| **c == lineage_nonclaim).count(),
+        1
+    );
+    nonclaims.retain(|claim| *claim != lineage_nonclaim);
+    assert_eq!(json!(nonclaims), before["nonclaims"]);
+    let strip = |value: &Value| {
+        let mut value = value.clone();
+        let object = value.as_object_mut().unwrap();
+        for key in [
+            "schema",
+            "branch_ancestry",
+            "filled_hole_lineage",
+            "nonclaims",
+        ] {
+            object.remove(key);
+        }
+        value
+    };
+    assert_eq!(strip(&rebased), strip(&before));
 
     // Equal-length field-ID replacement leaves every function's source span,
     // body, parameters, return type, effects, and contracts exactly unchanged.

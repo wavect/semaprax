@@ -295,7 +295,45 @@ fn identical_expression_and_contract_holes_coalesce_but_same_id_different_meanin
         let report: Value = serde_json::from_str(result.to_json()).unwrap();
         assert_eq!(report["holes"].as_array().unwrap().len(), 1);
         assert_eq!(report["holes"][0]["parents"], json!(["left", "right"]));
-        assert_eq!(result.draft().to_json(), draft.to_json());
+        // Coalescing leaves the draft's own content untouched. Recording the
+        // merge is still lineage, which lifts the projection from v1 to v2, so
+        // pin exactly what the lineage adds and compare everything else.
+        let merged: Value = serde_json::from_str(result.draft().to_json()).unwrap();
+        let coalesced: Value = serde_json::from_str(draft.to_json()).unwrap();
+        assert_eq!(coalesced["schema"], "semaprax.project-candidate-draft.v1");
+        assert_eq!(merged["schema"], "semaprax.project-candidate-draft.v2");
+        assert_eq!(
+            merged["branch_ancestry"],
+            json!([{
+                "onto_revision": Value::Null,
+                "operation": "merge",
+                "parents": [draft.draft_digest(), draft.draft_digest()],
+            }])
+        );
+        assert_eq!(merged["filled_hole_lineage"], json!([]));
+        let lineage_nonclaim =
+            json!("lineage_does_not_authenticate_parent_draft_contents_or_grant_authority");
+        let mut nonclaims = merged["nonclaims"].as_array().unwrap().clone();
+        assert_eq!(
+            nonclaims.iter().filter(|c| **c == lineage_nonclaim).count(),
+            1
+        );
+        nonclaims.retain(|claim| *claim != lineage_nonclaim);
+        assert_eq!(json!(nonclaims), coalesced["nonclaims"]);
+        let strip = |value: &Value| {
+            let mut value = value.clone();
+            let object = value.as_object_mut().unwrap();
+            for key in [
+                "schema",
+                "branch_ancestry",
+                "filled_hole_lineage",
+                "nonclaims",
+            ] {
+                object.remove(key);
+            }
+            value
+        };
+        assert_eq!(strip(&merged), strip(&coalesced));
     }
     let left = body_hole(&base, "calculator.multiply", "same");
     let right = body_hole(&base, "calculator.add", "same");

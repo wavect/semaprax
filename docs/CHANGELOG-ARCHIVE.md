@@ -1,4 +1,8 @@
-# Changelog
+# Changelog archive
+
+Status: historical archive of the full changelog; not the current release notes.
+
+Audience: maintainers and historians requiring chronological context.
 
 ## Unreleased
 
@@ -39,7 +43,7 @@
   additive `cases` array under the unchanged schema string and payload-digest
   domain, and `project::verify_execution_envelope` verifies it. Entry envelopes
   and the passing-test line without cases are unchanged.
-  [Project Test Cases v1](docs/PROJECT-TEST-CASES-V1.md) owns the rule and
+  [Project Test Cases v1](PROJECT-TEST-CASES-V1.md) owns the rule and
   `tests/project.rs::developer_loop` pins it.
 
 - A violated `requires` or `ensures` under `semaprax run` or `semaprax test`
@@ -57,7 +61,7 @@
   the unlisted `.spx` file that declares the module and the `sources` key in
   `semaprax.toml`, or says that no listed file declares the module. The hint is
   added by the project loader in `src/project/source_hint.rs`, so human and
-  JSON diagnostics agree; [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md)
+  JSON diagnostics agree; [Project Manifest v1](PROJECT-MANIFEST-V1.md)
   owns the rule and `tests/project_cli_v1.rs` pins it.
 - `scripts/quality.sh changed` routes CLI and editor changes narrowly. Paths
   under `src/cli/` and `src/bin/`, plus `src/cli_driver.rs` and
@@ -117,7 +121,7 @@
 - `semaprax resolve <manifest> --target <native64|wasm32> --cache <dir>`
   resolves a project's `[dependencies]` against a local content-addressed cache
   of Subject-v3 envelopes and prints the offline resolver's evidence
-  ([Project Dependency Resolution v1](docs/PROJECT-DEPENDENCY-RESOLUTION-V1.md)).
+  ([Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)).
   It selects one version per package that satisfies the manifest ranges and
   their transitive requirements, deterministically and per target, reading the
   cache as an explicit effect with no registry, acquisition, or build. Cache
@@ -167,11 +171,11 @@
   and rendered through the same projection as `fmt`, so a comment above a
   renamed function stays above it and the patched file passes `fmt --check`.
   Graph revisions and evidence digests are unchanged. [Canonical comments
-  v1](docs/CANONICAL-COMMENTS-V1.md) lists the preserved routes;
+  v1](CANONICAL-COMMENTS-V1.md) lists the preserved routes;
   `tests/semantic/patch.rs` pins the regression.
 
 - `semaprax lock <manifest>` renders the deterministic `semaprax.lock` beside a
-  project ([Project Lock v1](docs/PROJECT-LOCK-V1.md)): the canonical manifest
+  project ([Project Lock v1](PROJECT-LOCK-V1.md)): the canonical manifest
   and its contract, the project revision as the program root, every source
   file's revision and digest, the retained interface descriptor digest, the
   declared target matrix, required capabilities, the compiler, and the
@@ -186,7 +190,7 @@
   or right after the item it followed, at that item's depth; formatting is
   idempotent and a comment-free file formats to the same bytes as before.
   Only `fmt` restores comments; `patch` and other rewriting transactions still
-  emit comment-free text. [Canonical comments v1](docs/CANONICAL-COMMENTS-V1.md)
+  emit comment-free text. [Canonical comments v1](CANONICAL-COMMENTS-V1.md)
   owns the placement rules, `src/format/comments.rs` and
   `tests/projections/fmt_comments.rs` pin them, and the formatter's capacity
   accounting moved verbatim into `src/format/capacity.rs`.
@@ -199,7 +203,7 @@
   operands, and both `new` routes publish the same five files. The library
   template gains the same file. The `_v1` API names are unchanged; the schema
   string and digest domain are v2.
-  [Public Project Scaffold Capsule v2](docs/PROJECT-SCAFFOLD-V2.md) owns the
+  [Public Project Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md) owns the
   contract.
 
 - `semaprax new <destination>` now works on the standalone compiler. It
@@ -207,12 +211,12 @@
   but a fresh destination under an existing real directory, writes every file
   with create-new semantics, reads the files back, authenticates the project,
   and prints the same success line. The full toolchain keeps its held-parent
-  staged publication; [Standalone project creation v1](docs/NEW-PROJECT-STANDALONE-V1.md)
+  staged publication; [Standalone project creation v1](NEW-PROJECT-STANDALONE-V1.md)
   owns the bounded route and its non-claims, `tests/project/new_cli.rs` pins
   it, and the install guide, quickstart, and README no longer require the
   full toolchain to create a project.
 - `semaprax.toml` gains one extensible table layout, `semaprax.manifest.v1`
-  ([Package Manifest v1](docs/PACKAGE-MANIFEST-V1.md)): `[package]`,
+  ([Package Manifest v1](PACKAGE-MANIFEST-V1.md)): `[package]`,
   `[modules]`, `[exports]`, `[command]`, `[capabilities]`, `[dependencies]`,
   and `[targets]` tables lower onto the frozen Project v1-v11 profile
   contracts, so every project route, descriptor, and generated artifact is
@@ -239,7 +243,7 @@
   library template. The calculator capsule bytes are unchanged, and the
   private `new` still admits only the calculator inventory.
 
-- Added the standard-library contract, [Standard Library v1](docs/STANDARD-LIBRARY-V1.md),
+- Added the standard-library contract, [Standard Library v1](STANDARD-LIBRARY-V1.md),
   and its first `core`-tier packages under `std/`: `std.core` (ordering as
   `-1`/`0`/`1`, extrema, clamping, range membership, `bool` conversions and
   connectives), `std.num` (sign, absolute value, parity, Euclidean division and
@@ -249,7 +253,7 @@
   conformance suite; `tests/project.rs::standard_library` runs both on the
   interpreter, native C11 at O0/O2, and Core Wasm under Node, checks
   identities and conformance coverage, and generates the human
-  [catalog](docs/STANDARD-LIBRARY-CATALOG.md) and `std/catalog.json`.
+  [catalog](STANDARD-LIBRARY-CATALOG.md) and `std/catalog.json`.
 
 - The Workspace Semantic Graph builder pre-bound now charges structural bytes,
   string contents, and per-shape identity slots separately instead of the
@@ -305,7 +309,7 @@
   to 2048 bytes and filtered by the executable's capability class. The former
   7 KB exhaustive page moved to the new `semaprax help all` form with its bytes
   otherwise unchanged; scoped help, typo guidance, and recovery hints are
-  unchanged. [Guided CLI Help v4](docs/CLI-HELP-V4.md) owns the contract and
+  unchanged. [Guided CLI Help v4](CLI-HELP-V4.md) owns the contract and
   the standalone and full-toolchain help harnesses pin it.
 - A borrowed view taken directly from a string literal, an array literal, or a
   call result (`str_as_bytes("hi")`, `array_as_slice([1u8])`) now names the
@@ -402,7 +406,7 @@
   Match-pattern parsing moved verbatim into `src/parser/patterns.rs` so the
   grammar root shrinks under its recorded module-size budget.
 
-- Added the compiler-checked [agent quick reference](docs/AGENT-QUICK-REFERENCE.md):
+- Added the compiler-checked [agent quick reference](AGENT-QUICK-REFERENCE.md):
   one page of admitted language shapes, the compiler-owned function table, the
   diagnostics that habits from other languages trigger with their fixes, and
   measured guidance on when `graph`, `context`, or the source itself is the
@@ -469,12 +473,12 @@
   sibling modules without raising any module-size budget.
 
 - Added a getting-started layer over the existing references: a
-  [language tour](docs/LANGUAGE-TOUR.md) whose every code block is a gated
+  [language tour](LANGUAGE-TOUR.md) whose every code block is a gated
   verbatim excerpt of a committed example, an [examples
-  index](examples/README.md) recording what each example demonstrates and which
-  command was observed to succeed on it, an [install guide](docs/INSTALL.md)
+  index](../examples/README.md) recording what each example demonstrates and which
+  command was observed to succeed on it, an [install guide](INSTALL.md)
   owning the two-CLI routes and a reproduced first-failure table, and a
-  [first-contribution walkthrough](docs/FIRST-CONTRIBUTION.md) sequencing one
+  [first-contribution walkthrough](FIRST-CONTRIBUTION.md) sequencing one
   change through the existing read order, harness conventions, and quality
   profiles. Each document is bound to executable gates in `tests/`, and the
   observed evidence is local to one host and one build.
@@ -519,7 +523,7 @@
   locations when source paths and spans are available. Pathless rendering and
   machine-readable JSON remain unchanged.
 
-- Added the bounded [Language-Native Agent Object v1](docs/LANGUAGE-NATIVE-AGENT-OBJECT-V1.md)
+- Added the bounded [Language-Native Agent Object v1](LANGUAGE-NATIVE-AGENT-OBJECT-V1.md)
   compiler slice. Canonical AgentDefinition documents assign stable IDs to the
   six agent types and six harness operations; compilation emits a deterministic
   digest-bound AgentGraph and derives a canonical Agent Runtime Profile v1 from
@@ -1065,7 +1069,7 @@
   useful-data admission separately, one exact probe shape per row, and records
   that position matters as much as type: `borrow str` is admitted by the
   borrowed-text profile returning a scalar and refused returning `usize`.
-  [Public Wasm Scalar Exports v1](docs/WASM-SCALAR-EXPORTS-V1.md) now names
+  [Public Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md) now names
   what each excluded type uses instead. No admission behavior changed.
 
 - Added `semaprax.graph.v25` so a program declaring an `import rust fn`
@@ -1098,7 +1102,7 @@
   both loops, so its verification and canonical formatting were ungated.
   Documented the already emitted `SPX-B112` SDK admission and `SPX-I233` SDK
   publication diagnostics in
-  [Native Rust Interoperability v1](docs/NATIVE-RUST-INTEROP-V1.md), whose
+  [Native Rust Interoperability v1](NATIVE-RUST-INTEROP-V1.md), whose
   owned-diagnostic list had omitted both. No admitted source form, type, ABI,
   descriptor, manifest, or generated-artifact byte changed.
 - Added the zero-authority `@semaprax/agent-workflow` TypeScript package for
@@ -2810,7 +2814,7 @@
   cross-platform, public-cache, recovery, or production claim is made.
 
 - Added the authored, unrun [Prepared Project Interpreter and Source Trace
-  v1](docs/PROJECT-PREPARED-INTERPRETER-V1.md): one cached exact entry/test
+  v1](PROJECT-PREPARED-INTERPRETER-V1.md): one cached exact entry/test
   closure admission, one sequential long-lived fixed-stack worker, bounded
   cancellation-aware expression origins, canonical trace replay, and retained
   revision source-origin verification. Existing Interpreter, Project
@@ -3198,7 +3202,7 @@
   or recovery claim.
 
 - Added the locally evidenced [Bounded Language Command I/O
-  v1](docs/BOUNDED-LANGUAGE-COMMAND-IO-V1.md), additive Graph v19, and Project
+  v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), additive Graph v19, and Project
   Manifest v6. Checked code gains four compiler-owned operations for argument
   count, UTF-8 argument views, one owned binary-stdin read, and bounded stderr,
   under exact declared effects and a closed four-code failure domain. One
@@ -4254,7 +4258,7 @@
   v1/v2/v3 Target Evidence and Patch Evidence v2 known answers. No completion
   status changes.
 
-- Added [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md), a locally
+- Added [Project Manifest v1](PROJECT-MANIFEST-V1.md), a locally
   evidenced bounded multi-file pure-scalar build input. Its exact canonical
   `semaprax.toml` names 2–16 source files, one entry, one test module, and
   1–32 stable Web exports. One invocation holds the exact manifest/source
@@ -4281,7 +4285,7 @@
   `vswhere`, MSVC, linker, SDK, and import-library identity checks, including
   the hosted-observed serviced `link.exe` identity.
 
-- Added [Public Wasm Scalar Exports v1](docs/WASM-SCALAR-EXPORTS-V1.md).
+- Added [Public Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md).
   Repeated `--export <stable-id>` options select 1–32 explicit persistent
   monomorphic `i64`/`bool` functions from a completely scalar, effect-free
   program. Under a caller-exclusive parent/new-tree publication contract, the
@@ -4346,7 +4350,7 @@
   backend semantics, durable memory, wallet, payment, or signing surface.
   Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). Private Economic Agent v1 A+B is exact-head hosted green at fe75c38d898b71e3ed5c57411fb46d0dbd4fc34b in run 31611748969, including both Economic gates on Ubuntu, macOS, and Windows. Public Economic Agent v1 C is exact-head hosted green at 03f1f2736de23d03b298f265f93409de89a6be95 in run 31616168124 (12/12 jobs), including the private, process-termination, and public Economic gates on Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
 
-- Added [Semantic Workspace Operations v1](docs/SEMANTIC-WORKSPACE-OPERATIONS-V1.md),
+- Added [Semantic Workspace Operations v1](SEMANTIC-WORKSPACE-OPERATIONS-V1.md),
   a bounded shared-lock read-only compiler for explicit stable-ID declaration
   and direct import-alias renames over existing managed paths. It consumes one
   retained base graph/AST-HIR sidecar, builds one candidate graph, and emits an
@@ -4365,10 +4369,10 @@
   all 12 jobs passed, including the Operations process-termination gate on
   Ubuntu, macOS, and Windows. Totals remain 38 Partial/18 Missing.
 
-- Added [Semantic Workspace v1](docs/SEMANTIC-WORKSPACE-V1.md),
-  [Workspace Semantic Graph v1](docs/WORKSPACE-SEMANTIC-GRAPH-V1.md),
-  [Workspace Analysis v1](docs/WORKSPACE-ANALYSIS-V1.md), and
-  [Semantic Workspace Change v1](docs/SEMANTIC-WORKSPACE-CHANGE-V1.md).
+- Added [Semantic Workspace v1](SEMANTIC-WORKSPACE-V1.md),
+  [Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md),
+  [Workspace Analysis v1](WORKSPACE-ANALYSIS-V1.md), and
+  [Semantic Workspace Change v1](SEMANTIC-WORKSPACE-CHANGE-V1.md).
   The additive initializer authenticates 2–16 existing sources and resolves
   explicit direct function/type imports in one managed generation. The public
   graph projects an entry-provider closure while its budget authenticates full
@@ -4397,7 +4401,7 @@
   status changes: 38 Partial/18 Missing.
 
 - Added [Semantic Workspace Patch Evidence
-  v1](docs/SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md). The canonical outer
+  v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md). The canonical outer
   capsule binds one exact Workspace Patch/preview and, for every sorted changed
   path, independently rebuilt source/Graph/Patch/Review/seven-assessment/
   supporting-evidence facts plus a child Semantic Patch Evidence v1 digest.
@@ -4448,8 +4452,8 @@
   remain open.
 
 - Added [Semantic Workspace Transaction
-  v1](docs/SEMANTIC-WORKSPACE-TRANSACTION-V1.md) and [ADR
-  0002](docs/decisions/0002-managed-workspace-generations.md). The opt-in
+  v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md) and [ADR
+  0002](decisions/0002-managed-workspace-generations.md). The opt-in
   protocol authenticates 2–16 canonical pre-existing sources, serializes
   cooperating readers and writers through one permanent lock, publishes a
   complete immutable candidate generation, and atomically pivots only
@@ -4475,8 +4479,8 @@
   strict Clippy and is not green evidence. The completion matrix remains 38
   Partial/18 Missing.
 
-- Added [Semantic Target Evidence v1](docs/SEMANTIC-TARGET-EVIDENCE-V1.md) and
-  [Semantic Patch Evidence v2](docs/SEMANTIC-PATCH-EVIDENCE-V2.md).
+- Added [Semantic Target Evidence v1](SEMANTIC-TARGET-EVIDENCE-V1.md) and
+  [Semantic Patch Evidence v2](SEMANTIC-PATCH-EVIDENCE-V2.md).
   `target-evidence` reports exact base/candidate Graph JSON, typed zero
   capability delta, production C11 source, and structurally validated Wasm core
   digests/lengths without executing a target or discovering tests. Additive
@@ -4490,7 +4494,7 @@
   all 12 jobs passed. This changes none of the 38 Partial/18 Missing statuses,
   grants no authority, and does not implement or replace multi-file work.
 
-- Added [Semantic Patch Evidence v1](docs/SEMANTIC-PATCH-EVIDENCE-V1.md).
+- Added [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md).
   Fixed-arity `patch-evidence` and `verify-patch-evidence` commands emit and
   independently replay exact bounded capsules for Patch v1/v2 and the sole
   canonical Patch v3 operation. The separate `patch-with-evidence` route
@@ -4519,7 +4523,7 @@
   authorization, multi-file transactions, or new Graph/Cleanup/runtime
   semantics.
 
-- Added [Bounded Semantic Review v1](docs/SEMANTIC-REVIEW-V1.md), a fixed-arity
+- Added [Bounded Semantic Review v1](SEMANTIC-REVIEW-V1.md), a fixed-arity
   read-only `review <file> <patch.spatch>` command with canonical
   `semaprax.semantic-review.v1` JSON. Patch v1/v2 reports embed complete,
   nontruncated Semantic Impact v1 evidence under fixed limits; the sole
@@ -4547,7 +4551,7 @@
   review completion row moves from Missing to Partial.
 
 - Added [Bounded Diagnostic Repair v1 and Semantic Patch
-  v3](docs/DIAGNOSTIC-REPAIR-V1.md). Read-only `repairs` discovery emits
+  v3](DIAGNOSTIC-REPAIR-V1.md). Read-only `repairs` discovery emits
   canonical `semaprax.diagnostic-repair.v1` JSON for one exact `SPX-S103`
   automatic-function target, and read-only `repair` instantiation emits
   canonical `semaprax.diagnostic-repair-preview.v1` JSON after independently
@@ -4586,7 +4590,7 @@
   16-MiB growth fail closed without replacing the source. V1/v2 reads are
   unchanged.
 
-- Added [`semaprax.semantic-impact.v1`](docs/SEMANTIC-IMPACT-V1.md),
+- Added [`semaprax.semantic-impact.v1`](SEMANTIC-IMPACT-V1.md),
   a deterministic read-only preview for one Semantic Patch v1/v2 file. It
   reports exact operation/change provenance and source consumers, and computes
   a byte/node/depth-bounded reverse-call closure only for exact generic-call
@@ -4606,7 +4610,7 @@
   including [Ubuntu job
   93530141404](https://github.com/wavect/semaprax/actions/runs/31408654657/job/93530141404).
 
-- Added [`semaprax.agent-context.v2`](docs/AGENT-CONTEXT-V2.md) as an
+- Added [`semaprax.agent-context.v2`](AGENT-CONTEXT-V2.md) as an
   explicit-direction extension of the byte/node-bounded context query. V1
   remains the exact default when `--direction` is absent; `forward`, `reverse`,
   and `both` select deterministic breadth-first call traversal with global
@@ -4963,7 +4967,7 @@
   canonical immutable record update across source, resolved HIR, Graph, and
   context traversal. Update meaning is base-first with replacement expressions
   in authored order; v6/v7 and v7/v8 schema confusion reject as documented in
-  [MIGRATIONS.md](docs/MIGRATIONS.md).
+  [MIGRATIONS.md](MIGRATIONS.md).
 - Added checked deterministic Native64/Wasm32 layouts for nested record fields
   in the admitted `i64`/`bool`/direct-trivial-resource slice. Cleanup-plan
   construction and independent replay now cover partial initialization and
@@ -4981,7 +4985,7 @@
   resource-record execution, callable/component aggregate signatures, or any
   change to `SPX-B104`/`SPX-W111`.
 - Added deterministic offline [agent context economics
-  v1](docs/AGENT-ECONOMICS-V1.md): four checked maintenance questions, exact
+  v1](AGENT-ECONOMICS-V1.md): four checked maintenance questions, exact
   context/economics goldens, UTF-8 byte and node counts, an explicitly
   non-model lexical unit, manifest/context digests, exact scored label IDs,
   reviewed relevance/evidence recall, mutation and hostile path/facet gates,
@@ -4991,7 +4995,7 @@
   ordered executable gate plan. The small corpus honestly records context
   larger than source; Graphify adoption and model-token savings remain
   unclaimed.
-- Added [`semaprax.agent-context.v1`](docs/AGENT-CONTEXT-V1.md): the `context`
+- Added [`semaprax.agent-context.v1`](AGENT-CONTEXT-V1.md): the `context`
   CLI now emits deterministic whole-JSON byte- and function-node-bounded facts,
   exact used/omitted/deferred accounting, closed truncation reasons, strict
   options, and query-bound stable-ID progress frontiers with non-dangling
@@ -5001,14 +5005,14 @@
   absent target/diagnostic/test graph facts are explicitly unavailable. This
   is not an exact model-token budget or repository-wide relevance/impact claim.
 - Added the private [native desktop application
-  v1](docs/DESKTOP-NATIVE-APP-V1.md): a feature-gated headless macOS `APPL`
+  v1](DESKTOP-NATIVE-APP-V1.md): a feature-gated headless macOS `APPL`
   bundle and Windows portable PE application directory package one exact
   callable-v3 provider/descriptor with the existing loader and authenticated
   host. Local macOS execution proves two generation-rotating owned calls and
   exact replay. The Windows package/runtime path and hosted desktop executions
   remain configured and pending; UI, accessibility, lifecycle,
   installer/signing, public admission, and `SPX-B104` stay closed.
-- Added private [native desktop UI v1](docs/DESKTOP-NATIVE-UI-V1.md): exact
+- Added private [native desktop UI v1](DESKTOP-NATIVE-UI-V1.md): exact
   AppKit and Win32 frontends compose the package-bound desktop engine with one visible
   native window/button, native accessibility-name query, delayed control event,
   event-loop close/termination, pre-launch SHA-256 engine-byte verification,
@@ -5018,7 +5022,7 @@
   SEMAPRAX UI syntax, SwiftUI/WinUI, general accessibility/lifecycle,
   distribution, public admission, or `SPX-B104` claim.
 - Added the private [Apple Swift ownership adapter
-  v1](docs/APPLE-SWIFT-OWNERSHIP-V1.md): a feature-gated same-thread Rust host,
+  v1](APPLE-SWIFT-OWNERSHIP-V1.md): a feature-gated same-thread Rust host,
   generation-tagged Swift wrapper, target-bound device/simulator providers,
   private XCFramework packager, and installed arm64-Simulator app gate. Local
   Rust/source-lock evidence and the bounded hosted Apple path are green in
@@ -5027,7 +5031,7 @@
   Public framework, device, UI/lifecycle, admission, and `SPX-B104` claims stay
   closed.
 - Added the private [WIT boundary
-  v1](docs/WIT-COMPONENT-BOUNDARY-V1.md): deterministic `SPXWIT01`
+  v1](WIT-COMPONENT-BOUNDARY-V1.md): deterministic `SPXWIT01`
   WIT/schema/JavaScript bytes, a frozen digest, mutation rejection, exact
   status bounds, and Node adapter execution. A separate standards-valid scalar
   component binary now has a frozen digest, an independent exact-profile
@@ -5059,7 +5063,7 @@
   general JNI, APK/AAR distribution, lifecycle/UI, device, general-corpus,
   public-admission, and `SPX-B104` claims remain closed.
 - Added the separate private [Android JNI ownership adapter
-  v1](docs/ANDROID-JNI-OWNERSHIP-V1.md) implementation and a dedicated hosted
+  v1](ANDROID-JNI-OWNERSHIP-V1.md) implementation and a dedicated hosted
   APK job. A feature-gated generator emits exact x86_64/arm64 provider and JNI
   shim sources; strict NDK compilation, exact `JNI_OnLoad` export/dependency
   inspection, and a plugin-free Gradle 9 `--offline` packaging project produce
@@ -5131,7 +5135,7 @@
 - Added public `semaprax.status.v1` normalized-status types, exact compiler-owned contract/arithmetic mappings, and a bounded context-local immutable status arena; token zero remains success and no physical token is serialized. This is protocol/runtime groundwork, not a backend status ABI implementation.
 - Added public `semaprax.conformance-trace.v1` semantic event/result types and deterministic canonical JSON for ownership transitions, calls/imports, frame-local failure selection, infallible finalization, and result publication.
 - Added independent attached-plan coverage and exhaustive current-CFG replay plus a scenario-driven single-frame reference executor with guarded cleanup, sticky normalized failure, exact trace emission, and explicit caller out-slot publication state. Recursive calls, callable imports, and native/Wasm instrumentation remain unimplemented, so no backend conformance is claimed.
-- Documented strict status/trace schema rejection, compatibility, cache-binding, event-order, and no-physical-data rules in [Conformance trace v1](docs/CONFORMANCE-TRACE-V1.md).
+- Documented strict status/trace schema rejection, compatibility, cache-binding, event-order, and no-physical-data rules in [Conformance trace v1](CONFORMANCE-TRACE-V1.md).
 - Migrated native scalar calls to the RFC 0003 context/status/out convention: internal contract and checked-arithmetic failures now propagate exact normalized statuses without terminating a SEMAPRAX frame, nested calls retain the same token, and caller result storage is written only after successful postconditions.
 - Added an executable strict-Clang native ABI matrix covering scalar success, requires/ensures, all eight arithmetic status codes, left-to-right nested failure propagation, arena shape, and poisoned out-slot preservation while retaining the `SPX-B104` resource gate.
 - Fixed status-v1 domain identity at 1–255 UTF-8 bytes without NUL and enforced the same byte rule in public status construction, source/HIR validation, and native arena-owned domain storage.
@@ -5241,7 +5245,7 @@
   no provider, descriptor-v3, loader admission, host settlement execution,
   physical finalizer, public API, mobile evidence, or `SPX-B104` change.
 - Froze the private [callable ABI v3 descriptor/wire
-  contract](docs/NATIVE-CALLABLE-ABI-V3.md): `SPXNABI3` fixes the descriptor,
+  contract](NATIVE-CALLABLE-ABI-V3.md): `SPXNABI3` fixes the descriptor,
   acyclic hash dependencies, recovery graph, capacity budget, dynamic and
   iOS-static linkage roles, six complete provider codecs, and the distinct
   host-only 524-byte committed-receipt codec. The six-argument execute ABI,

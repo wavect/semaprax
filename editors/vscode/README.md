@@ -17,7 +17,30 @@ backed by `syntaxes/semaprax.tmLanguage.json` and
 `language-configuration.json`; it runs no code and needs no compiler path.
 The repository's documentation gate checks that the grammar names every
 keyword the parser recognises, so the highlighting cannot silently lag the
-language. It is highlighting only: no diagnostics, completion, or navigation.
+language. The grammar itself provides no completion or navigation.
+
+## Check on save
+
+Saving a `.spx` file or `semaprax.toml` runs the compiler named by the
+**user/machine** setting `semaprax.compilerPath` as
+`check <subject> --json`, where the subject is the nearest `semaprax.toml`
+walking up from the saved file, or the file alone when no manifest exists. Each
+JSON diagnostic line becomes an editor diagnostic at its reported line and
+column (a bare position is one character wide) with the message
+`code: message` and the compiler's help on a following line; entries for files
+the re-check no longer reports are cleared. `SEMAPRAX: Check Project` runs the
+same check explicitly for the active file's project or the first workspace
+folder, and names the setting to fill when `semaprax.compilerPath` is empty.
+`semaprax.checkOnSave` (default `true`, machine scope) turns the save trigger
+off. With an empty `semaprax.compilerPath` nothing runs. The binary is invoked
+directly, never through a shell, never discovered, and never taken from
+workspace settings; the child's combined output is capped at 4 MiB and its run
+at 30 seconds, after which it is killed and the failure is written to the
+`SEMAPRAX Check` output channel. `check` is read-only: this feature builds
+nothing, publishes nothing, writes no file, and starts no saved-source session.
+`test/diagnostics.test.js` covers manifest discovery, malformed-line skipping,
+severity/range mapping, appended help, stale clearing, and the byte and time
+bounds against a scripted child.
 
 ## Saved-source session
 

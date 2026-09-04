@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- The VS Code extension checks on save. Saving a `.spx` file or
+  `semaprax.toml` runs the user-selected `semaprax.compilerPath` binary as
+  `check <nearest semaprax.toml or file> --json`, maps each JSON diagnostic to
+  an editor diagnostic (`code: message` plus the help on a new line, range
+  from the reported line and column), and clears entries the re-check no
+  longer reports. `SEMAPRAX: Check Project` runs the same check explicitly and
+  names the setting to fill when none is set; the machine setting
+  `semaprax.checkOnSave` (default `true`) turns the save trigger off. The
+  child is spawned without a shell, capped at 4 MiB of output and 30 seconds,
+  and writes nothing. Activation adds `onLanguage:semaprax` and the new
+  command; `editors/vscode/diagnostics.js` holds the pure logic and
+  `test/diagnostics.test.js` covers it.
+
 - `semaprax lock <manifest>` renders the deterministic `semaprax.lock` beside a
   project ([Project Lock v1](docs/PROJECT-LOCK-V1.md)): the canonical manifest
   and its contract, the project revision as the program root, every source

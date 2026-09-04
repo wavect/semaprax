@@ -15,6 +15,20 @@
   `@id` formatting, the checked `bytes` type identity key, and the `SPX-S113`
   reservation of compiler-owned function spellings.
 
+- The Project owned-data workspace linker now links generics exactly. It walks
+  the entry and public-root closure over `(callee, type arguments)` call sites,
+  selects the one authenticated instance a generic call derives, continues
+  through that instance body's callees, and carries the retained templates and
+  instances into the linked program with their Phase-A facts and canonical
+  type-parameter metadata. An unreferenced template or instance is still not
+  linked, a call with no authenticated instance fails closed, and an instance
+  reachable only from another instance body is rejected. The public API
+  descriptor admits a template as an interior closure member under the same
+  effect-, contract-, and import-free obligations, and private Wasm lowering
+  emits instance bodies under their generic execution identity while charging a
+  generic call edge the largest retained instance frame. This is compiler
+  admission; no runtime execution of a retained instance is claimed.
+
 - Added a Unix-only signed doctor generation store with lifetime-held root
   authority, exact signed-byte replay, no-adoption installation, settled
   generation publication, cooperative expected-current activation/rollback,

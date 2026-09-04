@@ -40,7 +40,7 @@ pub fn derive_nested_owned_record_api_descriptor(
         }
     }
     let index = PersistentCallIndex::build(program)?;
-    for id in selected_closure(program, selected, &functions, &index)? {
+    for id in selected_closure(program, selected, &functions, &BTreeMap::new(), &index)? {
         validate_closure_function(
             functions
                 .get(&id)

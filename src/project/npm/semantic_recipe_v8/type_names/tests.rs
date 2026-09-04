@@ -99,6 +99,8 @@ fn linked(source: &str) -> ResolvedProgram {
                     )
                 })
                 .collect(),
+            function_templates: Vec::new(),
+            function_instances: Vec::new(),
         },
     )
     .unwrap();

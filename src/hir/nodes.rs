@@ -389,6 +389,8 @@ pub(crate) struct LinkedOwnedDataParts {
     pub(crate) types: Vec<ResolvedTypeDeclaration>,
     pub(crate) interfaces: Vec<ResolvedInterface>,
     pub(crate) declaration_facts: BTreeMap<DeclarationId, LinkedDeclarationFact>,
+    pub(crate) function_templates: Vec<ResolvedFunctionTemplate>,
+    pub(crate) function_instances: Vec<ResolvedFunctionInstance>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

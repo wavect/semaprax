@@ -86,7 +86,7 @@ fn derive_weighted(
                 .cloned(),
         );
     }
-    let frames = program
+    let mut frames = program
         .functions
         .iter()
         .filter(|function| reachable.contains(&function.id))
@@ -97,6 +97,25 @@ fn derive_weighted(
             ))
         })
         .collect::<Result<BTreeMap<_, _>, Diagnostic>>()?;
+    // The call index names the authored template at a generic call site, but
+    // only a checked instance body is ever lowered and entered. Charge the
+    // template edge the largest instance frame: the physical callee is one of
+    // them, so this over-approximates no path and under-approximates none.
+    for template in &program.function_templates {
+        if !reachable.contains(&template.id) {
+            continue;
+        }
+        let mut extent = 0;
+        for instance in program
+            .function_instances
+            .iter()
+            .filter(|instance| instance.template == template.id)
+        {
+            let plan = FunctionPlan::build(program, &instance.function, layouts)?;
+            extent = extent.max(weight(&plan)?);
+        }
+        frames.insert(template.id.clone(), extent);
+    }
     let selected_calls = calls
         .calls_by_owner()
         .iter()

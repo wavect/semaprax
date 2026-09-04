@@ -193,6 +193,8 @@ pub(super) fn restore(
             types: program.types,
             interfaces: program.interfaces,
             declaration_facts: facts,
+            function_templates: program.function_templates,
+            function_instances: program.function_instances,
         },
     )
     .map_err(|_| package_error("owned-data type-name restoration does not validate"))?;

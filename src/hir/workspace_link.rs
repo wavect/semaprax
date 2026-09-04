@@ -137,6 +137,7 @@ fn link_scalar_workspace_impl(
             &[],
             &natives.interfaces,
             &functions,
+            &[],
             &natives.declaration_facts,
         )?,
         None => {
@@ -341,6 +342,7 @@ pub(crate) fn link_owned_data_api_workspace(
         &parts.types,
         &parts.interfaces,
         &functions,
+        &parts.function_templates,
         &parts.declaration_facts,
     )?;
     declarations.byte_slice_roots = derive_byte_slice_provenance(&functions, &declarations)?;
@@ -357,9 +359,9 @@ pub(crate) fn link_owned_data_api_workspace(
         declarations,
         types,
         interfaces: parts.interfaces,
-        function_templates: Vec::new(),
+        function_templates: parts.function_templates,
         functions,
-        function_instances: Vec::new(),
+        function_instances: parts.function_instances,
     };
     analyze_byte_data_capacity(&linked)?;
     rebuild_cleanup_metadata(&mut linked)?;

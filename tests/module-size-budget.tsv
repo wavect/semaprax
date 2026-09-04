@@ -21,7 +21,6 @@ src/codegen/native_emit/mod.rs	2488
 src/economic_agent/tests.rs	1914
 src/format.rs	2113
 src/graph.rs	5874
-src/hir/declaration_index.rs	1656
 src/hir/resolve_expr.rs	3159
 src/hir/resolve_expr_reference.rs	1862
 src/hir/validation.rs	9303

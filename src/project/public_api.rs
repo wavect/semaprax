@@ -17,7 +17,7 @@ use crate::call_index::{PersistentCallIndex, PersistentCallableKind};
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::hir::{
     DeclarationId, IdentityOrigin, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
-    ResolvedProgram, ResolvedType, ValueId,
+    ResolvedFunctionTemplate, ResolvedProgram, ResolvedType, ValueId,
 };
 
 pub const PUBLIC_OWNED_DATA_API_SCHEMA: &str = "semaprax.public-owned-data-api.v1";
@@ -262,8 +262,17 @@ pub fn derive_public_api_descriptor(
         .iter()
         .map(|function| (function.id.clone(), function))
         .collect::<BTreeMap<_, _>>();
-    let closure = selected_closure(program, selected, &functions, &call_index)?;
+    let templates = program
+        .function_templates
+        .iter()
+        .map(|template| (template.id.clone(), template))
+        .collect::<BTreeMap<_, _>>();
+    let closure = selected_closure(program, selected, &functions, &templates, &call_index)?;
     for id in &closure {
+        if let Some(template) = templates.get(id) {
+            validate_closure_template(template)?;
+            continue;
+        }
         let function = functions
             .get(id)
             .ok_or_else(|| api_error("selected closure contains a non-monomorphic callable"))?;
@@ -458,10 +467,16 @@ pub(super) fn validate_selected(selected: &[String]) -> Result<(), Diagnostic> {
     Ok(())
 }
 
+/// Walk the persistent call closure of the selected exports. An export root is
+/// always a monomorphic function: a generic template has no concrete signature
+/// to describe. An interior callee may name an admitted generic template, which
+/// the caller supplies explicitly; a profile that passes no templates keeps the
+/// strictly monomorphic closure it had.
 pub(super) fn selected_closure(
     program: &ResolvedProgram,
     selected: &[String],
     functions: &BTreeMap<DeclarationId, &ResolvedFunction>,
+    templates: &BTreeMap<DeclarationId, &ResolvedFunctionTemplate>,
     index: &PersistentCallIndex,
 ) -> Result<BTreeSet<DeclarationId>, Diagnostic> {
     let mut states = BTreeMap::<DeclarationId, u8>::new();
@@ -486,9 +501,12 @@ pub(super) fn selected_closure(
                 Some(2) => continue,
                 _ => {}
             }
-            if index.kind(&id) != Some(PersistentCallableKind::Function)
-                || !functions.contains_key(&id)
-            {
+            let admitted = match index.kind(&id) {
+                Some(PersistentCallableKind::Function) => functions.contains_key(&id),
+                Some(PersistentCallableKind::FunctionTemplate) => templates.contains_key(&id),
+                _ => false,
+            };
+            if !admitted {
                 return Err(api_error("public API selected closure must be monomorphic"));
             }
             states.insert(id.clone(), 1);
@@ -516,6 +534,34 @@ pub(super) fn selected_closure(
         return Err(api_error("public API selected closure is empty"));
     }
     Ok(closure)
+}
+
+/// A retained generic template carries the same closure obligations as a
+/// monomorphic closure function. Its checked instances are exact substitutions
+/// of this body, so validating the template covers every materialized instance
+/// without describing an instance as an exported callable.
+pub(super) fn validate_closure_template(
+    template: &ResolvedFunctionTemplate,
+) -> Result<(), Diagnostic> {
+    if !template.effects.is_empty() {
+        return Err(api_error(format!(
+            "public API closure template `{}` must be effect-free",
+            template.id
+        )));
+    }
+    if !template.requires.is_empty() || !template.ensures.is_empty() {
+        return Err(api_error(format!(
+            "public API closure template `{}` must be contract-free",
+            template.id
+        )));
+    }
+    if expression_reaches_import(&template.body) {
+        return Err(api_error(format!(
+            "public API closure template `{}` must be import-free",
+            template.id
+        )));
+    }
+    Ok(())
 }
 
 pub(super) fn validate_closure_function(function: &ResolvedFunction) -> Result<(), Diagnostic> {

@@ -41,7 +41,7 @@ pub fn derive_flat_owned_record_api_descriptor(
         .map(|function| (function.id.clone(), function))
         .collect::<BTreeMap<_, _>>();
     let index = PersistentCallIndex::build(program)?;
-    let closure = selected_closure(program, selected, &functions, &index)?;
+    let closure = selected_closure(program, selected, &functions, &BTreeMap::new(), &index)?;
     for id in closure {
         validate_closure_function(
             functions

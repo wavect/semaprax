@@ -14,6 +14,7 @@
 
 mod expected_projection;
 mod operation_sidecar;
+mod owned_generics;
 mod package;
 mod retained_validation;
 
@@ -1660,57 +1661,23 @@ impl WorkspaceGraphBuild {
             )]);
         };
         let entrypoint = entrypoint.clone();
-        let mut pending = BTreeSet::from([entrypoint.clone()]);
-        pending.extend(
+        let mut roots = BTreeSet::from([entrypoint.clone()]);
+        roots.extend(
             additional_roots
                 .iter()
                 .map(|root| hir::DeclarationId::new(root.clone())),
         );
-        let mut retained = BTreeSet::new();
-        while let Some(function_id) = pending.pop_first() {
-            let Some(linked) = available.get(&function_id) else {
-                return Err(vec![Diagnostic::io(
-                    "SPX-W115",
-                    format!(
-                        "selected Project Web export identity `{function_id}` does not name an authenticated function"
-                    ),
-                )]);
-            };
-            if !retained.insert(function_id.clone()) {
-                continue;
-            }
-            if retained.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
-                return Err(vec![graph_error(
-                    "SPX-G172",
-                    format!(
-                        "workspace owned-data linked inventory exceeds {} functions",
-                        crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS
-                    ),
-                )]);
-            }
-            for callee in resolved_function_callees(&linked.function) {
-                if available.contains_key(&callee) {
-                    if !retained.contains(&callee) {
-                        pending.insert(callee);
-                    }
-                } else if crate::string_ops::by_id(callee.as_str()).is_none()
-                    && crate::str_ops::by_id(callee.as_str()).is_none()
-                    && crate::byte_ops::by_id(callee.as_str()).is_none()
-                    && crate::host_io_ops::by_id(callee.as_str()).is_none()
-                    && crate::command_io_ops::by_id(callee.as_str()).is_none()
-                {
-                    return Err(vec![graph_error(
-                        "SPX-G173",
-                        format!("owned-data closure calls unauthenticated function `{callee}`"),
-                    )]);
-                }
-            }
-        }
-        let functions = retained
-            .into_iter()
+        let generics = owned_generics::OwnedGenericInventory::collect(
+            &self.hir.modules,
+            &self.hir.declarations,
+        )?;
+        let closure = owned_generics::close_owned_data_closure(&available, &generics, roots)?;
+        let functions = closure
+            .functions
+            .iter()
             .map(|id| {
                 available
-                    .get(&id)
+                    .get(id)
                     .map(|linked| hir::LinkedScalarFunction {
                         function: linked.function.clone(),
                         origin: linked.origin,
@@ -1723,6 +1690,8 @@ impl WorkspaceGraphBuild {
                     })
             })
             .collect::<Result<Vec<_>, _>>()?;
+        let function_templates = generics.retained_templates(&closure.templates)?;
+        let function_instances = generics.retained_instances(&functions, &closure)?;
 
         let referenced_imports = functions
             .iter()
@@ -1794,8 +1763,13 @@ impl WorkspaceGraphBuild {
                 }
             }
         }
-        let types = hir::reachable_authored_types(&functions, &interfaces, &available_types)
-            .map_err(|error| vec![error])?;
+        let types = hir::reachable_authored_types(
+            &functions,
+            &function_instances,
+            &interfaces,
+            &available_types,
+        )
+        .map_err(|error| vec![error])?;
 
         fn retain_fact(
             authenticated: &BTreeMap<String, WorkspaceDeclarationFact>,
@@ -1841,6 +1815,15 @@ impl WorkspaceGraphBuild {
                 &self.hir.declarations,
                 &mut declaration_facts,
                 &linked.function.id,
+                hir::DeclarationKind::Function,
+                None,
+            )?;
+        }
+        for template in &function_templates {
+            retain_fact(
+                &self.hir.declarations,
+                &mut declaration_facts,
+                &template.id,
                 hir::DeclarationKind::Function,
                 None,
             )?;
@@ -1935,6 +1918,8 @@ impl WorkspaceGraphBuild {
                 types,
                 interfaces,
                 declaration_facts,
+                function_templates,
+                function_instances,
             },
         )
         .map_err(|error| vec![error])

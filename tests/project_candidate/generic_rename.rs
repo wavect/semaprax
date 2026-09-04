@@ -103,6 +103,33 @@ fn instances(revision: Arc<ProjectRevision>) -> Value {
     .unwrap()
 }
 
+/// The exact retained instance descriptors, keeping every identity, type
+/// argument, signature count and facet name, and dropping only the opaque
+/// facet handles. Those handles bind the image revision by contract
+/// (`image_protocol::function_instances_v1::
+/// opaque_references_bind_template_instance_facet_page_shape_and_image`
+/// rejects a surviving instance's prior-image handle with SPX-G229), so a
+/// preserved instance necessarily rebinds them.
+fn descriptors(report: &Value) -> Vec<Value> {
+    report["instances"]
+        .as_array()
+        .expect("instance rows")
+        .iter()
+        .map(|instance| {
+            let mut row = instance.clone();
+            let object = row.as_object_mut().expect("instance row object");
+            let facets = object["facets"]
+                .as_array()
+                .expect("facet rows")
+                .iter()
+                .map(|facet| facet["facet"].clone())
+                .collect::<Vec<_>>();
+            object.insert("facets".to_owned(), Value::Array(facets));
+            row
+        })
+        .collect()
+}
+
 fn code<T>(result: Result<T, Vec<Diagnostic>>, expected: &str) {
     let diagnostics = result.err().expect("unsupported generic change accepted");
     assert!(
@@ -145,7 +172,9 @@ fn rename_preserves_two_checked_concrete_instances_and_cross_module_aliases() {
 
     let after = instances(Arc::clone(candidate.revision()));
     assert_eq!(after["template_id"], before["template_id"]);
-    assert_eq!(after["instances"], before["instances"]);
+    assert_eq!(after["total_instances"], before["total_instances"]);
+    assert_eq!(descriptors(&after), descriptors(&before));
+    assert_ne!(after["instances"], before["instances"]);
     assert_eq!(after["name"], "retain");
     let app = candidate
         .revision()
@@ -169,8 +198,12 @@ fn rename_preserves_two_checked_concrete_instances_and_cross_module_aliases() {
         &json!({"kind":"replace_function_body","target":"generic.keep","body":{"kind":"place","name":"value"}}),
     )
     .unwrap();
+    // Only the display rename is admitted on a template. Every other candidate
+    // intention keeps the ordinary monomorphic-target grammar rejection that
+    // PROJECT-GENERIC-RENAME-V1 leaves authoritative; the change never reaches
+    // a profile or linker gate.
     code(
         base.apply(base.candidate_digest(), &unsupported),
-        "SPX-G172",
+        "SPX-G225",
     );
 }

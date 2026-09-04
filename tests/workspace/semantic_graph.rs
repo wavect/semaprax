@@ -340,7 +340,16 @@ fn assert_public_getters_match_wire(graph: &WorkspaceSemanticGraph) {
 
 #[test]
 fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root() {
-    let root = include_str!("../../src/workspace_graph.rs");
+    // The boundary this contract locks is "the workspace graph module keeps its
+    // shared helpers", so the read has to follow the module, not just its root
+    // file: a helper relocated into a sibling submodule must still count as
+    // present in the root and absent from the projection.
+    let root = format!(
+        "{}\n{}",
+        include_str!("../../src/workspace_graph.rs"),
+        include_str!("../../src/workspace_graph/owned_generics.rs"),
+    );
+    let root = root.as_str();
     let projection_root = include_str!("../../src/workspace_graph/expected_projection.rs");
     let projection_cost = include_str!("../../src/workspace_graph/expected_projection/cost.rs");
     let projection = format!("{projection_root}\n{projection_cost}");

@@ -11,12 +11,16 @@ use super::*;
 
 pub(crate) fn reachable_authored_types(
     functions: &[LinkedScalarFunction],
+    instances: &[ResolvedFunctionInstance],
     interfaces: &[ResolvedInterface],
     available: &BTreeMap<DeclarationId, ResolvedTypeDeclaration>,
 ) -> Result<Vec<ResolvedTypeDeclaration>, Diagnostic> {
     let mut selected = BTreeSet::new();
     for linked in functions {
         collect_function(&linked.function, &mut selected);
+    }
+    for instance in instances {
+        collect_function(&instance.function, &mut selected);
     }
     for interface in interfaces {
         for import in &interface.imports {

@@ -1404,10 +1404,11 @@ fn emit_byte_exports_profile(
     command_io: Option<&super::command_io::CommandPlan>,
     owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    let executable_functions = executable_functions(program);
     let has_owned_utf8 = owned_plans
         .iter()
         .any(|plan| plan.result == super::owned_data_exports::ResultLayout::Utf8)
-        || program.functions.iter().any(|function| {
+        || executable_functions.iter().any(|(function, _)| {
             function.return_type == ResolvedType::String
                 || function
                     .params
@@ -1438,16 +1439,6 @@ fn emit_byte_exports_profile(
         record_layout.validate(program)?;
     }
 
-    let executable_functions = program
-        .functions
-        .iter()
-        .map(|function| {
-            (
-                function,
-                FunctionExecutionId::Monomorphic(function.id.clone()),
-            )
-        })
-        .collect::<Vec<_>>();
     let public_global_count = if line_command_io {
         16_u32
     } else if command_io.is_some() {
@@ -1954,6 +1945,30 @@ fn emit_byte_exports_profile(
     Ok(module)
 }
 
+/// Every body a module lowers: the monomorphic closure in canonical order,
+/// then each checked generic instance under its generic execution identity. A
+/// template is never executable.
+fn executable_functions(
+    program: &ResolvedProgram,
+) -> Vec<(&ResolvedFunction, FunctionExecutionId)> {
+    program
+        .functions
+        .iter()
+        .map(|function| {
+            (
+                function,
+                FunctionExecutionId::Monomorphic(function.id.clone()),
+            )
+        })
+        .chain(program.function_instances.iter().map(|instance| {
+            (
+                &instance.function,
+                FunctionExecutionId::Generic(instance.id.clone()),
+            )
+        }))
+        .collect()
+}
+
 fn program_uses_byte_range(program: &ResolvedProgram) -> bool {
     program
         .functions
@@ -2066,22 +2081,7 @@ fn emit_profile(
         )
     });
 
-    let executable_functions = program
-        .functions
-        .iter()
-        .map(|function| {
-            (
-                function,
-                FunctionExecutionId::Monomorphic(function.id.clone()),
-            )
-        })
-        .chain(program.function_instances.iter().map(|instance| {
-            (
-                &instance.function,
-                FunctionExecutionId::Generic(instance.id.clone()),
-            )
-        }))
-        .collect::<Vec<_>>();
+    let executable_functions = executable_functions(program);
     let public_global_count = if host_output { 5_u32 } else { 1_u32 };
     let range_bindings = build_range_bindings(
         program,

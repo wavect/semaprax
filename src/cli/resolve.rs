@@ -177,11 +177,14 @@ fn parse(arguments: &[String]) -> Result<Parsed, ResolveCliError> {
                 manifest = Some(PathBuf::from(path));
                 index += 1;
             }
-            _ => return Err(usage("resolve accepts exactly one manifest path")),
+            _ => return Err(usage("resolve accepts at most one manifest path")),
         }
     }
+    let manifest = manifest
+        .map(super::project::resolve_positional)
+        .unwrap_or_else(|| PathBuf::from(super::project::DEFAULT_MANIFEST));
     Ok(Parsed {
-        manifest: manifest.ok_or_else(|| usage("resolve requires a manifest path"))?,
+        manifest,
         target: target.ok_or_else(|| usage("resolve requires `--target native64|wasm32`"))?,
         cache: cache.ok_or_else(|| usage("resolve requires `--cache <dir>`"))?,
         max_bytes,
@@ -210,10 +213,14 @@ fn value(arguments: &[String], index: &mut usize, option: &str) -> Result<String
 
 fn read_manifest(path: &Path) -> Result<ProjectManifest, ResolveCliError> {
     let metadata = std::fs::symlink_metadata(path).map_err(|error| {
-        ResolveCliError::Domain(vec![Diagnostic::io(
+        let mut diagnostic = Diagnostic::io(
             CODE_CACHE,
             format!("resolve cannot open the manifest: {error}"),
-        )])
+        );
+        if path == Path::new(super::project::DEFAULT_MANIFEST) {
+            diagnostic = diagnostic.with_help(super::manifest_hint::MISSING_MANIFEST_HELP);
+        }
+        ResolveCliError::Domain(vec![diagnostic])
     })?;
     if !metadata.is_file() || metadata.len() > MAX_MANIFEST_BYTES as u64 {
         return Err(ResolveCliError::Domain(vec![Diagnostic::io(

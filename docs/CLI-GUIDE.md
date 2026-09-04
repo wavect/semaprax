@@ -96,11 +96,13 @@ semaprax check semaprax.toml
 semaprax test semaprax.toml
 semaprax run semaprax.toml
 semaprax build semaprax.toml --target web -o dist/web
+semaprax lock semaprax.toml
 ```
 
 A directory operand means the `semaprax.toml` inside it, so
-`semaprax check examples/calculator-project` and `semaprax run .` are the
-same as naming the manifest. Only `--manifest-path` is taken literally.
+`semaprax check examples/calculator-project`, `semaprax run .`, and
+`semaprax lock .` are the same as naming the manifest. Only `--manifest-path`
+is taken literally.
 
 Use each command's scoped help before selecting a target or profile; the
 available build targets differ between the standalone and full toolchains.

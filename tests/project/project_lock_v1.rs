@@ -44,6 +44,15 @@ fn lock_is_deterministic_authenticated_and_binds_the_program_root() {
         first.stdout, second.stdout,
         "two renders are byte-identical"
     );
+    let bare = cli(&fixture.root, &["lock"]);
+    assert!(bare.status.success(), "{}", stderr(&bare));
+    assert_eq!(
+        bare.stdout, first.stdout,
+        "bare lock defaults to semaprax.toml"
+    );
+    let dot = cli(&fixture.root, &["lock", "."]);
+    assert!(dot.status.success(), "{}", stderr(&dot));
+    assert_eq!(dot.stdout, first.stdout, "lock . resolves to semaprax.toml");
     assert!(
         !fixture.root.join("semaprax.lock").exists(),
         "no --write, no file"
@@ -319,10 +328,9 @@ fn lock_reports_the_interface_kind_per_profile_and_rejects_bad_usage() {
     );
 
     for (arguments, fragment) in [
-        (&["lock"][..], "lock requires a manifest path"),
         (
-            &["lock", "semaprax.toml", "extra.toml"],
-            "exactly one manifest path",
+            &["lock", "semaprax.toml", "extra.toml"][..],
+            "at most one manifest path",
         ),
         (
             &["lock", "semaprax.toml", "--write", "--verify"],
@@ -342,13 +350,30 @@ fn lock_reports_the_interface_kind_per_profile_and_rejects_bad_usage() {
             stderr(&output)
         );
     }
+
+    // Bare lock outside a project fails with SPX-J102 and the missing-manifest hint.
+    let empty_dir = std::env::temp_dir().join(format!(
+        "semaprax-project-lock-v1-missing-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(&empty_dir).unwrap();
+    let outside = cli(&empty_dir, &["lock"]);
+    assert!(!outside.status.success());
+    let missing_err = stderr(&outside);
+    assert!(missing_err.contains("SPX-J102"), "{missing_err}");
+    assert!(
+        missing_err.contains("no `semaprax.toml` in the current directory"),
+        "{missing_err}"
+    );
+    let _ = std::fs::remove_dir_all(&empty_dir);
     assert!(!frame.root.join("semaprax.lock").exists());
 
     let help = cli(&frame.root, &["lock", "--help"]);
     assert!(help.status.success());
     assert_eq!(
         stdout(&help),
-        "Usage:\n  semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n"
+        "Usage:\n  semaprax lock [<dir>|semaprax.toml] [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n"
     );
 }
 
@@ -506,7 +531,7 @@ fn compare_classifies_the_project_interface_against_a_baseline_lock() {
     let help = cli(&fixture.root, &["lock", "--help"]);
     assert_eq!(
         stdout(&help),
-        "Usage:\n  semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n"
+        "Usage:\n  semaprax lock [<dir>|semaprax.toml] [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n"
     );
     let both = cli(
         &fixture.root,

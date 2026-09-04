@@ -43,7 +43,11 @@ pub(crate) fn run(arguments: &[String]) -> Result<String, ProjectLockCliError> {
             Mode::CompareInterface(baseline) => compare_interface_mode(snapshot, baseline),
         }
     })
-    .map_err(ProjectLockCliError::Domain)?;
+    .map_err(|errors| {
+        ProjectLockCliError::Domain(super::manifest_hint::hint_missing_manifest(
+            errors, &manifest,
+        ))
+    })?;
     match outcome {
         Outcome::Text(text) => Ok(text),
         Outcome::Breaking(report) => Err(ProjectLockCliError::Breaking(report)),
@@ -147,7 +151,7 @@ fn parse(arguments: &[String]) -> Result<(PathBuf, Mode), ProjectLockCliError> {
                 index += 1;
                 continue;
             }
-            _ => return Err(usage("lock accepts exactly one manifest path")),
+            _ => return Err(usage("lock accepts at most one manifest path")),
         };
         if mode.is_some() {
             return Err(usage(
@@ -157,7 +161,9 @@ fn parse(arguments: &[String]) -> Result<(PathBuf, Mode), ProjectLockCliError> {
         mode = Some(next);
         index += 1;
     }
-    let manifest = manifest.ok_or_else(|| usage("lock requires a manifest path"))?;
+    let manifest = manifest
+        .map(super::project::resolve_positional)
+        .unwrap_or_else(|| PathBuf::from(super::project::DEFAULT_MANIFEST));
     Ok((manifest, mode.unwrap_or(Mode::Print)))
 }
 

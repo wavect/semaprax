@@ -48,11 +48,11 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // /test, the scaffold gained a library template, and `new` became public.
     const RESTORED: [(&str, &str); 9] = [
         (
-            "semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n",
+            "semaprax lock [<dir>|semaprax.toml] [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n",
             "",
         ),
         (
-            "semaprax resolve <manifest> --target <native64|wasm32> --cache <dir> [--write|--verify] [--max-bytes N]\n",
+            "semaprax resolve [<dir>|semaprax.toml] --target <native64|wasm32> --cache <dir> [--write|--verify] [--max-bytes N]\n",
             "",
         ),
         (

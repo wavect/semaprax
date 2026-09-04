@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `semaprax lock` and `semaprax resolve` accept `[<dir>|semaprax.toml]`,
+  resolving directory arguments to `<dir>/semaprax.toml` and defaulting to
+  `./semaprax.toml` when omitted, matching `check`, `fmt`, `run`, `test`, and
+  `build`. Outside a project without arguments, both commands attach the
+  standard missing-manifest guidance hint. `tests/project.rs::project_lock_v1`
+  and `tests/project.rs::dependency_resolution_v1` pin the ergonomics.
+
 - Canonical project comments now remain valid inputs to Project semantic-graph
   construction and persisted frontend-cache replay, while the parsed semantic
   program remains comment-free. Project-format and install-guide fixtures use

@@ -321,7 +321,10 @@ fn resolve_fails_closed_on_missing_deps_bad_content_address_and_target() {
 fn resolve_usage_and_help_are_exact() {
     let fixture = fixture("usage", &manifest("examples.meaning = \"^1.0.0\"\n", None));
     for (arguments, fragment) in [
-        (&["resolve"][..], "resolve requires a manifest path"),
+        (
+            &["resolve", "semaprax.toml", "extra.toml"][..],
+            "at most one manifest path",
+        ),
         (
             &["resolve", "semaprax.toml", "--cache", "cache"],
             "requires `--target",
@@ -356,7 +359,7 @@ fn resolve_usage_and_help_are_exact() {
     assert!(help.status.success());
     assert_eq!(
         String::from_utf8(help.stdout).unwrap(),
-        "Usage:\n  semaprax resolve <manifest> --target <native64|wasm32> --cache <dir> [--write|--verify] [--max-bytes N]\n"
+        "Usage:\n  semaprax resolve [<dir>|semaprax.toml] --target <native64|wasm32> --cache <dir> [--write|--verify] [--max-bytes N]\n"
     );
 }
 

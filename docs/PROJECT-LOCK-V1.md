@@ -23,13 +23,17 @@ and checked only by an explicit command, never as an implicit effect of
 ## Commands
 
 ```text
-semaprax lock <manifest>                      # print the canonical lock to stdout
-semaprax lock <manifest> --write              # replace semaprax.lock beside the manifest
-semaprax lock <manifest> --verify             # verify an existing semaprax.lock
-semaprax lock <manifest> --compare <base.lock>       # coarse: classify against a baseline lock
-semaprax lock <manifest> --emit-interface            # emit the scalar interface descriptor
-semaprax lock <manifest> --compare-interface <b.json># fine: per-export scalar interface diff
+semaprax lock [<dir>|semaprax.toml]           # print the canonical lock to stdout
+semaprax lock [<dir>|semaprax.toml] --write   # replace semaprax.lock beside the manifest
+semaprax lock [<dir>|semaprax.toml] --verify  # verify an existing semaprax.lock
+semaprax lock [<dir>|semaprax.toml] --compare <base.lock>       # coarse: classify against a baseline lock
+semaprax lock [<dir>|semaprax.toml] --emit-interface            # emit the scalar interface descriptor
+semaprax lock [<dir>|semaprax.toml] --compare-interface <b.json># fine: per-export scalar interface diff
 ```
+
+From a directory containing `semaprax.toml`, the manifest operand can be
+omitted, and naming a directory selects the `semaprax.toml` inside it, matching
+`check`.
 
 Each mode authenticates and checks the project exactly as `check` does, then
 acts:

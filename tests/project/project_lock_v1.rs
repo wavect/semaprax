@@ -326,7 +326,7 @@ fn lock_reports_the_interface_kind_per_profile_and_rejects_bad_usage() {
         ),
         (
             &["lock", "semaprax.toml", "--write", "--verify"],
-            "at most one of `--write` or `--verify`",
+            "at most one of `--write`, `--verify`, or `--compare`",
         ),
         (
             &["lock", "semaprax.toml", "--force"],
@@ -348,7 +348,7 @@ fn lock_reports_the_interface_kind_per_profile_and_rejects_bad_usage() {
     assert!(help.status.success());
     assert_eq!(
         stdout(&help),
-        "Usage:\n  semaprax lock <manifest> [--write|--verify]\n"
+        "Usage:\n  semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>]\n"
     );
 }
 
@@ -391,4 +391,288 @@ fn cli(root: &Path, arguments: &[&str]) -> Output {
         .current_dir(root)
         .output()
         .unwrap()
+}
+
+// A minimal Project Lock v1 envelope carrying only the fields the compatibility
+// classifier reads, for exact branch coverage.
+fn synthetic_lock(
+    name: &str,
+    contract: &str,
+    version: &str,
+    exports: &[&str],
+    interface_digest: &str,
+    capabilities: &[&str],
+    targets: &[&str],
+) -> String {
+    serde_json::json!({
+        "schema": "semaprax.project-lock.v1",
+        "payload": {
+            "package": {"name": name, "contract": contract, "version": version},
+            "interface": {"exports": exports, "digest": interface_digest},
+            "capabilities": capabilities,
+            "targets": targets.iter().map(|target| serde_json::json!({"target": target, "state": "declared"})).collect::<Vec<_>>(),
+        }
+    })
+    .to_string()
+}
+
+fn classify(base: &str, candidate: &str) -> (bool, Value) {
+    let compatibility = semaprax::project::classify_lock_change(base, candidate).unwrap();
+    let report: Value = serde_json::from_str(compatibility.report()).unwrap();
+    assert_eq!(
+        report["verdict"],
+        if compatibility.breaking() {
+            "breaking"
+        } else {
+            "compatible"
+        }
+    );
+    (compatibility.breaking(), report)
+}
+
+#[test]
+fn compare_classifies_the_project_interface_against_a_baseline_lock() {
+    let fixture = example_fixture("compare", "examples/calculator-project", None);
+    let baseline = fixture.root.join("base.lock");
+    std::fs::write(
+        &baseline,
+        stdout(&cli(&fixture.root, &["lock", "semaprax.toml"])),
+    )
+    .unwrap();
+
+    // Identical: compatible, exit 0, no changes.
+    let same = cli(
+        &fixture.root,
+        &["lock", "semaprax.toml", "--compare", "base.lock"],
+    );
+    assert!(same.status.success(), "{}", stderr(&same));
+    let report: Value = serde_json::from_str(&stdout(&same)).unwrap();
+    assert_eq!(report["schema"], "semaprax.project-lock-compatibility.v1");
+    assert_eq!(report["verdict"], "compatible");
+    assert!(report["changes"].as_array().unwrap().is_empty());
+
+    // Dropping an export is breaking: the report is still printed to stdout, but
+    // the command exits nonzero so a CI gate fails.
+    std::fs::write(
+        fixture.root.join("semaprax.toml"),
+        CALCULATOR_TABLES.replace(", \"calculator.subtract\"", ""),
+    )
+    .unwrap();
+    let broken = cli(
+        &fixture.root,
+        &["lock", "semaprax.toml", "--compare", "base.lock"],
+    );
+    assert_eq!(broken.status.code(), Some(1));
+    let report: Value = serde_json::from_str(&stdout(&broken)).unwrap();
+    assert_eq!(report["verdict"], "breaking");
+    let change = &report["changes"][0];
+    assert_eq!(change["kind"], "exports-removed");
+    assert_eq!(change["classification"], "breaking");
+    assert_eq!(change["detail"], "calculator.subtract");
+
+    // Restoring the manifest makes the comparison compatible again; the
+    // additive-export and other classifier branches are pinned exactly in
+    // `classifier_branches_are_exact`.
+    std::fs::write(fixture.root.join("semaprax.toml"), CALCULATOR_TABLES).unwrap();
+    assert!(cli(
+        &fixture.root,
+        &["lock", "semaprax.toml", "--compare", "base.lock"]
+    )
+    .status
+    .success());
+
+    // A missing or foreign baseline fails closed before any verdict.
+    let missing = cli(
+        &fixture.root,
+        &["lock", "semaprax.toml", "--compare", "absent.lock"],
+    );
+    assert!(!missing.status.success());
+    assert!(
+        stderr(&missing).contains("SPX-J124"),
+        "{}",
+        stderr(&missing)
+    );
+    std::fs::write(baseline.with_file_name("foreign.lock"), "{}").unwrap();
+    let foreign = cli(
+        &fixture.root,
+        &["lock", "semaprax.toml", "--compare", "foreign.lock"],
+    );
+    assert!(
+        stderr(&foreign).contains("does not carry schema"),
+        "{}",
+        stderr(&foreign)
+    );
+
+    let help = cli(&fixture.root, &["lock", "--help"]);
+    assert_eq!(
+        stdout(&help),
+        "Usage:\n  semaprax lock <manifest> [--write|--verify|--compare <baseline.lock>]\n"
+    );
+    let both = cli(
+        &fixture.root,
+        &[
+            "lock",
+            "semaprax.toml",
+            "--verify",
+            "--compare",
+            "base.lock",
+        ],
+    );
+    assert_eq!(both.status.code(), Some(2));
+    assert!(stderr(&both).contains("at most one of `--write`, `--verify`, or `--compare`"));
+}
+
+#[test]
+fn classifier_branches_are_exact() {
+    let base = synthetic_lock(
+        "pkg",
+        "semaprax.project.v8",
+        "1.0.0",
+        &["pkg.a", "pkg.b"],
+        "sha256:aaa",
+        &["process.stdout.write"],
+        &["native64", "wasm32"],
+    );
+
+    // Identical is compatible.
+    let (breaking, report) = classify(&base, &base);
+    assert!(!breaking);
+    assert!(report["changes"].as_array().unwrap().is_empty());
+
+    // Name and contract changes are breaking.
+    let (breaking, report) = classify(
+        &base,
+        &synthetic_lock(
+            "other",
+            "semaprax.project.v8",
+            "1.0.0",
+            &["pkg.a", "pkg.b"],
+            "sha256:aaa",
+            &["process.stdout.write"],
+            &["native64", "wasm32"],
+        ),
+    );
+    assert!(breaking);
+    assert_eq!(report["changes"][0]["kind"], "package-name");
+    let (breaking, _) = classify(
+        &base,
+        &synthetic_lock(
+            "pkg",
+            "semaprax.project.v9",
+            "1.0.0",
+            &["pkg.a", "pkg.b"],
+            "sha256:aaa",
+            &["process.stdout.write"],
+            &["native64", "wasm32"],
+        ),
+    );
+    assert!(breaking);
+
+    // A changed interface digest with the same export set is breaking; a new
+    // export is not.
+    let (breaking, report) = classify(
+        &base,
+        &synthetic_lock(
+            "pkg",
+            "semaprax.project.v8",
+            "1.0.0",
+            &["pkg.a", "pkg.b"],
+            "sha256:bbb",
+            &["process.stdout.write"],
+            &["native64", "wasm32"],
+        ),
+    );
+    assert!(breaking);
+    assert_eq!(report["changes"][0]["kind"], "interface-digest");
+    let (breaking, report) = classify(
+        &base,
+        &synthetic_lock(
+            "pkg",
+            "semaprax.project.v8",
+            "1.0.0",
+            &["pkg.a", "pkg.b", "pkg.c"],
+            "sha256:aaa",
+            &["process.stdout.write"],
+            &["native64", "wasm32"],
+        ),
+    );
+    assert!(!breaking);
+    assert_eq!(report["changes"][0]["kind"], "exports-added");
+
+    // Widening required capabilities is breaking; narrowing is not.
+    let (breaking, report) = classify(
+        &base,
+        &synthetic_lock(
+            "pkg",
+            "semaprax.project.v8",
+            "1.0.0",
+            &["pkg.a", "pkg.b"],
+            "sha256:aaa",
+            &["process.stderr.write", "process.stdout.write"],
+            &["native64", "wasm32"],
+        ),
+    );
+    assert!(breaking);
+    assert_eq!(report["changes"][0]["kind"], "capabilities-widened");
+    let (breaking, _) = classify(
+        &base,
+        &synthetic_lock(
+            "pkg",
+            "semaprax.project.v8",
+            "1.0.0",
+            &["pkg.a", "pkg.b"],
+            "sha256:aaa",
+            &[],
+            &["native64", "wasm32"],
+        ),
+    );
+    assert!(!breaking);
+
+    // Removing a target is breaking; adding one is not.
+    let (breaking, report) = classify(
+        &base,
+        &synthetic_lock(
+            "pkg",
+            "semaprax.project.v8",
+            "1.0.0",
+            &["pkg.a", "pkg.b"],
+            "sha256:aaa",
+            &["process.stdout.write"],
+            &["native64"],
+        ),
+    );
+    assert!(breaking);
+    assert_eq!(report["changes"][0]["kind"], "targets-removed");
+    let narrower = synthetic_lock(
+        "pkg",
+        "semaprax.project.v8",
+        "1.0.0",
+        &["pkg.a", "pkg.b"],
+        "sha256:aaa",
+        &["process.stdout.write"],
+        &["native64"],
+    );
+    let (breaking, report) = classify(&narrower, &base);
+    assert!(!breaking);
+    assert_eq!(report["changes"][0]["kind"], "targets-added");
+
+    // A version-only change is informational, not breaking.
+    let (breaking, report) = classify(
+        &base,
+        &synthetic_lock(
+            "pkg",
+            "semaprax.project.v8",
+            "2.0.0",
+            &["pkg.a", "pkg.b"],
+            "sha256:aaa",
+            &["process.stdout.write"],
+            &["native64", "wasm32"],
+        ),
+    );
+    assert!(!breaking);
+    assert_eq!(report["changes"][0]["kind"], "version");
+    assert_eq!(report["changes"][0]["classification"], "informational");
+
+    // A foreign baseline is rejected.
+    assert!(semaprax::project::classify_lock_change("{}", &base).is_err());
 }

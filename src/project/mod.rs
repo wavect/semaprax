@@ -328,8 +328,8 @@ pub use prepared_interpreter::{
     MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
 };
 pub use project_lock::{
-    render_project_lock, verify_project_lock, VerifiedProjectLock, MAX_PROJECT_LOCK_BYTES,
-    PROJECT_LOCK_FILE, PROJECT_LOCK_SCHEMA,
+    classify_lock_change, render_project_lock, verify_project_lock, LockCompatibility,
+    VerifiedProjectLock, MAX_PROJECT_LOCK_BYTES, PROJECT_LOCK_FILE, PROJECT_LOCK_SCHEMA,
 };
 pub use target_cache::{
     ProjectCTargetBuild, ProjectNpmTargetBuild, ProjectTargetBuild, ProjectTargetCache,

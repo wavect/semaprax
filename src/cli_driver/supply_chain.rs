@@ -28,6 +28,10 @@ pub(super) fn project_lock(args: &[String]) -> Result<(), u8> {
             Err(2)
         }
         Err(cli::project_lock::ProjectLockCliError::Domain(errors)) => Err(report(&errors, false)),
+        Err(cli::project_lock::ProjectLockCliError::Breaking(report)) => {
+            print!("{report}");
+            Err(1)
+        }
     }
 }
 
@@ -43,5 +47,19 @@ pub(super) fn package_resolve(args: &[String]) -> Result<(), u8> {
         Err(cli::package_resolver::PackageResolverCliError::Domain(errors)) => {
             Err(report(&errors, false))
         }
+    }
+}
+
+pub(super) fn resolve(args: &[String]) -> Result<(), u8> {
+    match cli::resolve::run(args) {
+        Ok(evidence) => {
+            println!("{evidence}");
+            Ok(())
+        }
+        Err(cli::resolve::ResolveCliError::Usage(message)) => {
+            eprintln!("{message}");
+            Err(2)
+        }
+        Err(cli::resolve::ResolveCliError::Domain(errors)) => Err(report(&errors, false)),
     }
 }

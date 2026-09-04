@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+<<<<<<< HEAD
 - `semaprax test` runs every `fn test_<name>() -> i64` of the manifest-declared
   test module as a named case after `main`, each with its own step budget, and
   names each failing case with its outcome (`failed
@@ -62,6 +63,40 @@
   and writes nothing. Activation adds `onLanguage:semaprax` and the new
   command; `editors/vscode/diagnostics.js` holds the pure logic and
   `test/diagnostics.test.js` covers it.
+=======
+- `semaprax resolve` gains `--write` and `--verify`: `--write` pins the
+  resolution evidence to `semaprax.resolution-<target>.json` beside the
+  manifest, and `--verify` re-resolves and confirms that pin still holds byte
+  for byte, failing closed with `SPX-J126` when the cache no longer produces the
+  recorded selection. Because resolution is deterministic the pin is a stable
+  per-target dependency lockfile a CI job can check.
+  `tests/project.rs::dependency_resolution_v1` pins it.
+
+- `semaprax lock <manifest> --compare <baseline.lock>` classifies a project's
+  current interface against a baseline `semaprax.lock` and prints a
+  `semaprax.project-lock-compatibility.v1` verdict, exiting nonzero on a
+  breaking change so a CI gate fails. A removed export, a widened required
+  capability, a removed target, a changed package name or contract, or a
+  changed interface descriptor digest with the same export set are breaking; an
+  added export, a narrowed capability, an added target are not; a pure display
+  rename or a version-only change is not. It is a coarse project-level
+  counterpart to the offline Compatibility Evidence; `tests/project.rs::project_lock_v1`
+  pins it.
+
+- `semaprax resolve <manifest> --target <native64|wasm32> --cache <dir>`
+  resolves a project's `[dependencies]` against a local content-addressed cache
+  of Subject-v3 envelopes and prints the offline resolver's evidence
+  ([Project Dependency Resolution v1](docs/PROJECT-DEPENDENCY-RESOLUTION-V1.md)).
+  It selects one version per package that satisfies the manifest ranges and
+  their transitive requirements, deterministically and per target, reading the
+  cache as an explicit effect with no registry, acquisition, or build. Cache
+  files are named by their subject digest, so a misfiled subject is rejected;
+  `SPX-J126` covers missing dependencies, a target outside the matrix, and
+  cache faults. Manifest dependency names are now dotted lowercase package
+  identities matching the resolver, so `examples.meaning` is admitted;
+  `tests/project.rs::dependency_resolution_v1` is the gate.
+
+>>>>>>> origin/main
 - Cross-platform CI now preserves the exact verifier hint while accepting
   native line endings in CLI help, and deep standalone-String Wasm planning
   uses narrow recursive walkers so the contracted nesting depth fits the

@@ -233,6 +233,217 @@ pub fn verify_project_lock(
     )])
 }
 
+/// The classification of a candidate project's interface against a baseline
+/// lock. `breaking` is true when any change strengthens a consumer's
+/// obligations or removes something it may depend on.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LockCompatibility {
+    breaking: bool,
+    report: String,
+}
+
+impl LockCompatibility {
+    pub fn breaking(&self) -> bool {
+        self.breaking
+    }
+
+    pub fn report(&self) -> &str {
+        &self.report
+    }
+}
+
+/// Classify the change from a `baseline` Project Lock v1 to a `candidate` one.
+///
+/// This is a coarse, digest-level compatibility verdict over the facts the lock
+/// records: the package identity and contract, the exported stable-id set and
+/// the retained interface descriptor digest, the required capabilities, and the
+/// target set. A changed interface digest with an unchanged export set means an
+/// existing export's types, ownership, or contracts changed, which is breaking;
+/// a pure display rename does not change the digest, so it is not breaking. The
+/// fine-grained per-export classification is the separate offline
+/// [Compatibility Evidence v1] over Report-v2 subjects; this verdict does not
+/// replace it.
+pub fn classify_lock_change(
+    baseline: &str,
+    candidate: &str,
+) -> Result<LockCompatibility, Vec<Diagnostic>> {
+    let base = parse_lock_payload(baseline, "baseline")?;
+    let head = parse_lock_payload(candidate, "candidate")?;
+    let mut changes: Vec<(&str, &str, String)> = Vec::new();
+    let mut breaking = false;
+    let mut note = |kind: &'static str, classification: &'static str, detail: String| {
+        if classification == "breaking" {
+            breaking = true;
+        }
+        changes.push((kind, classification, detail));
+    };
+
+    let base_name = string_at(&base, "package", "name");
+    let head_name = string_at(&head, "package", "name");
+    if base_name != head_name {
+        note(
+            "package-name",
+            "breaking",
+            format!("{base_name} became {head_name}"),
+        );
+    }
+    let base_contract = string_at(&base, "package", "contract");
+    let head_contract = string_at(&head, "package", "contract");
+    if base_contract != head_contract {
+        note(
+            "contract",
+            "breaking",
+            format!("{base_contract} became {head_contract}"),
+        );
+    }
+
+    let base_exports = string_set(&base["interface"]["exports"]);
+    let head_exports = string_set(&head["interface"]["exports"]);
+    let removed: Vec<&String> = base_exports
+        .iter()
+        .filter(|id| !head_exports.contains(*id))
+        .collect();
+    let added: Vec<&String> = head_exports
+        .iter()
+        .filter(|id| !base_exports.contains(*id))
+        .collect();
+    if !removed.is_empty() {
+        note("exports-removed", "breaking", join(&removed));
+    }
+    if !added.is_empty() {
+        note("exports-added", "nonbreaking", join(&added));
+    }
+    let base_interface = base["interface"]["digest"].as_str().unwrap_or("");
+    let head_interface = head["interface"]["digest"].as_str().unwrap_or("");
+    if base_interface != head_interface && removed.is_empty() && added.is_empty() {
+        note(
+            "interface-digest",
+            "breaking",
+            "a retained export changed its types, ownership, or contracts".to_owned(),
+        );
+    }
+
+    let base_caps = string_set(&base["capabilities"]);
+    let head_caps = string_set(&head["capabilities"]);
+    let widened: Vec<&String> = head_caps
+        .iter()
+        .filter(|id| !base_caps.contains(*id))
+        .collect();
+    let dropped: Vec<&String> = base_caps
+        .iter()
+        .filter(|id| !head_caps.contains(*id))
+        .collect();
+    if !widened.is_empty() {
+        note("capabilities-widened", "breaking", join(&widened));
+    }
+    if !dropped.is_empty() {
+        note("capabilities-narrowed", "nonbreaking", join(&dropped));
+    }
+
+    let base_targets = target_set(&base);
+    let head_targets = target_set(&head);
+    let targets_removed: Vec<&String> = base_targets
+        .iter()
+        .filter(|t| !head_targets.contains(*t))
+        .collect();
+    let targets_added: Vec<&String> = head_targets
+        .iter()
+        .filter(|t| !base_targets.contains(*t))
+        .collect();
+    if !targets_removed.is_empty() {
+        note("targets-removed", "breaking", join(&targets_removed));
+    }
+    if !targets_added.is_empty() {
+        note("targets-added", "nonbreaking", join(&targets_added));
+    }
+
+    let base_version = base["package"]["version"].as_str().unwrap_or("none");
+    let head_version = head["package"]["version"].as_str().unwrap_or("none");
+    if base_version != head_version {
+        note(
+            "version",
+            "informational",
+            format!("{base_version} became {head_version}"),
+        );
+    }
+
+    let verdict = if breaking { "breaking" } else { "compatible" };
+    let change_rows = changes
+        .iter()
+        .map(|(kind, classification, detail)| {
+            format!(
+                "{{\"classification\":{},\"detail\":{},\"kind\":{}}}",
+                json_string(classification),
+                json_string(detail),
+                json_string(kind),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let report = format!(
+        "{{\"baseline\":{},\"candidate\":{},\"changes\":[{change_rows}],\"schema\":{},\"verdict\":{}}}\n",
+        json_string(base_interface),
+        json_string(head_interface),
+        json_string("semaprax.project-lock-compatibility.v1"),
+        json_string(verdict),
+    );
+    Ok(LockCompatibility { breaking, report })
+}
+
+fn parse_lock_payload(lock: &str, role: &str) -> Result<Value, Vec<Diagnostic>> {
+    if lock.len() > MAX_PROJECT_LOCK_BYTES {
+        return Err(foreign(format!(
+            "{role} lock exceeds {MAX_PROJECT_LOCK_BYTES} bytes"
+        )));
+    }
+    let value: Value = serde_json::from_str(lock)
+        .map_err(|_| foreign(format!("{role} lock is not a JSON object")))?;
+    if value.get("schema").and_then(Value::as_str) != Some(PROJECT_LOCK_SCHEMA) {
+        return Err(foreign(format!(
+            "{role} lock does not carry schema {PROJECT_LOCK_SCHEMA}"
+        )));
+    }
+    let payload = value.get("payload").cloned().unwrap_or(Value::Null);
+    if !payload.is_object() {
+        return Err(foreign(format!("{role} lock has no payload object")));
+    }
+    Ok(payload)
+}
+
+fn string_at(payload: &Value, table: &str, key: &str) -> String {
+    payload[table][key].as_str().unwrap_or("").to_owned()
+}
+
+fn string_set(value: &Value) -> std::collections::BTreeSet<String> {
+    value
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|entry| entry.as_str().map(str::to_owned))
+        .collect()
+}
+
+fn target_set(payload: &Value) -> std::collections::BTreeSet<String> {
+    payload["targets"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|row| row["target"].as_str().map(str::to_owned))
+        .collect()
+}
+
+fn join(values: &[&String]) -> String {
+    values
+        .iter()
+        .map(|value| value.as_str())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn json_string(value: &str) -> String {
+    serde_json::to_string(value).expect("string is JSON")
+}
+
 fn foreign(message: String) -> Vec<Diagnostic> {
     vec![Diagnostic::io(CODE_FOREIGN, message)]
 }

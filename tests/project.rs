@@ -59,6 +59,8 @@ mod borrowed_bytes_call_interpreter;
 mod command_argument_borrow;
 #[path = "project/cxx_owned_data_package.rs"]
 mod cxx_owned_data_package;
+#[path = "project/dependency_resolution_v1.rs"]
+mod dependency_resolution_v1;
 #[path = "project/developer_loop.rs"]
 mod developer_loop;
 #[path = "project/draft_expression_catalog.rs"]

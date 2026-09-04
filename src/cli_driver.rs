@@ -1196,6 +1196,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         }
         CommandId::PackageLock => supply_chain::package_lock(&args[1..]),
         CommandId::Lock => supply_chain::project_lock(&args[1..]),
+        CommandId::Resolve => supply_chain::resolve(&args[1..]),
         CommandId::PackageResolve => supply_chain::package_resolve(&args[1..]),
         CommandId::RegionReport => {
             let path = required_path(&args, 1)?;

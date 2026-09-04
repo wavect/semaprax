@@ -649,6 +649,7 @@ impl FunctionPlan {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn collect_byte_range(
         &mut self,
         program: &ResolvedProgram,
@@ -677,6 +678,7 @@ impl FunctionPlan {
         self.collect_expr(program, variant_layouts, right, parameter_count, frame)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn collect_if(
         &mut self,
         program: &ResolvedProgram,

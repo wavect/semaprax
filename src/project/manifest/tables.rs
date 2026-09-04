@@ -13,8 +13,8 @@
 //! differing line, so agents get a byte-precise fix instead of a shape error.
 
 use super::{
-    capacity, grammar, valid_name, valid_semver, ProjectManifest, MAX_VERSION_BYTES,
-    PROJECT_SCHEMA, PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
+    capacity, grammar, valid_semver, ProjectManifest, MAX_VERSION_BYTES, PROJECT_SCHEMA,
+    PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
     PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
     PROJECT_SCHEMA_V9,
 };
@@ -353,9 +353,9 @@ fn parse_dependencies(table: TableReader<'_>) -> Result<Vec<PackageDependency>, 
     }
     let mut dependencies = Vec::with_capacity(table.entries.len());
     for (name, value) in table.entries {
-        if !valid_name(name) {
+        if !valid_dependency_identity(name) {
             return Err(grammar(format!(
-                "{LABEL} dependency names match lowercase [a-z][a-z0-9-]* and contain 1..=64 bytes; found `{name}`"
+                "{LABEL} dependency names are dotted lowercase package identities [a-z][a-z0-9._-]* of 1..=128 bytes with non-empty segments; found `{name}`"
             )));
         }
         let Value::Text(range) = value else {
@@ -681,13 +681,16 @@ fn parse_assignment<'a>(line: &'a str, table: &str) -> Result<(&'a str, Value), 
             "{LABEL} expected `key = value` in `[{table}]`; found `{line}`"
         )));
     };
+    // `.` is admitted so a `[dependencies]` key can be a dotted package
+    // identity such as `examples.meaning`. Every other table has a closed key
+    // set, so a dotted key there rejects as an unknown key rather than nesting.
     if key.is_empty()
         || !key.bytes().all(|byte| {
-            byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-' || byte == b'_'
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_' | b'.')
         })
     {
         return Err(grammar(format!(
-            "{LABEL} keys are lowercase [a-z0-9_-]+; found `{key}` in `[{table}]`"
+            "{LABEL} keys are lowercase [a-z0-9._-]+; found `{key}` in `[{table}]`"
         )));
     }
     if value.starts_with('[') {
@@ -695,6 +698,28 @@ fn parse_assignment<'a>(line: &'a str, table: &str) -> Result<(&'a str, Value), 
     } else {
         Ok((key, Value::Text(super::parse_string_assignment(line, key)?)))
     }
+}
+
+/// A dotted lowercase package identity: `[a-z][a-z0-9._-]*` of 1..=128 bytes
+/// with non-empty `.`-separated segments and no leading or trailing separator.
+/// It is a canonical subset of the Lock v3 package identity grammar, so a
+/// manifest dependency name is always a valid resolver requirement package.
+fn valid_dependency_identity(name: &str) -> bool {
+    if !(1..=128).contains(&name.len())
+        || !name
+            .bytes()
+            .next()
+            .is_some_and(|byte| byte.is_ascii_lowercase())
+        || name.ends_with(['.', '-', '_'])
+    {
+        return false;
+    }
+    name.split('.').all(|segment| {
+        !segment.is_empty()
+            && segment.bytes().all(|byte| {
+                byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_')
+            })
+    })
 }
 
 fn valid_table_name(name: &str) -> bool {

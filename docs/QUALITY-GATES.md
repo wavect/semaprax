@@ -40,7 +40,13 @@ scripts/quality.sh full
 It accepts `quick`, `changed`, or `full`. The script first emits and validates a
 deterministic `semaprax.quality-route.v2` plan, then dispatches only the exact
 listed gates. `changed` may widen to `full` when the path classification is not
-safe enough for a narrower run.
+safe enough for a narrower run. Two path classes stay narrow and append their
+own gate after the fixed `changed` list: CLI surface paths (`src/cli/`,
+`src/bin/`, `src/cli_driver.rs`, `src/main.rs`) add `test-cli`, which runs the
+CLI harnesses of both the standalone package and the full toolchain; editor
+paths (`editors/`) add `test-editor`, which runs the extension's `node --test`
+suite and the documentation harness. Any other unmapped path still widens the
+whole run to `full`, and `full`'s gate list does not vary.
 
 Preview the validated route without running any gates when choosing a local
 feedback loop or diagnosing why `changed` widened:
@@ -57,7 +63,7 @@ plan on standard output.
 | Profile | Intended use | Gates |
 | --- | --- | --- |
 | `quick` | Early local feedback | diff check, Rust formatting, workspace check, advisory documentation/examples/context tests |
-| `changed` | Bounded reviewed changes | `quick` plus package Clippy, agent-context integration, and package rustdoc |
+| `changed` | Bounded reviewed changes | `quick` plus package Clippy, agent-context integration, and package rustdoc; plus `test-cli` for CLI surface paths and `test-editor` for editor paths |
 | `full` | Semantic changes and release candidates | workspace Clippy/tests/doctests/rustdoc, release build, package check, and canonical example checks |
 
 Capability-aware command help additionally requires the exact catalog/dispatcher

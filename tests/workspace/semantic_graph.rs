@@ -576,7 +576,7 @@ fn public_api_and_cli_reject_entry_and_arity_errors_exactly() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             String::from_utf8(output.stderr).unwrap(),
-            "workspace-graph requires exactly <root> <entry-module>\n"
+            "workspace-graph requires exactly <root> <entry-module>\nhint: run `semaprax workspace-graph --help` for usage\n"
         );
     }
 
@@ -592,7 +592,7 @@ fn public_api_and_cli_reject_entry_and_arity_errors_exactly() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             String::from_utf8(output.stderr).unwrap(),
-            "semantic-workspace-init requires exactly <root> <path-set.json>\n"
+            "semantic-workspace-init requires exactly <root> <path-set.json>\nhint: run `semaprax semantic-workspace-init --help` for usage\n"
         );
     }
 }
@@ -952,51 +952,51 @@ fn public_workspace_analysis_cli_hostiles_and_mode_separation_are_exact() {
     for (arguments, expected) in [
         (
             vec!["workspace-context"],
-            "workspace-context requires <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]\n",
+            "workspace-context requires <root> <entry-module> <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N]\nhint: run `semaprax workspace-context --help` for usage\n",
         ),
         (
             vec!["workspace-context", root, "public.app", "other", "public.work"],
-            "workspace-context target kind must be `declaration` or `capability`\n",
+            "workspace-context target kind must be `declaration` or `capability`\nhint: run `semaprax workspace-context --help` for usage\n",
         ),
         (
             vec!["workspace-context", root, "public.app", "declaration", "public.work", "--unknown", "1"],
-            "unknown workspace-context option `--unknown`\n",
+            "unknown workspace-context option `--unknown`\nhint: run `semaprax workspace-context --help` for usage\n",
         ),
         (
             vec!["workspace-context", root, "public.app", "declaration", "public.work", "--depth", "1", "--depth", "2"],
-            "duplicate workspace-context option `--depth`\n",
+            "duplicate workspace-context option `--depth`\nhint: run `semaprax workspace-context --help` for usage\n",
         ),
         (
             vec!["workspace-context", root, "public.app", "declaration", "public.work", "--depth"],
-            "workspace-context option `--depth` requires a value\n",
+            "workspace-context option `--depth` requires a value\nhint: run `semaprax workspace-context --help` for usage\n",
         ),
         (
             vec!["workspace-context", root, "public.app", "declaration", "public.work", "--direction", "sideways"],
-            "unknown workspace-context direction `sideways`\n",
+            "unknown workspace-context direction `sideways`\nhint: run `semaprax workspace-context --help` for usage\n",
         ),
         (
             vec!["workspace-context", root, "public.app", "declaration", "public.work", "--max-nodes", "01"],
-            "workspace-context option `--max-nodes` requires a canonical nonnegative integer\n",
+            "workspace-context option `--max-nodes` requires a canonical nonnegative integer\nhint: run `semaprax workspace-context --help` for usage\n",
         ),
         (
             vec!["workspace-impact"],
-            "workspace-impact requires <root> <entry-module> <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N]\n",
+            "workspace-impact requires <root> <entry-module> <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N]\nhint: run `semaprax workspace-impact --help` for usage\n",
         ),
         (
             vec!["workspace-impact", root, "public.app", "declaration", "public.work", "--unknown", "1"],
-            "unknown workspace-impact option `--unknown`\n",
+            "unknown workspace-impact option `--unknown`\nhint: run `semaprax workspace-impact --help` for usage\n",
         ),
         (
             vec!["workspace-impact", root, "public.app", "declaration", "public.work", "--depth", "1", "--depth", "2"],
-            "duplicate workspace-impact option `--depth`\n",
+            "duplicate workspace-impact option `--depth`\nhint: run `semaprax workspace-impact --help` for usage\n",
         ),
         (
             vec!["workspace-impact", root, "public.app", "declaration", "public.work", "--max-bytes"],
-            "workspace-impact option `--max-bytes` requires a value\n",
+            "workspace-impact option `--max-bytes` requires a value\nhint: run `semaprax workspace-impact --help` for usage\n",
         ),
         (
             vec!["workspace-review", root, "public.app", "declaration", "public.work", "extra"],
-            "workspace-review requires exactly <root> <entry-module> <declaration|capability> <target>\n",
+            "workspace-review requires exactly <root> <entry-module> <declaration|capability> <target>\nhint: run `semaprax workspace-review --help` for usage\n",
         ),
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))

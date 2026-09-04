@@ -286,7 +286,7 @@ fn cli_arity_and_proposal_io_are_exact() {
             assert!(output.stdout.is_empty());
             assert_eq!(
                 String::from_utf8(output.stderr).unwrap(),
-                format!("{command} requires exactly <root> <proposal.json>\n")
+                format!("{command} requires exactly <root> <proposal.json>\nhint: run `semaprax {command} --help` for usage\n")
             );
         }
     }
@@ -517,7 +517,7 @@ fn evidence_parser_replay_confusion_and_read_hostiles_fail_closed() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             String::from_utf8(output.stderr).unwrap(),
-            "verify-semantic-workspace-change-evidence requires exactly <root> <proposal.json> <evidence.json>\n"
+            "verify-semantic-workspace-change-evidence requires exactly <root> <proposal.json> <evidence.json>\nhint: run `semaprax verify-semantic-workspace-change-evidence --help` for usage\n"
         );
     }
 
@@ -734,7 +734,7 @@ fn application_cli_arity_contention_and_receipt_confusion_are_fail_closed() {
         assert!(output.stdout.is_empty());
         assert_eq!(
             String::from_utf8(output.stderr).unwrap(),
-            "apply-semantic-workspace-change-evidence requires exactly <root> <proposal.json> <evidence.json>\n"
+            "apply-semantic-workspace-change-evidence requires exactly <root> <proposal.json> <evidence.json>\nhint: run `semaprax apply-semantic-workspace-change-evidence --help` for usage\n"
         );
     }
 

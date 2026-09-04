@@ -183,11 +183,11 @@ fn public_arity_locking_i216_and_mode_separation_are_fail_closed() {
     for (command, message) in [
         (
             "semantic-workspace-operations-derive",
-            "semantic-workspace-operations-derive requires exactly <root> <proposal.json>\n",
+            "semantic-workspace-operations-derive requires exactly <root> <proposal.json>\nhint: run `semaprax semantic-workspace-operations-derive --help` for usage\n",
         ),
         (
             "semantic-workspace-operations-change-proposal",
-            "semantic-workspace-operations-change-proposal requires exactly <root> <proposal.json>\n",
+            "semantic-workspace-operations-change-proposal requires exactly <root> <proposal.json>\nhint: run `semaprax semantic-workspace-operations-change-proposal --help` for usage\n",
         ),
     ] {
         for args in [Vec::<&str>::new(), vec!["one"], vec!["one", "two", "three"]] {
@@ -385,15 +385,15 @@ fn public_operations_evidence_cli_arity_help_and_errors_are_exact() {
     for (command, message) in [
         (
             "semantic-workspace-operations-evidence",
-            "semantic-workspace-operations-evidence requires exactly <root> <proposal.json>\n",
+            "semantic-workspace-operations-evidence requires exactly <root> <proposal.json>\nhint: run `semaprax semantic-workspace-operations-evidence --help` for usage\n",
         ),
         (
             "verify-semantic-workspace-operations-evidence",
-            "verify-semantic-workspace-operations-evidence requires exactly <root> <proposal.json> <evidence.json>\n",
+            "verify-semantic-workspace-operations-evidence requires exactly <root> <proposal.json> <evidence.json>\nhint: run `semaprax verify-semantic-workspace-operations-evidence --help` for usage\n",
         ),
         (
             "apply-semantic-workspace-operations-evidence",
-            "apply-semantic-workspace-operations-evidence requires exactly <root> <proposal.json> <evidence.json>\n",
+            "apply-semantic-workspace-operations-evidence requires exactly <root> <proposal.json> <evidence.json>\nhint: run `semaprax apply-semantic-workspace-operations-evidence --help` for usage\n",
         ),
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))

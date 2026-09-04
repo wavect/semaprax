@@ -481,35 +481,35 @@ fn workspace_cli_has_exact_arity_and_api_byte_projection() {
     for (arguments, message) in [
         (
             vec!["workspace-init"],
-            "workspace-init requires exactly <root> <path-set.json>\n",
+            "workspace-init requires exactly <root> <path-set.json>\nhint: run `semaprax workspace-init --help` for usage\n",
         ),
         (
             vec!["workspace-init", "root", "paths", "extra"],
-            "workspace-init requires exactly <root> <path-set.json>\n",
+            "workspace-init requires exactly <root> <path-set.json>\nhint: run `semaprax workspace-init --help` for usage\n",
         ),
         (
             vec!["workspace-snapshot"],
-            "workspace-snapshot requires exactly <root>\n",
+            "workspace-snapshot requires exactly <root>\nhint: run `semaprax workspace-snapshot --help` for usage\n",
         ),
         (
             vec!["workspace-snapshot", "root", "extra"],
-            "workspace-snapshot requires exactly <root>\n",
+            "workspace-snapshot requires exactly <root>\nhint: run `semaprax workspace-snapshot --help` for usage\n",
         ),
         (
             vec!["workspace-preview", "root"],
-            "workspace-preview requires exactly <root> <patch.wspatch>\n",
+            "workspace-preview requires exactly <root> <patch.wspatch>\nhint: run `semaprax workspace-preview --help` for usage\n",
         ),
         (
             vec!["workspace-preview", "root", "patch", "extra"],
-            "workspace-preview requires exactly <root> <patch.wspatch>\n",
+            "workspace-preview requires exactly <root> <patch.wspatch>\nhint: run `semaprax workspace-preview --help` for usage\n",
         ),
         (
             vec!["workspace-apply", "root"],
-            "workspace-apply requires exactly <root> <patch.wspatch>\n",
+            "workspace-apply requires exactly <root> <patch.wspatch>\nhint: run `semaprax workspace-apply --help` for usage\n",
         ),
         (
             vec!["workspace-apply", "root", "patch", "extra"],
-            "workspace-apply requires exactly <root> <patch.wspatch>\n",
+            "workspace-apply requires exactly <root> <patch.wspatch>\nhint: run `semaprax workspace-apply --help` for usage\n",
         ),
     ] {
         let output = Command::new(binary).args(arguments).output().unwrap();

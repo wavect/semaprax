@@ -568,19 +568,19 @@ fn cli_arity_is_exact_for_every_structural_command() {
     for (command, stderr) in [
         (
             "semantic-workspace-structural-change-preview",
-            "semantic-workspace-structural-change-preview requires exactly <root> <proposal.json>\n",
+            "semantic-workspace-structural-change-preview requires exactly <root> <proposal.json>\nhint: run `semaprax semantic-workspace-structural-change-preview --help` for usage\n",
         ),
         (
             "semantic-workspace-structural-change-evidence",
-            "semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json>\n",
+            "semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json>\nhint: run `semaprax semantic-workspace-structural-change-evidence --help` for usage\n",
         ),
         (
             "verify-semantic-workspace-structural-change-evidence",
-            "verify-semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json> <evidence.json>\n",
+            "verify-semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json> <evidence.json>\nhint: run `semaprax verify-semantic-workspace-structural-change-evidence --help` for usage\n",
         ),
         (
             "apply-semantic-workspace-structural-change-evidence",
-            "apply-semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json> <evidence.json>\n",
+            "apply-semantic-workspace-structural-change-evidence requires exactly <root> <proposal.json> <evidence.json>\nhint: run `semaprax apply-semantic-workspace-structural-change-evidence --help` for usage\n",
         ),
     ] {
         for arguments in [vec![command], vec![command, "a", "b", "c", "d"]] {

@@ -293,7 +293,7 @@ fn apply_cli_success_bytes_and_arity_are_exact() {
         assert!(rejected.stdout.is_empty());
         assert_eq!(
             String::from_utf8(rejected.stderr).unwrap(),
-            "workspace-apply-with-evidence requires exactly <root> <patch.wspatch> <evidence.json>\n"
+            "workspace-apply-with-evidence requires exactly <root> <patch.wspatch> <evidence.json>\nhint: run `semaprax workspace-apply-with-evidence --help` for usage\n"
         );
     }
 }

@@ -495,11 +495,11 @@ fn cli_api_lf_and_arity_are_exact() {
     for (command, message) in [
         (
             "workspace-patch-evidence",
-            "workspace-patch-evidence requires exactly <root> <patch.wspatch>\n",
+            "workspace-patch-evidence requires exactly <root> <patch.wspatch>\nhint: run `semaprax workspace-patch-evidence --help` for usage\n",
         ),
         (
             "verify-workspace-patch-evidence",
-            "verify-workspace-patch-evidence requires exactly <root> <patch.wspatch> <evidence.json>\n",
+            "verify-workspace-patch-evidence requires exactly <root> <patch.wspatch> <evidence.json>\nhint: run `semaprax verify-workspace-patch-evidence --help` for usage\n",
         ),
     ] {
         let output = Command::new(binary).arg(command).output().unwrap();

@@ -130,9 +130,13 @@ The routing and naming regressions in `tests/cli_check_routing_v1.rs` and
 `run` and `test` execute in process from the already authenticated linked HIR.
 They do not emit C or Wasm, create a temporary executable, spawn a process,
 reparse sources, relink declarations, or create project state. `run` evaluates
-the exact entry-module `main` and prints its `i64` result. `test` evaluates only
-the manifest-declared test-module `main`; zero passes and any nonzero result
-fails. There is no filesystem test discovery. Both commands distinguish a
+the exact entry-module `main` and prints its `i64` result. `test` evaluates the
+manifest-declared test-module `main`, and then each zero-parameter `i64`
+function of that module whose name starts with `test_` as a named case; zero
+passes and any nonzero result fails. There is no filesystem test discovery.
+[Project Test Cases v1](PROJECT-TEST-CASES-V1.md) owns the case rule, the
+human report, the additive `cases` array, and the contract-failure detail that
+accompanies a language failure. Both commands distinguish a
 language failure, fuel exhaustion, and call-depth exhaustion, and `--json`
 emits a deterministic `semaprax.project-execution.v1` envelope binding the
 project and Workspace revisions, closure role and module, stable entry ID,
@@ -184,6 +188,20 @@ A final held-input recheck follows publication. If it detects drift after one
 complete package or executable was published, the operation reports `SPX-J103`.
 The output may remain at its output path; callers must reconcile the retained
 output with the current inputs and must never delete it automatically.
+
+When a listed source imports a module that no listed source declares, the
+Workspace Semantic Graph reports `SPX-G172` "target module is missing or
+equals the caller module" at the `use`. The project loader keeps that code,
+message, and span and adds a `help` line: when an unlisted `.spx` file in a
+directory that holds a listed source declares the module, the help names that
+file and the `sources` key (`` `src/util.spx` declares module `app.util` but is
+not listed under `sources` in semaprax.toml; add it there ``); when no such file
+exists, it says that no listed file declares the module; when the module
+imports from itself, it says so. The scan reads at most 512 `.spx` files of at
+most 1 MiB each, runs only after the build has already failed, and produces
+advisory text only. Human and `--json` output carry the same `help`.
+`tests/project_cli_v1.rs::unresolved_import_hint_names_the_unlisted_source_file`
+is the gate.
 
 | Diagnostic | Meaning |
 | --- | --- |

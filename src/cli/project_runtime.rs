@@ -37,41 +37,115 @@ pub(crate) fn execute_held(
             }
             Ok(())
         }
-        ("test", project::ProjectExecutionOutcome::Returned(0)) => {
+        ("run", outcome) => {
             if !options.json {
-                println!("project tests passed");
-            }
-            Ok(())
-        }
-        ("test", project::ProjectExecutionOutcome::Returned(value)) => {
-            if !options.json {
-                eprintln!("project tests failed with result {value}");
-            }
-            Err(1)
-        }
-        (_, project::ProjectExecutionOutcome::LanguageFailure(status)) => {
-            if !options.json {
-                eprintln!(
-                    "project execution failed with language status {}",
-                    status.to_json()
-                );
+                let line = match outcome {
+                    project::ProjectExecutionOutcome::LanguageFailure(status) => format!(
+                        "project execution failed with language status {}",
+                        status.to_json()
+                    ),
+                    project::ProjectExecutionOutcome::FuelExhausted => {
+                        "project execution exhausted its step budget".to_owned()
+                    }
+                    _ => "project execution exceeded its call-depth bound".to_owned(),
+                };
+                eprint!("{line}\n{}", failure_text(execution.failure()));
             }
             Err(1)
         }
-        (_, project::ProjectExecutionOutcome::FuelExhausted) => {
-            if !options.json {
-                eprintln!("project execution exhausted its step budget");
-            }
-            Err(1)
-        }
-        (_, project::ProjectExecutionOutcome::CallDepthExceeded) => {
-            if !options.json {
-                eprintln!("project execution exceeded its call-depth bound");
-            }
-            Err(1)
-        }
+        ("test", _) => report_test(&execution, options.json),
         _ => unreachable!("validated project execution command"),
     }
+}
+
+/// The human test report. `main` and every named case must return zero; each
+/// failing closure is listed by stable identity with its outcome, and a
+/// contract failure adds the violated clause and the call's arguments.
+fn report_test(execution: &project::ProjectExecution, json: bool) -> Result<(), u8> {
+    let main_failed = !matches!(
+        execution.outcome(),
+        project::ProjectExecutionOutcome::Returned(0)
+    );
+    let cases = execution.cases();
+    let failed_cases = cases.iter().filter(|case| !case.passed()).count();
+    if !main_failed && failed_cases == 0 {
+        if !json {
+            if cases.is_empty() {
+                println!("project tests passed");
+            } else {
+                println!("project tests passed ({} named cases)", cases.len());
+            }
+        }
+        return Ok(());
+    }
+    if json {
+        return Err(1);
+    }
+    let mut report = String::new();
+    if main_failed {
+        report.push_str(&format!(
+            "failed {}: {}\n{}",
+            execution.stable_id(),
+            outcome_text(execution.outcome()),
+            failure_text(execution.failure())
+        ));
+    }
+    for case in cases.iter().filter(|case| !case.passed()) {
+        report.push_str(&format!(
+            "failed {}: {}\n{}",
+            case.stable_id(),
+            outcome_text(case.outcome()),
+            failure_text(case.failure())
+        ));
+    }
+    report.push_str(&format!(
+        "project tests failed: {} of {} in {}\n  help: a test passes by returning 0; a nonzero return is the failing check's code or count{}\n",
+        usize::from(main_failed) + failed_cases,
+        1 + cases.len(),
+        execution.module(),
+        if cases.is_empty() {
+            ", so give each check its own `fn test_<name>() -> i64` in the test module to have it reported by name"
+        } else {
+            ""
+        }
+    ));
+    eprint!("{report}");
+    Err(1)
+}
+
+fn outcome_text(outcome: &project::ProjectExecutionOutcome) -> String {
+    match outcome {
+        project::ProjectExecutionOutcome::Returned(value) => format!("returned {value}"),
+        project::ProjectExecutionOutcome::LanguageFailure(status) => {
+            format!("language status {}", status.to_json())
+        }
+        project::ProjectExecutionOutcome::FuelExhausted => "step budget exhausted".to_owned(),
+        project::ProjectExecutionOutcome::CallDepthExceeded => {
+            "call-depth bound exceeded".to_owned()
+        }
+    }
+}
+
+/// Two indented lines naming the violated clause and the call's arguments, or
+/// nothing when the outcome carries no contract detail.
+fn failure_text(failure: Option<&project::ProjectContractFailure>) -> String {
+    let Some(failure) = failure else {
+        return String::new();
+    };
+    let arguments = if failure.arguments.is_empty() {
+        "none".to_owned()
+    } else {
+        failure
+            .arguments
+            .iter()
+            .map(|argument| format!("{} = {}", argument.name, argument.value))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    format!(
+        "  contract: {} {} in {}\n  arguments: {arguments}\n",
+        failure.phase, failure.clause, failure.function_id
+    )
 }
 
 pub(crate) fn build_success(

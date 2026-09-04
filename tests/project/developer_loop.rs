@@ -157,7 +157,13 @@ fn manifest_test_result_controls_test_status_without_affecting_entry_run() {
     let test = cli(&fixture.root, &["test"]);
     assert_eq!(test.status.code(), Some(1));
     assert!(stdout(&test).is_empty());
-    assert_eq!(stderr(&test), "project tests failed with result 7\n");
+    assert_eq!(
+        stderr(&test),
+        "failed calculator.tests.main: returned 7\n\
+         project tests failed: 1 of 1 in calculator.tests\n\
+         \x20 help: a test passes by returning 0; a nonzero return is the failing check's code or count, \
+         so give each check its own `fn test_<name>() -> i64` in the test module to have it reported by name\n"
+    );
 
     let run = cli(&fixture.root, &["run"]);
     assert!(run.status.success(), "entry run failed: {}", stderr(&run));
@@ -238,4 +244,184 @@ fn language_failure_is_not_misreported_as_fuel_or_test_assertion_failure() {
         "semaprax.contract.v1"
     );
     assert_ne!(execution["outcome"]["kind"], "fuel_exhausted");
+}
+
+const NAMED_CASES: &str = "
+@id(\"calculator.tests.test_add\")
+fn test_add() -> i64
+{
+    if add(1, 2) == 3 { 0 } else { 1 }
+}
+
+@id(\"calculator.tests.test_subtract\")
+fn test_subtract() -> i64
+{
+    if subtract(1, 2) == 0 { 0 } else { 2 }
+}
+
+@id(\"calculator.tests.test_divide_by_zero\")
+fn test_divide_by_zero() -> i64
+{
+    divide(7, 0)
+}
+
+@id(\"calculator.tests.test_helper\")
+fn test_helper(value: i64) -> i64
+{
+    value
+}
+";
+
+/// Every zero-parameter `i64` function named `test_*` in the declared test
+/// module runs on its own; `main` keeps deciding exactly as before. The human
+/// report names each failing case with its outcome, and the JSON envelope gains
+/// an additive `cases` array that replays under the same payload digest and
+/// verifies through the public route.
+#[test]
+fn named_test_cases_are_executed_and_reported_individually() {
+    let fixture = fixture("named-cases");
+    let tests = fixture.root.join("src/tests.spx");
+    let source = std::fs::read_to_string(&tests).unwrap();
+    std::fs::write(&tests, format!("{source}{NAMED_CASES}")).unwrap();
+    let before = inventory(&fixture.root);
+
+    let test = cli(&fixture.root, &["test"]);
+    assert_eq!(test.status.code(), Some(1));
+    assert!(stdout(&test).is_empty());
+    assert_eq!(
+        stderr(&test),
+        "failed calculator.tests.test_divide_by_zero: language status {\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.contract.v1\",\"code\":1,\"class\":\"contract\",\"retryable\":false}\n\
+         \x20 contract: requires right != 0 in calculator.divide\n\
+         \x20 arguments: left = 7, right = 0\n\
+         failed calculator.tests.test_subtract: returned 2\n\
+         project tests failed: 2 of 4 in calculator.tests\n\
+         \x20 help: a test passes by returning 0; a nonzero return is the failing check's code or count\n"
+    );
+
+    let json = cli(&fixture.root, &["test", "--json"]);
+    assert_eq!(json.status.code(), Some(1));
+    assert!(json.stderr.is_empty());
+    let envelope = stdout(&json);
+    semaprax::project::verify_execution_envelope(envelope.trim_end()).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&envelope).unwrap();
+    assert_eq!(value["schema"], "semaprax.project-execution.v1");
+    assert_eq!(value["stable_id"], "calculator.tests.main");
+    assert_eq!(value["outcome"]["value"], "0");
+    assert_eq!(
+        value["payload_digest"],
+        replay_payload_digest(envelope.trim_end())
+    );
+    let cases = value["cases"].as_array().unwrap();
+    assert_eq!(
+        cases
+            .iter()
+            .map(|case| case["name"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["test_add", "test_divide_by_zero", "test_subtract"],
+        "cases follow stable-identity order and `test_helper(value)` is not a case"
+    );
+    assert_eq!(cases[0]["stable_id"], "calculator.tests.test_add");
+    assert_eq!(cases[0]["outcome"]["value"], "0");
+    assert_eq!(cases[0]["fuel"]["max_steps"], value["limits"]["max_steps"]);
+    assert_eq!(cases[1]["outcome"]["kind"], "language_failure");
+    assert_eq!(
+        cases[1]["outcome"]["failure"]["function"],
+        "calculator.divide"
+    );
+    assert_eq!(cases[1]["outcome"]["failure"]["phase"], "requires");
+    assert_eq!(cases[1]["outcome"]["failure"]["clause"], "right != 0");
+    assert_eq!(
+        cases[1]["outcome"]["failure"]["arguments"],
+        serde_json::json!([
+            {"name": "left", "type": "i64", "value": "7"},
+            {"name": "right", "type": "i64", "value": "0"},
+        ])
+    );
+    assert_eq!(cases[2]["outcome"]["value"], "2");
+
+    assert_eq!(inventory(&fixture.root), before, "test runs write nothing");
+
+    // Fixing the two cases passes the command and reports the case count.
+    let source = std::fs::read_to_string(&tests).unwrap();
+    let source = replace_exactly_once(&source, "divide(7, 0)", "divide(7, 7) - 1");
+    let source = replace_exactly_once(&source, "subtract(1, 2) == 0", "subtract(1, 2) == -1");
+    std::fs::write(&tests, source).unwrap();
+    let before = inventory(&fixture.root);
+    let passed = cli(&fixture.root, &["test"]);
+    assert!(passed.status.success(), "{}", stderr(&passed));
+    assert_eq!(stdout(&passed), "project tests passed (3 named cases)\n");
+    let passed_json = cli(&fixture.root, &["test", "--json"]);
+    assert!(passed_json.status.success());
+    let value: serde_json::Value = serde_json::from_slice(&passed_json.stdout).unwrap();
+    assert_eq!(value["cases"].as_array().unwrap().len(), 3);
+
+    // A test module without named cases keeps the exact legacy envelope shape
+    // apart from the always-present, empty `cases` array.
+    let run = cli(&fixture.root, &["run", "--json"]);
+    let run: serde_json::Value = serde_json::from_slice(&run.stdout).unwrap();
+    assert!(run.get("cases").is_none(), "entry envelopes carry no cases");
+    assert_eq!(inventory(&fixture.root), before);
+}
+
+/// A violated `requires` inside `semaprax run` names the function, the clause,
+/// and the call's arguments in both projections while the status object stays
+/// exactly what every backend reports.
+#[test]
+fn contract_failure_names_the_function_clause_and_arguments() {
+    let fixture = fixture("contract-detail");
+    let app = fixture.root.join("src/app.spx");
+    let source = std::fs::read_to_string(&app).unwrap();
+    std::fs::write(
+        &app,
+        replace_exactly_once(
+            &source,
+            "add(multiply(6, 7), subtract(divide(4, 2), 2))",
+            "divide(1, 0)",
+        ),
+    )
+    .unwrap();
+
+    let run = cli(&fixture.root, &["run"]);
+    assert_eq!(run.status.code(), Some(1));
+    assert!(stdout(&run).is_empty());
+    assert_eq!(
+        stderr(&run),
+        "project execution failed with language status {\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.contract.v1\",\"code\":1,\"class\":\"contract\",\"retryable\":false}\n\
+         \x20 contract: requires right != 0 in calculator.divide\n\
+         \x20 arguments: left = 1, right = 0\n"
+    );
+
+    let json = cli(&fixture.root, &["run", "--json"]);
+    assert_eq!(json.status.code(), Some(1));
+    assert!(json.stderr.is_empty());
+    let envelope = stdout(&json);
+    semaprax::project::verify_execution_envelope(envelope.trim_end()).unwrap();
+    let value: serde_json::Value = serde_json::from_str(&envelope).unwrap();
+    assert_eq!(value["outcome"]["kind"], "language_failure");
+    assert_eq!(
+        value["outcome"]["status"],
+        serde_json::json!({
+            "schema": "semaprax.status.v1",
+            "domain_id": "semaprax.contract.v1",
+            "code": 1,
+            "class": "contract",
+            "retryable": false,
+        })
+    );
+    assert_eq!(
+        value["outcome"]["failure"],
+        serde_json::json!({
+            "function": "calculator.divide",
+            "phase": "requires",
+            "clause": "right != 0",
+            "arguments": [
+                {"name": "left", "type": "i64", "value": "1"},
+                {"name": "right", "type": "i64", "value": "0"},
+            ],
+        })
+    );
+    assert_eq!(
+        value["payload_digest"],
+        replay_payload_digest(envelope.trim_end())
+    );
 }

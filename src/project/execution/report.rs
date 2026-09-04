@@ -11,7 +11,10 @@ use crate::interpreter::{self, MAX_STEPS_LIMIT};
 use crate::{graph, runtime_status};
 use sha2::{Digest as _, Sha256};
 
-use super::{ProjectExecutionOutcome, ProjectExecutionRole};
+use super::cases::{
+    ProjectContractArgument, ProjectContractFailure, ProjectTestCase, MAX_CONTRACT_TEXT_BYTES,
+};
+use super::{ProjectExecutionOutcome, ProjectExecutionRole, TEST_CASE_PREFIX};
 use crate::project::{
     MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_STABLE_ID_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
     PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
@@ -33,7 +36,10 @@ const NONCLAIMS: [&str; 5] = [
     "no_cache_or_persistence",
 ];
 
+/// Render an envelope without contract-failure detail or named cases; the
+/// entry role and every pre-case test envelope have exactly this shape.
 #[allow(clippy::too_many_arguments)]
+#[cfg(test)]
 pub(super) fn render(
     project_schema: &str,
     project_revision: &str,
@@ -47,25 +53,121 @@ pub(super) fn render(
     max_bytes: usize,
     outcome: &ProjectExecutionOutcome,
 ) -> Result<String, Vec<Diagnostic>> {
-    let (envelope, overflowed) = with_limit(max_bytes, || {
-        let outcome = match outcome {
-            ProjectExecutionOutcome::Returned(value) => budgeted_format(format_args!(
-                "{{\"kind\":\"returned\",\"type\":\"i64\",\"value\":{}}}",
-                quote_json(&value.to_string())
+    render_full(
+        project_schema,
+        project_revision,
+        workspace_revision,
+        project,
+        role,
+        module,
+        entry_id,
+        steps_used,
+        max_steps,
+        max_bytes,
+        outcome,
+        None,
+        &[],
+    )
+}
+
+fn outcome_json(
+    outcome: &ProjectExecutionOutcome,
+    failure: Option<&ProjectContractFailure>,
+) -> String {
+    match outcome {
+        ProjectExecutionOutcome::Returned(value) => budgeted_format(format_args!(
+            "{{\"kind\":\"returned\",\"type\":\"i64\",\"value\":{}}}",
+            quote_json(&value.to_string())
+        )),
+        ProjectExecutionOutcome::LanguageFailure(status) => match failure {
+            Some(failure) => budgeted_format(format_args!(
+                "{{\"kind\":\"language_failure\",\"status\":{},\"failure\":{}}}",
+                status.to_json(),
+                failure_json(failure)
             )),
-            ProjectExecutionOutcome::LanguageFailure(status) => budgeted_format(format_args!(
+            None => budgeted_format(format_args!(
                 "{{\"kind\":\"language_failure\",\"status\":{}}}",
                 status.to_json()
             )),
-            ProjectExecutionOutcome::FuelExhausted => {
-                budgeted_format(format_args!("{{\"kind\":\"fuel_exhausted\"}}"))
-            }
-            ProjectExecutionOutcome::CallDepthExceeded => {
-                budgeted_format(format_args!("{{\"kind\":\"call_depth_exceeded\"}}"))
+        },
+        ProjectExecutionOutcome::FuelExhausted => {
+            budgeted_format(format_args!("{{\"kind\":\"fuel_exhausted\"}}"))
+        }
+        ProjectExecutionOutcome::CallDepthExceeded => {
+            budgeted_format(format_args!("{{\"kind\":\"call_depth_exceeded\"}}"))
+        }
+    }
+}
+
+fn failure_json(failure: &ProjectContractFailure) -> String {
+    let arguments = failure
+        .arguments
+        .iter()
+        .map(|argument| {
+            budgeted_format(format_args!(
+                "{{\"name\":{},\"type\":{},\"value\":{}}}",
+                quote_json(&argument.name),
+                quote_json(&argument.ty),
+                quote_json(&argument.value)
+            ))
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    budgeted_format(format_args!(
+        "{{\"function\":{},\"phase\":{},\"clause\":{},\"arguments\":[{}]}}",
+        quote_json(&failure.function_id),
+        quote_json(failure.phase),
+        quote_json(&failure.clause),
+        arguments
+    ))
+}
+
+fn cases_json(cases: &[ProjectTestCase]) -> String {
+    cases
+        .iter()
+        .map(|case| {
+            budgeted_format(format_args!(
+                "{{\"stable_id\":{},\"name\":{},\"fuel\":{{\"steps_used\":{},\"max_steps\":{}}},\"outcome\":{}}}",
+                quote_json(&case.stable_id),
+                quote_json(&case.name),
+                case.steps_used,
+                case.max_steps,
+                outcome_json(&case.outcome, case.failure.as_ref())
+            ))
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+/// Render the complete envelope. `failure` is admitted only with a
+/// `LanguageFailure` outcome; `cases` is rendered only for the test role, where
+/// it is always present, possibly empty.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn render_full(
+    project_schema: &str,
+    project_revision: &str,
+    workspace_revision: &str,
+    project: &str,
+    role: ProjectExecutionRole,
+    module: &str,
+    entry_id: &str,
+    steps_used: usize,
+    max_steps: usize,
+    max_bytes: usize,
+    outcome: &ProjectExecutionOutcome,
+    failure: Option<&ProjectContractFailure>,
+    cases: &[ProjectTestCase],
+) -> Result<String, Vec<Diagnostic>> {
+    let (envelope, overflowed) = with_limit(max_bytes, || {
+        let outcome = outcome_json(outcome, failure);
+        let cases = match role {
+            ProjectExecutionRole::Entry => String::new(),
+            ProjectExecutionRole::Test => {
+                budgeted_format(format_args!(",\"cases\":[{}]", cases_json(cases)))
             }
         };
         let payload = budgeted_format(format_args!(
-            "{{\"schema\":{},\"project_schema\":{},\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"role\":{},\"module\":{},\"stable_id\":{},\"limits\":{{\"max_bytes\":{},\"max_steps\":{}}},\"fuel\":{{\"steps_used\":{},\"max_steps\":{}}},\"outcome\":{},\"nonclaims\":[{}]}}",
+            "{{\"schema\":{},\"project_schema\":{},\"project\":{},\"project_revision\":{},\"workspace_revision\":{},\"role\":{},\"module\":{},\"stable_id\":{},\"limits\":{{\"max_bytes\":{},\"max_steps\":{}}},\"fuel\":{{\"steps_used\":{},\"max_steps\":{}}},\"outcome\":{}{},\"nonclaims\":[{}]}}",
             quote_json(PROJECT_EXECUTION_SCHEMA),
             quote_json(project_schema),
             quote_json(project),
@@ -79,6 +181,7 @@ pub(super) fn render(
             steps_used,
             max_steps,
             outcome,
+            cases,
             NONCLAIMS_JSON,
         ));
         let digest = domain_digest(PAYLOAD_DIGEST_DOMAIN, payload.as_bytes());
@@ -126,25 +229,38 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
     let value: serde_json::Value = serde_json::from_str(envelope)
         .map_err(|error| verification_error(format!("envelope is not valid JSON: {error}")))?;
     let object = require_object(&value, "envelope")?;
-    require_keys(
-        object,
-        &[
-            "fuel",
-            "limits",
-            "module",
-            "nonclaims",
-            "outcome",
-            "payload_digest",
-            "project",
-            "project_revision",
-            "project_schema",
-            "role",
-            "schema",
-            "stable_id",
-            "workspace_revision",
-        ],
-        "envelope",
-    )?;
+    let role = match object.get("role").and_then(serde_json::Value::as_str) {
+        Some("entry") => ProjectExecutionRole::Entry,
+        Some("test") => ProjectExecutionRole::Test,
+        _ => {
+            return Err(verification_error(
+                "envelope role must be exactly `entry` or `test`".to_owned(),
+            ))
+        }
+    };
+    let common_keys = [
+        "fuel",
+        "limits",
+        "module",
+        "nonclaims",
+        "outcome",
+        "payload_digest",
+        "project",
+        "project_revision",
+        "project_schema",
+        "role",
+        "schema",
+        "stable_id",
+        "workspace_revision",
+    ];
+    match role {
+        ProjectExecutionRole::Entry => require_keys(object, &common_keys, "envelope")?,
+        ProjectExecutionRole::Test => {
+            let mut keys = vec!["cases"];
+            keys.extend(common_keys);
+            require_keys(object, &keys, "test envelope")?;
+        }
+    }
     require_text_eq(object, "schema", PROJECT_EXECUTION_SCHEMA)?;
     let project_schema = require_text(object, "project_schema")?;
     if !matches!(
@@ -180,15 +296,6 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
     }
     let project_revision = require_digest(object, "project_revision")?;
     let workspace_revision = require_digest(object, "workspace_revision")?;
-    let role = match require_text(object, "role")? {
-        "entry" => ProjectExecutionRole::Entry,
-        "test" => ProjectExecutionRole::Test,
-        _ => {
-            return Err(verification_error(
-                "envelope role must be exactly `entry` or `test`".to_owned(),
-            ))
-        }
-    };
 
     let limits = require_member_object(object, "limits")?;
     require_keys(limits, &["max_bytes", "max_steps"], "limits")?;
@@ -223,7 +330,11 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
     }
 
     let outcome_object = require_member_object(object, "outcome")?;
-    let outcome = verify_outcome(outcome_object, steps_used, max_steps)?;
+    let (outcome, failure) = verify_outcome(outcome_object, steps_used, max_steps)?;
+    let cases = match role {
+        ProjectExecutionRole::Entry => Vec::new(),
+        ProjectExecutionRole::Test => verify_cases(&object["cases"], max_steps)?,
+    };
 
     let Some(nonclaims) = object["nonclaims"].as_array() else {
         return Err(verification_error(
@@ -247,7 +358,7 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
         ));
     }
 
-    let reconstructed = render(
+    let reconstructed = render_full(
         project_schema,
         project_revision,
         workspace_revision,
@@ -259,6 +370,8 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
         max_steps,
         max_bytes,
         &outcome,
+        failure.as_ref(),
+        &cases,
     )
     .map_err(|_| {
         verification_error(
@@ -273,11 +386,99 @@ pub fn verify_execution_envelope(envelope: &str) -> Result<(), Diagnostic> {
     Ok(())
 }
 
+fn verify_cases(
+    value: &serde_json::Value,
+    max_steps: usize,
+) -> Result<Vec<ProjectTestCase>, Diagnostic> {
+    let Some(entries) = value.as_array() else {
+        return Err(verification_error(
+            "test envelope cases must be an array".to_owned(),
+        ));
+    };
+    let mut cases = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let case = require_object(entry, "test case")?;
+        require_keys(case, &["fuel", "name", "outcome", "stable_id"], "test case")?;
+        let stable_id = require_bounded_text(case, "stable_id", MAX_STABLE_ID_BYTES)?;
+        let name = require_bounded_text(case, "name", MAX_STABLE_ID_BYTES)?;
+        if !name.starts_with(TEST_CASE_PREFIX) {
+            return Err(verification_error(format!(
+                "test case name must start with `{TEST_CASE_PREFIX}`"
+            )));
+        }
+        let fuel = require_member_object(case, "fuel")?;
+        require_keys(fuel, &["max_steps", "steps_used"], "test case fuel")?;
+        let case_max_steps = require_usize(fuel, "max_steps")?;
+        let steps_used = require_usize(fuel, "steps_used")?;
+        if case_max_steps != max_steps || steps_used > max_steps {
+            return Err(verification_error(
+                "test case fuel must use the envelope max_steps and not exceed it".to_owned(),
+            ));
+        }
+        let outcome_object = require_member_object(case, "outcome")?;
+        let (outcome, failure) = verify_outcome(outcome_object, steps_used, max_steps)?;
+        cases.push(ProjectTestCase {
+            stable_id: stable_id.to_owned(),
+            name: name.to_owned(),
+            outcome,
+            steps_used,
+            max_steps,
+            failure,
+        });
+    }
+    Ok(cases)
+}
+
+fn verify_failure(value: &serde_json::Value) -> Result<ProjectContractFailure, Diagnostic> {
+    let failure = require_object(value, "contract failure")?;
+    require_keys(
+        failure,
+        &["arguments", "clause", "function", "phase"],
+        "contract failure",
+    )?;
+    let function_id = require_bounded_text(failure, "function", MAX_STABLE_ID_BYTES)?;
+    let phase = match require_text(failure, "phase")? {
+        "requires" => "requires",
+        "ensures" => "ensures",
+        _ => {
+            return Err(verification_error(
+                "contract failure phase must be exactly `requires` or `ensures`".to_owned(),
+            ))
+        }
+    };
+    let clause = require_bounded_text(failure, "clause", MAX_CONTRACT_TEXT_BYTES)?;
+    let Some(entries) = failure["arguments"].as_array() else {
+        return Err(verification_error(
+            "contract failure arguments must be an array".to_owned(),
+        ));
+    };
+    let mut arguments = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let argument = require_object(entry, "contract failure argument")?;
+        require_keys(
+            argument,
+            &["name", "type", "value"],
+            "contract failure argument",
+        )?;
+        arguments.push(ProjectContractArgument {
+            name: require_bounded_text(argument, "name", MAX_CONTRACT_TEXT_BYTES)?.to_owned(),
+            ty: require_bounded_text(argument, "type", MAX_CONTRACT_TEXT_BYTES)?.to_owned(),
+            value: require_bounded_text(argument, "value", MAX_CONTRACT_TEXT_BYTES)?.to_owned(),
+        });
+    }
+    Ok(ProjectContractFailure {
+        function_id: function_id.to_owned(),
+        phase,
+        clause: clause.to_owned(),
+        arguments,
+    })
+}
+
 fn verify_outcome(
     outcome: &serde_json::Map<String, serde_json::Value>,
     steps_used: usize,
     max_steps: usize,
-) -> Result<ProjectExecutionOutcome, Diagnostic> {
+) -> Result<(ProjectExecutionOutcome, Option<ProjectContractFailure>), Diagnostic> {
     match require_text(outcome, "kind")? {
         "returned" => {
             require_keys(outcome, &["kind", "type", "value"], "returned outcome")?;
@@ -293,13 +494,34 @@ fn verify_outcome(
                     "returned i64 value must be a canonical decimal string".to_owned(),
                 ));
             }
-            Ok(ProjectExecutionOutcome::Returned(value))
+            Ok((ProjectExecutionOutcome::Returned(value), None))
         }
         "language_failure" => {
-            require_keys(outcome, &["kind", "status"], "language_failure outcome")?;
-            Ok(ProjectExecutionOutcome::LanguageFailure(verify_status(
-                &outcome["status"],
-            )?))
+            let failure = if outcome.contains_key("failure") {
+                require_keys(
+                    outcome,
+                    &["failure", "kind", "status"],
+                    "language_failure outcome",
+                )?;
+                Some(verify_failure(&outcome["failure"])?)
+            } else {
+                require_keys(outcome, &["kind", "status"], "language_failure outcome")?;
+                None
+            };
+            let status = verify_status(&outcome["status"])?;
+            if let Some(failure) = &failure {
+                let phase = match failure.phase {
+                    "ensures" => ContractPhase::Ensures,
+                    _ => ContractPhase::Requires,
+                };
+                if status != runtime_status::normalize_contract(phase) {
+                    return Err(verification_error(
+                        "contract failure detail phase disagrees with the language failure status"
+                            .to_owned(),
+                    ));
+                }
+            }
+            Ok((ProjectExecutionOutcome::LanguageFailure(status), failure))
         }
         "fuel_exhausted" => {
             require_keys(outcome, &["kind"], "fuel_exhausted outcome")?;
@@ -308,11 +530,11 @@ fn verify_outcome(
                     "fuel_exhausted requires steps_used equal to max_steps".to_owned(),
                 ));
             }
-            Ok(ProjectExecutionOutcome::FuelExhausted)
+            Ok((ProjectExecutionOutcome::FuelExhausted, None))
         }
         "call_depth_exceeded" => {
             require_keys(outcome, &["kind"], "call_depth_exceeded outcome")?;
-            Ok(ProjectExecutionOutcome::CallDepthExceeded)
+            Ok((ProjectExecutionOutcome::CallDepthExceeded, None))
         }
         _ => Err(verification_error(
             "outcome kind is outside the closed project-execution v1 vocabulary".to_owned(),

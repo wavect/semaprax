@@ -96,7 +96,12 @@ impl CandidateTestReport {
 
 /// Terminal outcome of one cancellation-aware candidate test execution.
 /// Cancellation produces no test report or approval-like evidence.
+///
+/// The report variant is large because a `ProjectExecution` carries its named
+/// cases and contract detail inline; boxing it would change this public shape
+/// for a value that is produced once per task.
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum ProjectCandidateTestTaskOutcome {
     Completed(CandidateTestReport),
     Cancelled {
@@ -337,7 +342,7 @@ impl ProjectCandidate {
             .execute_test_cancellable(&options, cancellation)?
         {
             super::super::execution::CancellableProjectExecution::Completed(execution) => prepared
-                .finish(execution)
+                .finish(*execution)
                 .map(ProjectCandidateTestTaskOutcome::Completed),
             super::super::execution::CancellableProjectExecution::Cancelled {
                 before_step,

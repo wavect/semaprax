@@ -722,6 +722,21 @@ pub(crate) fn copy_scalar_type(ty: &ResolvedType) -> bool {
     )
 }
 
+/// The one canonical SEMAPRAX spelling [`package_scalar_type`] adds to
+/// [`COPY_SCALAR_NAMES`]. Every projection that names the admitted package
+/// surface as wire text reads both lists, so neither can drift from its
+/// predicate.
+pub(crate) const PACKAGE_SCALAR_NAME: &str = "usize";
+
+/// The by-value scalars a package-source interface admits. A package interface
+/// is a SEMAPRAX-to-SEMAPRAX fact linked from exact source rather than a host
+/// ABI boundary, so `usize` stays inside it: the length type is what the
+/// built-in byte operations return. The host-facing Public Scalar Export
+/// Profile v1 keeps excluding it.
+pub(crate) fn package_scalar_type(ty: &ResolvedType) -> bool {
+    copy_scalar_type(ty) || matches!(ty, ResolvedType::Usize)
+}
+
 fn link_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-H006", message)
 }

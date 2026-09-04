@@ -1,7 +1,8 @@
 # Project Candidate Package Consumer Migration v1
 
-Status: **Partial; library implementation and regression sources authored and
-unrun.** This is a read-only proposal artifact for two narrow lanes.
+Status: **Partial; library implementation and regressions execute locally in
+the `project_candidate` harness.** This is a read-only proposal artifact for
+two narrow lanes.
 
 Audience: compiler contributors, package tooling authors, and reviewers.
 
@@ -23,10 +24,25 @@ owned results, and every other signature form remain refused.
 
 The package-source evidence selector admits Copy parameters plus the exact
 built-in pair needed to authenticate this boundary: `own Bytes` and
-`borrow Slice<u8>`. Results remain Copy values; owning `string`, `borrow str`,
-authored nominal types, effects, capabilities, and type imports remain outside
-the package-source profile. Existing Copy-only reports retain their interface
-bytes and digests.
+`borrow Slice<u8>`. Results remain by-value package scalars, which include the
+`usize` a byte-length provider returns; owning `string`, `borrow str`, authored
+nominal types, effects, capabilities, and type imports remain outside the
+package-source profile. Existing Copy-only reports retain their interface bytes
+and digests.
+
+The compared base and candidate signatures are the exact retained checked HIR
+of each Project revision. A provider consumed only across packages is outside
+its own Project's entry and test closures, which retain linked call closures
+rather than every checked declaration, so the route then relinks that
+revision's exact retained canonical sources and reads the same validated HIR
+the revision was admitted from. It never reconstructs meaning from source text
+or from the submitted corpus.
+
+The append lane reports and authenticates the consumer call inventory. A
+provider-local call site is still rewritten, so the reconstructed provider
+keeps byte-equalling the candidate source, but it is a provider-local fact and
+is excluded from the affected and migrated counts. The owner-view lane refuses
+provider-local call sites outright.
 
 The method first regenerates the baseline signature-conflict report. It
 requires at least one stable-ID-bound affected cross-package call and exact
@@ -75,10 +91,10 @@ reconstructions outside the two lanes. `SPX-G511` owns final report capacity.
 Existing package capsule, Resolver, graph, signature, ownership, cleanup, and
 stale diagnostics remain authoritative.
 
-The authored, unrun regressions in
-`tests/project_candidate/package_consumer_replay.rs` retain the Copy append
-case and add the whole-Bytes case. They construct real two-package baseline and
-candidate-era evidence, assert the canonical caller stages the owner before
-deriving its view, require independent candidate-era package replay, and reject
-a temporary `bytes_copy(...)` owner argument. No test target, runtime, target,
-or quality gate was executed.
+The regressions in `tests/project_candidate/package_consumer_replay.rs` retain
+the Copy append case and add the whole-Bytes case. They construct real
+two-package baseline and candidate-era evidence, assert the canonical caller
+stages the owner before deriving its view, require independent candidate-era
+package replay, and reject a temporary `bytes_copy(...)` owner argument. They
+now execute in the ordinary `project_candidate` harness; no runtime, target, or
+publication gate is executed by them.

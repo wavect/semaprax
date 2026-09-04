@@ -666,6 +666,14 @@ fn selected_signature(
         .filter(|function| function.id.as_str() == target)
         .map(|function| signature_value(revision.manifest().name(), function))
         .collect::<Result<Vec<_>>>()?;
+    if signatures.is_empty() {
+        // A provider consumed only across packages is outside this Project's
+        // own entry and test closures, which retain linked call closures rather
+        // than every checked declaration. Relink the exact retained canonical
+        // sources and read the same validated HIR the revision was admitted
+        // from; nothing here trusts source text or the submitted corpus.
+        signatures = validated_signature(revision, target)?;
+    }
     signatures.dedup();
     if signatures.len() != 1 {
         return Err(association(
@@ -673,6 +681,28 @@ fn selected_signature(
         ));
     }
     Ok(signatures.pop().expect("one checked signature"))
+}
+
+/// Relink this revision's exact retained canonical sources and project the
+/// selected target's checked signature. The build is the ordinary workspace
+/// validation, so a revision whose retained bytes no longer link fails closed.
+fn validated_signature(
+    revision: &crate::project::ProjectRevision,
+    target: &str,
+) -> Result<Vec<Value>> {
+    let sources = revision
+        .sources()
+        .iter()
+        .map(|source| crate::workspace_graph::WorkspaceSource {
+            path: source.path().to_owned(),
+            source: source.source().to_owned(),
+        })
+        .collect::<Vec<_>>();
+    crate::workspace_graph::build_owned(sources)?
+        .validated_functions()
+        .filter(|function| function.id.as_str() == target)
+        .map(|function| signature_value(revision.manifest().name(), function))
+        .collect()
 }
 
 fn signature_value(package: &str, function: &crate::hir::ResolvedFunction) -> Result<Value> {

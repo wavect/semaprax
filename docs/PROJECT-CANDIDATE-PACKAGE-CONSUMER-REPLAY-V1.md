@@ -1,6 +1,7 @@
 # Project Candidate Package Consumer Replay v1
 
-Status: additive implementation and regression sources authored, **unrun**.
+Status: additive implementation with regressions that **execute locally** in
+the `project_candidate` harness.
 No installed-consumer discovery, compatibility, execution or publication claim
 is made.
 
@@ -125,12 +126,12 @@ association checks or nonclaims.
 
 ## Evidence
 
-Authored, unrun regressions in
+The locally executed regressions in
 `tests/project_candidate/package_consumer_replay.rs` construct a real
 candidate-era provider report and complete two-package source capsule. They
 cover a called export and a separately imported-only export, a private caller
 outside the linked export closure, exact source/candidate/package bindings,
 baseline and sibling source mismatch, foreign coordinates and paths, tampered
 package source, deterministic sibling isolation, no retained state and unchanged
-authoritative source. No tests, compiler, package build, target, application or
-quality gate were run while authoring this tranche.
+authoritative source. They run under the ordinary test harness; no package
+build, target, application, publication or hosted gate is executed by them.

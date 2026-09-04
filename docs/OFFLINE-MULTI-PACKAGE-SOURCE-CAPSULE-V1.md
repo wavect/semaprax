@@ -47,12 +47,19 @@ The closed v1 profile requires:
   evidence for `wasm32` with an empty capability allowlist;
 - an explicit selected root and one caller-owned canonical source and exact
   selected Report-v2 envelope per coordinate;
-- only effect-free by-value Copy-scalar parameters and results — `i64`, `i32`,
-  `u8`, `char`, `f32`, `f64`, `bool`, the surface the
-  [Public Scalar Export Profile v1](WASM-SCALAR-EXPORTS-V1.md) admits and
-  `usize` is excluded from — including at least one explicit root-owned
-  `fn() -> i64` HIR anchor, no declared permits, nominal types, interfaces,
-  templates, or type imports;
+- only effect-free by-value package scalars — `i64`, `i32`, `u8`, `char`,
+  `f32`, `f64`, `bool`, and `usize` — as results, and those same scalars plus
+  exactly one owner-view pair, `own Bytes` and `borrow Slice<u8>`, as
+  parameters. A package interface is a SEMAPRAX-to-SEMAPRAX fact linked from
+  exact source rather than a host ABI boundary, so the length type stays inside
+  it; the host-facing
+  [Public Scalar Export Profile v1](WASM-SCALAR-EXPORTS-V1.md) keeps excluding
+  `usize`, and a package whose interface uses it therefore has no scalar Wasm
+  export. Owning `string`, `borrow str`, owned or borrowed results, authored
+  nominal types, effects, and capabilities remain outside the profile. The
+  capsule additionally requires at least one explicit root-owned `fn() -> i64`
+  HIR anchor, and no declared permits, nominal types, interfaces, templates, or
+  type imports;
 - exact equality between each source-derived typed function fact vector and
   the selected Report-v2 interface after display and parameter names are
   omitted; and
@@ -60,8 +67,15 @@ The closed v1 profile requires:
   edges and the complete direct Subject-v2 dependency graph.
 
 Function import target, alias, and ordinal remain separate authenticated link
-facts. The ordinary semantic-workspace graph builds synthetic logical paths
-only. A package-only linker retains every authenticated root export plus its
+facts. A package-source build is the one build that also admits importing a
+whole `own Bytes` parameter across packages, under the same closed condition
+the borrowed view already carries: the byte parameter takes no lifetime out, so
+the imported result must stay a non-borrowing scalar. That admission is scoped
+to this build alone. The ordinary Project, draft, and candidate linkers keep the
+value and borrowed-view boundary
+[Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md) states, and no
+other owned, borrowed, or aggregate cross-file composition is granted. The
+ordinary semantic-workspace graph builds synthetic logical paths only. A package-only linker retains every authenticated root export plus its
 transitive function-call closure while leaving the Project linker's authored
 `main` contract unchanged. Every selected module must be reachable from the
 explicit root. Capsule sources are

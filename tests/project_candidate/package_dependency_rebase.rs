@@ -1,4 +1,4 @@
-//! Cross-module callable-contract reconciliation, authored and intentionally unrun.
+//! Cross-module callable-contract reconciliation.
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, ProjectCandidate, ProjectRevision, SemanticChange,
@@ -62,11 +62,30 @@ fn apply(candidate: &ProjectCandidate, intent: Value) -> ProjectCandidate {
         .unwrap()
 }
 
-fn imported_call() -> Value {
+/// `calculator.app.main` is a main function, so the candidate catalogue exposes
+/// expression replacement rather than whole-body replacement. Select the exact
+/// authenticated imported call and rebind its arguments.
+fn imported_call(candidate: &ProjectCandidate) -> Value {
+    let catalog: Value =
+        serde_json::from_str(&candidate.expression_catalog("calculator.app.main").unwrap())
+            .unwrap();
+    let caller = source(candidate, "src/app.spx");
+    let selected = catalog["expressions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| {
+            let span = &entry["source_span"];
+            caller.get(
+                span["start"].as_u64().unwrap() as usize..span["end"].as_u64().unwrap() as usize,
+            ) == Some("divide(4, 2)")
+        })
+        .expect("the authenticated imported divide call");
     json!({
-        "kind":"replace_function_body",
+        "kind":"replace_expression",
         "target":"calculator.app.main",
-        "body":{
+        "expression_id":selected["expression_id"],
+        "replacement":{
             "kind":"call",
             "target":"calculator.divide",
             "arguments":[
@@ -118,7 +137,7 @@ fn code<T>(result: Result<T, Vec<Diagnostic>>, expected: &str) {
 fn imported_provider_contract_drift_conflicts_before_rebase_or_merge() {
     let fixture = Fixture::new();
     let root = fixture.candidate();
-    let caller = apply(&root, imported_call());
+    let caller = apply(&root, imported_call(&root));
     let provider = apply(&root, added_provider_contract());
     let caller_bytes = caller.to_json().to_owned();
     let provider_bytes = provider.to_json().to_owned();
@@ -150,7 +169,7 @@ fn imported_provider_contract_drift_conflicts_before_rebase_or_merge() {
 fn imported_provider_body_only_change_merges_through_complete_canonical_replay() {
     let fixture = Fixture::new();
     let root = fixture.candidate();
-    let caller = apply(&root, imported_call());
+    let caller = apply(&root, imported_call(&root));
     let provider = apply(&root, provider_body(21));
 
     let merged = caller

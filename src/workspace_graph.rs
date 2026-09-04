@@ -1053,6 +1053,14 @@ impl WorkspaceGraphBuild {
         self.hir.module_paths.contains_key(module)
     }
 
+    /// Every checked function of this validated workspace, in module order. A
+    /// linked program keeps only its own call closure, so a reader of a
+    /// declaration outside it reads this rather than source text.
+    pub(crate) fn validated_functions(&self) -> impl Iterator<Item = &hir::ResolvedFunction> {
+        let modules = self.hir.modules.iter();
+        modules.flat_map(|module| module.functions.iter())
+    }
+
     /// Consume one validated workspace build into the entry module's complete
     /// provider closure and link its real scalar function bodies. This is a
     /// private backend-preparation seam, not a new Workspace authority or a
@@ -5566,9 +5574,8 @@ fn validate_imported_function(
     programs: &[Program],
 ) -> Result<(), Vec<Diagnostic>> {
     let function = target.function.expect("function target carries a function");
-    let borrowed_slice =
-        |param: &crate::ast::Param| param.mode == ParamMode::Borrow && param.ty == Type::SliceU8;
-    let has_borrowed_slice = function.params.iter().any(borrowed_slice);
+    let byte_parameter = package::admitted_byte_parameter;
+    let has_byte_parameter = function.params.iter().any(byte_parameter);
     let scalar_return = matches!(
         function.return_type,
         Type::I64
@@ -5584,17 +5591,17 @@ fn validate_imported_function(
         || function
             .params
             .iter()
-            .any(|param| param.mode != ParamMode::Value && !borrowed_slice(param))
-        || (has_borrowed_slice && !scalar_return)
+            .any(|param| param.mode != ParamMode::Value && !byte_parameter(param))
+        || (has_byte_parameter && !scalar_return)
     {
         return Err(vec![use_error(
             caller,
             module_use,
-            "function target must be monomorphic with admitted value parameters, or borrowed byte-slice parameters and a scalar return",
+            package::import_profile_refusal(),
         )]);
     }
     for param in &function.params {
-        if borrowed_slice(param) {
+        if byte_parameter(param) {
             continue;
         }
         if !signature_type_is_admitted(

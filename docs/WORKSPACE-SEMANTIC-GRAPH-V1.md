@@ -196,7 +196,12 @@ value-only function boundary: a monomorphic imported function may accept exact
 `borrow Slice<u8>` parameters only when its return is a non-borrowing scalar.
 `Slice<u8>` is not globally added to signature-type admission, so borrowed or
 owned byte returns, strings, arrays, named aggregates, resources, generics,
-and other non-Value modes remain rejected. Linked HIR revalidates lexical
+and other non-Value modes remain rejected. The one build that widens this is
+the package-source workspace, which additionally admits a whole `own Bytes`
+imported parameter under the same non-borrowing-scalar-result condition; see
+[Multi-Package Source Capsule v1](OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md).
+That admission is scoped to that build and changes no Project, draft, or
+candidate boundary. Linked HIR revalidates lexical
 borrowing, exact symbolic root provenance, call closure, cycles, and capacity
 before backend selection. This grants no persistence, mutation, lifetime
 erasure, or general cross-file ownership composition.

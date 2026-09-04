@@ -1,9 +1,57 @@
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::ast::{Param, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
 use crate::package_report_v2::ScalarPackageInterface;
 
-use super::{build_owned, hir, WorkspaceSource};
+use super::{build_owned, hir, WorkspaceGraphBuild, WorkspaceSource};
+
+thread_local! {
+    /// Set only for the duration of one package-source workspace build, which
+    /// authenticates the closed cross-package owner-view boundary. Every
+    /// ordinary Project, draft, and candidate build keeps the narrower profile.
+    static ACTIVE_PACKAGE_SOURCE_BUILD: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Build one package-source workspace: the ordinary owned build plus exactly
+/// one additional admitted import shape, the whole `own Bytes` argument the
+/// package owner-view boundary authenticates. The flag lives only for this
+/// call, so no other build can observe the wider profile.
+pub(super) fn build_owned_package_sources(
+    sources: Vec<WorkspaceSource>,
+) -> Result<WorkspaceGraphBuild, Vec<Diagnostic>> {
+    struct Restore(bool);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            ACTIVE_PACKAGE_SOURCE_BUILD.with(|active| active.set(self.0));
+        }
+    }
+    let restore = Restore(ACTIVE_PACKAGE_SOURCE_BUILD.with(|active| active.replace(true)));
+    let result = build_owned(sources);
+    drop(restore);
+    result
+}
+
+/// The byte parameters an imported function may declare. A borrowed view is
+/// admitted everywhere; the whole owned transfer only inside a package-source
+/// build. Both carry no lifetime out, so the caller still requires a
+/// non-borrowing scalar result.
+pub(super) fn admitted_byte_parameter(param: &Param) -> bool {
+    (param.mode == ParamMode::Borrow && param.ty == Type::SliceU8)
+        || (ACTIVE_PACKAGE_SOURCE_BUILD.with(Cell::get)
+            && param.mode == ParamMode::Own
+            && param.ty == Type::Bytes)
+}
+
+/// The exact refusal text for the import profile the active build admits.
+pub(super) fn import_profile_refusal() -> &'static str {
+    if ACTIVE_PACKAGE_SOURCE_BUILD.with(Cell::get) {
+        "function target must be monomorphic with admitted value parameters, or byte parameters and a scalar return"
+    } else {
+        "function target must be monomorphic with admitted value parameters, or borrowed byte-slice parameters and a scalar return"
+    }
+}
 
 pub(crate) struct PackageWorkspaceLink {
     build: super::WorkspaceGraphBuild,
@@ -112,7 +160,7 @@ pub(crate) fn build_package_scalar_sources(
     sources: Vec<WorkspaceSource>,
     root_package: &str,
 ) -> Result<PackageWorkspaceLink, Vec<Diagnostic>> {
-    let build = build_owned(sources)?;
+    let build = build_owned_package_sources(sources)?;
     if !build.contains_module(root_package) {
         return Err(vec![package_error(
             "package-source root module is absent from authenticated sources",
@@ -183,7 +231,7 @@ pub(crate) fn build_package_scalar_sources(
                         .params
                         .iter()
                         .any(|parameter| !package_parameter(parameter))
-                    || !hir::copy_scalar_type(&function.return_type)
+                    || !hir::package_scalar_type(&function.return_type)
             })
         {
             return Err(vec![package_profile_error(

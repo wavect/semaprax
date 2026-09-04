@@ -12,7 +12,7 @@ use serde_json::{Map, Value};
 
 use crate::ast::{
     BinaryOp, Expr, ExprKind, FieldInitializer, MatchArm, MatchMode, MatchPattern,
-    MatchPatternField, ModuleUseKind, Param, ParamMode, Program, Span, Statement, Type, UnaryOp,
+    MatchPatternField, ModuleUseKind, Program, Span, Statement, Type, UnaryOp,
 };
 use crate::diagnostic::Diagnostic;
 
@@ -27,6 +27,8 @@ const MAX_WALK_NODES: usize = 1_048_576;
 
 #[path = "aggregate.rs"]
 mod aggregate;
+#[path = "intent/append.rs"]
+mod append;
 #[path = "builtin.rs"]
 mod builtin;
 #[path = "field_place.rs"]
@@ -43,6 +45,7 @@ pub(super) use aggregate::{
     field_place_dependency_fingerprint, field_places, nominal_type_dependency_fingerprint,
     nominal_type_plan, nominal_types, validate_nominal_ast, MAX_AGGREGATE_TYPE_ARGUMENTS,
 };
+use append::append_parameters;
 pub(super) use builtin::{
     builtin_constructors, builtin_dependency_fingerprint, by_id as builtin_operation_by_id,
     implicit_dependency_fingerprint as implicit_builtin_dependency_fingerprint,
@@ -61,7 +64,28 @@ pub(super) fn apply_detached_signature(
     owner: usize,
     function_index: usize,
 ) -> Result<usize> {
-    signature::apply(None, programs, intent, owner, function_index)
+    if intent.get("parameters").is_some() {
+        return signature::apply(None, programs, intent, owner, function_index);
+    }
+    let target = text(intent, "target")?;
+    let owner_module = programs[owner].module.clone();
+    let migrated = append_parameters(
+        programs,
+        intent,
+        target,
+        owner,
+        &owner_module,
+        function_index,
+    )?;
+    // The provider's own call sites are rewritten so its reconstruction still
+    // equals the candidate source, but they are provider-local facts rather
+    // than the consumer inventory this route reports and authenticates.
+    Ok(migrated
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| *index != owner)
+        .map(|(_, calls)| calls)
+        .sum())
 }
 
 /// Invocation-local reuse for a detached corpus whose provider bytes were
@@ -170,83 +194,16 @@ fn apply_inner(
             migrated_calls = signature::apply(revision, programs, intent, owner, function_index)?;
         }
         "change_function_signature" => {
-            object(intent, &["kind", "target", "append_parameters"])?;
-            let additions = array(intent, "append_parameters")?;
-            if additions.is_empty() || additions.len() > MAX_APPEND_PARAMETERS {
-                return Err(capacity(
-                    "candidate signature requires one to sixteen appended parameters",
-                ));
-            }
-            let old_arity = function.params.len();
-            let mut names = function
-                .params
-                .iter()
-                .map(|p| p.name.clone())
-                .collect::<BTreeSet<_>>();
-            let mut params = Vec::with_capacity(additions.len());
-            let mut arguments = Vec::with_capacity(additions.len());
-            for addition in additions {
-                object(addition, &["name", "type", "argument"])?;
-                let name = identifier(text(addition, "name")?)?;
-                if !names.insert(name.to_owned()) {
-                    return Err(grammar(
-                        "candidate signature parameter names must remain unique",
-                    ));
-                }
-                let ty = scalar_type(text(addition, "type")?)?;
-                let argument = member(addition, "argument")?;
-                if text(argument, "kind")? != text(addition, "type")? {
-                    return Err(grammar(
-                        "appended argument must be an exact typed scalar literal",
-                    ));
-                }
-                let expression = literal(argument)?;
-                params.push(Param {
-                    name: name.to_owned(),
-                    mode: ParamMode::Value,
-                    ty,
-                    span: Span::default(),
-                });
-                arguments.push(expression);
-            }
-            let mut nodes = 0;
-            for program in programs.iter_mut() {
-                // Existing imports select both provider identity and module;
-                // an alias is never inferred from a provider's display name.
-                for import in &program.module_uses {
-                    if import.kind == ModuleUseKind::Function
-                        && import.persistent_id == target
-                        && import.target_module != owner_module
-                    {
-                        return Err(grammar(
-                            "candidate call provider module does not match its stable ID",
-                        ));
-                    }
-                }
-                let bindings = call_bindings(program)?;
-                walk_program(program, &mut nodes, &mut |expression| {
-                    if let ExprKind::Call {
-                        name,
-                        type_arguments,
-                        args,
-                    } = &mut expression.kind
-                    {
-                        if bindings.get(name).is_some_and(|id| id == target) {
-                            if !type_arguments.is_empty() || args.len() != old_arity {
-                                return Err(grammar(
-                                    "candidate call migration has an unsupported signature",
-                                ));
-                            }
-                            args.extend(arguments.iter().cloned());
-                            migrated_calls += 1;
-                        }
-                    }
-                    Ok(())
-                })?;
-            }
-            programs[owner].functions[function_index]
-                .params
-                .extend(params);
+            migrated_calls = append_parameters(
+                programs,
+                intent,
+                target,
+                owner,
+                &owner_module,
+                function_index,
+            )?
+            .iter()
+            .sum();
         }
         "replace_function_body" => {
             object(intent, &["kind", "target", "body"])?;

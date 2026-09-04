@@ -31,7 +31,10 @@ fn assignments() -> bool
     let first = [61u8, 49u8];
     let middle = [97u8, 32u8, 61u8, 32u8, 49u8];
     let absent = [97u8, 32u8, 49u8];
-    assignment_index(array_as_slice(empty)) == -1 && assignment_index(array_as_slice(first)) == 0 && assignment_index(array_as_slice(middle)) == 2 && assignment_index(array_as_slice(absent)) == -1
+    let basic = [34u8, 97u8, 61u8, 98u8, 34u8, 32u8, 61u8, 32u8, 49u8];
+    let literal = [39u8, 97u8, 61u8, 98u8, 39u8, 32u8, 61u8, 32u8, 49u8];
+    let comment = [35u8, 32u8, 97u8, 61u8, 49u8];
+    assignment_index(array_as_slice(empty)) == -1 && assignment_index(array_as_slice(first)) == 0 && assignment_index(array_as_slice(middle)) == 2 && assignment_index(array_as_slice(absent)) == -1 && assignment_index(array_as_slice(basic)) == 6 && assignment_index(array_as_slice(literal)) == 6 && assignment_index(array_as_slice(comment)) == -1
 }
 
 @id("std.data.toml.tests.main")

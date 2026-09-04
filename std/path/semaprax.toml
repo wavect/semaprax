@@ -11,4 +11,4 @@ sources = ["src/examples.spx", "src/path.spx", "src/tests.spx"]
 tests = ["std.path.tests"]
 
 [exports]
-web = ["std.path.file_name_start", "std.path.has_trailing_separator", "std.path.is_absolute", "std.path.segment_count"]
+web = ["std.path.extension_start", "std.path.file_name_start", "std.path.has_trailing_separator", "std.path.is_absolute", "std.path.parent_end", "std.path.segment_count"]

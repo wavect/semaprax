@@ -1,5 +1,6 @@
 module std.time.examples;
 use function @id("std.time.deadline_reached") from std.time as deadline_reached;
+use function @id("std.time.elapsed_milliseconds") from std.time as elapsed_milliseconds;
 use function @id("std.time.milliseconds") from std.time as milliseconds;
 use function @id("std.time.remaining_milliseconds") from std.time as remaining_milliseconds;
 
@@ -7,5 +8,5 @@ use function @id("std.time.remaining_milliseconds") from std.time as remaining_m
 fn main() -> i64
 {
     let deadline = milliseconds(5);
-    if !deadline_reached(1250, deadline) && remaining_milliseconds(1250, deadline) == 3750 { 0 } else { 1 }
+    if !deadline_reached(1250, deadline) && remaining_milliseconds(1250, deadline) == 3750 && elapsed_milliseconds(1250, deadline) == 3750 { 0 } else { 1 }
 }

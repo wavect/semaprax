@@ -359,6 +359,17 @@
           "kind": "function",
           "name": "has_balanced_quotes",
           "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_well_formed_record(record: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.csv.is_well_formed_record",
+          "kind": "function",
+          "name": "is_well_formed_record",
+          "requires": 0
         }
       ],
       "module": "std.data.csv",
@@ -964,6 +975,30 @@
           "kind": "function",
           "name": "file_name_start",
           "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn parent_end(path: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(path)"
+          ],
+          "id": "std.path.parent_end",
+          "kind": "function",
+          "name": "parent_end",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn extension_start(path: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(path)"
+          ],
+          "id": "std.path.extension_start",
+          "kind": "function",
+          "name": "extension_start",
+          "requires": 0
         }
       ],
       "module": "std.path",
@@ -1217,6 +1252,19 @@
           "effects": [],
           "ensures": 1,
           "head": [
+            "fn seconds_ceil(milliseconds: i64) -> i64",
+            "    requires milliseconds >= 0",
+            "    ensures result >= 0"
+          ],
+          "id": "std.time.seconds_ceil",
+          "kind": "function",
+          "name": "seconds_ceil",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
             "fn subsecond_milliseconds(milliseconds: i64) -> i64",
             "    requires milliseconds >= 0",
             "    ensures result >= 0 && result < 1000"
@@ -1250,6 +1298,19 @@
           "id": "std.time.remaining_milliseconds",
           "kind": "function",
           "name": "remaining_milliseconds",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn elapsed_milliseconds(start_milliseconds: i64, end_milliseconds: i64) -> i64",
+            "    requires start_milliseconds >= 0 && end_milliseconds >= start_milliseconds",
+            "    ensures result >= 0"
+          ],
+          "id": "std.time.elapsed_milliseconds",
+          "kind": "function",
+          "name": "elapsed_milliseconds",
           "requires": 1
         },
         {

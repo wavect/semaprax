@@ -1,6 +1,7 @@
 module std.data.csv.tests;
 use function @id("std.data.csv.field_count") from std.data.csv as field_count;
 use function @id("std.data.csv.has_balanced_quotes") from std.data.csv as has_balanced_quotes;
+use function @id("std.data.csv.is_well_formed_record") from std.data.csv as is_well_formed_record;
 
 @id("std.data.csv.tests.fields")
 fn fields() -> bool
@@ -22,11 +23,25 @@ fn quotes() -> bool
     has_balanced_quotes(array_as_slice(empty)) && has_balanced_quotes(array_as_slice(quoted)) && has_balanced_quotes(array_as_slice(escaped)) && !has_balanced_quotes(array_as_slice(open))
 }
 
+@id("std.data.csv.tests.validation")
+fn validation() -> bool
+{
+    let empty = [0u8; 0];
+    let plain = [97u8, 44u8, 98u8];
+    let quoted = [34u8, 97u8, 44u8, 98u8, 34u8, 44u8, 99u8];
+    let escaped = [34u8, 97u8, 34u8, 34u8, 98u8, 34u8];
+    let open = [34u8, 97u8];
+    let embedded = [97u8, 34u8, 98u8];
+    let suffix = [34u8, 97u8, 34u8, 98u8];
+    is_well_formed_record(array_as_slice(empty)) && is_well_formed_record(array_as_slice(plain)) && is_well_formed_record(array_as_slice(quoted)) && is_well_formed_record(array_as_slice(escaped)) && !is_well_formed_record(array_as_slice(open)) && !is_well_formed_record(array_as_slice(embedded)) && !is_well_formed_record(array_as_slice(suffix))
+}
+
 @id("std.data.csv.tests.main")
 fn main() -> i64
 {
     let mut failed = 0;
     failed = failed + if fields() { 0 } else { 1 };
     failed = failed + if quotes() { 0 } else { 2 };
+    failed = failed + if validation() { 0 } else { 4 };
     failed
 }

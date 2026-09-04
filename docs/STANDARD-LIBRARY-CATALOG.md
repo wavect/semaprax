@@ -215,6 +215,12 @@ fn field_count(record: borrow Slice<u8>) -> usize
 fn has_balanced_quotes(record: borrow Slice<u8>) -> bool
 ```
 
+### `std.data.csv.is_well_formed_record`
+
+```semaprax
+fn is_well_formed_record(record: borrow Slice<u8>) -> bool
+```
+
 ## `std.data.toml`
 
 Package `std/data-toml`, tier `portable`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
@@ -550,6 +556,20 @@ fn file_name_start(path: borrow Slice<u8>) -> usize
     ensures result <= byte_len(path)
 ```
 
+### `std.path.parent_end`
+
+```semaprax
+fn parent_end(path: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(path)
+```
+
+### `std.path.extension_start`
+
+```semaprax
+fn extension_start(path: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(path)
+```
+
 ## `std.random`
 
 Package `std/random`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
@@ -682,6 +702,14 @@ fn seconds_floor(milliseconds: i64) -> i64
     ensures result >= 0
 ```
 
+### `std.time.seconds_ceil`
+
+```semaprax
+fn seconds_ceil(milliseconds: i64) -> i64
+    requires milliseconds >= 0
+    ensures result >= 0
+```
+
 ### `std.time.subsecond_milliseconds`
 
 ```semaprax
@@ -703,6 +731,14 @@ fn deadline_reached(now_milliseconds: i64, deadline_milliseconds: i64) -> bool
 ```semaprax
 fn remaining_milliseconds(now_milliseconds: i64, deadline_milliseconds: i64) -> i64
     requires now_milliseconds >= 0 && deadline_milliseconds >= 0
+    ensures result >= 0
+```
+
+### `std.time.elapsed_milliseconds`
+
+```semaprax
+fn elapsed_milliseconds(start_milliseconds: i64, end_milliseconds: i64) -> i64
+    requires start_milliseconds >= 0 && end_milliseconds >= start_milliseconds
     ensures result >= 0
 ```
 

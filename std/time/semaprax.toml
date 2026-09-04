@@ -10,4 +10,4 @@ sources = ["src/examples.spx", "src/tests.spx", "src/time.spx"]
 tests = ["std.time.tests"]
 
 [exports]
-web = ["std.time.deadline_reached", "std.time.milliseconds", "std.time.remaining_milliseconds", "std.time.saturating_add_milliseconds", "std.time.seconds_floor", "std.time.subsecond_milliseconds"]
+web = ["std.time.deadline_reached", "std.time.elapsed_milliseconds", "std.time.milliseconds", "std.time.remaining_milliseconds", "std.time.saturating_add_milliseconds", "std.time.seconds_ceil", "std.time.seconds_floor", "std.time.subsecond_milliseconds"]

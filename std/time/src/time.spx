@@ -17,6 +17,14 @@ fn seconds_floor(milliseconds: i64) -> i64
     milliseconds / 1000
 }
 
+@id("std.time.seconds_ceil")
+fn seconds_ceil(milliseconds: i64) -> i64
+    requires milliseconds >= 0
+    ensures result >= 0
+{
+    milliseconds / 1000 + if milliseconds % 1000 == 0 { 0 } else { 1 }
+}
+
 @id("std.time.subsecond_milliseconds")
 fn subsecond_milliseconds(milliseconds: i64) -> i64
     requires milliseconds >= 0
@@ -39,6 +47,14 @@ fn remaining_milliseconds(now_milliseconds: i64, deadline_milliseconds: i64) -> 
     ensures result >= 0
 {
     if now_milliseconds >= deadline_milliseconds { 0 } else { deadline_milliseconds - now_milliseconds }
+}
+
+@id("std.time.elapsed_milliseconds")
+fn elapsed_milliseconds(start_milliseconds: i64, end_milliseconds: i64) -> i64
+    requires start_milliseconds >= 0 && end_milliseconds >= start_milliseconds
+    ensures result >= 0
+{
+    end_milliseconds - start_milliseconds
 }
 
 @id("std.time.saturating_add_milliseconds")

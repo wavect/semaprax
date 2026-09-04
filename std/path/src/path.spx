@@ -46,3 +46,48 @@ fn file_name_start(path: borrow Slice<u8>) -> usize
     }
     start
 }
+
+@id("std.path.parent_end")
+fn parent_end(path: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(path)
+{
+    let mut end = byte_len(path);
+    let mut trimming = true;
+    while end > 0usize && trimming {
+        trimming = match byte_get(path, end - 1usize) { Option::Some { value: byte } => byte == 47u8, Option::None {} => false, };
+        end = if trimming { end - 1usize } else { end };
+        end > 0usize && trimming
+    }
+    let mut start = end;
+    let mut scanning = true;
+    while start > 0usize && scanning {
+        scanning = match byte_get(path, start - 1usize) { Option::Some { value: byte } => byte != 47u8, Option::None {} => false, };
+        start = if scanning { start - 1usize } else { start };
+        start > 0usize && scanning
+    }
+    let mut parent = start;
+    let mut separators = true;
+    while parent > 1usize && separators {
+        separators = match byte_get(path, parent - 1usize) { Option::Some { value: byte } => byte == 47u8, Option::None {} => false, };
+        parent = if separators { parent - 1usize } else { parent };
+        parent > 1usize && separators
+    }
+    parent
+}
+
+@id("std.path.extension_start")
+fn extension_start(path: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(path)
+{
+    let length = byte_len(path);
+    let name_start = file_name_start(path);
+    let mut index = name_start;
+    let mut extension = length;
+    while index < length {
+        let dot = match byte_get(path, index) { Option::Some { value: byte } => byte == 46u8, Option::None {} => false, };
+        extension = if dot && index > name_start { index + 1usize } else { extension };
+        index = index + 1usize;
+        index < length
+    }
+    extension
+}

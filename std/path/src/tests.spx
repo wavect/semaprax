@@ -1,7 +1,9 @@
 module std.path.tests;
 use function @id("std.path.file_name_start") from std.path as file_name_start;
+use function @id("std.path.extension_start") from std.path as extension_start;
 use function @id("std.path.has_trailing_separator") from std.path as has_trailing_separator;
 use function @id("std.path.is_absolute") from std.path as is_absolute;
+use function @id("std.path.parent_end") from std.path as parent_end;
 use function @id("std.path.segment_count") from std.path as segment_count;
 
 @id("std.path.tests.shape")
@@ -34,6 +36,20 @@ fn file_names() -> bool
     file_name_start(array_as_slice(empty)) == 0usize && file_name_start(array_as_slice(plain)) == 0usize && file_name_start(array_as_slice(absolute)) == 5usize && file_name_start(array_as_slice(trailing)) == 2usize
 }
 
+@id("std.path.tests.boundaries")
+fn boundaries() -> bool
+{
+    let empty = [0u8; 0];
+    let root = [47u8];
+    let plain = [102u8, 105u8, 108u8, 101u8];
+    let nested = [47u8, 117u8, 115u8, 114u8, 47u8, 98u8, 105u8, 110u8];
+    let repeated = [47u8, 97u8, 47u8, 47u8, 98u8, 47u8];
+    let source = [115u8, 114u8, 99u8, 47u8, 109u8, 97u8, 105u8, 110u8, 46u8, 115u8, 112u8, 120u8];
+    let hidden = [46u8, 101u8, 110u8, 118u8];
+    let archive = [97u8, 46u8, 116u8, 97u8, 114u8, 46u8, 103u8, 122u8];
+    parent_end(array_as_slice(empty)) == 0usize && parent_end(array_as_slice(root)) == 0usize && parent_end(array_as_slice(plain)) == 0usize && parent_end(array_as_slice(nested)) == 4usize && parent_end(array_as_slice(repeated)) == 2usize && extension_start(array_as_slice(plain)) == 4usize && extension_start(array_as_slice(source)) == 9usize && extension_start(array_as_slice(hidden)) == 4usize && extension_start(array_as_slice(archive)) == 6usize
+}
+
 @id("std.path.tests.main")
 fn main() -> i64
 {
@@ -41,5 +57,6 @@ fn main() -> i64
     failed = failed + if shape() { 0 } else { 1 };
     failed = failed + if segments() { 0 } else { 2 };
     failed = failed + if file_names() { 0 } else { 4 };
+    failed = failed + if boundaries() { 0 } else { 8 };
     failed
 }

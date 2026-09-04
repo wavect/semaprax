@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Deepened four existing standard-library packages without widening ambient
+  authority: `std.time` rounds durations upward and measures elapsed
+  milliseconds, `std.path`
+  exposes parent and extension boundaries, `std.data.csv` validates quote
+  placement in complete records, and `std.data.toml` locates assignment
+  delimiters outside simple quoted keys and comments. Each addition is covered
+  by the package examples and conformance cases on every standard-library
+  backend.
 - Added `std.data.toml` as the fourth executable `portable`-tier package, with
   allocation-free bare-key validation, blank/comment line recognition, and
   first assignment-delimiter location over borrowed bytes. Full keys, values,

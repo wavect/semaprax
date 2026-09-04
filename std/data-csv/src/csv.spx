@@ -36,3 +36,22 @@ fn has_balanced_quotes(record: borrow Slice<u8>) -> bool
     }
     !quoted
 }
+
+@id("std.data.csv.is_well_formed_record")
+fn is_well_formed_record(record: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(record);
+    let mut index = 0usize;
+    let mut quoted = false;
+    let mut field_start = true;
+    let mut after_quote = false;
+    let mut valid = true;
+    while index < length && valid {
+        let quote = match byte_get(record, index) { Option::Some { value: byte } => byte == 34u8, Option::None {} => false, };
+        let comma = match byte_get(record, index) { Option::Some { value: byte } => byte == 44u8, Option::None {} => false, };
+        let escaped_quote = if quoted && quote && index + 1usize < length { match byte_get(record, index + 1usize) { Option::Some { value: byte } => byte == 34u8, Option::None {} => false, } } else { false };
+        let branch_valid = if quoted { quoted = if quote && !escaped_quote { false } else { quoted }; after_quote = quote && !escaped_quote; index = index + if escaped_quote { 2usize } else { 1usize }; valid } else { let inner_valid = if after_quote { valid = comma; field_start = comma; after_quote = if comma { false } else { after_quote }; valid } else { valid = if quote { field_start } else { true }; quoted = quote && field_start; field_start = comma; valid }; index = index + 1usize; inner_valid };
+        index < length && valid
+    }
+    valid && !quoted
+}

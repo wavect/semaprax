@@ -1,21 +1,23 @@
 module std.time.tests;
 use function @id("std.time.deadline_reached") from std.time as deadline_reached;
+use function @id("std.time.elapsed_milliseconds") from std.time as elapsed_milliseconds;
 use function @id("std.time.milliseconds") from std.time as milliseconds;
 use function @id("std.time.remaining_milliseconds") from std.time as remaining_milliseconds;
 use function @id("std.time.saturating_add_milliseconds") from std.time as saturating_add_milliseconds;
 use function @id("std.time.seconds_floor") from std.time as seconds_floor;
+use function @id("std.time.seconds_ceil") from std.time as seconds_ceil;
 use function @id("std.time.subsecond_milliseconds") from std.time as subsecond_milliseconds;
 
 @id("std.time.tests.conversion")
 fn conversion() -> bool
 {
-    milliseconds(0) == 0 && milliseconds(1) == 1000 && milliseconds(9223372036854775) == 9223372036854775000 && seconds_floor(0) == 0 && seconds_floor(1999) == 1 && seconds_floor(9223372036854775807) == 9223372036854775 && subsecond_milliseconds(0) == 0 && subsecond_milliseconds(1999) == 999 && subsecond_milliseconds(9223372036854775807) == 807
+    milliseconds(0) == 0 && milliseconds(1) == 1000 && milliseconds(9223372036854775) == 9223372036854775000 && seconds_floor(0) == 0 && seconds_floor(1999) == 1 && seconds_floor(9223372036854775807) == 9223372036854775 && seconds_ceil(0) == 0 && seconds_ceil(1) == 1 && seconds_ceil(1000) == 1 && seconds_ceil(1001) == 2 && seconds_ceil(9223372036854775807) == 9223372036854776 && subsecond_milliseconds(0) == 0 && subsecond_milliseconds(1999) == 999 && subsecond_milliseconds(9223372036854775807) == 807
 }
 
 @id("std.time.tests.deadlines")
 fn deadlines() -> bool
 {
-    !deadline_reached(9, 10) && deadline_reached(10, 10) && deadline_reached(11, 10) && remaining_milliseconds(9, 10) == 1 && remaining_milliseconds(10, 10) == 0 && remaining_milliseconds(11, 10) == 0 && remaining_milliseconds(0, 9223372036854775807) == 9223372036854775807
+    !deadline_reached(9, 10) && deadline_reached(10, 10) && deadline_reached(11, 10) && remaining_milliseconds(9, 10) == 1 && remaining_milliseconds(10, 10) == 0 && remaining_milliseconds(11, 10) == 0 && remaining_milliseconds(0, 9223372036854775807) == 9223372036854775807 && elapsed_milliseconds(0, 0) == 0 && elapsed_milliseconds(9, 10) == 1 && elapsed_milliseconds(0, 9223372036854775807) == 9223372036854775807
 }
 
 @id("std.time.tests.saturation")

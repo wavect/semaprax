@@ -53,12 +53,15 @@ fn assignment_index(line: borrow Slice<u8>) -> i64
     let mut index = 0usize;
     let mut position = 0;
     let mut found = -1;
-    while index < length && found < 0 {
-        let assignment = match byte_get(line, index) { Option::Some { value: byte } => byte == 61u8, Option::None {} => false, };
-        found = if assignment { position } else { -1 };
+    let mut basic = false;
+    let mut literal = false;
+    let mut scanning = true;
+    while index < length && found < 0 && scanning {
+        let candidate = match byte_get(line, index) { Option::Some { value: byte } => { let outside = !basic && !literal; let assignment = byte == 61u8 && outside; scanning = !(byte == 35u8 && outside); basic = if byte == 34u8 && !literal { !basic } else { basic }; literal = if byte == 39u8 && !basic { !literal } else { literal }; if assignment { position } else { -1 } }, Option::None {} => -1, };
+        found = candidate;
         index = index + 1usize;
         position = position + 1;
-        index < length && found < 0
+        index < length && found < 0 && scanning
     }
     found
 }

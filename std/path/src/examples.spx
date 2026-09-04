@@ -1,5 +1,6 @@
 module std.path.examples;
 use function @id("std.path.file_name_start") from std.path as file_name_start;
+use function @id("std.path.parent_end") from std.path as parent_end;
 use function @id("std.path.is_absolute") from std.path as is_absolute;
 use function @id("std.path.segment_count") from std.path as segment_count;
 
@@ -8,5 +9,5 @@ fn main() -> i64
 {
     let path = [47u8, 117u8, 115u8, 114u8, 47u8, 98u8, 105u8, 110u8];
     let view = array_as_slice(path);
-    if is_absolute(view) && segment_count(view) == 2usize && file_name_start(view) == 5usize { 0 } else { 1 }
+    if is_absolute(view) && segment_count(view) == 2usize && file_name_start(view) == 5usize && parent_end(view) == 4usize { 0 } else { 1 }
 }

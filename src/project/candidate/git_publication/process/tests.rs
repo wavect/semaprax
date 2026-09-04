@@ -75,7 +75,10 @@ impl ProcessFixture {
 
 impl Drop for ProcessFixture {
     fn drop(&mut self) {
-        std::fs::remove_dir_all(&self.root).unwrap();
+        // Best effort: a destructor that panics while a failing assertion is
+        // already unwinding aborts the whole binary, which discards the
+        // captured panic and leaves no failing test name in the report.
+        let _ = std::fs::remove_dir_all(&self.root);
     }
 }
 

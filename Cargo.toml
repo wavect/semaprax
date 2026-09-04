@@ -42,6 +42,19 @@ sha2 = "=0.11.0"
 wasmparser = { version = "=0.258.0", default-features = false, features = ["component-model", "features", "validate"] }
 
 [dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "compiler"
+harness = false
+
+[[bench]]
+name = "interpreter"
+harness = false
+
+[[bench]]
+name = "project"
+harness = false
 
 [features]
 default = []

@@ -1,0 +1,28 @@
+{
+  "schema": "benchmark.scenarios.v1",
+  "description": "Canonical macro benchmark inventory for semaprax CLI. Every path is committed under examples/ or benchmarks/.",
+  "scenarios": [
+    {"id": "check-banking-ledger", "kind": "single", "path": "examples/banking_ledger.spx", "command": "check", "repetitions": 5},
+    {"id": "check-calculator", "kind": "single", "path": "examples/calculator.spx", "command": "check", "repetitions": 5},
+    {"id": "check-expression-evaluator", "kind": "single", "path": "examples/expression_evaluator.spx", "command": "check", "repetitions": 5},
+    {"id": "check-math-algorithms", "kind": "single", "path": "examples/math_algorithms.spx", "command": "check", "repetitions": 5},
+    {"id": "check-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "check", "repetitions": 5},
+    {"id": "check-order-lifecycle", "kind": "single", "path": "examples/order_lifecycle.spx", "command": "check", "repetitions": 5},
+    {"id": "check-text-analytics", "kind": "single", "path": "examples/text_analytics.spx", "command": "check", "repetitions": 5},
+    {"id": "graph-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "graph", "repetitions": 5},
+    {"id": "graph-records", "kind": "single", "path": "examples/records.spx", "command": "graph", "repetitions": 5},
+    {"id": "run-banking-ledger", "kind": "single", "path": "examples/banking_ledger.spx", "command": "run", "repetitions": 5},
+    {"id": "run-calculator", "kind": "single", "path": "examples/calculator.spx", "command": "run", "repetitions": 5},
+    {"id": "run-math-algorithms", "kind": "single", "path": "examples/math_algorithms.spx", "command": "run", "repetitions": 5},
+    {"id": "run-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "run", "repetitions": 5},
+    {"id": "check-calculator-project", "kind": "project", "path": "examples/calculator-project/semaprax.toml", "command": "check", "repetitions": 5},
+    {"id": "check-apex-supply-chain", "kind": "project", "path": "examples/apex-supply-chain/semaprax.toml", "command": "check", "repetitions": 5},
+    {"id": "check-analytics-pipeline", "kind": "project", "path": "examples/analytics-pipeline-project/semaprax.toml", "command": "check", "repetitions": 5},
+    {"id": "test-calculator-project", "kind": "project", "path": "examples/calculator-project/semaprax.toml", "command": "test", "repetitions": 5},
+    {"id": "test-apex-supply-chain", "kind": "project", "path": "examples/apex-supply-chain/semaprax.toml", "command": "test", "repetitions": 5},
+    {"id": "run-calculator-project", "kind": "project", "path": "examples/calculator-project/semaprax.toml", "command": "run", "repetitions": 5},
+    {"id": "run-apex-supply-chain", "kind": "project", "path": "examples/apex-supply-chain/semaprax.toml", "command": "run", "repetitions": 5},
+    {"id": "context-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "context", "repetitions": 5, "args": ["app.main", "--depth", "1"]},
+    {"id": "context-ownership", "kind": "single", "path": "examples/ownership.spx", "command": "context", "repetitions": 5, "args": ["app.main", "--depth", "1"]}
+  ]
+}

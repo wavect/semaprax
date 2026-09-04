@@ -60,6 +60,23 @@ slice holds functions over `i64` and `bool` only.
 targets, and status. The gate fails when the list and the directories under
 `std/` disagree.
 
+### Consuming a package today
+
+There is no cross-package `use` yet, so a Project consumes a standard-library
+module by vendoring its library file: copy `std/<package>/src/<name>.spx`
+into the project's `src/`, list it in `sources`, and import its functions by
+stable identity:
+
+```text
+use function @id("std.num.gcd") from std.num as gcd;
+```
+
+The library module keeps its `std.*` module name and identities inside the
+consuming project. Every current package is a single self-contained file
+with `i64`/`bool` signatures, so any Project v1 manifest admits it;
+`tests/project.rs::standard_library` vendors each one into a fresh project
+and runs its examples and conformance suite there.
+
 ## Portability tiers
 
 | Tier | Scope |

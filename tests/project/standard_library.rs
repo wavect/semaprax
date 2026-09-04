@@ -32,7 +32,9 @@ fn temporary(label: &str) -> PathBuf {
     ));
     let _ = std::fs::remove_dir_all(&path);
     std::fs::create_dir_all(&path).unwrap();
-    path
+    // The Project loader authenticates directory ancestry and rejects a
+    // symlinked temp root such as macOS `/var`, so hand it the real path.
+    path.canonicalize().unwrap()
 }
 
 #[derive(Clone, Debug)]
@@ -338,6 +340,56 @@ assert.equal(linked.instance.exports.semaprax_main(), 0n);
                 package.directory,
                 String::from_utf8_lossy(&node.stderr)
             );
+            Ok(())
+        })
+        .unwrap();
+    }
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+/// A Project consumes a standard-library module by vendoring its library
+/// file, so every library module must stand alone: copied under another file
+/// name into a fresh project beside that package's examples and conformance
+/// modules, it checks, runs, and passes exactly as it does in `std/`.
+#[test]
+fn every_library_module_is_self_contained_when_vendored() {
+    let scratch = temporary("vendored");
+    for package in packages() {
+        let (library, entry, tests) = package_sources(&package);
+        let package_root = root().join("std").join(&package.directory);
+        let project = scratch.join(&package.directory);
+        std::fs::create_dir_all(project.join("src")).unwrap();
+        std::fs::write(project.join("src/vendored.spx"), &library.source).unwrap();
+        for file in ["examples.spx", "tests.spx"] {
+            std::fs::copy(
+                package_root.join("src").join(file),
+                project.join("src").join(file),
+            )
+            .unwrap();
+        }
+        let export = &library.program.functions[0].stable_id;
+        std::fs::write(
+            project.join("semaprax.toml"),
+            format!(
+                "schema = \"semaprax.project.v1\"\nname = \"vendored-{}\"\nentry = \"{entry}\"\nsources = [\"src/examples.spx\", \"src/tests.spx\", \"src/vendored.spx\"]\nweb_exports = [\"{export}\"]\ntests = [\"{tests}\"]\n",
+                package.directory
+            ),
+        )
+        .unwrap();
+        project::with_authenticated_project(&project.join("semaprax.toml"), |snapshot| {
+            snapshot.check()?;
+            let options = project::ProjectExecutionOptions::default();
+            for (role, execution) in [
+                ("examples", snapshot.execute_entry(&options)?),
+                ("conformance", snapshot.execute_test(&options)?),
+            ] {
+                assert_eq!(
+                    execution.outcome(),
+                    &project::ProjectExecutionOutcome::Returned(0),
+                    "{}: vendored {role} failed",
+                    package.directory
+                );
+            }
             Ok(())
         })
         .unwrap();

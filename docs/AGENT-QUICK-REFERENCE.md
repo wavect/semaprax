@@ -516,6 +516,10 @@ A failure prints only `project tests failed with result N`, so return a
 distinct non-zero value from each failing check (`if a { if b { 0 } else { 2 } }
 else { 1 }`) instead of a single `1`; the number is the only clue to which
 check failed.
+The [standard library catalog](STANDARD-LIBRARY-CATALOG.md) lists every
+`std.*` function with its contract; to use one, copy its package's library
+file from `std/` into `src/`, list it in `sources`, and import the function by
+its `@id` as above.
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) owns the manifest,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is
 the committed instance, and `semaprax project-scaffold --name <name>` prints a

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- The standard-library contract and the agent quick reference explain how a
+  Project consumes a `std.*` module today, by vendoring its library file and
+  importing by `@id`; the gate vendors every package into a fresh project and
+  runs its examples and conformance there.
+
 - `std.num` gains checked `pow`, `isqrt`, `digit_count`, `is_power_of_two`,
   `log2_floor`, and `log10_floor`, each with contracts and conformance checks
   on every lane; the catalogs are regenerated.

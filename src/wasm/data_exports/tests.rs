@@ -87,7 +87,131 @@ fn hostile_public_shapes_and_closed_programs_are_rejected() {
         &crate::hir::resolve(&contracted).unwrap(),
         &["data.length".to_owned()]
     )
-    .is_err());
+    .is_ok());
+    let effectful = crate::parse(
+        &SOURCE
+            .replace(
+                "module test.data_exports;",
+                "module test.data_exports;\npermit { clock.read }",
+            )
+            .replace(
+                "fn length(value: borrow Slice<u8>) -> usize {",
+                "fn length(value: borrow Slice<u8>) -> usize uses { clock.read } {",
+            ),
+        Path::new("data-export-effect.spx"),
+    )
+    .unwrap();
+    let error = prepare(
+        &crate::hir::resolve(&effectful).unwrap(),
+        &["data.length".to_owned()],
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "SPX-W121");
+    assert!(error.message.contains("does not admit permits"));
+}
+
+/// A false `requires` publishes status 9 and a false `ensures` status 10
+/// through the data status global with a zero result carrier, exactly like an
+/// arithmetic failure, and the module stays usable afterwards. Contract
+/// callees and types meet the same closed profile as bodies.
+#[test]
+fn contract_failures_publish_contract_statuses_and_leave_the_module_usable() {
+    use std::process::Command;
+
+    const CONTRACTED: &str = r#"
+module test.data_contracts;
+@id("data.main")
+fn main() -> i64 { 0 }
+@id("data.bounded")
+fn bounded(value: borrow Slice<u8>) -> usize
+    requires byte_len(value) <= 2usize
+    ensures result <= 2usize
+{
+    byte_len(value)
+}
+@id("data.positive")
+fn positive(value: borrow Slice<u8>) -> i64
+    ensures result > 0
+{
+    if byte_len(value) == 0usize { 0 } else { 1 }
+}
+@id("data.helper")
+fn helper(value: borrow Slice<u8>) -> bool
+    requires byte_len(value) <= 4usize
+{
+    byte_len(value) > 1usize
+}
+@id("data.via_helper")
+fn via_helper(value: borrow Slice<u8>) -> bool { helper(value) }
+"#;
+    let parsed = crate::parse(CONTRACTED, Path::new("data-contracts.spx")).unwrap();
+    let resolved = crate::hir::resolve(&parsed).unwrap();
+    let exports = [
+        "data.bounded".to_owned(),
+        "data.positive".to_owned(),
+        "data.via_helper".to_owned(),
+    ];
+    prepare(&resolved, &exports).unwrap();
+    let wasm = crate::wasm::emit_resolved_module_with_byte_exports(&resolved, &exports).unwrap();
+    assert_eq!(
+        wasm,
+        crate::wasm::emit_resolved_module_with_byte_exports(&resolved, &exports).unwrap()
+    );
+    if Command::new("node").arg("--version").output().is_err() {
+        return;
+    }
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-data-contracts-{}-{}",
+        std::process::id(),
+        wasm.len()
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let wasm_path = root.join("app.wasm");
+    let script_path = root.join("test.mjs");
+    std::fs::write(&wasm_path, &wasm).unwrap();
+    let script = format!(
+        r#"import {{ readFile }} from "node:fs/promises";
+const entries = new Map(); let next = 1; let instance;
+const decode = carrier => {{ const word=BigInt.asUintN(64,carrier), length=Number(word&0xffffffffn), root=Number((word>>32n)&0xffffffffn); if(length>65536)throw Error("length"); return {{word,length,root,tagged:(root&0x80000000)!==0,token:root&0x7fffffff}}; }};
+const read = decoded => {{ if(decoded.tagged){{const value=entries.get(decoded.token);if(!(value instanceof Uint8Array)||value.length!==decoded.length)throw Error("stale");return value;}} const memory=new Uint8Array(instance.exports.memory.buffer);if(decoded.root>memory.length-decoded.length)throw Error("range");return memory.slice(decoded.root,decoded.root+decoded.length); }};
+const allocate = bytes => {{const token=next++, owned=new Uint8Array(bytes);entries.set(token,owned);return BigInt.asIntN(64,((0x80000000n|BigInt(token))<<32n)|BigInt(owned.length));}};
+const imports={{env:{{
+spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:a=>-a,spx_contract_fail:()=>{{throw Error("contract import reached");}},
+spx_bytes_copy:c=>allocate(read(decode(c))),spx_bytes_get:(c,i)=>{{const b=read(decode(c)),u=BigInt.asUintN(64,i);return u>=BigInt(b.length)?-1:b[Number(u)];}},spx_bytes_drop:c=>{{const d=decode(c);read(d);entries.delete(d.token);}},spx_bytes_as_slice:c=>{{const d=decode(c);read(d);return BigInt.asIntN(64,d.word);}}
+}}}};
+({{instance}}=await WebAssembly.instantiate(await readFile(process.argv[2]),imports));
+const e=instance.exports, memory=new Uint8Array(e.memory.buffer);
+memory.set([1,2,3,4,5],0);
+if(e["{bounded}"](0,2)!==2n||e.__spx_data_status_v1.value!==0)throw Error("bounded-ok");
+if(e["{bounded}"](0,3)!==0n||e.__spx_data_status_v1.value!==9)throw Error("requires-status");
+if(e["{bounded}"](0,1)!==1n||e.__spx_data_status_v1.value!==0)throw Error("usable-after-requires");
+if(e["{positive}"](0,1)!==1n||e.__spx_data_status_v1.value!==0)throw Error("positive-ok");
+if(e["{positive}"](0,0)!==0n||e.__spx_data_status_v1.value!==10)throw Error("ensures-status");
+if(e["{positive}"](0,2)!==1n||e.__spx_data_status_v1.value!==0)throw Error("usable-after-ensures");
+if(e["{via_helper}"](0,2)!==1||e.__spx_data_status_v1.value!==0)throw Error("helper-ok");
+if(e["{via_helper}"](0,5)!==0||e.__spx_data_status_v1.value!==9)throw Error("helper-requires-status");
+if(e["{via_helper}"](0,1)!==0||e.__spx_data_status_v1.value!==0)throw Error("usable-after-helper");
+console.log("public-data-contracts-ok");
+"#,
+        bounded = raw_symbol("data.bounded"),
+        positive = raw_symbol("data.positive"),
+        via_helper = raw_symbol("data.via_helper"),
+    );
+    std::fs::write(&script_path, script).unwrap();
+    let output = Command::new("node")
+        .arg(&script_path)
+        .arg(&wasm_path)
+        .output()
+        .unwrap();
+    let _ = std::fs::remove_file(&script_path);
+    let _ = std::fs::remove_file(&wasm_path);
+    let _ = std::fs::remove_dir(&root);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(output.stdout, b"public-data-contracts-ok\n");
 }
 
 #[test]

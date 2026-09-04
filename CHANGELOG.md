@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- The `useful-data.v1` byte-data profile admits `requires` and `ensures`
+  contracts throughout its function inventory. The Core-Wasm data emitter
+  walks contracts with bodies and lets a false contract publish status 9 or
+  10 through the data status global, the generated facade already maps those
+  to `SemapraxDataError` in the `semaprax.contract.v1` domain, and the npm
+  semantic recipe renders contract lines so replay binds them byte for byte.
+  Functions with effects are still rejected. `std.bytes` ships on the profile
+  with byte conversion, guarded indexing, search, counting, ASCII
+  classification, equality and prefix tests, and endian reads, all
+  contracted and run on every lane; the catalogs are regenerated.
+
 - `semaprax lock <manifest> --compare <baseline.lock>` classifies a project's
   current interface against a baseline `semaprax.lock` and prints a
   `semaprax.project-lock-compatibility.v1` verdict, exiting nonzero on a

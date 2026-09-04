@@ -424,9 +424,9 @@ fn validate_function(
     } else {
         function.effects.is_empty()
     };
-    if !effects_are_admitted || !function.requires.is_empty() || !function.ensures.is_empty() {
+    if !effects_are_admitted {
         return Err(admission(format!(
-            "Public Useful Data Export v1 function `{}` must be effect- and contract-free",
+            "Public Useful Data Export v1 function `{}` must be effect-free",
             function.id
         )));
     }
@@ -445,7 +445,16 @@ fn validate_function(
         )));
     }
 
-    let mut pending = vec![&function.body];
+    // Contracts lower through the same status lanes as the body: a false
+    // `requires` selects status 9 and a false `ensures` status 10, which the
+    // wrapper publishes through the data status global. Walk them with the
+    // body so their callees and types meet the same closed profile.
+    let mut pending = function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+        .collect::<Vec<_>>();
     while let Some(expression) = pending.pop() {
         if !internal_expression_type(&expression.ty) {
             return Err(admission(format!(

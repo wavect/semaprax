@@ -503,9 +503,8 @@ C11, and Core Wasm lanes.
   byte operations from compiler-owned functions into `std.*` interfaces;
 - admit cross-package `use` so `std.num` can build on `std.core` and an
   application can depend on `std/` through the package manifest;
-- revise the byte-data profile so contracted functions lower their failures
-  through the data status global and facade (`std.bytes`), and link
-  borrowed-text providers across files (`std.text`);
+- link borrowed-text providers across files (`std.text`), and widen the
+  byte-data web export boundary beyond slice-only parameters;
 - record target availability as a semantic-graph fact rather than package
   metadata;
 - deterministic effect handlers for tests, then the `hosted` tier modules in

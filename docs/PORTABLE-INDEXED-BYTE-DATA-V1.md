@@ -310,9 +310,22 @@ to root word zero and length zero.
 
 The additive project profile is named `useful-data.v1`. Its selected exports
 may accept `borrow Slice<u8>` and return `i64`, `bool`, or `usize`; owned bytes,
-arrays, aggregates, effects, imports, callbacks, async, and contracts remain
-outside the public profile. Generated TypeScript uses `Uint8Array` inputs and
-`bigint` for `usize` results.
+arrays, aggregates, effects, imports, callbacks, and async remain outside the
+public profile. Generated TypeScript uses `Uint8Array` inputs and `bigint` for
+`usize` results.
+
+Contracts are admitted throughout the profile's function inventory, on
+selected exports and on the internal functions they reach alike. A `requires`
+or `ensures` expression meets the same closed type and callee rules as a
+body. The aggregate emitter lowers a false `requires` to status 9 and a false
+`ensures` to status 10 in the contract lane; the data wrapper publishes that
+status through `__spx_data_status_v1` with a zero result carrier, exactly as
+it publishes an arithmetic failure, and the module stays usable for the next
+call. The generated facade maps statuses 9 and 10 to `SemapraxDataError`
+with domain `semaprax.contract.v1`. The npm semantic recipe renders each
+function's `requires` and `ensures` lines, naming the return value `result`,
+so replay binds contracts byte for byte with the body. Functions that
+declare effects are still rejected with `SPX-W121`.
 
 The JavaScript facade accepts exactly an ordinary, attached, fixed-length
 `Uint8Array`. It rejects `SharedArrayBuffer` backing, resizable backing,

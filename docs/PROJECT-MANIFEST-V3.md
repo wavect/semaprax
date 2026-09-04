@@ -48,6 +48,10 @@ admission: their existing schema gates remain separate and fail closed.
 Selected public functions accept only borrowed `Slice<u8>` inputs and return
 `i64`, `bool`, or `usize`. Internal fixed arrays and owned `Bytes` may occur in
 the authenticated closure, but are not public JavaScript return carriers.
+Functions may carry `requires` and `ensures` contracts; a false contract
+surfaces to JavaScript as `SemapraxDataError` with domain
+`semaprax.contract.v1` and code 9 or 10, through the same status global as an
+arithmetic failure, and the semantic recipe records the contracts.
 
 The Core-Wasm adapter uses fixed memory and checked offset/length inputs. The
 generated JavaScript facade accepts an ordinary attached, fixed-length

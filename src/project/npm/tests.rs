@@ -122,6 +122,28 @@ fn npm_renderer_rejects_v1_unsorted_and_non_text_inputs() {
     assert!(render_useful_text_npm_package(&manifest(), b"\0asm", &[scalar]).is_err());
 }
 
+/// Contracts are part of the closed semantic recipe: `requires` lines render
+/// before `ensures` lines, `result` names the return value, and the rendered
+/// text parses, resolves, and re-renders to the same bytes so replay binds
+/// the contracts exactly as it binds the body.
+#[test]
+fn semantic_recipe_renders_contracts_that_replay_byte_for_byte() {
+    let source = crate::parse(
+        "module data.app;\n@id(\"data.bounded\") fn bounded(value: borrow Slice<u8>) -> usize requires byte_len(value) <= 2usize ensures result <= 2usize { byte_len(value) }\n@id(\"data.positive\") fn positive(value: borrow Slice<u8>) -> i64 ensures result > 0 && result < 3 { if byte_len(value) == 0usize { 1 } else { 2 } }\n@id(\"main\") fn main() -> i64 { 0 }\n",
+        std::path::Path::new("data-contracts.spx"),
+    )
+    .unwrap();
+    let program = crate::hir::resolve(&source).unwrap();
+    let recipe = render_semantic_recipe(&program).unwrap();
+    assert!(recipe.contains(
+        "    requires (byte_len(p0) <= 2usize)\n    ensures (result <= 2usize)\n{ byte_len(p0) }"
+    ));
+    assert!(recipe.contains("    ensures ((result > 0) && (result < 3))\n"));
+    let reparsed = crate::parse(&recipe, std::path::Path::new("recipe.spx")).unwrap();
+    let replayed = crate::hir::resolve(&reparsed).unwrap();
+    assert_eq!(render_semantic_recipe(&replayed).unwrap(), recipe);
+}
+
 #[test]
 fn carrier_replay_rejects_a_canonical_self_resigned_generated_artifact_mutation() {
     let source = crate::parse(

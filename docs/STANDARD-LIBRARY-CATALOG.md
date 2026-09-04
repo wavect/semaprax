@@ -6,6 +6,97 @@ Audience: agents and humans choosing a standard-library declaration.
 
 Every declaration below is verified, canonical, and executed by its package's conformance module on the interpreter, native C11, and Core Wasm lanes. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract; `std/catalog.json` is the same catalog for tools.
 
+## `std.bytes`
+
+Package `std/bytes`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.bytes.byte_to_i64`
+
+```semaprax
+fn byte_to_i64(byte: u8) -> i64
+    ensures result >= 0 && result <= 255
+```
+
+### `std.bytes.get_or`
+
+```semaprax
+fn get_or(view: borrow Slice<u8>, index: usize, fallback: i64) -> i64
+    requires fallback >= -1 && fallback <= 255
+    ensures result >= -1 && result <= 255
+```
+
+### `std.bytes.index_of`
+
+```semaprax
+fn index_of(view: borrow Slice<u8>, needle: u8) -> i64
+    ensures result >= -1
+```
+
+### `std.bytes.position_of`
+
+```semaprax
+fn position_of(next_index: usize) -> i64
+    requires next_index >= 1usize
+    ensures result >= 0
+```
+
+### `std.bytes.count`
+
+```semaprax
+fn count(view: borrow Slice<u8>, needle: u8) -> usize
+    ensures result <= byte_len(view)
+```
+
+### `std.bytes.is_ascii`
+
+```semaprax
+fn is_ascii(view: borrow Slice<u8>) -> bool
+```
+
+### `std.bytes.equals`
+
+```semaprax
+fn equals(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+```
+
+### `std.bytes.starts_with`
+
+```semaprax
+fn starts_with(view: borrow Slice<u8>, prefix: borrow Slice<u8>) -> bool
+```
+
+### `std.bytes.read_u16_le`
+
+```semaprax
+fn read_u16_le(view: borrow Slice<u8>, offset: usize) -> i64
+    requires offset + 2usize <= byte_len(view)
+    ensures result >= 0 && result <= 65535
+```
+
+### `std.bytes.read_u16_be`
+
+```semaprax
+fn read_u16_be(view: borrow Slice<u8>, offset: usize) -> i64
+    requires offset + 2usize <= byte_len(view)
+    ensures result >= 0 && result <= 65535
+```
+
+### `std.bytes.read_u32_le`
+
+```semaprax
+fn read_u32_le(view: borrow Slice<u8>, offset: usize) -> i64
+    requires offset + 4usize <= byte_len(view)
+    ensures result >= 0 && result <= 4294967295
+```
+
+### `std.bytes.read_u32_be`
+
+```semaprax
+fn read_u32_be(view: borrow Slice<u8>, offset: usize) -> i64
+    requires offset + 4usize <= byte_len(view)
+    ensures result >= 0 && result <= 4294967295
+```
+
 ## `std.core`
 
 Package `std/core`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.

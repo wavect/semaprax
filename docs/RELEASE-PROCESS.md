@@ -1,6 +1,6 @@
 # Release process
 
-Status: bounded v0.2 tag-release procedure with exact published v0.2.0 evidence.
+Status: bounded tag-release procedure with exact published evidence.
 
 Audience: maintainers and release reviewers.
 
@@ -142,7 +142,7 @@ performed and missing prerequisites fail the selected gate:
 cargo test --locked --offline -p semaprax --test release_archive_product_v1 provisioned_archive_owned_frame_consumers_work_outside_checkout -- --ignored --exact
 ```
 
-## v0.2.0 hosted release evidence
+## 0.2.0 hosted release evidence
 
 The annotated `v0.2.0` tag resolves to exact commit
 `5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`. Its tag-triggered

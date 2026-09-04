@@ -13,9 +13,9 @@ evidence, private experiments, and repository internals live in the separate
 > contract; it does not imply that the broader feature is complete or stable.
 > The [completion matrix](COMPLETION-MATRIX.md) is the status authority.
 
-The [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
+The [v0.3.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.0)
 contains smoke-tested Linux x86-64, Apple Silicon macOS, and Windows x86-64
-archives. See the [exact tagged evidence and checksums](RELEASE-PROCESS.md#v020-hosted-release-evidence);
+archives. See the [exact tagged evidence and checksums](RELEASE-PROCESS.md);
 the release remains unsigned, not notarized, and pre-alpha.
 Recent project and tooling notes are summarized in [CHANGELOG.md](../CHANGELOG.md),
 with full history in [docs/CHANGELOG-ARCHIVE.md](CHANGELOG-ARCHIVE.md).

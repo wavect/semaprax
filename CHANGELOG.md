@@ -8,7 +8,6 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
-<<<<<<< HEAD
 - `semaprax lock` and `semaprax resolve` accept `[<dir>|semaprax.toml]`,
   resolving directory arguments to `<dir>/semaprax.toml` and defaulting to
   `./semaprax.toml` when omitted, matching `check`, `fmt`, `run`, `test`, and

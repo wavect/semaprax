@@ -50,9 +50,9 @@ failed command means.
 ### Releases and changelog
 
 The published tag is the
-[v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0)
-with smoke-test archives, SHA256 checksums, and release evidence in the
-[release process](docs/RELEASE-PROCESS.md#v020-hosted-release-evidence). The
+[v0.3.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.0)
+smoke-test archives, SHA256 checksums, and release evidence in the
+[release process](docs/RELEASE-PROCESS.md). The
 development changelog is now summarized in [CHANGELOG.md](CHANGELOG.md), with
 full historical detail archived at
 [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).
@@ -263,7 +263,7 @@ and [Public Owned UTF-8 API v1](docs/PUBLIC-OWNED-UTF8-API-V1.md).
 
 ## Project status
 
-**Release:** [v0.2.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.2.0) · **Changelog:** [CHANGELOG.md](CHANGELOG.md) · **Maturity:** pre-alpha research · **Overall goal:**
+**Release:** [v0.3.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.0) · **Changelog:** [CHANGELOG.md](CHANGELOG.md) · **Maturity:** pre-alpha research · **Overall goal:**
 Partial
 
 SEMAPRAX has executable vertical slices across its language, semantic graph,

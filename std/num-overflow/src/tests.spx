@@ -1,0 +1,60 @@
+module std.num.overflow.tests;
+use function @id("std.num.overflow.add_overflows") from std.num.overflow as add_overflows;
+use function @id("std.num.overflow.mul_overflows") from std.num.overflow as mul_overflows;
+use function @id("std.num.overflow.neg_overflows") from std.num.overflow as neg_overflows;
+use function @id("std.num.overflow.saturating_abs") from std.num.overflow as saturating_abs;
+use function @id("std.num.overflow.saturating_add") from std.num.overflow as saturating_add;
+use function @id("std.num.overflow.saturating_mul") from std.num.overflow as saturating_mul;
+use function @id("std.num.overflow.saturating_neg") from std.num.overflow as saturating_neg;
+use function @id("std.num.overflow.saturating_sub") from std.num.overflow as saturating_sub;
+use function @id("std.num.overflow.sub_overflows") from std.num.overflow as sub_overflows;
+use function @id("std.num.overflow.wrapping_add") from std.num.overflow as wrapping_add;
+use function @id("std.num.overflow.wrapping_neg") from std.num.overflow as wrapping_neg;
+use function @id("std.num.overflow.wrapping_sub") from std.num.overflow as wrapping_sub;
+
+@id("std.num.overflow.tests.max")
+fn max() -> i64
+{
+    9223372036854775807
+}
+
+@id("std.num.overflow.tests.min")
+fn min() -> i64
+{
+    -9223372036854775807 - 1
+}
+
+@id("std.num.overflow.tests.additive_predicates")
+fn additive_predicates() -> bool
+{
+    add_overflows(max(), 1) && add_overflows(min(), -1) && !add_overflows(max(), 0) && !add_overflows(min(), max()) && sub_overflows(min(), 1) && sub_overflows(max(), -1) && !sub_overflows(max(), max()) && !sub_overflows(min(), min()) && neg_overflows(min()) && !neg_overflows(max())
+}
+
+@id("std.num.overflow.tests.multiplicative_predicate")
+fn multiplicative_predicate() -> bool
+{
+    mul_overflows(max(), 2) && mul_overflows(min(), -1) && mul_overflows(min(), 2) && !mul_overflows(min(), 1) && !mul_overflows(max(), -1) && !mul_overflows(3037000499, 3037000499) && mul_overflows(3037000500, 3037000500) && !mul_overflows(-4611686018427387904, 2) && mul_overflows(-4611686018427387905, 2) && !mul_overflows(4611686018427387904, -2) && mul_overflows(4611686018427387905, -2)
+}
+
+@id("std.num.overflow.tests.wrapping")
+fn wrapping() -> bool
+{
+    wrapping_add(max(), 1) == min() && wrapping_add(min(), -1) == max() && wrapping_add(max(), max()) == -2 && wrapping_add(min(), min()) == 0 && wrapping_add(5, 6) == 11 && wrapping_sub(min(), 1) == max() && wrapping_sub(max(), -1) == min() && wrapping_sub(max(), min()) == -1 && wrapping_sub(min(), max()) == 1 && wrapping_neg(min()) == min() && wrapping_neg(max()) == min() + 1 && wrapping_neg(-3) == 3
+}
+
+@id("std.num.overflow.tests.saturating")
+fn saturating() -> bool
+{
+    saturating_add(max(), 1) == max() && saturating_add(min(), -1) == min() && saturating_add(1, 2) == 3 && saturating_sub(min(), 1) == min() && saturating_sub(max(), -1) == max() && saturating_sub(1, 2) == -1 && saturating_mul(max(), 2) == max() && saturating_mul(max(), -2) == min() && saturating_mul(min(), -1) == max() && saturating_mul(-6, 7) == -42 && saturating_neg(min()) == max() && saturating_abs(min()) == max() && saturating_abs(-4) == 4
+}
+
+@id("std.num.overflow.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if additive_predicates() { 0 } else { 1 };
+    failed = failed + if multiplicative_predicate() { 0 } else { 2 };
+    failed = failed + if wrapping() { 0 } else { 4 };
+    failed = failed + if saturating() { 0 } else { 8 };
+    failed
+}

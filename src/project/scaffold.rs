@@ -1,7 +1,8 @@
-//! Authority-free preparation and replay of the built-in calculator project.
+//! Authority-free preparation and replay of the built-in project templates:
+//! the calculator application and the library package.
 //!
 //! Version 2 adds `AGENTS.md`, the in-project guide for coding agents and
-//! people, to the four v1 files; [Public Project Scaffold Capsule
+//! people, to every template; [Public Project Scaffold Capsule
 //! v2](../../docs/PROJECT-SCAFFOLD-V2.md) owns the contract.
 //!
 //! The returned artifact is only checked bytes. It owns no filesystem,
@@ -17,7 +18,13 @@ use super::{validate_owned_project_test, ProjectExecutionOptions, PROJECT_SCHEMA
 
 pub const PROJECT_SCAFFOLD_SCHEMA: &str = "semaprax.project-scaffold.v2";
 pub const PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR: &str = "calculator";
+pub const PROJECT_SCAFFOLD_TEMPLATE_LIBRARY: &str = "library";
+pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 2] = [
+    PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
+    PROJECT_SCAFFOLD_TEMPLATE_LIBRARY,
+];
 pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 5;
+pub const PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT: usize = 6;
 pub const MAX_PROJECT_SCAFFOLD_NAME_BYTES: usize = 64;
 pub const MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES: usize = 65_536;
 
@@ -28,6 +35,26 @@ pub const PROJECT_SCAFFOLD_INVENTORY: [&str; PROJECT_SCAFFOLD_FILE_COUNT] = [
     "src/app.spx",
     "src/tests.spx",
 ];
+/// The library template mirrors a standard-library package: one library
+/// module, an examples module as the entry, and a conformance test module.
+pub const PROJECT_SCAFFOLD_LIBRARY_INVENTORY: [&str; PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT] = [
+    "README.md",
+    "AGENTS.md",
+    "semaprax.toml",
+    "src/examples.spx",
+    "src/lib.spx",
+    "src/tests.spx",
+];
+
+/// The exact inventory of one built-in template.
+#[must_use]
+pub fn project_scaffold_inventory(template: &str) -> &'static [&'static str] {
+    if template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
+        &PROJECT_SCAFFOLD_LIBRARY_INVENTORY
+    } else {
+        &PROJECT_SCAFFOLD_INVENTORY
+    }
+}
 
 const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
 const README: &str = "# {{name}}\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build . --target web -o web\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
@@ -35,6 +62,11 @@ const AGENTS: &str = "# Agent guide for {{name}}\n\nThis is a SEMAPRAX project. 
 const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.add\"]\ntests = [\"{{module}}.tests\"]\n";
 const APP: &str = "module {{module}}.app;\n\n@id(\"{{name}}.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
 const TESTS: &str = "module {{module}}.tests;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    if 19 + 23 == 42 { 0 } else { 1 }\n}\n";
+const LIBRARY_README: &str = "# {{name}}\n\nA library package created by SEMAPRAX. `src/lib.spx` holds the public functions with their contracts, `src/examples.spx` is the entry that shows how to call them, and `src/tests.spx` is the conformance suite; both return `0` on success.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
+const LIBRARY_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.examples\"\nsources = [\"src/examples.spx\", \"src/lib.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.twice\"]\ntests = [\"{{module}}.tests\"]\n";
+const LIBRARY_EXAMPLES: &str = "module {{module}}.examples;\nuse function @id(\"{{name}}.twice\") from {{module}}.lib as twice;\n\n@id(\"{{name}}.examples.main\")\nfn main() -> i64\n{\n    if twice(21) == 42 { 0 } else { 1 }\n}\n";
+const LIBRARY_LIB: &str = "module {{module}}.lib;\n\n@id(\"{{name}}.twice\")\nfn twice(value: i64) -> i64\n    requires value >= -4611686018427387904 && value <= 4611686018427387903\n    ensures result == value * 2\n{\n    value * 2\n}\n";
+const LIBRARY_TESTS: &str = "module {{module}}.tests;\nuse function @id(\"{{name}}.twice\") from {{module}}.lib as twice;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    let mut failed = 0;\n    failed = failed + if twice(0) == 0 { 0 } else { 1 };\n    failed = failed + if twice(-3) == -6 { 0 } else { 2 };\n    failed\n}\n";
 const NONCLAIMS: [&str; 4] = [
     "no_filesystem_or_publication_authority",
     "no_process_environment_or_current_directory_authority",
@@ -43,13 +75,13 @@ const NONCLAIMS: [&str; 4] = [
 ];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProjectScaffoldFile {
+pub struct ProjectScaffoldFileV1 {
     path: &'static str,
     bytes: Vec<u8>,
     sha256: String,
 }
 
-impl ProjectScaffoldFile {
+impl ProjectScaffoldFileV1 {
     #[must_use]
     pub const fn path(&self) -> &'static str {
         self.path
@@ -73,13 +105,14 @@ impl ProjectScaffoldFile {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProjectScaffold {
+pub struct ProjectScaffoldV1 {
+    template: &'static str,
     project_name: String,
-    files: [ProjectScaffoldFile; PROJECT_SCAFFOLD_FILE_COUNT],
+    files: Vec<ProjectScaffoldFileV1>,
     digest: String,
 }
 
-impl ProjectScaffold {
+impl ProjectScaffoldV1 {
     #[must_use]
     pub const fn schema(&self) -> &'static str {
         PROJECT_SCAFFOLD_SCHEMA
@@ -87,7 +120,7 @@ impl ProjectScaffold {
 
     #[must_use]
     pub const fn template(&self) -> &'static str {
-        PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR
+        self.template
     }
 
     #[must_use]
@@ -101,7 +134,7 @@ impl ProjectScaffold {
     }
 
     #[must_use]
-    pub fn files(&self) -> &[ProjectScaffoldFile; PROJECT_SCAFFOLD_FILE_COUNT] {
+    pub fn files(&self) -> &[ProjectScaffoldFileV1] {
         &self.files
     }
 
@@ -116,27 +149,46 @@ impl ProjectScaffold {
     }
 }
 
-/// Derive the exact built-in Project-v1 calculator subject in memory.
-pub fn derive_project_scaffold(
+/// Derive the exact built-in Project-v1 subject of one template in memory.
+pub fn derive_project_scaffold_v1(
     project_name: &str,
     template: &str,
-) -> Result<ProjectScaffold, Vec<Diagnostic>> {
-    validate_template(template)?;
+) -> Result<ProjectScaffoldV1, Vec<Diagnostic>> {
+    let template = validate_template(template)?;
     validate_project_name(project_name)?;
     let module = project_name.replace('-', "_");
-    let rendered = [README, AGENTS, MANIFEST, APP, TESTS].map(|source| {
-        source
-            .replace("{{name}}", project_name)
-            .replace("{{module}}", &module)
-            .into_bytes()
-    });
-    let files = std::array::from_fn(|index| ProjectScaffoldFile {
-        path: PROJECT_SCAFFOLD_INVENTORY[index],
-        sha256: ordinary_sha256(&rendered[index]),
-        bytes: rendered[index].clone(),
-    });
-    validate_rendered_project(&files)?;
-    let mut artifact = ProjectScaffold {
+    let sources: &[&str] = if template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
+        &[
+            LIBRARY_README,
+            AGENTS,
+            LIBRARY_MANIFEST,
+            LIBRARY_EXAMPLES,
+            LIBRARY_LIB,
+            LIBRARY_TESTS,
+        ]
+    } else {
+        &[README, AGENTS, MANIFEST, APP, TESTS]
+    };
+    let inventory = project_scaffold_inventory(template);
+    debug_assert_eq!(sources.len(), inventory.len());
+    let files = sources
+        .iter()
+        .zip(inventory)
+        .map(|(source, path)| {
+            let bytes = source
+                .replace("{{name}}", project_name)
+                .replace("{{module}}", &module)
+                .into_bytes();
+            ProjectScaffoldFileV1 {
+                path,
+                sha256: ordinary_sha256(&bytes),
+                bytes,
+            }
+        })
+        .collect::<Vec<_>>();
+    validate_rendered_project(template, &files)?;
+    let mut artifact = ProjectScaffoldV1 {
+        template,
         project_name: project_name.to_owned(),
         files,
         digest: String::new(),
@@ -151,13 +203,13 @@ pub fn derive_project_scaffold(
 }
 
 /// Replay submitted bytes against the exact selected name and built-in template.
-pub fn replay_project_scaffold(
+pub fn replay_project_scaffold_v1(
     project_name: &str,
     template: &str,
     descriptor_bytes: &[u8],
     digest: &str,
-) -> Result<ProjectScaffold, Vec<Diagnostic>> {
-    validate_template(template)?;
+) -> Result<ProjectScaffoldV1, Vec<Diagnostic>> {
+    let template = validate_template(template)?;
     validate_project_name(project_name)?;
     if descriptor_bytes.len() > MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES {
         return Err(capacity(
@@ -172,8 +224,7 @@ pub fn replay_project_scaffold(
             root.len() == 8
                 && root.get("schema").and_then(Value::as_str) == Some(PROJECT_SCAFFOLD_SCHEMA)
                 && root.get("digest").and_then(Value::as_str).is_some()
-                && root.get("template").and_then(Value::as_str)
-                    == Some(PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR)
+                && root.get("template").and_then(Value::as_str) == Some(template)
                 && root.get("project_schema").and_then(Value::as_str) == Some(PROJECT_SCHEMA)
                 && root.get("project_name").and_then(Value::as_str).is_some()
                 && root.get("files").and_then(Value::as_array).is_some()
@@ -208,7 +259,7 @@ pub fn replay_project_scaffold(
             "project scaffold descriptor digest does not match the submitted digest",
         ));
     }
-    let rebuilt = derive_project_scaffold(project_name, template)?;
+    let rebuilt = derive_project_scaffold_v1(project_name, template)?;
     if digest != rebuilt.digest() || descriptor_bytes != rebuilt.canonical_bytes().as_slice() {
         return Err(scaffold_error(
             "project scaffold descriptor does not replay against the built-in template",
@@ -217,14 +268,13 @@ pub fn replay_project_scaffold(
     Ok(rebuilt)
 }
 
-fn validate_template(template: &str) -> Result<(), Vec<Diagnostic>> {
-    if template == PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR {
-        Ok(())
-    } else {
-        Err(scaffold_error(
-            "unknown project scaffold template; expected calculator",
-        ))
-    }
+fn validate_template(template: &str) -> Result<&'static str, Vec<Diagnostic>> {
+    PROJECT_SCAFFOLD_TEMPLATES
+        .into_iter()
+        .find(|known| *known == template)
+        .ok_or_else(|| {
+            scaffold_error("unknown project scaffold template; expected calculator or library")
+        })
 }
 
 fn validate_project_name(project_name: &str) -> Result<(), Vec<Diagnostic>> {
@@ -248,27 +298,31 @@ fn validate_project_name(project_name: &str) -> Result<(), Vec<Diagnostic>> {
 }
 
 fn validate_rendered_project(
-    files: &[ProjectScaffoldFile; PROJECT_SCAFFOLD_FILE_COUNT],
+    template: &str,
+    files: &[ProjectScaffoldFileV1],
 ) -> Result<(), Vec<Diagnostic>> {
     let manifest = files[2].utf8();
-    let app = files[3].utf8();
-    let tests = files[4].utf8();
-    let execution = validate_owned_project_test(
-        manifest,
-        &[(files[3].path, app), (files[4].path, tests)],
-        &ProjectExecutionOptions::default(),
-    )
-    .map_err(|_| scaffold_error("built-in calculator project failed exact check or test"))?;
+    let sources = files[3..]
+        .iter()
+        .map(|file| (file.path, file.utf8()))
+        .collect::<Vec<_>>();
+    let execution =
+        validate_owned_project_test(manifest, &sources, &ProjectExecutionOptions::default())
+            .map_err(|_| {
+                scaffold_error(format!(
+                    "built-in {template} project failed exact check or test"
+                ))
+            })?;
     if execution.command_succeeded() {
         Ok(())
     } else {
-        Err(scaffold_error(
-            "built-in calculator project tests did not pass",
-        ))
+        Err(scaffold_error(format!(
+            "built-in {template} project tests did not pass"
+        )))
     }
 }
 
-fn render_descriptor(artifact: &ProjectScaffold) -> String {
+fn render_descriptor(artifact: &ProjectScaffoldV1) -> String {
     let body = render_descriptor_tail(artifact);
     format!(
         "{{\"schema\":{},\"digest\":{},{}",
@@ -278,7 +332,7 @@ fn render_descriptor(artifact: &ProjectScaffold) -> String {
     )
 }
 
-fn render_descriptor_without_digest(artifact: &ProjectScaffold) -> String {
+fn render_descriptor_without_digest(artifact: &ProjectScaffoldV1) -> String {
     let body = render_descriptor_tail(artifact);
     format!(
         "{{\"schema\":{},{}",
@@ -287,7 +341,7 @@ fn render_descriptor_without_digest(artifact: &ProjectScaffold) -> String {
     )
 }
 
-fn render_descriptor_tail(artifact: &ProjectScaffold) -> String {
+fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String {
     let files = artifact
         .files
         .iter()
@@ -308,7 +362,7 @@ fn render_descriptor_tail(artifact: &ProjectScaffold) -> String {
         .join(",");
     format!(
         "{{\"template\":{},\"project_schema\":{},\"project_name\":{},\"files\":[{}],\"limits\":{{\"descriptor_bytes\":{},\"files\":{},\"project_name_bytes\":{}}},\"nonclaims\":[{}]}}",
-        quote_json(PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR),
+        quote_json(artifact.template),
         quote_json(PROJECT_SCHEMA),
         quote_json(&artifact.project_name),
         files,

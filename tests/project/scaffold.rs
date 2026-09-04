@@ -1,4 +1,4 @@
-use semaprax::project::{derive_project_scaffold, replay_project_scaffold};
+use semaprax::project::{derive_project_scaffold_v1, replay_project_scaffold_v1};
 use sha2::{Digest, Sha256};
 
 const NAME: &str = "demo-project";
@@ -62,7 +62,7 @@ fn artifact_digest(bytes_without_digest: &[u8]) -> String {
 
 #[test]
 fn derivation_is_literal_ordered_deterministic_and_self_replaying() {
-    let derived = derive_project_scaffold(NAME, "calculator").unwrap();
+    let derived = derive_project_scaffold_v1(NAME, "calculator").unwrap();
     assert_eq!(derived.schema(), "semaprax.project-scaffold.v2");
     assert_eq!(derived.template(), "calculator");
     assert_eq!(derived.project_schema(), "semaprax.project.v1");
@@ -83,13 +83,13 @@ fn derivation_is_literal_ordered_deterministic_and_self_replaying() {
         assert_eq!(file.sha256(), FILE_DIGESTS[index]);
     }
 
-    let again = derive_project_scaffold(NAME, "calculator").unwrap();
+    let again = derive_project_scaffold_v1(NAME, "calculator").unwrap();
     assert_eq!(again.canonical_bytes(), derived.canonical_bytes());
     assert_eq!(again.digest(), derived.digest());
 
     let canonical = derived.canonical_bytes();
     let replayed =
-        replay_project_scaffold(NAME, "calculator", &canonical, derived.digest()).unwrap();
+        replay_project_scaffold_v1(NAME, "calculator", &canonical, derived.digest()).unwrap();
     assert_eq!(replayed.schema(), derived.schema());
     assert_eq!(replayed.template(), derived.template());
     assert_eq!(replayed.project_schema(), derived.project_schema());
@@ -106,19 +106,19 @@ fn derivation_is_literal_ordered_deterministic_and_self_replaying() {
 #[test]
 fn names_templates_and_expected_replay_subject_are_bounded() {
     for name in ["", "Bad_Name", "-leading", "a..b"] {
-        let error = derive_project_scaffold(name, "calculator").unwrap_err();
+        let error = derive_project_scaffold_v1(name, "calculator").unwrap_err();
         assert_eq!(error[0].code, "SPX-J115", "{name:?}");
     }
     let oversized = "a".repeat(65);
-    let error = derive_project_scaffold(&oversized, "calculator").unwrap_err();
+    let error = derive_project_scaffold_v1(&oversized, "calculator").unwrap_err();
     assert_eq!(error[0].code, "SPX-J116");
 
-    let first = derive_project_scaffold("first-project", "calculator").unwrap();
-    let second = derive_project_scaffold("second-project", "calculator").unwrap();
+    let first = derive_project_scaffold_v1("first-project", "calculator").unwrap();
+    let second = derive_project_scaffold_v1("second-project", "calculator").unwrap();
     assert_ne!(first.canonical_bytes(), second.canonical_bytes());
     assert_ne!(first.digest(), second.digest());
     assert_eq!(
-        replay_project_scaffold(
+        replay_project_scaffold_v1(
             "second-project",
             "calculator",
             &second.canonical_bytes(),
@@ -128,7 +128,7 @@ fn names_templates_and_expected_replay_subject_are_bounded() {
         .project_name(),
         "second-project"
     );
-    let error = replay_project_scaffold(
+    let error = replay_project_scaffold_v1(
         "first-project",
         "calculator",
         &second.canonical_bytes(),
@@ -136,18 +136,84 @@ fn names_templates_and_expected_replay_subject_are_bounded() {
     )
     .unwrap_err();
     assert_eq!(error[0].code, "SPX-J115");
-    let error = derive_project_scaffold(NAME, "remote").unwrap_err();
+    let error = derive_project_scaffold_v1(NAME, "remote").unwrap_err();
     assert_eq!(error[0].code, "SPX-J115");
 }
 
+/// The library template is the standard-library package shape: one library
+/// module with a contract, an examples entry, and a conformance test module.
+#[test]
+fn library_template_derives_the_package_shape_and_replays_only_as_itself() {
+    let derived = derive_project_scaffold_v1(NAME, "library").unwrap();
+    assert_eq!(derived.schema(), "semaprax.project-scaffold.v2");
+    assert_eq!(derived.template(), "library");
+    assert_eq!(derived.project_schema(), "semaprax.project.v1");
+    assert_digest(derived.digest());
+    assert_eq!(
+        derived
+            .files()
+            .iter()
+            .map(|file| file.path())
+            .collect::<Vec<_>>(),
+        [
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/examples.spx",
+            "src/lib.spx",
+            "src/tests.spx",
+        ]
+    );
+    assert_eq!(
+        derived.files()[1].bytes(),
+        calculator_agents_guide().as_bytes()
+    );
+    let manifest = derived.files()[2].utf8();
+    assert!(manifest.contains("entry = \"demo_project.examples\"\n"));
+    assert!(manifest.contains("tests = [\"demo_project.tests\"]\n"));
+    let lib = derived.files()[4].utf8();
+    assert!(lib.starts_with("module demo_project.lib;\n"));
+    assert!(lib.contains("@id(\"demo-project.twice\")\n"));
+    assert!(lib.contains("    ensures result == value * 2\n"));
+    for file in derived.files() {
+        assert_eq!(file.sha256(), sha256(file.bytes()));
+    }
+    let canonical = derived.canonical_bytes();
+    assert!(canonical
+        .windows(b"\"template\":\"library\"".len())
+        .any(|window| window == b"\"template\":\"library\""));
+    let replayed =
+        replay_project_scaffold_v1(NAME, "library", &canonical, derived.digest()).unwrap();
+    assert_eq!(replayed.canonical_bytes(), canonical);
+    let calculator = derive_project_scaffold_v1(NAME, "calculator").unwrap();
+    assert_ne!(calculator.canonical_bytes(), canonical);
+    assert_eq!(calculator.digest(), ARTIFACT_DIGEST);
+    let error =
+        replay_project_scaffold_v1(NAME, "calculator", &canonical, derived.digest()).unwrap_err();
+    assert_eq!(error[0].code, "SPX-J115");
+    let error = replay_project_scaffold_v1(
+        NAME,
+        "library",
+        &calculator.canonical_bytes(),
+        calculator.digest(),
+    )
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-J115");
+}
+
+/// Both templates ship the same `AGENTS.md` for the same project name.
+fn calculator_agents_guide() -> String {
+    String::from_utf8(expected_files()[1].clone()).unwrap()
+}
+
 fn replay_error(bytes: &[u8], digest: &str) {
-    let error = replay_project_scaffold(NAME, "calculator", bytes, digest).unwrap_err();
+    let error = replay_project_scaffold_v1(NAME, "calculator", bytes, digest).unwrap_err();
     assert_eq!(error[0].code, "SPX-J115");
 }
 
 #[test]
 fn replay_rejects_noncanonical_and_semantically_reminted_capsules() {
-    let artifact = derive_project_scaffold(NAME, "calculator").unwrap();
+    let artifact = derive_project_scaffold_v1(NAME, "calculator").unwrap();
     let canonical = artifact.canonical_bytes();
     replay_error(&[], artifact.digest());
 
@@ -219,10 +285,11 @@ fn replay_rejects_noncanonical_and_semantically_reminted_capsules() {
 
     let oversized = vec![b'x'; 65_536 + 1];
     let error =
-        replay_project_scaffold(NAME, "calculator", &oversized, artifact.digest()).unwrap_err();
+        replay_project_scaffold_v1(NAME, "calculator", &oversized, artifact.digest()).unwrap_err();
     assert_eq!(error[0].code, "SPX-J116");
 
     let exact = vec![b'x'; 65_536];
-    let error = replay_project_scaffold(NAME, "calculator", &exact, artifact.digest()).unwrap_err();
+    let error =
+        replay_project_scaffold_v1(NAME, "calculator", &exact, artifact.digest()).unwrap_err();
     assert_eq!(error[0].code, "SPX-J115");
 }

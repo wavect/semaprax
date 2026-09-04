@@ -1,0 +1,12 @@
+module std.core.examples;
+use function @id("std.core.clamp") from std.core as clamp;
+use function @id("std.core.compare") from std.core as compare;
+use function @id("std.core.max") from std.core as max;
+
+@id("std.core.examples.main")
+fn main() -> i64
+{
+    let order = compare(3, 7);
+    let bounded = clamp(order + 5, 0, 3);
+    if max(order, bounded) == 3 { 0 } else { 1 }
+}

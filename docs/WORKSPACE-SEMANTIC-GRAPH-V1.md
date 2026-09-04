@@ -148,6 +148,20 @@ Full authenticated-work counters are `used_managed_files`,
 `used_builder_bytes` is the maximum sequential builder-phase debit:
 `max(canonical_phase_bytes, core_phase_consumed_bytes)`.
 
+The core phase charges a resolver pre-bound before it links anything, so a
+program that cannot fit is refused with `SPX-G171` before mutation. The
+pre-bound is computed from the authored program alone and is deliberately an
+upper estimate, composed of three terms: structural source bytes (the AST
+node footprints) times 24, which covers the sixteen footprints the
+compile-time bundle assertions establish plus eight for map and tree
+bookkeeping; string-content bytes times 64, the at-most 48 retained copies of
+a source string plus bookkeeping; and, for every declaration identity slot a
+resolved expression of that shape can hold, the longest identity in scope
+times 64. A scalar expression holds three slots, a call or construction four,
+a variant construction five, and `Try` eight. Before the split, every source
+byte and every expression were charged at the `Try` and string rates, and a
+4.9 KiB module of twenty scalar functions exhausted the budget.
+
 Output is written through a hard sink before allocation. Exactly 16,777,216
 bytes succeeds; one more reports `SPX-G171` for `output_bytes` with no partial
 JSON. Typed render/digest disagreement is `SPX-G173`.

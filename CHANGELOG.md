@@ -18,8 +18,8 @@
   becomes `semaprax.project-scaffold.v2` with five files and a new digest
   domain, the generated `README.md` points at `AGENTS.md` and uses directory
   operands, and both `new` routes publish the same five files. The library
-  API drops its `_v1` suffixes (`derive_project_scaffold`,
-  `replay_project_scaffold`, `ProjectScaffold`, `ProjectScaffoldFile`).
+  template gains the same file. The `_v1` API names are unchanged; the schema
+  string and digest domain are v2.
   [Public Project Scaffold Capsule v2](docs/PROJECT-SCAFFOLD-V2.md) owns the
   contract.
 
@@ -33,6 +33,47 @@
   it, and the install guide, quickstart, and README no longer require the
   full toolchain to create a project.
 
+- The standard-library contract and the agent quick reference explain how a
+  Project consumes a `std.*` module today, by vendoring its library file and
+  importing by `@id`; the gate vendors every package into a fresh project and
+  runs its examples and conformance there.
+
+- `std.num` gains checked `pow`, `isqrt`, `digit_count`, `is_power_of_two`,
+  `log2_floor`, and `log10_floor`, each with contracts and conformance checks
+  on every lane; the catalogs are regenerated.
+
+- `semaprax project-scaffold --template library` prints a library package in
+  the standard-library shape: `src/lib.spx` with one contracted function,
+  `src/examples.spx` as the entry, and `src/tests.spx` as the conformance
+  suite, all checked and tested at derivation and replayable only as the
+  library template. The calculator capsule bytes are unchanged, and the
+  private `new` still admits only the calculator inventory.
+
+- Added the standard-library contract, [Standard Library v1](docs/STANDARD-LIBRARY-V1.md),
+  and its first `core`-tier packages under `std/`: `std.core` (ordering as
+  `-1`/`0`/`1`, extrema, clamping, range membership, `bool` conversions and
+  connectives), `std.num` (sign, absolute value, parity, Euclidean division and
+  remainder, greatest common divisor), and `std.num.overflow` (overflow
+  predicates and wrapping and saturating arithmetic). Each package is a
+  Project whose entry is its examples module and whose test module is its
+  conformance suite; `tests/project.rs::standard_library` runs both on the
+  interpreter, native C11 at O0/O2, and Core Wasm under Node, checks
+  identities and conformance coverage, and generates the human
+  [catalog](docs/STANDARD-LIBRARY-CATALOG.md) and `std/catalog.json`.
+
+- The Workspace Semantic Graph builder pre-bound now charges structural bytes,
+  string contents, and per-shape identity slots separately instead of the
+  `Try` and string rates for every node. The 16 MiB budget and every reported
+  field are unchanged, but `used_builder_bytes` values move, so the frozen
+  known-answer digests in the workspace change, operations, structural-change,
+  and analysis tests, the workspace CLI harness, and the browser fixture's
+  `project_graph_digest` answers were re-pinned. Before the split a 4.9 KiB
+  module of twenty scalar functions was rejected with `SPX-G171`; the `std/`
+  packages are the regression.
+
+- The workspace CLI tests that assert exact command usages now read them from
+  `semaprax help all`, the exhaustive catalog, instead of the guided one-screen
+  `--help` page that replaced it.
 - `check`, `run`, `test`, and `build` invoked with no input outside a project
   now attach a hint to the unchanged `SPX-J102` missing-manifest diagnostic
   naming the three admitted inputs: a `.spx` file, a project directory, or

@@ -774,14 +774,16 @@ module graph.v14;
             "sha256:{:x}",
             crate::digest_hex::LowerHex(Sha256::digest(json.as_bytes()))
         );
-        // Includes the current AST carrier's charged builder bytes. Adding the
-        // static implementation Vec increases Program by 24 bytes on 64-bit
-        // hosts; the prebound retains all 65 footprints instead of undercharging
-        // to preserve an earlier digest. Wire-order and independent replay below
-        // remain exact.
+        // Includes the current AST carrier's charged builder bytes, so the
+        // digest moves whenever the pre-bound moves: adding the static
+        // implementation Vec grew Program by 24 bytes on 64-bit hosts, and the
+        // split pre-bound now charges structural bytes 24 times, string
+        // contents 64 times, and per-shape identity slots instead of 64
+        // footprints and eight slots for every node. Wire-order and
+        // independent replay below remain exact.
         assert_eq!(
             document_sha,
-            "sha256:46786de82bdcdee26797cf2681424dd90a55a9348ca9faca9c80da7ac786c1c1"
+            "sha256:fb93af10ddaba2f0fe7b9f9fb9f7361008cb77f8a1b37f1e015e982b40e01fd1"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

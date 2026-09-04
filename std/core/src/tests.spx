@@ -1,0 +1,59 @@
+module std.core.tests;
+use function @id("std.core.bool_to_i64") from std.core as bool_to_i64;
+use function @id("std.core.clamp") from std.core as clamp;
+use function @id("std.core.compare") from std.core as compare;
+use function @id("std.core.i64_to_bool") from std.core as i64_to_bool;
+use function @id("std.core.implies") from std.core as implies;
+use function @id("std.core.in_range") from std.core as in_range;
+use function @id("std.core.max") from std.core as max;
+use function @id("std.core.min") from std.core as min;
+use function @id("std.core.ordering.equal") from std.core as ordering_equal;
+use function @id("std.core.ordering.greater") from std.core as ordering_greater;
+use function @id("std.core.ordering.less") from std.core as ordering_less;
+use function @id("std.core.xor") from std.core as xor;
+
+@id("std.core.tests.ordering")
+fn ordering() -> bool
+{
+    let big = 9223372036854775807;
+    let small = -9223372036854775807 - 1;
+    compare(small, big) == ordering_less() && compare(big, small) == ordering_greater() && compare(7, 7) == ordering_equal() && compare(-1, 0) == -1 && compare(1, 0) == 1
+}
+
+@id("std.core.tests.extrema")
+fn extrema() -> bool
+{
+    let big = 9223372036854775807;
+    let small = -9223372036854775807 - 1;
+    min(big, small) == small && max(big, small) == big && min(3, 3) == 3 && max(-2, -3) == -2 && min(-2, -3) == -3
+}
+
+@id("std.core.tests.bounds")
+fn bounds() -> bool
+{
+    clamp(5, 1, 3) == 3 && clamp(-5, 1, 3) == 1 && clamp(2, 1, 3) == 2 && clamp(2, 2, 2) == 2 && in_range(2, 1, 3) && in_range(1, 1, 3) && in_range(3, 1, 3) && !in_range(4, 1, 3) && !in_range(0, 1, 3)
+}
+
+@id("std.core.tests.conversions")
+fn conversions() -> bool
+{
+    bool_to_i64(true) == 1 && bool_to_i64(false) == 0 && i64_to_bool(0) == false && i64_to_bool(-3) && i64_to_bool(9)
+}
+
+@id("std.core.tests.logic")
+fn logic() -> bool
+{
+    xor(true, false) && xor(false, true) && !xor(true, true) && !xor(false, false) && implies(false, false) && implies(false, true) && implies(true, true) && !implies(true, false)
+}
+
+@id("std.core.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if ordering() { 0 } else { 1 };
+    failed = failed + if extrema() { 0 } else { 2 };
+    failed = failed + if bounds() { 0 } else { 4 };
+    failed = failed + if conversions() { 0 } else { 8 };
+    failed = failed + if logic() { 0 } else { 16 };
+    failed
+}

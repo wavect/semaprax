@@ -110,11 +110,11 @@ fn literal_kats_wire_order_domains_and_reference_parity() {
             raw_sha(artifacts.evidence()),
         ],
         [
-            "sha256:b79500924442e5144c0382aa28f33f3bd6b6ef3b32fa4c6b32cf2a23055f0617",
-            "sha256:412a5a7d56b860274b2cb76e17feaed6eb72682a9d5fa45c05f0050f9d5ce627",
-            "sha256:8f93384e03e44d57f9cc4461ab955348748fef7f4b0bcfb07ce1a78778e42df3",
-            "sha256:ce096a6cbd09056dbd26b5feb2dcf811726a6e3f37b6fc3c567da1ac59c7472b",
-            "sha256:90da358d00bfeba70f2b5a041abb19ace23abd8ba3956c604dd87f66dd890935"
+            "sha256:deebc462e4fe518ea8e6cad524482b0462b27e2df1fd1a7efdb99defb213a3c8",
+            "sha256:eaaefd773d821dafeaf4ffc966bdb23912ae178ed506be013162bf2f70090462",
+            "sha256:a751292986c411a535eec6e0de30c2610919825d315a717eebd5423998c5efef",
+            "sha256:047948e62089a75d12becc88c8dc8bf44e24a1521991e99c667d76a3ec814400",
+            "sha256:7e7a27238f22e8347bada8c69d27b0f7aafd98a7264dc336f7c844f91698647d"
         ]
     );
 

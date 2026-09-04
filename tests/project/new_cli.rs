@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use semaprax::project::derive_project_scaffold;
+use semaprax::project::derive_project_scaffold_v1;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -79,7 +79,7 @@ fn read_tree(root: &Path) -> BTreeMap<String, Vec<u8>> {
 }
 
 fn scaffold_files(name: &str) -> BTreeMap<String, Vec<u8>> {
-    derive_project_scaffold(name, "calculator")
+    derive_project_scaffold_v1(name, "calculator")
         .unwrap()
         .files()
         .iter()

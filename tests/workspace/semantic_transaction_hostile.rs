@@ -605,7 +605,9 @@ fn workspace_cli_has_exact_arity_and_api_byte_projection() {
         format!("applied semantic workspace transaction; workspace is now {candidate_revision}\n")
     );
 
-    let help = Command::new(binary).arg("--help").output().unwrap();
+    // Exact usages live in the exhaustive `help all` catalog, not the guided
+    // `--help` overview.
+    let help = Command::new(binary).args(["help", "all"]).output().unwrap();
     assert!(help.status.success());
     let help = String::from_utf8(help.stdout).unwrap();
     for usage in [

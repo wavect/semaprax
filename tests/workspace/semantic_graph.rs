@@ -352,7 +352,9 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let root = root.as_str();
     let projection_root = include_str!("../../src/workspace_graph/expected_projection.rs");
     let projection_cost = include_str!("../../src/workspace_graph/expected_projection/cost.rs");
-    let projection = format!("{projection_root}\n{projection_cost}");
+    let projection_identity_slots =
+        include_str!("../../src/workspace_graph/expected_projection/identity_slots.rs");
+    let projection = format!("{projection_root}\n{projection_cost}\n{projection_identity_slots}");
 
     assert!(root.contains("mod expected_projection;"));
     assert!(!projection.contains("use super::*;"));
@@ -361,6 +363,7 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
         "pub(super) raw_clone_and_hir: usize,",
         "pub(super) runtime: usize,",
         "pub(super) fn synthetic_builder_bytes(",
+        "pub(super) fn checked_builder_sum(left: usize, right: usize) -> Result<usize, Vec<Diagnostic>> {",
         "pub(super) fn validate_dependency_dag(",
         "pub(super) fn dependency_depths<'a>(",
         "pub(super) fn synthetic_program(",
@@ -486,7 +489,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         document_digest(graph.to_json().as_bytes()),
         // Re-pinned after the authenticated owned-byte-variant HIR carriers
         // enlarged the shared graph-capacity facts.
-        "sha256:989061200a99a62c01ccaa6ae3fdbd494363bb886c57bf3430faf9b435d4db73"
+        "sha256:8d6462f66989d6233455052a6f1f42e4f6ff026a03c804e8f80d16bd488d73b5"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -900,14 +903,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:1b9135c3f25e42c5ed8eac6d6271f8f3dda96ba745315b45bc6552cd756eb194",
-            "sha256:8f7b6863ecc5d31b8cab8b416208e0987aa44743f43237e4dab571b4215adbf6",
-            "sha256:5200d6c8508451674320f3a69d0b67e6dd04854d0676525f6dd625080631052e",
-            "sha256:a5098ac3e4baa01be1b55eda1ac81dd5151f86f29e3c4bdbddd4c365155b72ce",
-            "sha256:26776f28e21d671df0885d8969e34b3ae4116174a2d9acb3cc793f4df68e65d0",
-            "sha256:10c0abe37a4021d326a568a738225d046f9a72bcea009269d393f17c8ea67c7f",
-            "sha256:0e8ff75f953587a979857df86988562371951312fa2606781ee8dd5076dc2172",
-            "sha256:87ee07f52fe9e1b5c3e026c6e5f82cebd9f08f84abca1c38333a6c1f0e7acc41",
+            "sha256:9ff0a7dd1251b9f8666442631e8cb1de089dafeb293ebcab8b6db6c29ae59fef",
+            "sha256:c2a7cf46687503a9a0b0b42d3337cf5c62448b5a24de49224057ee7e494fd427",
+            "sha256:473ecfd1a7bd09c99a0e41ecb03212d3d65ac2e5efa287012b0e4ce3343f0f70",
+            "sha256:9abdd36ceecb46f2c83b3abf37fa347db28e82bd0f94daf3c234033653c8565a",
+            "sha256:5f51f354eef5466f7d9f3abe734ea4359f50f7b1e7bafd0308f6fe49afb7c5df",
+            "sha256:a4f3ea37a99f1ccb534520848364edfab6c79050bc36ca559074c1ad45d263a7",
+            "sha256:86b92c4697ec9611f18c462748c0b18d05edeb7c6f9bc0bad5a7e1127c72f5bd",
+            "sha256:b5b14b6eaeadf3eed33f728119695d1f397d4edcaae95ceaf1c19858ce4f158e",
         ]
     );
 

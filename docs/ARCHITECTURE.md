@@ -1746,6 +1746,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules; candidate replay/conflict projection in `src/project/candidate/package_consumer_replay.rs` |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
+| Standard library | `std/<package>/` Project packages, `std/packages.json` tier and target metadata, generated `std/catalog.json`; gate `tests/project/standard_library.rs` |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
 
 This table is the single module-level map. Other contributor documents should

@@ -1,4 +1,4 @@
-use semaprax::project::derive_project_scaffold;
+use semaprax::project::derive_project_scaffold_v1;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -22,8 +22,28 @@ fn invoke(arguments: &[&str]) -> (Output, PathBuf) {
 }
 
 fn expected(name: &str) -> Vec<u8> {
-    let artifact = derive_project_scaffold(name, "calculator").unwrap();
+    let artifact = derive_project_scaffold_v1(name, "calculator").unwrap();
     artifact.canonical_bytes()
+}
+
+#[test]
+fn public_cli_prints_the_library_capsule_for_the_library_template() {
+    let (output, root) = invoke(&[
+        "project-scaffold",
+        "--name",
+        "demo-project",
+        "--template",
+        "library",
+    ]);
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(
+        output.stdout,
+        derive_project_scaffold_v1("demo-project", "library")
+            .unwrap()
+            .canonical_bytes()
+    );
+    std::fs::remove_dir(root).unwrap();
 }
 
 #[test]

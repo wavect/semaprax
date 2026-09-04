@@ -1,0 +1,6 @@
+schema = "semaprax.project.v1"
+name = "std-num-overflow"
+entry = "std.num.overflow.examples"
+sources = ["src/examples.spx", "src/overflow.spx", "src/tests.spx"]
+web_exports = ["std.num.overflow.saturating_add", "std.num.overflow.wrapping_add"]
+tests = ["std.num.overflow.tests"]

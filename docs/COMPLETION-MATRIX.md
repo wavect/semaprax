@@ -38,12 +38,13 @@ Neither state supports a hosted or public promotion claim.
 
 **Overall product objective: Partial**
 
-The long-term contract below contains **49 requirements: 49 Partial, 0
+The long-term contract below contains **50 requirements: 50 Partial, 0
 Implemented, 0 Missing**. Each row has at least one bounded executable slice,
 but none satisfies its full gate.
 
-The previous “56 Partial / 0 Missing” dashboard mixed these 49 long-term
-requirements with seven later milestone rows. That made the denominator change
+The previous “56 Partial / 0 Missing” dashboard mixed the earlier 49 long-term
+requirements with seven later milestone rows; the standard library row was
+added when its first executable slice landed. That made the denominator change
 as work was added. This matrix now keeps the product contract fixed and tracks
 release-specific evidence separately.
 
@@ -200,6 +201,7 @@ row.
 | JavaScript and TypeScript | Partial; exact-tag nonignored Node/TypeScript/Chromium coverage | [Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md), [Standalone Wasm String Settlement v1](WASM-INTERNAL-STRINGS-V1.md), [Standalone String Web package](WASM-INTERNAL-STRINGS-WEB-V1.md#local-validation-record) | Complete separately provisioned host and multi-engine browser/runtime breadth; stable general bindings, owned resources, async/callbacks and packaging must still be verified. |
 | WIT and WebAssembly Components | Partial | [Public Scalar WIT Interface v1](PUBLIC-SCALAR-WIT-INTERFACE-V1.md), [private WIT Boundary v1](WIT-COMPONENT-BOUNDARY-V1.md) | Extend the retained Project-v1 scalar interface artifact into supported Component publication; source-selected interfaces and resources run through a supported Component Model toolchain on multiple runtimes. |
 | OpenAPI, Protobuf/gRPC, GraphQL, and SQL | Partial | [OpenAPI v1](OPENAPI-V1.md) | Import/export, compatibility, live conformance, and all named schema families are verified. |
+| Standard library | Partial; three `core`-tier packages with local interpreter, native C11, and Core Wasm conformance | [Standard Library v1](STANDARD-LIBRARY-V1.md), [catalog](STANDARD-LIBRARY-CATALOG.md) | Every required module exists at its tier with identities, contracts, effects, examples, conformance on every listed target, and generated documentation; the Everyday profile and offline templates ship. |
 
 ### Application platforms
 

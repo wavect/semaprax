@@ -491,6 +491,27 @@ versioned ecosystem surface.
 - a package registry and offline cache model with explicit least authority;
 - stable migration rules for language, graph, patch, package, and ABI schemas.
 
+### Standard library outcomes
+
+[Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract and the
+required module set; three `core`-tier packages (`std.core`, `std.num`,
+`std.num.overflow`) pass their conformance suites on the interpreter, native
+C11, and Core Wasm lanes.
+
+- widen the Project route so records, variants, generics, strings, and bytes
+  cross package boundaries, then move `Option`, `Result`, ordering, text, and
+  byte operations from compiler-owned functions into `std.*` interfaces;
+- admit cross-package `use` so `std.num` can build on `std.core` and an
+  application can depend on `std/` through the package manifest;
+- record target availability as a semantic-graph fact rather than package
+  metadata;
+- deterministic effect handlers for tests, then the `hosted` tier modules in
+  the order the Everyday profile needs them: `std.env`, `std.io`, `std.fs`,
+  `std.path`, `std.time`, `std.process`;
+- `semaprax new cli|service|library|web|agent` templates available offline;
+  `library` exists through the public `project-scaffold` capsule and waits on
+  a widened private staging authority for `new`.
+
 ### ABI and host outcomes
 
 - stable canonical and native ABIs for aggregates, resources, borrowed views,

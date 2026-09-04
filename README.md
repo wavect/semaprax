@@ -197,7 +197,9 @@ demonstrates and which command was observed to succeed on it.
 Coding agents and readers with a small context window can start from the
 compiler-checked [agent quick reference](docs/AGENT-QUICK-REFERENCE.md)
 instead: one page of admitted shapes, the diagnostics that habits from other
-languages trigger, and the fix for each.
+languages trigger, and the fix for each. The generated
+[standard library catalog](docs/STANDARD-LIBRARY-CATALOG.md) lists every
+`std.*` declaration that exists today with its contract.
 
 ## The programming model
 

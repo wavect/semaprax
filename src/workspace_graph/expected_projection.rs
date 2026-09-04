@@ -14,12 +14,19 @@ use crate::{hir, prelude};
 use super::{
     active_builder_limit, checked_usage, graph_error, limit_error, push_edge,
     reserve_builder_structure, resolve_type_id, visit_ast_call_sites, AuthoredDeclaration,
-    WorkspaceEdge, HIR_FIXED_EXPANSION_FACTOR, HIR_IDENTITY_COPY_FACTOR, MAX_DEPENDENCY_DEPTH,
+    WorkspaceEdge, HIR_IDENTITY_COPY_FACTOR, HIR_STRING_COPY_FACTOR,
+    HIR_STRUCTURE_EXPANSION_FACTOR, MAX_DEPENDENCY_DEPTH,
 };
 
 #[path = "expected_projection/cost.rs"]
 mod cost;
+#[path = "expected_projection/identity_slots.rs"]
+mod identity_slots;
 use cost::{ExpandedDefaultCost, GenericInstanceCost, StructuralCost};
+use identity_slots::{
+    ast_function_identity_slots, ast_program_identity_slots, ast_type_declaration_identity_slots,
+    ast_type_identity_slots,
+};
 
 pub(super) struct SyntheticBuilderCosts {
     pub(super) raw_clone_and_hir: usize,
@@ -31,10 +38,10 @@ pub(super) fn synthetic_builder_bytes(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     programs: &[Program],
 ) -> Result<SyntheticBuilderCosts, Vec<Diagnostic>> {
-    let mut raw = StructuralCost(0);
+    let mut raw = StructuralCost::new();
     ast_program_cost(program, &mut raw)?;
     let mut identity_slots = ast_program_identity_slots(program)?;
-    let mut runtime = StructuralCost(0);
+    let mut runtime = StructuralCost::new();
     let mut default_memo = BTreeMap::new();
     for module_use in &program.module_uses {
         if module_use.kind == ModuleUseKind::Protocol {
@@ -75,7 +82,7 @@ pub(super) fn synthetic_builder_bytes(
                 &mut default_memo,
                 &mut BTreeSet::new(),
             )?;
-            runtime.add(cost.bytes)?;
+            runtime.add_split(cost.bytes, cost.string_bytes)?;
             identity_slots = checked_builder_sum(identity_slots, cost.identity_slots)?;
         } else {
             let declaration = target.ty.expect("validated type target");
@@ -98,19 +105,35 @@ pub(super) fn synthetic_builder_bytes(
         .iter()
         .any(|function| function.name == "main")
     {
-        runtime.add(synthetic_main_runtime_cost(&program.module)?)?;
+        let synthetic_main = synthetic_main_runtime_cost(&program.module)?;
+        runtime.add_split(synthetic_main.total, synthetic_main.string_bytes)?;
     }
     let generic_instances = generic_instance_source_cost(program)?;
     identity_slots = checked_builder_sum(identity_slots, generic_instances.identity_slots)?;
-    let hir_input = checked_usage(raw.0, runtime.0, "builder_bytes", active_builder_limit())?;
+    let hir_input = checked_usage(
+        raw.total,
+        runtime.total,
+        "builder_bytes",
+        active_builder_limit(),
+    )?;
     let hir_input = checked_usage(
         hir_input,
         generic_instances.bytes,
         "builder_bytes",
         active_builder_limit(),
     )?;
-    let fixed_hir_upper = hir_input
-        .checked_mul(HIR_FIXED_EXPANSION_FACTOR)
+    let string_input = checked_builder_sum(raw.string_bytes, runtime.string_bytes)?;
+    let string_input = checked_builder_sum(string_input, generic_instances.string_bytes)?;
+    // String contents are part of `hir_input`; only the remaining structural
+    // bytes expand by the structural factor.
+    let structure_input = hir_input.saturating_sub(string_input);
+    let fixed_hir_upper = structure_input
+        .checked_mul(HIR_STRUCTURE_EXPANSION_FACTOR)
+        .and_then(|structure| {
+            string_input
+                .checked_mul(HIR_STRING_COPY_FACTOR)
+                .and_then(|strings| structure.checked_add(strings))
+        })
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
     let maximum_identity_bytes = authored
         .keys()
@@ -127,12 +150,12 @@ pub(super) fn synthetic_builder_bytes(
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
     Ok(SyntheticBuilderCosts {
         raw_clone_and_hir: checked_usage(
-            raw.0,
+            raw.total,
             hir_upper,
             "builder_bytes",
             active_builder_limit(),
         )?,
-        runtime: runtime.0,
+        runtime: runtime.total,
     })
 }
 
@@ -142,12 +165,13 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
         if function.type_parameters.is_empty() {
             continue;
         }
-        let mut cost = StructuralCost(0);
+        let mut cost = StructuralCost::new();
         ast_function_cost(function, &mut cost)?;
         templates.push((
             function.name.as_str(),
             GenericInstanceCost {
-                bytes: cost.0,
+                bytes: cost.total,
+                string_bytes: cost.string_bytes,
                 identity_slots: ast_function_identity_slots(function)?,
             },
         ));
@@ -155,6 +179,7 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
     templates.sort_by(|left, right| left.0.cmp(right.0));
     let mut total = GenericInstanceCost {
         bytes: 0,
+        string_bytes: 0,
         identity_slots: 0,
     };
     for function in program
@@ -174,14 +199,18 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
                     return;
                 }
                 if let Ok(index) = templates.binary_search_by_key(&name, |(name, _)| *name) {
-                    if let (Some(bytes), Some(identity_slots)) = (
+                    if let (Some(bytes), Some(string_bytes), Some(identity_slots)) = (
                         total.bytes.checked_add(templates[index].1.bytes),
+                        total
+                            .string_bytes
+                            .checked_add(templates[index].1.string_bytes),
                         total
                             .identity_slots
                             .checked_add(templates[index].1.identity_slots),
                     ) {
                         total = GenericInstanceCost {
                             bytes,
+                            string_bytes,
                             identity_slots,
                         };
                     } else {
@@ -197,7 +226,7 @@ fn generic_instance_source_cost(program: &Program) -> Result<GenericInstanceCost
     Ok(total)
 }
 
-fn checked_builder_sum(left: usize, right: usize) -> Result<usize, Vec<Diagnostic>> {
+pub(super) fn checked_builder_sum(left: usize, right: usize) -> Result<usize, Vec<Diagnostic>> {
     left.checked_add(right)
         .filter(|total| *total <= active_builder_limit())
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])
@@ -283,14 +312,17 @@ fn rewrite_type_runtime_cost(
     cost.string(alias)
 }
 
-fn synthetic_main_runtime_cost(module: &str) -> Result<usize, Vec<Diagnostic>> {
-    let mut cost = StructuralCost(0);
+fn synthetic_main_runtime_cost(module: &str) -> Result<StructuralCost, Vec<Diagnostic>> {
+    let mut cost = StructuralCost::new();
     cost.add(std::mem::size_of::<Function>())?;
     cost.add(std::mem::size_of::<Expr>())?;
     cost.string("main")?;
-    cost.add("workspace.synthetic.main.".len())?;
-    cost.add(module.len())?;
-    Ok(cost.0)
+    cost.add_split(
+        "workspace.synthetic.main.".len(),
+        "workspace.synthetic.main.".len(),
+    )?;
+    cost.add_split(module.len(), module.len())?;
+    Ok(cost)
 }
 
 fn ast_program_cost(program: &Program, cost: &mut StructuralCost) -> Result<(), Vec<Diagnostic>> {
@@ -336,253 +368,6 @@ fn ast_program_cost(program: &Program, cost: &mut StructuralCost) -> Result<(), 
         ast_function_cost(function, cost)?;
     }
     Ok(())
-}
-
-fn ast_program_identity_slots(program: &Program) -> Result<usize, Vec<Diagnostic>> {
-    let mut slots = 0usize;
-    for declaration in &program.types {
-        slots = checked_builder_sum(slots, ast_type_declaration_identity_slots(declaration)?)?;
-    }
-    for interface in &program.interfaces {
-        for import in &interface.imports {
-            for param in &import.params {
-                slots = checked_builder_sum(slots, ast_type_identity_slots(&param.ty)?)?;
-            }
-        }
-    }
-    for function in &program.functions {
-        slots = checked_builder_sum(slots, ast_function_identity_slots(function)?)?;
-    }
-    Ok(slots)
-}
-
-fn ast_type_declaration_identity_slots(
-    declaration: &TypeDeclaration,
-) -> Result<usize, Vec<Diagnostic>> {
-    let mut slots = 0usize;
-    match &declaration.kind {
-        TypeDeclarationKind::Resource { .. } => {}
-        TypeDeclarationKind::Record { fields } => {
-            for field in fields {
-                slots = checked_builder_sum(slots, ast_type_identity_slots(&field.ty)?)?;
-            }
-        }
-        TypeDeclarationKind::Class { fields, methods } => {
-            for field in fields {
-                slots = checked_builder_sum(slots, ast_type_identity_slots(&field.ty)?)?;
-            }
-            for method in methods {
-                slots = checked_builder_sum(slots, ast_function_identity_slots(method)?)?;
-            }
-        }
-        TypeDeclarationKind::Variant { cases } => {
-            for case in cases {
-                for field in &case.fields {
-                    slots = checked_builder_sum(slots, ast_type_identity_slots(&field.ty)?)?;
-                }
-            }
-        }
-    }
-    Ok(slots)
-}
-
-fn ast_function_identity_slots(function: &Function) -> Result<usize, Vec<Diagnostic>> {
-    let mut slots = ast_type_identity_slots(&function.return_type)?;
-    for param in &function.params {
-        slots = checked_builder_sum(slots, ast_type_identity_slots(&param.ty)?)?;
-    }
-    for expression in function
-        .requires
-        .iter()
-        .chain(std::iter::once(&function.body))
-        .chain(&function.ensures)
-    {
-        slots = checked_builder_sum(slots, ast_expr_identity_slots(expression)?)?;
-    }
-    Ok(slots)
-}
-
-fn ast_type_identity_slots(ty: &Type) -> Result<usize, Vec<Diagnostic>> {
-    let Type::Named { arguments, .. } = ty else {
-        return Ok(0);
-    };
-    let mut slots = 1usize;
-    for argument in arguments {
-        slots = checked_builder_sum(slots, ast_type_identity_slots(argument)?)?;
-    }
-    Ok(slots)
-}
-
-fn ast_expr_identity_slots(expression: &Expr) -> Result<usize, Vec<Diagnostic>> {
-    // Eight covers the expression/result/callee, Try's six declaration IDs,
-    // and one cleanup owner. Variable-size field/projection/pattern IDs are
-    // debited separately below.
-    let mut slots = 8usize;
-    match &expression.kind {
-        ExprKind::Call {
-            type_arguments,
-            args,
-            ..
-        } => {
-            for ty in type_arguments {
-                slots = checked_builder_sum(slots, ast_type_identity_slots(ty)?)?;
-            }
-            for argument in args {
-                slots = checked_builder_sum(slots, ast_expr_identity_slots(argument)?)?;
-            }
-        }
-        ExprKind::MethodCall {
-            receiver,
-            type_arguments,
-            args,
-            ..
-        } => {
-            for ty in type_arguments {
-                slots = checked_builder_sum(slots, ast_type_identity_slots(ty)?)?;
-            }
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(receiver)?)?;
-            for argument in args {
-                slots = checked_builder_sum(slots, ast_expr_identity_slots(argument)?)?;
-            }
-        }
-        ExprKind::SuperMethod { args, .. } => {
-            for argument in args {
-                slots = checked_builder_sum(slots, ast_expr_identity_slots(argument)?)?;
-            }
-        }
-        ExprKind::Unary { value, .. } => {
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(value)?)?;
-        }
-        ExprKind::Binary { left, right, .. } => {
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(left)?)?;
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(right)?)?;
-        }
-        ExprKind::Block { statements, tail } => {
-            for statement in statements {
-                // A `let` creates one new value identity (its binding); an
-                // assignment reuses its target's existing identity.
-                if matches!(statement, crate::ast::Statement::Let { .. }) {
-                    slots = checked_builder_sum(slots, 1)?;
-                }
-                for index in 0..statement.child_count() {
-                    if let Some(child) = statement.child(index) {
-                        slots = checked_builder_sum(slots, ast_expr_identity_slots(child)?)?;
-                    }
-                }
-            }
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(tail)?)?;
-        }
-        ExprKind::If {
-            condition,
-            then_branch,
-            else_branch,
-        } => {
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(condition)?)?;
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(then_branch)?)?;
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(else_branch)?)?;
-        }
-        ExprKind::ConstructRecord {
-            type_arguments,
-            fields,
-            ..
-        }
-        | ExprKind::ConstructVariant {
-            type_arguments,
-            fields,
-            ..
-        } => {
-            slots = checked_builder_sum(slots, fields.len())?;
-            for ty in type_arguments {
-                slots = checked_builder_sum(slots, ast_type_identity_slots(ty)?)?;
-            }
-            for field in fields {
-                slots = checked_builder_sum(slots, ast_expr_identity_slots(&field.value)?)?;
-            }
-        }
-        ExprKind::Match {
-            scrutinee, arms, ..
-        } => {
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(scrutinee)?)?;
-            for arm in arms {
-                slots = checked_builder_sum(slots, ast_pattern_identity_slots(&arm.pattern)?)?;
-                slots = checked_builder_sum(slots, ast_expr_identity_slots(&arm.value)?)?;
-            }
-        }
-        ExprKind::Try { operand } => {
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(operand)?)?;
-        }
-        ExprKind::UpdateRecord { base, fields } => {
-            slots = checked_builder_sum(slots, fields.len())?;
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(base)?)?;
-            for field in fields {
-                slots = checked_builder_sum(slots, ast_expr_identity_slots(&field.value)?)?;
-            }
-        }
-        ExprKind::Project { base, .. } => {
-            slots = checked_builder_sum(slots, 1)?;
-            slots = checked_builder_sum(slots, ast_expr_identity_slots(base)?)?;
-        }
-        ExprKind::Int(_)
-        | ExprKind::Int32(_)
-        | ExprKind::Char(_)
-        | ExprKind::Uint8(_)
-        | ExprKind::Usize(_)
-        | ExprKind::Float32(_)
-        | ExprKind::Float64(_)
-        | ExprKind::Bool(_)
-        | ExprKind::String(_)
-        | ExprKind::ArrayU8(_)
-        | ExprKind::RepeatArrayU8 { .. }
-        | ExprKind::Var(_) => {}
-    }
-    Ok(slots)
-}
-
-fn ast_pattern_identity_slots(
-    pattern: &crate::ast::MatchPattern,
-) -> Result<usize, Vec<Diagnostic>> {
-    match pattern {
-        crate::ast::MatchPattern::Variant { fields, .. } => {
-            let field_slots = fields
-                .len()
-                .checked_mul(2)
-                .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
-            checked_builder_sum(2, field_slots)
-        }
-        crate::ast::MatchPattern::Record { fields, .. } => {
-            let mut slots = 1usize;
-            for field in fields {
-                slots = checked_builder_sum(slots, record_pattern_identity_slots(field)?)?;
-            }
-            Ok(slots)
-        }
-        crate::ast::MatchPattern::Wildcard { .. } | crate::ast::MatchPattern::Literal { .. } => {
-            Ok(0)
-        }
-        // Refutable Match v1: a binding arm contributes one identity slot;
-        // or-patterns contribute their alternatives.
-        crate::ast::MatchPattern::Binding { .. } => Ok(1),
-        crate::ast::MatchPattern::Or { alternatives, .. } => {
-            let mut slots = 0usize;
-            for alternative in alternatives {
-                slots = checked_builder_sum(slots, ast_pattern_identity_slots(alternative)?)?;
-            }
-            Ok(slots)
-        }
-    }
-}
-
-fn record_pattern_identity_slots(
-    field: &crate::ast::RecordMatchPatternField,
-) -> Result<usize, Vec<Diagnostic>> {
-    let mut slots = 1usize;
-    if let crate::ast::RecordMatchFieldPattern::Record { fields, .. } = &field.pattern {
-        slots = checked_builder_sum(slots, 1)?;
-        for nested in fields {
-            slots = checked_builder_sum(slots, record_pattern_identity_slots(nested)?)?;
-        }
-    }
-    Ok(slots)
 }
 
 fn ast_type_declaration_cost(
@@ -921,6 +706,7 @@ fn default_expr_expanded_cost(
         | Type::String
         | Type::Str => Ok(ExpandedDefaultCost {
             bytes: std::mem::size_of::<Expr>(),
+            string_bytes: 0,
             identity_slots: 0,
         }),
         Type::SliceU8 => Err(vec![graph_error(
@@ -970,7 +756,7 @@ fn default_expr_expanded_cost(
                         "default-expression type lacks direct caller alias authority",
                     )]
                 })?;
-            let mut cost = StructuralCost(std::mem::size_of::<Expr>());
+            let mut cost = StructuralCost::structure(std::mem::size_of::<Expr>());
             let mut identity_slots = 1usize;
             cost.string(alias)?;
             match &declaration.kind {
@@ -987,7 +773,7 @@ fn default_expr_expanded_cost(
                             memo,
                             visiting,
                         )?;
-                        cost.add(nested.bytes)?;
+                        cost.add_split(nested.bytes, nested.string_bytes)?;
                         identity_slots = checked_builder_sum(
                             identity_slots,
                             nested.identity_slots.checked_add(1).ok_or_else(|| {
@@ -1009,7 +795,7 @@ fn default_expr_expanded_cost(
                             memo,
                             visiting,
                         )?;
-                        cost.add(nested.bytes)?;
+                        cost.add_split(nested.bytes, nested.string_bytes)?;
                         identity_slots = checked_builder_sum(
                             identity_slots,
                             nested.identity_slots.checked_add(1).ok_or_else(|| {
@@ -1036,7 +822,7 @@ fn default_expr_expanded_cost(
                             memo,
                             visiting,
                         )?;
-                        cost.add(nested.bytes)?;
+                        cost.add_split(nested.bytes, nested.string_bytes)?;
                         identity_slots = checked_builder_sum(
                             identity_slots,
                             nested.identity_slots.checked_add(1).ok_or_else(|| {
@@ -1054,7 +840,8 @@ fn default_expr_expanded_cost(
             }
             visiting.remove(&target_id);
             let expanded = ExpandedDefaultCost {
-                bytes: cost.0,
+                bytes: cost.total,
+                string_bytes: cost.string_bytes,
                 identity_slots,
             };
             memo.insert(target_id, expanded);

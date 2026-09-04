@@ -24,7 +24,7 @@ private `doctor` command and the private Rust-package build target. (`new`
 was private when this version was authored; [standalone project creation
 v1](NEW-PROJECT-STANDALONE-V1.md) later made it public in both executables.)
 It does include the public stdout-only `project-scaffold --name project-name
-[--template calculator]` route, which has no private host hook.
+[--template calculator|library]` route, which has no private host hook.
 The unpublished `semaprax-full` executable receives one explicit
 `PrivateHost`; only that presence bit selects the fuller catalog. Help must not
 call a host hook, read a path, inspect the environment, search `PATH`, discover

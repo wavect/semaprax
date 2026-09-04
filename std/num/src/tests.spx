@@ -1,0 +1,93 @@
+module std.num.tests;
+use function @id("std.num.abs") from std.num as abs;
+use function @id("std.num.digit_count") from std.num as digit_count;
+use function @id("std.num.div_euclid") from std.num as div_euclid;
+use function @id("std.num.gcd") from std.num as gcd;
+use function @id("std.num.i64_max") from std.num as i64_max;
+use function @id("std.num.i64_min") from std.num as i64_min;
+use function @id("std.num.is_even") from std.num as is_even;
+use function @id("std.num.is_power_of_two") from std.num as is_power_of_two;
+use function @id("std.num.isqrt") from std.num as isqrt;
+use function @id("std.num.log10_floor") from std.num as log10_floor;
+use function @id("std.num.log2_floor") from std.num as log2_floor;
+use function @id("std.num.pow") from std.num as pow;
+use function @id("std.num.is_odd") from std.num as is_odd;
+use function @id("std.num.rem_euclid") from std.num as rem_euclid;
+use function @id("std.num.sign") from std.num as sign;
+
+@id("std.num.tests.sign_and_abs")
+fn sign_and_abs() -> bool
+{
+    sign(-9) == -1 && sign(0) == 0 && sign(4) == 1 && abs(-7) == 7 && abs(i64_max()) == i64_max() && abs(i64_min() + 1) == i64_max()
+}
+
+@id("std.num.tests.parity")
+fn parity() -> bool
+{
+    is_even(0) && is_even(-4) && !is_even(7) && is_odd(-3) && !is_odd(i64_min())
+}
+
+@id("std.num.tests.euclid_division")
+fn euclid_division() -> bool
+{
+    div_euclid(7, 2) == 3 && div_euclid(-7, 2) == -4 && div_euclid(7, -2) == -3 && div_euclid(-7, -2) == 4
+}
+
+@id("std.num.tests.euclid_remainder")
+fn euclid_remainder() -> bool
+{
+    rem_euclid(7, 2) == 1 && rem_euclid(-7, 2) == 1 && rem_euclid(7, -2) == 1 && rem_euclid(-7, -2) == 1 && rem_euclid(i64_min(), 3) == 1
+}
+
+@id("std.num.tests.greatest_common_divisor")
+fn greatest_common_divisor() -> bool
+{
+    gcd(12, 18) == 6 && gcd(0, 5) == 5 && gcd(7, 0) == 7 && gcd(0, 0) == 0 && gcd(i64_max(), i64_max() - 1) == 1
+}
+
+@id("std.num.tests.powers")
+fn powers() -> bool
+{
+    pow(2, 0) == 1 && pow(2, 10) == 1024 && pow(-3, 3) == -27 && pow(0, 0) == 1 && pow(0, 5) == 0 && pow(1, 63) == 1 && pow(2, 62) == 4611686018427387904
+}
+
+@id("std.num.tests.roots")
+fn roots() -> bool
+{
+    isqrt(0) == 0 && isqrt(1) == 1 && isqrt(3) == 1 && isqrt(4) == 2 && isqrt(99) == 9 && isqrt(100) == 10 && isqrt(i64_max()) == 3037000499
+}
+
+@id("std.num.tests.digits")
+fn digits() -> bool
+{
+    digit_count(0) == 1 && digit_count(9) == 1 && digit_count(10) == 2 && digit_count(-10) == 2 && digit_count(i64_max()) == 19 && digit_count(i64_min()) == 19
+}
+
+@id("std.num.tests.binary_structure")
+fn binary_structure() -> bool
+{
+    is_power_of_two(1) && is_power_of_two(2) && is_power_of_two(4611686018427387904) && !is_power_of_two(0) && !is_power_of_two(6) && !is_power_of_two(-2) && log2_floor(1) == 0 && log2_floor(2) == 1 && log2_floor(3) == 1 && log2_floor(1024) == 10 && log2_floor(i64_max()) == 62
+}
+
+@id("std.num.tests.decimal_structure")
+fn decimal_structure() -> bool
+{
+    log10_floor(1) == 0 && log10_floor(9) == 0 && log10_floor(10) == 1 && log10_floor(999) == 2 && log10_floor(1000) == 3 && log10_floor(i64_max()) == 18
+}
+
+@id("std.num.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if sign_and_abs() { 0 } else { 1 };
+    failed = failed + if parity() { 0 } else { 2 };
+    failed = failed + if euclid_division() { 0 } else { 4 };
+    failed = failed + if euclid_remainder() { 0 } else { 8 };
+    failed = failed + if greatest_common_divisor() { 0 } else { 16 };
+    failed = failed + if powers() { 0 } else { 32 };
+    failed = failed + if roots() { 0 } else { 64 };
+    failed = failed + if digits() { 0 } else { 128 };
+    failed = failed + if binary_structure() { 0 } else { 256 };
+    failed = failed + if decimal_structure() { 0 } else { 512 };
+    failed
+}

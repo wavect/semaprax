@@ -2,7 +2,7 @@
 
 Status: superseded by [Public Project Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md),
 which adds `AGENTS.md` and renders schema `semaprax.project-scaffold.v2`; this
-document records the four-file v1 contract. Unpublished and unpromoted.
+document records the v1 contract. Unpublished and unpromoted.
 
 Audience: new SEMAPRAX users, tool integrators, and compiler contributors.
 
@@ -41,14 +41,29 @@ destination, or call the private `new` hook.
 
 The capsule schema is exactly `semaprax.project-scaffold.v1`. It selects only:
 
-- template `calculator`;
+- template `calculator` or, additively, `library`;
 - Project schema `semaprax.project.v1`;
 - one valid canonical project name; and
-- these four files in this order:
+- the template's exact ordered inventory. The calculator template holds four
+  files:
   1. `README.md`;
   2. `semaprax.toml`;
   3. `src/app.spx`;
   4. `src/tests.spx`.
+
+  The library template holds five, in the standard-library package shape of
+  [Standard Library v1](STANDARD-LIBRARY-V1.md#library-architecture): a
+  library module whose one function carries `requires` and `ensures`
+  contracts, an examples module as the entry, and a conformance test module:
+  1. `README.md`;
+  2. `semaprax.toml`;
+  3. `src/examples.spx`;
+  4. `src/lib.spx`;
+  5. `src/tests.spx`.
+
+The `template` field of the descriptor names the selected template, and replay
+is bound to the caller's expected template: a library capsule does not replay
+as a calculator, nor the reverse.
 
 Every file entry binds its literal relative path, exact bytes, and lowercase
 SHA-256. The top-level digest binds a scaffold-specific domain, a checked `u64`
@@ -90,8 +105,11 @@ The capsule is additive. It does not change:
 - CLI help for any existing command except the additive public scaffold entry.
 
 Private `new` and public scaffold derivation must converge on the same four
-template files for the same name. That equality is evidence about bytes, not a
-shared publication capability.
+calculator template files for the same name. That equality is evidence about
+bytes, not a shared publication capability. The library template is available
+only through the public stdout capsule: the private `new` staging authority
+admits exactly the four calculator files, so `semaprax new --template library`
+is rejected until that authority is widened.
 
 ## Required evidence
 

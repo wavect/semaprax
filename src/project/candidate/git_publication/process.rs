@@ -694,7 +694,8 @@ mod unix {
         }
         impl Drop for Repository {
             fn drop(&mut self) {
-                std::fs::remove_dir_all(&self.0).unwrap();
+                // Best effort; see the note on ProcessFixture's destructor.
+                let _ = std::fs::remove_dir_all(&self.0);
             }
         }
 

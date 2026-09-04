@@ -7,7 +7,7 @@ const BUILD_LINE: &str = "semaprax build [<file>|<dir>|semaprax.toml|--manifest-
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
 const NEW_LINE: &str = "semaprax new <destination> [--name project-name] [--template calculator]\n";
 const PROJECT_SCAFFOLD_LINE: &str =
-    "semaprax project-scaffold --name project-name [--template calculator]\n";
+    "semaprax project-scaffold --name project-name [--template calculator|library]\n";
 const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 /// The guided overview must stay one screen; CLI Help v4 fixes the bound.
 const GUIDE_MAX_BYTES: usize = 2048;

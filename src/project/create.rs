@@ -18,7 +18,7 @@ use std::fs;
 use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 
-use super::{derive_project_scaffold, with_authenticated_project};
+use super::{derive_project_scaffold_v1, with_authenticated_project};
 use super::{MANIFEST_FILE, PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR};
 
 /// Why standalone project creation stopped. Every variant maps to exit status
@@ -51,7 +51,7 @@ pub fn create_calculator_project(
     destination: &Path,
     name: &str,
 ) -> Result<PathBuf, CreateProjectError> {
-    let scaffold = derive_project_scaffold(name, PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR).map_err(
+    let scaffold = derive_project_scaffold_v1(name, PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR).map_err(
         |diagnostics| {
             CreateProjectError::new(format!(
                 "cannot derive the calculator template: {}",

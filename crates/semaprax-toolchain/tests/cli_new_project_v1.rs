@@ -132,7 +132,7 @@ fn calculator_template_has_exact_deterministic_bytes() {
         .contains("name = \"demo-project\"\nentry = \"demo_project.app\""));
 
     let scaffold =
-        semaprax::project::derive_project_scaffold("demo-project", "calculator").unwrap();
+        semaprax::project::derive_project_scaffold_v1("demo-project", "calculator").unwrap();
     assert_eq!(
         scaffold
             .files()
@@ -152,7 +152,7 @@ fn generated_project_validation_never_reopens_the_ambient_staging_tree() {
     assert!(!implementation.contains("project::with_authenticated_project"));
     assert!(
         implementation
-            .find("project::derive_project_scaffold")
+            .find("project::derive_project_scaffold_v1")
             .unwrap()
             < implementation.find("create_staging_authority").unwrap()
     );

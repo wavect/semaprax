@@ -13,6 +13,15 @@ format: `Unreleased` then release buckets, grouped by impact.
   `note:` line on stderr instead of skipping it silently; the JSON envelope is
   unchanged. The generated `AGENTS.md` now explains the test module and named
   cases, so the scaffold capsule digests change.
+- `semaprax project-scaffold --layout tables` emits a new project whose
+  `semaprax.toml` uses the extensible `semaprax.manifest.v1` table layout,
+  under a new additive capsule schema `semaprax.project-scaffold.v3`
+  ([Public Project Scaffold Capsule v3](docs/PROJECT-SCAFFOLD-V3.md)). The
+  default (`--layout frozen`) is byte-for-byte the shipped v2 capsule with the
+  frozen `semaprax.project.v1` manifest, so no existing scaffold byte or digest
+  moves. Only the `semaprax.toml` file differs between the layouts; both lower
+  to the same Project v1 contract. `tests/project.rs::scaffold` and
+  `::scaffold_cli` pin it.
 
 - Project manifests can now link the closed compiler-bundled `std.*` inventory
   at version `0.1.0` without cache, network, or acquisition authority. Exact,

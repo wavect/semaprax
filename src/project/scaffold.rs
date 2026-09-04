@@ -17,6 +17,10 @@ use crate::diagnostic::{quote_json, Diagnostic};
 use super::{validate_owned_project_test, ProjectExecutionOptions, PROJECT_SCHEMA};
 
 pub const PROJECT_SCAFFOLD_SCHEMA: &str = "semaprax.project-scaffold.v2";
+/// Additive capsule schema for the extensible `semaprax.manifest.v1` table
+/// manifest layout. The v2 schema is frozen to the v1 manifest bytes; a table
+/// manifest is a distinct capsule so no v2 byte or digest changes.
+pub const PROJECT_SCAFFOLD_SCHEMA_V3: &str = "semaprax.project-scaffold.v3";
 pub const PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR: &str = "calculator";
 pub const PROJECT_SCAFFOLD_TEMPLATE_LIBRARY: &str = "library";
 pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 2] = [
@@ -57,13 +61,52 @@ pub fn project_scaffold_inventory(template: &str) -> &'static [&'static str] {
 }
 
 const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
+const DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-scaffold.digest.v3\0";
+
+/// Which `semaprax.toml` layout a scaffold emits. `Frozen` is the frozen
+/// `semaprax.project.v1` line layout under capsule schema v2 (byte-identical to
+/// the shipped default); `Tables` is the extensible `semaprax.manifest.v1`
+/// table layout under capsule schema v3. Both lower to the same Project v1
+/// contract, so only the manifest file bytes and the capsule schema differ.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ScaffoldLayout {
+    Frozen,
+    Tables,
+}
+
+impl ScaffoldLayout {
+    const fn schema(self) -> &'static str {
+        match self {
+            Self::Frozen => PROJECT_SCAFFOLD_SCHEMA,
+            Self::Tables => PROJECT_SCAFFOLD_SCHEMA_V3,
+        }
+    }
+
+    const fn digest_domain(self) -> &'static [u8] {
+        match self {
+            Self::Frozen => DIGEST_DOMAIN,
+            Self::Tables => DIGEST_DOMAIN_V3,
+        }
+    }
+
+    fn from_schema(schema: &str) -> Option<Self> {
+        match schema {
+            PROJECT_SCAFFOLD_SCHEMA => Some(Self::Frozen),
+            PROJECT_SCAFFOLD_SCHEMA_V3 => Some(Self::Tables),
+            _ => None,
+        }
+    }
+}
+
 const README: &str = "# {{name}}\n\nA small calculator project created by SEMAPRAX.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\nsemaprax build . --target web -o web\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
 const AGENTS: &str = "# Agent guide for {{name}}\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules; the compiler\nis the authority on what the language admits. Read `semaprax help language`\nbefore writing source.\n\n## Commands\n\n- `semaprax check .` parses, resolves, type-checks, and verifies every module.\n- `semaprax test .` runs `{{module}}.tests`; `semaprax run .` runs the entry and prints its `i64`.\n- `semaprax fmt <file>` rewrites one file in canonical form.\n- `semaprax build . --target web -o dist/web` emits a browser package.\n- `semaprax help <command>` prints one command's exact grammar.\n\n## Rules that differ from other languages\n\n- Every file starts with `module dotted.name;`, and every declaration carries\n  `@id(\"...\")`. The id is the stable identity: rename freely, never change an id.\n- A function body is statements followed by exactly one tail expression. There\n  is no `return`, `for`, `else if`, tuple, or unit value.\n- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.\n- Contracts are `requires` and `ensures` lines; effects are `permit` at module\n  level plus `uses` on every function that performs or calls into one.\n- Check the whole project, not one file: modules import each other, so a\n  single file reports `SPX-G172` or `SPX-T105`.\n- A new module must be listed in `sources` in `semaprax.toml`, and a test\n  module in `tests`.\n- Tests live in the `tests` module: `fn main() -> i64` returns 0 on success, and\n  every `fn test_<name>() -> i64` with an `@id` runs as a named case that\n  `semaprax test .` reports on failure.\n- Diagnostics carry stable `SPX-` codes and, where the compiler knows the fix,\n  a `help:` line. `semaprax check . --json` prints one diagnostic per line.\n";
 const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.add\"]\ntests = [\"{{module}}.tests\"]\n";
+const MANIFEST_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{name}}.add\"]\n";
 const APP: &str = "module {{module}}.app;\n\n@id(\"{{name}}.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
 const TESTS: &str = "module {{module}}.tests;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    if 19 + 23 == 42 { 0 } else { 1 }\n}\n";
 const LIBRARY_README: &str = "# {{name}}\n\nA library package created by SEMAPRAX. `src/lib.spx` holds the public functions with their contracts, `src/examples.spx` is the entry that shows how to call them, and `src/tests.spx` is the conformance suite; both return `0` on success.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
 const LIBRARY_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.examples\"\nsources = [\"src/examples.spx\", \"src/lib.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.twice\"]\ntests = [\"{{module}}.tests\"]\n";
+const LIBRARY_MANIFEST_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"{{module}}.examples\"\nsources = [\"src/examples.spx\", \"src/lib.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{name}}.twice\"]\n";
 const LIBRARY_EXAMPLES: &str = "module {{module}}.examples;\nuse function @id(\"{{name}}.twice\") from {{module}}.lib as twice;\n\n@id(\"{{name}}.examples.main\")\nfn main() -> i64\n{\n    if twice(21) == 42 { 0 } else { 1 }\n}\n";
 const LIBRARY_LIB: &str = "module {{module}}.lib;\n\n@id(\"{{name}}.twice\")\nfn twice(value: i64) -> i64\n    requires value >= -4611686018427387904 && value <= 4611686018427387903\n    ensures result == value * 2\n{\n    value * 2\n}\n";
 const LIBRARY_TESTS: &str = "module {{module}}.tests;\nuse function @id(\"{{name}}.twice\") from {{module}}.lib as twice;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    let mut failed = 0;\n    failed = failed + if twice(0) == 0 { 0 } else { 1 };\n    failed = failed + if twice(-3) == -6 { 0 } else { 2 };\n    failed\n}\n";
@@ -107,6 +150,7 @@ impl ProjectScaffoldFileV1 {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectScaffoldV1 {
     template: &'static str,
+    layout: ScaffoldLayout,
     project_name: String,
     files: Vec<ProjectScaffoldFileV1>,
     digest: String,
@@ -115,7 +159,7 @@ pub struct ProjectScaffoldV1 {
 impl ProjectScaffoldV1 {
     #[must_use]
     pub const fn schema(&self) -> &'static str {
-        PROJECT_SCAFFOLD_SCHEMA
+        self.layout.schema()
     }
 
     #[must_use]
@@ -149,25 +193,44 @@ impl ProjectScaffoldV1 {
     }
 }
 
-/// Derive the exact built-in Project-v1 subject of one template in memory.
+/// Derive the exact built-in Project-v1 subject of one template in memory, in
+/// the frozen `semaprax.project.v1` manifest layout under capsule schema v2.
 pub fn derive_project_scaffold_v1(
     project_name: &str,
     template: &str,
 ) -> Result<ProjectScaffoldV1, Vec<Diagnostic>> {
+    derive_project_scaffold_v1_with_layout(project_name, template, ScaffoldLayout::Frozen)
+}
+
+/// Derive a scaffold in the chosen manifest layout. `Frozen` is byte-identical
+/// to [`derive_project_scaffold_v1`]; `Tables` swaps only the manifest file for
+/// the extensible `semaprax.manifest.v1` layout and renders under capsule
+/// schema v3. Both lower to the same Project v1 contract.
+pub fn derive_project_scaffold_v1_with_layout(
+    project_name: &str,
+    template: &str,
+    layout: ScaffoldLayout,
+) -> Result<ProjectScaffoldV1, Vec<Diagnostic>> {
     let template = validate_template(template)?;
     validate_project_name(project_name)?;
     let module = project_name.replace('-', "_");
-    let sources: &[&str] = if template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
-        &[
+    let manifest = match (template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY, layout) {
+        (true, ScaffoldLayout::Frozen) => LIBRARY_MANIFEST,
+        (true, ScaffoldLayout::Tables) => LIBRARY_MANIFEST_TABLES,
+        (false, ScaffoldLayout::Frozen) => MANIFEST,
+        (false, ScaffoldLayout::Tables) => MANIFEST_TABLES,
+    };
+    let sources: Vec<&str> = if template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
+        vec![
             LIBRARY_README,
             AGENTS,
-            LIBRARY_MANIFEST,
+            manifest,
             LIBRARY_EXAMPLES,
             LIBRARY_LIB,
             LIBRARY_TESTS,
         ]
     } else {
-        &[README, AGENTS, MANIFEST, APP, TESTS]
+        vec![README, AGENTS, manifest, APP, TESTS]
     };
     let inventory = project_scaffold_inventory(template);
     debug_assert_eq!(sources.len(), inventory.len());
@@ -189,11 +252,12 @@ pub fn derive_project_scaffold_v1(
     validate_rendered_project(template, &files)?;
     let mut artifact = ProjectScaffoldV1 {
         template,
+        layout,
         project_name: project_name.to_owned(),
         files,
         digest: String::new(),
     };
-    artifact.digest = artifact_digest(&render_descriptor_without_digest(&artifact));
+    artifact.digest = artifact_digest(layout, &render_descriptor_without_digest(&artifact));
     if artifact.canonical_bytes().len() > MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES {
         return Err(capacity(
             "project scaffold descriptor exceeds its exact byte limit",
@@ -218,11 +282,17 @@ pub fn replay_project_scaffold_v1(
     }
     let value: Value = serde_json::from_slice(descriptor_bytes)
         .map_err(|_| scaffold_error("project scaffold descriptor JSON is invalid"))?;
+    let layout = value
+        .as_object()
+        .and_then(|root| root.get("schema"))
+        .and_then(Value::as_str)
+        .and_then(ScaffoldLayout::from_schema)
+        .ok_or_else(|| scaffold_error("project scaffold descriptor schema is unknown"))?;
     let root = value
         .as_object()
         .filter(|root| {
             root.len() == 8
-                && root.get("schema").and_then(Value::as_str) == Some(PROJECT_SCAFFOLD_SCHEMA)
+                && root.get("schema").and_then(Value::as_str) == Some(layout.schema())
                 && root.get("digest").and_then(Value::as_str).is_some()
                 && root.get("template").and_then(Value::as_str) == Some(template)
                 && root.get("project_schema").and_then(Value::as_str) == Some(PROJECT_SCHEMA)
@@ -259,7 +329,7 @@ pub fn replay_project_scaffold_v1(
             "project scaffold descriptor digest does not match the submitted digest",
         ));
     }
-    let rebuilt = derive_project_scaffold_v1(project_name, template)?;
+    let rebuilt = derive_project_scaffold_v1_with_layout(project_name, template, layout)?;
     if digest != rebuilt.digest() || descriptor_bytes != rebuilt.canonical_bytes().as_slice() {
         return Err(scaffold_error(
             "project scaffold descriptor does not replay against the built-in template",
@@ -326,7 +396,7 @@ fn render_descriptor(artifact: &ProjectScaffoldV1) -> String {
     let body = render_descriptor_tail(artifact);
     format!(
         "{{\"schema\":{},\"digest\":{},{}",
-        quote_json(PROJECT_SCAFFOLD_SCHEMA),
+        quote_json(artifact.layout.schema()),
         quote_json(&artifact.digest),
         &body[1..]
     )
@@ -336,7 +406,7 @@ fn render_descriptor_without_digest(artifact: &ProjectScaffoldV1) -> String {
     let body = render_descriptor_tail(artifact);
     format!(
         "{{\"schema\":{},{}",
-        quote_json(PROJECT_SCAFFOLD_SCHEMA),
+        quote_json(artifact.layout.schema()),
         &body[1..]
     )
 }
@@ -373,9 +443,9 @@ fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String {
     )
 }
 
-fn artifact_digest(canonical_without_digest: &str) -> String {
+fn artifact_digest(layout: ScaffoldLayout, canonical_without_digest: &str) -> String {
     let mut hash = Sha256::new();
-    hash.update(DIGEST_DOMAIN);
+    hash.update(layout.digest_domain());
     hash.update((canonical_without_digest.len() as u64).to_le_bytes());
     hash.update(canonical_without_digest.as_bytes());
     format!("sha256:{:x}", crate::digest_hex::LowerHex(hash.finalize()))

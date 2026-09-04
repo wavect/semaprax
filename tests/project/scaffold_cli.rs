@@ -27,6 +27,26 @@ fn expected(name: &str) -> Vec<u8> {
 }
 
 #[test]
+fn public_cli_prints_the_library_capsule_for_the_library_template() {
+    let (output, root) = invoke(&[
+        "project-scaffold",
+        "--name",
+        "demo-project",
+        "--template",
+        "library",
+    ]);
+    assert!(output.status.success());
+    assert!(output.stderr.is_empty());
+    assert_eq!(
+        output.stdout,
+        derive_project_scaffold_v1("demo-project", "library")
+            .unwrap()
+            .canonical_bytes()
+    );
+    std::fs::remove_dir(root).unwrap();
+}
+
+#[test]
 fn public_cli_prints_only_the_exact_replayable_capsule() {
     for arguments in [
         &["project-scaffold", "--name", "demo-project"][..],

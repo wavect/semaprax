@@ -95,8 +95,8 @@ fn parse_project_scaffold_options(arguments: &[String]) -> Result<(&str, &str), 
         match option {
             "--name" if name.is_none() => name = Some(value.as_str()),
             "--template" if template.is_none() => {
-                if value != project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR {
-                    eprintln!("project-scaffold template must be calculator");
+                if !project::PROJECT_SCAFFOLD_TEMPLATES.contains(&value.as_str()) {
+                    eprintln!("project-scaffold template must be calculator or library");
                     return Err(2);
                 }
                 template = Some(value.as_str());

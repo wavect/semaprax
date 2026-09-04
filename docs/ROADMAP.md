@@ -508,7 +508,9 @@ C11, and Core Wasm lanes.
 - deterministic effect handlers for tests, then the `hosted` tier modules in
   the order the Everyday profile needs them: `std.env`, `std.io`, `std.fs`,
   `std.path`, `std.time`, `std.process`;
-- `semaprax new cli|service|library|web|agent` templates available offline.
+- `semaprax new cli|service|library|web|agent` templates available offline;
+  `library` exists through the public `project-scaffold` capsule and waits on
+  a widened private staging authority for `new`.
 
 ### ABI and host outcomes
 

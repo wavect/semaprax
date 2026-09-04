@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `semaprax project-scaffold --template library` prints a library package in
+  the standard-library shape: `src/lib.spx` with one contracted function,
+  `src/examples.spx` as the entry, and `src/tests.spx` as the conformance
+  suite, all checked and tested at derivation and replayable only as the
+  library template. The calculator capsule bytes are unchanged, and the
+  private `new` still admits only the calculator inventory.
+
 - Added the standard-library contract, [Standard Library v1](docs/STANDARD-LIBRARY-V1.md),
   and its first `core`-tier packages under `std/`: `std.core` (ordering as
   `-1`/`0`/`1`, extrema, clamping, range membership, `bool` conversions and

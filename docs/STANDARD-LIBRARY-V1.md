@@ -221,10 +221,14 @@ testing; package management; and Agent runtime APIs. Every item is Missing
 except the compiler-owned command I/O described in
 [Bounded Language Command I/O v1](BOUNDED-LANGUAGE-COMMAND-IO-V1.md).
 
-The default project templates `semaprax new cli`, `semaprax new service`,
-`semaprax new library`, `semaprax new web`, and `semaprax new agent` are
-Missing; `semaprax new` and `semaprax project-scaffold` emit the calculator
-template only, and `new` stays in the full toolchain by release policy.
+Of the default project templates, `library` exists offline through the
+public capsule: `semaprax project-scaffold --name <name> --template library`
+prints a package in the shape described under
+[library architecture](#library-architecture), verified and tested at
+derivation. `semaprax new --template library` is Missing because the private
+staging authority admits only the calculator inventory, and the `cli`,
+`service`, `web`, and `agent` templates are Missing. `new` stays in the full
+toolchain by release policy.
 
 ## Evidence and nonclaims
 

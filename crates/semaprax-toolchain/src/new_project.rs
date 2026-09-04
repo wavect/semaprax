@@ -327,7 +327,7 @@ fn create_staging_authority(
 }
 
 fn expected_files(
-    files: &[ProjectScaffoldFileV1; project::PROJECT_SCAFFOLD_FILE_COUNT],
+    files: &[ProjectScaffoldFileV1],
 ) -> Result<[(&str, &[u8]); project::PROJECT_SCAFFOLD_FILE_COUNT], NewProjectFailure> {
     files
         .iter()

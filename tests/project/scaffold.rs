@@ -132,6 +132,62 @@ fn names_templates_and_expected_replay_subject_are_bounded() {
     assert_eq!(error[0].code, "SPX-J115");
 }
 
+/// The library template is the standard-library package shape: one library
+/// module with a contract, an examples entry, and a conformance test module.
+#[test]
+fn library_template_derives_the_package_shape_and_replays_only_as_itself() {
+    let derived = derive_project_scaffold_v1(NAME, "library").unwrap();
+    assert_eq!(derived.schema(), "semaprax.project-scaffold.v1");
+    assert_eq!(derived.template(), "library");
+    assert_eq!(derived.project_schema(), "semaprax.project.v1");
+    assert_digest(derived.digest());
+    assert_eq!(
+        derived
+            .files()
+            .iter()
+            .map(|file| file.path())
+            .collect::<Vec<_>>(),
+        [
+            "README.md",
+            "semaprax.toml",
+            "src/examples.spx",
+            "src/lib.spx",
+            "src/tests.spx",
+        ]
+    );
+    let manifest = derived.files()[1].utf8();
+    assert!(manifest.contains("entry = \"demo_project.examples\"\n"));
+    assert!(manifest.contains("tests = [\"demo_project.tests\"]\n"));
+    let lib = derived.files()[3].utf8();
+    assert!(lib.starts_with("module demo_project.lib;\n"));
+    assert!(lib.contains("@id(\"demo-project.twice\")\n"));
+    assert!(lib.contains("    ensures result == value * 2\n"));
+    for file in derived.files() {
+        assert_eq!(file.sha256(), sha256(file.bytes()));
+    }
+    let canonical = derived.canonical_bytes();
+    assert!(canonical
+        .windows(b"\"template\":\"library\"".len())
+        .any(|window| window == b"\"template\":\"library\""));
+    let replayed =
+        replay_project_scaffold_v1(NAME, "library", &canonical, derived.digest()).unwrap();
+    assert_eq!(replayed.canonical_bytes(), canonical);
+    let calculator = derive_project_scaffold_v1(NAME, "calculator").unwrap();
+    assert_ne!(calculator.canonical_bytes(), canonical);
+    assert_eq!(calculator.digest(), ARTIFACT_DIGEST);
+    let error =
+        replay_project_scaffold_v1(NAME, "calculator", &canonical, derived.digest()).unwrap_err();
+    assert_eq!(error[0].code, "SPX-J115");
+    let error = replay_project_scaffold_v1(
+        NAME,
+        "library",
+        &calculator.canonical_bytes(),
+        calculator.digest(),
+    )
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-J115");
+}
+
 fn replay_error(bytes: &[u8], digest: &str) {
     let error = replay_project_scaffold_v1(NAME, "calculator", bytes, digest).unwrap_err();
     assert_eq!(error[0].code, "SPX-J115");

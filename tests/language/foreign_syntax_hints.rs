@@ -22,6 +22,22 @@ fn help(diagnostic: &Diagnostic) -> &str {
 }
 
 #[test]
+fn missing_module_header_shows_the_first_line() {
+    let diagnostic = rejection("@id(\"app.main\")\nfn main() -> i64\n{\n    42\n}\n");
+    assert_eq!(diagnostic.code, "SPX-P104");
+    assert_eq!(diagnostic.message, "expected `module`");
+    assert!(
+        help(&diagnostic).contains("`module dotted.name;`"),
+        "{diagnostic}"
+    );
+    // The header keyword is still required and still parsed the same way.
+    assert_eq!(
+        rejection("modul app.x;\n@id(\"app.main\")\nfn main() -> i64\n{\n    42\n}\n").code,
+        "SPX-P104"
+    );
+}
+
+#[test]
 fn return_statement_names_the_tail_expression_rule() {
     let diagnostic = rejection(
         r#"

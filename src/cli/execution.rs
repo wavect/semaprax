@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::project::{is_project_manifest, DEFAULT_MANIFEST};
+use super::project::{is_project_manifest, resolve_positional, DEFAULT_MANIFEST};
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) enum ExecutionInput {
@@ -95,12 +95,14 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
     let input = match (positional, manifest) {
         (None, None) => ExecutionInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
         (None, Some(path)) => ExecutionInput::Project(path),
-        (Some(path), None) if is_project_manifest(&path) => ExecutionInput::Project(path),
-        (Some(path), None) if allow_source => ExecutionInput::Source(path),
-        (Some(_), None) => {
-            eprintln!("{command} requires a Project v1 semaprax.toml manifest");
-            return Err(2);
-        }
+        (Some(path), None) => match resolve_positional(path) {
+            path if is_project_manifest(&path) => ExecutionInput::Project(path),
+            path if allow_source => ExecutionInput::Source(path),
+            _ => {
+                eprintln!("{command} requires a Project v1 semaprax.toml manifest");
+                return Err(2);
+            }
+        },
         (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
     };
     if matches!(input, ExecutionInput::Source(_))
@@ -210,6 +212,19 @@ mod tests {
             }
         );
         assert!(parse_test(&strings(&["legacy.spx"])).is_err());
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-test-directory-operand-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let operand = directory.to_string_lossy().into_owned();
+        let expected = ExecutionInput::Project(directory.join(DEFAULT_MANIFEST));
+        assert_eq!(
+            parse_test(std::slice::from_ref(&operand)).unwrap().input,
+            expected
+        );
+        assert_eq!(parse_run(&[operand]).unwrap().input, expected);
+        std::fs::remove_dir(&directory).unwrap();
         assert!(parse_test(&strings(&["--max-bytes", "0"])).is_err());
         assert!(parse_test(&strings(&["--max-steps", "01"])).is_err());
         assert!(parse_test(&strings(&[

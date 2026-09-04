@@ -65,8 +65,10 @@ pub(crate) fn parse_check_options(args: &[String]) -> Result<CheckOptions, u8> {
     let input = match (positional, manifest) {
         (None, None) => CheckInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
         (None, Some(path)) => CheckInput::Project(path),
-        (Some(path), None) if is_project_manifest(&path) => CheckInput::Project(path),
-        (Some(path), None) => CheckInput::Source(path),
+        (Some(path), None) => match resolve_positional(path) {
+            path if is_project_manifest(&path) => CheckInput::Project(path),
+            path => CheckInput::Source(path),
+        },
         (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
     };
     Ok(CheckOptions { input, json })
@@ -74,6 +76,26 @@ pub(crate) fn parse_check_options(args: &[String]) -> Result<CheckOptions, u8> {
 
 pub(crate) fn is_project_manifest(path: &Path) -> bool {
     path.file_name().and_then(|name| name.to_str()) == Some(DEFAULT_MANIFEST)
+}
+
+/// A positional operand that names an existing directory selects the
+/// `semaprax.toml` inside it, so `semaprax check my-project` means the same as
+/// `semaprax check my-project/semaprax.toml`. Only the positional operand is
+/// resolved; `--manifest-path` stays exact, and a missing manifest surfaces as
+/// the ordinary `SPX-J102` manifest diagnostic rather than an unreadable
+/// directory.
+pub(crate) fn resolve_positional(path: PathBuf) -> PathBuf {
+    if !path.is_dir() {
+        return path;
+    }
+    // `.` components are inert, and the manifest authenticator rejects them,
+    // so `semaprax check .` selects plain `semaprax.toml`.
+    let mut manifest: PathBuf = path
+        .components()
+        .filter(|component| !matches!(component, std::path::Component::CurDir))
+        .collect();
+    manifest.push(DEFAULT_MANIFEST);
+    manifest
 }
 
 #[cfg(test)]
@@ -150,5 +172,38 @@ mod tests {
         .is_err());
         assert!(parse_check_options(&strings(&["--json", "--json"])).is_err());
         assert!(parse_check_options(&strings(&["legacy.spx", "--unknown"])).is_err());
+    }
+
+    #[test]
+    fn directory_operand_selects_the_manifest_inside_it() {
+        let directory = std::env::temp_dir().join(format!(
+            "semaprax-check-directory-operand-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let expected = directory.join(DEFAULT_MANIFEST);
+        assert_eq!(
+            parse_check_options(&[directory.to_string_lossy().into_owned()]).unwrap(),
+            CheckOptions {
+                input: CheckInput::Project(expected.clone()),
+                json: false,
+            }
+        );
+        // A missing path is still a source operand; nothing is probed further.
+        let missing = directory.join("missing.spx");
+        assert_eq!(
+            parse_check_options(&[missing.to_string_lossy().into_owned()])
+                .unwrap()
+                .input,
+            CheckInput::Source(missing)
+        );
+        assert_eq!(resolve_positional(expected.clone()), expected);
+        assert_eq!(
+            resolve_positional(PathBuf::from(".")),
+            PathBuf::from(DEFAULT_MANIFEST)
+        );
+        let dotted = Path::new(".").join(&directory);
+        assert_eq!(resolve_positional(dotted), expected);
+        std::fs::remove_dir(&directory).unwrap();
     }
 }

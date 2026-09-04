@@ -103,6 +103,29 @@ fn project_default_and_explicit_selectors_keep_the_same_result() {
 }
 
 #[test]
+fn directory_without_a_manifest_reports_the_missing_manifest() {
+    let root = fixture();
+    fs::create_dir(root.join("empty")).unwrap();
+    let human = cli(&root, &["empty"]);
+    assert_eq!(human.status.code(), Some(1));
+    assert!(human.stdout.is_empty());
+    let stderr = String::from_utf8(human.stderr).unwrap();
+    assert!(
+        stderr.starts_with("error[SPX-J102]: cannot inspect declared Project v1 manifest "),
+        "{stderr}"
+    );
+    assert!(stderr.contains("semaprax.toml"), "{stderr}");
+    assert!(!stderr.contains("Is a directory"), "{stderr}");
+
+    let json = cli(&root, &["empty", "--json"]);
+    assert_eq!(json.status.code(), Some(1));
+    assert!(json.stderr.is_empty());
+    let diagnostic: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!(diagnostic["code"], "SPX-J102");
+    assert_eq!(fs::read_dir(root.join("empty")).unwrap().count(), 0);
+}
+
+#[test]
 fn malformed_selectors_reject_before_attempting_source_io() {
     let root = fixture();
     for arguments in [

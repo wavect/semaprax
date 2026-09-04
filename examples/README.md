@@ -101,7 +101,7 @@ Treat them as `check`, `graph` and `context` subjects.
 ## Projects and manifests
 
 Each directory here is a multi-file project rooted at its own `semaprax.toml`.
-Pass the manifest, not a source file. `check`, `test` and `run` all accept it,
+Pass the manifest or the directory, not a source file. `check`, `test` and `run` all accept it,
 and `build` accepts it too — `--target web` needs no `--export` list because
 the manifest's `web_exports` already selects the surface.
 

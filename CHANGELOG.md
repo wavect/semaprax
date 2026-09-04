@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `check`, `run`, `test`, and `build` accept a project directory as their
+  positional operand and select the `semaprax.toml` inside it, so
+  `semaprax check examples/calculator-project` and `semaprax run .` work
+  without naming the manifest. Inert `.` components are removed before the
+  manifest is authenticated; `--manifest-path` is still taken literally, and a
+  directory without a manifest reports the ordinary `SPX-J102` for that path
+  instead of an unreadable directory. Scoped help and the catalog show `<dir>`.
+
+- A source file that does not start with its `module` line now carries a fix
+  hint under the unchanged `SPX-P104` ``expected `module` `` diagnostic,
+  naming the `module dotted.name;` header a pasted or truncated file is
+  missing.
+
 - `semaprax --help`, `help`, `-h`, and the empty invocation now print a guided
   one-screen overview: the commands for writing, checking, running, inspecting,
   and changing programs, grouped by task with a one-line purpose each, bounded

@@ -170,6 +170,38 @@ fn implicit_and_explicit_project_checks_authenticate_the_same_manifest() {
 }
 
 #[test]
+fn directory_operands_select_the_project_manifest() {
+    let fixture = fixture("directory");
+    let manifest = cli(&fixture.root, &["check", "semaprax.toml"]);
+    assert!(manifest.status.success(), "{}", stderr(&manifest));
+    let root = fixture.root.to_str().unwrap();
+    for operand in [".", "./", root] {
+        let directory = cli(&fixture.root, &["check", operand]);
+        assert!(
+            directory.status.success(),
+            "check {operand} failed: {}",
+            stderr(&directory)
+        );
+        assert_eq!(stdout(&directory), stdout(&manifest), "check {operand}");
+    }
+    let run = cli(&fixture.root, &["run", "."]);
+    assert!(run.status.success(), "{}", stderr(&run));
+    assert_eq!(stdout(&run), "42\n");
+    let test = cli(&fixture.root, &["test", root]);
+    assert!(test.status.success(), "{}", stderr(&test));
+    assert_eq!(stdout(&test), "project tests passed\n");
+    // `--manifest-path` stays exact: a directory there is not a manifest.
+    let exact = cli(&fixture.root, &["check", "--manifest-path", "."]);
+    assert_eq!(exact.status.code(), Some(1));
+    assert!(stdout(&exact).is_empty());
+    assert!(
+        stderr(&exact).starts_with("error[SPX-J1"),
+        "{}",
+        stderr(&exact)
+    );
+}
+
+#[test]
 fn project_web_builds_are_manifest_owned_and_byte_exact() {
     let fixture = fixture("web");
     let implicit_output = fixture.root.join("implicit-web");

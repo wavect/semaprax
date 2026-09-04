@@ -123,7 +123,7 @@ struct CommandSpec {
     usages: &'static [&'static str],
 }
 static COMMANDS: &[CommandSpec] = &[
-    CommandSpec { id: CommandId::Check, canonical: "check", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax check [<file>|semaprax.toml|--manifest-path path] [--json]"] },
+    CommandSpec { id: CommandId::Check, canonical: "check", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax check [<file>|<dir>|semaprax.toml|--manifest-path path] [--json]"] },
     CommandSpec { id: CommandId::Graph, canonical: "graph", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax graph <file>"] },
     CommandSpec { id: CommandId::ProjectImage, canonical: "project-image", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-image <manifest>"] },
     CommandSpec { id: CommandId::ProjectImageStore, canonical: "project-image-store", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-image-store <manifest> <store-root>"] },
@@ -161,9 +161,9 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Doctor, canonical: "doctor", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax doctor [--profile <id>] [--target native|web|all] [--json]"] },
     CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator]"] },
     CommandSpec { id: CommandId::ProjectScaffold, canonical: "project-scaffold", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-scaffold --name project-name [--template calculator]"] },
-    CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm|rust] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]"] },
-    CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file>", "semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
-    CommandSpec { id: CommandId::Test, canonical: "test", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax test [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
+    CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build [<file>|<dir>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm|rust] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]"] },
+    CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file>", "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
+    CommandSpec { id: CommandId::Test, canonical: "test", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
     CommandSpec { id: CommandId::Fmt, canonical: "fmt", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fmt <file> [--check]"] },
     CommandSpec { id: CommandId::Patch, canonical: "patch", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax patch <file> <patch.spatch>"] },
     CommandSpec { id: CommandId::WorkspaceInit, canonical: "workspace-init", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax workspace-init <root> <path-set.json>"] },
@@ -315,7 +315,7 @@ static GUIDE: &[GuideGroup] = &[
         entries: &[
             GuideEntry {
                 id: CommandId::Check,
-                shape: "check [<file>|semaprax.toml] [--json]",
+                shape: "check [<input>] [--json]",
                 summary: "Parse, resolve, type-check, and verify",
             },
             GuideEntry {
@@ -325,17 +325,17 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Run,
-                shape: "run <file>|semaprax.toml",
+                shape: "run <input>",
                 summary: "Execute main and print its i64 result",
             },
             GuideEntry {
                 id: CommandId::Test,
-                shape: "test [semaprax.toml]",
+                shape: "test [<dir>|semaprax.toml]",
                 summary: "Run the project's declared test modules",
             },
             GuideEntry {
                 id: CommandId::Build,
-                shape: "build <file>|semaprax.toml --target <target> -o <path>",
+                shape: "build <input> --target <target> -o <path>",
                 summary: "Emit a native, web, wasm, or npm artifact",
             },
         ],
@@ -350,7 +350,7 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Context,
-                shape: "context <file> <stable-id> [--depth N] [--filters ...]",
+                shape: "context <file> <stable-id> [--depth N]",
                 summary: "Bounded facts about one declaration as JSON",
             },
         ],
@@ -395,7 +395,7 @@ static GUIDE: &[GuideGroup] = &[
         entries: &[
             GuideEntry {
                 id: CommandId::Doctor,
-                shape: "doctor [--profile <id>] [--json]",
+                shape: "doctor [--profile <id>]",
                 summary: "Check the local toolchain against an offline profile",
             },
             GuideEntry {
@@ -439,6 +439,7 @@ pub(crate) fn global(private: bool) -> String {
         .unwrap_or(0);
     let mut out = String::from(BANNER);
     out.push_str("\nUsage: semaprax <command> [arguments]\n");
+    out.push_str("<input> is a .spx file, a project directory, or a semaprax.toml manifest.\n");
     for group in GUIDE {
         let entries: Vec<_> = group.entries.iter().filter(visible).collect();
         if entries.is_empty() {

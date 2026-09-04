@@ -31,7 +31,7 @@ impl Parser {
     }
 
     pub fn parse(mut self) -> Result<Program, Diagnostic> {
-        self.keyword("module")?;
+        self.module_header()?;
         let (module, _) = self.qualified_ident("module name")?;
         self.take(&TokenKind::Semicolon);
 

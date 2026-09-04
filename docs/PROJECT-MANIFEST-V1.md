@@ -109,7 +109,10 @@ the linked HIR.
 `check --manifest-path <semaprax.toml>` select an explicit manifest. Likewise,
 `build` without an input selects `./semaprax.toml`, while `build
 semaprax.toml` and `build --manifest-path <semaprax.toml>` select an explicit
-manifest. Project builds publish two explicit targets:
+manifest. For `check`, `run`, `test`, and `build`, a positional operand that
+names an existing directory selects the `semaprax.toml` inside it, with inert
+`.` components removed; `--manifest-path` is never resolved this way, and a
+directory without a manifest reports `SPX-J102` for that path. Project builds publish two explicit targets:
 
 - `--target web` (the default) publishes the digest-bound scalar Web package;
 - `--target native` publishes one linked entry-closure executable compiled by

@@ -150,6 +150,18 @@ fn project_selectors_do_not_confuse_legacy_sources() {
         BuildInput::Project(PathBuf::from("fixtures/semaprax.toml"))
     );
     assert_eq!(explicit.output, Some(PathBuf::from("site")));
+    let directory = std::env::temp_dir().join(format!(
+        "semaprax-build-directory-operand-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    let from_directory = parse(&[directory.to_string_lossy().into_owned()]).unwrap();
+    assert_eq!(
+        from_directory.input,
+        BuildInput::Project(directory.join(DEFAULT_MANIFEST))
+    );
+    assert_eq!(from_directory.target, "web");
+    std::fs::remove_dir(&directory).unwrap();
     assert!(parse(&strings(&["app.spx", "--manifest-path", DEFAULT_MANIFEST,])).is_err());
     assert!(parse(&strings(&[
         DEFAULT_MANIFEST,

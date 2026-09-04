@@ -39,8 +39,19 @@ const MISSING_ELSE_HELP: &str = "`if` is an expression and always has an `else` 
 const CALL_PATTERN_HELP: &str =
     "variant patterns name the case and its fields: `Option::Some { value: v }`, not `Some(v)`";
 const TUPLE_HELP: &str = "tuples are not admitted; declare a `record` with named fields";
+const MODULE_HELP: &str = "a file starts with `module dotted.name;`, then its `@id`-annotated \
+                           declarations";
 
 impl Parser {
+    /// The mandatory `module dotted.name;` header. A file pasted from another
+    /// language, or a snippet saved without its first line, otherwise fails
+    /// with a bare ``expected `module` `` that names the rule but not the fix.
+    pub(super) fn module_header(&mut self) -> Result<(), Diagnostic> {
+        self.keyword("module")
+            .map(drop)
+            .map_err(|diagnostic| diagnostic.with_help(MODULE_HELP))
+    }
+
     /// `return <expr>`, `for <name> …`, or `loop {` where a statement or the
     /// block's tail expression was expected. The word is an ordinary
     /// identifier to the lexer, so this fires only when the following token

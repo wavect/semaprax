@@ -9,15 +9,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-mod project {
-    use std::path::Path;
-
-    pub(crate) const DEFAULT_MANIFEST: &str = "semaprax.toml";
-
-    pub(crate) fn is_project_manifest(path: &Path) -> bool {
-        path.file_name().and_then(|name| name.to_str()) == Some(DEFAULT_MANIFEST)
-    }
-}
+// The included build parser resolves its input selectors through the
+// production `project` helpers, so include that module rather than a copy.
+#[path = "../src/cli/project.rs"]
+mod project;
 
 #[allow(
     clippy::result_large_err,
@@ -323,7 +318,10 @@ hint: run `semaprax project-scaffold --help` for usage\n";
     /// diagnostic prefix is compared against the CLI.
     const MISSING_SOURCE_STDERR_PREFIX: &str = "error[SPX-I001]: cannot read missing.spx:";
 
-    const DIRECTORY_SOURCE_STDERR_PREFIX: &str = "error[SPX-I001]: cannot read examples:";
+    /// A directory operand selects the manifest inside it, so a directory
+    /// without one reports the missing manifest, not an unreadable file.
+    const DIRECTORY_OPERAND_STDERR_PREFIX: &str =
+        "error[SPX-J102]: cannot inspect declared Project v1 manifest";
 
     const MISSING_MANIFEST_STDERR_PREFIX: &str =
         "error[SPX-J102]: cannot inspect declared Project v1 manifest";
@@ -464,7 +462,7 @@ use the unpublished semaprax-full toolchain CLI\n"
             MISSING_SCAFFOLD_NAME_STDERR,
             REJECTED_SCAFFOLD_NAME_STDERR,
             MISSING_SOURCE_STDERR_PREFIX,
-            DIRECTORY_SOURCE_STDERR_PREFIX,
+            DIRECTORY_OPERAND_STDERR_PREFIX,
             MISSING_MANIFEST_STDERR_PREFIX,
             MISSING_CLANG_STDERR_PREFIX,
         ] {
@@ -534,7 +532,8 @@ use the unpublished semaprax-full toolchain CLI\n"
 
         let directory = standalone(checkout(), &["check", "examples"]);
         assert_eq!(directory.status.code(), Some(1));
-        assert!(stderr(&directory).starts_with(DIRECTORY_SOURCE_STDERR_PREFIX));
+        assert!(stderr(&directory).starts_with(DIRECTORY_OPERAND_STDERR_PREFIX));
+        assert!(stderr(&directory).contains("examples/semaprax.toml"));
 
         let manifest = standalone(&fixture.root, &["check", "semaprax.toml"]);
         assert_eq!(manifest.status.code(), Some(1));

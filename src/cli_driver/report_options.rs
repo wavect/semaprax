@@ -644,3 +644,7 @@ pub(super) fn protocol_check_options(
         2
     })
 }
+
+#[cfg(test)]
+#[path = "report_options/tests.rs"]
+mod tests;

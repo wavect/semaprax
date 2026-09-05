@@ -459,3 +459,7 @@ pub(super) fn context_number(option: &str, value: &str) -> Result<usize, u8> {
         2
     })
 }
+
+#[cfg(test)]
+#[path = "options/tests.rs"]
+mod tests;

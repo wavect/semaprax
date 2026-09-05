@@ -144,7 +144,9 @@ impl Sources {
             known_ordinary_cli_surfaces: [
                 read(repository, "src/cli_driver.rs"),
                 read(repository, "src/cli_driver/options.rs"),
+                read(repository, "src/cli_driver/options/tests.rs"),
                 read(repository, "src/cli_driver/report_options.rs"),
+                read(repository, "src/cli_driver/report_options/tests.rs"),
                 read(repository, "src/cli_driver/source_execution.rs"),
                 read(repository, "src/cli_driver/project_scaffold_options.rs"),
                 read(repository, "src/cli_driver/supply_chain.rs"),

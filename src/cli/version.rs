@@ -63,3 +63,55 @@ fn validated_commit(commit: Option<&str>) -> Result<Option<&str>, String> {
         Err(INVALID_COMMIT.to_owned())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{render, Invocation};
+
+    fn argv(tokens: &[&str]) -> Vec<String> {
+        tokens.iter().map(|token| (*token).to_owned()).collect()
+    }
+
+    /// The empty-argument arm has to be matched before the invocation-specific
+    /// arms. If the `Invocation::Flag` arm were moved above it, a bare
+    /// `--version` would start reporting "does not accept arguments"; if the
+    /// `Invocation::Command` arm were moved above it, a bare `version` would
+    /// panic in the `expect` that assumes a non-empty argument slice.
+    #[test]
+    fn no_arguments_renders_human_output_for_both_invocations() {
+        let flag = render(Invocation::Flag, &[]).unwrap();
+        let command = render(Invocation::Command, &[]).unwrap();
+        assert_eq!(flag, command);
+        assert!(flag.starts_with("semaprax "), "{flag}");
+        assert!(flag.ends_with('\n'), "{flag}");
+    }
+
+    /// `--json` is a `version` subcommand argument only, is matched exactly,
+    /// and takes no further arguments. The trailing-argument refusal names
+    /// the first argument rather than the offending trailing one.
+    #[test]
+    fn json_is_admitted_only_as_the_sole_argument_of_the_version_command() {
+        assert!(render(Invocation::Command, &argv(&["--json"]))
+            .unwrap()
+            .starts_with("{\"schema\":"));
+        assert_eq!(
+            render(Invocation::Flag, &argv(&["--json"])).unwrap_err(),
+            "--version does not accept arguments"
+        );
+        for rejected in [
+            &["--JSON"][..],
+            &["json"][..],
+            &["--json="][..],
+            &["--json", "--json"][..],
+        ] {
+            assert!(
+                render(Invocation::Command, &argv(rejected)).is_err(),
+                "{rejected:?}"
+            );
+        }
+        assert_eq!(
+            render(Invocation::Command, &argv(&["--json", "extra"])).unwrap_err(),
+            "unexpected version argument `--json`"
+        );
+    }
+}

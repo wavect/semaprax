@@ -91,9 +91,10 @@ fn documentation_catalog_and_metadata_are_complete() {
         }
         let relative = document.strip_prefix(&docs).unwrap();
         let catalog_entry = format!("]({})", relative.to_string_lossy().replace('\\', "/"));
-        assert!(
-            summary.contains(&catalog_entry),
-            "{} is missing from docs/SUMMARY.md",
+        assert_eq!(
+            summary.matches(&catalog_entry).count(),
+            1,
+            "{} must appear exactly once in docs/SUMMARY.md",
             document.display()
         );
     }

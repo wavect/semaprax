@@ -63,6 +63,7 @@ pub mod hygienic;
 pub mod image_transport;
 pub mod impact;
 pub mod installed_diagnostics;
+pub mod installed_fix_plan;
 pub mod installed_guidance;
 pub mod interpreter;
 pub mod lexer;

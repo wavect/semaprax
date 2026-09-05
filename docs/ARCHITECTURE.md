@@ -638,6 +638,17 @@ authority. Static token coverage remains distinct from runtime reachability,
 and unresolved dynamic sites remain visible rather than being inferred away.
 See [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md).
 
+`src/installed_fix_plan.rs` owns the authority-free Installed Fix Plan v1
+catalog and exact current-source plan. The catalog advertises only the already
+admitted `SPX-S103` `assign_function_id` repair class. The current plan
+delegates held-source authentication, eligibility, and final drift checking to
+`src/repair.rs`, embeds its exact discovery report under a separate digest,
+and never calls repair instantiation or patch application. `src/cli/fix.rs`
+parses only the catalog and explicit-source `--plan` forms and prints exact
+core bytes. These modules own no source write, persistent-ID selection,
+candidate, patch, ranking, process, transport, or publication authority. See
+[Installed Fix Plan v1](INSTALLED-FIX-PLAN-V1.md).
+
 `src/project/image.rs` derives an immutable, bounded Semantic Workspace
 Image from one already admitted `Arc<ProjectRevision>`. It retains validated
 HIR in memory and projects the complete Project graph plus existing typed

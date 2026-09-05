@@ -14,6 +14,11 @@ This tranche is useful but partial. It is not general diagnostic repair, typed
 holes, repair ranking, repository-wide change, or stable-identity-preserving
 refactoring.
 
+[Installed Fix Plan v1](INSTALLED-FIX-PLAN-V1.md) adds a read-only installed
+catalog and an exact current-source wrapper around this version's discovery
+report. It does not change this report, instantiate a repair, or widen this
+closed domain.
+
 ## Commands and public API
 
 Discovery is read-only:

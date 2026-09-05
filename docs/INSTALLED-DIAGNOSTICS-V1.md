@@ -13,6 +13,11 @@ a canonical identifier occurs in the installed build's static source
 inventory. It does not infer runtime reachability, reconstruct site-specific
 messages, or claim a stable cross-version registry.
 
+The separate [Installed Fix Plan v1](INSTALLED-FIX-PLAN-V1.md) catalog states
+which installed diagnostic has a compiler-owned plan and can derive one exact
+current-source plan. Catalogue presence here alone never implies repair
+availability.
+
 ## Source inventory
 
 `build.rs` recursively scans `.rs` files below exactly `src` and `crates`, with

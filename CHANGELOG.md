@@ -12,6 +12,15 @@ format: `Unreleased` then release buckets, grouped by impact.
   request/response replay carrier. V1 and v2 reject the new member, URL or
   response mismatches do not consume queue entries, and hosted `https_get`
   conformance now uses the serialized carrier shared with generated lanes.
+- Added Installed Fix Plan v1. `semaprax fix --plan` returns the exact bounded,
+  version-bound one-operation installed catalog, while `semaprax fix <file>
+  assign-function-id <automatic-function-id> --plan` wraps the existing
+  source-authenticated `SPX-S103` Diagnostic Repair discovery in a canonical,
+  replayable plan. Five focused semantic-harness cases pass locally. Planning
+  does not select a persistent ID, instantiate or apply a patch, write source,
+  rank repairs, or grant host/publication
+  authority; existing `repairs`, `repair`, and Diagnostic Repair bytes remain
+  unchanged.
 
 - Named the exact `Option<Bytes>` and `Result<Bytes, i64>` tags in the public
   Project-v8 C11 header. A separately compiled C consumer now executes all four

@@ -34,6 +34,8 @@ mod draft_archive_store;
 mod image_store;
 #[path = "semantic/impact.rs"]
 mod impact;
+#[path = "semantic/installed_fix_plan.rs"]
+mod installed_fix_plan;
 #[path = "semantic/patch.rs"]
 mod patch;
 #[path = "semantic/patch_evidence_v1.rs"]

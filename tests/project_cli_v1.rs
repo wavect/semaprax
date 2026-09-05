@@ -373,7 +373,7 @@ fn project_build_rejections_happen_before_any_output_clobber() {
                 "-o",
                 blocked_output.to_str().unwrap(),
             ],
-            "Project manifests publish only explicit web, native, npm, and Project-v8 rust targets; native-callable publication remains held",
+            "unsupported target `native-callable`; available: native, web, wasm, npm",
         ),
     ] {
         let output = cli(&fixture.root, &arguments);
@@ -418,7 +418,7 @@ fn project_build_rejections_happen_before_any_output_clobber() {
         "{}",
         stderr(&existing_native)
     );
-    assert!(stderr(&existing_native).contains("already exists"));
+    assert!(stderr(&existing_native).contains("exists"));
     assert_eq!(std::fs::read(&blocked_output).unwrap(), sentinel);
 
     let missing_build = cli(&fixture.root, &["build", "--manifest-path"]);

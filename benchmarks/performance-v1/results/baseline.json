@@ -1,8 +1,6 @@
 {
-  "schema": "benchmark.performance.v1",
-  "host": "darwin-arm64",
-  "rustc": "1.88.0",
-  "commit": "4f835caa",
-  "timestamp": "2026-09-04T00:00:00Z",
-  "scenarios": []
+  "note": "No baseline measurement is recorded. The previous file claimed a host, a toolchain version and a commit while holding zero scenarios, which is not evidence of anything. Record a real one on an idle host with: python3 benchmarks/performance-v1/run.py --output benchmarks/performance-v1/results/baseline.json --markdown benchmarks/performance-v1/results/baseline.md",
+  "recorded": false,
+  "scenarios": [],
+  "schema": "benchmark.performance.v2"
 }

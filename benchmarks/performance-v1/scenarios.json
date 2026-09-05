@@ -1,6 +1,6 @@
 {
   "schema": "benchmark.scenarios.v1",
-  "description": "Canonical macro benchmark inventory for semaprax CLI. Every path is committed under examples/ or benchmarks/.",
+  "description": "Canonical macro benchmark inventory for the semaprax CLI. Every path is committed under examples/ or benchmarks/. Each entry may declare an expected outcome (\"expect\": \"success\" by default), external tools it needs (\"requires\"), and an expected subject digest (\"expected_digest\"). Build scenarios run only with --with-build and receive a fresh owned output directory per repetition.",
   "scenarios": [
     {"id": "check-banking-ledger", "kind": "single", "path": "examples/banking_ledger.spx", "command": "check", "repetitions": 5},
     {"id": "check-calculator", "kind": "single", "path": "examples/calculator.spx", "command": "check", "repetitions": 5},
@@ -11,7 +11,8 @@
     {"id": "check-text-analytics", "kind": "single", "path": "examples/text_analytics.spx", "command": "check", "repetitions": 5},
     {"id": "graph-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "graph", "repetitions": 5},
     {"id": "graph-records", "kind": "single", "path": "examples/records.spx", "command": "graph", "repetitions": 5},
-    {"id": "run-banking-ledger", "kind": "single", "path": "examples/banking_ledger.spx", "command": "run", "repetitions": 5},
+    {"id": "run-banking-ledger", "kind": "single", "path": "examples/banking_ledger.spx", "command": "run", "repetitions": 5, "expect": "failure",
+     "note": "the hosted interpreter does not admit this record construction (SPX-F102); recorded as an expected failure so the diagnostic path stays measured and a future admission shows up as a failed expectation"},
     {"id": "run-calculator", "kind": "single", "path": "examples/calculator.spx", "command": "run", "repetitions": 5},
     {"id": "run-math-algorithms", "kind": "single", "path": "examples/math_algorithms.spx", "command": "run", "repetitions": 5},
     {"id": "run-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "run", "repetitions": 5},
@@ -23,6 +24,9 @@
     {"id": "run-calculator-project", "kind": "project", "path": "examples/calculator-project/semaprax.toml", "command": "run", "repetitions": 5},
     {"id": "run-apex-supply-chain", "kind": "project", "path": "examples/apex-supply-chain/semaprax.toml", "command": "run", "repetitions": 5},
     {"id": "context-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "context", "repetitions": 5, "args": ["app.main", "--depth", "1"]},
-    {"id": "context-ownership", "kind": "single", "path": "examples/ownership.spx", "command": "context", "repetitions": 5, "args": ["app.main", "--depth", "1"]}
+    {"id": "context-ownership", "kind": "single", "path": "examples/ownership.spx", "command": "context", "repetitions": 5, "args": ["app.main", "--depth", "1"]},
+    {"id": "build-web-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "build", "repetitions": 3, "args": ["--target", "web"]},
+    {"id": "build-web-calculator-project", "kind": "project", "path": "examples/calculator-project/semaprax.toml", "command": "build", "repetitions": 3, "args": ["--target", "web"]},
+    {"id": "build-native-calculator-project", "kind": "project", "path": "examples/calculator-project/semaprax.toml", "command": "build", "repetitions": 3, "args": ["--target", "native"], "requires": ["clang"]}
   ]
 }

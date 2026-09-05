@@ -1,5 +1,8 @@
 use std::path::{Path, PathBuf};
 
+#[path = "documentation/performance_benchmark_suite.rs"]
+mod performance_benchmark_suite;
+
 #[test]
 fn local_markdown_links_resolve() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));

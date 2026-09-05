@@ -6,11 +6,12 @@ use std::sync::Arc;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, ProjectCandidate, ProjectRevision, ProjectSemanticImage,
-    SemanticChange, SemanticTransaction, SemanticTransactionAddContract,
-    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceBlock,
-    MAX_SEMANTIC_TRANSACTION_BYTES, SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA,
-    SEMANTIC_TRANSACTION_IMPACT_SCHEMA, SEMANTIC_TRANSACTION_RESULT_SCHEMA,
-    SEMANTIC_TRANSACTION_REVIEW_SCHEMA, SEMANTIC_TRANSACTION_SCHEMA,
+    SemanticChange, SemanticQuery, SemanticTransaction, SemanticTransactionAddContract,
+    SemanticTransactionAddDeclaration, SemanticTransactionRenameDisplayName,
+    SemanticTransactionReplaceBlock, SemanticWorkspaceService, MAX_SEMANTIC_TRANSACTION_BYTES,
+    SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
+    SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_REVIEW_SCHEMA,
+    SEMANTIC_TRANSACTION_SCHEMA,
 };
 use serde_json::{json, Value};
 
@@ -355,6 +356,149 @@ fn nonnegative_left() -> Value {
         "left":{"kind":"place","name":"left"},
         "right":{"kind":"i64","value":0}
     })
+}
+
+fn added_declaration() -> Value {
+    json!({
+        "id":"calculator.increment", "name":"increment",
+        "parameters":[{"mode":"value","name":"value","type":"i64"}],
+        "return_type":"i64", "effects":[], "requires":[], "ensures":[],
+        "body":{"kind":"call","target":"calculator.add","arguments":[
+            {"kind":"place","name":"value"},{"kind":"i64","value":1}
+        ]}
+    })
+}
+
+fn expected_old_module(revision: Arc<ProjectRevision>, target: &str) -> Value {
+    let service = SemanticWorkspaceService::open(revision).unwrap();
+    let workspace = service.active_generation().workspace_revision();
+    let query = SemanticQuery::available_operations(workspace, target).unwrap();
+    let result = service.query(query.to_json().as_bytes()).unwrap();
+    let payload: Value = serde_json::from_str(result.payload()).unwrap();
+    payload["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|operation| operation["kind"] == "add_declaration")
+        .unwrap()["expected_old_module"]
+        .clone()
+}
+
+#[test]
+fn add_declaration_authenticates_the_module_and_preserves_source_outside_one_insertion() {
+    let fixture = Fixture::new();
+    let disk_before = inventory(&fixture.0);
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let old_module = expected_old_module(Arc::clone(&revision), "calculator.add");
+    let transaction = SemanticTransaction::add_declaration(
+        workspace.workspace_revision(),
+        SemanticTransactionAddDeclaration::new(
+            "calculator.add",
+            old_module.clone(),
+            added_declaration(),
+        ),
+    )
+    .unwrap();
+    assert_eq!(
+        SemanticTransaction::from_json(transaction.to_json().as_bytes())
+            .unwrap()
+            .to_json(),
+        transaction.to_json()
+    );
+    let artifacts = transaction.validate(Arc::clone(&revision)).unwrap();
+    let result: Value = serde_json::from_str(artifacts.result()).unwrap();
+    assert_eq!(result["operation_results"][0]["kind"], "add_declaration");
+    assert_eq!(
+        result["operation_results"][0]["added_identity_inventory"],
+        json!(["calculator.increment"])
+    );
+    assert_eq!(result["operation_results"][0]["old_module"], old_module);
+    let review: Value = serde_json::from_str(artifacts.review()).unwrap();
+    assert_eq!(review["review"]["exact_old_module_precondition"], true);
+    assert_eq!(
+        review["review"]["source_outside_added_declaration_preserved"],
+        true
+    );
+
+    let direct_open =
+        ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap();
+    let direct_change = SemanticChange::new(
+        revision.project_revision(),
+        &json!({
+            "kind":"add_declaration", "target":"calculator.add",
+            "declaration":added_declaration(),
+        }),
+    )
+    .unwrap();
+    let direct = direct_open
+        .apply(direct_open.candidate_digest(), &direct_change)
+        .unwrap();
+    assert_eq!(artifacts.candidate().to_json(), direct.to_json());
+    assert_eq!(
+        SemanticTransaction::replay(
+            Arc::clone(&revision),
+            transaction.to_json().as_bytes(),
+            artifacts.evidence().as_bytes(),
+        )
+        .unwrap()
+        .result(),
+        artifacts.result()
+    );
+    assert_eq!(inventory(&fixture.0), disk_before);
+}
+
+#[test]
+fn add_declaration_rejects_stale_module_and_project_wide_identity_collision() {
+    let fixture = Fixture::new();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let mut old_module = expected_old_module(Arc::clone(&revision), "calculator.add");
+    old_module["source_digest"] = json!(format!("sha256:{}", "0".repeat(64)));
+    let stale = SemanticTransaction::add_declaration(
+        workspace.workspace_revision(),
+        SemanticTransactionAddDeclaration::new("calculator.add", old_module, added_declaration()),
+    )
+    .unwrap();
+    assert_code(stale.validate(Arc::clone(&revision)), "SPX-G527");
+
+    let old_module = expected_old_module(Arc::clone(&revision), "calculator.add");
+    let mut collision = added_declaration();
+    collision["id"] = json!("calculator.app.main");
+    let collision = SemanticTransaction::add_declaration(
+        workspace.workspace_revision(),
+        SemanticTransactionAddDeclaration::new("calculator.add", old_module, collision),
+    )
+    .unwrap();
+    assert_code(collision.validate(revision), "SPX-G525");
+}
+
+#[test]
+fn add_declaration_allows_main_as_an_unchanged_module_anchor() {
+    let fixture = Fixture::new();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let old_module = expected_old_module(Arc::clone(&revision), "calculator.app.main");
+    let declaration = json!({
+        "id":"calculator.app.constant", "name":"constant", "parameters":[],
+        "return_type":"i64", "effects":[], "requires":[], "ensures":[],
+        "body":{"kind":"i64","value":1}
+    });
+    let transaction = SemanticTransaction::add_declaration(
+        workspace.workspace_revision(),
+        SemanticTransactionAddDeclaration::new("calculator.app.main", old_module, declaration),
+    )
+    .unwrap();
+    let artifacts = transaction.validate(revision).unwrap();
+    let result: Value = serde_json::from_str(artifacts.result()).unwrap();
+    assert_eq!(
+        result["operation_results"][0]["target"],
+        "calculator.app.main"
+    );
+    assert_eq!(
+        result["operation_results"][0]["added_identity_inventory"],
+        json!(["calculator.app.constant"])
+    );
 }
 
 #[test]

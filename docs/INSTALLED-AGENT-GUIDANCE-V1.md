@@ -10,7 +10,8 @@ Installed Agent Guidance v1 packages a closed set of descriptive resources
 inside the `semaprax` binary. It lets an agent obtain compiler-version-matched
 language, graph, standard-library, package, effect, and workflow guidance
 without locating a checkout or consulting a network service. It also exposes
-the exact five operations installed by Universal Semantic Query v1.
+the exact seven operations installed by Universal Semantic Query v1 and the
+closed four-operation Universal Semantic Transaction v1 algebra.
 
 These documents are data. They are not compiler input, executable
 instructions, binary attestation, live service discovery, or a capability
@@ -99,14 +100,16 @@ claim, executable hash, signature, or provenance attestation.
 All skill payloads contain `authority`, `compiler`, `content`, `limits`,
 `nonclaims`, `skill`, and `sources`.
 
-- `agent` embeds the agent quick reference and names the installed semantic
-  query and transaction schemas.
+- `agent` embeds the agent quick reference, names the installed semantic query
+  and transaction schemas, and reports exact operation field inventories for
+  rename, whole-block replacement, contract addition, and declaration addition.
 - `language` embeds the agent quick reference and declaration-shapes catalog.
   The example-derived shapes are not a complete formal grammar.
 - `graph` embeds the declaration-shapes catalog and lists the current Project
-  semantic projection schemas and the `graph`, `symbol`, `context`, and
-  `impact` read operations. It does not promise a complete or stable module
-  graph schema or node/edge catalog.
+  semantic projection schemas, all seven universal query payload schemas, the
+  retained-index and service-history query schemas, and the corresponding
+  narrow read-operation inventory. It does not promise a complete or stable
+  module graph schema or node/edge catalog.
 - `stdlib` embeds the generated standard-library guide and parses the installed
   standard-library catalog into canonical JSON. Catalog status and target rows
   remain descriptive rather than release promotion.
@@ -142,10 +145,13 @@ symbol
 context
 impact
 available_operations
+ownership_at_expression
+declaration_consumers
 ```
 
 Each row names the owning result payload schema. The document also carries the
-query request/result schemas and installed paging/request/result limits.
+query request/result schemas, declaration/consumer paging bounds, and exact
+field inventories for the four installed transaction operations.
 `host_grants` is the empty array and `authority` is false.
 
 This is installed-support metadata, not live workspace, service, transport,
@@ -177,8 +183,8 @@ The integration evidence lives in
 projections harness. It covers exact core/CLI parity for all six selectors;
 deterministic canonical LF-terminated envelopes, payload/source digests,
 compiler version binding, and the one-MiB bound; inert unknown and malformed
-grammar from an empty working directory; the exact authority-free five-operation
-capability inventory; and byte-exact preservation of the legacy source-query
+grammar from an empty working directory; the exact authority-free seven-query
+and four-transaction operation inventories; and byte-exact preservation of the legacy source-query
 route.
 
 The focused gate is:

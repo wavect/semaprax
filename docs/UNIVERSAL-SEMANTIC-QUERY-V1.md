@@ -15,13 +15,14 @@ constructs these same typed operations and returns their exact results; it adds
 no query schema or alternate execution path.
 
 [Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md) separately exposes
-the exact installed five-operation catalogue through `query --capabilities`.
+installed operation metadata through `query --capabilities`.
 That authority-free document is static installed-support metadata, not a
 revision-bound query result or live service discovery, and it cannot enable an
 operation.
 
-The v1 operation set is deliberately five operations: `declarations`,
-`symbol`, `context`, `impact`, and `available_operations`. The implementation
+The additive v1 operation set contains seven operations: `declarations`,
+`symbol`, `context`, `impact`, `available_operations`,
+`ownership_at_expression`, and `declaration_consumers`. The implementation
 reuses the existing Project declaration query, Semantic Workspace Image symbol
 lookup, Workspace Analysis context and impact, and Universal Semantic
 Transaction eligibility classifier. It does not create a parallel semantic
@@ -40,6 +41,10 @@ pub const SEMANTIC_QUERY_DECLARATIONS_SCHEMA: &str =
     "semaprax.semantic-query-declarations.v1";
 pub const SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA: &str =
     "semaprax.semantic-query-available-operations.v1";
+pub const SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA: &str =
+    "semaprax.semantic-query-ownership-at-expression.v1";
+pub const SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA: &str =
+    "semaprax.semantic-query-declaration-consumers.v1";
 pub const MAX_SEMANTIC_QUERY_BYTES: usize = 65_536;
 pub const MAX_SEMANTIC_QUERY_RESULT_BYTES: usize = 32 * 1024 * 1024;
 
@@ -47,7 +52,7 @@ pub struct SemanticQuery { /* opaque */ }
 pub struct SemanticQueryResult { /* opaque */ }
 ```
 
-`SemanticQuery` provides typed constructors named after all five operations,
+`SemanticQuery` provides typed constructors named after all seven operations,
 `from_json`, `to_json`, `query_digest`, `expected_workspace_revision`,
 `execute`, and `replay`. `SemanticQueryResult` exposes `to_json`,
 `result_digest`, `query_digest`, `payload`, `payload_digest`, and
@@ -94,6 +99,8 @@ semaprax.semantic-query.symbol.payload.digest.v1\0
 semaprax.semantic-query.context.payload.digest.v1\0
 semaprax.semantic-query.impact.payload.digest.v1\0
 semaprax.semantic-query.available-operations.payload.digest.v1\0
+semaprax.semantic-query.ownership-at-expression.payload.digest.v1\0
+semaprax.semantic-query.declaration-consumers.payload.digest.v1\0
 ```
 
 `SemanticQuery::replay` admits the exact canonical query and closed result
@@ -101,7 +108,7 @@ wires, verifies the caller's result digest, freshly executes against the
 selected immutable snapshot, and exact-compares the complete result bytes and
 digest. Malformed, reminted, cross-revision, or stale material fails closed.
 
-## Five operations
+## Operations
 
 ### `declarations`
 
@@ -139,8 +146,8 @@ existing canonical payload.
 
 This operation requires an actual retained declaration stable identity and
 returns schema `semaprax.semantic-query-available-operations.v1`. V1 contains
-three ordered catalogue entries: `rename_display_name`, `replace_block`, and
-`add_contract`. Every entry carries:
+four ordered catalogue entries: `rename_display_name`, `replace_block`,
+`add_contract`, and `add_declaration`. Every entry carries:
 
 - `available`, derived from the same classifier used by transaction
   validation;
@@ -163,6 +170,40 @@ operation at that revision. It is not a transaction, approval, reservation,
 validation result, or authority grant. Actual transaction validation repeats
 the same checks against its bound base and additionally checks the proposed
 new value.
+
+### `ownership_at_expression`
+
+This operation selects one stable function or function-template identity and
+one revision-scoped expression identity within it. The expression must occur
+exactly once in every retained copy of that declaration and those copies must
+yield identical facts. The result schema is
+`semaprax.semantic-query-ownership-at-expression.v1`; it reports the checked
+expression kind, type identity and ownership mode, an exact place for place
+expressions, and every authenticated loan whose site is that expression. Loan
+origin, parent, start, endpoints, edge indexes and cause preserve the validated
+LoanPlan vector order without sorting, repairing or inferring facts.
+
+The ownership mode is a boundary classification, not flow-sensitive value
+availability. Loan facts are static proof, not runtime liveness or permission;
+mutable and escaping borrows remain outside this query.
+
+### `declaration_consumers`
+
+This operation selects one retained declaration stable identity plus an offset
+in `0..=16_384` and limit in `1..=128`. The result schema is
+`semaprax.semantic-query-declaration-consumers.v1`. It reports direct uses in
+retained checked HIR, ordered by consumer stable-ID bytes, with module names and
+use kinds in canonical byte order. Supported facts include calls, nominal
+types, record/variant construction, field initialization/projection/update/
+assignment/matching, compiler-authenticated borrow/range operations, imports,
+and `try` declarations.
+
+`visibility: exported` means only that the consumer identity is directly
+selected by the manifest's `web_exports`; it is not a language-level public
+visibility claim. Test-module consumers are `test`, and all others are
+`local`. The query makes no transitive, dynamic-dispatch, runtime path,
+cross-project, or unloaded-source claim. A global 65,536-expression walk bound,
+page bound, existing request bound, and existing result-byte bound fail closed.
 
 ## Diagnostics and precedence
 
@@ -201,16 +242,19 @@ general semantic query algebra.
 
 The integration evidence lives in
 `tests/workspace/universal_semantic_query.rs` as a module of the existing
-Workspace harness. It covers all five typed constructors, exact JSON parsing
+Workspace harness. Existing passed evidence covers the original five typed
+constructors, exact JSON parsing
 and determinism; bounded declaration paging; direct symbol, context, and impact
-parity; truthful rename, block-replacement, and contract-addition availability
+parity; truthful rename, block-replacement, contract-addition, and declaration-addition availability
 paired with known-good transactions;
 unavailable main, generic, automatic-identity, nonfunction, and comment-bearing
 subjects; stale active-service rejection with an old immutable snapshot still
 usable; malformed, noncanonical, reminted, and oversized replay rejection; and
-absence of filesystem writes or service mutation.
+absence of filesystem writes or service mutation. The checked-fact case covers
+ownership replay, direct consumer ordering and paging, and fail-closed unknown
+expressions.
 
-The following focused command passed locally with six tests and no failures:
+The following focused command passed locally with seven tests and no failures:
 
 ```sh
 CARGO_TARGET_DIR=target/universal-semantic-query-v1 \

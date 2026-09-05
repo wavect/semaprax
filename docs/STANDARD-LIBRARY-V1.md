@@ -1,6 +1,6 @@
 # Standard Library v1
 
-- Status: versioned reference; eight `core`-tier packages, four
+- Status: versioned reference; eight `core`-tier packages, seven
   `portable`-tier packages, and one `test`-tier package under `std/` are
   executable; every other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents

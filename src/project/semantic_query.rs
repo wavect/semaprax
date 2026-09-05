@@ -11,7 +11,8 @@ use crate::workspace_analysis::{
 };
 
 use super::semantic_transaction::{
-    add_contract_eligibility, rename_display_name_eligibility, replace_block_eligibility,
+    add_contract_eligibility, add_declaration_eligibility, rename_display_name_eligibility,
+    replace_block_eligibility,
 };
 use super::{SemanticWorkspaceSnapshot, SEMANTIC_TRANSACTION_SCHEMA};
 
@@ -20,6 +21,10 @@ pub const SEMANTIC_QUERY_RESULT_SCHEMA: &str = "semaprax.semantic-query-result.v
 pub const SEMANTIC_QUERY_DECLARATIONS_SCHEMA: &str = "semaprax.semantic-query-declarations.v1";
 pub const SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA: &str =
     "semaprax.semantic-query-available-operations.v1";
+pub const SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA: &str =
+    "semaprax.semantic-query-ownership-at-expression.v1";
+pub const SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA: &str =
+    "semaprax.semantic-query-declaration-consumers.v1";
 pub const MAX_SEMANTIC_QUERY_BYTES: usize = 65_536;
 pub const MAX_SEMANTIC_QUERY_RESULT_BYTES: usize = 32 * 1024 * 1024;
 
@@ -32,9 +37,15 @@ const DECLARATIONS_PAYLOAD_DOMAIN: &[u8] =
     b"semaprax.semantic-query.declarations.payload.digest.v1\0";
 const AVAILABLE_OPERATIONS_PAYLOAD_DOMAIN: &[u8] =
     b"semaprax.semantic-query.available-operations.payload.digest.v1\0";
+const OWNERSHIP_AT_EXPRESSION_PAYLOAD_DOMAIN: &[u8] =
+    b"semaprax.semantic-query.ownership-at-expression.payload.digest.v1\0";
+const DECLARATION_CONSUMERS_PAYLOAD_DOMAIN: &[u8] =
+    b"semaprax.semantic-query.declaration-consumers.payload.digest.v1\0";
 const MAX_TARGET_BYTES: usize = 4096;
 pub const MAX_SEMANTIC_QUERY_DECLARATION_OFFSET: usize = 16_384;
 pub const MAX_SEMANTIC_QUERY_DECLARATION_LIMIT: usize = 128;
+pub const MAX_SEMANTIC_QUERY_CONSUMER_OFFSET: usize = 16_384;
+pub const MAX_SEMANTIC_QUERY_CONSUMER_LIMIT: usize = 128;
 const NONCLAIMS: &[&str] = &[
     "derived_read_only_projection",
     "no_source_execution_or_publication_authority",
@@ -65,6 +76,15 @@ enum Operation {
     AvailableOperations {
         stable_id: String,
     },
+    OwnershipAtExpression {
+        stable_id: String,
+        expression_id: String,
+    },
+    DeclarationConsumers {
+        stable_id: String,
+        offset: usize,
+        limit: usize,
+    },
 }
 
 impl Operation {
@@ -75,6 +95,8 @@ impl Operation {
             Self::Context { .. } => "context",
             Self::Impact { .. } => "impact",
             Self::AvailableOperations { .. } => "available_operations",
+            Self::OwnershipAtExpression { .. } => "ownership_at_expression",
+            Self::DeclarationConsumers { .. } => "declaration_consumers",
         }
     }
 
@@ -85,6 +107,8 @@ impl Operation {
             Self::Context { .. } => CONTEXT_PAYLOAD_DOMAIN,
             Self::Impact { .. } => IMPACT_PAYLOAD_DOMAIN,
             Self::AvailableOperations { .. } => AVAILABLE_OPERATIONS_PAYLOAD_DOMAIN,
+            Self::OwnershipAtExpression { .. } => OWNERSHIP_AT_EXPRESSION_PAYLOAD_DOMAIN,
+            Self::DeclarationConsumers { .. } => DECLARATION_CONSUMERS_PAYLOAD_DOMAIN,
         }
     }
 
@@ -137,6 +161,24 @@ impl Operation {
             Self::AvailableOperations { stable_id } => {
                 json!({"kind": "available_operations", "stable_id": stable_id})
             }
+            Self::OwnershipAtExpression {
+                stable_id,
+                expression_id,
+            } => json!({
+                "expression_id": expression_id,
+                "kind": "ownership_at_expression",
+                "stable_id": stable_id,
+            }),
+            Self::DeclarationConsumers {
+                stable_id,
+                offset,
+                limit,
+            } => json!({
+                "kind": "declaration_consumers",
+                "limit": limit,
+                "offset": offset,
+                "stable_id": stable_id,
+            }),
         }
     }
 }
@@ -232,6 +274,47 @@ impl SemanticQuery {
             expected_workspace_revision,
             Operation::AvailableOperations {
                 stable_id: stable_id.to_owned(),
+            },
+        )
+    }
+
+    pub fn ownership_at_expression(
+        expected_workspace_revision: &str,
+        stable_id: &str,
+        expression_id: &str,
+    ) -> Result<Self> {
+        validate_digest(expected_workspace_revision)?;
+        validate_target(stable_id)?;
+        validate_target(expression_id)?;
+        Self::new(
+            expected_workspace_revision,
+            Operation::OwnershipAtExpression {
+                stable_id: stable_id.to_owned(),
+                expression_id: expression_id.to_owned(),
+            },
+        )
+    }
+
+    pub fn declaration_consumers(
+        expected_workspace_revision: &str,
+        stable_id: &str,
+        offset: usize,
+        limit: usize,
+    ) -> Result<Self> {
+        validate_digest(expected_workspace_revision)?;
+        validate_target(stable_id)?;
+        if offset > MAX_SEMANTIC_QUERY_CONSUMER_OFFSET
+            || limit == 0
+            || limit > MAX_SEMANTIC_QUERY_CONSUMER_LIMIT
+        {
+            return Err(invalid("semantic consumer query paging is invalid"));
+        }
+        Self::new(
+            expected_workspace_revision,
+            Operation::DeclarationConsumers {
+                stable_id: stable_id.to_owned(),
+                offset,
+                limit,
             },
         )
     }
@@ -347,6 +430,23 @@ impl SemanticQuery {
                 exact_map(operation, &["kind", "stable_id"])?;
                 Self::available_operations(expected, text(operation, "stable_id")?)?
             }
+            "ownership_at_expression" => {
+                exact_map(operation, &["expression_id", "kind", "stable_id"])?;
+                Self::ownership_at_expression(
+                    expected,
+                    text(operation, "stable_id")?,
+                    text(operation, "expression_id")?,
+                )?
+            }
+            "declaration_consumers" => {
+                exact_map(operation, &["kind", "limit", "offset", "stable_id"])?;
+                Self::declaration_consumers(
+                    expected,
+                    text(operation, "stable_id")?,
+                    integer(operation, "offset")?,
+                    integer(operation, "limit")?,
+                )?
+            }
             _ => return Err(invalid("semantic query operation is unsupported")),
         };
         if query.json.as_bytes() != bytes {
@@ -391,6 +491,21 @@ impl SemanticQuery {
             Operation::AvailableOperations { stable_id } => {
                 available_operations_payload(snapshot, stable_id)?
             }
+            Operation::OwnershipAtExpression {
+                stable_id,
+                expression_id,
+            } => super::semantic_query_facts::ownership_at_expression_payload(
+                snapshot,
+                stable_id,
+                expression_id,
+            )?,
+            Operation::DeclarationConsumers {
+                stable_id,
+                offset,
+                limit,
+            } => super::semantic_query_facts::declaration_consumers_payload(
+                snapshot, stable_id, *offset, *limit,
+            )?,
         };
         let payload_value: Value = serde_json::from_str(&payload)
             .map_err(|_| invalid("semantic query derived payload is not valid JSON"))?;
@@ -544,6 +659,7 @@ fn available_operations_payload(
     let eligibility = rename_display_name_eligibility(snapshot.generation().revision(), stable_id)?;
     let block = replace_block_eligibility(snapshot.generation().revision(), stable_id)?;
     let contract = add_contract_eligibility(snapshot.generation().revision(), stable_id)?;
+    let declaration = add_declaration_eligibility(snapshot.generation().revision(), stable_id)?;
     render(
         json!({
             "operations": [
@@ -586,6 +702,19 @@ fn available_operations_payload(
                     "kind": "add_contract",
                     "nonclaim": "availability_does_not_claim_that_an_arbitrary_predicate_validates",
                     "phases": ["requires", "ensures"],
+                    "transaction_schema": SEMANTIC_TRANSACTION_SCHEMA,
+                },
+                {
+                    "available": declaration.available(),
+                    "constraints": {
+                        "comment_free_canonical_workspace": declaration.comment_free_canonical_workspace,
+                        "explicit_identity": declaration.explicit_identity,
+                        "monomorphic": declaration.monomorphic,
+                    },
+                    "constructor": "closed_project_candidate_add_declaration",
+                    "expected_old_module": declaration.expected_old_module,
+                    "kind": "add_declaration",
+                    "nonclaim": "availability_does_not_claim_that_an_arbitrary_declaration_validates",
                     "transaction_schema": SEMANTIC_TRANSACTION_SCHEMA,
                 }
             ],
@@ -699,7 +828,15 @@ fn validate_result_wire(bytes: &[u8]) -> Result<()> {
         || object["authority"] != false
         || !matches!(
             object["operation"].as_str(),
-            Some("declarations" | "symbol" | "context" | "impact" | "available_operations")
+            Some(
+                "declarations"
+                    | "symbol"
+                    | "context"
+                    | "impact"
+                    | "available_operations"
+                    | "ownership_at_expression"
+                    | "declaration_consumers"
+            )
         )
         || object["nonclaims"] != json!(NONCLAIMS)
     {
@@ -862,7 +999,7 @@ fn validate_digest(value: &str) -> Result<()> {
     Ok(())
 }
 
-fn render(mut value: Value, maximum: usize, terminal_lf: bool) -> Result<String> {
+pub(super) fn render(mut value: Value, maximum: usize, terminal_lf: bool) -> Result<String> {
     value.sort_all_objects();
     let mut output = serde_json::to_string(&value)
         .map_err(|_| invalid("semantic query JSON cannot be rendered"))?;
@@ -886,11 +1023,11 @@ fn hash(domain: &[u8], bytes: &[u8]) -> String {
     )
 }
 
-fn invalid(message: &'static str) -> Vec<Diagnostic> {
+pub(super) fn invalid(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G531", message)]
 }
 
-fn capacity(message: &'static str) -> Vec<Diagnostic> {
+pub(super) fn capacity(message: &'static str) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-G532", message)]
 }
 

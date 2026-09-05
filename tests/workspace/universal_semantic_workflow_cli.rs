@@ -13,7 +13,7 @@ use semaprax::workspace_analysis::{
     WorkspaceAnalysisDirection, WorkspaceAnalysisTargetKind, WorkspaceContextOptions,
     WorkspaceImpactOptions,
 };
-use serde_json::json;
+use serde_json::{json, Value};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -432,6 +432,38 @@ fn add_contract_preview_prints_exact_core_result_and_evidence_without_writes() {
     let output = fixture.invoke(&evidence);
     assert_success(&output);
     assert_eq!(output.stdout, artifacts.evidence().as_bytes());
+    assert_eq!(inventory(&fixture.0), before);
+}
+
+#[test]
+fn add_declaration_preview_prints_a_validated_result_without_writes() {
+    let fixture = Fixture::new(false);
+    let before = inventory(&fixture.0);
+    let declaration = json!({
+        "id":"calculator.increment", "name":"increment",
+        "parameters":[{"mode":"value","name":"value","type":"i64"}],
+        "return_type":"i64", "effects":[], "requires":[], "ensures":[],
+        "body":{"kind":"call","target":"calculator.add","arguments":[
+            {"kind":"place","name":"value"},{"kind":"i64","value":1}
+        ]}
+    });
+    let declaration = serde_json::to_string(&declaration).unwrap();
+    let output = fixture.invoke(&[
+        "change",
+        "preview",
+        fixture.0.to_str().unwrap(),
+        "add-declaration",
+        "calculator.add",
+        &declaration,
+    ]);
+    assert_success(&output);
+    let result: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(result["operation_results"][0]["kind"], "add_declaration");
+    assert_eq!(
+        result["operation_results"][0]["added_identity_inventory"],
+        json!(["calculator.increment"])
+    );
+    assert_eq!(result["authority"]["commit_performed"], false);
     assert_eq!(inventory(&fixture.0), before);
 }
 

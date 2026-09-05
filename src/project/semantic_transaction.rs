@@ -14,6 +14,13 @@ use crate::diagnostic::Diagnostic;
 
 use super::{ProjectCandidate, ProjectRevision, SemanticChange, SEMANTIC_CHANGE_REQUIREMENTS};
 
+mod add_declaration;
+pub(super) use add_declaration::add_declaration_eligibility;
+pub use add_declaration::SemanticTransactionAddDeclaration;
+use add_declaration::{
+    require_add_declaration_preconditions, require_source_preserving_declaration_addition,
+};
+
 pub const SEMANTIC_TRANSACTION_SCHEMA: &str = "semaprax.semantic-transaction.v1";
 pub const SEMANTIC_TRANSACTION_IMPACT_SCHEMA: &str = "semaprax.semantic-transaction-impact.v1";
 pub const SEMANTIC_TRANSACTION_REVIEW_SCHEMA: &str = "semaprax.semantic-transaction-review.v1";
@@ -141,6 +148,7 @@ pub enum SemanticTransactionOperation {
     RenameDisplayName(SemanticTransactionRenameDisplayName),
     ReplaceBlock(SemanticTransactionReplaceBlock),
     AddContract(SemanticTransactionAddContract),
+    AddDeclaration(SemanticTransactionAddDeclaration),
 }
 
 impl SemanticTransactionOperation {
@@ -149,6 +157,7 @@ impl SemanticTransactionOperation {
             Self::RenameDisplayName(operation) => operation.target(),
             Self::ReplaceBlock(operation) => operation.target(),
             Self::AddContract(operation) => operation.target(),
+            Self::AddDeclaration(operation) => operation.target(),
         }
     }
 
@@ -157,6 +166,7 @@ impl SemanticTransactionOperation {
             Self::RenameDisplayName(operation) => operation.value(),
             Self::ReplaceBlock(operation) => operation.value(),
             Self::AddContract(operation) => operation.value(),
+            Self::AddDeclaration(operation) => operation.value(),
         }
     }
 }
@@ -234,6 +244,16 @@ impl SemanticTransaction {
         )
     }
 
+    pub fn add_declaration(
+        expected_workspace_revision: &str,
+        operation: SemanticTransactionAddDeclaration,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        Self::new(
+            expected_workspace_revision,
+            SemanticTransactionOperation::AddDeclaration(operation),
+        )
+    }
+
     fn new(
         expected_workspace_revision: &str,
         operation: SemanticTransactionOperation,
@@ -284,6 +304,9 @@ impl SemanticTransaction {
                     "AddContract v1 requires a typed predicate-expression constructor",
                 ));
             }
+        }
+        if let SemanticTransactionOperation::AddDeclaration(operation) = &operation {
+            operation.validate_shape()?;
         }
         let json = render(
             json!({
@@ -403,6 +426,24 @@ impl SemanticTransaction {
                     ),
                 )?
             }
+            Some("add_declaration") => {
+                let keys = ["declaration", "expected_old_module", "kind", "target"];
+                if operation.len() != keys.len()
+                    || keys.iter().any(|key| !operation.contains_key(*key))
+                {
+                    return Err(invalid(
+                        "semantic transaction AddDeclaration field set is invalid",
+                    ));
+                }
+                Self::add_declaration(
+                    revision,
+                    SemanticTransactionAddDeclaration::new(
+                        text("target")?,
+                        operations[0]["expected_old_module"].clone(),
+                        operations[0]["declaration"].clone(),
+                    ),
+                )?
+            }
             _ => {
                 return Err(invalid(
                     "semantic transaction operation kind is unsupported",
@@ -438,6 +479,7 @@ impl SemanticTransaction {
             SemanticTransactionOperation::RenameDisplayName(operation) => Some(operation),
             SemanticTransactionOperation::ReplaceBlock(_) => None,
             SemanticTransactionOperation::AddContract(_) => None,
+            SemanticTransactionOperation::AddDeclaration(_) => None,
         }
     }
 
@@ -486,6 +528,17 @@ impl SemanticTransaction {
                         "target": operation.target,
                         "phase": operation.phase,
                         "predicate": operation.predicate,
+                    }),
+                )?
+            }
+            SemanticTransactionOperation::AddDeclaration(operation) => {
+                require_add_declaration_preconditions(&base, operation)?;
+                SemanticChange::new(
+                    base.project_revision(),
+                    &json!({
+                        "declaration": operation.declaration(),
+                        "kind": "add_declaration",
+                        "target": operation.target(),
                     }),
                 )?
             }
@@ -594,6 +647,39 @@ impl SemanticTransaction {
                         "phase": operation.phase,
                         "old_contract": operation.expected_old_contract,
                         "new_contract": addition.new_contract,
+                    }),
+                )
+            }
+            SemanticTransactionOperation::AddDeclaration(operation) => {
+                let addition = require_source_preserving_declaration_addition(
+                    &base,
+                    candidate.revision(),
+                    operation,
+                )?;
+                (
+                    "declaration",
+                    json!({
+                        "added_identity_inventory": addition.added_identity_inventory.clone(),
+                        "after_module": addition.new_module.clone(),
+                        "before_module": operation.expected_old_module(),
+                        "inserted_source": addition.inserted_source,
+                        "source_outside_added_declaration_preserved": true,
+                    }),
+                    json!({
+                        "candidate_rebuilt_from_canonical_source": true,
+                        "exact_old_module_precondition": true,
+                        "global_identity_freshness_checked": true,
+                        "prior_declaration_order_preserved": true,
+                        "source_outside_added_declaration_preserved": true,
+                        "trivia_preservation": "exact_outside_added_declaration_span",
+                    }),
+                    json!({
+                        "added_identity_inventory": addition.added_identity_inventory,
+                        "kind": "add_declaration",
+                        "new_module": addition.new_module,
+                        "old_module": operation.expected_old_module(),
+                        "outcome": "validated",
+                        "target": operation.target(),
                     }),
                 )
             }

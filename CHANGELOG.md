@@ -27,6 +27,20 @@ format: `Unreleased` then release buckets, grouped by impact.
   publish only after settlement, while started blocking I/O drains and late
   responses are discarded.
 
+- Added authored Universal Semantic Query v1 checked-fact projections for one
+  expression's ownership/loan facts and for direct retained-HIR declaration
+  consumers. Both are exact revision-bound canonical requests with replay,
+  paging/walk/output bounds, and explicit static-analysis and export-visibility
+  nonclaims; the focused evidence passes locally.
+
+- Extended Universal Semantic Transaction v1 with typed `AddDeclaration`.
+  It authenticates the exact anchor-module path, source digest, and ordered
+  declaration identities, rejects Project-wide identity reuse, delegates the
+  closed function/record/variant constructor to Project Candidate, and proves
+  one source insertion with unrelated bytes preserved. The read-only
+  `change preview add-declaration` adapter and focused regression evidence pass
+  locally.
+
 - Added the Project-v13 HTTPS Core-Wasm and npm lanes. The new replayable
   `semaprax.project-npm-build.v12` package authenticates one
   `spx_https_get_v1` import, a distinct HTTP status marker, owned response

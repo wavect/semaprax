@@ -172,7 +172,23 @@ fn query_capabilities_are_exact_inert_installed_support() {
             "symbol",
             "context",
             "impact",
-            "available_operations"
+            "available_operations",
+            "ownership_at_expression",
+            "declaration_consumers"
+        ]
+    );
+    assert_eq!(
+        value["payload"]["transaction_operations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|operation| operation["kind"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "rename_display_name",
+            "replace_block",
+            "add_contract",
+            "add_declaration"
         ]
     );
     assert_eq!(value["payload"]["host_grants"], json!([]));

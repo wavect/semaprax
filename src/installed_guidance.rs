@@ -11,13 +11,16 @@ use sha2::{Digest, Sha256};
 
 use crate::diagnostic::Diagnostic;
 use crate::project::{
-    MAX_SEMANTIC_QUERY_BYTES, MAX_SEMANTIC_QUERY_DECLARATION_LIMIT,
+    MAX_SEMANTIC_QUERY_BYTES, MAX_SEMANTIC_QUERY_CONSUMER_LIMIT,
+    MAX_SEMANTIC_QUERY_CONSUMER_OFFSET, MAX_SEMANTIC_QUERY_DECLARATION_LIMIT,
     MAX_SEMANTIC_QUERY_DECLARATION_OFFSET, MAX_SEMANTIC_QUERY_RESULT_BYTES,
     PROJECT_SEMANTIC_CONTEXT_SCHEMA, PROJECT_SEMANTIC_GRAPH_SCHEMA, PROJECT_SEMANTIC_IMAGE_SCHEMA,
     PROJECT_SEMANTIC_IMAGE_SYMBOL_SCHEMA, PROJECT_SEMANTIC_IMPACT_SCHEMA,
     SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA, SEMANTIC_QUERY_DECLARATIONS_SCHEMA,
-    SEMANTIC_QUERY_RESULT_SCHEMA, SEMANTIC_QUERY_SCHEMA, SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA,
-    SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_SCHEMA,
+    SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA, SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA,
+    SEMANTIC_QUERY_RESULT_SCHEMA, SEMANTIC_QUERY_SCHEMA, SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA,
+    SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_RESULT_SCHEMA,
+    SEMANTIC_TRANSACTION_SCHEMA, SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA,
 };
 
 pub const INSTALLED_SKILL_SCHEMA: &str = "semaprax.installed-skill.v1";
@@ -119,6 +122,7 @@ pub fn installed_skill(skill: InstalledSkill) -> Result<InstalledGuidance> {
                     "transaction_evidence": SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA,
                     "transaction_result": SEMANTIC_TRANSACTION_RESULT_SCHEMA,
                 },
+                "transaction_operations": transaction_operations(),
             }),
             vec![source(
                 "agent-quick-reference",
@@ -149,7 +153,24 @@ pub fn installed_skill(skill: InstalledSkill) -> Result<InstalledGuidance> {
                     PROJECT_SEMANTIC_CONTEXT_SCHEMA,
                     PROJECT_SEMANTIC_IMPACT_SCHEMA,
                 ],
-                "read_operations": ["graph", "symbol", "context", "impact"],
+                "query_payload_schemas": [
+                    SEMANTIC_QUERY_DECLARATIONS_SCHEMA,
+                    PROJECT_SEMANTIC_IMAGE_SYMBOL_SCHEMA,
+                    PROJECT_SEMANTIC_CONTEXT_SCHEMA,
+                    PROJECT_SEMANTIC_IMPACT_SCHEMA,
+                    SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
+                    SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA,
+                    SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA,
+                ],
+                "read_operations": [
+                    "graph", "symbol", "context", "impact", "declarations",
+                    "available_operations", "ownership_at_expression",
+                    "declaration_consumers", "retained_index_query", "service_history_query",
+                ],
+                "service_query_schemas": [
+                    SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA,
+                    SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA,
+                ],
             }),
             vec![source(
                 "language-shapes-catalog",
@@ -237,6 +258,8 @@ pub fn installed_query_capabilities() -> Result<InstalledGuidance> {
             "limits": {
                 "declaration_limit_max": MAX_SEMANTIC_QUERY_DECLARATION_LIMIT,
                 "declaration_offset_max": MAX_SEMANTIC_QUERY_DECLARATION_OFFSET,
+                "consumer_limit_max": MAX_SEMANTIC_QUERY_CONSUMER_LIMIT,
+                "consumer_offset_max": MAX_SEMANTIC_QUERY_CONSUMER_OFFSET,
                 "max_query_bytes": MAX_SEMANTIC_QUERY_BYTES,
                 "max_result_bytes": MAX_SEMANTIC_QUERY_RESULT_BYTES,
             },
@@ -244,7 +267,7 @@ pub fn installed_query_capabilities() -> Result<InstalledGuidance> {
                 "installed_support_not_live_service_or_transport_discovery",
                 "no_host_capability_grant_or_request_capability_changes",
                 "available_operations_requires_an_exact_workspace_revision_and_target",
-                "availability_does_not_claim_an_arbitrary_new_value_validates",
+                "availability_does_not_claim_an_arbitrary_operation_payload_validates",
             ],
             "operations": [
                 {"name":"declarations", "payload_schema":SEMANTIC_QUERY_DECLARATIONS_SCHEMA},
@@ -252,11 +275,36 @@ pub fn installed_query_capabilities() -> Result<InstalledGuidance> {
                 {"name":"context", "payload_schema":PROJECT_SEMANTIC_CONTEXT_SCHEMA},
                 {"name":"impact", "payload_schema":PROJECT_SEMANTIC_IMPACT_SCHEMA},
                 {"name":"available_operations", "payload_schema":SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA},
+                {"name":"ownership_at_expression", "payload_schema":SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA},
+                {"name":"declaration_consumers", "payload_schema":SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA},
             ],
             "request_schema": SEMANTIC_QUERY_SCHEMA,
             "result_schema": SEMANTIC_QUERY_RESULT_SCHEMA,
+            "transaction_operations": transaction_operations(),
         }),
     )
+}
+
+fn transaction_operations() -> Value {
+    json!([
+        {
+            "kind": "rename_display_name",
+            "operation_fields": ["expected_old_value", "kind", "new_value", "target"],
+        },
+        {
+            "kind": "replace_block",
+            "operation_fields": ["expected_old_block", "kind", "replacement", "target"],
+        },
+        {
+            "kind": "add_contract",
+            "operation_fields": ["expected_old_contract", "kind", "phase", "predicate", "target"],
+            "phases": ["requires", "ensures"],
+        },
+        {
+            "kind": "add_declaration",
+            "operation_fields": ["declaration", "expected_old_module", "kind", "target"],
+        },
+    ])
 }
 
 fn compiler() -> Result<Value> {
@@ -469,7 +517,23 @@ mod tests {
                 "symbol",
                 "context",
                 "impact",
-                "available_operations"
+                "available_operations",
+                "ownership_at_expression",
+                "declaration_consumers"
+            ]
+        );
+        assert_eq!(
+            payload["transaction_operations"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|operation| operation["kind"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            [
+                "rename_display_name",
+                "replace_block",
+                "add_contract",
+                "add_declaration"
             ]
         );
         assert_eq!(canonical(&value).unwrap(), document.to_json());

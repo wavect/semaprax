@@ -61,6 +61,7 @@ The first change form is:
 ```text
 semaprax change preview <project> rename-display-name <stable-id> <new-name> [--revision <digest>] [--evidence]
 semaprax change preview <project> add-contract <stable-id> <requires|ensures> <predicate-json> [--revision <digest>] [--evidence]
+semaprax change preview <project> add-declaration <anchor-stable-id> <declaration-json> [--revision <digest>] [--evidence]
 ```
 
 It admits only the operations already owned by Universal Semantic Transaction
@@ -73,6 +74,11 @@ the transaction performs complete typed validation. The request cannot select
 source paths, raw replacement source, validation requirements, invariants, or
 authority. The optional revision is the transaction's expected canonical
 workspace revision; omission selects the freshly derived current revision.
+The declaration adapter derives the exact anchor-module path, source digest,
+and ordered identity inventory through the shared read-only classifier.
+`declaration-json` is one value in the existing closed typed function, record,
+or variant constructor grammar. It cannot select a path or submit source text.
+Its focused CLI evidence passes locally.
 
 Without `--evidence`, successful preview prints the exact bytes returned by
 `SemanticTransactionArtifacts::result()`. With `--evidence`, it prints the
@@ -150,7 +156,7 @@ are frozen and unchanged; these CLI commands are not transport aliases.
 
 The integration evidence is authored in
 `tests/workspace/universal_semantic_workflow_cli.rs` as a module of the existing
-Workspace harness. Its six cases cover exact direct-core parity and zero
+Workspace harness. Its seven cases cover exact direct-core parity and zero
 writes across all five query operations; declaration paging and exact legacy
 Project-query preservation; explicit stale-revision and malformed query
 grammar rejection; exact default/evidence change projections plus missing and
@@ -167,4 +173,4 @@ CARGO_TARGET_DIR=target/universal-semantic-workflow-cli-v1 \
   universal_semantic_workflow_cli --no-fail-fast
 ```
 
-The command passed locally with six tests and no failures.
+The command passed locally with seven tests and no failures.

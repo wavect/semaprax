@@ -5,7 +5,8 @@ use std::path::PathBuf;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     self, SemanticQuery, SemanticTransaction, SemanticTransactionAddContract,
-    SemanticTransactionMergeOrder, SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
+    SemanticTransactionAddDeclaration, SemanticTransactionMergeOrder,
+    SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
     SemanticWorkspaceStructuralDiff, SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
 };
 
@@ -33,6 +34,10 @@ enum PreviewOperation {
         target: String,
         phase: String,
         predicate: serde_json::Value,
+    },
+    AddDeclaration {
+        target: String,
+        declaration: serde_json::Value,
     },
 }
 
@@ -68,7 +73,7 @@ enum MergeOrder {
     RightThenLeft,
 }
 
-const PREVIEW_USAGE: &str = "change requires preview <project> <rename-display-name <stable-id> <new-name>|add-contract <stable-id> <requires|ensures> <predicate-json>> [--revision digest] [--evidence|--structural-diff]";
+const PREVIEW_USAGE: &str = "change requires preview <project> <rename-display-name <stable-id> <new-name>|add-contract <stable-id> <requires|ensures> <predicate-json>|add-declaration <anchor-stable-id> <declaration-json>> [--revision digest] [--evidence|--structural-diff]";
 const REBASE_USAGE: &str = "change rebase requires <base-project> rename-display-name <stable-id> <new-name> --onto <onto-project> [--revision digest] [--onto-revision digest]";
 const MERGE_USAGE: &str = "change merge requires <project> rename-display-name <left-id> <left-new-name> --with rename-display-name <right-id> <right-new-name> [--revision digest] --order <left-then-right|right-then-left>";
 
@@ -114,6 +119,20 @@ fn parse_preview(args: &[String]) -> Result<ChangePreview, u8> {
                     predicate,
                 },
                 6,
+            )
+        }
+        Some("add-declaration") => {
+            let declaration =
+                serde_json::from_str(&required(args, 4, preview_usage)?).map_err(|_| {
+                    eprintln!("change preview add-declaration constructor must be valid JSON");
+                    2
+                })?;
+            (
+                PreviewOperation::AddDeclaration {
+                    target: required(args, 3, preview_usage)?,
+                    declaration,
+                },
+                5,
             )
         }
         _ => return Err(preview_usage()),
@@ -319,6 +338,10 @@ fn run_preview(options: ChangePreview) -> Result<String, Vec<Diagnostic>> {
                 phase,
                 predicate,
             } => add_contract_transaction(&service, &expected, &target, &phase, predicate)?,
+            PreviewOperation::AddDeclaration {
+                target,
+                declaration,
+            } => add_declaration_transaction(&service, &expected, &target, declaration)?,
         };
         let artifacts = service.validate_transaction(transaction.to_json().as_bytes())?;
         match options.output {
@@ -471,6 +494,45 @@ fn add_contract_transaction(
     )
 }
 
+fn add_declaration_transaction(
+    service: &SemanticWorkspaceService,
+    expected: &str,
+    target: &str,
+    declaration: serde_json::Value,
+) -> Result<SemanticTransaction, Vec<Diagnostic>> {
+    let discovery = SemanticQuery::available_operations(expected, target)?;
+    let discovery = service.query(discovery.to_json().as_bytes())?;
+    let payload: serde_json::Value = serde_json::from_str(discovery.payload()).map_err(|_| {
+        vec![Diagnostic::io(
+            "SPX-G531",
+            "available operations payload is not valid JSON",
+        )]
+    })?;
+    let operation = payload
+        .get("operations")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|operations| {
+            operations
+                .iter()
+                .find(|operation| operation["kind"] == "add_declaration")
+        })
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G531",
+                "available operations payload has no AddDeclaration entry",
+            )]
+        })?;
+    let expected_old_module = operation
+        .get("expected_old_module")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+    SemanticTransaction::add_declaration(
+        expected,
+        SemanticTransactionAddDeclaration::new(target, expected_old_module, declaration),
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -523,6 +585,25 @@ mod tests {
         assert_eq!(target, "app.run");
         assert_eq!(phase, "ensures");
         assert_eq!(predicate, serde_json::json!({"kind":"bool","value":true}));
+        let ChangeCommand::Preview(declaration) = parse(&strings(&[
+            "preview",
+            "fixtures/semaprax.toml",
+            "add-declaration",
+            "app.run",
+            r#"{"id":"app.helper"}"#,
+        ]))
+        .unwrap() else {
+            panic!("preview grammar selected another command");
+        };
+        let PreviewOperation::AddDeclaration {
+            target,
+            declaration,
+        } = declaration.operation
+        else {
+            panic!("preview grammar selected another operation");
+        };
+        assert_eq!(target, "app.run");
+        assert_eq!(declaration, serde_json::json!({"id":"app.helper"}));
         for malformed in [
             vec![],
             vec![

@@ -9,6 +9,7 @@ use semaprax::project::{
     SemanticQuery, SemanticTransaction, SemanticTransactionRenameDisplayName,
     SemanticWorkspaceService, MAX_SEMANTIC_QUERY_BYTES, MAX_SEMANTIC_QUERY_RESULT_BYTES,
     SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA, SEMANTIC_QUERY_DECLARATIONS_SCHEMA,
+    SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA, SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA,
     SEMANTIC_QUERY_RESULT_SCHEMA, SEMANTIC_QUERY_SCHEMA,
 };
 use semaprax::query::QueryFilters;
@@ -161,6 +162,89 @@ fn operation(snapshot: &semaprax::project::SemanticWorkspaceSnapshot, id: &str) 
 }
 
 #[test]
+fn checked_ownership_and_direct_consumer_facts_are_canonical_and_replayable() {
+    let fixture = Fixture::new(false);
+    let service = SemanticWorkspaceService::open(fixture.revision()).unwrap();
+    let generation = service.active_generation();
+    let revision = generation.workspace_revision();
+    let function = generation
+        .revision()
+        .entry_program()
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "calculator.add")
+        .unwrap();
+    let expression_id = function.body.id.as_str();
+
+    let ownership =
+        SemanticQuery::ownership_at_expression(revision, "calculator.add", expression_id).unwrap();
+    assert_eq!(
+        SemanticQuery::from_json(ownership.to_json().as_bytes()).unwrap(),
+        ownership
+    );
+    let ownership_result = service.query(ownership.to_json().as_bytes()).unwrap();
+    let ownership_payload = result_payload(&ownership_result);
+    assert_eq!(
+        ownership_payload["schema"],
+        SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA
+    );
+    assert_eq!(ownership_payload["stable_id"], "calculator.add");
+    assert_eq!(
+        ownership_payload["expression"]["expression_id"],
+        expression_id
+    );
+    assert_eq!(ownership_payload["expression"]["ownership_mode"], "value");
+    assert_eq!(ownership_payload["expression"]["loans"], json!([]));
+    let snapshot = service.snapshot(revision).unwrap();
+    assert_eq!(
+        SemanticQuery::replay(
+            &snapshot,
+            ownership.to_json().as_bytes(),
+            ownership_result.result_digest(),
+            ownership_result.to_json().as_bytes(),
+        )
+        .unwrap()
+        .to_json(),
+        ownership_result.to_json()
+    );
+
+    let consumers = SemanticQuery::declaration_consumers(revision, "calculator.add", 0, 1).unwrap();
+    let consumer_result = service.query(consumers.to_json().as_bytes()).unwrap();
+    let payload = result_payload(&consumer_result);
+    assert_eq!(
+        payload["schema"],
+        SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA
+    );
+    assert_eq!(payload["total_consumers"], 2);
+    assert_eq!(
+        payload["consumers"][0]["consumer_id"],
+        "calculator.app.main"
+    );
+    assert_eq!(payload["consumers"][0]["visibility"], "local");
+    assert_eq!(payload["consumers"][0]["use_kinds"], json!(["direct_call"]));
+    assert_eq!(payload["next_offset"], 1);
+    let page_two = SemanticQuery::declaration_consumers(revision, "calculator.add", 1, 1).unwrap();
+    let payload_two = result_payload(&service.query(page_two.to_json().as_bytes()).unwrap());
+    assert_eq!(
+        payload_two["consumers"][0]["consumer_id"],
+        "calculator.tests.main"
+    );
+    assert_eq!(payload_two["consumers"][0]["visibility"], "test");
+    assert_eq!(payload_two["next_offset"], Value::Null);
+
+    let unknown_expression =
+        SemanticQuery::ownership_at_expression(revision, "calculator.add", "foreign.expr").unwrap();
+    assert_code(
+        service.query(unknown_expression.to_json().as_bytes()),
+        "SPX-G531",
+    );
+    assert_code(
+        SemanticQuery::declaration_consumers(revision, "calculator.add", 0, 0),
+        "SPX-G531",
+    );
+}
+
+#[test]
 fn five_query_constructors_round_trip_and_delegate_exact_payloads() {
     let fixture = Fixture::new(false);
     let before = inventory(&fixture.0);
@@ -299,7 +383,7 @@ fn available_rename_is_truthful_but_still_requires_full_transaction_validation()
         payload["operations"][0]["transaction_schema"],
         "semaprax.semantic-transaction.v1"
     );
-    assert_eq!(payload["operations"].as_array().unwrap().len(), 3);
+    assert_eq!(payload["operations"].as_array().unwrap().len(), 4);
     assert_eq!(payload["operations"][1]["kind"], "replace_block");
     assert_eq!(payload["operations"][1]["available"], true);
     assert_eq!(
@@ -316,6 +400,22 @@ fn available_rename_is_truthful_but_still_requires_full_transaction_validation()
         payload["operations"][2]["phases"],
         json!(["requires", "ensures"])
     );
+    assert_eq!(payload["operations"][3]["kind"], "add_declaration");
+    assert_eq!(payload["operations"][3]["available"], true);
+    assert_eq!(
+        payload["operations"][3]["constructor"],
+        "closed_project_candidate_add_declaration"
+    );
+    let old_module = &payload["operations"][3]["expected_old_module"];
+    assert_eq!(old_module["source_path"], "src/core.spx");
+    assert!(old_module["declaration_ids"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|id| id == "calculator.add"));
+    let source_digest = old_module["source_digest"].as_str().unwrap();
+    assert!(source_digest.starts_with("sha256:"));
+    assert_eq!(source_digest, source_digest.to_ascii_lowercase());
 
     let transaction = SemanticTransaction::rename_display_name(
         snapshot.workspace_revision(),

@@ -43,6 +43,7 @@ mod scalar_wit;
 mod scalar_wit_compare;
 mod semantic;
 mod semantic_query;
+mod semantic_query_facts;
 mod semantic_service;
 mod semantic_service_indexes;
 mod semantic_transaction;
@@ -356,9 +357,12 @@ pub use scalar_wit_compare::{
 };
 pub use semantic_query::{
     SemanticQuery, SemanticQueryResult, MAX_SEMANTIC_QUERY_BYTES,
+    MAX_SEMANTIC_QUERY_CONSUMER_LIMIT, MAX_SEMANTIC_QUERY_CONSUMER_OFFSET,
     MAX_SEMANTIC_QUERY_DECLARATION_LIMIT, MAX_SEMANTIC_QUERY_DECLARATION_OFFSET,
     MAX_SEMANTIC_QUERY_RESULT_BYTES, SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
-    SEMANTIC_QUERY_DECLARATIONS_SCHEMA, SEMANTIC_QUERY_RESULT_SCHEMA, SEMANTIC_QUERY_SCHEMA,
+    SEMANTIC_QUERY_DECLARATIONS_SCHEMA, SEMANTIC_QUERY_DECLARATION_CONSUMERS_SCHEMA,
+    SEMANTIC_QUERY_OWNERSHIP_AT_EXPRESSION_SCHEMA, SEMANTIC_QUERY_RESULT_SCHEMA,
+    SEMANTIC_QUERY_SCHEMA,
 };
 pub use semantic_service::{
     SemanticWorkspaceGeneration, SemanticWorkspaceService, SemanticWorkspaceServiceHistoryEntry,
@@ -381,12 +385,13 @@ pub use semantic_service_indexes::{
     SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA, SEMANTIC_SERVICE_INDEX_RESULT_SCHEMA,
 };
 pub use semantic_transaction::{
-    SemanticTransaction, SemanticTransactionAddContract, SemanticTransactionArtifacts,
-    SemanticTransactionOperation, SemanticTransactionRenameDisplayName,
-    SemanticTransactionReplaceBlock, MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES,
-    MAX_SEMANTIC_TRANSACTION_BYTES, SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA,
-    SEMANTIC_TRANSACTION_IMPACT_SCHEMA, SEMANTIC_TRANSACTION_RESULT_SCHEMA,
-    SEMANTIC_TRANSACTION_REVIEW_SCHEMA, SEMANTIC_TRANSACTION_SCHEMA,
+    SemanticTransaction, SemanticTransactionAddContract, SemanticTransactionAddDeclaration,
+    SemanticTransactionArtifacts, SemanticTransactionOperation,
+    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceBlock,
+    MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES, MAX_SEMANTIC_TRANSACTION_BYTES,
+    SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
+    SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_REVIEW_SCHEMA,
+    SEMANTIC_TRANSACTION_SCHEMA,
 };
 pub use semantic_transaction_composition::{
     SemanticTransactionMerge, SemanticTransactionMergeOrder, SemanticTransactionRebase,

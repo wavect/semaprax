@@ -29,7 +29,7 @@ recursively key-sorted, and terminated by one LF. The envelope contains exactly:
 - `expected_workspace_revision`, the Canonical Semantic Workspace Revision v1
   composite digest;
 - `operations`, exactly one operation selected from the closed
-  `RenameDisplayName | ReplaceBlock | AddContract` algebra;
+  `RenameDisplayName | ReplaceBlock | AddContract | AddDeclaration` algebra;
 - `invariants`, exactly the mandatory Project Candidate semantic-change
   requirements;
 - `requested_validation`, exactly canonical source round-trip, complete Project
@@ -109,6 +109,24 @@ predicate appended to the selected phase, removes the one canonical added
 clause from candidate source, and exact-compares the whole source with the
 base. Every other source must be byte-identical.
 
+## AddDeclaration
+
+`add_declaration` carries `target`, `expected_old_module`, and `declaration`.
+The target is one unique explicit monomorphic function anchor. `main` may be
+the anchor because its signature and body remain unchanged; the new declaration
+still cannot be named `main`. `expected_old_module` binds the anchor's normalized
+source path, a domain-separated digest of its exact canonical source bytes, and
+the ordered complete declaration-identity inventory in that module.
+
+`declaration` is the existing closed Project Candidate constructor for one
+function, record, or variant. Before candidate creation, every planned owner,
+case, and field identity must be fresh across the complete Project. Candidate
+rebuilding owns typed construction, effects, contracts, ownership, cleanup,
+native/Wasm admission, and replay. The transaction then requires exactly the
+planned new identity inventory, preserves the prior declaration order, proves
+one source insertion, and exact-compares every unrelated source. It accepts no
+source path, source text, import, manifest change, or authority.
+
 [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md) projects whether
 a retained declaration currently satisfies these structural prerequisites.
 Its `available_operations` result calls the same read-only classifier used by
@@ -165,21 +183,22 @@ filesystem write, commit, generation pivot, or publication.
 
 The separate read-only [Universal Semantic Workflow CLI
 v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md) exposes this operation as
-`change preview rename-display-name` and `change preview add-contract`. It
-derives the exact old display name or ordered contract inventory from the same
+`change preview rename-display-name`, `change preview add-contract`, and
+`change preview add-declaration`. It derives the exact old display name,
+ordered contract inventory, or anchor-module snapshot from the same
 authenticated Project generation and prints this kernel's exact result or
 evidence. That adapter does not add an operation, wrapper schema, commit path,
 or authority.
 
-This badge is one real three-variant operation algebra, not a general or
+This badge is one real four-variant operation algebra, not a general or
 multi-operation planner, general semantic completeness claim, behavioral
 proof, persistent service, managed-workspace commit route,
 source-with-comments rewrite, nested-expression replacement surface, contract
 removal/replacement, or
 authority grant. Those remain future work. Universal Semantic Transaction
 Composition v1 continues to admit `RenameDisplayName` only and rejects
-`ReplaceBlock` and `AddContract`; it has not acquired block or contract rebase
-or merge semantics.
+`ReplaceBlock`, `AddContract`, and `AddDeclaration`; it has not acquired block,
+contract, or declaration rebase or merge semantics.
 
 ## Focused gate
 
@@ -189,13 +208,13 @@ CARGO_TARGET_DIR=target/universal-semantic-transaction-v1 \
   universal_semantic_transaction --no-fail-fast
 ```
 
-The gate covers all three operation variants, canonical admission, deterministic
+The local gate passes fifteen cases covering all four operation variants,
+canonical admission, deterministic
 artifacts, exact replay, stale base/name/block rejection, malformed and
 reminted-evidence rejection, stale old-contract and typed-predicate rejection,
 direct ProjectCandidate parity, exact preservation outside an authenticated
-body span or appended contract clause, zero filesystem writes, and unchanged
-retained legacy Project/workspace/graph/source bytes. All twelve focused cases
-pass locally with no failures.
+body span, appended contract clause, or inserted declaration, zero filesystem
+writes, and unchanged retained legacy Project/workspace/graph/source bytes.
 
 The repository-wide full profile also reached 1,536 passing library tests on
 the same rebased source, then stopped on 11 unrelated existing Project, Wasm,

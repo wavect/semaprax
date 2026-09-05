@@ -14,6 +14,12 @@ use super::{
     ProjectRevision, SemanticWorkspaceRevision, SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY,
 };
 
+mod dependency_lock;
+pub use dependency_lock::{
+    ProgramRootDependencyLockAssociation, MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES,
+    PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_SCHEMA,
+};
+
 pub const PROGRAM_ROOT_SCHEMA: &str = "semaprax.program-root.v1";
 pub const PROGRAM_ROOT_SEGMENT_SCHEMA: &str = "semaprax.program-root.segment.v1";
 pub const PROGRAM_ROOT_RELATIONSHIP_SCHEMA: &str = "semaprax.program-root.relationship.v1";

@@ -598,6 +598,16 @@ derivation and replay are authority-free, and the legacy canonical workspace,
 Project, Image, and Graph bytes and identities remain unchanged. See
 [ProgramRoot v1](PROGRAM-ROOT-V1.md).
 
+`src/project/interface_artifact_facts.rs` and
+`src/project/program_root/dependency_lock.rs` provide the next SEG-02 inputs
+without widening the frozen v1 root. The first freshly derives exact existing
+Project interface descriptors and selected pathless Image artifact reports.
+The second delegates exact caller-supplied `semaprax.lock` admission to Project
+Lock v1 and privately retains the admitted bytes for later replay. Both expose
+typed, content-addressable fact bundles; neither is inserted into ProgramRoot
+v1. A versioned exact ProgramRoot context must bind them before service/query/
+transaction selectors may claim the enriched root.
+
 `src/project/semantic_transaction.rs` owns the bounded authority-free Universal
 Semantic Transaction v1 kernel. It binds an exact canonical workspace revision
 and admits a closed one-operation algebra containing a typed display rename and

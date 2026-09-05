@@ -24,6 +24,7 @@ mod image_reference;
 mod image_store;
 mod image_targets;
 pub(crate) mod incremental;
+mod interface_artifact_facts;
 mod manifest;
 mod native_publication;
 mod native_sdk;
@@ -309,6 +310,12 @@ pub use incremental::{
     PROJECT_FRONTEND_CACHE_COMPATIBILITY, PROJECT_FRONTEND_CACHE_SCHEMA,
     PROJECT_SEMANTIC_CACHE_COMPATIBILITY, PROJECT_SEMANTIC_CACHE_SCHEMA,
 };
+pub use interface_artifact_facts::{
+    GeneratedArtifactFact, InterfaceArtifactFacts, SourceInterfaceFact,
+    INTERFACE_ARTIFACT_FACTS_COMPATIBILITY, INTERFACE_ARTIFACT_FACTS_SCHEMA,
+    MAX_INTERFACE_ARTIFACT_FACTS, MAX_INTERFACE_ARTIFACT_FACTS_BYTES,
+    MAX_INTERFACE_ARTIFACT_FACT_INPUT_BYTES,
+};
 use manifest::{capacity, grammar};
 pub use manifest::{
     ManifestLayout, PackageDependency, PackageDependencySource, ProjectManifest, RustDependency,
@@ -351,10 +358,11 @@ pub use prepared_interpreter::{
     MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
 };
 pub use program_root::{
-    ProgramRoot, ProgramRootRelationship, ProgramRootSegment, MAX_PROGRAM_ROOT_BYTES,
+    ProgramRoot, ProgramRootDependencyLockAssociation, ProgramRootRelationship, ProgramRootSegment,
+    MAX_PROGRAM_ROOT_BYTES, MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES,
     MAX_PROGRAM_ROOT_RELATIONSHIP_BYTES, MAX_PROGRAM_ROOT_SEGMENT_BYTES,
-    PROGRAM_ROOT_COMPATIBILITY, PROGRAM_ROOT_RELATIONSHIP_SCHEMA, PROGRAM_ROOT_SCHEMA,
-    PROGRAM_ROOT_SEGMENT_SCHEMA,
+    PROGRAM_ROOT_COMPATIBILITY, PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_SCHEMA,
+    PROGRAM_ROOT_RELATIONSHIP_SCHEMA, PROGRAM_ROOT_SCHEMA, PROGRAM_ROOT_SEGMENT_SCHEMA,
 };
 pub use project_lock::{
     classify_lock_change, render_project_lock, verify_project_lock, LockCompatibility,

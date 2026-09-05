@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added locally exercised SEG-02 input bundles for exact source-interface and
+  pathless generated-artifact facts plus exact Project Lock v1 association.
+  Both freshly replay their existing owning compiler artifacts, retain bounded
+  content identities without authority, and preserve ProgramRoot v1 and every
+  legacy Project/Image/Graph/lock byte. Versioned exact-root integration remains
+  explicit follow-up work.
+
 - Added the SEG-02 explicit AgentDefinition association bridge. A bounded,
   stable-ID-ordered set of exact compiler-admitted definition/graph/profile
   bundles can populate the existing Canonical Workspace AgentDefinitions node

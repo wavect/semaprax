@@ -24,12 +24,16 @@ mod agent_definitions_association;
 mod canonical_revision;
 #[path = "workspace/graph_phase_a_surface.rs"]
 mod graph_phase_a_surface;
+#[path = "workspace/interface_artifact_facts.rs"]
+mod interface_artifact_facts;
 #[path = "workspace/persistent_incremental_semantic_service.rs"]
 mod persistent_incremental_semantic_service;
 #[path = "workspace/persistent_semantic_service_mcp.rs"]
 mod persistent_semantic_service_mcp;
 #[path = "workspace/persistent_semantic_service_transport.rs"]
 mod persistent_semantic_service_transport;
+#[path = "workspace/program_root_dependency_lock.rs"]
+mod program_root_dependency_lock;
 #[path = "workspace/semantic_change.rs"]
 mod semantic_change;
 #[path = "workspace/semantic_graph.rs"]

@@ -106,10 +106,13 @@ pub(super) fn interpret_options(
                     eprintln!("duplicate interpret option `{option}`");
                     return Err(2);
                 }
-                let value = args.get(index + 1).ok_or_else(|| {
-                    eprintln!("interpret option `{option}` requires a value");
-                    2
-                })?;
+                let value = args
+                    .get(index + 1)
+                    .filter(|value| !value.starts_with('-'))
+                    .ok_or_else(|| {
+                        eprintln!("interpret option `{option}` requires a value");
+                        2
+                    })?;
                 if value.is_empty() {
                     eprintln!("interpret option `{option}` requires a function name or stable id");
                     return Err(2);
@@ -117,6 +120,11 @@ pub(super) fn interpret_options(
                 function = Some(value.clone());
             }
             "--arg" => {
+                // `--arg` deliberately keeps the verbatim next token instead of
+                // filtering a leading `-` the way `--function` does:
+                // `interpreter::parse_argument` admits negative scalars such as
+                // `-1`, `-0.0` and `-2.5e-3`, so the filter would refuse a legal
+                // literal. A stray flag here still fails closed as a non-literal.
                 let value = args.get(index + 1).ok_or_else(|| {
                     eprintln!("interpret option `{option}` requires a value");
                     2
@@ -237,10 +245,13 @@ pub(super) fn cxx_selection_options(
         let option = args[index].as_str();
         match option {
             "--function" => {
-                let value = args.get(index + 1).ok_or_else(|| {
-                    eprintln!("{command} option `{option}` requires a value");
-                    2
-                })?;
+                let value = args
+                    .get(index + 1)
+                    .filter(|value| !value.starts_with('-'))
+                    .ok_or_else(|| {
+                        eprintln!("{command} option `{option}` requires a value");
+                        2
+                    })?;
                 for token in value.split(',') {
                     if token.is_empty() {
                         eprintln!("{command} option `{option}` requires nonempty selections");

@@ -207,14 +207,43 @@ fn interpret_max_bytes_honors_the_agent_context_byte_window_without_wrapping() {
 }
 
 #[test]
-fn interpret_accepts_a_following_flag_as_the_function_name() {
-    // Documented current behavior, not an endorsement: --function takes the
-    // next argv token verbatim, so `--function --arg` selects the literal
-    // symbol `--arg` and the parse succeeds. `project_scaffold_options`
-    // rejects the same shape, so a fix here has a precedent to copy.
-    let (function, arguments, _) = interpret(&["--function", "--arg"]).unwrap();
-    assert_eq!(function, "--arg");
-    assert!(arguments.is_empty());
+fn interpret_refuses_a_following_flag_as_the_function_name() {
+    // A value-less `--function` must be a usage error, not a silently adopted
+    // flag name that fails much later as a symbol-not-found. A selection is
+    // free text, so only the leading-dash filter can catch this shape.
+    assert_eq!(interpret(&["--function", "--arg"]).unwrap_err(), 2);
+    assert_eq!(
+        interpret(&["--function", "--max-bytes", "4096"]).unwrap_err(),
+        2
+    );
+    // `--max-bytes` needs no filter: a following flag is not a canonical
+    // integer, so its own value grammar already refuses one.
+    assert_eq!(
+        interpret(&["--function", "a", "--max-bytes", "--arg"]).unwrap_err(),
+        2
+    );
+}
+
+#[test]
+fn interpret_arg_still_admits_the_negative_scalar_literals_it_documents() {
+    // `--arg` is deliberately outside the leading-dash filter: the interpreter
+    // argument grammar admits negative integers and floats, so a `-`-prefixed
+    // token is a legal value rather than a swallowed flag.
+    let (_, arguments, _) = interpret(&[
+        "--function",
+        "a",
+        "--arg",
+        "-1",
+        "--arg",
+        "-0.0",
+        "--arg",
+        "-2.5e-3",
+    ])
+    .unwrap();
+    assert_eq!(arguments, vec!["-1", "-0.0", "-2.5e-3"]);
+    for literal in ["-1", "-0.0", "-2.5e-3"] {
+        assert!(interpreter::parse_argument(literal).is_ok(), "{literal}");
+    }
 }
 
 // --- canonical integer grammar ----------------------------------------
@@ -511,6 +540,22 @@ fn cxx_shim_rejects_duplicate_max_bytes_unknown_options_and_missing_values() {
     assert_eq!(cxx_shim(&["--function"]).unwrap_err(), 2);
     assert_eq!(
         cxx_shim(&["--function", "a", "--max-bytes"]).unwrap_err(),
+        2
+    );
+}
+
+#[test]
+fn cxx_shim_refuses_a_following_flag_as_a_selection_or_a_budget() {
+    // A selection list is free text, so the leading-dash filter is what stops
+    // `--function` from adopting the next flag and silently leaving the byte
+    // budget at its default. The budget's own integer grammar covers the rest.
+    assert_eq!(cxx_shim(&["--function", "--max-bytes"]).unwrap_err(), 2);
+    assert_eq!(
+        cxx_shim(&["--function", "--emit-fragment", "a"]).unwrap_err(),
+        2
+    );
+    assert_eq!(
+        cxx_shim(&["--function", "a", "--max-bytes", "--emit-fragment"]).unwrap_err(),
         2
     );
 }

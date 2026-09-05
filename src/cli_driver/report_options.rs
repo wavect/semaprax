@@ -191,10 +191,18 @@ pub(super) fn openapi_options(
             eprintln!("duplicate openapi option `{option}`");
             return Err(2);
         }
-        let value = args.get(index + 1).ok_or_else(|| {
-            eprintln!("openapi option `{option}` requires a value");
-            2
-        })?;
+        // A selection is free text, so only the leading-dash filter keeps a
+        // value-less `--function` from adopting the following flag and silently
+        // discarding the byte budget behind it. `--max-bytes` stays unfiltered:
+        // its canonical integer grammar already refuses a `-` value, and does so
+        // with the more precise malformed-number diagnostic.
+        let value = args
+            .get(index + 1)
+            .filter(|value| option != "--function" || !value.starts_with('-'))
+            .ok_or_else(|| {
+                eprintln!("openapi option `{option}` requires a value");
+                2
+            })?;
         match option {
             "--function" => {
                 if value.is_empty() {
@@ -376,10 +384,13 @@ pub(super) fn abi_report_options(args: &[String]) -> Result<abi_report::AbiRepor
         let option = args[index].as_str();
         match option {
             "--function" => {
-                let value = args.get(index + 1).ok_or_else(|| {
-                    eprintln!("abi-report option `{option}` requires a value");
-                    2
-                })?;
+                let value = args
+                    .get(index + 1)
+                    .filter(|value| !value.starts_with('-'))
+                    .ok_or_else(|| {
+                        eprintln!("abi-report option `{option}` requires a value");
+                        2
+                    })?;
                 for token in value.split(',') {
                     if token.is_empty() {
                         eprintln!("abi-report option `{option}` requires nonempty selections");
@@ -423,10 +434,13 @@ pub(super) fn c_header_options(args: &[String]) -> Result<(c_header::CHeaderOpti
         let option = args[index].as_str();
         match option {
             "--function" => {
-                let value = args.get(index + 1).ok_or_else(|| {
-                    eprintln!("c-header option `{option}` requires a value");
-                    2
-                })?;
+                let value = args
+                    .get(index + 1)
+                    .filter(|value| !value.starts_with('-'))
+                    .ok_or_else(|| {
+                        eprintln!("c-header option `{option}` requires a value");
+                        2
+                    })?;
                 for token in value.split(',') {
                     if token.is_empty() {
                         eprintln!("c-header option `{option}` requires nonempty selections");

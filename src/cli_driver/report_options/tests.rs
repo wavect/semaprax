@@ -379,16 +379,27 @@ fn openapi_rejects_empty_selections_unknown_options_and_missing_values() {
 }
 
 #[test]
-fn openapi_function_swallows_a_following_flag_as_a_selection_name() {
-    // Documented current behavior: `--function` stores the next argv token
-    // verbatim, so `--function --max-bytes` selects the literal symbol
-    // `--max-bytes` and the byte budget stays at its default.
-    let (functions, options) =
-        openapi_options(&report_argv(&["--function", "--max-bytes"])).unwrap();
-    assert_eq!(functions, vec!["--max-bytes".to_owned()]);
+fn openapi_function_refuses_a_following_flag_as_a_selection_name() {
+    // A value-less `--function` must refuse. Adopting the next token would
+    // select the literal symbol `--max-bytes` and silently discard the byte
+    // budget the caller asked for, with no diagnostic at all.
     assert_eq!(
-        options.max_bytes,
-        openapi::OpenApiOptions::default().max_bytes
+        openapi_options(&report_argv(&["--function", "--max-bytes"])).unwrap_err(),
+        2
+    );
+    assert_eq!(
+        openapi_options(&report_argv(&["--function", "--max-bytes", "4096"])).unwrap_err(),
+        2
+    );
+    assert_eq!(
+        openapi_options(&report_argv(&[
+            "--function",
+            "a",
+            "--max-bytes",
+            "--function"
+        ]))
+        .unwrap_err(),
+        2
     );
 }
 
@@ -705,6 +716,77 @@ fn c_header_emit_header_is_a_valueless_flag_that_does_not_consume_the_next_optio
     );
     assert_eq!(
         c_header_options(&report_argv(&["--max-bytes"])).unwrap_err(),
+        2
+    );
+}
+
+#[test]
+fn abi_report_and_c_header_refuse_a_following_flag_as_a_selection_or_budget() {
+    // `--function` takes free text, so the leading-dash filter is what turns a
+    // value-less flag into a usage error instead of a swallowed neighbour and a
+    // silently defaulted budget. The `--max-bytes` cases are covered by its own
+    // canonical integer grammar.
+    assert_eq!(
+        abi_report_options(&report_argv(&["--function", "--max-bytes"])).unwrap_err(),
+        2
+    );
+    assert_eq!(
+        abi_report_options(&report_argv(&[
+            "--function",
+            "a",
+            "--max-bytes",
+            "--function"
+        ]))
+        .unwrap_err(),
+        2
+    );
+    assert_eq!(
+        c_header_options(&report_argv(&["--function", "--emit-header"])).unwrap_err(),
+        2
+    );
+    assert_eq!(
+        c_header_options(&report_argv(&[
+            "--function",
+            "a",
+            "--max-bytes",
+            "--emit-header"
+        ]))
+        .unwrap_err(),
+        2
+    );
+}
+
+#[test]
+fn closed_vocabulary_and_numeric_grammars_refuse_a_following_flag_unfiltered() {
+    // These options carry no leading-dash filter and need none: a flag name is
+    // neither a registry template id, a direction name, nor a canonical
+    // integer, so each value grammar already fails closed on exit status 2
+    // with a diagnostic more precise than "requires a value".
+    assert_eq!(
+        hygienic_options(&report_argv(&["--templates", "--max-bytes"])).unwrap_err(),
+        2
+    );
+    assert_eq!(
+        hygienic_options(&report_argv(&["--max-bytes", "--templates"])).unwrap_err(),
+        2
+    );
+    assert_eq!(
+        workspace_context_options(&workspace_argv(&["--direction", "--depth"])).unwrap_err(),
+        2
+    );
+    assert_eq!(
+        workspace_impact_options(&workspace_argv(&["--depth", "--max-bytes"])).unwrap_err(),
+        2
+    );
+    assert_eq!(
+        openapi_compat_options(&argv(&[
+            "openapi-compat",
+            "baseline.json",
+            "module.spx",
+            "--max-bytes",
+            "--max-bytes",
+        ]))
+        .unwrap_err(),
         2
     );
 }

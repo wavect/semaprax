@@ -21,8 +21,8 @@ pub(crate) fn hint_missing_manifest(
     errors: Vec<Diagnostic>,
     manifest_path: &Path,
 ) -> Vec<Diagnostic> {
-    let is_default_manifest = manifest_path.file_name().and_then(|name| name.to_str()) == Some(DEFAULT_MANIFEST)
-        && {
+    let is_default_manifest =
+        manifest_path.file_name().and_then(|name| name.to_str()) == Some(DEFAULT_MANIFEST) && {
             // Bare `semaprax.toml` (relative) or absolute `…/semaprax.toml` where parent is current_dir
             if manifest_path == Path::new(DEFAULT_MANIFEST) {
                 true

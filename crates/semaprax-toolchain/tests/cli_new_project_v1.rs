@@ -123,16 +123,24 @@ fn calculator_template_has_exact_deterministic_bytes() {
             "README.md",
             "semaprax.toml",
             "src/app.spx",
+            "src/core.spx",
             "src/tests.spx"
         ]
     );
     assert_eq!(parent_names(&fixture.root), ["first", "second"]);
     assert!(String::from_utf8(first["semaprax.toml"].clone())
         .unwrap()
-        .contains("name = \"demo-project\"\nentry = \"demo_project.app\""));
+        .contains("[modules]\nentry = \"demo_project.app\""));
+    assert!(String::from_utf8(first["src/app.spx"].clone())
+        .unwrap()
+        .contains("use function @id(\"demo-project.add\") from demo_project.core as add;"));
 
-    let scaffold =
-        semaprax::project::derive_project_scaffold_v1("demo-project", "calculator").unwrap();
+    let scaffold = semaprax::project::derive_project_scaffold_v1_with_layout(
+        "demo-project",
+        "calculator",
+        semaprax::project::ScaffoldLayout::Tables,
+    )
+    .unwrap();
     assert_eq!(
         scaffold
             .files()
@@ -166,7 +174,12 @@ fn library_template_has_exact_bytes_and_passes_the_developer_loop() {
             "src/tests.spx"
         ]
     );
-    let scaffold = semaprax::project::derive_project_scaffold_v1("demo-lib", "library").unwrap();
+    let scaffold = semaprax::project::derive_project_scaffold_v1_with_layout(
+        "demo-lib",
+        "library",
+        semaprax::project::ScaffoldLayout::Tables,
+    )
+    .unwrap();
     assert_eq!(
         scaffold
             .files()
@@ -422,6 +435,7 @@ fn stage_substitution_cannot_receive_writes_or_be_published() {
 fn unexpected_template_entries_are_rejected_without_filesystem_authority() {
     assert!(new_project::validate_template_inventory(
         "calculator",
+        semaprax::project::ScaffoldLayout::Frozen,
         &[
             "README.md",
             "AGENTS.md",
@@ -433,6 +447,7 @@ fn unexpected_template_entries_are_rejected_without_filesystem_authority() {
     .is_ok());
     assert!(new_project::validate_template_inventory(
         "library",
+        semaprax::project::ScaffoldLayout::Frozen,
         &[
             "README.md",
             "AGENTS.md",
@@ -445,11 +460,13 @@ fn unexpected_template_entries_are_rejected_without_filesystem_authority() {
     .is_ok());
     assert!(new_project::validate_template_inventory(
         "calculator",
+        semaprax::project::ScaffoldLayout::Frozen,
         &["README.md", "semaprax.toml", "src/app.spx", "src/tests.spx",]
     )
     .is_err());
     assert!(new_project::validate_template_inventory(
         "calculator",
+        semaprax::project::ScaffoldLayout::Frozen,
         &[
             "README.md",
             "AGENTS.md",
@@ -462,6 +479,7 @@ fn unexpected_template_entries_are_rejected_without_filesystem_authority() {
     .is_err());
     assert!(new_project::validate_template_inventory(
         "calculator",
+        semaprax::project::ScaffoldLayout::Frozen,
         &["README.md", "semaprax.toml", "src/app.spx", "../outside",]
     )
     .is_err());

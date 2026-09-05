@@ -12,24 +12,25 @@ built-in calculator and library templates. Tag archives expose that full CLI as 
 the standalone registry compiler does not gain private-host dependencies.
 See the [quickstart](QUICKSTART.md) for the user workflow and
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) for checked project semantics.
-The separate [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
-derives and replays the same template bytes without a destination or write
+The [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md) derives and
+replays the same template bytes without a destination or write
 authority; it does not replace this held-parent publication protocol. The
 standalone compiler's `new`, owned by [standalone project creation
 v1](NEW-PROJECT-STANDALONE-V1.md), writes the same bytes through a bounded
 create-new route without this protocol's staging or identity re-verification.
 
-This protocol changes publication verification, not the command grammar,
-Project schema, source semantics, or successful file bytes. The existing
+The publication protocol does not change the command grammar, lowered Project
+schema, or source semantics. The existing
 `--name` and closed `--template calculator|library` choices are admitted. The
 authority holds one of two exact fixed-arity source inventories selected
 before staging. The exact generated inventories are those of [Public Project
-Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md):
+Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md):
 
 - `README.md`
 - `AGENTS.md`
 - `semaprax.toml`
 - `src/app.spx`
+- `src/core.spx`
 - `src/tests.spx`
 
 or the same three root files plus:
@@ -38,8 +39,9 @@ or the same three root files plus:
 - `src/lib.spx`
 - `src/tests.spx`
 
-(`AGENTS.md` was added by scaffold v2; the root inventory the held-parent
-authority authenticates and publishes grew from two files to three.)
+(`AGENTS.md` was added by scaffold v2; scaffold v3 keeps the three-file root
+inventory and grows the calculator's held source inventory from two files to
+three.)
 
 There is no template discovery, arbitrary template input, network access,
 dependency installation, Git initialization, recursive cleanup API, general

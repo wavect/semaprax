@@ -19,7 +19,7 @@ use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 
 use super::MANIFEST_FILE;
-use super::{derive_project_scaffold_v1, with_authenticated_project};
+use super::{derive_project_scaffold_v1_with_layout, with_authenticated_project, ScaffoldLayout};
 
 /// Why standalone project creation stopped. Every variant maps to exit status
 /// one at the CLI; invocation errors are rejected before this is reached.
@@ -54,7 +54,8 @@ pub fn create_project(
     name: &str,
     template: &str,
 ) -> Result<PathBuf, CreateProjectError> {
-    let scaffold = derive_project_scaffold_v1(name, template).map_err(|diagnostics| {
+    let scaffold = derive_project_scaffold_v1_with_layout(name, template, ScaffoldLayout::Tables)
+        .map_err(|diagnostics| {
         CreateProjectError::new(format!(
             "cannot derive the {template} template: {}",
             diagnostics

@@ -13,10 +13,9 @@
 //! differing line, so agents get a byte-precise fix instead of a shape error.
 
 use super::{
-    capacity, grammar, valid_semver, ProjectManifest, MAX_VERSION_BYTES, PROJECT_SCHEMA,
-    PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
-    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
-    PROJECT_SCHEMA_V9,
+    valid_semver, ProjectManifest, MAX_VERSION_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
+    PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
+    PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
 use crate::diagnostic::Diagnostic;
 use crate::package_range;
@@ -65,6 +64,7 @@ const CODE_UNADMITTED: &str = "SPX-J120";
 const CODE_TARGET_OUTSIDE_MATRIX: &str = "SPX-J122";
 const LABEL: &str = "Package Manifest v1";
 const MAX_RANGE_BYTES: usize = 33;
+const SCAFFOLD_HELP: &str = "start from `semaprax new <destination>` or render a canonical template with `semaprax project-scaffold --name <name> --layout tables`";
 
 /// Which source layout a manifest was parsed from. The frozen layouts and the
 /// table layout lower to the same profile contract and differ only in bytes.
@@ -179,6 +179,11 @@ pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>> {
         table.entries.push((key, value));
     }
 
+    let structural = structural_diagnostics(&tables);
+    if !structural.is_empty() {
+        return Err(structural);
+    }
+
     let mut package = require_table(&tables, "package")?;
     let name = package.text("name")?;
     let version = package.text("version")?;
@@ -261,6 +266,264 @@ pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>> {
         dependencies,
         target_matrix,
     })
+}
+
+fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+    for (table, keys) in [
+        ("package", &["name", "version"][..]),
+        ("modules", &["entry", "sources", "tests"][..]),
+        ("exports", &["web"][..]),
+    ] {
+        let Some(found) = tables.iter().find(|candidate| candidate.name == table) else {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} requires a `[{table}]` table"
+            )));
+            continue;
+        };
+        for key in keys {
+            if !found.entries.iter().any(|(candidate, _)| candidate == key) {
+                diagnostics.push(scaffold_diagnostic(format!(
+                    "{LABEL} table `[{table}]` requires `{key}`"
+                )));
+            }
+        }
+    }
+
+    let profile = table_text(tables, "package", "profile").unwrap_or("scalar");
+    if profile != "scalar" && profile_by_name(profile).is_none() {
+        diagnostics.push(scaffold_diagnostic(format!(
+            "{LABEL} `[package] profile` `{profile}` is not an admitted profile"
+        )));
+    }
+    if let Some(name) = table_text(tables, "package", "name") {
+        if !super::valid_name(name) {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} name must match lowercase [a-z][a-z0-9-]* and contain 1..=64 bytes"
+            )));
+        }
+    }
+    if let Some(version) = table_text(tables, "package", "version") {
+        if !valid_semver(version) {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} `[package] version` must be canonical Semantic Versioning text of at most {MAX_VERSION_BYTES} bytes"
+            )));
+        }
+    }
+    if let Some(entry) = table_text(tables, "modules", "entry") {
+        if !super::valid_module(entry) {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} entry is not a bounded module name"
+            )));
+        }
+    }
+
+    let command_profile = matches!(
+        profile,
+        PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1
+            | PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2
+            | PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1
+            | PROJECT_PROFILE_LINE_COMMAND_IO_V1
+    );
+    if command_profile {
+        if let Some(command) = tables.iter().find(|table| table.name == "command") {
+            if !command.entries.iter().any(|(key, _)| *key == "function") {
+                diagnostics.push(scaffold_diagnostic(format!(
+                    "{LABEL} table `[command]` requires `function`"
+                )));
+            }
+        } else {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} profile `{profile}` requires a `[command]` table with `function`"
+            )));
+        }
+        if let Some(capabilities) = tables.iter().find(|table| table.name == "capabilities") {
+            if !capabilities
+                .entries
+                .iter()
+                .any(|(key, _)| *key == "required")
+            {
+                diagnostics.push(scaffold_diagnostic(format!(
+                    "{LABEL} table `[capabilities]` requires `required`"
+                )));
+            }
+        } else {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} profile `{profile}` requires a `[capabilities]` table with `required`"
+            )));
+        }
+        let expected_input = match profile {
+            PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2 => Some(PROJECT_COMMAND_INPUT_V1),
+            PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1 | PROJECT_PROFILE_LINE_COMMAND_IO_V1 => {
+                Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1)
+            }
+            _ => None,
+        };
+        let input = table_text(tables, "command", "input");
+        if input != expected_input {
+            diagnostics.push(scaffold_diagnostic(match expected_input {
+                Some(expected) => format!(
+                    "{LABEL} profile `{profile}` requires `[command] input = \"{expected}\"`"
+                ),
+                None => format!("{LABEL} profile `{profile}` does not admit `[command] input`"),
+            }));
+        }
+        let expected_capabilities: &[&str] = if profile == PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1 {
+            &[PROJECT_COMMAND_STDOUT_CAPABILITY]
+        } else {
+            &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2
+        };
+        if let Some(required) = table_list(tables, "capabilities", "required") {
+            if !required
+                .iter()
+                .map(String::as_str)
+                .eq(expected_capabilities.iter().copied())
+            {
+                diagnostics.push(scaffold_diagnostic(format!(
+                    "{LABEL} profile `{profile}` requires `[capabilities] required = {}`",
+                    super::render_array(
+                        &expected_capabilities
+                            .iter()
+                            .map(|capability| (*capability).to_owned())
+                            .collect::<Vec<_>>()
+                    )
+                )));
+            }
+        }
+    } else {
+        if tables.iter().any(|table| table.name == "command") {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} profile `{profile}` does not admit a `[command]` table"
+            )));
+        }
+        if tables.iter().any(|table| table.name == "capabilities") {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} profile `{profile}` does not admit a `[capabilities]` table"
+            )));
+        }
+    }
+
+    if let Some(sources) = table_list(tables, "modules", "sources") {
+        if !(2..=super::MAX_SOURCES).contains(&sources.len()) {
+            diagnostics.push(if sources.len() > super::MAX_SOURCES {
+                capacity("sources", super::MAX_SOURCES).remove(0)
+            } else {
+                scaffold_diagnostic(format!("{LABEL} requires 2..=16 explicit source paths"))
+            });
+        }
+        if !sources.windows(2).all(|pair| pair[0] < pair[1]) {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} source paths must be strictly byte-sorted and unique"
+            )));
+        }
+        if sources.iter().any(|path| {
+            path.len() > super::MAX_PATH_BYTES
+                || !path.ends_with(".spx")
+                || !crate::workspace::evidence_path_is_valid(path)
+        }) {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} source paths must be canonical relative .spx paths of at most 240 bytes"
+            )));
+        }
+    }
+    if let Some(exports) = table_list(tables, "exports", "web") {
+        if !(1..=super::MAX_WEB_EXPORTS).contains(&exports.len()) {
+            diagnostics.push(if exports.len() > super::MAX_WEB_EXPORTS {
+                capacity("web_exports", super::MAX_WEB_EXPORTS).remove(0)
+            } else {
+                scaffold_diagnostic(format!(
+                    "{LABEL} requires 1..=32 explicit web export identities"
+                ))
+            });
+        }
+        if !exports.windows(2).all(|pair| pair[0] < pair[1]) {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} web export identities must be strictly byte-sorted and unique"
+            )));
+        }
+        if exports.iter().any(|id| !super::valid_stable_id(id)) {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} web exports must use bounded lowercase [a-z0-9._-] stable IDs"
+            )));
+        }
+        if let Some(command) = table_text(tables, "command", "function") {
+            if exports.len() != 1 || exports.first().map(String::as_str) != Some(command) {
+                diagnostics.push(scaffold_diagnostic(format!(
+                    "{LABEL} web_exports must contain exactly the command stable ID"
+                )));
+            }
+        }
+    }
+    if let Some(tests) = table_list(tables, "modules", "tests") {
+        if tests.len() != 1 || !tests.first().is_some_and(|name| super::valid_module(name)) {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} tests must contain exactly one bounded module name"
+            )));
+        }
+        if tests.len() == 1
+            && table_text(tables, "modules", "entry") == tests.first().map(String::as_str)
+        {
+            diagnostics.push(scaffold_diagnostic(format!(
+                "{LABEL} entry and test modules must be distinct"
+            )));
+        }
+    }
+
+    for table in tables {
+        let admitted: &[&str] = match table.name {
+            "package" => &["name", "version", "profile"],
+            "modules" => &["entry", "sources", "tests"],
+            "exports" => &["web"],
+            "command" => &["function", "input"],
+            "capabilities" => &["required"],
+            "dependencies" => continue,
+            "targets" => &["matrix"],
+            _ => continue,
+        };
+        for (key, _) in &table.entries {
+            if admitted.contains(key) {
+                continue;
+            }
+            let message = if table.name == "package" && PACKAGE_RESERVED_KEYS.contains(key) {
+                format!(
+                    "key `[package] {key}` is reserved for an additive {LABEL} revision and is not admitted by this toolchain"
+                )
+            } else {
+                format!(
+                    "{LABEL} table `[{}]` does not admit key `{key}`",
+                    table.name
+                )
+            };
+            diagnostics.push(Diagnostic::io(CODE_UNADMITTED, message).with_help(SCAFFOLD_HELP));
+        }
+    }
+    diagnostics
+}
+
+fn table_text<'a>(tables: &'a [Table<'a>], table: &str, key: &str) -> Option<&'a str> {
+    let (_, value) = tables
+        .iter()
+        .find(|candidate| candidate.name == table)?
+        .entries
+        .iter()
+        .find(|(candidate, _)| *candidate == key)?;
+    match value {
+        Value::Text(value) => Some(value),
+        Value::List(_) => None,
+    }
+}
+
+fn table_list<'a>(tables: &'a [Table<'a>], table: &str, key: &str) -> Option<&'a [String]> {
+    let (_, value) = tables
+        .iter()
+        .find(|candidate| candidate.name == table)?
+        .entries
+        .iter()
+        .find(|(candidate, _)| *candidate == key)?;
+    match value {
+        Value::List(values) => Some(values),
+        Value::Text(_) => None,
+    }
 }
 
 /// Check the profile-specific rules the frozen schemas encode positionally and
@@ -492,7 +755,7 @@ pub(super) fn canonical_mismatch(source: &str, canonical: &str) -> Vec<Diagnosti
         format!("{LABEL} manifest is not canonical"),
     )
     .with_help(format!(
-        "{help}; tables follow the order {}, keys follow the specification order, arrays are one line with `, ` separators, and blocks are separated by one blank line",
+        "{help}; tables follow the order {}, keys follow the specification order, arrays are one line with `, ` separators, and blocks are separated by one blank line; {SCAFFOLD_HELP}",
         PACKAGE_MANIFEST_TABLES
             .iter()
             .map(|table| format!("`[{table}]`"))
@@ -725,6 +988,21 @@ fn profile_by_name(name: &str) -> Option<ProjectProfile> {
     })
 }
 
+fn scaffold_diagnostic(message: String) -> Diagnostic {
+    Diagnostic::io("SPX-J100", message).with_help(SCAFFOLD_HELP)
+}
+
+fn grammar(message: impl Into<String>) -> Vec<Diagnostic> {
+    vec![scaffold_diagnostic(message.into())]
+}
+
+fn capacity(field: &str, limit: usize) -> Vec<Diagnostic> {
+    vec![
+        Diagnostic::io("SPX-J101", format!("Project v1 `{field}` exceeds {limit}"))
+            .with_help(SCAFFOLD_HELP),
+    ]
+}
+
 fn unadmitted(message: String) -> Vec<Diagnostic> {
-    vec![Diagnostic::io(CODE_UNADMITTED, message)]
+    vec![Diagnostic::io(CODE_UNADMITTED, message).with_help(SCAFFOLD_HELP)]
 }

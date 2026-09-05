@@ -252,9 +252,13 @@ fn profile_rules_reject_missing_or_foreign_command_facts() {
         "required = [\"process.stdout.write\"]",
         "required = [\"process.stdin.read\"]",
     );
-    assert!(reject(&wrong_capabilities)[0]
-        .message
-        .contains("requires `[capabilities] required = [\"process.stdout.write\"]`"));
+    let wrong_capability_errors = reject(&wrong_capabilities);
+    assert!(
+        wrong_capability_errors.iter().any(|diagnostic| diagnostic
+            .message
+            .contains("requires `[capabilities] required = [\"process.stdout.write\"]`")),
+        "{wrong_capability_errors:?}"
+    );
     let with_input = v4.replace(
         "function = \"demo.run\"\n",
         "function = \"demo.run\"\ninput = \"stdin-bytes+one-utf8-arg.v1\"\n",
@@ -275,6 +279,40 @@ fn profile_rules_reject_missing_or_foreign_command_facts() {
     assert!(reject(&unknown_profile)[0]
         .message
         .contains("`owned-data-api.v9` is not an admitted profile"));
+}
+
+#[test]
+fn independent_manifest_structure_errors_arrive_together_with_scaffold_help() {
+    let source = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"demo\"\nversion = \"0.1.0\"\nprofile = \"useful-data-command.v1\"\n\n[modules]\nentry = \"demo.app\"\nsources = [\"src/app.spx\"]\ntests = []\n\n[exports]\nweb = []\n";
+    let errors = reject(source);
+    assert_eq!(codes(&errors), ["SPX-J100"; 5]);
+    let messages = errors
+        .iter()
+        .map(|diagnostic| diagnostic.message.as_str())
+        .collect::<Vec<_>>();
+    assert!(messages
+        .iter()
+        .any(|message| message.contains("requires a `[command]` table")));
+    assert!(messages
+        .iter()
+        .any(|message| message.contains("requires a `[capabilities]` table")));
+    assert!(messages
+        .iter()
+        .any(|message| message.contains("requires 2..=16 explicit source paths")));
+    assert!(messages
+        .iter()
+        .any(|message| message.contains("requires 1..=32 explicit web export identities")));
+    assert!(messages
+        .iter()
+        .any(|message| message.contains("tests must contain exactly one bounded module name")));
+    for diagnostic in errors {
+        let help = diagnostic.help.unwrap();
+        assert!(help.contains("semaprax new <destination>"), "{help}");
+        assert!(
+            help.contains("project-scaffold --name <name> --layout tables"),
+            "{help}"
+        );
+    }
 }
 
 #[test]

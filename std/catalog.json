@@ -161,8 +161,10 @@
           "requires": 1
         }
       ],
+      "dependency": "std.bytes = \"^0.1.0\"",
       "module": "std.bytes",
       "package": "std/bytes",
+      "required_profile": "useful-data.v1",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -324,8 +326,10 @@
           "requires": 0
         }
       ],
+      "dependency": "std.core = \"^0.1.0\"",
       "module": "std.core",
       "package": "std/core",
+      "required_profile": "scalar",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -372,8 +376,10 @@
           "requires": 0
         }
       ],
+      "dependency": "std.data.csv = \"^0.1.0\"",
       "module": "std.data.csv",
       "package": "std/data-csv",
+      "required_profile": "useful-data.v1",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -430,8 +436,10 @@
           "requires": 0
         }
       ],
+      "dependency": "std.data.toml = \"^0.1.0\"",
       "module": "std.data.toml",
       "package": "std/data-toml",
+      "required_profile": "useful-data.v1",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -566,8 +574,10 @@
           "requires": 0
         }
       ],
+      "dependency": "std.encoding = \"^0.1.0\"",
       "module": "std.encoding",
       "package": "std/encoding",
+      "required_profile": "scalar",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -771,8 +781,10 @@
           "requires": 1
         }
       ],
+      "dependency": "std.num = \"^0.1.0\"",
       "module": "std.num",
       "package": "std/num",
+      "required_profile": "scalar",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -918,8 +930,10 @@
           "requires": 0
         }
       ],
+      "dependency": "std.num.overflow = \"^0.1.0\"",
       "module": "std.num.overflow",
       "package": "std/num-overflow",
+      "required_profile": "scalar",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -1001,8 +1015,10 @@
           "requires": 0
         }
       ],
+      "dependency": "std.path = \"^0.1.0\"",
       "module": "std.path",
       "package": "std/path",
+      "required_profile": "useful-data.v1",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -1067,8 +1083,10 @@
           "requires": 2
         }
       ],
+      "dependency": "std.random = \"^0.1.0\"",
       "module": "std.random",
       "package": "std/random",
+      "required_profile": "scalar",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -1141,8 +1159,10 @@
           "requires": 1
         }
       ],
+      "dependency": "std.test = \"^0.1.0\"",
       "module": "std.test",
       "package": "std/test",
+      "required_profile": "scalar",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -1209,8 +1229,10 @@
           "requires": 0
         }
       ],
+      "dependency": "std.text = \"^0.1.0\"",
       "module": "std.text",
       "package": "std/text",
+      "required_profile": "useful-text-consumer.v1",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -1327,8 +1349,10 @@
           "requires": 1
         }
       ],
+      "dependency": "std.time = \"^0.1.0\"",
       "module": "std.time",
       "package": "std/time",
+      "required_profile": "scalar",
       "status": "partial",
       "targets": [
         "interpreter",
@@ -1396,8 +1420,10 @@
           "requires": 0
         }
       ],
+      "dependency": "std.url = \"^0.1.0\"",
       "module": "std.url",
       "package": "std/url",
+      "required_profile": "scalar",
       "status": "partial",
       "targets": [
         "interpreter",

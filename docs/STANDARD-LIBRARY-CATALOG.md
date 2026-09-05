@@ -6,9 +6,11 @@ Audience: agents and humans choosing a standard-library declaration.
 
 Every declaration below is verified, canonical, and executed by its package's conformance module on the interpreter, native C11, and Core Wasm lanes. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract; `std/catalog.json` is the same catalog for tools.
 
+Consume a package from an installed compiler by adding its dependency line to the extensible manifest, then importing the selected stable identity: `[dependencies] std.num = "^0.1.0"` and `use function @id("std.num.abs") from std.num as abs;`. Set `[package] profile` to the package's required profile below; `scalar` means omit the profile key. The compiler supplies the closed bundled package without a source checkout, cache, or network access.
+
 ## `std.bytes`
 
-Package `std/bytes`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/bytes`, tier `core`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.bytes = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.bytes.byte_to_i64`
 
@@ -105,7 +107,7 @@ fn read_u32_be(view: borrow Slice<u8>, offset: usize) -> i64
 
 ## `std.core`
 
-Package `std/core`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/core`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.core = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.core.ordering.less`
 
@@ -199,7 +201,7 @@ fn implies(premise: bool, conclusion: bool) -> bool
 
 ## `std.data.csv`
 
-Package `std/data-csv`, tier `portable`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/data-csv`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.csv = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.data.csv.field_count`
 
@@ -223,7 +225,7 @@ fn is_well_formed_record(record: borrow Slice<u8>) -> bool
 
 ## `std.data.toml`
 
-Package `std/data-toml`, tier `portable`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/data-toml`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.toml = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.data.toml.is_bare_key`
 
@@ -252,7 +254,7 @@ fn assignment_index(line: borrow Slice<u8>) -> i64
 
 ## `std.encoding`
 
-Package `std/encoding`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/encoding`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.encoding = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.encoding.byte_value`
 
@@ -329,7 +331,7 @@ fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64
 
 ## `std.num`
 
-Package `std/num`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/num`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.num = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.num.i64_min`
 
@@ -450,7 +452,7 @@ fn log10_floor(value: i64) -> i64
 
 ## `std.num.overflow`
 
-Package `std/num-overflow`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/num-overflow`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.num.overflow = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.num.overflow.add_overflows`
 
@@ -528,7 +530,7 @@ fn saturating_mul(left: i64, right: i64) -> i64
 
 ## `std.path`
 
-Package `std/path`, tier `portable`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/path`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.path = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.path.is_absolute`
 
@@ -572,7 +574,7 @@ fn extension_start(path: borrow Slice<u8>) -> usize
 
 ## `std.random`
 
-Package `std/random`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/random`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.random = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.random.normalize_seed`
 
@@ -609,7 +611,7 @@ fn sample_below(seed: i64, upper: i64) -> i64
 
 ## `std.test`
 
-Package `std/test`, tier `test`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/test`, tier `test`, status partial. Required project profile: `scalar`. Dependency: `std.test = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.test.equal_i64`
 
@@ -649,7 +651,7 @@ fn failure_bit_unless(condition: bool, failure_bit: i64) -> i64
 
 ## `std.text`
 
-Package `std/text`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/text`, tier `core`, status partial. Required project profile: `useful-text-consumer.v1`. Dependency: `std.text = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.text.byte_len`
 
@@ -683,7 +685,7 @@ fn starts_with(value: borrow str, prefix: borrow str) -> bool
 
 ## `std.time`
 
-Package `std/time`, tier `core`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/time`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.time = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.time.milliseconds`
 
@@ -752,7 +754,7 @@ fn saturating_add_milliseconds(left: i64, right: i64) -> i64
 
 ## `std.url`
 
-Package `std/url`, tier `portable`, status partial. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/url`, tier `portable`, status partial. Required project profile: `scalar`. Dependency: `std.url = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
 
 ### `std.url.is_scheme_start`
 

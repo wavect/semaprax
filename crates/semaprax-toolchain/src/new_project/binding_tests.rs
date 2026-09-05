@@ -75,7 +75,7 @@ fn staging_collision_is_skipped_before_any_final_path_creation() {
                 assert!(names(&root).is_empty());
             } else {
                 assert_eq!(result.unwrap(), destination);
-                assert_eq!(hook.writes.get(), 5);
+                assert_eq!(hook.writes.get(), 6);
                 assert_eq!(names(&root), [leaf]);
                 remove_project(&destination);
             }
@@ -148,7 +148,10 @@ fn assert_project(path: &Path) {
         names(path),
         ["AGENTS.md", "README.md", "semaprax.toml", "src"]
     );
-    assert_eq!(names(&path.join("src")), ["app.spx", "tests.spx"]);
+    assert_eq!(
+        names(&path.join("src")),
+        ["app.spx", "core.spx", "tests.spx"]
+    );
     for file in templates::render("calculator") {
         let metadata = fs::symlink_metadata(path.join(file.path)).unwrap();
         assert!(metadata.is_file() && !metadata.file_type().is_symlink());

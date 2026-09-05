@@ -559,16 +559,21 @@ tests = ["calculator.tests"]
 
 [exports]
 web = ["calculator.add"]
+
+[dependencies]
+std.num = "^0.1.0"
 ```
 
 The bytes must be canonical: tables in that order, one blank line between
 them, arrays on one line, no comments. A non-canonical manifest fails with
 `SPX-J100` and a `help` line naming the first differing line (for the frozen
 one-line-per-key layout, the six lines in order); an unknown or reserved table
-or key fails with `SPX-J120`. `[package] profile` selects a command or
-owned-data profile, `[dependencies]` is admitted but fails every build closed
-with `SPX-J121` until resolution exists, and `[targets] matrix = ["wasm32"]`
-rejects native builds with `SPX-J122`.
+or key fails with `SPX-J120`. `[package] profile` selects the admitted consumer
+profile. `[dependencies]` links packages from the compiler's closed bundled
+`std.*` inventory at version `0.1.0`; unknown packages and unsatisfied ranges
+fail with `SPX-J121`, while ordinary non-bundled packages still require the
+separate resolution route. `[targets] matrix = ["wasm32"]` rejects native
+builds with `SPX-J122`.
 
 Modules import by stable identity, not by path:
 `use function @id("calculator.add") from calculator.core as add;` directly
@@ -587,9 +592,10 @@ reports the function, the clause, and the argument values (`contract: requires
 right != 0 in calculator.divide` / `arguments: left = 1, right = 0`).
 [Project Test Cases v1](PROJECT-TEST-CASES-V1.md) owns both.
 The [standard library catalog](STANDARD-LIBRARY-CATALOG.md), printed offline
-by `semaprax help library`, lists every `std.*` function with its contract; to use one, copy its package's library
-file from `std/` into `src/`, list it in `sources`, and import the function by
-its `@id` as above.
+by `semaprax help library`, lists every `std.*` function with its contract,
+required project profile, and exact `[dependencies]` route. Add the dependency
+to the table manifest and import the function by its `@id` as above; an
+installed compiler supplies the bundled package without a repository checkout.
 [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns the table layout,
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) the frozen one,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is

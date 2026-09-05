@@ -28,6 +28,7 @@ pub const PROJECT_SCAFFOLD_TEMPLATES: [&str; 2] = [
     PROJECT_SCAFFOLD_TEMPLATE_LIBRARY,
 ];
 pub const PROJECT_SCAFFOLD_FILE_COUNT: usize = 5;
+pub const PROJECT_SCAFFOLD_TABLES_FILE_COUNT: usize = 6;
 pub const PROJECT_SCAFFOLD_LIBRARY_FILE_COUNT: usize = 6;
 pub const MAX_PROJECT_SCAFFOLD_NAME_BYTES: usize = 64;
 pub const MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES: usize = 65_536;
@@ -37,6 +38,14 @@ pub const PROJECT_SCAFFOLD_INVENTORY: [&str; PROJECT_SCAFFOLD_FILE_COUNT] = [
     "AGENTS.md",
     "semaprax.toml",
     "src/app.spx",
+    "src/tests.spx",
+];
+pub const PROJECT_SCAFFOLD_TABLES_INVENTORY: [&str; PROJECT_SCAFFOLD_TABLES_FILE_COUNT] = [
+    "README.md",
+    "AGENTS.md",
+    "semaprax.toml",
+    "src/app.spx",
+    "src/core.spx",
     "src/tests.spx",
 ];
 /// The library template mirrors a standard-library package: one library
@@ -60,6 +69,21 @@ pub fn project_scaffold_inventory(template: &str) -> &'static [&'static str] {
     }
 }
 
+/// The exact inventory for one template and manifest layout.
+#[must_use]
+pub fn project_scaffold_inventory_with_layout(
+    template: &str,
+    layout: ScaffoldLayout,
+) -> &'static [&'static str] {
+    if template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
+        &PROJECT_SCAFFOLD_LIBRARY_INVENTORY
+    } else if layout == ScaffoldLayout::Tables {
+        &PROJECT_SCAFFOLD_TABLES_INVENTORY
+    } else {
+        &PROJECT_SCAFFOLD_INVENTORY
+    }
+}
+
 const DIGEST_DOMAIN: &[u8] = b"semaprax.project-scaffold.digest.v2\0";
 const DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-scaffold.digest.v3\0";
 
@@ -67,7 +91,8 @@ const DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-scaffold.digest.v3\0";
 /// `semaprax.project.v1` line layout under capsule schema v2 (byte-identical to
 /// the shipped default); `Tables` is the extensible `semaprax.manifest.v1`
 /// table layout under capsule schema v3. Both lower to the same Project v1
-/// contract, so only the manifest file bytes and the capsule schema differ.
+/// contract. The calculator table layout also demonstrates a stable-ID import
+/// from a separate `core` module; the frozen v2 inventory remains unchanged.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScaffoldLayout {
     Frozen,
@@ -102,8 +127,10 @@ const README: &str = "# {{name}}\n\nA small calculator project created by SEMAPR
 const AGENTS: &str = "# Agent guide for {{name}}\n\nThis is a SEMAPRAX project. `semaprax.toml` lists its modules; the compiler\nis the authority on what the language admits. Read `semaprax help language`\nbefore writing source.\n\n## Commands\n\n- `semaprax check .` parses, resolves, type-checks, and verifies every module.\n- `semaprax test .` runs `{{module}}.tests`; `semaprax run .` runs the entry and prints its `i64`.\n- `semaprax fmt <file>` rewrites one file in canonical form.\n- `semaprax build . --target web -o dist/web` emits a browser package.\n- `semaprax help <command>` prints one command's exact grammar.\n\n## Rules that differ from other languages\n\n- Every file starts with `module dotted.name;`, and every declaration carries\n  `@id(\"...\")`. The id is the stable identity: rename freely, never change an id.\n- A function body is statements followed by exactly one tail expression. There\n  is no `return`, `for`, `else if`, tuple, or unit value.\n- `if` always has `else`; a `while` body ends with the bool that decides\n  whether to loop again.\n- Contracts are `requires` and `ensures` lines; effects are `permit` at module\n  level plus `uses` on every function that performs or calls into one.\n- Check the whole project, not one file: modules import each other, so a\n  single file reports `SPX-G172` or `SPX-T105`.\n- A new module must be listed in `sources` in `semaprax.toml`, and a test\n  module in `tests`.\n- Tests live in the `tests` module: `fn main() -> i64` returns 0 on success, and\n  every `fn test_<name>() -> i64` with an `@id` runs as a named case that\n  `semaprax test .` reports on failure.\n- Diagnostics carry stable `SPX-` codes and, where the compiler knows the fix,\n  a `help:` line. `semaprax check . --json` prints one diagnostic per line.\n";
 const PROJECT_BOUNDARY_GUIDE: &str = "\n## Project v1 function boundaries\n\nFunction parameters and results are Copy scalars. Records, classes, variants,\n`Option`, and `Result` may stay inside scalar-signature functions but cannot\ncross their boundaries; `SPX-G174` points at a declaration that must change.\n";
 const MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.add\"]\ntests = [\"{{module}}.tests\"]\n";
-const MANIFEST_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{name}}.add\"]\n";
+const MANIFEST_TABLES: &str = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"{{name}}\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"{{module}}.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\ntests = [\"{{module}}.tests\"]\n\n[exports]\nweb = [\"{{name}}.add\"]\n";
 const APP: &str = "module {{module}}.app;\n\n@id(\"{{name}}.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
+const APP_TABLES: &str = "module {{module}}.app;\nuse function @id(\"{{name}}.add\") from {{module}}.core as add;\n\n@id(\"{{name}}.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n";
+const CORE: &str = "module {{module}}.core;\n\n@id(\"{{name}}.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n";
 const TESTS: &str = "module {{module}}.tests;\n\n@id(\"{{name}}.tests.main\")\nfn main() -> i64\n{\n    if 19 + 23 == 42 { 0 } else { 1 }\n}\n";
 const LIBRARY_README: &str = "# {{name}}\n\nA library package created by SEMAPRAX. `src/lib.spx` holds the public functions with their contracts, `src/examples.spx` is the entry that shows how to call them, and `src/tests.spx` is the conformance suite; both return `0` on success.\n\n```sh\nsemaprax check .\nsemaprax test .\nsemaprax run .\n```\n\nRead `AGENTS.md` before editing the source, whether you are a person or a\ncoding agent: it lists the commands and the rules that differ from other\nlanguages.\n";
 const LIBRARY_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"{{name}}\"\nentry = \"{{module}}.examples\"\nsources = [\"src/examples.spx\", \"src/lib.spx\", \"src/tests.spx\"]\nweb_exports = [\"{{name}}.twice\"]\ntests = [\"{{module}}.tests\"]\n";
@@ -204,9 +231,10 @@ pub fn derive_project_scaffold_v1(
 }
 
 /// Derive a scaffold in the chosen manifest layout. `Frozen` is byte-identical
-/// to [`derive_project_scaffold_v1`]; `Tables` swaps only the manifest file for
-/// the extensible `semaprax.manifest.v1` layout and renders under capsule
-/// schema v3. Both lower to the same Project v1 contract.
+/// to [`derive_project_scaffold_v1`]; `Tables` uses the extensible
+/// `semaprax.manifest.v1` layout and renders under capsule schema v3. Its
+/// calculator also demonstrates a cross-module stable-ID import. Both lower
+/// to the same Project v1 contract.
 pub fn derive_project_scaffold_v1_with_layout(
     project_name: &str,
     template: &str,
@@ -221,19 +249,21 @@ pub fn derive_project_scaffold_v1_with_layout(
         (false, ScaffoldLayout::Frozen) => MANIFEST,
         (false, ScaffoldLayout::Tables) => MANIFEST_TABLES,
     };
-    let sources: Vec<&str> = if template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY {
-        vec![
+    let sources: Vec<&str> = match (template == PROJECT_SCAFFOLD_TEMPLATE_LIBRARY, layout) {
+        (true, _) => vec![
             LIBRARY_README,
             AGENTS,
             manifest,
             LIBRARY_EXAMPLES,
             LIBRARY_LIB,
             LIBRARY_TESTS,
-        ]
-    } else {
-        vec![README, AGENTS, manifest, APP, TESTS]
+        ],
+        (false, ScaffoldLayout::Frozen) => vec![README, AGENTS, manifest, APP, TESTS],
+        (false, ScaffoldLayout::Tables) => {
+            vec![README, AGENTS, manifest, APP_TABLES, CORE, TESTS]
+        }
     };
-    let inventory = project_scaffold_inventory(template);
+    let inventory = project_scaffold_inventory_with_layout(template, layout);
     debug_assert_eq!(sources.len(), inventory.len());
     let files = sources
         .iter()
@@ -439,6 +469,11 @@ fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String {
         .map(|value| quote_json(value))
         .collect::<Vec<_>>()
         .join(",");
+    let file_limit = if artifact.layout == ScaffoldLayout::Tables {
+        PROJECT_SCAFFOLD_TABLES_FILE_COUNT
+    } else {
+        PROJECT_SCAFFOLD_FILE_COUNT
+    };
     format!(
         "{{\"template\":{},\"project_schema\":{},\"project_name\":{},\"files\":[{}],\"limits\":{{\"descriptor_bytes\":{},\"files\":{},\"project_name_bytes\":{}}},\"nonclaims\":[{}]}}",
         quote_json(artifact.template),
@@ -446,7 +481,7 @@ fn render_descriptor_tail(artifact: &ProjectScaffoldV1) -> String {
         quote_json(&artifact.project_name),
         files,
         MAX_PROJECT_SCAFFOLD_DESCRIPTOR_BYTES,
-        PROJECT_SCAFFOLD_FILE_COUNT,
+        file_limit,
         MAX_PROJECT_SCAFFOLD_NAME_BYTES,
         nonclaims,
     )

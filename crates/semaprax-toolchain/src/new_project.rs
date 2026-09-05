@@ -146,7 +146,12 @@ fn create_with_serial_template(
         NewProjectFailure::creation(format!("cannot resolve new project destination: {error}"))
     })?;
     validate_name(name).map_err(NewProjectFailure::creation)?;
-    let scaffold = project::derive_project_scaffold_v1(name, template).map_err(|diagnostics| {
+    let scaffold = project::derive_project_scaffold_v1_with_layout(
+        name,
+        template,
+        project::ScaffoldLayout::Tables,
+    )
+    .map_err(|diagnostics| {
         NewProjectFailure::creation(format!(
             "generated {template} project failed exact scaffold derivation: {}",
             diagnostics
@@ -161,7 +166,8 @@ fn create_with_serial_template(
         .iter()
         .map(ProjectScaffoldFileV1::path)
         .collect::<Vec<_>>();
-    validate_template_inventory(template, &paths).map_err(NewProjectFailure::creation)?;
+    validate_template_inventory(template, project::ScaffoldLayout::Tables, &paths)
+        .map_err(NewProjectFailure::creation)?;
     let expected = expected_files(files)?;
 
     let file_name = requested_destination.file_name().ok_or_else(|| {
@@ -233,10 +239,14 @@ fn create_with_serial_template(
     Ok(destination.to_path_buf())
 }
 
-pub(crate) fn validate_template_inventory(template: &str, paths: &[&str]) -> Result<(), String> {
+pub(crate) fn validate_template_inventory(
+    template: &str,
+    layout: project::ScaffoldLayout,
+    paths: &[&str],
+) -> Result<(), String> {
     let mut observed = paths.to_vec();
     observed.sort_unstable();
-    let mut expected = project::project_scaffold_inventory(template).to_vec();
+    let mut expected = project::project_scaffold_inventory_with_layout(template, layout).to_vec();
     expected.sort_unstable();
     if observed == expected && observed.windows(2).all(|pair| pair[0] != pair[1]) {
         Ok(())

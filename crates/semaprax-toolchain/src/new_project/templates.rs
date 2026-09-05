@@ -8,9 +8,10 @@ pub(super) struct TemplateFile {
 // same bytes directly from the public, authority-free scaffold artifact.
 #[cfg(test)]
 pub(super) fn render(name: &str) -> Vec<TemplateFile> {
-    semaprax::project::derive_project_scaffold_v1(
+    semaprax::project::derive_project_scaffold_v1_with_layout(
         name,
         semaprax::project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR,
+        semaprax::project::ScaffoldLayout::Tables,
     )
     .expect("built-in test scaffold must derive")
     .files()

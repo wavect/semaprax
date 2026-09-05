@@ -134,6 +134,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Rejected a trailing semicolon after a block's value with the existing
   `SPX-P106` expression-statement diagnostic. Canonical formatting no longer
   accepts and silently removes that source token.
+- Offline language/library help now shows the compiler-bundled dependency
+  route and each `std.*` package's required consumer profile. `semaprax new`
+  writes the extensible table scaffold and the calculator demonstrates a
+  stable-ID import from `src/core.spx`. Table-manifest structural diagnostics
+  report independent failures together and point to both scaffold routes.
+
 - Project command operands now accept shell-natural `.` and `..` spellings,
   including `--manifest-path`, consistently across check, run, test, lock,
   build, and new-project verification. Manifest-declared source paths retain
@@ -228,9 +234,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   ([Public Project Scaffold Capsule v3](docs/PROJECT-SCAFFOLD-V3.md)). The
   default (`--layout frozen`) is byte-for-byte the shipped v2 capsule with the
   frozen `semaprax.project.v1` manifest, so no existing scaffold byte or digest
-  moves. Only the `semaprax.toml` file differs between the layouts; both lower
-  to the same Project v1 contract. `tests/project.rs::scaffold` and
-  `::scaffold_cli` pin it.
+  moves. The calculator's table layout adds a separate core module and imports
+  its exported function by stable identity; both layouts lower to the same
+  Project v1 contract. `tests/project.rs::scaffold` and `::scaffold_cli` pin it.
 
 - Added the sixth executable `core`-tier package, `std.encoding`, with bounded
   ASCII-byte classification, hexadecimal value conversion, byte-pair decoding,

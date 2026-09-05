@@ -297,7 +297,7 @@ fn replay_rejects_noncanonical_and_semantically_reminted_capsules() {
     assert_eq!(error[0].code, "SPX-J115");
 }
 
-const CALCULATOR_TABLES_MANIFEST: &[u8] = b"schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"demo-project\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"demo_project.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"demo_project.tests\"]\n\n[exports]\nweb = [\"demo-project.add\"]\n";
+const CALCULATOR_TABLES_MANIFEST: &[u8] = b"schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"demo-project\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"demo_project.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\ntests = [\"demo_project.tests\"]\n\n[exports]\nweb = [\"demo-project.add\"]\n";
 
 const LIBRARY_TABLES_MANIFEST: &[u8] = b"schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"demo-project\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"demo_project.examples\"\nsources = [\"src/examples.spx\", \"src/lib.spx\", \"src/tests.spx\"]\ntests = [\"demo_project.tests\"]\n\n[exports]\nweb = [\"demo-project.twice\"]\n";
 
@@ -313,25 +313,46 @@ fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
     assert_eq!(tables.project_schema(), "semaprax.project.v1");
     assert_eq!(tables.template(), "calculator");
     assert_eq!(tables.project_name(), NAME);
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&tables.canonical_bytes()).unwrap()["limits"]
+            ["files"],
+        6
+    );
     assert_digest(tables.digest());
     assert_ne!(tables.digest(), frozen.digest());
     assert_ne!(tables.canonical_bytes(), frozen.canonical_bytes());
 
-    // The table capsule carries the extensible manifest and its current
-    // project-boundary guidance; the frozen v2 bytes remain unchanged.
-    assert_eq!(tables.files().len(), frozen.files().len());
-    for (table_file, frozen_file) in tables.files().iter().zip(frozen.files()) {
-        assert_eq!(table_file.path(), frozen_file.path());
-        if table_file.path() == "semaprax.toml" {
-            assert_eq!(table_file.bytes(), CALCULATOR_TABLES_MANIFEST);
-            assert_ne!(table_file.bytes(), frozen_file.bytes());
-            assert_eq!(table_file.sha256(), sha256(table_file.bytes()));
-        } else if table_file.path() == "AGENTS.md" {
-            assert!(table_file.utf8().contains("Project v1 function boundaries"));
-            assert_ne!(table_file.bytes(), frozen_file.bytes());
-        } else {
-            assert_eq!(table_file.bytes(), frozen_file.bytes());
-        }
+    // The table capsule carries the extensible manifest, a separate core
+    // module, and one stable-ID import; the frozen v2 bytes remain unchanged.
+    assert_eq!(tables.files().len(), 6);
+    assert_eq!(frozen.files().len(), 5);
+    assert_eq!(
+        tables
+            .files()
+            .iter()
+            .map(|file| file.path())
+            .collect::<Vec<_>>(),
+        [
+            "README.md",
+            "AGENTS.md",
+            "semaprax.toml",
+            "src/app.spx",
+            "src/core.spx",
+            "src/tests.spx",
+        ]
+    );
+    assert_eq!(tables.files()[2].bytes(), CALCULATOR_TABLES_MANIFEST);
+    assert!(tables.files()[1]
+        .utf8()
+        .contains("Project v1 function boundaries"));
+    assert!(tables.files()[3]
+        .utf8()
+        .contains("use function @id(\"demo-project.add\") from demo_project.core as add;"));
+    assert!(tables.files()[4]
+        .utf8()
+        .starts_with("module demo_project.core;\n"));
+    for file in tables.files() {
+        assert_eq!(file.sha256(), sha256(file.bytes()));
     }
 
     // Deterministic and self-replaying under its own schema.

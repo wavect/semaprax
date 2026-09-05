@@ -718,6 +718,8 @@ mod tests {
     fn library_catalog_is_the_generated_repository_document() {
         assert!(LIBRARY_CATALOG.starts_with("# Standard library catalog\n"));
         assert!(LIBRARY_CATALOG.contains("\n## `std.core`\n"));
+        assert!(LIBRARY_CATALOG.contains("Dependency: `std.num = \"^0.1.0\"`"));
+        assert!(LIBRARY_CATALOG.contains("Required project profile: `useful-text-consumer.v1`"));
         assert!(LIBRARY_CATALOG.contains("```semaprax\n"));
         assert!(LIBRARY_CATALOG.ends_with('\n'));
     }

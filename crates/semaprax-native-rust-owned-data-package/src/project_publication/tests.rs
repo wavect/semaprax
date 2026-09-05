@@ -4,11 +4,12 @@ use std::fs;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
-const FILES: [(&str, &[u8]); 5] = [
+const FILES: [(&str, &[u8]); 6] = [
     ("README.md", b"readme\n"),
     ("AGENTS.md", b"agents\n"),
     ("semaprax.toml", b"manifest\n"),
     ("src/app.spx", b"app\n"),
+    ("src/core.spx", b"core\n"),
     ("src/tests.spx", b"tests\n"),
 ];
 const LIBRARY_FILES: [(&str, &[u8]); 6] = [
@@ -89,7 +90,10 @@ fn assert_project(path: &Path) {
         names(path),
         ["AGENTS.md", "README.md", "semaprax.toml", "src"]
     );
-    assert_eq!(names(&path.join("src")), ["app.spx", "tests.spx"]);
+    assert_eq!(
+        names(&path.join("src")),
+        ["app.spx", "core.spx", "tests.spx"]
+    );
     for (relative, bytes) in FILES {
         let file = path.join(relative);
         let metadata = fs::symlink_metadata(&file).unwrap();
@@ -291,12 +295,12 @@ fn failed_publish_does_not_adopt_replacement_source_for_cleanup() {
     let replacement_pin = fs::File::open(&replacement).unwrap();
     let output_pin = fs::File::open(&output_seed).unwrap();
     assert_ne!(identity(&original_pin), identity(&replacement_pin));
-    let source_identities =
-        ["app.spx", "tests.spx"].map(|name| path_identity(&stage.join("src").join(name)));
+    let source_identities = ["app.spx", "core.spx", "tests.spx"]
+        .map(|name| path_identity(&stage.join("src").join(name)));
     let target = root.clone();
     authority.before_rename = Some(Box::new(move || {
         fs::rename(target.join("stage/src"), target.join("displaced-source")).unwrap();
-        for name in ["app.spx", "tests.spx"] {
+        for name in ["app.spx", "core.spx", "tests.spx"] {
             fs::rename(
                 target.join("displaced-source").join(name),
                 target.join("replacement-source").join(name),
@@ -314,7 +318,10 @@ fn failed_publish_does_not_adopt_replacement_source_for_cleanup() {
     assert!(!authority.published);
     // The original tracked files really are inside the independently created
     // replacement. No forged/copy-only file can explain the cleanup rejection.
-    for (name, expected) in ["app.spx", "tests.spx"].into_iter().zip(source_identities) {
+    for (name, expected) in ["app.spx", "core.spx", "tests.spx"]
+        .into_iter()
+        .zip(source_identities)
+    {
         assert_eq!(path_identity(&stage.join("src").join(name)), expected);
     }
     drop(authority);
@@ -336,7 +343,10 @@ fn failed_publish_does_not_adopt_replacement_source_for_cleanup() {
         fs::read(output.join("foreign")).unwrap(),
         b"foreign output\n"
     );
-    for (name, expected) in ["app.spx", "tests.spx"].into_iter().zip(source_identities) {
+    for (name, expected) in ["app.spx", "core.spx", "tests.spx"]
+        .into_iter()
+        .zip(source_identities)
+    {
         assert_eq!(path_identity(&stage.join("src").join(name)), expected);
     }
     remove_project(&stage);
@@ -419,7 +429,7 @@ fn failed_publish_preserves_exists_when_source_is_missing_or_a_link() {
             names(&root),
             ["displaced-source", "foreign-source", "project", "stage"]
         );
-        assert_eq!(names(&displaced), ["app.spx", "tests.spx"]);
+        assert_eq!(names(&displaced), ["app.spx", "core.spx", "tests.spx"]);
         assert_eq!(names(&foreign), ["sentinel"]);
         assert_eq!(names(&root.join("project")), ["foreign"]);
         if link {
@@ -444,7 +454,8 @@ fn failed_publish_preserves_exists_when_source_is_missing_or_a_link() {
             remove_file(&stage.join(path), bytes);
         }
         remove_file(&displaced.join("app.spx"), FILES[3].1);
-        remove_file(&displaced.join("tests.spx"), FILES[4].1);
+        remove_file(&displaced.join("core.spx"), FILES[4].1);
+        remove_file(&displaced.join("tests.spx"), FILES[5].1);
         remove_file(&foreign.join("sentinel"), b"foreign source\n");
         remove_file(&root.join("project/foreign"), b"collision\n");
         for directory in [&stage, &displaced, &foreign, &root.join("project")] {

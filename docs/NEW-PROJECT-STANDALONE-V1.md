@@ -25,18 +25,21 @@ The grammar and every shared rejection message are those of the full
 toolchain's `new`. The project name defaults to the destination's final
 component and must match lowercase `[a-z][a-z0-9-]*` within 64 bytes. The
 template defaults to `calculator`; every template of the [Public Project
-Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md) is admitted, and an unknown one is
+Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md) is admitted, and an unknown one is
 rejected with `unknown new template <name>; expected calculator or library`.
-The files are exactly the capsule's files for that template and name, in that
-order; this route adds no bytes and no file. The full toolchain's `new`
-publishes both inventories through its stricter held-parent staged authority.
+`new` selects the extensible table layout. The calculator separates its
+exported `add` function into `src/core.spx` and imports it by stable identity
+from the entry module; the library retains its existing three source modules.
+The files are exactly the v3 capsule's files for that template and name, in
+that order. The full toolchain's `new` publishes both inventories through its
+stricter held-parent staged authority.
 
 ## Route
 
 On success the standalone compiler has performed exactly these steps:
 
-1. Derive the scaffold in memory; a derivation failure is reported before the
-   filesystem is touched.
+1. Derive the table-layout v3 scaffold in memory; a derivation failure is
+   reported before the filesystem is touched.
 2. Resolve the destination to an absolute path. Its parent must exist and be a
    directory when inspected without following a final symbolic link; the
    destination itself must not exist as any kind of entry.

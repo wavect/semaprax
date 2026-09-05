@@ -185,6 +185,23 @@ fn package_sources(package: &PackageMetadata) -> (LibrarySource, String, String)
     (library, entry, tests)
 }
 
+fn required_consumer_profile(package: &PackageMetadata) -> String {
+    std::fs::read_to_string(
+        root()
+            .join("std")
+            .join(&package.directory)
+            .join("semaprax.toml"),
+    )
+    .unwrap()
+    .lines()
+    .find_map(|line| {
+        line.strip_prefix("profile = \"")
+            .and_then(|value| value.strip_suffix('"'))
+    })
+    .unwrap_or("scalar")
+    .to_owned()
+}
+
 #[test]
 fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformance() {
     for package in packages() {
@@ -831,17 +848,19 @@ fn render_catalogs() -> (String, String) {
     );
     human.push_str("Audience: agents and humans choosing a standard-library declaration.\n\n");
     human.push_str(
-        "Every declaration below is verified, canonical, and executed by its package's conformance module on the interpreter, native C11, and Core Wasm lanes. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract; `std/catalog.json` is the same catalog for tools.\n",
+        "Every declaration below is verified, canonical, and executed by its package's conformance module on the interpreter, native C11, and Core Wasm lanes. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract; `std/catalog.json` is the same catalog for tools.\n\nConsume a package from an installed compiler by adding its dependency line to the extensible manifest, then importing the selected stable identity: `[dependencies] std.num = \"^0.1.0\"` and `use function @id(\"std.num.abs\") from std.num as abs;`. Set `[package] profile` to the package's required profile below; `scalar` means omit the profile key. The compiler supplies the closed bundled package without a source checkout, cache, or network access.\n",
     );
     let mut modules = Vec::new();
     for package in packages() {
         let (library, _, _) = package_sources(&package);
+        let profile = required_consumer_profile(&package);
         human.push_str(&format!(
-            "\n## `{}`\n\nPackage `std/{}`, tier `{}`, status {}. Targets: {}.\n",
+            "\n## `{}`\n\nPackage `std/{}`, tier `{}`, status {}. Required project profile: `{profile}`. Dependency: `{} = \"^0.1.0\"`. Targets: {}.\n",
             package.module,
             package.directory,
             package.tier,
             package.status,
+            package.module,
             package
                 .targets
                 .iter()
@@ -870,6 +889,8 @@ fn render_catalogs() -> (String, String) {
         modules.push(serde_json::json!({
             "module": package.module,
             "package": format!("std/{}", package.directory),
+            "dependency": format!("{} = \"^0.1.0\"", package.module),
+            "required_profile": profile,
             "tier": package.tier,
             "targets": package.targets,
             "status": package.status,

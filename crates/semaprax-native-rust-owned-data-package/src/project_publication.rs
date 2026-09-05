@@ -13,12 +13,12 @@ mod tests;
 use semaprax_native_rust_interop_platform as platform;
 
 const ROOT_NAMES: [&str; 3] = ["README.md", "AGENTS.md", "semaprax.toml"];
-const CALCULATOR_SOURCE_NAMES: [&str; 2] = ["app.spx", "tests.spx"];
+const CALCULATOR_SOURCE_NAMES: [&str; 3] = ["app.spx", "core.spx", "tests.spx"];
 const LIBRARY_SOURCE_NAMES: [&str; 3] = ["examples.spx", "lib.spx", "tests.spx"];
 
 #[allow(clippy::large_enum_variant)]
 enum SourceInventory {
-    Calculator(platform::PreparedDiscardInventory<2>),
+    Calculator(platform::PreparedDiscardInventory<3>),
     Library(platform::PreparedDiscardInventory<3>),
 }
 
@@ -177,6 +177,9 @@ impl NewProjectAuthority {
             ("src/app.spx", SourceInventory::Calculator(files)) => {
                 platform::write_file_new_prepared(source, files, "app.spx", bytes, 0o600)
             }
+            ("src/core.spx", SourceInventory::Calculator(files)) => {
+                platform::write_file_new_prepared(source, files, "core.spx", bytes, 0o600)
+            }
             ("src/examples.spx", SourceInventory::Library(files)) => {
                 platform::write_file_new_prepared(source, files, "examples.spx", bytes, 0o600)
             }
@@ -201,6 +204,7 @@ impl NewProjectAuthority {
                 "AGENTS.md",
                 "semaprax.toml",
                 "src/app.spx",
+                "src/core.spx",
                 "src/tests.spx",
             ],
             SourceInventory::Library(_) => &[
@@ -242,8 +246,12 @@ impl NewProjectAuthority {
                     files[3].1,
                 )?;
                 authenticate_file(
-                    source_files.file("tests.spx").map_err(map_changed)?,
+                    source_files.file("core.spx").map_err(map_changed)?,
                     files[4].1,
+                )?;
+                authenticate_file(
+                    source_files.file("tests.spx").map_err(map_changed)?,
+                    files[5].1,
                 )?;
             }
             SourceInventory::Library(source_files) => {
@@ -360,16 +368,21 @@ impl NewProjectAuthority {
         match &self.source_files {
             SourceInventory::Calculator(_) => {
                 let app = hold_matching(source, OsStr::new("app.spx"), files[3].1)?;
-                let tests = hold_matching(source, OsStr::new("tests.spx"), files[4].1)?;
+                let core = hold_matching(source, OsStr::new("core.spx"), files[4].1)?;
+                let tests = hold_matching(source, OsStr::new("tests.spx"), files[5].1)?;
                 let mut source_scan = platform::prepare_inventory_entries_exact(
-                    [OsStr::new("app.spx"), OsStr::new("tests.spx")],
-                    2,
+                    [
+                        OsStr::new("app.spx"),
+                        OsStr::new("core.spx"),
+                        OsStr::new("tests.spx"),
+                    ],
+                    3,
                 )
                 .map_err(map_invalid)?;
                 platform::inventory_entries_exact_prepared(
                     &mut source_scan,
                     source,
-                    [&app, &tests],
+                    [&app, &core, &tests],
                     [],
                 )
                 .map_err(map_changed)?;

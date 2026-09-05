@@ -149,10 +149,7 @@ fn patterns_and_arm_results_are_checked_independently() {
         "        Choice::Number { value: number } => number,",
         "        Other::Number { value: number } => number,",
     );
-    assert_eq!(
-        codes(&incompatible),
-        ["SPX-M103", "SPX-T202", "SPX-M101"]
-    );
+    assert_eq!(codes(&incompatible), ["SPX-M103", "SPX-T202", "SPX-M101"]);
 
     let fields = VARIANTS.replace(
         "Choice::Number { value: number } => number,",

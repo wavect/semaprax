@@ -64,6 +64,8 @@ fn main() -> i64
   `while`, `unsafe`) followed by exactly one tail expression whose value is the
   block's value. There is no `return`, no expression statement, no `for`, no
   `else if`, no tuple, and no unit value in user code.
+- Source blocks, delimiters, unary chains, and expression trees may nest at
+  most 128 levels; `SPX-P207` asks you to extract a named helper.
 - Canonical layout puts the function body's `{` on its own line and each
   statement on its own line; `if`, `match`, and record literals stay on one
   line. Let `fmt` do it.

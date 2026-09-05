@@ -1025,7 +1025,7 @@ impl Expr {
         }
     }
 
-    fn child(&self, index: usize) -> Option<&Expr> {
+    pub(crate) fn child(&self, index: usize) -> Option<&Expr> {
         match &self.kind {
             ExprKind::Call { args, .. } => args.get(index),
             ExprKind::MethodCall { receiver, args, .. } => (index == 0)

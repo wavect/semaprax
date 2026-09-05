@@ -11,8 +11,8 @@ comparison). It measures *throughput and latency*, not agent productivity.
 | Suite | Subject | Metric | Tool |
 | --- | --- | --- | --- |
 | `compiler` | `parse` → `verify` → `graph` → `format` for single-file `.spx` | ns/op, throughput (bytes/s) | `cargo bench --bench compiler` (criterion) |
-| `interpreter` | `semaprax run` (hosted interpreter) for scalar, loop and string examples | ns/op | `cargo bench --bench interpreter` |
-| `project` | `check` / `test` / `run` for Project v1/v3/v8 manifests | ns/op | `cargo bench --bench project` |
+| `interpreter` | cold `interpret(path, …)` end-to-end latency beside prepared-evaluator execution, for scalar loops and borrowed text/bytes | ns/op, elements/s | `cargo bench --bench interpreter` |
+| `project` | authenticated `check` / `test` / `run` of shipped multi-file manifests, retained and prepared execution, and frontend reanalysis at 1x/2x/4x | ns/op, bytes/s | `cargo bench --bench project` |
 | `macro` | one direct execution of a selected `semaprax` binary: `check`/`graph`/`context`/`run`/`test`/`build` over committed `examples/` entries | wall ms, p50/p95 | `benchmarks/performance-v1/run.py` or `benchmarks/performance-v1/run.sh` |
 | `build` | `native` and `web` artifact emission (Clang C11, wasm) where toolchain is present | wall ms | `benchmarks/performance-v1/run.py --with-build` |
 

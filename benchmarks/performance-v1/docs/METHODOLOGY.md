@@ -21,19 +21,47 @@ hosted, release, or cross-platform claims.
 
 - Harness: `criterion 0.5` with `sample_size=100`, `warm_up_time=3s`,
   `measurement_time=5s`.
-- Each bench is **cold** per sample (no retained `BuildCache`).
-- Throughput is reported as `bytes/s` where input is source bytes;
-  latency is `ns/op`.
+- Throughput is reported as `bytes/s` where the input is source bytes, or as
+  evaluator steps/elements where the subject is execution; latency is `ns/op`.
+- Each group name says what the sample includes: `cold` groups authenticate and
+  analyse per sample, `retained` and `prepared` groups do that once in setup.
+- Every group verifies its expected outcome before timing, and each benchmark id
+  carries its work unit (source count, byte total, declarations, or evaluator
+  steps).
 - HTML reports are in `target/criterion/` and are not committed.
 
 Bench groups:
 
 - `compiler`: `parse` (lexer+parser), `verify` (type/effect/ownership),
-  `graph` (semantic graph JSON), `format` (canonical), end-to-end `check`.
-- `interpreter`: `hosted_interpreter::run` for scalar, loop and string
-  fixtures (`meaning`, `math_algorithms`, `text_analytics`).
-- `project`: `project::check` (Phase-A linked HIR), `project::test` and
-  `project::run` for Project v1/v3/v8 manifests.
+  `graph` (semantic graph JSON), `format` (canonical), end-to-end `check`, over
+  single-file examples.
+- `interpreter`:
+  - `interpreter-parse`, `interpreter-verify`: front-end phases over committed
+    examples.
+  - `interpreter-cold-end-to-end`: `interpreter::interpret(path, …)` — read,
+    parse, verify, resolve, spawn the 64 MiB-stack evaluation thread, evaluate.
+    This is one cold invocation's latency, not evaluator cost. Cases: a
+    generated scalar loop, `text_analytics` (borrowed text and bytes with owned
+    string cleanup), `math_algorithms`.
+  - `interpreter-prepared-evaluator`: the same scalar loop as an authenticated
+    Project, executed through `ProjectRevision::prepare_interpreter` — closures
+    resolved once, worker retained — beside the retained-but-unprepared
+    revision. The difference is the preparation the prepared case avoids. No
+    benchmark constructs unchecked HIR.
+- `project`:
+  - `project-cold-load`: `check`, `run` and `test` through
+    `project::with_authenticated_project` for the shipped `calculator-project`
+    and `apex-supply-chain` manifests — the whole per-invocation CLI cost.
+  - `project-retained`: one retained revision: steady-state `execute_entry`,
+    prepared-interpreter execution, and interpreter preparation itself.
+  - `project-frontend-cache`: `ProjectFrontendCache` reanalysis at 1x/2x/4x of a
+    generated multi-module fixture — cold, unchanged rebuild, one leaf edited,
+    and the provider every module consumes edited.
+
+The generated fixture is ordinary canonical `.spx` source with an ordinary
+`semaprax.project.v1` manifest. `tests/documentation/benchmark_fixtures.rs`
+checks, runs and tests it, and pins the invalidation shape, so fixture validity
+is covered without running a Criterion campaign in every pull request.
 
 ## Macrobenchmarks (`benchmarks/performance-v1/run.py`)
 

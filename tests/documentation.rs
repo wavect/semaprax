@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+#[path = "documentation/benchmark_fixtures.rs"]
+mod benchmark_fixtures;
 #[path = "documentation/performance_benchmark_suite.rs"]
 mod performance_benchmark_suite;
 

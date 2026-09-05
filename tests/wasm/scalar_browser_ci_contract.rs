@@ -25,10 +25,10 @@ fn assert_only_checked_value_cursor_budget_changed(graph: &str, previous_digest:
     // supported 64-bit hosts its tagged reference plus index occupy 24 bytes.
     // Replaying the whole payload after removing only that debit against a
     // pinned digest proves the source, declarations, edges and other budgets
-    // stayed frozen. The pinned digests were re-taken when the builder
-    // pre-bound split structural, string, and identity charges, which moved
-    // `used_builder_bytes` and therefore both graph digests; nothing else in
-    // the payload changed.
+    // stayed frozen. The pinned digests were re-taken when imported functions
+    // began charging their retained stub plus the peak transient provider
+    // clone, which moved `used_builder_bytes` and therefore both graph
+    // digests; nothing else in the payload changed.
     let current = parsed["budget"]["used_builder_bytes"].as_u64().unwrap();
     let previous = current.checked_sub(3 * 257 * 24).unwrap();
     let field = format!("\"used_builder_bytes\":{current}");
@@ -106,8 +106,8 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
                 assert_only_checked_value_cursor_budget_changed(
                     revision.semantic_graph(),
                     [
-                        "sha256:3ced2c7765327b2737a36756091f2b802e55e73076976a3ee089fb9e31a20553",
-                        "sha256:9d298409cc5d2cbcf14c2ec2af64f17ad1ed399fa26708b1b9649332eb3d29e8",
+                        "sha256:dcd274afc80f1517e4026edf9ca1dd48ded27b3ee4a108a0e4ca637de82ccd2d",
+                        "sha256:36efb3832d2273285513434bea4be0fc5b1952bfd916e09aa9928a1a19c82507",
                     ][index],
                 );
                 let actual = [

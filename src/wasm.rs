@@ -4419,7 +4419,6 @@ fn emit_i32_checked_binary(
         result,
     )?;
     output.push(0xac);
-    local_set(output, wide);
     emit_expr(
         output,
         right,
@@ -4429,11 +4428,11 @@ fn emit_i32_checked_binary(
         result,
     )?;
     output.push(0xac);
-    local_set(output, other);
     match op {
         BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul => {
-            local_get(output, wide);
-            local_get(output, other);
+            // Keep the widened left operand on the value stack while the
+            // complete right subtree is emitted. Nested i32 operations may
+            // use the function-wide scratch pair without clobbering it.
             output.push(match op {
                 BinaryOp::Add => 0x7c,
                 BinaryOp::Sub => 0x7d,
@@ -4442,6 +4441,10 @@ fn emit_i32_checked_binary(
             local_set(output, wide);
         }
         BinaryOp::Div | BinaryOp::Rem => {
+            // Both operands have now been evaluated left-to-right, so it is
+            // safe to stage them in the shared pair for the guard sequence.
+            local_set(output, other);
+            local_set(output, wide);
             local_get(output, other);
             output.push(0x50);
             emit_unreachable_trap(output);

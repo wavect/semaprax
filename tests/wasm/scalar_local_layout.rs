@@ -134,3 +134,34 @@ fn main() -> i64 {
 "#,
     );
 }
+
+#[test]
+fn nested_right_i32_arithmetic_preserves_the_outer_left_operand() {
+    execute(
+        r#"
+module test.scalar_nested_i32;
+
+@id("case.seven")
+fn seven() -> i32 { 7i32 }
+@id("case.eleven")
+fn eleven() -> i32 { 11i32 }
+@id("case.three")
+fn three() -> i32 { 3i32 }
+@id("case.five")
+fn five() -> i32 { 5i32 }
+
+@id("app.main")
+fn main() -> i64 {
+    let a = 7i32 + 11i32 * 3i32;
+    let b = seven() - eleven() * three();
+    let c = seven() * (eleven() + three());
+    let d = (seven() + eleven()) * (three() + five());
+    let e = seven() + (eleven() * (three() - five()));
+    let f = (eleven() * three()) - five();
+    if a == 40i32 && b == -26i32 && c == 98i32
+        && d == 144i32 && e == -15i32 && f == 28i32
+    { 7 } else { 9 }
+}
+"#,
+    );
+}

@@ -16,6 +16,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Fixed right-nested i32 arithmetic in the scalar Core-Wasm emitter by keeping
+  the outer widened operand on the Wasm value stack until the nested operand
+  finishes. Nested literal and function-call expressions now match native and
+  interpreter results at multiple depths.
 - Fixed the scalar Core-Wasm local layout so i32, u8, and usize arithmetic
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and

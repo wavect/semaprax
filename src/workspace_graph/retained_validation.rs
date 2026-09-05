@@ -1179,17 +1179,6 @@ pub(super) fn scalar_web_entrypoint(
                 && linked.function.return_type == hir::ResolvedType::I64
         })
         .map(|_| selected)
-        .or_else(|| {
-            available
-                .values()
-                .find(|linked| {
-                    linked.function.id != *ordinary_entrypoint
-                        && linked.function.name == "main"
-                        && linked.function.params.is_empty()
-                        && linked.function.return_type == hir::ResolvedType::I64
-                })
-                .map(|linked| linked.function.id.clone())
-        })
         .unwrap_or_else(|| ordinary_entrypoint.clone())
 }
 

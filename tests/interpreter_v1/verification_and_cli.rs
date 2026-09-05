@@ -171,7 +171,7 @@ fn cli_exit_codes_follow_the_documented_contract() {
         "--function",
         "case.mutate.chain",
         "--max-bytes",
-        "1024",
+        "2048",
     ]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-F104"), "{err}");

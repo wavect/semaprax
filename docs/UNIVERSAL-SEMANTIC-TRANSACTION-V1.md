@@ -29,7 +29,7 @@ recursively key-sorted, and terminated by one LF. The envelope contains exactly:
 - `expected_workspace_revision`, the Canonical Semantic Workspace Revision v1
   composite digest;
 - `operations`, exactly one operation selected from the closed
-  `RenameDisplayName | ReplaceBlock` algebra;
+  `RenameDisplayName | ReplaceBlock | AddContract` algebra;
 - `invariants`, exactly the mandatory Project Candidate semantic-change
   requirements;
 - `requested_validation`, exactly canonical source round-trip, complete Project
@@ -85,6 +85,29 @@ ambiguous/missing target, generic target, or `main` target is invalid
 their existing meanings when the typed replacement itself is invalid. Like
 the rename operation, this slice retains the comment-free canonical base
 requirement.
+
+## AddContract
+
+`add_contract` carries `target`, `expected_old_contract`, `phase`, and
+`predicate`. The target has the same explicit, monomorphic, non-`main`, unique
+function restriction as the other operations. `expected_old_contract` is an
+exact object with `requires` and `ensures` arrays containing the ordered
+canonical source text of every existing predicate. The complete object is
+derived from the immutable base and must match exactly before candidate
+creation. `phase` is exactly `requires` or `ensures`; `predicate` is one typed
+expression in the existing closed Project Candidate constructor grammar.
+
+The kernel maps the operation to Project Candidate's existing `add_contract`
+intention. Parameters are in scope and `result` is additionally in scope only
+for `ensures`. Complete Project rebuilding owns boolean typing, contract purity,
+ownership and cleanup, native/Wasm admission, and the existing expression
+bounds. The combined old predicate inventory must be below 1,024 entries.
+
+After candidate construction, the kernel independently reselects the target,
+requires the old ordered inventory to be an exact prefix with exactly one new
+predicate appended to the selected phase, removes the one canonical added
+clause from candidate source, and exact-compares the whole source with the
+base. Every other source must be byte-identical.
 
 [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md) projects whether
 a retained declaration currently satisfies these structural prerequisites.
@@ -142,18 +165,21 @@ filesystem write, commit, generation pivot, or publication.
 
 The separate read-only [Universal Semantic Workflow CLI
 v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md) exposes this operation as
-`change preview rename-display-name`. It derives the exact old display name
-from the same authenticated Project generation and prints this kernel's exact
-result or evidence. That adapter does not add an operation, wrapper schema,
-commit path, or authority.
+`change preview rename-display-name` and `change preview add-contract`. It
+derives the exact old display name or ordered contract inventory from the same
+authenticated Project generation and prints this kernel's exact result or
+evidence. That adapter does not add an operation, wrapper schema, commit path,
+or authority.
 
-This badge is one real two-variant operation algebra, not a general or
+This badge is one real three-variant operation algebra, not a general or
 multi-operation planner, general semantic completeness claim, behavioral
 proof, persistent service, managed-workspace commit route,
-source-with-comments rewrite, nested-expression replacement surface, or
+source-with-comments rewrite, nested-expression replacement surface, contract
+removal/replacement, or
 authority grant. Those remain future work. Universal Semantic Transaction
 Composition v1 continues to admit `RenameDisplayName` only and rejects
-`ReplaceBlock`; it has not acquired block rebase or merge semantics.
+`ReplaceBlock` and `AddContract`; it has not acquired block or contract rebase
+or merge semantics.
 
 ## Focused gate
 
@@ -163,11 +189,13 @@ CARGO_TARGET_DIR=target/universal-semantic-transaction-v1 \
   universal_semantic_transaction --no-fail-fast
 ```
 
-The gate covers both operation variants, canonical admission, deterministic
+The gate covers all three operation variants, canonical admission, deterministic
 artifacts, exact replay, stale base/name/block rejection, malformed and
-reminted-evidence rejection, direct ProjectCandidate parity, exact preservation
-outside an authenticated body span, zero filesystem writes, and unchanged
-retained legacy Project/workspace/graph/source bytes.
+reminted-evidence rejection, stale old-contract and typed-predicate rejection,
+direct ProjectCandidate parity, exact preservation outside an authenticated
+body span or appended contract clause, zero filesystem writes, and unchanged
+retained legacy Project/workspace/graph/source bytes. All twelve focused cases
+pass locally with no failures.
 
 The repository-wide full profile also reached 1,536 passing library tests on
 the same rebased source, then stopped on 11 unrelated existing Project, Wasm,

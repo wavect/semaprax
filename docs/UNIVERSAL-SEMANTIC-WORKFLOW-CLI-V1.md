@@ -60,15 +60,19 @@ The first change form is:
 
 ```text
 semaprax change preview <project> rename-display-name <stable-id> <new-name> [--revision <digest>] [--evidence]
+semaprax change preview <project> add-contract <stable-id> <requires|ensures> <predicate-json> [--revision <digest>] [--evidence]
 ```
 
-It admits only the operation already owned by Universal Semantic Transaction
-v1. The adapter reads the selected function's current display name from the
-same authenticated Project generation and uses it as the exact old-value
-precondition. It does not let the request select source paths, replacement
-source bytes, validation requirements, invariants, or authority. The optional
-revision is the transaction's expected canonical workspace revision; omission
-selects the freshly derived current revision.
+It admits only the operations already owned by Universal Semantic Transaction
+v1. The rename adapter reads the selected function's current display name from
+the same authenticated Project generation. The contract adapter reads its
+complete ordered `requires`/`ensures` predicate-source inventory and uses it as
+the exact old-contract precondition. `predicate-json` must be one JSON value in
+the existing closed typed Project Candidate expression-constructor grammar;
+the transaction performs complete typed validation. The request cannot select
+source paths, raw replacement source, validation requirements, invariants, or
+authority. The optional revision is the transaction's expected canonical
+workspace revision; omission selects the freshly derived current revision.
 
 Without `--evidence`, successful preview prints the exact bytes returned by
 `SemanticTransactionArtifacts::result()`. With `--evidence`, it prints the
@@ -146,7 +150,7 @@ are frozen and unchanged; these CLI commands are not transport aliases.
 
 The integration evidence is authored in
 `tests/workspace/universal_semantic_workflow_cli.rs` as a module of the existing
-Workspace harness. Its five cases cover exact direct-core parity and zero
+Workspace harness. Its six cases cover exact direct-core parity and zero
 writes across all five query operations; declaration paging and exact legacy
 Project-query preservation; explicit stale-revision and malformed query
 grammar rejection; exact default/evidence change projections plus missing and
@@ -163,4 +167,4 @@ CARGO_TARGET_DIR=target/universal-semantic-workflow-cli-v1 \
   universal_semantic_workflow_cli --no-fail-fast
 ```
 
-The command passed locally with five tests and no failures.
+The command passed locally with six tests and no failures.

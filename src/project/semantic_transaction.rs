@@ -53,6 +53,55 @@ pub struct SemanticTransactionReplaceBlock {
     replacement: Value,
 }
 
+/// Append one typed predicate after authenticating the complete ordered
+/// contract inventory of the selected function.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemanticTransactionAddContract {
+    target: String,
+    expected_old_contract: Value,
+    phase: String,
+    predicate: Value,
+}
+
+impl SemanticTransactionAddContract {
+    pub fn new(
+        target: impl Into<String>,
+        expected_old_contract: Value,
+        phase: impl Into<String>,
+        predicate: Value,
+    ) -> Self {
+        Self {
+            target: target.into(),
+            expected_old_contract,
+            phase: phase.into(),
+            predicate,
+        }
+    }
+
+    pub fn target(&self) -> &str {
+        &self.target
+    }
+    pub fn expected_old_contract(&self) -> &Value {
+        &self.expected_old_contract
+    }
+    pub fn phase(&self) -> &str {
+        &self.phase
+    }
+    pub fn predicate(&self) -> &Value {
+        &self.predicate
+    }
+
+    fn value(&self) -> Value {
+        json!({
+            "expected_old_contract": self.expected_old_contract,
+            "kind": "add_contract",
+            "phase": self.phase,
+            "predicate": self.predicate,
+            "target": self.target,
+        })
+    }
+}
+
 impl SemanticTransactionReplaceBlock {
     pub fn new(
         target: impl Into<String>,
@@ -91,6 +140,7 @@ impl SemanticTransactionReplaceBlock {
 pub enum SemanticTransactionOperation {
     RenameDisplayName(SemanticTransactionRenameDisplayName),
     ReplaceBlock(SemanticTransactionReplaceBlock),
+    AddContract(SemanticTransactionAddContract),
 }
 
 impl SemanticTransactionOperation {
@@ -98,6 +148,7 @@ impl SemanticTransactionOperation {
         match self {
             Self::RenameDisplayName(operation) => operation.target(),
             Self::ReplaceBlock(operation) => operation.target(),
+            Self::AddContract(operation) => operation.target(),
         }
     }
 
@@ -105,6 +156,7 @@ impl SemanticTransactionOperation {
         match self {
             Self::RenameDisplayName(operation) => operation.value(),
             Self::ReplaceBlock(operation) => operation.value(),
+            Self::AddContract(operation) => operation.value(),
         }
     }
 }
@@ -172,6 +224,16 @@ impl SemanticTransaction {
         )
     }
 
+    pub fn add_contract(
+        expected_workspace_revision: &str,
+        operation: SemanticTransactionAddContract,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        Self::new(
+            expected_workspace_revision,
+            SemanticTransactionOperation::AddContract(operation),
+        )
+    }
+
     fn new(
         expected_workspace_revision: &str,
         operation: SemanticTransactionOperation,
@@ -204,6 +266,22 @@ impl SemanticTransaction {
             {
                 return Err(invalid(
                     "ReplaceBlock v1 requires a typed body-expression replacement",
+                ));
+            }
+        }
+        if let SemanticTransactionOperation::AddContract(operation) = &operation {
+            if !matches!(operation.phase.as_str(), "requires" | "ensures") {
+                return Err(invalid("AddContract phase must be requires or ensures"));
+            }
+            require_contract_snapshot_shape(&operation.expected_old_contract)?;
+            if operation
+                .predicate
+                .get("kind")
+                .and_then(Value::as_str)
+                .is_none()
+            {
+                return Err(invalid(
+                    "AddContract v1 requires a typed predicate-expression constructor",
                 ));
             }
         }
@@ -300,6 +378,31 @@ impl SemanticTransaction {
                     ),
                 )?
             }
+            Some("add_contract") => {
+                let keys = [
+                    "expected_old_contract",
+                    "kind",
+                    "phase",
+                    "predicate",
+                    "target",
+                ];
+                if operation.len() != keys.len()
+                    || keys.iter().any(|key| !operation.contains_key(*key))
+                {
+                    return Err(invalid(
+                        "semantic transaction AddContract field set is invalid",
+                    ));
+                }
+                Self::add_contract(
+                    revision,
+                    SemanticTransactionAddContract::new(
+                        text("target")?,
+                        operations[0]["expected_old_contract"].clone(),
+                        text("phase")?,
+                        operations[0]["predicate"].clone(),
+                    ),
+                )?
+            }
             _ => {
                 return Err(invalid(
                     "semantic transaction operation kind is unsupported",
@@ -334,6 +437,7 @@ impl SemanticTransaction {
         match &self.operation {
             SemanticTransactionOperation::RenameDisplayName(operation) => Some(operation),
             SemanticTransactionOperation::ReplaceBlock(_) => None,
+            SemanticTransactionOperation::AddContract(_) => None,
         }
     }
 
@@ -370,6 +474,18 @@ impl SemanticTransaction {
                         "kind": "replace_function_body",
                         "target": operation.target,
                         "body": operation.replacement,
+                    }),
+                )?
+            }
+            SemanticTransactionOperation::AddContract(operation) => {
+                require_add_contract_preconditions(&base, operation)?;
+                SemanticChange::new(
+                    base.project_revision(),
+                    &json!({
+                        "kind": "add_contract",
+                        "target": operation.target,
+                        "phase": operation.phase,
+                        "predicate": operation.predicate,
                     }),
                 )?
             }
@@ -446,6 +562,38 @@ impl SemanticTransaction {
                         "target": operation.target,
                         "old_block": operation.expected_old_block,
                         "new_block": replacement.new_block,
+                    }),
+                )
+            }
+            SemanticTransactionOperation::AddContract(operation) => {
+                let addition = require_source_preserving_contract_addition(
+                    &base,
+                    candidate.revision(),
+                    operation,
+                )?;
+                (
+                    "contract",
+                    json!({
+                        "after": addition.new_contract,
+                        "before": operation.expected_old_contract,
+                        "phase": operation.phase,
+                        "source_path": addition.path,
+                        "source_outside_added_clause_preserved": true,
+                    }),
+                    json!({
+                        "candidate_rebuilt_from_canonical_source": true,
+                        "exact_old_contract_precondition": true,
+                        "prior_predicate_order_preserved": true,
+                        "source_outside_added_clause_preserved": true,
+                        "stable_identity_preserved": true,
+                        "trivia_preservation": "exact_outside_added_contract_clause",
+                    }),
+                    json!({
+                        "kind": "add_contract", "outcome": "validated",
+                        "target": operation.target,
+                        "phase": operation.phase,
+                        "old_contract": operation.expected_old_contract,
+                        "new_contract": addition.new_contract,
                     }),
                 )
             }
@@ -629,14 +777,207 @@ struct BlockSelection {
     start: usize,
     end: usize,
     block: String,
-    explicit_identity: bool,
-    monomorphic: bool,
-    non_main: bool,
 }
 
 struct BlockReplacement {
     path: String,
     new_block: String,
+}
+
+struct ContractSelection {
+    path: String,
+    snapshot: Value,
+    requires: usize,
+    ensures: usize,
+}
+
+struct ContractAddition {
+    path: String,
+    new_contract: Value,
+}
+
+fn contract_snapshot(
+    source: &str,
+    function: &crate::ast::Function,
+) -> Result<Value, Vec<Diagnostic>> {
+    let expressions = |items: &[crate::ast::Expr]| -> Result<Vec<String>, Vec<Diagnostic>> {
+        items
+            .iter()
+            .map(|expression| {
+                source
+                    .get(expression.span.start..expression.span.end)
+                    .map(str::to_owned)
+                    .ok_or_else(|| stale("AddContract predicate span is unavailable"))
+            })
+            .collect()
+    };
+    Ok(json!({
+        "ensures": expressions(&function.ensures)?,
+        "requires": expressions(&function.requires)?,
+    }))
+}
+
+fn select_contract(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<ContractSelection, Vec<Diagnostic>> {
+    let mut selected = None;
+    for source in revision.sources() {
+        let program =
+            crate::parse(source.source(), Path::new(source.path())).map_err(|error| vec![error])?;
+        for function in &program.functions {
+            if function.stable_id != target {
+                continue;
+            }
+            if selected.is_some() {
+                return Err(invalid(
+                    "AddContract v1 requires one unambiguous function target",
+                ));
+            }
+            selected = Some(ContractSelection {
+                path: source.path().to_owned(),
+                snapshot: contract_snapshot(source.source(), function)?,
+                requires: function.requires.len(),
+                ensures: function.ensures.len(),
+            });
+        }
+    }
+    selected.ok_or_else(|| invalid("AddContract v1 requires an explicit function target"))
+}
+
+fn require_contract_snapshot_shape(value: &Value) -> Result<(), Vec<Diagnostic>> {
+    let object = value
+        .as_object()
+        .ok_or_else(|| invalid("AddContract expected old contract is not an object"))?;
+    if object.len() != 2 || !object.contains_key("requires") || !object.contains_key("ensures") {
+        return Err(invalid(
+            "AddContract expected old contract field set is invalid",
+        ));
+    }
+    for phase in ["requires", "ensures"] {
+        let items = object[phase]
+            .as_array()
+            .ok_or_else(|| invalid("AddContract expected old contract inventory is invalid"))?;
+        if items.len() > 1024
+            || items.iter().any(|item| {
+                item.as_str()
+                    .is_none_or(|text| text.is_empty() || text.contains('\0'))
+            })
+        {
+            return Err(invalid(
+                "AddContract expected old contract inventory is invalid",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn require_add_contract_preconditions(
+    revision: &ProjectRevision,
+    operation: &SemanticTransactionAddContract,
+) -> Result<(), Vec<Diagnostic>> {
+    let eligibility = add_contract_eligibility(revision, &operation.target)?;
+    if !eligibility.unique_function
+        || !eligibility.explicit_identity
+        || !eligibility.monomorphic
+        || !eligibility.non_main
+    {
+        return Err(invalid(
+            "AddContract v1 requires an explicit monomorphic non-main function",
+        ));
+    }
+    if !eligibility.inventory_below_capacity {
+        return Err(capacity("AddContract contract inventory exceeds its limit"));
+    }
+    if eligibility.expected_old_contract.as_ref() != Some(&operation.expected_old_contract) {
+        return Err(stale(
+            "AddContract expected old contract does not match the exact base",
+        ));
+    }
+    Ok(())
+}
+
+fn require_source_preserving_contract_addition(
+    base: &ProjectRevision,
+    candidate: &ProjectRevision,
+    operation: &SemanticTransactionAddContract,
+) -> Result<ContractAddition, Vec<Diagnostic>> {
+    let before = select_contract(base, &operation.target)?;
+    let after = select_contract(candidate, &operation.target)?;
+    if before.path != after.path || base.sources().len() != candidate.sources().len() {
+        return Err(stale("AddContract changed the source owner or inventory"));
+    }
+    if before.snapshot != operation.expected_old_contract {
+        return Err(stale(
+            "AddContract old contract changed before source review",
+        ));
+    }
+    let old_items = before.snapshot[operation.phase.as_str()]
+        .as_array()
+        .ok_or_else(|| stale("AddContract old contract inventory is unavailable"))?;
+    let new_items = after.snapshot[operation.phase.as_str()]
+        .as_array()
+        .ok_or_else(|| stale("AddContract new contract inventory is unavailable"))?;
+    if new_items.len() != old_items.len() + 1
+        || new_items[..old_items.len()] != old_items[..]
+        || (operation.phase == "requires" && before.ensures != after.ensures)
+        || (operation.phase == "ensures" && before.requires != after.requires)
+    {
+        return Err(stale(
+            "AddContract did not append exactly one predicate after the old contract",
+        ));
+    }
+    new_items
+        .last()
+        .ok_or_else(|| stale("AddContract result is absent"))?;
+    for old_source in base.sources() {
+        let new_source = candidate
+            .sources()
+            .iter()
+            .find(|source| source.path() == old_source.path())
+            .ok_or_else(|| stale("AddContract changed the source inventory"))?;
+        if old_source.path() != before.path {
+            if old_source.source() != new_source.source() {
+                return Err(stale("AddContract changed an unrelated source"));
+            }
+            continue;
+        }
+        let program = crate::parse(new_source.source(), Path::new(new_source.path()))
+            .map_err(|error| vec![error])?;
+        let function = program
+            .functions
+            .iter()
+            .find(|function| function.stable_id == operation.target)
+            .ok_or_else(|| stale("AddContract candidate target disappeared"))?;
+        let expression = if operation.phase == "requires" {
+            function.requires.last()
+        } else {
+            function.ensures.last()
+        }
+        .ok_or_else(|| stale("AddContract candidate predicate disappeared"))?;
+        let line_start = new_source.source()[..expression.span.start]
+            .rfind('\n')
+            .map_or(0, |index| index + 1);
+        let line_end = new_source.source()[expression.span.end..]
+            .find('\n')
+            .map(|index| expression.span.end + index + 1)
+            .ok_or_else(|| stale("AddContract clause terminator is unavailable"))?;
+        let expected_prefix = format!("    {} ", operation.phase);
+        if !new_source.source()[line_start..expression.span.start].ends_with(&expected_prefix) {
+            return Err(stale("AddContract clause source shape is invalid"));
+        }
+        let mut restored = new_source.source().to_owned();
+        restored.replace_range(line_start..line_end, "");
+        if restored != old_source.source() {
+            return Err(stale(
+                "AddContract changed source outside the appended contract clause",
+            ));
+        }
+    }
+    Ok(ContractAddition {
+        path: before.path,
+        new_contract: after.snapshot,
+    })
 }
 
 fn select_block(
@@ -667,9 +1008,6 @@ fn select_block(
                 start,
                 end,
                 block: block.to_owned(),
-                explicit_identity: function.explicit_id,
-                monomorphic: function.type_parameters.is_empty(),
-                non_main: function.name != "main",
             });
         }
     }
@@ -680,13 +1018,17 @@ fn require_replace_block_preconditions(
     revision: &ProjectRevision,
     operation: &SemanticTransactionReplaceBlock,
 ) -> Result<(), Vec<Diagnostic>> {
-    let selected = select_block(revision, &operation.target)?;
-    if !selected.explicit_identity || !selected.monomorphic || !selected.non_main {
+    let eligibility = replace_block_eligibility(revision, &operation.target)?;
+    if !eligibility.unique_function
+        || !eligibility.explicit_identity
+        || !eligibility.monomorphic
+        || !eligibility.non_main
+    {
         return Err(invalid(
             "ReplaceBlock v1 requires an explicit monomorphic non-main function",
         ));
     }
-    if selected.block != operation.expected_old_block {
+    if eligibility.expected_old_block.as_deref() != Some(operation.expected_old_block.as_str()) {
         return Err(stale(
             "ReplaceBlock expected old block does not match the exact base source",
         ));
@@ -761,6 +1103,46 @@ pub(super) struct RenameDisplayNameEligibility {
     unique_function: bool,
 }
 
+pub(super) struct ReplaceBlockEligibility {
+    pub(super) expected_old_block: Option<String>,
+    pub(super) comment_free_canonical_workspace: bool,
+    pub(super) explicit_identity: bool,
+    pub(super) monomorphic: bool,
+    pub(super) non_main: bool,
+    unique_function: bool,
+}
+
+impl ReplaceBlockEligibility {
+    pub(super) fn available(&self) -> bool {
+        self.unique_function
+            && self.comment_free_canonical_workspace
+            && self.explicit_identity
+            && self.monomorphic
+            && self.non_main
+    }
+}
+
+pub(super) struct AddContractEligibility {
+    pub(super) expected_old_contract: Option<Value>,
+    pub(super) comment_free_canonical_workspace: bool,
+    pub(super) explicit_identity: bool,
+    pub(super) monomorphic: bool,
+    pub(super) non_main: bool,
+    pub(super) inventory_below_capacity: bool,
+    unique_function: bool,
+}
+
+impl AddContractEligibility {
+    pub(super) fn available(&self) -> bool {
+        self.unique_function
+            && self.comment_free_canonical_workspace
+            && self.explicit_identity
+            && self.monomorphic
+            && self.non_main
+            && self.inventory_below_capacity
+    }
+}
+
 impl RenameDisplayNameEligibility {
     pub(super) fn available(&self) -> bool {
         self.unique_function
@@ -809,6 +1191,92 @@ pub(super) fn rename_display_name_eligibility(
         monomorphic,
         non_main,
         unique_function: matches == 1,
+    })
+}
+
+pub(super) fn replace_block_eligibility(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<ReplaceBlockEligibility, Vec<Diagnostic>> {
+    let mut expected_old_block = None;
+    let mut matches = 0usize;
+    let mut explicit_identity = false;
+    let mut monomorphic = false;
+    let mut non_main = false;
+    for source in revision.sources() {
+        let program =
+            crate::parse(source.source(), Path::new(source.path())).map_err(|error| vec![error])?;
+        for function in &program.functions {
+            if function.stable_id != target {
+                continue;
+            }
+            matches += 1;
+            expected_old_block = source
+                .source()
+                .get(function.body.span.start..function.body.span.end)
+                .map(str::to_owned);
+            explicit_identity = function.explicit_id;
+            monomorphic = function.type_parameters.is_empty();
+            non_main = function.name != "main";
+        }
+    }
+    Ok(ReplaceBlockEligibility {
+        expected_old_block,
+        comment_free_canonical_workspace: comment_free_canonical_workspace(revision),
+        explicit_identity,
+        monomorphic,
+        non_main,
+        unique_function: matches == 1,
+    })
+}
+
+pub(super) fn add_contract_eligibility(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<AddContractEligibility, Vec<Diagnostic>> {
+    let mut expected_old_contract = None;
+    let mut matches = 0usize;
+    let mut explicit_identity = false;
+    let mut monomorphic = false;
+    let mut non_main = false;
+    let mut inventory_below_capacity = false;
+    for source in revision.sources() {
+        let program =
+            crate::parse(source.source(), Path::new(source.path())).map_err(|error| vec![error])?;
+        for function in &program.functions {
+            if function.stable_id != target {
+                continue;
+            }
+            matches += 1;
+            expected_old_contract = Some(contract_snapshot(source.source(), function)?);
+            explicit_identity = function.explicit_id;
+            monomorphic = function.type_parameters.is_empty();
+            non_main = function.name != "main";
+            inventory_below_capacity = function
+                .requires
+                .len()
+                .saturating_add(function.ensures.len())
+                < 1024;
+        }
+    }
+    Ok(AddContractEligibility {
+        expected_old_contract,
+        comment_free_canonical_workspace: comment_free_canonical_workspace(revision),
+        explicit_identity,
+        monomorphic,
+        non_main,
+        inventory_below_capacity,
+        unique_function: matches == 1,
+    })
+}
+
+fn comment_free_canonical_workspace(revision: &ProjectRevision) -> bool {
+    revision.sources().iter().all(|source| {
+        crate::parse_with_comments(source.source(), Path::new(source.path())).is_ok_and(
+            |(program, comments)| {
+                comments.items.is_empty() && crate::format::canonical(&program) == source.source()
+            },
+        )
     })
 }
 

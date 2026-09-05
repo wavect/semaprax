@@ -80,6 +80,13 @@ format: `Unreleased` then release buckets, grouped by impact.
   exact ruleset request. The ruleset is a proposal: no repository setting,
   ruleset, membership, credential or branch permission was changed, and no
   required check is in force.
+- Added Persistent Semantic Workspace Service MCP v1 through
+  `semaprax service <project> --mcp`. Its closed seven-tool MCP catalogue exposes
+  protocol/status, universal, retained-index, and bounded history queries,
+  transaction validation, and caller-owned refresh through one process-retained
+  service generation.
+  Startup is the only host-path boundary; MCP tools add no authority and frozen
+  Project Agent Transport v5 bytes and MCP catalogue remain unchanged.
 - Added Persistent Semantic Workspace Service Transport v1 and the
   `semaprax service <project>` adapter. One authenticated Project and one
   incremental semantic service remain alive across bounded JSON-RPC-lines

@@ -602,9 +602,13 @@ MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
 [Persistent Incremental Semantic Service
 v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
 
-`src/semantic_service_transport.rs` owns the bounded JSON-RPC-lines adapter
-over one retained semantic service. It admits a closed eight-method lifecycle,
-wraps exact universal query, retained-index query, transaction, work, and
+`src/project/semantic_service/history.rs` owns the bounded immutable snapshots
+and revision-bound queries over successful validation and refresh outcomes;
+failed attempts append nothing, and ordering means only mutex-serialized
+observed-call order. `src/semantic_service_transport.rs` owns the bounded
+JSON-RPC-lines adapter over one retained semantic service. It admits a closed
+nine-method lifecycle, wraps exact universal query, retained-index query,
+history query, transaction, work, and
 refresh artifacts, and accepts only caller-owned canonical manifest/source
 bytes for refresh. `src/cli/service.rs`
 authenticates one explicitly selected Project at startup and serves that
@@ -614,6 +618,18 @@ watcher, durable store, concurrency, source write, execution, commit, or
 publication authority. Frozen Project Agent Transport v5 and its
 `serve-workspace`/MCP adapters remain separate. See [Persistent Semantic
 Workspace Service Transport v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md).
+
+`src/semantic_service_mcp.rs` owns the additive MCP stdio facade over that
+retained service session. It admits only MCP initialize/initialized, ping,
+one-page tool discovery, and seven closed tools for protocol, status, universal
+query, retained-index query, history query, transaction validation, and
+caller-owned refresh.
+Tool results preserve the complete inner service response as bounded text.
+`src/cli/service.rs` selects this facade only through the exact optional
+`--mcp` suffix after the startup Project. MCP tools cannot select or reopen host
+paths and add no authority. Frozen Project Agent Transport v5 and its distinct
+MCP adapter are neither imported nor changed. See [Persistent Semantic
+Workspace Service MCP v1](PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md).
 
 `src/cli/query.rs` and `src/cli/change.rs` own the read-only one-shot Universal
 Semantic Workflow CLI v1 adapter. The Project-only `query` subcommands construct

@@ -137,6 +137,17 @@ impl SemanticWorkspaceStdioSession {
                     "value": exact_json(result.to_json())?,
                 }))
             }
+            "workspace/history-query" => {
+                self.require_open()?;
+                let mut params = closed_params(request.params, &["query"])?;
+                let query = take_string(&mut params, "query")?;
+                let result = self.service.history_query(query.as_bytes())?;
+                self.wrap(json!({
+                    "query_digest": result.query_digest(),
+                    "result_digest": result.result_digest(),
+                    "value": exact_json(result.to_json())?,
+                }))
+            }
             "workspace/validate-transaction" => {
                 self.require_open()?;
                 let mut params = closed_params(request.params, &["transaction"])?;
@@ -316,8 +327,8 @@ fn protocol() -> Value {
         },
         "methods": [
             "service/protocol", "workspace/open", "workspace/status", "workspace/query",
-            "workspace/index-query", "workspace/validate-transaction", "workspace/refresh",
-            "shutdown"
+            "workspace/index-query", "workspace/history-query", "workspace/validate-transaction",
+            "workspace/refresh", "shutdown"
         ],
         "nonclaims": [
             "no_filesystem_network_process_or_publication_authority",

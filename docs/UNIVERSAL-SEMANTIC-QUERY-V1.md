@@ -139,23 +139,30 @@ existing canonical payload.
 
 This operation requires an actual retained declaration stable identity and
 returns schema `semaprax.semantic-query-available-operations.v1`. V1 contains
-one catalogue entry, `rename_display_name`, with:
+three ordered catalogue entries: `rename_display_name`, `replace_block`, and
+`add_contract`. Every entry carries:
 
 - `available`, derived from the same classifier used by transaction
   validation;
 - the comment-free canonical workspace, explicit identity, monomorphic, and
   non-`main` constraint outcomes;
-- the currently expected old display name when the target is a function;
 - the exact `semaprax.semantic-transaction.v1` schema; and
-- an explicit nonclaim that availability does not prove an arbitrary new name
-  will validate.
+- an operation-specific nonclaim that availability does not prove an arbitrary
+  new name, body, or predicate will validate.
+
+The rename entry carries the currently expected old display name. The block
+entry carries the exact old canonical body block. The contract entry carries
+the exact ordered `requires`/`ensures` predicate-source inventory, the two
+admitted phases, and the contract-inventory capacity outcome. Missing or
+ineligible function targets retain null old-state projections and report their
+individual constraint outcomes.
 
 The shared classifier is read-only. `available: true` means the target satisfies
-the structural prerequisites for the sole Universal Semantic Transaction v1
+the structural prerequisites for that Universal Semantic Transaction v1
 operation at that revision. It is not a transaction, approval, reservation,
 validation result, or authority grant. Actual transaction validation repeats
-the same checks against its bound base and additionally checks the proposed new
-value.
+the same checks against its bound base and additionally checks the proposed
+new value.
 
 ## Diagnostics and precedence
 
@@ -196,7 +203,8 @@ The integration evidence lives in
 `tests/workspace/universal_semantic_query.rs` as a module of the existing
 Workspace harness. It covers all five typed constructors, exact JSON parsing
 and determinism; bounded declaration paging; direct symbol, context, and impact
-parity; truthful rename availability paired with a known-good transaction;
+parity; truthful rename, block-replacement, and contract-addition availability
+paired with known-good transactions;
 unavailable main, generic, automatic-identity, nonfunction, and comment-bearing
 subjects; stale active-service rejection with an old immutable snapshot still
 usable; malformed, noncanonical, reminted, and oversized replay rejection; and

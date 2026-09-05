@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
-    self, SemanticQuery, SemanticTransaction, SemanticTransactionMergeOrder,
-    SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
+    self, SemanticQuery, SemanticTransaction, SemanticTransactionAddContract,
+    SemanticTransactionMergeOrder, SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
     SemanticWorkspaceStructuralDiff, SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
 };
 
@@ -19,10 +19,21 @@ pub(crate) enum ChangeCommand {
 
 pub(crate) struct ChangePreview {
     manifest: PathBuf,
-    target: String,
-    new_name: String,
+    operation: PreviewOperation,
     revision: Option<String>,
     output: PreviewOutput,
+}
+
+enum PreviewOperation {
+    RenameDisplayName {
+        target: String,
+        new_name: String,
+    },
+    AddContract {
+        target: String,
+        phase: String,
+        predicate: serde_json::Value,
+    },
 }
 
 pub(crate) struct ChangeRebase {
@@ -57,7 +68,7 @@ enum MergeOrder {
     RightThenLeft,
 }
 
-const PREVIEW_USAGE: &str = "change requires preview <project> rename-display-name <stable-id> <new-name> [--revision digest] [--evidence|--structural-diff]";
+const PREVIEW_USAGE: &str = "change requires preview <project> <rename-display-name <stable-id> <new-name>|add-contract <stable-id> <requires|ensures> <predicate-json>> [--revision digest] [--evidence|--structural-diff]";
 const REBASE_USAGE: &str = "change rebase requires <base-project> rename-display-name <stable-id> <new-name> --onto <onto-project> [--revision digest] [--onto-revision digest]";
 const MERGE_USAGE: &str = "change merge requires <project> rename-display-name <left-id> <left-new-name> --with rename-display-name <right-id> <right-new-name> [--revision digest] --order <left-then-right|right-then-left>";
 
@@ -71,20 +82,44 @@ pub(crate) fn parse(args: &[String]) -> Result<ChangeCommand, u8> {
 }
 
 fn parse_preview(args: &[String]) -> Result<ChangePreview, u8> {
-    if args.get(2).map(String::as_str) != Some("rename-display-name") {
-        return Err(preview_usage());
-    }
     let manifest = args.get(1).map(PathBuf::from).ok_or_else(preview_usage)?;
     let manifest = resolve_positional(manifest);
     if !is_project_manifest(&manifest) {
         eprintln!("change preview requires a Project directory or semaprax.toml");
         return Err(2);
     }
-    let target = required(args, 3, preview_usage)?;
-    let new_name = required(args, 4, preview_usage)?;
+    let (operation, mut index) = match args.get(2).map(String::as_str) {
+        Some("rename-display-name") => (
+            PreviewOperation::RenameDisplayName {
+                target: required(args, 3, preview_usage)?,
+                new_name: required(args, 4, preview_usage)?,
+            },
+            5,
+        ),
+        Some("add-contract") => {
+            let phase = required(args, 4, preview_usage)?;
+            if !matches!(phase.as_str(), "requires" | "ensures") {
+                eprintln!("change preview add-contract phase must be requires or ensures");
+                return Err(2);
+            }
+            let predicate =
+                serde_json::from_str(&required(args, 5, preview_usage)?).map_err(|_| {
+                    eprintln!("change preview add-contract predicate must be valid JSON");
+                    2
+                })?;
+            (
+                PreviewOperation::AddContract {
+                    target: required(args, 3, preview_usage)?,
+                    phase,
+                    predicate,
+                },
+                6,
+            )
+        }
+        _ => return Err(preview_usage()),
+    };
     let mut revision = None;
     let mut output = PreviewOutput::Result;
-    let mut index = 5;
     while index < args.len() {
         match args[index].as_str() {
             "--evidence" if output == PreviewOutput::Result => {
@@ -119,8 +154,7 @@ fn parse_preview(args: &[String]) -> Result<ChangePreview, u8> {
     }
     Ok(ChangePreview {
         manifest,
-        target,
-        new_name,
+        operation,
         revision,
         output,
     })
@@ -276,8 +310,16 @@ fn run_preview(options: ChangePreview) -> Result<String, Vec<Diagnostic>> {
     project::with_authenticated_project(&options.manifest, |snapshot| {
         let service = SemanticWorkspaceService::open(snapshot.retain_revision())?;
         let expected = selected_revision(&service, options.revision.as_deref());
-        let transaction =
-            rename_transaction(&service, &expected, &options.target, &options.new_name)?;
+        let transaction = match options.operation {
+            PreviewOperation::RenameDisplayName { target, new_name } => {
+                rename_transaction(&service, &expected, &target, &new_name)?
+            }
+            PreviewOperation::AddContract {
+                target,
+                phase,
+                predicate,
+            } => add_contract_transaction(&service, &expected, &target, &phase, predicate)?,
+        };
         let artifacts = service.validate_transaction(transaction.to_json().as_bytes())?;
         match options.output {
             PreviewOutput::Result => Ok(artifacts.result().to_owned()),
@@ -367,7 +409,11 @@ fn rename_transaction(
     let operation = payload
         .get("operations")
         .and_then(serde_json::Value::as_array)
-        .and_then(|operations| operations.first())
+        .and_then(|operations| {
+            operations
+                .iter()
+                .find(|operation| operation["kind"] == "rename_display_name")
+        })
         .and_then(serde_json::Value::as_object)
         .ok_or_else(|| {
             vec![Diagnostic::io(
@@ -382,6 +428,46 @@ fn rename_transaction(
     SemanticTransaction::rename_display_name(
         expected,
         SemanticTransactionRenameDisplayName::new(target, old_name, new_name),
+    )
+}
+
+fn add_contract_transaction(
+    service: &SemanticWorkspaceService,
+    expected: &str,
+    target: &str,
+    phase: &str,
+    predicate: serde_json::Value,
+) -> Result<SemanticTransaction, Vec<Diagnostic>> {
+    let discovery = SemanticQuery::available_operations(expected, target)?;
+    let discovery = service.query(discovery.to_json().as_bytes())?;
+    let payload: serde_json::Value = serde_json::from_str(discovery.payload()).map_err(|_| {
+        vec![Diagnostic::io(
+            "SPX-G531",
+            "available operations payload is not valid JSON",
+        )]
+    })?;
+    let operation = payload
+        .get("operations")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|operations| {
+            operations
+                .iter()
+                .find(|operation| operation["kind"] == "add_contract")
+        })
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G531",
+                "available operations payload has no AddContract entry",
+            )]
+        })?;
+    let expected_old_contract = operation
+        .get("expected_old_contract")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+    SemanticTransaction::add_contract(
+        expected,
+        SemanticTransactionAddContract::new(target, expected_old_contract, phase, predicate),
     )
 }
 
@@ -408,10 +494,35 @@ mod tests {
         .unwrap() else {
             panic!("preview grammar selected another command");
         };
-        assert_eq!(parsed.target, "app.run");
-        assert_eq!(parsed.new_name, "execute");
+        let PreviewOperation::RenameDisplayName { target, new_name } = parsed.operation else {
+            panic!("preview grammar selected another operation");
+        };
+        assert_eq!(target, "app.run");
+        assert_eq!(new_name, "execute");
         assert_eq!(parsed.revision.as_deref(), Some("sha256:abc"));
         assert_eq!(parsed.output, PreviewOutput::Evidence);
+        let ChangeCommand::Preview(contract) = parse(&strings(&[
+            "preview",
+            "fixtures/semaprax.toml",
+            "add-contract",
+            "app.run",
+            "ensures",
+            r#"{"kind":"bool","value":true}"#,
+        ]))
+        .unwrap() else {
+            panic!("preview grammar selected another command");
+        };
+        let PreviewOperation::AddContract {
+            target,
+            phase,
+            predicate,
+        } = contract.operation
+        else {
+            panic!("preview grammar selected another operation");
+        };
+        assert_eq!(target, "app.run");
+        assert_eq!(phase, "ensures");
+        assert_eq!(predicate, serde_json::json!({"kind":"bool","value":true}));
         for malformed in [
             vec![],
             vec![

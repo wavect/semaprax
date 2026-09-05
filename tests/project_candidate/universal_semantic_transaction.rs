@@ -6,11 +6,11 @@ use std::sync::Arc;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, ProjectCandidate, ProjectRevision, ProjectSemanticImage,
-    SemanticChange, SemanticTransaction, SemanticTransactionRenameDisplayName,
-    SemanticTransactionReplaceBlock, MAX_SEMANTIC_TRANSACTION_BYTES,
-    SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
-    SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_REVIEW_SCHEMA,
-    SEMANTIC_TRANSACTION_SCHEMA,
+    SemanticChange, SemanticTransaction, SemanticTransactionAddContract,
+    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceBlock,
+    MAX_SEMANTIC_TRANSACTION_BYTES, SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA,
+    SEMANTIC_TRANSACTION_IMPACT_SCHEMA, SEMANTIC_TRANSACTION_RESULT_SCHEMA,
+    SEMANTIC_TRANSACTION_REVIEW_SCHEMA, SEMANTIC_TRANSACTION_SCHEMA,
 };
 use serde_json::{json, Value};
 
@@ -347,4 +347,118 @@ fn replace_block_rejects_stale_old_source_and_malformed_replacements() {
         ),
         "SPX-G525",
     );
+}
+
+fn nonnegative_left() -> Value {
+    json!({
+        "kind":"binary", "op":">=",
+        "left":{"kind":"place","name":"left"},
+        "right":{"kind":"i64","value":0}
+    })
+}
+
+#[test]
+fn add_contract_exactly_appends_a_typed_predicate_and_replays_without_writes() {
+    let fixture = Fixture::new();
+    let disk_before = inventory(&fixture.0);
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let old_contract = json!({"ensures":[],"requires":[]});
+    let transaction = SemanticTransaction::add_contract(
+        workspace.workspace_revision(),
+        SemanticTransactionAddContract::new(
+            "calculator.add",
+            old_contract.clone(),
+            "requires",
+            nonnegative_left(),
+        ),
+    )
+    .unwrap();
+    assert_eq!(
+        SemanticTransaction::from_json(transaction.to_json().as_bytes())
+            .unwrap()
+            .to_json(),
+        transaction.to_json()
+    );
+    let artifacts = transaction.validate(Arc::clone(&revision)).unwrap();
+    let result: Value = serde_json::from_str(artifacts.result()).unwrap();
+    assert_eq!(result["operation_results"][0]["kind"], "add_contract");
+    assert_eq!(result["operation_results"][0]["old_contract"], old_contract);
+    assert_eq!(
+        result["operation_results"][0]["new_contract"],
+        json!({"ensures":[],"requires":["left >= 0"]})
+    );
+    let review: Value = serde_json::from_str(artifacts.review()).unwrap();
+    assert_eq!(review["review"]["exact_old_contract_precondition"], true);
+    assert_eq!(
+        review["review"]["source_outside_added_clause_preserved"],
+        true
+    );
+
+    let direct_open =
+        ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap();
+    let direct_change = SemanticChange::new(
+        revision.project_revision(),
+        &json!({
+            "kind":"add_contract", "target":"calculator.add",
+            "phase":"requires", "predicate":nonnegative_left(),
+        }),
+    )
+    .unwrap();
+    let direct = direct_open
+        .apply(direct_open.candidate_digest(), &direct_change)
+        .unwrap();
+    assert_eq!(artifacts.candidate().to_json(), direct.to_json());
+    assert_eq!(
+        SemanticTransaction::replay(
+            Arc::clone(&revision),
+            transaction.to_json().as_bytes(),
+            artifacts.evidence().as_bytes(),
+        )
+        .unwrap()
+        .result(),
+        artifacts.result()
+    );
+    assert_eq!(inventory(&fixture.0), disk_before);
+}
+
+#[test]
+fn add_contract_rejects_stale_inventory_bad_phase_and_non_boolean_predicate() {
+    let fixture = Fixture::new();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let stale = SemanticTransaction::add_contract(
+        workspace.workspace_revision(),
+        SemanticTransactionAddContract::new(
+            "calculator.add",
+            json!({"ensures":[],"requires":["left >= 0"]}),
+            "requires",
+            nonnegative_left(),
+        ),
+    )
+    .unwrap();
+    assert_code(stale.validate(Arc::clone(&revision)), "SPX-G527");
+    assert_code(
+        SemanticTransaction::add_contract(
+            workspace.workspace_revision(),
+            SemanticTransactionAddContract::new(
+                "calculator.add",
+                json!({"ensures":[],"requires":[]}),
+                "during",
+                json!({"kind":"bool","value":true}),
+            ),
+        ),
+        "SPX-G525",
+    );
+    let non_boolean = SemanticTransaction::add_contract(
+        workspace.workspace_revision(),
+        SemanticTransactionAddContract::new(
+            "calculator.add",
+            json!({"ensures":[],"requires":[]}),
+            "ensures",
+            json!({"kind":"i64","value":1}),
+        ),
+    )
+    .unwrap();
+    assert!(non_boolean.validate(revision).is_err());
 }

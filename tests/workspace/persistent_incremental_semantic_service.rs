@@ -8,11 +8,12 @@ use semaprax::project::{
     with_authenticated_project, ProjectFrontendSource, ProjectManifest, ProjectRevision,
     SemanticServiceIndexItemKind, SemanticServiceIndexQuery, SemanticTransaction,
     SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
+    SemanticWorkspaceServiceHistoryQuery,
 };
 use semaprax::workspace_analysis::{
     WorkspaceAnalysisTargetKind, WorkspaceContextOptions, WorkspaceImpactOptions,
 };
-use serde_json::Value;
+use serde_json::{json, Value};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const PATHS: [&str; 4] = [
@@ -501,4 +502,125 @@ fn transaction_validation_is_direct_exact_read_only_and_stales_after_refresh() {
         "SPX-G530",
     );
     assert_eq!(inventory(&fixture.0), before);
+}
+
+#[test]
+fn successful_history_is_digest_bound_revision_paged_and_failure_atomic() {
+    let fixture = Fixture::new();
+    let manifest = fixture.manifest();
+    let sources = fixture.sources();
+    let base = fixture.revision();
+    let mut service = SemanticWorkspaceService::open(Arc::clone(&base)).unwrap();
+    let initial = service.active_generation().workspace_revision().to_owned();
+    let empty = service.history_snapshot(&initial).unwrap();
+    assert!(empty.is_empty());
+
+    let transaction = SemanticTransaction::rename_display_name(
+        &initial,
+        SemanticTransactionRenameDisplayName::new("calculator.add", "add", "sum"),
+    )
+    .unwrap();
+    let artifacts = service
+        .validate_transaction(transaction.to_json().as_bytes())
+        .unwrap();
+    let first_snapshot = service.history_snapshot(&initial).unwrap();
+    assert_eq!(first_snapshot.len(), 1);
+
+    let stale_old = SemanticTransaction::rename_display_name(
+        &initial,
+        SemanticTransactionRenameDisplayName::new("calculator.add", "wrong", "sum"),
+    )
+    .unwrap();
+    assert!(service
+        .validate_transaction(stale_old.to_json().as_bytes())
+        .is_err());
+    assert_eq!(service.history_snapshot(&initial).unwrap().len(), 1);
+
+    let changed = replace_source(&sources, "src/app.spx", "multiply(6, 7)", "multiply(6, 8)");
+    let refresh = service
+        .refresh_owned_sources(&manifest, &changed, &initial)
+        .unwrap();
+    let current = service.active_generation().workspace_revision().to_owned();
+    assert_ne!(current, initial);
+    assert_eq!(first_snapshot.len(), 1);
+    let first_query = SemanticWorkspaceServiceHistoryQuery::new(&initial, 0, 1).unwrap();
+    assert_eq!(first_snapshot.query(&first_query).unwrap().items().len(), 1);
+
+    let query = SemanticWorkspaceServiceHistoryQuery::new(&current, 0, 1).unwrap();
+    assert_eq!(
+        SemanticWorkspaceServiceHistoryQuery::from_json(query.to_json().as_bytes()).unwrap(),
+        query
+    );
+    let page = service.history_query(query.to_json().as_bytes()).unwrap();
+    assert_eq!(page.history_length(), 2);
+    assert_eq!(page.items().len(), 1);
+    assert_eq!(page.next_offset(), Some(1));
+    let transaction_entry = &page.items()[0];
+    assert_eq!(transaction_entry.kind(), "transaction_validation");
+    assert_eq!(
+        transaction_entry.transaction_digest(),
+        Some(transaction.digest())
+    );
+    assert_eq!(
+        transaction_entry.result_digest(),
+        Some(artifacts.result_digest())
+    );
+    assert_eq!(transaction_entry.refresh_receipt_digest(), None);
+
+    let second_query = SemanticWorkspaceServiceHistoryQuery::new(&current, 1, 1).unwrap();
+    let second = service
+        .history_query(second_query.to_json().as_bytes())
+        .unwrap();
+    let refresh_entry = &second.items()[0];
+    assert_eq!(refresh_entry.kind(), "refresh");
+    assert_eq!(
+        refresh_entry.refresh_receipt_digest(),
+        Some(refresh.receipt_digest())
+    );
+    assert_eq!(refresh_entry.base_workspace_revision(), initial);
+    assert_eq!(refresh_entry.outcome_workspace_revision(), current);
+
+    let snapshot = service.history_snapshot(&current).unwrap();
+    let replay = SemanticWorkspaceServiceHistoryQuery::replay(
+        &snapshot,
+        second_query.to_json().as_bytes(),
+        second.result_digest(),
+        second.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replay.to_json(), second.to_json());
+    assert_code(
+        service.refresh_owned_sources(&manifest, &sources, &initial),
+        "SPX-G530",
+    );
+    let invalid = changed
+        .iter()
+        .map(|source| {
+            if source.path() == "src/app.spx" {
+                ProjectFrontendSource::new(source.path(), "invalid source")
+            } else {
+                ProjectFrontendSource::new(source.path(), source.source())
+            }
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert!(service
+        .refresh_owned_sources(&manifest, &invalid, &current)
+        .is_err());
+    assert_eq!(service.active_generation().workspace_revision(), current);
+    assert_eq!(service.history_snapshot(&current).unwrap().len(), 2);
+
+    let mut tampered: Value = serde_json::from_str(second.to_json()).unwrap();
+    tampered["authority"] = json!(true);
+    let mut tampered = serde_json::to_string(&tampered).unwrap();
+    tampered.push('\n');
+    assert_code(
+        SemanticWorkspaceServiceHistoryQuery::replay(
+            &snapshot,
+            second_query.to_json().as_bytes(),
+            second.result_digest(),
+            tampered.as_bytes(),
+        ),
+        "SPX-G530",
+    );
 }

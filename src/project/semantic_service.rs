@@ -5,7 +5,7 @@
 //! persistence remain explicit host responsibilities outside this module.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -21,6 +21,21 @@ use super::{
     ProjectSemanticImage, SemanticQuery, SemanticQueryResult, SemanticServiceIndexQuery,
     SemanticServiceIndexResult, SemanticTransaction, SemanticTransactionArtifacts,
     SemanticWorkspaceRevision,
+};
+
+mod history;
+
+use history::SemanticWorkspaceServiceHistory;
+pub use history::{
+    SemanticWorkspaceServiceHistoryEntry, SemanticWorkspaceServiceHistoryQuery,
+    SemanticWorkspaceServiceHistoryResult, SemanticWorkspaceServiceHistorySnapshot,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRIES,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_BYTES,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_LIMIT,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_BYTES,
+    SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRY_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_SCHEMA,
 };
 
 pub const SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA: &str =
@@ -179,6 +194,7 @@ pub struct SemanticWorkspaceService {
     active: Arc<SemanticWorkspaceGeneration>,
     frontend: ProjectFrontendCache,
     open_work: SemanticWorkspaceServiceWork,
+    history: Mutex<SemanticWorkspaceServiceHistory>,
 }
 
 impl SemanticWorkspaceService {
@@ -232,6 +248,7 @@ impl SemanticWorkspaceService {
             active,
             frontend,
             open_work,
+            history: Mutex::new(SemanticWorkspaceServiceHistory::new()),
         })
     }
 
@@ -245,6 +262,38 @@ impl SemanticWorkspaceService {
 
     pub fn semantic_cache(&self) -> &ProjectFrontendCache {
         &self.frontend
+    }
+
+    /// Capture an immutable bounded history view at the exact active revision.
+    /// Later successful appends do not change the returned snapshot.
+    pub fn history_snapshot(
+        &self,
+        expected_workspace_revision: &str,
+    ) -> Result<SemanticWorkspaceServiceHistorySnapshot> {
+        validate_digest(expected_workspace_revision)?;
+        if expected_workspace_revision != self.active.workspace_revision() {
+            return Err(stale(
+                "semantic workspace service history revision is stale",
+            ));
+        }
+        self.history
+            .lock()
+            .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?
+            .snapshot(
+                self.active.workspace_revision(),
+                self.active.revision.project_revision(),
+            )
+    }
+
+    /// Execute one exact canonical query against the current immutable history
+    /// snapshot. This reads no external state and grants no authority.
+    pub fn history_query(
+        &self,
+        query_bytes: &[u8],
+    ) -> Result<SemanticWorkspaceServiceHistoryResult> {
+        let query = SemanticWorkspaceServiceHistoryQuery::from_json(query_bytes)?;
+        self.history_snapshot(query.expected_workspace_revision())?
+            .query(&query)
     }
 
     /// Execute one exact canonical query against the active immutable generation.
@@ -292,6 +341,11 @@ impl SemanticWorkspaceService {
                 "semantic workspace service refresh expected revision is stale",
             ));
         }
+        let mut history = self
+            .history
+            .lock()
+            .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?;
+        history.require_capacity()?;
 
         let mut frontend = self.frontend.fork();
         let build = frontend.build(manifest, sources)?;
@@ -347,8 +401,17 @@ impl SemanticWorkspaceService {
             generation_reused,
         };
 
+        let history_entry = history.refresh_entry(
+            before.project_revision(),
+            receipt.old_workspace_revision(),
+            adopted.revision.project_revision(),
+            receipt.workspace_revision(),
+            receipt.receipt_digest(),
+        )?;
+
         self.active = adopted;
         self.frontend = frontend;
+        history.append(history_entry);
         Ok(receipt)
     }
 
@@ -358,13 +421,32 @@ impl SemanticWorkspaceService {
         &self,
         transaction_bytes: &[u8],
     ) -> Result<SemanticTransactionArtifacts> {
+        let mut history = self
+            .history
+            .lock()
+            .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?;
+        history.require_capacity()?;
         let transaction = SemanticTransaction::from_json(transaction_bytes)?;
         if transaction.expected_workspace_revision() != self.active.workspace_revision() {
             return Err(stale(
                 "semantic workspace service transaction revision is stale",
             ));
         }
-        transaction.validate(Arc::clone(&self.active.revision))
+        let artifacts = transaction.validate(Arc::clone(&self.active.revision))?;
+        let candidate_workspace = artifacts
+            .candidate()
+            .revision()
+            .canonical_workspace_revision()?;
+        let history_entry = history.transaction_entry(
+            self.active.revision.project_revision(),
+            self.active.workspace_revision(),
+            artifacts.candidate().revision().project_revision(),
+            candidate_workspace.workspace_revision(),
+            transaction.digest(),
+            artifacts.result_digest(),
+        )?;
+        history.append(history_entry);
+        Ok(artifacts)
     }
 }
 

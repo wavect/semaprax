@@ -9,6 +9,7 @@ use semaprax::project::{
     with_authenticated_project, ProjectFrontendSource, ProjectManifest, ProjectRevision,
     SemanticQuery, SemanticServiceIndexQuery, SemanticTransaction,
     SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
+    SemanticWorkspaceServiceHistoryQuery,
 };
 use semaprax::semantic_service_transport::{
     SemanticWorkspaceStdioSession, MAX_SEMANTIC_SERVICE_REQUEST_BYTES,
@@ -187,6 +188,7 @@ fn one_session_retains_one_generation_and_delegates_exact_query_and_transaction_
             "workspace/status",
             "workspace/query",
             "workspace/index-query",
+            "workspace/history-query",
             "workspace/validate-transaction",
             "workspace/refresh",
             "shutdown"
@@ -269,6 +271,26 @@ fn one_session_retains_one_generation_and_delegates_exact_query_and_transaction_
     assert_eq!(
         validated["payload"]["evidence"],
         serde_json::from_str::<Value>(direct_artifacts.evidence()).unwrap()
+    );
+    let history_query = SemanticWorkspaceServiceHistoryQuery::new(&workspace, 0, 64).unwrap();
+    let history = result(&call(
+        &mut session,
+        json!(51),
+        "workspace/history-query",
+        json!({"query":history_query.to_json()}),
+    ))
+    .clone();
+    assert_eq!(history["workspace_revision"], workspace);
+    assert_eq!(
+        history["payload"]["value"]["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        history["payload"]["value"]["items"][0]["value"]["kind"],
+        "transaction_validation"
     );
     assert_eq!(
         session.service().active_generation().workspace_revision(),

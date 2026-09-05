@@ -10,7 +10,9 @@ use crate::workspace_analysis::{
     WorkspaceImpactOptions,
 };
 
-use super::semantic_transaction::rename_display_name_eligibility;
+use super::semantic_transaction::{
+    add_contract_eligibility, rename_display_name_eligibility, replace_block_eligibility,
+};
 use super::{SemanticWorkspaceSnapshot, SEMANTIC_TRANSACTION_SCHEMA};
 
 pub const SEMANTIC_QUERY_SCHEMA: &str = "semaprax.semantic-query.v1";
@@ -540,21 +542,53 @@ fn available_operations_payload(
     // Require an actual retained declaration before classifying the operation.
     snapshot.symbol(stable_id)?;
     let eligibility = rename_display_name_eligibility(snapshot.generation().revision(), stable_id)?;
+    let block = replace_block_eligibility(snapshot.generation().revision(), stable_id)?;
+    let contract = add_contract_eligibility(snapshot.generation().revision(), stable_id)?;
     render(
         json!({
-            "operations": [{
-                "available": eligibility.available(),
-                "constraints": {
-                    "comment_free_canonical_workspace": eligibility.comment_free_canonical_workspace,
-                    "explicit_identity": eligibility.explicit_identity,
-                    "monomorphic": eligibility.monomorphic,
-                    "non_main": eligibility.non_main,
+            "operations": [
+                {
+                    "available": eligibility.available(),
+                    "constraints": {
+                        "comment_free_canonical_workspace": eligibility.comment_free_canonical_workspace,
+                        "explicit_identity": eligibility.explicit_identity,
+                        "monomorphic": eligibility.monomorphic,
+                        "non_main": eligibility.non_main,
+                    },
+                    "expected_old_value": eligibility.expected_old_value,
+                    "kind": "rename_display_name",
+                    "nonclaim": "availability_does_not_claim_that_an_arbitrary_new_value_validates",
+                    "transaction_schema": SEMANTIC_TRANSACTION_SCHEMA,
                 },
-                "expected_old_value": eligibility.expected_old_value,
-                "kind": "rename_display_name",
-                "nonclaim": "availability_does_not_claim_that_an_arbitrary_new_value_validates",
-                "transaction_schema": SEMANTIC_TRANSACTION_SCHEMA,
-            }],
+                {
+                    "available": block.available(),
+                    "constraints": {
+                        "comment_free_canonical_workspace": block.comment_free_canonical_workspace,
+                        "explicit_identity": block.explicit_identity,
+                        "monomorphic": block.monomorphic,
+                        "non_main": block.non_main,
+                    },
+                    "expected_old_block": block.expected_old_block,
+                    "kind": "replace_block",
+                    "nonclaim": "availability_does_not_claim_that_an_arbitrary_replacement_validates",
+                    "transaction_schema": SEMANTIC_TRANSACTION_SCHEMA,
+                },
+                {
+                    "available": contract.available(),
+                    "constraints": {
+                        "comment_free_canonical_workspace": contract.comment_free_canonical_workspace,
+                        "explicit_identity": contract.explicit_identity,
+                        "inventory_below_capacity": contract.inventory_below_capacity,
+                        "monomorphic": contract.monomorphic,
+                        "non_main": contract.non_main,
+                    },
+                    "expected_old_contract": contract.expected_old_contract,
+                    "kind": "add_contract",
+                    "nonclaim": "availability_does_not_claim_that_an_arbitrary_predicate_validates",
+                    "phases": ["requires", "ensures"],
+                    "transaction_schema": SEMANTIC_TRANSACTION_SCHEMA,
+                }
+            ],
             "schema": SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
             "stable_id": stable_id,
         }),

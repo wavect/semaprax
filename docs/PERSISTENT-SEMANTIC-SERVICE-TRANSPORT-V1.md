@@ -12,8 +12,10 @@ Project is authenticated and retained for the complete process lifetime. The
 session delegates query, transaction validation, and refresh to that one
 service instead of rebuilding a one-shot service per request.
 
-It is a local single-client stdio adapter, not MCP, LSP, a socket, daemon,
-shared multiprocess service, editor protocol, or durable database.
+It is a local single-client stdio adapter, not LSP, a socket, daemon, shared
+multiprocess service, editor protocol, or durable database. The separately
+versioned [MCP facade](PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md) is an additive
+framing adapter over this exact session; it does not change this protocol.
 
 ## Command and framing
 
@@ -53,6 +55,7 @@ workspace/open
 workspace/status
 workspace/query
 workspace/index-query
+workspace/history-query
 workspace/validate-transaction
 workspace/refresh
 shutdown
@@ -82,6 +85,12 @@ tests covering a stable declaration or functions that can reach a named
 effect, plus the query and result digests. Refresh derives the replacement
 indexes before the generation/cache/index CAS, so old snapshots retain their
 old indexes and active queries reject stale revisions.
+
+`workspace/history-query` accepts exactly one `query` string containing a
+canonical, revision-bound service-history query. It returns a bounded page of
+successful transaction-validation and refresh outcomes in mutex-serialized
+observed-call order. Failed or stale attempts do not append entries; the order
+is not a claim about deterministic scheduling between concurrent callers.
 
 `workspace/validate-transaction` accepts exactly one `transaction` string
 containing canonical Universal Semantic Transaction v1 JSON. It returns the
@@ -134,14 +143,15 @@ those files.
 
 State persistence means only that one process retains one in-memory service
 generation across requests. There is no durable restart, crash recovery,
-multi-client concurrency, locking protocol, scheduling, cancellation, watcher,
-automatic refresh, history ledger, or cross-process visibility.
+multi-client concurrency, external locking protocol, scheduling, cancellation,
+watcher, automatic refresh, durable history ledger, or cross-process visibility.
 
 The feature is additive. Frozen Project Agent Transport v5,
-`serve-workspace`, `serve-workspace-mcp`, MCP lifecycle/tool schemas, one-shot
+`serve-workspace`, `serve-workspace-mcp`, their MCP lifecycle/tool schemas, one-shot
 Universal Semantic Workflow CLI, and all Project/image/query/transaction/core
-service bytes remain unchanged. This transport is not an alias or successor to
-those protocols and adds no authority to them.
+service bytes remain unchanged. This transport and its separately versioned MCP
+facade are not aliases or successors to those protocols and add no authority to
+them.
 
 ## Focused evidence
 

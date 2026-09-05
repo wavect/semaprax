@@ -360,9 +360,17 @@ pub use semantic_query::{
     SEMANTIC_QUERY_DECLARATIONS_SCHEMA, SEMANTIC_QUERY_RESULT_SCHEMA, SEMANTIC_QUERY_SCHEMA,
 };
 pub use semantic_service::{
-    SemanticWorkspaceGeneration, SemanticWorkspaceService, SemanticWorkspaceServiceRefresh,
+    SemanticWorkspaceGeneration, SemanticWorkspaceService, SemanticWorkspaceServiceHistoryEntry,
+    SemanticWorkspaceServiceHistoryQuery, SemanticWorkspaceServiceHistoryResult,
+    SemanticWorkspaceServiceHistorySnapshot, SemanticWorkspaceServiceRefresh,
     SemanticWorkspaceServiceWork, SemanticWorkspaceSnapshot,
-    MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES, SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRIES,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_BYTES,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_LIMIT,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_BYTES,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES, SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRY_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_HISTORY_QUERY_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_HISTORY_RESULT_SCHEMA, SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA,
     SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA,
 };
 pub use semantic_service_indexes::{
@@ -372,12 +380,12 @@ pub use semantic_service_indexes::{
     SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA, SEMANTIC_SERVICE_INDEX_RESULT_SCHEMA,
 };
 pub use semantic_transaction::{
-    SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionOperation,
-    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceBlock,
-    MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES, MAX_SEMANTIC_TRANSACTION_BYTES,
-    SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
-    SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_REVIEW_SCHEMA,
-    SEMANTIC_TRANSACTION_SCHEMA,
+    SemanticTransaction, SemanticTransactionAddContract, SemanticTransactionArtifacts,
+    SemanticTransactionOperation, SemanticTransactionRenameDisplayName,
+    SemanticTransactionReplaceBlock, MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES,
+    MAX_SEMANTIC_TRANSACTION_BYTES, SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA,
+    SEMANTIC_TRANSACTION_IMPACT_SCHEMA, SEMANTIC_TRANSACTION_RESULT_SCHEMA,
+    SEMANTIC_TRANSACTION_REVIEW_SCHEMA, SEMANTIC_TRANSACTION_SCHEMA,
 };
 pub use semantic_transaction_composition::{
     SemanticTransactionMerge, SemanticTransactionMergeOrder, SemanticTransactionRebase,

@@ -145,12 +145,24 @@ semantic generation.
 Semantic Transaction v1 envelope and validates it against the active immutable
 Project revision. It returns the existing `SemanticTransactionArtifacts`.
 
-Validation does not adopt the candidate revision, refresh the service, mutate
-the cache, append transaction history, write source, commit a managed
+Validation does not adopt the candidate revision, refresh the semantic
+generation, mutate the compiler cache, write source, commit a managed
 generation, run a target, or publish anything. Universal Semantic Transaction
-v1 still admits exactly one explicit monomorphic non-`main` function display
-rename over comment-free canonical source. This service does not broaden that
-operation algebra.
+v1 supplies its closed display-rename, whole-block replacement, and contract-
+addition algebra over comment-free canonical source; this service delegates
+that algebra without broadening it.
+
+Successful validation appends one authority-free operational history entry
+only after complete artifact and candidate-revision construction. Successful
+refresh appends only after constructing the receipt and next entry, with no
+fallible step between generation/cache adoption and append. Failed, stale, or
+capacity-exhausted attempts append nothing and leave semantic state unchanged.
+The bounded 1,024-entry chain records exact base/outcome Project and workspace
+revisions plus transaction/result or refresh-receipt digests. Immutable
+snapshots support exact revision-bound canonical queries in pages of at most
+64 entries. Ordering means mutex-serialized observed-call order, not a promise
+of deterministic scheduling between concurrent callers, and the history is
+neither durable nor authority-bearing.
 
 ## Deterministic receipts
 
@@ -230,7 +242,7 @@ It is not yet:
 - a filesystem watcher, automatic refresh loop, repository index, or
   multi-workspace database;
 - a disk-persistent service, crash-recovery protocol, cache eviction policy,
-  transaction-history ledger, or multi-process coordinator;
+  durable transaction-history ledger or multi-process coordinator;
 - full incremental semantic verification, incremental target emission, a
   performance result, or a memory-use result;
 - a mutable graph store, source commit path, build/test/run route, authority
@@ -249,7 +261,8 @@ same-revision generation reuse; one source-exact refresh with three checked-HIR
 cache hits and one resolution; cold-equivalent Project, graph, and canonical
 workspace identities; stale and failed refresh rollback; a subsequent complete
 warm hit; direct transaction-artifact parity; transaction staleness after
-refresh; and unchanged fixture bytes across every service operation.
+refresh; bounded history paging, digest replay, stale/failure atomicity and old
+snapshot immutability; and unchanged fixture bytes across every service operation.
 
 The authored cases do not yet independently recompute the two receipt digests,
 inject a cache loaded by the persistent store, exercise manifest/inventory or
@@ -257,7 +270,7 @@ reverse-import invalidation, compare legacy Image or candidate bytes, or expose
 the core through any transport. Those remain part of the larger service gate,
 not evidence claimed by this badge.
 
-The following focused command passed locally with three tests and no failures;
+The following focused command passed locally with six tests and no failures;
 the completion matrix remains Partial because transport and broader semantic
 coverage remain open:
 

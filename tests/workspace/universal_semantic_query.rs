@@ -299,6 +299,23 @@ fn available_rename_is_truthful_but_still_requires_full_transaction_validation()
         payload["operations"][0]["transaction_schema"],
         "semaprax.semantic-transaction.v1"
     );
+    assert_eq!(payload["operations"].as_array().unwrap().len(), 3);
+    assert_eq!(payload["operations"][1]["kind"], "replace_block");
+    assert_eq!(payload["operations"][1]["available"], true);
+    assert_eq!(
+        payload["operations"][1]["expected_old_block"],
+        "{\n    left + right\n}"
+    );
+    assert_eq!(payload["operations"][2]["kind"], "add_contract");
+    assert_eq!(payload["operations"][2]["available"], true);
+    assert_eq!(
+        payload["operations"][2]["expected_old_contract"],
+        json!({"ensures":[],"requires":[]})
+    );
+    assert_eq!(
+        payload["operations"][2]["phases"],
+        json!(["requires", "ensures"])
+    );
 
     let transaction = SemanticTransaction::rename_display_name(
         snapshot.workspace_revision(),

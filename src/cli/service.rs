@@ -4,17 +4,21 @@ use std::path::PathBuf;
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::with_authenticated_project;
+use semaprax::semantic_service_mcp::serve_semantic_workspace_mcp;
 use semaprax::semantic_service_transport::serve_semantic_workspace_stdio;
 
 use super::project::{is_project_manifest, resolve_positional};
 
 pub(crate) struct ServiceOptions {
     manifest: PathBuf,
+    mcp: bool,
 }
 
 pub(crate) fn parse(args: &[String]) -> Result<ServiceOptions, u8> {
-    let [project] = args else {
-        return usage();
+    let (project, mcp) = match args {
+        [project] => (project, false),
+        [project, flag] if flag == "--mcp" => (project, true),
+        _ => return usage(),
     };
     if project.is_empty() || project.starts_with('-') {
         return usage();
@@ -24,26 +28,33 @@ pub(crate) fn parse(args: &[String]) -> Result<ServiceOptions, u8> {
         eprintln!("service requires a Project directory or semaprax.toml");
         return Err(2);
     }
-    Ok(ServiceOptions { manifest })
+    Ok(ServiceOptions { manifest, mcp })
 }
 
 pub(crate) fn run(options: ServiceOptions, report: impl Fn(&[Diagnostic]) -> u8) -> Result<(), u8> {
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
-    with_authenticated_project(&options.manifest, |snapshot| {
-        serve_semantic_workspace_stdio(stdin.lock(), stdout.lock(), snapshot.retain_revision())
-            .map_err(|error| {
-                vec![Diagnostic::io(
-                    "SPX-G548",
-                    format!("semantic workspace service ended: {error}"),
-                )]
-            })
+    // End the authenticated loader lifetime before stdio starts. The retained
+    // revision is fully owned, so no request or EOF settlement can reopen a
+    // startup Project path.
+    let revision =
+        with_authenticated_project(&options.manifest, |snapshot| Ok(snapshot.retain_revision()))
+            .map_err(|errors| report(&errors))?;
+    let result = if options.mcp {
+        serve_semantic_workspace_mcp(stdin.lock(), stdout.lock(), revision)
+    } else {
+        serve_semantic_workspace_stdio(stdin.lock(), stdout.lock(), revision)
+    };
+    result.map_err(|error| {
+        report(&[Diagnostic::io(
+            "SPX-G548",
+            format!("semantic workspace service ended: {error}"),
+        )])
     })
-    .map_err(|errors| report(&errors))
 }
 
 fn usage<T>() -> Result<T, u8> {
-    eprintln!("service requires exactly <project>");
+    eprintln!("service requires exactly <project> [--mcp]");
     Err(2)
 }
 
@@ -73,11 +84,18 @@ mod tests {
                 .unwrap()
                 .join("fixtures/semaprax.toml")
         );
+        assert!(
+            parse(&strings(&["fixtures/semaprax.toml", "--mcp"]))
+                .unwrap()
+                .mcp
+        );
         for malformed in [
             &[][..],
             &[""][..],
             &["--stdio"][..],
             &["module.spx"][..],
+            &["--mcp", "fixtures"][..],
+            &["fixtures", "--mcp", "extra"][..],
             &["fixtures", "extra"][..],
         ] {
             assert!(parse(&strings(malformed)).is_err(), "{malformed:?}");

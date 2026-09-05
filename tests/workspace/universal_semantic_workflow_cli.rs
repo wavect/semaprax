@@ -6,13 +6,14 @@ use std::sync::Arc;
 
 use semaprax::project::{
     with_authenticated_project, ProjectRevision, SemanticQuery, SemanticTransaction,
-    SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
+    SemanticTransactionAddContract, SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
 };
 use semaprax::query::QueryFilters;
 use semaprax::workspace_analysis::{
     WorkspaceAnalysisDirection, WorkspaceAnalysisTargetKind, WorkspaceContextOptions,
     WorkspaceImpactOptions,
 };
+use serde_json::json;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -383,6 +384,55 @@ fn change_preview_result_and_evidence_equal_direct_transaction_and_reject_bad_ta
     assert!(output.stdout.is_empty());
     assert!(String::from_utf8_lossy(&output.stderr).contains("SPX-G525"));
     assert_eq!(inventory(&commented.0), commented_before);
+}
+
+#[test]
+fn add_contract_preview_prints_exact_core_result_and_evidence_without_writes() {
+    let fixture = Fixture::new(false);
+    let before = inventory(&fixture.0);
+    let revision = fixture.revision();
+    let workspace_revision = revision
+        .canonical_workspace_revision()
+        .unwrap()
+        .workspace_revision()
+        .to_owned();
+    let predicate = json!({
+        "kind":"binary", "op":">=",
+        "left":{"kind":"place","name":"left"},
+        "right":{"kind":"i64","value":0}
+    });
+    let transaction = SemanticTransaction::add_contract(
+        &workspace_revision,
+        SemanticTransactionAddContract::new(
+            "calculator.add",
+            json!({"ensures":[],"requires":[]}),
+            "requires",
+            predicate.clone(),
+        ),
+    )
+    .unwrap();
+    let artifacts = transaction.validate(Arc::clone(&revision)).unwrap();
+    let predicate = serde_json::to_string(&predicate).unwrap();
+    let common = [
+        "change",
+        "preview",
+        fixture.0.to_str().unwrap(),
+        "add-contract",
+        "calculator.add",
+        "requires",
+        &predicate,
+        "--revision",
+        &workspace_revision,
+    ];
+    let output = fixture.invoke(&common);
+    assert_success(&output);
+    assert_eq!(output.stdout, artifacts.result().as_bytes());
+    let mut evidence = common.to_vec();
+    evidence.push("--evidence");
+    let output = fixture.invoke(&evidence);
+    assert_success(&output);
+    assert_eq!(output.stdout, artifacts.evidence().as_bytes());
+    assert_eq!(inventory(&fixture.0), before);
 }
 
 #[test]

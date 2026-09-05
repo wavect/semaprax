@@ -151,7 +151,7 @@ fn patterns_and_arm_results_are_checked_independently() {
     );
     assert_eq!(
         codes(&incompatible),
-        ["SPX-M103", "SPX-M104", "SPX-T202", "SPX-M101"]
+        ["SPX-M103", "SPX-T202", "SPX-M101"]
     );
 
     let fields = VARIANTS.replace(

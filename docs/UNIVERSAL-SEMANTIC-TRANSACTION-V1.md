@@ -104,6 +104,13 @@ v1, Semantic Change v1, and Project Candidate v1 bytes and digest algorithms do
 not change. Validation reads only retained immutable state and performs no
 filesystem write, commit, generation pivot, or publication.
 
+The separate read-only [Universal Semantic Workflow CLI
+v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md) exposes this operation as
+`change preview rename-display-name`. It derives the exact old display name
+from the same authenticated Project generation and prints this kernel's exact
+result or evidence. That adapter does not add an operation, wrapper schema,
+commit path, or authority.
+
 This badge is not yet a universal operation algebra, multi-operation planner,
 general semantic completeness claim, behavioral proof, persistent service,
 managed-workspace commit route, source-with-comments rewrite, or authority

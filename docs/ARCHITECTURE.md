@@ -568,6 +568,19 @@ MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
 [Persistent Incremental Semantic Service
 v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
 
+`src/cli/query.rs` and `src/cli/change.rs` own the read-only one-shot Universal
+Semantic Workflow CLI v1 adapter. The Project-only `query` subcommands construct
+one of the five canonical Universal Semantic Query operations and print its
+exact result. `change preview rename-display-name` derives the current display
+name from the same retained generation, constructs the existing one-operation
+Universal Semantic Transaction, and prints its exact result or evidence. Both
+routes run wholly within one `with_authenticated_project` lifetime, including
+the final held-input recheck. They create no parallel schemas or semantic
+implementation, do not retain the process-local service, and own no source,
+cache, commit, managed-Workspace, transport, MCP, LSP, or publication authority.
+Frozen Project Agent Transport v5 remains unchanged. See [Universal Semantic
+Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md).
+
 `src/project/image.rs` derives an immutable, bounded Semantic Workspace
 Image from one already admitted `Arc<ProjectRevision>`. It retains validated
 HIR in memory and projects the complete Project graph plus existing typed

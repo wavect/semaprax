@@ -50,3 +50,5 @@ mod session_read_batch_cli;
 mod session_semantic_cache_cli;
 #[path = "workspace/universal_semantic_query.rs"]
 mod universal_semantic_query;
+#[path = "workspace/universal_semantic_workflow_cli.rs"]
+mod universal_semantic_workflow_cli;

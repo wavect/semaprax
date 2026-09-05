@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the locally exercised Universal Semantic Workflow CLI v1 read-only
+  adapter. Five Project-only `query` subcommands print exact
+  Universal Semantic Query results, while `change preview rename-display-name`
+  prints the exact Universal Semantic Transaction result or evidence. Each
+  one-shot invocation retains and finally rechecks one authenticated Project;
+  no source write, commit, persistent transport, or MCP/LSP route is added, and
+  frozen Project Agent Transport v5 remains unchanged. The five focused
+  integration cases pass locally.
 - Added the authority-free, transport-neutral Universal Semantic Query v1
   core. Five exact canonical, workspace-revision-bound operations cover bounded
   declaration paging, symbol, context, impact, and truthful transaction

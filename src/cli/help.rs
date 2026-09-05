@@ -10,6 +10,7 @@ pub(crate) enum CommandId {
     Verify,
     Agent,
     Query,
+    Change,
     Package,
     Add,
     Fetch,
@@ -142,7 +143,8 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Doc, canonical: "doc", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doc <file> [--json]"] },
     CommandSpec { id: CommandId::Verify, canonical: "verify", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax verify <file> <patch.spatch> <evidence.json>", "semaprax verify <root> <patch.wspatch>|<proposal.json> <evidence.json>", "semaprax verify <definition.json> <profile.json> <graph.json>", "semaprax verify <manifest> <image.json>"] },
     CommandSpec { id: CommandId::Agent, canonical: "agent", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax agent inspect <definition.json> [--profile]", "semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]", "semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>"] },
-    CommandSpec { id: CommandId::Query, canonical: "query", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]"] },
+    CommandSpec { id: CommandId::Query, canonical: "query", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]", "semaprax query <project> declarations [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--offset N] [--limit N] [--revision digest]", "semaprax query <project> symbol <stable-id> [--revision digest]", "semaprax query <project> context <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--revision digest]", "semaprax query <project> impact <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N] [--revision digest]", "semaprax query <project> available-operations <stable-id> [--revision digest]"] },
+    CommandSpec { id: CommandId::Change, canonical: "change", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax change preview <project> rename-display-name <stable-id> <new-name> [--revision digest] [--evidence]"] },
     CommandSpec { id: CommandId::Package, canonical: "package", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax package report <file> [--max-bytes N]", "semaprax package lock <subject.json>... [--max-bytes N]", "semaprax package resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]"] },
     CommandSpec { id: CommandId::Add, canonical: "add", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax add <dir>|semaprax.toml <package> <range>"] },
     CommandSpec { id: CommandId::Fetch, canonical: "fetch", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fetch <cache-dir> <subject.json>..."] },
@@ -612,9 +614,9 @@ static GUIDE: &[GuideGroup] = &[
         heading: "Change by meaning",
         entries: &[
             GuideEntry {
-                id: CommandId::Patch,
-                shape: "patch <file> <patch.spatch>",
-                summary: "Apply a replay-checked semantic patch",
+                id: CommandId::Change,
+                shape: "change preview <project> rename",
+                summary: "Validate a semantic rename without writing",
             },
             GuideEntry {
                 id: CommandId::Impact,
@@ -816,6 +818,7 @@ mod tests {
         "verify",
         "agent",
         "query",
+        "change",
         "package",
         "add",
         "fetch",

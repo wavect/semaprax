@@ -422,8 +422,12 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             Ok(())
         }
         CommandId::Query => {
-            let options = cli::query::parse(&args[1..])?;
-            cli::query::run(options, |errors| report(errors, false))
+            let command = cli::query::parse_command(&args[1..])?;
+            cli::query::run_command(command, |errors| report(errors, false))
+        }
+        CommandId::Change => {
+            let preview = cli::change::parse(&args[1..])?;
+            cli::change::run(preview, |errors| report(errors, false))
         }
         CommandId::Package => {
             let rewritten = cli::package::long_form(&args[1..])?;

@@ -7,9 +7,12 @@ reviewers of revision-bound semantic reads.
 
 Universal Semantic Query v1 is the first closed query envelope over one
 immutable [Persistent Incremental Semantic Workspace Service
-v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md) snapshot. It gives future
-CLI, MCP, LSP, and other adapters one canonical request/result/replay boundary
-without adding any such adapter in this badge.
+v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md) snapshot. It gives CLI, MCP,
+LSP, and other adapters one canonical request/result/replay boundary
+without making adapter behavior part of the core. The later read-only
+[Universal Semantic Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md)
+constructs these same typed operations and returns their exact results; it adds
+no query schema or alternate execution path.
 
 The v1 operation set is deliberately five operations: `declarations`,
 `symbol`, `context`, `impact`, and `available_operations`. The implementation
@@ -173,12 +176,13 @@ v1, Semantic Workspace Image v1, Universal Semantic Transaction v1, or their
 bytes and digest algorithms. In particular it does not add methods, fields, or
 schemas to the frozen Project Agent Transport v5 protocol.
 
-This badge does not yet add `spx query`, a daemon wire route, Project Agent
+The separate Universal Semantic Workflow CLI v1 badge adds five Project-only
+one-shot `semaprax query` subcommands while preserving this revision binding,
+canonical envelope, limits, diagnostic truth, exact result bytes, and
+authority-free boundary. Neither badge adds a daemon wire route, Project Agent
 Transport vNext, MCP, LSP, editor integration, generated clients, streaming,
 subscriptions, a durable cursor, a repository-wide multi-workspace index, or a
-general semantic query algebra. A later adapter must preserve this revision
-binding, canonical envelope, limits, diagnostic truth, and authority-free
-boundary rather than exposing mutable internal state.
+general semantic query algebra.
 
 ## Focused evidence
 

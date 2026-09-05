@@ -13,22 +13,19 @@ pub(super) fn is_admitted_owned_byte_record(
     classify_record(declarations, ty).is_some_and(|profile| profile.has_bytes)
 }
 
+/// One bounded acyclic record or class carrier the evaluator can build.
+///
+/// This is the same classifier that authenticates a projected field read
+/// ([`admitted_owned_record_field`]), so a route that can read `p.x` can also
+/// build the `p` it reads from. A Copy-only carrier adds no cleanup leaf: the
+/// classifier admits only scalars, `Bytes`, and further bounded record or
+/// class carriers, so the extra shapes over the owned-byte profile are exactly
+/// the trees that own nothing.
 pub(super) fn record_construction_is_admitted(
     declarations: &hir::DeclarationIndex,
     ty: &ResolvedType,
-    allow_copy_subtree: bool,
 ) -> bool {
-    classify_record(declarations, ty).is_some_and(|profile| {
-        profile.has_bytes
-            || allow_copy_subtree
-            || matches!(
-                ty,
-                ResolvedType::Nominal { declaration, .. }
-                    if declarations
-                        .declaration(declaration)
-                        .is_some_and(|item| item.kind == hir::DeclarationKind::Class)
-            )
-    })
+    classify_record(declarations, ty).is_some()
 }
 
 pub(super) fn record_update_is_admitted(

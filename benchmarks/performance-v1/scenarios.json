@@ -12,7 +12,7 @@
     {"id": "graph-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "graph", "repetitions": 5},
     {"id": "graph-records", "kind": "single", "path": "examples/records.spx", "command": "graph", "repetitions": 5},
     {"id": "run-banking-ledger", "kind": "single", "path": "examples/banking_ledger.spx", "command": "run", "repetitions": 5, "expect": "failure",
-     "note": "the hosted interpreter does not admit this record construction (SPX-F102); recorded as an expected failure so the diagnostic path stays measured and a future admission shows up as a failed expectation"},
+     "note": "record construction is now admitted (#75), but this example also passes records through function signatures, updates one with `with`, and matches Copy variants, none of which the interpreter admits; it fails closed on SPX-F102 unsupported_callee. Recorded as an expected failure so the diagnostic path stays measured and a future admission shows up as a failed expectation"},
     {"id": "run-calculator", "kind": "single", "path": "examples/calculator.spx", "command": "run", "repetitions": 5},
     {"id": "run-math-algorithms", "kind": "single", "path": "examples/math_algorithms.spx", "command": "run", "repetitions": 5},
     {"id": "run-meaning", "kind": "single", "path": "examples/meaning.spx", "command": "run", "repetitions": 5},

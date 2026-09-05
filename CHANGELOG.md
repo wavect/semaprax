@@ -38,6 +38,21 @@ format: `Unreleased` then release buckets, grouped by impact.
   is structurally verified but is not claimed as compiled, packaged, or run;
   cross-module role resolution remains follow-up work.
 
+- Fixed `semaprax run` refusing bounded Copy record construction that `check`
+  verifies and that the native C11 and Core-Wasm backends execute (#75). The
+  single-file interpreter route was the only route asking
+  `record_construction_is_admitted` for the narrower owned-byte answer, so
+  reading `p.x` was admitted while building the `p` it reads from was not. The
+  admission predicate is now the single bounded acyclic classifier every route
+  already shared, and the parameter that split them is gone. Field Mutation v1
+  stores now replace one direct scalar field instead of the whole binding —
+  the previous store left a later projected read failing closed on `SPX-F105`
+  — and a shared Copy carrier is copied before the store, so a sibling binding
+  keeps the value the other two backends give it. Record shapes still outside
+  the profile keep their exact closed reason at admission: a record-typed
+  callee signature is `unsupported_callee`, and `with` over a Copy record is
+  `record_update`.
+
 - Added the bounded AGENT-03 language-native source Agent slice. A closed
   `.spx` declaration with explicit identities and fixed deterministic/model/
   effect roles now parses, round-trips canonically, lowers through the unchanged

@@ -68,6 +68,25 @@ ensures), checked arithmetic over `i64`/`i32`/`u8` reusing the compiler's
 exact `runtime_status` normalization table, total IEEE-754 arithmetic for
 floats, and calls to other admitted functions (including recursion).
 
+### Bounded Copy record carriers
+
+Local record and class carriers join that profile when the whole carrier is a
+bounded acyclic tree of admitted Copy scalars, `Bytes` leaves, and further
+such carriers — the same classifier that already authenticates a projected
+field read. A Copy-only carrier owns no cleanup leaf, so the admitted forms
+are construction, field projection through a named local, and Field Mutation
+v1 stores of one direct scalar field. Copy carriers are values: binding one
+copies it, and a later field store is not observable through the earlier
+binding, exactly as the native C11 and Core-Wasm backends copy the record.
+
+Function signatures are unchanged by this. The selected boundary and every
+callee signature stay scalar (or the separately admitted owned-data
+profiles), so a record-typed parameter or result is still
+`unsupported_callee`, and a `with` update over a Copy record is still
+`record_update`. `record_construction` therefore names a carrier outside the
+bounded classifier — generic, recursive, over-deep, or holding a leaf the
+classifier does not admit.
+
 ## Outcome envelope
 
 `interpreter::interpret` returns one canonical compact JSON envelope plus a

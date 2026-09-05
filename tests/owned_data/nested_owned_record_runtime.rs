@@ -78,10 +78,10 @@ fn run_direct_bytes_copy_subtree() -> i64 {
     }
 }
 
-@id("runtime.copy-only-construction-closed")
-fn copy_only_construction_closed() -> i64 {
+@id("runtime.copy-only-construction")
+fn copy_only_construction() -> i64 {
     let metadata = Metadata { marker: 1 };
-    0
+    metadata.marker
 }
 
 @id("runtime.inspect")
@@ -414,28 +414,28 @@ fn interpreter_updates_direct_bytes_records_with_copy_only_nested_subtrees() {
     interpreter::verify_envelope(&result.envelope).unwrap();
 }
 
+/// A Copy-only carrier inside the nested-record profile owns no cleanup leaf,
+/// so the interpreter builds and reads it on every route rather than refusing
+/// what `check` verified and both backends execute.
 #[test]
-fn interpreter_does_not_globally_admit_copy_only_record_construction() {
+fn interpreter_admits_copy_only_record_construction_on_every_route() {
     let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
     let path = std::env::temp_dir().join(format!(
         "semaprax-copy-only-record-construction-{}-{serial}.spx",
         std::process::id()
     ));
     std::fs::write(&path, SOURCE).unwrap();
-    let errors = interpreter::interpret(
+    let result = interpreter::interpret(
         &path,
-        "runtime.copy-only-construction-closed",
+        "runtime.copy-only-construction",
         &[],
         &InterpreterOptions::default(),
     )
-    .expect_err("standalone Copy-only record construction remains outside the interpreter profile");
+    .expect("standalone Copy-only record construction is inside the interpreter profile");
     let _ = std::fs::remove_file(path);
-    assert!(
-        errors.iter().any(|diagnostic| {
-            diagnostic.code == "SPX-F102" && diagnostic.message.contains("record_construction")
-        }),
-        "{errors:?}"
-    );
+    let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
+    assert_eq!(envelope["payload"]["outcome"]["value"], "1");
+    interpreter::verify_envelope(&result.envelope).unwrap();
 }
 
 #[test]

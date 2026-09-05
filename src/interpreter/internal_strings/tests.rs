@@ -29,11 +29,11 @@ fn only_the_opt_in_map_admits_string_signatures() {
         explicit_legacy.keys().collect::<Vec<_>>()
     );
     assert!(!legacy.contains_key("helper"));
-    assert!(engine::scan_closure("entry", &legacy, &program.declarations, false).is_err());
+    assert!(engine::scan_closure("entry", &legacy, &program.declarations).is_err());
     let strings =
         engine::admitted_resolved_functions_with_profile(&program, SourceProfile::InternalStrings);
     assert!(strings.contains_key("helper"));
-    engine::scan_closure("entry", &strings, &program.declarations, false).unwrap();
+    engine::scan_closure("entry", &strings, &program.declarations).unwrap();
     let mut helper = (*strings["helper"]).clone();
     assert_eq!(helper.params[0].ownership, hir::OwnershipMode::Own);
     assert!(signature_is_admitted(&helper, &program.declarations));

@@ -26,6 +26,8 @@ const REQUIRE_ENV: &str = "SEMAPRAX_REQUIRE_INTERPRETER_BACKEND_PARITY";
 
 const MEANING_PATH: &str = "examples/meaning.spx";
 
+#[path = "interpreter_v1/copy_records.rs"]
+mod copy_records;
 #[path = "interpreter_v1/verification_and_cli.rs"]
 mod verification_and_cli;
 
@@ -1218,7 +1220,8 @@ fn main() -> i64 { helper(1) }
     );
     cleanup(&path);
 
-    // Aggregate bodies are rejected before any evaluation.
+    // Copy-record construction and projection are inside the admitted
+    // interpreter profile and execute before the remaining rejection cases.
     let aggregate_body = r#"
 module test.interpreter_aggregate;
 
@@ -1237,14 +1240,11 @@ fn make_y() -> i64 {
 fn main() -> i64 { make_y() }
 "#;
     let path = write_temp(aggregate_body);
-    let errors = interpreter::interpret(&path, "make_y", &[], &InterpreterOptions::default())
-        .expect_err("aggregate construction is outside the profile");
-    assert!(
-        errors
-            .iter()
-            .any(|item| item.code == "SPX-F102" && item.message.contains("record_construction")),
-        "{errors:?}"
-    );
+    let interpretation =
+        interpreter::interpret(&path, "make_y", &[], &InterpreterOptions::default())
+            .expect("copy-record construction and projection are admitted");
+    assert!(interpretation.returned);
+    assert!(interpretation.envelope.contains("\"value\":\"2\""));
     cleanup(&path);
 
     // Callees outside the profile poison an otherwise admitted entry.

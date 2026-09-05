@@ -864,7 +864,7 @@ pub fn evaluate_resolved_owned_data(
 
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
     let admitted = admitted_resolved_functions(program);
-    scan_closure(entry_id, &admitted, &program.declarations, true)?;
+    scan_closure(entry_id, &admitted, &program.declarations)?;
     let arguments = [(
         parameter.name.clone(),
         ArgumentValue::BorrowedSlice(input.to_vec()),
@@ -1040,7 +1040,7 @@ pub(crate) fn evaluate_resolved_public_api(
             format!("resolved public API export `{entry_id}` is outside the interpreter profile"),
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations, true)?;
+    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
     if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -1252,7 +1252,7 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
             ),
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations, true)?;
+    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
     if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -1460,7 +1460,7 @@ pub(crate) fn evaluate_resolved_owned_utf8_api(
             format!("resolved owned UTF-8 export `{entry_id}` is outside the interpreter profile"),
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations, true)?;
+    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
     if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -1998,7 +1998,7 @@ fn interpret_on_current_thread(
     // them internally.
     let admitted = admitted_resolved_functions_with_profile(&resolved, profile);
 
-    scan_closure(entry.id.as_str(), &admitted, &resolved.declarations, false)?;
+    scan_closure(entry.id.as_str(), &admitted, &resolved.declarations)?;
 
     let (evaluated, steps_used, _) = evaluate_resolved_entry(
         entry,
@@ -2421,34 +2421,22 @@ fn bind_arguments(
 /// Walks the selected function's contracts, body, and every transitively
 /// reachable admitted callee, rejecting every shape outside the scalar
 /// interpreter profile with one closed reason.
-#[derive(Clone, Copy)]
-struct CopyRecordAdmission {
-    contextual: bool,
-    project_profile: bool,
-}
-
 fn scan_closure(
     entry_id: &str,
     admitted: &BTreeMap<&str, &ResolvedFunction>,
     declarations: &hir::DeclarationIndex,
-    allow_copy_records: bool,
 ) -> Result<BTreeSet<String>, Vec<Diagnostic>> {
     fn scan<'a>(
         expression: &'a ResolvedExpr,
         admitted: &BTreeMap<&'a str, &'a ResolvedFunction>,
         declarations: &hir::DeclarationIndex,
         root_types: &BTreeMap<ValueId, ResolvedType>,
-        visited: &mut BTreeMap<&'a str, bool>,
-        queue: &mut Vec<(&'a str, bool)>,
-        copy_records: CopyRecordAdmission,
+        visited: &mut BTreeSet<&'a str>,
+        queue: &mut Vec<&'a str>,
     ) -> Result<(), Vec<Diagnostic>> {
         match &expression.kind {
             ResolvedExprKind::ConstructRecord { .. }
-                if record_construction_is_admitted(
-                    declarations,
-                    &expression.ty,
-                    copy_records.project_profile || copy_records.contextual,
-                ) =>
+                if record_construction_is_admitted(declarations, &expression.ty) =>
             {
                 Ok(())
             }
@@ -2582,100 +2570,28 @@ fn scan_closure(
             }
             _ => Ok(()),
         }?;
-        let mut children = Vec::new();
-        match &expression.kind {
-            ResolvedExprKind::ConstructRecord { fields, .. } => {
-                children.extend(fields.iter().map(|field| {
-                    (
-                        &field.value,
-                        record_construction_is_admitted(declarations, &field.value.ty, true),
-                    )
-                }));
-            }
-            ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-                children.push((base.as_ref(), false));
-                children.extend(fields.iter().map(|field| {
-                    (
-                        &field.value,
-                        record_construction_is_admitted(declarations, &field.value.ty, true),
-                    )
-                }));
-            }
-            ResolvedExprKind::Block { statements, tail } => {
-                for statement in statements {
-                    for index in 0..statement.child_count() {
-                        if let Some(child) = statement.child(index) {
-                            children.push((child, false));
-                        }
-                    }
-                }
-                children.push((tail.as_ref(), copy_records.contextual));
-            }
-            ResolvedExprKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
-                children.push((condition.as_ref(), false));
-                children.push((then_branch.as_ref(), copy_records.contextual));
-                children.push((else_branch.as_ref(), copy_records.contextual));
-            }
-            ResolvedExprKind::Match {
-                scrutinee, arms, ..
-            } => {
-                children.push((scrutinee.as_ref(), false));
-                for arm in arms {
-                    if let Some(guard) = &arm.guard {
-                        children.push((guard.as_ref(), false));
-                    }
-                    children.push((&arm.value, copy_records.contextual));
-                }
-            }
-            _ => children.extend(
-                child_expressions(expression)
-                    .into_iter()
-                    .map(|child| (child, false)),
-            ),
-        }
-        for (child, child_copy_context) in children {
-            scan(
-                child,
-                admitted,
-                declarations,
-                root_types,
-                visited,
-                queue,
-                CopyRecordAdmission {
-                    contextual: child_copy_context,
-                    ..copy_records
-                },
-            )?;
+        for child in child_expressions(expression) {
+            scan(child, admitted, declarations, root_types, visited, queue)?;
         }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             // Callee bodies are enqueued once; the monotone `visited` set
             // makes recursive call cycles terminate.
-            if admitted.contains_key(callee.as_str()) {
-                let copy_result = copy_records.contextual
-                    && record_construction_is_admitted(declarations, &expression.ty, true);
-                let prior = visited.get(callee.as_str()).copied();
-                if prior.is_none() || (copy_result && prior == Some(false)) {
-                    visited.insert(callee.as_str(), copy_result);
-                    queue.push((callee.as_str(), copy_result));
-                }
+            if admitted.contains_key(callee.as_str()) && visited.insert(callee.as_str()) {
+                queue.push(callee.as_str());
             }
         }
         Ok(())
     }
 
-    let mut visited = BTreeMap::new();
-    visited.insert(entry_id, false);
-    let mut frontier: Vec<(&str, bool)> = vec![(entry_id, false)];
-    while let Some((id, copy_result_context)) = frontier.pop() {
+    let mut visited = BTreeSet::new();
+    visited.insert(entry_id);
+    let mut frontier: Vec<&str> = vec![entry_id];
+    while let Some(id) = frontier.pop() {
         let Some(function) = admitted.get(id) else {
             continue;
         };
         let root_types = resolved_function_value_types(function);
-        let mut queue: Vec<(&str, bool)> = Vec::new();
+        let mut queue: Vec<&str> = Vec::new();
         for clause in function.requires.iter().chain(&function.ensures) {
             scan(
                 clause,
@@ -2684,10 +2600,6 @@ fn scan_closure(
                 &root_types,
                 &mut visited,
                 &mut queue,
-                CopyRecordAdmission {
-                    contextual: false,
-                    project_profile: allow_copy_records,
-                },
             )?;
         }
         scan(
@@ -2697,14 +2609,10 @@ fn scan_closure(
             &root_types,
             &mut visited,
             &mut queue,
-            CopyRecordAdmission {
-                contextual: copy_result_context,
-                project_profile: allow_copy_records,
-            },
         )?;
         frontier.extend(queue);
     }
-    Ok(visited.keys().map(|id| (*id).to_owned()).collect())
+    Ok(visited.iter().map(|id| (*id).to_owned()).collect())
 }
 
 fn resolved_function_value_types(function: &ResolvedFunction) -> BTreeMap<ValueId, ResolvedType> {
@@ -2844,7 +2752,7 @@ fn resolved_data_parameter_is_admitted(
             if declarations
                 .declaration(declaration)
                 .is_some_and(|item| item.kind == hir::DeclarationKind::Class)
-                && record_construction_is_admitted(declarations, ty, true) =>
+                && record_construction_is_admitted(declarations, ty) =>
         {
             true
         }
@@ -2928,7 +2836,7 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
         )]);
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
-    scan_closure(entry_id, &admitted, &program.declarations, true)?;
+    scan_closure(entry_id, &admitted, &program.declarations)?;
     let (evaluated, steps_used, mut transcript) = evaluate_resolved_entry(
         entry,
         &[],
@@ -3057,7 +2965,7 @@ pub(crate) fn evaluate_resolved_language_command(
         )]);
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
-    scan_closure(entry_id, &admitted, &program.declarations, true)?;
+    scan_closure(entry_id, &admitted, &program.declarations)?;
 
     let command_input = CommandInputState {
         arguments: arguments
@@ -3721,6 +3629,70 @@ impl Evaluator<'_> {
             Value::Variant(value) => Value::Variant(Arc::clone(value)),
             Value::Moved => Value::Moved,
         })
+    }
+
+    /// Field Mutation v1: replace exactly one direct scalar Copy field of a
+    /// named record or class binding, leaving every other field untouched.
+    ///
+    /// Record carriers alias by handle here, while the native and Wasm
+    /// backends copy the whole record when a Copy carrier is bound. A store
+    /// into a shared Copy carrier therefore copies first; writing through the
+    /// alias would let a sibling binding observe the mutation on this backend
+    /// alone. An owned-byte carrier is never copied — duplicating a logical
+    /// allocation is not a store — and a shared one fails closed instead.
+    fn store_record_field(
+        &mut self,
+        environment: &mut Environment,
+        binding: &hir::ResolvedBinding,
+        field: &hir::DeclarationId,
+        value: Value,
+    ) -> Result<(), Flow> {
+        let owns_bytes = is_admitted_owned_byte_record(self.declarations, &binding.ty);
+        let Some(slot) = environment.get_mut(&binding.id) else {
+            return Err(Flow::Guard("assignment to an unknown binding"));
+        };
+        let Value::Record(record) = slot else {
+            return Err(Flow::Guard(
+                "field assignment target is not a record carrier",
+            ));
+        };
+        if let Some(unique) = Arc::get_mut(record) {
+            let Some(existing) = unique.fields.get_mut(field) else {
+                return Err(Flow::Guard(
+                    "field assignment names an absent runtime field",
+                ));
+            };
+            *existing = value;
+            return Ok(());
+        }
+        if owns_bytes {
+            return Err(Flow::Guard(
+                "field assignment target still has a live owned alias",
+            ));
+        }
+        if !record.fields.contains_key(field) {
+            return Err(Flow::Guard(
+                "field assignment names an absent runtime field",
+            ));
+        }
+        let identity = record.record.clone();
+        let mut fields = BTreeMap::new();
+        for (id, existing) in &record.fields {
+            let copied = if id == field {
+                None
+            } else {
+                Some(self.clone_value(existing)?)
+            };
+            if let Some(copied) = copied {
+                fields.insert(id.clone(), copied);
+            }
+        }
+        fields.insert(field.clone(), value);
+        *record = Arc::new(OwnedRecordValue {
+            record: identity,
+            fields,
+        });
+        Ok(())
     }
 
     fn lookup(&mut self, environment: &Environment, root: &ValueId) -> Result<Option<Value>, Flow> {
@@ -4653,20 +4625,37 @@ impl Evaluator<'_> {
                                 }
                             }
                         }
-                        ResolvedStatement::Assign { binding, value, .. } => {
-                            match self.evaluate(value, environment, depth) {
-                                Ok(value) => {
-                                    let Some(slot) = environment.get_mut(&binding.id) else {
-                                        interrupted =
-                                            Some(Flow::Guard("assignment to an unknown binding"));
-                                        break;
-                                    };
-                                    *slot = value;
-                                }
-                                Err(flow) => {
-                                    interrupted = Some(flow);
-                                    break;
-                                }
+                        ResolvedStatement::Assign {
+                            binding,
+                            field,
+                            value,
+                            ..
+                        } => {
+                            let stored =
+                                self.evaluate(value, environment, depth).and_then(|value| {
+                                    match field {
+                                        // Explicit Mutation v1 replaces the whole
+                                        // scalar binding.
+                                        None => match environment.get_mut(&binding.id) {
+                                            Some(slot) => {
+                                                *slot = value;
+                                                Ok(())
+                                            }
+                                            None => {
+                                                Err(Flow::Guard("assignment to an unknown binding"))
+                                            }
+                                        },
+                                        Some(field) => self.store_record_field(
+                                            environment,
+                                            binding,
+                                            field,
+                                            value,
+                                        ),
+                                    }
+                                });
+                            if let Err(flow) = stored {
+                                interrupted = Some(flow);
+                                break;
                             }
                         }
                         ResolvedStatement::Unsafe { .. } => {

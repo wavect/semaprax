@@ -131,7 +131,7 @@ pub(crate) fn evaluate_resolved_network_command(
     };
     crate::command_io_ops::validate_operation_profile(program, &entry.id, profile)?;
     hir::analyze_byte_data_capacity(program)?;
-    scan_closure(entry_id, &admitted, &program.declarations, true).map_err(first_diagnostic)?;
+    scan_closure(entry_id, &admitted, &program.declarations).map_err(first_diagnostic)?;
 
     let command_input = CommandInputState {
         network: Some(NetworkState::new(provider)),

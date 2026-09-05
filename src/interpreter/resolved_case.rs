@@ -87,7 +87,7 @@ pub(crate) fn evaluate_resolved_zero_arg_i64_function(
     }
 
     let admitted = admitted_resolved_functions(program);
-    scan_closure(function_id, &admitted, &program.declarations, true)?;
+    scan_closure(function_id, &admitted, &program.declarations)?;
 
     std::thread::scope(|scope| {
         let worker = std::thread::Builder::new()

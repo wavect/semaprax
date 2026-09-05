@@ -31,6 +31,11 @@ pub(crate) fn parse(args: &[String]) -> Result<FmtOptions, u8> {
     let (path, check) = match args {
         [path] if !path.starts_with('-') => (path, false),
         [path, option] if !path.starts_with('-') && option == "--check" => (path, true),
+        [option, path] if option == "--check" && !path.starts_with('-') => (path, true),
+        [option] if option == "--check" => {
+            eprintln!("fmt --check requires <file>|<dir>|semaprax.toml");
+            return Err(2);
+        }
         [option, ..] if option.starts_with('-') => {
             eprintln!("unknown fmt option `{option}`");
             return Err(2);
@@ -145,6 +150,13 @@ mod tests {
         );
         assert_eq!(
             parse(&strings(&["source.spx", "--check"])).unwrap(),
+            FmtOptions {
+                input: FmtInput::Source(PathBuf::from("source.spx")),
+                check: true,
+            }
+        );
+        assert_eq!(
+            parse(&strings(&["--check", "source.spx"])).unwrap(),
             FmtOptions {
                 input: FmtInput::Source(PathBuf::from("source.spx")),
                 check: true,

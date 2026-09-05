@@ -91,7 +91,14 @@ fn project_default_and_explicit_selectors_keep_the_same_result() {
         same_result(&plain, &cli(&root, arguments));
     }
     let json = cli(&root, &["--json"]);
-    assert!(json.status.success() && json.stdout.is_empty() && json.stderr.is_empty());
+    assert!(json.status.success() && json.stderr.is_empty());
+    let envelope: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!(envelope["status"], "verified");
+    assert_eq!(envelope["name"], "calculator");
+    assert!(envelope["revision"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
     for arguments in [
         &["--json", "semaprax.toml"][..],
         &["semaprax.toml", "--json"][..],

@@ -151,7 +151,10 @@ fn implicit_and_explicit_project_checks_authenticate_the_same_manifest() {
         "JSON default check failed: {}",
         stderr(&json_default)
     );
-    assert!(stdout(&json_default).is_empty());
+    let json_default_value: serde_json::Value =
+        serde_json::from_str(stdout(&json_default).trim_end()).unwrap();
+    assert_eq!(json_default_value["status"], "verified");
+    assert_eq!(json_default_value["name"], "calculator");
     let json_explicit = cli(
         &fixture.root,
         &[
@@ -166,7 +169,7 @@ fn implicit_and_explicit_project_checks_authenticate_the_same_manifest() {
         "JSON explicit check failed: {}",
         stderr(&json_explicit)
     );
-    assert!(stdout(&json_explicit).is_empty());
+    assert_eq!(stdout(&json_explicit), stdout(&json_default));
 }
 
 #[test]

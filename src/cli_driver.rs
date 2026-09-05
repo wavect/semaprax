@@ -201,7 +201,13 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                                 cli::manifest_hint::hint_missing_manifest(errors, &manifest_path);
                             report(&errors, json)
                         })?;
-                    if !json {
+                    if json {
+                        println!(
+                            "{{\"status\":\"verified\",\"name\":{},\"revision\":{}}}",
+                            semaprax::diagnostic::quote_json(&name),
+                            semaprax::diagnostic::quote_json(&revision)
+                        );
+                    } else {
                         println!("verified project {name} ({revision})");
                     }
                     return Ok(());
@@ -219,7 +225,13 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             if failed {
                 Err(1)
             } else {
-                if !json {
+                if json {
+                    println!(
+                        "{{\"status\":\"verified\",\"path\":{},\"revision\":{}}}",
+                        semaprax::diagnostic::quote_json(&path.display().to_string()),
+                        semaprax::diagnostic::quote_json(&graph::revision(&program))
+                    );
+                } else {
                     println!(
                         "verified {} ({})",
                         path.display(),

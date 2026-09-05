@@ -239,8 +239,5 @@ fn write_lock(path: &Path, lock: &str) -> Result<(), Vec<Diagnostic>> {
 }
 
 fn usage(message: impl Into<String>) -> ProjectLockCliError {
-    ProjectLockCliError::Usage(format!(
-        "{}\nhint: run `semaprax lock --help` for usage",
-        message.into()
-    ))
+    ProjectLockCliError::Usage(message.into())
 }

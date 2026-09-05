@@ -132,6 +132,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   with usage status 2 before reading or rewriting the source, matching the
   strict `impact` and `review` command grammars.
 
+- CLI success and usage surfaces are now consistent for automation: successful
+  `check --json` emits a verified envelope, `fmt --check` accepts flag-first
+  order, `lock`/`resolve` print one recovery hint, and bare native-callable
+  output names resolve against the current directory.
 - Deepened four existing standard-library packages without widening ambient
   authority: `std.time` rounds durations upward and measures elapsed
   milliseconds, `std.path`

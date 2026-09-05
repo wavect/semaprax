@@ -285,7 +285,10 @@ fn build_preflight(
             output.display()
         ))
     })?;
-    let parent = output.parent().unwrap_or_else(|| Path::new("."));
+    let parent = output
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
     let parent = fs::canonicalize(parent).map_err(|error| {
         bundle_io_error(format!(
             "cannot canonicalize native-callable output parent {}: {error}",

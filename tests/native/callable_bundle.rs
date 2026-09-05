@@ -487,6 +487,30 @@ fn cli_builds_selected_bundle_and_requires_function_without_opening_native_run()
     assert!(String::from_utf8_lossy(&built.stdout).contains("manifest sha256:"));
     assert!(output.join("semaprax.native-callable.json").is_file());
 
+    let bare = Command::new(binary)
+        .current_dir(&fixture.root)
+        .args(["build"])
+        .arg(&source)
+        .args([
+            "--target",
+            "native-callable",
+            "--function",
+            FUNCTION_ID,
+            "-o",
+            "bare-bundle",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        bare.status.success(),
+        "bare native-callable output failed: {}",
+        String::from_utf8_lossy(&bare.stderr)
+    );
+    assert!(fixture
+        .path("bare-bundle")
+        .join("semaprax.native-callable.json")
+        .is_file());
+
     let missing_function = Command::new(binary)
         .args(["build"])
         .arg(&source)

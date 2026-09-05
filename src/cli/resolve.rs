@@ -343,8 +343,5 @@ fn domain(message: String) -> ResolveCliError {
 }
 
 fn usage(message: impl Into<String>) -> ResolveCliError {
-    ResolveCliError::Usage(format!(
-        "{}\nhint: run `semaprax resolve --help` for usage",
-        message.into()
-    ))
+    ResolveCliError::Usage(message.into())
 }

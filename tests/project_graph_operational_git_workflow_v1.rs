@@ -24,10 +24,10 @@ use std::sync::{Arc, Mutex};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const BRANCH: &str = "refs/heads/review";
-const MAX_WORKFLOW_PROTOCOL_CALLS: u64 = 24;
-const MAX_WORKFLOW_REQUEST_BYTES: u64 = 10 * 1024;
-const MAX_WORKFLOW_RESPONSE_BYTES: u64 = 64 * 1024;
-const MAX_WORKFLOW_RESPONSE_LEXICAL_UNITS: u64 = 16 * 1024;
+const MAX_WORKFLOW_PROTOCOL_CALLS: u64 = 22;
+const MAX_WORKFLOW_REQUEST_BYTES: u64 = 9 * 1024;
+const MAX_WORKFLOW_RESPONSE_BYTES: u64 = 48 * 1024;
+const MAX_WORKFLOW_RESPONSE_LEXICAL_UNITS: u64 = 12 * 1024;
 const MAX_REVIEW_MATERIAL_BYTES: u64 = 16 * 1024;
 const MAX_REVIEW_MATERIAL_LEXICAL_UNITS: u64 = 4 * 1024;
 const TASK_PHASES: [&str; 12] = [
@@ -854,25 +854,9 @@ fn review(fixture: &Fixture) -> Reviewed {
         "SPX-G235",
     );
     session.trace.control("SPX-G235");
-    assert_eq!(
-        chunks(
-            &mut session,
-            "candidate/source-review",
-            json!({"candidate_revision":merged})
-        ),
-        source_review_bytes
-    );
-    assert_eq!(
-        payload(bound(
-            &mut session,
-            "candidate/function-summary",
-            json!({"candidate_revision":merged,"target":"calculator.add"}),
-        )),
-        function_summary
-    );
     session.trace.pass(
         11,
-        "disjoint branch reconciled and competing signature rejected",
+        "disjoint branch reconciled and competing signature rejected without retransferring immutable review",
     );
     fixture.unchanged_raw_sources();
     // 7. Explicit replay; target evidence is emission/structural validation only.
@@ -926,6 +910,10 @@ fn review(fixture: &Fixture) -> Reviewed {
     .unwrap();
     session.trace.library_recovery_restores += 1;
     assert_eq!(candidate.candidate_digest(), merged);
+    assert_eq!(
+        candidate.source_review(&merged).unwrap(),
+        source_review_bytes
+    );
     let report_bytes = candidate.to_json();
     let report: Value = serde_json::from_str(report_bytes).unwrap();
     let signature_operation = report["operations"]
@@ -1207,10 +1195,10 @@ fn assert_task_report(trace: &TaskTrace, format: &str) -> String {
     ] {
         assert!(protocol["method_histogram"].get(superseded).is_none());
     }
-    assert_eq!(protocol["method_histogram"]["candidate/source-review"], 2);
+    assert_eq!(protocol["method_histogram"]["candidate/source-review"], 1);
     assert_eq!(
         protocol["method_histogram"]["candidate/function-summary"],
-        2
+        1
     );
     assert_eq!(protocol["method_histogram"]["candidate/impact-summary"], 1);
     let associations = protocol["criterion_associations"].as_array().unwrap();

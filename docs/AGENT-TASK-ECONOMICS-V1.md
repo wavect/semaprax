@@ -110,15 +110,18 @@ turning them into cross-host goldens.
 
 ## Compact workflow cost guard
 
-The current regression rejects any twelve-step workflow that exceeds 24
-response-bearing protocol calls, 10 KiB of serialized requests, 64 KiB of
-serialized responses, or 16,384 `semaprax.lexical-token.v1` response units. It
+The current regression rejects any twelve-step workflow that exceeds 22
+response-bearing protocol calls, 9 KiB of serialized requests, 48 KiB of
+serialized responses, or 12,288 `semaprax.lexical-token.v1` response units. It
 also rejects more than 16 KiB or 4,096 lexical units across the three explicit
 review materials. `candidate/query`, `candidate/impact`, and
 `candidate/semantic-delta` are excluded from the agent-facing method histogram;
 the workflow uses `candidate/source-review`, `candidate/function-summary`, and
 `candidate/impact-summary` while retaining complete authority-free candidate
-and semantic-delta replay as internal verification.
+and semantic-delta replay as internal verification. Each compact review route
+is transferred exactly once. The expected conflict does not re-download
+immutable review data; the later required recovery replay proves the same
+candidate digest, exact source-review bytes, and declaration facts instead.
 
 These ceilings are regression budgets for one fixed scripted workflow, not
 measurements of a model context window. The lexical unit still carries

@@ -56,7 +56,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   candidate and semantic-delta replay stays inside the verifier. Its regression
   rejects the older full-report routes and enforces aggregate protocol and
   review-material byte/lexical-unit ceilings, preventing silent context-cost
-  regressions in the fixed twelve-step application change.
+  regressions in the fixed twelve-step application change. Immutable review
+  data is transferred once and reused across the expected conflict; recovery
+  replay proves the candidate and source review stayed exact without two
+  duplicate protocol responses.
 - Project-link diagnostics now name and locate the exact entry, test, or
   provider module responsible for missing or invalid `main` declarations and
   distinguish capability exclusions from declaration-shape exclusions.

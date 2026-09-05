@@ -51,6 +51,38 @@ fn project_v13_manifest_round_trips_the_exact_https_profile() {
 }
 
 #[test]
+fn exhaustive_linux_ci_provisions_the_native_https_development_interface() {
+    let workflow = include_str!("../../.github/workflows/ci.yml");
+    let prerequisite = "- name: Provision the native HTTPS development interface (Linux)";
+    assert_eq!(workflow.matches(prerequisite).count(), 3);
+    assert_eq!(
+        workflow
+            .matches("sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev")
+            .count(),
+        3
+    );
+    for (job, next, test_gate) in [
+        ("verify", "verify-tests", "cargo test"),
+        (
+            "verify-tests",
+            "desktop-native-product",
+            "python3 scripts/ci-msrv.py",
+        ),
+        ("msrv", "release-gate", "python3 scripts/ci-msrv.py"),
+    ] {
+        let body = workflow
+            .split_once(&format!("\n  {job}:\n"))
+            .unwrap()
+            .1
+            .split_once(&format!("\n  {next}:\n"))
+            .unwrap()
+            .0;
+        assert!(body.contains(prerequisite), "{job} lost libcurl headers");
+        assert!(body.find(prerequisite).unwrap() < body.find(test_gate).unwrap());
+    }
+}
+
+#[test]
 fn project_v13_authenticates_and_admits_the_https_command_closure() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/https-project");
     with_authenticated_project(&root.join("semaprax.toml"), |snapshot| snapshot.check()).unwrap();

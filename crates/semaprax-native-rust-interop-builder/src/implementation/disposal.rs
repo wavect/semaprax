@@ -81,6 +81,7 @@ impl Drop for ResolvedProgramOwner {
         let ResolvedProgram {
             module,
             permits,
+            agents,
             entrypoint,
             declarations,
             types,
@@ -104,7 +105,7 @@ impl Drop for ResolvedProgramOwner {
             disposal_push(&mut self.frames, ResolvedDisposeFrame::Type(ty));
             drain_disposal_frames(&mut self.frames, None);
         });
-        drop((module, permits, entrypoint));
+        drop((module, permits, agents, entrypoint));
         for declaration in types {
             match declaration.kind {
                 crate::hir::ResolvedTypeDeclarationKind::Resource { .. } => {}

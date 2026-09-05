@@ -527,6 +527,11 @@ jobs:
           $clang = (Get-Command clang.exe -ErrorAction Stop).Source
           if (-not [System.IO.Path]::IsPathFullyQualified($clang)) { throw "clang path is not absolute" }
           "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Provision the native HTTPS development interface (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev
       - name: Fetch the complete locked workspace dependency closure
         run: cargo fetch --locked
       - name: Fetch the standalone owned-data Rust setup dependency closure
@@ -736,6 +741,11 @@ jobs:
           $clang = (Get-Command clang.exe -ErrorAction Stop).Source
           if (-not [System.IO.Path]::IsPathFullyQualified($clang)) { throw "clang path is not absolute" }
           "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Provision the native HTTPS development interface (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev
       - name: Fetch the complete locked workspace dependency closure
         run: cargo fetch --locked
       - name: Fetch the standalone owned-data Rust setup dependency closure
@@ -1092,6 +1102,10 @@ jobs:
       - name: Resolve the real held rustc image (Unix)
         shell: bash
         run: echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
+      - name: Provision the native HTTPS development interface (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev
       - name: Fetch the complete locked workspace dependency closure
         run: cargo fetch --locked
       - name: Fetch the standalone owned-data Rust setup dependency closure

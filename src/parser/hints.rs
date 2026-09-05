@@ -22,13 +22,13 @@ const RETURN_HELP: &str =
     "delete `return` and the trailing `;` so the value is the block's last expression";
 const LOOP_MESSAGE: &str = "only `while` loops are admitted";
 const LOOP_HELP: &str =
-    "write `while <condition> { <statements>; <condition> }`; the body's final \
-                         expression is the bool that decides whether to loop again";
+    "write `while <condition> { <statements>; <tail> }`; the condition controls repetition and \
+                         the required body tail is discarded";
 const EXPRESSION_STATEMENT_HELP: &str = "a block is statements followed by exactly one final value \
                                          expression; discard an intermediate call with `let _ = …;` \
                                          or move it to the end of the block";
-const WHILE_BODY_HELP: &str = "end the `while` body with the bool that decides whether to loop \
-                               again, usually the loop condition repeated";
+const WHILE_BODY_HELP: &str = "end the `while` body with a final expression; its value is \
+                               discarded because the condition controls repetition";
 const BRANCH_HELP: &str = "`if` cannot stand as a statement: add an `else` branch, end both branches \
                            with values, and bind or discard the result with `let _ = if … { …; value } \
                            else { value };`";

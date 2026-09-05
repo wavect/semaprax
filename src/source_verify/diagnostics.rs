@@ -56,6 +56,28 @@ pub(super) fn reject_aggregate_match_result(
     }
 }
 
+pub(super) fn reject_aggregate_equality(
+    program: &Program,
+    expression: &Expr,
+    value: &CheckedValue,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    if matches!(
+        value.ty,
+        Type::Named { .. } | Type::ArrayU8(_) | Type::Bytes
+    ) {
+        diagnostics.push(
+            error(
+                program,
+                "SPX-T207",
+                "aggregate equality is outside the executable comparison profile",
+                expression.span,
+            )
+            .with_help("compare the relevant scalar fields or match the aggregate case explicitly"),
+        );
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn require_bool(
     program: &Program,

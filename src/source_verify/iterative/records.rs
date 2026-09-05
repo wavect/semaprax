@@ -190,7 +190,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 .iter()
                 .find(|candidate| candidate.name == field.name)
         });
-        if !supplied.insert(field.name.as_str()) || declared.is_none() {
+        if !supplied.insert(field.name.as_str()) || (case.is_some() && declared.is_none()) {
             self.diagnostics.push(error(self.program, "SPX-T212", format!("unknown or duplicate payload field `{}` in `{type_name}::{case_name}` construction", field.name), field.span));
         }
         self.frames.push(VerifierFrame::ResumeVariantField {
@@ -298,6 +298,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         self.diagnostics.push(error(self.program, "SPX-T213", format!("variant construction `{type_name}::{case_name}` is missing payload field `{}`", field.name), expression.span));
                     }
                 }
+                let instance = Type::Named {
+                    name: type_name.to_owned(),
+                    arguments: type_arguments.to_vec(),
+                };
+                self.values.push(Some(CheckedValue::returned(
+                    instance.clone(),
+                    self.types.needs_drop(&instance),
+                )));
+            } else if declaration.is_some() {
                 let instance = Type::Named {
                     name: type_name.to_owned(),
                     arguments: type_arguments.to_vec(),

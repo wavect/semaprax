@@ -320,12 +320,15 @@ pub(super) fn check_expr(
                     expr.span,
                 ));
             }
+            let string_operands = left_ty
+                .as_ref()
+                .is_some_and(|value: &CheckedValue| value.ty == Type::String)
+                || right_ty
+                    .as_ref()
+                    .is_some_and(|value: &CheckedValue| value.ty == Type::String);
             if !native_unit_operand
                 && !matches!(op, BinaryOp::Eq | BinaryOp::Ne)
-                && (left_ty.as_ref().is_some_and(|value: &CheckedValue| value.ty == Type::String)
-                    || right_ty
-                        .as_ref()
-                        .is_some_and(|value: &CheckedValue| value.ty == Type::String))
+                && string_operands
             {
                 diagnostics.push(error(
                     program,
@@ -350,6 +353,14 @@ pub(super) fn check_expr(
                 }
                 BinaryOp::And | BinaryOp::Or => (Type::Bool, Type::Bool),
                 BinaryOp::Eq | BinaryOp::Ne => {
+                    if let Some(value) = &left_ty {
+                        super::diagnostics::reject_aggregate_equality(
+                            program,
+                            expr,
+                            value,
+                            diagnostics,
+                        );
+                    }
                     if !native_unit_operand
                         && left_ty.is_some()
                         && right_ty.is_some()
@@ -367,6 +378,7 @@ pub(super) fn check_expr(
                 }
             };
             if !native_unit_operand
+                && !string_operands
                 && (left_ty.as_ref().is_some_and(|value| value.ty != expected)
                     || right_ty.as_ref().is_some_and(|value| value.ty != expected))
             {
@@ -540,12 +552,20 @@ pub(super) fn check_expr(
             });
             let case = cases.and_then(|cases| cases.iter().find(|case| case.name == *case_name));
             if cases.is_none() || case.is_none() {
-                diagnostics.push(error(
+                let diagnostic = error(
                     program,
                     "SPX-T215",
                     format!("`{type_name}::{case_name}` is not a declared variant constructor"),
                     expr.span,
-                ));
+                );
+                diagnostics.push(match cases.and_then(|cases| {
+                    hints::nearest_variant_case_name(case_name, cases)
+                }) {
+                    Some(nearest) => diagnostic.with_help(format!(
+                        "did you mean `{type_name}::{nearest} {{ ... }}`?"
+                    )),
+                    None => diagnostic,
+                });
             }
             let mut supplied = HashSet::new();
             for field in fields {
@@ -554,7 +574,7 @@ pub(super) fn check_expr(
                         .iter()
                         .find(|candidate| candidate.name == field.name)
                 });
-                if !supplied.insert(field.name.as_str()) || declared.is_none() {
+                if !supplied.insert(field.name.as_str()) || (case.is_some() && declared.is_none()) {
                     diagnostics.push(error(
                         program,
                         "SPX-T212",
@@ -641,7 +661,14 @@ pub(super) fn check_expr(
                     }
                 }
             }
-            case.map(|_| CheckedValue::returned(instance.clone(), types.needs_drop(&instance)))
+            declaration
+                .and_then(|declaration| {
+                    matches!(&declaration.kind, TypeDeclarationKind::Variant { .. })
+                        .then_some(CheckedValue::returned(
+                            instance.clone(),
+                            types.needs_drop(&instance),
+                        ))
+                })
         }
         ExprKind::Match { mode, scrutinee, arms } => oracle_match(
             mode,

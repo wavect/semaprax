@@ -14,7 +14,9 @@ use std::sync::OnceLock;
 
 use super::diagnostics::error;
 use super::type_table::TypeTable;
-use crate::ast::{Expr, ExprKind, Function, Program, Span, Type, TypeDeclarationKind};
+use crate::ast::{
+    Expr, ExprKind, Function, Program, Span, Type, TypeDeclarationKind, VariantCaseDeclaration,
+};
 use crate::diagnostic::Diagnostic;
 
 /// A single file of a multi-file project checked on its own. Both diagnostics
@@ -161,6 +163,32 @@ fn nearest_function_name(name: &str, functions: &HashMap<&str, &Function>) -> Op
         let distance = edit_distance(name.as_bytes(), candidate.as_bytes());
         if distance < nearest_distance {
             nearest = Some(candidate);
+            nearest_distance = distance;
+            ambiguous = false;
+        } else if distance == nearest_distance {
+            ambiguous = true;
+        }
+    }
+    (nearest_distance <= threshold && !ambiguous)
+        .then_some(nearest)
+        .flatten()
+}
+
+pub(super) fn nearest_variant_case_name(
+    name: &str,
+    cases: &[VariantCaseDeclaration],
+) -> Option<String> {
+    let threshold = 1 + name.len() / 5;
+    let mut nearest = None;
+    let mut nearest_distance = usize::MAX;
+    let mut ambiguous = false;
+    for case in cases {
+        if case.name.len() > 64 || case.name == name {
+            continue;
+        }
+        let distance = edit_distance(name.as_bytes(), case.name.as_bytes());
+        if distance < nearest_distance {
+            nearest = Some(case.name.clone());
             nearest_distance = distance;
             ambiguous = false;
         } else if distance == nearest_distance {

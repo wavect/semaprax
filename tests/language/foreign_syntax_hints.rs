@@ -70,7 +70,7 @@ fn for_and_loop_point_at_while() {
         let diagnostic = rejection(source);
         assert_eq!(diagnostic.code, "SPX-P106");
         assert!(diagnostic.message.contains("`while`"), "{diagnostic}");
-        assert!(help(&diagnostic).contains("decides whether to loop again"), "{diagnostic}");
+        assert!(help(&diagnostic).contains("condition controls repetition"), "{diagnostic}");
     }
 }
 
@@ -143,7 +143,7 @@ fn main() -> i64
     );
     assert_eq!(diagnostic.code, "SPX-P203");
     assert!(
-        help(&diagnostic).contains("loop condition repeated"),
+        help(&diagnostic).contains("value is discarded"),
         "{diagnostic}"
     );
 }

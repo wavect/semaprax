@@ -155,12 +155,27 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     .flatten()
                     .and_then(|cases| cases.iter().find(|case| case.name == *case_name));
                 if declared_case.is_none() {
-                    self.diagnostics.push(error(
+                    let diagnostic = error(
                         self.program,
                         "SPX-M103",
                         format!("pattern `{type_name}::{case_name}` is incompatible with the match scrutinee"),
                         *span,
-                    ));
+                    );
+                    self.diagnostics.push(
+                        match compatible
+                            .then_some(state.declared_cases)
+                            .flatten()
+                            .and_then(|cases| {
+                                crate::source_verify::hints::nearest_variant_case_name(
+                                    case_name, cases,
+                                )
+                            }) {
+                            Some(nearest) => diagnostic.with_help(format!(
+                                "did you mean `{type_name}::{nearest} {{ ... }}`?"
+                            )),
+                            None => diagnostic,
+                        },
+                    );
                 } else if state.wildcard_seen || !state.covered.insert(case_name.clone()) {
                     self.diagnostics.push(error(
                         self.program,
@@ -177,7 +192,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             .iter()
                             .find(|candidate| candidate.name == field.name)
                     });
-                    if !supplied.insert(field.name.as_str()) || declared_field.is_none() {
+                    if !supplied.insert(field.name.as_str())
+                        || (declared_case.is_some() && declared_field.is_none())
+                    {
                         self.diagnostics.push(error(self.program, "SPX-M104", format!("unknown or duplicate pattern field `{}` in `{type_name}::{case_name}`", field.name), field.span));
                     }
                     if !source_identifier(&field.binding)

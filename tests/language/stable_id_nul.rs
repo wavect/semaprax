@@ -140,6 +140,12 @@ fn empty_explicit_function_identity_is_a_located_source_diagnostic() {
         .iter()
         .find(|diagnostic| diagnostic.code == "SPX-S102")
         .expect("empty identity must fail at source verification");
-    assert_eq!(diagnostic.span.map(|span| (span.line, span.column)), Some((3, 4)));
-    assert!(diagnostic.help.as_deref().is_some_and(|help| help.contains("dotted stable identity")));
+    assert_eq!(
+        diagnostic.span.map(|span| (span.line, span.column)),
+        Some((3, 4))
+    );
+    assert!(diagnostic
+        .help
+        .as_deref()
+        .is_some_and(|help| help.contains("dotted stable identity")));
 }

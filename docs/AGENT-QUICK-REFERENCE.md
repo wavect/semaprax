@@ -136,8 +136,12 @@ fn main() -> i64
 
 - `if` always has `else` and is an expression. Nest `if` inside `else { … }`
   instead of `else if`.
-- A `while` body ends with a `bool` tail that decides whether to loop again,
-  normally the loop condition repeated.
+- A `while` condition must be `bool` and is re-evaluated before each iteration.
+  Its body is an ordinary block, so it needs a tail expression, but that tail's
+  value is discarded and does not control repetition. While bodies admit only
+  Copy-scalar operations and scalar-returning calls, plus the exact
+  `byte_get`/`Option<u8>` inspection profile; record/variant construction and
+  aggregate-returning calls are `SPX-T252`.
 - Bindings are immutable unless `let mut`. Assignment is a statement:
   `x = x + 1;` or `point.x = 5;`. Parameters are immutable.
 - Contracts are `requires`/`ensures` lines between the signature and the body;
@@ -514,7 +518,7 @@ Other first-attempt diagnostics and their fixes:
 
 | You wrote | Code | Fix |
 | --- | --- | --- |
-| `for i in 0..n { … }` | `SPX-P106` | Use `while` with a `let mut` counter and a `bool` tail |
+| `for i in 0..n { … }` | `SPX-P106` | Use `while` with a `let mut` counter and an ordinary discarded tail |
 | `f(x);` as a statement | `SPX-P106` | Discard it with `let _ = f(x);` or make it the tail |
 | `let t = (1, 2);` | `SPX-P106` | No tuples; declare a `record` |
 | `id(4)` for `fn id<T>` | `SPX-T225` | `id<i64>(4)` |

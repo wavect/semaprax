@@ -4,7 +4,9 @@
 use crate::ast::{BinaryOp, Expr, ExprKind, Type, UnaryOp};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding, CheckedValue};
-use crate::source_verify::diagnostics::{error, reject_native_unit_value};
+use crate::source_verify::diagnostics::{
+    error, reject_aggregate_equality, reject_native_unit_value,
+};
 use crate::source_verify::hints;
 use crate::source_verify::loans::join_conditional;
 use crate::source_verify::place::{join_definitely_partial, join_moved_places};
@@ -170,15 +172,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 expression.span,
             ));
         }
-        if !native_unit
-            && !matches!(op, BinaryOp::Eq | BinaryOp::Ne)
-            && (left_value
+        let string_operands = left_value
+            .as_ref()
+            .is_some_and(|value| value.ty == Type::String)
+            || right_value
                 .as_ref()
-                .is_some_and(|value| value.ty == Type::String)
-                || right_value
-                    .as_ref()
-                    .is_some_and(|value| value.ty == Type::String))
-        {
+                .is_some_and(|value| value.ty == Type::String);
+        if !native_unit && !matches!(op, BinaryOp::Eq | BinaryOp::Ne) && string_operands {
             self.diagnostics.push(error(
                 self.program,
                 "SPX-T250",
@@ -202,6 +202,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }
             BinaryOp::And | BinaryOp::Or => (Type::Bool, Type::Bool),
             BinaryOp::Eq | BinaryOp::Ne => {
+                if let Some(value) = &left_value {
+                    reject_aggregate_equality(self.program, expression, value, self.diagnostics);
+                }
                 if !native_unit
                     && left_value.is_some()
                     && right_value.is_some()
@@ -220,6 +223,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }
         };
         if !native_unit
+            && !string_operands
             && (left_value
                 .as_ref()
                 .is_some_and(|value| value.ty != expected)

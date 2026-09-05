@@ -39,6 +39,16 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Corrected the installed language card: `while` repetition is controlled by
+  the re-evaluated condition, while the required body tail is discarded; the
+  card now names the Copy-scalar and aggregate restrictions behind `SPX-T252`.
+- Misspelled variant constructors and patterns now suggest the nearest unique
+  case and preserve the nominal type after a bad constructor, suppressing the
+  downstream unknown-binding and incompatible-match cascade.
+- String ordering now emits only `SPX-T250`, without a duplicate numeric
+  `SPX-T208`; aggregate equality in contracts now fails at the clause with
+  located `SPX-T207` and scalar-field/match guidance before backend lowering.
+
 - Nominal aggregate-valued `match` arms now fail during source verification
   with a located `SPX-T258` and an `if`/scalar-extraction remedy. `check`,
   native, and Wasm agree before unsupported record/variant lowering begins.

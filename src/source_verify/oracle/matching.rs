@@ -546,14 +546,29 @@ pub(super) fn oracle_match(
                     .flatten()
                     .and_then(|cases| cases.iter().find(|case| case.name == *case_name));
                 if declared_case.is_none() {
-                    diagnostics.push(error(
+                    let diagnostic = error(
                         program,
                         "SPX-M103",
                         format!(
                             "pattern `{type_name}::{case_name}` is incompatible with the match scrutinee"
                         ),
                         *span,
-                    ));
+                    );
+                    diagnostics.push(
+                        match compatible
+                            .then_some(declared_cases)
+                            .flatten()
+                            .and_then(|cases| {
+                                crate::source_verify::hints::nearest_variant_case_name(
+                                    case_name, cases,
+                                )
+                            }) {
+                            Some(nearest) => diagnostic.with_help(format!(
+                                "did you mean `{type_name}::{nearest} {{ ... }}`?"
+                            )),
+                            None => diagnostic,
+                        },
+                    );
                 } else if wildcard_seen || !covered.insert(case_name.as_str()) {
                     diagnostics.push(error(
                         program,
@@ -570,7 +585,9 @@ pub(super) fn oracle_match(
                             .iter()
                             .find(|candidate| candidate.name == field.name)
                     });
-                    if !supplied.insert(field.name.as_str()) || declared_field.is_none() {
+                    if !supplied.insert(field.name.as_str())
+                        || (declared_case.is_some() && declared_field.is_none())
+                    {
                         diagnostics.push(error(
                             program,
                             "SPX-M104",

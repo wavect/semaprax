@@ -695,12 +695,22 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 let case =
                     cases.and_then(|cases| cases.iter().find(|case| case.name == *case_name));
                 if cases.is_none() || case.is_none() {
-                    self.diagnostics.push(error(
+                    let diagnostic = error(
                         self.program,
                         "SPX-T215",
                         format!("`{type_name}::{case_name}` is not a declared variant constructor"),
                         expression.span,
-                    ));
+                    );
+                    self.diagnostics.push(
+                        match cases.and_then(|cases| {
+                            crate::source_verify::hints::nearest_variant_case_name(case_name, cases)
+                        }) {
+                            Some(nearest) => diagnostic.with_help(format!(
+                                "did you mean `{type_name}::{nearest} {{ ... }}`?"
+                            )),
+                            None => diagnostic,
+                        },
+                    );
                 }
                 if !fields.is_empty() {
                     self.frames.push(VerifierFrame::PrepareVariantField {
@@ -725,6 +735,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         // variant whose other cases contain owned fields is still
                         // a fresh owned carrier and must cross return/call
                         // boundaries exactly once.
+                        self.values.push(Some(CheckedValue::returned(
+                            instance.clone(),
+                            self.types.needs_drop(&instance),
+                        )));
+                    } else if cases.is_some() {
                         self.values.push(Some(CheckedValue::returned(
                             instance.clone(),
                             self.types.needs_drop(&instance),

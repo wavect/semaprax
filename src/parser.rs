@@ -1924,12 +1924,19 @@ impl Parser {
 
 fn validate_expression_depth(program: &Program) -> Result<(), Diagnostic> {
     let mut roots = Vec::new();
-    for function in program.functions.iter().chain(program.types.iter().flat_map(|declaration| {
-        match &declaration.kind {
-            TypeDeclarationKind::Class { methods, .. } => methods.iter(),
-            _ => [].iter(),
-        }
-    })) {
+    for function in program
+        .functions
+        .iter()
+        .chain(
+            program
+                .types
+                .iter()
+                .flat_map(|declaration| match &declaration.kind {
+                    TypeDeclarationKind::Class { methods, .. } => methods.iter(),
+                    _ => [].iter(),
+                }),
+        )
+    {
         roots.extend(function.requires.iter());
         roots.extend(function.ensures.iter());
         roots.push(&function.body);
@@ -1942,9 +1949,7 @@ fn validate_expression_depth(program: &Program) -> Result<(), Diagnostic> {
         if depth > MAX_SOURCE_NESTING {
             return Err(Diagnostic::error(
                 "SPX-P207",
-                format!(
-                    "source nesting depth exceeds the admitted maximum ({MAX_SOURCE_NESTING})"
-                ),
+                format!("source nesting depth exceeds the admitted maximum ({MAX_SOURCE_NESTING})"),
                 expression.span,
             )
             .at_path(&program.path)

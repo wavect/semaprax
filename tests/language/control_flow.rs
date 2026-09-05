@@ -99,9 +99,8 @@ fn excessive_source_nesting_fails_with_a_located_parser_diagnostic() {
         "{".repeat(129),
     ];
     for body in shapes {
-        let source = format!(
-            "module test.deep;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{body}\n}}\n"
-        );
+        let source =
+            format!("module test.deep;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{body}\n}}\n");
         let diagnostic = parse(&source, Path::new("deep.spx")).unwrap_err();
         assert_eq!(diagnostic.code, "SPX-P207", "{diagnostic}");
         assert!(diagnostic.message.contains("128"));

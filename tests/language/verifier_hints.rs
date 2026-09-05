@@ -161,6 +161,41 @@ fn generic_variant_without_type_arguments_shows_the_constructor_shape() {
 }
 
 #[test]
+fn misspelled_variant_case_suggests_nearest_without_cascades() {
+    let constructor = r#"module habit.case_constructor;
+@id("habit.shape") variant Shape { @id("habit.shape.dot") Dot, }
+@id("app.main") fn main() -> i64 {
+    let shape = Shape::Dott {};
+    match shape { Shape::Dot {} => 0, }
+}
+"#;
+    let found = diagnostics(constructor);
+    let errors = found
+        .iter()
+        .filter(|diagnostic| diagnostic.severity.is_error())
+        .collect::<Vec<_>>();
+    assert_eq!(errors.len(), 1, "{found:?}");
+    assert_eq!(errors[0].code, "SPX-T215");
+    assert!(help(errors[0]).contains("Shape::Dot"));
+
+    let pattern = r#"module habit.case_pattern;
+@id("habit.shape") variant Shape { @id("habit.shape.dot") Dot, }
+@id("app.main") fn main() -> i64 {
+    let shape = Shape::Dot {};
+    match shape { Shape::Dott {} => 1, Shape::Dot {} => 0, }
+}
+"#;
+    let found = diagnostics(pattern);
+    let errors = found
+        .iter()
+        .filter(|diagnostic| diagnostic.severity.is_error())
+        .collect::<Vec<_>>();
+    assert_eq!(errors.len(), 1, "{found:?}");
+    assert_eq!(errors[0].code, "SPX-M103");
+    assert!(help(errors[0]).contains("Shape::Dot"));
+}
+
+#[test]
 fn unsuffixed_literal_against_a_narrower_operand_names_the_suffix() {
     let diagnostic = only(
         "module habit.suffix;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let n = 3usize;\n    if n < 5 { 1 } else { 0 }\n}\n",
@@ -193,6 +228,37 @@ fn mismatched_non_literal_operands_get_no_literal_hint() {
         "SPX-T208",
     );
     assert!(diagnostic.help.is_none(), "{diagnostic}");
+}
+
+#[test]
+fn string_ordering_reports_only_the_string_specific_diagnostic() {
+    let found = diagnostics(
+        "module habit.string_order;\n@id(\"app.main\")\nfn main() -> i64\n{\n    if \"a\" < \"b\" { 1 } else { 0 }\n}\n",
+    );
+    assert_eq!(
+        found
+            .iter()
+            .filter(|diagnostic| diagnostic.severity.is_error())
+            .map(|diagnostic| diagnostic.code)
+            .collect::<Vec<_>>(),
+        vec!["SPX-T250"]
+    );
+}
+
+#[test]
+fn aggregate_equality_in_ensures_is_rejected_with_clause_location() {
+    let source = r#"module habit.aggregate_contract;
+@id("habit.option")
+fn option() -> Option<i64>
+    ensures result != Option<i64>::Some { value: -1 }
+{
+    Option<i64>::None {}
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let diagnostic = only(source, "SPX-T207");
+    assert_eq!(diagnostic.span.map(|span| span.line), Some(4));
+    assert!(help(&diagnostic).contains("scalar fields"), "{diagnostic}");
 }
 
 #[test]

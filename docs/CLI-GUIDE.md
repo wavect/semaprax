@@ -64,6 +64,14 @@ semaprax check examples/meaning.spx
 semaprax run examples/meaning.spx
 ```
 
+Single-file `run` evaluates `@id("app.main")` in the bounded reference
+interpreter, with no compiler or target process. `--max-steps`, `--max-bytes`,
+and `--json` apply to this route. Use `run <file> --native` only when you
+specifically need the generated C11 executable path. A module whose authority
+is exactly `permit { process.stdout.write }` uses the success-published bounded
+stdout interpreter profile automatically, so the language-card example is
+directly runnable.
+
 `fmt <file> --check` reports non-canonical source without rewriting it. Run
 `fmt <file>` without `--check` when you want the compiler to rewrite that file
 canonically. `fmt` also takes a project directory or `semaprax.toml`: `fmt .

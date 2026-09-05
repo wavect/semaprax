@@ -266,10 +266,10 @@ fn main() -> i64
 - `own T` parameters consume the argument; a second use is `SPX-O101`.
   `borrow T` parameters read it. Resources declare `drop trivial;` or
   `drop import "host.symbol";`.
-- The reference interpreter behind `semaprax run` rejects modules that declare
+- The reference interpreter behind single-file `semaprax run` rejects modules that declare
   resources with `SPX-B104`. Verify them with `check`, exercise them through a
-  project's native or Wasm build, and keep interpreter-run examples free of
-  `resource` declarations.
+  project's native or Wasm build (or the explicit `run <file> --native` lane),
+  and keep interpreter-run examples free of `resource` declarations.
 
 ## Strings and bytes
 
@@ -313,7 +313,11 @@ fn main() -> i64
   `array_as_slice(array_binding)`, or `bytes_as_slice(bytes_binding)`.
 - `stdout_write(slice)` needs both `permit { process.stdout.write }` and
   `uses { process.stdout.write }` and returns the `usize` byte count.
-- `run` evaluates in the reference interpreter. `args_len`, `arg_utf8`,
+- Single-file `run` evaluates `app.main` in the bounded reference interpreter;
+  `--json`, `--max-steps`, and `--max-bytes` are available, while `--native`
+  explicitly selects the generated C11 route. The exact
+  `process.stdout.write` authority automatically selects the bounded stdout
+  transcript interpreter, so the example above prints `banana!0`. `args_len`, `arg_utf8`,
   `stdin_read`, and `stderr_write` need a project with the
   `useful-data-command.v1` profile built for the native target.
 - Reference-interpreter and generated native calls have a fixed 256-frame

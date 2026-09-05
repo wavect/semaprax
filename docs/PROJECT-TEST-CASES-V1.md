@@ -155,7 +155,7 @@ keeps working, while one that pins whole test-envelope bytes observes the new
   share nothing at runtime because the language has no mutable globals.
 - Arithmetic failures (division by zero, overflow) carry no frame detail; only
   contract clauses do.
-- The native path (`semaprax run file.spx`, `build --target native`) is
+- The native path (`semaprax run file.spx --native`, `build --target native`) is
   unchanged: it keeps printing `SEMAPRAX contract failure: <phase> in
   <function>: <clause>` from the native runtime's own detail record, without
   argument values, and its ABI and status contract are untouched.

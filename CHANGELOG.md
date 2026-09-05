@@ -16,6 +16,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Single-file `semaprax run` now executes `app.main` through the bounded
+  reference interpreter, accepts `--json`, `--max-steps`, and `--max-bytes`,
+  and automatically admits the exact bounded stdout-transcript profile. The
+  former generated C11 behavior remains available explicitly as `--native`.
 - Generated native executables now guard the same 256-frame call-depth bound
   used by the reference interpreter. Deep and mutual recursion return the
   deterministic `semaprax.runtime.v1/1` capacity outcome with visible stderr

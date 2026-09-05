@@ -14,6 +14,7 @@ pub(crate) struct ExecutionOptions {
     pub(crate) json: bool,
     pub(crate) max_steps: Option<usize>,
     pub(crate) max_bytes: Option<usize>,
+    pub(crate) native: bool,
 }
 
 pub(crate) fn parse_run(args: &[String]) -> Result<ExecutionOptions, u8> {
@@ -30,6 +31,7 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
     let mut json = false;
     let mut max_steps = None;
     let mut max_bytes = None;
+    let mut native = false;
     let mut index = 0;
     while index < args.len() {
         let argument = args[index].as_str();
@@ -74,6 +76,14 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
                 eprintln!("{command} option `--max-bytes` may not be repeated");
                 return Err(2);
             }
+            "--native" if allow_source && !native => {
+                native = true;
+                index += 1;
+            }
+            "--native" if allow_source => {
+                eprintln!("{command} option `--native` may not be repeated");
+                return Err(2);
+            }
             option if option.starts_with('-') => {
                 eprintln!("unknown {command} option `{option}`");
                 return Err(2);
@@ -105,11 +115,13 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
         },
         (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
     };
-    if matches!(input, ExecutionInput::Source(_))
-        && (json || max_steps.is_some() || max_bytes.is_some())
-    {
+    if native && !matches!(input, ExecutionInput::Source(_)) {
+        eprintln!("run option `--native` requires a single .spx source file");
+        return Err(2);
+    }
+    if native && (json || max_steps.is_some() || max_bytes.is_some()) {
         eprintln!(
-            "legacy single-file run accepts exactly `semaprax run <file>`; project execution options require semaprax.toml"
+            "native single-file run cannot combine `--native` with interpreter output or capacity options"
         );
         return Err(2);
     }
@@ -118,6 +130,7 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
         json,
         max_steps,
         max_bytes,
+        native,
     })
 }
 
@@ -168,6 +181,7 @@ mod tests {
                 json: false,
                 max_steps: None,
                 max_bytes: None,
+                native: false,
             }
         );
         assert_eq!(
@@ -177,6 +191,7 @@ mod tests {
                 json: false,
                 max_steps: None,
                 max_bytes: None,
+                native: false,
             }
         );
         assert_eq!(
@@ -195,9 +210,28 @@ mod tests {
                 json: true,
                 max_steps: Some(4096),
                 max_bytes: Some(65536),
+                native: false,
             }
         );
-        assert!(parse_run(&strings(&["legacy.spx", "--json"])).is_err());
+        assert_eq!(
+            parse_run(&strings(&[
+                "legacy.spx",
+                "--json",
+                "--max-steps",
+                "4096",
+                "--max-bytes",
+                "65536",
+            ]))
+            .unwrap(),
+            ExecutionOptions {
+                input: ExecutionInput::Source(PathBuf::from("legacy.spx")),
+                json: true,
+                max_steps: Some(4096),
+                max_bytes: Some(65536),
+                native: false,
+            }
+        );
+        assert!(parse_run(&strings(&["legacy.spx", "--native", "--json"])).is_err());
     }
 
     #[test]
@@ -208,6 +242,7 @@ mod tests {
                 input: ExecutionInput::Project(PathBuf::from("fixtures/semaprax.toml")),
                 json: false,
                 max_steps: Some(1),
+                native: false,
                 max_bytes: None,
             }
         );

@@ -1,6 +1,6 @@
 //! Rejection evidence only: no compiler or child process is needed. The
 //! implementation's pre-scratch ordering is not a physical allocation trace.
-use super::{checked, codegen, load, run_legacy_source};
+use super::{checked, codegen, load, run_native_source};
 use same_file::Handle;
 use std::fs::{self, OpenOptions};
 use std::io::Write as _;
@@ -71,7 +71,7 @@ fn rejected_source_preserves_the_former_predictable_run_path() {
     let invalid_errors = load(&invalid).unwrap_err();
     assert_eq!(invalid_errors.len(), 1);
     assert_eq!(invalid_errors[0].code, "SPX-P104");
-    assert_eq!(run_legacy_source(&invalid), Err(1));
+    assert_eq!(run_native_source(&invalid), Err(1));
     assert_eq!(Handle::from_path(&old_output).unwrap(), sentinel_identity);
     assert_eq!(fs::read(&old_output).unwrap(), SENTINEL);
 
@@ -82,7 +82,7 @@ fn rejected_source_preserves_the_former_predictable_run_path() {
         error.message,
         "native Rust imports are unavailable for the ordinary native target"
     );
-    assert_eq!(run_legacy_source(&unsupported), Err(1));
+    assert_eq!(run_native_source(&unsupported), Err(1));
     assert_eq!(Handle::from_path(&old_output).unwrap(), sentinel_identity);
     assert_eq!(fs::read(&old_output).unwrap(), SENTINEL);
 

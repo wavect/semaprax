@@ -10,12 +10,12 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
-    freestanding_object, graph, hir, hygienic, impact, interpreter, openapi, package_report, parse,
-    patch, patch_evidence, plugin_manifest, project, properties, protocol_check, quality_route,
-    region_report, repair, review, semantic_workspace, semantic_workspace_change,
-    semantic_workspace_operations, semantic_workspace_structural_change, simd_report,
-    target_evidence, ui_schema, verify, wasm, workspace, workspace_analysis, workspace_graph,
-    workspace_patch_evidence,
+    freestanding_object, graph, hir, hosted_interpreter, hygienic, impact, interpreter, openapi,
+    package_report, parse, patch, patch_evidence, plugin_manifest, project, properties,
+    protocol_check, quality_route, region_report, repair, review, semantic_workspace,
+    semantic_workspace_change, semantic_workspace_operations, semantic_workspace_structural_change,
+    simd_report, target_evidence, ui_schema, verify, wasm, workspace, workspace_analysis,
+    workspace_graph, workspace_patch_evidence,
 };
 
 #[path = "cli/mod.rs"]
@@ -728,7 +728,12 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         CommandId::Run => {
             let options = cli::execution::parse_run(&args[1..])?;
             match &options.input {
-                cli::execution::ExecutionInput::Source(path) => run_legacy_source(path),
+                cli::execution::ExecutionInput::Source(path) if options.native => {
+                    run_native_source(path)
+                }
+                cli::execution::ExecutionInput::Source(path) => {
+                    run_interpreted_source(path, &options)
+                }
                 cli::execution::ExecutionInput::Project(manifest_path) => {
                     cli::project_runtime::execute_held("run", manifest_path, &options)
                 }
@@ -2573,7 +2578,7 @@ fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), 
     Ok(())
 }
 
-fn run_legacy_source(path: &Path) -> Result<(), u8> {
+fn run_native_source(path: &Path) -> Result<(), u8> {
     // Source rejection cannot acquire scratch or cleanup authority.
     let program = checked(path)?;
     let c_source = codegen::emit_c(&program).map_err(|error| report(&[error], false))?;
@@ -2609,6 +2614,174 @@ fn run_legacy_source(path: &Path) -> Result<(), u8> {
     // cleanup cannot replace the child status with a secondary cleanup error.
     let _ = scratch.cleanup();
     Ok(())
+}
+
+fn run_interpreted_source(
+    path: &Path,
+    options: &cli::execution::ExecutionOptions,
+) -> Result<(), u8> {
+    let defaults = interpreter::InterpreterOptions::default();
+    let interpreter_options = interpreter::InterpreterOptions::new(
+        options.max_bytes.unwrap_or(defaults.max_bytes),
+        options.max_steps.unwrap_or(defaults.max_steps),
+    )
+    .map_err(|error| report(&[error], options.json))?;
+
+    // The bounded stdout profile is a distinct interpreter seam because the
+    // canonical `semaprax.interpret.v1` profile is deliberately effect-free.
+    let program = checked(path)?;
+    if program.permits == ["process.stdout.write"] {
+        let resolved = hir::resolve(&program).map_err(|errors| report(&errors, options.json))?;
+        let hosted = hosted_interpreter::execute_stdout_transcript(
+            &resolved,
+            "app.main",
+            interpreter_options.max_steps,
+        )
+        .map_err(|errors| report(&errors, options.json))?;
+        return publish_interpreted_stdout(hosted, &interpreter_options, options.json);
+    }
+
+    let interpretation = interpreter::interpret(path, "app.main", &[], &interpreter_options)
+        .map_err(|errors| report(&errors, options.json))?;
+    if options.json {
+        println!("{}", interpretation.envelope);
+        return interpretation.returned.then_some(()).ok_or(1);
+    }
+    publish_interpretation(&interpretation.envelope)
+}
+
+fn publish_interpretation(envelope: &str) -> Result<(), u8> {
+    let parsed: serde_json::Value = serde_json::from_str(envelope).map_err(|error| {
+        report(
+            &[Diagnostic::io(
+                "SPX-F106",
+                format!("interpreter returned an invalid execution envelope: {error}"),
+            )],
+            false,
+        )
+    })?;
+    let outcome = &parsed["payload"]["outcome"];
+    match outcome["kind"].as_str() {
+        Some("returned") => {
+            println!("{}", outcome["value"].as_str().unwrap_or(""));
+            Ok(())
+        }
+        Some("failed") => {
+            let status = &outcome["status"];
+            eprintln!(
+                "single-file execution failed with language status {}/{}/{}",
+                status["schema"].as_str().unwrap_or("semaprax.status.v1"),
+                status["domain_id"].as_str().unwrap_or("unknown"),
+                status["code"].as_u64().unwrap_or(0)
+            );
+            Err(1)
+        }
+        Some("fuel_exhausted") => {
+            eprintln!("single-file execution exhausted its step budget");
+            Err(1)
+        }
+        Some("call_depth_exceeded") => {
+            eprintln!(
+                "single-file execution exceeded the {}-frame call-depth limit",
+                interpreter::MAX_CALL_DEPTH
+            );
+            Err(1)
+        }
+        _ => Err(report(
+            &[Diagnostic::io(
+                "SPX-F106",
+                "interpreter envelope has an unknown outcome",
+            )],
+            false,
+        )),
+    }
+}
+
+fn publish_interpreted_stdout(
+    hosted: hosted_interpreter::HostedStdoutTranscript,
+    options: &interpreter::InterpreterOptions,
+    json: bool,
+) -> Result<(), u8> {
+    use interpreter::ResolvedEvaluationOutcome;
+
+    if json {
+        let outcome = match &hosted.evaluation.outcome {
+            ResolvedEvaluationOutcome::ReturnedI64(value) => {
+                format!("{{\"kind\":\"returned\",\"type\":\"i64\",\"value\":\"{value}\"}}")
+            }
+            ResolvedEvaluationOutcome::LanguageFailure(status) => {
+                format!("{{\"kind\":\"failed\",\"status\":{}}}", status.to_json())
+            }
+            ResolvedEvaluationOutcome::FuelExhausted => "{\"kind\":\"fuel_exhausted\"}".to_owned(),
+            ResolvedEvaluationOutcome::CallDepthExceeded => {
+                "{\"kind\":\"call_depth_exceeded\"}".to_owned()
+            }
+            ResolvedEvaluationOutcome::GuardError(detail) => {
+                return Err(report(&[Diagnostic::io("SPX-F105", detail)], true));
+            }
+        };
+        let stdout = serde_json::to_string(&hosted.transcript).expect("bytes serialize");
+        let envelope = format!(
+            "{{\"schema\":\"semaprax.single-file-run.v1\",\"fuel\":{{\"steps_used\":{},\"max_steps\":{}}},\"outcome\":{outcome},\"stdout\":{stdout}}}",
+            hosted.evaluation.steps_used, hosted.evaluation.max_steps
+        );
+        if envelope.len() > options.max_bytes {
+            return Err(report(
+                &[Diagnostic::io(
+                    "SPX-F104",
+                    "single-file run output exceeds the max-bytes budget; refusing to truncate",
+                )],
+                true,
+            ));
+        }
+        println!("{envelope}");
+    }
+    match hosted.evaluation.outcome {
+        ResolvedEvaluationOutcome::ReturnedI64(value) => {
+            if !json {
+                std::io::stdout()
+                    .write_all(&hosted.transcript)
+                    .map_err(|error| {
+                        report(
+                            &[Diagnostic::io(
+                                "SPX-I101",
+                                format!("cannot write stdout: {error}"),
+                            )],
+                            false,
+                        )
+                    })?;
+                println!("{value}");
+            }
+            Ok(())
+        }
+        ResolvedEvaluationOutcome::LanguageFailure(status) => {
+            if !json {
+                eprintln!(
+                    "single-file execution failed with language status {}",
+                    status.to_json()
+                );
+            }
+            Err(1)
+        }
+        ResolvedEvaluationOutcome::FuelExhausted => {
+            if !json {
+                eprintln!("single-file execution exhausted its step budget");
+            }
+            Err(1)
+        }
+        ResolvedEvaluationOutcome::CallDepthExceeded => {
+            if !json {
+                eprintln!(
+                    "single-file execution exceeded the {}-frame call-depth limit",
+                    interpreter::MAX_CALL_DEPTH
+                );
+            }
+            Err(1)
+        }
+        ResolvedEvaluationOutcome::GuardError(detail) => {
+            Err(report(&[Diagnostic::io("SPX-F105", detail)], json))
+        }
+    }
 }
 
 fn report(errors: &[Diagnostic], json: bool) -> u8 {

@@ -1029,6 +1029,77 @@ fn cli_double_run_is_byte_identical() {
     assert!(first_out.contains("\"kind\":\"returned\""));
 }
 
+#[test]
+fn single_file_run_uses_the_interpreter_with_capacity_and_json_options() {
+    let source = r#"
+module test.single_file_run;
+@id("app.main")
+fn main() -> i64 { 40 + 2 }
+"#;
+    let path = write_temp(source);
+    let path_text = path.to_str().unwrap();
+
+    let (code, stdout, stderr) = cli(&["run", path_text]);
+    assert_eq!(code, 0);
+    assert_eq!(stdout, "42\n");
+    assert_eq!(stderr, "");
+
+    let (code, stdout, stderr) = cli(&[
+        "run",
+        path_text,
+        "--json",
+        "--max-steps",
+        "100",
+        "--max-bytes",
+        "65536",
+    ]);
+    assert_eq!(code, 0);
+    assert_eq!(stderr, "");
+    let envelope: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    assert_eq!(envelope["schema"], "semaprax.interpret.v1");
+    assert_eq!(envelope["payload"]["outcome"]["value"], "42");
+
+    let (code, stdout, stderr) = cli(&["run", path_text, "--max-steps", "1"]);
+    assert_eq!(code, 1);
+    assert_eq!(stdout, "");
+    assert_eq!(stderr, "single-file execution exhausted its step budget\n");
+    cleanup(&path);
+}
+
+#[test]
+fn single_file_run_executes_the_bounded_stdout_interpreter_profile() {
+    let source = r#"
+module test.single_file_stdout;
+permit { process.stdout.write }
+@id("app.main")
+fn main() -> i64 uses { process.stdout.write } {
+    let data = [65u8, 0u8, 66u8];
+    let view = array_as_slice(data);
+    let written = stdout_write(view);
+    if written == 3usize { 7 } else { 0 }
+}
+"#;
+    let path = write_temp(source);
+    let path_text = path.to_str().unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(["run", path_text])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(output.stdout, [b'A', 0, b'B', b'7', b'\n']);
+    assert!(output.stderr.is_empty());
+
+    let (code, stdout, stderr) = cli(&["run", path_text, "--json"]);
+    assert_eq!(code, 0);
+    assert_eq!(stderr, "");
+    let envelope: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    assert_eq!(envelope["schema"], "semaprax.single-file-run.v1");
+    assert_eq!(envelope["outcome"]["value"], "7");
+    assert_eq!(envelope["stdout"], serde_json::json!([65, 0, 66]));
+    cleanup(&path);
+}
+
 // ---------------------------------------------------------------------------
 // Fuel accounting and capacity limits.
 // ---------------------------------------------------------------------------

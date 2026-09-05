@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Hardened `std.http.status_code` so an HTTP/1.x status code is accepted only
+  when the required space before the reason phrase is present; truncated lines
+  such as `HTTP/1.1 299` now return `-1` consistently on the interpreter,
+  native C11, and Core Wasm lanes.
 - Added `semaprax help shapes`, which prints a generated language shapes
   catalog: every declaration of every committed example with its `@id` and
   canonical header, rendered through the `semaprax doc` model and pinned by

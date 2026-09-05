@@ -242,7 +242,7 @@ the interpreter, native C11, and Core Wasm lanes with no provider present.
 | Package | Functions |
 | --- | --- |
 | `std.net` | `port_is_valid(port: usize)`, `host_is_valid(host)` (nonempty, at most 253 bytes, dot-separated labels of 1–63 letters, digits, or interior hyphens), `is_ipv4(host)` (strict dotted quad), `wait_is_timeout`/`wait_is_readable`/`wait_is_closed(state: usize)` |
-| `std.http` | `status_code(response) -> i64` (`-1` unless the bytes start `HTTP/1.x NNN`), `is_success(code)`, `has_header_end`, `header_end`, `body_len`, `content_length(response) -> i64` (`-1` when absent, malformed, or the header is unterminated), `method_is_valid(method)` |
+| `std.http` | `status_code(response) -> i64` (`-1` unless the bytes start `HTTP/1.x NNN ` with the required reason-phrase separator), `is_success(code)`, `has_header_end`, `header_end`, `body_len`, `content_length(response) -> i64` (`-1` when absent, malformed, or the header is unterminated), `method_is_valid(method)` |
 | `std.async` | `clamp_wait_ms`, `next_timeout_ms(attempt, base_ms, cap_ms)` (doubling, capped at 30,000), `should_retry(state, attempts, max_attempts)`, `next_handle(current, count)` (round robin over `1..=count`), `remaining_ms`, `stream_ended(chunk)` |
 
 The [standard library catalog](STANDARD-LIBRARY-CATALOG.md) lists every

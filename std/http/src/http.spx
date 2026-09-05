@@ -48,7 +48,7 @@ fn status_code(response: borrow Slice<u8>) -> i64
     let hundreds = digit_at(response, 9usize);
     let tens = digit_at(response, 10usize);
     let ones = digit_at(response, 11usize);
-    if version && hundreds >= 1 && tens >= 0 && ones >= 0 { hundreds * 100 + tens * 10 + ones } else { -1 }
+    if version && hundreds >= 1 && tens >= 0 && ones >= 0 && byte_is(response, 12usize, 32u8) { hundreds * 100 + tens * 10 + ones } else { -1 }
 }
 
 @id("std.http.is_success")

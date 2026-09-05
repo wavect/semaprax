@@ -54,7 +54,7 @@ fn bodiless() -> bool
 @id("std.http.tests.partial")
 fn partial() -> bool
 {
-    let partial = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 48u8, 57u8, 57u8, 13u8, 10u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 49u8, 50u8];
+    let partial = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 50u8, 57u8, 57u8, 13u8, 10u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 49u8, 50u8];
     let view = array_as_slice(partial);
     status_code(view) == -1 && !has_header_end(view) && terminator(view) == 32usize && header_end(view) == 32usize && body_len(view) == 0usize && length_start(view) == 14usize && content_length(view) == -1
 }

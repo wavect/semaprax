@@ -37,32 +37,89 @@ function checkSubject(file, existing) {
   return findManifest(resolved, existing) || resolved;
 }
 
-// One compiler diagnostic per stdout line. Lines that are not a JSON object
-// with a string `code`, a known `severity` and a string `message` are skipped
-// rather than trusted; a partial trailing line after truncation is one such.
-function parseDiagnosticLines(text) {
-  const rows = [];
-  if (typeof text !== 'string') return rows;
+// One compiler diagnostic, or null when the value is not one.
+function toDiagnosticRow(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (typeof value.code !== 'string' || typeof value.message !== 'string' || !SEVERITIES.has(value.severity)) return null;
+  const location = value.location && typeof value.location === 'object' && !Array.isArray(value.location) ? value.location : null;
+  return {
+    code: value.code,
+    severity: value.severity,
+    message: value.message,
+    path: typeof value.path === 'string' && value.path ? value.path : null,
+    location: location && Number.isSafeInteger(location.line) && location.line >= 1 && Number.isSafeInteger(location.column) && location.column >= 1
+      ? { line: location.line, column: location.column, start: safeOffset(location.start), end: safeOffset(location.end) }
+      : null,
+    help: typeof value.help === 'string' && value.help ? value.help : null
+  };
+}
+
+// The `{"status":"verified", …}` record `check --json` prints on the run it
+// verified, or null. The compiler names either the checked source `path` or
+// the checked project `name`, always with the revision it verified.
+function toVerifiedRecord(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (value.status !== 'verified' || typeof value.revision !== 'string' || !value.revision) return null;
+  const subject = typeof value.path === 'string' && value.path ? { path: value.path } : typeof value.name === 'string' && value.name ? { name: value.name } : null;
+  return subject ? { ...subject, revision: value.revision } : null;
+}
+
+// Every stdout line of one `check --json` run, classified. A line is a
+// diagnostic, the verified record, or malformed: a partial trailing line after
+// truncation, an unknown severity, a foreign schema, or plain text. Malformed
+// output is counted, never silently dropped, so a caller can refuse to report
+// a clean result it did not actually observe.
+function parseCheckOutput(text) {
+  const diagnostics = [], verified = [];
+  let malformed = 0;
+  if (typeof text !== 'string') return { diagnostics, verified: null, verifiedCount: 0, malformed };
   for (const line of text.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     let value;
-    try { value = JSON.parse(trimmed); } catch { continue; }
-    if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
-    if (typeof value.code !== 'string' || typeof value.message !== 'string' || !SEVERITIES.has(value.severity)) continue;
-    const location = value.location && typeof value.location === 'object' && !Array.isArray(value.location) ? value.location : null;
-    rows.push({
-      code: value.code,
-      severity: value.severity,
-      message: value.message,
-      path: typeof value.path === 'string' && value.path ? value.path : null,
-      location: location && Number.isSafeInteger(location.line) && location.line >= 1 && Number.isSafeInteger(location.column) && location.column >= 1
-        ? { line: location.line, column: location.column, start: safeOffset(location.start), end: safeOffset(location.end) }
-        : null,
-      help: typeof value.help === 'string' && value.help ? value.help : null
-    });
+    try { value = JSON.parse(trimmed); } catch { malformed++; continue; }
+    const row = toDiagnosticRow(value);
+    if (row) { diagnostics.push(row); continue; }
+    const record = toVerifiedRecord(value);
+    if (record) { verified.push(record); continue; }
+    malformed++;
   }
-  return rows;
+  return { diagnostics, verified: verified[0] || null, verifiedCount: verified.length, malformed };
+}
+
+// One compiler diagnostic per stdout line. Lines that are not a JSON object
+// with a string `code`, a known `severity` and a string `message` are skipped
+// rather than trusted; a partial trailing line after truncation is one such.
+// Callers that must not report a clean check use `checkOutcome` instead, which
+// refuses output this function would silently discard.
+function parseDiagnosticLines(text) {
+  return parseCheckOutput(text).diagnostics;
+}
+
+// Whether one finished `check --json` run may be believed, and why not.
+// `check` exits 0 after printing exactly one verified record and no error, and
+// exits 1 after printing at least one error diagnostic and no verified record.
+// Every other combination — a killed child, a foreign status, unparsed output,
+// an error with status 0, or a verified record with status 1 — is a check
+// failure whose diagnostics the editor must not publish as the current truth.
+function checkOutcome(result, compiler = 'the selected compiler') {
+  const failed = failure => ({ status: 'failed', failure, diagnostics: [], verified: null });
+  if (result.error) return failed(`could not start ${compiler}: ${result.error}`);
+  if (result.timedOut) return failed(`check timed out after ${TIMEOUT_MS / 1000}s`);
+  if (result.truncated) return failed(`check output exceeded ${MAX_OUTPUT_BYTES} bytes`);
+  if (result.code !== 0 && result.code !== 1) return failed(`check exited with status ${result.code}`);
+  const parsed = parseCheckOutput(result.stdout);
+  if (parsed.malformed) return failed(parsed.malformed === 1 ? 'check printed 1 line that is neither a diagnostic nor a verified record' : `check printed ${parsed.malformed} lines that are neither a diagnostic nor a verified record`);
+  if (parsed.verifiedCount > 1) return failed(`check printed ${parsed.verifiedCount} verified records`);
+  const errors = parsed.diagnostics.filter(row => row.severity === 'error').length;
+  if (result.code === 0) {
+    if (errors) return failed(`check exited 0 after reporting ${errors} error diagnostic${errors === 1 ? '' : 's'}`);
+    if (!parsed.verified) return failed('check exited 0 without printing a verified record');
+    return { status: 'verified', failure: null, diagnostics: parsed.diagnostics, verified: parsed.verified };
+  }
+  if (parsed.verified) return failed('check exited 1 after printing a verified record');
+  if (!errors) return failed('check exited 1 without reporting an error diagnostic');
+  return { status: 'diagnostics', failure: null, diagnostics: parsed.diagnostics, verified: null };
 }
 
 function safeOffset(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
@@ -139,5 +196,5 @@ function runCheck(spawnFn, compiler, subject, options = {}) {
 
 module.exports = {
   MANIFEST, MAX_OUTPUT_BYTES, TIMEOUT_MS,
-  findManifest, checkSubject, parseDiagnosticLines, toDiagnosticRecords, DiagnosticLedger, runCheck
+  findManifest, checkSubject, parseDiagnosticLines, parseCheckOutput, checkOutcome, toDiagnosticRecords, DiagnosticLedger, runCheck
 };

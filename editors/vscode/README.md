@@ -38,9 +38,21 @@ workspace settings; the child's combined output is capped at 4 MiB and its run
 at 30 seconds, after which it is killed and the failure is written to the
 `SEMAPRAX Check` output channel. `check` is read-only: this feature builds
 nothing, publishes nothing, writes no file, and starts no saved-source session.
+A run is published only when the adapter can classify it. `check` exits 0
+after printing exactly one `{"status":"verified", …}` record and no error, and
+exits 1 after printing at least one error diagnostic and no verified record.
+Any other combination — a killed or unstartable child, a foreign exit status,
+a line that is neither a diagnostic nor the verified record, an error with
+status 0, or a verified record with status 1 — is a check failure: the
+previously published diagnostics stay exactly as they were, the reason is
+written to the `SEMAPRAX Check` output channel, and `SEMAPRAX: Check Project`
+reports the failure and that the visible diagnostics may be stale. A check that
+a newer check of the same subject superseded publishes nothing either. The
+adapter never reports a clean project from output it could not read.
 `test/diagnostics.test.js` covers manifest discovery, malformed-line skipping,
-severity/range mapping, appended help, stale clearing, and the byte and time
-bounds against a scripted child.
+severity/range mapping, appended help, stale clearing, the exit-status and
+output classification matrix, retention of the previous ledger across every
+failure, and the byte and time bounds against a scripted child.
 
 ## Navigate by meaning
 

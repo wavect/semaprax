@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Fixed the VS Code check-on-save adapter reporting a clean project from
+  output it could not read. `check --json` output is now classified into
+  diagnostics, the verified record, and malformed lines, and the exit status is
+  validated against them; a killed child, a foreign status, an unparsed line, an
+  error with status 0, or a verified record with status 1 is a check failure
+  that retains the previously published diagnostics instead of clearing them.
+
 - Added `semaprax.network-fixture.v3` as an ordered, bounded HTTPS
   request/response replay carrier. V1 and v2 reject the new member, URL or
   response mismatches do not consume queue entries, and hosted `https_get`

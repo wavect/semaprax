@@ -41,13 +41,16 @@ function activateChecks(context, testMode) {
     const result = await checks.runCheck(spawn, binary, subject, { onChild: child => { own = child; running.set(subject, child); } });
     if (running.get(subject) !== own) return { ...result, failure: 'superseded by a newer check of the same subject' };
     running.delete(subject);
-    if (result.error || result.timedOut || result.truncated || (result.code !== 0 && result.code !== 1)) {
-      const reason = result.error ? `could not start ${binary}: ${result.error}` : result.timedOut ? `check timed out after ${checks.TIMEOUT_MS / 1000}s` : result.truncated ? `check output exceeded ${checks.MAX_OUTPUT_BYTES} bytes` : `check exited with status ${result.code}`;
-      output.appendLine(`${subject}: ${reason}`);
+    // A run the adapter cannot believe leaves the ledger exactly as it was:
+    // whatever the last trustworthy check published stays visible, and the
+    // reason is reported instead of an invented clean result.
+    const outcome = checks.checkOutcome(result, binary);
+    if (outcome.failure) {
+      output.appendLine(`${subject}: ${outcome.failure}`);
       if (result.stderr) output.appendLine(result.stderr.trimEnd());
-      return { ...result, failure: reason };
+      return { ...result, failure: outcome.failure, retained: ledger.subjects().includes(subject) };
     }
-    const records = checks.toDiagnosticRecords(checks.parseDiagnosticLines(result.stdout), subject);
+    const records = checks.toDiagnosticRecords(outcome.diagnostics, subject);
     const update = ledger.apply(subject, records);
     for (const file of update.clear) collection.delete(vscode.Uri.file(file));
     for (const [file, rows] of update.set) {
@@ -75,7 +78,7 @@ function activateChecks(context, testMode) {
     else if (vscode.workspace.workspaceFolders?.length) subject = path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, checks.MANIFEST);
     else throw new Error('Open a .spx file or a folder containing semaprax.toml first');
     const result = await check(subject, binary);
-    if (result.failure) throw new Error(result.failure);
+    if (result.failure) throw new Error(result.retained ? `${result.failure}; the diagnostics shown for ${path.basename(subject)} are the previous check's and may be stale` : result.failure);
     const count = result.records.length;
     void vscode.window.showInformationMessage(count ? `SEMAPRAX check of ${path.basename(subject)}: ${count} diagnostic${count === 1 ? '' : 's'}` : `SEMAPRAX check of ${path.basename(subject)}: no diagnostics`);
     return result.records;

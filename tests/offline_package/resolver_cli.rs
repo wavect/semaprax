@@ -48,7 +48,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // /test, the scaffold gained a library template, `new` became public, and
     // `doc`, `verify`, `agent`, `query`, `change`, `package`, `add`, `fetch`,
     // `service`, and `review` were added, and `doctor` became standalone.
-    const RESTORED: [(&str, &str); 43] = [
+    const RESTORED: [(&str, &str); 44] = [
         ("semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n", ""),
         ("semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]\n", ""),
         ("semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>\n", ""),
@@ -76,6 +76,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         ("semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]\n", ""),
         ("semaprax change preview <project> rename-display-name <stable-id> <new-name> [--revision digest] [--evidence|--structural-diff]\n", ""),
         ("semaprax change preview <project> add-contract <stable-id> <requires|ensures> <predicate-json> [--revision digest] [--evidence|--structural-diff]\n", ""),
+        ("semaprax change preview <project> add-declaration <anchor-stable-id> <declaration-json> [--revision digest] [--evidence|--structural-diff]\n", ""),
         ("semaprax change rebase <base-project> rename-display-name <stable-id> <new-name> --onto <onto-project> [--revision digest] [--onto-revision digest]\n", ""),
         ("semaprax change merge <project> rename-display-name <left-id> <left-new-name> --with rename-display-name <right-id> <right-new-name> [--revision digest] --order <left-then-right|right-then-left>\n", ""),
         ("semaprax package report <file> [--max-bytes N]\n", ""),

@@ -31,6 +31,7 @@ const LANGUAGE_TOPICS: &str = concat!(
 const DIAGNOSTIC_CODES: &str = concat!(
     "Diagnostic codes:\n",
     "  SPX-O101\n",
+    "  SPX-P003\n",
     "  SPX-P104\n",
     "  SPX-P105\n",
     "  SPX-P106\n",

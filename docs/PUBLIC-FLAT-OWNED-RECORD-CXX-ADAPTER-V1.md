@@ -2,6 +2,8 @@
 
 Status: local C++17 integration evidence; unpublished and unpromoted.
 
+Audience: compiler contributors, generated-package integrators, and promotion reviewers.
+
 This additive Project-v9 projection is derived from an authenticated
 `semaprax.public-flat-owned-record-api.v1` descriptor. It layers a safe C++17
 value API over the low-level C provider boundary described by

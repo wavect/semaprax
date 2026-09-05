@@ -756,7 +756,7 @@ static GUIDE: &[GuideGroup] = &[
         entries: &[
             GuideEntry {
                 id: CommandId::Change,
-                shape: "change preview <project> <operation>",
+                shape: "change preview <project> <change>",
                 summary: "Validate a semantic change without writing",
             },
             GuideEntry {
@@ -842,8 +842,8 @@ static GUIDE: &[GuideGroup] = &[
 ];
 
 const GUIDE_FOOTER: &str =
-    "Start with `semaprax check <file>`. Diagnostics carry SPX codes; `semaprax help diagnostic <code>`\n\
-prints an indexed fix. `--json` emits one diagnostic per line.\n";
+    "Start: `semaprax check <file>`. SPX diagnostics: `semaprax help diagnostic <code>`\n\
+shows an indexed fix. `--json` emits one diagnostic per line.\n";
 
 fn guide_spec(id: CommandId) -> &'static CommandSpec {
     COMMANDS

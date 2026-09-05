@@ -322,18 +322,87 @@ fn main() -> i64 {
         && f32_value == f32_value && char_value == char_value
     { 1 } else { 0 }
 }
+
 "#;
     let program = parse(source, Path::new("native-self-comparison.spx")).unwrap();
     assert!(verify::verify(&program).is_empty());
-    let output = std::env::temp_dir().join(format!(
-        "semaprax-self-comparison-{}",
-        std::process::id()
-    ));
+    let output =
+        std::env::temp_dir().join(format!("semaprax-self-comparison-{}", std::process::id()));
     codegen::build(&program, &output).unwrap();
     let result = Command::new(&output).output().unwrap();
     let _ = std::fs::remove_file(&output);
     assert!(result.status.success());
     assert_eq!(String::from_utf8_lossy(&result.stdout).trim(), "1");
+}
+
+#[test]
+fn native_recursion_depth_is_a_reported_runtime_failure_not_a_signal() {
+    if Command::new("clang").arg("--version").output().is_err() {
+        return;
+    }
+    let cases = [
+        (
+            "mutual",
+            r#"
+module test.native_mutual_recursion;
+@id("app.f")
+fn f(value: i64) -> i64 { g(value) }
+@id("app.g")
+fn g(value: i64) -> i64 { f(value) }
+@id("app.main")
+fn main() -> i64 { f(1) }
+"#,
+        ),
+        (
+            "direct",
+            r#"
+module test.native_direct_recursion;
+@id("app.down")
+fn down(value: i64) -> i64 {
+    if value == 0 { 7 } else { down(value - 1) }
+}
+@id("app.main")
+fn main() -> i64 { down(1000000) }
+"#,
+        ),
+    ];
+    for (ordinal, (name, source)) in cases.into_iter().enumerate() {
+        let program = parse(source, Path::new("native-recursion.spx")).unwrap();
+        assert!(verify::verify(&program).is_empty());
+        let output = std::env::temp_dir().join(format!(
+            "semaprax-recursion-{}-{ordinal}",
+            std::process::id()
+        ));
+        codegen::build(&program, &output).unwrap();
+        let result = Command::new(&output).output().unwrap();
+        let _ = std::fs::remove_file(&output);
+        assert_eq!(result.status.code(), Some(73), "{name}");
+        assert!(result.stdout.is_empty(), "{name}");
+        assert_eq!(
+            String::from_utf8_lossy(&result.stderr),
+            "SEMAPRAX runtime failure: call depth exceeded (256 frames)\n",
+            "{name}"
+        );
+    }
+
+    let shallow = r#"
+module test.native_shallow_recursion;
+@id("app.down")
+fn down(value: i64) -> i64 {
+    if value == 0 { 7 } else { down(value - 1) }
+}
+@id("app.main")
+fn main() -> i64 { down(100) }
+"#;
+    let program = parse(shallow, Path::new("native-shallow-recursion.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let output =
+        std::env::temp_dir().join(format!("semaprax-shallow-recursion-{}", std::process::id()));
+    codegen::build(&program, &output).unwrap();
+    let result = Command::new(&output).output().unwrap();
+    let _ = std::fs::remove_file(&output);
+    assert!(result.status.success());
+    assert_eq!(String::from_utf8_lossy(&result.stdout).trim(), "7");
 }
 
 #[test]

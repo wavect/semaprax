@@ -72,6 +72,7 @@ typedef uint32_t spx_retryability;
 #define SPX_CONTEXT_ZERO UINT32_C(0)
 #define SPX_CONTEXT_INITIALIZED UINT32_C(0x53505843)
 #define SPX_CONTEXT_TRACE_ATTACHED UINT32_C(0x53505854)
+#define SPX_MAX_CALL_DEPTH UINT32_C(256)
 
 struct spx_normalized_status {
     const char *schema;
@@ -115,6 +116,7 @@ struct spx_context {
     void *target_state;
     struct spx_trace_buffer *trace;
     uint64_t trace_generation;
+    uint32_t call_depth;
 };
 
 static inline bool spx_context_is_canonical_zero(
@@ -128,7 +130,8 @@ static inline bool spx_context_is_canonical_zero(
         context->status_arena.length == UINT32_C(0) &&
         context->imports == NULL && context->capabilities == NULL &&
         context->target_state == NULL && context->trace == NULL &&
-        context->trace_generation == UINT64_C(0);
+        context->trace_generation == UINT64_C(0) &&
+        context->call_depth == UINT32_C(0);
 }
 
 static inline bool spx_context_init(
@@ -158,6 +161,7 @@ static inline bool spx_context_init(
     context->target_state = target_state;
     context->trace = NULL;
     context->trace_generation = UINT64_C(0);
+    context->call_depth = UINT32_C(0);
     return true;
 }
 

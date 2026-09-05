@@ -311,6 +311,10 @@ fn main() -> i64
 - `run` evaluates in the reference interpreter. `args_len`, `arg_utf8`,
   `stdin_read`, and `stderr_write` need a project with the
   `useful-data-command.v1` profile built for the native target.
+- Reference-interpreter and generated native calls have a fixed 256-frame
+  recursion bound. Exceeding it is a reported runtime-capacity failure, not a
+  language status or process signal. Raw WebAssembly execution remains subject
+  to its engine's visible stack-limit trap.
 
 ## Compiler-owned functions
 

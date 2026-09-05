@@ -383,6 +383,15 @@ Bindings normalize failures before returning:
 
 The compiler-owned contract domain is `semaprax.contract.v1`: code `1` is `requires_false` and code `2` is `ensures_false`. Both have class `Contract` and `retryable = false`. Contract ordinal and expression identity remain in the selected `StatusSourceId`; they never create target-specific status codes. The compiler-owned arithmetic domain is `semaprax.arithmetic.v1` and uses the exact operation-specific codes defined by `StatusCase` above, class `Arithmetic`, and `retryable = false`.
 
+The bootstrap native runtime also bounds generated-language calls to 256 live
+frames per context. Attempting to enter frame 257 records
+`semaprax.runtime.v1/1` as a non-retryable adapter-class capacity outcome,
+unwinds every entered frame through its ordinary epilogue, and leaves result
+publication untouched. The executable wrapper reports this outcome and exits
+73; it must not rely on host stack exhaustion or a process signal. This
+capacity record is not a source-language failure status and does not widen the
+public resource ABI.
+
 Nested calls allocate records in the same invocation-scoped arena or explicitly re-home them into the caller context before returning. Public wrappers resolve the normalized record before releasing the context and then map it to the platform result, exception, rejected promise, log, or process status.
 
 ## Internal call ABI

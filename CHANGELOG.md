@@ -16,6 +16,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Generated native executables now guard the same 256-frame call-depth bound
+  used by the reference interpreter. Deep and mutual recursion return the
+  deterministic `semaprax.runtime.v1/1` capacity outcome with visible stderr
+  and exit 73 instead of terminating through an empty-stderr stack signal.
 - Web packages now preserve semantic status domains for byte-range failures
   and checked i32, u8, and usize arithmetic. Generated JavaScript exposes the
   same frozen `{schema, domain_id, code}` observation for these failures as

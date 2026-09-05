@@ -1312,6 +1312,23 @@ static __attribute__((unused)) spx_status_token spx_rt_contract(
     return token;
 }
 
+static __attribute__((unused)) spx_status_token spx_rt_call_depth_failure(
+    struct spx_context *spx_ctx
+) {
+    spx_status_token token = SPX_STATUS_SUCCESS;
+    if (!spx_status_record_adapter(
+        spx_ctx,
+        "semaprax.runtime.v1",
+        UINT32_C(1),
+        SPX_STATUS_CLASS_ADAPTER,
+        SPX_RETRYABILITY_FALSE,
+        &token
+    )) {
+        spx_runtime_invariant_failure("call-depth status arena exhaustion");
+    }
+    return token;
+}
+
 static __attribute__((unused)) spx_status_token spx_rt_add(
     struct spx_context *spx_ctx, int64_t a, int64_t b, int64_t *result_out
 ) {
@@ -1518,6 +1535,15 @@ static __attribute__((unused)) int spx_public_failure(
             detail->failure_operation
         );
         return 71;
+    }
+    if (strcmp(status->domain_id, "semaprax.runtime.v1") == 0 &&
+        status->code == UINT32_C(1)) {
+        fprintf(
+            stderr,
+            "SEMAPRAX runtime failure: call depth exceeded (%u frames)\n",
+            (unsigned int)SPX_MAX_CALL_DEPTH
+        );
+        return 73;
     }
     fprintf(
         stderr,

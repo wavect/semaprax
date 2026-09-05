@@ -1948,6 +1948,7 @@ fn emit_function(
         }
     }
     emitter.line("spx_status_token spx_status = SPX_STATUS_SUCCESS;");
+    emitter.line("bool spx_call_entered = false;");
     if has_try {
         emitter.line("bool spx_result_staged = false;");
     }
@@ -1993,6 +1994,14 @@ fn emit_function(
         emitter.line("}");
         emitter.line("++spx_ctx->borrowed_str_depth;");
     }
+    emitter.line("if (spx_ctx->call_depth >= SPX_MAX_CALL_DEPTH) {");
+    emitter.indent += 1;
+    emitter.line("spx_status = spx_rt_call_depth_failure(spx_ctx);");
+    emitter.line("goto spx_epilogue;");
+    emitter.indent -= 1;
+    emitter.line("}");
+    emitter.line("++spx_ctx->call_depth;");
+    emitter.line("spx_call_entered = true;");
     emitter.line(&format!(
         "{} spx_result = {{0}};",
         c_value_type(program, resource_abi, &function.return_type)?
@@ -2077,6 +2086,7 @@ fn emit_function(
         output.push_str(&body.into_string());
     }
     output.push_str("spx_epilogue:\n");
+    output.push_str("    if (spx_call_entered) {\n        if (spx_ctx->call_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"call depth underflow\");\n        --spx_ctx->call_depth;\n    }\n");
     if !borrowed_params.is_empty() || !borrowed_byte_params.is_empty() {
         output.push_str("    if (spx_ctx->borrowed_str_depth == UINT32_C(0)) spx_runtime_invariant_failure(\"borrowed str call depth underflow\");\n");
         output.push_str("    --spx_ctx->borrowed_str_depth;\n");

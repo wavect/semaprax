@@ -121,12 +121,23 @@ fn modules_of_a_harness_do_not_share_a_fixture_prefix() {
 ///
 /// An entry is keyed by exact path, so merging the file into a harness moves it,
 /// the key stops matching, and the gate fires — which is the point.
-const SELF_INVOKING: &[(&str, &str)] = &[(
-    "tests/release_archive_product_v1/command/tests.rs",
-    "its own top-level test target, so `--exact command::tests::capture_helper` \
-     already names the right path; merging it into a harness would prefix that \
-     selector and silently stop the helper from running",
-)];
+const SELF_INVOKING: &[(&str, &str)] = &[
+    (
+        "tests/release_archive_product_v1/command/tests.rs",
+        "its own top-level test target, so `--exact command::tests::capture_helper` \
+         already names the right path; merging it into a harness would prefix that \
+         selector and silently stop the helper from running",
+    ),
+    (
+        "tests/scalar_status_backend_equivalence/differential/injection.rs",
+        "it selects no test at all: the differential failure-injection lane launches the \
+         binary with an argument the test harness itself rejects, purely to obtain a real \
+         process that really exits non-zero, and asserts that the lane observer maps that \
+         to an abort rather than to parity. There is no selector for a harness prefix to \
+         break, and the assertion is on the observer's classification, not on a helper \
+         case having run",
+    ),
+];
 
 /// Every `.rs` file beneath a directory, at any depth.
 fn descend(dir: &Path, found: &mut Vec<PathBuf>) {

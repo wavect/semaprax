@@ -1,3 +1,15 @@
+//! Native C11 O0/O2 and Core-Wasm scalar status equivalence.
+//!
+//! The fixed fixture below pins one exact transcript across three backends.
+//! `differential` extends the same subject with seeded, grammar-generated
+//! modules: a discrepancy on any seed is classified, minimized, and reported
+//! with everything needed to reproduce it elsewhere. Both live in this one
+//! harness binary because it already links the whole compiler once and CI
+//! already names it.
+
+#[path = "scalar_status_backend_equivalence/differential.rs"]
+mod differential;
+
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};

@@ -8,6 +8,25 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added deterministic grammar-driven differential compiler tests with shrinking
+  as a module of the existing `scalar_status_backend_equivalence` harness. A
+  seed names one module in the admitted scalar subset — nested operands,
+  parameterized helper calls, branches, bounded loops, mutation, contracts,
+  checked failure and lazy evaluation — and every lane answers in one closed
+  vocabulary: canonical parse-format-parse stability, graph identity,
+  verifier/HIR agreement, the reference interpreter, native C11 at O0 and O2,
+  and Core-Wasm on Node. Sixteen fixed seeds run in PR CI; a larger bounded
+  campaign runs separately. A disagreement is classified, minimized by a
+  structure-preserving shrinker, and rendered with the seed, source, compiler
+  commit, toolchain identities, exact commands, expected and observed outcomes
+  and the minimized module. Unsupported profiles and absent provisioned tools
+  are explicit `Unavailable` outcomes, never parity passes, and failure
+  injection proves the checker notices a wrong backend value, an incorrect
+  failure selection and an abort. Generated modules declare no effects and no
+  `unsafe`, so no fuzzer-generated file executes with ambient network,
+  filesystem, process or signing authority. Owned cleanup and task schedules
+  remain out of this first tranche.
+
 - Added the bounded AGENT-03 language-native source Agent slice. A closed
   `.spx` declaration with explicit identities and fixed deterministic/model/
   effect roles now parses, round-trips canonically, lowers through the unchanged

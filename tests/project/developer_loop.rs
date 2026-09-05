@@ -160,7 +160,7 @@ fn manifest_test_result_controls_test_status_without_affecting_entry_run() {
     assert_eq!(
         stderr(&test),
         "failed calculator.tests.main: returned 7\n\
-         project tests failed: 1 of 1 in calculator.tests\n\
+         project tests failed: main plus 0 of 0 named cases in calculator.tests\n\
          \x20 help: a test passes by returning 0; a nonzero return is the failing check's code or count, \
          so give each check its own `fn test_<name>() -> i64` in the test module to have it reported by name\n"
     );
@@ -295,7 +295,7 @@ fn named_test_cases_are_executed_and_reported_individually() {
          \x20 contract: requires right != 0 in calculator.divide\n\
          \x20 arguments: left = 7, right = 0\n\
          failed calculator.tests.test_subtract: returned 2\n\
-         project tests failed: 2 of 4 in calculator.tests\n\
+         project tests failed: 2 of 3 named cases in calculator.tests\n\
          \x20 help: a test passes by returning 0; a nonzero return is the failing check's code or count\n"
     );
 

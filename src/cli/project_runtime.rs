@@ -106,10 +106,13 @@ fn report_test(execution: &project::ProjectExecution, json: bool) -> Result<(), 
             failure_text(case.failure())
         ));
     }
+    let failure_count = if main_failed {
+        format!("main plus {failed_cases} of {} named cases", cases.len())
+    } else {
+        format!("{failed_cases} of {} named cases", cases.len())
+    };
     report.push_str(&format!(
-        "project tests failed: {} of {} in {}\n  help: a test passes by returning 0; a nonzero return is the failing check's code or count{}\n",
-        usize::from(main_failed) + failed_cases,
-        1 + cases.len(),
+        "project tests failed: {failure_count} in {}\n  help: a test passes by returning 0; a nonzero return is the failing check's code or count{}\n",
         execution.module(),
         if cases.is_empty() {
             ", so give each check its own `fn test_<name>() -> i64` in the test module to have it reported by name"

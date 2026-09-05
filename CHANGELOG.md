@@ -146,6 +146,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   `check --json` emits a verified envelope, `fmt --check` accepts flag-first
   order, `lock`/`resolve` print one recovery hint, and bare native-callable
   output names resolve against the current directory.
+- `test` treats missing operands as domain failures rather than usage errors,
+  `--max-steps` uses one closed usage-error range, and failed project summaries
+  distinguish `main` from their consistently counted named cases.
 - Deepened four existing standard-library packages without widening ambient
   authority: `std.time` rounds durations upward and measures elapsed
   milliseconds, `std.path`

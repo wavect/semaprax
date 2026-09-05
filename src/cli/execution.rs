@@ -56,7 +56,7 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
                 max_steps = Some(positive_number(
                     command,
                     argument,
-                    option_value(args, index, command, argument)?,
+                    number_option_value(args, index, command, argument)?,
                 )?);
                 index += 2;
             }
@@ -108,6 +108,7 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
         (Some(path), None) => match resolve_positional(path) {
             path if is_project_manifest(&path) => ExecutionInput::Project(path),
             path if allow_source => ExecutionInput::Source(path),
+            path if path.extension().is_none() => ExecutionInput::Project(path),
             _ => {
                 eprintln!("{command} requires a Project v1 semaprax.toml manifest");
                 return Err(2);
@@ -158,8 +159,28 @@ fn positive_number(command: &str, option: &str, value: &str) -> Result<usize, u8
         eprintln!("{command} option `{option}` requires a canonical positive integer");
         return Err(2);
     }
-    value.parse::<usize>().map_err(|_| {
+    let parsed = value.parse::<usize>().map_err(|_| {
         eprintln!("{command} option `{option}` requires a canonical positive integer");
+        2
+    })?;
+    if option == "--max-steps" && parsed > semaprax::interpreter::MAX_STEPS_LIMIT {
+        eprintln!(
+            "{command} option `--max-steps` requires an integer between 1 and {}",
+            semaprax::interpreter::MAX_STEPS_LIMIT
+        );
+        return Err(2);
+    }
+    Ok(parsed)
+}
+
+fn number_option_value<'a>(
+    args: &'a [String],
+    index: usize,
+    command: &str,
+    option: &str,
+) -> Result<&'a str, u8> {
+    args.get(index + 1).map(String::as_str).ok_or_else(|| {
+        eprintln!("{command} option `{option}` requires a value");
         2
     })
 }
@@ -247,6 +268,10 @@ mod tests {
             }
         );
         assert!(parse_test(&strings(&["legacy.spx"])).is_err());
+        assert_eq!(
+            parse_test(&strings(&["missing-project"])).unwrap().input,
+            ExecutionInput::Project(PathBuf::from("missing-project"))
+        );
         let directory = std::env::temp_dir().join(format!(
             "semaprax-test-directory-operand-{}",
             std::process::id()
@@ -262,6 +287,8 @@ mod tests {
         std::fs::remove_dir(&directory).unwrap();
         assert!(parse_test(&strings(&["--max-bytes", "0"])).is_err());
         assert!(parse_test(&strings(&["--max-steps", "01"])).is_err());
+        assert!(parse_test(&strings(&["--max-steps", "-1"])).is_err());
+        assert!(parse_test(&strings(&["--max-steps", "100000001"])).is_err());
         assert!(parse_test(&strings(&[
             DEFAULT_MANIFEST,
             "--manifest-path",

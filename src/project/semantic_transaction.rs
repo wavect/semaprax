@@ -17,6 +17,7 @@ use super::{
 };
 
 mod add_declaration;
+mod exact;
 pub(super) use add_declaration::add_declaration_eligibility;
 pub use add_declaration::SemanticTransactionAddDeclaration;
 use add_declaration::{
@@ -774,6 +775,7 @@ impl SemanticTransaction {
             result,
             result_digest,
             evidence,
+            base_program_root_v2: None,
         })
     }
 
@@ -809,6 +811,7 @@ pub struct SemanticTransactionArtifacts {
     result: String,
     result_digest: String,
     evidence: String,
+    base_program_root_v2: Option<super::ProgramRootV2>,
 }
 
 impl SemanticTransactionArtifacts {
@@ -820,6 +823,12 @@ impl SemanticTransactionArtifacts {
     }
     pub fn candidate_program_root(&self) -> &ProgramRoot {
         &self.candidate_program_root
+    }
+    /// Exact ProgramRoot v2 for the selected base when validation used the
+    /// additive exact-context entry point. Candidate v2 derivation remains
+    /// unavailable until its external facts can be freshly replayed.
+    pub fn base_program_root_v2(&self) -> Option<&super::ProgramRootV2> {
+        self.base_program_root_v2.as_ref()
     }
     pub fn impact(&self) -> &str {
         &self.impact

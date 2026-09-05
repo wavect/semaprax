@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added ProgramRoot v2 and Exact Program Context v1. The versioned root retains
+  the enriched canonical workspace's nine v1 segments, appends exact interface/
+  artifact and Project Lock association descriptors, and explicitly binds the
+  distinct default Project root. Additive service, query, transaction, and
+  structural-diff entry points select the same dual-keyed v2 root in memory
+  without changing legacy wire bytes. Exact candidate-root derivation and
+  refresh remain fail-closed pending candidate-safe lock replay.
+
 - Added locally exercised SEG-02 input bundles for exact source-interface and
   pathless generated-artifact facts plus exact Project Lock v1 association.
   Both freshly replay their existing owning compiler artifacts, retain bounded

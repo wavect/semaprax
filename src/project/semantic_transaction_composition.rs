@@ -14,8 +14,9 @@ use crate::diagnostic::Diagnostic;
 
 use super::semantic_transaction::rename_display_name_eligibility;
 use super::{
-    ProgramRoot, ProjectCandidate, ProjectRevision, SemanticTransaction,
-    SemanticTransactionArtifacts, SemanticTransactionRenameDisplayName, SemanticWorkspaceRevision,
+    ExactProgramContext, ProgramRoot, ProgramRootV2, ProjectCandidate, ProjectRevision,
+    SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionRenameDisplayName,
+    SemanticWorkspaceRevision,
 };
 
 pub const SEMANTIC_WORKSPACE_STRUCTURAL_DIFF_SCHEMA: &str =
@@ -47,6 +48,7 @@ pub struct SemanticWorkspaceStructuralDiff {
     digest: String,
     source_review: String,
     source_review_digest: String,
+    base_program_root_v2: Option<ProgramRootV2>,
 }
 
 impl SemanticWorkspaceStructuralDiff {
@@ -106,7 +108,31 @@ impl SemanticWorkspaceStructuralDiff {
             digest,
             source_review,
             source_review_digest,
+            base_program_root_v2: None,
         })
+    }
+
+    /// Select the candidate's exact enriched base before deriving the unchanged
+    /// v1 structural-diff bytes. Candidate v2 is intentionally unavailable
+    /// until every external fact can be freshly replayed on ProjectCandidate.
+    pub fn derive_exact(
+        candidate: &ProjectCandidate,
+        expected_candidate: &str,
+        context: &ExactProgramContext,
+        expected_workspace_revision: &str,
+        expected_program_root_v2_digest: &str,
+    ) -> Result<Self> {
+        let program_root_v2 = context
+            .select(expected_workspace_revision, expected_program_root_v2_digest)?
+            .clone();
+        if candidate.base_revision().project_revision() != context.project_revision() {
+            return Err(stale(
+                "structural diff exact context does not select the candidate base",
+            ));
+        }
+        let mut diff = Self::derive(candidate, expected_candidate)?;
+        diff.base_program_root_v2 = Some(program_root_v2);
+        Ok(diff)
     }
 
     /// Recompute from the retained candidate, including its independent source
@@ -150,6 +176,9 @@ impl SemanticWorkspaceStructuralDiff {
     }
     pub fn candidate_program_root(&self) -> &ProgramRoot {
         &self.candidate_program_root
+    }
+    pub fn base_program_root_v2(&self) -> Option<&ProgramRootV2> {
+        self.base_program_root_v2.as_ref()
     }
 }
 

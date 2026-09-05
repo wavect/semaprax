@@ -547,7 +547,33 @@ impl SemanticQuery {
             payload_digest,
             workspace_revision: self.expected_workspace_revision.clone(),
             program_root: generation.program_root().clone(),
+            program_root_v2: None,
         })
+    }
+
+    /// Execute only after the retained exact context matches both selectors.
+    /// ProgramRoot v2 remains an in-memory association; result v1 bytes are
+    /// rendered by the unchanged query path.
+    pub fn execute_exact(
+        &self,
+        snapshot: &SemanticWorkspaceSnapshot,
+        expected_workspace_revision: &str,
+        expected_program_root_v2_digest: &str,
+    ) -> Result<SemanticQueryResult> {
+        let context = snapshot.exact_context().ok_or_else(|| {
+            invalid("semantic query snapshot has no retained exact ProgramRoot v2 context")
+        })?;
+        let program_root_v2 = context
+            .select(expected_workspace_revision, expected_program_root_v2_digest)?
+            .clone();
+        if self.expected_workspace_revision() != expected_workspace_revision {
+            return Err(stale(
+                "semantic query exact workspace selector disagrees with its query",
+            ));
+        }
+        let mut result = self.execute(snapshot)?;
+        result.program_root_v2 = Some(program_root_v2);
+        Ok(result)
     }
 
     /// Freshly execute one canonical query against an immutable snapshot and
@@ -586,6 +612,7 @@ pub struct SemanticQueryResult {
     payload_digest: String,
     workspace_revision: String,
     program_root: super::ProgramRoot,
+    program_root_v2: Option<super::ProgramRootV2>,
 }
 
 impl SemanticQueryResult {
@@ -609,6 +636,9 @@ impl SemanticQueryResult {
     }
     pub fn program_root(&self) -> &super::ProgramRoot {
         &self.program_root
+    }
+    pub fn program_root_v2(&self) -> Option<&super::ProgramRootV2> {
+        self.program_root_v2.as_ref()
     }
 }
 

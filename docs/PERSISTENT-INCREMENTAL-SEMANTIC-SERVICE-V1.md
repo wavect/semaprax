@@ -287,3 +287,14 @@ CARGO_TARGET_DIR=target/persistent-incremental-semantic-service-v1 \
   persistent_incremental_semantic_service \
   -- --test-threads=1
 ```
+
+## Additive exact ProgramRoot v2 context
+
+`open_exact` retains one already-replayed `ExactProgramContext` atomically with
+the generation's canonical workspace, enriched ProgramRoot v1, Image, and
+indexes. `snapshot_exact`, `query_exact`, and `validate_transaction_exact`
+require both the enriched workspace revision and ProgramRoot-v2 digest. The v2
+identity remains in memory; existing service receipts and query/transaction
+wire bytes are unchanged. `refresh_owned_sources` rejects an exact generation:
+candidate-safe Project Lock replay is not yet available, so the service cannot
+silently copy, discard, or weaken its extension facts.

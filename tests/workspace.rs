@@ -22,6 +22,8 @@
 mod agent_definitions_association;
 #[path = "workspace/canonical_revision.rs"]
 mod canonical_revision;
+#[path = "workspace/exact_program_context.rs"]
+mod exact_program_context;
 #[path = "workspace/graph_phase_a_surface.rs"]
 mod graph_phase_a_surface;
 #[path = "workspace/interface_artifact_facts.rs"]
@@ -34,6 +36,8 @@ mod persistent_semantic_service_mcp;
 mod persistent_semantic_service_transport;
 #[path = "workspace/program_root_dependency_lock.rs"]
 mod program_root_dependency_lock;
+#[path = "workspace/program_root_v2.rs"]
+mod program_root_v2;
 #[path = "workspace/semantic_change.rs"]
 mod semantic_change;
 #[path = "workspace/semantic_graph.rs"]

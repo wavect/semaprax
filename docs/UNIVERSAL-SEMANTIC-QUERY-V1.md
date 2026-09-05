@@ -266,3 +266,11 @@ CARGO_TARGET_DIR=target/universal-semantic-query-v1 \
   cargo test --locked -p semaprax --test workspace \
   universal_semantic_query --no-fail-fast
 ```
+
+## Additive exact selection
+
+`execute_exact` requires an exact-context snapshot plus matching enriched
+workspace and ProgramRoot-v2 selectors. The in-memory result exposes that v2
+root; its v1 JSON, payload, and digest remain byte-identical to ordinary
+execution. No v1 replay request may infer or select a v2 context by workspace
+revision alone.

@@ -228,3 +228,12 @@ the same rebased source, then stopped on 11 unrelated existing Project, Wasm,
 and WIT failures before doctest, rustdoc, release-build, package, and example
 stages. The focused transaction, documentation, module-size, all-target check,
 and all-target clippy gates passed.
+
+## Additive exact base selection
+
+`validate_exact` first selects a dual-keyed `ExactProgramContext`, then runs the
+unchanged v1 transaction over its retained Project. Artifacts expose the exact
+base ProgramRoot v2 in memory only. Candidate ProgramRoot v2 is deliberately
+absent: Project Lock v1 verification still requires a held snapshot, so an
+in-memory candidate cannot yet freshly replay every external fact. Existing
+transaction, result, review, impact, and evidence bytes remain unchanged.

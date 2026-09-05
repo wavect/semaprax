@@ -608,6 +608,17 @@ typed, content-addressable fact bundles; neither is inserted into ProgramRoot
 v1. A versioned exact ProgramRoot context must bind them before service/query/
 transaction selectors may claim the enriched root.
 
+`src/project/program_root/v2.rs` and
+`src/project/exact_program_context.rs` provide that additive exact selector.
+ProgramRoot v2 retains the enriched workspace's nine v1 descriptors and appends
+the interface/artifact and Project Lock association descriptors while naming
+the distinct default Project root explicitly. `ExactProgramContext` retains all
+typed inputs and requires both enriched workspace and v2 root digests. The
+semantic service, universal query, transaction, and structural diff expose
+additive in-memory exact entry points; their existing serialized contracts stay
+unchanged. Exact refresh and candidate-v2 identity fail closed until Project
+Lock replay has a candidate-safe authenticated input owner.
+
 `src/project/semantic_transaction.rs` owns the bounded authority-free Universal
 Semantic Transaction v1 kernel. It binds an exact canonical workspace revision
 and admits a closed one-operation algebra containing a typed display rename and

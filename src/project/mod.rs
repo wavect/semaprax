@@ -12,6 +12,7 @@ mod candidate;
 mod canonical_workspace_revision;
 mod create;
 mod cxx_owned_data;
+mod exact_program_context;
 mod execution;
 mod external_dependencies;
 mod flat_owned_record;
@@ -256,6 +257,9 @@ pub use cxx_owned_data::{
     render_owned_data_c_header, replay_cxx_owned_data_package, CxxOwnedDataPackage,
     MAX_CXX_OWNED_DATA_PACKAGE_BYTES, PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
 };
+pub use exact_program_context::{
+    ExactProgramContext, EXACT_PROGRAM_CONTEXT_SCHEMA, MAX_EXACT_PROGRAM_CONTEXT_BYTES,
+};
 pub use execution::{
     verify_execution_envelope, ProjectContractArgument, ProjectContractFailure, ProjectExecution,
     ProjectExecutionOptions, ProjectExecutionOutcome, ProjectExecutionRole, ProjectTestCase,
@@ -359,10 +363,11 @@ pub use prepared_interpreter::{
 };
 pub use program_root::{
     ProgramRoot, ProgramRootDependencyLockAssociation, ProgramRootRelationship, ProgramRootSegment,
-    MAX_PROGRAM_ROOT_BYTES, MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES,
-    MAX_PROGRAM_ROOT_RELATIONSHIP_BYTES, MAX_PROGRAM_ROOT_SEGMENT_BYTES,
+    ProgramRootV2, MAX_PROGRAM_ROOT_BYTES, MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES,
+    MAX_PROGRAM_ROOT_RELATIONSHIP_BYTES, MAX_PROGRAM_ROOT_SEGMENT_BYTES, MAX_PROGRAM_ROOT_V2_BYTES,
     PROGRAM_ROOT_COMPATIBILITY, PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_SCHEMA,
     PROGRAM_ROOT_RELATIONSHIP_SCHEMA, PROGRAM_ROOT_SCHEMA, PROGRAM_ROOT_SEGMENT_SCHEMA,
+    PROGRAM_ROOT_V2_COMPATIBILITY, PROGRAM_ROOT_V2_SCHEMA,
 };
 pub use project_lock::{
     classify_lock_change, render_project_lock, verify_project_lock, LockCompatibility,

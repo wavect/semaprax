@@ -230,3 +230,11 @@ CARGO_TARGET_DIR=target/universal-semantic-transaction-composition-v1 \
   cargo test --locked -p semaprax --test workspace \
   universal_semantic_composition_cli --no-fail-fast
 ```
+
+## Additive exact base selection
+
+`SemanticWorkspaceStructuralDiff::derive_exact` selects the exact base
+ProgramRoot v2 through both context selectors and retains it in memory while
+emitting the unchanged v1 structural-diff bytes. Candidate-v2 diff, rebase, and
+merge remain unavailable until candidate-safe replay of every extension fact
+exists; the implementation does not infer or clone those facts.

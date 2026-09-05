@@ -98,6 +98,8 @@ Audience: all documentation readers.
 - [ProgramRoot v1](PROGRAM-ROOT-V1.md)
 - [Interface and artifact facts v1](INTERFACE-ARTIFACT-FACTS-V1.md)
 - [ProgramRoot Dependency Lock Association v1](PROGRAM-ROOT-DEPENDENCY-LOCK-ASSOCIATION-V1.md)
+- [ProgramRoot v2](PROGRAM-ROOT-V2.md)
+- [Exact Program Context v1](EXACT-PROGRAM-CONTEXT-V1.md)
 - [Explicit AgentDefinition Association v1](EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md)
 - [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md)
 - [Universal Semantic Transaction Composition v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md)

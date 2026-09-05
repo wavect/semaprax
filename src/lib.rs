@@ -60,6 +60,7 @@ pub mod hosted_interpreter;
 pub mod hygienic;
 pub mod image_transport;
 pub mod impact;
+pub mod installed_guidance;
 pub mod interpreter;
 pub mod lexer;
 pub mod loan_plan;
@@ -113,6 +114,7 @@ pub mod simd_report;
 pub mod static_protocol;
 pub(crate) mod str_ops;
 pub(crate) mod string_ops;
+pub mod structured_tasks;
 pub mod target_evidence;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]

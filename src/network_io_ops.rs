@@ -20,6 +20,10 @@ pub(crate) const NET_RECV_NAME: &str = "net_recv";
 pub(crate) const NET_STREAM_STDOUT_NAME: &str = "net_stream_stdout";
 pub(crate) const NET_WAIT_NAME: &str = "net_wait";
 pub(crate) const NET_CLOSE_NAME: &str = "net_close";
+pub(crate) const NET_TLS_CONNECT_NAME: &str = "net_tls_connect";
+pub(crate) const NET_LISTEN_NAME: &str = "net_listen";
+pub(crate) const NET_ACCEPT_NAME: &str = "net_accept";
+pub(crate) const NET_CLOSE_LISTENER_NAME: &str = "net_close_listener";
 
 pub(crate) const NET_CONNECT_ID: &str = "core.host.net-connect";
 pub(crate) const NET_SEND_ID: &str = "core.host.net-send";
@@ -27,20 +31,31 @@ pub(crate) const NET_RECV_ID: &str = "core.host.net-recv";
 pub(crate) const NET_STREAM_STDOUT_ID: &str = "core.host.net-stream-stdout";
 pub(crate) const NET_WAIT_ID: &str = "core.host.net-wait";
 pub(crate) const NET_CLOSE_ID: &str = "core.host.net-close";
+pub(crate) const NET_TLS_CONNECT_ID: &str = "core.host.net-tls-connect";
+pub(crate) const NET_LISTEN_ID: &str = "core.host.net-listen";
+pub(crate) const NET_ACCEPT_ID: &str = "core.host.net-accept";
+pub(crate) const NET_CLOSE_LISTENER_ID: &str = "core.host.net-close-listener";
 
 pub(crate) const NETWORK_CONNECT_EFFECT: &str = "network.connect";
 pub(crate) const NETWORK_READ_EFFECT: &str = "network.read";
 pub(crate) const NETWORK_WRITE_EFFECT: &str = "network.write";
+pub(crate) const NETWORK_TLS_EFFECT: &str = "network.tls";
+pub(crate) const NETWORK_LISTEN_EFFECT: &str = "network.listen";
+pub(crate) const NETWORK_ACCEPT_EFFECT: &str = "network.accept";
 
 /// The closed effect inventory a network-capable module may permit in
 /// addition to the Language Command I/O v1 process permits.
-pub(crate) const NETWORK_EFFECTS: [&str; 3] = [
+pub(crate) const NETWORK_EFFECTS: [&str; 6] = [
     NETWORK_CONNECT_EFFECT,
     NETWORK_READ_EFFECT,
     NETWORK_WRITE_EFFECT,
+    NETWORK_TLS_EFFECT,
+    NETWORK_LISTEN_EFFECT,
+    NETWORK_ACCEPT_EFFECT,
 ];
 
 pub(crate) const STATUS_DOMAIN: &str = "semaprax.network.v1";
+pub(crate) const SERVICE_STATUS_DOMAIN: &str = "semaprax.network-service.v1";
 
 /// The connection attempt was refused, unreachable, or timed out.
 pub(crate) const CONNECT_FAILED: u32 = 1;
@@ -54,6 +69,12 @@ pub(crate) const CAPACITY_EXCEEDED: u32 = 4;
 pub(crate) const TRANSFER_FAILED: u32 = 5;
 /// No network authority was granted to this invocation.
 pub(crate) const AUTHORITY_DENIED: u32 = 6;
+/// TLS handshake or certificate/name validation failed.
+pub(crate) const TLS_FAILED: u32 = 7;
+/// A listening socket could not be bound.
+pub(crate) const LISTEN_FAILED: u32 = 8;
+/// Accepting a peer failed.
+pub(crate) const ACCEPT_FAILED: u32 = 9;
 
 pub(crate) const STATUS_CODES: [u32; 6] = [
     CONNECT_FAILED,
@@ -62,6 +83,18 @@ pub(crate) const STATUS_CODES: [u32; 6] = [
     CAPACITY_EXCEEDED,
     TRANSFER_FAILED,
     AUTHORITY_DENIED,
+];
+
+pub(crate) const SERVICE_STATUS_CODES: [u32; 9] = [
+    CONNECT_FAILED,
+    INVALID_ENDPOINT,
+    UNKNOWN_HANDLE,
+    CAPACITY_EXCEEDED,
+    TRANSFER_FAILED,
+    AUTHORITY_DENIED,
+    TLS_FAILED,
+    LISTEN_FAILED,
+    ACCEPT_FAILED,
 ];
 
 /// Open connections per invocation.
@@ -83,13 +116,17 @@ pub(crate) const WAIT_READABLE: u64 = 1;
 pub(crate) const WAIT_CLOSED: u64 = 2;
 
 #[cfg_attr(not(test), allow(dead_code))]
-pub(crate) const OPERATIONS: [ResolvedHostCommandOperation; 6] = [
+pub(crate) const OPERATIONS: [ResolvedHostCommandOperation; 10] = [
     ResolvedHostCommandOperation::NetConnect,
     ResolvedHostCommandOperation::NetSend,
     ResolvedHostCommandOperation::NetRecv,
     ResolvedHostCommandOperation::NetStreamStdout,
     ResolvedHostCommandOperation::NetWait,
     ResolvedHostCommandOperation::NetClose,
+    ResolvedHostCommandOperation::NetTlsConnect,
+    ResolvedHostCommandOperation::NetListen,
+    ResolvedHostCommandOperation::NetAccept,
+    ResolvedHostCommandOperation::NetCloseListener,
 ];
 
 pub(crate) const fn is_network(op: ResolvedHostCommandOperation) -> bool {
@@ -101,6 +138,20 @@ pub(crate) const fn is_network(op: ResolvedHostCommandOperation) -> bool {
             | ResolvedHostCommandOperation::NetStreamStdout
             | ResolvedHostCommandOperation::NetWait
             | ResolvedHostCommandOperation::NetClose
+            | ResolvedHostCommandOperation::NetTlsConnect
+            | ResolvedHostCommandOperation::NetListen
+            | ResolvedHostCommandOperation::NetAccept
+            | ResolvedHostCommandOperation::NetCloseListener
+    )
+}
+
+pub(crate) const fn is_service(op: ResolvedHostCommandOperation) -> bool {
+    matches!(
+        op,
+        ResolvedHostCommandOperation::NetTlsConnect
+            | ResolvedHostCommandOperation::NetListen
+            | ResolvedHostCommandOperation::NetAccept
+            | ResolvedHostCommandOperation::NetCloseListener
     )
 }
 
@@ -112,6 +163,10 @@ pub(crate) fn by_name(name: &str) -> Option<ResolvedHostCommandOperation> {
         NET_STREAM_STDOUT_NAME => Some(ResolvedHostCommandOperation::NetStreamStdout),
         NET_WAIT_NAME => Some(ResolvedHostCommandOperation::NetWait),
         NET_CLOSE_NAME => Some(ResolvedHostCommandOperation::NetClose),
+        NET_TLS_CONNECT_NAME => Some(ResolvedHostCommandOperation::NetTlsConnect),
+        NET_LISTEN_NAME => Some(ResolvedHostCommandOperation::NetListen),
+        NET_ACCEPT_NAME => Some(ResolvedHostCommandOperation::NetAccept),
+        NET_CLOSE_LISTENER_NAME => Some(ResolvedHostCommandOperation::NetCloseListener),
         _ => None,
     }
 }
@@ -124,6 +179,10 @@ pub(crate) fn by_id(id: &str) -> Option<ResolvedHostCommandOperation> {
         NET_STREAM_STDOUT_ID => Some(ResolvedHostCommandOperation::NetStreamStdout),
         NET_WAIT_ID => Some(ResolvedHostCommandOperation::NetWait),
         NET_CLOSE_ID => Some(ResolvedHostCommandOperation::NetClose),
+        NET_TLS_CONNECT_ID => Some(ResolvedHostCommandOperation::NetTlsConnect),
+        NET_LISTEN_ID => Some(ResolvedHostCommandOperation::NetListen),
+        NET_ACCEPT_ID => Some(ResolvedHostCommandOperation::NetAccept),
+        NET_CLOSE_LISTENER_ID => Some(ResolvedHostCommandOperation::NetCloseListener),
         _ => None,
     }
 }
@@ -138,6 +197,10 @@ pub(crate) const fn name(op: ResolvedHostCommandOperation) -> &'static str {
         ResolvedHostCommandOperation::NetStreamStdout => NET_STREAM_STDOUT_NAME,
         ResolvedHostCommandOperation::NetWait => NET_WAIT_NAME,
         ResolvedHostCommandOperation::NetClose => NET_CLOSE_NAME,
+        ResolvedHostCommandOperation::NetTlsConnect => NET_TLS_CONNECT_NAME,
+        ResolvedHostCommandOperation::NetListen => NET_LISTEN_NAME,
+        ResolvedHostCommandOperation::NetAccept => NET_ACCEPT_NAME,
+        ResolvedHostCommandOperation::NetCloseListener => NET_CLOSE_LISTENER_NAME,
         _ => unreachable!(),
     }
 }
@@ -150,6 +213,10 @@ pub(crate) const fn id(op: ResolvedHostCommandOperation) -> &'static str {
         ResolvedHostCommandOperation::NetStreamStdout => NET_STREAM_STDOUT_ID,
         ResolvedHostCommandOperation::NetWait => NET_WAIT_ID,
         ResolvedHostCommandOperation::NetClose => NET_CLOSE_ID,
+        ResolvedHostCommandOperation::NetTlsConnect => NET_TLS_CONNECT_ID,
+        ResolvedHostCommandOperation::NetListen => NET_LISTEN_ID,
+        ResolvedHostCommandOperation::NetAccept => NET_ACCEPT_ID,
+        ResolvedHostCommandOperation::NetCloseListener => NET_CLOSE_LISTENER_ID,
         _ => unreachable!(),
     }
 }
@@ -159,6 +226,10 @@ pub(crate) const fn effect(op: ResolvedHostCommandOperation) -> &'static str {
         ResolvedHostCommandOperation::NetConnect | ResolvedHostCommandOperation::NetClose => {
             NETWORK_CONNECT_EFFECT
         }
+        ResolvedHostCommandOperation::NetTlsConnect => NETWORK_TLS_EFFECT,
+        ResolvedHostCommandOperation::NetListen
+        | ResolvedHostCommandOperation::NetCloseListener => NETWORK_LISTEN_EFFECT,
+        ResolvedHostCommandOperation::NetAccept => NETWORK_ACCEPT_EFFECT,
         ResolvedHostCommandOperation::NetSend => NETWORK_WRITE_EFFECT,
         ResolvedHostCommandOperation::NetRecv
         | ResolvedHostCommandOperation::NetStreamStdout
@@ -180,8 +251,12 @@ pub(crate) const fn secondary_effect(op: ResolvedHostCommandOperation) -> Option
 
 pub(crate) const fn arity(op: ResolvedHostCommandOperation) -> usize {
     match op {
-        ResolvedHostCommandOperation::NetClose => 1,
+        ResolvedHostCommandOperation::NetClose
+        | ResolvedHostCommandOperation::NetAccept
+        | ResolvedHostCommandOperation::NetCloseListener => 1,
         ResolvedHostCommandOperation::NetConnect
+        | ResolvedHostCommandOperation::NetTlsConnect
+        | ResolvedHostCommandOperation::NetListen
         | ResolvedHostCommandOperation::NetSend
         | ResolvedHostCommandOperation::NetRecv
         | ResolvedHostCommandOperation::NetStreamStdout
@@ -228,7 +303,9 @@ const fn param_types(
     op: ResolvedHostCommandOperation,
 ) -> &'static [(&'static str, ParamMode, Type)] {
     match op {
-        ResolvedHostCommandOperation::NetConnect => &[
+        ResolvedHostCommandOperation::NetConnect
+        | ResolvedHostCommandOperation::NetTlsConnect
+        | ResolvedHostCommandOperation::NetListen => &[
             ("host", ParamMode::Borrow, Type::SliceU8),
             ("port", ParamMode::Value, Type::Usize),
         ],
@@ -244,7 +321,11 @@ const fn param_types(
             ("handle", ParamMode::Value, Type::Usize),
             ("timeout_ms", ParamMode::Value, Type::Usize),
         ],
-        ResolvedHostCommandOperation::NetClose => &[("handle", ParamMode::Value, Type::Usize)],
+        ResolvedHostCommandOperation::NetClose
+        | ResolvedHostCommandOperation::NetAccept
+        | ResolvedHostCommandOperation::NetCloseListener => {
+            &[("handle", ParamMode::Value, Type::Usize)]
+        }
         _ => unreachable!(),
     }
 }
@@ -317,6 +398,7 @@ mod tests {
             Some("process.stdout.write")
         );
         assert_eq!(STATUS_CODES, [1, 2, 3, 4, 5, 6]);
+        assert_eq!(SERVICE_STATUS_CODES, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
         assert_eq!(MAX_CHUNK_BYTES * 16, MAX_TOTAL_BYTES);
     }
 }

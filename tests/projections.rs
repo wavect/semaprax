@@ -25,6 +25,8 @@ mod fmt_comments;
 mod freestanding_object;
 #[path = "projections/hygienic_gen.rs"]
 mod hygienic_gen;
+#[path = "projections/installed_guidance.rs"]
+mod installed_guidance;
 #[path = "projections/openapi_generation.rs"]
 mod openapi_generation;
 #[path = "projections/plugin_manifest.rs"]

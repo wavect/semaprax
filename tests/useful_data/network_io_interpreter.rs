@@ -297,7 +297,9 @@ fn capacity_failures_cover_handles_chunks_and_timeouts() {
         ));
     }
     eight.push_str("    marker == 5usize");
-    let connections = (0..9)
+    // The ninth connect is rejected by the evaluator before provider entry,
+    // so the bounded fixture needs exactly the eight reachable connections.
+    let connections = (0..8)
         .map(|_| "{\"host\": \"127.0.0.1\", \"port\": 8080}")
         .collect::<Vec<_>>()
         .join(", ");
@@ -359,6 +361,45 @@ fn network_programs_are_refused_by_the_plain_command_seam() {
         refused.is_err(),
         "the effect-free command seam must not run network operations"
     );
+}
+
+#[test]
+fn hosted_service_profile_executes_tls_and_listen_fixtures() {
+    let source = r#"
+module net.service;
+
+permit { network.accept, network.connect, network.listen, network.read, network.tls, network.write }
+
+@id("net.run")
+fn run() -> bool
+    uses { network.accept, network.connect, network.listen, network.read, network.tls, network.write }
+{
+    let secure_host = [115u8, 101u8, 99u8, 117u8, 114u8, 101u8, 46u8, 101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8];
+    let tls = net_tls_connect(array_as_slice(secure_host), 443usize);
+    let request = [71u8, 69u8, 84u8];
+    let sent = net_send(tls, array_as_slice(request));
+    let reply = net_recv(tls, 8usize);
+    let tls_closed = net_close(tls);
+    let bind_host = [49u8, 50u8, 55u8, 46u8, 48u8, 46u8, 48u8, 46u8, 49u8];
+    let listener = net_listen(array_as_slice(bind_host), 8080usize);
+    let peer = net_accept(listener);
+    let inbound = net_recv(peer, 8usize);
+    let peer_closed = net_close(peer);
+    let listener_closed = net_close_listener(listener);
+    sent == 3usize && byte_len(bytes_as_slice(reply)) == 2usize && byte_len(bytes_as_slice(inbound)) == 5usize && tls_closed == 0usize && peer_closed == 0usize && listener_closed == 0usize
+}
+
+@id("main")
+fn main() -> i64 { 0 }
+"#;
+    let fixture = r#"{
+        "schema":"semaprax.network-fixture.v2",
+        "connections":[{"host":"secure.example","port":443,"tls":true,"expect_send":"GET","recv":["ok"]}],
+        "listeners":[{"host":"127.0.0.1","port":8080,"accept":[{"host":"peer","port":1,"recv":["hello"]}]}]
+    }"#;
+    let mut provider = FixtureNetworkProvider::from_json(fixture).unwrap();
+    let result = run(source, &mut provider);
+    expect_true(&result);
 }
 
 #[test]

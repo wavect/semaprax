@@ -45,6 +45,10 @@ pub(super) fn flow(
         | ResolvedHostCommandOperation::NetConnect
         | ResolvedHostCommandOperation::NetSend
         | ResolvedHostCommandOperation::NetWait
-        | ResolvedHostCommandOperation::NetClose => None,
+        | ResolvedHostCommandOperation::NetClose
+        | ResolvedHostCommandOperation::NetTlsConnect
+        | ResolvedHostCommandOperation::NetListen
+        | ResolvedHostCommandOperation::NetAccept
+        | ResolvedHostCommandOperation::NetCloseListener => None,
     }
 }

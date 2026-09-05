@@ -8,6 +8,8 @@ use std::path::{Path, PathBuf};
 use semaprax::{doc, verify};
 
 const CATALOG: &str = "docs/LANGUAGE-SHAPES-CATALOG.md";
+const INDEX: &str = "docs/LANGUAGE-SHAPES-CATALOG.json";
+const INDEX_SCHEMA: &str = "semaprax.language-shapes-catalog.v1";
 
 /// Section heading per entry kind, in the documentation model's order.
 const SECTIONS: &[(&str, &str)] = &[
@@ -44,8 +46,8 @@ fn relative(path: &Path) -> String {
         .replace('\\', "/")
 }
 
-/// Render the catalog and return it with the number of declarations it lists.
-fn render_catalog() -> (String, usize) {
+/// Render both catalog projections and return them with the declaration count.
+fn render_catalog() -> (String, String, usize) {
     let mut documents = Vec::new();
     for path in examples() {
         let source = std::fs::read_to_string(&path).unwrap();
@@ -66,6 +68,7 @@ fn render_catalog() -> (String, usize) {
     );
     output.push_str("Every shape below is the canonical header of a declaration in a committed, verified example, rendered by the same documentation model as `semaprax doc`, so the catalog cannot show a shape the compiler rejects. `semaprax help shapes` prints this document. The [agent quick reference](AGENT-QUICK-REFERENCE.md) explains the rules behind the shapes, and [Documentation Projection v1](DOC-PROJECTION-V1.md) owns the model. Identities are the examples' own `@id` attributes; bodies are omitted.\n");
     let mut count = 0;
+    let mut entries = Vec::new();
     for (kind, heading) in SECTIONS {
         let mut section = String::new();
         for (path, document) in &documents {
@@ -80,6 +83,12 @@ fn render_catalog() -> (String, usize) {
                     section.push('\n');
                 }
                 section.push_str(&format!("```semaprax\n{}```\n", entry.signature));
+                entries.push(serde_json::json!({
+                    "id": entry.id,
+                    "kind": entry.kind,
+                    "path": path,
+                    "signature": entry.signature,
+                }));
             }
         }
         if !section.is_empty() {
@@ -87,18 +96,34 @@ fn render_catalog() -> (String, usize) {
             output.push_str(&section);
         }
     }
-    (output, count)
+    let index = serde_json::json!({
+        "schema": INDEX_SCHEMA,
+        "entries": entries,
+    });
+    (
+        output,
+        format!("{}\n", serde_json::to_string_pretty(&index).unwrap()),
+        count,
+    )
 }
 
 #[test]
 fn committed_shapes_catalog_matches_the_examples() {
-    let (rendered, count) = render_catalog();
+    let (rendered, index, count) = render_catalog();
     assert!(count >= 100, "{count}");
     let committed = std::fs::read_to_string(root().join(CATALOG)).unwrap();
     assert!(
         committed == rendered,
         "{CATALOG} is stale; regenerate with `cargo test --locked -p semaprax --test projections -- --ignored shapes_catalog::regenerate_shapes_catalog`"
     );
+    assert_eq!(
+        std::fs::read_to_string(root().join(INDEX)).unwrap(),
+        index,
+        "{INDEX} is stale; regenerate it with the Markdown catalog"
+    );
+    let index: serde_json::Value = serde_json::from_str(&index).unwrap();
+    assert_eq!(index["schema"], INDEX_SCHEMA);
+    assert_eq!(index["entries"].as_array().unwrap().len(), count);
     for heading in [
         "## Records",
         "## Variants",
@@ -114,6 +139,7 @@ fn committed_shapes_catalog_matches_the_examples() {
 #[test]
 #[ignore = "writes the generated catalog; run explicitly after changing examples/"]
 fn regenerate_shapes_catalog() {
-    let (rendered, _) = render_catalog();
+    let (rendered, index, _) = render_catalog();
     std::fs::write(root().join(CATALOG), rendered).unwrap();
+    std::fs::write(root().join(INDEX), index).unwrap();
 }

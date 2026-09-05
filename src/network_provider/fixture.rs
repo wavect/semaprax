@@ -29,17 +29,18 @@ use std::collections::VecDeque;
 
 use serde_json::Value;
 
-use super::{NetworkFailure, NetworkProvider, ProviderConnection, WaitState};
+use super::{NetworkFailure, NetworkProvider, ProviderConnection, ProviderListener, WaitState};
 use crate::diagnostic::Diagnostic;
 
 /// The exact schema identity a fixture document must carry.
 pub const FIXTURE_SCHEMA: &str = "semaprax.network-fixture.v1";
+pub const FIXTURE_SCHEMA_V2: &str = "semaprax.network-fixture.v2";
 /// Maximum canonical fixture document bytes accepted by any host lane.
 pub const MAX_NETWORK_FIXTURE_BYTES: usize = 1_048_576;
 
 const FIXTURE_DIAGNOSTIC_CODE: &str = "SPX-F110";
 
-const CONNECTION_KEYS: [&str; 5] = ["host", "port", "recv", "expect_send", "ready"];
+const CONNECTION_KEYS: [&str; 6] = ["host", "port", "recv", "expect_send", "ready", "tls"];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct FixtureConnection {
@@ -51,6 +52,15 @@ struct FixtureConnection {
     sent: Vec<u8>,
     send_checked: bool,
     open: bool,
+    tls: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct FixtureListener {
+    host: String,
+    port: u16,
+    accepted: VecDeque<FixtureConnection>,
+    open: bool,
 }
 
 /// A replaying [`NetworkProvider`] driven by a fixture document. It performs
@@ -60,6 +70,8 @@ pub struct FixtureNetworkProvider {
     connections: Vec<FixtureConnection>,
     /// Index of the fixture connection the next successful connect binds.
     next_connection: usize,
+    listeners: Vec<FixtureListener>,
+    next_listener: usize,
 }
 
 fn fixture_error(message: impl Into<String>) -> Diagnostic {
@@ -81,19 +93,23 @@ impl FixtureNetworkProvider {
             .as_object()
             .ok_or_else(|| fixture_error("network fixture must be a JSON object"))?;
         for key in root.keys() {
-            if key != "schema" && key != "connections" {
+            if key != "schema" && key != "connections" && key != "listeners" {
                 return Err(fixture_error(format!(
                     "network fixture has unknown key `{key}`"
                 )));
             }
         }
-        match root.get("schema").and_then(Value::as_str) {
-            Some(FIXTURE_SCHEMA) => {}
+        let schema = match root.get("schema").and_then(Value::as_str) {
+            Some(FIXTURE_SCHEMA) => FIXTURE_SCHEMA,
+            Some(FIXTURE_SCHEMA_V2) => FIXTURE_SCHEMA_V2,
             _ => {
                 return Err(fixture_error(format!(
-                    "network fixture must declare `schema`: \"{FIXTURE_SCHEMA}\""
+                    "network fixture must declare `schema`: \"{FIXTURE_SCHEMA}\" or \"{FIXTURE_SCHEMA_V2}\""
                 )))
             }
+        };
+        if schema == FIXTURE_SCHEMA && root.contains_key("listeners") {
+            return Err(fixture_error("network fixture v1 cannot carry listeners"));
         }
         let connections = root
             .get("connections")
@@ -108,11 +124,35 @@ impl FixtureNetworkProvider {
         let connections = connections
             .iter()
             .enumerate()
-            .map(|(index, connection)| parse_connection(index, connection))
+            .map(|(index, connection)| {
+                parse_connection(index, connection, schema == FIXTURE_SCHEMA_V2)
+            })
             .collect::<Result<Vec<_>, _>>()?;
+        let listeners = match root.get("listeners") {
+            None => Vec::new(),
+            Some(Value::Array(listeners))
+                if listeners.len() <= crate::network_io_ops::MAX_HANDLES as usize =>
+            {
+                listeners
+                    .iter()
+                    .enumerate()
+                    .map(|(index, value)| parse_listener(index, value))
+                    .collect::<Result<Vec<_>, _>>()?
+            }
+            Some(Value::Array(_)) => {
+                return Err(fixture_error("network fixture exceeds the listener limit"))
+            }
+            Some(_) => {
+                return Err(fixture_error(
+                    "network fixture `listeners` must be an array",
+                ))
+            }
+        };
         Ok(Self {
             connections,
             next_connection: 0,
+            listeners,
+            next_listener: 0,
         })
     }
 
@@ -128,7 +168,11 @@ impl FixtureNetworkProvider {
     }
 }
 
-fn parse_connection(index: usize, connection: &Value) -> Result<FixtureConnection, Diagnostic> {
+fn parse_connection(
+    index: usize,
+    connection: &Value,
+    allow_tls: bool,
+) -> Result<FixtureConnection, Diagnostic> {
     let object = connection.as_object().ok_or_else(|| {
         fixture_error(format!(
             "network fixture connection {index} must be a JSON object"
@@ -199,6 +243,20 @@ fn parse_connection(index: usize, connection: &Value) -> Result<FixtureConnectio
             )))
         }
     };
+    let tls = match object.get("tls") {
+        None => false,
+        Some(Value::Bool(value)) if allow_tls => *value,
+        Some(Value::Bool(_)) => {
+            return Err(fixture_error(
+                "network fixture v1 cannot mark TLS connections",
+            ))
+        }
+        Some(_) => {
+            return Err(fixture_error(format!(
+                "network fixture connection {index} `tls` must be a boolean"
+            )))
+        }
+    };
     Ok(FixtureConnection {
         host,
         port,
@@ -207,6 +265,65 @@ fn parse_connection(index: usize, connection: &Value) -> Result<FixtureConnectio
         ready,
         sent: Vec::new(),
         send_checked: false,
+        open: false,
+        tls,
+    })
+}
+
+fn parse_listener(index: usize, value: &Value) -> Result<FixtureListener, Diagnostic> {
+    let object = value.as_object().ok_or_else(|| {
+        fixture_error(format!(
+            "network fixture listener {index} must be an object"
+        ))
+    })?;
+    for key in object.keys() {
+        if !["host", "port", "accept"].contains(&key.as_str()) {
+            return Err(fixture_error(format!(
+                "network fixture listener {index} has unknown key `{key}`"
+            )));
+        }
+    }
+    let host = object
+        .get("host")
+        .and_then(Value::as_str)
+        .ok_or_else(|| {
+            fixture_error(format!(
+                "network fixture listener {index} must carry a string `host`"
+            ))
+        })?
+        .to_owned();
+    let port = object
+        .get("port")
+        .and_then(Value::as_u64)
+        .and_then(|port| u16::try_from(port).ok())
+        .filter(|port| *port != 0)
+        .ok_or_else(|| {
+            fixture_error(format!(
+                "network fixture listener {index} has invalid `port`"
+            ))
+        })?;
+    let accepted = object
+        .get("accept")
+        .and_then(Value::as_array)
+        .ok_or_else(|| {
+            fixture_error(format!(
+                "network fixture listener {index} must carry an `accept` array"
+            ))
+        })?;
+    if accepted.len() > crate::network_io_ops::MAX_HANDLES as usize {
+        return Err(fixture_error(
+            "network fixture listener accept queue exceeds the connection limit",
+        ));
+    }
+    let accepted = accepted
+        .iter()
+        .enumerate()
+        .map(|(connection_index, connection)| parse_connection(connection_index, connection, true))
+        .collect::<Result<VecDeque<_>, _>>()?;
+    Ok(FixtureListener {
+        host,
+        port,
+        accepted,
         open: false,
     })
 }
@@ -235,9 +352,66 @@ impl NetworkProvider for FixtureNetworkProvider {
         if connection.host != host || connection.port != port {
             return Err(NetworkFailure::ConnectFailed);
         }
+        if connection.tls {
+            return Err(NetworkFailure::ConnectFailed);
+        }
         connection.open = true;
         self.next_connection += 1;
         Ok(ProviderConnection::new(index as u64))
+    }
+
+    fn connect_tls(&mut self, host: &str, port: u16) -> Result<ProviderConnection, NetworkFailure> {
+        let index = self.next_connection;
+        let connection = self
+            .connections
+            .get_mut(index)
+            .ok_or(NetworkFailure::TlsFailed)?;
+        if connection.host != host || connection.port != port || !connection.tls {
+            return Err(NetworkFailure::TlsFailed);
+        }
+        connection.open = true;
+        self.next_connection += 1;
+        Ok(ProviderConnection::new(index as u64))
+    }
+
+    fn listen(&mut self, host: &str, port: u16) -> Result<ProviderListener, NetworkFailure> {
+        let index = self.next_listener;
+        let listener = self
+            .listeners
+            .get_mut(index)
+            .ok_or(NetworkFailure::ListenFailed)?;
+        if listener.host != host || listener.port != port {
+            return Err(NetworkFailure::ListenFailed);
+        }
+        listener.open = true;
+        self.next_listener += 1;
+        Ok(ProviderListener::new(index as u64))
+    }
+
+    fn accept(&mut self, listener: ProviderListener) -> Result<ProviderConnection, NetworkFailure> {
+        let listener = usize::try_from(listener.token())
+            .ok()
+            .and_then(|index| self.listeners.get_mut(index))
+            .filter(|listener| listener.open)
+            .ok_or(NetworkFailure::UnknownHandle)?;
+        let mut connection = listener
+            .accepted
+            .pop_front()
+            .ok_or(NetworkFailure::AcceptFailed)?;
+        connection.open = true;
+        let token = self.connections.len() as u64;
+        self.connections.push(connection);
+        Ok(ProviderConnection::new(token))
+    }
+
+    fn close_listener(&mut self, listener: ProviderListener) -> Result<(), NetworkFailure> {
+        let listener = usize::try_from(listener.token())
+            .ok()
+            .and_then(|index| self.listeners.get_mut(index))
+            .filter(|listener| listener.open)
+            .ok_or(NetworkFailure::UnknownHandle)?;
+        listener.open = false;
+        Ok(())
     }
 
     fn send(
@@ -301,6 +475,9 @@ impl NetworkProvider for FixtureNetworkProvider {
     fn settle(&mut self) {
         for connection in &mut self.connections {
             connection.open = false;
+        }
+        for listener in &mut self.listeners {
+            listener.open = false;
         }
     }
 }
@@ -401,5 +578,34 @@ mod tests {
                 .code,
             FIXTURE_DIAGNOSTIC_CODE
         );
+    }
+
+    #[test]
+    fn v2_replays_tls_and_listen_accept_lifecycles() {
+        let document = r#"{
+            "schema":"semaprax.network-fixture.v2",
+            "connections":[{"host":"secure.example","port":443,"tls":true,"expect_send":"GET","recv":["ok"]}],
+            "listeners":[{"host":"127.0.0.1","port":8080,"accept":[{"host":"peer","port":1,"recv":["hello"],"expect_send":"reply"}]}]
+        }"#;
+        let mut provider = FixtureNetworkProvider::from_json(document).unwrap();
+        assert_eq!(
+            provider.connect("secure.example", 443),
+            Err(NetworkFailure::ConnectFailed)
+        );
+        let tls = provider.connect_tls("secure.example", 443).unwrap();
+        assert_eq!(provider.send(tls, b"GET"), Ok(3));
+        assert_eq!(provider.recv(tls, 8), Ok(b"ok".to_vec()));
+
+        let listener = provider.listen("127.0.0.1", 8080).unwrap();
+        let peer = provider.accept(listener).unwrap();
+        assert_eq!(provider.recv(peer, 8), Err(NetworkFailure::TransferFailed));
+        assert_eq!(provider.send(peer, b"reply"), Ok(5));
+        assert_eq!(provider.recv(peer, 8), Ok(b"hello".to_vec()));
+        assert_eq!(provider.close_listener(listener), Ok(()));
+        assert_eq!(
+            provider.accept(listener),
+            Err(NetworkFailure::UnknownHandle)
+        );
+        provider.settle();
     }
 }

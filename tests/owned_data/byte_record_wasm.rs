@@ -107,7 +107,6 @@ fn run_node(source: &str, stem: &str, script: &str) {
     }
     let program = parse(source, Path::new(stem)).unwrap();
     let root = std::env::temp_dir().join(format!("semaprax-{stem}-{}", std::process::id()));
-    std::fs::create_dir_all(&root).unwrap();
     wasm::build_web(&program, &root).unwrap();
     std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
     std::fs::write(root.join("probe.mjs"), script).unwrap();

@@ -1139,4 +1139,5 @@ fn invariant(function: Option<&str>, detail: impl Into<String>) -> CapacityError
 }
 
 #[cfg(test)]
+#[path = "byte_data_capacity/tests.rs"]
 mod tests;

@@ -118,7 +118,7 @@ fn usize_multiplication_zero_overflow_and_cleanup_match_across_targets() {
     let provider = with_authenticated_project(&manifest, |snapshot| {
         snapshot.check()?;
         let revision = snapshot.retain_revision();
-        let program = revision.entry_program();
+        let program = revision.public_api_program();
         for (name, length, status) in CASES {
             let result = evaluate_resolved_owned_data(
                 program,

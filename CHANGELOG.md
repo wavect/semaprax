@@ -8,6 +8,38 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added Installed Agent Guidance v1: six deterministic, version-matched,
+  authority-free skill documents are available through `skills get`, and
+  `query --capabilities` reports the exact installed five-operation Universal
+  Semantic Query catalogue with no host grants. Core and CLI return identical
+  canonical, bounded, digest-bound artifacts assembled only from embedded
+  compiler resources. The focused projections integration gate passes 5/5;
+  no binary attestation, live discovery, skill execution,
+  host authority, registry, network, MCP/LSP, or legacy-query change is claimed.
+- Added the locally exercised Universal Semantic Workflow CLI v1 read-only
+  adapter. Five Project-only `query` subcommands print exact
+  Universal Semantic Query results, while `change preview rename-display-name`
+  prints the exact Universal Semantic Transaction result or evidence. Each
+  one-shot invocation retains and finally rechecks one authenticated Project;
+  no source write, commit, persistent transport, or MCP/LSP route is added, and
+  frozen Project Agent Transport v5 remains unchanged. The five focused
+  integration cases pass locally.
+- Added the authority-free, transport-neutral Universal Semantic Query v1
+  core. Five exact canonical, workspace-revision-bound operations cover bounded
+  declaration paging, symbol, context, impact, and truthful transaction
+  eligibility; results bind Project, image, canonical component, payload, and
+  request identities and support fresh exact replay. The six focused integration
+  regressions pass locally. No wire, CLI, MCP, LSP, mutation,
+  publication, or frozen Project Agent Transport v5 change is claimed.
+- Added exact `semaprax help language <topic>` lookup and the bounded
+  `semaprax help language topics` selector list. An installed compiler can now
+  return one compiler-checked section of the agent quick reference without
+  transferring the whole card; every topic is guarded at more than five times
+  smaller in both bytes and repository lexical units. The `scalars` result is
+  793 bytes and 296 units versus 25,435 bytes and 7,237 units for the full card.
+- Added a hosted Network Services v1 extension with Rustls-authenticated TLS
+  clients, explicit listener/accept lifecycle, deterministic fixture v2, four
+  effect-gated source operations, and a bounded real structured-task runtime.
 - Added the developer-preview `network-command-io.v1` Project v12 profile,
   native and deterministic fixture-only npm/Web build lanes, the bounded
   `semaprax network-run --fixture` command, and a committed HTTP Project
@@ -18,6 +50,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   Semantic Workspace now preserves those source schemas, unknown spellings and
   evidence flows remain closed, and the formerly ignored checked-HIR cache
   regression executes cold/warm Graph v32 accounting and replay.
+- Added scoped `semaprax help shapes <kind|stable-id|path#stable-id>` backed by
+  a generated JSON companion to the unchanged Markdown catalog. Exact IDs can
+  be source-disambiguated, and a kind returns its smallest canonical exemplar
+  instead of every declaration. The guarded `calculator.add` result is 114
+  bytes and 33 lexical units versus 22,888 bytes and 7,571 units for the full
+  catalog, while every kind exemplar stays within 512 bytes and 128 units.
 - Added the authority-free, transport-neutral Persistent Incremental Semantic
   Workspace Service v1 core. A process can retain one immutable Project,
   Canonical Semantic Workspace Revision, Semantic Workspace Image, and semantic

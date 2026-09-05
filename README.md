@@ -208,7 +208,11 @@ languages trigger, and the fix for each. The generated
 [standard library catalog](docs/STANDARD-LIBRARY-CATALOG.md) lists every
 `std.*` declaration that exists today with its contract. An installed compiler
 can return one exact entry without transferring the whole catalog:
-`semaprax help library <module|name|stable-id>`.
+`semaprax help library <module|name|stable-id>`. It can likewise return one
+compiler-verified declaration example with
+`semaprax help shapes <kind|stable-id|path#stable-id>`, or one compiler-checked
+language-card section with `semaprax help language <topic>` after listing the
+stable selectors with `semaprax help language topics`.
 
 ## The programming model
 

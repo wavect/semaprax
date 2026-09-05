@@ -12,10 +12,14 @@ checked-module cache inside the caller's process. It supports revision-bound
 read snapshots, bounded semantic query delegation, source-exact incremental
 refresh, and authority-free Universal Semantic Transaction validation.
 
-This badge is a library core, not a daemon or public product route. It does not
-add a wire protocol, command, MCP tool, LSP server, editor integration,
-filesystem watcher, socket, or multi-process service. The embedding host owns
-process lifetime, input admission, transport, concurrency, and any persistence.
+This badge is a library core, not a daemon or persistent public service route.
+The separate [Universal Semantic Workflow CLI
+v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md) creates it for one authenticated
+Project operation and immediately drops it; that adapter does not expose the
+service lifecycle or make it shared. This core does not add a wire protocol,
+MCP tool, LSP server, editor integration, filesystem watcher, socket, or
+multi-process service. The embedding host owns process lifetime, input
+admission, transport, concurrency, and any persistence.
 
 ## Public API
 
@@ -73,6 +77,14 @@ using that image's exact digest. Existing query schemas, traversal semantics,
 limits, ordering, and diagnostics remain owned by Semantic Workspace Image v1
 and Workspace Analysis v1. The service does not create a second graph or query
 implementation.
+
+The additive [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md)
+core also executes its five canonical revision-bound operations through
+`SemanticWorkspaceSnapshot::query` or exact request bytes through
+`SemanticWorkspaceService::query`. Those entry points retain this snapshot and
+authority boundary. They are library calls, not a service wire route.
+The one-shot workflow CLI invokes these library calls but does not retain
+service state after the command.
 
 Snapshots are suitable for caller-coordinated concurrent read-only use. V1
 does not provide a scheduler, worker pool, request cancellation, fairness,
@@ -190,14 +202,17 @@ truth.
 
 This additive core does not change canonical source formatting, Project or
 managed Workspace revisions, Canonical Semantic Workspace Revision v1,
-Semantic Workspace Image v1, Universal Semantic Transaction v1, semantic-cache
+Semantic Workspace Image v1, Universal Semantic Transaction v1, Universal
+Semantic Query v1, semantic-cache
 formats, graph schemas, query bytes, diagnostics, candidate behavior, transport
-method sets, CLI help, MCP discovery, LSP behavior, editor behavior, or
-publication routes.
+method sets, MCP discovery, LSP behavior, editor behavior, or publication
+routes. Universal Semantic Workflow CLI v1 separately adds only a one-shot
+adapter over the unchanged core.
 
 It is not yet:
 
-- a wire, CLI, MCP, LSP, editor, CI, generated-SDK, or autonomous-agent service;
+- a wire, persistent CLI service, MCP, LSP, editor, CI, generated-SDK, or
+  autonomous-agent service;
 - a filesystem watcher, automatic refresh loop, repository index, or
   multi-workspace database;
 - a disk-persistent service, crash-recovery protocol, cache eviction policy,

@@ -42,6 +42,7 @@ mod scaffold;
 mod scalar_wit;
 mod scalar_wit_compare;
 mod semantic;
+mod semantic_query;
 mod semantic_service;
 mod semantic_transaction;
 mod source_hint;
@@ -349,6 +350,12 @@ pub use project_lock::{
 };
 pub use scalar_wit_compare::{
     classify_scalar_wit_change, ScalarWitCompatibility, SCALAR_WIT_COMPATIBILITY_SCHEMA,
+};
+pub use semantic_query::{
+    SemanticQuery, SemanticQueryResult, MAX_SEMANTIC_QUERY_BYTES,
+    MAX_SEMANTIC_QUERY_DECLARATION_LIMIT, MAX_SEMANTIC_QUERY_DECLARATION_OFFSET,
+    MAX_SEMANTIC_QUERY_RESULT_BYTES, SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
+    SEMANTIC_QUERY_DECLARATIONS_SCHEMA, SEMANTIC_QUERY_RESULT_SCHEMA, SEMANTIC_QUERY_SCHEMA,
 };
 pub use semantic_service::{
     SemanticWorkspaceGeneration, SemanticWorkspaceService, SemanticWorkspaceServiceRefresh,

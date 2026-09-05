@@ -537,6 +537,20 @@ source guard prevents the reused candidate formatter from introducing trivia
 changes. It has no filesystem or publication authority. See [Universal
 Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md).
 
+`src/project/semantic_query.rs` owns the transport-neutral Universal Semantic
+Query v1 core. Its closed canonical request/result boundary binds every read to
+one Canonical Semantic Workspace Revision and exposes exactly five operations:
+bounded Project declaration paging, image symbol lookup, Workspace Analysis
+context and impact, and installed transaction-operation availability. The
+availability projection calls the same read-only rename classifier that
+transaction validation uses; it does not duplicate eligibility policy or
+validate an arbitrary proposed name. Queries execute against one immutable
+service snapshot, exact replay re-executes and compares the complete result,
+and neither route mutates the service. There is no wire, CLI, MCP, LSP, editor,
+streaming, or publication adapter in this badge, and frozen Project Agent
+Transport v5 bytes remain unchanged. See [Universal Semantic Query
+v1](UNIVERSAL-SEMANTIC-QUERY-V1.md).
+
 `src/project/semantic_service.rs` owns the transport-neutral, process-resident
 Persistent Incremental Semantic Workspace Service v1 core. One service retains
 one immutable current generation, including its admitted Project revision,
@@ -545,13 +559,39 @@ compiler-created semantic cache. Refresh builds a complete successor from
 caller-owned source bytes, then performs one expected-current in-memory
 generation/cache compare-and-swap; stale or failed work leaves the complete old
 generation installed. Revision-bound snapshots delegate bounded symbol,
-context, and impact queries to the retained immutable image. Transaction
-validation delegates to Universal Semantic Transaction v1 and returns its
+context, impact, and Universal Semantic Query v1 operations to the retained
+immutable image and Project. Transaction validation delegates to Universal
+Semantic Transaction v1 and returns its
 authority-free artifacts without adopting the candidate or changing current
 state. The core opens no path, owns no disk store, and exposes no wire, CLI,
 MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
 [Persistent Incremental Semantic Service
 v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
+
+`src/cli/query.rs` and `src/cli/change.rs` own the read-only one-shot Universal
+Semantic Workflow CLI v1 adapter. The Project-only `query` subcommands construct
+one of the five canonical Universal Semantic Query operations and print its
+exact result. `change preview rename-display-name` derives the current display
+name from the same retained generation, constructs the existing one-operation
+Universal Semantic Transaction, and prints its exact result or evidence. Both
+routes run wholly within one `with_authenticated_project` lifetime, including
+the final held-input recheck. They create no parallel schemas or semantic
+implementation, do not retain the process-local service, and own no source,
+cache, commit, managed-Workspace, transport, MCP, LSP, or publication authority.
+Frozen Project Agent Transport v5 remains unchanged. See [Universal Semantic
+Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md).
+
+`src/installed_guidance.rs` owns Installed Agent Guidance v1. It packages six
+closed, version-matched, authority-free skill documents from compiler-embedded
+quick-reference, shape, standard-library, package, protocol, and effect facts.
+The module also projects the exact five installed Universal Semantic Query v1
+operations with no host grants. Canonical payload and independently identified
+embedded-source bytes are digest-bound; compiler metadata explicitly declines
+binary-identity attestation. `src/cli/skills.rs` and the capabilities branch in
+`src/cli/query.rs` only select and print these exact core artifacts. They do not
+read resource paths, discover a live service, execute guidance, grant host
+capabilities, or modify the legacy source-query route. See [Installed Agent
+Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md).
 
 `src/project/image.rs` derives an immutable, bounded Semantic Workspace
 Image from one already admitted `Arc<ProjectRevision>`. It retains validated
@@ -1846,7 +1886,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Verification | `src/verify.rs`, `src/source_verify.rs`, `src/source_verify/` — `declaration/` owns the per-pass declaration checks, `iterative/` the frame machine, `oracle/` the test-only recursive cross-check, `hints.rs` the shared fix hints both verifiers attach to unknown-function, generic-argument, literal-suffix, and borrowed-view diagnostics, and `loans.rs`/`place.rs` the loan lifecycle |
 | HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `validation.rs` owns core validation |
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
-| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs`, `src/query.rs` |
+| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs`, `src/query.rs`; `tests/projections/shapes_catalog.rs` generates the Markdown and JSON language-shape catalogs, and `src/cli/help.rs` selects bounded exact or smallest-exemplar results from the JSON projection plus exact compiler-checked sections from the static language card |
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
 | Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/`, explicit adapter `src/cli/retention_metadata.rs` |
 | Retention registry cursor | `src/semantic_retention_registry.rs`, `src/semantic_retention_registry/` |

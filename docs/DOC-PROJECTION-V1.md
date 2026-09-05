@@ -146,13 +146,17 @@ The standard-library catalog that `semaprax help library` prints and
 signature without its `@id` line, cross-checked against the source text, and
 each declaration's description is the entry's leading comments. The language
 shapes catalog that `semaprax help shapes` prints is rendered the same way by
-`tests/projections.rs::shapes_catalog` from every committed example. The
+`tests/projections.rs::shapes_catalog` from every committed example, with an
+ordered `docs/LANGUAGE-SHAPES-CATALOG.json` companion for exact kind,
+stable-ID, and source-disambiguated lookups. The
 bundled agent material therefore derives from the same facts as `doc` and
 `graph`; only the hand-written rules of the agent quick reference remain
 prose, and its code blocks are compiler-checked.
 `semaprax help library <module|name|stable-id>` derives its compact exact
 dependency/profile/head response from that JSON rather than maintaining a
 second library index.
+`semaprax help shapes <kind|stable-id|path#stable-id>` likewise derives its
+bounded canonical exemplar or exact match from the generated shapes companion.
 
 ## Non-claims
 

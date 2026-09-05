@@ -22,10 +22,13 @@ use super::NetworkState;
 
 /// The closed permit inventory a network command module may declare, in the
 /// canonical permit order.
-const ADMITTED_EFFECTS: [&str; 7] = [
+const ADMITTED_EFFECTS: [&str; 10] = [
     crate::network_io_ops::NETWORK_CONNECT_EFFECT,
     crate::network_io_ops::NETWORK_READ_EFFECT,
     crate::network_io_ops::NETWORK_WRITE_EFFECT,
+    crate::network_io_ops::NETWORK_TLS_EFFECT,
+    crate::network_io_ops::NETWORK_LISTEN_EFFECT,
+    crate::network_io_ops::NETWORK_ACCEPT_EFFECT,
     crate::command_io_ops::ARGS_READ_EFFECT,
     crate::command_io_ops::STDERR_WRITE_EFFECT,
     crate::command_io_ops::STDIN_READ_EFFECT,
@@ -107,13 +110,21 @@ pub(crate) fn evaluate_resolved_network_command(
             format!("hosted network command entry `{entry_id}` must have type `fn () -> bool`"),
         ));
     }
-    crate::command_io_ops::validate_operation_profile(
-        program,
-        &entry.id,
-        crate::command_io_ops::CommandOperationProfile::NetworkV1,
-    )?;
+    let profile = if program.permits.iter().any(|permit| {
+        [
+            crate::network_io_ops::NETWORK_TLS_EFFECT,
+            crate::network_io_ops::NETWORK_LISTEN_EFFECT,
+            crate::network_io_ops::NETWORK_ACCEPT_EFFECT,
+        ]
+        .contains(&permit.as_str())
+    }) {
+        crate::command_io_ops::CommandOperationProfile::ServiceV1
+    } else {
+        crate::command_io_ops::CommandOperationProfile::NetworkV1
+    };
+    crate::command_io_ops::validate_operation_profile(program, &entry.id, profile)?;
     hir::analyze_byte_data_capacity(program)?;
-    scan_closure(entry_id, &admitted, &program.declarations).map_err(first_diagnostic)?;
+    scan_closure(entry_id, &admitted, &program.declarations, true).map_err(first_diagnostic)?;
 
     let command_input = CommandInputState {
         network: Some(NetworkState::new(provider)),

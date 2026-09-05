@@ -503,7 +503,7 @@ fn abi_budget_and_cli_contracts_hold_for_widened_selections() {
         "--function",
         "widen.mixed",
         "--max-bytes",
-        "1024",
+        "2048",
     ]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-A203"));
@@ -702,7 +702,7 @@ fn c_header_budget_and_cli_contracts_hold_for_widened_selections() {
         "--function",
         "widen.mixed",
         "--max-bytes",
-        "1024",
+        "2048",
     ]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-D103"));
@@ -808,7 +808,7 @@ fn cxx_shim_budget_and_cli_contracts_hold_for_widened_selections() {
         "--function",
         "widen.mixed",
         "--max-bytes",
-        "1024",
+        "2048",
     ]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-X103"));

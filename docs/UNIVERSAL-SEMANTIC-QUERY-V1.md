@@ -1,0 +1,211 @@
+# Universal Semantic Query v1
+
+Status: additive transport-neutral core; focused local integration evidence passed.
+
+Audience: compiler contributors, service hosts, agent-tool authors, and
+reviewers of revision-bound semantic reads.
+
+Universal Semantic Query v1 is the first closed query envelope over one
+immutable [Persistent Incremental Semantic Workspace Service
+v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md) snapshot. It gives CLI, MCP,
+LSP, and other adapters one canonical request/result/replay boundary
+without making adapter behavior part of the core. The later read-only
+[Universal Semantic Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md)
+constructs these same typed operations and returns their exact results; it adds
+no query schema or alternate execution path.
+
+[Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md) separately exposes
+the exact installed five-operation catalogue through `query --capabilities`.
+That authority-free document is static installed-support metadata, not a
+revision-bound query result or live service discovery, and it cannot enable an
+operation.
+
+The v1 operation set is deliberately five operations: `declarations`,
+`symbol`, `context`, `impact`, and `available_operations`. The implementation
+reuses the existing Project declaration query, Semantic Workspace Image symbol
+lookup, Workspace Analysis context and impact, and Universal Semantic
+Transaction eligibility classifier. It does not create a parallel semantic
+index or a second operation-eligibility truth.
+
+## Public API
+
+The implementation is owned by `src/project/semantic_query.rs` and exported
+through `semaprax::project`:
+
+```rust
+pub const SEMANTIC_QUERY_SCHEMA: &str = "semaprax.semantic-query.v1";
+pub const SEMANTIC_QUERY_RESULT_SCHEMA: &str =
+    "semaprax.semantic-query-result.v1";
+pub const SEMANTIC_QUERY_DECLARATIONS_SCHEMA: &str =
+    "semaprax.semantic-query-declarations.v1";
+pub const SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA: &str =
+    "semaprax.semantic-query-available-operations.v1";
+pub const MAX_SEMANTIC_QUERY_BYTES: usize = 65_536;
+pub const MAX_SEMANTIC_QUERY_RESULT_BYTES: usize = 32 * 1024 * 1024;
+
+pub struct SemanticQuery { /* opaque */ }
+pub struct SemanticQueryResult { /* opaque */ }
+```
+
+`SemanticQuery` provides typed constructors named after all five operations,
+`from_json`, `to_json`, `query_digest`, `expected_workspace_revision`,
+`execute`, and `replay`. `SemanticQueryResult` exposes `to_json`,
+`result_digest`, `query_digest`, `payload`, `payload_digest`, and
+`workspace_revision`.
+
+`SemanticWorkspaceSnapshot::query` accepts a typed `SemanticQuery`.
+`SemanticWorkspaceService::query` accepts exact canonical query bytes and
+executes them against one snapshot of the active generation. Neither method
+refreshes the service or mutates its semantic cache.
+
+## Canonical request and result
+
+The request schema is `semaprax.semantic-query.v1`. Its exact top-level keys
+are `expected_workspace_revision,operation,schema`. The expected revision is
+the composite Canonical Semantic Workspace Revision v1 digest. The operation
+object is closed and operation-specific.
+
+The result schema is `semaprax.semantic-query-result.v1`. It binds:
+
+- the query digest and exact composite workspace revision;
+- the admitted Project revision and Semantic Workspace Image digest;
+- all four canonical semantic-workspace component digests;
+- the operation name, operation-specific payload, and payload digest;
+- the 65,536-byte request and 32-MiB result limits;
+- `authority: false`; and
+- fixed nonclaims identifying the payload as a derived read-only projection,
+  not behavioral equivalence or complete repository analysis.
+
+Request and result JSON is compact, recursively key-sorted, and terminated by
+one LF. The request and complete result digests use, respectively:
+
+```text
+semaprax.semantic-query.intent.digest.v1\0
+semaprax.semantic-query.result.digest.v1\0
+```
+
+Each digest is lowercase `sha256:` over
+`domain || u64le(byte_length) || exact_canonical_bytes`, including the terminal
+LF. Payloads use the same construction with one operation-specific domain:
+
+```text
+semaprax.semantic-query.declarations.payload.digest.v1\0
+semaprax.semantic-query.symbol.payload.digest.v1\0
+semaprax.semantic-query.context.payload.digest.v1\0
+semaprax.semantic-query.impact.payload.digest.v1\0
+semaprax.semantic-query.available-operations.payload.digest.v1\0
+```
+
+`SemanticQuery::replay` admits the exact canonical query and closed result
+wires, verifies the caller's result digest, freshly executes against the
+selected immutable snapshot, and exact-compares the complete result bytes and
+digest. Malformed, reminted, cross-revision, or stale material fails closed.
+
+## Five operations
+
+### `declarations`
+
+This operation carries the existing `QueryFilters` fields `kinds`, `name`,
+`id_prefix`, `effect`, `calls`, and `called_by`, plus `offset` and `limit`.
+Kinds are normalized into the existing canonical declaration-kind order and
+deduplicated. Text fields are at most 4,096 bytes and contain no NUL.
+
+The offset range is `0..=16_384`; the limit range is `1..=128`. The result uses
+schema `semaprax.semantic-query-declarations.v1`, retains the existing Project
+query graph/Project revisions and canonical match ordering, and adds
+`total_matches` plus `next_offset`. `next_offset` is the next integer or null;
+v1 has no mutable cursor registry and does not promise snapshot-independent
+continuation.
+
+### `symbol`
+
+This operation carries one nonempty stable identity of at most 4,096 bytes. It
+delegates to the snapshot's existing Semantic Workspace Image symbol query.
+`SemanticQueryResult::payload` retains the exact inner bytes and the payload
+digest binds them; the outer result embeds the parsed value in its own
+recursively key-sorted canonical JSON.
+
+### `context` and `impact`
+
+These operations carry a `target_kind` of `declaration` or `capability`, a
+nonempty target of at most 4,096 bytes, and the existing bounded Workspace
+Analysis options. Context additionally carries `direction` as `forward`,
+`reverse`, or `both`. Existing Workspace Analysis validation owns the depth,
+node, and byte limits; the query layer does not weaken or reinterpret them.
+Both operations delegate to the snapshot's exact image revision and retain the
+existing canonical payload.
+
+### `available_operations`
+
+This operation requires an actual retained declaration stable identity and
+returns schema `semaprax.semantic-query-available-operations.v1`. V1 contains
+one catalogue entry, `rename_display_name`, with:
+
+- `available`, derived from the same classifier used by transaction
+  validation;
+- the comment-free canonical workspace, explicit identity, monomorphic, and
+  non-`main` constraint outcomes;
+- the currently expected old display name when the target is a function;
+- the exact `semaprax.semantic-transaction.v1` schema; and
+- an explicit nonclaim that availability does not prove an arbitrary new name
+  will validate.
+
+The shared classifier is read-only. `available: true` means the target satisfies
+the structural prerequisites for the sole Universal Semantic Transaction v1
+operation at that revision. It is not a transaction, approval, reservation,
+validation result, or authority grant. Actual transaction validation repeats
+the same checks against its bound base and additionally checks the proposed new
+value.
+
+## Diagnostics and precedence
+
+| Code | Meaning |
+| --- | --- |
+| `SPX-G531` | Invalid, unsupported, noncanonical, or malformed query/result structure. |
+| `SPX-G532` | Query or result capacity exceeded. |
+| `SPX-G533` | Stale workspace/result identity or exact replay mismatch. |
+
+Underlying Project query, Semantic Workspace Image, Workspace Analysis, and
+transaction-classifier diagnostics retain their existing meanings and
+precedence when those owners reject the delegated operation.
+
+## Authority, compatibility, and nonclaims
+
+The core reads one retained immutable snapshot. It owns no filesystem, process,
+network, execution, cache persistence, source mutation, commit, approval,
+deployment, signing, or publication authority. Query results are evidence, not
+authority.
+
+This badge is additive. It does not change canonical `.spx` formatting,
+Project or managed Workspace revisions, Canonical Semantic Workspace Revision
+v1, Semantic Workspace Image v1, Universal Semantic Transaction v1, or their
+bytes and digest algorithms. In particular it does not add methods, fields, or
+schemas to the frozen Project Agent Transport v5 protocol.
+
+The separate Universal Semantic Workflow CLI v1 badge adds five Project-only
+one-shot `semaprax query` subcommands while preserving this revision binding,
+canonical envelope, limits, diagnostic truth, exact result bytes, and
+authority-free boundary. Neither badge adds a daemon wire route, Project Agent
+Transport vNext, MCP, LSP, editor integration, generated clients, streaming,
+subscriptions, a durable cursor, a repository-wide multi-workspace index, or a
+general semantic query algebra.
+
+## Focused evidence
+
+The integration evidence lives in
+`tests/workspace/universal_semantic_query.rs` as a module of the existing
+Workspace harness. It covers all five typed constructors, exact JSON parsing
+and determinism; bounded declaration paging; direct symbol, context, and impact
+parity; truthful rename availability paired with a known-good transaction;
+unavailable main, generic, automatic-identity, nonfunction, and comment-bearing
+subjects; stale active-service rejection with an old immutable snapshot still
+usable; malformed, noncanonical, reminted, and oversized replay rejection; and
+absence of filesystem writes or service mutation.
+
+The following focused command passed locally with six tests and no failures:
+
+```sh
+CARGO_TARGET_DIR=target/universal-semantic-query-v1 \
+  cargo test --locked -p semaprax --test workspace \
+  universal_semantic_query --no-fail-fast
+```

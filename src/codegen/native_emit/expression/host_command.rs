@@ -41,6 +41,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     | Operation::NetStreamStdout
                     | Operation::NetWait
                     | Operation::NetClose => self.emit_network_command_expr(expr, call)?,
+                    Operation::NetTlsConnect
+                    | Operation::NetListen
+                    | Operation::NetAccept
+                    | Operation::NetCloseListener => {
+                        return Err(backend_error(
+                            "TLS and listen operations are currently hosted-provider only",
+                        ));
+                    }
                     Operation::ArgsLen => {
                         if !call.args.is_empty() {
                             return Err(backend_error("args_len arity disagrees with HIR"));

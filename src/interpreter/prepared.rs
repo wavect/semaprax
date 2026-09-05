@@ -136,7 +136,7 @@ pub(crate) fn prepare_resolved_zero_arg_i64(
         )]);
     }
     let admitted = admitted_resolved_functions(program);
-    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let closure = scan_closure(entry_id, &admitted, &program.declarations, true)?;
     let mut function_indices = BTreeMap::new();
     let mut index_bytes = entry_id.len();
     let mut origin_nodes = 0usize;

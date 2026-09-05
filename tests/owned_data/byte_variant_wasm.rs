@@ -14,7 +14,6 @@ fn run_node(source: &str, stem: &str, script: &str) {
         "semaprax-owned-byte-variant-wasm-{}-{stem}",
         std::process::id(),
     ));
-    std::fs::create_dir_all(&root).unwrap();
     wasm::build_web(&program, &root).unwrap();
     std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
     std::fs::write(root.join("probe.mjs"), script).unwrap();

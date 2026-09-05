@@ -111,7 +111,7 @@ fn verify_project(directory: &str, files: [(&str, &str); 3], variants: bool) {
     with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
         if variants {
-            staged_before_variant(snapshot.entry_program());
+            staged_before_variant(snapshot.public_api_program());
         }
         let descriptor = snapshot.public_api_descriptor()?;
         let revision = snapshot.retain_revision();

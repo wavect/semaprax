@@ -399,39 +399,90 @@ fn require_function_preconditions(
     revision: &ProjectRevision,
     operation: &SemanticTransactionRenameDisplayName,
 ) -> Result<(), Vec<Diagnostic>> {
-    let retained = revision
-        .semantic
-        .rename_function(&operation.target)
-        .ok_or_else(|| invalid("RenameDisplayName v1 requires an explicit function target"))?;
-    if retained.name != operation.expected_old_value {
+    let eligibility = rename_display_name_eligibility(revision, &operation.target)?;
+    let Some(old_value) = eligibility.expected_old_value.as_deref() else {
+        return Err(invalid(
+            "RenameDisplayName v1 requires an explicit function target",
+        ));
+    };
+    if old_value != operation.expected_old_value {
         return Err(stale(
             "RenameDisplayName expected old value does not match the base",
         ));
     }
-    let mut matches = 0usize;
-    for source in revision.sources() {
-        let program =
-            crate::parse(source.source(), Path::new(source.path())).map_err(|error| vec![error])?;
-        for function in &program.functions {
-            if function.stable_id == operation.target {
-                matches += 1;
-                if !function.explicit_id
-                    || !function.type_parameters.is_empty()
-                    || function.name == "main"
-                {
-                    return Err(invalid(
-                        "RenameDisplayName v1 requires an explicit monomorphic non-main function",
-                    ));
-                }
-            }
-        }
+    if !eligibility.explicit_identity || !eligibility.monomorphic || !eligibility.non_main {
+        return Err(invalid(
+            "RenameDisplayName v1 requires an explicit monomorphic non-main function",
+        ));
     }
-    if matches != 1 || operation.expected_old_value == operation.new_value {
+    if !eligibility.unique_function || operation.expected_old_value == operation.new_value {
         return Err(invalid(
             "RenameDisplayName v1 requires one target and a changed display name",
         ));
     }
     Ok(())
+}
+
+/// Shared, read-only classifier used by transaction validation and installed
+/// operation discovery. It advertises eligibility, never a particular new name.
+pub(super) struct RenameDisplayNameEligibility {
+    pub(super) expected_old_value: Option<String>,
+    pub(super) comment_free_canonical_workspace: bool,
+    pub(super) explicit_identity: bool,
+    pub(super) monomorphic: bool,
+    pub(super) non_main: bool,
+    unique_function: bool,
+}
+
+impl RenameDisplayNameEligibility {
+    pub(super) fn available(&self) -> bool {
+        self.unique_function
+            && self.comment_free_canonical_workspace
+            && self.explicit_identity
+            && self.monomorphic
+            && self.non_main
+    }
+}
+
+pub(super) fn rename_display_name_eligibility(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<RenameDisplayNameEligibility, Vec<Diagnostic>> {
+    let expected_old_value = revision
+        .semantic
+        .rename_function(target)
+        .map(|function| function.name.clone());
+    let mut matches = 0usize;
+    let mut explicit_identity = false;
+    let mut monomorphic = false;
+    let mut non_main = false;
+    for source in revision.sources() {
+        let program =
+            crate::parse(source.source(), Path::new(source.path())).map_err(|error| vec![error])?;
+        for function in &program.functions {
+            if function.stable_id == target {
+                matches += 1;
+                explicit_identity = function.explicit_id;
+                monomorphic = function.type_parameters.is_empty();
+                non_main = function.name != "main";
+            }
+        }
+    }
+    let comment_free_canonical_workspace = revision.sources().iter().all(|source| {
+        crate::parse_with_comments(source.source(), Path::new(source.path())).is_ok_and(
+            |(program, comments)| {
+                comments.items.is_empty() && crate::format::canonical(&program) == source.source()
+            },
+        )
+    });
+    Ok(RenameDisplayNameEligibility {
+        expected_old_value,
+        comment_free_canonical_workspace,
+        explicit_identity,
+        monomorphic,
+        non_main,
+        unique_function: matches == 1,
+    })
 }
 
 fn require_canonical_comment_free_sources(

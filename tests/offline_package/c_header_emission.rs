@@ -133,7 +133,7 @@ fn cli_rejects_bad_invocations() {
         "--function",
         "math.add",
         "--max-bytes",
-        "1024",
+        "2048",
     ]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-D103"));

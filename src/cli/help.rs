@@ -9,7 +9,9 @@ pub(crate) enum CommandId {
     Doc,
     Verify,
     Agent,
+    Skills,
     Query,
+    Change,
     Package,
     Add,
     Fetch,
@@ -142,7 +144,9 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Doc, canonical: "doc", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doc <file> [--json]"] },
     CommandSpec { id: CommandId::Verify, canonical: "verify", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax verify <file> <patch.spatch> <evidence.json>", "semaprax verify <root> <patch.wspatch>|<proposal.json> <evidence.json>", "semaprax verify <definition.json> <profile.json> <graph.json>", "semaprax verify <manifest> <image.json>"] },
     CommandSpec { id: CommandId::Agent, canonical: "agent", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax agent inspect <definition.json> [--profile]", "semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]", "semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>"] },
-    CommandSpec { id: CommandId::Query, canonical: "query", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]"] },
+    CommandSpec { id: CommandId::Skills, canonical: "skills", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax skills get <agent|language|graph|stdlib|packages|effects>"] },
+    CommandSpec { id: CommandId::Query, canonical: "query", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax query --capabilities", "semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]", "semaprax query <project> declarations [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--offset N] [--limit N] [--revision digest]", "semaprax query <project> symbol <stable-id> [--revision digest]", "semaprax query <project> context <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--revision digest]", "semaprax query <project> impact <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N] [--revision digest]", "semaprax query <project> available-operations <stable-id> [--revision digest]"] },
+    CommandSpec { id: CommandId::Change, canonical: "change", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax change preview <project> rename-display-name <stable-id> <new-name> [--revision digest] [--evidence]"] },
     CommandSpec { id: CommandId::Package, canonical: "package", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax package report <file> [--max-bytes N]", "semaprax package lock <subject.json>... [--max-bytes N]", "semaprax package resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]"] },
     CommandSpec { id: CommandId::Add, canonical: "add", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax add <dir>|semaprax.toml <package> <range>"] },
     CommandSpec { id: CommandId::Fetch, canonical: "fetch", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fetch <cache-dir> <subject.json>..."] },
@@ -248,7 +252,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -320,12 +324,71 @@ const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 /// code blocks against this compiler.
 pub(crate) const LANGUAGE_REFERENCE: &str = include_str!("../../docs/AGENT-QUICK-REFERENCE.md");
 
+const LANGUAGE_TOPICS: &[(&str, &str)] = &[
+    ("workflow", "Spend tokens on source, not on dumps"),
+    ("module", "A complete file"),
+    ("scalars", "Scalars and literals"),
+    ("control-flow", "Control flow, mutation, contracts, effects"),
+    ("records", "Records, variants, classes"),
+    ("ownership", "Ownership and resources"),
+    ("strings", "Strings and bytes"),
+    ("builtins", "Compiler-owned functions"),
+    (
+        "mistakes-code",
+        "Habits from other languages: diagnostic examples",
+    ),
+    (
+        "mistakes-index",
+        "Habits from other languages: diagnostic index",
+    ),
+    ("projects", "Projects"),
+    ("specifications", "Where the rules live"),
+];
+
+fn language_topics() -> String {
+    let width = LANGUAGE_TOPICS
+        .iter()
+        .map(|(selector, _)| selector.len())
+        .max()
+        .unwrap_or(0);
+    let mut output = String::from("Language topics:\n");
+    for (selector, heading) in LANGUAGE_TOPICS {
+        writeln!(output, "  {selector:<width$}  {heading}")
+            .expect("writing to a string cannot fail");
+    }
+    output
+}
+
+pub(crate) fn language_topic(query: &str) -> Result<String, String> {
+    if query == "topics" {
+        return Ok(language_topics());
+    }
+    let heading = LANGUAGE_TOPICS
+        .iter()
+        .find_map(|(selector, heading)| (*selector == query).then_some(*heading))
+        .ok_or_else(|| format!("language card has no exact topic `{query}`"))?;
+    let marker = format!("## {heading}\n");
+    let mut matches = LANGUAGE_REFERENCE.match_indices(&marker);
+    let start = matches
+        .next()
+        .map(|(index, _)| index)
+        .expect("every language topic must name a card heading");
+    assert!(
+        matches.next().is_none(),
+        "every language topic heading must be unique"
+    );
+    let section = &LANGUAGE_REFERENCE[start..];
+    let end = section.find("\n## ").unwrap_or(section.len());
+    Ok(section[..end].to_owned())
+}
+
 /// The generated standard-library catalog, printed by `semaprax help library`:
 /// every `std.*` declaration with its signature and contracts, so an agent can
 /// pick a library function offline. The bytes are the repository document that
 /// `tests/project.rs::standard_library` regenerates from `std/` and pins.
 pub(crate) const LIBRARY_CATALOG: &str = include_str!("../../docs/STANDARD-LIBRARY-CATALOG.md");
 const LIBRARY_INDEX: &str = include_str!("../../std/catalog.json");
+const SHAPES_INDEX: &str = include_str!("../../docs/LANGUAGE-SHAPES-CATALOG.json");
 
 pub(crate) fn library_entry(query: &str) -> Result<String, String> {
     let catalog: serde_json::Value =
@@ -393,6 +456,91 @@ pub(crate) fn library_entry(query: &str) -> Result<String, String> {
     }
 }
 
+fn shape_fields(entry: &serde_json::Value) -> (&str, &str, &str, &str) {
+    (
+        entry["id"]
+            .as_str()
+            .expect("generated shape must have an identity"),
+        entry["kind"]
+            .as_str()
+            .expect("generated shape must have a kind"),
+        entry["path"]
+            .as_str()
+            .expect("generated shape must have a source path"),
+        entry["signature"]
+            .as_str()
+            .expect("generated shape must have a signature"),
+    )
+}
+
+fn shape_rank(entry: &serde_json::Value) -> (usize, usize, &str, &str) {
+    let (id, _, path, signature) = shape_fields(entry);
+    (
+        semaprax::agent_economics::lexical_tokens(path)
+            + semaprax::agent_economics::lexical_tokens(signature),
+        path.len() + signature.len(),
+        id,
+        path,
+    )
+}
+
+fn write_shape(output: &mut String, entry: &serde_json::Value, representative: bool) {
+    let (id, kind, path, signature) = shape_fields(entry);
+    if !output.is_empty() {
+        output.push('\n');
+    }
+    if representative {
+        writeln!(output, "representative {kind}").expect("writing to a string cannot fail");
+    } else {
+        writeln!(output, "{kind} {id}").expect("writing to a string cannot fail");
+    }
+    writeln!(output, "source {path}").expect("writing to a string cannot fail");
+    output.push_str(signature);
+    if !signature.ends_with('\n') {
+        output.push('\n');
+    }
+}
+
+pub(crate) fn shape_entry(query: &str) -> Result<String, String> {
+    let catalog: serde_json::Value =
+        serde_json::from_str(SHAPES_INDEX).expect("generated language-shapes JSON must parse");
+    let entries = catalog["entries"]
+        .as_array()
+        .expect("generated language-shapes JSON must contain entries");
+
+    if let Some(exemplar) = entries
+        .iter()
+        .filter(|entry| shape_fields(entry).1 == query)
+        .min_by_key(|entry| shape_rank(entry))
+    {
+        let mut output = String::new();
+        write_shape(&mut output, exemplar, true);
+        return Ok(output);
+    }
+
+    let path_identity = query
+        .split_once('#')
+        .filter(|(path, id)| !path.is_empty() && !id.is_empty());
+    let mut output = String::new();
+    for entry in entries {
+        let (id, _, path, _) = shape_fields(entry);
+        let selected = match path_identity {
+            Some((selected_path, selected_id)) => path == selected_path && id == selected_id,
+            None => id == query,
+        };
+        if selected {
+            write_shape(&mut output, entry, false);
+        }
+    }
+    if output.is_empty() {
+        Err(format!(
+            "language shapes catalog has no exact match for `{query}`"
+        ))
+    } else {
+        Ok(output)
+    }
+}
+
 pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>> {
     if args.first().map(String::as_str) != Some("help") || args.len() == 1 {
         return None;
@@ -415,8 +563,14 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
         print!("{output}");
         return Some(Ok(()));
     }
-    if args.len() == 3 && args[1] == "library" {
-        return Some(match library_entry(&args[2]) {
+    if args.len() == 3 && matches!(args[1].as_str(), "language" | "library" | "shapes") {
+        let result = match args[1].as_str() {
+            "language" => language_topic(&args[2]),
+            "library" => library_entry(&args[2]),
+            "shapes" => shape_entry(&args[2]),
+            _ => unreachable!("closed scoped help catalog"),
+        };
+        return Some(match result {
             Ok(output) => {
                 print!("{output}");
                 Ok(())
@@ -427,7 +581,7 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
             }
         });
     }
-    let extra = if args[1] == "library" {
+    let extra = if matches!(args[1].as_str(), "language" | "library" | "shapes") {
         &args[3]
     } else {
         &args[2]
@@ -521,9 +675,9 @@ static GUIDE: &[GuideGroup] = &[
         heading: "Change by meaning",
         entries: &[
             GuideEntry {
-                id: CommandId::Patch,
-                shape: "patch <file> <patch.spatch>",
-                summary: "Apply a replay-checked semantic patch",
+                id: CommandId::Change,
+                shape: "change preview <project> rename",
+                summary: "Validate a semantic rename without writing",
             },
             GuideEntry {
                 id: CommandId::Impact,
@@ -590,8 +744,8 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Help,
-                shape: "help language",
-                summary: "The language card and diagnostics",
+                shape: "help language [topic]",
+                summary: "One topic or the language card",
             },
             GuideEntry {
                 id: CommandId::Help,
@@ -600,8 +754,8 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Help,
-                shape: "help shapes",
-                summary: "Declaration shapes from the examples",
+                shape: "help shapes [selector]",
+                summary: "One declaration shape",
             },
         ],
     },
@@ -724,7 +878,9 @@ mod tests {
         "doc",
         "verify",
         "agent",
+        "skills",
         "query",
+        "change",
         "package",
         "add",
         "fetch",
@@ -905,6 +1061,52 @@ mod tests {
     }
 
     #[test]
+    fn shape_entry_is_exact_disambiguated_and_cheap_by_kind() {
+        let expected = concat!(
+            "function calculator.add\n",
+            "source examples/calculator.spx\n",
+            "@id(\"calculator.add\")\n",
+            "fn add(left: i64, right: i64) -> i64\n",
+        );
+        assert_eq!(shape_entry("calculator.add").unwrap(), expected);
+
+        let main = shape_entry("examples/calculator.spx#app.main").unwrap();
+        assert!(main.starts_with("function app.main\nsource examples/calculator.spx\n"));
+        assert!(!main.contains("examples/banking_ledger.spx"));
+
+        let catalog_units = semaprax::agent_economics::lexical_tokens(SHAPES_CATALOG);
+        let catalog: serde_json::Value = serde_json::from_str(SHAPES_INDEX).unwrap();
+        let kinds: std::collections::BTreeSet<_> = catalog["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|entry| shape_fields(entry).1)
+            .collect();
+        assert!(kinds.len() >= 7, "{kinds:?}");
+        for kind in kinds {
+            let exemplar = shape_entry(kind).unwrap();
+            assert!(exemplar.starts_with(&format!("representative {kind}\n")));
+            assert!(exemplar.len() <= 512, "{kind}: {} bytes", exemplar.len());
+            assert!(
+                exemplar.len() * 40 < SHAPES_CATALOG.len(),
+                "{kind}: {}/{} bytes",
+                exemplar.len(),
+                SHAPES_CATALOG.len()
+            );
+            let units = semaprax::agent_economics::lexical_tokens(&exemplar);
+            assert!(units <= 128, "{kind}: {units} lexical units");
+            assert!(
+                units * 40 < catalog_units,
+                "{kind}: {units}/{catalog_units} lexical units"
+            );
+        }
+        assert_eq!(
+            shape_entry("not_a_shape").unwrap_err(),
+            "language shapes catalog has no exact match for `not_a_shape`"
+        );
+    }
+
+    #[test]
     fn library_entry_is_exact_deterministic_and_compact() {
         let expected = concat!(
             "std.core.compare\n",
@@ -931,10 +1133,39 @@ mod tests {
     }
 
     #[test]
-    fn language_reference_is_the_repository_card() {
+    fn language_reference_and_exact_topics_are_bounded_repository_sections() {
         assert!(LANGUAGE_REFERENCE.starts_with("# Agent quick reference\n"));
         assert!(LANGUAGE_REFERENCE.contains("```semaprax\n"));
         assert!(LANGUAGE_REFERENCE.ends_with('\n'));
+        let reference_units = semaprax::agent_economics::lexical_tokens(LANGUAGE_REFERENCE);
+        assert_eq!(LANGUAGE_TOPICS.len(), 12);
+        for (selector, heading) in LANGUAGE_TOPICS {
+            let topic = language_topic(selector).unwrap();
+            assert!(topic.starts_with(&format!("## {heading}\n")), "{selector}");
+            assert!(!topic.contains("\n## "), "{selector}");
+            assert!(topic.len() <= 4_600, "{selector}: {} bytes", topic.len());
+            assert!(
+                topic.len() * 5 < LANGUAGE_REFERENCE.len(),
+                "{selector}: {}/{} bytes",
+                topic.len(),
+                LANGUAGE_REFERENCE.len()
+            );
+            let units = semaprax::agent_economics::lexical_tokens(&topic);
+            assert!(units <= 1_500, "{selector}: {units} lexical units");
+            assert!(
+                units * 5 < reference_units,
+                "{selector}: {units}/{reference_units} lexical units"
+            );
+        }
+        let topics = language_topic("topics").unwrap();
+        assert!(topics.starts_with("Language topics:\n  workflow"));
+        assert!(topics.ends_with("specifications  Where the rules live\n"));
+        assert!(topics.len() <= 768);
+        assert_eq!(topics.lines().count(), LANGUAGE_TOPICS.len() + 1);
+        assert_eq!(
+            language_topic("Scalars").unwrap_err(),
+            "language card has no exact topic `Scalars`"
+        );
     }
 
     #[test]

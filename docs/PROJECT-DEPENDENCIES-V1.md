@@ -83,6 +83,59 @@ acquisition, transitive resolution, checksums, and `Cargo.lock`. An offline
 consumer can generate and commit a lock from a pre-populated Cargo cache and
 then build with `--locked --offline`.
 
+### Calling any declared crate from SEMAPRAX
+
+There is no crate allowlist. Any Cargo package admitted by the canonical
+`[rust-dependencies]` grammar can implement a typed `import rust fn` boundary.
+The SEMAPRAX side declares only the stable ID, scalar signature, effects, and
+failure policy it can verify:
+
+```text
+permit { host.filesystem }
+
+@id("app.host")
+interface Host permits { host.filesystem } {
+    @id("app.host.same-file")
+    import rust fn same_file(value: i64) -> i64
+        effects { host.filesystem }
+        failure status "app.host.v1";
+}
+
+@id("app.checked")
+fn checked(value: i64) -> i64 uses { host.filesystem } { same_file(value) }
+```
+
+The generated SDK turns that import into a method on `NativeRustSdkImports`.
+Host code implements the method with the dependency re-export; for example:
+
+```rust
+use semaprax_generated_native_rust_sdk::{
+    rust_dependency_same_file, NativeRustSdkImportResult, NativeRustSdkImports,
+};
+
+struct Host;
+
+impl NativeRustSdkImports for Host {
+    fn spx_app_dot_host_dot_same_hyphen_file(
+        &mut self,
+        value: i64,
+    ) -> NativeRustSdkImportResult<i64> {
+        match rust_dependency_same_file::is_same_file(".", ".") {
+            Ok(true) => NativeRustSdkImportResult::Success(value + 1),
+            Ok(false) => NativeRustSdkImportResult::Success(value),
+            Err(_) => NativeRustSdkImportResult::HostFailure,
+        }
+    }
+}
+```
+
+This pattern works for any crate because the adapter owns conversion between
+the crate's Rust API and the closed SEMAPRAX import ABI. Crate-specific Rust
+types, traits, generics, lifetimes, async runtimes, macros, and unsafe contracts
+remain on the Rust side; they are never guessed or smuggled into checked
+SEMAPRAX types. Declared effects remain mandatory even when the chosen crate
+can perform more operations than one adapter method exposes.
+
 ## Diagnostics
 
 | Code | Meaning |
@@ -104,6 +157,7 @@ the local preservation gate.
 
 This version does not acquire packages, contact a registry, establish trusted
 publisher provenance, solve license policy, vendor a Cargo closure, or promote
-a stable ecosystem ABI. It does not make arbitrary Rust callable from
-SEMAPRAX. Those require separate authority, provenance, ABI, and hosted
-conformance contracts.
+a stable ecosystem ABI. It permits arbitrary declared crates behind explicit
+typed adapters; it does not automatically project arbitrary raw Rust APIs or
+Rust-only types into SEMAPRAX. Those require separate authority, provenance,
+ABI, and hosted conformance contracts.

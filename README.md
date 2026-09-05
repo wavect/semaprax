@@ -152,7 +152,9 @@ semaprax build examples/calculator-project/semaprax.toml \
 
 The extensible `semaprax.manifest.v1` layout can also name exact local
 Subject-v3 files for a complete SEMAPRAX dependency closure and exact Cargo
-crate inputs for the generated Native Rust SDK. The compiler performs no
+crate inputs for the generated Native Rust SDK. There is no crate allowlist:
+typed `import rust fn` adapters can invoke any declared crate while keeping its
+Rust-only API and authority outside checked SEMAPRAX code. The compiler performs no
 implicit acquisition or registry access; see [Project Dependencies
 v1](docs/PROJECT-DEPENDENCIES-V1.md) for the manifest shape, replay boundary,
 and Cargo handoff. [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md) owns the

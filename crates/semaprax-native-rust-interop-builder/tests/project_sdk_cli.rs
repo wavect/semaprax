@@ -377,6 +377,93 @@ fn configured_project_rust_dependency_compiles_offline_from_an_exact_lock() {
     assert!(check.status.success(), "{}", stderr(&check));
 }
 
+#[test]
+fn arbitrary_exact_crate_is_invoked_by_semaprax_through_the_typed_adapter() {
+    if !effectful_tools_available() || std::env::var_os("CARGO").is_none() {
+        return;
+    }
+    let root = TestRoot::new();
+    let project = root.0.join("project");
+    fs::create_dir_all(project.join("src")).unwrap();
+    fs::write(
+        project.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"callback\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"callback.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"callback.tests\"]\n\n[exports]\nweb = [\"callback.apply\"]\n\n[rust-dependencies]\nsame-file = [\"=1.0.6\"]\n",
+    )
+    .unwrap();
+    for (relative, source) in [
+        ("src/app.spx", CALLBACK_APP),
+        ("src/tests.spx", CALLBACK_TESTS),
+    ] {
+        let program = semaprax::parse(source, Path::new(relative)).unwrap();
+        fs::write(
+            project.join(relative),
+            semaprax::format::canonical(&program),
+        )
+        .unwrap();
+    }
+
+    let generated = root.0.join("generated-sdk");
+    let result = binary()
+        .args(["project", "--manifest-path"])
+        .arg(project.join("semaprax.toml"))
+        .arg("--output")
+        .arg(&generated)
+        .output()
+        .unwrap();
+    assert!(result.status.success(), "{}", stderr(&result));
+
+    let consumer = root.0.join("consumer");
+    fs::create_dir_all(consumer.join("src")).unwrap();
+    fs::write(
+        consumer.join("Cargo.toml"),
+        "[package]\nname = \"arbitrary-crate-callback\"\nversion = \"0.0.0\"\nedition = \"2021\"\npublish = false\n\n[workspace]\n\n[dependencies]\nsemaprax-generated-native-rust-sdk = { path = \"../generated-sdk\" }\n\n[lints.rust]\nunsafe_code = \"forbid\"\n",
+    )
+    .unwrap();
+    fs::write(
+        consumer.join("src/main.rs"),
+        r#"use semaprax_generated_native_rust_sdk::{
+    rust_dependency_same_file, NativeRustSdk, NativeRustSdkImportResult, NativeRustSdkImports,
+};
+
+struct Host;
+
+impl NativeRustSdkImports for Host {
+    fn spx_callback_dot_host_dot_adjust(
+        &mut self,
+        value: i64,
+    ) -> NativeRustSdkImportResult<i64> {
+        match rust_dependency_same_file::is_same_file(".", ".") {
+            Ok(true) => NativeRustSdkImportResult::Success(value + 1),
+            Ok(false) => NativeRustSdkImportResult::Success(value),
+            Err(_) => NativeRustSdkImportResult::HostFailure,
+        }
+    }
+}
+
+fn main() {
+    let mut sdk = NativeRustSdk::new(Host, &["host.adjust"]).unwrap();
+    assert_eq!(sdk.spx_callback_dot_apply(19, 22), Ok(42));
+}
+"#,
+    )
+    .unwrap();
+
+    let cargo = std::env::var_os("CARGO").unwrap();
+    let lock = Command::new(&cargo)
+        .args(["generate-lockfile", "--offline", "--manifest-path"])
+        .arg(consumer.join("Cargo.toml"))
+        .output()
+        .unwrap();
+    assert!(lock.status.success(), "{}", stderr(&lock));
+    let run = Command::new(cargo)
+        .args(["run", "--locked", "--offline", "--manifest-path"])
+        .arg(consumer.join("Cargo.toml"))
+        .env("CARGO_TARGET_DIR", root.0.join("cargo-target"))
+        .output()
+        .unwrap();
+    assert!(run.status.success(), "{}", stderr(&run));
+}
+
 const CALLBACK_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"callback\"\nentry = \"callback.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"callback.apply\"]\ntests = [\"callback.tests\"]\n";
 
 const CALLBACK_APP: &str = r#"

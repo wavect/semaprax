@@ -26,7 +26,10 @@ Dependency changes additionally run the complete
 library and `project_sdk_cli` tests. Effectful Rust-crate coverage requires the
 explicit tool environment documented by
 [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md); a skipped tool-dependent
-case is not promotion evidence.
+case is not promotion evidence. The arbitrary-crate gate must generate the
+Project SDK, lock and build its consumer offline, invoke a declared external
+crate from `NativeRustSdkImports`, cross the `import rust fn` boundary, and
+observe the resulting value through a SEMAPRAX export.
 
 An exact-byte native fixture that replaces the compiler's entry wrapper must
 establish its own stdout transport mode. String fixtures use the shared

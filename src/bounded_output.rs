@@ -34,6 +34,13 @@ pub(crate) fn with_limit_usage<T>(limit: usize, operation: impl FnOnce() -> T) -
             });
             if let Some(parent) = previous {
                 if !reserve(Some(&parent), consumed) {
+                    // A refused reservation normally means nothing was
+                    // written, but here the child already emitted the bytes:
+                    // they cannot be un-spent. Charge the parent anyway, so
+                    // `consumed` and `active_remaining` stay truthful, and
+                    // report the refusal.
+                    let remaining = parent.remaining.get();
+                    parent.remaining.set(remaining.saturating_sub(consumed));
                     parent.overflowed.set(true);
                 }
             }
@@ -634,6 +641,47 @@ mod tests {
             assert!(!child_overflowed);
         });
         assert!(overflowed);
+    }
+
+    #[test]
+    fn a_child_that_breaches_the_parents_floor_is_still_charged_to_the_parent() {
+        // Failing closed is only half the accounting. The child has already
+        // emitted its bytes by the time the parent debits them, so a refused
+        // debit cannot un-spend them: the parent must lose them as well as
+        // overflow, or `consumed` undercounts and `active_remaining` overstates
+        // what a caller may still write.
+        let (_, overflowed, used) = with_limit_usage(10, || {
+            assert!(set_active_floor(8));
+            let (emitted, child_overflowed, child_used) = with_limit_usage(4, || {
+                let mut output = CappedString::new();
+                output.push_str("abcd");
+                output.into_string()
+            });
+            assert_eq!(emitted, "abcd");
+            assert!(!child_overflowed);
+            assert_eq!(child_used, 4);
+            assert_eq!(active_remaining(), Some(6));
+        });
+        assert!(overflowed);
+        assert_eq!(used, 4);
+
+        // The debited remainder is real rather than a bookkeeping entry: once
+        // the trailer lane is released the parent may spend exactly the six
+        // bytes it has left and not one more.
+        let (_, overflowed, used) = with_limit_usage(10, || {
+            assert!(set_active_floor(8));
+            let (_, child_overflowed) = with_limit(4, || {
+                let mut output = CappedString::new();
+                output.push_str("abcd");
+            });
+            assert!(!child_overflowed);
+            clear_active_floor();
+            assert!(!reserve_active(7));
+            assert!(reserve_active(6));
+            assert_eq!(active_remaining(), Some(0));
+        });
+        assert!(overflowed);
+        assert_eq!(used, 10);
     }
 
     #[test]

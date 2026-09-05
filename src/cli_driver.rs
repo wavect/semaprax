@@ -516,6 +516,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             .map_err(|errors| report(&errors, false))
         }
+        CommandId::Service => {
+            let options = cli::service::parse(&args[1..])?;
+            cli::service::run(options, |errors| report(errors, false))
+        }
         CommandId::ServeImage
         | CommandId::ServeCandidates
         | CommandId::ServeTestCandidates

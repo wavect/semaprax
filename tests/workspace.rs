@@ -24,6 +24,8 @@ mod canonical_revision;
 mod graph_phase_a_surface;
 #[path = "workspace/persistent_incremental_semantic_service.rs"]
 mod persistent_incremental_semantic_service;
+#[path = "workspace/persistent_semantic_service_transport.rs"]
+mod persistent_semantic_service_transport;
 #[path = "workspace/semantic_change.rs"]
 mod semantic_change;
 #[path = "workspace/semantic_graph.rs"]

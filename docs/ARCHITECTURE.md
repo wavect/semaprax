@@ -594,6 +594,18 @@ MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
 [Persistent Incremental Semantic Service
 v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
 
+`src/semantic_service_transport.rs` owns the bounded JSON-RPC-lines adapter
+over one retained semantic service. It admits a closed seven-method lifecycle,
+wraps exact query, transaction, work, and refresh artifacts, and accepts only
+caller-owned canonical manifest/source bytes for refresh. `src/cli/service.rs`
+authenticates one explicitly selected Project at startup and serves that
+session on standard input/output. The transport is single-process and
+single-client; it has no path selection after startup, socket, MCP/LSP,
+watcher, durable store, concurrency, source write, execution, commit, or
+publication authority. Frozen Project Agent Transport v5 and its
+`serve-workspace`/MCP adapters remain separate. See [Persistent Semantic
+Workspace Service Transport v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md).
+
 `src/cli/query.rs` and `src/cli/change.rs` own the read-only one-shot Universal
 Semantic Workflow CLI v1 adapter. The Project-only `query` subcommands construct
 one of the five canonical Universal Semantic Query operations and print its

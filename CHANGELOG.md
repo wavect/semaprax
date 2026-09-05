@@ -74,6 +74,15 @@ format: `Unreleased` then release buckets, grouped by impact.
   exact ruleset request. The ruleset is a proposal: no repository setting,
   ruleset, membership, credential or branch permission was changed, and no
   required check is in force.
+- Added Persistent Semantic Workspace Service Transport v1 and the
+  `semaprax service <project>` adapter. One authenticated Project and one
+  incremental semantic service remain alive across bounded JSON-RPC-lines
+  query, transaction-validation, and caller-owned refresh requests; failed or
+  stale refresh rolls back before the in-memory generation/cache CAS. Four
+  focused Workspace-harness cases are authored and local execution is pending.
+  This is a single-client local stdio process, not MCP/LSP, a socket, daemon,
+  durable/shared state, source writer, execution service, or authority broker;
+  frozen Project Agent Transport v5 remains separate and unchanged.
 
 - Added `semaprax.network-fixture.v3` as an ordered, bounded HTTPS
   request/response replay carrier. V1 and v2 reject the new member, URL or

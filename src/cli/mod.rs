@@ -28,6 +28,7 @@ pub(crate) mod query;
 pub(crate) mod resolve;
 pub(crate) mod retention_metadata;
 pub(crate) mod semantic_cache;
+pub(crate) mod service;
 pub(crate) mod skills;
 pub(crate) mod verify;
 pub(crate) mod version;

@@ -113,6 +113,7 @@ pub mod semantic_retention;
 pub mod semantic_retention_lifecycle;
 pub mod semantic_retention_registry;
 pub mod semantic_retention_store;
+pub mod semantic_service_transport;
 pub mod semantic_trace;
 pub mod simd_report;
 pub mod static_protocol;

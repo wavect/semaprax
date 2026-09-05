@@ -96,6 +96,7 @@ Audience: all documentation readers.
 - [Universal Semantic Transaction Composition v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md)
 - [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md)
 - [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md)
+- [Persistent Semantic Workspace Service Transport v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md)
 - [Universal Semantic Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md)
 - [Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md)
 - [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md)

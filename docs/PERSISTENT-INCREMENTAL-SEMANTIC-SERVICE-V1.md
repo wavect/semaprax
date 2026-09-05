@@ -86,6 +86,12 @@ authority boundary. They are library calls, not a service wire route.
 The one-shot workflow CLI invokes these library calls but does not retain
 service state after the command.
 
+The additive [Persistent Semantic Workspace Service Transport
+v1](PERSISTENT-SEMANTIC-SERVICE-TRANSPORT-V1.md) now exposes one retained core
+through a bounded single-client stdio process. That separately specified
+adapter does not change this core or turn its in-memory state into durable,
+shared, MCP, or LSP service state.
+
 Snapshots are suitable for caller-coordinated concurrent read-only use. V1
 does not provide a scheduler, worker pool, request cancellation, fairness,
 transport ordering, or simultaneous refresh API.

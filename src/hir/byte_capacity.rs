@@ -801,3 +801,6 @@ pub(crate) fn analyze_byte_data_capacity(
     crate::byte_data_capacity::analyze(&inputs)
         .map_err(|error| Diagnostic::io(error.diagnostic.code(), error.to_string()))
 }
+
+#[cfg(test)]
+mod tests;

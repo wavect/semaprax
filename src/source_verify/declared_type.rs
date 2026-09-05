@@ -773,3 +773,6 @@ pub(super) fn check_record_pattern(
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -759,3 +759,6 @@ pub(super) fn owned_byte_prelude_instance_is_admitted(name: &str, arguments: &[T
             | ("Result", [Type::I64 | Type::Bool, Type::Bytes])
     )
 }
+
+#[cfg(test)]
+mod tests;

@@ -1087,3 +1087,6 @@ pub(crate) fn workspace_call_sites(
     }
     sites
 }
+
+#[cfg(test)]
+mod tests;

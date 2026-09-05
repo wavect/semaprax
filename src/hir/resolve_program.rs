@@ -854,3 +854,6 @@ impl Resolver<'_> {
         self.resolve_type(ty, span)
     }
 }
+
+#[cfg(test)]
+mod tests;

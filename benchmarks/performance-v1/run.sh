@@ -49,4 +49,4 @@ python3 "$SUITE/run.py" --output "$OUTPUT" ${FORWARD[@]+"${FORWARD[@]}"}
 echo ""
 echo "Done. Results:"
 ls -lh "$OUTPUT"
-python3 -m json.tool "$OUTPUT" | head -n 60
+python3 -m json.tool "$OUTPUT" | sed -n '1,60p'

@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 const RELEASE_BLOCKERS: &[&str] = &[
     "supply-chain",
@@ -87,7 +88,7 @@ fn desktop_product_is_an_exact_dedicated_release_blocker() {
 }
 
 #[test]
-fn release_gate_is_default_success_over_the_complete_blocker_set() {
+fn release_gate_fails_closed_over_the_complete_blocker_set() {
     let workflow = workflow();
     let release = job(&workflow, "release-gate");
     let needs = release
@@ -114,18 +115,31 @@ fn release_gate_is_default_success_over_the_complete_blocker_set() {
     );
     for exact in [
         "name: Release gate",
-        "if: ${{ success() }}",
+        // `success()` would skip this job whenever a blocker did not succeed,
+        // and GitHub counts a skipped check run as a satisfied required status
+        // check. The gate must run unconditionally and decide in the script.
+        "if: ${{ always() }}",
         "runs-on: ubuntu-24.04",
         "timeout-minutes: 5",
         "Confirm every release blocker passed",
+        "SEMAPRAX_CI_NEEDS: ${{ toJSON(needs) }}",
+        "--sha \"${{ github.sha }}\"",
+        "--head-sha \"$(git rev-parse HEAD)\"",
     ] {
         assert!(
             release.contains(exact),
             "release gate lost contract: {exact}"
         );
     }
+    assert!(
+        release.contains(&format!(
+            "python3 scripts/ci-required-checks.py \\\n            --min-jobs {} \\\n",
+            RELEASE_BLOCKERS.len()
+        )),
+        "release gate must aggregate exactly its declared blocker count"
+    );
     for forbidden in [
-        "always()",
+        "success()",
         "failure()",
         "cancelled()",
         "continue-on-error",
@@ -171,4 +185,128 @@ fn existing_core_matrix_and_global_authority_remain_bounded() {
             );
         }
     }
+}
+
+/// Every top-level job identifier declared under `jobs:`, in declaration order.
+fn workflow_jobs(workflow: &str) -> Vec<String> {
+    workflow
+        .split_once("\njobs:\n")
+        .expect("workflow must declare jobs")
+        .1
+        .lines()
+        .filter_map(|line| {
+            let name = line.strip_prefix("  ")?.strip_suffix(':')?;
+            (!name.is_empty()
+                && name
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-'))
+            .then(|| name.to_owned())
+        })
+        .collect()
+}
+
+/// A new job must be wired into the gate. Deriving the inventory from the
+/// workflow, rather than restating it, is what makes a *missing* shard --
+/// present in CI but absent from `needs` -- a local test failure instead of a
+/// silently narrower aggregate.
+#[test]
+fn every_job_that_is_not_a_tag_only_release_step_is_a_release_blocker() {
+    const TAG_ONLY: [&str; 3] = ["release-gate", "release-artifacts", "publish-release"];
+    let workflow = workflow();
+    let jobs = workflow_jobs(&workflow);
+
+    assert_eq!(
+        jobs.len(),
+        RELEASE_BLOCKERS.len() + TAG_ONLY.len(),
+        "unexpected CI job inventory: {jobs:?}"
+    );
+    let blocking: Vec<&str> = jobs
+        .iter()
+        .map(String::as_str)
+        .filter(|job| !TAG_ONLY.contains(job))
+        .collect();
+    assert_eq!(
+        blocking, RELEASE_BLOCKERS,
+        "every non-release job must be a declared release blocker"
+    );
+}
+
+/// Exercises the gate's verdict directly over synthetic `needs` contexts. The
+/// hosted behaviour this pins cannot be observed from reading the workflow.
+const GATE_VERDICTS: &str = r#"
+import contextlib
+import io
+import json
+import runpy
+
+gate = runpy.run_path('scripts/ci-required-checks.py')
+verdict = gate['failures']
+SHA = 'a' * 40
+OTHER = 'b' * 40
+
+green = {f'job-{index}': {'result': 'success'} for index in range(16)}
+assert verdict(green, 16, SHA, SHA) == []
+
+# A blocker that failed, was skipped, or was cancelled is never success. GitHub
+# reports the last two on an aggregate that used `if: success()`.
+for result in ('failure', 'skipped', 'cancelled', None, '', 'Success'):
+    broken = dict(green, **{'job-7': {'result': result}})
+    assert verdict(broken, 16, SHA, SHA) == [
+        f"upstream job 'job-7' result is {result!r}, not 'success'"
+    ], (result, verdict(broken, 16, SHA, SHA))
+malformed = dict(green, **{'job-7': 'success'})
+assert verdict(malformed, 16, SHA, SHA) == [
+    "upstream job 'job-7' result is None, not 'success'"
+]
+
+# A missing shard: green, but fewer jobs than the gate aggregates.
+missing = dict(green)
+del missing['job-3']
+assert any('expected at least 16' in reason for reason in verdict(missing, 16, SHA, SHA))
+# An emptied `needs:` must not pass vacuously.
+assert any('expected at least 16' in reason for reason in verdict({}, 16, SHA, SHA))
+assert any('at least one job' in reason for reason in verdict(green, 0, SHA, SHA))
+
+# Results belonging to another commit.
+assert verdict(green, 16, SHA, OTHER) == [
+    f'gate ran on checked-out commit {OTHER}, not the reported commit {SHA}'
+]
+for bad in ('HEAD', '', SHA.upper(), SHA[:39]):
+    assert any('hexadecimal commit' in reason for reason in verdict(green, 16, bad, SHA))
+assert any('JSON object' in reason for reason in verdict([], 16, SHA, SHA))
+
+# main() reads the context from the environment and never from argv.
+arguments = ['--min-jobs', '16', '--sha', SHA, '--head-sha', SHA]
+log = io.StringIO()
+with contextlib.redirect_stderr(log):
+    assert gate['main'](arguments, {}) == 1
+    assert gate['main'](arguments, {'SEMAPRAX_CI_NEEDS': 'not json'}) == 1
+    assert gate['main'](arguments, {'SEMAPRAX_CI_NEEDS': json.dumps(broken)}) == 1
+assert 'SEMAPRAX_CI_NEEDS must carry toJSON(needs)' in log.getvalue()
+assert 'is not valid JSON' in log.getvalue()
+assert "result is 'Success', not 'success'" in log.getvalue()
+
+passed = io.StringIO()
+with contextlib.redirect_stdout(passed):
+    assert gate['main'](arguments, {'SEMAPRAX_CI_NEEDS': json.dumps(green)}) == 0
+assert passed.getvalue() == f'release gate: 16 upstream jobs succeeded at {SHA}\n'
+print('gate verdicts checked')
+"#;
+
+#[test]
+fn aggregate_gate_rejects_failed_skipped_cancelled_missing_and_foreign_results() {
+    let output = Command::new("python3")
+        .args(["-B", "-c", GATE_VERDICTS])
+        .current_dir(Path::new(env!("CARGO_MANIFEST_DIR")))
+        .output()
+        .expect("python3 must run the aggregate gate");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "gate verdicts checked"
+    );
 }

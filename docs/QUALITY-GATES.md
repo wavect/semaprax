@@ -303,6 +303,14 @@ Hosted claims require the exact workflow jobs named by the owning
 specification. A prior-head run is historical evidence only. A diagnostic or
 allowed-failure job is not a passing promotion gate.
 
+A cancelled run is neither. The `Release gate` job aggregates every CI blocker
+and fails, rather than skipping, when any of them failed, was skipped, was
+cancelled, is missing from its dependency set, or reported against another
+commit; [required CI checks](CI-REQUIRED-CHECKS-V1.md) owns that gate's contract
+and the unapplied repository-rule proposal that would make it a required check
+for `main`. No branch rule is in force today, so a green gate is evidence about
+a commit, not a precondition that any commit had to meet.
+
 The current released baseline is annotated tag `v0.2.0` at exact commit
 `5f6fb9655fdec92c57ab71615cfd7bfa8cc76051`. All 45 jobs in
 [tag run 33608662244](https://github.com/wavect/semaprax/actions/runs/33608662244)

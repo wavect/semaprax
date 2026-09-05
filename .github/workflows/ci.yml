@@ -1081,7 +1081,12 @@ jobs:
 
   release-gate:
     name: Release gate
-    if: ${{ success() }}
+    # A default or conditional guard would leave this job *skipped* whenever a
+    # blocker did not pass, and GitHub counts a `skipped` check run as a
+    # *passing* required status check -- green in exactly the case the gate
+    # exists to catch. The job therefore always runs and decides explicitly in
+    # the step below; see docs/CI-REQUIRED-CHECKS-V1.md.
+    if: ${{ always() }}
     needs:
       - supply-chain
       - component-runtime-v3
@@ -1102,8 +1107,20 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
       - name: Confirm every release blocker passed
-        run: echo "all release-blocking CI jobs passed"
+        env:
+          SEMAPRAX_CI_NEEDS: ${{ toJSON(needs) }}
+        run: |
+          python3 scripts/ci-required-checks.py \
+            --min-jobs 16 \
+            --sha "${{ github.sha }}" \
+            --head-sha "$(git rev-parse HEAD)"
 
   release-artifacts:
     name: Release artifact (${{ matrix.target }})

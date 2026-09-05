@@ -57,6 +57,19 @@ format: `Unreleased` then release buckets, grouped by impact.
   error with status 0, or a verified record with status 1 is a check failure
   that retains the previously published diagnostics instead of clearing them.
 
+- Made the `Release gate` CI aggregate fail closed. It ran under
+  `if: ${{ success() }}`, which skips the job whenever a blocker did not
+  succeed, and GitHub scores a skipped check run as a satisfied required status
+  check. It now always runs and asserts every `needs` result through
+  `scripts/ci-required-checks.py`, rejecting failed, skipped, cancelled,
+  malformed, vacuously empty, and foreign-commit inputs; a local test drives
+  those cases and a second derives the blocker inventory from the workflow so a
+  new job cannot escape the aggregate. Added
+  [Required CI checks v1](docs/CI-REQUIRED-CHECKS-V1.md) recording the observed
+  unprotected `main`, the branch-scope, bypass and recovery policy, and the
+  exact ruleset request. The ruleset is a proposal: no repository setting,
+  ruleset, membership, credential or branch permission was changed, and no
+  required check is in force.
 - Added `semaprax.network-fixture.v3` as an ordered, bounded HTTPS
   request/response replay carrier. V1 and v2 reject the new member, URL or
   response mismatches do not consume queue entries, and hosted `https_get`

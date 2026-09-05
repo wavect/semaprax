@@ -305,6 +305,7 @@ Audience: all documentation readers.
 - [Completion matrix](COMPLETION-MATRIX.md)
 - [Architecture](ARCHITECTURE.md)
 - [Quality gates](QUALITY-GATES.md)
+- [Required CI checks](CI-REQUIRED-CHECKS-V1.md)
 - [Release process and tag evidence](RELEASE-PROCESS.md)
 - [Roadmap](ROADMAP.md)
 - [Protocol migrations](MIGRATIONS.md)

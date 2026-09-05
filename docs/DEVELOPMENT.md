@@ -185,6 +185,12 @@ For documentation-only changes, the routed gate still checks formatting,
 examples, rustdoc, and local links. See [Quality gates](QUALITY-GATES.md) for
 profiles and change-specific evidence ownership.
 
+Nothing in the remote repository enforces these gates: `main` carries no branch
+protection and no ruleset, so a local run is the only thing standing between a
+change and `main`. [Required CI checks](CI-REQUIRED-CHECKS-V1.md) records that
+configuration, the fail-closed `Release gate` aggregate, and the unapplied
+proposal that would require it.
+
 When several worktrees build on one machine, give each its own target
 directory and keep debug data out of it:
 

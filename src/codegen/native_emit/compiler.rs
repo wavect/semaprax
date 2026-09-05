@@ -30,6 +30,21 @@ pub(in crate::codegen) fn write_compile_and_publish_c(
     write_compile_and_publish_c_with_libraries(c_source, output, native_command, &[])
 }
 
+/// Bounded Language Network I/O v1 owns a resolver worker wherever POSIX
+/// threads exist, so its translation unit links the platform thread library.
+/// No other native command profile does, and the `_WIN32` branch of that
+/// runtime has no worker and no such dependency.
+pub(in crate::codegen) fn write_compile_and_publish_c_with_threads(
+    c_source: &str,
+    output: &mut File,
+) -> Result<(), Diagnostic> {
+    #[cfg(not(windows))]
+    let libraries: &[&str] = &["pthread"];
+    #[cfg(windows)]
+    let libraries: &[&str] = &[];
+    write_compile_and_publish_c_with_libraries(c_source, output, true, libraries)
+}
+
 pub(in crate::codegen) fn write_compile_and_publish_c_with_curl(
     c_source: &str,
     output: &mut File,

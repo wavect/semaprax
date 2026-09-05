@@ -22,6 +22,25 @@ format: `Unreleased` then release buckets, grouped by impact.
   execution remain unchanged or unclaimed; the required Linux step is authored
   but has not yet produced hosted evidence.
 
+- Bounded native C11 name resolution by the same aggregate operation deadline
+  as the rest of the operation. A numeric endpoint is answered under
+  `AI_NUMERICHOST` with no name service, no budget and no worker; a name is
+  resolved on a POSIX-thread worker the emitted translation unit owns, waits
+  only for what is left of the deadline, and leaves an abandoned worker
+  registered, joined and freed by the next reap or by settlement rather than
+  detached — the same model as the Rust `SystemResolver`, and the same
+  non-claim: this bounds waiting, not `getaddrinfo`, which POSIX cannot cancel.
+  A host may now select a shorter native deadline by defining
+  `SPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1`, clamped to the fixed maximum.
+  Four executed native gates drive an injected 300 ms name service, a spent
+  budget, an always-`EINTR` read and an interrupted-then-successful read
+  through the emitted text in milliseconds, over loopback and an `AF_UNIX`
+  socket pair with no outbound traffic; an always-interrupted whole program
+  still selects `semaprax.network.v1` code 5 under a 250 ms deadline. The
+  `_WIN32` branch is now cross-compiled where a Windows toolchain exists and
+  keeps the inline resolver; Windows execution is explicitly scoped out rather
+  than claimed.
+
 - Added deterministic grammar-driven differential compiler tests with shrinking
   as a module of the existing `scalar_status_backend_equivalence` harness. A
   seed names one module in the admitted scalar subset — nested operands,

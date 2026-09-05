@@ -7,6 +7,7 @@
 //! Cases that need clang skip cleanly when it is unavailable, like the sibling
 //! native command tests.
 
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::path::{Path, PathBuf};
@@ -99,6 +100,32 @@ fn run() -> bool
 fn main() -> i64 { 0 }
 "#;
 
+/// Connect, send, and read once with no readiness wait, so an interrupted
+/// `recv` is the only thing that can decide the outcome.
+const RECV_ONLY_SOURCE: &str = r#"
+module test.network_recv_only;
+
+permit { network.connect, network.read, network.write }
+
+@id("network-recv-only.run")
+fn run() -> bool
+    uses { network.connect, network.read, network.write }
+{
+    let host = [49u8, 50u8, 55u8, 46u8, 48u8, 46u8, 48u8, 46u8, 49u8];
+    let handle = net_connect(array_as_slice(host), __PORT__usize);
+    let request = [80u8, 73u8, 78u8, 71u8, 10u8];
+    let sent = net_send(handle, array_as_slice(request));
+    let received = net_recv(handle, 4096usize);
+    let view = bytes_as_slice(received);
+    let length = byte_len(view);
+    let closed = net_close(handle);
+    closed == 0usize && sent == 5usize && length == 0usize
+}
+
+@id("main")
+fn main() -> i64 { 0 }
+"#;
+
 /// A handle no connect issued.
 const FORGED_HANDLE_SOURCE: &str = r#"
 module test.network_forged;
@@ -132,6 +159,13 @@ fn clang_available() -> bool {
     Command::new("clang").arg("--version").output().is_ok()
 }
 
+/// A Windows cross compiler, when the machine has one.
+fn windows_cross_compiler() -> Option<&'static str> {
+    ["x86_64-w64-mingw32-gcc", "i686-w64-mingw32-gcc"]
+        .into_iter()
+        .find(|tool| Command::new(tool).arg("--version").output().is_ok())
+}
+
 struct Compiled {
     source: PathBuf,
     executable: PathBuf,
@@ -149,7 +183,10 @@ impl Compiled {
             std::env::temp_dir().join(format!("{stem}{}", std::env::consts::EXE_SUFFIX));
         std::fs::write(&source, generated).unwrap();
         let compiled = Command::new("clang")
-            .args(["-std=c11", "-Wall", "-Wextra", "-Werror"])
+            // The network profile owns a resolver worker where POSIX threads
+            // exist, so the profile's translation unit links the platform
+            // thread library.
+            .args(["-std=c11", "-Wall", "-Wextra", "-Werror", "-pthread"])
             .args(extra)
             .arg(&source)
             .arg("-o")
@@ -215,17 +252,29 @@ struct HarnessOutcome {
 }
 
 fn run_harness(generated: &str, label: &str) -> HarnessOutcome {
+    run_harness_with(generated, label, "", &[])
+}
+
+/// `run_harness`, plus C appended ahead of the harness `main` and extra
+/// compiler flags. The appended text is how a case injects a fault: it lands
+/// in the same translation unit as the emitted adapter and defines the libc
+/// symbol the adapter calls, so the *shipped* text is what runs.
+fn run_harness_with(
+    generated: &str,
+    label: &str,
+    injected: &str,
+    extra: &[&str],
+) -> HarnessOutcome {
     let mut source = generated.to_owned();
+    source.push_str(injected);
     source.push_str(HARNESS_MAIN_C);
-    let compiled = Compiled::build(
-        &source,
-        label,
-        &[
-            "-O0",
-            "-DSPX_NO_LANGUAGE_COMMAND_PROCESS_ADAPTER",
-            "-Wno-unused-function",
-        ],
-    );
+    let mut flags = vec![
+        "-O0",
+        "-DSPX_NO_LANGUAGE_COMMAND_PROCESS_ADAPTER",
+        "-Wno-unused-function",
+    ];
+    flags.extend_from_slice(extra);
+    let compiled = Compiled::build(&source, label, &flags);
     let output = compiled.run();
     assert_eq!(output.status.code(), Some(0), "{output:?}");
     let newline = output
@@ -258,6 +307,47 @@ fn run_harness(generated: &str, label: &str) -> HarnessOutcome {
         code,
         stdout,
     }
+}
+
+/// Compile the emitted translation unit with an appended probe `main` and
+/// return the `key=value` fields it prints.
+///
+/// A probe calls the profile's own static helpers directly. That is deliberate:
+/// the aggregate deadline is thirty seconds, so driving a budget boundary
+/// through a whole program would mean a thirty-second test. A probe selects a
+/// short deadline instead, and reaches the boundary in milliseconds.
+fn run_probe(generated: &str, label: &str, probe: &str) -> HashMap<String, String> {
+    let mut source = generated.to_owned();
+    source.push_str(probe);
+    let compiled = Compiled::build(
+        &source,
+        label,
+        &[
+            "-O0",
+            "-DSPX_NO_LANGUAGE_COMMAND_PROCESS_ADAPTER",
+            "-Wno-unused-function",
+        ],
+    );
+    let output = compiled.run();
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let text = String::from_utf8(output.stdout).unwrap();
+    text.split_whitespace()
+        .filter_map(|entry| entry.split_once('='))
+        .map(|(key, value)| (key.to_owned(), value.to_owned()))
+        .collect()
+}
+
+fn probe_number(fields: &HashMap<String, String>, key: &str) -> u64 {
+    fields
+        .get(key)
+        .unwrap_or_else(|| panic!("probe printed no {key}: {fields:?}"))
+        .parse()
+        .unwrap_or_else(|_| panic!("probe field {key} is not a number: {fields:?}"))
 }
 
 /// Accept one connection, read exactly `request_len` bytes, write each
@@ -414,6 +504,340 @@ fn run() -> bool uses { process.stdout.write } {
             .contains("explicit stable-ID `fn () -> bool`"),
         "{not_command:?}"
     );
+}
+
+/// A numeric endpoint and a spent budget, with the platform name service
+/// untouched: the numeric answer needs neither budget nor worker, and a name
+/// is refused before any worker starts.
+const NUMERIC_RESOLUTION_PROBE_C: &str = r#"
+int main(void) {
+    struct spx_network_deadline_v1 spent;
+    spent.expires_at_millis = spx_network_monotonic_millis_v1();
+    struct addrinfo *answer = NULL;
+    bool numeric = spx_network_resolve_bounded_v1("127.0.0.1", "8080", spent, &answer);
+    if (answer != NULL) freeaddrinfo(answer);
+    uint64_t after_numeric = spx_network_reap_resolvers_v1();
+    answer = NULL;
+    bool named = spx_network_resolve_bounded_v1("localhost", "8080", spent, &answer);
+    if (answer != NULL) freeaddrinfo(answer);
+    uint64_t after_named = spx_network_reap_resolvers_v1();
+    printf(
+        "numeric=%d after_numeric=%llu named=%d after_named=%llu\n",
+        (int)numeric,
+        (unsigned long long)after_numeric,
+        (int)named,
+        (unsigned long long)after_named
+    );
+    return 0;
+}
+"#;
+
+/// A name service that always costs 300 ms. The numeric probe is refused so
+/// the owned-worker path is the one under test, and the emitted adapter's own
+/// call is what this definition answers.
+const SLOW_RESOLUTION_PROBE_C: &str = r#"
+int getaddrinfo(
+    const char *node,
+    const char *service,
+    const struct addrinfo *hints,
+    struct addrinfo **res
+) {
+    (void)node;
+    (void)service;
+    *res = NULL;
+    if (hints != NULL && (hints->ai_flags & AI_NUMERICHOST) != 0) return EAI_NONAME;
+    struct timespec nap = { 0, 300L * 1000000L };
+    (void)nanosleep(&nap, NULL);
+    return EAI_FAIL;
+}
+
+int main(void) {
+    struct spx_network_deadline_v1 deadline;
+    deadline.expires_at_millis = spx_network_monotonic_millis_v1() + UINT64_C(30);
+    uint64_t started = spx_network_monotonic_millis_v1();
+    struct addrinfo *answer = NULL;
+    bool resolved = spx_network_resolve_bounded_v1("slow.invalid", "80", deadline, &answer);
+    uint64_t elapsed = spx_network_monotonic_millis_v1() - started;
+    if (answer != NULL) freeaddrinfo(answer);
+    uint64_t owned = spx_network_reap_resolvers_v1();
+    for (int attempt = 0; attempt < 400; ++attempt) {
+        if (spx_network_reap_resolvers_v1() == UINT64_C(0)) break;
+        struct timespec nap = { 0, 10L * 1000000L };
+        (void)nanosleep(&nap, NULL);
+    }
+    printf(
+        "resolved=%d elapsed=%llu owned=%llu reaped=%llu\n",
+        (int)resolved,
+        (unsigned long long)elapsed,
+        (unsigned long long)owned,
+        (unsigned long long)spx_network_reap_resolvers_v1()
+    );
+    return 0;
+}
+"#;
+
+/// An interrupted read. A negative budget interrupts every call; a positive
+/// one interrupts that many times and then delegates to the real kernel path.
+const EINTR_READ_PROBE_C: &str = r#"
+static int spx_probe_eintr_budget = 0;
+
+ssize_t recv(int fd, void *buffer, size_t length, int flags) {
+    if (spx_probe_eintr_budget != 0) {
+        if (spx_probe_eintr_budget > 0) spx_probe_eintr_budget -= 1;
+        struct timespec nap = { 0, 20L * 1000000L };
+        (void)nanosleep(&nap, NULL);
+        errno = EINTR;
+        return (ssize_t)-1;
+    }
+    return recvfrom(fd, buffer, length, flags, NULL, NULL);
+}
+
+int main(void) {
+    int pair[2];
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, pair) != 0) return 1;
+    uint8_t buffer[8];
+    memset(buffer, 0, sizeof(buffer));
+
+    /* Interrupted forever: each retry resumes against the same deadline, so
+       the call ends when the budget is spent instead of spinning. */
+    spx_probe_eintr_budget = -1;
+    struct spx_network_deadline_v1 deadline;
+    deadline.expires_at_millis = spx_network_monotonic_millis_v1() + UINT64_C(120);
+    uint64_t started = spx_network_monotonic_millis_v1();
+    spx_net_ssize_v1 interrupted =
+        spx_network_recv_once_v1(pair[0], buffer, sizeof(buffer), 0, deadline);
+    uint64_t elapsed = spx_network_monotonic_millis_v1() - started;
+
+    /* Interrupted twice, then the real read: the same deadline covers both
+       retries and the payload arrives intact. */
+    spx_probe_eintr_budget = 2;
+    if (write(pair[1], "pong", (size_t)4) != (ssize_t)4) return 1;
+    struct spx_network_deadline_v1 resumed_deadline;
+    resumed_deadline.expires_at_millis = spx_network_monotonic_millis_v1() + UINT64_C(2000);
+    uint64_t resumed_started = spx_network_monotonic_millis_v1();
+    spx_net_ssize_v1 resumed =
+        spx_network_recv_once_v1(pair[0], buffer, sizeof(buffer), 0, resumed_deadline);
+    uint64_t resumed_elapsed = spx_network_monotonic_millis_v1() - resumed_started;
+
+    printf(
+        "interrupted=%d elapsed=%llu resumed=%d resumed_elapsed=%llu payload=%s\n",
+        (int)interrupted,
+        (unsigned long long)elapsed,
+        (int)resumed,
+        (unsigned long long)resumed_elapsed,
+        (const char *)buffer
+    );
+    (void)close(pair[0]);
+    (void)close(pair[1]);
+    return 0;
+}
+"#;
+
+/// Every read reports `EINTR`, so only the aggregate deadline can end the
+/// operation and only one status can be selected.
+const ALWAYS_EINTR_RECV_C: &str = r#"
+ssize_t recv(int fd, void *buffer, size_t length, int flags) {
+    (void)fd;
+    (void)buffer;
+    (void)length;
+    (void)flags;
+    struct timespec nap = { 0, 5L * 1000000L };
+    (void)nanosleep(&nap, NULL);
+    errno = EINTR;
+    return (ssize_t)-1;
+}
+"#;
+
+/// A numeric endpoint consults no name service, so it needs no budget and no
+/// worker; a name under a spent budget is refused before a worker starts.
+/// This mirrors the two `SystemResolver` cases in the Rust provider.
+#[test]
+fn native_numeric_resolution_needs_no_budget_and_no_worker() {
+    if !clang_available() {
+        return;
+    }
+    let program = resolved(&with_port(STREAM_SOURCE, 8080), "network-stream.spx");
+    let generated = codegen::emit_hir_c_with_network_io(&program, "network-stream.run").unwrap();
+    let fields = run_probe(&generated, "numeric-resolution", NUMERIC_RESOLUTION_PROBE_C);
+    assert_eq!(probe_number(&fields, "numeric"), 1, "{fields:?}");
+    assert_eq!(probe_number(&fields, "after_numeric"), 0, "{fields:?}");
+    assert_eq!(
+        probe_number(&fields, "named"),
+        0,
+        "a spent budget must refuse a name: {fields:?}"
+    );
+    assert_eq!(
+        probe_number(&fields, "after_named"),
+        0,
+        "a refused name must start no worker: {fields:?}"
+    );
+}
+
+/// Name resolution is inside the aggregate deadline: a resolver that takes
+/// 300 ms under a 30 ms budget ends the wait at the budget, and the worker it
+/// left behind is owned and reaped rather than detached.
+#[test]
+fn native_slow_name_resolution_ends_at_the_budget_and_leaves_an_owned_worker() {
+    if !clang_available() {
+        return;
+    }
+    let program = resolved(&with_port(STREAM_SOURCE, 8080), "network-stream.spx");
+    let generated = codegen::emit_hir_c_with_network_io(&program, "network-stream.run").unwrap();
+    let fields = run_probe(&generated, "slow-resolution", SLOW_RESOLUTION_PROBE_C);
+    assert_eq!(
+        probe_number(&fields, "resolved"),
+        0,
+        "a resolver slower than the budget must not answer: {fields:?}"
+    );
+    assert!(
+        probe_number(&fields, "elapsed") < 250,
+        "the caller must stop waiting at its budget, not at the resolver's \
+         300 ms cost: {fields:?}"
+    );
+    assert_eq!(
+        probe_number(&fields, "owned"),
+        1,
+        "an abandoned resolver worker must stay owned, never detached: {fields:?}"
+    );
+    assert_eq!(
+        probe_number(&fields, "reaped"),
+        0,
+        "an owned resolver worker must be joined and freed: {fields:?}"
+    );
+}
+
+/// `EINTR` re-slices the same deadline rather than restarting it, so an always
+/// interrupted read ends at the budget, and an interrupted-then-successful
+/// read still delivers its payload.
+#[test]
+fn native_interrupted_reads_resume_against_the_same_deadline() {
+    if !clang_available() {
+        return;
+    }
+    let program = resolved(&with_port(RECV_SOURCE, 8080), "network-recv.spx");
+    let generated = codegen::emit_hir_c_with_network_io(&program, "network-recv.run").unwrap();
+    let fields = run_probe(&generated, "eintr-read", EINTR_READ_PROBE_C);
+    assert_eq!(
+        fields.get("interrupted").map(String::as_str),
+        Some("-1"),
+        "{fields:?}"
+    );
+    let elapsed = probe_number(&fields, "elapsed");
+    assert!(
+        (100..2_000).contains(&elapsed),
+        "an always interrupted read must end at its 120 ms budget, neither \
+         instantly nor by spinning: {fields:?}"
+    );
+    assert_eq!(
+        fields.get("resumed").map(String::as_str),
+        Some("4"),
+        "two interruptions must not lose the payload: {fields:?}"
+    );
+    assert_eq!(fields.get("payload").map(String::as_str), Some("pong"));
+    assert!(
+        probe_number(&fields, "resumed_elapsed") < 2_000,
+        "the resumed read stayed inside its own budget: {fields:?}"
+    );
+}
+
+/// The same failure is selected however often the read is interrupted: the
+/// operation ends at the selected aggregate deadline with the network
+/// domain's transfer failure, not with a different status and not after the
+/// default thirty seconds.
+#[test]
+fn native_interrupted_reads_select_the_same_failure_under_a_short_deadline() {
+    if !clang_available() {
+        return;
+    }
+    let (port, server) = spawn_server(5, Vec::new());
+    let program = resolved(&with_port(RECV_ONLY_SOURCE, port), "network-recv-only.spx");
+    let generated = codegen::emit_hir_c_with_network_io(&program, "network-recv-only.run").unwrap();
+    let started = std::time::Instant::now();
+    let outcome = run_harness_with(
+        &generated,
+        "eintr-status",
+        ALWAYS_EINTR_RECV_C,
+        &["-DSPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1=250"],
+    );
+    let elapsed = started.elapsed();
+    assert_eq!(server.join().unwrap(), b"PING\n");
+    assert!(outcome.ok);
+    assert!(!outcome.success);
+    assert_eq!(outcome.domain, "semaprax.network.v1");
+    assert_eq!(outcome.code, 5, "TRANSFER_FAILED");
+    assert!(outcome.stdout.is_empty());
+    assert!(
+        elapsed < Duration::from_secs(20),
+        "a selected 250 ms deadline must bound the run, not the 30 s default: \
+         {elapsed:?}"
+    );
+}
+
+/// The project route publishes a network-profile executable, so the emitted
+/// translation unit's resolver worker must actually link. This is a build and
+/// link fact only: nothing here executes the published program, and no name is
+/// resolved.
+#[test]
+fn network_profile_project_publishes_a_linked_native_executable() {
+    if !clang_available() {
+        return;
+    }
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("examples/network-http-project")
+        .join("semaprax.toml");
+    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+    let directory = std::env::temp_dir().join(format!(
+        "semaprax-network-project-{}-{id}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&directory).unwrap();
+    let executable = directory.join(format!("program{}", std::env::consts::EXE_SUFFIX));
+    let built = semaprax::project::with_authenticated_project(&manifest, |snapshot| {
+        snapshot.build_native(&executable)
+    });
+    let published = executable.is_file();
+    let _ = std::fs::remove_dir_all(&directory);
+    built.unwrap();
+    assert!(published, "the network project published no executable");
+}
+
+/// The `_WIN32` branch is a *compile* check and nothing more. No Windows host
+/// runs here, so Bounded Language Network I/O v1 scopes Windows execution out
+/// explicitly; cross-compiling the branch where a Windows toolchain exists
+/// keeps its Winsock deadline path from rotting unobserved. The process
+/// adapter is POSIX by construction and is excluded, exactly as the status
+/// harness excludes it.
+#[test]
+fn native_win32_branch_cross_compiles_where_a_windows_toolchain_exists() {
+    let Some(compiler) = windows_cross_compiler() else {
+        return;
+    };
+    let program = resolved(&with_port(STREAM_SOURCE, 8080), "network-stream.spx");
+    let generated = codegen::emit_hir_c_with_network_io(&program, "network-stream.run").unwrap();
+    let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+    let stem = format!("semaprax-network-win32-{}-{id}", std::process::id());
+    let source = std::env::temp_dir().join(format!("{stem}.c"));
+    let object = std::env::temp_dir().join(format!("{stem}.o"));
+    std::fs::write(&source, &generated).unwrap();
+    let compiled = Command::new(compiler)
+        .args([
+            "-std=c11",
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-Wno-unused-function",
+            "-DSPX_NO_LANGUAGE_COMMAND_PROCESS_ADAPTER",
+            "-c",
+        ])
+        .arg(&source)
+        .arg("-o")
+        .arg(&object)
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&compiled.stderr).into_owned();
+    let _ = std::fs::remove_file(&source);
+    let _ = std::fs::remove_file(&object);
+    assert!(compiled.status.success(), "{compiler}: {stderr}");
 }
 
 #[test]

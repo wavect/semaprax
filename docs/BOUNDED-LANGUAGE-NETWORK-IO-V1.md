@@ -106,13 +106,39 @@ accounted for. Nothing here promises cancellation a selected host cannot
 enforce.
 
 The generated native C11 adapter carries the same aggregate deadline on a
-monotonic clock across candidate addresses, partial writes, retried reads, and
-readiness waits, and derives each per-syscall timeout from what is left.
-`getaddrinfo` itself is the one step it cannot bound: the C11 adapter has no
-owned resolver worker, so a native program's connect may still block in the
-platform resolver before its deadline arithmetic begins. That gap is stated,
-not closed, and the native adapter's resolution bound must not be described as
-equivalent to the Rust seam's.
+monotonic clock across name resolution, candidate addresses, partial writes,
+retried reads, and readiness waits, and derives each per-syscall timeout from
+what is left. Its default budget is the fixed safe maximum; a host may select a
+shorter one by defining `SPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1` when it
+compiles the translation unit, and the adapter clamps every selection to the
+same maximum, so no configuration path produces an unbounded operation.
+
+Native resolution follows the Rust seam's two shapes rather than inventing a
+second model. A numeric endpoint is answered under `AI_NUMERICHOST`, which
+consults no name service, costs nothing against the budget, and starts no
+worker. A name is resolved on a POSIX-thread worker the translation unit
+*owns*: the caller waits only for what is left of the aggregate deadline, and a
+worker whose caller stopped waiting stays registered in the adapter's own
+registry, is joined and freed by the next reap or by settlement, and is never
+detached. Settlement reaps what has finished and never blocks on a resolver the
+platform will not interrupt, matching the Rust provider's `settle`.
+
+The same non-claim applies here, and more sharply. POSIX has no cancellable
+`getaddrinfo`; `getaddrinfo_a` is a glibc extension with its own thread pool and
+its own defects and exists on no other host this adapter targets, so it is not
+used. The guarantee is that the *caller* returns on time and the abandoned work
+stays accounted for, not that the platform resolver is aborted. On a host
+without POSIX threads the adapter keeps the inline resolver, and there the
+budget bounds everything except the name lookup itself; that is stated, not
+closed.
+
+**Windows is scoped out of native execution.** The `_WIN32` branch is
+cross-compiled where a Windows toolchain is available
+(`native_win32_branch_cross_compiles_where_a_windows_toolchain_exists`) and is
+never executed by any gate in this repository, so no Windows runtime behaviour
+is claimed. That branch has no owned resolver worker either: it takes the
+inline path, and a Windows-cancellable resolution (`GetAddrInfoEx` with a
+cancel handle) is unimplemented and unverified.
 
 `net_recv` follows `stdin_read` exactly: its owned result slot is initialized
 only on status zero, and each `net_recv` call site counts as one owned-byte
@@ -273,7 +299,11 @@ The fixture provider consumes one `semaprax.network-fixture.v1` document:
   compiled only when the network profile is selected; the ordinary native
   emitter for other profiles contains no socket code. Generated functions
   receive the provider through the explicit invocation context and never
-  touch descriptors directly.
+  touch descriptors directly. Where the host publishes `_POSIX_THREADS` the
+  adapter owns a resolver worker, so the network profile's translation unit
+  links the platform thread library — `-pthread` on the toolchains that need a
+  flag. No other profile does, and no generated code gains any other authority
+  from it.
 - **Wasm.** Network operations lower to synchronous, closed `env` imports
   that a host satisfies only from the fixture provider. There is no WASI
   socket import and no Node `net` binding: a Wasm program gaining real
@@ -349,6 +379,21 @@ reader, a stalled writer, a capped readiness wait, and a bounded accept. Each
 one finishes in under a second by advancing an injected clock or selecting a
 short budget, never by waiting out thirty seconds.
 
+The native adapter's own deadline behaviour is executed by the `network_io_native::`
+gate, not inferred from the Rust seam. Four cases drive the generated
+translation unit directly: a numeric endpoint resolves under a spent budget
+with no worker while a name under the same spent budget is refused before one
+starts; an injected 300 ms name service under a 30 ms budget ends the wait at
+the budget and leaves exactly one *owned* worker, which is then joined and
+freed; an injected always-`EINTR` read ends at its budget instead of spinning,
+and an interrupted-then-successful read still delivers its payload; and a whole
+program whose every read reports `EINTR` selects `semaprax.network.v1` code 5
+under a 250 ms selected deadline rather than a different status or the
+thirty-second default. Each injection defines the libc symbol the emitted
+adapter already calls, so the shipped text is what runs, and every case
+finishes in milliseconds against loopback or an `AF_UNIX` socket pair with no
+outbound traffic.
+
 The remaining gates cover the closed operation table, effect and reserved-name
 diagnostics,
 loop admission, the fixture provider's connection binding, chunk splitting,
@@ -364,7 +409,10 @@ This v1 tranche does not add TLS or certificate policy, DNS policy beyond the
 platform resolver, listen or accept sockets, UDP, HTTP/2 or HTTP/3, a
 request/response type model, structured tasks or cancellation, threads,
   callbacks, timers other than the bounded `net_wait`, connection reuse across
-invocations, proxies, or observability. Project v12, its CLI verb, and its
+invocations, proxies, or observability. A resolver worker is an adapter
+implementation detail on both the Rust and native lanes, not a language
+feature: no source program can start, observe, or name one, and no bound it
+provides is forced cancellation. Project v12, its CLI verb, and its
 npm/Web package are developer-preview fixture lanes, not TLS or public socket
 support; npm and browsers gain no real socket authority. Each later protocol
 is sequenced in the

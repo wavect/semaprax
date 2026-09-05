@@ -967,16 +967,25 @@ impl ProjectSnapshot {
                 | ProjectProfile::NetworkCommandIoV1
                 | ProjectProfile::HttpsCommandIoV1
         ) {
-            if profile == ProjectProfile::HttpsCommandIoV1 {
-                crate::codegen::compile_native_https_command_executable_into(
+            match profile {
+                ProjectProfile::HttpsCommandIoV1 => {
+                    crate::codegen::compile_native_https_command_executable_into(
+                        &prepared,
+                        destination.file(),
+                    )
+                }
+                // The network runtime owns a resolver worker, so its
+                // translation unit links the platform thread library.
+                ProjectProfile::NetworkCommandIoV1 => {
+                    crate::codegen::compile_native_network_command_executable_into(
+                        &prepared,
+                        destination.file(),
+                    )
+                }
+                _ => crate::codegen::compile_native_command_executable_into(
                     &prepared,
                     destination.file(),
-                )
-            } else {
-                crate::codegen::compile_native_command_executable_into(
-                    &prepared,
-                    destination.file(),
-                )
+                ),
             }
         } else {
             crate::codegen::compile_native_executable_into(&prepared, destination.file())

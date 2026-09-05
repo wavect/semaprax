@@ -1317,6 +1317,15 @@ pub(crate) fn compile_native_command_executable_into(
     native_emit::write_compile_and_publish_c(c_source, output, true)
 }
 
+/// The network command profile, whose translation unit links the platform
+/// thread library for its owned resolver worker.
+pub(crate) fn compile_native_network_command_executable_into(
+    c_source: &str,
+    output: &mut std::fs::File,
+) -> Result<(), Diagnostic> {
+    native_emit::write_compile_and_publish_c_with_threads(c_source, output)
+}
+
 pub(crate) fn compile_native_https_command_executable_into(
     c_source: &str,
     output: &mut std::fs::File,

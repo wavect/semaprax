@@ -152,7 +152,13 @@ fn emit_constants(output: &mut impl COutput) {
          #define SPX_NETWORK_WAIT_READABLE_V1 UINT64_C({wait_readable})\n\
          #define SPX_NETWORK_WAIT_CLOSED_V1 UINT64_C({wait_closed})\n\
          #define SPX_NETWORK_IO_TIMEOUT_MILLIS_V1 {io_timeout_millis}\n\
-         #define SPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1 UINT64_C({operation_deadline_millis})",
+         /* The aggregate operation deadline. A host may select a shorter one\n\
+            at compile time; `spx_network_deadline_start_v1` clamps every\n\
+            selection to SPX_NETWORK_MAX_WAIT_MILLIS_V1, so no configuration\n\
+            path produces an unbounded operation. */\n\
+         #if !defined(SPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1)\n\
+         #define SPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1 UINT64_C({operation_deadline_millis})\n\
+         #endif",
         domain = ops::STATUS_DOMAIN,
         connect_failed = ops::CONNECT_FAILED,
         invalid_endpoint = ops::INVALID_ENDPOINT,
@@ -210,6 +216,15 @@ typedef size_t spx_net_len_v1;
 #define SPX_NET_SEND_FLAGS_V1 MSG_NOSIGNAL
 #else
 #define SPX_NET_SEND_FLAGS_V1 0
+#endif
+/* An owned resolver worker exists exactly where POSIX threads do. <unistd.h>
+   above publishes _POSIX_THREADS on a conforming host; a host without it keeps
+   the inline resolver and the stated non-claim below. A translation unit that
+   takes this branch links the platform thread library (`-pthread` on the
+   toolchains that need a flag). */
+#if defined(_POSIX_THREADS)
+#define SPX_NETWORK_OWNED_RESOLVER_V1 1
+#include <pthread.h>
 #endif
 #endif
 
@@ -331,9 +346,12 @@ static __attribute__((unused)) uint64_t spx_network_monotonic_millis_v1(void) {
 }
 
 static __attribute__((unused)) struct spx_network_deadline_v1 spx_network_deadline_start_v1(void) {
+    /* A selection above the fixed safe maximum is clamped rather than refused,
+       exactly as the Rust provider clamps a caller's budget. */
+    uint64_t budget = SPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1;
+    if (budget > SPX_NETWORK_MAX_WAIT_MILLIS_V1) budget = SPX_NETWORK_MAX_WAIT_MILLIS_V1;
     struct spx_network_deadline_v1 deadline;
-    deadline.expires_at_millis =
-        spx_network_monotonic_millis_v1() + SPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1;
+    deadline.expires_at_millis = spx_network_monotonic_millis_v1() + budget;
     return deadline;
 }
 
@@ -357,6 +375,209 @@ static __attribute__((unused)) bool spx_network_deadline_slice_v1(
     if (remaining == UINT64_C(0)) return false;
     *slice_out = remaining;
     return true;
+}
+
+/* Name resolution inside the aggregate deadline.
+ *
+ * POSIX has no cancellable getaddrinfo. `getaddrinfo_a` is a glibc extension
+ * with its own thread pool and its own defects and exists on no other host
+ * this adapter targets, so it is not used. What the adapter does instead is
+ * what the Rust provider's resolver does:
+ *
+ *   - a numeric host is answered under AI_NUMERICHOST, which consults no name
+ *     service at all, costs nothing against the budget, and starts no worker;
+ *   - a name is resolved on a worker this translation unit owns. The caller
+ *     waits only for what is left of the aggregate deadline, and a worker
+ *     whose caller stopped waiting is never detached: it stays registered
+ *     here and is joined and freed by the next reap or by settlement.
+ *
+ * Retaining a worker is not cancelling it. The guarantee is that the caller
+ * returns on time and the abandoned work stays accounted for; the platform
+ * resolver finishes whenever it finishes. Nothing here promises forced
+ * cancellation the host cannot enforce. */
+#if defined(SPX_NETWORK_OWNED_RESOLVER_V1)
+
+/* One outstanding worker per admitted handle is the whole budget. */
+#define SPX_NETWORK_MAX_RESOLVER_WORKERS_V1 SPX_NETWORK_MAX_HANDLES_V1
+
+struct spx_network_resolve_job_v1 {
+    char host[SPX_NETWORK_MAX_HOST_BYTES_V1 + 1u];
+    char port[6];
+    struct addrinfo hints;
+    /* Written once by the worker under the registry lock. */
+    struct addrinfo *answer;
+    bool finished;
+    pthread_t worker;
+};
+
+/* The registry outlives any single invocation on purpose: the runner's state
+   is a stack object it clears before returning, so a worker whose caller
+   stopped waiting must never write into it. A job is heap-owned by this
+   registry and is freed only after its worker is joined. */
+static pthread_mutex_t spx_network_resolver_lock_v1 = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t spx_network_resolver_ready_v1 = PTHREAD_COND_INITIALIZER;
+static struct spx_network_resolve_job_v1
+    *spx_network_resolver_jobs_v1[SPX_NETWORK_MAX_RESOLVER_WORKERS_V1];
+static uint64_t spx_network_resolver_registered_v1 = UINT64_C(0);
+
+static void *spx_network_resolve_worker_v1(void *argument) {
+    struct spx_network_resolve_job_v1 *job =
+        (struct spx_network_resolve_job_v1 *)argument;
+    struct addrinfo *answer = NULL;
+    if (getaddrinfo(job->host, job->port, &job->hints, &answer) != 0) {
+        answer = NULL;
+    }
+    (void)pthread_mutex_lock(&spx_network_resolver_lock_v1);
+    job->answer = answer;
+    job->finished = true;
+    (void)pthread_cond_broadcast(&spx_network_resolver_ready_v1);
+    (void)pthread_mutex_unlock(&spx_network_resolver_lock_v1);
+    return NULL;
+}
+
+/* Join and free every worker that has finished, and report how many are still
+   outstanding. Never blocks on a running worker, so settlement stays bounded.
+   Zero means no resolver work is unaccounted for. */
+static __attribute__((unused)) uint64_t spx_network_reap_resolvers_v1(void) {
+    (void)pthread_mutex_lock(&spx_network_resolver_lock_v1);
+    uint64_t kept = UINT64_C(0);
+    for (uint64_t index = UINT64_C(0);
+         index < spx_network_resolver_registered_v1; ++index) {
+        struct spx_network_resolve_job_v1 *job = spx_network_resolver_jobs_v1[index];
+        if (job == NULL) continue;
+        if (job->finished) {
+            /* The worker released the lock before exiting, so this join
+               returns immediately and never waits on the name service. */
+            (void)pthread_join(job->worker, NULL);
+            if (job->answer != NULL) freeaddrinfo(job->answer);
+            free(job);
+            continue;
+        }
+        spx_network_resolver_jobs_v1[kept] = job;
+        kept += UINT64_C(1);
+    }
+    for (uint64_t index = kept; index < spx_network_resolver_registered_v1; ++index) {
+        spx_network_resolver_jobs_v1[index] = NULL;
+    }
+    spx_network_resolver_registered_v1 = kept;
+    (void)pthread_mutex_unlock(&spx_network_resolver_lock_v1);
+    return kept;
+}
+
+#else
+
+/* No owned worker exists on this host. Reaping is then vacuous and always
+   reports nothing outstanding. */
+static __attribute__((unused)) uint64_t spx_network_reap_resolvers_v1(void) {
+    return UINT64_C(0);
+}
+
+#endif
+
+/* Resolve host_name:port_text within what is left of the aggregate deadline.
+   On success *answer_out owns a list the caller passes to freeaddrinfo. */
+static __attribute__((unused)) bool spx_network_resolve_bounded_v1(
+    const char *host_name,
+    const char *port_text,
+    struct spx_network_deadline_v1 deadline,
+    struct addrinfo **answer_out
+) {
+    if (answer_out == NULL) return false;
+    *answer_out = NULL;
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    /* A numeric endpoint consults no name service, so it costs nothing against
+       the budget and starts no worker. */
+    struct addrinfo numeric_hints = hints;
+    numeric_hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
+    struct addrinfo *numeric = NULL;
+    if (getaddrinfo(host_name, port_text, &numeric_hints, &numeric) == 0 &&
+        numeric != NULL) {
+        *answer_out = numeric;
+        return true;
+    }
+    if (numeric != NULL) freeaddrinfo(numeric);
+
+    uint64_t remaining = UINT64_C(0);
+    if (!spx_network_deadline_slice_v1(deadline, &remaining)) return false;
+#if defined(SPX_NETWORK_OWNED_RESOLVER_V1)
+    size_t host_length = strlen(host_name);
+    if (host_length > (size_t)SPX_NETWORK_MAX_HOST_BYTES_V1) return false;
+    struct spx_network_resolve_job_v1 *job =
+        (struct spx_network_resolve_job_v1 *)calloc(1, sizeof(*job));
+    if (job == NULL) return false;
+    memcpy(job->host, host_name, host_length);
+    job->host[host_length] = '\0';
+    if (snprintf(job->port, sizeof(job->port), "%s", port_text) <= 0) {
+        free(job);
+        return false;
+    }
+    job->hints = hints;
+
+    (void)pthread_mutex_lock(&spx_network_resolver_lock_v1);
+    if (spx_network_resolver_registered_v1 >= SPX_NETWORK_MAX_RESOLVER_WORKERS_V1 ||
+        pthread_create(&job->worker, NULL, spx_network_resolve_worker_v1, job) != 0) {
+        (void)pthread_mutex_unlock(&spx_network_resolver_lock_v1);
+        free(job);
+        return false;
+    }
+    /* Registered before the wait begins, so every exit below leaves the worker
+       owned rather than detached. */
+    spx_network_resolver_jobs_v1[spx_network_resolver_registered_v1] = job;
+    spx_network_resolver_registered_v1 += UINT64_C(1);
+    bool answered = false;
+    for (;;) {
+        if (job->finished) {
+            answered = true;
+            break;
+        }
+        if (!spx_network_deadline_slice_v1(deadline, &remaining)) break;
+        struct timespec wait_until;
+        memset(&wait_until, 0, sizeof(wait_until));
+        /* pthread_cond_timedwait is specified against the realtime clock. The
+           loop re-reads the monotonic budget on every wake, so a realtime step
+           can cost one extra iteration but never an unbounded wait. */
+        if (clock_gettime(CLOCK_REALTIME, &wait_until) != 0) break;
+        wait_until.tv_sec += (time_t)(remaining / UINT64_C(1000));
+        wait_until.tv_nsec += (long)((remaining % UINT64_C(1000)) * 1000000L);
+        if (wait_until.tv_nsec >= 1000000000L) {
+            wait_until.tv_sec += 1;
+            wait_until.tv_nsec -= 1000000000L;
+        }
+        (void)pthread_cond_timedwait(
+            &spx_network_resolver_ready_v1,
+            &spx_network_resolver_lock_v1,
+            &wait_until
+        );
+    }
+    struct addrinfo *answer = NULL;
+    if (answered) {
+        answer = job->answer;
+        job->answer = NULL;
+    }
+    (void)pthread_mutex_unlock(&spx_network_resolver_lock_v1);
+    /* Reap on both paths: a finished worker is joined and freed here, and an
+       abandoned one stays registered until a later reap or settlement. */
+    (void)spx_network_reap_resolvers_v1();
+    if (answer == NULL) return false;
+    *answer_out = answer;
+    return true;
+#else
+    /* No owned worker on this host: resolution runs inline and is bounded only
+       by the platform resolver. The specification records that non-claim
+       rather than promising a bound the host cannot enforce. */
+    struct addrinfo *answer = NULL;
+    if (getaddrinfo(host_name, port_text, &hints, &answer) != 0 || answer == NULL) {
+        if (answer != NULL) freeaddrinfo(answer);
+        return false;
+    }
+    *answer_out = answer;
+    return true;
+#endif
 }
 
 static __attribute__((unused)) bool spx_network_set_timeouts_v1(
@@ -508,19 +729,12 @@ static __attribute__((unused)) spx_status_token spx_host_net_connect_v1(
     if (snprintf(port_text, sizeof(port_text), "%u", (unsigned)port) <= 0) {
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_INVALID_ENDPOINT_V1);
     }
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
     /* The aggregate deadline starts before resolution, so a slow name service
-       consumes the same budget the connection attempts draw from. The C11
-       adapter cannot interrupt getaddrinfo itself: this bounds what the
-       adapter does with the answer, and the specification states that
-       non-claim rather than promising cancellation the host cannot enforce. */
+       draws down the same budget the connection attempts spend. Resolution is
+       inside the deadline, not before it. */
     struct spx_network_deadline_v1 deadline = spx_network_deadline_start_v1();
     struct addrinfo *candidates = NULL;
-    if (getaddrinfo(host_name, port_text, &hints, &candidates) != 0 || candidates == NULL) {
+    if (!spx_network_resolve_bounded_v1(host_name, port_text, deadline, &candidates)) {
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_CONNECT_FAILED_V1);
     }
     spx_net_socket_v1 connected = SPX_NET_INVALID_SOCKET_V1;
@@ -773,8 +987,13 @@ static __attribute__((unused)) spx_status_token spx_host_net_close_v1(
 }
 
 /* Settlement: every still-open socket closes regardless of the semantic
-   outcome. The runner calls this on every path before publishing anything. */
+   outcome. The runner calls this on every path before publishing anything.
+   Resolver workers are reaped here too — finished ones are joined and freed,
+   and one still inside the platform resolver stays registered rather than
+   detached, because settlement never blocks on work the host will not
+   interrupt. */
 static void spx_network_settle_v1(struct spx_network_state_v1 *state) {
+    (void)spx_network_reap_resolvers_v1();
     if (state == NULL) return;
     for (uint64_t index = UINT64_C(0); index < SPX_NETWORK_MAX_HANDLES_V1; ++index) {
         if (state->open[index]) {

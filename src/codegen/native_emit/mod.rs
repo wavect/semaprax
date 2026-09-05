@@ -36,6 +36,7 @@ use compiler::write_and_compile_c_with_runner;
 pub(super) use compiler::{
     write_and_compile_c, write_and_compile_c_with_curl, write_and_compile_c_with_mode,
     write_compile_and_publish_c, write_compile_and_publish_c_with_curl,
+    write_compile_and_publish_c_with_threads,
 };
 pub use http_io::{emit_c_with_https_io, emit_hir_c_with_https_io};
 use nested_owned::{borrowed_aggregate_byte_paths, borrowed_aggregate_path_suffix};

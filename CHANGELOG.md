@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Promoted the focused nominal record/variant rename regressions into the
+  ordinary candidate suite after correcting an invalid shadowed pattern
+  fixture; the corpus now executes owning and generic nominal renames, stable
+  member identities, immutable rejection, recovery, conservative rebase, and
+  the existing transport surface; runtime and hosted gates remain unrun.
 - Hardened `std.http.status_code` so an HTTP/1.x status code is accepted only
   when the required space before the reason phrase is present; truncated lines
   such as `HTTP/1.1 299` now return `-1` consistently on the interpreter,

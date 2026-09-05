@@ -1,6 +1,7 @@
 # Project Nominal Declaration Rename v1
 
-Status: Partial; implementation and regression evidence authored, unrun.
+Status: Partial; focused candidate and transport regression evidence executed
+locally.
 
 Audience: compiler contributors, agent builders and semantic tool authors.
 
@@ -111,11 +112,14 @@ the reference inventory. Candidate request errors retain `SPX-G225`, stale
 candidate/Project bindings `SPX-G224`, and rebase conflicts `SPX-G235`; lower
 Operations, Graph, parser and verifier diagnostics propagate unchanged.
 
-Authored, unrun evidence is in `tests/project_candidate/nominal_rename.rs`
-and `tests/image_transport_v5/nominal_rename.rs`. It covers proven local uses,
-stable identities and consumer aliases, generic/owned admitted source shapes,
-collisions, immutable failure, recovery and conservative rebase. No compiler,
-test, interpreter, application executable or long local quality gate was run.
+Focused candidate and transport evidence in
+`tests/project_candidate/nominal_rename.rs` and
+`tests/image_transport_v5/nominal_rename.rs` was executed locally. It covers
+proven local uses, stable identities and consumer aliases, generic/owned
+admitted source shapes, collisions, immutable failure, recovery, conservative
+rebase, and the existing RPC discovery and validation surface. No interpreter
+or application executable is exercised, and no long local quality gate or
+hosted run is claimed.
 Field/case renaming has a separate authored [member contract](PROJECT-MEMBER-RENAME-V1.md).
 Broader declaration kinds, general merge normalization,
 external consumer migration and executed evidence remain outstanding.

@@ -3,6 +3,11 @@
 
 use super::*;
 
+// Parsed source is capped below the private interop HIR ceiling. The synthetic
+// depth-512 HIR walkers are exercised in `hir_traversal`; source-driven census
+// tests use the deepest expression the public parser admits.
+const MAX_PARSED_EXPRESSION_DEPTH: usize = 128;
+
 #[test]
 fn typed_cleanup_retained_census_covers_long_ids_and_many_owned_roots() {
     let long = "x".repeat(128);
@@ -82,7 +87,7 @@ fn cleanup_retained_census_admits_depth_by_live_roots_with_long_identities() {
         writeln!(source, "let live{index} = identity(p{index});").unwrap();
     }
     source.push_str("let checked = value");
-    for _ in 0..510 {
+    for _ in 0..126 {
         source.push_str(" + 1");
     }
     source.push_str(";\nchecked + ");
@@ -113,7 +118,7 @@ fn cleanup_retained_census_admits_depth_by_live_roots_with_long_identities() {
     )
     .unwrap()
     .max_depth;
-    assert_eq!(depth, MAX_SEMANTIC_EXPRESSION_DEPTH);
+    assert_eq!(depth, MAX_PARSED_EXPRESSION_DEPTH);
     let canonical = crate::format::canonical(&program);
     let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
     let capacity = hir_pre_resolve_capacity(&program, canonical.len(), &mut scan).unwrap();
@@ -183,7 +188,7 @@ fn cleanup_retained_census_releases_sequential_early_move_epochs() {
             }
         }
         source.push('0');
-        for _ in 0..256 {
+        for _ in 0..126 {
             source.push_str(" + 1");
         }
         source.push_str("\n}\n@id(\"app.main\") fn main() -> i64 { 0 }\n");
@@ -384,7 +389,7 @@ fn cleanup_retained_census_joins_mutually_exclusive_owned_branches() {
         writeln!(source, "let live{index} = identity(p{index});").unwrap();
     }
     source.push_str("let checked = value");
-    for _ in 0..508 {
+    for _ in 0..124 {
         source.push_str(" + 1");
     }
     source.push_str("; checked");
@@ -396,7 +401,7 @@ fn cleanup_retained_census_joins_mutually_exclusive_owned_branches() {
         writeln!(source, "let live{index} = identity(p{index});").unwrap();
     }
     source.push_str("let checked = value");
-    for _ in 0..508 {
+    for _ in 0..124 {
         source.push_str(" + 1");
     }
     source.push_str("; checked");
@@ -417,7 +422,7 @@ fn cleanup_retained_census_joins_mutually_exclusive_owned_branches() {
         scan_ast_capacity(std::iter::once(&stress.body), &program, false, &mut scan)
             .unwrap()
             .max_depth,
-        MAX_SEMANTIC_EXPRESSION_DEPTH
+        MAX_PARSED_EXPRESSION_DEPTH
     );
     let capacity = hir_pre_resolve_capacity(&program, canonical.len(), &mut scan).unwrap();
     assert!(
@@ -517,10 +522,10 @@ fn main() -> i64 {{ 0 }}
 
     let diagnostic = hir::resolve(&guarded).unwrap_err();
     assert!(diagnostic.iter().any(|diagnostic| {
-        diagnostic.code == "SPX-H006"
+        diagnostic.code == "SPX-T258"
             && diagnostic
                 .message
-                .contains("droppable match result reached the copy-only cleanup slice")
+                .contains("aggregate-valued match arms are outside the executable match profile")
     }));
 }
 

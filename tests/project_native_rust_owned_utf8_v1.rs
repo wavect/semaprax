@@ -134,7 +134,7 @@ fn project_v10_rust_route_emits_a_distinct_mixed_safe_string_package() {
 }
 
 #[test]
-fn rust_profile_rejection_precedes_explicit_parent_creation() {
+fn unsupported_rust_profile_rejection_precedes_explicit_parent_creation() {
     let root = std::env::temp_dir().join(format!(
         "semaprax-project-rust-profile-rejection-{}-{}",
         std::process::id(),
@@ -143,12 +143,12 @@ fn rust_profile_rejection_precedes_explicit_parent_creation() {
     std::fs::create_dir_all(root.join("src")).unwrap();
     std::fs::write(
         root.join("semaprax.toml"),
-        "schema = \"semaprax.project.v1\"\nname = \"legacy\"\nentry = \"legacy.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"legacy.add\"]\ntests = [\"legacy.tests\"]\n",
+        "schema = \"semaprax.project.v2\"\nname = \"legacy\"\nversion = \"1.0.0\"\nprofile = \"useful-text-consumer.v1\"\nentry = \"legacy.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"legacy.add\"]\ntests = [\"legacy.tests\"]\n",
     )
     .unwrap();
     std::fs::write(
         root.join("src/app.spx"),
-        "module legacy.app;\n\n@id(\"legacy.add\")\nfn add(left: i64, right: i64) -> i64\n{\n    left + right\n}\n\n@id(\"legacy.app.main\")\nfn main() -> i64\n{\n    add(19, 23)\n}\n",
+        "module legacy.app;\n\n@id(\"legacy.add\")\nfn add(value: borrow str) -> i64\n{\n    str_len_bytes(value)\n}\n\n@id(\"legacy.app.main\")\nfn main() -> i64\n{\n    0\n}\n",
     )
     .unwrap();
     std::fs::write(
@@ -172,7 +172,8 @@ fn rust_profile_rejection_precedes_explicit_parent_creation() {
         .output()
         .unwrap();
     assert!(!rejected.status.success());
-    assert!(String::from_utf8_lossy(&rejected.stderr).contains("SPX-I233"));
+    let stderr = String::from_utf8_lossy(&rejected.stderr);
+    assert!(stderr.contains("SPX-J114"), "stderr was: {stderr}");
     assert!(!fixture.0.join("missing-parent").exists());
 }
 

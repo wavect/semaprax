@@ -310,7 +310,11 @@ impl Deref for CappedVec {
 mod tests {
     use std::panic::{catch_unwind, AssertUnwindSafe};
 
-    use super::{budgeted_join, with_limit, with_limit_usage, CappedString};
+    use super::{
+        active_limit, active_remaining, budgeted_clone, budgeted_format, budgeted_join,
+        clear_active_floor, reserve_active, reserve_active_preserving, set_active_floor,
+        with_limit, with_limit_usage, BudgetedJoin as _, CappedString, CappedVec,
+    };
 
     #[test]
     fn exact_limit_succeeds_and_over_limit_fails_closed() {
@@ -414,5 +418,294 @@ mod tests {
         });
         assert!(!overflowed);
         assert_eq!(used, 3);
+    }
+
+    #[test]
+    fn zero_and_one_byte_budgets_admit_only_what_fits() {
+        // A zero budget still admits an empty write: nothing is spent, so
+        // nothing overflows. The first byte is what fails.
+        let (empty, overflowed, used) = with_limit_usage(0, || {
+            let mut output = CappedString::new();
+            output.push_str("");
+            output.into_string()
+        });
+        assert_eq!(empty, "");
+        assert!(!overflowed);
+        assert_eq!(used, 0);
+
+        let (nothing, overflowed) = with_limit(0, || {
+            let mut output = CappedString::new();
+            output.push('a');
+            output.into_string()
+        });
+        assert_eq!(nothing, "");
+        assert!(overflowed);
+
+        let (one, overflowed, used) = with_limit_usage(1, || {
+            let mut output = CappedString::new();
+            output.push('a');
+            output.into_string()
+        });
+        assert_eq!(one, "a");
+        assert!(!overflowed);
+        assert_eq!(used, 1);
+
+        let (over, overflowed) = with_limit(1, || {
+            let mut output = CappedString::new();
+            output.push_str("ab");
+            output.into_string()
+        });
+        assert_eq!(over, "");
+        assert!(overflowed);
+    }
+
+    #[test]
+    fn budgets_count_bytes_and_never_split_a_code_point() {
+        // `é` is two bytes and `€` is three: a three-byte budget admits the
+        // first and must refuse the second whole rather than write a prefix
+        // of its encoding.
+        let (output, overflowed) = with_limit(3, || {
+            let mut output = CappedString::new();
+            output.push('é');
+            output.push('€');
+            output.into_string()
+        });
+        assert_eq!(output, "é");
+        assert_eq!(output.len(), 2);
+        assert!(overflowed);
+        assert_eq!(output.chars().count(), 1);
+
+        // Two characters, four bytes: the budget is spent in bytes, so a
+        // three-byte budget refuses the string outright.
+        let (output, overflowed) = with_limit(3, || {
+            let mut output = CappedString::new();
+            output.push_str("éé");
+            output.into_string()
+        });
+        assert_eq!(output, "");
+        assert!(overflowed);
+
+        // A four-byte code point does not fit a three-byte budget at all.
+        let (output, overflowed) = with_limit(3, || {
+            let mut output = CappedString::new();
+            output.push('\u{1f600}');
+            output.into_string()
+        });
+        assert_eq!(output, "");
+        assert!(overflowed);
+
+        let (output, overflowed, used) = with_limit_usage(4, || {
+            let mut output = CappedString::new();
+            output.push('\u{1f600}');
+            output.into_string()
+        });
+        assert_eq!(output, "\u{1f600}");
+        assert!(!overflowed);
+        assert_eq!(used, 4);
+    }
+
+    #[test]
+    fn capped_vec_writes_are_all_or_nothing_and_leave_the_budget_usable() {
+        let (bytes, overflowed) = with_limit(5, || {
+            let mut output = CappedVec::new();
+            // Six bytes into five: the whole slice is refused, not a prefix.
+            output.extend_from_slice(&[1, 2, 3, 4, 5, 6]);
+            assert!(output.is_empty());
+            // The refusal spent nothing, so the budget still admits writes.
+            output.extend([7, 8]);
+            output.push(9);
+            assert_eq!(output.len(), 3);
+            assert_eq!(&output[..], &[7u8, 8, 9][..]);
+            output.into_vec()
+        });
+        assert_eq!(bytes, vec![7, 8, 9]);
+        assert!(overflowed);
+
+        let (bytes, overflowed, used) =
+            with_limit_usage(3, || CappedVec::from_slice(&[1, 2, 3]).into_vec());
+        assert_eq!(bytes, vec![1, 2, 3]);
+        assert!(!overflowed);
+        assert_eq!(used, 3);
+
+        let (bytes, overflowed) = with_limit(2, || CappedVec::from_slice(&[1, 2, 3]).into_vec());
+        assert!(bytes.is_empty());
+        assert!(overflowed);
+    }
+
+    #[test]
+    fn a_floor_reserves_a_trailer_lane_without_reporting_overflow() {
+        let (_, overflowed, used) = with_limit_usage(10, || {
+            assert!(set_active_floor(6));
+            // Five bytes fit the remaining ten but would eat into the six
+            // reserved for the trailer, so the reservation is refused. That
+            // refusal is a lane boundary, not a budget overflow.
+            assert!(!reserve_active(5));
+            assert_eq!(active_remaining(), Some(10));
+            assert!(reserve_active(4));
+            assert_eq!(active_remaining(), Some(6));
+            assert!(!reserve_active(1));
+
+            clear_active_floor();
+            assert!(reserve_active(6));
+            assert_eq!(active_remaining(), Some(0));
+        });
+        assert!(!overflowed);
+        assert_eq!(used, 10);
+
+        // A floor larger than what remains is refused and leaves the previous
+        // floor in place, so the caller cannot silently arm an unsatisfiable
+        // reservation.
+        let (_, overflowed) = with_limit(10, || {
+            assert!(!set_active_floor(11));
+            assert!(reserve_active(10));
+        });
+        assert!(!overflowed);
+    }
+
+    #[test]
+    fn preserving_reservations_check_a_trailer_without_arming_the_floor() {
+        let (_, overflowed) = with_limit(7, || {
+            // Three bytes plus a five-byte trailer exceed seven, so the write
+            // is refused and nothing is spent.
+            assert!(!reserve_active_preserving(3, 5));
+            assert_eq!(active_remaining(), Some(7));
+            assert!(reserve_active_preserving(2, 5));
+            assert_eq!(active_remaining(), Some(5));
+            // The declared trailer was a per-call check, not a persistent
+            // floor: an ordinary reservation may still spend the remainder.
+            assert!(reserve_active(5));
+            assert_eq!(active_remaining(), Some(0));
+        });
+        assert!(!overflowed);
+    }
+
+    #[test]
+    fn reservations_outside_any_budget_always_succeed() {
+        assert_eq!(active_remaining(), None);
+        assert_eq!(active_limit(), None);
+        assert!(reserve_active(usize::MAX));
+        assert!(reserve_active_preserving(usize::MAX, usize::MAX));
+        assert!(set_active_floor(usize::MAX));
+        clear_active_floor();
+        assert_eq!(budgeted_clone("unbounded"), "unbounded");
+    }
+
+    #[test]
+    fn a_nested_limit_is_clamped_to_what_the_parent_has_left() {
+        let (inner, overflowed) = with_limit(5, || {
+            let mut output = CappedString::new();
+            output.push_str("ab");
+            // The child asks for a hundred bytes but may not exceed the three
+            // its parent still holds.
+            with_limit(100, || (active_limit(), active_remaining())).0
+        });
+        assert_eq!(inner, (Some(3), Some(3)));
+        assert!(!overflowed);
+
+        // The clamp is real, not merely reported: the child cannot emit more
+        // than the parent's remainder, and its refusal is reported to the
+        // child's own caller without spending parent bytes.
+        let ((child, child_overflowed), overflowed, used) = with_limit_usage(5, || {
+            let mut parent = CappedString::new();
+            parent.push_str("ab");
+            with_limit(100, || {
+                let mut output = CappedString::new();
+                output.push_str("cdef");
+                output.into_string()
+            })
+        });
+        assert_eq!(child, "");
+        assert!(child_overflowed);
+        assert!(!overflowed);
+        assert_eq!(used, 2);
+    }
+
+    #[test]
+    fn a_child_that_would_consume_the_parents_floor_fails_the_parent_closed() {
+        let (_, overflowed) = with_limit(10, || {
+            assert!(set_active_floor(8));
+            let (_, child_overflowed) = with_limit(4, || {
+                let mut output = CappedString::new();
+                output.push_str("abcd");
+            });
+            // The child stayed inside its own limit, so it reports no
+            // overflow; the parent debits the child on scope exit, discovers
+            // the bytes would eat its reserved trailer, and fails closed.
+            assert!(!child_overflowed);
+        });
+        assert!(overflowed);
+    }
+
+    #[test]
+    fn identical_input_and_budget_produce_identical_output_after_an_overflow() {
+        fn render(limit: usize) -> (String, bool) {
+            with_limit(limit, || {
+                let mut output = CappedString::new();
+                output.push_str(&budgeted_format(format_args!("{}-{}", "café", 42)));
+                output.push('!');
+                output.into_string()
+            })
+        }
+
+        let first = render(20);
+        let (partial, flagged) = render(3);
+        assert!(flagged);
+        assert!(partial.len() <= 3, "{partial:?} exceeded its budget");
+        // A prior overflow must not leave thread-local budget state behind.
+        assert_eq!(active_remaining(), None);
+        let second = render(20);
+        assert_eq!(first.0.as_bytes(), second.0.as_bytes());
+        assert_eq!(first.1, second.1);
+        assert!(!first.1);
+    }
+
+    #[test]
+    fn formatting_and_cloning_charge_exact_byte_lengths() {
+        // `café-42` is eight bytes: the accented byte counts, and the exact
+        // budget succeeds while one byte less refuses the whole string.
+        let (formatted, overflowed, used) =
+            with_limit_usage(8, || budgeted_format(format_args!("{}-{}", "café", 42)));
+        assert_eq!(formatted, "café-42");
+        assert!(!overflowed);
+        assert_eq!(used, 8);
+
+        let (formatted, overflowed) =
+            with_limit(7, || budgeted_format(format_args!("{}-{}", "café", 42)));
+        assert_eq!(formatted, "");
+        assert!(overflowed);
+
+        let (cloned, overflowed, used) = with_limit_usage(3, || budgeted_clone("abc"));
+        assert_eq!(cloned, "abc");
+        assert!(!overflowed);
+        assert_eq!(used, 3);
+
+        let (cloned, overflowed) = with_limit(2, || budgeted_clone("abc"));
+        assert_eq!(cloned, "");
+        assert!(overflowed);
+    }
+
+    #[test]
+    fn joins_charge_one_separator_fewer_than_their_elements() {
+        let (joined, overflowed, used) =
+            with_limit_usage(0, || budgeted_join(Vec::<String>::new(), ",,,,"));
+        assert_eq!(joined, "");
+        assert!(!overflowed);
+        assert_eq!(used, 0);
+
+        // A single element pays for no separator at all.
+        let (joined, overflowed, used) =
+            with_limit_usage(3, || budgeted_join(["abc".to_owned()], ",,,,"));
+        assert_eq!(joined, "abc");
+        assert!(!overflowed);
+        assert_eq!(used, 3);
+
+        let (joined, overflowed, used) = with_limit_usage(4, || ["a", "b"].budgeted_join("--"));
+        assert_eq!(joined, "a--b");
+        assert!(!overflowed);
+        assert_eq!(used, 4);
+
+        let (joined, overflowed) = with_limit(3, || ["a", "b"].budgeted_join("--"));
+        assert_eq!(joined, "");
+        assert!(overflowed);
     }
 }

@@ -391,7 +391,7 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Query,
-                shape: "query <file|project> [--kind K] [--json]",
+                shape: "query <input> [--kind K]",
                 summary: "Find declarations by kind, name, effect, call",
             },
         ],

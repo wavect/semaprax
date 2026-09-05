@@ -12,6 +12,7 @@ const { Repairs, validateCandidateHandle } = require('./repairs');
 const { CandidateTestTask, METHODS: TEST_TASK_METHODS } = require('./tasks');
 const checks = require('./diagnostics');
 const navigation = require('./navigation');
+const { SourceIndex } = require('./positions');
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -35,9 +36,26 @@ function activateChecks(context, testMode) {
   const enabled = () => machineSetting('checkOnSave') !== false;
   const isSource = doc => doc.uri.scheme === 'file' && (doc.uri.fsPath.endsWith('.spx') || path.basename(doc.uri.fsPath) === checks.MANIFEST);
   const exists = candidate => { try { return fs.statSync(candidate).isFile(); } catch { return false; } };
+  // The saved bytes of one file, indexed for byte-offset to UTF-16 position
+  // mapping, or null when they cannot be read. Never a buffer's text: the
+  // compiler answered for saved source and its offsets mean nothing else.
+  const savedIndex = file => { try { return new SourceIndex(fs.readFileSync(file)); } catch { return null; } };
+  const openDocument = file => vscode.workspace.textDocuments.find(doc => doc.uri.scheme === 'file' && doc.uri.fsPath === file);
+  // Whether the editor's copy of `file` still matches the saved source a
+  // compiler run answered for: an unopened file always does, an open one only
+  // while it is clean and at the version it had when the run started.
+  const unchangedSince = (file, versions) => {
+    const doc = openDocument(file);
+    if (!doc) return true;
+    return !doc.isDirty && (!versions.has(file) || versions.get(file) === doc.version);
+  };
+  const sourceVersions = () => new Map(vscode.workspace.textDocuments
+    .filter(doc => doc.uri.scheme === 'file' && isSource(doc))
+    .map(doc => [doc.uri.fsPath, doc.version]));
   async function check(subject, binary) {
     running.get(subject)?.kill();
     let own;
+    const versions = sourceVersions();
     const result = await checks.runCheck(spawn, binary, subject, { onChild: child => { own = child; running.set(subject, child); } });
     if (running.get(subject) !== own) return { ...result, failure: 'superseded by a newer check of the same subject' };
     running.delete(subject);
@@ -50,7 +68,16 @@ function activateChecks(context, testMode) {
       if (result.stderr) output.appendLine(result.stderr.trimEnd());
       return { ...result, failure: outcome.failure, retained: ledger.subjects().includes(subject) };
     }
-    const records = checks.toDiagnosticRecords(outcome.diagnostics, subject);
+    const records = checks.toDiagnosticRecords(outcome.diagnostics, subject, path.dirname(subject), savedIndex);
+    // Byte offsets belong to the source the compiler read. A file the editor
+    // has since changed would receive stale positions, so the run is reported
+    // as failed and the previous diagnostics are retained instead.
+    const changed = [...new Set(records.map(record => record.path))].filter(file => !unchangedSince(file, versions)).sort();
+    if (changed.length) {
+      const reason = `${path.basename(changed[0])} changed while the check ran; its positions were not published`;
+      output.appendLine(`${subject}: ${reason}`);
+      return { ...result, failure: reason, retained: ledger.subjects().includes(subject) };
+    }
     const update = ledger.apply(subject, records);
     for (const file of update.clear) collection.delete(vscode.Uri.file(file));
     for (const [file, rows] of update.set) {
@@ -108,10 +135,16 @@ function activateChecks(context, testMode) {
     }
     return result.stdout;
   }
-  async function queryFile(binary, file, filters) {
+  // One bounded query for a saved document, carrying the `SourceIndex` of the
+  // exact saved bytes its byte offsets belong to. A document the editor
+  // changed while the compiler ran is refused rather than mapped against
+  // offsets that no longer describe it.
+  async function queryFile(binary, doc, filters) {
+    const file = doc.uri.fsPath, version = doc.version;
     const parsed = navigation.parseQueryResult(await runNavigation(binary, navigation.queryArguments(file, filters), file));
     if (!parsed) throw new Error('The compiler returned an unexpected query result');
-    return parsed;
+    if (doc.isDirty || doc.version !== version) throw new Error('The document changed while the compiler ran; save it and repeat the command');
+    return { ...parsed, index: savedIndex(file) };
   }
   async function reveal(doc, range) {
     const editor = await vscode.window.showTextDocument(doc);
@@ -122,7 +155,8 @@ function activateChecks(context, testMode) {
   async function goToDeclaration(pick) {
     const binary = requireCompiler('navigate by stable identity');
     const doc = activeSource();
-    const items = navigation.declarationItems(await queryFile(binary, doc.uri.fsPath, {}));
+    const result = await queryFile(binary, doc, {});
+    const items = navigation.declarationItems(result, result.index);
     if (!items.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares nothing'); return; }
     const chosen = await pick(items, { placeHolder: 'Declaration (name · kind · stable identity)', matchOnDescription: true, matchOnDetail: true });
     if (chosen) await reveal(doc, chosen.range);
@@ -131,11 +165,13 @@ function activateChecks(context, testMode) {
   async function showReferences(pick) {
     const binary = requireCompiler('show semantic references');
     const doc = activeSource();
-    const callables = navigation.declarationItems(await queryFile(binary, doc.uri.fsPath, { kind: 'function,method' }));
+    const result = await queryFile(binary, doc, { kind: 'function,method' });
+    const callables = navigation.declarationItems(result, result.index);
     if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable'); return; }
     const target = await pick(callables, { placeHolder: 'Callable whose callers to show', matchOnDescription: true });
     if (!target) return;
-    const items = navigation.referenceItems(await queryFile(binary, doc.uri.fsPath, { calls: target.id }), target.id);
+    const callers = await queryFile(binary, doc, { calls: target.id });
+    const items = navigation.referenceItems(callers, target.id, callers.index);
     if (!items.length) { void vscode.window.showInformationMessage(`SEMAPRAX: nothing in this module calls ${target.id}`); return items; }
     const chosen = await pick(items, { placeHolder: `Callers of ${target.id}`, matchOnDescription: true });
     if (chosen) await reveal(doc, chosen.range);
@@ -157,7 +193,8 @@ function activateChecks(context, testMode) {
   async function showOwnership(pick) {
     const binary = requireCompiler('show ownership and contracts');
     const doc = activeSource();
-    const callables = navigation.declarationItems(await queryFile(binary, doc.uri.fsPath, { kind: 'function,method' }));
+    const result = await queryFile(binary, doc, { kind: 'function,method' });
+    const callables = navigation.declarationItems(result, result.index);
     if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable'); return; }
     const target = await pick(callables, { placeHolder: 'Callable whose ownership, contracts, and effects to show', matchOnDescription: true });
     if (!target) return;
@@ -181,8 +218,8 @@ function activateChecks(context, testMode) {
   async function safeRename(pick, input) {
     const binary = requireCompiler('rename by stable identity');
     const doc = activeSource();
-    const result = await queryFile(binary, doc.uri.fsPath, {});
-    const items = navigation.declarationItems(result).filter(item => item.kind === 'function' || item.kind === 'method');
+    const result = await queryFile(binary, doc, {});
+    const items = navigation.declarationItems(result, result.index).filter(item => item.kind === 'function' || item.kind === 'method');
     if (!items.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable to rename'); return; }
     const target = await pick(items, { placeHolder: 'Declaration to rename (stable identity stays the same)', matchOnDescription: true });
     if (!target) return;
@@ -208,7 +245,8 @@ function activateChecks(context, testMode) {
   async function showCleanupPlan(pick) {
     const binary = requireCompiler('show a cleanup plan');
     const doc = activeSource();
-    const callables = navigation.declarationItems(await queryFile(binary, doc.uri.fsPath, { kind: 'function,method' }));
+    const result = await queryFile(binary, doc, { kind: 'function,method' });
+    const callables = navigation.declarationItems(result, result.index);
     if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable'); return; }
     const target = await pick(callables, { placeHolder: 'Function whose canonical cleanup plan to show', matchOnDescription: true });
     if (!target) return;
@@ -244,11 +282,15 @@ function activateChecks(context, testMode) {
     async provideCodeLenses(doc) {
       const binary = compiler();
       if (!binary || !lensesEnabled() || !vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || doc.isDirty || !doc.uri.fsPath.endsWith('.spx')) return [];
+      const version = doc.version;
       const result = await navigation.runCommand(spawn, binary, navigation.queryArguments(doc.uri.fsPath, {}), path.dirname(doc.uri.fsPath));
       if (navigation.failureReason(result, binary)) return [];
       const parsed = navigation.parseQueryResult(result.stdout);
       if (!parsed) return [];
-      return navigation.lensRecords(parsed).map(lens => new vscode.CodeLens(
+      // The lens ranges are byte offsets into the saved source the query
+      // answered for; a document edited since is left to the next request.
+      if (doc.isDirty || doc.version !== version) return [];
+      return navigation.lensRecords(parsed, savedIndex(doc.uri.fsPath)).map(lens => new vscode.CodeLens(
         new vscode.Range(lens.range.startLine, lens.range.startColumn, lens.range.endLine, lens.range.endColumn),
         { title: lens.title, command: '' }
       ));

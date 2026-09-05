@@ -264,3 +264,78 @@ test('a superseded check resolves before classification and leaves the ledger al
   assert.deepEqual(ledger.subjects(), [subject]);
   assert.equal(result.stdout, '');
 });
+
+// Byte offsets are UTF-8; VS Code positions are zero-based lines and UTF-16
+// code units, and a span may cross lines. These cases pin the shared mapper
+// and the fallback used when the saved source is unavailable.
+const { SourceIndex } = require('../positions');
+
+test('a byte span becomes a UTF-16, possibly multiline, editor range', () => {
+  const text = '\u{1F600} true\nsecond line';
+  const index = new SourceIndex(Buffer.from(text, 'utf8'));
+  assert.equal(Buffer.byteLength(text), 21);
+  // `true` occupies bytes 5..9; the astral character is two UTF-16 units.
+  assert.deepEqual(index.range(5, 9), { startLine: 0, startColumn: 3, endLine: 0, endColumn: 7 });
+  // The whole source ends on the second line, not at column 21 of the first.
+  assert.deepEqual(index.range(0, 21), { startLine: 0, startColumn: 0, endLine: 1, endColumn: 11 });
+  assert.deepEqual(index.position(21), { line: 1, character: 11 });
+});
+
+test('the mapper counts CRLF, combining sequences, tabs, and the end of file', () => {
+  const crlf = new SourceIndex(Buffer.from('one\r\ntwo\r\n', 'utf8'));
+  assert.equal(crlf.lineCount, 3);
+  // The `\r` is not line content: an offset inside the break is the line end.
+  assert.deepEqual(crlf.position(3), { line: 0, character: 3 });
+  assert.deepEqual(crlf.position(4), { line: 0, character: 3 });
+  assert.deepEqual(crlf.position(5), { line: 1, character: 0 });
+  assert.deepEqual(crlf.position(10), { line: 2, character: 0 });
+
+  // A base plus a combining mark is two UTF-16 units and three UTF-8 bytes.
+  const combining = new SourceIndex(Buffer.from('éx', 'utf8'));
+  assert.deepEqual(combining.range(0, 3), { startLine: 0, startColumn: 0, endLine: 0, endColumn: 2 });
+  assert.deepEqual(combining.range(3, 4), { startLine: 0, startColumn: 2, endLine: 0, endColumn: 3 });
+
+  // A tab is one code unit; the editor renders the width, the mapper does not.
+  assert.deepEqual(new SourceIndex('\ta').range(0, 2), { startLine: 0, startColumn: 0, endLine: 0, endColumn: 2 });
+  assert.deepEqual(new SourceIndex('').position(0), { line: 0, character: 0 });
+});
+
+test('unusable offsets are rejected rather than turned into a wrong range', () => {
+  const index = new SourceIndex(Buffer.from('\u{1F600}ab', 'utf8'));
+  assert.equal(index.position(2), null, 'an offset inside a code point is not a position');
+  assert.equal(index.position(7), null, 'an offset past the saved source is not a position');
+  assert.equal(index.position(-1), null);
+  assert.equal(index.position(1.5), null);
+  assert.equal(index.range(5, 4), null, 'a reversed span is rejected');
+  assert.equal(index.range(0, 99), null);
+});
+
+test('diagnostic records use the saved source when it is supplied and fall back when it is not', () => {
+  const subject = at('app', MANIFEST);
+  const main = at('app', 'src', 'main.spx');
+  const text = '\u{1F600} true\nsecond line';
+  const rows = parseDiagnosticLines([
+    line({ code: 'SPX-U1', severity: 'error', message: 'astral', path: 'src/main.spx', location: { line: 1, column: 3, start: 5, end: 9 }, help: null }),
+    line({ code: 'SPX-U2', severity: 'error', message: 'multiline', path: 'src/main.spx', location: { line: 1, column: 1, start: 0, end: 21 }, help: null }),
+    line({ code: 'SPX-U3', severity: 'error', message: 'torn offset', path: 'src/main.spx', location: { line: 1, column: 1, start: 2, end: 9 }, help: null }),
+    line({ code: 'SPX-U4', severity: 'error', message: 'no span', path: 'src/main.spx', location: { line: 2, column: 3 }, help: null })
+  ].join(''));
+  const sources = file => (file === main ? Buffer.from(text, 'utf8') : null);
+  assert.deepEqual(toDiagnosticRecords(rows, subject, path.dirname(subject), sources).map(record => record.range), [
+    { startLine: 0, startColumn: 3, endLine: 0, endColumn: 7 },
+    { startLine: 0, startColumn: 0, endLine: 1, endColumn: 11 },
+    // A torn offset falls back to the compiler's own line and column.
+    { startLine: 0, startColumn: 0, endLine: 0, endColumn: 7 },
+    { startLine: 1, startColumn: 2, endLine: 1, endColumn: 3 }
+  ]);
+  // Without the saved source the previous line/column convention is kept.
+  assert.deepEqual(toDiagnosticRecords(rows, subject).map(record => record.range), [
+    { startLine: 0, startColumn: 2, endLine: 0, endColumn: 6 },
+    { startLine: 0, startColumn: 0, endLine: 0, endColumn: 21 },
+    { startLine: 0, startColumn: 0, endLine: 0, endColumn: 7 },
+    { startLine: 1, startColumn: 2, endLine: 1, endColumn: 3 }
+  ]);
+  // A prepared index is accepted directly, and an unreadable file is null.
+  assert.deepEqual(toDiagnosticRecords(rows, subject, path.dirname(subject), file => (file === main ? new SourceIndex(text) : null))[0].range,
+    { startLine: 0, startColumn: 3, endLine: 0, endColumn: 7 });
+});

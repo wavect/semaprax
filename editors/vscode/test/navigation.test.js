@@ -8,7 +8,7 @@ const { EventEmitter } = require('node:events');
 const {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
   queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
-  renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
+  SourceIndex, renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
 } = require('../navigation');
 
 const root = path.resolve(path.sep, 'work');
@@ -156,4 +156,36 @@ test('the cleanup plan is read from the module graph by function identity', () =
   assert.deepEqual(agentRunArguments(at('a.json'), at('t.json'), at('x.json'), 'receipt'), ['agent', 'run', at('a.json'), at('t.json'), at('x.json')]);
   assert.deepEqual(agentRunArguments(at('a.json'), at('t.json'), at('x.json'), 'trace'), ['agent', 'run', at('a.json'), at('t.json'), at('x.json'), '--trace']);
   assert.deepEqual(agentRunArguments(at('a.json'), at('t.json'), at('x.json'), 'evidence'), ['agent', 'run', at('a.json'), at('t.json'), at('x.json'), '--evidence']);
+});
+
+// Declaration selections and code lenses use the same coordinate convention
+// as diagnostics: zero-based lines, UTF-16 characters, and a real span.
+const astral = 'module m;\n\n// \u{1F600}\nfn \u{1F600}_tick() -> i64 { 0 }\n';
+const astralIndex = new SourceIndex(Buffer.from(astral, 'utf8'));
+const astralMatch = {
+  kind: 'function', id: 'm.tick', name: '\u{1F600}_tick', persistent: true,
+  signature: '@id("m.tick")\nfn \u{1F600}_tick() -> i64\n',
+  // The name token starts after `fn ` on line 4: bytes 22..31, scalar column 4.
+  location: { line: 4, column: 4, start: 22, end: 31 }, effects: [], calls: [], called_by: []
+};
+const astralResult = { schema: QUERY_SCHEMA, module: 'm', revision: 'sha256:01', filters: {}, matches: [astralMatch] };
+
+test('a declaration range past an astral character uses UTF-16 characters', () => {
+  assert.equal(astral.indexOf('\u{1F600}_tick'), 20);
+  assert.equal(Buffer.byteLength(astral.slice(0, 20)), 22);
+  // Without the source the byte width and scalar column are used verbatim.
+  assert.deepEqual(toRange(astralMatch.location), { startLine: 3, startColumn: 3, endLine: 3, endColumn: 12 });
+  // With it, the range is the name token in editor coordinates.
+  assert.deepEqual(toRange(astralMatch.location, astralIndex), { startLine: 3, startColumn: 3, endLine: 3, endColumn: 10 });
+  assert.deepEqual(declarationItems(astralResult, astralIndex)[0].range, { startLine: 3, startColumn: 3, endLine: 3, endColumn: 10 });
+  assert.deepEqual(referenceItems(astralResult, 'm.other', astralIndex)[0].range, { startLine: 3, startColumn: 3, endLine: 3, endColumn: 10 });
+  for (const lens of lensRecords(astralResult, astralIndex)) {
+    assert.deepEqual(lens.range, { startLine: 3, startColumn: 3, endLine: 3, endColumn: 10 });
+  }
+});
+
+test('a declaration whose offsets do not fit the saved source keeps the reported position', () => {
+  const other = new SourceIndex('module m;\n');
+  assert.deepEqual(toRange(astralMatch.location, other), { startLine: 3, startColumn: 3, endLine: 3, endColumn: 12 });
+  assert.deepEqual(toRange({ line: 2, column: 5, start: null, end: null }, astralIndex), { startLine: 1, startColumn: 4, endLine: 1, endColumn: 5 });
 });

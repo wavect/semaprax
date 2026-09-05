@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Fixed VS Code editor ranges mixing three coordinate systems. The compiler's
+  UTF-8 byte spans are now translated against the exact saved source into
+  zero-based UTF-16 positions that may cross lines, through one mapper
+  (`editors/vscode/positions.js`) shared by diagnostics, declaration
+  navigation, and code lenses. Torn, reversed, and out-of-range offsets fall
+  back to the reported line and column instead of underlining the wrong text,
+  and a document changed while the compiler ran receives no positions at all.
+
 - Fixed the VS Code check-on-save adapter reporting a clean project from
   output it could not read. `check --json` output is now classified into
   diagnostics, the verified record, and malformed lines, and the exit status is

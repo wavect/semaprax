@@ -10,6 +10,7 @@
 // token; `start`/`end` are byte offsets of that token. `doc <file>` prints the
 // module's Markdown documentation.
 const path = require('node:path');
+const { SourceIndex, locationRange } = require('./positions');
 
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 const TIMEOUT_MS = 30 * 1000;
@@ -132,12 +133,13 @@ function parseQueryResult(text) {
   return { module: value.module, revision: value.revision, matches: value.matches.map(parseMatch).filter(Boolean) };
 }
 
-// Zero-based editor range of the declaration's name token. A span's byte
-// length widens the range on its own line; a bare position is one wide.
-function toRange(location) {
-  const line = location.line - 1, column = location.column - 1;
-  const width = location.start !== null && location.end !== null && location.end > location.start ? location.end - location.start : 1;
-  return { startLine: line, startColumn: column, endLine: line, endColumn: column + width };
+// Zero-based editor range of the declaration's name token. `index` is the
+// `SourceIndex` of the exact saved source the query answered for, which turns
+// the compiler's UTF-8 byte span into a real UTF-16 range; without it the
+// fallback is the compiler's one-based line and column with the span's byte
+// width, exact on ASCII. A bare position is one character wide either way.
+function toRange(location, index = null) {
+  return locationRange(location, index);
 }
 
 // The first signature line that is not an `@id` attribute.
@@ -150,20 +152,21 @@ function byPosition(first, second) {
 }
 
 // Quick-pick records for every declaration of the module, in source order.
-function declarationItems(result) {
+// `index` is the saved source the query answered for, or null.
+function declarationItems(result, index = null) {
   return result.matches.slice().sort(byPosition).map(match => ({
     label: match.name,
     description: `${match.kind} · ${match.id}`,
     detail: header(match.signature),
     id: match.id,
     kind: match.kind,
-    range: toRange(match.location)
+    range: toRange(match.location, index)
   }));
 }
 
 // Quick-pick records for the callers a `--calls <target>` query returned.
-function referenceItems(result, target) {
-  return declarationItems(result).map(item => ({ ...item, description: `${item.kind} · ${item.id} · calls ${target}` }));
+function referenceItems(result, target, index = null) {
+  return declarationItems(result, index).map(item => ({ ...item, description: `${item.kind} · ${item.id} · calls ${target}` }));
 }
 
 function contractCounts(signature) {
@@ -178,10 +181,10 @@ function contractCounts(signature) {
 
 // Code-lens records above every declaration: its stable identity, its
 // effects when it uses any, and its contract counts when it declares any.
-function lensRecords(result) {
+function lensRecords(result, index = null) {
   const lenses = [];
   for (const match of result.matches.slice().sort(byPosition)) {
-    const range = toRange(match.location);
+    const range = toRange(match.location, index);
     lenses.push({ range, title: `${match.persistent ? '@id' : 'auto id'} ${match.id}` });
     if (match.effects.length) lenses.push({ range, title: `uses { ${match.effects.join(', ')} }` });
     const { requires, ensures } = contractCounts(match.signature);
@@ -229,6 +232,6 @@ function failureReason(result, compiler) {
 module.exports = {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
   queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
-  renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason,
+  SourceIndex, renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason,
   cwdOf: file => path.dirname(file)
 };

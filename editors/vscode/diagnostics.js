@@ -8,6 +8,7 @@
 // with `path`, `location` and `help` nullable. `line` and `column` are
 // one-based; `start`/`end` are byte offsets into the file.
 const path = require('node:path');
+const { SourceIndex, locationRange } = require('./positions');
 
 const MANIFEST = 'semaprax.toml';
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
@@ -126,20 +127,30 @@ function safeOffset(value) { return Number.isSafeInteger(value) && value >= 0 ? 
 
 // Editor-shaped records: absolute `path`, zero-based `range`, and the message
 // the user reads. A diagnostic without a path lands on the checked subject;
-// one without a location lands at the start of its file. A span's byte length
-// widens the range on its own line; a bare position is one character wide.
-function toDiagnosticRecords(rows, subject, cwd = path.dirname(subject)) {
+// one without a location lands at the start of its file.
+//
+// `sources` maps an absolute path to the exact saved bytes the compiler read
+// (a Buffer, a string, a `SourceIndex`, or null when they are unavailable), so
+// this module reads no file itself. With the source, the compiler's UTF-8 byte
+// span becomes a real multiline UTF-16 range; without it, the fallback is the
+// compiler's one-based line and column with the span's byte width, exact on
+// ASCII. A bare position is one character wide either way.
+function toDiagnosticRecords(rows, subject, cwd = path.dirname(subject), sources = () => null) {
+  const indexes = new Map();
+  const indexOf = file => {
+    if (!indexes.has(file)) {
+      const source = sources(file);
+      indexes.set(file, source instanceof SourceIndex ? source : source === null || source === undefined ? null : new SourceIndex(source));
+    }
+    return indexes.get(file);
+  };
   return rows.map(row => {
     const file = row.path ? path.resolve(cwd, row.path) : subject;
-    const line = row.location ? row.location.line - 1 : 0;
-    const column = row.location ? row.location.column - 1 : 0;
-    const span = row.location && row.location.start !== null && row.location.end !== null && row.location.end > row.location.start
-      ? row.location.end - row.location.start : 1;
     return {
       path: file,
       severity: row.severity,
       code: row.code,
-      range: { startLine: line, startColumn: column, endLine: line, endColumn: column + span },
+      range: locationRange(row.location, indexOf(file)),
       message: row.help ? `${row.code}: ${row.message}\n${row.help}` : `${row.code}: ${row.message}`
     };
   });
@@ -196,5 +207,5 @@ function runCheck(spawnFn, compiler, subject, options = {}) {
 
 module.exports = {
   MANIFEST, MAX_OUTPUT_BYTES, TIMEOUT_MS,
-  findManifest, checkSubject, parseDiagnosticLines, parseCheckOutput, checkOutcome, toDiagnosticRecords, DiagnosticLedger, runCheck
+  findManifest, checkSubject, parseDiagnosticLines, parseCheckOutput, checkOutcome, toDiagnosticRecords, DiagnosticLedger, runCheck, SourceIndex
 };

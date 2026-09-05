@@ -25,10 +25,20 @@ Saving a `.spx` file or `semaprax.toml` runs the compiler named by the
 **user/machine** setting `semaprax.compilerPath` as
 `check <subject> --json`, where the subject is the nearest `semaprax.toml`
 walking up from the saved file, or the file alone when no manifest exists. Each
-JSON diagnostic line becomes an editor diagnostic at its reported line and
-column (a bare position is one character wide) with the message
+JSON diagnostic line becomes an editor diagnostic with the message
 `code: message` and the compiler's help on a following line; entries for files
-the re-check no longer reports are cleared. `SEMAPRAX: Check Project` runs the
+the re-check no longer reports are cleared. The compiler reports UTF-8 byte
+offsets and a Unicode-scalar column, and VS Code positions are UTF-16 code
+units, so the span is translated against the exact saved bytes of the file it
+names: `editors/vscode/positions.js` is the one mapper diagnostics,
+declaration navigation, and code lenses share. It handles CRLF, supplementary
+characters, combining sequences, tabs, and the end of file, and rejects an
+offset that is not on a UTF-8 boundary, runs backwards, or lies past the saved
+source. When the saved bytes are unreadable or the offsets do not fit them, the
+range falls back to the compiler's one-based line and column with the span's
+byte width, which is exact on ASCII. A bare position is one character wide. A
+file the editor changed while the compiler ran is never given the older run's
+positions: the run is reported as failed and the previous diagnostics stay. `SEMAPRAX: Check Project` runs the
 same check explicitly for the active file's project or the first workspace
 folder, and names the setting to fill when `semaprax.compilerPath` is empty.
 `semaprax.checkOnSave` (default `true`, machine scope) turns the save trigger
@@ -61,8 +71,11 @@ read the saved active `.spx` file through the compiler's read-only
 `query <file> --json` and `doc <file>` routes; nothing runs on a dirty buffer.
 `SEMAPRAX: Go to Declaration by Stable ID` lists every declaration of the
 module (name, kind, `@id`, canonical header) and moves the cursor to the chosen
-declaration's name token, using the one-based line and column the compiler
-reports. `SEMAPRAX: Show Callers of a Declaration` asks for a function or
+declaration's name token, translating the compiler's byte span against the
+saved source through the same mapper check-on-save uses. A query whose document
+changed while the compiler ran is refused rather than applied to positions that
+no longer describe it, and code lenses for such a document are withheld until
+the next request. `SEMAPRAX: Show Callers of a Declaration` asks for a function or
 method, then lists the declarations whose bodies call it, from the compiler's
 persistent call index rather than a text search, and jumps to the chosen
 caller. `SEMAPRAX: Show Module Documentation` opens the Markdown page

@@ -442,8 +442,10 @@ impl Lexer<'_> {
             }
         }
         let mut wide = true;
+        let mut suffix_len = 0usize;
         if self.starts_with("f32") || self.starts_with("f64") {
             wide = self.starts_with("f64");
+            suffix_len = 3;
             for _ in 0..3 {
                 self.bump();
             }
@@ -462,8 +464,12 @@ impl Lexer<'_> {
             ));
         }
         let text = &self.source[start..self.offset];
+        // Parse the unsuffixed digits directly in the declared precision so a
+        // literal rounds once from decimal digits. An explicit suffix is never
+        // part of the number, in either precision.
+        let digits = &text[..text.len() - suffix_len];
         let value = if wide {
-            text.parse::<f64>().map_err(|_| {
+            digits.parse::<f64>().map_err(|_| {
                 self.error(
                     "SPX-P003",
                     "floating-point literal is outside the f64 range",
@@ -471,18 +477,13 @@ impl Lexer<'_> {
                 )
             })?
         } else {
-            // Parse the unsuffixed text directly in the declared precision so
-            // an f32 literal rounds once from decimal digits.
-            text[..text.len() - 3]
-                .parse::<f32>()
-                .map(f64::from)
-                .map_err(|_| {
-                    self.error(
-                        "SPX-P003",
-                        "floating-point literal is outside the f32 range",
-                        self.span_from(start, line, column),
-                    )
-                })?
+            digits.parse::<f32>().map(f64::from).map_err(|_| {
+                self.error(
+                    "SPX-P003",
+                    "floating-point literal is outside the f32 range",
+                    self.span_from(start, line, column),
+                )
+            })?
         };
         if !value.is_finite() {
             return Err(self.error(

@@ -305,6 +305,30 @@ fn float_literals_record_their_declared_precision() {
         }),
         "an unsuffixed literal is f64"
     );
+    assert_eq!(
+        only("1.5f64").kind,
+        TokenKind::Float(FloatLiteral {
+            value: 1.5,
+            wide: true
+        }),
+        "an explicit `f64` suffix is admitted and is not part of the number"
+    );
+    assert_eq!(
+        only("0.1f64").kind,
+        TokenKind::Float(FloatLiteral {
+            value: 0.1f64,
+            wide: true
+        }),
+        "an `f64` suffix agrees digit for digit with the unsuffixed literal"
+    );
+    assert_eq!(
+        only("1.0e40f64").kind,
+        TokenKind::Float(FloatLiteral {
+            value: 1.0e40f64,
+            wide: true
+        }),
+        "an exponent and an `f64` suffix compose"
+    );
     let TokenKind::Float(narrow) = only("0.1f32").kind else {
         panic!("`0.1f32` must lex as a float");
     };
@@ -337,7 +361,14 @@ fn floats_require_a_fraction_and_a_complete_exponent() {
         assert_eq!(code(source), "SPX-P003", "{source}");
     }
     // Suffixes other than `f32`/`f64`, and identifier glued to a good one.
-    for source in ["1.5x", "1.5f16", "1.5f32f32", "1.5f32_"] {
+    for source in [
+        "1.5x",
+        "1.5f16",
+        "1.5f32f32",
+        "1.5f32_",
+        "1.5f64f64",
+        "1.5f64_",
+    ] {
         assert_eq!(code(source), "SPX-P003", "{source}");
     }
 }

@@ -92,11 +92,16 @@ source text:
 ```sh
 semaprax graph examples/meaning.spx
 semaprax context examples/meaning.spx app.main --depth 1
+semaprax context examples/calculator-project calculator.add --direction both --depth 1 --max-bytes 2048 --max-nodes 16
 ```
 
 `graph` and `context` produce deterministic JSON suitable for inspection or a
 caller-owned file. Redirecting that output is the caller's publication action;
-the query itself does not modify the source.
+the query itself does not modify the source. A Project directory or manifest
+selects authenticated cross-file context; its six structural edge families do
+not accept the single-file `--filters` option. Its compact positional Project
+schema retains exact revisions, traversal, truncation, and frontier facts while
+avoiding repeated per-node and per-edge field names.
 
 Search declarations by what they are, what they use, and what they call:
 

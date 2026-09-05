@@ -467,12 +467,20 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             Ok(())
         }
         CommandId::Context => {
-            let path = required_path(&args, 1)?;
+            let path = cli::project::resolve_positional(required_path(&args, 1)?);
             let symbol = args.get(2).ok_or_else(|| {
                 eprintln!("context requires a symbol name or stable id");
                 2
             })?;
             let options = context_options(&args)?;
+            if let Some(context) =
+                cli::context::project(&path, symbol, &args[3..], &options, |errors| {
+                    report(errors, false)
+                })?
+            {
+                println!("{context}");
+                return Ok(());
+            }
             let program = checked(&path)?;
             let context = match &options {
                 ParsedContextOptions::V1(options) => {

@@ -7,11 +7,39 @@ and retains its exact API, CLI behavior, and bytes. Supplying an explicit
 direction selects v2:
 
 ```text
-semaprax context <file> <symbol|stable-id>
+semaprax context <file|project> <symbol|stable-id>
   --direction forward|reverse|both
   [--depth N] [--max-bytes N] [--max-nodes N]
   [--filters contracts,ownership,effects,types,targets,diagnostics,tests]
 ```
+
+Selecting a Project directory or its `semaprax.toml` authenticates the whole
+declared source set and emits `semaprax.project-agent-context.v1`, a compact
+projection of the existing `semaprax.project-semantic-context.v1` result from
+its retained typed cross-file index. The exact Project and graph revisions are
+present, and `context_revision` is the digest of that complete underlying
+context. The public byte limit applies to the compact bytes actually returned.
+The same direction, depth, byte, and node options apply; omitting direction
+preserves v1's forward traversal default. Project context covers its six
+structural edge families and therefore rejects the single-file `--filters`
+option rather than pretending that filter changed the result.
+
+To avoid repeating field names on every fact, the compact schema uses closed
+positional rows:
+
+- `target`: identity, declaration kind, source path, module;
+- `query`: direction, depth, returned maximum bytes, maximum nodes, underlying
+  authenticated-context maximum bytes (needed to replay `context_revision`);
+- each `nodes` row: identity, node kind, declaration kind, source path, module,
+  minimum depth, traversal provenance;
+- each `edges` row: edge kind, caller, target, caller path, target path, site,
+  expression identity;
+- `budget`: used nodes, used edges, used depth.
+
+`truncation` and `frontier` retain their named structures because agents must
+inspect them before trusting closure. `authority` is always false. Malformed
+compiler-owned input or an output that cannot fit the requested bound fails
+closed with `SPX-G004`.
 
 The admitted byte budget is `2048..=16777216`. The lower bound is large
 enough for the smallest canonical v1/v2 envelope; longer identities or a
@@ -87,7 +115,10 @@ The executable gates cover deterministic JSON parsing, global per-depth order,
 minimum-depth cycle handling, generic-template callers, direction-bound
 traversal and reference replay, byte/node/depth truncation, permanent
 unavailability, CLI confusion, v1 golden preservation, and every current Graph
-schema selection.
+schema selection. The Project CLI gate additionally proves directory/manifest
+byte identity, raw-library fail-closed behavior, unsupported-filter rejection,
+exact revision fields, canonical one-line JSON, and a calculator result below
+2 KiB, 600 lexical units, and one sixth of the full authenticated Project graph.
 
 V2 is a call-graph query only. It does not claim reverse type, data, ownership,
 effect, capability, cleanup, import, target, diagnostic, or test edges; impact

@@ -47,11 +47,12 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // `semaprax lock` is new, directory inputs were added to check/build/run
     // /test, the scaffold gained a library template, `new` became public, and
     // `doc`, `verify`, `agent`, `query`, `package`, `add`, and `fetch` were added.
-    const RESTORED: [(&str, &str); 24] = [
+    const RESTORED: [(&str, &str); 25] = [
         ("semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]\n", ""),
         ("semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>\n", ""),
         ("semaprax add <dir>|semaprax.toml <package> <range>\n", ""),
         ("semaprax fetch <cache-dir> <subject.json>...\n", ""),
+        ("semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n", "semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n"),
         ("semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]\n", ""),
         ("semaprax package report <file> [--max-bytes N]\n", ""),
         ("semaprax package lock <subject.json>... [--max-bytes N]\n", ""),

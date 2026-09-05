@@ -170,7 +170,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::ServeTestCandidates, canonical: "serve-test-candidates", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax serve-test-candidates <manifest>"] },
     CommandSpec { id: CommandId::ServeDiagnostics, canonical: "serve-diagnostics", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax serve-diagnostics <manifest>"] },
     CommandSpec { id: CommandId::ServeDiagnosticsTested, canonical: "serve-diagnostics-tested", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax serve-diagnostics-tested <manifest>"] },
-    CommandSpec { id: CommandId::Context, canonical: "context", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]"] },
+    CommandSpec { id: CommandId::Context, canonical: "context", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]"] },
     CommandSpec { id: CommandId::ContextBenchmark, canonical: "context-benchmark", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax context-benchmark <manifest>"] },
     CommandSpec { id: CommandId::Serve, canonical: "serve", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax serve <file> [--max-request-bytes N]"] },
     CommandSpec { id: CommandId::QualityPlan, canonical: "quality-plan", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax quality-plan <quick|changed|full> [exact-changed-path ...]"] },
@@ -381,7 +381,7 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Context,
-                shape: "context <file> <stable-id>",
+                shape: "context <file|project> <stable-id>",
                 summary: "Bounded facts about one declaration",
             },
             GuideEntry {

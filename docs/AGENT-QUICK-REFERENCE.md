@@ -43,6 +43,11 @@ so it is available without the source checkout.
   needs exact Project/graph/source revisions and relationship arrays. The
   calculator's exact `calculator.add` JSON query is guarded below 1 KiB and 256
   repository lexical units, instead of transferring its complete Project graph.
+- For the selected declaration's bounded cross-file neighborhood, continue with
+  `semaprax context <project-dir> <stable-id> --direction both --depth 1
+  --max-bytes 2048 --max-nodes 16`; do not request or reconstruct the full graph.
+  The calculator result is guarded at no more than 2 KiB and 600 lexical units,
+  and at less than one sixth of its full authenticated Project graph.
 - `semaprax --help` is a guided overview under 2 KB: the commands above,
   grouped by task, with one-line purposes. `semaprax help all` is the 7 KB
   exhaustive catalog; use `semaprax help <command>` for one command's exact

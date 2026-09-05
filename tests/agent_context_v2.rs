@@ -447,6 +447,99 @@ fn option(input: Option<i64>) -> Option<bool> {
     }
 }
 
+#[test]
+fn cli_context_accepts_an_authenticated_project_without_graph_transfer() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let project = root.join("examples/calculator-project");
+    let manifest = project.join("semaprax.toml");
+    let graph_bytes = semaprax::project::with_authenticated_project(&manifest, |snapshot| {
+        Ok(snapshot.semantic_graph().len())
+    })
+    .unwrap();
+    let mut exact = None;
+    for selector in [&project, &manifest] {
+        let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .arg("context")
+            .arg(selector)
+            .arg("calculator.add")
+            .args([
+                "--direction",
+                "both",
+                "--depth",
+                "1",
+                "--max-bytes",
+                "2048",
+                "--max-nodes",
+                "16",
+            ])
+            .output()
+            .unwrap();
+        assert!(output.status.success(), "{output:?}");
+        assert!(output.stderr.is_empty());
+        assert!(output.stdout.len() <= 2049);
+        assert!(output
+            .stdout
+            .starts_with(b"{\"schema\":\"semaprax.project-agent-context.v1\""));
+        assert_eq!(
+            output.stdout.iter().filter(|byte| **byte == b'\n').count(),
+            1
+        );
+        if let Some(expected) = &exact {
+            assert_eq!(&output.stdout, expected);
+        } else {
+            exact = Some(output.stdout.clone());
+        }
+        let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(value["schema"], "semaprax.project-agent-context.v1");
+        assert_eq!(value["target"][0], "calculator.add");
+        assert_eq!(value["target"][2], "src/core.spx");
+        assert_eq!(value["query"][0], "both");
+        assert_eq!(value["query"][2], 2048);
+        assert_eq!(value["query"][4], 16 * 1024 * 1024);
+        assert!(value["nodes"].as_array().unwrap().iter().any(|node| {
+            node[0] == "calculator.app.main" && node[1] == "declaration" && node[2] == "function"
+        }));
+        assert!(value["project_revision"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:"));
+        assert!(value["graph_revision"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:"));
+    }
+    let exact = exact.as_ref().unwrap();
+    assert!(
+        exact.len() * 6 < graph_bytes,
+        "context={} graph={graph_bytes}",
+        exact.len()
+    );
+    assert!(semaprax::agent_economics::lexical_tokens(std::str::from_utf8(exact).unwrap()) <= 600);
+
+    let filtered = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(["context"])
+        .arg(&project)
+        .args(["calculator.add", "--filters", "contracts"])
+        .output()
+        .unwrap();
+    assert_eq!(filtered.status.code(), Some(2));
+    assert!(String::from_utf8(filtered.stderr)
+        .unwrap()
+        .contains("--filters is unavailable for Project inputs"));
+
+    // Project support does not weaken the standalone source contract.
+    let library = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(["context"])
+        .arg(project.join("src/core.spx"))
+        .arg("calculator.add")
+        .output()
+        .unwrap();
+    assert_eq!(library.status.code(), Some(1));
+    assert!(String::from_utf8(library.stderr)
+        .unwrap()
+        .contains("SPX-T105"));
+}
+
 fn fact_ids(json: &str) -> Vec<String> {
     let parsed: serde_json::Value = serde_json::from_str(json).unwrap();
     parsed["facts"]

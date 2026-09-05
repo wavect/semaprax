@@ -222,7 +222,7 @@ row.
 
 | Requirement | Status | Evidence owner | Complete when |
 | --- | --- | --- | --- |
-| Token-budgeted semantic context | Partial | [Agent Context v2](AGENT-CONTEXT-V2.md), [Economics v1](AGENT-ECONOMICS-V1.md), [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) (exact-tag nonignored regression coverage) | Exact model-token budgets, broader semantic edges, persistent indexing, and representative measured savings are verified. |
+| Token-budgeted semantic context | Partial; `semaprax context` accepts either one checked standalone module or one authenticated Project, whose retained typed index supplies bounded cross-file context without a full graph transfer | [Agent Context v2](AGENT-CONTEXT-V2.md), [Economics v1](AGENT-ECONOMICS-V1.md), [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) (exact-tag nonignored regression coverage) | Exact model-token budgets, broader semantic edges, persistent indexing, and representative measured savings are verified. |
 | Impact analysis before modification | Partial | [Semantic Impact v1](SEMANTIC-IMPACT-V1.md), [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) (exact-tag nonignored regression coverage) | Repository-wide call/type/contract/test/schema/target/capability consumers are complete and incremental. |
 | Typed holes and compiler-generated repairs | Partial | [Diagnostic Repair v1](DIAGNOSTIC-REPAIR-V1.md) | General obligations and composable sound repairs are generated, ranked, reviewed, and replay-verified. |
 | Proof-carrying patches | Partial | [Patch Evidence v2](SEMANTIC-PATCH-EVIDENCE-V2.md) | General semantic claims, tests, targets, capability deltas, provenance, and compatibility are independently verified before commit. |

@@ -72,6 +72,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   `--called-by` filters. Project results name owning paths and exact revisions,
   and use the retained semantic graph for cross-file call predicates; unknown
   kinds or identities fail closed with `SPX-V211`/`SPX-V212`.
+- `semaprax context <file|project> <stable-id>` now accepts a Project directory
+  or manifest and renders a compact authenticated, bounded cross-file context
+  without requiring agents to discover and reopen one source. The calculator
+  gate caps it at 2 KiB, 600 lexical units, and one sixth of the full graph.
 - Added the `semaprax package report|lock|resolve` namespace, each subcommand
   exactly its long-form offline package route.
 - Split CLI option parsing and single-file execution/reporting out of the

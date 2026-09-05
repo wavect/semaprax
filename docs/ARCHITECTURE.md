@@ -1592,6 +1592,16 @@ evidence byte for byte on replay. It owns no transport, process, filesystem,
 network, or credential authority, and it neither persists nor resumes a run.
 See [Unified CLI v1](UNIFIED-CLI-V1.md).
 
+The public `context` dispatcher resolves a Project directory or manifest before
+standalone source verification. Project inputs authenticate and retain one
+`ProjectRevision`, then render `semaprax.project-semantic-context.v1` through
+that revision's typed cross-file analysis index. The CLI projects those
+authenticated facts into positional `semaprax.project-agent-context.v1` rows,
+binding the complete underlying artifact digest while applying the caller's
+byte bound only to transferred compact bytes. File inputs retain the existing
+Agent Context v1/v2 route and bytes. Direction, depth, and node bounds map
+exactly; Project context rejects file-only facet filters.
+
 `src/cli/add.rs` extends a table manifest through
 `ProjectManifest::with_dependency`, which inserts the row, renders the
 canonical table layout, and re-parses before the one write. `src/cli/fetch.rs`

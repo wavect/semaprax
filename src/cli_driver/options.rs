@@ -316,6 +316,49 @@ pub(super) enum ParsedContextOptions {
     V2(graph::AgentContextV2Options),
 }
 
+impl ParsedContextOptions {
+    pub(super) const fn max_bytes(&self) -> usize {
+        match self {
+            Self::V1(options) => options.max_bytes(),
+            Self::V2(options) => options.max_bytes(),
+        }
+    }
+}
+
+pub(super) fn project_context_options(
+    options: &ParsedContextOptions,
+) -> Result<workspace_analysis::WorkspaceContextOptions, u8> {
+    let (direction, depth, max_nodes) = match options {
+        ParsedContextOptions::V1(options) => (
+            workspace_analysis::WorkspaceAnalysisDirection::Forward,
+            options.depth(),
+            options.max_nodes(),
+        ),
+        ParsedContextOptions::V2(options) => {
+            let direction = match options.direction() {
+                graph::AgentContextDirection::Forward => {
+                    workspace_analysis::WorkspaceAnalysisDirection::Forward
+                }
+                graph::AgentContextDirection::Reverse => {
+                    workspace_analysis::WorkspaceAnalysisDirection::Reverse
+                }
+                graph::AgentContextDirection::Both => {
+                    workspace_analysis::WorkspaceAnalysisDirection::Both
+                }
+            };
+            (direction, options.depth(), options.max_nodes())
+        }
+    };
+    // The public limit applies to the compact CLI projection. Its authenticated
+    // compiler-owned input can be larger without transferring those bytes.
+    let internal_bytes = 16 * 1024 * 1024;
+    workspace_analysis::WorkspaceContextOptions::new(direction, depth, internal_bytes, max_nodes)
+        .map_err(|error| {
+            eprintln!("{error}");
+            2
+        })
+}
+
 pub(super) fn context_options(args: &[String]) -> Result<ParsedContextOptions, u8> {
     let defaults = graph::AgentContextOptions::default();
     let mut depth = defaults.depth();

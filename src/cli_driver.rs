@@ -449,6 +449,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{output}");
             Ok(())
         }
+        CommandId::Skills => {
+            let request = cli::skills::parse(&args[1..])?;
+            cli::skills::run(request, |errors| report(errors, false))
+        }
         CommandId::Context => {
             let path = cli::project::resolve_positional(required_path(&args, 1)?);
             let symbol = args.get(2).ok_or_else(|| {

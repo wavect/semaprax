@@ -60,6 +60,7 @@ pub mod hosted_interpreter;
 pub mod hygienic;
 pub mod image_transport;
 pub mod impact;
+pub mod installed_guidance;
 pub mod interpreter;
 pub mod lexer;
 pub mod loan_plan;

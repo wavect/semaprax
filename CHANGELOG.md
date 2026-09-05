@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added Installed Agent Guidance v1: six deterministic, version-matched,
+  authority-free skill documents are available through `skills get`, and
+  `query --capabilities` reports the exact installed five-operation Universal
+  Semantic Query catalogue with no host grants. Core and CLI return identical
+  canonical, bounded, digest-bound artifacts assembled only from embedded
+  compiler resources. The focused projections integration gate passes 5/5;
+  no binary attestation, live discovery, skill execution,
+  host authority, registry, network, MCP/LSP, or legacy-query change is claimed.
 - Added the locally exercised Universal Semantic Workflow CLI v1 read-only
   adapter. Five Project-only `query` subcommands print exact
   Universal Semantic Query results, while `change preview rename-display-name`

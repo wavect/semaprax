@@ -14,6 +14,12 @@ without making adapter behavior part of the core. The later read-only
 constructs these same typed operations and returns their exact results; it adds
 no query schema or alternate execution path.
 
+[Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md) separately exposes
+the exact installed five-operation catalogue through `query --capabilities`.
+That authority-free document is static installed-support metadata, not a
+revision-bound query result or live service discovery, and it cannot enable an
+operation.
+
 The v1 operation set is deliberately five operations: `declarations`,
 `symbol`, `context`, `impact`, and `available_operations`. The implementation
 reuses the existing Project declaration query, Semantic Workspace Image symbol

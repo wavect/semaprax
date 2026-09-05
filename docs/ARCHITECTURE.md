@@ -581,6 +581,18 @@ cache, commit, managed-Workspace, transport, MCP, LSP, or publication authority.
 Frozen Project Agent Transport v5 remains unchanged. See [Universal Semantic
 Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md).
 
+`src/installed_guidance.rs` owns Installed Agent Guidance v1. It packages six
+closed, version-matched, authority-free skill documents from compiler-embedded
+quick-reference, shape, standard-library, package, protocol, and effect facts.
+The module also projects the exact five installed Universal Semantic Query v1
+operations with no host grants. Canonical payload and independently identified
+embedded-source bytes are digest-bound; compiler metadata explicitly declines
+binary-identity attestation. `src/cli/skills.rs` and the capabilities branch in
+`src/cli/query.rs` only select and print these exact core artifacts. They do not
+read resource paths, discover a live service, execute guidance, grant host
+capabilities, or modify the legacy source-query route. See [Installed Agent
+Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md).
+
 `src/project/image.rs` derives an immutable, bounded Semantic Workspace
 Image from one already admitted `Arc<ProjectRevision>`. It retains validated
 HIR in memory and projects the complete Project graph plus existing typed

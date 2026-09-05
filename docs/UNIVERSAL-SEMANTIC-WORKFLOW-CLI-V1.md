@@ -13,6 +13,11 @@ exact canonical `SemanticQueryResult` bytes, and every change preview prints an
 exact existing transaction artifact. It introduces no competing query,
 candidate, impact, review, or result schema.
 
+The separate [Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md)
+`query --capabilities` form prints static installed-support metadata. It does
+not authenticate a Project, create a semantic-service snapshot, or alter the
+five Project-bound universal query subcommands specified here.
+
 This badge is one-shot and read-only. Each invocation authenticates one Project,
 derives one process-local semantic service, performs one operation, rechecks the
 held Project inputs, prints the result, and exits. It is not the persistent

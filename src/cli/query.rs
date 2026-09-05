@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 use semaprax::diagnostic::Diagnostic;
+use semaprax::installed_guidance::installed_query_capabilities;
 use semaprax::project::{self, SemanticQuery, SemanticWorkspaceService};
 use semaprax::query::{self, QueryFilters};
 use semaprax::verify;
@@ -27,6 +28,7 @@ pub(crate) struct QueryOptions {
 }
 
 pub(crate) enum QueryCommand {
+    Capabilities,
     Legacy(QueryOptions),
     Universal(UniversalQueryOptions),
 }
@@ -49,7 +51,9 @@ const LEGACY_USAGE: &str = "query requires exactly <file|project> [--kind <kind>
 const UNIVERSAL_USAGE: &str = "semantic query requires <project> <declarations|symbol|context|impact|available-operations> and that operation's exact operands; see --help";
 
 pub(crate) fn parse_command(args: &[String]) -> Result<QueryCommand, u8> {
-    if args.get(1).is_some_and(|value| {
+    if args == ["--capabilities"] {
+        Ok(QueryCommand::Capabilities)
+    } else if args.get(1).is_some_and(|value| {
         matches!(
             value.as_str(),
             "declarations" | "symbol" | "context" | "impact" | "available-operations"
@@ -370,6 +374,11 @@ pub(crate) fn run_command(
     report: impl Fn(&[Diagnostic]) -> u8,
 ) -> Result<(), u8> {
     match command {
+        QueryCommand::Capabilities => {
+            let guidance = installed_query_capabilities().map_err(|errors| report(&errors))?;
+            print!("{}", guidance.to_json());
+            Ok(())
+        }
         QueryCommand::Legacy(options) => run(options, report),
         QueryCommand::Universal(options) => run_universal(options, report),
     }
@@ -551,6 +560,20 @@ mod tests {
                 parse_command(&strings(&malformed)).is_err(),
                 "{malformed:?}"
             );
+        }
+    }
+
+    #[test]
+    fn capabilities_is_an_exact_query_mode() {
+        assert!(matches!(
+            parse_command(&strings(&["--capabilities"])).unwrap(),
+            QueryCommand::Capabilities
+        ));
+        for malformed in [
+            &["--capabilities", "extra"][..],
+            &["--capabilities", "--json"][..],
+        ] {
+            assert!(parse_command(&strings(malformed)).is_err());
         }
     }
 }

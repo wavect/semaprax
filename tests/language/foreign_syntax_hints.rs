@@ -108,6 +108,24 @@ fn main() -> i64
 }
 
 #[test]
+fn trailing_expression_semicolon_is_never_silently_rewritten() {
+    for tail in ["42;", "side(1);", "let value = 1; value;"] {
+        let source = format!(
+            "module habit.trailing_semicolon;\n\
+             @id(\"habit.side\")\nfn side(value: i64) -> i64 {{ value }}\n\
+             @id(\"app.main\")\nfn main() -> i64\n{{\n    {tail}\n}}\n"
+        );
+        let diagnostic = rejection(&source);
+        assert_eq!(diagnostic.code, "SPX-P106", "{diagnostic}");
+        assert_eq!(diagnostic.message, "expected `}` after block");
+        assert!(
+            help(&diagnostic).contains("final value expression"),
+            "{diagnostic}"
+        );
+    }
+}
+
+#[test]
 fn while_body_without_a_continuation_names_the_rule() {
     let diagnostic = rejection(
         r#"

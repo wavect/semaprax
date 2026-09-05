@@ -1281,7 +1281,7 @@ impl Parser {
             return Err(diagnostic);
         }
         let tail = self.expression(0)?;
-        if self.take(&TokenKind::Semicolon) && !self.at(&TokenKind::RBrace) {
+        if self.take(&TokenKind::Semicolon) {
             return Err(self.expression_statement());
         }
         let end = self.expect(&TokenKind::RBrace, "`}` after block")?.span;

@@ -35,6 +35,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Rejected a trailing semicolon after a block's value with the existing
+  `SPX-P106` expression-statement diagnostic. Canonical formatting no longer
+  accepts and silently removes that source token.
+
 - Deepened four existing standard-library packages without widening ambient
   authority: `std.time` rounds durations upward and measures elapsed
   milliseconds, `std.path`

@@ -60,15 +60,27 @@ pub(super) fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
                 "resolved Agent operation-role or kind inventory is invalid",
             ));
         }
+        if program
+            .declarations
+            .contains_declaration_id(&agent.stable_id)
+        {
+            return Err(invalid(
+                "resolved Agent declaration identity collides with another declaration",
+            ));
+        }
+        if !project_agent_ids.insert(agent.stable_id.as_str()) {
+            return Err(invalid(
+                "resolved Agent declaration identity collides with another Agent declaration",
+            ));
+        }
+        let mut local_ids = BTreeSet::new();
         let identities = std::iter::once(&agent.stable_id)
             .chain(agent.types.iter().map(|role| &role.stable_id))
             .chain(agent.operations.iter().map(|role| &role.stable_id));
         for identity in identities {
-            if !project_agent_ids.insert(identity.as_str())
-                || program.declarations.contains_declaration_id(identity)
-            {
+            if !local_ids.insert(identity.as_str()) {
                 return Err(invalid(
-                    "resolved Agent identity collides with another semantic declaration",
+                    "resolved Agent identity collides within its local inventory",
                 ));
             }
         }

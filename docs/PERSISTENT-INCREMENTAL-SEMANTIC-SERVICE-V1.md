@@ -175,7 +175,9 @@ neither durable nor authority-bearing.
 
 Every immutable generation exposes its canonical `AgentDefinitions` node, its
 retained HIR-equivalent source Agent inventory, and the unchanged compiler-made
-AgentDefinition v1 products. `query_agent_definitions` executes the additive
+AgentDefinition v1 products. Source-owned generations additionally expose the
+typed, replayed Proposal and Observation interaction-contract facts retained by
+the Project. `query_agent_definitions` executes the additive
 typed in-memory query against the same generation and ProgramRoot selected by
 ordinary snapshots. No service transport or Universal Semantic Query v1 wire
 schema changes, and the accessors grant no runtime or external authority.

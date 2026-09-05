@@ -87,6 +87,12 @@ impl SemanticWorkspaceGeneration {
         self.revision.agent_definitions()
     }
 
+    pub fn agent_interaction_contract_facts(
+        &self,
+    ) -> Option<&super::AgentInteractionContractFacts> {
+        self.revision.agent_interaction_contract_facts()
+    }
+
     /// The additive exact ProgramRoot v2 selection retained by this generation.
     pub fn exact_context(&self) -> Option<&Arc<ExactProgramContext>> {
         self.exact_context.as_ref()
@@ -142,6 +148,12 @@ impl SemanticWorkspaceSnapshot {
         &self,
     ) -> &[crate::agent_definition::CompiledAgentDefinition] {
         self.generation.compiled_agent_definitions()
+    }
+
+    pub fn agent_interaction_contract_facts(
+        &self,
+    ) -> Option<&super::AgentInteractionContractFacts> {
+        self.generation.agent_interaction_contract_facts()
     }
 
     pub fn exact_context(&self) -> Option<&ExactProgramContext> {

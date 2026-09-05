@@ -6,6 +6,7 @@
 //! no managed workspace and grants no publication authority.
 
 mod admission;
+mod agent_contract_facts;
 mod agent_lowering;
 mod authority;
 mod build;
@@ -75,10 +76,14 @@ pub use crate::interpreter::{
     MAX_OWNED_UTF8_LOGICAL_ALLOCATIONS, MAX_OWNED_UTF8_LOGICAL_ALLOCATION_BYTES,
 };
 pub use crate::wasm::{ProjectWebBuild, MAX_PROJECT_WEB_BUILD_BYTES, PROJECT_WEB_BUILD_SCHEMA};
+pub use agent_contract_facts::{
+    AgentInteractionContractFact, AgentInteractionContractFacts,
+    AGENT_INTERACTION_CONTRACT_FACTS_SCHEMA, MAX_AGENT_INTERACTION_CONTRACT_FACTS_BYTES,
+};
 pub use agent_lowering::{
-    compile_source_agent_declaration, compile_source_program_agents, compile_source_project_agents,
-    CompiledSourceAgents, ResolvedSourceAgent, MAX_SOURCE_AGENTS_PER_PROJECT,
-    SOURCE_AGENT_LOWERING_SCHEMA,
+    compile_source_agent_declaration, compile_source_agent_proposal_schema,
+    compile_source_program_agents, compile_source_project_agents, CompiledSourceAgents,
+    ResolvedSourceAgent, MAX_SOURCE_AGENTS_PER_PROJECT, SOURCE_AGENT_LOWERING_SCHEMA,
 };
 use authority::{authentication, DeclaredPathSelection, HeldDirectory, HeldFile};
 #[cfg(all(test, windows))]

@@ -38,12 +38,21 @@ carries the display/stable Agent identity, all typed role/kind identities, and
 the exact Runtime-v1 carrier. Compatibility definition/graph digests remain in
 the Project-owned compiled products. The HIR node deliberately carries no
 executable role body until that separately specified lowering exists.
-Project-wide validation also rejects an Agent,
-Agent-type, or Agent-operation identity that collides with a declaration
-identity already retained by the exact Project graph. Its
-Project construction retains those products on the immutable `ProjectRevision`,
+Project-wide validation also rejects an Agent declaration identity that
+collides with an ordinary declaration identity already retained by the exact
+Project graph. Type-role and operation-role identities are bindings and may
+name compatible persistent type or function declarations. The twelve role
+bindings remain unique within one source Agent definition and distinct from
+that Agent declaration identity; multiple Agents may bind the same ordinary
+declarations. Project construction retains those
+products on the immutable `ProjectRevision`,
 and default canonical derivation populates the existing AgentDefinitions node.
 An empty Program set retains the legacy empty/default canonical workspace bytes.
+For source-owned Agents whose Proposal and Observation roles resolve to checked
+same-module declarations, Project construction also retains the independently
+replayed [Agent Interaction Contract Facts v1](AGENT-INTERACTION-CONTRACT-FACTS-V1.md)
+bundle and embeds those exact bounded schema facts in the source-only
+AgentDefinitions rows. Explicit association bytes remain unchanged.
 
 `SPX-G558` reports malformed source-lowering carrier material. `SPX-G559`
 reports role, kind, capacity, identity, or Project-association invariants.

@@ -8,6 +8,7 @@ use std::collections::BTreeSet;
 use std::fmt::Write;
 
 use crate::agent_definition::{compile_agent_definition, CompiledAgentDefinition};
+use crate::agent_proposal::{compile_agent_proposal_schema, CompiledAgentProposalSchema};
 use crate::ast::{
     AgentDeclaration, AgentOperationKind, AgentOperationRole, AgentTypeRole, Program,
     TypeDeclarationKind,
@@ -55,7 +56,6 @@ type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 pub struct CompiledSourceAgents {
     agents: Vec<ResolvedSourceAgent>,
     definitions: Vec<CompiledAgentDefinition>,
-    semantic_ids: BTreeSet<String>,
 }
 
 pub type ResolvedSourceAgent = crate::hir::ResolvedAgentDeclaration;
@@ -94,7 +94,7 @@ impl CompiledSourceAgents {
                 "source Agent workspace association selected a stale Project revision",
             ));
         }
-        validate_project_identity_separation(revision, &self.semantic_ids)?;
+        validate_project_identity_separation(revision, &self.agents)?;
         if self.definitions.is_empty() {
             return SemanticWorkspaceRevision::derive(revision);
         }
@@ -129,6 +129,40 @@ pub fn compile_source_program_agents(program: &Program) -> Result<CompiledSource
     compile_source_project_agents(&[program])
 }
 
+/// Derives the existing frozen Proposal Schema v1 from one source-owned Agent.
+///
+/// This bounded bridge resolves both the Agent and its Proposal type in the
+/// same checked module. The existing Proposal compiler remains the final
+/// schema and decoder authority, so no AgentDefinition or schema bytes change.
+pub fn compile_source_agent_proposal_schema(
+    module_source: &str,
+    module_path: impl AsRef<std::path::Path>,
+    agent_id: &str,
+) -> Result<CompiledAgentProposalSchema> {
+    let path = module_path.as_ref();
+    let program = crate::check(module_source, path)?;
+    let mut matches = program
+        .agents
+        .iter()
+        .filter(|agent| agent.stable_id == agent_id);
+    let Some(declaration) = matches.next() else {
+        return Err(invariant(
+            "source Agent identity was not found in the module",
+        ));
+    };
+    if matches.next().is_some() {
+        return Err(invariant(
+            "source Agent identity is duplicated in the module",
+        ));
+    }
+    let definition = compile_source_agent_declaration(declaration)?;
+    compile_agent_proposal_schema(
+        module_source,
+        path,
+        definition.definition().canonical_source(),
+    )
+}
+
 /// Lower an exact Project-owned Program set, reject cross-module stable-ID
 /// collisions, and place complete compiler products in stable Agent-ID order.
 pub fn compile_source_project_agents(programs: &[&Program]) -> Result<CompiledSourceAgents> {
@@ -152,15 +186,17 @@ pub fn compile_source_project_agents(programs: &[&Program]) -> Result<CompiledSo
     let mut declarations = Vec::with_capacity(count);
     for program in programs {
         for declaration in &program.agents {
-            for stable_id in declaration_ids(declaration) {
-                if !agent_ids.insert(stable_id.to_owned())
-                    || !occupied_ids.insert(stable_id.to_owned())
-                {
-                    return Err(invariant(
-                        "source Project Agent identities must be unique and disjoint from existing declarations",
-                    ));
-                }
+            if occupied_ids.contains(&declaration.stable_id) {
+                return Err(invariant(
+                    "source Agent declaration identity collides with an existing declaration",
+                ));
             }
+            if !agent_ids.insert(declaration.stable_id.clone()) {
+                return Err(invariant(
+                    "source Project Agent declaration identities must be globally unique",
+                ));
+            }
+            occupied_ids.insert(declaration.stable_id.clone());
             declarations.push(declaration);
         }
     }
@@ -175,7 +211,6 @@ pub fn compile_source_project_agents(programs: &[&Program]) -> Result<CompiledSo
     Ok(CompiledSourceAgents {
         agents,
         definitions,
-        semantic_ids: agent_ids,
     })
 }
 
@@ -301,7 +336,7 @@ fn collect_existing_program_ids(program: &Program, ids: &mut BTreeSet<String>) {
 
 fn validate_project_identity_separation(
     revision: &ProjectRevision,
-    agent_ids: &BTreeSet<String>,
+    agents: &[ResolvedSourceAgent],
 ) -> Result<()> {
     fn visit(value: &serde_json::Value, retained_ids: &mut BTreeSet<String>) {
         match value {
@@ -327,7 +362,10 @@ fn validate_project_identity_separation(
         .map_err(|_| invariant("retained Project graph is not valid JSON"))?;
     let mut retained_ids = BTreeSet::new();
     visit(&graph, &mut retained_ids);
-    if agent_ids.iter().any(|id| retained_ids.contains(id)) {
+    if agents
+        .iter()
+        .any(|agent| retained_ids.contains(agent.stable_id.as_str()))
+    {
         return Err(invariant(
             "source Agent identity collides with an existing Project declaration identity",
         ));
@@ -391,17 +429,6 @@ fn validate_declaration_shape(declaration: &AgentDeclaration) -> Result<()> {
         ));
     }
     Ok(())
-}
-
-fn declaration_ids(declaration: &AgentDeclaration) -> impl Iterator<Item = &str> {
-    std::iter::once(declaration.stable_id.as_str())
-        .chain(declaration.types.iter().map(|role| role.stable_id.as_str()))
-        .chain(
-            declaration
-                .operations
-                .iter()
-                .map(|role| role.stable_id.as_str()),
-        )
 }
 
 fn render_definition_v1(declaration: &AgentDeclaration) -> Result<String> {

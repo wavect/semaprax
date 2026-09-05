@@ -586,13 +586,15 @@ Workspace, and Semantic Workspace Image v1 bytes and revision algorithms remain
 unchanged. See [Canonical Semantic Workspace Revision
 v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md).
 
-The explicit AgentDefinition association bridge can populate the canonical
-workspace's existing AgentDefinitions node from a bounded stable-ID-ordered
-list of exact compiler-admitted definition/graph/profile bundles bound to one
-Project revision. It independently replays every bundle and flows through the
-same ProgramRoot segment derivation. This is explicit association input, not
-`.spx` Agent syntax, intrinsic Project ownership, runtime execution, or
-authority. See [Explicit AgentDefinition Association v1](EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md).
+The canonical workspace's existing AgentDefinitions node has two distinct
+population paths. The explicit bridge accepts a bounded stable-ID-ordered list
+of compiler-admitted definition/graph/profile bundles. Language-native `.spx`
+Agents are instead retained by `ProjectRevision` and selected automatically;
+their source-only rows also carry exact replayed Proposal and Observation
+contract facts. Both paths flow through the same ProgramRoot segment and grant
+no runtime or external authority. See [Explicit AgentDefinition Association
+v1](EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md) and [Agent Interaction Contract
+Facts v1](AGENT-INTERACTION-CONTRACT-FACTS-V1.md).
 
 `src/project/program_root.rs` adds the SEG-02 ProgramRoot v1 foundation as a
 small content-addressed manifest over that same canonical workspace object. It
@@ -2073,6 +2075,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Canonical Project-derived semantic workspace revision | `src/project/canonical_workspace_revision.rs` |
 | Segmented source-owned ProgramRoot | `src/project/program_root.rs` |
+| Source Agent interaction contract facts | `src/project/agent_contract_facts.rs` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
 | Project v8 promotion observation replay | `src/project/v8_promotion.rs` |
 | Exact Project semantic references | `src/project/image_reference.rs` |

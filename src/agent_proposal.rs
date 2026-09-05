@@ -23,9 +23,15 @@ use sha2::{Digest, Sha256};
 use crate::agent_definition::compile_agent_definition;
 use crate::diagnostic::{quote_json, Diagnostic};
 
-mod decode;
-mod shape;
+mod clients;
+pub(crate) mod decode;
+pub(crate) mod shape;
 
+pub use clients::{
+    verify_agent_proposal_client_bundle, AgentProposalClientBundle,
+    AGENT_PROPOSAL_CLIENT_BUNDLE_SCHEMA, MAX_AGENT_PROPOSAL_CLIENT_BUNDLE_BYTES,
+    MAX_AGENT_PROPOSAL_CLIENT_MANIFEST_BYTES, MAX_AGENT_PROPOSAL_CLIENT_SOURCE_BYTES,
+};
 pub use decode::{DecodedField, DecodedProposal, ProposalValue};
 
 use shape::Shape;

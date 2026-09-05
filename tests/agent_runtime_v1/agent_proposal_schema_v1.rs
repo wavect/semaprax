@@ -3,7 +3,9 @@
 
 use semaprax::agent_definition::compile_agent_definition;
 use semaprax::agent_proposal::{
-    compile_agent_proposal_schema, verify_agent_proposal_schema_bundle, ProposalValue,
+    compile_agent_proposal_schema, verify_agent_proposal_client_bundle,
+    verify_agent_proposal_schema_bundle, ProposalValue, AGENT_PROPOSAL_CLIENT_BUNDLE_SCHEMA,
+    MAX_AGENT_PROPOSAL_CLIENT_SOURCE_BYTES,
 };
 use semaprax::agent_runtime::AgentRunStatus;
 use semaprax::agent_transcript;
@@ -128,6 +130,109 @@ fn stale_digest(digest: &str) -> String {
 
 fn compile_record() -> semaprax::agent_proposal::CompiledAgentProposalSchema {
     compile_agent_proposal_schema(RECORD_MODULE, MODULE_PATH, &definition(&profile())).unwrap()
+}
+
+#[test]
+fn generated_clients_and_structured_output_schema_replay_exactly() {
+    let compiled = compile_record();
+    let first = compiled.generate_clients().unwrap();
+    let second = compiled.generate_clients().unwrap();
+    assert_eq!(first, second);
+    let manifest: serde_json::Value = serde_json::from_str(first.manifest_json()).unwrap();
+    assert_eq!(manifest["schema"], AGENT_PROPOSAL_CLIENT_BUNDLE_SCHEMA);
+    assert_eq!(
+        manifest["proposal_schema_digest"],
+        compiled.schema().digest()
+    );
+    assert_eq!(manifest["artifacts"].as_array().unwrap().len(), 4);
+    assert_eq!(
+        manifest["artifacts"][0]["kind"],
+        "structured_output_json_schema"
+    );
+    for source in [
+        first.structured_output_schema(),
+        first.typescript_source(),
+        first.python_source(),
+        first.rust_source(),
+    ] {
+        assert!(source.ends_with('\n'));
+        assert!(source.contains("fixture.agent.type.proposal.tool"));
+        assert!(source.contains(compiled.schema().digest()));
+    }
+    assert!(first
+        .structured_output_schema()
+        .contains("https://json-schema.org/draft/2020-12/schema"));
+    assert!(!first.structured_output_schema().contains("openai"));
+    assert!(first.typescript_source().contains("ExactInteger = bigint"));
+    assert!(first.python_source().contains("TypedDict"));
+    assert!(first.rust_source().contains("pub field_3: u64"));
+    for source in [
+        first.typescript_source(),
+        first.python_source(),
+        first.rust_source(),
+    ] {
+        assert!(!source.contains("fetch("));
+        assert!(!source.contains("open("));
+        assert!(!source.contains("std::fs"));
+        assert!(!source.contains("std::process"));
+    }
+    verify_agent_proposal_client_bundle(
+        &compiled,
+        first.bundle_digest(),
+        first.manifest_json().as_bytes(),
+        first.structured_output_schema().as_bytes(),
+        first.typescript_source().as_bytes(),
+        first.python_source().as_bytes(),
+        first.rust_source().as_bytes(),
+    )
+    .unwrap();
+
+    let altered = first.typescript_source().replacen("bigint", "number", 1);
+    let error = verify_agent_proposal_client_bundle(
+        &compiled,
+        first.bundle_digest(),
+        first.manifest_json().as_bytes(),
+        first.structured_output_schema().as_bytes(),
+        altered.as_bytes(),
+        first.python_source().as_bytes(),
+        first.rust_source().as_bytes(),
+    )
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-G561");
+
+    let oversized = vec![b'x'; MAX_AGENT_PROPOSAL_CLIENT_SOURCE_BYTES + 1];
+    let error = verify_agent_proposal_client_bundle(
+        &compiled,
+        first.bundle_digest(),
+        first.manifest_json().as_bytes(),
+        first.structured_output_schema().as_bytes(),
+        &oversized,
+        first.python_source().as_bytes(),
+        first.rust_source().as_bytes(),
+    )
+    .unwrap_err();
+    assert_eq!(error[0].code, "SPX-G560");
+}
+
+#[test]
+fn generated_variant_clients_keep_exact_case_discriminants() {
+    let compiled =
+        compile_agent_proposal_schema(VARIANT_MODULE, MODULE_PATH, &definition(&profile()))
+            .unwrap();
+    let bundle = compiled.generate_clients().unwrap();
+    for case_id in [
+        "fixture.agent.type.proposal.finish",
+        "fixture.agent.type.proposal.call",
+    ] {
+        assert!(bundle.structured_output_schema().contains(case_id));
+        assert!(bundle.typescript_source().contains(case_id));
+        assert!(bundle.python_source().contains(case_id));
+        assert!(bundle.rust_source().contains(case_id));
+    }
+    assert!(bundle.structured_output_schema().contains("oneOf"));
+    assert!(bundle.typescript_source().contains("switch (value.case)"));
+    assert!(bundle.python_source().contains("Literal["));
+    assert!(bundle.rust_source().contains("pub enum ProposalValue"));
 }
 
 fn record_proposal(
@@ -718,6 +823,7 @@ fn the_proposal_surface_mints_no_authorization_and_reaches_no_host() {
         include_str!("../../src/agent_proposal.rs"),
         include_str!("../../src/agent_proposal/shape.rs"),
         include_str!("../../src/agent_proposal/decode.rs"),
+        include_str!("../../src/agent_proposal/clients.rs"),
     ] {
         for forbidden in [
             "AgentRuntimeAuthority",

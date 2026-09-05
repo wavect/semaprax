@@ -88,6 +88,11 @@ impl AgentDefinitionsQuery {
                 .canonical()
                 .agent_definitions()
                 .clone(),
+            agent_interaction_contract_facts: snapshot
+                .generation()
+                .revision()
+                .agent_interaction_contract_facts()
+                .cloned(),
         })
     }
 }
@@ -97,6 +102,7 @@ pub struct AgentDefinitionsQueryResult {
     workspace_revision: String,
     program_root: super::ProgramRoot,
     agent_definitions: super::AgentDefinitions,
+    agent_interaction_contract_facts: Option<super::AgentInteractionContractFacts>,
 }
 
 impl AgentDefinitionsQueryResult {
@@ -110,6 +116,12 @@ impl AgentDefinitionsQueryResult {
 
     pub fn agent_definitions(&self) -> &super::AgentDefinitions {
         &self.agent_definitions
+    }
+
+    pub fn agent_interaction_contract_facts(
+        &self,
+    ) -> Option<&super::AgentInteractionContractFacts> {
+        self.agent_interaction_contract_facts.as_ref()
     }
 }
 

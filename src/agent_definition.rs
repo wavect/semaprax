@@ -140,6 +140,14 @@ impl AgentDefinition {
         &self.types[3].stable_id
     }
 
+    /// Returns the stable type identity admitted for the Observation role.
+    ///
+    /// This additive read-only accessor changes no admitted byte and grants
+    /// no authority.
+    pub fn observation_type_id(&self) -> &str {
+        &self.types[2].stable_id
+    }
+
     /// Returns the byte-preserved canonical Agent Runtime Profile v1 projection.
     pub fn runtime_v1_profile(&self) -> &str {
         &self.runtime_v1_profile

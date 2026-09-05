@@ -558,12 +558,44 @@ The fixture known answers are:
 The existing Agent Runtime v1 suite continues to own all Profile, Task, Action,
 Trace, Evidence, routing, budget, cancellation, and injected-host known answers.
 
+## Additive Proposal client bundle v1
+
+`CompiledAgentProposalSchema::generate_clients` derives four pathless,
+authority-free artifacts in fixed order: provider-neutral JSON Schema 2020-12,
+TypeScript, Python, and Rust. Typed record fields remain in declaration order;
+typed variant cases use exact stable IDs as discriminants. Integer encoders
+emit bounded canonical decimal strings and the language clients enforce the
+4096-byte UTF-8 text limit. The clients construct Proposal data only, never
+`Authorized<T>`, a
+publication token, or a capability.
+
+The structured-output schema binds the exact Agent ID, Proposal Schema digest,
+stable field IDs, and case discriminants using standard JSON Schema keywords.
+Its decimal-string patterns do not replace the compiler decoder's full i64/u64
+range checks. Its standard `maxLength` keyword is a character-count ceiling,
+not the UTF-8 byte check; the language clients and compiler decoder remain the
+byte-limit authority.
+
+The canonical `semaprax.agent-proposal-client-bundle.v1` manifest binds the
+frozen Proposal Schema v1 identity, schema digest, proposal-type revision, and
+each artifact's kind, path, byte length, and domain-separated digest. One
+source is limited to 1 MiB, their aggregate to 4 MiB, and the manifest to 64
+KiB. `AgentProposalClientBundle::replay` and
+`verify_agent_proposal_client_bundle` rederive all four artifacts and require
+every byte to match. Malformed or over-bound input is `SPX-G560`; an exact
+well-formed substitution is `SPX-G561`.
+
+This additive bundle changes no Proposal Schema v1 byte. Its historical
+`no_generated_consumer_clients_in_this_slice` nonclaim remains frozen as part
+of that earlier document. Generation and replay perform no filesystem,
+network, provider, tool, process, compilation, execution, packaging, or
+publication operation.
+
 ## Nonclaims and next gates
 
 This slice does not implement or claim:
 
-- agent language syntax or parser/HIR admission for the agent object itself;
-- generated Python, TypeScript, or Rust proposal consumers;
+- execution, packaging, or publication of the additive generated clients;
 - proposal values beyond the closed monomorphic scalar record/variant subset;
 - compiled execution of `initialize`, `observe`, `authorize`, or `reduce`;
 - a Runtime v2 that consumes AgentGraph or the bound product directly;
@@ -575,12 +607,11 @@ This slice does not implement or claim:
 - a CLI; or
 - the signature-change reference vertical slice.
 
-Agent Proposal Schema v1 closes the previously named next gate for the derived
-proposal grammar, and AgentDefinition v2 with AgentDeployment v1 closes the
-definition/deployment separation gate. The Runtime v1 compatibility projection
-still carries its own authored action/tool schemas, and replacing those is
-separate work. The next bounded gates are generated consumers for the proposal
-grammar, and compiled execution of the deterministic stages with an opaque
-one-use authorization value. Runtime v2 must not consume AgentGraph directly
-until those authorization-token semantics have their own reviewed contract and
+Agent Proposal Schema v1 closes the derived proposal grammar gate, the additive
+client bundle closes deterministic source generation and exact replay, and
+AgentDefinition v2 with AgentDeployment v1 closes definition/deployment
+separation. Provisioned compilation and execution of those clients remain a
+separate gate. The Runtime v1 compatibility projection still carries its own
+authored action/tool schemas. Runtime v2 must not consume AgentGraph directly
+until opaque one-use authorization semantics have reviewed contract and
 executable rejection evidence.

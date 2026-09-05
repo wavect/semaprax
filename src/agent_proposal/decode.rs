@@ -106,57 +106,88 @@ pub(crate) fn decode(
     shape: &Shape,
     source: &str,
 ) -> Result<DecodedProposal, Diagnostic> {
-    if source.len() > MAX_PROPOSAL_BYTES {
-        return Err(proposal_invariant("proposal_bytes"));
+    decode_document(
+        agent_id,
+        schema_digest,
+        shape,
+        source,
+        DocumentRules {
+            document_schema: PROPOSAL_SCHEMA,
+            digest_key: "proposal_schema_digest",
+            max_document_bytes: MAX_PROPOSAL_BYTES,
+            malformed,
+            invariant: proposal_invariant,
+            bytes_field: "proposal_bytes",
+        },
+    )
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct DocumentRules {
+    pub(crate) document_schema: &'static str,
+    pub(crate) digest_key: &'static str,
+    pub(crate) max_document_bytes: usize,
+    pub(crate) malformed: fn() -> Diagnostic,
+    pub(crate) invariant: fn(&str) -> Diagnostic,
+    pub(crate) bytes_field: &'static str,
+}
+
+/// Role-neutral bounded decoder shared by compiler-derived Agent schemas.
+pub(crate) fn decode_document(
+    agent_id: &str,
+    schema_digest: &str,
+    shape: &Shape,
+    source: &str,
+    rules: DocumentRules,
+) -> Result<DecodedProposal, Diagnostic> {
+    if source.len() > rules.max_document_bytes {
+        return Err((rules.invariant)(rules.bytes_field));
     }
     let Some(body) = source.strip_suffix('\n') else {
-        return Err(malformed());
+        return Err((rules.malformed)());
     };
     if body.is_empty() || body.contains('\n') || body.contains('\r') || body.starts_with('\u{feff}')
     {
-        return Err(malformed());
+        return Err((rules.malformed)());
     }
-    let value: Value = serde_json::from_str(body).map_err(|_| malformed())?;
-    let top = value.as_object().ok_or_else(malformed)?;
-    if !exact_keys(
-        top,
-        &["schema", "agent_id", "proposal_schema_digest", "value"],
-    ) {
-        return Err(malformed());
+    let value: Value = serde_json::from_str(body).map_err(|_| (rules.malformed)())?;
+    let top = value.as_object().ok_or_else(|| (rules.malformed)())?;
+    if !exact_keys(top, &["schema", "agent_id", rules.digest_key, "value"]) {
+        return Err((rules.malformed)());
     }
-    if string(top, "schema")? != PROPOSAL_SCHEMA {
-        return Err(malformed());
+    if string(top, "schema", rules.malformed)? != rules.document_schema {
+        return Err((rules.malformed)());
     }
-    if string(top, "agent_id")? != agent_id {
-        return Err(proposal_invariant("agent_id"));
+    if string(top, "agent_id", rules.malformed)? != agent_id {
+        return Err((rules.invariant)("agent_id"));
     }
-    if string(top, "proposal_schema_digest")? != schema_digest {
-        return Err(proposal_invariant("proposal_schema_digest"));
+    if string(top, rules.digest_key, rules.malformed)? != schema_digest {
+        return Err((rules.invariant)(rules.digest_key));
     }
     let body_value = top
         .get("value")
         .and_then(Value::as_object)
-        .ok_or_else(malformed)?;
+        .ok_or_else(|| (rules.malformed)())?;
 
     let (case, fields) = match shape {
         Shape::Record { fields } => {
             if !exact_keys(body_value, &["fields"]) {
-                return Err(malformed());
+                return Err((rules.malformed)());
             }
-            (None, decode_fields(body_value, fields)?)
+            (None, decode_fields(body_value, fields, rules)?)
         }
         Shape::Variant { cases } => {
             if !exact_keys(body_value, &["case", "fields"]) {
-                return Err(malformed());
+                return Err((rules.malformed)());
             }
-            let selected = string(body_value, "case")?;
+            let selected = string(body_value, "case", rules.malformed)?;
             let case = cases
                 .iter()
                 .find(|case| case.stable_id == selected)
-                .ok_or_else(|| proposal_invariant("value.case"))?;
+                .ok_or_else(|| (rules.invariant)("value.case"))?;
             (
                 Some(case.stable_id.clone()),
-                decode_fields(body_value, &case.fields)?,
+                decode_fields(body_value, &case.fields, rules)?,
             )
         }
     };
@@ -168,9 +199,9 @@ pub(crate) fn decode(
         fields,
         canonical_source: String::new(),
     };
-    let canonical_source = render(&decoded);
+    let canonical_source = render(&decoded, rules);
     if canonical_source != source {
-        return Err(malformed());
+        return Err((rules.malformed)());
     }
     Ok(DecodedProposal {
         canonical_source,
@@ -181,24 +212,25 @@ pub(crate) fn decode(
 fn decode_fields(
     body: &Map<String, Value>,
     rows: &[FieldRow],
+    rules: DocumentRules,
 ) -> Result<Vec<DecodedField>, Diagnostic> {
     let fields = body
         .get("fields")
         .and_then(Value::as_object)
-        .ok_or_else(malformed)?;
+        .ok_or_else(|| (rules.malformed)())?;
     for key in fields.keys() {
         if !rows.iter().any(|row| &row.stable_id == key) {
-            return Err(proposal_invariant("value.fields.unknown"));
+            return Err((rules.invariant)("value.fields.unknown"));
         }
     }
     let mut decoded = Vec::with_capacity(rows.len());
     for row in rows {
         let value = fields
             .get(&row.stable_id)
-            .ok_or_else(|| proposal_invariant("value.fields.missing"))?;
+            .ok_or_else(|| (rules.invariant)("value.fields.missing"))?;
         decoded.push(DecodedField {
             stable_id: row.stable_id.clone(),
-            value: decode_scalar(row.representation, value)?,
+            value: decode_scalar(row.representation, value, rules)?,
         });
     }
     Ok(decoded)
@@ -207,26 +239,27 @@ fn decode_fields(
 fn decode_scalar(
     representation: Representation,
     value: &Value,
+    rules: DocumentRules,
 ) -> Result<ProposalValue, Diagnostic> {
     match representation {
         Representation::Bool => value
             .as_bool()
             .map(ProposalValue::Bool)
-            .ok_or_else(|| proposal_invariant("value.representation")),
+            .ok_or_else(|| (rules.invariant)("value.representation")),
         Representation::Text => {
             let text = value
                 .as_str()
-                .ok_or_else(|| proposal_invariant("value.representation"))?;
+                .ok_or_else(|| (rules.invariant)("value.representation"))?;
             if text.len() > MAX_STRING_FIELD_BYTES {
-                return Err(proposal_invariant("value.string_bytes"));
+                return Err((rules.invariant)("value.string_bytes"));
             }
             Ok(ProposalValue::Text(text.to_owned()))
         }
         Representation::I32 | Representation::I64 | Representation::U8 | Representation::U64 => {
             let text = value
                 .as_str()
-                .ok_or_else(|| proposal_invariant("value.representation"))?;
-            decode_integer(representation, text)
+                .ok_or_else(|| (rules.invariant)("value.representation"))?;
+            decode_integer(representation, text, rules.invariant)
         }
     }
 }
@@ -238,7 +271,11 @@ fn decode_scalar(
 /// exactly one canonical decimal: no sign except a leading `-` on a negative
 /// value, no leading zero except the single digit `0`, no `+`, no exponent, no
 /// fraction, and no surrounding whitespace.
-fn decode_integer(representation: Representation, text: &str) -> Result<ProposalValue, Diagnostic> {
+fn decode_integer(
+    representation: Representation,
+    text: &str,
+    invariant: fn(&str) -> Diagnostic,
+) -> Result<ProposalValue, Diagnostic> {
     let digits = text.strip_prefix('-').unwrap_or(text);
     let negative = text.starts_with('-');
     if digits.is_empty()
@@ -246,33 +283,29 @@ fn decode_integer(representation: Representation, text: &str) -> Result<Proposal
         || (digits.len() > 1 && digits.starts_with('0'))
         || (negative && digits == "0")
     {
-        return Err(proposal_invariant("value.integer"));
+        return Err(invariant("value.integer"));
     }
     let (minimum, maximum) = representation
         .bounds()
         .expect("an integer representation always declares bounds");
     match representation {
         Representation::I32 | Representation::I64 => {
-            let parsed: i64 = text
-                .parse()
-                .map_err(|_| proposal_invariant("value.integer_range"))?;
+            let parsed: i64 = text.parse().map_err(|_| invariant("value.integer_range"))?;
             let low: i64 = minimum.parse().expect("declared bounds parse");
             let high: i64 = maximum.parse().expect("declared bounds parse");
             if parsed < low || parsed > high {
-                return Err(proposal_invariant("value.integer_range"));
+                return Err(invariant("value.integer_range"));
             }
             Ok(ProposalValue::Signed(parsed))
         }
         Representation::U8 | Representation::U64 => {
             if negative {
-                return Err(proposal_invariant("value.integer_range"));
+                return Err(invariant("value.integer_range"));
             }
-            let parsed: u64 = text
-                .parse()
-                .map_err(|_| proposal_invariant("value.integer_range"))?;
+            let parsed: u64 = text.parse().map_err(|_| invariant("value.integer_range"))?;
             let high: u64 = maximum.parse().expect("declared bounds parse");
             if parsed > high {
-                return Err(proposal_invariant("value.integer_range"));
+                return Err(invariant("value.integer_range"));
             }
             Ok(ProposalValue::Unsigned(parsed))
         }
@@ -282,11 +315,12 @@ fn decode_integer(representation: Representation, text: &str) -> Result<Proposal
     }
 }
 
-fn render(decoded: &DecodedProposal) -> String {
+fn render(decoded: &DecodedProposal, rules: DocumentRules) -> String {
     let mut output = format!(
-        "{{\"schema\":{},\"agent_id\":{},\"proposal_schema_digest\":{},\"value\":{{",
-        quote_json(PROPOSAL_SCHEMA),
+        "{{\"schema\":{},\"agent_id\":{},{}:{},\"value\":{{",
+        quote_json(rules.document_schema),
         quote_json(&decoded.agent_id),
+        quote_json(rules.digest_key),
         quote_json(&decoded.proposal_schema_digest)
     );
     if let Some(case) = &decoded.case {
@@ -321,7 +355,11 @@ fn exact_keys(object: &Map<String, Value>, keys: &[&str]) -> bool {
     object.len() == keys.len() && keys.iter().all(|key| object.contains_key(*key))
 }
 
-fn string<'a>(object: &'a Map<String, Value>, key: &str) -> Result<&'a str, Diagnostic> {
+fn string<'a>(
+    object: &'a Map<String, Value>,
+    key: &str,
+    malformed: fn() -> Diagnostic,
+) -> Result<&'a str, Diagnostic> {
     object
         .get(key)
         .and_then(Value::as_str)

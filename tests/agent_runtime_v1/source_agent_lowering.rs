@@ -1,16 +1,17 @@
-use std::path::Path;
 use std::sync::Arc;
 
+use semaprax::agent_observation::compile_source_agent_observation_schema;
 use semaprax::ast::{
     AgentDeclaration, AgentOperationDeclaration, AgentOperationKind, AgentOperationRole,
     AgentTypeRole, AgentTypeRoleDeclaration, ModuleUse, ModuleUseKind, Program, Span,
 };
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
-    compile_source_agent_declaration, compile_source_program_agents, compile_source_project_agents,
-    render_project_lock, with_authenticated_project, AgentDefinitionsQuery, ExactProgramContext,
-    ImageArtifactKind, InterfaceArtifactFacts, ProgramRootV2, SemanticWorkspaceService,
-    MAX_IMAGE_ARTIFACT_BUILD_BYTES,
+    compile_source_agent_declaration, compile_source_agent_proposal_schema,
+    compile_source_program_agents, compile_source_project_agents, render_project_lock,
+    with_authenticated_project, AgentDefinitionsQuery, ExactProgramContext, ImageArtifactKind,
+    InterfaceArtifactFacts, ProgramRootV2, SemanticWorkspaceService,
+    AGENT_INTERACTION_CONTRACT_FACTS_SCHEMA, MAX_IMAGE_ARTIFACT_BUILD_BYTES,
 };
 
 use super::{agent_definition_v1::definition, profile};
@@ -190,10 +191,24 @@ fn source_agent_role_and_project_identity_errors_fail_closed() {
         "SPX-G559",
     );
 
+    let shared_first = declaration("shared.a");
+    let mut shared_second = declaration("shared.b");
+    shared_second.types = shared_first.types.clone();
+    shared_second.operations = shared_first.operations.clone();
+    let shared = program(vec![shared_first, shared_second]);
+    assert_eq!(
+        compile_source_program_agents(&shared)
+            .unwrap()
+            .definitions()
+            .len(),
+        2,
+        "multiple Agents may bind the same ordinary declarations"
+    );
+
     let mut declaration_collision = program(vec![declaration("external.agent")]);
     declaration_collision.module_uses.push(ModuleUse {
         kind: ModuleUseKind::Type,
-        persistent_id: "external.agent.type.task".to_owned(),
+        persistent_id: "external.agent".to_owned(),
         target_module: "dependency".to_owned(),
         alias: "Task".to_owned(),
         span: Span::default(),
@@ -212,24 +227,85 @@ fn source_agent_populates_project_program_root_query_and_service_without_changin
     ));
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(root.join("src")).unwrap();
-    let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/calculator-project");
-    for file in ["src/app.spx", "src/core.spx", "src/tests.spx"] {
-        std::fs::copy(sample.join(file), root.join(file)).unwrap();
-    }
-    let mut agent_program = program(vec![declaration("fixture.agent")]);
-    agent_program.path = "src/agent.spx".to_owned();
-    let mut agent_source = semaprax::format::canonical(&agent_program);
-    agent_source.push_str(
-        "\n@id(\"fixture.agent.module-marker\")\nfn module_marker() -> i64\n{\n    0\n}\n",
+    let runtime = serde_json::to_string(&runtime_v1(&profile())).unwrap();
+    let agent_source = format!(
+        r#"module fixture;
+
+@id("fixture.agent.type.observation")
+record Observation {{
+    @id("fixture.agent.type.observation.ready")
+    ready: bool,
+}}
+
+@id("fixture.agent.type.proposal")
+record Proposal {{
+    @id("fixture.agent.type.proposal.action")
+    action: bool,
+}}
+
+@id("fixture.payload")
+record Payload {{
+    @id("fixture.payload.bytes")
+    bytes: Bytes,
+}}
+
+@id("fixture.agent")
+agent FixtureAgent {{
+    types {{
+        @id("fixture.agent.type.task")
+        type task;
+        @id("fixture.agent.type.state")
+        type state;
+        @id("fixture.agent.type.observation")
+        type observation;
+        @id("fixture.agent.type.proposal")
+        type proposal;
+        @id("fixture.agent.type.outcome")
+        type outcome;
+        @id("fixture.agent.type.result")
+        type result;
+    }}
+    operations {{
+        @id("fixture.agent.fn.initialize")
+        fn initialize;
+        @id("fixture.agent.fn.observe")
+        fn observe;
+        @id("fixture.agent.fn.propose")
+        model fn propose;
+        @id("fixture.agent.fn.authorize")
+        fn authorize;
+        @id("fixture.agent.fn.execute")
+        effect fn execute;
+        @id("fixture.agent.fn.reduce")
+        fn reduce;
+    }}
+    runtime_v1 {{
+        canonical_json {runtime};
+    }}
+}}
+
+@id("fixture.agent.module-marker")
+fn main() -> i64 {{ 0 }}
+
+@id("fixture.build")
+fn build(input: borrow Slice<u8>) -> Payload {{
+    Payload {{ bytes: bytes_copy(input) }}
+}}
+"#,
     );
-    std::fs::write(root.join("src/agent.spx"), agent_source).unwrap();
-    let manifest = std::fs::read_to_string(sample.join("semaprax.toml"))
-        .unwrap()
-        .replace(
-            "sources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]",
-            "sources = [\"src/agent.spx\", \"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]",
-        );
-    std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
+    let agent_source =
+        semaprax::format::canonical(&semaprax::parse(&agent_source, "src/app.spx").unwrap());
+    std::fs::write(root.join("src/app.spx"), &agent_source).unwrap();
+    std::fs::write(
+        root.join("src/tests.spx"),
+        "module fixture.tests;\n\n@id(\"fixture.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("semaprax.toml"),
+        "schema = \"semaprax.project.v11\"\nname = \"fixture\"\nversion = \"1.0.0\"\nprofile = \"nested-owned-record-api.v1\"\nentry = \"fixture\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"fixture.build\"]\ntests = [\"fixture.tests\"]\n",
+    )
+    .unwrap();
     let manifest = root.join("semaprax.toml").canonicalize().unwrap();
 
     with_authenticated_project(&manifest, |snapshot| {
@@ -247,6 +323,33 @@ fn source_agent_populates_project_program_root_query_and_service_without_changin
             direct.graph().canonical_json()
         );
         assert_eq!(retained.runtime_v1_profile(), direct.runtime_v1_profile());
+        let contracts = revision.agent_interaction_contract_facts().unwrap();
+        assert_eq!(contracts.facts().len(), 1);
+        assert!(contracts
+            .to_json()
+            .contains(AGENT_INTERACTION_CONTRACT_FACTS_SCHEMA));
+        assert!(contracts.to_json().contains("\"authority\":false"));
+        let contract = &contracts.facts()[0];
+        let proposal =
+            compile_source_agent_proposal_schema(&agent_source, "src/app.spx", "fixture.agent")?;
+        let observation =
+            compile_source_agent_observation_schema(&agent_source, "src/app.spx", "fixture.agent")?;
+        assert_eq!(
+            contract.proposal_schema(),
+            proposal.schema().canonical_json()
+        );
+        assert_eq!(
+            contract.proposal_schema_digest(),
+            proposal.schema().digest()
+        );
+        assert_eq!(
+            contract.observation_schema(),
+            observation.schema().canonical_json()
+        );
+        assert_eq!(
+            contract.observation_schema_digest(),
+            observation.schema().digest()
+        );
 
         let workspace = revision.canonical_workspace_revision()?;
         let root = workspace.program_root()?;
@@ -262,6 +365,14 @@ fn source_agent_populates_project_program_root_query_and_service_without_changin
             "fixture.agent"
         );
         assert_eq!(
+            agents["payload"]["definitions"][0]["interaction_contract"]["proposal"]["schema"],
+            proposal.schema().canonical_json()
+        );
+        assert_eq!(
+            agents["payload"]["definitions"][0]["interaction_contract"]["observation"]["schema"],
+            observation.schema().canonical_json()
+        );
+        assert_eq!(
             root.segment("agent_definitions").unwrap().node_digest(),
             workspace.agent_definitions().digest()
         );
@@ -272,6 +383,13 @@ fn source_agent_populates_project_program_root_query_and_service_without_changin
         assert_eq!(result.workspace_revision(), workspace.workspace_revision());
         assert_eq!(result.program_root(), &root);
         assert_eq!(result.agent_definitions(), workspace.agent_definitions());
+        assert_eq!(result.agent_interaction_contract_facts(), Some(contracts));
+        assert_eq!(
+            service
+                .active_generation()
+                .agent_interaction_contract_facts(),
+            Some(contracts)
+        );
         assert_eq!(
             service.active_generation().source_agents(),
             revision.source_agents()
@@ -289,7 +407,7 @@ fn source_agent_populates_project_program_root_query_and_service_without_changin
         let facts = InterfaceArtifactFacts::derive(
             revision.clone(),
             revision.project_revision(),
-            &[ImageArtifactKind::Web],
+            &[ImageArtifactKind::Npm],
             MAX_IMAGE_ARTIFACT_BUILD_BYTES,
         )?;
         let v2 = ProgramRootV2::derive(&workspace, &root, &facts, &association)?;

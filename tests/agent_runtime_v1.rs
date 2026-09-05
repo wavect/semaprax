@@ -6,6 +6,9 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[path = "agent_runtime_v1/agent_observation_schema_v1.rs"]
+mod agent_observation_schema_v1;
+
 use semaprax::agent_runtime::{
     Agent, AgentBoundaryProbe, AgentCancellation, AgentHost, AgentProviderAttempt,
     AgentProviderDisposition, AgentProviderSink, AgentProviderUsage, AgentRunStatus,

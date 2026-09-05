@@ -249,6 +249,9 @@ general semantic query algebra.
 workspace snapshot. Its result retains the selected ProgramRoot v1 and the
 existing canonical `AgentDefinitions` node, including the exact compiler-made
 AgentDefinition, AgentGraph, and Runtime Profile bytes for source-owned Agents.
+For source-owned Agents it also exposes the retained typed Proposal and
+Observation contract-fact bundle; the canonical node contains the exact replayed
+schema bytes and digests.
 It intentionally has no JSON parser or renderer and does not extend the closed
 Universal Semantic Query v1 wire operation grammar.
 

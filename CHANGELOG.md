@@ -27,6 +27,17 @@ format: `Unreleased` then release buckets, grouped by impact.
   filesystem, process or signing authority. Owned cleanup and task schedules
   remain out of this first tranche.
 
+- Added the bounded AGENT-04 interaction-contract slice. Source-owned Agents
+  now derive exact Proposal and Observation grammars from checked same-module
+  record or variant declarations, including closed bounded decoders and a
+  deterministic provider-neutral JSON Schema/TypeScript/Python/Rust Proposal
+  client bundle. Project revisions retain independently replayed contract facts
+  and expose them through the existing AgentDefinitions node, ProgramRoot,
+  typed query, and semantic service without changing closed transport schemas
+  or legacy agent-free and explicit-association bytes. Generated client source
+  is structurally verified but is not claimed as compiled, packaged, or run;
+  cross-module role resolution remains follow-up work.
+
 - Added the bounded AGENT-03 language-native source Agent slice. A closed
   `.spx` declaration with explicit identities and fixed deterministic/model/
   effect roles now parses, round-trips canonically, lowers through the unchanged

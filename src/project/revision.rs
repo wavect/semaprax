@@ -31,6 +31,7 @@ pub struct ProjectRevision {
     pub(super) profile_admission: admission::PreparedProjectAdmission,
     pub(super) source_agents: Vec<super::ResolvedSourceAgent>,
     pub(super) agent_definitions: Vec<crate::agent_definition::CompiledAgentDefinition>,
+    pub(super) agent_interaction_contract_facts: Option<super::AgentInteractionContractFacts>,
 }
 
 impl ProjectRevision {
@@ -48,6 +49,7 @@ impl ProjectRevision {
             profile_admission: built.profile_admission,
             source_agents: built.source_agents,
             agent_definitions: built.agent_definitions,
+            agent_interaction_contract_facts: built.agent_interaction_contract_facts,
         }
     }
 
@@ -79,6 +81,13 @@ impl ProjectRevision {
     /// Frozen AgentDefinition v1 compatibility products for source Agents.
     pub fn agent_definitions(&self) -> &[crate::agent_definition::CompiledAgentDefinition] {
         &self.agent_definitions
+    }
+
+    /// Source-derived Proposal and Observation contracts for compiler-owned Agents.
+    pub fn agent_interaction_contract_facts(
+        &self,
+    ) -> Option<&super::AgentInteractionContractFacts> {
+        self.agent_interaction_contract_facts.as_ref()
     }
 
     /// Derive the canonical, authority-free semantic workspace identity over

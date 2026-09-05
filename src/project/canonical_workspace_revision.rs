@@ -489,6 +489,23 @@ fn agent_definitions_payload(
             "explicit AgentDefinitions association requires one to sixty-four definitions",
         ));
     }
+    let source_contracts = if integration == "source_owned_spx_agent_declarations" {
+        let contracts = revision.agent_interaction_contract_facts().ok_or_else(|| {
+            invalid("source-owned AgentDefinitions have no retained interaction contracts")
+        })?;
+        if contracts.project_revision() != revision.project_revision()
+            || contracts.source_workspace_revision() != revision.workspace_revision()
+            || contracts.project_graph_digest() != revision.semantic_graph_digest()
+            || contracts.facts().len() != definitions.len()
+        {
+            return Err(stale(
+                "source-owned AgentDefinitions interaction contract anchors are stale",
+            ));
+        }
+        Some(contracts)
+    } else {
+        None
+    };
     let mut total_bytes = 0usize;
     let mut previous_id: Option<&str> = None;
     let mut rows = Vec::with_capacity(definitions.len());
@@ -533,7 +550,7 @@ fn agent_definitions_payload(
             .and_then(Value::as_str)
             .ok_or_else(|| invalid("explicit AgentDefinitions graph has no profile digest"))?;
         validate_digest(profile_digest)?;
-        rows.push(json!({
+        let mut row = json!({
             "agent_definition": definition_source,
             "agent_definition_digest": definition.digest(),
             "agent_graph": graph_source,
@@ -541,7 +558,21 @@ fn agent_definitions_payload(
             "agent_id": agent_id,
             "runtime_v1_profile": profile_source,
             "runtime_v1_profile_digest": profile_digest,
-        }));
+        });
+        if let Some(contracts) = source_contracts {
+            let contract = contracts
+                .fact(agent_id)
+                .ok_or_else(|| stale("source-owned Agent interaction contract is missing"))?;
+            if contract.value()["definition_digest"] != definition.digest() {
+                return Err(stale(
+                    "source-owned Agent interaction contract definition is stale",
+                ));
+            }
+            row.as_object_mut()
+                .expect("AgentDefinitions rows are objects")
+                .insert("interaction_contract".to_owned(), contract.value().clone());
+        }
+        rows.push(row);
     }
     Ok(json!({
         "definitions": rows,

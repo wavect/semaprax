@@ -19,6 +19,7 @@ pub(super) struct BuiltProject {
     pub(super) profile_admission: admission::PreparedProjectAdmission,
     pub(super) source_agents: Vec<super::ResolvedSourceAgent>,
     pub(super) agent_definitions: Vec<crate::agent_definition::CompiledAgentDefinition>,
+    pub(super) agent_interaction_contract_facts: Option<super::AgentInteractionContractFacts>,
 }
 
 /// Build and validate the complete manifest-owned Project from already-owned
@@ -118,6 +119,18 @@ fn finish_build(
         },
     )
     .map_err(|error| vec![error])?;
+    let agent_interaction_contract_facts = if agent_definitions.is_empty() {
+        None
+    } else {
+        Some(super::AgentInteractionContractFacts::derive(
+            &project_revision,
+            &workspace_revision,
+            semantic.graph_digest(),
+            &files,
+            &programs,
+            &agent_definitions,
+        )?)
+    };
     // Keep execution bound to the entry-only closure while retaining the
     // independently admitted entry-plus-export closure for public targets.
     // Conflating these programs changes cleanup plans and executable ABIs;
@@ -151,6 +164,7 @@ fn finish_build(
         profile_admission,
         source_agents,
         agent_definitions,
+        agent_interaction_contract_facts,
     })
 }
 

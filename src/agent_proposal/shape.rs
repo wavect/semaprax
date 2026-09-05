@@ -109,55 +109,83 @@ pub(crate) fn derive(
     resolved: &ResolvedProgram,
     proposal_type_id: &str,
 ) -> Result<Shape, Diagnostic> {
+    derive_role(resolved, proposal_type_id, "proposal_type", invariant)
+}
+
+/// Role-neutral shape derivation shared by compiler-owned Agent value schemas.
+///
+/// Callers supply their diagnostic namespace and constructor so the Proposal
+/// public diagnostics remain byte-for-byte stable while other roles reuse the
+/// exact same admitted shape rules.
+pub(crate) fn derive_role(
+    resolved: &ResolvedProgram,
+    type_id: &str,
+    field_prefix: &str,
+    make_invariant: fn(&str) -> Diagnostic,
+) -> Result<Shape, Diagnostic> {
     let declaration = resolved
         .types
         .iter()
-        .find(|declaration| declaration.id.as_str() == proposal_type_id)
-        .ok_or_else(|| invariant("proposal_type.unresolved"))?;
+        .find(|declaration| declaration.id.as_str() == type_id)
+        .ok_or_else(|| make_invariant(&format!("{field_prefix}.unresolved")))?;
     if !declaration.type_parameters.is_empty() {
-        return Err(invariant("proposal_type.generic"));
+        return Err(make_invariant(&format!("{field_prefix}.generic")));
     }
-    persistent(resolved, proposal_type_id, "proposal_type.identity_origin")?;
+    persistent(
+        resolved,
+        type_id,
+        &format!("{field_prefix}.identity_origin"),
+        field_prefix,
+        make_invariant,
+    )?;
     match &declaration.kind {
         ResolvedTypeDeclarationKind::Record { fields } => Ok(Shape::Record {
-            fields: field_rows(resolved, fields)?,
+            fields: field_rows(resolved, fields, field_prefix, make_invariant)?,
         }),
         ResolvedTypeDeclarationKind::Variant { cases } => {
             if cases.is_empty() {
-                return Err(invariant("proposal_type.cases"));
+                return Err(make_invariant(&format!("{field_prefix}.cases")));
             }
             let mut rows = Vec::with_capacity(cases.len());
             for case in cases {
                 persistent(
                     resolved,
                     case.id.as_str(),
-                    "proposal_type.case.identity_origin",
+                    &format!("{field_prefix}.case.identity_origin"),
+                    field_prefix,
+                    make_invariant,
                 )?;
                 rows.push(CaseRow {
                     stable_id: case.id.as_str().to_owned(),
-                    fields: field_rows(resolved, &case.fields)?,
+                    fields: field_rows(resolved, &case.fields, field_prefix, make_invariant)?,
                 });
             }
             Ok(Shape::Variant { cases: rows })
         }
         ResolvedTypeDeclarationKind::Resource { .. }
-        | ResolvedTypeDeclarationKind::Class { .. } => Err(invariant("proposal_type.kind")),
+        | ResolvedTypeDeclarationKind::Class { .. } => {
+            Err(make_invariant(&format!("{field_prefix}.kind")))
+        }
     }
 }
 
 fn field_rows(
     resolved: &ResolvedProgram,
     fields: &[ResolvedFieldDeclaration],
+    field_prefix: &str,
+    make_invariant: fn(&str) -> Diagnostic,
 ) -> Result<Vec<FieldRow>, Diagnostic> {
     let mut rows = Vec::with_capacity(fields.len());
     for field in fields {
         persistent(
             resolved,
             field.id.as_str(),
-            "proposal_type.field.identity_origin",
+            &format!("{field_prefix}.field.identity_origin"),
+            field_prefix,
+            make_invariant,
         )?;
-        let representation =
-            Representation::of(&field.ty).ok_or_else(|| invariant("proposal_type.field.type"))?;
+        let representation = Representation::of(&field.ty)
+            .ok_or_else(|| make_invariant(&format!("{field_prefix}.field.type")))?;
         rows.push(FieldRow {
             stable_id: field.id.as_str().to_owned(),
             representation,
@@ -166,13 +194,19 @@ fn field_rows(
     Ok(rows)
 }
 
-fn persistent(resolved: &ResolvedProgram, id: &str, field: &str) -> Result<(), Diagnostic> {
+fn persistent(
+    resolved: &ResolvedProgram,
+    id: &str,
+    field: &str,
+    field_prefix: &str,
+    make_invariant: fn(&str) -> Diagnostic,
+) -> Result<(), Diagnostic> {
     let declaration = resolved
         .declarations
         .declaration(&DeclarationId::new(id))
-        .ok_or_else(|| invariant("proposal_type.unresolved"))?;
+        .ok_or_else(|| make_invariant(&format!("{field_prefix}.unresolved")))?;
     if !declaration.identity_origin.is_persistent() {
-        return Err(invariant(field));
+        return Err(make_invariant(field));
     }
     Ok(())
 }

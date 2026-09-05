@@ -22,10 +22,10 @@ use semaprax::{
 mod cli;
 #[path = "native_scratch.rs"]
 mod native_scratch;
-#[path = "cli_driver/report_options.rs"]
-mod report_options;
 #[path = "cli_driver/project_scaffold_options.rs"]
 mod project_scaffold_options;
+#[path = "cli_driver/report_options.rs"]
+mod report_options;
 #[path = "cli_driver/supply_chain.rs"]
 mod supply_chain;
 

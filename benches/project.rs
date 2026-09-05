@@ -32,8 +32,8 @@ fn bench_project_graph(c: &mut Criterion) {
     let mut group = c.benchmark_group("project-graph");
     for (id, path) in [
         ("calculator", "examples/calculator.spx"),
-        ("apex-demand", "examples/apex-supply-chain/src/demand.spx"),
-        ("rpg-stats", "examples/rpg-battle-project/src/stats.spx"),
+        ("banking-ledger", "examples/banking_ledger.spx"),
+        ("expression-evaluator", "examples/expression_evaluator.spx"),
     ] {
         let source = std::fs::read_to_string(path).unwrap();
         let program = semaprax::parse(&source, Path::new(path)).unwrap();

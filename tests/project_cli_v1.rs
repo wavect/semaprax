@@ -378,7 +378,11 @@ fn project_build_rejections_happen_before_any_output_clobber() {
     ] {
         let output = cli(&fixture.root, &arguments);
         assert_eq!(output.status.code(), Some(2), "{label}: {output:?}");
-        assert!(stderr(&output).contains(expected), "{label}: {}", stderr(&output));
+        assert!(
+            stderr(&output).contains(expected),
+            "{label}: {}",
+            stderr(&output)
+        );
         assert_eq!(std::fs::read(&blocked_output).unwrap(), sentinel, "{label}");
     }
 

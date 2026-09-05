@@ -25,8 +25,14 @@ fn standalone_rejects_private_commands_before_creating_output() {
             .unwrap();
         assert_eq!(result.status.code(), Some(2));
         assert!(result.stdout.is_empty());
-        assert!(String::from_utf8_lossy(&result.stderr)
-            .contains("unavailable in the standalone crates.io package"));
+        // `doctor` names the private host; the standalone build catalog simply
+        // does not list `rust`, so the split stays invisible to that route.
+        let stderr = String::from_utf8_lossy(&result.stderr);
+        assert!(
+            stderr.contains("unavailable in the standalone crates.io package")
+                || stderr.contains("unsupported target `rust`"),
+            "{stderr}"
+        );
         assert!(!root.exists());
     }
 }

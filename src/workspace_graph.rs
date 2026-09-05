@@ -2269,11 +2269,7 @@ impl WorkspaceGraphBuild {
                         )
                     }));
                 let signature_admitted = class_method
-                    || (admitted_return
-                        && function
-                            .params
-                            .iter()
-                            .all(|parameter| admitted_parameter(parameter)));
+                    || (admitted_return && function.params.iter().all(admitted_parameter));
                 if !signature_admitted {
                     return Err(vec![Diagnostic::error(
                         "SPX-G174",
@@ -6232,7 +6228,7 @@ fn reconstruct_workspace_declaration_facts(
             .expect("unequal declaration maps have a differing identity");
         return Err(vec![graph_error(
             "SPX-G173",
-            &format!(
+            format!(
                 "authored workspace declaration facts disagree with retained HIR at `{differing}`"
             ),
         )]);

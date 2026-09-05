@@ -48,10 +48,12 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // /test, the scaffold gained a library template, `new` became public, and
     // `doc`, `verify`, `agent`, `query`, `package`, `add`, and `fetch` were added,
     // and `doctor` became standalone.
-    const RESTORED: [(&str, &str); 33] = [
+    const RESTORED: [(&str, &str); 35] = [
         ("semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n", ""),
         ("semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]\n", ""),
         ("semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>\n", ""),
+        ("semaprax skills get <agent|language|graph|stdlib|packages|effects>\n", ""),
+        ("semaprax query --capabilities\n", ""),
         ("semaprax add <dir>|semaprax.toml <package> <range>\n", ""),
         ("semaprax fetch <cache-dir> <subject.json>...\n", ""),
         ("semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n", "semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n"),

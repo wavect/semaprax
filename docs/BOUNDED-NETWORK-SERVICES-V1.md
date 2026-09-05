@@ -1,5 +1,7 @@
 # Bounded Network Services v1
 
+Audience: language users, host integrators, and compiler contributors.
+
 Status: locally evidenced hosted-provider and language tranche.
 
 This protocol extends [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)

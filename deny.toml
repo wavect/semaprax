@@ -16,6 +16,9 @@ ignore = []
 allow = [
   "Apache-2.0",
   "BSD-3-Clause",
+  # webpki-roots distributes Mozilla's public root store under the CDLA
+  # permissive data license. It enters only through the exact rustls graph.
+  "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
   # unicode-ident carries its character tables under the Unicode license. It
@@ -35,6 +38,7 @@ highlight = "all"
 # exactly, so a change in the duplication shape fails this gate again. Drop
 # each entry when ed25519-dalek publishes a release built on digest 0.11.
 skip = [
+  { crate = "getrandom@0.2.17", reason = "ring/rustls retains the pre-0.4 getrandom line" },
   { crate = "block-buffer@0.10.4", reason = "curve25519-dalek/ed25519-dalek digest 0.10 line" },
   { crate = "cpufeatures@0.2.17", reason = "curve25519-dalek/ed25519-dalek digest 0.10 line" },
   { crate = "crypto-common@0.1.7", reason = "curve25519-dalek/ed25519-dalek digest 0.10 line" },

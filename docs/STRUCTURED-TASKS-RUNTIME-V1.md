@@ -1,5 +1,7 @@
 # Structured Tasks Runtime v1
 
+Audience: maintainers, host integrators, and compiler contributors.
+
 Status: locally evidenced Rust host runtime; language syntax and backend
 lowering remain open.
 

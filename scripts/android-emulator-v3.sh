@@ -30,8 +30,9 @@ fi
 readonly ndk_bin="${ndk_prebuilts[0]}/bin"
 readonly x86_clang="$ndk_bin/x86_64-linux-android${android_minimum_api}-clang"
 readonly arm64_clang="$ndk_bin/aarch64-linux-android${android_minimum_api}-clang"
+readonly llvm_ar="$ndk_bin/llvm-ar"
 readonly llvm_readelf="$ndk_bin/llvm-readelf"
-for tool in "$x86_clang" "$arm64_clang" "$llvm_readelf"; do
+for tool in "$x86_clang" "$arm64_clang" "$llvm_ar" "$llvm_readelf"; do
   if [[ ! -x "$tool" ]]; then
     echo "required pinned Android NDK tool is unavailable: $tool" >&2
     exit 1
@@ -85,6 +86,10 @@ test -s "$runner_source"
 
 export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$x86_clang"
 export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$arm64_clang"
+export CC_x86_64_linux_android="$x86_clang"
+export CC_aarch64_linux_android="$arm64_clang"
+export AR_x86_64_linux_android="$llvm_ar"
+export AR_aarch64_linux_android="$llvm_ar"
 
 for target in x86_64-linux-android aarch64-linux-android; do
   cargo check --locked -p semaprax-native-loader --target "$target" --all-targets

@@ -8,7 +8,7 @@ Baseline host for `benchmark/results/baseline.json`:
 - OS: macOS 15.0 (Sequoia), darwin-arm64
 - Rust: `rustc 1.88.0` (stable), `cargo 1.88`
 - Clang: AppleClang 16.0.0 (for `native` builds)
-- Commit: `770d2571` (main, `semaprax 0.3.5`)
+- Commit: `770d2571` (main, `semaprax 0.3.0`)
 - Date: 2026-09-04
 
 All results are **local, single-host** evidence. They are not hosted,

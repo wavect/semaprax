@@ -172,3 +172,27 @@ fn malformed_selectors_reject_before_attempting_source_io() {
         assert_eq!(fs::read_dir(&root).unwrap().count(), 0);
     }
 }
+
+#[test]
+fn source_check_includes_hir_and_cleanup_validation() {
+    let root = fixture();
+    let source = r#"module route.hir;
+@id("app.main")
+fn main() -> i64
+{
+    let mut text = "x";
+    while false {
+        text = string_concat(text, text);
+        false
+    }
+    string_len(text)
+}
+"#;
+    fs::write(root.join("hir-invalid.spx"), source).unwrap();
+    let checked = cli(&root, &["hir-invalid.spx", "--json"]);
+    assert_eq!(checked.status.code(), Some(1));
+    assert!(checked.stderr.is_empty());
+    let diagnostic: serde_json::Value = serde_json::from_slice(&checked.stdout).unwrap();
+    assert_eq!(diagnostic["code"], "SPX-U105");
+    assert_eq!(diagnostic["location"]["line"], 7);
+}

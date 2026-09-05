@@ -35,6 +35,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- `semaprax check` now resolves and validates HIR, cleanup plans, and replay
+  budgets after source verification, matching the verdict used by `graph`,
+  `run`, and both build targets instead of accepting backend-invalid source.
+
 - Agent Context v2 now projects `while` statements in modern byte-data
   function bodies, so every declaration in `examples/text_analytics.spx` is
   available through the bounded context route when the full graph succeeds.

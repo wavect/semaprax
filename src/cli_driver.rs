@@ -10,7 +10,7 @@ use std::process::{Command, ExitCode};
 use semaprax::diagnostic::{Diagnostic, Severity};
 use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
-    freestanding_object, graph, hygienic, impact, interpreter, openapi, package_report, parse,
+    freestanding_object, graph, hir, hygienic, impact, interpreter, openapi, package_report, parse,
     patch, patch_evidence, plugin_manifest, project, properties, protocol_check, quality_route,
     region_report, repair, review, semantic_workspace, semantic_workspace_change,
     semantic_workspace_operations, semantic_workspace_structural_change, simd_report,
@@ -208,7 +208,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 }
             };
             let program = load(&path).map_err(|errors| report(&errors, json))?;
-            let diagnostics = verify::verify(&program);
+            // `check` is the front-end verdict, not a source-only preview.
+            // Resolve and independently validate the same HIR/cleanup plans
+            // consumed by graph, run, and both build lanes.
+            let diagnostics = hir::analyze(&program).diagnostics;
             let failed = diagnostics
                 .iter()
                 .any(|item| item.severity == Severity::Error);

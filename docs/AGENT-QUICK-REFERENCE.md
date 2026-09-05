@@ -21,7 +21,8 @@ so it is available without the source checkout.
 ## Spend tokens on source, not on dumps
 
 - Edit loop: write the file, `semaprax fmt <file>` (rewrites canonically),
-  `semaprax check <file> --json`, `semaprax run <file>`. One diagnostic per
+  `semaprax check <file> --json`, `semaprax run <file>`. `check` resolves and
+  validates the same HIR and cleanup plans used by every backend. One diagnostic per
   line with `code`, `message`, `location`, and `help`; stop on the first
   error's line and column.
 - `fmt` and `patch` keep `//` comments, each printed on its own line above

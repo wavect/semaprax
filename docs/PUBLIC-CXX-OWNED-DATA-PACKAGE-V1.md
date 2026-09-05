@@ -41,6 +41,13 @@ before calls and must remain unchanged on failure. Unknown status/tag,
 non-canonical bool, invalid liveness, invalid length, or settlement uncertainty
 fails stop.
 
+The header also names the exact compiler-owned variant tags. `Option<Bytes>`
+uses `SPX_OWNED_DATA_OPTION_NONE`/`SOME`; `Result<Bytes, i64>` uses
+`SPX_OWNED_DATA_RESULT_OK`/`ERR`. Inactive cases carry no handle authority.
+An active byte case carries one opaque handle, which the C consumer must copy
+and drop exactly once before closing the context. These constants do not admit
+authored variants or expose an in-memory union layout.
+
 ## C++17 ownership
 
 `semaprax_owned_data.hpp` is a header-only C++17 wrapper. `Client` privately
@@ -67,7 +74,9 @@ header-only C11 consumer at O0 and O2, links them with the C compiler, and
 executes invalid-bool poison preservation followed by owned-byte call, length,
 copy, single drop, stale-handle rejection, and context closure. The C consumer
 uses only declarations from `semaprax_owned_data.h`; it does not include the
-provider source or use the C++ wrapper.
+provider source or use the C++ wrapper. A second C11 consumer executes all four
+authenticated `Option<Bytes>` and `Result<Bytes, i64>` cases, observes no handle
+for inactive/error cases, and settles each active byte handle exactly once.
 
 Owning tests must cover exact replay and digest remint rejection, exact/+1 input
 and output bounds, poisoned failure slots, stale/duplicate/wrong-context

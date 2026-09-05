@@ -9,8 +9,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::owned_npm_publication;
-#[path = "../support/owned_tuple_product.rs"]
-mod subject;
+use crate::owned_tuple_product as subject;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const ARTIFACTS: [&str; 6] = [

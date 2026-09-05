@@ -38,6 +38,8 @@ mod owned_mixed_arity_product;
 mod owned_npm_publication;
 #[path = "support/owned_result_product.rs"]
 mod owned_result_product;
+#[path = "support/owned_tuple_product.rs"]
+mod owned_tuple_product;
 
 #[path = "project/add_fetch_v1.rs"]
 mod add_fetch_v1;

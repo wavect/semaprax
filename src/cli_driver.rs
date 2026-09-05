@@ -111,6 +111,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{}", cli::help::LIBRARY_CATALOG);
             return Ok(());
         }
+        if args[1] == "shapes" {
+            print!("{}", cli::help::SHAPES_CATALOG);
+            return Ok(());
+        }
         return print_scoped_help(&args[1], host.is_some());
     }
     if command == "help" && args.len() > 2 {

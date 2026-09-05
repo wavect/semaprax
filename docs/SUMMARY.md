@@ -13,6 +13,7 @@ Audience: all documentation readers.
 - [Language tour](LANGUAGE-TOUR.md)
 - [Agent quick reference](AGENT-QUICK-REFERENCE.md)
 - [Standard library catalog](STANDARD-LIBRARY-CATALOG.md)
+- [Language shapes catalog](LANGUAGE-SHAPES-CATALOG.md)
 - [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md)
 - [Public Project Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md)
 - [Capability-aware CLI help](CLI-HELP-V1.md)

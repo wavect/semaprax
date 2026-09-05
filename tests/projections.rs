@@ -39,6 +39,8 @@ mod public_api_descriptor;
 mod query_projection;
 #[path = "projections/region_report.rs"]
 mod region_report;
+#[path = "projections/shapes_catalog.rs"]
+mod shapes_catalog;
 #[path = "projections/simd_report.rs"]
 mod simd_report;
 #[path = "projections/static_protocol_conformance.rs"]

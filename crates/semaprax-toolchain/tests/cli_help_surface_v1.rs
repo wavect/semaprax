@@ -3,6 +3,7 @@ use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+const SHAPES_CATALOG_PATH: &str = "../../docs/LANGUAGE-SHAPES-CATALOG.md";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
 const NEW_LINE: &str =
     "semaprax new <destination> [--name project-name] [--template calculator|library]\n";
@@ -174,6 +175,15 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert!(library.stdout.starts_with(b"# Standard library catalog\n"));
     assert!(library.stdout.ends_with(b"\n"));
     std::fs::remove_dir(library_dir).unwrap();
+    let (shapes, shapes_dir) = invoke(&["help", "shapes"]);
+    assert!(shapes.status.success());
+    assert!(shapes.stderr.is_empty());
+    let shapes_catalog =
+        std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(SHAPES_CATALOG_PATH))
+            .unwrap();
+    assert_eq!(shapes.stdout, shapes_catalog);
+    assert!(shapes.stdout.starts_with(b"# Language shapes catalog\n"));
+    std::fs::remove_dir(shapes_dir).unwrap();
     let (language_extra, language_extra_dir) = invoke(&["help", "language", "extra"]);
     assert_eq!(language_extra.status.code(), Some(2));
     assert!(language_extra.stdout.is_empty());
@@ -200,7 +210,7 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         assert!(output.status.success(), "{name}");
         assert_eq!(
             output.stdout,
-            b"Usage:\n  semaprax help <command>\n  semaprax help all\n  semaprax help language\n  semaprax help library\n"
+            b"Usage:\n  semaprax help <command>\n  semaprax help all\n  semaprax help language\n  semaprax help library\n  semaprax help shapes\n"
         );
         assert!(output.stderr.is_empty());
         std::fs::remove_dir(directory).unwrap();

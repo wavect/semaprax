@@ -245,7 +245,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help library"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help library", "semaprax help shapes"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -323,6 +323,11 @@ pub(crate) const LANGUAGE_REFERENCE: &str = include_str!("../../docs/AGENT-QUICK
 /// `tests/project.rs::standard_library` regenerates from `std/` and pins.
 pub(crate) const LIBRARY_CATALOG: &str = include_str!("../../docs/STANDARD-LIBRARY-CATALOG.md");
 
+/// The generated language shapes catalog, printed by `semaprax help shapes`:
+/// every declaration of every committed example as the documentation model
+/// renders it. `tests/projections.rs::shapes_catalog` regenerates and pins it.
+pub(crate) const SHAPES_CATALOG: &str = include_str!("../../docs/LANGUAGE-SHAPES-CATALOG.md");
+
 /// Upper bound on the guided global help, in bytes, for either capability
 /// class. An agent reads this page before its first command; it must stay one
 /// screen, so the bound is a contract and the unit test below enforces it.
@@ -384,13 +389,13 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Context,
-                shape: "context <file|project> <stable-id>",
+                shape: "context <input> <stable-id>",
                 summary: "Bounded facts about one declaration",
             },
             GuideEntry {
                 id: CommandId::Doc,
                 shape: "doc <file> [--json]",
-                summary: "Documentation rendered from the graph",
+                summary: "Documentation from the graph",
             },
             GuideEntry {
                 id: CommandId::Query,
@@ -453,7 +458,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Doctor,
                 shape: "doctor [--profile <id>]",
-                summary: "Check the local toolchain offline",
+                summary: "Check the toolchain offline",
             },
             GuideEntry {
                 id: CommandId::Version,
@@ -468,25 +473,30 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help all",
-                summary: "The exhaustive command catalog",
+                summary: "The full command catalog",
             },
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help language",
-                summary: "The language card: shapes and diagnostics",
+                summary: "The language card and diagnostics",
             },
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help library",
                 summary: "The standard-library catalog",
             },
+            GuideEntry {
+                id: CommandId::Help,
+                shape: "help shapes",
+                summary: "Declaration shapes from the examples",
+            },
         ],
     },
 ];
 
 const GUIDE_FOOTER: &str =
-    "Start with `semaprax check <file>`. Diagnostics carry stable SPX codes and a `help:` line\n\
-when the compiler knows the fix; `--json` emits one diagnostic per line.\n";
+    "Start with `semaprax check <file>`. Diagnostics carry SPX codes and a `help:` line when\n\
+the compiler knows the fix; `--json` emits one diagnostic per line.\n";
 
 fn guide_spec(id: CommandId) -> &'static CommandSpec {
     COMMANDS
@@ -506,7 +516,7 @@ pub(crate) fn global(private: bool) -> String {
         .unwrap_or(0);
     let mut out = String::from(BANNER);
     out.push_str("\nUsage: semaprax <command> [arguments]\n");
-    out.push_str("<input> is a .spx file, a project directory, or a semaprax.toml manifest.\n");
+    out.push_str("<input>: a .spx file, a project directory, or semaprax.toml.\n");
     for group in GUIDE {
         let entries: Vec<_> = group.entries.iter().filter(visible).collect();
         if entries.is_empty() {
@@ -769,6 +779,14 @@ mod tests {
         assert!(LIBRARY_CATALOG.contains("Required project profile: `useful-text-consumer.v1`"));
         assert!(LIBRARY_CATALOG.contains("```semaprax\n"));
         assert!(LIBRARY_CATALOG.ends_with('\n'));
+    }
+
+    #[test]
+    fn shapes_catalog_is_the_generated_repository_document() {
+        assert!(SHAPES_CATALOG.starts_with("# Language shapes catalog\n"));
+        assert!(SHAPES_CATALOG.contains("\n## Functions\n"));
+        assert!(SHAPES_CATALOG.contains("```semaprax\n"));
+        assert!(SHAPES_CATALOG.ends_with('\n'));
     }
 
     #[test]

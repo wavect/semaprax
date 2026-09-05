@@ -33,7 +33,8 @@ static, source-owned guide:
   `test`, `build`), `Inspect meaning` (`graph`, `context`, `doc`, `query`), `Change by
   meaning` (`patch`, `impact`, `review`, `verify`), `Agents` (`agent inspect`),
   `Start a project` (`new`, `project-scaffold`), and `Toolchain` (`doctor`,
-  `version`, `help <command>`, `help all`, `help language`, `help library`);
+  `version`, `help <command>`, `help all`, `help language`, `help library`,
+  `help shapes`);
 - each entry is an abbreviated command shape, padded to one column, followed
   by a one-line purpose;
 - a two-line footer naming the first command to run and the `--json`
@@ -67,6 +68,7 @@ Usage:
   semaprax help all
   semaprax help language
   semaprax help library
+  semaprax help shapes
 ```
 
 `all` is not a command. A third token in any help form, including
@@ -85,7 +87,7 @@ An agent or developer working from an installed compiler, without the source
 checkout, can read the admitted shapes, the diagnostics that habits from other
 languages trigger, and their fixes offline. The document's own gate checks its
 code blocks against the compiler, so the card cannot describe syntax the
-binary rejects. Scoped help for `help` lists all four shapes.
+binary rejects. Scoped help for `help` lists all five shapes.
 
 ## Standard-library catalog
 
@@ -96,6 +98,17 @@ into the binary: every `std.*` declaration with its signature, effects, and
 contracts. `tests/project.rs::standard_library` regenerates that document from
 `std/` and pins it, so the printed catalog cannot list a function the compiler
 does not ship.
+
+## Language shapes catalog
+
+`semaprax help shapes` is the fifth `help` shape. For either executable it
+returns status zero, empty stderr, and exactly the bytes of the repository's
+generated [language shapes catalog](LANGUAGE-SHAPES-CATALOG.md), compiled into
+the binary: every declaration of every committed example, grouped by kind,
+with its `@id` and canonical header as the `semaprax doc` model renders it.
+`tests/projections.rs::shapes_catalog` regenerates that document from
+`examples/` and pins it, so the printed shapes are exactly the ones the
+compiler verifies.
 
 ## Preservation
 

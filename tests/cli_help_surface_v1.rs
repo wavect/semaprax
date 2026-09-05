@@ -3,6 +3,7 @@ use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+const SHAPES_CATALOG_PATH: &str = "docs/LANGUAGE-SHAPES-CATALOG.md";
 const BUILD_SOURCE_LINE: &str = "semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]\n";
 const BUILD_PROJECT_LINE: &str = "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm] [-o|--output path] [--json]\n";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
@@ -80,6 +81,7 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     }
     assert_eq!(guide.matches("\n  help all ").count(), 1);
     assert_eq!(guide.matches("\n  help language ").count(), 1);
+    assert_eq!(guide.matches("\n  help shapes ").count(), 1);
     assert_eq!(guide.matches("\n  project-scaffold ").count(), 1);
     assert_eq!(guide.matches("\n  new ").count(), 1);
     assert_eq!(guide.matches("\n  doctor ").count(), 1);
@@ -241,6 +243,15 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert_eq!(library.stdout, catalog);
     assert!(library.stdout.starts_with(b"# Standard library catalog\n"));
     std::fs::remove_dir(library_dir).unwrap();
+    let (shapes, shapes_dir) = invoke(&["help", "shapes"]);
+    assert!(shapes.status.success());
+    assert!(shapes.stderr.is_empty());
+    let shapes_catalog =
+        std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(SHAPES_CATALOG_PATH))
+            .unwrap();
+    assert_eq!(shapes.stdout, shapes_catalog);
+    assert!(shapes.stdout.starts_with(b"# Language shapes catalog\n"));
+    std::fs::remove_dir(shapes_dir).unwrap();
     let (language_extra, language_extra_dir) = invoke(&["help", "language", "extra"]);
     assert_eq!(language_extra.status.code(), Some(2));
     assert!(language_extra.stdout.is_empty());
@@ -259,7 +270,7 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         assert!(output.status.success(), "{name}");
         assert_eq!(
             output.stdout,
-            b"Usage:\n  semaprax help <command>\n  semaprax help all\n  semaprax help language\n  semaprax help library\n"
+            b"Usage:\n  semaprax help <command>\n  semaprax help all\n  semaprax help language\n  semaprax help library\n  semaprax help shapes\n"
         );
         assert!(output.stderr.is_empty());
         std::fs::remove_dir(directory).unwrap();

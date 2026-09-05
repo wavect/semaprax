@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `semaprax help shapes`, which prints a generated language shapes
+  catalog: every declaration of every committed example with its `@id` and
+  canonical header, rendered through the `semaprax doc` model and pinned by
+  the projections harness, so the bundled reference of admitted shapes is
+  derived from the graph rather than hand-written.
 - The VS Code adapter adds `Safe Rename by Stable ID` (authors the semantic
   rename patch, shows `impact`, applies through the replay-checked `patch`
   route), `Show Cleanup Plan` (the module graph's canonical cleanup plan for a

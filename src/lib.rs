@@ -57,6 +57,8 @@ pub mod freestanding_object;
 pub mod graph;
 pub mod hir;
 pub mod hosted_interpreter;
+#[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+pub mod https_client;
 pub mod hygienic;
 pub mod image_transport;
 pub mod impact;

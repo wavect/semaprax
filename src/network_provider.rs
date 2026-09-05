@@ -164,6 +164,14 @@ pub trait NetworkProvider {
         Err(NetworkFailure::AuthorityDenied)
     }
 
+    /// Accept one connection and authenticate it as a TLS server.
+    fn accept_tls(
+        &mut self,
+        _listener: ProviderListener,
+    ) -> Result<ProviderConnection, NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
+
     /// Close one listening socket.
     fn close_listener(&mut self, _listener: ProviderListener) -> Result<(), NetworkFailure> {
         Err(NetworkFailure::AuthorityDenied)

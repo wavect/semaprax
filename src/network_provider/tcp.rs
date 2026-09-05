@@ -1,10 +1,10 @@
 //! Real-socket provider over `std::net::TcpStream`.
 //!
-//! This provider opens real TCP sockets on the host. It performs no TLS, uses
-//! no name resolution beyond the platform resolver, and applies a 30 second
-//! connect, read, and write timeout. Nothing in the compiler constructs it
-//! implicitly: a host that wants a program to reach the network must build one
-//! and pass it to `hosted_interpreter::execute_network_command` itself.
+//! This provider opens real TCP sockets on the host, optionally wraps either
+//! side in explicit Rustls client/server policy, and applies a 30 second
+//! connect, accept, read, and write timeout. Nothing in the compiler constructs
+//! it implicitly: a host that wants a program to reach the network must build
+//! one and pass it to `hosted_interpreter::execute_network_command` itself.
 
 use std::collections::BTreeMap;
 use std::io::{ErrorKind, Read as _, Write as _};
@@ -20,10 +20,10 @@ pub const SOCKET_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// A [`NetworkProvider`] over blocking `std::net` sockets.
 ///
-/// **This opens real network connections.** There is no TLS and no proxying;
-/// bytes go to the named peer in the clear. Only an explicit host caller
-/// constructs it; the compiler, the reference interpreter's effect-free
-/// paths, and the fixture-driven test seams never do.
+/// **This opens real network connections.** Plain operations send cleartext;
+/// TLS operations use only explicitly installed Rustls policy. There is no
+/// proxying. The compiler, reference interpreter's effect-free paths, and
+/// fixture-driven test seams never construct this provider implicitly.
 #[derive(Debug)]
 pub struct TcpNetworkProvider {
     streams: BTreeMap<u64, TransportStream>,
@@ -31,26 +31,30 @@ pub struct TcpNetworkProvider {
     next_token: u64,
     next_listener_token: u64,
     tls_config: Arc<rustls::ClientConfig>,
+    server_tls_config: Option<Arc<rustls::ServerConfig>>,
 }
 
 #[derive(Debug)]
 enum TransportStream {
     Tcp(TcpStream),
-    Tls(Box<rustls::StreamOwned<rustls::ClientConnection, TcpStream>>),
+    TlsClient(Box<rustls::StreamOwned<rustls::ClientConnection, TcpStream>>),
+    TlsServer(Box<rustls::StreamOwned<rustls::ServerConnection, TcpStream>>),
 }
 
 impl TransportStream {
     fn socket(&self) -> &TcpStream {
         match self {
             Self::Tcp(stream) => stream,
-            Self::Tls(stream) => stream.get_ref(),
+            Self::TlsClient(stream) => stream.get_ref(),
+            Self::TlsServer(stream) => stream.get_ref(),
         }
     }
 
     fn socket_mut(&mut self) -> &mut TcpStream {
         match self {
             Self::Tcp(stream) => stream,
-            Self::Tls(stream) => stream.get_mut(),
+            Self::TlsClient(stream) => stream.get_mut(),
+            Self::TlsServer(stream) => stream.get_mut(),
         }
     }
 }
@@ -59,7 +63,8 @@ impl std::io::Read for TransportStream {
     fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
         match self {
             Self::Tcp(stream) => stream.read(buffer),
-            Self::Tls(stream) => stream.read(buffer),
+            Self::TlsClient(stream) => stream.read(buffer),
+            Self::TlsServer(stream) => stream.read(buffer),
         }
     }
 }
@@ -68,14 +73,16 @@ impl std::io::Write for TransportStream {
     fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
         match self {
             Self::Tcp(stream) => stream.write(bytes),
-            Self::Tls(stream) => stream.write(bytes),
+            Self::TlsClient(stream) => stream.write(bytes),
+            Self::TlsServer(stream) => stream.write(bytes),
         }
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
         match self {
             Self::Tcp(stream) => stream.flush(),
-            Self::Tls(stream) => stream.flush(),
+            Self::TlsClient(stream) => stream.flush(),
+            Self::TlsServer(stream) => stream.flush(),
         }
     }
 }
@@ -97,6 +104,7 @@ impl Default for TcpNetworkProvider {
             next_token: 0,
             next_listener_token: 0,
             tls_config: Arc::new(tls_config),
+            server_tls_config: None,
         }
     }
 }
@@ -113,6 +121,20 @@ impl TcpNetworkProvider {
     pub fn with_tls_config(config: Arc<rustls::ClientConfig>) -> Self {
         Self {
             tls_config: config,
+            ..Self::default()
+        }
+    }
+
+    /// Create a provider with explicit client and server TLS policies.
+    /// Server-side TLS remains unavailable unless the host supplies the
+    /// certificate chain and private key through this constructor.
+    pub fn with_tls_configs(
+        client: Arc<rustls::ClientConfig>,
+        server: Arc<rustls::ServerConfig>,
+    ) -> Self {
+        Self {
+            tls_config: client,
+            server_tls_config: Some(server),
             ..Self::default()
         }
     }
@@ -157,6 +179,32 @@ impl TcpNetworkProvider {
         self.streams.insert(token, stream);
         Ok(ProviderConnection::new(token))
     }
+
+    fn accept_socket(&self, listener: ProviderListener) -> Result<TcpStream, NetworkFailure> {
+        let listener = self
+            .listeners
+            .get(&listener.token())
+            .ok_or(NetworkFailure::UnknownHandle)?;
+        let deadline = Instant::now() + SOCKET_TIMEOUT;
+        let stream = loop {
+            match listener.accept() {
+                Ok((stream, _)) => break stream,
+                Err(error) if error.kind() == ErrorKind::Interrupted => continue,
+                Err(error)
+                    if error.kind() == ErrorKind::WouldBlock && Instant::now() < deadline =>
+                {
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                Err(_) => return Err(NetworkFailure::AcceptFailed),
+            }
+        };
+        stream
+            .set_nonblocking(false)
+            .and_then(|()| stream.set_read_timeout(Some(SOCKET_TIMEOUT)))
+            .and_then(|()| stream.set_write_timeout(Some(SOCKET_TIMEOUT)))
+            .map_err(|_| NetworkFailure::AcceptFailed)?;
+        Ok(stream)
+    }
 }
 
 /// Reject endpoints the evaluator already excludes, so a direct library caller
@@ -195,9 +243,9 @@ impl NetworkProvider for TcpNetworkProvider {
         connection
             .complete_io(&mut socket)
             .map_err(|_| NetworkFailure::TlsFailed)?;
-        self.insert_stream(TransportStream::Tls(Box::new(rustls::StreamOwned::new(
-            connection, socket,
-        ))))
+        self.insert_stream(TransportStream::TlsClient(Box::new(
+            rustls::StreamOwned::new(connection, socket),
+        )))
     }
 
     fn listen(&mut self, host: &str, port: u16) -> Result<ProviderListener, NetworkFailure> {
@@ -215,30 +263,27 @@ impl NetworkProvider for TcpNetworkProvider {
     }
 
     fn accept(&mut self, listener: ProviderListener) -> Result<ProviderConnection, NetworkFailure> {
-        let listener = self
-            .listeners
-            .get(&listener.token())
-            .ok_or(NetworkFailure::UnknownHandle)?;
-        let deadline = Instant::now() + SOCKET_TIMEOUT;
-        let stream = loop {
-            match listener.accept() {
-                Ok((stream, _)) => break stream,
-                Err(error) if error.kind() == ErrorKind::Interrupted => continue,
-                Err(error)
-                    if error.kind() == ErrorKind::WouldBlock && Instant::now() < deadline =>
-                {
-                    std::thread::sleep(Duration::from_millis(1));
-                }
-                Err(_) => return Err(NetworkFailure::AcceptFailed),
-            }
-        };
-        stream
-            .set_read_timeout(Some(SOCKET_TIMEOUT))
-            .map_err(|_| NetworkFailure::AcceptFailed)?;
-        stream
-            .set_write_timeout(Some(SOCKET_TIMEOUT))
-            .map_err(|_| NetworkFailure::AcceptFailed)?;
+        let stream = self.accept_socket(listener)?;
         self.insert_stream(TransportStream::Tcp(stream))
+    }
+
+    fn accept_tls(
+        &mut self,
+        listener: ProviderListener,
+    ) -> Result<ProviderConnection, NetworkFailure> {
+        let mut socket = self.accept_socket(listener)?;
+        let config = self
+            .server_tls_config
+            .clone()
+            .ok_or(NetworkFailure::AuthorityDenied)?;
+        let mut connection =
+            rustls::ServerConnection::new(config).map_err(|_| NetworkFailure::TlsFailed)?;
+        connection
+            .complete_io(&mut socket)
+            .map_err(|_| NetworkFailure::TlsFailed)?;
+        self.insert_stream(TransportStream::TlsServer(Box::new(
+            rustls::StreamOwned::new(connection, socket),
+        )))
     }
 
     fn close_listener(&mut self, listener: ProviderListener) -> Result<(), NetworkFailure> {
@@ -457,5 +502,49 @@ mod tests {
         assert_eq!(provider.recv(connection, 4), Ok(b"pong".to_vec()));
         provider.settle();
         server.join().unwrap();
+
+        let server_cert = rustls::pki_types::CertificateDer::from(decode64(LEAF));
+        let server_key = rustls::pki_types::PrivatePkcs8KeyDer::from(decode64(LEAF_KEY));
+        let server_config = rustls::ServerConfig::builder_with_provider(crypto())
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(vec![server_cert], server_key.into())
+            .unwrap();
+        let mut server_roots = rustls::RootCertStore::empty();
+        server_roots
+            .add(rustls::pki_types::CertificateDer::from(decode64(ROOT)))
+            .unwrap();
+        let server_client_config = rustls::ClientConfig::builder_with_provider(crypto())
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_root_certificates(server_roots)
+            .with_no_client_auth();
+        let reservation = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let server_port = reservation.local_addr().unwrap().port();
+        drop(reservation);
+        let mut server_provider = TcpNetworkProvider::with_tls_configs(
+            Arc::new(server_client_config.clone()),
+            Arc::new(server_config),
+        );
+        let server_listener = server_provider.listen("127.0.0.1", server_port).unwrap();
+        let tls_client = std::thread::spawn(move || {
+            let socket = TcpStream::connect(("127.0.0.1", server_port)).unwrap();
+            let name = rustls::pki_types::ServerName::try_from("localhost").unwrap();
+            let connection =
+                rustls::ClientConnection::new(Arc::new(server_client_config), name).unwrap();
+            let mut stream = rustls::StreamOwned::new(connection, socket);
+            stream.write_all(b"ping").unwrap();
+            stream.flush().unwrap();
+            let mut output = [0u8; 4];
+            stream.read_exact(&mut output).unwrap();
+            assert_eq!(&output, b"pong");
+        });
+        let accepted = server_provider.accept_tls(server_listener).unwrap();
+        let received = server_provider.recv(accepted, 4);
+        assert_eq!(received, Ok(b"ping".to_vec()), "server TLS receive failed");
+        assert_eq!(server_provider.send(accepted, b"pong"), Ok(4));
+        server_provider.settle();
+        tls_client.join().unwrap();
     }
 }

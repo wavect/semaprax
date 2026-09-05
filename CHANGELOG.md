@@ -53,6 +53,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   retains its status-carrying failure import. The byte-capacity unit module now
   names its test submodule path explicitly so both its library owner and the
   consolidated cleanup harness remain resolvable by `cargo fmt --all`.
+- Added an explicit reusable native-host HTTPS client with bounded redirects,
+  keep-alive pooling, HTTP/1.1 and HTTP/2 negotiation, stable typed responses,
+  body limits, and an opt-in public-PKI smoke; the TCP provider can now accept
+  server-side TLS with caller-installed Rustls certificate policy.
 - Added the developer-preview `network-command-io.v1` Project v12 profile,
   native and deterministic fixture-only npm/Web build lanes, the bounded
   `semaprax network-run --fixture` command, and a committed HTTP Project

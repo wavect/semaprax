@@ -5,6 +5,8 @@ Audience: maintainers, host integrators, and compiler contributors.
 Status: locally evidenced Rust host runtime; language syntax and backend
 lowering remain open.
 
+Audience: runtime embedders and compiler contributors.
+
 `semaprax::structured_tasks::task_scope` executes real user closures inside a
 lexical scoped-thread lifetime. A scope admits at most 64 tasks, rejects empty,
 NUL-bearing, and duplicate stable identities, starts workers in canonical

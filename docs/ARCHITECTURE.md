@@ -392,6 +392,15 @@ the sole status authority.
 
 ### Native bootstrap backend
 
+`src/https_client.rs` owns a separate explicit native-host HTTP service. Its
+reusable Reqwest client disables ambient proxy discovery, applies bounded
+redirect/body/pool policy, and reports HTTP/1.1 or HTTP/2 through a typed
+response. It is not constructed by source execution and grants no compiler or
+generated target ambient network authority. `src/network_provider/tcp.rs`
+owns the lower Rustls client/server stream policy, including explicit
+server-config injection and accepted-stream settlement. See [HTTPS Client
+Runtime v1](HTTPS-CLIENT-RUNTIME-V1.md).
+
 `src/codegen.rs` owns native orchestration and admission. The
 `src/codegen/native_*` modules own C11 emission, runtime statuses, aggregate
 and byte-data lowering, command I/O, callable bundles, resource fixtures,
@@ -1902,6 +1911,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/`; exact Project crate inputs originate in `src/project/manifest/tables.rs` |
 | Signed doctor generation store | `crates/semaprax-doctor-release/src/install.rs`, `crates/semaprax-doctor-release/src/install/` |
 | Interpreter | `src/interpreter.rs`, `src/interpreter/prepared.rs`, `src/hosted_interpreter.rs`, `src/project/prepared_interpreter/`, `src/project/prepared_interpreter/trace/` |
+| Explicit Rust HTTP/TLS host runtime | `src/https_client.rs`, `src/network_provider.rs`, `src/network_provider/tcp.rs` |
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
 | Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules; candidate replay/conflict projection in `src/project/candidate/package_consumer_replay.rs` |

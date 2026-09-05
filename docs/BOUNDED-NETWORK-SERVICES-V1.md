@@ -4,6 +4,8 @@ Audience: language users, host integrators, and compiler contributors.
 
 Status: locally evidenced hosted-provider and language tranche.
 
+Audience: language users, runtime embedders, and compiler contributors.
+
 This protocol extends [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)
 without changing its six operations, fixture-v1 bytes, Project-v12 profile, or
 native/Wasm admission. Four new compiler-owned operations are available only
@@ -31,9 +33,16 @@ Fixture v2 preserves v1 and adds `tls: true` to outbound connections plus a
 bounded `listeners` array with ordered `accept` queues. npm/Web remain on
 fixture v1 through Project v12; no browser receives raw sockets.
 
+The additive native-host API can install an explicit Rustls server policy and
+call `accept_tls` on a listener. This authenticates the server certificate/key
+chosen by the host and carries the resulting encrypted stream through the same
+bounded provider lifecycle. The higher-level reusable HTTP/1.1 and HTTP/2
+client is specified separately by [HTTPS Client Runtime v1](HTTPS-CLIENT-RUNTIME-V1.md).
+
 Existing native and Wasm network profiles reject the new operations before
 emission because their ABI remains v1. There is no cleartext TLS fallback,
-implicit bind address, server-side TLS, UDP, or production-hosting claim.
+implicit bind address, source-level server-TLS operation, UDP, or
+production-hosting claim.
 
 Focused evidence:
 

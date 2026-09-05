@@ -222,6 +222,8 @@ Audience: all documentation readers.
 - [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md)
 - [Bounded Language Network I/O](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)
 - [Bounded Network Services](BOUNDED-NETWORK-SERVICES-V1.md)
+- [HTTPS Client Runtime](HTTPS-CLIENT-RUNTIME-V1.md)
+- [Structured Tasks Runtime](STRUCTURED-TASKS-RUNTIME-V1.md)
 - [Wasm scalar exports](WASM-SCALAR-EXPORTS-V1.md)
 - [Public Scalar WIT Interface v1](PUBLIC-SCALAR-WIT-INTERFACE-V1.md)
 - [Wasm owned ABI](WASM-OWNED-ABI-V1.md)

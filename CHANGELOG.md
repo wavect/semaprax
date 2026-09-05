@@ -16,6 +16,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Fixed the scalar Core-Wasm local layout so i32, u8, and usize arithmetic
+  scratch locals follow function parameters instead of aliasing parameters or
+  user `let` bindings. Parameterized narrow-integer programs now validate and
+  agree with the reference interpreter.
 - Deepened four existing standard-library packages without widening ambient
   authority: `std.time` rounds durations upward and measures elapsed
   milliseconds, `std.path`

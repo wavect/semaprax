@@ -1593,9 +1593,10 @@ fn emit_resolved_module_internal(
             .chain(&function.ensures)
             .any(needs_i32_wide_scratch)
         {
+            let first_scratch = function.params.len() as u32 + layout.declarations.len() as u32;
             layout.wide_scratch = [
-                layout.declarations.len() as u32,
-                layout.declarations.len() as u32 + 1,
+                first_scratch,
+                first_scratch + 1,
             ];
             layout.declarations.push(ResolvedType::I64);
             layout.declarations.push(ResolvedType::I64);
@@ -1607,7 +1608,7 @@ fn emit_resolved_module_internal(
                 .chain(&function.ensures)
                 .any(contains_u8_arithmetic)
         {
-            let left_index = layout.declarations.len() as u32;
+            let left_index = function.params.len() as u32 + layout.declarations.len() as u32;
             layout.declarations.push(ResolvedType::U8);
             layout.declarations.push(ResolvedType::U8);
             layout.u8_scratch = Some((left_index, left_index + 1));
@@ -1619,7 +1620,7 @@ fn emit_resolved_module_internal(
                 .chain(&function.ensures)
                 .any(contains_usize_arithmetic)
         {
-            let left_index = layout.declarations.len() as u32;
+            let left_index = function.params.len() as u32 + layout.declarations.len() as u32;
             layout.declarations.push(ResolvedType::Usize);
             layout.declarations.push(ResolvedType::Usize);
             layout.usize_scratch = Some((left_index, left_index + 1));

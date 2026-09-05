@@ -26,6 +26,8 @@ mod readme_web_package_commands;
 mod scalar_browser_ci_contract;
 #[path = "wasm/scalar_exports_v1.rs"]
 mod scalar_exports_v1;
+#[path = "wasm/scalar_local_layout.rs"]
+mod scalar_local_layout;
 #[path = "wasm/text_exports_v1.rs"]
 mod text_exports_v1;
 #[path = "wasm/usize_multiplication_v1.rs"]

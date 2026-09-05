@@ -9,13 +9,11 @@ use crate::ast::{
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{Token, TokenKind};
 
+mod depth;
 mod entry;
 mod hints;
 mod patterns;
 mod types;
-
-pub(crate) const MAX_SOURCE_NESTING: usize = 128;
-
 pub struct Parser {
     tokens: Vec<Token>,
     cursor: usize,
@@ -88,7 +86,7 @@ impl Parser {
         if functions.is_empty() {
             return Err(self.error_here("SPX-P101", "a module must declare at least one function"));
         }
-        let program = Program {
+        depth::validate_program(Program {
             path: self.path,
             module,
             module_uses,
@@ -98,9 +96,7 @@ impl Parser {
             protocols,
             implementations,
             functions,
-        };
-        validate_expression_depth(&program)?;
-        Ok(program)
+        })
     }
 
     /// Protocol Projection v1 fail-closed structural gates: protocol names are
@@ -1920,48 +1916,6 @@ impl Parser {
         let index = self.cursor.saturating_sub(1);
         Diagnostic::error(code, message, self.tokens[index].span).at_path(&self.path)
     }
-}
-
-fn validate_expression_depth(program: &Program) -> Result<(), Diagnostic> {
-    let mut roots = Vec::new();
-    for function in program
-        .functions
-        .iter()
-        .chain(
-            program
-                .types
-                .iter()
-                .flat_map(|declaration| match &declaration.kind {
-                    TypeDeclarationKind::Class { methods, .. } => methods.iter(),
-                    _ => [].iter(),
-                }),
-        )
-    {
-        roots.extend(function.requires.iter());
-        roots.extend(function.ensures.iter());
-        roots.push(&function.body);
-    }
-    let mut pending = roots
-        .into_iter()
-        .map(|expression| (expression, 1usize))
-        .collect::<Vec<_>>();
-    while let Some((expression, depth)) = pending.pop() {
-        if depth > MAX_SOURCE_NESTING {
-            return Err(Diagnostic::error(
-                "SPX-P207",
-                format!("source nesting depth exceeds the admitted maximum ({MAX_SOURCE_NESTING})"),
-                expression.span,
-            )
-            .at_path(&program.path)
-            .with_help("split the expression or block into named helper functions"));
-        }
-        let mut index = 0;
-        while let Some(child) = expression.child(index) {
-            pending.push((child, depth + 1));
-            index += 1;
-        }
-    }
-    Ok(())
 }
 
 fn expression_path(expression: &Expr) -> Option<String> {

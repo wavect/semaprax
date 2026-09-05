@@ -60,12 +60,14 @@ fn reject_token_nesting(tokens: &[Token], path: &str) -> Result<(), Diagnostic> 
         } else {
             0
         };
-        if delimiters > super::MAX_SOURCE_NESTING || unary_chain > super::MAX_SOURCE_NESTING {
+        if delimiters > super::depth::MAX_SOURCE_NESTING
+            || unary_chain > super::depth::MAX_SOURCE_NESTING
+        {
             return Err(Diagnostic::error(
                 "SPX-P207",
                 format!(
                     "source nesting depth exceeds the admitted maximum ({})",
-                    super::MAX_SOURCE_NESTING
+                    super::depth::MAX_SOURCE_NESTING
                 ),
                 token.span,
             )

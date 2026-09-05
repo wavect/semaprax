@@ -214,9 +214,6 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                 }
             };
             let program = load(&path).map_err(|errors| report(&errors, json))?;
-            // `check` is the front-end verdict, not a source-only preview.
-            // Resolve and independently validate the same HIR/cleanup plans
-            // consumed by graph, run, and both build lanes.
             let diagnostics = hir::analyze(&program).diagnostics;
             let failed = diagnostics
                 .iter()

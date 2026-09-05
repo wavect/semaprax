@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- The bundled standard-library catalog (`semaprax help library`,
+  `std/catalog.json`) is now rendered from the `semaprax doc` documentation
+  model, with every signature cross-checked against the source text and each
+  declaration's leading comments carried as its description.
 - Added `semaprax add <dir>|semaprax.toml <package> <range>`, which appends
   one byte-sorted `[dependencies]` row to a Package Manifest v1 table manifest
   and rewrites it canonically only after the result re-parses (`SPX-J127` for

@@ -844,7 +844,7 @@ fn render_catalogs() -> (String, String) {
     let mut human = String::new();
     human.push_str("# Standard library catalog\n\n");
     human.push_str(
-        "Status: generated from `std/` by `tests/project.rs::standard_library`; edit the sources, then regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`.\n\n",
+        "Status: generated from `std/` through the `semaprax doc` documentation model by `tests/project.rs::standard_library`; edit the sources, then regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`.\n\n",
     );
     human.push_str("Audience: agents and humans choosing a standard-library declaration.\n\n");
     human.push_str(
@@ -868,18 +868,50 @@ fn render_catalogs() -> (String, String) {
                 .collect::<Vec<_>>()
                 .join(", ")
         ));
+        // The catalog is a projection of the same documentation model that
+        // `semaprax doc` renders, so the bundled skill cannot drift from the
+        // graph; the source-text slice below cross-checks every signature.
+        let (program, comments) =
+            semaprax::parse_with_comments(&library.source, &library.path).unwrap();
+        let document = semaprax::doc::document(&program, &comments);
         let mut declarations = Vec::new();
-        for function in &library.program.functions {
-            let head = declaration_head(&library.source, &function.stable_id);
-            human.push_str(&format!(
-                "\n### `{}`\n\n```semaprax\n{}\n```\n",
-                function.stable_id,
-                head.join("\n")
-            ));
+        for entry in document
+            .entries
+            .iter()
+            .filter(|entry| entry.kind == "function")
+        {
+            let head: Vec<String> = entry
+                .signature
+                .lines()
+                .filter(|line| !line.trim_start().starts_with("@id("))
+                .map(str::to_owned)
+                .collect();
+            assert_eq!(
+                head,
+                declaration_head(&library.source, &entry.id),
+                "{}: the documentation signature must equal the source text",
+                entry.id
+            );
+            let function = library
+                .program
+                .functions
+                .iter()
+                .find(|function| function.stable_id == entry.id)
+                .unwrap();
+            human.push_str(&format!("\n### `{}`\n\n", entry.id));
+            for line in &entry.description {
+                human.push_str(line);
+                human.push('\n');
+            }
+            if !entry.description.is_empty() {
+                human.push('\n');
+            }
+            human.push_str(&format!("```semaprax\n{}\n```\n", head.join("\n")));
             declarations.push(serde_json::json!({
-                "id": function.stable_id,
+                "id": entry.id,
                 "kind": "function",
-                "name": function.name,
+                "name": entry.name,
+                "description": entry.description,
                 "head": head,
                 "effects": function.effects,
                 "requires": function.requires.len(),

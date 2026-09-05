@@ -1,6 +1,6 @@
 # Standard library catalog
 
-Status: generated from `std/` by `tests/project.rs::standard_library`; edit the sources, then regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`.
+Status: generated from `std/` through the `semaprax doc` documentation model by `tests/project.rs::standard_library`; edit the sources, then regenerate with `cargo test --locked -p semaprax --test project -- --ignored standard_library::regenerate_catalogs`.
 
 Audience: agents and humans choosing a standard-library declaration.
 

@@ -138,6 +138,15 @@ Protocols and implementations are documented from source but are not compared
 with the graph, because the program graph stays protocol-free
 ([Static Protocol Conformance v1](STATIC-PROTOCOL-CONFORMANCE-V1.md)).
 
+## Bundled catalog
+
+The standard-library catalog that `semaprax help library` prints and
+`std/catalog.json` carries for tools is rendered from this model by
+`tests/project.rs::standard_library`: each declaration's head is the entry's
+signature without its `@id` line, cross-checked against the source text, and
+each declaration's description is the entry's leading comments. The bundled
+agent material therefore derives from the same facts as `doc` and `graph`.
+
 ## Non-claims
 
 `doc` documents one file. It does not resolve a project manifest, follow `use`

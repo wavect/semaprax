@@ -70,6 +70,7 @@ Usage:
   semaprax help library
   semaprax help library <module|name|stable-id>
   semaprax help shapes
+  semaprax help shapes <kind|stable-id|path#stable-id>
 ```
 
 `all` is not a command. A third token in any help form, including
@@ -88,7 +89,7 @@ An agent or developer working from an installed compiler, without the source
 checkout, can read the admitted shapes, the diagnostics that habits from other
 languages trigger, and their fixes offline. The document's own gate checks its
 code blocks against the compiler, so the card cannot describe syntax the
-binary rejects. Scoped help for `help` lists all six shapes.
+binary rejects. Scoped help for `help` lists all seven shapes.
 
 ## Standard-library catalog
 
@@ -130,6 +131,25 @@ with its `@id` and canonical header as the `semaprax doc` model renders it.
 `examples/` and pins it, so the printed shapes are exactly the ones the
 compiler verifies.
 
+`semaprax help shapes <kind|stable-id|path#stable-id>` is the seventh shape and
+uses the generated `docs/LANGUAGE-SHAPES-CATALOG.json` companion from the same
+gate. Matching is exact and case-sensitive. A declaration kind returns the
+canonical exemplar with the fewest repository lexical units, then fewest
+bytes, stable identity, and source path; it never expands to the whole kind.
+A stable identity returns every exact match in catalog order because example
+modules may reuse an identity such as `app.main`; `path#stable-id` selects one
+exact example. Each result contains the kind, source path, and canonical
+signature. Results are separated by one blank line. No match exits two, emits
+no stdout, and reports
+`language shapes catalog has no exact match for \`<selector>\`` on stderr.
+The route admits no fuzzy or prefix matching.
+
+The full shapes catalog is 22,888 bytes and 7,571 lexical units. The guarded
+`calculator.add` lookup is 114 bytes and 33 units; every generated kind
+exemplar and that exact lookup must stay within 512 bytes and 128 units, and
+the exact lookup must remain at least 40 times smaller than the full catalog
+in both measures. The original full-catalog bytes remain unchanged.
+
 ## Preservation
 
 Scoped help (`help <command>`, `<command> --help`, `<command> -h`), the
@@ -143,10 +163,11 @@ The standalone and full-toolchain help harnesses prove: the guided page's
 banner, byte bound, group headings, capability filtering, and that each guided
 entry resolves to a scoped-help command; `help all` byte structure, ordering,
 and capability filtering for both executables; that every `help all` line still
-has exact scoped help; all six `help` grammar lines; full library-catalog byte
-identity; exact name, stable-ID, module, missing-selector, and token-economics
-behavior for scoped library lookup; malformed extra operands; and empty working
-directories with no created entries.
+has exact scoped help; all seven `help` grammar lines; both full generated
+catalogs' byte identities; exact name, stable-ID, module, path-disambiguation,
+kind-exemplar, missing-selector, and token-economics behavior for scoped
+catalog lookup; malformed extra operands; and empty working directories with
+no created entries.
 
 ## Nonclaims
 

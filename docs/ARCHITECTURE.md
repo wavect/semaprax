@@ -1846,7 +1846,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Verification | `src/verify.rs`, `src/source_verify.rs`, `src/source_verify/` — `declaration/` owns the per-pass declaration checks, `iterative/` the frame machine, `oracle/` the test-only recursive cross-check, `hints.rs` the shared fix hints both verifiers attach to unknown-function, generic-argument, literal-suffix, and borrowed-view diagnostics, and `loans.rs`/`place.rs` the loan lifecycle |
 | HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `validation.rs` owns core validation |
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
-| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs`, `src/query.rs` |
+| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs`, `src/query.rs`; `tests/projections/shapes_catalog.rs` generates the Markdown and JSON language-shape catalogs, and `src/cli/help.rs` selects bounded exact or smallest-exemplar results from the JSON projection |
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
 | Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/`, explicit adapter `src/cli/retention_metadata.rs` |
 | Retention registry cursor | `src/semantic_retention_registry.rs`, `src/semantic_retention_registry/` |

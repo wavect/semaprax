@@ -1,0 +1,857 @@
+{
+  "entries": [
+    {
+      "id": "ledger.account",
+      "kind": "record",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.account\")\nrecord Account {\n    @id(\"ledger.account.id\")\n    id: i64,\n    @id(\"ledger.account.balance\")\n    balance: i64,\n}\n"
+    },
+    {
+      "id": "byte.type",
+      "kind": "record",
+      "path": "examples/bytes_u8.spx",
+      "signature": "@id(\"byte.type\")\nrecord Sample {\n    @id(\"byte.tag\")\n    tag: u8,\n    @id(\"byte.weight\")\n    weight: i64,\n}\n"
+    },
+    {
+      "id": "glyph.type",
+      "kind": "record",
+      "path": "examples/chars.spx",
+      "signature": "@id(\"glyph.type\")\nrecord Glyph {\n    @id(\"glyph.symbol\")\n    symbol: char,\n    @id(\"glyph.weight\")\n    weight: i64,\n}\n"
+    },
+    {
+      "id": "expr.pair",
+      "kind": "record",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.pair\")\nrecord Pair {\n    @id(\"expr.pair.left\")\n    left: i64,\n    @id(\"expr.pair.right\")\n    right: i64,\n}\n"
+    },
+    {
+      "id": "geometry.point",
+      "kind": "record",
+      "path": "examples/field_mutation.spx",
+      "signature": "@id(\"geometry.point\")\nrecord Point {\n    @id(\"geometry.point.x\")\n    x: i64,\n    @id(\"geometry.point.y\")\n    y: i64,\n    @id(\"geometry.point.enabled\")\n    enabled: bool,\n}\n"
+    },
+    {
+      "id": "geometry.vector",
+      "kind": "record",
+      "path": "examples/floats.spx",
+      "signature": "@id(\"geometry.vector\")\nrecord Vector {\n    @id(\"geometry.vector.x\")\n    x: f64,\n    @id(\"geometry.vector.y\")\n    y: f64,\n}\n"
+    },
+    {
+      "id": "order.line",
+      "kind": "record",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.line\")\nrecord Line {\n    @id(\"order.line.sku\")\n    sku: i64,\n    @id(\"order.line.quantity\")\n    quantity: i64,\n    @id(\"order.line.unit_price\")\n    unit_price: i64,\n}\n"
+    },
+    {
+      "id": "geometry.point",
+      "kind": "record",
+      "path": "examples/records.spx",
+      "signature": "@id(\"geometry.point\")\nrecord Point {\n    @id(\"geometry.point.x\")\n    x: i64,\n    @id(\"geometry.point.y\")\n    y: i64,\n    @id(\"geometry.point.enabled\")\n    enabled: bool,\n}\n"
+    },
+    {
+      "id": "geometry.line",
+      "kind": "record",
+      "path": "examples/records.spx",
+      "signature": "@id(\"geometry.line\")\nrecord Line {\n    @id(\"geometry.line.start\")\n    start: Point,\n    @id(\"geometry.line.end\")\n    end: Point,\n}\n"
+    },
+    {
+      "id": "ledger.tx_kind",
+      "kind": "variant",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.tx_kind\")\nvariant TxKind {\n    @id(\"ledger.tx_kind.deposit\")\n    Deposit,\n    @id(\"ledger.tx_kind.withdraw\")\n    Withdraw,\n    @id(\"ledger.tx_kind.transfer\")\n    Transfer,\n}\n"
+    },
+    {
+      "id": "expr.op",
+      "kind": "variant",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.op\")\nvariant Op {\n    @id(\"expr.op.add\")\n    Add,\n    @id(\"expr.op.subtract\")\n    Subtract,\n    @id(\"expr.op.multiply\")\n    Multiply,\n    @id(\"expr.op.divide\")\n    Divide,\n}\n"
+    },
+    {
+      "id": "expr.unary",
+      "kind": "variant",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.unary\")\nvariant UnaryOp {\n    @id(\"expr.unary.negate\")\n    Negate,\n    @id(\"expr.unary.double\")\n    Double,\n}\n"
+    },
+    {
+      "id": "order.status",
+      "kind": "variant",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.status\")\nvariant Status {\n    @id(\"order.status.created\")\n    Created,\n    @id(\"order.status.paid\")\n    Paid,\n    @id(\"order.status.shipped\")\n    Shipped,\n    @id(\"order.status.delivered\")\n    Delivered,\n    @id(\"order.status.cancelled\")\n    Cancelled,\n}\n"
+    },
+    {
+      "id": "order.decision",
+      "kind": "variant",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.decision\")\nvariant Decision {\n    @id(\"order.decision.approve\")\n    Approve,\n    @id(\"order.decision.reject\")\n    Reject,\n    @id(\"order.decision.hold\")\n    Hold,\n}\n"
+    },
+    {
+      "id": "ledger.portfolio",
+      "kind": "class",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.portfolio\")\nclass Portfolio {\n    @id(\"ledger.portfolio.holdings\")\n    holdings: i64,\n    @id(\"ledger.portfolio.credits\")\n    credits: i64,\n\n    @id(\"ledger.portfolio.total\")\n    fn total(self: Portfolio) -> i64\n\n    @id(\"ledger.portfolio.deposited\")\n    fn deposited(self: Portfolio, amount: i64) -> Portfolio\n\n    @id(\"ledger.portfolio.charged\")\n    fn charged(self: Portfolio, amount: i64) -> Portfolio\n}\n"
+    },
+    {
+      "id": "example.counter",
+      "kind": "class",
+      "path": "examples/classes.spx",
+      "signature": "@id(\"example.counter\")\nclass Counter {\n    @id(\"example.counter.value\")\n    value: i64,\n\n    @id(\"example.counter.get\")\n    fn get(self: Counter) -> i64\n\n    @id(\"example.counter.bumped\")\n    fn bumped(self: Counter, amount: i64) -> Counter\n}\n"
+    },
+    {
+      "id": "example.counter",
+      "kind": "class",
+      "path": "examples/field_mutation.spx",
+      "signature": "@id(\"example.counter\")\nclass Counter {\n    @id(\"example.counter.value\")\n    value: i64,\n\n    @id(\"example.counter.get\")\n    fn get(self: Counter) -> i64\n}\n"
+    },
+    {
+      "id": "example.animal",
+      "kind": "class",
+      "path": "examples/inheritance.spx",
+      "signature": "@id(\"example.animal\")\nclass Animal {\n    @id(\"example.animal.legs\")\n    legs: i64,\n\n    @id(\"example.animal.speak\")\n    fn speak(self: Animal) -> i64\n\n    @id(\"example.animal.name\")\n    fn name(self: Animal) -> string\n}\n"
+    },
+    {
+      "id": "example.dog",
+      "kind": "class",
+      "path": "examples/inheritance.spx",
+      "signature": "@id(\"example.dog\")\nclass Dog : Animal {\n    @id(\"example.dog.bark_count\")\n    bark_count: i64,\n\n    @id(\"example.dog.speak\")\n    fn speak(self: Dog) -> i64\n\n    @id(\"example.dog.name\")\n    fn name(self: Dog) -> string\n}\n"
+    },
+    {
+      "id": "example.puppy",
+      "kind": "class",
+      "path": "examples/inheritance.spx",
+      "signature": "@id(\"example.puppy\")\nclass Puppy : Dog {\n    @id(\"example.puppy.cuteness\")\n    cuteness: i64,\n\n    @id(\"example.puppy.total\")\n    fn total(self: Puppy) -> i64\n}\n"
+    },
+    {
+      "id": "order.inventory",
+      "kind": "class",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.inventory\")\nclass Inventory {\n    @id(\"order.inventory.stock\")\n    stock: i64,\n    @id(\"order.inventory.reserved\")\n    reserved: i64,\n\n    @id(\"order.inventory.available\")\n    fn available(self: Inventory) -> i64\n\n    @id(\"order.inventory.reserve\")\n    fn reserve(self: Inventory, amount: i64) -> Inventory\n\n    @id(\"order.inventory.commit\")\n    fn commit(self: Inventory, amount: i64) -> Inventory\n}\n"
+    },
+    {
+      "id": "ledger.portfolio.total",
+      "kind": "method",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.portfolio.total\")\nfn total(self: Portfolio) -> i64\n"
+    },
+    {
+      "id": "ledger.portfolio.deposited",
+      "kind": "method",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.portfolio.deposited\")\nfn deposited(self: Portfolio, amount: i64) -> Portfolio\n"
+    },
+    {
+      "id": "ledger.portfolio.charged",
+      "kind": "method",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.portfolio.charged\")\nfn charged(self: Portfolio, amount: i64) -> Portfolio\n"
+    },
+    {
+      "id": "example.counter.get",
+      "kind": "method",
+      "path": "examples/classes.spx",
+      "signature": "@id(\"example.counter.get\")\nfn get(self: Counter) -> i64\n"
+    },
+    {
+      "id": "example.counter.bumped",
+      "kind": "method",
+      "path": "examples/classes.spx",
+      "signature": "@id(\"example.counter.bumped\")\nfn bumped(self: Counter, amount: i64) -> Counter\n"
+    },
+    {
+      "id": "example.counter.get",
+      "kind": "method",
+      "path": "examples/field_mutation.spx",
+      "signature": "@id(\"example.counter.get\")\nfn get(self: Counter) -> i64\n"
+    },
+    {
+      "id": "example.animal.speak",
+      "kind": "method",
+      "path": "examples/inheritance.spx",
+      "signature": "@id(\"example.animal.speak\")\nfn speak(self: Animal) -> i64\n"
+    },
+    {
+      "id": "example.animal.name",
+      "kind": "method",
+      "path": "examples/inheritance.spx",
+      "signature": "@id(\"example.animal.name\")\nfn name(self: Animal) -> string\n"
+    },
+    {
+      "id": "example.dog.speak",
+      "kind": "method",
+      "path": "examples/inheritance.spx",
+      "signature": "@id(\"example.dog.speak\")\nfn speak(self: Dog) -> i64\n"
+    },
+    {
+      "id": "example.dog.name",
+      "kind": "method",
+      "path": "examples/inheritance.spx",
+      "signature": "@id(\"example.dog.name\")\nfn name(self: Dog) -> string\n"
+    },
+    {
+      "id": "example.puppy.total",
+      "kind": "method",
+      "path": "examples/inheritance.spx",
+      "signature": "@id(\"example.puppy.total\")\nfn total(self: Puppy) -> i64\n"
+    },
+    {
+      "id": "order.inventory.available",
+      "kind": "method",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.inventory.available\")\nfn available(self: Inventory) -> i64\n"
+    },
+    {
+      "id": "order.inventory.reserve",
+      "kind": "method",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.inventory.reserve\")\nfn reserve(self: Inventory, amount: i64) -> Inventory\n"
+    },
+    {
+      "id": "order.inventory.commit",
+      "kind": "method",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.inventory.commit\")\nfn commit(self: Inventory, amount: i64) -> Inventory\n"
+    },
+    {
+      "id": "platform.token",
+      "kind": "resource",
+      "path": "examples/lifecycle.spx",
+      "signature": "@id(\"platform.token\")\nresource Token {\n    @id(\"platform.token.drop\")\n    drop import \"platform.token.finalize\";\n}\n"
+    },
+    {
+      "id": "example.token",
+      "kind": "resource",
+      "path": "examples/native_callable.spx",
+      "signature": "@id(\"example.token\")\nresource Token {\n    @id(\"example.token.drop\")\n    drop trivial;\n}\n"
+    },
+    {
+      "id": "buffer.type",
+      "kind": "resource",
+      "path": "examples/ownership.spx",
+      "signature": "@id(\"buffer.type\")\nresource Buffer {\n    @id(\"buffer.type.drop\")\n    drop trivial;\n}\n"
+    },
+    {
+      "id": "platform.token.host",
+      "kind": "interface",
+      "path": "examples/lifecycle.spx",
+      "signature": "@id(\"platform.token.host\")\ninterface TokenHost\n    permits { platform.token.release }\n{\n    @id(\"platform.token.finalize\")\n    import fn finalize(token: own Token) -> unit\n        effects { platform.token.release }\n        failure infallible\n        consumes token always;\n}\n"
+    },
+    {
+      "id": "ledger.is_deposit",
+      "kind": "function",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.is_deposit\")\nfn is_deposit(kind: TxKind) -> bool\n"
+    },
+    {
+      "id": "ledger.apply",
+      "kind": "function",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.apply\")\nfn apply(account: Account, kind: TxKind, amount: i64) -> Account\n    requires amount >= 0\n"
+    },
+    {
+      "id": "ledger.safe_withdraw",
+      "kind": "function",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.safe_withdraw\")\nfn safe_withdraw(account: Account, amount: i64) -> Result<i64, i64>\n    requires amount >= 0\n"
+    },
+    {
+      "id": "ledger.find_balance",
+      "kind": "function",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.find_balance\")\nfn find_balance(left: Account, right: Account, wanted: i64) -> Option<i64>\n"
+    },
+    {
+      "id": "ledger.compound",
+      "kind": "function",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"ledger.compound\")\nfn compound(principal: i64, rate_percent: i64, years: i64) -> i64\n    requires principal >= 0\n    requires rate_percent >= 0\n    requires rate_percent <= 100\n    requires years >= 0\n    requires years <= 10\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/banking_ledger.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "byte.limit",
+      "kind": "function",
+      "path": "examples/bytes_u8.spx",
+      "signature": "@id(\"byte.limit\")\nfn limit() -> u8\n"
+    },
+    {
+      "id": "byte.make",
+      "kind": "function",
+      "path": "examples/bytes_u8.spx",
+      "signature": "@id(\"byte.make\")\nfn make(tag: u8) -> Sample\n"
+    },
+    {
+      "id": "byte.saturating_add",
+      "kind": "function",
+      "path": "examples/bytes_u8.spx",
+      "signature": "@id(\"byte.saturating_add\")\nfn saturating_add(left: u8, right: u8) -> u8\n    requires right <= limit()\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/bytes_u8.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "calculator.add",
+      "kind": "function",
+      "path": "examples/calculator.spx",
+      "signature": "@id(\"calculator.add\")\nfn add(left: i64, right: i64) -> i64\n"
+    },
+    {
+      "id": "calculator.subtract",
+      "kind": "function",
+      "path": "examples/calculator.spx",
+      "signature": "@id(\"calculator.subtract\")\nfn subtract(left: i64, right: i64) -> i64\n"
+    },
+    {
+      "id": "calculator.multiply",
+      "kind": "function",
+      "path": "examples/calculator.spx",
+      "signature": "@id(\"calculator.multiply\")\nfn multiply(left: i64, right: i64) -> i64\n"
+    },
+    {
+      "id": "calculator.divide",
+      "kind": "function",
+      "path": "examples/calculator.spx",
+      "signature": "@id(\"calculator.divide\")\nfn divide(left: i64, right: i64) -> i64\n    requires right != 0\n"
+    },
+    {
+      "id": "calculator.is-negative",
+      "kind": "function",
+      "path": "examples/calculator.spx",
+      "signature": "@id(\"calculator.is-negative\")\nfn is_negative(value: i64) -> bool\n"
+    },
+    {
+      "id": "calculator.not",
+      "kind": "function",
+      "path": "examples/calculator.spx",
+      "signature": "@id(\"calculator.not\")\nfn not(value: bool) -> bool\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/calculator.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "glyph.initial",
+      "kind": "function",
+      "path": "examples/chars.spx",
+      "signature": "@id(\"glyph.initial\")\nfn initial() -> char\n"
+    },
+    {
+      "id": "glyph.make",
+      "kind": "function",
+      "path": "examples/chars.spx",
+      "signature": "@id(\"glyph.make\")\nfn make(symbol: char) -> Glyph\n"
+    },
+    {
+      "id": "glyph.order",
+      "kind": "function",
+      "path": "examples/chars.spx",
+      "signature": "@id(\"glyph.order\")\nfn order(left: char, right: char) -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/chars.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "example.main",
+      "kind": "function",
+      "path": "examples/classes.spx",
+      "signature": "@id(\"example.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "flow.choose",
+      "kind": "function",
+      "path": "examples/control_flow.spx",
+      "signature": "@id(\"flow.choose\")\nfn choose(flag: bool, base: i64) -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/control_flow.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "clock.logical_tick",
+      "kind": "function",
+      "path": "examples/effects.spx",
+      "signature": "@id(\"clock.logical_tick\")\nfn logical_tick(value: i64) -> i64\n    uses { clock.read }\n    ensures result == value + 1\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/effects.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n    uses { clock.read }\n"
+    },
+    {
+      "id": "mut.accumulator",
+      "kind": "function",
+      "path": "examples/explicit_mutation.spx",
+      "signature": "@id(\"mut.accumulator\")\nfn accumulator() -> i64\n"
+    },
+    {
+      "id": "mut.checked_steps",
+      "kind": "function",
+      "path": "examples/explicit_mutation.spx",
+      "signature": "@id(\"mut.checked_steps\")\nfn checked_steps() -> i64\n"
+    },
+    {
+      "id": "main",
+      "kind": "function",
+      "path": "examples/explicit_mutation.spx",
+      "signature": "@id(\"main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "expr.is_divide",
+      "kind": "function",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.is_divide\")\nfn is_divide(op: Op) -> bool\n"
+    },
+    {
+      "id": "expr.apply_unary",
+      "kind": "function",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.apply_unary\")\nfn apply_unary(value: i64, operation: UnaryOp) -> i64\n"
+    },
+    {
+      "id": "expr.evaluate",
+      "kind": "function",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.evaluate\")\nfn evaluate(pair: Pair, op: Op) -> i64\n"
+    },
+    {
+      "id": "expr.safe_divide",
+      "kind": "function",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.safe_divide\")\nfn safe_divide(left: i64, right: i64) -> Result<i64, i64>\n"
+    },
+    {
+      "id": "expr.safe_evaluate",
+      "kind": "function",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.safe_evaluate\")\nfn safe_evaluate(pair: Pair, op: Op) -> Result<i64, i64>\n"
+    },
+    {
+      "id": "expr.chain_scalars",
+      "kind": "function",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.chain_scalars\")\nfn chain_scalars(first: Pair, left_op: Op, second: Pair, right_op: Op, combine: Op) -> i64\n"
+    },
+    {
+      "id": "expr.fibonacci",
+      "kind": "function",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.fibonacci\")\nfn fibonacci(nth: i64) -> i64\n    requires nth >= 0\n    requires nth <= 20\n"
+    },
+    {
+      "id": "expr.fold_many",
+      "kind": "function",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"expr.fold_many\")\nfn fold_many() -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/expression_evaluator.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "fm.shift_x",
+      "kind": "function",
+      "path": "examples/field_mutation.spx",
+      "signature": "@id(\"fm.shift_x\")\nfn shift_x(point: Point, step: i64) -> Point\n"
+    },
+    {
+      "id": "fm.track",
+      "kind": "function",
+      "path": "examples/field_mutation.spx",
+      "signature": "@id(\"fm.track\")\nfn track(flag: bool) -> i64\n"
+    },
+    {
+      "id": "main",
+      "kind": "function",
+      "path": "examples/field_mutation.spx",
+      "signature": "@id(\"main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "geometry.length_squared",
+      "kind": "function",
+      "path": "examples/floats.spx",
+      "signature": "@id(\"geometry.length_squared\")\nfn length_squared(vector: Vector) -> f64\n"
+    },
+    {
+      "id": "geometry.inverse_length_squared",
+      "kind": "function",
+      "path": "examples/floats.spx",
+      "signature": "@id(\"geometry.inverse_length_squared\")\nfn inverse_length_squared(vector: Vector) -> f64\n"
+    },
+    {
+      "id": "geometry.half",
+      "kind": "function",
+      "path": "examples/floats.spx",
+      "signature": "@id(\"geometry.half\")\nfn half(value: f32) -> f32\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/floats.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "example.main",
+      "kind": "function",
+      "path": "examples/inheritance.spx",
+      "signature": "@id(\"example.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "sum.pair",
+      "kind": "function",
+      "path": "examples/integers_i32.spx",
+      "signature": "@id(\"sum.pair\")\nfn sum_pair(left: i32, right: i32) -> i32\n"
+    },
+    {
+      "id": "sum.checked",
+      "kind": "function",
+      "path": "examples/integers_i32.spx",
+      "signature": "@id(\"sum.checked\")\nfn checked() -> i32\n"
+    },
+    {
+      "id": "compare.pair",
+      "kind": "function",
+      "path": "examples/integers_i32.spx",
+      "signature": "@id(\"compare.pair\")\nfn compare(left: i32, right: i32) -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/integers_i32.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/lifecycle.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "math.gcd",
+      "kind": "function",
+      "path": "examples/math_algorithms.spx",
+      "signature": "@id(\"math.gcd\")\nfn gcd(left: i64, right: i64) -> i64\n    requires left >= 0\n    requires right >= 0\n    ensures result >= 0\n"
+    },
+    {
+      "id": "math.lcm",
+      "kind": "function",
+      "path": "examples/math_algorithms.spx",
+      "signature": "@id(\"math.lcm\")\nfn lcm(left: i64, right: i64) -> i64\n    requires left > 0\n    requires right > 0\n"
+    },
+    {
+      "id": "math.is_prime",
+      "kind": "function",
+      "path": "examples/math_algorithms.spx",
+      "signature": "@id(\"math.is_prime\")\nfn is_prime(value: i64) -> bool\n    requires value >= 0\n"
+    },
+    {
+      "id": "math.fibonacci",
+      "kind": "function",
+      "path": "examples/math_algorithms.spx",
+      "signature": "@id(\"math.fibonacci\")\nfn fibonacci(nth: i64) -> i64\n    requires nth >= 0\n    requires nth <= 30\n"
+    },
+    {
+      "id": "math.factorial",
+      "kind": "function",
+      "path": "examples/math_algorithms.spx",
+      "signature": "@id(\"math.factorial\")\nfn factorial(value: i64) -> i64\n    requires value >= 0\n    requires value <= 12\n"
+    },
+    {
+      "id": "math.digital_root",
+      "kind": "function",
+      "path": "examples/math_algorithms.spx",
+      "signature": "@id(\"math.digital_root\")\nfn digital_root(value: i64) -> i64\n    requires value >= 0\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/math_algorithms.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "math.add",
+      "kind": "function",
+      "path": "examples/meaning.spx",
+      "signature": "@id(\"math.add\")\nfn add(left: i64, right: i64) -> i64\n    requires left >= 0\n    requires right >= 0\n    ensures result == left + right\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/meaning.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n    ensures result == 42\n"
+    },
+    {
+      "id": "example.token.identity",
+      "kind": "function",
+      "path": "examples/native_callable.spx",
+      "signature": "@id(\"example.token.identity\")\nfn identity(value: own Token) -> Token\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/native_callable.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "net-http-get.fetch",
+      "kind": "function",
+      "path": "examples/net_http_get.spx",
+      "signature": "@id(\"net-http-get.fetch\")\nfn fetch() -> bool\n    uses { network.connect, network.read, network.write, process.stdout.write }\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/net_http_get.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "order.status_value",
+      "kind": "function",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.status_value\")\nfn status_value(status: Status) -> i64\n"
+    },
+    {
+      "id": "order.is_terminal",
+      "kind": "function",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.is_terminal\")\nfn is_terminal(status: Status) -> bool\n"
+    },
+    {
+      "id": "order.decide",
+      "kind": "function",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.decide\")\nfn decide(line: Line, inventory: Inventory) -> Decision\n"
+    },
+    {
+      "id": "order.decision_value",
+      "kind": "function",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.decision_value\")\nfn decision_value(decision: Decision) -> i64\n"
+    },
+    {
+      "id": "order.line_total",
+      "kind": "function",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.line_total\")\nfn line_total(line: Line) -> i64\n"
+    },
+    {
+      "id": "order.process_steps",
+      "kind": "function",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.process_steps\")\nfn process_steps(count: i64) -> i64\n"
+    },
+    {
+      "id": "order.apply_batch",
+      "kind": "function",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.apply_batch\")\nfn apply_batch(total: i64, items: i64) -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "order.safe_total",
+      "kind": "function",
+      "path": "examples/order_lifecycle.spx",
+      "signature": "@id(\"order.safe_total\")\nfn safe_total(amount: i64) -> Result<i64, i64>\n"
+    },
+    {
+      "id": "buffer.inspect",
+      "kind": "function",
+      "path": "examples/ownership.spx",
+      "signature": "@id(\"buffer.inspect\")\nfn inspect(buffer: borrow Buffer) -> i64\n"
+    },
+    {
+      "id": "buffer.consume",
+      "kind": "function",
+      "path": "examples/ownership.spx",
+      "signature": "@id(\"buffer.consume\")\nfn consume(buffer: own Buffer) -> i64\n"
+    },
+    {
+      "id": "buffer.pipeline",
+      "kind": "function",
+      "path": "examples/ownership.spx",
+      "signature": "@id(\"buffer.pipeline\")\nfn pipeline(buffer: own Buffer) -> i64\n    ensures result == 2\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/ownership.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "geometry.line.shift",
+      "kind": "function",
+      "path": "examples/records.spx",
+      "signature": "@id(\"geometry.line.shift\")\nfn shift(line: Line, amount: i64) -> Line\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/records.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "refutable.sign_class",
+      "kind": "function",
+      "path": "examples/refutable_match.spx",
+      "signature": "@id(\"refutable.sign_class\")\nfn sign_class(value: i64) -> i64\n"
+    },
+    {
+      "id": "refutable.digit_name",
+      "kind": "function",
+      "path": "examples/refutable_match.spx",
+      "signature": "@id(\"refutable.digit_name\")\nfn digit_name(digit: u8) -> i64\n"
+    },
+    {
+      "id": "refutable.route",
+      "kind": "function",
+      "path": "examples/refutable_match.spx",
+      "signature": "@id(\"refutable.route\")\nfn route(code: char) -> i64\n"
+    },
+    {
+      "id": "main",
+      "kind": "function",
+      "path": "examples/refutable_match.spx",
+      "signature": "@id(\"main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "ops.combine",
+      "kind": "function",
+      "path": "examples/string_ops.spx",
+      "signature": "@id(\"ops.combine\")\nfn combine(left: string, right: string) -> string\n"
+    },
+    {
+      "id": "ops.world",
+      "kind": "function",
+      "path": "examples/string_ops.spx",
+      "signature": "@id(\"ops.world\")\nfn world() -> string\n"
+    },
+    {
+      "id": "test.main",
+      "kind": "function",
+      "path": "examples/string_ops.spx",
+      "signature": "@id(\"test.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "ops.has_prefix",
+      "kind": "function",
+      "path": "examples/string_ops_v2.spx",
+      "signature": "@id(\"ops.has_prefix\")\nfn has_prefix(value: string, prefix: string) -> bool\n"
+    },
+    {
+      "id": "ops.holds",
+      "kind": "function",
+      "path": "examples/string_ops_v2.spx",
+      "signature": "@id(\"ops.holds\")\nfn holds(value: string) -> i64\n"
+    },
+    {
+      "id": "test.main",
+      "kind": "function",
+      "path": "examples/string_ops_v2.spx",
+      "signature": "@id(\"test.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "test.main",
+      "kind": "function",
+      "path": "examples/strings.spx",
+      "signature": "@id(\"test.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "text.count_byte",
+      "kind": "function",
+      "path": "examples/text_analytics.spx",
+      "signature": "@id(\"text.count_byte\")\nfn count_byte(text: borrow str, target: u8) -> usize\n"
+    },
+    {
+      "id": "text.count_words",
+      "kind": "function",
+      "path": "examples/text_analytics.spx",
+      "signature": "@id(\"text.count_words\")\nfn count_words(text: borrow str) -> usize\n"
+    },
+    {
+      "id": "text.is_empty_str",
+      "kind": "function",
+      "path": "examples/text_analytics.spx",
+      "signature": "@id(\"text.is_empty_str\")\nfn is_empty_str(text: borrow str) -> bool\n"
+    },
+    {
+      "id": "text.starts_with_hello",
+      "kind": "function",
+      "path": "examples/text_analytics.spx",
+      "signature": "@id(\"text.starts_with_hello\")\nfn starts_with_hello(text: string) -> bool\n"
+    },
+    {
+      "id": "text.contains_world",
+      "kind": "function",
+      "path": "examples/text_analytics.spx",
+      "signature": "@id(\"text.contains_world\")\nfn contains_world(text: string) -> bool\n"
+    },
+    {
+      "id": "text.build_greeting",
+      "kind": "function",
+      "path": "examples/text_analytics.spx",
+      "signature": "@id(\"text.build_greeting\")\nfn build_greeting(prefix: string, suffix: string) -> string\n"
+    },
+    {
+      "id": "text.palindrome_bytes",
+      "kind": "function",
+      "path": "examples/text_analytics.spx",
+      "signature": "@id(\"text.palindrome_bytes\")\nfn palindrome_bytes(text: string) -> bool\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/text_analytics.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "example.usize.checksum",
+      "kind": "function",
+      "path": "examples/useful_data_usize_v1.spx",
+      "signature": "@id(\"example.usize.checksum\")\nfn checksum(seed: usize, count: usize) -> usize\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/useful_data_usize_v1.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    },
+    {
+      "id": "loops.digit_sum",
+      "kind": "function",
+      "path": "examples/while_loops.spx",
+      "signature": "@id(\"loops.digit_sum\")\nfn digit_sum(value: i64) -> i64\n"
+    },
+    {
+      "id": "loops.factorial",
+      "kind": "function",
+      "path": "examples/while_loops.spx",
+      "signature": "@id(\"loops.factorial\")\nfn factorial(value: i64) -> i64\n"
+    },
+    {
+      "id": "app.main",
+      "kind": "function",
+      "path": "examples/while_loops.spx",
+      "signature": "@id(\"app.main\")\nfn main() -> i64\n"
+    }
+  ],
+  "schema": "semaprax.language-shapes-catalog.v1"
+}

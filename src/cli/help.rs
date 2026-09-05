@@ -248,7 +248,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -326,6 +326,7 @@ pub(crate) const LANGUAGE_REFERENCE: &str = include_str!("../../docs/AGENT-QUICK
 /// `tests/project.rs::standard_library` regenerates from `std/` and pins.
 pub(crate) const LIBRARY_CATALOG: &str = include_str!("../../docs/STANDARD-LIBRARY-CATALOG.md");
 const LIBRARY_INDEX: &str = include_str!("../../std/catalog.json");
+const SHAPES_INDEX: &str = include_str!("../../docs/LANGUAGE-SHAPES-CATALOG.json");
 
 pub(crate) fn library_entry(query: &str) -> Result<String, String> {
     let catalog: serde_json::Value =
@@ -393,6 +394,91 @@ pub(crate) fn library_entry(query: &str) -> Result<String, String> {
     }
 }
 
+fn shape_fields(entry: &serde_json::Value) -> (&str, &str, &str, &str) {
+    (
+        entry["id"]
+            .as_str()
+            .expect("generated shape must have an identity"),
+        entry["kind"]
+            .as_str()
+            .expect("generated shape must have a kind"),
+        entry["path"]
+            .as_str()
+            .expect("generated shape must have a source path"),
+        entry["signature"]
+            .as_str()
+            .expect("generated shape must have a signature"),
+    )
+}
+
+fn shape_rank(entry: &serde_json::Value) -> (usize, usize, &str, &str) {
+    let (id, _, path, signature) = shape_fields(entry);
+    (
+        semaprax::agent_economics::lexical_tokens(path)
+            + semaprax::agent_economics::lexical_tokens(signature),
+        path.len() + signature.len(),
+        id,
+        path,
+    )
+}
+
+fn write_shape(output: &mut String, entry: &serde_json::Value, representative: bool) {
+    let (id, kind, path, signature) = shape_fields(entry);
+    if !output.is_empty() {
+        output.push('\n');
+    }
+    if representative {
+        writeln!(output, "representative {kind}").expect("writing to a string cannot fail");
+    } else {
+        writeln!(output, "{kind} {id}").expect("writing to a string cannot fail");
+    }
+    writeln!(output, "source {path}").expect("writing to a string cannot fail");
+    output.push_str(signature);
+    if !signature.ends_with('\n') {
+        output.push('\n');
+    }
+}
+
+pub(crate) fn shape_entry(query: &str) -> Result<String, String> {
+    let catalog: serde_json::Value =
+        serde_json::from_str(SHAPES_INDEX).expect("generated language-shapes JSON must parse");
+    let entries = catalog["entries"]
+        .as_array()
+        .expect("generated language-shapes JSON must contain entries");
+
+    if let Some(exemplar) = entries
+        .iter()
+        .filter(|entry| shape_fields(entry).1 == query)
+        .min_by_key(|entry| shape_rank(entry))
+    {
+        let mut output = String::new();
+        write_shape(&mut output, exemplar, true);
+        return Ok(output);
+    }
+
+    let path_identity = query
+        .split_once('#')
+        .filter(|(path, id)| !path.is_empty() && !id.is_empty());
+    let mut output = String::new();
+    for entry in entries {
+        let (id, _, path, _) = shape_fields(entry);
+        let selected = match path_identity {
+            Some((selected_path, selected_id)) => path == selected_path && id == selected_id,
+            None => id == query,
+        };
+        if selected {
+            write_shape(&mut output, entry, false);
+        }
+    }
+    if output.is_empty() {
+        Err(format!(
+            "language shapes catalog has no exact match for `{query}`"
+        ))
+    } else {
+        Ok(output)
+    }
+}
+
 pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>> {
     if args.first().map(String::as_str) != Some("help") || args.len() == 1 {
         return None;
@@ -415,8 +501,13 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
         print!("{output}");
         return Some(Ok(()));
     }
-    if args.len() == 3 && args[1] == "library" {
-        return Some(match library_entry(&args[2]) {
+    if args.len() == 3 && matches!(args[1].as_str(), "library" | "shapes") {
+        let result = if args[1] == "library" {
+            library_entry(&args[2])
+        } else {
+            shape_entry(&args[2])
+        };
+        return Some(match result {
             Ok(output) => {
                 print!("{output}");
                 Ok(())
@@ -427,7 +518,7 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
             }
         });
     }
-    let extra = if args[1] == "library" {
+    let extra = if matches!(args[1].as_str(), "library" | "shapes") {
         &args[3]
     } else {
         &args[2]
@@ -600,8 +691,8 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Help,
-                shape: "help shapes",
-                summary: "Declaration shapes from the examples",
+                shape: "help shapes [selector]",
+                summary: "One declaration shape",
             },
         ],
     },
@@ -902,6 +993,52 @@ mod tests {
         assert!(SHAPES_CATALOG.contains("\n## Functions\n"));
         assert!(SHAPES_CATALOG.contains("```semaprax\n"));
         assert!(SHAPES_CATALOG.ends_with('\n'));
+    }
+
+    #[test]
+    fn shape_entry_is_exact_disambiguated_and_cheap_by_kind() {
+        let expected = concat!(
+            "function calculator.add\n",
+            "source examples/calculator.spx\n",
+            "@id(\"calculator.add\")\n",
+            "fn add(left: i64, right: i64) -> i64\n",
+        );
+        assert_eq!(shape_entry("calculator.add").unwrap(), expected);
+
+        let main = shape_entry("examples/calculator.spx#app.main").unwrap();
+        assert!(main.starts_with("function app.main\nsource examples/calculator.spx\n"));
+        assert!(!main.contains("examples/banking_ledger.spx"));
+
+        let catalog_units = semaprax::agent_economics::lexical_tokens(SHAPES_CATALOG);
+        let catalog: serde_json::Value = serde_json::from_str(SHAPES_INDEX).unwrap();
+        let kinds: std::collections::BTreeSet<_> = catalog["entries"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|entry| shape_fields(entry).1)
+            .collect();
+        assert!(kinds.len() >= 7, "{kinds:?}");
+        for kind in kinds {
+            let exemplar = shape_entry(kind).unwrap();
+            assert!(exemplar.starts_with(&format!("representative {kind}\n")));
+            assert!(exemplar.len() <= 512, "{kind}: {} bytes", exemplar.len());
+            assert!(
+                exemplar.len() * 40 < SHAPES_CATALOG.len(),
+                "{kind}: {}/{} bytes",
+                exemplar.len(),
+                SHAPES_CATALOG.len()
+            );
+            let units = semaprax::agent_economics::lexical_tokens(&exemplar);
+            assert!(units <= 128, "{kind}: {units} lexical units");
+            assert!(
+                units * 40 < catalog_units,
+                "{kind}: {units}/{catalog_units} lexical units"
+            );
+        }
+        assert_eq!(
+            shape_entry("not_a_shape").unwrap_err(),
+            "language shapes catalog has no exact match for `not_a_shape`"
+        );
     }
 
     #[test]

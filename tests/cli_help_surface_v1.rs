@@ -252,6 +252,58 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert_eq!(shapes.stdout, shapes_catalog);
     assert!(shapes.stdout.starts_with(b"# Language shapes catalog\n"));
     std::fs::remove_dir(shapes_dir).unwrap();
+    let expected_add = b"function calculator.add\nsource examples/calculator.spx\n@id(\"calculator.add\")\nfn add(left: i64, right: i64) -> i64\n";
+    let (shape, shape_dir) = invoke(&["help", "shapes", "calculator.add"]);
+    assert!(shape.status.success());
+    assert!(shape.stderr.is_empty());
+    assert_eq!(shape.stdout, expected_add);
+    assert!(shape.stdout.len() <= 512);
+    assert!(shape.stdout.len() * 40 < shapes_catalog.len());
+    let shape_units =
+        semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&shape.stdout).unwrap());
+    let shapes_catalog_units =
+        semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&shapes_catalog).unwrap());
+    assert!(shape_units <= 128);
+    assert!(shape_units * 40 < shapes_catalog_units);
+    std::fs::remove_dir(shape_dir).unwrap();
+    let (representative, representative_dir) = invoke(&["help", "shapes", "record"]);
+    assert!(representative.status.success());
+    assert!(representative.stderr.is_empty());
+    assert!(representative
+        .stdout
+        .starts_with(b"representative record\nsource "));
+    assert!(representative.stdout.len() <= 512);
+    assert!(representative.stdout.len() * 40 < shapes_catalog.len());
+    assert!(
+        semaprax::agent_economics::lexical_tokens(
+            std::str::from_utf8(&representative.stdout).unwrap()
+        ) <= 128
+    );
+    std::fs::remove_dir(representative_dir).unwrap();
+    let (disambiguated, disambiguated_dir) =
+        invoke(&["help", "shapes", "examples/calculator.spx#app.main"]);
+    assert!(disambiguated.status.success());
+    assert!(disambiguated.stderr.is_empty());
+    assert!(disambiguated
+        .stdout
+        .starts_with(b"function app.main\nsource examples/calculator.spx\n"));
+    std::fs::remove_dir(disambiguated_dir).unwrap();
+    let (missing_shape, missing_shape_dir) = invoke(&["help", "shapes", "not_a_shape"]);
+    assert_eq!(missing_shape.status.code(), Some(2));
+    assert!(missing_shape.stdout.is_empty());
+    assert_eq!(
+        missing_shape.stderr,
+        b"language shapes catalog has no exact match for `not_a_shape`\n"
+    );
+    std::fs::remove_dir(missing_shape_dir).unwrap();
+    let (shape_extra, shape_extra_dir) = invoke(&["help", "shapes", "record", "extra"]);
+    assert_eq!(shape_extra.status.code(), Some(2));
+    assert!(shape_extra.stdout.is_empty());
+    assert_eq!(
+        shape_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    std::fs::remove_dir(shape_extra_dir).unwrap();
     let expected_compare = b"std.core.compare\ndependency std.core = \"^0.1.0\"\nprofile scalar\nfn compare(left: i64, right: i64) -> i64\n    ensures result >= -1 && result <= 1\n    ensures result != 0 || left == right\n    ensures result == 0 || left != right\n";
     for selector in ["std.core.compare", "compare"] {
         let (entry, directory) = invoke(&["help", "library", selector]);
@@ -310,7 +362,8 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 "  semaprax help language\n",
                 "  semaprax help library\n",
                 "  semaprax help library <module|name|stable-id>\n",
-                "  semaprax help shapes\n"
+                "  semaprax help shapes\n",
+                "  semaprax help shapes <kind|stable-id|path#stable-id>\n"
             )
             .as_bytes()
         );

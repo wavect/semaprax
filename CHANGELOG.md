@@ -18,6 +18,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   Semantic Workspace now preserves those source schemas, unknown spellings and
   evidence flows remain closed, and the formerly ignored checked-HIR cache
   regression executes cold/warm Graph v32 accounting and replay.
+- Added scoped `semaprax help shapes <kind|stable-id|path#stable-id>` backed by
+  a generated JSON companion to the unchanged Markdown catalog. Exact IDs can
+  be source-disambiguated, and a kind returns its smallest canonical exemplar
+  instead of every declaration. The guarded `calculator.add` result is 114
+  bytes and 33 lexical units versus 22,888 bytes and 7,571 units for the full
+  catalog, while every kind exemplar stays within 512 bytes and 128 units.
 - Added the authority-free, transport-neutral Persistent Incremental Semantic
   Workspace Service v1 core. A process can retain one immutable Project,
   Canonical Semantic Workspace Revision, Semantic Workspace Image, and semantic

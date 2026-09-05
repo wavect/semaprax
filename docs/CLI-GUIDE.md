@@ -49,6 +49,17 @@ semaprax help library compare
 semaprax help library std.core.compare
 ```
 
+Print every canonical declaration shape from the committed examples, or ask
+for only one exact shape. A kind returns its smallest generated exemplar;
+`path#stable-id` disambiguates identities reused by multiple examples:
+
+```sh
+semaprax help shapes
+semaprax help shapes record
+semaprax help shapes calculator.add
+semaprax help shapes examples/calculator.spx#app.main
+```
+
 Show the exact accepted form of one command without reading source files,
 probing tools, or starting a build:
 

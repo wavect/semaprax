@@ -52,6 +52,11 @@ so it is available without the source checkout.
   grouped by task, with one-line purposes. `semaprax help all` is the 7 KB
   exhaustive catalog; use `semaprax help <command>` for one command's exact
   grammar.
+- When one canonical declaration example is enough, use `semaprax help shapes
+  <kind|stable-id|path#stable-id>` instead of the full shapes catalog. Kind
+  selectors return the smallest compiler-verified exemplar. The guarded
+  `calculator.add` result is 114 bytes and 33 lexical units instead of 22,888
+  bytes and 7,571 units.
 - Diagnostics carry stable `SPX-…` codes. Bind tests and repair logic to the
   code, never to the message text.
 

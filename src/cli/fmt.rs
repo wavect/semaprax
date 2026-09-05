@@ -231,9 +231,9 @@ mod tests {
         assert_eq!(
             parse(&strings(&["fixtures/semaprax.toml", "--check"])).unwrap(),
             FmtOptions {
-                input: FmtInput::Project(super::project::normalize_project_path(PathBuf::from(
-                    "fixtures/semaprax.toml",
-                )),),
+                input: FmtInput::Project(super::super::project::normalize_project_path(
+                    PathBuf::from("fixtures/semaprax.toml",)
+                ),),
                 check: true,
             }
         );

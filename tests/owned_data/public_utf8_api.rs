@@ -266,7 +266,7 @@ fn generated_c11_header_links_owned_utf8_provider_by_exact_length() {
 #include <string.h>
 union aligned_context { max_align_t alignment; uint8_t bytes[UINT64_C(1) << 20]; };
 int main(void) {
- union aligned_context storage;uint64_t size=spx_owned_data_context_size_v1(),align=spx_owned_data_context_align_v1();
+ static union aligned_context storage;uint64_t size=spx_owned_data_context_size_v1(),align=spx_owned_data_context_align_v1();
  if(!size||size>sizeof(storage.bytes)||!align||align>_Alignof(max_align_t))return 1;
  if(spx_owned_data_context_init_v1(storage.bytes,size)!=SPX_OWNED_DATA_SUCCESS)return 2;
  spx_context_v1*context=(spx_context_v1*)storage.bytes;uint32_t tag=UINT32_MAX;spx_owned_bytes_handle_v1 handle=0;int64_t error=INT64_MIN;

@@ -68,7 +68,13 @@ mod tests {
 
     #[test]
     fn grammar_is_closed() {
-        let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .find(|root| {
+                root.join("tests/project_scalar_wit_interface_v1/semaprax.toml")
+                    .is_file()
+            })
+            .expect("repository fixture root");
         let project = repository.join("tests/project_scalar_wit_interface_v1");
         assert_eq!(
             parse(&[project.to_string_lossy().into_owned()])

@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added a pure C11 consumer gate for the authenticated Project-v8 owned-data
+  package. The generated provider and a translation unit using only the public
+  C header compile separately, link, and execute at O0/O2 while checking
+  invalid-bool output poison, owned-byte copy/drop, stale-handle rejection, and
+  context closure. This establishes a local linkable C ABI slice without
+  promoting Objective-C, cross-platform support, distribution, or compatibility.
 - Added Installed Agent Guidance v1: six deterministic, version-matched,
   authority-free skill documents are available through `skills get`, and
   `query --capabilities` reports the exact installed five-operation Universal

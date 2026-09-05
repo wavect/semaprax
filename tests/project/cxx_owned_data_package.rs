@@ -187,6 +187,110 @@ fn generated_provider_and_wrapper_compile_separately_at_o0_and_o2() {
 }
 
 #[test]
+fn generated_provider_and_c11_consumer_compile_link_and_settle_owned_bytes() {
+    let root = Temporary::new();
+    let manifest = crate::owned_mixed_arity_product::write_project(&root, 4);
+    let (package, method) = with_authenticated_project(&manifest, |snapshot| {
+        let method = snapshot.public_api_descriptor()?.exports()[4]
+            .rust_method_name()
+            .to_owned();
+        Ok((snapshot.cxx_owned_data_package_v1()?, method))
+    })
+    .unwrap();
+    fs::write(root.join("semaprax_owned_data.h"), package.c_header()).unwrap();
+    fs::write(root.join("provider.c"), package.provider_c()).unwrap();
+    fs::write(
+        root.join("consumer.c"),
+        format!(
+            r#"#include "semaprax_owned_data.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+
+union aligned_context {{ max_align_t alignment; uint8_t bytes[UINT64_C(1) << 20]; }};
+
+int main(void) {{
+    union aligned_context storage;
+    uint64_t size = spx_owned_data_context_size_v1();
+    uint64_t align = spx_owned_data_context_align_v1();
+    if (size == 0 || size > sizeof(storage.bytes) || align == 0 || align > _Alignof(max_align_t)) return 1;
+    if (spx_owned_data_context_init_v1(storage.bytes, size) != SPX_OWNED_DATA_SUCCESS) return 2;
+    spx_context_v1 *context = (spx_context_v1 *)storage.bytes;
+    const uint8_t text[] = {{ 'f', 'o', 'u', 'r' }};
+    const uint8_t input[] = {{ 1, 2, 3 }};
+    uint32_t tag = UINT32_MAX;
+    spx_owned_bytes_handle_v1 handle = UINT64_C(0);
+    int64_t error = INT64_MIN;
+    if (spx_owned_data_call_{method}_v1(context, INT64_C(-13), UINT8_C(2), text, sizeof(text), input, sizeof(input), &tag, &handle, &error) != SPX_OWNED_DATA_ADAPTER_FAILURE) return 3;
+    if (tag != UINT32_MAX || handle != UINT64_C(0) || error != INT64_MIN) return 4;
+    if (spx_owned_data_call_{method}_v1(context, INT64_C(-13), UINT8_C(1), text, sizeof(text), input, sizeof(input), &tag, &handle, &error) != SPX_OWNED_DATA_SUCCESS) return 5;
+    if (tag != UINT32_C(0) || handle == UINT64_C(0) || error != INT64_C(0)) return 6;
+    uint64_t length = UINT64_MAX;
+    if (spx_owned_bytes_len_v1(context, handle, &length) != SPX_OWNED_DATA_SUCCESS || length != UINT64_C(2)) return 7;
+    uint8_t output[2] = {{ 0, 0 }};
+    if (spx_owned_bytes_copy_v1(context, handle, output, length) != SPX_OWNED_DATA_SUCCESS || memcmp(output, "ok", 2) != 0) return 8;
+    if (spx_owned_bytes_drop_v1(context, handle) != SPX_OWNED_DATA_SUCCESS) return 9;
+    if (spx_owned_bytes_len_v1(context, handle, &length) != SPX_OWNED_DATA_INVALID_HANDLE) return 10;
+    if (spx_owned_data_context_drop_v1(context) != SPX_OWNED_DATA_SUCCESS) return 11;
+    return 0;
+}}
+"#
+        ),
+    )
+    .unwrap();
+    let clang = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
+    for optimization in ["-O0", "-O2"] {
+        let provider = format!("c-provider-{optimization}.o");
+        let consumer = format!("c-consumer-{optimization}.o");
+        let executable = format!("c-consumer-{optimization}");
+        for (input, output) in [
+            ("provider.c", provider.as_str()),
+            ("consumer.c", consumer.as_str()),
+        ] {
+            let result = Command::new(&clang)
+                .current_dir(&root)
+                .args([
+                    "-std=c11",
+                    optimization,
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-c",
+                    input,
+                    "-o",
+                    output,
+                ])
+                .output()
+                .expect("Clang is required for C package evidence");
+            assert!(
+                result.status.success(),
+                "{}",
+                String::from_utf8_lossy(&result.stderr)
+            );
+        }
+        let result = Command::new(&clang)
+            .current_dir(&root)
+            .args([
+                provider.as_str(),
+                consumer.as_str(),
+                "-o",
+                executable.as_str(),
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        assert!(Command::new(root.join(executable))
+            .status()
+            .unwrap()
+            .success());
+    }
+}
+
+#[test]
 fn exact_input_and_output_limit_succeeds_plus_one_rejects_and_recovers() {
     let root = Temporary::new();
     let manifest = result_subject::write_project(&root);

@@ -29,7 +29,7 @@ Project v1-v7 and v9-v11 artifacts are unchanged.
 
 ## C boundary
 
-`semaprax_owned_data.h` is valid C11 and contains only fixed-width integers,
+`semaprax_owned_data.h` is a directly consumable C11 boundary and contains only fixed-width integers,
 byte pointers, lengths, status values, and opaque context/handle types. No STL
 type, exception, C++ object, allocator, or callback crosses `extern "C"`.
 Booleans are exactly `uint8_t` values 0 or 1. Text is pointer-plus-length UTF-8;
@@ -61,6 +61,13 @@ drop, failed close, and cleanup uncertainty call `std::terminate`; continuing
 could duplicate ownership or use an ambiguous context. No exception crosses C.
 
 ## Evidence and nonclaims
+
+Local executable evidence separately compiles the generated provider and a
+header-only C11 consumer at O0 and O2, links them with the C compiler, and
+executes invalid-bool poison preservation followed by owned-byte call, length,
+copy, single drop, stale-handle rejection, and context closure. The C consumer
+uses only declarations from `semaprax_owned_data.h`; it does not include the
+provider source or use the C++ wrapper.
 
 Owning tests must cover exact replay and digest remint rejection, exact/+1 input
 and output bounds, poisoned failure slots, stale/duplicate/wrong-context

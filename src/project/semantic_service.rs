@@ -17,8 +17,8 @@ use crate::workspace_analysis::{
 
 use super::{
     ProjectFrontendCache, ProjectFrontendSource, ProjectManifest, ProjectRevision,
-    ProjectSemanticImage, SemanticTransaction, SemanticTransactionArtifacts,
-    SemanticWorkspaceRevision,
+    ProjectSemanticImage, SemanticQuery, SemanticQueryResult, SemanticTransaction,
+    SemanticTransactionArtifacts, SemanticWorkspaceRevision,
 };
 
 pub const SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA: &str =
@@ -104,6 +104,10 @@ impl SemanticWorkspaceSnapshot {
             target,
             options,
         )
+    }
+
+    pub fn query(&self, query: &SemanticQuery) -> Result<SemanticQueryResult> {
+        query.execute(self)
     }
 }
 
@@ -226,6 +230,15 @@ impl SemanticWorkspaceService {
 
     pub fn semantic_cache(&self) -> &ProjectFrontendCache {
         &self.frontend
+    }
+
+    /// Execute one exact canonical query against the active immutable generation.
+    pub fn query(&self, query_bytes: &[u8]) -> Result<SemanticQueryResult> {
+        let query = SemanticQuery::from_json(query_bytes)?;
+        let snapshot = SemanticWorkspaceSnapshot {
+            generation: Arc::clone(&self.active),
+        };
+        query.execute(&snapshot)
     }
 
     /// Select only the exact active canonical revision. A returned snapshot

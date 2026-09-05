@@ -74,6 +74,12 @@ limits, ordering, and diagnostics remain owned by Semantic Workspace Image v1
 and Workspace Analysis v1. The service does not create a second graph or query
 implementation.
 
+The additive [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md)
+core also executes its five canonical revision-bound operations through
+`SemanticWorkspaceSnapshot::query` or exact request bytes through
+`SemanticWorkspaceService::query`. Those entry points retain this snapshot and
+authority boundary. They are library calls, not a service wire route.
+
 Snapshots are suitable for caller-coordinated concurrent read-only use. V1
 does not provide a scheduler, worker pool, request cancellation, fairness,
 transport ordering, or simultaneous refresh API.
@@ -190,7 +196,8 @@ truth.
 
 This additive core does not change canonical source formatting, Project or
 managed Workspace revisions, Canonical Semantic Workspace Revision v1,
-Semantic Workspace Image v1, Universal Semantic Transaction v1, semantic-cache
+Semantic Workspace Image v1, Universal Semantic Transaction v1, Universal
+Semantic Query v1, semantic-cache
 formats, graph schemas, query bytes, diagnostics, candidate behavior, transport
 method sets, CLI help, MCP discovery, LSP behavior, editor behavior, or
 publication routes.

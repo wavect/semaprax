@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the authority-free, transport-neutral Universal Semantic Query v1
+  core. Five exact canonical, workspace-revision-bound operations cover bounded
+  declaration paging, symbol, context, impact, and truthful transaction
+  eligibility; results bind Project, image, canonical component, payload, and
+  request identities and support fresh exact replay. The six focused integration
+  regressions pass locally. No wire, CLI, MCP, LSP, mutation,
+  publication, or frozen Project Agent Transport v5 change is claimed.
 - Added the developer-preview `network-command-io.v1` Project v12 profile,
   native and deterministic fixture-only npm/Web build lanes, the bounded
   `semaprax network-run --fixture` command, and a committed HTTP Project

@@ -27,7 +27,6 @@ pub(crate) const MAX_BUILDER_BYTES: usize = 16 * 1024 * 1024;
 pub(crate) const MIN_OUTPUT_BYTES: usize = 4096;
 pub(crate) const MAX_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
 pub(crate) const MAX_REVIEW_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
-
 const CONTEXT_SCHEMA: &str = "semaprax.workspace-semantic-context.v1";
 const IMPACT_SCHEMA: &str = "semaprax.workspace-semantic-impact.v1";
 const REVIEW_SCHEMA: &str = "semaprax.workspace-semantic-review.v1";
@@ -127,7 +126,6 @@ impl WorkspaceAnalysisArtifactKind {
         }
     }
 }
-
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) enum WorkspaceAnalysisEdgeFamily {
     FunctionImport,
@@ -169,7 +167,6 @@ pub enum WorkspaceAnalysisTargetKind {
     Declaration,
     Capability,
 }
-
 /// Validated bounds for one Workspace Semantic Context query.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorkspaceContextOptions {
@@ -178,7 +175,6 @@ pub struct WorkspaceContextOptions {
     max_bytes: usize,
     max_nodes: usize,
 }
-
 impl WorkspaceContextOptions {
     pub fn new(
         direction: WorkspaceAnalysisDirection,
@@ -199,8 +195,12 @@ impl WorkspaceContextOptions {
             max_nodes,
         })
     }
+    pub(crate) const fn semantic_query_parts(
+        self,
+    ) -> (WorkspaceAnalysisDirection, usize, usize, usize) {
+        (self.direction, self.depth, self.max_bytes, self.max_nodes)
+    }
 }
-
 impl Default for WorkspaceContextOptions {
     fn default() -> Self {
         Self {
@@ -211,7 +211,6 @@ impl Default for WorkspaceContextOptions {
         }
     }
 }
-
 /// Validated bounds for one Workspace Semantic Impact query.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorkspaceImpactOptions {
@@ -219,7 +218,6 @@ pub struct WorkspaceImpactOptions {
     max_bytes: usize,
     max_nodes: usize,
 }
-
 impl WorkspaceImpactOptions {
     pub fn new(depth: usize, max_bytes: usize, max_nodes: usize) -> Result<Self, Diagnostic> {
         validate_public_options(
@@ -234,8 +232,10 @@ impl WorkspaceImpactOptions {
             max_nodes,
         })
     }
+    pub(crate) const fn semantic_query_parts(self) -> (usize, usize, usize) {
+        (self.depth, self.max_bytes, self.max_nodes)
+    }
 }
-
 impl Default for WorkspaceImpactOptions {
     fn default() -> Self {
         Self {

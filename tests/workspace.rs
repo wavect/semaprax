@@ -48,3 +48,5 @@ mod session_cli;
 mod session_read_batch_cli;
 #[path = "workspace/session_semantic_cache_cli.rs"]
 mod session_semantic_cache_cli;
+#[path = "workspace/universal_semantic_query.rs"]
+mod universal_semantic_query;

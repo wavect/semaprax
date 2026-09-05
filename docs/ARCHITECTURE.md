@@ -537,6 +537,20 @@ source guard prevents the reused candidate formatter from introducing trivia
 changes. It has no filesystem or publication authority. See [Universal
 Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md).
 
+`src/project/semantic_query.rs` owns the transport-neutral Universal Semantic
+Query v1 core. Its closed canonical request/result boundary binds every read to
+one Canonical Semantic Workspace Revision and exposes exactly five operations:
+bounded Project declaration paging, image symbol lookup, Workspace Analysis
+context and impact, and installed transaction-operation availability. The
+availability projection calls the same read-only rename classifier that
+transaction validation uses; it does not duplicate eligibility policy or
+validate an arbitrary proposed name. Queries execute against one immutable
+service snapshot, exact replay re-executes and compares the complete result,
+and neither route mutates the service. There is no wire, CLI, MCP, LSP, editor,
+streaming, or publication adapter in this badge, and frozen Project Agent
+Transport v5 bytes remain unchanged. See [Universal Semantic Query
+v1](UNIVERSAL-SEMANTIC-QUERY-V1.md).
+
 `src/project/semantic_service.rs` owns the transport-neutral, process-resident
 Persistent Incremental Semantic Workspace Service v1 core. One service retains
 one immutable current generation, including its admitted Project revision,
@@ -545,8 +559,9 @@ compiler-created semantic cache. Refresh builds a complete successor from
 caller-owned source bytes, then performs one expected-current in-memory
 generation/cache compare-and-swap; stale or failed work leaves the complete old
 generation installed. Revision-bound snapshots delegate bounded symbol,
-context, and impact queries to the retained immutable image. Transaction
-validation delegates to Universal Semantic Transaction v1 and returns its
+context, impact, and Universal Semantic Query v1 operations to the retained
+immutable image and Project. Transaction validation delegates to Universal
+Semantic Transaction v1 and returns its
 authority-free artifacts without adopting the candidate or changing current
 state. The core opens no path, owns no disk store, and exposes no wire, CLI,
 MCP, LSP, editor, watcher, build, execution, commit, or publication route. See

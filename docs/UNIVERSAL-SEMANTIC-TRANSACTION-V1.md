@@ -51,6 +51,13 @@ prevents the reused candidate formatter from silently erasing comments or
 normalizing unrelated trivia. Comment-bearing and noncanonical projects are not
 admitted by this first slice.
 
+[Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md) projects whether
+a retained declaration currently satisfies these structural prerequisites.
+Its `available_operations` result calls the same read-only classifier used by
+transaction validation. It is not a reservation, approval, authority grant, or
+proof that an arbitrary proposed new name will validate; this transaction
+still repeats all checks against its exact immutable base.
+
 ## Artifacts and replay
 
 The intent is the exact transaction envelope. The impact schema is

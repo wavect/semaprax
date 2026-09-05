@@ -39,6 +39,8 @@ mod owned_npm_publication;
 #[path = "support/owned_result_product.rs"]
 mod owned_result_product;
 
+#[path = "project/add_fetch_v1.rs"]
+mod add_fetch_v1;
 #[path = "project/agent_transport_rename.rs"]
 mod agent_transport_rename;
 #[path = "project/agent_transport_v2.rs"]

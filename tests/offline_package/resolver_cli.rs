@@ -46,8 +46,10 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // so every historical witness below still measures the shape it recorded:
     // `semaprax lock` is new, directory inputs were added to check/build/run
     // /test, the scaffold gained a library template, `new` became public, and
-    // `doc`, `verify`, `agent`, `query`, and `package` were added.
-    const RESTORED: [(&str, &str); 20] = [
+    // `doc`, `verify`, `agent`, `query`, `package`, `add`, and `fetch` were added.
+    const RESTORED: [(&str, &str); 22] = [
+        ("semaprax add <dir>|semaprax.toml <package> <range>\n", ""),
+        ("semaprax fetch <cache-dir> <subject.json>...\n", ""),
         ("semaprax query <file> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]\n", ""),
         ("semaprax package report <file> [--max-bytes N]\n", ""),
         ("semaprax package lock <subject.json>... [--max-bytes N]\n", ""),

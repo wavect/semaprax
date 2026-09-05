@@ -1,3 +1,4 @@
+pub(crate) mod add;
 pub(crate) mod agent;
 pub(crate) mod build;
 pub(crate) mod candidate_archive;
@@ -5,6 +6,7 @@ pub(crate) mod candidate_git;
 pub(crate) mod doc;
 pub(crate) mod draft_archive;
 pub(crate) mod execution;
+pub(crate) mod fetch;
 pub(crate) mod fmt;
 pub(crate) mod graph;
 pub(crate) mod help;

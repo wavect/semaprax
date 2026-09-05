@@ -195,6 +195,21 @@ ordinary entry rather than synthesizing process input for its command
 function. Human output includes a note naming both identities and points to
 the built native and Web/npm adapters that exercise the command function.
 
+Declare and stage dependencies without any implicit network access:
+
+```sh
+semaprax add . examples.meaning ^1.0.0
+semaprax fetch cache vendor/examples.meaning-1.0.0.subject.json
+semaprax resolve . --target native64 --cache cache --write
+```
+
+`add` rewrites a table-layout `semaprax.toml` canonically with the new
+`[dependencies]` row and changes nothing else; `fetch` replays each named
+Subject-v3 envelope and files it in the content-addressed cache by digest;
+`resolve` then selects from exactly that cache.
+[Unified CLI v1](UNIFIED-CLI-V1.md) owns both grammars and their fail-closed
+codes.
+
 ## Diagnose command-line errors
 
 Command-line grammar errors exit without compiling the input. Start with

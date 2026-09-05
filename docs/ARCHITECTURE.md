@@ -1568,6 +1568,14 @@ revision. `src/cli/query.rs` owns its closed grammar; `src/cli/package.rs`
 rewrites `package report|lock|resolve` to the long-form routes and re-enters
 the dispatcher. See [Unified CLI v1](UNIFIED-CLI-V1.md).
 
+`src/cli/add.rs` extends a table manifest through
+`ProjectManifest::with_dependency`, which inserts the row, renders the
+canonical table layout, and re-parses before the one write. `src/cli/fetch.rs`
+replays each named Subject-v3 envelope through `package_lock_v3` and files it
+into the resolver's content-addressed cache by its own digest; it decides every
+address before writing any, and `resolve` remains the cache's only reader. See
+[Unified CLI v1](UNIFIED-CLI-V1.md).
+
 `src/cli/verify.rs` is the schema-selected front over the independent
 verifiers: it reads a capsule's top-level `schema` once, selects the verifier
 admitted for that schema and operand count from a closed table, and hands the

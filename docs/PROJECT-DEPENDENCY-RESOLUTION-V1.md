@@ -52,7 +52,10 @@ replayed by the resolver; the file-name check adds integrity on top.
 The cache is caller-populated. Placing subjects into it — from a registry, a
 `fetch`, or a vendoring step — is an explicit action outside the compiler, in
 keeping with the rule that registry access is never an implicit compiler
-action. This toolchain ships no `add`, `fetch`, or `update`.
+action. `semaprax fetch <cache-dir> <subject.json>...` ([Unified CLI v1](UNIFIED-CLI-V1.md))
+is that explicit step over caller-named local subject files: it replays each
+subject and files it by digest, with no registry, network, or version
+selection. This toolchain ships no `update` and no registry client.
 
 ## Determinism and authority
 

@@ -1,4 +1,4 @@
-# Unified CLI v1: `verify`, `agent inspect`, `query`, and `package`
+# Unified CLI v1: `verify`, `agent inspect`, `query`, `package`, `add`, and `fetch`
 
 Status: authored with local executable evidence; unpublished and unpromoted.
 The completion matrix and release evidence own product status.
@@ -154,11 +154,52 @@ the long form. A missing or unknown subcommand exits with status two before
 any route runs.
 `add` and `fetch` are not admitted by this revision.
 
+## `semaprax add`
+
+```sh
+semaprax add <dir>|semaprax.toml <package> <range>
+```
+
+`add` appends one `[dependencies]` row to a Package Manifest v1 table manifest
+([Package Manifest v1](PACKAGE-MANIFEST-V1.md)). It parses the manifest,
+inserts the row in strict byte order, renders the canonical table layout, and
+re-parses the result before its one write, so a rejected package identity or
+range surfaces as the manifest's own `SPX-J100` and the file is untouched. A
+frozen `semaprax.project.v*` manifest has no `[dependencies]` table and is
+rejected with `SPX-J127`, which names `project-scaffold --layout tables`; a
+dependency already present is also `SPX-J127`. `add` fetches, resolves,
+and contacts nothing; the next steps stay explicit (`fetch`, then `resolve`).
+
+## `semaprax fetch`
+
+```sh
+semaprax fetch <cache-dir> <subject.json>...
+```
+
+`fetch` is the caller-populating step [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)
+leaves outside the compiler's implicit actions. Each operand is a Semantic
+Package Subject-v3 envelope file (at most the resolver's subject size). Every
+subject is independently replayed through the same verifier the resolver uses
+before anything is written; its cache address is `<hex>.json` for its own
+`digest` `sha256:<hex>`. An operand that fails replay, carries a non-canonical
+digest, or would overwrite an entry holding different bytes rejects the whole
+run with `SPX-J128` before any write; an identical entry is reported as
+`present`. The cache directory is created when missing and may not exceed the
+resolver's 64-subject bound. One receipt line is printed:
+
+```json
+{"schema":"semaprax.fetch-receipt.v1","cache":"cache","subjects":[{"package":"examples.meaning","version":"1.0.0","digest":"sha256:...","state":"added"}]}
+```
+
+`fetch` reads only the paths it is given. It performs no network access, no
+registry lookup, no version selection, and no build; `resolve` remains the
+only reader of the cache and still replays every subject itself.
+
 ## Guided help
 
 The guided page lists `verify` under `Change by meaning`, `query` under
-`Inspect meaning`, and `agent inspect` under a new `Agents` group; `package`
-appears in the exhaustive catalog only. Both capability pages stay within the 2048-byte
+`Inspect meaning`, and `agent inspect` under a new `Agents` group; `package`,
+`add`, and `fetch` appear in the exhaustive catalog only. Both capability pages stay within the 2048-byte
 bound of [Guided CLI Help v4](CLI-HELP-V4.md); the shapes and several summaries
 were shortened to make room, and the exhaustive catalog remains the grammar
 authority.
@@ -186,4 +227,10 @@ authority.
 - `tests/offline_package/package_namespace.rs` (offline-package harness):
   every `package` subcommand's stdout, stderr, and status equal its long
   form's, and a missing or unknown subcommand exits with status two.
+- `tests/project/add_fetch_v1.rs` (project harness): `add` appends
+  byte-sorted rows that re-parse canonically through both operand forms and
+  leaves the manifest untouched on duplicate, grammar, frozen-layout, and
+  missing-file rejections; `fetch` files replayed subjects by digest with an
+  exact receipt, reports refetches as `present`, feeds `resolve` directly, and
+  rejects tampered, foreign, missing, and colliding subjects before any write.
 - Unit tests pin the closed grammars, the route table, and the namespace map.

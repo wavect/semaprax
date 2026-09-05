@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `semaprax add <dir>|semaprax.toml <package> <range>`, which appends
+  one byte-sorted `[dependencies]` row to a Package Manifest v1 table manifest
+  and rewrites it canonically only after the result re-parses (`SPX-J127` for
+  frozen layouts and duplicates), and `semaprax fetch <cache-dir>
+  <subject.json>...`, which replays Subject-v3 envelopes and files them into
+  the resolver's content-addressed cache by digest with one receipt line
+  (`SPX-J128` on tampering or collisions), with no registry or network access.
 - The VS Code adapter navigates by meaning: `Go to Declaration by Stable ID`,
   `Show Callers of a Declaration`, and `Show Module Documentation` run the
   selected compiler's read-only `query --json` and `doc` over the saved active

@@ -731,6 +731,47 @@ impl ProjectManifest {
         self.command_input.as_deref()
     }
 
+    /// Package Manifest v1: the canonical text of this manifest with one more
+    /// `[dependencies]` row, kept in strict byte order. The rendered text is
+    /// re-parsed before it is returned, so a rejected package identity or
+    /// range surfaces as the manifest's own grammar diagnostic. A frozen
+    /// Project v1-v11 layout has no dependency table and is rejected, as is a
+    /// dependency the manifest already declares.
+    pub fn with_dependency(&self, name: &str, range: &str) -> Result<String, Vec<Diagnostic>> {
+        if self.layout != ManifestLayout::Tables {
+            return Err(vec![Diagnostic::io(
+                "SPX-J127",
+                format!(
+                    "`{}` manifests carry no `[dependencies]` table; only the Package Manifest v1 table layout does",
+                    self.schema
+                ),
+            )
+            .with_help(
+                "recreate the project with `semaprax project-scaffold --layout tables` or `semaprax new`, which writes the table layout",
+            )]);
+        }
+        if self
+            .dependencies
+            .iter()
+            .any(|dependency| dependency.name() == name)
+        {
+            return Err(vec![Diagnostic::io(
+                "SPX-J127",
+                format!("dependency `{name}` is already declared in `[dependencies]`"),
+            )]);
+        }
+        let mut manifest = self.clone();
+        manifest
+            .dependencies
+            .push(tables::PackageDependency::new(name, range));
+        manifest
+            .dependencies
+            .sort_by(|left, right| left.name().cmp(right.name()));
+        let text = tables::render(&manifest);
+        Self::parse(&text)?;
+        Ok(text)
+    }
+
     pub fn capabilities(&self) -> &[String] {
         &self.capabilities
     }

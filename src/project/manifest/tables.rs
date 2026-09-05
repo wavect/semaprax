@@ -138,6 +138,13 @@ impl RustDependency {
 }
 
 impl PackageDependency {
+    pub(super) fn new(name: &str, range: &str) -> Self {
+        Self {
+            name: name.to_owned(),
+            range: range.to_owned(),
+        }
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }

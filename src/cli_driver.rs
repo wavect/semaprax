@@ -450,6 +450,16 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let rewritten = cli::package::long_form(&args[1..])?;
             run(rewritten, host)
         }
+        CommandId::Add => {
+            let options = cli::add::parse(&args[1..])?;
+            cli::add::run(&options, |errors| report(errors, false))
+        }
+        CommandId::Fetch => {
+            let options = cli::fetch::parse(&args[1..])?;
+            let receipt = cli::fetch::run(&options).map_err(|errors| report(&errors, false))?;
+            print!("{receipt}");
+            Ok(())
+        }
         CommandId::Agent => {
             let command = cli::agent::parse(&args[1..])?;
             let output = cli::agent::run(&command).map_err(|errors| report(&errors, false))?;

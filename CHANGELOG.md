@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `semaprax agent run <definition.json> <task.json> <transcript.json>
+  [--evidence|--trace]` and `semaprax agent replay ... <evidence.json>`: a
+  scripted transcript of provider responses and tool results drives the
+  bounded Agent Runtime v1 through the definition's derived profile with no
+  transport, clock, or tool authority, so runs are deterministic and a replay
+  proves an evidence capsule byte for byte (`SPX-V221` malformed transcript,
+  `SPX-V222` replay mismatch). `resume` and `reconcile` stay unadmitted.
 - The bundled standard-library catalog (`semaprax help library`,
   `std/catalog.json`) is now rendered from the `semaprax doc` documentation
   model, with every signature cross-checked against the source text and each

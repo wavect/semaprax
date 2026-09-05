@@ -1583,6 +1583,15 @@ grammar; `src/cli/package.rs`
 rewrites `package report|lock|resolve` to the long-form routes and re-enters
 the dispatcher. See [Unified CLI v1](UNIFIED-CLI-V1.md).
 
+`src/agent_transcript.rs` is the scripted Agent Runtime v1 host behind
+`agent run` and `agent replay`: it parses a closed transcript of provider
+responses and tool results, implements `AgentHost` by consuming them in order
+with a zero clock and the transcript's policy epoch, runs the task through the
+profile derived from the compiled AgentDefinition, and compares recomputed
+evidence byte for byte on replay. It owns no transport, process, filesystem,
+network, or credential authority, and it neither persists nor resumes a run.
+See [Unified CLI v1](UNIFIED-CLI-V1.md).
+
 `src/cli/add.rs` extends a table manifest through
 `ProjectManifest::with_dependency`, which inserts the row, renders the
 canonical table layout, and re-parses before the one write. `src/cli/fetch.rs`

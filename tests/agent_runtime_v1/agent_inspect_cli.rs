@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use semaprax::agent_definition::compile_agent_definition;
 
 use super::agent_definition_v1::definition;
-use super::profile;
+use super::{profile, task};
 
 static SERIAL: AtomicUsize = AtomicUsize::new(0);
 
@@ -177,4 +177,169 @@ fn agent_grammar_fails_closed() {
     assert!(String::from_utf8(rejected.stderr)
         .unwrap()
         .contains("SPX-G50"));
+}
+
+const TRANSCRIPT: &str = "{\"schema\":\"semaprax.agent-runtime-transcript.v1\",\"policy_epoch\":7,\"provider\":[{\"disposition\":\"succeeded\",\"response\":\"{\\\"schema\\\":\\\"semaprax.agent-runtime-action.v1\\\",\\\"kind\\\":\\\"tool\\\",\\\"tool_id\\\":\\\"fixture.read\\\",\\\"arguments\\\":{\\\"query\\\":\\\"alpha\\\"}}\\n\"},{\"disposition\":\"succeeded\",\"response\":\"{\\\"schema\\\":\\\"semaprax.agent-runtime-action.v1\\\",\\\"kind\\\":\\\"final\\\",\\\"message\\\":\\\"done\\\"}\\n\"}],\"tools\":[{\"result\":\"{\\\"value\\\":\\\"alpha\\\"}\"}]}\n";
+
+#[test]
+fn run_follows_the_transcript_and_replay_recomputes_its_evidence() {
+    let bundle = Bundle::new();
+    let task_path = bundle.root.join("task.json");
+    std::fs::write(&task_path, task()).unwrap();
+    let transcript = bundle.root.join("transcript.json");
+    std::fs::write(&transcript, TRANSCRIPT).unwrap();
+
+    let receipt = cli(&[
+        "agent",
+        "run",
+        text(&bundle.definition),
+        text(&task_path),
+        text(&transcript),
+    ]);
+    assert!(
+        receipt.status.success(),
+        "{}",
+        String::from_utf8_lossy(&receipt.stderr)
+    );
+    assert!(receipt.stderr.is_empty());
+    let receipt: serde_json::Value = serde_json::from_slice(&receipt.stdout).unwrap();
+    assert_eq!(receipt["schema"], "semaprax.agent-run-receipt.v1");
+    assert_eq!(receipt["agent_id"], "fixture.agent");
+    assert_eq!(receipt["status"], "completed");
+    assert_eq!(receipt["final_message"], "done");
+    assert_eq!(receipt["authority"], false);
+    let evidence_digest = receipt["evidence_digest"].as_str().unwrap().to_owned();
+    assert!(evidence_digest.starts_with("sha256:"));
+
+    let evidence = cli(&[
+        "agent",
+        "run",
+        text(&bundle.definition),
+        text(&task_path),
+        text(&transcript),
+        "--evidence",
+    ]);
+    assert!(evidence.status.success());
+    let evidence_text = String::from_utf8(evidence.stdout).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&evidence_text).unwrap();
+    assert_eq!(parsed["schema"], "semaprax.agent-runtime-evidence.v1");
+    // Deterministic: the same documents produce the same evidence twice.
+    let again = cli(&[
+        "agent",
+        "run",
+        "--evidence",
+        text(&bundle.definition),
+        text(&task_path),
+        text(&transcript),
+    ]);
+    assert_eq!(String::from_utf8(again.stdout).unwrap(), evidence_text);
+    let trace = cli(&[
+        "agent",
+        "run",
+        text(&bundle.definition),
+        text(&task_path),
+        text(&transcript),
+        "--trace",
+    ]);
+    assert!(trace.status.success());
+    let trace: serde_json::Value = serde_json::from_slice(&trace.stdout).unwrap();
+    assert_eq!(trace["schema"], "semaprax.agent-runtime-trace.v1");
+
+    let evidence_path = bundle.root.join("evidence.json");
+    std::fs::write(&evidence_path, &evidence_text).unwrap();
+    let replayed = cli(&[
+        "agent",
+        "replay",
+        text(&bundle.definition),
+        text(&task_path),
+        text(&transcript),
+        text(&evidence_path),
+    ]);
+    assert!(
+        replayed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&replayed.stderr)
+    );
+    let replayed: serde_json::Value = serde_json::from_slice(&replayed.stdout).unwrap();
+    assert_eq!(replayed["schema"], "semaprax.agent-replay-receipt.v1");
+    assert_eq!(replayed["verified"], true);
+    assert_eq!(replayed["evidence_digest"], evidence_digest);
+
+    let tampered = bundle.root.join("tampered.json");
+    std::fs::write(
+        &tampered,
+        evidence_text.replacen("completed", "cancelled", 1),
+    )
+    .unwrap();
+    let rejected = cli(&[
+        "agent",
+        "replay",
+        text(&bundle.definition),
+        text(&task_path),
+        text(&transcript),
+        text(&tampered),
+    ]);
+    assert_eq!(rejected.status.code(), Some(1));
+    assert!(rejected.stdout.is_empty());
+    assert!(String::from_utf8(rejected.stderr)
+        .unwrap()
+        .contains("SPX-V222"));
+
+    // An exhausted provider script is a deterministic provider failure, not a usage error.
+    let empty = bundle.root.join("empty.json");
+    std::fs::write(
+        &empty,
+        "{\"schema\":\"semaprax.agent-runtime-transcript.v1\",\"provider\":[]}\n",
+    )
+    .unwrap();
+    let failed = cli(&[
+        "agent",
+        "run",
+        text(&bundle.definition),
+        text(&task_path),
+        text(&empty),
+    ]);
+    assert!(
+        failed.status.success(),
+        "{}",
+        String::from_utf8_lossy(&failed.stderr)
+    );
+    let failed: serde_json::Value = serde_json::from_slice(&failed.stdout).unwrap();
+    assert_eq!(failed["status"], "provider_failed");
+    assert_eq!(failed["final_message"], serde_json::Value::Null);
+
+    for (contents, code) in [
+        ("{\"schema\":\"other\",\"provider\":[]}\n", "SPX-V221"),
+        ("{\"schema\":\"semaprax.agent-runtime-transcript.v1\",\"provider\":[],\"extra\":1}\n", "SPX-V221"),
+        ("{\"schema\":\"semaprax.agent-runtime-transcript.v1\",\"provider\":[{\"disposition\":\"succeeded\"}]}\n", "SPX-V221"),
+        ("not json\n", "SPX-V221"),
+    ] {
+        let malformed = bundle.root.join("malformed.json");
+        std::fs::write(&malformed, contents).unwrap();
+        let output = cli(&["agent", "run", text(&bundle.definition), text(&task_path), text(&malformed)]);
+        assert_eq!(output.status.code(), Some(1), "{contents}");
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8(output.stderr).unwrap().contains(code), "{contents}");
+    }
+    for arguments in [
+        &["agent", "resume", text(&bundle.definition)][..],
+        &["agent", "reconcile", text(&bundle.definition)][..],
+        &["agent", "run", text(&bundle.definition), text(&task_path)][..],
+        &[
+            "agent",
+            "replay",
+            text(&bundle.definition),
+            text(&task_path),
+            text(&transcript),
+        ][..],
+    ] {
+        let output = cli(arguments);
+        assert_eq!(output.status.code(), Some(2), "{arguments:?}");
+        assert!(
+            String::from_utf8(output.stderr)
+                .unwrap()
+                .contains("not admitted"),
+            "{arguments:?}"
+        );
+    }
 }

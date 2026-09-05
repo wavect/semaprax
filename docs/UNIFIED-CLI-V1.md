@@ -74,27 +74,62 @@ not introduce a new evidence format. Evidence capsules still carry no
 authority ([AGENTS.md](../AGENTS.md)); a passing `verify` is proof data for the
 route that owns it, nothing more.
 
-## `semaprax agent inspect`
+## `semaprax agent`
 
 ```sh
 semaprax agent inspect <definition.json> [--profile]
+semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]
+semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>
 ```
 
-`agent` is the 1.0 verb for the agent lifecycle. This revision admits exactly
-one subcommand, `inspect`, which compiles a canonical AgentDefinition v1
-document through `agent_definition::compile_agent_definition` and prints:
+`agent` is the 1.0 verb for the agent lifecycle. Three subcommands are
+admitted, each a pure function of its input documents that grants no provider,
+tool, filesystem, process, network, clock, approval, or publication authority.
 
-- the deterministic AgentGraph v1 canonical JSON (the compiler's projection,
-  including its terminal LF) by default; or
-- the byte-preserved Agent Runtime Profile v1 projection with `--profile`.
+`inspect` compiles a canonical AgentDefinition v1 document through
+`agent_definition::compile_agent_definition` and prints the deterministic
+AgentGraph v1 canonical JSON (the compiler's projection, including its
+terminal LF), or the byte-preserved Agent Runtime Profile v1 projection with
+`--profile`. Diagnostics are the agent compiler's own (`SPX-G501`,
+`SPX-G502`); an unreadable file reports `SPX-I001`.
 
-Diagnostics are the agent compiler's own (`SPX-G501`, `SPX-G502`); an
-unreadable file reports `SPX-I001`. Inspection is pure: it grants no provider,
-tool, filesystem, process, network, approval, or publication authority, and it
-runs nothing. `agent run`, `agent resume`, `agent replay`, and
-`agent reconcile` are not admitted; the runtime's non-claims still exclude
-durable memory, resume, and replay, and the verb rejects them with a usage
-error naming the one admitted form.
+`run` compiles the definition, derives its Runtime v1 profile, and executes
+one canonical `semaprax.agent-runtime-task.v1` document through the bounded
+runtime against a scripted host. The host is the transcript:
+
+```json
+{"schema":"semaprax.agent-runtime-transcript.v1","policy_epoch":7,
+ "provider":[{"disposition":"succeeded","response":"{\"schema\":\"semaprax.agent-runtime-action.v1\",...}\n"},
+             {"disposition":"definitely_not_started"},{"disposition":"failed_uncertain"}],
+ "tools":[{"result":"{\"value\":\"alpha\"}"},{"result":null}]}
+```
+
+Provider attempts and tool invocations consume the two arrays in order; a
+succeeded attempt streams its `response` bytes, an exhausted provider script
+answers `failed_uncertain`, and a `null` or exhausted tool script fails the
+invocation. Elapsed time is always zero and the policy epoch is the
+transcript's, so every observation the runtime makes is a function of the
+three documents and the run is deterministic. The transcript is a closed
+object of at most 4 MiB and 256 entries per array; anything else reports
+`SPX-V221`. By default `run` prints one receipt line naming the agent, the
+terminal status (`completed`, `cancelled`, `deadline_exceeded`,
+`budget_exhausted`, `provider_failed`, `tool_failed`, `policy_rejected`), the
+final message or `null`, and the trace and evidence digests; `--evidence`
+prints the canonical `semaprax.agent-runtime-evidence.v1` document instead and
+`--trace` the `semaprax.agent-runtime-trace.v1` document. A run that ends in a
+runtime failure status is still a successful invocation; only rejected input
+documents exit with status one.
+
+`replay` re-runs the same three documents and requires the recomputed evidence
+to equal the supplied capsule byte for byte, printing a
+`semaprax.agent-replay-receipt.v1` line with `verified: true`; any difference
+is `SPX-V222`. Nothing in the capsule is trusted, so a replay proves that this
+compiler, this definition, this task, and this transcript produce exactly this
+evidence.
+
+`resume` and `reconcile` are not admitted: the runtime's non-claims exclude
+durable memory, persistence, recovery, and resume, and the verb rejects them
+with a usage error that names the three admitted forms.
 
 ## `semaprax query`
 
@@ -225,8 +260,12 @@ authority.
   `agent inspect` prints the exact AgentGraph v1 bytes and, with `--profile`,
   the exact profile bytes of the library compiler; `verify` over the
   definition, profile, and graph prints the receipt with the pinned digests; a
-  tampered graph fails with `SPX-G503`; malformed grammars exit with status
-  two.
+  tampered graph fails with `SPX-G503`; `agent run` follows a tool-then-final
+  transcript to a `completed` receipt, prints deterministic evidence and trace
+  documents, reports an exhausted script as `provider_failed`, and rejects
+  malformed transcripts with `SPX-V221`; `agent replay` verifies the printed
+  evidence and rejects a tampered capsule with `SPX-V222`; `resume`,
+  `reconcile`, and malformed grammars exit with status two.
 - `tests/projections/query_projection.rs` (projections harness): filters
   select by kind, name, identity prefix, effect, callers, and callees on the
   committed examples; authenticated Project queries find library declarations,

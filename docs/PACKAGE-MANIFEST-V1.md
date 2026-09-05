@@ -10,7 +10,7 @@ Audience: people and agents writing `semaprax.toml`, package-tooling authors,
 and compiler contributors.
 
 Package Manifest v1 is the one extensible `semaprax.toml` layout. Each frozen
-[Project Manifest v1](PROJECT-MANIFEST-V1.md) through v11 schema fixes a
+[Project Manifest v1](PROJECT-MANIFEST-V1.md) through v13 schema fixes a
 whole-file sequence of assignments, so every product tranche so far has added
 a new `semaprax.project.vN` string. This layout instead admits one closed
 catalog of optional tables and keys under a single schema string,
@@ -137,11 +137,13 @@ archives.
 | `flat-owned-record-api.v1` | `semaprax.project.v9` | [Public Flat Owned Record API v1](PUBLIC-FLAT-OWNED-RECORD-API-V1.md) |
 | `owned-utf8-api.v1` | `semaprax.project.v10` | [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md) |
 | `nested-owned-record-api.v1` | `semaprax.project.v11` | [Public Nested Owned Record API v1](PUBLIC-NESTED-OWNED-RECORD-API-V1.md) |
+| `network-command-io.v1` | `semaprax.project.v12` | [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md) |
+| `https-command-io.v1` | `semaprax.project.v13` | [HTTPS Client I/O v1](HTTPS-CLIENT-IO-V1.md) |
 
 The profile-specific rules the frozen layouts encode by position apply
-unchanged: the four command profiles require `[command]` and the exact
+unchanged: the six command profiles require `[command]` and the exact
 `[capabilities] required` list of their contract, `useful-data-command.v2`
-requires `input = "stdin-bytes+one-utf8-arg.v1"`, the two `-io.v1` profiles
+requires `input = "stdin-bytes+one-utf8-arg.v1"`, the four `-io.v1` profiles
 require `input = "argv-utf8+stdin-bytes.v1"`, and every other profile forbids
 both tables. The scalar contract additionally carries a `version`, which the
 frozen v1 layout lacks; `ProjectManifest::package_version` reports it.

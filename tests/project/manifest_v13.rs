@@ -1,5 +1,6 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::project::{
     prepare_project_interpreter, verify_execution_envelope, verify_project_source_trace,
@@ -10,6 +11,15 @@ use semaprax::project::{
 };
 
 const MANIFEST: &str = include_str!("../../examples/https-project/semaprax.toml");
+static SERIAL: AtomicU64 = AtomicU64::new(0);
+
+struct Output(PathBuf);
+
+impl Drop for Output {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
 
 #[test]
 fn project_v13_manifest_round_trips_the_exact_https_profile() {
@@ -57,6 +67,81 @@ fn project_v13_execution_and_prepared_trace_envelopes_replay() {
         Ok(())
     })
     .unwrap();
+}
+
+#[test]
+fn project_v13_builds_a_replayable_fixture_only_npm_web_carrier() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/https-project");
+    let build = with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        snapshot.build_npm_inline(semaprax::project::MAX_PROJECT_NPM_BUILD_BYTES)
+    })
+    .unwrap();
+    build.verify().unwrap();
+    assert!(build
+        .envelope()
+        .contains(semaprax::project::PROJECT_NPM_BUILD_SCHEMA_V12));
+    assert!(build.envelope().contains("semaprax.https.json"));
+}
+
+#[test]
+fn generated_https_web_package_runs_fixture_v3_under_node() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/https-project");
+    let output = Output(std::env::temp_dir().join(format!(
+        "semaprax-https-project-npm-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    )));
+    with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        snapshot.build_npm(&output.0)
+    })
+    .unwrap();
+    let metadata = std::fs::read_to_string(output.0.join("semaprax.https.json")).unwrap();
+    assert!(metadata.contains("\"provider\":\"fixture-only.v3\""));
+    assert!(metadata.contains("\"capabilities\":[\"network.http\""));
+    let script = r#"import fs from'node:fs';import{createFixture,createInvocation,instantiate}from'./semaprax.bindings.js';const fixture=createFixture(JSON.parse(fs.readFileSync(process.argv[1],'utf8')));const invocation=createInvocation([],new Uint8Array(),fixture);const result=await instantiate(new Uint8Array(fs.readFileSync('./app.wasm')),invocation);process.stdout.write(result.stdout);process.stderr.write(result.stderr);if(!result.result)process.exitCode=1;"#;
+    let run = Command::new("node")
+        .current_dir(&output.0)
+        .args(["--input-type=module", "--eval", script])
+        .arg(root.join("https.fixture.json"))
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert_eq!(
+        run.stdout,
+        b"HTTP/1.1 200 semaprax\r\ncontent-length: 2\r\n\r\nok"
+    );
+    assert!(run.stderr.is_empty());
+}
+
+#[test]
+fn generated_https_web_package_rejects_untrusted_fixture_and_provider_results() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/https-project");
+    let output = Output(std::env::temp_dir().join(format!(
+        "semaprax-https-project-hostile-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    )));
+    with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        snapshot.build_npm(&output.0)
+    })
+    .unwrap();
+    let script = r#"import fs from'node:fs';import{createFixture,createInvocation,instantiate}from'./semaprax.bindings.js';const wasm=new Uint8Array(fs.readFileSync('./app.wasm'));const expectThrow=async(fn,check)=>{let error;try{await fn()}catch(value){error=value}if(!error||!check(error))throw Error('expected rejection')};await expectThrow(()=>createFixture({schema:'semaprax.network-fixture.v2',connections:[],https:[]}),error=>error instanceof TypeError);const oversized=createFixture({schema:'semaprax.network-fixture.v3',connections:[],https:[{url:'https://example.test/data',response:'x'.repeat(1025)}]});const once=createInvocation([],new Uint8Array(),oversized);await expectThrow(()=>instantiate(wasm,once),error=>error.domain==='semaprax.http.v1'&&error.code===4);await expectThrow(()=>instantiate(wasm,once),error=>error instanceof TypeError);const mismatch=createFixture({schema:'semaprax.network-fixture.v3',connections:[],https:[{url:'https://other.test/',response:'ok'}]});await expectThrow(()=>instantiate(wasm,createInvocation([],new Uint8Array(),mismatch)),error=>error.domain==='semaprax.http.v1'&&error.code===3);const tampered=new Uint8Array(wasm);tampered[tampered.length-1]^=1;const valid=createFixture({schema:'semaprax.network-fixture.v3',connections:[],https:[{url:'https://example.test/data',response:'ok'}]});await expectThrow(()=>instantiate(tampered,createInvocation([],new Uint8Array(),valid)),error=>error.message==='Wasm authentication');"#;
+    let run = Command::new("node")
+        .current_dir(&output.0)
+        .args(["--input-type=module", "--eval", script])
+        .output()
+        .unwrap();
+    assert!(
+        run.status.success(),
+        "{}",
+        String::from_utf8_lossy(&run.stderr)
+    );
+    assert!(run.stdout.is_empty());
+    assert!(run.stderr.is_empty());
 }
 
 #[test]

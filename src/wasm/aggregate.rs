@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 mod collect_block;
 mod expressions;
+mod http_io;
 pub(super) mod internal_strings;
 mod nested_owned;
 mod network_io;
@@ -1383,6 +1384,7 @@ fn emit_byte_exports_profile(
     }
     let line_command_io = command_io.is_some_and(super::command_io::CommandPlan::is_line_command);
     let network_io = command_io.is_some_and(super::command_io::CommandPlan::is_network_command);
+    let http_io = command_io.is_some_and(super::command_io::CommandPlan::is_http_command);
     if program
         .types
         .iter()
@@ -1396,7 +1398,7 @@ fn emit_byte_exports_profile(
         record_layout.validate(program)?;
     }
 
-    let public_global_count = if line_command_io || network_io {
+    let public_global_count = if line_command_io || network_io || http_io {
         16_u32
     } else if command_io.is_some() {
         15
@@ -1570,6 +1572,8 @@ fn emit_byte_exports_profile(
     });
     let network_import_types =
         network_io.then(|| super::network_io::intern_import_types(&mut types, &mut type_indexes));
+    let http_import_type =
+        http_io.then(|| super::http_io::intern_import_type(&mut types, &mut type_indexes));
     let owned_utf8_validate = (!owned_plans.is_empty()).then(|| {
         intern_type(
             Signature {
@@ -1640,6 +1644,9 @@ fn emit_byte_exports_profile(
     }
     if let Some(types) = &network_import_types {
         super::network_io::emit_imports(&mut imports, types);
+    }
+    if let Some(ty) = http_import_type {
+        super::http_io::emit_import(&mut imports, ty);
     }
     if let Some(ty) = owned_utf8_validate {
         function_import(&mut imports, "env", "spx_owned_utf8_validate_v1", ty);
@@ -1713,7 +1720,7 @@ fn emit_byte_exports_profile(
         // Generic language failures continue to use only the ordinary status
         // global and must never be attributed to this domain.
         globals.extend([I32, 0x01, 0x41, 0x00, 0x0b]);
-        if line_command_io || network_io {
+        if line_command_io || network_io || http_io {
             super::line_command_io::append_global(&mut globals);
         }
     }
@@ -1725,7 +1732,7 @@ fn emit_byte_exports_profile(
     let mut exports = Vec::new();
     write_u32(
         &mut exports,
-        (if line_command_io || network_io {
+        (if line_command_io || network_io || http_io {
             12_u32
         } else if command_io.is_some() {
             11_u32
@@ -1764,6 +1771,8 @@ fn emit_byte_exports_profile(
             super::line_command_io::append_export(&mut exports);
         } else if network_io {
             super::network_io::append_export(&mut exports);
+        } else if http_io {
+            super::http_io::append_export(&mut exports);
         }
     }
     let wrapper_base = import_count
@@ -5093,6 +5102,9 @@ impl Emitter<'_> {
         self.emit_pointer(pointer);
         self.output.extend([0x42, 0x00, 0x37, 0x03, 0x00]);
         match call.operation {
+            http if crate::network_io_ops::is_http(http) => {
+                return self.emit_http_command_call(expr, call, &arguments, local, pointer);
+            }
             network if crate::network_io_ops::is_network(network) => {
                 return self.emit_network_command_call(expr, call, &arguments, local, pointer);
             }

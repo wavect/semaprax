@@ -12,9 +12,9 @@ use sha2::{Digest, Sha256};
 use crate::diagnostic::{quote_json, Diagnostic};
 
 use super::{
-    command, command_v2, command_v3, command_v4, data, flat_owned_record, nested_owned_record,
-    network_command, owned_data, package_error, validate_replayed_package, UsefulTextNpmPackage,
-    USEFUL_TEXT_PACKAGE_PATHS,
+    command, command_v2, command_v3, command_v4, data, flat_owned_record, https_command,
+    nested_owned_record, network_command, owned_data, package_error, validate_replayed_package,
+    UsefulTextNpmPackage, USEFUL_TEXT_PACKAGE_PATHS,
 };
 
 pub const PROJECT_NPM_BUILD_SCHEMA: &str = "semaprax.project-npm-build.v1";
@@ -28,6 +28,7 @@ pub const PROJECT_NPM_BUILD_SCHEMA_V8: &str = "semaprax.project-npm-build.v8";
 pub const PROJECT_NPM_BUILD_SCHEMA_V9: &str = "semaprax.project-npm-build.v9";
 pub const PROJECT_NPM_BUILD_SCHEMA_V10: &str = "semaprax.project-npm-build.v10";
 pub const PROJECT_NPM_BUILD_SCHEMA_V11: &str = "semaprax.project-npm-build.v11";
+pub const PROJECT_NPM_BUILD_SCHEMA_V12: &str = "semaprax.project-npm-build.v12";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN: &[u8] = b"semaprax.project-npm-build.payload.v1\0";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V2: &[u8] = b"semaprax.project-npm-build.payload.v2\0";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V3: &[u8] = b"semaprax.project-npm-build.payload.v3\0";
@@ -39,6 +40,7 @@ const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V8: &[u8] = b"semaprax.project-npm-build.p
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V9: &[u8] = b"semaprax.project-npm-build.payload.v9\0";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V10: &[u8] = b"semaprax.project-npm-build.payload.v10\0";
 const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V11: &[u8] = b"semaprax.project-npm-build.payload.v11\0";
+const PROJECT_NPM_BUILD_DIGEST_DOMAIN_V12: &[u8] = b"semaprax.project-npm-build.payload.v12\0";
 pub const MAX_PROJECT_NPM_BUILD_BYTES: usize = 40 * 1024 * 1024;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -77,6 +79,7 @@ pub(super) enum ReplayedNpmArtifacts {
     OwnedUtf8([NpmArtifact; 6]),
     NestedOwnedRecord([NpmArtifact; 6]),
     NetworkCommand([NpmArtifact; 6]),
+    HttpsCommand([NpmArtifact; 6]),
 }
 
 impl ReplayedNpmArtifacts {
@@ -88,7 +91,8 @@ impl ReplayedNpmArtifacts {
             | Self::FlatOwnedRecord(value)
             | Self::OwnedUtf8(value)
             | Self::NestedOwnedRecord(value)
-            | Self::NetworkCommand(value) => value,
+            | Self::NetworkCommand(value)
+            | Self::HttpsCommand(value) => value,
             Self::Command(value)
             | Self::CommandV2(value)
             | Self::CommandV3(value)
@@ -488,6 +492,7 @@ impl ProjectNpmBuild {
             PROJECT_NPM_BUILD_SCHEMA_V9 => &owned_data::OWNED_DATA_PACKAGE_PATHS,
             PROJECT_NPM_BUILD_SCHEMA_V10 => &nested_owned_record::PACKAGE_PATHS,
             PROJECT_NPM_BUILD_SCHEMA_V11 => &network_command::PACKAGE_PATHS,
+            PROJECT_NPM_BUILD_SCHEMA_V12 => &https_command::PACKAGE_PATHS,
             _ => return Err(package_error("npm build schema is unsupported")),
         };
         let identity = NpmBuildIdentity {
@@ -617,6 +622,11 @@ impl ProjectNpmBuild {
                     .try_into()
                     .map_err(|_| package_error("npm build artifact inventory is not exact"))?,
             ),
+            PROJECT_NPM_BUILD_SCHEMA_V12 => ReplayedNpmArtifacts::HttpsCommand(
+                artifacts
+                    .try_into()
+                    .map_err(|_| package_error("npm build artifact inventory is not exact"))?,
+            ),
             _ => unreachable!("carrier schema selected above"),
         };
         let payload_digest = match &artifacts {
@@ -666,6 +676,10 @@ impl ProjectNpmBuild {
             ReplayedNpmArtifacts::NetworkCommand(artifacts) => {
                 network_command::validate_replayed(identity, artifacts)?;
                 payload_digest_artifacts_v11(identity, artifacts)
+            }
+            ReplayedNpmArtifacts::HttpsCommand(artifacts) => {
+                https_command::validate_replayed(identity, artifacts)?;
+                payload_digest_artifacts_v12(identity, artifacts)
             }
         };
         if json_string(object, "payload_digest")? != payload_digest {
@@ -861,6 +875,13 @@ pub(in crate::project) fn payload_digest_artifacts_v11(
     payload_digest_artifacts_with_domain(PROJECT_NPM_BUILD_DIGEST_DOMAIN_V11, identity, artifacts)
 }
 
+pub(in crate::project) fn payload_digest_artifacts_v12(
+    identity: NpmBuildIdentity<'_>,
+    artifacts: &[NpmArtifact],
+) -> String {
+    payload_digest_artifacts_with_domain(PROJECT_NPM_BUILD_DIGEST_DOMAIN_V12, identity, artifacts)
+}
+
 fn payload_digest_artifacts_with_domain(
     domain: &[u8],
     identity: NpmBuildIdentity<'_>,
@@ -1031,6 +1052,7 @@ pub(super) fn decode_carrier_artifacts(
         PROJECT_NPM_BUILD_SCHEMA_V9 => &owned_data::OWNED_DATA_PACKAGE_PATHS,
         PROJECT_NPM_BUILD_SCHEMA_V10 => &nested_owned_record::PACKAGE_PATHS,
         PROJECT_NPM_BUILD_SCHEMA_V11 => &network_command::PACKAGE_PATHS,
+        PROJECT_NPM_BUILD_SCHEMA_V12 => &https_command::PACKAGE_PATHS,
         _ => return Err(package_error("npm build schema is unsupported")),
     };
     let rows = value
@@ -1095,6 +1117,10 @@ pub(super) fn decode_carrier_artifacts(
         PROJECT_NPM_BUILD_SCHEMA_V11 => artifacts
             .try_into()
             .map(ReplayedNpmArtifacts::NetworkCommand)
+            .map_err(|_| package_error("npm build artifact inventory is not exact")),
+        PROJECT_NPM_BUILD_SCHEMA_V12 => artifacts
+            .try_into()
+            .map(ReplayedNpmArtifacts::HttpsCommand)
             .map_err(|_| package_error("npm build artifact inventory is not exact")),
         _ => unreachable!("carrier schema selected above"),
     }

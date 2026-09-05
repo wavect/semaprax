@@ -25,6 +25,7 @@ mod generic_function_component_v9;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod generic_record_component_v7;
 mod host_output;
+mod http_io;
 pub mod internal_strings;
 mod line_command_io;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -917,6 +918,16 @@ pub(crate) fn emit_resolved_language_network_io_v1(
     command_id: &str,
 ) -> Result<Vec<u8>, Diagnostic> {
     network_io::emit_resolved_language_network_io_v1(program, command_id)
+}
+
+/// Emit the closed HTTPS Client I/O v1 command module selected by Project
+/// v13. The resulting module requires an explicit host implementation of the
+/// single bounded HTTPS import.
+pub(crate) fn emit_resolved_https_command_io_v1(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<Vec<u8>, Diagnostic> {
+    http_io::emit_resolved_https_command_io_v1(program, command_id)
 }
 
 /// Emit the additive Project-v7 line-command boundary. Admission remains in

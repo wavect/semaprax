@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the Project-v13 HTTPS Core-Wasm and npm lanes. The new replayable
+  `semaprax.project-npm-build.v12` package authenticates one
+  `spx_https_get_v1` import, a distinct HTTP status marker, owned response
+  carriers, fixture-v3 authority, and success-only output; the generated
+  package executes the committed HTTPS project under Node without sockets.
+
 - Added frozen Project Manifest v13 with the exact `https-command-io.v1`
   profile and `network.http` authority. Its authenticated `network-run` route
   replays fixture v3, while Project v12 and all prior manifest bytes remain

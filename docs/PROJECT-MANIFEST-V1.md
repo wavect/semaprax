@@ -380,5 +380,9 @@ Focused local evidence is:
 cargo test --locked -p semaprax --test project manifest_v13:: -- --test-threads=1
 ```
 
-Native executable, Core-Wasm, npm, and browser adapters remain separate
-promotion work and fail closed rather than using Project v12’s raw-socket ABI.
+Project v13 Core-Wasm and the replayable `semaprax.project-npm-build.v12`
+carrier expose one `spx_https_get_v1` import backed by fixture v3. The generated
+JavaScript package executes under Node and is browser-compatible without
+granting ambient fetch or sockets. Native executable emission, a live-fetch
+browser adapter, and multi-engine browser evidence remain separate promotion
+work and fail closed rather than using Project v12’s raw-socket ABI.

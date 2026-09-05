@@ -403,6 +403,11 @@ server-config injection and accepted-stream settlement. See [HTTPS Client
 Runtime v1](HTTPS-CLIENT-RUNTIME-V1.md).
 `src/interpreter/network.rs` owns the source-visible `https_get` capacity and
 status boundary described by [HTTPS Client I/O v1](HTTPS-CLIENT-IO-V1.md).
+`src/wasm/http_io.rs` and `src/wasm/aggregate/http_io.rs` own its distinct
+Core-Wasm import/status boundary and owned-result authentication;
+`src/project/npm/https_command.rs` and `https_runtime.mjs` own the replayable
+Project-v13 fixture-v3 carrier. Those generated adapters grant no ambient
+browser fetch, Node socket, TLS-key, or WASI authority.
 
 `src/codegen.rs` owns native orchestration and admission. The
 `src/codegen/native_*` modules own C11 emission, runtime statuses, aggregate

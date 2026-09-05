@@ -249,7 +249,7 @@ impl Emitter<'_> {
 
     /// Park a `Slice<u8>` carrier in the result local and authenticate it
     /// while its source is live; the local is overwritten by the result later.
-    fn stage_slice_carrier(&mut self, value: &Value, local: u32) {
+    pub(super) fn stage_slice_carrier(&mut self, value: &Value, local: u32) {
         self.get_scalar(value);
         self.output.push(0x21);
         write_u32(self.output, local);
@@ -260,14 +260,14 @@ impl Emitter<'_> {
     }
 
     /// Push the carrier's low 32-bit length as an i64.
-    fn emit_carrier_length(&mut self, local: u32) {
+    pub(super) fn emit_carrier_length(&mut self, local: u32) {
         self.output.push(0x20);
         write_u32(self.output, local);
         self.output.extend([0xa7, 0xad]);
     }
 
     /// Push the carrier's root word and length as two i32 provider arguments.
-    fn emit_carrier_root_and_length(&mut self, local: u32) {
+    pub(super) fn emit_carrier_root_and_length(&mut self, local: u32) {
         self.output.push(0x20);
         write_u32(self.output, local);
         self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x20]);
@@ -276,7 +276,7 @@ impl Emitter<'_> {
     }
 
     /// Consume an i64 and push whether it lies outside `1..=max`.
-    fn emit_outside_one_to(&mut self, max: i64) {
+    pub(super) fn emit_outside_one_to(&mut self, max: i64) {
         self.output.extend([0x42, 0x01, 0x7d, 0x42]);
         write_i64(self.output, max);
         self.output.push(0x5a); // i64.ge_u
@@ -288,7 +288,7 @@ impl Emitter<'_> {
         self.output.push(0xa7);
     }
 
-    fn emit_load_out(&mut self, pointer: Pointer) {
+    pub(super) fn emit_load_out(&mut self, pointer: Pointer) {
         self.emit_pointer(pointer);
         self.output.extend([0x29, 0x03, 0x00]);
     }

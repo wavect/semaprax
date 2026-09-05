@@ -1,6 +1,7 @@
 # HTTPS Client I/O v1
 
-Status: locally evidenced source and hosted-provider tranche.
+Status: locally evidenced source, hosted-provider, Core-Wasm, and generated
+npm/Node fixture tranche.
 
 Audience: language users, host integrators, compiler contributors, and reviewers.
 
@@ -40,6 +41,15 @@ Project Manifest v13 exposes this boundary as
 The `network-run --fixture` CLI authenticates the selected project command and
 replays fixture v3 without opening a socket.
 
+Project v13 Core-Wasm appends one synchronous `spx_https_get_v1` import and an
+independent `__spx_http_status_v1` marker. The generated npm package supplies
+that import from a branded, one-invocation fixture-v3 provider, authenticates
+the Wasm before instantiation, validates the returned owned-byte carrier, and
+publishes output only after cleanup succeeds. It imports neither browser
+`fetch`, Node sockets, nor WASI sockets. The JavaScript is browser-compatible;
+the executable local gate currently runs the real generated package under
+Node, which is not multi-engine browser evidence.
+
 Failures use the closed `semaprax.http.v1` status domain:
 
 | Code | Meaning |
@@ -61,9 +71,10 @@ Focused evidence:
 cargo test --locked --lib https_client::tests
 cargo test --locked --lib network_provider::tcp::tests::tls_client_authenticates_name_and_transfers_over_loopback
 cargo test --locked --lib network_provider::fixture::tests
+cargo test --locked --lib wasm::http_io::tests
 cargo test --locked --test useful_data hosted_http_profile_executes_a_turnkey_https_get
+cargo test --locked --test project manifest_v13::
 ```
 
-The native-C11, Core-Wasm, npm, and browser adapters currently reject this
-new profile rather than weakening it. HTTP/3 and structured asynchronous
-execution remain open.
+The native-C11 adapter, live browser-fetch adapter, multi-engine browser gate,
+HTTP/3, and structured asynchronous execution remain open.

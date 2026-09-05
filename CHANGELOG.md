@@ -125,6 +125,13 @@ format: `Unreleased` then release buckets, grouped by impact.
   user-text-encoding key with the process UID and fixed encoding fields. This
   prevents CoreFoundation from reading the user-home encoding file or rewriting
   the child environment, while the exact environment assertion remains closed.
+
+- Fixed `run <file> --json` publishing human diagnostics on stderr when its
+  preliminary load or verification failed. Parse errors, unreadable inputs, and
+  type/effect/ownership failures now emit the same diagnostic records on stdout
+  that `check --json` does, including for the bounded stdout profile. Human
+  mode and every execution envelope are unchanged.
+
 - Added `semaprax.network-fixture.v3` as an ordered, bounded HTTPS
   request/response replay carrier. V1 and v2 reject the new member, URL or
   response mismatches do not consume queue entries, and hosted `https_get`

@@ -183,3 +183,89 @@ fn cli_exit_codes_follow_the_documented_contract() {
     assert!(err.contains("SPX-F104"), "{err}");
     cleanup(&big);
 }
+
+/// `run --json` advertises a machine-readable surface, so the preliminary
+/// load/verify step publishes diagnostic records on stdout instead of falling
+/// back to the human renderer on stderr.
+#[test]
+fn single_file_run_json_publishes_source_failures_as_diagnostic_records() {
+    let type_error =
+        write_temp("module test.run_json_type;\n@id(\"app.main\")\nfn main() -> i64 { true }\n");
+    let parse_error = write_temp("module test.run_json_parse;\n@id(\"app.main\")\nfn main(\n");
+    // The bounded stdout profile is a separate interpreter seam and must not
+    // keep its own human-only rejection path.
+    let permitted = write_temp(
+        "module test.run_json_stdout;\npermit { process.stdout.write }\n@id(\"app.main\")\nfn main() -> i64 uses { process.stdout.write } { true }\n",
+    );
+
+    for (path, expected) in [
+        (type_error.to_str().unwrap(), "SPX-T103"),
+        (permitted.to_str().unwrap(), "SPX-T103"),
+        ("missing-run-json-input.spx", "SPX-I001"),
+    ] {
+        let (code, stdout, stderr) = cli(&["run", path, "--json"]);
+        assert_eq!(code, 1, "{path}: {stdout}{stderr}");
+        assert_eq!(stderr, "", "{path}: JSON mode leaves stderr empty");
+        let record: serde_json::Value = serde_json::from_str(stdout.trim())
+            .unwrap_or_else(|error| panic!("{path}: `{stdout}` is not a record: {error}"));
+        assert_eq!(record["code"], expected, "{stdout}");
+        assert_eq!(record["severity"], "error", "{stdout}");
+        assert!(!stdout.contains("error["), "{stdout}");
+    }
+
+    // Parse failures carry their located record too; the code stays whatever
+    // the parser already selected.
+    let (code, stdout, stderr) = cli(&["run", parse_error.to_str().unwrap(), "--json"]);
+    assert_eq!(code, 1);
+    assert_eq!(stderr, "");
+    let record: serde_json::Value = serde_json::from_str(stdout.trim()).expect("record");
+    assert!(
+        record["code"]
+            .as_str()
+            .is_some_and(|code| code.starts_with("SPX-P")),
+        "{stdout}"
+    );
+    assert!(
+        record["location"]["line"].as_u64().unwrap() >= 1,
+        "{stdout}"
+    );
+    assert_eq!(
+        record["path"],
+        *parse_error.to_str().unwrap(),
+        "the record binds the exact input path"
+    );
+
+    // Type and effect failures keep the located record for source files whose
+    // diagnostics also verify: the same file in human mode is unchanged.
+    let (code, stdout, stderr) = cli(&["run", type_error.to_str().unwrap()]);
+    assert_eq!(code, 1);
+    assert_eq!(stdout, "");
+    assert!(stderr.starts_with("error[SPX-T103]"), "{stderr}");
+
+    // Capacity envelopes are untouched by the diagnostic routing.
+    let runnable =
+        write_temp("module test.run_json_ok;\n@id(\"app.main\")\nfn main() -> i64 { 40 + 2 }\n");
+    let (code, stdout, stderr) = cli(&["run", runnable.to_str().unwrap(), "--json"]);
+    assert_eq!(code, 0);
+    assert_eq!(stderr, "");
+    let envelope: serde_json::Value = serde_json::from_str(stdout.trim()).expect("envelope");
+    assert_eq!(envelope["schema"], "semaprax.interpret.v1");
+
+    let (code, stdout, stderr) = cli(&[
+        "run",
+        runnable.to_str().unwrap(),
+        "--json",
+        "--max-steps",
+        "1",
+    ]);
+    assert_eq!(code, 1);
+    assert_eq!(stderr, "");
+    let envelope: serde_json::Value = serde_json::from_str(stdout.trim()).expect("envelope");
+    assert_eq!(envelope["schema"], "semaprax.interpret.v1");
+    assert_eq!(envelope["payload"]["outcome"]["kind"], "fuel_exhausted");
+
+    cleanup(&type_error);
+    cleanup(&parse_error);
+    cleanup(&permitted);
+    cleanup(&runnable);
+}

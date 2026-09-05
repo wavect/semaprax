@@ -189,7 +189,9 @@ pub(super) fn run_interpreted_source(
 
     // The bounded stdout profile is a distinct interpreter seam because the
     // canonical `semaprax.interpret.v1` profile is deliberately effect-free.
-    let program = checked(path)?;
+    // Preliminary loading and verification publish through the requested
+    // diagnostic mode so that `run --json` never falls back to human text.
+    let program = checked_for_output(path, options.json)?;
     if program.permits == ["process.stdout.write"] {
         let resolved = hir::resolve(&program).map_err(|errors| report(&errors, options.json))?;
         let hosted = hosted_interpreter::execute_stdout_transcript(

@@ -102,14 +102,14 @@ fn emitted_runtime_executes_the_status_arena_contract() {
     if (requires == NULL || strcmp(requires->schema, SPX_STATUS_SCHEMA_V1) != 0) return 4;
     if (strcmp(requires->domain_id, "semaprax.contract.v1") != 0 || requires->code != UINT32_C(1)) return 5;
     if (requires->status_class != SPX_STATUS_CLASS_CONTRACT || requires->retryability != SPX_RETRYABILITY_FALSE) return 6;
-    struct spx_status_detail requires_detail = {"contract", "main", "value > 0", NULL};
+    struct spx_status_detail requires_detail = {"contract", "main", "value > 0", NULL, {0}};
     if (spx_status_resolve_detail(&first, token) != NULL) return 27;
     if (!spx_status_attach_detail(&first, token, requires_detail)) return 28;
     if (spx_status_attach_detail(&first, token, requires_detail)) return 29;
 
     if (!spx_status_record_arithmetic(&first, SPX_STATUS_ARITHMETIC_NEGATION_OVERFLOW, &token)) return 7;
     if (token != UINT32_C(2) || first.status_arena.length != UINT32_C(2)) return 8;
-    struct spx_status_detail arithmetic_detail = {"arithmetic", "helper", NULL, "negation overflow"};
+    struct spx_status_detail arithmetic_detail = {"arithmetic", "helper", NULL, "negation overflow", {0}};
     if (!spx_status_attach_detail(&first, token, arithmetic_detail)) return 30;
     const struct spx_status_detail *first_detail = spx_status_resolve_detail(&first, UINT32_C(1));
     const struct spx_status_detail *second_detail = spx_status_resolve_detail(&first, UINT32_C(2));

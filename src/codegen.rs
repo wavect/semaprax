@@ -1284,9 +1284,53 @@ static __attribute__((unused)) spx_status_token spx_rt_arithmetic_failure(
     if (!spx_status_record_arithmetic(spx_ctx, code, &token)) {
         spx_runtime_invariant_failure("status arena exhaustion");
     }
-    struct spx_status_detail detail = {NULL, NULL, NULL, operation};
+    struct spx_status_detail detail = {
+        .failure_kind = NULL,
+        .failure_function = NULL,
+        .failure_expression = NULL,
+        .failure_operation = operation,
+        .failure_arguments = {0}
+    };
     if (!spx_status_attach_detail(spx_ctx, token, detail)) {
         spx_runtime_invariant_failure("arithmetic status detail attachment");
+    }
+    return token;
+}
+
+static __attribute__((unused)) spx_status_token spx_rt_contract_with_arguments(
+    struct spx_context *spx_ctx,
+    uint32_t code,
+    const char *kind,
+    const char *function,
+    const char *expression,
+    const char *arguments
+) {
+    spx_status_token token = SPX_STATUS_SUCCESS;
+    bool recorded = code == SPX_STATUS_CONTRACT_REQUIRES_FALSE
+        ? spx_status_record_requires_false(spx_ctx, &token)
+        : code == SPX_STATUS_CONTRACT_ENSURES_FALSE
+            ? spx_status_record_ensures_false(spx_ctx, &token)
+            : false;
+    if (!recorded) spx_runtime_invariant_failure("status arena exhaustion");
+    struct spx_status_detail detail = {
+        .failure_kind = kind,
+        .failure_function = function,
+        .failure_expression = expression,
+        .failure_operation = NULL,
+        .failure_arguments = {0}
+    };
+    int arguments_written = snprintf(
+        detail.failure_arguments,
+        sizeof detail.failure_arguments,
+        "%s",
+        arguments
+    );
+    if (arguments_written < 0 ||
+        (size_t)arguments_written >= sizeof detail.failure_arguments) {
+        spx_runtime_invariant_failure("contract argument detail overflow");
+    }
+    if (!spx_status_attach_detail(spx_ctx, token, detail)) {
+        spx_runtime_invariant_failure("contract status detail attachment");
     }
     return token;
 }
@@ -1298,18 +1342,9 @@ static __attribute__((unused)) spx_status_token spx_rt_contract(
     const char *function,
     const char *expression
 ) {
-    spx_status_token token = SPX_STATUS_SUCCESS;
-    bool recorded = code == SPX_STATUS_CONTRACT_REQUIRES_FALSE
-        ? spx_status_record_requires_false(spx_ctx, &token)
-        : code == SPX_STATUS_CONTRACT_ENSURES_FALSE
-            ? spx_status_record_ensures_false(spx_ctx, &token)
-            : false;
-    if (!recorded) spx_runtime_invariant_failure("status arena exhaustion");
-    struct spx_status_detail detail = {kind, function, expression, NULL};
-    if (!spx_status_attach_detail(spx_ctx, token, detail)) {
-        spx_runtime_invariant_failure("contract status detail attachment");
-    }
-    return token;
+    return spx_rt_contract_with_arguments(
+        spx_ctx, code, kind, function, expression, "none"
+    );
 }
 
 static __attribute__((unused)) spx_status_token spx_rt_call_depth_failure(
@@ -1517,10 +1552,11 @@ static __attribute__((unused)) int spx_public_failure(
         }
         fprintf(
             stderr,
-            "SEMAPRAX contract failure: %s in %s: %s\n",
+            "SEMAPRAX contract failure\n  contract: %s %s in %s\n  arguments: %s\n",
             detail->failure_kind,
+            detail->failure_expression,
             detail->failure_function,
-            detail->failure_expression
+            detail->failure_arguments
         );
         return 70;
     }

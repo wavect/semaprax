@@ -130,8 +130,42 @@ fn main() -> i64 requires false { 42 }
     assert_eq!(
         String::from_utf8(executed.stderr).unwrap(),
         format!(
-            "SEMAPRAX contract failure: requires in main: false{}",
-            native_newline()
+            "SEMAPRAX contract failure{}  contract: requires false in app.main{}  arguments: none{}",
+            native_newline(),
+            native_newline(),
+            native_newline(),
+        )
+    );
+}
+
+#[test]
+fn native_contract_failure_reports_source_clause_stable_id_and_arguments() {
+    if !compiler_is_available() {
+        return;
+    }
+
+    let executed = compile_and_run_entry_wrapper(
+        r#"
+module test.native_contract_detail;
+@id("std.num.gcd")
+fn gcd(left: i64, right: i64) -> i64
+    requires left >= 0 && right >= 0
+{ 0 }
+@id("app.main")
+fn main() -> i64 { gcd(-4, 6) }
+"#,
+        "contract-detail",
+    );
+
+    assert_eq!(executed.status.code(), Some(70));
+    assert!(executed.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8(executed.stderr).unwrap(),
+        format!(
+            "SEMAPRAX contract failure{}  contract: requires left >= 0 && right >= 0 in std.num.gcd{}  arguments: left = -4, right = 6{}",
+            native_newline(),
+            native_newline(),
+            native_newline(),
         )
     );
 }

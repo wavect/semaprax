@@ -155,10 +155,11 @@ keeps working, while one that pins whole test-envelope bytes observes the new
   share nothing at runtime because the language has no mutable globals.
 - Arithmetic failures (division by zero, overflow) carry no frame detail; only
   contract clauses do.
-- The native path (`semaprax run file.spx --native`, `build --target native`) is
-  unchanged: it keeps printing `SEMAPRAX contract failure: <phase> in
-  <function>: <clause>` from the native runtime's own detail record, without
-  argument values, and its ABI and status contract are untouched.
+- The native path (`semaprax run file.spx --native`, `build --target native`)
+  reports contract failures with the same repair facts as the interpreter:
+  canonical clause text, persistent function identity, and parameters in
+  declaration order with their observed values. Its normalized status and
+  exit 70 contract are unchanged.
 - The prepared daemon interpreter and its Source Trace
   ([Prepared Project Interpreter v1](PROJECT-PREPARED-INTERPRETER-V1.md))
   retain the detail internally but render neither `failure` nor `cases`; their

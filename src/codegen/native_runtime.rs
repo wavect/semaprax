@@ -73,6 +73,7 @@ typedef uint32_t spx_retryability;
 #define SPX_CONTEXT_INITIALIZED UINT32_C(0x53505843)
 #define SPX_CONTEXT_TRACE_ATTACHED UINT32_C(0x53505854)
 #define SPX_MAX_CALL_DEPTH UINT32_C(256)
+#define SPX_STATUS_ARGUMENTS_MAX_BYTES UINT32_C(1024)
 
 struct spx_normalized_status {
     const char *schema;
@@ -87,6 +88,7 @@ struct spx_status_detail {
     const char *failure_function;
     const char *failure_expression;
     const char *failure_operation;
+    char failure_arguments[SPX_STATUS_ARGUMENTS_MAX_BYTES];
 };
 
 struct spx_status_entry {
@@ -284,7 +286,13 @@ static inline bool spx_status_arena_push(
     entry->status = status;
     entry->status.schema = SPX_STATUS_SCHEMA_V1;
     entry->status.domain_id = entry->domain_storage;
-    entry->detail = (struct spx_status_detail){NULL, NULL, NULL, NULL};
+    entry->detail = (struct spx_status_detail){
+        .failure_kind = NULL,
+        .failure_function = NULL,
+        .failure_expression = NULL,
+        .failure_operation = NULL,
+        .failure_arguments = {0}
+    };
     entry->detail_attached = false;
     arena->length = index + UINT32_C(1);
     *token_out = token;

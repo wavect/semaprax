@@ -621,6 +621,20 @@ read resource paths, discover a live service, execute guidance, grant host
 capabilities, or modify the legacy source-query route. See [Installed Agent
 Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md).
 
+Root `build.rs` owns the closed build-time scan of Rust diagnostic code tokens
+below `src/` and workspace-member `crates/`, including the explicit inventory
+of unresolved dynamic `Diagnostic` constructor sites. It writes only Cargo
+`OUT_DIR` generated arrays. `src/installed_diagnostics.rs` embeds those arrays
+and owns the bounded canonical Installed Diagnostic catalogue and per-code
+explanation, compiler-version binding, domain-separated digests, and exact
+explanation replay. `src/cli/explain.rs` is a one-shot selector and exact
+text/JSON printer; it adds no catalogue CLI and does not reinterpret emitted
+messages. Runtime construction reads no source path or current directory and
+grants no filesystem, process, network, repair, transaction, or publication
+authority. Static token coverage remains distinct from runtime reachability,
+and unresolved dynamic sites remain visible rather than being inferred away.
+See [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md).
+
 `src/project/image.rs` derives an immutable, bounded Semantic Workspace
 Image from one already admitted `Arc<ProjectRevision>`. It retains validated
 HIR in memory and projects the complete Project graph plus existing typed

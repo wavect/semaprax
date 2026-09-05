@@ -8,6 +8,7 @@ pub(crate) mod context;
 pub(crate) mod doc;
 pub(crate) mod draft_archive;
 pub(crate) mod execution;
+pub(crate) mod explain;
 pub(crate) mod fetch;
 pub(crate) mod fmt;
 pub(crate) mod graph;

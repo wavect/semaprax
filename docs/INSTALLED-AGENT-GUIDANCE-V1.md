@@ -16,6 +16,10 @@ These documents are data. They are not compiler input, executable
 instructions, binary attestation, live service discovery, or a capability
 grant.
 
+The separate [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md) projection
+catalogues version-matched static diagnostic identifiers and explains one
+installed code. Guidance does not duplicate or imply that catalogue.
+
 ## Public API and selectors
 
 `src/installed_guidance.rs` owns the library projection and exports:

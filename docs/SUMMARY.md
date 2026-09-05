@@ -98,6 +98,7 @@ Audience: all documentation readers.
 - [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md)
 - [Universal Semantic Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md)
 - [Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md)
+- [Installed Diagnostics v1](INSTALLED-DIAGNOSTICS-V1.md)
 - [Project Candidates and Semantic Change IR v1](PROJECT-CANDIDATES-V1.md)
 - [Project Lexical Binding Constructor v1](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md)
 - [Project Signature Argument Expressions v1](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md)

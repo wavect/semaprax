@@ -16,6 +16,16 @@ format: `Unreleased` then release buckets, grouped by impact.
   owned UTF-8. A separately compiled consumer links against the actual provider
   at O0/O2 and copies, drops, and closes an exact-length result containing both
   embedded NUL and multibyte UTF-8, without exposing native String layout.
+- Added Installed Diagnostics v1: an offline build-time scan embeds the exact
+  static `SPX-*` token inventory from compiler and workspace-member Rust
+  sources while separately reporting unresolved dynamic diagnostic
+  constructor sites. Authority-free library constructors expose bounded,
+  canonical, compiler-version-bound catalogue and per-code explanation
+  artifacts with exact replay; `semaprax explain` prints the exact concise or
+  JSON explanation. Five focused projections-harness cases pass locally.
+  Static presence is not runtime reachability, message or repair inference,
+  binary attestation, or a stable cross-version
+  registry, and legacy diagnostic bytes remain unchanged.
 - Added a descriptor-derived C11 header for the Project-v11 nested
   owned-record provider. Its fixed-width leaf carrier preserves full
   descriptor occurrence order without exposing native record layout. A

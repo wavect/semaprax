@@ -108,9 +108,27 @@ kernel can carry the version with a feature compiled out or policy-blocked.
 The fixtures themselves still fail rather than skip when a syscall is
 unavailable, so the probe rejects early without claiming to be the authority.
 
-No wrapper is checked in, and no wrapper has been written or tested. Supplying
-one — and proving its namespace, cgroup delegation and image immutability
-properties — is the maintainer's remaining work.
+`scripts/doctor-provisioned-linux-provision.sh` is that wrapper. It refuses
+unless the host is Linux on x86-64, unprivileged user namespaces are permitted,
+the cgroup-v2 unified hierarchy exposes the `cpu`, `memory` and `pids`
+controllers, and the release directory lies outside the checkout and carries
+every image; it then delegates the controllers, creates an empty scope
+exporting `SEMAPRAX_DOCTOR_GATE_CGROUP`, exports the two context
+acknowledgements and the three image paths, and execs the gate inside
+`unshare --user --map-root-user --mount --net --ipc --uts`. It removes the
+scope on exit unless `--keep` is given.
+
+**The wrapper has never run on Linux.** It was authored and self-tested on
+macOS/arm64, where every path refuses: argument handling, the Linux-only
+refusal, and the x86-64 refusal were exercised directly, and the remaining
+refusal chain was reached with a spoofed `uname`. Its namespace, cgroup
+delegation and image immutability behaviour on a real host is unproven, and the
+operator still supplies `SEMAPRAX_DOCTOR_REAL_SELECTOR`, the three
+`SEMAPRAX_DOCTOR_EXPECTED_*_DETAIL` values and
+`SEMAPRAX_DOCTOR_GATE_DISPOSABLE=yes`, which the wrapper deliberately does not
+invent. Proving those properties on a disposable host remains the maintainer's
+work; the gate independently rechecks every one of them and fails closed if the
+wrapper is wrong.
 
 ## Test selection
 
@@ -213,8 +231,10 @@ reports the execution failure as its verdict.
 ## What a maintainer must do to execute this gate
 
 1. Provision one disposable, trusted Linux x86-64 host satisfying every row of
-   [host provisioning](#host-provisioning), and write the wrapper that
-   establishes the private namespace and the empty delegated cgroup-v2 scope.
+   [host provisioning](#host-provisioning). Run
+   `scripts/doctor-provisioned-linux-provision.sh`, which establishes the
+   private namespace and the empty delegated cgroup-v2 scope, and confirm its
+   unproven Linux behaviour on that host.
 2. Build the current-head launcher, worker, collector and provisioner with the
    test-only `SEMAPRAX_DOCTOR_RELEASE_PUBLIC_KEY_HEX` anchor, package them with
    `scripts/package-doctor-release.sh`, and unpack the archive outside the

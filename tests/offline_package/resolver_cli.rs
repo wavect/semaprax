@@ -50,7 +50,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     const RESTORED: [(&str, &str); 22] = [
         ("semaprax add <dir>|semaprax.toml <package> <range>\n", ""),
         ("semaprax fetch <cache-dir> <subject.json>...\n", ""),
-        ("semaprax query <file> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]\n", ""),
+        ("semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]\n", ""),
         ("semaprax package report <file> [--max-bytes N]\n", ""),
         ("semaprax package lock <subject.json>... [--max-bytes N]\n", ""),
         ("semaprax package resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n", ""),

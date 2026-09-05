@@ -37,6 +37,12 @@ so it is available without the source checkout.
   file, use `semaprax context <file> <stable-id> --depth 1 --filters
   contracts,ownership --max-bytes 4096` and read `truncation` before trusting
   the answer. [Agent Context v2](AGENT-CONTEXT-V2.md) owns the schema.
+- In a Project, locate declarations before requesting context: `semaprax query
+  <project-dir> --id <stable-id>` prints the owning path and canonical header;
+  `--calls <stable-id>` prints cross-file callers. Add `--json` only when a tool
+  needs exact Project/graph/source revisions and relationship arrays. The
+  calculator's exact `calculator.add` JSON query is guarded below 1 KiB and 256
+  repository lexical units, instead of transferring its complete Project graph.
 - `semaprax --help` is a guided overview under 2 KB: the commands above,
   grouped by task, with one-line purposes. `semaprax help all` is the 7 KB
   exhaustive catalog; use `semaprax help <command>` for one command's exact

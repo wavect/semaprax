@@ -42,11 +42,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   splice in `borrowed_str_depth`, so every native program with a
   `borrow Slice<u8>` or `borrow str` parameter failed to compile; the anchors
   now target the current struct and the emitter asserts that they matched.
-- Added `semaprax query <file> [filters] [--json]`, a read-only declaration
-  search over the checked module's documentation model with `--kind`,
-  `--name`, `--id`, `--effect`, `--calls`, and `--called-by` filters from the
-  persistent call index; results name the graph revision and unknown kinds or
-  identities fail closed with `SPX-V211`/`SPX-V212`.
+- Added `semaprax query <file|project> [filters] [--json]`, a read-only
+  declaration search over a checked module or every authenticated Project
+  source with `--kind`, `--name`, `--id`, `--effect`, `--calls`, and
+  `--called-by` filters. Project results name owning paths and exact revisions,
+  and use the retained semantic graph for cross-file call predicates; unknown
+  kinds or identities fail closed with `SPX-V211`/`SPX-V212`.
 - Added the `semaprax package report|lock|resolve` namespace, each subcommand
   exactly its long-form offline package route.
 - Split CLI option parsing and single-file execution/reporting out of the

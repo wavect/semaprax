@@ -99,14 +99,16 @@ error naming the one admitted form.
 ## `semaprax query`
 
 ```sh
-semaprax query <file> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>]
+semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>]
                       [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]
 ```
 
-`query` selects declarations of one checked module from the documentation
-model of [Documentation Projection v1](DOC-PROJECTION-V1.md), so every match
-carries the identity, canonical signature, and facts `doc` renders, and the
-result names the same graph revision. Filters are a conjunction:
+`query` selects declarations of one checked module or one authenticated
+Project from the documentation model of
+[Documentation Projection v1](DOC-PROJECTION-V1.md). Every match carries the
+identity and canonical signature `doc` renders. A Project match additionally
+names its canonical source path, module, and source revision, while the result
+binds the exact Project and semantic-graph revisions. Filters are a conjunction:
 
 | Filter | Holds when |
 | --- | --- |
@@ -118,20 +120,26 @@ result names the same graph revision. Filters are a conjunction:
 | `--called-by` | the named persistent callable calls the declaration |
 
 Call relations come from the persistent call index that `impact` and the
-graph use, so `--calls` is "semantic references" by stable identity, not a
-text search. Without `--json` the output is one tab-separated line per match:
-kind, identity, and the first non-`@id` line of the canonical signature.
-`--json` prints one `semaprax.query.v1` line with the module, revision, the
-filters as given, and every match's kind, identity, name, persistence,
-signature, location (the one-based line and column and byte offsets of the
-name token, as in `doc`), effects, callees, and callers. The VS Code adapter's
-go-to-declaration, callers, and code-lens features are this route
+use, so `--calls` is "semantic references" by stable identity, not a text
+search. Project queries use the already authenticated cross-file graph, so a
+library declaration can name callers in entry and test modules without reading
+the full graph. Without `--json`, a file query prints kind, identity, and
+canonical header; a Project query prepends the owning path. `--json` prints
+`semaprax.query.v1` for a file or `semaprax.project-query.v1` for a Project.
+The Project result includes its revisions and each match's path, module, source
+revision, kind, identity, name, persistence, signature, location (the one-based
+line and column followed by the start and end byte offsets of the name token,
+encoded as a four-integer array to keep the Project result compact), effects,
+callees, and callers. The VS Code adapter's go-to-declaration, callers, and
+code-lens features use the single-file route
 ([VS Code adapter](VSCODE-SAVED-SOURCE-ADAPTER-V1.md)).
 
 The query fails closed rather than matching nothing: an unknown kind reports
-`SPX-V211` with the admitted list, and a `--calls`/`--called-by` identity that
-is not a declaration of the module reports `SPX-V212`. It documents one file,
-performs no writes, and follows no `use` lines into other modules.
+`SPX-V211`, and an unknown `--calls`/`--called-by` identity reports `SPX-V212`.
+`SPX-V213` names an impossible mismatch inside an already authenticated Project
+query. A file query still follows no `use` lines and still requires a standalone
+checked module; Project inspection must select its directory or manifest.
+Neither route performs writes or grants source authority.
 
 ## `semaprax package`
 
@@ -221,9 +229,12 @@ authority.
   two.
 - `tests/projections/query_projection.rs` (projections harness): filters
   select by kind, name, identity prefix, effect, callers, and callees on the
-  committed examples; the CLI prints the library's text and one-line JSON
-  naming the graph revision; unknown kinds and identities fail closed with
-  `SPX-V211`/`SPX-V212`; malformed grammars exit with status two.
+  committed examples; authenticated Project queries find library declarations,
+  owning paths and cross-file entry/test callers while a raw library file keeps
+  `SPX-T105`; the exact calculator result stays below 1 KiB, 256 lexical units,
+  and one eighth of its full Project graph; directory and manifest selectors
+  print the library's same one-line JSON; unknown kinds and identities fail
+  closed with `SPX-V211`/`SPX-V212`; malformed grammars exit with status two.
 - `tests/offline_package/package_namespace.rs` (offline-package harness):
   every `package` subcommand's stdout, stderr, and status equal its long
   form's, and a missing or unknown subcommand exits with status two.

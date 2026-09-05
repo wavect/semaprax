@@ -1561,10 +1561,13 @@ node of `semaprax graph` at the same revision. See
 [Documentation Projection v1](DOC-PROJECTION-V1.md).
 
 `src/query.rs` is the declaration query: it filters the documentation model of
-`src/doc.rs` by kind, name, identity prefix, and effect, and joins the
-persistent call index of `src/call_index.rs` for `--calls`/`--called-by`, so
-a query names exactly the identities `graph` and `doc` name at the same
-revision. `src/cli/query.rs` owns its closed grammar; `src/cli/package.rs`
+`src/doc.rs` by kind, name, identity prefix, and effect. Single-module queries
+join `src/call_index.rs`; Project queries parse each retained authenticated
+source for presentation facts and join the call edges of that same revision's
+retained semantic graph. Project matches therefore include path/module/source
+identity and cross-file callers without accepting an arbitrary library file as
+a standalone executable. `src/cli/query.rs` owns input selection and the closed
+grammar; `src/cli/package.rs`
 rewrites `package report|lock|resolve` to the long-form routes and re-enters
 the dispatcher. See [Unified CLI v1](UNIFIED-CLI-V1.md).
 

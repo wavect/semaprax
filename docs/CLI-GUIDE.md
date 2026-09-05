@@ -103,11 +103,17 @@ Search declarations by what they are, what they use, and what they call:
 ```sh
 semaprax query examples/meaning.spx --kind function --effect clock.read
 semaprax query examples/meaning.spx --calls math.add --json
+semaprax query examples/calculator-project --id calculator.add
+semaprax query examples/calculator-project --calls calculator.add
 ```
 
 Each match is a declaration of the checked module with its identity and
 canonical header; `--calls <id>` lists the callers of a declaration and
 `--called-by <id>` its callees, from the same call index `impact` uses.
+Selecting a Project directory or `semaprax.toml` searches every authenticated
+source and prepends the owning path. Its call predicates cross module
+boundaries, so agents can locate a library function and all retained callers
+without transferring the complete Project graph.
 
 Render the module's documentation from the same checked facts:
 

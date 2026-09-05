@@ -240,6 +240,7 @@ publication authority.
 | `semaprax build … --target …` | Produce an admitted native, callable, WebAssembly, Web, or npm artifact. |
 | `semaprax graph <file>` | Emit the revisioned semantic graph. |
 | `semaprax context <file> <id> …` | Emit bounded semantic context around a declaration. |
+| `semaprax query <file|project> …` | Find declarations and semantic callers without reading the full graph. |
 | `semaprax impact` / `review` | Preview supported semantic-patch consequences without writing. |
 | `semaprax patch` | Apply a supported single-file semantic transaction. |
 | `semaprax workspace-*` | Use the bounded managed multi-file protocols. |

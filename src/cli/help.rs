@@ -137,7 +137,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Doc, canonical: "doc", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doc <file> [--json]"] },
     CommandSpec { id: CommandId::Verify, canonical: "verify", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax verify <file> <patch.spatch> <evidence.json>", "semaprax verify <root> <patch.wspatch>|<proposal.json> <evidence.json>", "semaprax verify <definition.json> <profile.json> <graph.json>", "semaprax verify <manifest> <image.json>"] },
     CommandSpec { id: CommandId::Agent, canonical: "agent", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax agent inspect <definition.json> [--profile]"] },
-    CommandSpec { id: CommandId::Query, canonical: "query", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax query <file> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]"] },
+    CommandSpec { id: CommandId::Query, canonical: "query", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]"] },
     CommandSpec { id: CommandId::Package, canonical: "package", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax package report <file> [--max-bytes N]", "semaprax package lock <subject.json>... [--max-bytes N]", "semaprax package resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]"] },
     CommandSpec { id: CommandId::Add, canonical: "add", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax add <dir>|semaprax.toml <package> <range>"] },
     CommandSpec { id: CommandId::Fetch, canonical: "fetch", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fetch <cache-dir> <subject.json>..."] },
@@ -391,7 +391,7 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Query,
-                shape: "query <file> [--kind K] [--json]",
+                shape: "query <file|project> [--kind K] [--json]",
                 summary: "Find declarations by kind, name, effect, call",
             },
         ],

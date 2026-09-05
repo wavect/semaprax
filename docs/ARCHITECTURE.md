@@ -1865,7 +1865,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Project dependency admission | `src/project/external_dependencies.rs` for exact ordinary Subject-v3 closure replay and `src/project/standard_dependencies.rs` for compiler-bundled packages |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
-| Standard library | `std/<package>/` Project packages, `src/project/standard_dependencies.rs` for closed bundled dependency expansion, `std/packages.json` tier and target metadata, generated `std/catalog.json`; gate `tests/project/standard_library.rs` |
+| Standard library | `std/<package>/` Project packages, `src/project/standard_dependencies.rs` for closed bundled dependency expansion, `std/packages.json` tier and target metadata, generated `std/catalog.json`; `src/cli/help.rs` embeds the generated Markdown catalog unchanged and derives exact module/name/stable-ID lookups from the JSON catalog; gate `tests/project/standard_library.rs` |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
 
 This table is the single module-level map. Other contributor documents should

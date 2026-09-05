@@ -41,6 +41,14 @@ signature and contracts, without a source checkout:
 semaprax help library
 ```
 
+When you know a module, declaration name, or stable identity, request only
+that exact generated entry to avoid reading the whole catalog:
+
+```sh
+semaprax help library compare
+semaprax help library std.core.compare
+```
+
 Show the exact accepted form of one command without reading source files,
 probing tools, or starting a build:
 

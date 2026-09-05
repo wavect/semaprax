@@ -98,31 +98,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         print_help(host.is_some());
         return Err(2);
     };
-    if command == "help" && args.len() == 2 {
-        if args[1] == "all" {
-            print!("{}", cli::help::catalog(host.is_some()));
-            return Ok(());
-        }
-        if args[1] == "language" {
-            print!("{}", cli::help::LANGUAGE_REFERENCE);
-            return Ok(());
-        }
-        if args[1] == "library" {
-            print!("{}", cli::help::LIBRARY_CATALOG);
-            return Ok(());
-        }
-        if args[1] == "shapes" {
-            print!("{}", cli::help::SHAPES_CATALOG);
-            return Ok(());
-        }
-        return print_scoped_help(&args[1], host.is_some());
-    }
-    if command == "help" && args.len() > 2 {
-        eprintln!(
-            "help accepts exactly one operand; unexpected extra operand `{}`",
-            args[2]
-        );
-        return Err(2);
+    if let Some(outcome) = cli::help::dispatch(&args, host.is_some()) {
+        return outcome;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         return print_scoped_help(command, host.is_some());

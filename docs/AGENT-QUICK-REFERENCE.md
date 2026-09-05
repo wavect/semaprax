@@ -613,6 +613,13 @@ by `semaprax help library`, lists every `std.*` function with its contract,
 required project profile, and exact `[dependencies]` route. Add the dependency
 to the table manifest and import the function by its `@id` as above; an
 installed compiler supplies the bundled package without a repository checkout.
+For one API, prefer
+`semaprax help library <module|name|stable-id>`: the exact lookup prints only
+the matched stable identity, dependency row, required profile, signature,
+effects, and contracts. It does not do fuzzy or prefix search. The guarded
+`std.core.compare` result is 226 bytes and 68 lexical units, with guarded
+ceilings of 512 bytes and 128 units; both measures are more than 50 times
+smaller than the 22,076-byte, 6,662-unit full catalog.
 [Package Manifest v1](PACKAGE-MANIFEST-V1.md) owns the table layout,
 [Project Manifest v1](PROJECT-MANIFEST-V1.md) the frozen one,
 [examples/calculator-project](../examples/calculator-project/semaprax.toml) is

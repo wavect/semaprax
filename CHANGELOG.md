@@ -43,6 +43,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   same report and the guided help pages are identical; only the settled
   provisioner-observation renderer remains in the toolchain, and only
   `build --target rust` still needs the private host.
+- Added exact offline `semaprax help library <module|name|stable-id>` lookup,
+  returning only the generated dependency row, required profile, signature,
+  effects, and contracts while preserving the full catalog bytes. The guarded
+  `std.core.compare` lookup stays within 512 bytes and 128 lexical units and is
+  more than 50 times smaller than the 22,076-byte, 6,662-unit catalog in both
+  measures.
 - The VS Code adapter adds `Show Ownership, Contracts, and Effects` (the
   compiler's bounded `context` facets for a chosen callable) and `Inspect Agent
   Definition` (`agent inspect` over the saved AgentDefinition v1 file), both

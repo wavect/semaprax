@@ -172,6 +172,12 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     let (library, library_dir) = invoke(&["help", "library"]);
     assert!(library.status.success());
     assert!(library.stderr.is_empty());
+    let catalog = std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../docs/STANDARD-LIBRARY-CATALOG.md"),
+    )
+    .unwrap();
+    assert_eq!(library.stdout, catalog);
     assert!(library.stdout.starts_with(b"# Standard library catalog\n"));
     assert!(library.stdout.ends_with(b"\n"));
     std::fs::remove_dir(library_dir).unwrap();
@@ -184,6 +190,39 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert_eq!(shapes.stdout, shapes_catalog);
     assert!(shapes.stdout.starts_with(b"# Language shapes catalog\n"));
     std::fs::remove_dir(shapes_dir).unwrap();
+    let expected_compare = b"std.core.compare\ndependency std.core = \"^0.1.0\"\nprofile scalar\nfn compare(left: i64, right: i64) -> i64\n    ensures result >= -1 && result <= 1\n    ensures result != 0 || left == right\n    ensures result == 0 || left != right\n";
+    for selector in ["std.core.compare", "compare"] {
+        let (entry, directory) = invoke(&["help", "library", selector]);
+        assert!(entry.status.success());
+        assert!(entry.stderr.is_empty());
+        assert_eq!(entry.stdout, expected_compare);
+        assert!(entry.stdout.len() <= 512);
+        assert!(entry.stdout.len() * 50 < catalog.len());
+        let entry_units =
+            semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&entry.stdout).unwrap());
+        let catalog_units =
+            semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&catalog).unwrap());
+        assert!(entry_units <= 128);
+        assert!(entry_units * 50 < catalog_units);
+        std::fs::remove_dir(directory).unwrap();
+    }
+    let (module, module_dir) = invoke(&["help", "library", "std.core"]);
+    assert!(module.status.success());
+    assert!(module.stderr.is_empty());
+    let module = String::from_utf8(module.stdout).unwrap();
+    assert!(module.starts_with("std.core.ordering.less\n"));
+    assert!(module.contains("\nstd.core.compare\n"));
+    assert!(!module.contains("std.bytes."));
+    std::fs::remove_dir(module_dir).unwrap();
+    let (missing_library, missing_library_dir) =
+        invoke(&["help", "library", "not_a_library_function"]);
+    assert_eq!(missing_library.status.code(), Some(2));
+    assert!(missing_library.stdout.is_empty());
+    assert_eq!(
+        missing_library.stderr,
+        b"standard library has no exact match for `not_a_library_function`\n"
+    );
+    std::fs::remove_dir(missing_library_dir).unwrap();
     let (language_extra, language_extra_dir) = invoke(&["help", "language", "extra"]);
     assert_eq!(language_extra.status.code(), Some(2));
     assert!(language_extra.stdout.is_empty());
@@ -210,7 +249,16 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         assert!(output.status.success(), "{name}");
         assert_eq!(
             output.stdout,
-            b"Usage:\n  semaprax help <command>\n  semaprax help all\n  semaprax help language\n  semaprax help library\n  semaprax help shapes\n"
+            concat!(
+                "Usage:\n",
+                "  semaprax help <command>\n",
+                "  semaprax help all\n",
+                "  semaprax help language\n",
+                "  semaprax help library\n",
+                "  semaprax help library <module|name|stable-id>\n",
+                "  semaprax help shapes\n"
+            )
+            .as_bytes()
         );
         assert!(output.stderr.is_empty());
         std::fs::remove_dir(directory).unwrap();

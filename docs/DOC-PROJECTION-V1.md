@@ -150,6 +150,9 @@ shapes catalog that `semaprax help shapes` prints is rendered the same way by
 bundled agent material therefore derives from the same facts as `doc` and
 `graph`; only the hand-written rules of the agent quick reference remain
 prose, and its code blocks are compiler-checked.
+`semaprax help library <module|name|stable-id>` derives its compact exact
+dependency/profile/head response from that JSON rather than maintaining a
+second library index.
 
 ## Non-claims
 

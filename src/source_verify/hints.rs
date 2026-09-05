@@ -46,7 +46,7 @@ const PRINT_HELP: &str = "there is no print routine; write bytes with `stdout_wr
                           where `view` is `string_as_str(binding)` or a `borrow str` parameter";
 
 /// Compiler-bundled standard-library functions are discoverable without a
-/// checkout through `semaprax help library`. Keep this lookup bound to the
+/// checkout through `semaprax help library <name>`. Keep this lookup bound to the
 /// same generated catalog rather than duplicating its growing function list.
 fn standard_library_package(name: &str) -> Option<&'static str> {
     static FUNCTIONS: OnceLock<HashMap<String, Option<String>>> = OnceLock::new();
@@ -110,7 +110,7 @@ pub(super) fn unknown_function(
             Some(package) => diagnostic.with_help(format!(
                 "`{name}` is available from `{package}`: add `[dependencies] {package} = \
                  \"^0.1.0\"` to `semaprax.toml`, then import its stable identity directly \
-                 after the `module` line; run `semaprax help library` for the exact declaration"
+                 after the `module` line; run `semaprax help library {name}` for the exact declaration"
             )),
             None => diagnostic.with_help(format!(
                 "declare `{name}` in this module, or in a project import it directly after the \

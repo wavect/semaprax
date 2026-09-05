@@ -1695,6 +1695,9 @@ contract:
 - `src/agent_definition.rs`: the additive canonical AgentDefinition v1 compiler,
   deterministic AgentGraph v1 projection, and canonical Runtime v1 profile
   compatibility boundary; it has no language parser or execution authority;
+- `src/agent_harness.rs`: the authority-free AgentDefinition/Economic Policy
+  graph binding and the injected-host Runtime v1 to Economic Agent v1 handoff;
+  it owns no provider, journal, approval, custody, chain, or broadcast host;
 - `src/agent_runtime.rs` and `src/economic_agent.rs`: injected-host Rust APIs
   with no built-in provider transport, keys, wallet, or ambient authority;
 - `platform-tests/`: installed application and runtime fixtures whose claims

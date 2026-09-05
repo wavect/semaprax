@@ -102,6 +102,7 @@ struct Host {
     cancellation: Option<AgentCancellation>,
     cancel_provider_after_first: bool,
     cancel_tool_before_push: bool,
+    final_message: String,
     secret: &'static str,
 }
 
@@ -123,8 +124,15 @@ impl Host {
             cancellation: None,
             cancel_provider_after_first: false,
             cancel_tool_before_push: false,
+            final_message: "done".to_owned(),
             secret: "public-host-secret-sentinel",
         }
+    }
+
+    fn with_final_message(mut self, final_message: String) -> Self {
+        self.retry_to_final = true;
+        self.final_message = final_message;
+        self
     }
 }
 
@@ -171,9 +179,13 @@ impl AgentHost for Host {
             );
         }
         let response = if !self.retry_to_final && call == usize::from(self.retry_first) {
-            b"{\"schema\":\"semaprax.agent-runtime-action.v1\",\"kind\":\"tool\",\"tool_id\":\"fixture.read\",\"arguments\":{\"query\":\"alpha\"}}\n".as_slice()
+            b"{\"schema\":\"semaprax.agent-runtime-action.v1\",\"kind\":\"tool\",\"tool_id\":\"fixture.read\",\"arguments\":{\"query\":\"alpha\"}}\n".to_vec()
         } else {
-            b"{\"schema\":\"semaprax.agent-runtime-action.v1\",\"kind\":\"final\",\"message\":\"done\"}\n".as_slice()
+            format!(
+                "{{\"schema\":\"semaprax.agent-runtime-action.v1\",\"kind\":\"final\",\"message\":{}}}\n",
+                serde_json::to_string(&self.final_message).unwrap()
+            )
+            .into_bytes()
         };
         assert!(sink.push(&response[..response.len() / 2]));
         if self.cancel_provider_after_first {
@@ -304,6 +316,8 @@ fn public_agent_completes_one_tool_with_private_kat_parity_and_no_write() {
 
 #[path = "agent_runtime_v1/agent_definition_v1.rs"]
 mod agent_definition_v1;
+#[path = "agent_runtime_v1/agent_payment_harness_v1.rs"]
+mod agent_payment_harness_v1;
 
 #[test]
 fn public_cancellation_retry_and_sink_limits_are_fail_closed() {

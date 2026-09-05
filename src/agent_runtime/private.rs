@@ -2,6 +2,9 @@ use super::*;
 use std::fmt;
 use std::fmt::Write as _;
 
+#[cfg(test)]
+mod economic_tests;
+
 #[derive(Clone, Default, Eq, PartialEq)]
 struct EvidenceBudget {
     used_models: u64,
@@ -862,10 +865,7 @@ pub(crate) fn completed_run_for_economic_test(message: &str) -> AgentRun {
         quote_json(message)
     )
     .into_bytes();
-    Agent::new(&profile_source, Host { response }, AgentCancellation::new())
-        .unwrap()
-        .run(&task_source)
-        .unwrap()
+    economic_tests::run(&profile_source, &task_source, Host { response })
 }
 
 impl<H: AgentHost> Agent<H> {

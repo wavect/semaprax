@@ -1,9 +1,9 @@
 use semaprax::agent_definition::{compile_agent_definition, verify_agent_graph_bundle};
-use semaprax::agent_runtime::{Agent, AgentCancellation, AgentRunStatus};
+use semaprax::agent_runtime::{AgentCancellation, AgentRunStatus};
 
 use super::{profile, raw_sha, task, Host};
 
-fn definition(profile: &str) -> String {
+pub(super) fn definition(profile: &str) -> String {
     let profile_body = profile.strip_suffix('\n').unwrap();
     let profile_members = profile_body
         .strip_prefix(
@@ -90,12 +90,9 @@ fn definition_compiles_to_deterministic_graph_and_exact_v1_profile() {
 #[test]
 fn projected_profile_executes_through_the_unchanged_v1_kernel() {
     let compiled = compile_agent_definition(&definition(&profile())).unwrap();
-    let mut agent = Agent::new(
-        compiled.runtime_v1_profile(),
-        Host::new(),
-        AgentCancellation::new(),
-    )
-    .unwrap();
+    let mut agent = compiled
+        .instantiate(Host::new(), AgentCancellation::new())
+        .unwrap();
     let run = agent.run(&task()).unwrap();
     assert_eq!(run.status(), AgentRunStatus::Completed);
     assert_eq!(run.final_message(), Some("done"));

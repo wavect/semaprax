@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added a replayable Agent Payment Graph and unified injected-host harness that
+  compiles one AgentDefinition into Runtime v1, binds an independently admitted
+  Economic Agent Policy, and carries a completed canonical Payment Intent into
+  the existing approval/custody/broadcast/reconciliation state machine. The
+  graph binds all three semantic digests and grants no model, wallet, signing,
+  network, journal, approval, custody, or publication authority.
 - Deepened four existing standard-library packages without widening ambient
   authority: `std.time` rounds durations upward and measures elapsed
   milliseconds, `std.path`

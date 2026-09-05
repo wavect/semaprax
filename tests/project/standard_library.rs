@@ -789,6 +789,88 @@ fn package_manifest_links_bundled_std_data_json() {
     let _ = std::fs::remove_dir_all(scratch);
 }
 
+/// The two largest byte-data packages are each about 4.7 KiB, and the consumer
+/// imports twenty-four of their functions. While an importing module was
+/// charged for each imported contract and body as if it were resolved
+/// structure, that closure exhausted the Workspace Semantic Graph pre-bound
+/// and reported `SPX-G171`.
+#[test]
+fn package_manifest_links_two_large_sibling_packages() {
+    let scratch = temporary("manifest-two-large-siblings");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"sibling-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.probe\"]\n\n[dependencies]\nstd.bytes = \"=0.1.0\"\nstd.data.json = \"=0.1.0\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\nuse function @id(\"std.bytes.equals\") from std.bytes as equals;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    let left = [1u8, 2u8];\n    let right = [1u8, 2u8];\n    if equals(array_as_slice(left), array_as_slice(right)) { 0 } else { 1 }\n}\n",
+    )
+    .unwrap();
+    let mut app = String::from("module consumer.app;\n");
+    for name in [
+        "at_in",
+        "at_is",
+        "code_unit",
+        "escape_end",
+        "escape_kind",
+        "failure",
+        "failure_offset",
+        "hex_at",
+        "is_failure",
+        "is_string",
+        "skip_whitespace",
+        "string_end",
+    ] {
+        app.push_str(&format!(
+            "use function @id(\"std.data.json.{name}\") from std.data.json as {name};\n"
+        ));
+    }
+    for name in [
+        "byte_to_i64",
+        "count",
+        "ends_with",
+        "equals",
+        "get_or",
+        "index_of",
+        "is_ascii",
+        "read_u16_be",
+        "read_u16_le",
+        "read_u32_be",
+        "read_u32_le",
+        "starts_with",
+    ] {
+        app.push_str(&format!(
+            "use function @id(\"std.bytes.{name}\") from std.bytes as {name};\n"
+        ));
+    }
+    app.push_str("\n@id(\"consumer.probe\")\nfn probe(view: borrow Slice<u8>) -> bool\n{\n    is_ascii(view) && is_string(view) && at_is(view, 0usize, 34u8) && at_in(view, 1usize, 32u8, 255u8) && !is_failure(view, string_end(view, 0usize))\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let quoted = [34u8, 111u8, 107u8, 34u8];\n    let view = array_as_slice(quoted);\n    let a = skip_whitespace(view, 0usize) + failure(view, 0usize) + failure_offset(view, 0usize, 0usize) + escape_end(view, 0usize) + count(view, 34u8);\n    let b = hex_at(view, 1usize) + code_unit(view, 1usize) + escape_kind(view, 0usize) + get_or(view, 0usize, 0) + byte_to_i64(34u8);\n    let c = index_of(view, 34u8) + read_u16_be(view, 0usize) + read_u16_le(view, 0usize) + read_u32_be(view, 0usize) + read_u32_le(view, 0usize);\n    let d = equals(view, view) && starts_with(view, view) && ends_with(view, view);\n    if probe(view) && d && a > 0usize && b >= -8 && c >= 0 { 0 } else { 1 }\n}\n");
+    std::fs::write(scratch.join("src/app.spx"), app).unwrap();
+
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        let options = project::ProjectExecutionOptions::default();
+        assert_eq!(
+            snapshot.execute_entry(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert_eq!(
+            snapshot.execute_test(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.bytes/0.1.0/bytes.spx"));
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.json/0.1.0/json.spx"));
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
 #[test]
 fn package_manifest_links_borrowed_text_from_std_text() {
     let scratch = temporary("manifest-text-dependency");

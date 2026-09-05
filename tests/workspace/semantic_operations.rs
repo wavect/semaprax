@@ -148,7 +148,10 @@ fn public_api_cli_getters_kats_and_no_write_are_exact() {
     );
     assert_eq!(
         bundle.derivation_digest(),
-        "sha256:ebac6f928c56b586a6e77d0909a9eac4f3238c1140eab10c88b4a1afc1e21083"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:7ea8d96c77213e0267e05e2ed13c34f310a520e644e29ca4cc8fab4158066b60"
     );
     assert!(bundle.derivation().ends_with('\n'));
     assert!(bundle.derived_change_proposal().ends_with('\n'));
@@ -289,7 +292,10 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     );
     assert_eq!(
         bundle.derivation_digest(),
-        "sha256:ebac6f928c56b586a6e77d0909a9eac4f3238c1140eab10c88b4a1afc1e21083"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:7ea8d96c77213e0267e05e2ed13c34f310a520e644e29ca4cc8fab4158066b60"
     );
     assert_eq!(
         bundle.derived_change_proposal_digest(),
@@ -297,11 +303,17 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     );
     assert_eq!(
         raw_sha256(bundle.workspace_change_evidence().as_bytes()),
-        "sha256:f71545b90d68b6a35c68f062640dd19d9076a0a4b0ad6cfefd81ffce1170cb74"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:22423e5e9e20beac3687e962ba29109383057a42a0d5b0efc7d4e93be5ccf5e0"
     );
     assert_eq!(
         raw_sha256(bundle.operations_evidence().as_bytes()),
-        "sha256:fe16c777aae733bafc01c7466a853d27c81c4febdbedee83546414ccec946501"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:2bf14234ceb30d6eb34d2dbd8697b7377be776cca32c824e766cd0a824412771"
     );
     assert!(bundle
         .workspace_change_evidence_digest()
@@ -327,7 +339,10 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
             .unwrap();
     assert_eq!(
         raw_sha256(verification.as_bytes()),
-        "sha256:2c5e9b42836cfd3f3085120851f0d22ab1d96a681a6e8255b673371a0976c98a"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:ab3c37935eb14aa44232b4a4518c8a190e2100d36adac4b0b2c3b5f8ccebbbd6"
     );
     let cli_verify = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .arg("verify-semantic-workspace-operations-evidence")
@@ -356,7 +371,10 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
     .unwrap();
     assert_eq!(
         raw_sha256(application.as_bytes()),
-        "sha256:b2d94679ef0dbcbe05287384cb61de656fd9c7f24ca8adb725d5aa61ababa992"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:701775882f7ca2d9cfbcd312b2f1abf8215bb79b610735b912044ab58415f004"
     );
     apply_fixture.assert_exclusive_reacquire();
 

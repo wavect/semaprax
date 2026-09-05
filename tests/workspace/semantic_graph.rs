@@ -354,9 +354,13 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     let root = root.as_str();
     let projection_root = include_str!("../../src/workspace_graph/expected_projection.rs");
     let projection_cost = include_str!("../../src/workspace_graph/expected_projection/cost.rs");
+    let projection_declaration_cost =
+        include_str!("../../src/workspace_graph/expected_projection/declaration_cost.rs");
     let projection_identity_slots =
         include_str!("../../src/workspace_graph/expected_projection/identity_slots.rs");
-    let projection = format!("{projection_root}\n{projection_cost}\n{projection_identity_slots}");
+    let projection = format!(
+        "{projection_root}\n{projection_cost}\n{projection_declaration_cost}\n{projection_identity_slots}"
+    );
 
     assert!(root.contains("mod expected_projection;"));
     assert!(!projection.contains("use super::*;"));
@@ -491,7 +495,10 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         document_digest(graph.to_json().as_bytes()),
         // Re-pinned after the authenticated owned-byte-variant HIR carriers
         // enlarged the shared graph-capacity facts.
-        "sha256:8d6462f66989d6233455052a6f1f42e4f6ff026a03c804e8f80d16bd488d73b5"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:41ef67a0c3df89bdef3a7ddedb4ffa0227a938074a1c98426d42bd819252c5e5"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -905,14 +912,38 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            "sha256:9ff0a7dd1251b9f8666442631e8cb1de089dafeb293ebcab8b6db6c29ae59fef",
-            "sha256:c2a7cf46687503a9a0b0b42d3337cf5c62448b5a24de49224057ee7e494fd427",
-            "sha256:473ecfd1a7bd09c99a0e41ecb03212d3d65ac2e5efa287012b0e4ce3343f0f70",
-            "sha256:9abdd36ceecb46f2c83b3abf37fa347db28e82bd0f94daf3c234033653c8565a",
-            "sha256:5f51f354eef5466f7d9f3abe734ea4359f50f7b1e7bafd0308f6fe49afb7c5df",
-            "sha256:a4f3ea37a99f1ccb534520848364edfab6c79050bc36ca559074c1ad45d263a7",
-            "sha256:86b92c4697ec9611f18c462748c0b18d05edeb7c6f9bc0bad5a7e1127c72f5bd",
-            "sha256:b5b14b6eaeadf3eed33f728119695d1f397d4edcaae95ceaf1c19858ce4f158e",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:93db8f0bf349a39c88d9615acd093c142c7111751aba4a548e934c52888d2c2f",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:92542deb8d587503d927c74bf97a2d2e174da3dfbdfab9d49941f64ef6bac340",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:a04285ac79f786213f09225b7c5e15cadc0bc31ad6385d921815e0db92096002",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:694960dcf66a49cb352eed9031527aa6abe2de5e0f86743d558a8ed42a3731f3",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:96dcfb3303e18324b1926ff6931087b10c960c8704426d59d9b1854978bc8f7f",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:b17ec527b10d9a4147bd9ac7d4c423dee0a5feccb505e9dd22a08bab7abd7028",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:57875f507b8ebda50b051c5b09ee0161f667f9a9f95ca28038312ec5fc7351d7",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:547d65f7c46947fd2e249d14e79cc48babd47a5d9f6045ed5ed1ac0c55d65fb8",
         ]
     );
 

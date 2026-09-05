@@ -162,6 +162,22 @@ a variant construction five, and `Try` eight. Before the split, every source
 byte and every expression were charged at the `Try` and string rates, and a
 4.9 KiB module of twenty scalar functions exhausted the budget.
 
+An imported declaration is charged for what the synthetic projection retains,
+not for the provider's source. A function import becomes a stub: the rewritten
+signature, no preconditions or postconditions, and the return type's default
+expression as the body. Its pre-bound is therefore the signature at the
+resolved-structure rates plus that default expression, and the provider's
+contract and body are charged once, in the module that declares them. Building
+the stub clones one provider function transiently before replacing its body, so
+the largest single imported contract is charged once per module at the raw AST
+rate, with no structural expansion: no node of it becomes HIR. A type import is
+retained in full and keeps its full charge. Before this split, every importing
+module re-charged each imported body as resolved structure, so a conformance
+module that imports every function its library exports cost a second complete
+copy of that library — measured at 142,043 of the 226,999 raw pre-bound bytes
+of `std.data.json.tests`, expanded by 24, which is why two packages of about
+4.5 KiB could not be linked together.
+
 Output is written through a hard sink before allocation. Exactly 16,777,216
 bytes succeeds; one more reports `SPX-G171` for `output_bytes` with no partial
 JSON. Typed render/digest disagreement is `SPX-G173`.

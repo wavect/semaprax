@@ -102,6 +102,17 @@ format: `Unreleased` then release buckets, grouped by impact.
   focused compatibility/hostile/integration cases pass locally; role execution,
   provider authority, opaque authorization, and durability remain absent.
 
+- Fixed the Workspace Semantic Graph `builder_bytes` pre-bound charging every
+  imported function's contract and body as resolved structure in the importing
+  module. The synthetic projection retains an import as a stub — rewritten
+  signature, no contract, default body — so a conformance module that imports
+  everything its library exports was costing a second complete copy of that
+  library, expanded by the structural factor. Imports are now charged as the
+  stub they become, plus the largest single transient provider clone at the raw
+  AST rate. `SPX-G171` still refuses before mutation and the estimate remains an
+  upper bound of resolver memory. Documented the practical authoring limits,
+  including the `SPX-H006` cleanup-replay path budget, in
+  [Standard Library v1](docs/STANDARD-LIBRARY-V1.md).
 - Added ProgramRoot v2 and Exact Program Context v1. The versioned root retains
   the enriched canonical workspace's nine v1 segments, appends exact interface/
   artifact and Project Lock association descriptors, and explicitly binds the

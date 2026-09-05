@@ -302,11 +302,26 @@ fn public_api_getters_cli_and_whole_document_kats_are_exact() {
             raw_sha(artifacts.evidence()),
         ],
         [
-            "sha256:a75df633070dd45fa8ff7b87fe745a30439c02522119d8119b748af17706a522",
-            "sha256:b46553f786753c0ac46d50372fdf49e937c780309f55d0caa1baa1325d6496c4",
-            "sha256:2e2a109ea9977b81c5ee7a45daf229a2f859ad7e43831bf5dca950b9da125e9a",
-            "sha256:be8a532079c6cacd5db8eea77acb7ccbd0b6fdf6aac53880419fd9cfb2032370",
-            "sha256:467ca252b092762b35a7113635480e7013e2d3d5ec387d97ccc44da44e89fe5a",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:aa5dd9cae34dbacd82ec2b6c05a9f5dbdd8d038f428cd9827069dd9b3ebf4390",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:b555a75d5fe181ed1bae3d1fc7b0dd85ab0dbdcf6fdeacba4396496dc94f1812",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:7df7151da34893b3507e12767f7c71202655c93c81916d2507fa8f610d39fdb7",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:5d0ff82211369bc965528df9283d5064268db2a2fe64f60dbc0172c504468c5a",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:2503907274465e158e0f98b82e0abeed4759b509672c6f5f9fed1286cd08779b",
         ]
     );
     for value in [
@@ -389,7 +404,10 @@ fn public_verification_receipt_is_exact_shared_locked_and_read_only() {
     .unwrap();
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:12ac098a4d27f81df384251f8380f4e2d35dda7c5008800430bf66509de63a83"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:aca2ca3e616830cca3f6bf243dc6cd14f559c6540798df53dbd2e9b633c4d897"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -613,7 +631,10 @@ fn public_application_receipt_api_cli_kat_and_candidate_inventory_are_exact() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:f24700f4a38d9311e899439b707158f021a9179a65bee4d8425c3e2994980de4"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:d33fc91d950fc760c77b00c20bdc3b8a7ab4fb60747326327d7145bd6ee6db8d"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

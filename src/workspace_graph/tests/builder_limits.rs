@@ -65,6 +65,61 @@ module generic_limit.app;
     assert_exact_builder_limit_error(&error, minimum - 1);
 }
 
+fn stub_charge_provider(statements: usize) -> WorkspaceSource {
+    let mut provider =
+        String::from("\nmodule stub.provider;\n@id(\"stub.wide\") fn wide(seed: i64) -> i64 {\n");
+    for index in 0..statements {
+        provider.push_str(&format!(
+            "let step_{index} = seed + {index} * 3 - {index} / 2;\n"
+        ));
+    }
+    provider.push_str("seed\n}\n");
+    canonical_source("stub/provider.spx", &provider)
+}
+
+fn stub_charge_prebound(sources: &[WorkspaceSource], module: &str) -> usize {
+    let programs = parsed_sources(sources);
+    let authored = index_authored(&programs).expect("fixture identities are unique");
+    let subject = programs
+        .iter()
+        .find(|program| program.module == module)
+        .expect("fixture declares the subject module");
+    synthetic_builder_bytes(subject, &authored, &programs)
+        .expect("fixture stays inside the builder budget")
+        .raw_clone_and_hir
+}
+
+/// A consumer projects an imported function as a stub: the rewritten
+/// signature, no contract, and the return type's default body. Growing the
+/// provider's body must therefore not grow the consumer's pre-bound at the
+/// resolved-structure rate, only by the transient clone the projection makes
+/// and discards. Charging the imported body as resolved structure made every
+/// importing module a second full copy of its provider.
+#[test]
+fn imported_function_bodies_are_not_charged_as_resolved_structure() {
+    let consumer = canonical_source(
+        "stub/consumer.spx",
+        r#"
+module stub.consumer;
+use function @id("stub.wide") from stub.provider as wide;
+@id("stub.main") fn main() -> i64 { wide(1) }
+"#,
+    );
+    let small = vec![stub_charge_provider(4), consumer.clone()];
+    let large = vec![stub_charge_provider(64), consumer];
+
+    let definition_growth = stub_charge_prebound(&large, "stub.provider")
+        - stub_charge_prebound(&small, "stub.provider");
+    let import_growth = stub_charge_prebound(&large, "stub.consumer")
+        - stub_charge_prebound(&small, "stub.consumer");
+    assert!(definition_growth > 0);
+    assert!(
+        import_growth * 8 < definition_growth,
+        "an imported body must not be charged as resolved structure: \
+         definition grew by {definition_growth}, the importer by {import_growth}"
+    );
+}
+
 #[test]
 fn late_module_work_has_an_exact_combined_minimum_builder_limit() {
     let provider = canonical_source(

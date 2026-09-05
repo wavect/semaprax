@@ -20,9 +20,15 @@ use super::{
 
 #[path = "expected_projection/cost.rs"]
 pub(super) mod cost;
+#[path = "expected_projection/declaration_cost.rs"]
+mod declaration_cost;
 #[path = "expected_projection/identity_slots.rs"]
 mod identity_slots;
 use cost::{ExpandedDefaultCost, GenericInstanceCost, StructuralCost};
+use declaration_cost::{
+    ast_field_cost, ast_function_contract_cost, ast_function_cost, ast_function_signature_cost,
+    ast_param_cost, ast_type_cost,
+};
 use identity_slots::{
     ast_function_identity_slots, ast_program_identity_slots, ast_type_declaration_identity_slots,
     ast_type_identity_slots,
@@ -43,6 +49,7 @@ pub(super) fn synthetic_builder_bytes(
     let mut identity_slots = ast_program_identity_slots(program)?;
     let mut runtime = StructuralCost::new();
     let mut default_memo = BTreeMap::new();
+    let mut transient_import_clone = 0usize;
     for module_use in &program.module_uses {
         if module_use.kind == ModuleUseKind::Protocol {
             continue;
@@ -50,7 +57,21 @@ pub(super) fn synthetic_builder_bytes(
         let target = &authored[module_use.persistent_id.as_str()];
         runtime.string(&module_use.alias)?;
         if let Some(function) = target.function {
-            ast_function_cost(function, &mut raw)?;
+            // `synthetic_program` retains an imported function as a stub: the
+            // signature it rewrites, with `requires` and `ensures` cleared and
+            // the body replaced by the return type's default expression. Only
+            // the retained signature is charged here; the default body is
+            // charged as runtime cost below. The provider's own contract and
+            // body reach the resolver exactly once, through the defining
+            // module's own `ast_program_cost`.
+            ast_function_signature_cost(function, &mut raw)?;
+            // The stub is built from `target_function.clone()`, so one
+            // provider contract and body are materialized transiently before
+            // the body is replaced. Only one such clone is live at a time, so
+            // the peak is the largest single import, charged once as raw AST
+            // bytes: no node of it ever becomes HIR.
+            transient_import_clone =
+                transient_import_clone.max(ast_function_contract_cost(function)?.total);
             identity_slots = checked_builder_sum(
                 identity_slots,
                 ast_type_identity_slots(&function.return_type)?,
@@ -148,9 +169,15 @@ pub(super) fn synthetic_builder_bytes(
     let hir_upper = fixed_hir_upper
         .checked_add(identity_occurrence_upper)
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?;
+    let retained_and_transient = checked_usage(
+        raw.total,
+        transient_import_clone,
+        "builder_bytes",
+        active_builder_limit(),
+    )?;
     Ok(SyntheticBuilderCosts {
         raw_clone_and_hir: checked_usage(
-            raw.total,
+            retained_and_transient,
             hir_upper,
             "builder_bytes",
             active_builder_limit(),
@@ -374,65 +401,6 @@ fn ast_type_declaration_cost(
                     ast_field_cost(field, cost)?;
                 }
             }
-        }
-    }
-    Ok(())
-}
-
-fn ast_field_cost(
-    field: &crate::ast::FieldDeclaration,
-    cost: &mut StructuralCost,
-) -> Result<(), Vec<Diagnostic>> {
-    cost.value(field)?;
-    cost.string(&field.stable_id)?;
-    cost.string(&field.name)?;
-    ast_type_cost(&field.ty, cost)
-}
-
-fn ast_function_cost(
-    function: &Function,
-    cost: &mut StructuralCost,
-) -> Result<(), Vec<Diagnostic>> {
-    cost.value(function)?;
-    cost.string(&function.stable_id)?;
-    cost.string(&function.name)?;
-    for parameter in &function.type_parameters {
-        cost.value(parameter)?;
-        cost.string(&parameter.name)?;
-    }
-    for param in &function.params {
-        ast_param_cost(param, cost)?;
-    }
-    ast_type_cost(&function.return_type, cost)?;
-    for effect in &function.effects {
-        cost.string(effect)?;
-    }
-    for expression in function
-        .requires
-        .iter()
-        .chain(std::iter::once(&function.body))
-        .chain(&function.ensures)
-    {
-        ast_expr_cost(expression, cost)?;
-    }
-    Ok(())
-}
-
-fn ast_param_cost(
-    param: &crate::ast::Param,
-    cost: &mut StructuralCost,
-) -> Result<(), Vec<Diagnostic>> {
-    cost.value(param)?;
-    cost.string(&param.name)?;
-    ast_type_cost(&param.ty, cost)
-}
-
-fn ast_type_cost(ty: &Type, cost: &mut StructuralCost) -> Result<(), Vec<Diagnostic>> {
-    cost.value(ty)?;
-    if let Type::Named { name, arguments } = ty {
-        cost.string(name)?;
-        for argument in arguments {
-            ast_type_cost(argument, cost)?;
         }
     }
     Ok(())

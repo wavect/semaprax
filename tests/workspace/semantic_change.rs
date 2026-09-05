@@ -216,11 +216,17 @@ fn public_api_cli_kat_parity_and_opaque_getters() {
     assert!(preview.ends_with('\n') && evidence.ends_with('\n'));
     assert_eq!(
         raw_sha(&preview),
-        "sha256:deebc462e4fe518ea8e6cad524482b0462b27e2df1fd1a7efdb99defb213a3c8"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:583fab8baa0e96c54cad42cbbe6e70e23946ca0f2144d21b9bb0c0c11eda6fc4"
     );
     assert_eq!(
         raw_sha(&evidence),
-        "sha256:7e7a27238f22e8347bada8c69d27b0f7aafd98a7264dc336f7c844f91698647d"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:81d4fec5db76bddd094dbfdf47069b8dfbc57708ab85183742c1316e5b5f82f5"
     );
     for value in [
         artifacts.proposal_digest(),
@@ -449,7 +455,10 @@ fn verification_receipt_api_cli_kat_shared_lock_and_no_write() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:1f08bbe84eda39267897c161d1db02290fa7f99ed476334e242d0e4651b961cc"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:0e0022f96db75246ddfe85b8c9b6fa347ad15b38507c11c1b926b5cf0ed6c18c"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -660,7 +669,10 @@ fn application_receipt_api_cli_kat_fixed_point_and_raw_no_write() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:bb8e2f02c8241cd0a841223eea347593cb60bef479fbc80adbe4fe7bb50269c1"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:2bfa27fd4afa0c1b51c42d1dfefc7b054701fc0d0d9da8486a4789e44d99209d"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

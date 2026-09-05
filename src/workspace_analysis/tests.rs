@@ -548,10 +548,13 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             .each_ref()
             .map(|artifact| document_sha(&artifact.json)),
         [
-            "sha256:034357caffca26d6ffd07ae880aaa2afa1c28061d857a5a677293eb33dd885e9",
-            "sha256:872ab2a3c6a1d066c464c6e30fd155a8da3606b2934e0fcc406623cdefd99881",
-            "sha256:343129156efde7075cbee6aedab4e0795f31d110bcd161acba82cbc7e99c9259",
-            "sha256:940fbcbf25ba83e20030e879076ccff88fa0ddc6420728b4b704e3bd9b140126"
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:8ee8786c5d96d4bb96db42b1cfa88d00c5e05b85a3b192eb31a6548edf3536c7",
+            "sha256:da38052e3265c270d35c6b1ab6ba6e6022e05712c0cba63a561828bc0b337719",
+            "sha256:9112e69e39fe7b2f2bb2ea670a26e8845ce9a709a21fb41b670b505cbd60c507",
+            "sha256:11018a47d5e7a87b620bbecd5cb29c118b843d422220dd6054ee601f3fb68462"
         ]
     );
     for artifact in &contexts {
@@ -608,8 +611,11 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             .each_ref()
             .map(|artifact| document_sha(&artifact.json)),
         [
-            "sha256:c3196a4f38a64565f437eb01b3b21fa7d784ebeb286fd4aa9315e68af6dd8cfc",
-            "sha256:49a5f12b2afa110c9f3076894e6e6b259ac159e850ca7946f8539f796a92f4a3",
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:fad159b0318a68640632054d2c256da5016ac5b583f749a03b334276f784e37e",
+            "sha256:8cf38d2d6260acfef6dfd90fb6e8884d9ca9219cac3f3c73ef7d7dc5ed5bfb50",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -744,7 +750,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
     let review = analysis.render_review(declaration_target.clone()).unwrap();
     assert_eq!(
         document_sha(&review.json),
-        "sha256:4c9c8216822550837fa48efc9f33ee3932cb0cf5a45d84a203e9850b32a5d005"
+        // Re-pinned after the workspace pre-bound stopped charging an imported
+        // function as a second copy of its provider; only `used_builder_bytes`
+        // moved.
+        "sha256:b28c71855c450718d5da916a8716ff2d614d766999b418b10f1fa7eed2896457"
     );
     let direct_context = analysis
         .render_context(

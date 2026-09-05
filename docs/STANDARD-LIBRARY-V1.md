@@ -165,7 +165,7 @@ siblings name the values.
 
 ### Admission limits that shape packages today
 
-Two compiler bounds decide how large one package can be:
+These compiler bounds decide how large one package can be:
 
 - Project v1 links only functions whose parameters and result are by-value
   `i64` or `bool`, admits exactly one test module and one entry module, and
@@ -177,10 +177,16 @@ Two compiler bounds decide how large one package can be:
   described in [Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md#limits-and-budget)
   admits the current packages and a consumer that links both `std.core` and
   `std.num`; before it, a 4.9 KiB module of twenty scalar functions was rejected with
-  `SPX-G171`. A conformance module keeps
-  each check in its own function so the cleanup-plan replay stays under its
-  path budget.
-
+  `SPX-G171`. An imported function is now charged as the stub the projection
+  actually retains, so a conformance module no longer costs a second complete
+  copy of the library it exercises.
+- The cleanup-plan replay path budget (`SPX-H006`) admits at most 65,536
+  terminal paths in one function. Lazy `&&` and `||` operands and `if`
+  branches each double that count, so a function holds about sixteen
+  independent decision points. A dense predicate written as one long lazy
+  chain is rejected; the fix is to split it, or to replace the chain with a
+  `match` table, which contributes one path per arm rather than doubling. This
+  is why a conformance module keeps each check in its own function.
 - The byte-data profile (`useful-data.v1`) admits contracts throughout its
   inventory since the data emitter and npm recipe learned to lower and record
   them; `std.bytes` is a Project v3 package on that profile. Its web exports
@@ -190,6 +196,12 @@ Two compiler bounds decide how large one package can be:
 - The text profile (`useful-text-consumer.v1`) links imported functions with
   exact non-escaping `borrow str` parameters across files. Other borrowed,
   shared, owning, stored, or returned text shapes remain outside the profile.
+
+Both size bounds are per function and per module, so the practical shape of a
+large package is many small functions rather than a few long ones. `SPX-G171`
+names the budget that overflowed in its message: `builder_bytes` is the
+pre-bound estimate above, and it limits neither source size nor declaration,
+call, or use counts directly, which have their own budgets and their own names.
 
 These bounds are compiler facts, not library design. Lifting them is tracked
 in the [roadmap](ROADMAP.md#standard-library-outcomes).

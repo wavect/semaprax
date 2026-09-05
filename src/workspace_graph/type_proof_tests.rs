@@ -779,11 +779,13 @@ module graph.v14;
         // implementation Vec grew Program by 24 bytes on 64-bit hosts, and the
         // split pre-bound now charges structural bytes 24 times, string
         // contents 64 times, and per-shape identity slots instead of 64
-        // footprints and eight slots for every node. Wire-order and
+        // footprints and eight slots for every node, and an imported function
+        // is now charged as the stub the projection retains instead of as a
+        // second copy of the provider's contract and body. Wire-order and
         // independent replay below remain exact.
         assert_eq!(
             document_sha,
-            "sha256:fb93af10ddaba2f0fe7b9f9fb9f7361008cb77f8a1b37f1e015e982b40e01fd1"
+            "sha256:55ad472c19bc632a30d277839c2b4e5c1918dd4e8c45a863e96705710feca1d9"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

@@ -110,11 +110,14 @@ fn literal_kats_wire_order_domains_and_reference_parity() {
             raw_sha(artifacts.evidence()),
         ],
         [
-            "sha256:deebc462e4fe518ea8e6cad524482b0462b27e2df1fd1a7efdb99defb213a3c8",
-            "sha256:eaaefd773d821dafeaf4ffc966bdb23912ae178ed506be013162bf2f70090462",
-            "sha256:a751292986c411a535eec6e0de30c2610919825d315a717eebd5423998c5efef",
-            "sha256:047948e62089a75d12becc88c8dc8bf44e24a1521991e99c667d76a3ec814400",
-            "sha256:7e7a27238f22e8347bada8c69d27b0f7aafd98a7264dc336f7c844f91698647d"
+            // Re-pinned after the workspace pre-bound stopped charging an imported
+            // function as a second copy of its provider; only `used_builder_bytes`
+            // moved.
+            "sha256:583fab8baa0e96c54cad42cbbe6e70e23946ca0f2144d21b9bb0c0c11eda6fc4",
+            "sha256:dbbd8029620d56a251397bcc4721daf98fbb29064ddf986b5be941e6e5f7b402",
+            "sha256:a7d6ada0b3e3f02600daeb076c74bdc0fb922e0a973eaacbf6c1aaf0952eaab9",
+            "sha256:204c77a0a90bc91a68dd96fc35551b88076b6e2a96e8ae8209ab422d2a4ed701",
+            "sha256:81d4fec5db76bddd094dbfdf47069b8dfbc57708ab85183742c1316e5b5f82f5"
         ]
     );
 

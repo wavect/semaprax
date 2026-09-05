@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Made VS Code MCP frame assembly linear in received bytes. The receive path
+  concatenated the whole retained response with every incoming chunk and
+  rescanned it from byte zero, so a legal response fragmented into 1 KiB pieces
+  copied about 2.1 GB for 2 MiB received. Retained fragments are now counted for
+  the cap check and copied once into the frame they complete. The byte cap,
+  strict UTF-8, CR rejection, response-identity validation, serial request
+  semantics and terminal failure are unchanged.
+
 - Fixed VS Code editor ranges mixing three coordinate systems. The compiler's
   UTF-8 byte spans are now translated against the exact saved source into
   zero-based UTF-16 positions that may cross lines, through one mapper

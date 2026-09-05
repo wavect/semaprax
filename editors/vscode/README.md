@@ -225,7 +225,12 @@ test controller while its current request is pending; the controller sends the
 explicit cancellation request sequentially. Requests are capped at 128 KiB outer
 MCP and 64 KiB inner v5, responses at 8 MiB, source reviews at 16 MiB and 16 files,
 and virtual-document references at 64 and 32 MiB total per session. Requests time out after 30
-seconds. Framing, identity, protocol or digest failures terminate the session;
+seconds. A response is assembled from the chunks it arrives in: the retained
+fragments are counted rather than concatenated for the cap check, each chunk is
+scanned for the newline delimiter once, and each byte is copied at most once
+into the frame it completes, so a legal fragmented response costs work
+proportional to its length rather than to the square of its fragment count.
+Framing, identity, protocol or digest failures terminate the session;
 there is no automatic restart or mutation retry. Ordinary rejected intentions
 preserve the last valid candidate for correction. Source authentication or stale
 image errors invalidate candidate UI and require explicit refresh. Stop remains available while a

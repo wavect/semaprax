@@ -100,3 +100,112 @@ test('catalog rejects oversized tool names before retaining them', async () => {
   await assert.rejects(client.initialize(), /invalid or excessive/);
   assert.equal(client.tools.size, 0); client.stop();
 });
+
+// Frame assembly must be linear in received bytes: a legal fragmented response
+// is retained chunk by chunk, scanned for the delimiter once, and copied once
+// into the frame it completes. The accounting below is deterministic; no
+// wall-clock budget is asserted.
+function countingConcat() {
+  const original = Buffer.concat;
+  const meter = { copied: 0, calls: 0, restore: () => { Buffer.concat = original; } };
+  Buffer.concat = (list, ...rest) => { meter.calls++; for (const part of list) meter.copied += part.length; return original(list, ...rest); };
+  return meter;
+}
+async function fragmented(bytes, chunk) {
+  const child = new Child(), client = new McpClient(child);
+  const pending = client.request('ping', {});
+  const id = JSON.parse(child.writes[0]).id;
+  const frame = Buffer.from(JSON.stringify({ jsonrpc: '2.0', id, result: { pad: 'x'.repeat(bytes) } }) + '\n');
+  const meter = countingConcat();
+  try {
+    for (let offset = 0; offset < frame.length; offset += chunk) child.stdout.emit('data', frame.subarray(offset, Math.min(offset + chunk, frame.length)));
+    await pending;
+  } finally { meter.restore(); }
+  client.stop();
+  return { meter, frame };
+}
+
+test('a fragmented response is copied once, not once per retained chunk', async () => {
+  // The pre-existing path concatenated the whole retained buffer per chunk:
+  // for k chunks of size c that is c*k*(k+1)/2 bytes copied.
+  for (const [bytes, chunk] of [[256 * 1024, 1024], [512 * 1024, 1024], [64 * 1024, 1]]) {
+    const { meter, frame } = await fragmented(bytes, chunk);
+    const chunks = Math.ceil(frame.length / chunk);
+    const quadratic = chunk * chunks * (chunks + 1) / 2;
+    assert.equal(meter.copied, frame.length - 1, `${bytes}/${chunk}: every byte of the frame is copied exactly once`);
+    assert.equal(meter.calls, 1, 'one assembly per completed frame');
+    assert.ok(meter.copied * 8 < quadratic, `${meter.copied} must be far below the quadratic ${quadratic}`);
+  }
+});
+
+test('a whole frame in one chunk is delivered without copying it at all', async () => {
+  const child = new Child(), client = new McpClient(child);
+  const pending = client.request('ping', {});
+  const id = JSON.parse(child.writes[0]).id;
+  const meter = countingConcat();
+  try {
+    child.stdout.emit('data', Buffer.from(JSON.stringify({ jsonrpc: '2.0', id, result: { ok: true } }) + '\n'));
+    assert.deepEqual(await pending, { ok: true });
+  } finally { meter.restore(); }
+  assert.equal(meter.copied, 0);
+  client.stop();
+});
+
+test('framing survives split delimiters, split code points, several frames per chunk, and a retained tail', async () => {
+  const child = new Child(), client = new McpClient(child);
+  const first = client.request('one', {});
+  const firstId = JSON.parse(child.writes[0]).id;
+  const line = (id, value) => Buffer.from(JSON.stringify({ jsonrpc: '2.0', id, result: value }) + '\n');
+  const head = line(firstId, { label: 'é' });
+  // A chunk that ends immediately before the delimiter, then the delimiter
+  // together with the head of a frame whose request is not written yet.
+  child.stdout.emit('data', head.subarray(0, head.length - 1));
+  child.stdout.emit('data', head.subarray(head.length - 1));
+  assert.deepEqual(await first, { label: 'é' });
+
+  const second = client.request('two', {});
+  const secondId = JSON.parse(child.writes[1]).id;
+  const body = line(secondId, { label: '\u{1F600}' });
+  const split = body.indexOf(Buffer.from('\u{1F600}')) + 2;
+  child.stdout.emit('data', body.subarray(0, split));
+  child.stdout.emit('data', body.subarray(split));
+  assert.deepEqual(await second, { label: '\u{1F600}' });
+  assert.equal(client.closed, false);
+
+  // Two frames in one chunk: the second is unsolicited and is terminal.
+  const third = client.request('three', {});
+  const thirdId = JSON.parse(child.writes[2]).id;
+  child.stdout.emit('data', Buffer.concat([line(thirdId, { n: 1 }), line('unsolicited', { n: 2 })]));
+  assert.deepEqual(await third, { n: 1 });
+  assert.equal(client.closed, true);
+  assert.equal(child.killed, true);
+});
+
+test('the response cap counts retained fragments, at the byte and one past it', async () => {
+  const exact = new Child(), atCap = new McpClient(exact);
+  const held = atCap.request('ping', {});
+  held.catch(() => {});
+  for (let sent = 0; sent < MAX_RESPONSE; sent += 64 * 1024) exact.stdout.emit('data', Buffer.alloc(Math.min(64 * 1024, MAX_RESPONSE - sent), 0x20));
+  assert.equal(atCap.closed, false, 'exactly the cap is retained');
+  assert.equal(atCap.retained, MAX_RESPONSE);
+  exact.stdout.emit('data', Buffer.alloc(1, 0x20));
+  await assert.rejects(held, /byte limit/);
+  assert.equal(exact.killed, true);
+});
+
+test('a malformed frame, invalid UTF-8, and end of stream are terminal', async () => {
+  for (const [emit, message] of [
+    [child => child.stdout.emit('data', Buffer.from('{not json\n')), /Object key required/],
+    [child => child.stdout.emit('data', Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('\n')])), /./],
+    [child => child.stdout.emit('data', Buffer.from('{"jsonrpc":"2.0","id":"x","result":{}}\r\n')), /Unexpected MCP response frame/],
+    [child => child.stdout.emit('end'), /stdout closed/]
+  ]) {
+    const child = new Child(), client = new McpClient(child);
+    const pending = client.request('ping', {});
+    emit(child);
+    await assert.rejects(pending, message);
+    assert.equal(client.closed, true);
+    assert.deepEqual(client.chunks, [], 'a failed session retains nothing');
+    assert.equal(client.retained, 0);
+  }
+});

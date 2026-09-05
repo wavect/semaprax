@@ -76,7 +76,11 @@ function inner(result) {
 class McpClient {
   constructor(child, onFailure = () => {}, timeout = 30000) {
     this.child = child; this.onFailure = onFailure; this.timeout = timeout;
-    this.pending = null; this.buffer = Buffer.alloc(0); this.next = 1; this.tools = new Set(); this.closed = false;
+    // Retained bytes of an incomplete frame, kept as the chunks they arrived
+    // in. `retained` is their total length, so the response cap is checked
+    // without concatenating them; each chunk is scanned for the delimiter
+    // exactly once and copied at most once, into its own completed frame.
+    this.pending = null; this.chunks = []; this.retained = 0; this.next = 1; this.tools = new Set(); this.closed = false;
     child.stdout.on('data', data => this.receive(data));
     child.stdout.on('end', () => this.fail(new Error('Compiler stdout closed; explicit restart required')));
     child.on('error', error => this.fail(error));
@@ -89,25 +93,42 @@ class McpClient {
     if (this.closed) return;
     this.closed = true; const pending = this.pending; this.pending = null;
     if (pending) { clearTimeout(pending.timer); pending.reject(error); }
-    this.buffer = Buffer.alloc(0); this.child.kill(); this.onFailure(error);
+    this.chunks = []; this.retained = 0; this.child.kill(); this.onFailure(error);
   }
   stop() { this.fail(new Error('Session stopped')); }
+  // The bytes of one completed frame: the retained chunks followed by the tail
+  // that finished it. A frame that arrived whole is returned without a copy.
+  frame(tail) {
+    if (!this.chunks.length) return tail;
+    this.chunks.push(tail);
+    const bytes = Buffer.concat(this.chunks);
+    this.chunks = []; this.retained = 0;
+    return bytes;
+  }
+  // One complete LF-delimited response. Strict UTF-8, CR rejection, response
+  // identity, serial request semantics, and terminal failure are unchanged.
+  accept(bytes) {
+    if (!this.pending || bytes.includes(13)) throw new Error('Unexpected MCP response frame');
+    const value = parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    const pending = this.pending;
+    if (value.jsonrpc !== '2.0' || value.id !== pending.id) throw new Error('MCP response identity mismatch');
+    if (Object.hasOwn(value, 'error')) throw new Error(`MCP error: ${String(value.error.message).slice(0, 4096)}`);
+    exact(value, ['jsonrpc', 'id', 'result']);
+    this.pending = null; clearTimeout(pending.timer); pending.resolve(value.result);
+  }
   receive(data) {
     if (this.closed) return;
     try {
-      if (this.buffer.length + data.length > MAX_RESPONSE) throw new Error('MCP response byte limit');
-      this.buffer = Buffer.concat([this.buffer, data]);
+      if (this.retained + data.length > MAX_RESPONSE) throw new Error('MCP response byte limit');
+      let start = 0;
       for (;;) {
-        const end = this.buffer.indexOf(10); if (end < 0) break;
-        const bytes = this.buffer.subarray(0, end); this.buffer = this.buffer.subarray(end + 1);
-        if (!this.pending || bytes.includes(13)) throw new Error('Unexpected MCP response frame');
-        const value = parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-        const pending = this.pending;
-        if (value.jsonrpc !== '2.0' || value.id !== pending.id) throw new Error('MCP response identity mismatch');
-        if (Object.hasOwn(value, 'error')) throw new Error(`MCP error: ${String(value.error.message).slice(0, 4096)}`);
-        exact(value, ['jsonrpc', 'id', 'result']);
-        this.pending = null; clearTimeout(pending.timer); pending.resolve(value.result);
+        const end = data.indexOf(10, start);
+        if (end < 0) break;
+        const bytes = this.frame(data.subarray(start, end));
+        start = end + 1;
+        this.accept(bytes);
       }
+      if (start < data.length) { this.chunks.push(data.subarray(start)); this.retained += data.length - start; }
     } catch (error) { this.fail(error); }
   }
   request(method, params) {

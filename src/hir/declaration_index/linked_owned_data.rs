@@ -21,6 +21,28 @@ impl DeclarationIndex {
         templates: &[ResolvedFunctionTemplate],
         facts: &BTreeMap<DeclarationId, LinkedDeclarationFact>,
     ) -> Result<(), Diagnostic> {
+        self.extend_linked_data(types, interfaces, functions, templates, facts, false)
+    }
+
+    pub(in crate::hir) fn extend_linked_scalar_data(
+        &mut self,
+        types: &[ResolvedTypeDeclaration],
+        interfaces: &[ResolvedInterface],
+        functions: &[ResolvedFunction],
+        facts: &BTreeMap<DeclarationId, LinkedDeclarationFact>,
+    ) -> Result<(), Diagnostic> {
+        self.extend_linked_data(types, interfaces, functions, &[], facts, true)
+    }
+
+    fn extend_linked_data(
+        &mut self,
+        types: &[ResolvedTypeDeclaration],
+        interfaces: &[ResolvedInterface],
+        functions: &[ResolvedFunction],
+        templates: &[ResolvedFunctionTemplate],
+        facts: &BTreeMap<DeclarationId, LinkedDeclarationFact>,
+        admit_classes: bool,
+    ) -> Result<(), Diagnostic> {
         fn require_fact<'a>(
             facts: &'a BTreeMap<DeclarationId, LinkedDeclarationFact>,
             used: &mut BTreeSet<DeclarationId>,
@@ -54,6 +76,9 @@ impl DeclarationIndex {
             let kind = match &declaration.kind {
                 ResolvedTypeDeclarationKind::Record { .. } => DeclarationKind::Record,
                 ResolvedTypeDeclarationKind::Variant { .. } => DeclarationKind::Variant,
+                ResolvedTypeDeclarationKind::Class { .. } if admit_classes => {
+                    DeclarationKind::Class
+                }
                 ResolvedTypeDeclarationKind::Class { .. }
                 | ResolvedTypeDeclarationKind::Resource { .. } => {
                     return Err(Diagnostic::io(
@@ -85,7 +110,8 @@ impl DeclarationIndex {
                 .insert(declaration.id.clone(), declaration.type_parameters.clone());
 
             match &declaration.kind {
-                ResolvedTypeDeclarationKind::Record { fields } => {
+                ResolvedTypeDeclarationKind::Record { fields }
+                | ResolvedTypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         let fact = require_fact(
                             facts,
@@ -130,8 +156,7 @@ impl DeclarationIndex {
                     self.variant_cases
                         .insert(declaration.id.clone(), cases.clone());
                 }
-                ResolvedTypeDeclarationKind::Class { .. }
-                | ResolvedTypeDeclarationKind::Resource { .. } => unreachable!("rejected above"),
+                ResolvedTypeDeclarationKind::Resource { .. } => unreachable!("rejected above"),
             }
         }
 
@@ -198,12 +223,15 @@ impl DeclarationIndex {
         }
 
         for function in functions {
+            let owner = admit_classes
+                .then(|| facts.get(&function.id).and_then(|fact| fact.owner.as_ref()))
+                .flatten();
             let fact = require_fact(
                 facts,
                 &mut used,
                 &function.id,
                 DeclarationKind::Function,
-                None,
+                owner,
             )?;
             if self.declarations.contains_key(&function.id) {
                 return Err(Diagnostic::io(
@@ -214,12 +242,22 @@ impl DeclarationIndex {
                     ),
                 ));
             }
-            self.insert_top_level(
-                function.name.clone(),
-                function.id.clone(),
-                DeclarationKind::Function,
-                fact.origin,
-            );
+            if let Some(owner) = owner {
+                self.insert_owned_declaration(
+                    owner.clone(),
+                    function.name.clone(),
+                    function.id.clone(),
+                    DeclarationKind::Function,
+                    fact.origin,
+                );
+            } else {
+                self.insert_top_level(
+                    function.name.clone(),
+                    function.id.clone(),
+                    DeclarationKind::Function,
+                    fact.origin,
+                );
+            }
             self.type_parameters.insert(function.id.clone(), Vec::new());
         }
         // A generic template owns an ordinary function identity; only its

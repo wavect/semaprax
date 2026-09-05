@@ -3103,6 +3103,14 @@ fn resolved_data_parameter_is_admitted(
         {
             true
         }
+        (ty @ ResolvedType::Nominal { declaration, .. }, hir::OwnershipMode::Value)
+            if declarations
+                .declaration(declaration)
+                .is_some_and(|item| item.kind == hir::DeclarationKind::Class)
+                && record_construction_is_admitted(declarations, ty, true) =>
+        {
+            true
+        }
         (ResolvedType::Bytes, hir::OwnershipMode::Own)
         | (ResolvedType::Bytes, hir::OwnershipMode::Borrow)
         | (ResolvedType::Str, hir::OwnershipMode::Borrow)

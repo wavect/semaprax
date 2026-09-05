@@ -6,44 +6,36 @@
 //!
 //! This module exposes no parser, verifier, raw-source constructor, write,
 //! staging, ACTIVE-pivot, backend, or runtime authority.
-
 #![allow(
     dead_code,
     reason = "sealed validation and test-only replay seams remain non-public"
 )]
-
 mod expected_projection;
 mod operation_sidecar;
 mod owned_generics;
 mod package;
 mod retained_validation;
-
-use operation_sidecar::build_operation_sidecar;
-pub(crate) use operation_sidecar::project_operation_sidecar;
-#[cfg(test)]
-use retained_validation::validate_effect_and_capability_edges;
-use retained_validation::validate_retained_facts;
-
-use std::cell::Cell;
-use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
-
-use sha2::{Digest, Sha256};
-
 use crate::ast::{
     Expr, ExprKind, Function, ModuleUse, ModuleUseKind, ParamMode, Program, Span, Type,
     TypeDeclaration, TypeDeclarationKind,
 };
 use crate::diagnostic::Diagnostic;
 use crate::{format, graph, hir, prelude, workspace};
-
 #[cfg(test)]
 use expected_projection::dependency_depths;
 use expected_projection::{
     collect_expected_edges, synthetic_builder_bytes, synthetic_program, validate_dependency_dag,
     verify_resolved_call_edges,
 };
-
+use operation_sidecar::build_operation_sidecar;
+pub(crate) use operation_sidecar::project_operation_sidecar;
+#[cfg(test)]
+use retained_validation::validate_effect_and_capability_edges;
+use retained_validation::validate_retained_facts;
+use sha2::{Digest, Sha256};
+use std::cell::Cell;
+use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 const MAX_FILES: usize = 16;
 const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_DECLARATIONS: usize = 4096;
@@ -156,13 +148,11 @@ const _: () = assert!(
     HIR_DECLARATION_FIXED_BUNDLE
         <= HIR_FIXED_EXPANSION_FACTOR * std::mem::size_of::<crate::ast::TypeDeclaration>()
 );
-
 #[derive(Clone)]
 pub(crate) struct WorkspaceSource {
     pub(crate) path: String,
     pub(crate) source: String,
 }
-
 pub(crate) struct WorkspaceGraphBuild {
     hir: ValidatedWorkspaceHir,
     edges: Vec<WorkspaceEdge>,
@@ -172,7 +162,6 @@ pub(crate) struct WorkspaceGraphBuild {
     operation_sidecar: Option<WorkspaceOperationSidecar>,
     operation_builder_bytes: usize,
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ProjectGraphSourceFact {
     pub(crate) path: String,
@@ -180,40 +169,34 @@ pub(crate) struct ProjectGraphSourceFact {
     pub(crate) source_revision: String,
     pub(crate) source_digest: String,
 }
-
 pub(crate) struct ProjectSemanticParts {
     pub(crate) entry_program: hir::ResolvedProgram,
+    pub(crate) web_program: hir::ResolvedProgram,
     pub(crate) test_program: hir::ResolvedProgram,
     pub(crate) projection: WorkspaceGraphProjection,
 }
-
 pub(crate) struct ProjectWebRoots<'a> {
     pub(crate) stable_ids: &'a [String],
     pub(crate) profile: crate::project::ProjectProfile,
 }
-
 pub(crate) struct ProjectSemanticGraphArtifact {
     json: String,
     digest: String,
 }
-
 impl ProjectSemanticGraphArtifact {
     pub(crate) fn json(&self) -> &str {
         &self.json
     }
-
     pub(crate) fn digest(&self) -> &str {
         &self.digest
     }
 }
-
 pub(crate) struct WorkspaceGraphOperationView {
     pub(crate) graph: WorkspaceGraphChangeView,
     pub(crate) sidecar: WorkspaceOperationSidecar,
     pub(crate) builder_bytes: usize,
     pub(crate) change_builder_bytes: usize,
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorkspaceOperationOccurrence {
     pub(crate) path: String,
@@ -221,7 +204,6 @@ pub(crate) struct WorkspaceOperationOccurrence {
     pub(crate) owner: Option<String>,
     pub(crate) shorthand_binding: Option<String>,
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorkspaceOperationDeclaration {
     pub(crate) path: String,
@@ -235,7 +217,6 @@ pub(crate) struct WorkspaceOperationDeclaration {
     pub(crate) normalized_fingerprint: String,
     pub(crate) occurrences: Vec<WorkspaceOperationOccurrence>,
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorkspaceOperationImport {
     pub(crate) path: String,
@@ -245,13 +226,11 @@ pub(crate) struct WorkspaceOperationImport {
     pub(crate) alias: String,
     pub(crate) occurrences: Vec<WorkspaceOperationOccurrence>,
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorkspaceOperationSidecar {
     pub(crate) declarations: Vec<WorkspaceOperationDeclaration>,
     pub(crate) imports: Vec<WorkspaceOperationImport>,
 }
-
 pub(crate) struct WorkspaceGraphChangeView {
     modules: Vec<WorkspaceGraphChangeModule>,
     declarations: Vec<WorkspaceGraphChangeDeclaration>,
@@ -260,14 +239,12 @@ pub(crate) struct WorkspaceGraphChangeView {
     shared_prelude_ids: Vec<&'static str>,
     usage: WorkspaceGraphWorkUsage,
 }
-
 pub(crate) struct WorkspaceGraphChangeSourceFact {
     pub(crate) path: String,
     pub(crate) source_graph_schema: String,
     pub(crate) source_revision: String,
     pub(crate) source_digest: String,
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorkspaceGraphChangeModule {
     path: String,
@@ -275,7 +252,6 @@ pub(crate) struct WorkspaceGraphChangeModule {
     source_graph_schema: &'static str,
     permits: Vec<String>,
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorkspaceGraphChangeDeclaration {
     id: String,
@@ -286,14 +262,12 @@ pub(crate) struct WorkspaceGraphChangeDeclaration {
     module: Option<String>,
     semantic_fingerprint: String,
 }
-
 pub(crate) struct AuthenticatedWorkspaceGraphBuild {
     workspace_revision: String,
     sources: BTreeMap<String, AuthenticatedSourceFact>,
     storage: AuthenticatedWorkspaceStorageUsage,
     graph: WorkspaceGraphBuild,
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct AuthenticatedSourceFact {
     path: String,
@@ -301,7 +275,6 @@ struct AuthenticatedSourceFact {
     source_revision: String,
     source_digest: String,
 }
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct AuthenticatedWorkspaceStorageUsage {
     manifest_bytes: usize,
@@ -309,7 +282,6 @@ struct AuthenticatedWorkspaceStorageUsage {
     staging_attempts: usize,
     unexpected_inventory_entries: usize,
 }
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct WorkspaceGraphWorkUsage {
     managed_files: usize,
@@ -322,7 +294,6 @@ struct WorkspaceGraphWorkUsage {
     dependency_depth: usize,
     builder_bytes: usize,
 }
-
 pub(crate) struct WorkspaceGraphProjection {
     workspace_revision: String,
     entry_module: String,
@@ -332,7 +303,6 @@ pub(crate) struct WorkspaceGraphProjection {
     shared_prelude_ids: Vec<&'static str>,
     usage: WorkspaceGraphProjectionUsage,
 }
-
 pub struct WorkspaceSemanticGraph {
     workspace_revision: String,
     graph_digest: String,
@@ -344,12 +314,10 @@ pub struct WorkspaceSemanticGraph {
     budget: WorkspaceSemanticGraphBudget,
     json: String,
 }
-
 pub struct WorkspaceSemanticGraphEntry {
     module: String,
     path: String,
 }
-
 pub struct WorkspaceSemanticGraphModule {
     path: String,
     module: String,
@@ -359,7 +327,6 @@ pub struct WorkspaceSemanticGraphModule {
     dependency_depth: usize,
     permits: Vec<String>,
 }
-
 pub struct WorkspaceSemanticGraphDeclaration {
     id: String,
     kind: &'static str,
@@ -368,7 +335,6 @@ pub struct WorkspaceSemanticGraphDeclaration {
     path: Option<String>,
     module: Option<String>,
 }
-
 pub struct WorkspaceSemanticGraphEdge {
     caller_path: String,
     caller: String,
@@ -381,7 +347,6 @@ pub struct WorkspaceSemanticGraphEdge {
     alias: String,
     ordinal: usize,
 }
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorkspaceSemanticGraphLimits {
     max_managed_files: usize,
@@ -401,7 +366,6 @@ pub struct WorkspaceSemanticGraphLimits {
     max_staging_attempts: usize,
     max_unexpected_inventory_entries: usize,
 }
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorkspaceSemanticGraphBudget {
     used_managed_files: usize,
@@ -421,7 +385,6 @@ pub struct WorkspaceSemanticGraphBudget {
     used_staging_attempts: usize,
     used_unexpected_inventory_entries: usize,
 }
-
 pub(crate) struct WorkspaceGraphProjectionModule {
     path: String,
     module: String,
@@ -437,7 +400,6 @@ pub(crate) struct WorkspaceGraphProjectionModule {
     function_instances: Vec<hir::ResolvedFunctionInstance>,
     signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
 }
-
 pub(crate) struct WorkspaceGraphProjectionDeclaration {
     id: String,
     kind: hir::DeclarationKind,
@@ -446,7 +408,6 @@ pub(crate) struct WorkspaceGraphProjectionDeclaration {
     path: Option<String>,
     module: Option<String>,
 }
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct WorkspaceGraphProjectionUsage {
     used_managed_files: usize,
@@ -466,7 +427,6 @@ pub(crate) struct WorkspaceGraphProjectionUsage {
     used_unexpected_inventory_entries: usize,
     used_reachable_modules: usize,
 }
-
 struct ValidatedWorkspaceHir {
     modules: Vec<WorkspaceResolvedModule>,
     module_paths: BTreeMap<String, String>,
@@ -474,7 +434,6 @@ struct ValidatedWorkspaceHir {
     declarations: BTreeMap<String, WorkspaceDeclarationFact>,
     shared_prelude_ids: BTreeSet<&'static str>,
 }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct WorkspaceDeclarationFact {
     kind: hir::DeclarationKind,
@@ -483,7 +442,6 @@ struct WorkspaceDeclarationFact {
     path: Option<String>,
     module: Option<String>,
 }
-
 struct WorkspaceResolvedModule {
     path: String,
     module: String,
@@ -495,7 +453,6 @@ struct WorkspaceResolvedModule {
     function_instances: Vec<hir::ResolvedFunctionInstance>,
     signature_types: BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>,
 }
-
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct WorkspaceEdge {
     caller_path: String,
@@ -509,28 +466,22 @@ pub(crate) struct WorkspaceEdge {
     alias: String,
     ordinal: usize,
 }
-
 impl WorkspaceGraphProjection {
     pub(crate) fn workspace_revision(&self) -> &str {
         &self.workspace_revision
     }
-
     pub(crate) fn entry_module(&self) -> &str {
         &self.entry_module
     }
-
     pub(crate) fn modules(&self) -> &[WorkspaceGraphProjectionModule] {
         &self.modules
     }
-
     pub(crate) fn declarations(&self) -> &[WorkspaceGraphProjectionDeclaration] {
         &self.declarations
     }
-
     pub(crate) fn edges(&self) -> &[WorkspaceEdge] {
         &self.edges
     }
-
     pub(crate) fn shared_prelude_ids(&self) -> &[&'static str] {
         &self.shared_prelude_ids
     }
@@ -538,7 +489,6 @@ impl WorkspaceGraphProjection {
     pub(crate) fn usage(&self) -> WorkspaceGraphProjectionUsage {
         self.usage
     }
-
     #[cfg(test)]
     pub(crate) fn push_analysis_test_edge(
         &mut self,
@@ -584,7 +534,6 @@ impl WorkspaceGraphProjectionModule {
     pub(crate) fn path(&self) -> &str {
         &self.path
     }
-
     pub(crate) fn module(&self) -> &str {
         &self.module
     }
@@ -592,7 +541,6 @@ impl WorkspaceGraphProjectionModule {
     pub(crate) fn source_graph_schema(&self) -> &str {
         &self.source_graph_schema
     }
-
     pub(crate) fn source_revision(&self) -> &str {
         &self.source_revision
     }
@@ -600,7 +548,6 @@ impl WorkspaceGraphProjectionModule {
     pub(crate) fn source_digest(&self) -> &str {
         &self.source_digest
     }
-
     pub(crate) fn dependency_depth(&self) -> usize {
         self.dependency_depth
     }
@@ -608,7 +555,6 @@ impl WorkspaceGraphProjectionModule {
     pub(crate) fn permits(&self) -> &[String] {
         &self.permits
     }
-
     pub(crate) fn types(&self) -> &[hir::ResolvedTypeDeclaration] {
         &self.types
     }
@@ -616,7 +562,6 @@ impl WorkspaceGraphProjectionModule {
     pub(crate) fn interfaces(&self) -> &[hir::ResolvedInterface] {
         &self.interfaces
     }
-
     pub(crate) fn functions(&self) -> &[hir::ResolvedFunction] {
         &self.functions
     }
@@ -624,7 +569,6 @@ impl WorkspaceGraphProjectionModule {
     pub(crate) fn function_templates(&self) -> &[hir::ResolvedFunctionTemplate] {
         &self.function_templates
     }
-
     pub(crate) fn function_instances(&self) -> &[hir::ResolvedFunctionInstance] {
         &self.function_instances
     }
@@ -634,7 +578,6 @@ impl WorkspaceGraphProjectionDeclaration {
     pub(crate) fn id(&self) -> &str {
         &self.id
     }
-
     pub(crate) fn kind(&self) -> hir::DeclarationKind {
         self.kind
     }
@@ -642,7 +585,6 @@ impl WorkspaceGraphProjectionDeclaration {
     pub(crate) fn origin(&self) -> hir::IdentityOrigin {
         self.origin
     }
-
     pub(crate) fn owner(&self) -> Option<&str> {
         self.owner.as_deref()
     }
@@ -650,7 +592,6 @@ impl WorkspaceGraphProjectionDeclaration {
     pub(crate) fn path(&self) -> Option<&str> {
         self.path.as_deref()
     }
-
     pub(crate) fn module(&self) -> Option<&str> {
         self.module.as_deref()
     }
@@ -660,7 +601,6 @@ impl WorkspaceGraphProjectionUsage {
     pub(crate) fn used_managed_files(self) -> usize {
         self.used_managed_files
     }
-
     pub(crate) fn used_total_source_bytes(self) -> usize {
         self.used_total_source_bytes
     }
@@ -668,7 +608,6 @@ impl WorkspaceGraphProjectionUsage {
     pub(crate) fn used_entry_module_bytes(self) -> usize {
         self.used_entry_module_bytes
     }
-
     pub(crate) fn used_declarations(self) -> usize {
         self.used_declarations
     }
@@ -676,7 +615,6 @@ impl WorkspaceGraphProjectionUsage {
     pub(crate) fn used_callables(self) -> usize {
         self.used_callables
     }
-
     pub(crate) fn used_call_sites(self) -> usize {
         self.used_call_sites
     }
@@ -684,7 +622,6 @@ impl WorkspaceGraphProjectionUsage {
     pub(crate) fn used_uses(self) -> usize {
         self.used_uses
     }
-
     pub(crate) fn used_resolved_cross_file_edges(self) -> usize {
         self.used_resolved_cross_file_edges
     }
@@ -692,7 +629,6 @@ impl WorkspaceGraphProjectionUsage {
     pub(crate) fn used_dependency_depth(self) -> usize {
         self.used_dependency_depth
     }
-
     pub(crate) fn used_builder_bytes(self) -> usize {
         self.used_builder_bytes
     }
@@ -700,7 +636,6 @@ impl WorkspaceGraphProjectionUsage {
     pub(crate) fn used_manifest_bytes(self) -> usize {
         self.used_manifest_bytes
     }
-
     pub(crate) fn used_output_bytes(self) -> usize {
         self.used_output_bytes
     }
@@ -708,7 +643,6 @@ impl WorkspaceGraphProjectionUsage {
     pub(crate) fn used_retained_generations(self) -> usize {
         self.used_retained_generations
     }
-
     pub(crate) fn used_staging_attempts(self) -> usize {
         self.used_staging_attempts
     }
@@ -716,7 +650,6 @@ impl WorkspaceGraphProjectionUsage {
     pub(crate) fn used_unexpected_inventory_entries(self) -> usize {
         self.used_unexpected_inventory_entries
     }
-
     pub(crate) fn used_reachable_modules(self) -> usize {
         self.used_reachable_modules
     }
@@ -726,7 +659,6 @@ impl WorkspaceSemanticGraph {
     pub fn schema(&self) -> &str {
         WORKSPACE_GRAPH_SCHEMA
     }
-
     pub fn workspace_manifest_schema(&self) -> &str {
         WORKSPACE_MANIFEST_SCHEMA
     }
@@ -734,7 +666,6 @@ impl WorkspaceSemanticGraph {
     pub fn workspace_revision(&self) -> &str {
         &self.workspace_revision
     }
-
     pub fn graph_digest(&self) -> &str {
         &self.graph_digest
     }
@@ -742,7 +673,6 @@ impl WorkspaceSemanticGraph {
     pub fn entry(&self) -> &WorkspaceSemanticGraphEntry {
         &self.entry
     }
-
     pub fn modules(&self) -> &[WorkspaceSemanticGraphModule] {
         &self.modules
     }
@@ -750,7 +680,6 @@ impl WorkspaceSemanticGraph {
     pub fn declarations(&self) -> &[WorkspaceSemanticGraphDeclaration] {
         &self.declarations
     }
-
     pub fn edges(&self) -> &[WorkspaceSemanticGraphEdge] {
         &self.edges
     }
@@ -758,7 +687,6 @@ impl WorkspaceSemanticGraph {
     pub fn limits(&self) -> WorkspaceSemanticGraphLimits {
         self.limits
     }
-
     pub fn budget(&self) -> WorkspaceSemanticGraphBudget {
         self.budget
     }
@@ -766,7 +694,6 @@ impl WorkspaceSemanticGraph {
     pub fn nonclaims(&self) -> &'static [&'static str] {
         &NONCLAIMS
     }
-
     pub fn to_json(&self) -> &str {
         &self.json
     }
@@ -776,7 +703,6 @@ impl WorkspaceSemanticGraphEntry {
     pub fn module(&self) -> &str {
         &self.module
     }
-
     pub fn path(&self) -> &str {
         &self.path
     }
@@ -966,7 +892,6 @@ impl WorkspaceEdge {
     pub(crate) fn caller_path(&self) -> &str {
         &self.caller_path
     }
-
     pub(crate) fn caller(&self) -> &str {
         &self.caller
     }
@@ -974,7 +899,6 @@ impl WorkspaceEdge {
     pub(crate) fn target_path(&self) -> &str {
         &self.target_path
     }
-
     pub(crate) fn target(&self) -> &str {
         &self.target
     }
@@ -982,7 +906,6 @@ impl WorkspaceEdge {
     pub(crate) fn kind(&self) -> &str {
         self.kind
     }
-
     pub(crate) fn site(&self) -> &str {
         self.site
     }
@@ -990,7 +913,6 @@ impl WorkspaceEdge {
     pub(crate) fn expression(&self) -> &str {
         &self.expression
     }
-
     pub(crate) fn ast_path(&self) -> &str {
         &self.ast_path
     }
@@ -998,7 +920,6 @@ impl WorkspaceEdge {
     pub(crate) fn alias(&self) -> &str {
         &self.alias
     }
-
     pub(crate) fn ordinal(&self) -> usize {
         self.ordinal
     }
@@ -1057,7 +978,6 @@ pub(crate) fn build_owned(
 pub(crate) use package::{
     build_package_scalar_sources, PackageWorkspaceImport, PackageWorkspaceModule,
 };
-
 impl WorkspaceGraphBuild {
     pub(crate) fn contains_module(&self, module: &str) -> bool {
         self.hir.module_paths.contains_key(module)
@@ -1070,7 +990,6 @@ impl WorkspaceGraphBuild {
         let modules = self.hir.modules.iter();
         modules.flat_map(|module| module.functions.iter())
     }
-
     /// Consume one validated workspace build into the entry module's complete
     /// provider closure and link its real scalar function bodies. This is a
     /// private backend-preparation seam, not a new Workspace authority or a
@@ -1293,6 +1212,7 @@ impl WorkspaceGraphBuild {
                 .flat_map(|module| &module.interfaces),
         );
         let mut functions = Vec::new();
+        let mut types = Vec::new();
         let mut entrypoints = Vec::new();
         let mut retained_modules = 0usize;
         for module in &self.hir.modules {
@@ -1316,6 +1236,9 @@ impl WorkspaceGraphBuild {
                         module.module
                     ),
                 )]);
+            }
+            if profile == crate::project::ProjectProfile::ScalarV1 {
+                types.extend(module.types.iter().cloned());
             }
             for function in &module.functions {
                 if profile == crate::project::ProjectProfile::ScalarV1
@@ -1396,7 +1319,9 @@ impl WorkspaceGraphBuild {
                 entry_module.to_owned(),
                 entrypoint,
                 functions,
+                types,
                 &self.hir.declarations,
+                true,
             ),
             crate::project::ProjectProfile::UsefulTextConsumerV1 => {
                 hir::link_useful_text_workspace(entry_module.to_owned(), entrypoint, functions)
@@ -1499,11 +1424,14 @@ impl WorkspaceGraphBuild {
             }
         }
 
-        let mut retained = base
-            .functions
-            .iter()
-            .map(|function| function.id.clone())
-            .collect::<BTreeSet<_>>();
+        let mut retained = if profile == crate::project::ProjectProfile::ScalarV1 {
+            BTreeSet::new()
+        } else {
+            base.functions
+                .iter()
+                .map(|function| function.id.clone())
+                .collect::<BTreeSet<_>>()
+        };
         let mut pending = additional_roots
             .iter()
             .map(|root| hir::DeclarationId::new(root.clone()))
@@ -1545,12 +1473,26 @@ impl WorkspaceGraphBuild {
             })
             .collect::<Result<Vec<_>, _>>()?;
         match profile {
-            crate::project::ProjectProfile::ScalarV1 => natives.link(
-                base.module,
-                base.entrypoint,
-                functions,
-                &self.hir.declarations,
-            ),
+            crate::project::ProjectProfile::ScalarV1 => {
+                let types = if functions.iter().any(|linked| {
+                    self.hir
+                        .declarations
+                        .get(linked.function.id.as_str())
+                        .is_some_and(|fact| fact.owner.is_some())
+                }) {
+                    base.types
+                } else {
+                    Vec::new()
+                };
+                natives.link(
+                    base.module,
+                    hir::DeclarationId::new(additional_roots[0].clone()),
+                    functions,
+                    types,
+                    &self.hir.declarations,
+                    false,
+                )
+            }
             crate::project::ProjectProfile::UsefulTextConsumerV1 => {
                 hir::link_useful_text_workspace(base.module, base.entrypoint, functions)
             }
@@ -2001,7 +1943,8 @@ impl WorkspaceGraphBuild {
                 )]);
             }
         }
-        let entry_program = self.linked_scalar_program_with_roots(
+        let entry_program = self.linked_project_program(entry_module, web_roots.profile)?;
+        let web_program = self.linked_scalar_program_with_roots(
             entry_module,
             web_roots.stable_ids,
             web_roots.profile,
@@ -2015,6 +1958,7 @@ impl WorkspaceGraphBuild {
         )?;
         Ok(ProjectSemanticParts {
             entry_program,
+            web_program,
             test_program,
             projection,
         })
@@ -2178,6 +2122,16 @@ impl WorkspaceGraphBuild {
                 continue;
             }
             for function in &module.functions {
+                let class_method = profile == crate::project::ProjectProfile::ScalarV1
+                    && function
+                        .params
+                        .first()
+                        .is_some_and(|parameter| parameter.name == "self")
+                    && self
+                        .hir
+                        .declarations
+                        .get(function.id.as_str())
+                        .is_some_and(|fact| fact.owner.is_some());
                 let admitted_parameter = |parameter: &hir::ResolvedParam| match profile {
                     crate::project::ProjectProfile::ScalarV1 => {
                         parameter.ownership == hir::OwnershipMode::Value
@@ -2251,11 +2205,12 @@ impl WorkspaceGraphBuild {
                         )
                     }));
                 if !effects_admitted
-                    || !admitted_return
-                    || function
-                        .params
-                        .iter()
-                        .any(|parameter| !admitted_parameter(parameter))
+                    || (!class_method
+                        && (!admitted_return
+                            || function
+                                .params
+                                .iter()
+                                .any(|parameter| !admitted_parameter(parameter))))
                 {
                     let profile = match profile {
                         crate::project::ProjectProfile::ScalarV1 => "pure scalar linker",
@@ -2658,7 +2613,6 @@ impl WorkspaceGraphChangeView {
     pub(crate) const fn used_managed_files(&self) -> usize {
         self.usage.managed_files
     }
-
     pub(crate) const fn used_total_source_bytes(&self) -> usize {
         self.usage.total_source_bytes
     }
@@ -2666,7 +2620,6 @@ impl WorkspaceGraphChangeView {
     pub(crate) const fn used_builder_bytes(&self) -> usize {
         self.usage.builder_bytes
     }
-
     pub(crate) fn modules(&self) -> &[WorkspaceGraphChangeModule] {
         &self.modules
     }
@@ -2674,7 +2627,6 @@ impl WorkspaceGraphChangeView {
     pub(crate) fn declarations(&self) -> &[WorkspaceGraphChangeDeclaration] {
         &self.declarations
     }
-
     pub(crate) fn edges(&self) -> &[WorkspaceEdge] {
         &self.edges
     }
@@ -2897,7 +2849,6 @@ impl WorkspaceGraphChangeModule {
     pub(crate) fn path(&self) -> &str {
         &self.path
     }
-
     pub(crate) fn module(&self) -> &str {
         &self.module
     }
@@ -2905,7 +2856,6 @@ impl WorkspaceGraphChangeModule {
     pub(crate) const fn source_graph_schema(&self) -> &'static str {
         self.source_graph_schema
     }
-
     pub(crate) fn permits(&self) -> &[String] {
         &self.permits
     }
@@ -2915,7 +2865,6 @@ impl WorkspaceGraphChangeDeclaration {
     pub(crate) fn id(&self) -> &str {
         &self.id
     }
-
     pub(crate) fn kind(&self) -> hir::DeclarationKind {
         self.kind
     }
@@ -2923,7 +2872,6 @@ impl WorkspaceGraphChangeDeclaration {
     pub(crate) fn origin(&self) -> hir::IdentityOrigin {
         self.origin
     }
-
     pub(crate) fn owner(&self) -> Option<&str> {
         self.owner.as_deref()
     }
@@ -2931,7 +2879,6 @@ impl WorkspaceGraphChangeDeclaration {
     pub(crate) fn path(&self) -> Option<&str> {
         self.path.as_deref()
     }
-
     pub(crate) fn module(&self) -> Option<&str> {
         self.module.as_deref()
     }
@@ -3983,7 +3930,6 @@ fn push_json_string(output: &mut crate::bounded_output::CappedString, value: &st
     }
     output.push('"');
 }
-
 fn push_optional_json_string(
     output: &mut crate::bounded_output::CappedString,
     value: Option<&str>,
@@ -3994,7 +3940,6 @@ fn push_optional_json_string(
         output.push_str("null");
     }
 }
-
 fn declaration_kind_text(kind: hir::DeclarationKind) -> &'static str {
     match kind {
         hir::DeclarationKind::Resource => "resource",
@@ -4010,7 +3955,6 @@ fn declaration_kind_text(kind: hir::DeclarationKind) -> &'static str {
         hir::DeclarationKind::Function => "function",
     }
 }
-
 fn identity_origin_text(origin: hir::IdentityOrigin) -> &'static str {
     match origin {
         hir::IdentityOrigin::Explicit => "explicit",
@@ -4018,7 +3962,6 @@ fn identity_origin_text(origin: hir::IdentityOrigin) -> &'static str {
         hir::IdentityOrigin::CompilerOwned => "compiler_owned",
     }
 }
-
 fn validate_render_projection(
     projection: &WorkspaceGraphProjection,
 ) -> Result<(), Vec<Diagnostic>> {
@@ -4060,7 +4003,6 @@ fn validate_render_projection(
     }
     Ok(())
 }
-
 fn artifact_digest(payload: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(ARTIFACT_DIGEST_DOMAIN);
@@ -4071,7 +4013,6 @@ fn artifact_digest(payload: &[u8]) -> String {
         crate::digest_hex::LowerHex(hasher.finalize())
     )
 }
-
 fn build_owned_with_builder_limit(
     sources: Vec<WorkspaceSource>,
     builder_limit: usize,
@@ -4079,13 +4020,11 @@ fn build_owned_with_builder_limit(
     build_owned_retaining_sources_with_builder_limit(sources, builder_limit, None, false)
         .map(|(build, _)| build)
 }
-
 pub(crate) fn build_owned_retaining_sources(
     sources: Vec<WorkspaceSource>,
 ) -> Result<(WorkspaceGraphBuild, Vec<WorkspaceSource>), Vec<Diagnostic>> {
     build_owned_retaining_sources_with_builder_limit(sources, MAX_BUILDER_BYTES, None, false)
 }
-
 pub(crate) fn build_owned_retaining_sources_for_change(
     sources: Vec<WorkspaceSource>,
     change_builder_limit: usize,
@@ -4098,7 +4037,6 @@ pub(crate) fn build_owned_retaining_sources_for_change(
         false,
     )
 }
-
 pub(crate) fn build_owned_retaining_sources_for_operations(
     sources: Vec<WorkspaceSource>,
     graph_builder_limit: usize,
@@ -4115,7 +4053,6 @@ pub(crate) fn build_owned_retaining_sources_for_operations(
         true,
     )
 }
-
 fn build_owned_retaining_sources_with_builder_limit(
     sources: Vec<WorkspaceSource>,
     builder_limit: usize,
@@ -4130,7 +4067,6 @@ fn build_owned_retaining_sources_with_builder_limit(
         None,
     )
 }
-
 pub(crate) fn build_owned_retaining_sources_with_frontend(
     sources: Vec<WorkspaceSource>,
     frontend: &mut crate::project::incremental::FrontendPass,
@@ -5048,6 +4984,17 @@ fn authenticated_declaration_fingerprints(
                             source,
                         )?;
                     }
+                    if let TypeDeclarationKind::Class { methods, .. } = &declaration.kind {
+                        for method in methods {
+                            insert_declaration_fingerprint(
+                                &mut fingerprints,
+                                &method.stable_id,
+                                "function",
+                                method.span,
+                                source,
+                            )?;
+                        }
+                    }
                 }
                 TypeDeclarationKind::Variant { cases } => {
                     for case in cases {
@@ -5299,6 +5246,22 @@ fn index_authored(
                 | TypeDeclarationKind::Class { fields, .. } => {
                     for field in fields {
                         insert_other(&mut declarations, &field.stable_id, program)?;
+                    }
+                    if let TypeDeclarationKind::Class { methods, .. } = &ty.kind {
+                        for method in methods {
+                            insert_authored(
+                                &mut declarations,
+                                &method.stable_id,
+                                AuthoredDeclaration {
+                                    path: &program.path,
+                                    module: &program.module,
+                                    explicit: method.explicit_id,
+                                    kind: AuthoredKind::Function,
+                                    function: Some(method),
+                                    ty: None,
+                                },
+                            )?;
+                        }
                     }
                 }
                 TypeDeclarationKind::Variant { cases } => {
@@ -6307,9 +6270,16 @@ fn reconstruct_workspace_declaration_facts(
         }
     }
     if actual != expected {
+        let differing = actual
+            .keys()
+            .chain(expected.keys())
+            .find(|id| actual.get(id.as_str()) != expected.get(id.as_str()))
+            .expect("unequal declaration maps have a differing identity");
         return Err(vec![graph_error(
             "SPX-G173",
-            "authored workspace declaration facts disagree with retained HIR",
+            &format!(
+                "authored workspace declaration facts disagree with retained HIR at `{differing}`"
+            ),
         )]);
     }
     let compiler_ids = expected_compiler
@@ -6343,9 +6313,8 @@ fn expected_declaration_facts(
         for declaration in &program.types {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
-                TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => {
-                    hir::DeclarationKind::Record
-                }
+                TypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                TypeDeclarationKind::Class { .. } => hir::DeclarationKind::Class,
                 TypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
             };
             insert_expected_declaration(
@@ -6390,6 +6359,18 @@ fn expected_declaration_facts(
                             identity_origin(field.explicit_id),
                             Some(&declaration.stable_id),
                         )?;
+                    }
+                    if let TypeDeclarationKind::Class { methods, .. } = &declaration.kind {
+                        for method in methods {
+                            insert_expected_declaration(
+                                &mut facts,
+                                program,
+                                &method.stable_id,
+                                hir::DeclarationKind::Function,
+                                identity_origin(method.explicit_id),
+                                Some(&declaration.stable_id),
+                            )?;
+                        }
                     }
                 }
                 TypeDeclarationKind::Variant { cases } => {
@@ -6455,9 +6436,8 @@ fn expected_compiler_declaration_facts(
     let mut facts = BTreeMap::new();
     for declaration in prelude::declarations() {
         let kind = match &declaration.kind {
-            TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. } => {
-                hir::DeclarationKind::Record
-            }
+            TypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+            TypeDeclarationKind::Class { .. } => hir::DeclarationKind::Class,
             TypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
             TypeDeclarationKind::Resource { .. } => {
                 return Err(vec![graph_error(
@@ -6571,8 +6551,8 @@ fn validate_retained_declaration_shapes(
         for declaration in &module.types {
             let kind = match &declaration.kind {
                 hir::ResolvedTypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
-                hir::ResolvedTypeDeclarationKind::Record { .. }
-                | hir::ResolvedTypeDeclarationKind::Class { .. } => hir::DeclarationKind::Record,
+                hir::ResolvedTypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                hir::ResolvedTypeDeclarationKind::Class { .. } => hir::DeclarationKind::Class,
                 hir::ResolvedTypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
             };
             require_retained_shape_fact(
@@ -6605,6 +6585,20 @@ fn validate_retained_declaration_shapes(
                             Some(declaration.id.as_str()),
                             &mut seen,
                         )?;
+                    }
+                    if let hir::ResolvedTypeDeclarationKind::Class { methods, .. } =
+                        &declaration.kind
+                    {
+                        for method in methods {
+                            require_retained_shape_fact(
+                                facts,
+                                module,
+                                method.as_str(),
+                                hir::DeclarationKind::Function,
+                                Some(declaration.id.as_str()),
+                                &mut seen,
+                            )?;
+                        }
                     }
                 }
                 hir::ResolvedTypeDeclarationKind::Variant { cases } => {
@@ -6652,6 +6646,12 @@ fn validate_retained_declaration_shapes(
             }
         }
         for function in &module.functions {
+            if facts
+                .get(function.id.as_str())
+                .is_some_and(|fact| fact.owner.is_some())
+            {
+                continue;
+            }
             require_retained_shape_fact(
                 facts,
                 module,

@@ -80,6 +80,7 @@ fn finish_build(
         },
     )?;
     let entry_program = semantic_parts.entry_program;
+    let web_program = semantic_parts.web_program;
     let test_program = semantic_parts.test_program;
     let semantic = semantic::ProjectSemanticState::new(
         semantic_parts.projection,
@@ -93,7 +94,7 @@ fn finish_build(
     // and every additive schema must pass this one exhaustive dispatcher.
     let profile_admission = admission::prepare(
         manifest,
-        &entry_program,
+        &web_program,
         PublicApiSubject {
             project_schema: manifest.schema(),
             project_revision: &project_revision,

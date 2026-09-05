@@ -18,7 +18,17 @@ pub(super) fn record_construction_is_admitted(
     ty: &ResolvedType,
     allow_copy_subtree: bool,
 ) -> bool {
-    classify_record(declarations, ty).is_some_and(|profile| profile.has_bytes || allow_copy_subtree)
+    classify_record(declarations, ty).is_some_and(|profile| {
+        profile.has_bytes
+            || allow_copy_subtree
+            || matches!(
+                ty,
+                ResolvedType::Nominal { declaration, .. }
+                    if declarations
+                        .declaration(declaration)
+                        .is_some_and(|item| item.kind == hir::DeclarationKind::Class)
+            )
+    })
 }
 
 pub(super) fn record_update_is_admitted(
@@ -184,7 +194,17 @@ pub(super) fn admitted_owned_record_field(
     place: &hir::Place,
     leaf: &ResolvedType,
 ) -> bool {
-    if place.projections.is_empty() || !is_admitted_owned_byte_record(declarations, root) {
+    let admitted_root = classify_record(declarations, root).is_some_and(|profile| {
+        profile.has_bytes
+            || matches!(
+                root,
+                ResolvedType::Nominal { declaration, .. }
+                    if declarations
+                        .declaration(declaration)
+                        .is_some_and(|item| item.kind == hir::DeclarationKind::Class)
+            )
+    });
+    if place.projections.is_empty() || !admitted_root {
         return false;
     }
     let mut ty = root.clone();
@@ -485,7 +505,10 @@ fn classify_record(
                     || declarations
                         .type_parameters(declaration)
                         .is_none_or(|parameters| !parameters.is_empty())
-                    || declarations.declaration(declaration)?.kind != hir::DeclarationKind::Record
+                    || !matches!(
+                        declarations.declaration(declaration)?.kind,
+                        hir::DeclarationKind::Record | hir::DeclarationKind::Class
+                    )
                     || !active.insert(declaration.clone())
                 {
                     return None;

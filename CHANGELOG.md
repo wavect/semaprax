@@ -105,6 +105,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Rejected a trailing semicolon after a block's value with the existing
   `SPX-P106` expression-statement diagnostic. Canonical formatting no longer
   accepts and silently removes that source token.
+- Workspace declaration replay now retains classes as `Class` rather than
+  `Record`, includes their owned methods in the independent fact map, and names
+  the first differing stable identity in genuine `SPX-G173` disagreements.
+  Class-bearing projects can therefore reach their ordinary execution lanes.
+
 - Source byte-data capacity verification borrows the ordinary-function index
   instead of cloning its full `BTreeMap` once per function, and rejects the
   4,096-function bound at the start of declaration verification with the first

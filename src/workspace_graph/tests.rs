@@ -1599,7 +1599,7 @@ fn substituted_identity_origin_disagrees_with_retained_hir() {
     assert_eq!(error[0].code, "SPX-G173");
     assert_eq!(
         error[0].message,
-        "authored workspace declaration facts disagree with retained HIR"
+        "authored workspace declaration facts disagree with retained HIR at `auto:app.identity.helper`"
     );
 }
 

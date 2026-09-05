@@ -1178,20 +1178,81 @@ impl ScalarNativeImports {
         module: String,
         entrypoint: hir::DeclarationId,
         functions: Vec<hir::LinkedScalarFunction>,
+        types: Vec<hir::ResolvedTypeDeclaration>,
         declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
+        require_main_display_name: bool,
     ) -> Result<hir::ResolvedProgram, Diagnostic> {
-        if self.interfaces.is_empty() {
-            return hir::link_scalar_workspace(module, entrypoint, functions);
-        }
         let mut declaration_facts = BTreeMap::new();
         for linked in &functions {
+            let owner = declarations
+                .get(linked.function.id.as_str())
+                .and_then(|fact| fact.owner.as_deref())
+                .map(hir::DeclarationId::new);
             retain_linked_fact(
                 declarations,
                 &mut declaration_facts,
                 &linked.function.id,
                 hir::DeclarationKind::Function,
+                owner.as_ref(),
+            )?;
+        }
+        for declaration in &types {
+            let kind = match &declaration.kind {
+                hir::ResolvedTypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
+                hir::ResolvedTypeDeclarationKind::Class { .. } => hir::DeclarationKind::Class,
+                hir::ResolvedTypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
+                hir::ResolvedTypeDeclarationKind::Resource { .. } => hir::DeclarationKind::Resource,
+            };
+            retain_linked_fact(
+                declarations,
+                &mut declaration_facts,
+                &declaration.id,
+                kind,
                 None,
             )?;
+            match &declaration.kind {
+                hir::ResolvedTypeDeclarationKind::Record { fields }
+                | hir::ResolvedTypeDeclarationKind::Class { fields, .. } => {
+                    for field in fields {
+                        retain_linked_fact(
+                            declarations,
+                            &mut declaration_facts,
+                            &field.id,
+                            hir::DeclarationKind::Field,
+                            Some(&declaration.id),
+                        )?;
+                    }
+                }
+                hir::ResolvedTypeDeclarationKind::Variant { cases } => {
+                    for case in cases {
+                        retain_linked_fact(
+                            declarations,
+                            &mut declaration_facts,
+                            &case.id,
+                            hir::DeclarationKind::VariantCase,
+                            Some(&declaration.id),
+                        )?;
+                        for field in &case.fields {
+                            retain_linked_fact(
+                                declarations,
+                                &mut declaration_facts,
+                                &field.id,
+                                hir::DeclarationKind::CaseField,
+                                Some(&case.id),
+                            )?;
+                        }
+                    }
+                }
+                hir::ResolvedTypeDeclarationKind::Resource { drop } => {
+                    retain_linked_fact(
+                        declarations,
+                        &mut declaration_facts,
+                        &drop.id,
+                        hir::DeclarationKind::ResourceDrop,
+                        Some(&declaration.id),
+                    )?;
+                }
+            }
         }
         for interface in &self.interfaces {
             retain_linked_fact(
@@ -1211,15 +1272,16 @@ impl ScalarNativeImports {
                 )?;
             }
         }
-        hir::link_scalar_native_rust_workspace(
-            module,
-            entrypoint,
-            functions,
-            hir::LinkedScalarNatives {
-                interfaces: self.interfaces,
-                declaration_facts,
-            },
-        )
+        let parts = hir::LinkedScalarProjectParts {
+            types,
+            interfaces: self.interfaces,
+            declaration_facts,
+        };
+        if require_main_display_name {
+            hir::link_scalar_project_workspace(module, entrypoint, functions, parts)
+        } else {
+            hir::link_scalar_project_exports(module, entrypoint, functions, parts)
+        }
     }
 }
 

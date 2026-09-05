@@ -11,26 +11,22 @@ use super::*;
 /// effect-free functions over by-value Copy scalars are admitted. That surface
 /// is exactly the Public Scalar Export Profile v1 ABI this linker feeds.
 ///
-pub(crate) fn link_scalar_workspace(
+pub(crate) fn link_scalar_project_workspace(
     module: String,
     entrypoint: DeclarationId,
     linked_functions: Vec<LinkedScalarFunction>,
+    parts: LinkedScalarProjectParts,
 ) -> Result<ResolvedProgram, Diagnostic> {
-    link_scalar_workspace_impl(module, entrypoint, linked_functions, true, None)
+    link_scalar_workspace_impl(module, entrypoint, linked_functions, true, Some(parts))
 }
 
-/// Assemble one scalar program that additionally retains the authenticated
-/// Native Rust import interfaces its closure calls. The scalar linker has no
-/// callable ABI for an ordinary interface import, so every retained import
-/// must be a native Rust callback; the retained imports' declared effects are
-/// the only effects a retained function may itself declare.
-pub(crate) fn link_scalar_native_rust_workspace(
+pub(crate) fn link_scalar_project_exports(
     module: String,
     entrypoint: DeclarationId,
     linked_functions: Vec<LinkedScalarFunction>,
-    natives: LinkedScalarNatives,
+    parts: LinkedScalarProjectParts,
 ) -> Result<ResolvedProgram, Diagnostic> {
-    link_scalar_workspace_impl(module, entrypoint, linked_functions, true, Some(natives))
+    link_scalar_workspace_impl(module, entrypoint, linked_functions, false, Some(parts))
 }
 
 /// Package builds need an internal `fn() -> i64` HIR anchor, but package
@@ -44,8 +40,8 @@ pub(crate) fn link_package_scalar_workspace(
     link_scalar_workspace_impl(module, entrypoint, linked_functions, false, None)
 }
 
-/// Exact Native Rust interface inventory retained beside one scalar closure.
-pub(crate) struct LinkedScalarNatives {
+pub(crate) struct LinkedScalarProjectParts {
+    pub(crate) types: Vec<ResolvedTypeDeclaration>,
     pub(crate) interfaces: Vec<ResolvedInterface>,
     pub(crate) declaration_facts: BTreeMap<DeclarationId, LinkedDeclarationFact>,
 }
@@ -55,7 +51,7 @@ fn link_scalar_workspace_impl(
     entrypoint: DeclarationId,
     mut linked_functions: Vec<LinkedScalarFunction>,
     require_main_display_name: bool,
-    natives: Option<LinkedScalarNatives>,
+    parts: Option<LinkedScalarProjectParts>,
 ) -> Result<ResolvedProgram, Diagnostic> {
     if linked_functions.is_empty() {
         return Err(link_error("workspace scalar closure has no functions"));
@@ -67,7 +63,7 @@ fn link_scalar_workspace_impl(
     // declare, so a closure with no retained interface stays effect-free and
     // links byte-identically to the original pure scalar profile.
     let mut import_effects = BTreeSet::new();
-    for interface in natives.iter().flat_map(|natives| &natives.interfaces) {
+    for interface in parts.iter().flat_map(|parts| &parts.interfaces) {
         for import in &interface.imports {
             if !import.native_rust {
                 return Err(link_error(format!(
@@ -83,6 +79,10 @@ fn link_scalar_workspace_impl(
     let mut entry_origin = None;
     for linked in &linked_functions {
         let function = &linked.function;
+        let is_owned_method = function
+            .params
+            .first()
+            .is_some_and(|parameter| parameter.name == "self");
         if !seen.insert(function.id.clone()) {
             return Err(link_error(format!(
                 "workspace scalar closure duplicates function `{}`",
@@ -93,15 +93,16 @@ fn link_scalar_workspace_impl(
             .effects
             .iter()
             .all(|effect| import_effects.contains(effect))
-            || function
-                .params
-                .iter()
-                .any(|parameter| parameter.ownership != OwnershipMode::Value)
-            || !copy_scalar_type(&function.return_type)
-            || function
-                .params
-                .iter()
-                .any(|parameter| !copy_scalar_type(&parameter.ty))
+            || (!is_owned_method
+                && (function
+                    .params
+                    .iter()
+                    .any(|parameter| parameter.ownership != OwnershipMode::Value)
+                    || !copy_scalar_type(&function.return_type)
+                    || function
+                        .params
+                        .iter()
+                        .any(|parameter| !copy_scalar_type(&parameter.ty))))
         {
             return Err(link_error(format!(
                 "workspace function `{}` is outside the pure scalar linker profile",
@@ -132,13 +133,12 @@ fn link_scalar_workspace_impl(
         .map(|linked| linked.function)
         .collect::<Vec<_>>();
     let mut declarations = DeclarationIndex::default();
-    match &natives {
-        Some(natives) => declarations.extend_linked_owned_data(
-            &[],
-            &natives.interfaces,
+    match &parts {
+        Some(parts) => declarations.extend_linked_scalar_data(
+            &parts.types,
+            &parts.interfaces,
             &functions,
-            &[],
-            &natives.declaration_facts,
+            &parts.declaration_facts,
         )?,
         None => {
             for function in &functions {
@@ -163,13 +163,17 @@ fn link_scalar_workspace_impl(
             "workspace scalar linker could not construct scalar type facts",
         ));
     }
+    let (types, interfaces) = parts.map_or_else(
+        || (Vec::new(), Vec::new()),
+        |parts| (parts.types, parts.interfaces),
+    );
     let mut linked = ResolvedProgram {
         module,
         permits: import_effects.into_iter().collect(),
         entrypoint,
         declarations,
-        types: Vec::new(),
-        interfaces: natives.map_or_else(Vec::new, |natives| natives.interfaces),
+        types,
+        interfaces,
         function_templates: Vec::new(),
         functions,
         function_instances: Vec::new(),

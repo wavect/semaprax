@@ -126,6 +126,9 @@ const STRING_OPS_IMPORT_BASE_CONCAT: u32 = 11;
 /// `spx_string_starts_with`, `spx_string_contains`, `spx_string_len_chars`,
 /// `spx_string_from_char`.
 const STRING_OPS_V2_IMPORT_COUNT: u32 = 4;
+/// Optional numeric-to-text imports. Keeping these after all earlier groups
+/// preserves every pre-existing module byte-for-byte.
+const STRING_NUMERIC_TEXT_IMPORT_COUNT: u32 = 2;
 
 /// Deterministic literal table shared by the data segment and expression
 /// lowering; identical contents always map to one offset.
@@ -524,6 +527,26 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram) -> bool {
     false
 }
 
+/// Whether a program reaches either canonical integer-to-decimal operation.
+fn program_uses_numeric_text(program: &ResolvedProgram) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in &program.functions {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::string_ops::by_id(callee.as_str())
+                .is_some_and(crate::string_ops::StringOp::is_numeric_text)
+            {
+                return true;
+            }
+        }
+        crate::hir::push_resolved_expression_children_in_authored_order(expression, &mut pending);
+    }
+    false
+}
+
 /// Collect every distinct literal in deterministic pre-order with offsets.
 fn collect_string_data(program: &ResolvedProgram) -> StringData {
     let mut data = StringData::default();
@@ -658,6 +681,8 @@ struct LocalLayout<'a> {
     /// Base import index of the breadth-v2 string operation group; only v2
     /// call sites consult it, so first-wave modules are unaffected.
     string_ops_v2_base: u32,
+    /// Base import index of the numeric-text operation group.
+    string_numeric_text_base: u32,
     /// Module-local helper indexes used only by the additive borrowed-text
     /// profile. Legacy modules leave this absent and retain exact bytes.
     text_intrinsics: Option<TextIntrinsicIndexes>,
@@ -965,6 +990,7 @@ fn emit_resolved_module_internal(
     }
     let uses_string_ops = program_uses_string_ops(program);
     let uses_string_ops_v2 = program_uses_string_ops_v2(program);
+    let uses_numeric_text = program_uses_numeric_text(program);
     let string_data = if uses_strings {
         collect_string_data(program)
     } else {
@@ -985,6 +1011,11 @@ fn emit_resolved_module_internal(
             STRING_OPS_V2_IMPORT_COUNT
         } else {
             0
+        }
+        + if uses_numeric_text {
+            STRING_NUMERIC_TEXT_IMPORT_COUNT
+        } else {
+            0
         };
     let mut types = Vec::<Signature>::new();
     let mut type_indexes = HashMap::<Signature, u32>::new();
@@ -994,6 +1025,12 @@ fn emit_resolved_module_internal(
         + if uses_strings { STRING_IMPORT_COUNT } else { 0 }
         + if uses_string_ops {
             STRING_OPS_IMPORT_COUNT
+        } else {
+            0
+        };
+    let string_numeric_text_base = string_ops_v2_base
+        + if uses_string_ops_v2 {
+            STRING_OPS_V2_IMPORT_COUNT
         } else {
             0
         };
@@ -1118,6 +1155,30 @@ fn emit_resolved_module_internal(
             intern_type(
                 Signature {
                     params: vec![I32],
+                    results: vec![I64],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+        ])
+    } else {
+        None
+    };
+    let string_numeric_text_import_types = if uses_numeric_text {
+        Some([
+            // spx_string_from_i64(value: i64) -> handle: i64
+            intern_type(
+                Signature {
+                    params: vec![I64],
+                    results: vec![I64],
+                },
+                &mut types,
+                &mut type_indexes,
+            ),
+            // spx_string_from_usize(value: semantic u64) -> handle: i64
+            intern_type(
+                Signature {
+                    params: vec![I64],
                     results: vec![I64],
                 },
                 &mut types,
@@ -1352,6 +1413,10 @@ fn emit_resolved_module_internal(
         function_import(&mut imports, "env", "spx_string_len_chars", len_chars);
         function_import(&mut imports, "env", "spx_string_from_char", from_char);
     }
+    if let Some([from_i64, from_usize]) = string_numeric_text_import_types {
+        function_import(&mut imports, "env", "spx_string_from_i64", from_i64);
+        function_import(&mut imports, "env", "spx_string_from_usize", from_usize);
+    }
     if let Some(type_indexes) = owned_import_types {
         for (name, type_index) in owned::IMPORT_NAMES.into_iter().zip(type_indexes) {
             function_import(&mut imports, "env", name, type_index);
@@ -1511,6 +1576,7 @@ fn emit_resolved_module_internal(
             match_scratch: HashMap::new(),
             string_data: Some(&string_data),
             string_ops_v2_base,
+            string_numeric_text_base,
             text_intrinsics,
         };
         for contract in &function.requires {
@@ -3471,6 +3537,12 @@ fn emit_expr(
                         }
                         crate::string_ops::StringOp::FromChar => {
                             call_import(output, layout.string_ops_v2_base + 3);
+                        }
+                        crate::string_ops::StringOp::FromI64 => {
+                            call_import(output, layout.string_numeric_text_base);
+                        }
+                        crate::string_ops::StringOp::FromUsize => {
+                            call_import(output, layout.string_numeric_text_base + 1);
                         }
                     }
                     return Ok(());

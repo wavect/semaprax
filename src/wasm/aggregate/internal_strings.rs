@@ -345,6 +345,12 @@ impl Emitter<'_> {
             StringOp::LenChars => 5,
             StringOp::StartsWith => 7,
             StringOp::Contains => 8,
+            StringOp::FromI64 | StringOp::FromUsize => {
+                return Err(Diagnostic::io(
+                    "SPX-W116",
+                    "numeric-to-text operations require the scalar Core-Wasm string lane",
+                ));
+            }
         };
         self.output.push(0x10);
         write_u32(self.output, index);

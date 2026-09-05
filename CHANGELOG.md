@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added reserved `string_from_i64` and `string_from_usize` operations with
+  canonical decimal spelling across the interpreter, native C11, and Core
+  Wasm lanes, allowing computed integers to be printed without handwritten
+  digit tables.
 - Deepened four existing standard-library packages without widening ambient
   authority: `std.time` rounds durations upward and measures elapsed
   milliseconds, `std.path`

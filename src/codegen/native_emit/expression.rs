@@ -286,6 +286,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let scalar = &arguments[0].code;
                 self.line(&format!("{temporary} = spx_string_from_char({scalar});"));
             }
+            crate::string_ops::StringOp::FromI64 => {
+                let value = &arguments[0].code;
+                self.line(&format!("{temporary} = spx_string_from_i64({value});"));
+            }
+            crate::string_ops::StringOp::FromUsize => {
+                let value = &arguments[0].code;
+                self.line(&format!("{temporary} = spx_string_from_usize({value});"));
+            }
         }
         if matches!(op.return_type(), ResolvedType::String) {
             self.string_initialize(&temporary);

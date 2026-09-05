@@ -1,7 +1,7 @@
 //! Compiler-owned string operation intrinsics.
 //!
-//! Three prelude-style intrinsic functions from the first wave and four from
-//! the second bounded wave are admitted wherever owned `string` values are
+//! Three prelude-style intrinsic functions from the first wave, four from
+//! the second bounded wave, and two numeric-text conversions are admitted wherever owned `string` values are
 //! already admitted. They carry reserved stable identities in the
 //! compiler-owned `core.string.*` family so a call site resolves to an
 //! ordinary monomorphic [`crate::hir::ResolvedExprKind::Call`] node; no
@@ -25,6 +25,11 @@
 //!   borrowing its operand for a read.
 //! - `string_from_char(c: char) -> string` consumes nothing and returns one
 //!   new owned string holding the scalar value's UTF-8 encoding.
+//!
+//! Numeric text wave (gated separately to preserve all earlier target bytes):
+//!
+//! - `string_from_i64(value: i64) -> string` renders canonical decimal text.
+//! - `string_from_usize(value: usize) -> string` renders canonical decimal text.
 
 use crate::ast::{Param, ParamMode, Span, Type};
 use crate::hir::{OwnershipMode, ResolvedParam, ResolvedType, ValueId};
@@ -36,6 +41,8 @@ pub(crate) const STARTS_WITH_NAME: &str = "string_starts_with";
 pub(crate) const CONTAINS_NAME: &str = "string_contains";
 pub(crate) const LEN_CHARS_NAME: &str = "string_len_chars";
 pub(crate) const FROM_CHAR_NAME: &str = "string_from_char";
+pub(crate) const FROM_I64_NAME: &str = "string_from_i64";
+pub(crate) const FROM_USIZE_NAME: &str = "string_from_usize";
 
 pub(crate) const LEN_ID: &str = "core.string.len";
 pub(crate) const CONCAT_ID: &str = "core.string.concat";
@@ -44,6 +51,8 @@ pub(crate) const STARTS_WITH_ID: &str = "core.string.starts_with";
 pub(crate) const CONTAINS_ID: &str = "core.string.contains";
 pub(crate) const LEN_CHARS_ID: &str = "core.string.len_chars";
 pub(crate) const FROM_CHAR_ID: &str = "core.string.from_char";
+pub(crate) const FROM_I64_ID: &str = "core.string.from_i64";
+pub(crate) const FROM_USIZE_ID: &str = "core.string.from_usize";
 
 /// One admitted string operation intrinsic.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -62,10 +71,14 @@ pub(crate) enum StringOp {
     LenChars,
     /// Allocation of one owned string from a copied scalar value.
     FromChar,
+    /// Canonical decimal text for one copied signed integer.
+    FromI64,
+    /// Canonical decimal text for one copied portable size value.
+    FromUsize,
 }
 
 impl StringOp {
-    pub(crate) const ALL: [Self; 7] = [
+    pub(crate) const ALL: [Self; 9] = [
         Self::Len,
         Self::Concat,
         Self::IsEmpty,
@@ -73,6 +86,8 @@ impl StringOp {
         Self::Contains,
         Self::LenChars,
         Self::FromChar,
+        Self::FromI64,
+        Self::FromUsize,
     ];
 
     pub(crate) fn name(self) -> &'static str {
@@ -84,6 +99,8 @@ impl StringOp {
             StringOp::Contains => CONTAINS_NAME,
             StringOp::LenChars => LEN_CHARS_NAME,
             StringOp::FromChar => FROM_CHAR_NAME,
+            StringOp::FromI64 => FROM_I64_NAME,
+            StringOp::FromUsize => FROM_USIZE_NAME,
         }
     }
 
@@ -96,13 +113,15 @@ impl StringOp {
             StringOp::Contains => CONTAINS_ID,
             StringOp::LenChars => LEN_CHARS_ID,
             StringOp::FromChar => FROM_CHAR_ID,
+            StringOp::FromI64 => FROM_I64_ID,
+            StringOp::FromUsize => FROM_USIZE_ID,
         }
     }
 
     pub(crate) fn arity(self) -> usize {
         match self {
             StringOp::Len | StringOp::IsEmpty | StringOp::LenChars => 1,
-            StringOp::FromChar => 1,
+            StringOp::FromChar | StringOp::FromI64 | StringOp::FromUsize => 1,
             StringOp::Concat | StringOp::StartsWith | StringOp::Contains => 2,
         }
     }
@@ -113,6 +132,7 @@ impl StringOp {
         match self {
             StringOp::Len | StringOp::IsEmpty | StringOp::LenChars => &["s"],
             StringOp::FromChar => &["c"],
+            StringOp::FromI64 | StringOp::FromUsize => &["value"],
             StringOp::Concat => &["a", "b"],
             StringOp::StartsWith => &["s", "prefix"],
             StringOp::Contains => &["s", "needle"],
@@ -120,12 +140,13 @@ impl StringOp {
     }
 
     /// Resolved parameter types in left-to-right order. Every operation takes
-    /// `string` operands except `string_from_char`, whose copied scalar input
-    /// is a `char`.
+    /// `string` operands except the copied-scalar constructors.
     pub(crate) fn param_types(self) -> &'static [ResolvedType] {
         match self {
             StringOp::Len | StringOp::IsEmpty | StringOp::LenChars => &[ResolvedType::String],
             StringOp::FromChar => &[ResolvedType::Char],
+            StringOp::FromI64 => &[ResolvedType::I64],
+            StringOp::FromUsize => &[ResolvedType::Usize],
             StringOp::Concat | StringOp::StartsWith | StringOp::Contains => {
                 &[ResolvedType::String, ResolvedType::String]
             }
@@ -146,10 +167,18 @@ impl StringOp {
         )
     }
 
+    /// Numeric-to-text operations form a third optional backend group so
+    /// programs using either earlier wave retain byte-identical artifacts.
+    pub(crate) fn is_numeric_text(self) -> bool {
+        matches!(self, StringOp::FromI64 | StringOp::FromUsize)
+    }
+
     pub(crate) fn return_type(self) -> ResolvedType {
         match self {
             StringOp::Len | StringOp::LenChars => ResolvedType::I64,
-            StringOp::Concat | StringOp::FromChar => ResolvedType::String,
+            StringOp::Concat | StringOp::FromChar | StringOp::FromI64 | StringOp::FromUsize => {
+                ResolvedType::String
+            }
             StringOp::IsEmpty | StringOp::StartsWith | StringOp::Contains => ResolvedType::Bool,
         }
     }
@@ -157,7 +186,9 @@ impl StringOp {
     pub(crate) fn ast_return_type(self) -> Type {
         match self {
             StringOp::Len | StringOp::LenChars => Type::I64,
-            StringOp::Concat | StringOp::FromChar => Type::String,
+            StringOp::Concat | StringOp::FromChar | StringOp::FromI64 | StringOp::FromUsize => {
+                Type::String
+            }
             StringOp::IsEmpty | StringOp::StartsWith | StringOp::Contains => Type::Bool,
         }
     }
@@ -173,6 +204,8 @@ pub(crate) fn by_name(name: &str) -> Option<StringOp> {
         CONTAINS_NAME => Some(StringOp::Contains),
         LEN_CHARS_NAME => Some(StringOp::LenChars),
         FROM_CHAR_NAME => Some(StringOp::FromChar),
+        FROM_I64_NAME => Some(StringOp::FromI64),
+        FROM_USIZE_NAME => Some(StringOp::FromUsize),
         _ => None,
     }
 }
@@ -187,6 +220,8 @@ pub(crate) fn by_id(id: &str) -> Option<StringOp> {
         CONTAINS_ID => Some(StringOp::Contains),
         LEN_CHARS_ID => Some(StringOp::LenChars),
         FROM_CHAR_ID => Some(StringOp::FromChar),
+        FROM_I64_ID => Some(StringOp::FromI64),
+        FROM_USIZE_ID => Some(StringOp::FromUsize),
         _ => None,
     }
 }
@@ -208,7 +243,10 @@ pub(crate) fn resolved_params(op: StringOp) -> Vec<ResolvedParam> {
         .map(|(index, (name, ty))| ResolvedParam {
             id: ValueId::intrinsic_parameter(op.id(), index),
             name: (*name).to_owned(),
-            ownership: if matches!(ty, ResolvedType::Char) {
+            ownership: if matches!(
+                ty,
+                ResolvedType::Char | ResolvedType::I64 | ResolvedType::Usize
+            ) {
                 OwnershipMode::Value
             } else {
                 consumption
@@ -228,13 +266,19 @@ pub(crate) fn ast_params(op: StringOp) -> Vec<Param> {
         .zip(op.param_types())
         .map(|(name, ty)| Param {
             name: (*name).to_owned(),
-            mode: if matches!(ty, ResolvedType::Char) || !op.consumes_arguments() {
+            mode: if matches!(
+                ty,
+                ResolvedType::Char | ResolvedType::I64 | ResolvedType::Usize
+            ) || !op.consumes_arguments()
+            {
                 ParamMode::Value
             } else {
                 ParamMode::Own
             },
             ty: match ty {
                 ResolvedType::Char => Type::Char,
+                ResolvedType::I64 => Type::I64,
+                ResolvedType::Usize => Type::Usize,
                 _ => Type::String,
             },
             span: Span::default(),

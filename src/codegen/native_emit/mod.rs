@@ -462,6 +462,9 @@ fn emit_native_prelude_inner(
             NATIVE_STRING_OPS_V2_RUNTIME_C
         });
     }
+    if program_uses_numeric_text(program, strings.include_instances) {
+        output.push_str(NATIVE_NUMERIC_TEXT_RUNTIME_C);
+    }
     if needs_borrowed_str {
         // Borrowed text is a distinct length-aware carrier. Keep it behind a
         // reachability gate so every pre-text native projection is byte exact.
@@ -589,6 +592,27 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram, include_instances: bool
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             if crate::string_ops::by_id(callee.as_str())
                 .is_some_and(crate::string_ops::StringOp::is_breadth_v2)
+            {
+                return true;
+            }
+        }
+        pending.extend(resolved_expr_children(expression));
+    }
+    false
+}
+
+/// Whether any resolved function body or contract renders a copied integer
+/// as canonical decimal text.
+fn program_uses_numeric_text(program: &ResolvedProgram, include_instances: bool) -> bool {
+    let mut pending: Vec<&ResolvedExpr> = Vec::new();
+    for function in string_runtime_functions(program, include_instances) {
+        pending.push(&function.body);
+        pending.extend(function.requires.iter().chain(&function.ensures));
+    }
+    while let Some(expression) = pending.pop() {
+        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+            if crate::string_ops::by_id(callee.as_str())
+                .is_some_and(crate::string_ops::StringOp::is_numeric_text)
             {
                 return true;
             }
@@ -1489,6 +1513,20 @@ static __attribute__((unused)) char *spx_string_from_char(uint32_t scalar) {
     else if (scalar < UINT32_C(0x10000)) { encoded[0]=(char)(uint8_t)(UINT8_C(0xe0)|(uint8_t)(scalar>>12)); encoded[1]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)((scalar>>6)&UINT32_C(0x3f))); encoded[2]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)(scalar&UINT32_C(0x3f))); length=UINT64_C(3); }
     else { encoded[0]=(char)(uint8_t)(UINT8_C(0xf0)|(uint8_t)(scalar>>18)); encoded[1]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)((scalar>>12)&UINT32_C(0x3f))); encoded[2]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)((scalar>>6)&UINT32_C(0x3f))); encoded[3]=(char)(uint8_t)(UINT8_C(0x80)|(uint8_t)(scalar&UINT32_C(0x3f))); length=UINT64_C(4); }
     return spx_string_from_literal(encoded, length);
+}
+"#;
+
+const NATIVE_NUMERIC_TEXT_RUNTIME_C: &str = r#"static __attribute__((unused)) char *spx_string_from_i64(int64_t value) {
+    char text[21];
+    int written = snprintf(text, sizeof text, "%lld", (long long)value);
+    if (written < 1 || written >= (int)sizeof text) spx_runtime_invariant_failure("i64 text rendering failed");
+    return spx_string_from_literal(text, (uint64_t)written);
+}
+static __attribute__((unused)) char *spx_string_from_usize(uint64_t value) {
+    char text[21];
+    int written = snprintf(text, sizeof text, "%llu", (unsigned long long)value);
+    if (written < 1 || written >= (int)sizeof text) spx_runtime_invariant_failure("usize text rendering failed");
+    return spx_string_from_literal(text, (uint64_t)written);
 }
 "#;
 

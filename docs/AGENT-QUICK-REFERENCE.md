@@ -321,6 +321,8 @@ fn main() -> i64
 | `string_concat` | `(a: string, b: string) -> string` consumes both |
 | `string_starts_with`, `string_contains` | `(s: string, other: string) -> bool` |
 | `string_from_char` | `(c: char) -> string` |
+| `string_from_i64` | `(value: i64) -> string` canonical decimal text |
+| `string_from_usize` | `(value: usize) -> string` canonical decimal text |
 | `string_as_str` | `(binding: string) -> borrow str` |
 | `str_len_bytes` | `(s: borrow str) -> i64` |
 | `str_is_empty` | `(s: borrow str) -> bool` |
@@ -338,6 +340,28 @@ fn main() -> i64
 | `stdin_read` | `() -> own Bytes` |
 
 These names are reserved; declaring your own `string_len` is `SPX-S113`.
+
+To print a computed integer from one file, render it, borrow the resulting
+string, and write its bytes:
+
+```semaprax
+module app.print_count;
+
+permit { process.stdout.write }
+
+@id("app.main")
+fn main() -> i64
+    uses { process.stdout.write }
+{
+    let count = 42usize;
+    let text = string_from_usize(count);
+    let view = string_as_str(text);
+    let written = stdout_write(str_as_bytes(view));
+    if written == 2usize { 0 } else { 1 }
+}
+```
+
+`semaprax run count.spx` prints `42`. Use `string_from_i64` for signed values.
 
 ## Habits from other languages and what the compiler says
 

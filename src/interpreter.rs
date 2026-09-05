@@ -4630,6 +4630,18 @@ impl Evaluator<'_> {
                             },
                             _ => Err(Flow::Guard("ill-typed string operation operand")),
                         },
+                        crate::string_ops::StringOp::FromI64 => match values.first() {
+                            Some(Value::Int(value)) => Ok(Value::String(
+                                self.materialize_utf8_copy(&value.to_string())?,
+                            )),
+                            _ => Err(Flow::Guard("ill-typed string operation operand")),
+                        },
+                        crate::string_ops::StringOp::FromUsize => match values.first() {
+                            Some(Value::Usize(value)) => Ok(Value::String(
+                                self.materialize_utf8_copy(&value.to_string())?,
+                            )),
+                            _ => Err(Flow::Guard("ill-typed string operation operand")),
+                        },
                     };
                 }
                 if let Some(op) = crate::str_ops::by_id(callee.as_str()) {

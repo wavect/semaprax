@@ -69,8 +69,7 @@ fn wrapper() -> Command {
 #[cfg(not(windows))]
 fn wrapper() -> Command {
     let script = root().join(SUITE).join("run.sh");
-    let command = Command::new(script);
-    command
+    Command::new(script)
 }
 
 fn assert_committed_plan(document: &Value) {

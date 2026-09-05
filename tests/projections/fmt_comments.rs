@@ -43,9 +43,9 @@ fn fmt_keeps_comments_and_is_idempotent() {
 
     let (status, _, stderr) = cli(&["fmt", text, "--check"]);
     assert_eq!(status, 1, "a file with misplaced comments is not canonical");
-    assert!(
-        stderr.ends_with("is not canonically formatted\n"),
-        "{stderr}"
+    assert_eq!(
+        stderr,
+        format!("{}:5 is not canonically formatted\n", path.display())
     );
     assert_eq!(std::fs::read_to_string(&path).unwrap(), COMMENTED);
 
@@ -148,7 +148,7 @@ fn fmt_formats_every_project_source_in_manifest_order() {
     assert_eq!(
         stderr,
         format!(
-            "{} is not canonically formatted\n{} is not canonically formatted\n",
+            "{}:7 is not canonically formatted\n{}:8 is not canonically formatted\n",
             root.join("src/app.spx").display(),
             root.join("src/tests.spx").display()
         )

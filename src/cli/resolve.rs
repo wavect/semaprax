@@ -37,8 +37,8 @@ enum Mode {
 pub(crate) fn run(arguments: &[String]) -> Result<String, ResolveCliError> {
     let parsed = parse(arguments)?;
     let manifest = read_manifest(&parsed.manifest)?;
-    let requirements = requirements(&manifest)?;
     let target = admit_target(&manifest, &parsed.target)?;
+    let requirements = requirements(&manifest)?;
     let subjects = read_cache(&parsed.cache)?;
     let options = ResolutionOptions::new(parsed.max_bytes)
         .map_err(|error| ResolveCliError::Domain(vec![error]))?;

@@ -52,7 +52,8 @@ pub(crate) fn parse(arguments: &[String]) -> Result<NewOptions, String> {
             .file_name()
             .and_then(|name| name.to_str())
             .ok_or_else(|| {
-                "new destination requires --name when its final component is not UTF-8".to_owned()
+                "new cannot derive a project name from the destination; pass `--name <project-name>`"
+                    .to_owned()
             })?
             .to_owned(),
     };
@@ -159,6 +160,10 @@ mod tests {
         assert_eq!(
             parse(&strings(&["Bad_Name"])).unwrap_err(),
             "project name must match lowercase [a-z][a-z0-9-]* and be at most 64 bytes"
+        );
+        assert_eq!(
+            parse(&strings(&["."])).unwrap_err(),
+            "new cannot derive a project name from the destination; pass `--name <project-name>`"
         );
         assert_eq!(
             parse(&strings(&["x", "--template", "web"])).unwrap_err(),

@@ -210,6 +210,24 @@ fn resolve_fails_closed_on_missing_deps_bad_content_address_and_target() {
         stderr(&output)
     );
 
+    let bad_empty_target = cli(
+        &empty.root,
+        &[
+            "resolve",
+            "semaprax.toml",
+            "--target",
+            "bogus",
+            "--cache",
+            "cache",
+        ],
+    );
+    assert_eq!(bad_empty_target.status.code(), Some(2));
+    assert!(
+        stderr(&bad_empty_target).contains("admits only"),
+        "{}",
+        stderr(&bad_empty_target)
+    );
+
     // A subject filed under the wrong content address is an integrity failure.
     let tampered = fixture(
         "tampered",

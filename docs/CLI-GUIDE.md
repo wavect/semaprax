@@ -75,9 +75,11 @@ directly runnable.
 `fmt <file> --check` reports non-canonical source without rewriting it. Run
 `fmt <file>` without `--check` when you want the compiler to rewrite that file
 canonically. `fmt` also takes a project directory or `semaprax.toml`: `fmt .
---check` names every listed source that drifts, one line each in manifest
-order, and `fmt .` rewrites them, parsing every file before writing any. `//`
-comments survive formatting: each is printed on its own line above the
+--check` names every drifting source and its first differing line, in manifest
+order, and `fmt .` rewrites them, parsing every file before writing any.
+Canonical expression formatting is compact: a `match` remains on one line even
+when its source arms span several lines. `//` comments survive formatting:
+each is printed on its own line above the
 declaration, field, or statement it precedes, or right after the one it
 followed; [canonical comments](CANONICAL-COMMENTS-V1.md) owns the exact
 placement rules and lists the routes that preserve comments.

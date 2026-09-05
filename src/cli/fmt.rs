@@ -88,7 +88,11 @@ pub(crate) fn run(options: FmtOptions, report: impl Fn(&[Diagnostic]) -> u8) -> 
         let mut drifted = false;
         for file in &formatted {
             if file.source != file.canonical {
-                eprintln!("{} is not canonically formatted", file.path.display());
+                eprintln!(
+                    "{}:{} is not canonically formatted",
+                    file.path.display(),
+                    first_differing_line(&file.source, &file.canonical)
+                );
                 drifted = true;
             }
         }
@@ -103,6 +107,21 @@ pub(crate) fn run(options: FmtOptions, report: impl Fn(&[Diagnostic]) -> u8) -> 
         }
     }
     Ok(())
+}
+
+/// The one-based line containing the first byte that differs. Comparing bytes
+/// is intentional: it also identifies newline-only drift at end of file.
+fn first_differing_line(source: &str, canonical: &str) -> usize {
+    let prefix = source
+        .bytes()
+        .zip(canonical.bytes())
+        .take_while(|(source, canonical)| source == canonical)
+        .count();
+    source.as_bytes()[..prefix]
+        .iter()
+        .filter(|byte| **byte == b'\n')
+        .count()
+        + 1
 }
 
 /// The manifest's source files, in manifest order, relative to its directory.
@@ -179,6 +198,13 @@ mod tests {
         ] {
             assert!(parse(&strings(malformed)).is_err(), "{malformed:?}");
         }
+    }
+
+    #[test]
+    fn differing_line_includes_content_and_eof_drift() {
+        assert_eq!(first_differing_line("same\nold\n", "same\nnew\n"), 2);
+        assert_eq!(first_differing_line("same\n", "same"), 1);
+        assert_eq!(first_differing_line("same", "same\n"), 1);
     }
 
     #[test]

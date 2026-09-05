@@ -142,6 +142,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   with usage status 2 before reading or rewriting the source, matching the
   strict `impact` and `review` command grammars.
 
+- `fmt --check` reports the first differing line and documents compact
+  single-line `match` projection; `resolve` validates its target before
+  dependency availability, and `new .` now explains that an explicit project
+  name is required.
 - CLI success and usage surfaces are now consistent for automation: successful
   `check --json` emits a verified envelope, `fmt --check` accepts flag-first
   order, `lock`/`resolve` print one recovery hint, and bare native-callable

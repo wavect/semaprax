@@ -42,6 +42,12 @@ evidence. No method applies it to disk or to a managed Workspace generation.
 
 ## Canonical structural diff
 
+The in-memory structural diff retains the exact base and candidate
+`ProgramRoot` values. Its existing nine-node maps and `changed_nodes` inventory
+are selected from their fixed content-addressed segments, while preserving the
+same legacy node keys, canonical report bytes, schemas, and digests. Additive
+Rust accessors expose both roots.
+
 `SemanticWorkspaceStructuralDiff::derive(candidate, expected_candidate)`
 requires the exact retained Candidate digest. It independently derives the
 Canonical Semantic Workspace Revision for the Candidate's original base and

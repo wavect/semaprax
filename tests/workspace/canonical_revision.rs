@@ -6,9 +6,10 @@ use std::sync::Arc;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, AgentDefinitions, AuthorityPolicies, ContractsAndTests,
-    DependencyClosure, ProjectRevision, ProjectSemanticImage, ProjectionMetadata, SemanticProgram,
-    SemanticWorkspaceRevision, SourceProjection, StableIdentityIndex, TargetProfiles,
-    MAX_SEMANTIC_WORKSPACE_REVISION_BYTES, SEMANTIC_WORKSPACE_REVISION_SCHEMA,
+    DependencyClosure, ProgramRoot, ProjectRevision, ProjectSemanticImage, ProjectionMetadata,
+    SemanticProgram, SemanticWorkspaceRevision, SourceProjection, StableIdentityIndex,
+    TargetProfiles, MAX_PROGRAM_ROOT_BYTES, MAX_SEMANTIC_WORKSPACE_REVISION_BYTES,
+    PROGRAM_ROOT_SCHEMA, PROGRAM_ROOT_SEGMENT_SCHEMA, SEMANTIC_WORKSPACE_REVISION_SCHEMA,
 };
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -155,6 +156,168 @@ fn remint_source_projection(document: &str) -> (String, String) {
     );
     value["workspace_revision"] = json!(workspace_revision);
     (canonical(value), workspace_revision)
+}
+
+#[test]
+fn program_root_segments_replay_without_changing_the_canonical_workspace_or_legacy_subjects() {
+    const ROOT_DOMAIN: &[u8] = b"semaprax.program-root.digest.v1\0";
+    const SEGMENT_DOMAIN: &[u8] = b"semaprax.program-root.segment.digest.v1\0";
+
+    let fixture = Fixture::calculator("program-root", |source| source);
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let legacy_before = (
+        revision.project_revision().to_owned(),
+        revision.workspace_revision().to_owned(),
+        revision.semantic_graph().to_owned(),
+        workspace.workspace_revision().to_owned(),
+        workspace.to_json().to_owned(),
+    );
+
+    let root = workspace.program_root().unwrap();
+    assert_eq!(root, ProgramRoot::derive(&workspace).unwrap());
+    assert_eq!(root, revision.program_root().unwrap());
+    assert!(root.to_json().len() <= MAX_PROGRAM_ROOT_BYTES);
+    assert_eq!(root.workspace_revision(), workspace.workspace_revision());
+    let mut wire: Value = serde_json::from_str(root.to_json()).unwrap();
+    assert_eq!(wire["schema"], PROGRAM_ROOT_SCHEMA);
+    assert_eq!(wire["program_root"], root.program_root_digest());
+    let embedded_identity = wire
+        .as_object_mut()
+        .unwrap()
+        .remove("program_root")
+        .unwrap();
+    assert_eq!(
+        root.program_root_digest(),
+        framed(
+            ROOT_DOMAIN,
+            canonical(Value::Object(wire.as_object().unwrap().clone())).as_bytes()
+        )
+    );
+    wire["program_root"] = embedded_identity;
+
+    let nodes = [
+        (
+            "source_projection",
+            SourceProjection::SCHEMA,
+            workspace.source_projection().digest(),
+            workspace.source_projection().to_json(),
+        ),
+        (
+            "semantic_program",
+            SemanticProgram::SCHEMA,
+            workspace.semantic_program().digest(),
+            workspace.semantic_program().to_json(),
+        ),
+        (
+            "stable_identity_index",
+            StableIdentityIndex::SCHEMA,
+            workspace.stable_identity_index().digest(),
+            workspace.stable_identity_index().to_json(),
+        ),
+        (
+            "dependency_closure",
+            DependencyClosure::SCHEMA,
+            workspace.dependency_closure().digest(),
+            workspace.dependency_closure().to_json(),
+        ),
+        (
+            "contracts_and_tests",
+            ContractsAndTests::SCHEMA,
+            workspace.contracts_and_tests().digest(),
+            workspace.contracts_and_tests().to_json(),
+        ),
+        (
+            "agent_definitions",
+            AgentDefinitions::SCHEMA,
+            workspace.agent_definitions().digest(),
+            workspace.agent_definitions().to_json(),
+        ),
+        (
+            "authority_policies",
+            AuthorityPolicies::SCHEMA,
+            workspace.authority_policies().digest(),
+            workspace.authority_policies().to_json(),
+        ),
+        (
+            "target_profiles",
+            TargetProfiles::SCHEMA,
+            workspace.target_profiles().digest(),
+            workspace.target_profiles().to_json(),
+        ),
+        (
+            "projection_metadata",
+            ProjectionMetadata::SCHEMA,
+            workspace.projection_metadata().digest(),
+            workspace.projection_metadata().to_json(),
+        ),
+    ];
+    assert_eq!(root.segments().len(), nodes.len());
+    for (segment, (kind, schema, digest, node_json)) in root.segments().iter().zip(nodes) {
+        assert_eq!(segment.kind(), kind);
+        assert_eq!(segment.node_schema(), schema);
+        assert_eq!(segment.node_digest(), digest);
+        assert_eq!(segment.node_bytes(), node_json.len());
+        assert_eq!(root.segment(kind), Some(segment));
+        let mut descriptor: Value = serde_json::from_str(segment.to_json()).unwrap();
+        assert_eq!(descriptor["schema"], PROGRAM_ROOT_SEGMENT_SCHEMA);
+        descriptor.as_object_mut().unwrap().remove("segment_digest");
+        assert_eq!(
+            segment.segment_digest(),
+            framed(SEGMENT_DOMAIN, canonical(descriptor).as_bytes())
+        );
+    }
+    assert!(root.segment("unknown").is_none());
+
+    let expected_relationships = [
+        ("deployment_root", "semaprax.deployment-root.v1"),
+        ("instance_root", "semaprax.instance-root.v1"),
+        ("evidence_root", "semaprax.evidence-root.v1"),
+    ];
+    for (relationship, (kind, schema)) in root.relationships().iter().zip(expected_relationships) {
+        assert_eq!(relationship.kind(), kind);
+        assert_eq!(relationship.expected_root_schema(), schema);
+        assert_eq!(relationship.binding(), "unbound");
+        assert_eq!(relationship.digest(), None);
+    }
+
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes(),
+        )
+        .unwrap(),
+        root
+    );
+    assert_code(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().trim_end().as_bytes(),
+        ),
+        "SPX-G550",
+    );
+    assert_code(
+        ProgramRoot::replay(
+            &workspace,
+            workspace.workspace_revision(),
+            root.to_json().as_bytes(),
+        ),
+        "SPX-G551",
+    );
+
+    let workspace_after = revision.canonical_workspace_revision().unwrap();
+    assert_eq!(
+        legacy_before,
+        (
+            revision.project_revision().to_owned(),
+            revision.workspace_revision().to_owned(),
+            revision.semantic_graph().to_owned(),
+            workspace_after.workspace_revision().to_owned(),
+            workspace_after.to_json().to_owned(),
+        )
+    );
 }
 
 #[test]

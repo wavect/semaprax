@@ -571,6 +571,24 @@ Workspace, and Semantic Workspace Image v1 bytes and revision algorithms remain
 unchanged. See [Canonical Semantic Workspace Revision
 v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md).
 
+The explicit AgentDefinition association bridge can populate the canonical
+workspace's existing AgentDefinitions node from a bounded stable-ID-ordered
+list of exact compiler-admitted definition/graph/profile bundles bound to one
+Project revision. It independently replays every bundle and flows through the
+same ProgramRoot segment derivation. This is explicit association input, not
+`.spx` Agent syntax, intrinsic Project ownership, runtime execution, or
+authority. See [Explicit AgentDefinition Association v1](EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md).
+
+`src/project/program_root.rs` adds the SEG-02 ProgramRoot v1 foundation as a
+small content-addressed manifest over that same canonical workspace object. It
+does not derive a competing program graph: nine ordered segment descriptors
+bind the existing typed node schemas, digests, and exact byte lengths without
+copying or deserializing node payloads. DeploymentRoot, InstanceRoot, and
+EvidenceRoot are typed, compiler-created unbound relationships only. ProgramRoot
+derivation and replay are authority-free, and the legacy canonical workspace,
+Project, Image, and Graph bytes and identities remain unchanged. See
+[ProgramRoot v1](PROGRAM-ROOT-V1.md).
+
 `src/project/semantic_transaction.rs` owns the bounded authority-free Universal
 Semantic Transaction v1 kernel. It binds an exact canonical workspace revision
 and admits a closed one-operation algebra containing a typed display rename and
@@ -2016,6 +2034,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Canonical Project-derived semantic workspace revision | `src/project/canonical_workspace_revision.rs` |
+| Segmented source-owned ProgramRoot | `src/project/program_root.rs` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
 | Project v8 promotion observation replay | `src/project/v8_promotion.rs` |
 | Exact Project semantic references | `src/project/image_reference.rs` |

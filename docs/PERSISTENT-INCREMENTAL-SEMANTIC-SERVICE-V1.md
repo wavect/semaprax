@@ -65,6 +65,13 @@ commit, or publication authority.
 
 ## Immutable revision-bound snapshots
 
+Each generation also derives and retains the additive `ProgramRoot` for its
+canonical revision. Generation and snapshot accessors expose that exact root;
+workspace selection continues to accept the legacy workspace-revision digest
+and resolves it through `ProgramRoot::workspace_revision()`. Refresh reuse is
+selected by the ProgramRoot digest. Existing service receipts and schemas are
+byte-identical.
+
 `snapshot(expected_workspace_revision)` requires the exact Canonical Semantic
 Workspace Revision v1 composite digest of the active generation. Malformed
 selectors fail as invalid; a well-formed non-current selector fails as stale.

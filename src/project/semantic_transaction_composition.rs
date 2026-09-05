@@ -14,8 +14,8 @@ use crate::diagnostic::Diagnostic;
 
 use super::semantic_transaction::rename_display_name_eligibility;
 use super::{
-    ProjectCandidate, ProjectRevision, SemanticTransaction, SemanticTransactionArtifacts,
-    SemanticTransactionRenameDisplayName, SemanticWorkspaceRevision,
+    ProgramRoot, ProjectCandidate, ProjectRevision, SemanticTransaction,
+    SemanticTransactionArtifacts, SemanticTransactionRenameDisplayName, SemanticWorkspaceRevision,
 };
 
 pub const SEMANTIC_WORKSPACE_STRUCTURAL_DIFF_SCHEMA: &str =
@@ -41,6 +41,8 @@ type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 /// Equality is structural projection equality, never behavioral equivalence.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SemanticWorkspaceStructuralDiff {
+    base_program_root: ProgramRoot,
+    candidate_program_root: ProgramRoot,
     json: String,
     digest: String,
     source_review: String,
@@ -55,6 +57,8 @@ impl SemanticWorkspaceStructuralDiff {
         }
         let base = candidate.base_revision().canonical_workspace_revision()?;
         let after = candidate.revision().canonical_workspace_revision()?;
+        let base_program_root = base.program_root()?;
+        let candidate_program_root = after.program_root()?;
         let catalog = candidate.semantic_delta_catalog(expected_candidate)?;
         let source_review = candidate.source_review(expected_candidate)?;
         let catalog_value = parse_embedded(&catalog, "semantic delta catalog is invalid JSON")?;
@@ -62,12 +66,12 @@ impl SemanticWorkspaceStructuralDiff {
             parse_embedded(&source_review, "candidate source review is invalid JSON")?;
         let source_review_digest = digest(SOURCE_REVIEW_DOMAIN, source_review.as_bytes());
         let changed_components = changed_components(&base, &after);
-        let changed_nodes = changed_nodes(&base, &after);
+        let changed_nodes = changed_nodes(&base_program_root, &candidate_program_root)?;
         let json = render(
             json!({
                 "authority": false,
-                "base": revision_binding(candidate.base_revision(), &base),
-                "candidate": revision_binding(candidate.revision(), &after),
+                "base": revision_binding(candidate.base_revision(), &base, &base_program_root)?,
+                "candidate": revision_binding(candidate.revision(), &after, &candidate_program_root)?,
                 "candidate_digest": candidate.candidate_digest(),
                 "changed_components": changed_components,
                 "changed_nodes": changed_nodes,
@@ -96,6 +100,8 @@ impl SemanticWorkspaceStructuralDiff {
         )?;
         let digest = digest(STRUCTURAL_DIFF_DOMAIN, json.as_bytes());
         Ok(Self {
+            base_program_root,
+            candidate_program_root,
             json,
             digest,
             source_review,
@@ -139,6 +145,12 @@ impl SemanticWorkspaceStructuralDiff {
     pub fn source_review_digest(&self) -> &str {
         &self.source_review_digest
     }
+    pub fn base_program_root(&self) -> &ProgramRoot {
+        &self.base_program_root
+    }
+    pub fn candidate_program_root(&self) -> &ProgramRoot {
+        &self.candidate_program_root
+    }
 }
 
 /// A freshly validated one-operation transaction reminted on an exact new base.
@@ -162,7 +174,9 @@ impl SemanticTransactionRebase {
         require_digest(expected_onto_workspace_revision)?;
         let original_workspace = original_base.canonical_workspace_revision()?;
         let onto_workspace = onto.canonical_workspace_revision()?;
-        if onto_workspace.workspace_revision() != expected_onto_workspace_revision {
+        let original_program_root = original_workspace.program_root()?;
+        let onto_program_root = onto_workspace.program_root()?;
+        if onto_program_root.workspace_revision() != expected_onto_workspace_revision {
             return Err(stale("semantic transaction rebase destination is stale"));
         }
         let operation = transaction.rename_operation().ok_or_else(|| {
@@ -194,7 +208,7 @@ impl SemanticTransactionRebase {
         let reconciliation = reconciled.to_json().to_owned();
         let reconciliation_digest = digest(RECONCILIATION_DOMAIN, reconciliation.as_bytes());
         let rebased = SemanticTransaction::rename_display_name(
-            onto_workspace.workspace_revision(),
+            onto_program_root.workspace_revision(),
             SemanticTransactionRenameDisplayName::new(
                 operation.target(),
                 &current_name,
@@ -213,9 +227,9 @@ impl SemanticTransactionRebase {
                 "authority": false,
                 "base": {
                     "onto_project_revision": onto.project_revision(),
-                    "onto_workspace_revision": onto_workspace.workspace_revision(),
+                    "onto_workspace_revision": onto_program_root.workspace_revision(),
                     "original_project_revision": original_base.project_revision(),
-                    "original_workspace_revision": original_workspace.workspace_revision(),
+                    "original_workspace_revision": original_program_root.workspace_revision(),
                 },
                 "nonclaims": [
                     "not_behavioral_equivalence",
@@ -240,7 +254,7 @@ impl SemanticTransactionRebase {
                 "result": {
                     "candidate_digest": artifacts.candidate().candidate_digest(),
                     "project_revision": artifacts.candidate().revision().project_revision(),
-                    "workspace_revision": artifacts.candidate().revision().canonical_workspace_revision()?.workspace_revision(),
+                    "workspace_revision": artifacts.candidate_program_root().workspace_revision(),
                 },
                 "schema": SEMANTIC_TRANSACTION_REBASE_SCHEMA,
                 "source_review": {
@@ -381,7 +395,8 @@ impl SemanticTransactionMerge {
             ));
         }
         let workspace = shared_base.canonical_workspace_revision()?;
-        if workspace.workspace_revision() != left.expected_workspace_revision() {
+        let program_root = workspace.program_root()?;
+        if program_root.workspace_revision() != left.expected_workspace_revision() {
             return Err(stale("semantic transaction merge base is stale"));
         }
         let left_artifacts = left.validate(Arc::clone(&shared_base))?;
@@ -407,12 +422,13 @@ impl SemanticTransactionMerge {
         let structural_diff =
             SemanticWorkspaceStructuralDiff::derive(&candidate, candidate.candidate_digest())?;
         let candidate_workspace = candidate.revision().canonical_workspace_revision()?;
+        let candidate_program_root = candidate_workspace.program_root()?;
         let json = render(
             json!({
                 "authority": false,
                 "base": {
                     "project_revision": shared_base.project_revision(),
-                    "workspace_revision": workspace.workspace_revision(),
+                    "workspace_revision": program_root.workspace_revision(),
                 },
                 "nonclaims": [
                     "merge_result_is_a_validated_project_candidate_not_semantic_transaction_v1",
@@ -435,7 +451,7 @@ impl SemanticTransactionMerge {
                 "result": {
                     "candidate_digest": candidate.candidate_digest(),
                     "project_revision": candidate.revision().project_revision(),
-                    "workspace_revision": candidate_workspace.workspace_revision(),
+                    "workspace_revision": candidate_program_root.workspace_revision(),
                 },
                 "schema": SEMANTIC_TRANSACTION_MERGE_SCHEMA,
                 "source_review": {
@@ -537,32 +553,45 @@ impl SemanticTransaction {
     }
 }
 
-fn revision_binding(revision: &ProjectRevision, workspace: &SemanticWorkspaceRevision) -> Value {
-    json!({
+fn revision_binding(
+    revision: &ProjectRevision,
+    workspace: &SemanticWorkspaceRevision,
+    program_root: &ProgramRoot,
+) -> Result<Value> {
+    Ok(json!({
         "components": {
             "dependency_lock": workspace.dependency_lock_digest(),
             "manifest": workspace.manifest_digest(),
             "semantic": workspace.semantic_digest(),
             "source_projection": workspace.source_projection_digest(),
         },
-        "nodes": node_digests(workspace),
+        "nodes": node_digests(program_root)?,
         "project_revision": revision.project_revision(),
-        "workspace_revision": workspace.workspace_revision(),
-    })
+        "workspace_revision": program_root.workspace_revision(),
+    }))
 }
 
-fn node_digests(workspace: &SemanticWorkspaceRevision) -> Value {
-    json!({
-        "agent_definitions": workspace.agent_definitions().digest(),
-        "authority_policies": workspace.authority_policies().digest(),
-        "contracts_and_tests": workspace.contracts_and_tests().digest(),
-        "dependency_closure": workspace.dependency_closure().digest(),
-        "projection_metadata": workspace.projection_metadata().digest(),
-        "semantic_program": workspace.semantic_program().digest(),
-        "source_projection": workspace.source_projection().digest(),
-        "stable_identity_index": workspace.stable_identity_index().digest(),
-        "target_profiles": workspace.target_profiles().digest(),
-    })
+const PROGRAM_NODE_KINDS: [&str; 9] = [
+    "agent_definitions",
+    "authority_policies",
+    "contracts_and_tests",
+    "dependency_closure",
+    "projection_metadata",
+    "semantic_program",
+    "source_projection",
+    "stable_identity_index",
+    "target_profiles",
+];
+
+fn node_digests(program_root: &ProgramRoot) -> Result<Value> {
+    let mut nodes = serde_json::Map::new();
+    for kind in PROGRAM_NODE_KINDS {
+        let segment = program_root
+            .segment(kind)
+            .ok_or_else(|| invalid("ProgramRoot is missing a structural-diff node segment"))?;
+        nodes.insert(kind.to_owned(), json!(segment.node_digest()));
+    }
+    Ok(Value::Object(nodes))
 }
 
 fn changed_components(
@@ -596,60 +625,20 @@ fn changed_components(
     .collect()
 }
 
-fn changed_nodes(
-    before: &SemanticWorkspaceRevision,
-    after: &SemanticWorkspaceRevision,
-) -> Vec<&'static str> {
-    [
-        (
-            "agent_definitions",
-            before.agent_definitions().digest(),
-            after.agent_definitions().digest(),
-        ),
-        (
-            "authority_policies",
-            before.authority_policies().digest(),
-            after.authority_policies().digest(),
-        ),
-        (
-            "contracts_and_tests",
-            before.contracts_and_tests().digest(),
-            after.contracts_and_tests().digest(),
-        ),
-        (
-            "dependency_closure",
-            before.dependency_closure().digest(),
-            after.dependency_closure().digest(),
-        ),
-        (
-            "projection_metadata",
-            before.projection_metadata().digest(),
-            after.projection_metadata().digest(),
-        ),
-        (
-            "semantic_program",
-            before.semantic_program().digest(),
-            after.semantic_program().digest(),
-        ),
-        (
-            "source_projection",
-            before.source_projection().digest(),
-            after.source_projection().digest(),
-        ),
-        (
-            "stable_identity_index",
-            before.stable_identity_index().digest(),
-            after.stable_identity_index().digest(),
-        ),
-        (
-            "target_profiles",
-            before.target_profiles().digest(),
-            after.target_profiles().digest(),
-        ),
-    ]
-    .into_iter()
-    .filter_map(|(name, left, right)| (left != right).then_some(name))
-    .collect()
+fn changed_nodes(before: &ProgramRoot, after: &ProgramRoot) -> Result<Vec<&'static str>> {
+    let mut changed = Vec::new();
+    for kind in PROGRAM_NODE_KINDS {
+        let left = before
+            .segment(kind)
+            .ok_or_else(|| invalid("ProgramRoot is missing a structural-diff node segment"))?;
+        let right = after
+            .segment(kind)
+            .ok_or_else(|| invalid("ProgramRoot is missing a structural-diff node segment"))?;
+        if left.node_digest() != right.node_digest() {
+            changed.push(kind);
+        }
+    }
+    Ok(changed)
 }
 
 fn transaction_binding(

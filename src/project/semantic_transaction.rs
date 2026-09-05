@@ -12,7 +12,9 @@ use sha2::{Digest, Sha256};
 
 use crate::diagnostic::Diagnostic;
 
-use super::{ProjectCandidate, ProjectRevision, SemanticChange, SEMANTIC_CHANGE_REQUIREMENTS};
+use super::{
+    ProgramRoot, ProjectCandidate, ProjectRevision, SemanticChange, SEMANTIC_CHANGE_REQUIREMENTS,
+};
 
 mod add_declaration;
 pub(super) use add_declaration::add_declaration_eligibility;
@@ -489,7 +491,8 @@ impl SemanticTransaction {
         base: Arc<ProjectRevision>,
     ) -> Result<SemanticTransactionArtifacts, Vec<Diagnostic>> {
         let base_workspace = base.canonical_workspace_revision()?;
-        if base_workspace.workspace_revision() != self.expected_workspace_revision {
+        let base_program_root = base_workspace.program_root()?;
+        if base_program_root.workspace_revision() != self.expected_workspace_revision {
             return Err(stale(
                 "semantic transaction expected workspace revision is stale",
             ));
@@ -546,6 +549,7 @@ impl SemanticTransaction {
         let candidate = initial.apply(initial.candidate_digest(), &change)?;
         require_canonical_comment_free_sources(candidate.revision())?;
         let candidate_workspace = candidate.revision().canonical_workspace_revision()?;
+        let candidate_program_root = candidate_workspace.program_root()?;
         let source_review_text = candidate.source_review(candidate.candidate_digest())?;
         let source_review: Value = serde_json::from_str(&source_review_text)
             .map_err(|_| invalid("candidate source review is not valid JSON"))?;
@@ -696,8 +700,8 @@ impl SemanticTransaction {
         }
 
         let mut impact_value = json!({
-            "base_workspace_revision": base_workspace.workspace_revision(),
-            "candidate_workspace_revision": candidate_workspace.workspace_revision(),
+            "base_workspace_revision": base_program_root.workspace_revision(),
+            "candidate_workspace_revision": candidate_program_root.workspace_revision(),
             "classification": "descriptive_compiler_projection",
             "identity": {"preserved": true, "target": self.operation.target()},
             "nonclaims": ["not_behavioral_equivalence", "not_runtime_execution", "no_authority"],
@@ -728,13 +732,13 @@ impl SemanticTransaction {
                 "authority": {"commit_performed": false, "granted": false},
                 "base": {
                     "project_revision": base.project_revision(),
-                    "workspace_revision": base_workspace.workspace_revision(),
+                    "workspace_revision": base_program_root.workspace_revision(),
                 },
                 "candidate": {
                     "evidence": candidate_value,
                     "project_revision": candidate.revision().project_revision(),
                     "revision": candidate.candidate_digest(),
-                    "workspace_revision": candidate_workspace.workspace_revision(),
+                    "workspace_revision": candidate_program_root.workspace_revision(),
                 },
                 "operation_results": [operation_result],
                 "schema": SEMANTIC_TRANSACTION_RESULT_SCHEMA,
@@ -761,6 +765,8 @@ impl SemanticTransaction {
 
         Ok(SemanticTransactionArtifacts {
             candidate,
+            base_program_root,
+            candidate_program_root,
             impact,
             impact_digest,
             review,
@@ -794,6 +800,8 @@ impl SemanticTransaction {
 /// Authority-free products of one fully validated transaction.
 pub struct SemanticTransactionArtifacts {
     candidate: ProjectCandidate,
+    base_program_root: ProgramRoot,
+    candidate_program_root: ProgramRoot,
     impact: String,
     impact_digest: String,
     review: String,
@@ -806,6 +814,12 @@ pub struct SemanticTransactionArtifacts {
 impl SemanticTransactionArtifacts {
     pub fn candidate(&self) -> &ProjectCandidate {
         &self.candidate
+    }
+    pub fn base_program_root(&self) -> &ProgramRoot {
+        &self.base_program_root
+    }
+    pub fn candidate_program_root(&self) -> &ProgramRoot {
+        &self.candidate_program_root
     }
     pub fn impact(&self) -> &str {
         &self.impact

@@ -8,6 +8,22 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the SEG-02 explicit AgentDefinition association bridge. A bounded,
+  stable-ID-ordered set of exact compiler-admitted definition/graph/profile
+  bundles can populate the existing Canonical Workspace AgentDefinitions node
+  for one exact Project revision and flows into ProgramRoot automatically.
+  Default empty derivation remains byte-compatible; the new route explicitly
+  does not claim `.spx` Agent syntax, intrinsic Project ownership, execution,
+  or authority. Its three focused Workspace-harness cases pass locally.
+
+- Added the SEG-02 ProgramRoot v1 foundation as a small segmented,
+  content-addressed projection of Canonical Semantic Workspace Revision v1.
+  Nine independently digested descriptors bind the existing typed node bytes,
+  while DeploymentRoot, InstanceRoot, and EvidenceRoot remain typed unbound
+  placeholders. Existing canonical workspace, Project, Image, and Graph bytes
+  and identities are unchanged. The 33-case combined focused gate and strict
+  all-target clippy pass locally.
+
 - Added a locked Project-v13 HTTPS browser fixture and provisioned Chromium CI
   gate. It executes the real generated npm/Wasm package, verifies exact
   fixture-v3 output, one-shot invocation and tampered-Wasm rejection, and

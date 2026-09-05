@@ -31,6 +31,7 @@ mod nested_owned_record;
 mod npm;
 mod prepared_interpreter;
 mod profile;
+mod program_root;
 mod project_lock;
 mod public_api;
 mod public_utf8_api;
@@ -246,7 +247,8 @@ pub use candidate::{
 pub use canonical_workspace_revision::{
     AgentDefinitions, AuthorityPolicies, ContractsAndTests, DependencyClosure, ProjectionMetadata,
     SemanticProgram, SemanticWorkspaceRevision, SourceProjection, StableIdentityIndex,
-    TargetProfiles, MAX_SEMANTIC_WORKSPACE_REVISION_BYTES,
+    TargetProfiles, MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITIONS,
+    MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITION_INPUT_BYTES, MAX_SEMANTIC_WORKSPACE_REVISION_BYTES,
     SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY, SEMANTIC_WORKSPACE_REVISION_SCHEMA,
 };
 pub use cxx_owned_data::{
@@ -347,6 +349,12 @@ pub use prepared_interpreter::{
     ProjectSourceTraceEvent, DEFAULT_PROJECT_SOURCE_TRACE_BYTES,
     DEFAULT_PROJECT_SOURCE_TRACE_EVENTS, MAX_PROJECT_SOURCE_TRACE_BYTES,
     MAX_PROJECT_SOURCE_TRACE_EVENTS, MIN_PROJECT_SOURCE_TRACE_BYTES, PROJECT_SOURCE_TRACE_SCHEMA,
+};
+pub use program_root::{
+    ProgramRoot, ProgramRootRelationship, ProgramRootSegment, MAX_PROGRAM_ROOT_BYTES,
+    MAX_PROGRAM_ROOT_RELATIONSHIP_BYTES, MAX_PROGRAM_ROOT_SEGMENT_BYTES,
+    PROGRAM_ROOT_COMPATIBILITY, PROGRAM_ROOT_RELATIONSHIP_SCHEMA, PROGRAM_ROOT_SCHEMA,
+    PROGRAM_ROOT_SEGMENT_SCHEMA,
 };
 pub use project_lock::{
     classify_lock_change, render_project_lock, verify_project_lock, LockCompatibility,

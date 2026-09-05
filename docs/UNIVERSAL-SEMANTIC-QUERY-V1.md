@@ -219,6 +219,11 @@ precedence when those owners reject the delegated operation.
 
 ## Authority, compatibility, and nonclaims
 
+Execution retains the snapshot's exact `ProgramRoot` in the in-memory result
+and exposes it through an additive Rust accessor. The legacy query envelope and
+result still serialize the same workspace/component fields and bytes; the
+workspace selector is resolved through that root's canonical-workspace binding.
+
 The core reads one retained immutable snapshot. It owns no filesystem, process,
 network, execution, cache persistence, source mutation, commit, approval,
 deployment, signing, or publication authority. Query results are evidence, not

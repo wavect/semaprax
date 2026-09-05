@@ -17,7 +17,7 @@ use crate::workspace_analysis::{
 
 use super::semantic_service_indexes::SemanticServiceIndexes;
 use super::{
-    ProjectFrontendCache, ProjectFrontendSource, ProjectManifest, ProjectRevision,
+    ProgramRoot, ProjectFrontendCache, ProjectFrontendSource, ProjectManifest, ProjectRevision,
     ProjectSemanticImage, SemanticQuery, SemanticQueryResult, SemanticServiceIndexQuery,
     SemanticServiceIndexResult, SemanticTransaction, SemanticTransactionArtifacts,
     SemanticWorkspaceRevision,
@@ -53,6 +53,7 @@ type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 pub struct SemanticWorkspaceGeneration {
     revision: Arc<ProjectRevision>,
     canonical: SemanticWorkspaceRevision,
+    program_root: ProgramRoot,
     image: Arc<ProjectSemanticImage>,
     indexes: SemanticServiceIndexes,
 }
@@ -66,12 +67,16 @@ impl SemanticWorkspaceGeneration {
         &self.canonical
     }
 
+    pub fn program_root(&self) -> &ProgramRoot {
+        &self.program_root
+    }
+
     pub fn image(&self) -> &Arc<ProjectSemanticImage> {
         &self.image
     }
 
     pub fn workspace_revision(&self) -> &str {
-        self.canonical.workspace_revision()
+        self.program_root.workspace_revision()
     }
 
     pub(crate) fn indexes(&self) -> &SemanticServiceIndexes {
@@ -92,6 +97,10 @@ impl SemanticWorkspaceSnapshot {
 
     pub fn workspace_revision(&self) -> &str {
         self.generation.workspace_revision()
+    }
+
+    pub fn program_root(&self) -> &ProgramRoot {
+        self.generation.program_root()
     }
 
     pub fn symbol(&self, id: &str) -> Result<String> {
@@ -357,7 +366,8 @@ impl SemanticWorkspaceService {
         let after = &candidate.revision;
         let (changed, invalidated, manifest_changed, inventory_changed) =
             invalidation(before, after);
-        let generation_reused = candidate.workspace_revision() == self.active.workspace_revision();
+        let generation_reused = candidate.program_root().program_root_digest()
+            == self.active.program_root().program_root_digest();
         if generation_reused && !same_revision(before, after) {
             return Err(stale(
                 "unchanged canonical workspace revision has different retained Project facts",
@@ -433,15 +443,12 @@ impl SemanticWorkspaceService {
             ));
         }
         let artifacts = transaction.validate(Arc::clone(&self.active.revision))?;
-        let candidate_workspace = artifacts
-            .candidate()
-            .revision()
-            .canonical_workspace_revision()?;
+        let candidate_program_root = artifacts.candidate_program_root();
         let history_entry = history.transaction_entry(
             self.active.revision.project_revision(),
             self.active.workspace_revision(),
             artifacts.candidate().revision().project_revision(),
-            candidate_workspace.workspace_revision(),
+            candidate_program_root.workspace_revision(),
             transaction.digest(),
             artifacts.result_digest(),
         )?;
@@ -452,6 +459,7 @@ impl SemanticWorkspaceService {
 
 fn derive_generation(revision: Arc<ProjectRevision>) -> Result<SemanticWorkspaceGeneration> {
     let canonical = revision.canonical_workspace_revision()?;
+    let program_root = canonical.program_root()?;
     let image = Arc::new(ProjectSemanticImage::derive(
         Arc::clone(&revision),
         revision.project_revision(),
@@ -460,6 +468,7 @@ fn derive_generation(revision: Arc<ProjectRevision>) -> Result<SemanticWorkspace
     Ok(SemanticWorkspaceGeneration {
         revision,
         canonical,
+        program_root,
         image,
         indexes,
     })

@@ -41,6 +41,18 @@ impl SemanticWorkspaceRevision {
         expected_workspace_revision: &str,
         bytes: &[u8],
     ) -> Result<Self, Vec<Diagnostic>>;
+    pub fn derive_with_agent_definitions(
+        revision: &ProjectRevision,
+        expected_project_revision: &str,
+        definitions: &[&CompiledAgentDefinition],
+    ) -> Result<Self, Vec<Diagnostic>>;
+    pub fn replay_with_agent_definitions(
+        revision: &ProjectRevision,
+        expected_project_revision: &str,
+        definitions: &[&CompiledAgentDefinition],
+        expected_workspace_revision: &str,
+        bytes: &[u8],
+    ) -> Result<Self, Vec<Diagnostic>>;
 
     pub fn to_json(&self) -> &str;
     pub fn workspace_revision(&self) -> &str;
@@ -129,13 +141,19 @@ The v1 node payloads are closed:
 | `StableIdentityIndex` | retained Project image `stable_ids` index |
 | `DependencyClosure` | declared source `name`/`path` bindings, dependency `name`/`range` requirements, and resolved dependency-source path/revision/digest facts |
 | `ContractsAndTests` | `contract_fingerprints` set to the semantic-program digest and selected `test_module` |
-| `AgentDefinitions` | empty `definitions` inventory plus `integration: no_project_agent_definition_declarations` |
+| `AgentDefinitions` | default empty `definitions` inventory plus `integration: no_project_agent_definition_declarations`; or the explicit compiler-admitted association payload owned by its additive v1 specification |
 | `AuthorityPolicies` | manifest `required_capabilities` inventory |
 | `TargetProfiles` | manifest `contract` and `profile`, `targets` matrix or the existing native64/wasm32 default, and `web_exports` identities |
 | `ProjectionMetadata` | `compiler_package`, `compiler_version`, `compatibility`, `legacy_project_revision`, `legacy_workspace_revision`, and `project_graph_digest` |
 
 The empty `AgentDefinitions` inventory is an honest compatibility marker, not
-evidence that Project declarations already derive language-native agents.
+evidence that Project declarations already derive language-native agents. The
+additive [Explicit AgentDefinition Association v1](EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md)
+route may populate this existing node from an ordered, bounded list of exact
+compiler-admitted AgentDefinition/AgentGraph/Runtime Profile bundles associated
+with one exact Project revision. That explicit input is not `.spx` Agent syntax
+or intrinsic Project ownership; default derivation and replay bytes remain
+unchanged.
 
 `DependencyClosure` records the noncyclic dependency requirements, declared
 subject bindings, and resolved dependency-source facts available in the
@@ -240,7 +258,13 @@ bytes, schemas, digest domains, revision identities, limits, or behavior of:
 - Semantic Workspace Image v1, image transport v1-v6, candidate handles,
   candidate reports, archives, stores, or recovery;
 - Semantic Patch, Workspace Change, Operations, Structural Change, evidence,
-  review, build, execution, Git, package, or deployment artifacts.
+review, build, execution, Git, package, or deployment artifacts.
+
+The additive [ProgramRoot v1](PROGRAM-ROOT-V1.md) SEG foundation segments this
+exact object through independently digested node descriptors and a small root
+manifest. It derives from this revision without changing this schema, any node
+bytes, the four component digests, or `workspace_revision`; it is not a
+replacement or competing source/program representation.
 
 The fixed compatibility identifier describes only this derivation/replay
 contract. It is not a compiler binary fingerprint and does not promise forward

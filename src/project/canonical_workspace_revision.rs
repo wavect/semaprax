@@ -8,6 +8,9 @@ use std::path::Path;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
+use crate::agent_definition::{
+    compile_agent_definition, verify_agent_graph_bundle, CompiledAgentDefinition,
+};
 use crate::diagnostic::Diagnostic;
 
 use super::{ProjectRevision, PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32};
@@ -16,6 +19,8 @@ pub const SEMANTIC_WORKSPACE_REVISION_SCHEMA: &str = "semaprax.semantic-workspac
 pub const SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY: &str =
     "semaprax.semantic-workspace-revision-compatibility.v1";
 pub const MAX_SEMANTIC_WORKSPACE_REVISION_BYTES: usize = 32 * 1024 * 1024;
+pub const MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITIONS: usize = 64;
+pub const MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITION_INPUT_BYTES: usize = 8 * 1024 * 1024;
 
 const REVISION_DOMAIN: &[u8] = b"semaprax.semantic-workspace-revision.digest.v1\0";
 const SEMANTIC_DOMAIN: &[u8] = b"semaprax.semantic-workspace-revision.semantic.digest.v1\0";
@@ -125,6 +130,35 @@ pub struct SemanticWorkspaceRevision {
 
 impl SemanticWorkspaceRevision {
     pub fn derive(revision: &ProjectRevision) -> Result<Self, Vec<Diagnostic>> {
+        Self::derive_inner(revision, None)
+    }
+
+    /// Derive the same canonical workspace family with an explicit, bounded
+    /// association to already compiler-admitted AgentDefinition bundles.
+    ///
+    /// This is not `.spx` Agent syntax or proof that the definitions originated
+    /// in the Project. The exact Project revision precondition and complete
+    /// definition/graph/profile replay make the association deterministic and
+    /// fail closed without granting authority.
+    pub fn derive_with_agent_definitions(
+        revision: &ProjectRevision,
+        expected_project_revision: &str,
+        definitions: &[&CompiledAgentDefinition],
+    ) -> Result<Self, Vec<Diagnostic>> {
+        validate_digest(expected_project_revision)?;
+        if expected_project_revision != revision.project_revision() {
+            return Err(stale(
+                "AgentDefinitions association expected Project revision is stale",
+            ));
+        }
+        let payload = explicit_agent_definitions_payload(revision, definitions)?;
+        Self::derive_inner(revision, Some(payload))
+    }
+
+    fn derive_inner(
+        revision: &ProjectRevision,
+        explicit_agent_definitions: Option<Value>,
+    ) -> Result<Self, Vec<Diagnostic>> {
         let source_projection = SourceProjection::new(json!({
             "files": revision.sources().iter().map(|source| json!({
                 "bytes": source.source().len(),
@@ -190,10 +224,14 @@ impl SemanticWorkspaceRevision {
             "contract_fingerprints": semantic_program.digest(),
             "test_module": revision.manifest().test_module(),
         }))?;
-        let agent_definitions = AgentDefinitions::new(json!({
-            "definitions": [],
-            "integration": "no_project_agent_definition_declarations",
-        }))?;
+        let has_explicit_agent_definitions = explicit_agent_definitions.is_some();
+        let agent_definitions =
+            AgentDefinitions::new(explicit_agent_definitions.unwrap_or_else(|| {
+                json!({
+                    "definitions": [],
+                    "integration": "no_project_agent_definition_declarations",
+                })
+            }))?;
         let authority_policies = AuthorityPolicies::new(json!({
             "required_capabilities": revision.manifest().capabilities(),
         }))?;
@@ -262,6 +300,21 @@ impl SemanticWorkspaceRevision {
             "stable_identity_index": node_value(&stable_identity_index.json, stable_identity_index.digest())?,
             "target_profiles": node_value(&target_profiles.json, target_profiles.digest())?,
         });
+        let nonclaims = if has_explicit_agent_definitions {
+            json!([
+                "no_filesystem_or_publication_authority",
+                "no_trusted_hir_deserialization",
+                "explicit_compiler_admitted_association_is_not_spx_agent_syntax_or_intrinsic_project_ownership_proof",
+                "dependency_lock_is_a_local_admitted_closure_projection_not_project_lock_v1",
+            ])
+        } else {
+            json!([
+                "no_filesystem_or_publication_authority",
+                "no_trusted_hir_deserialization",
+                "no_project_agent_definition_integration",
+                "dependency_lock_is_a_local_admitted_closure_projection_not_project_lock_v1",
+            ])
+        };
         let json = canonical_json(json!({
             "compatibility": SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY,
             "digests": {
@@ -272,12 +325,7 @@ impl SemanticWorkspaceRevision {
             },
             "limits": {"max_revision_bytes": MAX_SEMANTIC_WORKSPACE_REVISION_BYTES},
             "nodes": nodes,
-            "nonclaims": [
-                "no_filesystem_or_publication_authority",
-                "no_trusted_hir_deserialization",
-                "no_project_agent_definition_integration",
-                "dependency_lock_is_a_local_admitted_closure_projection_not_project_lock_v1",
-            ],
+            "nonclaims": nonclaims,
             "schema": SEMANTIC_WORKSPACE_REVISION_SCHEMA,
             "workspace_revision": workspace_revision,
         }))?;
@@ -333,6 +381,27 @@ impl SemanticWorkspaceRevision {
         Ok(derived)
     }
 
+    /// Freshly rederive and exact-compare an explicitly associated Agent bundle.
+    pub fn replay_with_agent_definitions(
+        revision: &ProjectRevision,
+        expected_project_revision: &str,
+        definitions: &[&CompiledAgentDefinition],
+        expected_workspace_revision: &str,
+        bytes: &[u8],
+    ) -> Result<Self, Vec<Diagnostic>> {
+        validate_replay_input(expected_workspace_revision, bytes)?;
+        let derived =
+            Self::derive_with_agent_definitions(revision, expected_project_revision, definitions)?;
+        if expected_workspace_revision != derived.workspace_revision()
+            || bytes != derived.json.as_bytes()
+        {
+            return Err(stale(
+                "canonical semantic workspace AgentDefinitions association failed exact replay",
+            ));
+        }
+        Ok(derived)
+    }
+
     pub fn to_json(&self) -> &str {
         &self.json
     }
@@ -378,6 +447,98 @@ impl SemanticWorkspaceRevision {
     pub fn projection_metadata(&self) -> &ProjectionMetadata {
         &self.projection_metadata
     }
+}
+
+fn explicit_agent_definitions_payload(
+    revision: &ProjectRevision,
+    definitions: &[&CompiledAgentDefinition],
+) -> Result<Value, Vec<Diagnostic>> {
+    if definitions.is_empty() || definitions.len() > MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITIONS {
+        return Err(invalid(
+            "explicit AgentDefinitions association requires one to sixty-four definitions",
+        ));
+    }
+    let mut total_bytes = 0usize;
+    let mut previous_id: Option<&str> = None;
+    let mut rows = Vec::with_capacity(definitions.len());
+    for compiled in definitions {
+        let definition = compiled.definition();
+        let agent_id = definition.agent_id();
+        if previous_id.is_some_and(|previous| previous >= agent_id) {
+            return Err(invalid(
+                "explicit AgentDefinitions input must be unique and in stable agent-ID byte order",
+            ));
+        }
+        previous_id = Some(agent_id);
+        let definition_source = definition.canonical_source();
+        let graph_source = compiled.graph().canonical_json();
+        let profile_source = compiled.runtime_v1_profile();
+        total_bytes = total_bytes
+            .checked_add(definition_source.len())
+            .and_then(|value| value.checked_add(graph_source.len()))
+            .and_then(|value| value.checked_add(profile_source.len()))
+            .ok_or_else(|| invalid("explicit AgentDefinitions input byte count overflowed"))?;
+        if total_bytes > MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITION_INPUT_BYTES {
+            return Err(invalid(
+                "explicit AgentDefinitions association exceeds its byte limit",
+            ));
+        }
+        verify_agent_graph_bundle(definition_source, profile_source, graph_source)?;
+        let replayed = compile_agent_definition(definition_source)?;
+        if replayed.definition().canonical_source() != definition_source
+            || replayed.definition().digest() != definition.digest()
+            || replayed.graph().canonical_json() != graph_source
+            || replayed.graph().digest() != compiled.graph().digest()
+            || replayed.runtime_v1_profile() != profile_source
+        {
+            return Err(stale(
+                "explicit AgentDefinitions definition, graph, or profile association is stale",
+            ));
+        }
+        let graph: Value = serde_json::from_str(graph_source)
+            .map_err(|_| invalid("explicit AgentDefinitions graph is not valid JSON"))?;
+        let profile_digest = graph
+            .get("runtime_v1_profile_digest")
+            .and_then(Value::as_str)
+            .ok_or_else(|| invalid("explicit AgentDefinitions graph has no profile digest"))?;
+        validate_digest(profile_digest)?;
+        rows.push(json!({
+            "agent_definition": definition_source,
+            "agent_definition_digest": definition.digest(),
+            "agent_graph": graph_source,
+            "agent_graph_digest": compiled.graph().digest(),
+            "agent_id": agent_id,
+            "runtime_v1_profile": profile_source,
+            "runtime_v1_profile_digest": profile_digest,
+        }));
+    }
+    Ok(json!({
+        "definitions": rows,
+        "expected_project_revision": revision.project_revision(),
+        "integration": "explicit_compiler_admitted_association_input",
+    }))
+}
+
+fn validate_replay_input(
+    expected_workspace_revision: &str,
+    bytes: &[u8],
+) -> Result<(), Vec<Diagnostic>> {
+    if bytes.len() > MAX_SEMANTIC_WORKSPACE_REVISION_BYTES {
+        return Err(invalid(
+            "canonical semantic workspace revision exceeds its byte limit",
+        ));
+    }
+    validate_digest(expected_workspace_revision)?;
+    let source = std::str::from_utf8(bytes)
+        .map_err(|_| invalid("canonical semantic workspace revision is not UTF-8"))?;
+    let value: Value = serde_json::from_str(source)
+        .map_err(|_| invalid("canonical semantic workspace revision is not JSON"))?;
+    if canonical_json(value.clone())?.as_bytes() != bytes {
+        return Err(invalid(
+            "canonical semantic workspace revision is not canonical JSON",
+        ));
+    }
+    validate_wire_shape(&value)
 }
 
 fn validate_wire_shape(value: &Value) -> Result<(), Vec<Diagnostic>> {

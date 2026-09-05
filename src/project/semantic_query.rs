@@ -533,7 +533,7 @@ impl SemanticQuery {
                 "project_revision": generation.revision().project_revision(),
                 "query_digest": self.digest,
                 "schema": SEMANTIC_QUERY_RESULT_SCHEMA,
-                "workspace_revision": canonical.workspace_revision(),
+                "workspace_revision": generation.program_root().workspace_revision(),
             }),
             MAX_SEMANTIC_QUERY_RESULT_BYTES,
             true,
@@ -546,6 +546,7 @@ impl SemanticQuery {
             payload,
             payload_digest,
             workspace_revision: self.expected_workspace_revision.clone(),
+            program_root: generation.program_root().clone(),
         })
     }
 
@@ -584,6 +585,7 @@ pub struct SemanticQueryResult {
     payload: String,
     payload_digest: String,
     workspace_revision: String,
+    program_root: super::ProgramRoot,
 }
 
 impl SemanticQueryResult {
@@ -604,6 +606,9 @@ impl SemanticQueryResult {
     }
     pub fn workspace_revision(&self) -> &str {
         &self.workspace_revision
+    }
+    pub fn program_root(&self) -> &super::ProgramRoot {
+        &self.program_root
     }
 }
 

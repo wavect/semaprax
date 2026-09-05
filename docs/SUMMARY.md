@@ -93,6 +93,7 @@ Audience: all documentation readers.
 - [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md)
 - [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md)
+- [Explicit AgentDefinition Association v1](EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md)
 - [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md)
 - [Universal Semantic Transaction Composition v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md)
 - [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md)

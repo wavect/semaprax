@@ -18,6 +18,8 @@
 //! `mod` in a test crate root resolves against `tests/`, so each module names
 //! its file explicitly.
 
+#[path = "workspace/agent_definitions_association.rs"]
+mod agent_definitions_association;
 #[path = "workspace/canonical_revision.rs"]
 mod canonical_revision;
 #[path = "workspace/graph_phase_a_surface.rs"]

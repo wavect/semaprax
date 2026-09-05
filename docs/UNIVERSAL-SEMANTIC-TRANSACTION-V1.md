@@ -136,6 +136,13 @@ still repeats all checks against its exact immutable base.
 
 ## Artifacts and replay
 
+Validation derives the base and candidate `ProgramRoot` values from the same
+canonical revisions used by the transaction and retains both on the in-memory
+artifact set. Additive Rust accessors expose them for service and composition
+coordination. Existing intent, impact, review, result, evidence, schema, and
+digest bytes are unchanged; their workspace fields are selected through each
+root's legacy canonical-workspace binding.
+
 The intent is the exact transaction envelope. The impact schema is
 `semaprax.semantic-transaction-impact.v1`; it records the operation-specific
 exact before/after display name or block, stable identity preservation, and

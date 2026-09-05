@@ -6,7 +6,7 @@ use std::sync::Arc;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, ProjectFrontendSource, ProjectManifest, ProjectRevision,
-    SemanticServiceIndexItemKind, SemanticServiceIndexQuery, SemanticTransaction,
+    SemanticQuery, SemanticServiceIndexItemKind, SemanticServiceIndexQuery, SemanticTransaction,
     SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
     SemanticWorkspaceServiceHistoryQuery,
 };
@@ -379,6 +379,7 @@ fn refresh_is_incremental_cold_equivalent_and_rolls_back_stale_or_failed_work() 
     let sources = fixture.sources();
     let mut service = SemanticWorkspaceService::open(fixture.revision()).unwrap();
     let initial = service.active_generation().workspace_revision().to_owned();
+    let initial_program_root = service.active_generation().program_root().clone();
     let initial_project = service
         .active_generation()
         .revision()
@@ -397,6 +398,10 @@ fn refresh_is_incremental_cold_equivalent_and_rolls_back_stale_or_failed_work() 
     assert_eq!(unchanged.old_workspace_revision(), initial);
     assert_eq!(unchanged.workspace_revision(), initial);
     assert!(unchanged.generation_reused());
+    assert_eq!(
+        service.active_generation().program_root(),
+        &initial_program_root
+    );
     frontend_work(&unchanged_value["frontend_work"], 0, 4);
     let repeated = service
         .refresh_owned_sources(&manifest, &sources, &initial)
@@ -410,6 +415,10 @@ fn refresh_is_incremental_cold_equivalent_and_rolls_back_stale_or_failed_work() 
         .unwrap();
     let refreshed_value: Value = serde_json::from_str(refreshed.to_json()).unwrap();
     assert!(!refreshed.generation_reused());
+    assert_ne!(
+        service.active_generation().program_root(),
+        &initial_program_root
+    );
     assert_eq!(refreshed.old_workspace_revision(), initial);
     assert_eq!(
         refreshed.workspace_revision(),
@@ -422,6 +431,10 @@ fn refresh_is_incremental_cold_equivalent_and_rolls_back_stale_or_failed_work() 
     );
     frontend_work(&refreshed_value["frontend_work"], 1, 3);
     let independent = cold(&manifest, &changed);
+    assert_eq!(
+        service.active_generation().program_root(),
+        &independent.program_root().unwrap()
+    );
     let snapshot = service
         .snapshot(service.active_generation().workspace_revision())
         .unwrap();
@@ -469,6 +482,16 @@ fn transaction_validation_is_direct_exact_read_only_and_stales_after_refresh() {
     let sources = fixture.sources();
     let base = fixture.revision();
     let mut service = SemanticWorkspaceService::open(Arc::clone(&base)).unwrap();
+    let selected_program_root = base.program_root().unwrap();
+    assert_eq!(
+        service.active_generation().program_root(),
+        &selected_program_root
+    );
+    let semantic_query =
+        SemanticQuery::symbol(selected_program_root.workspace_revision(), "calculator.add")
+            .unwrap();
+    let query_result = service.query(semantic_query.to_json().as_bytes()).unwrap();
+    assert_eq!(query_result.program_root(), &selected_program_root);
     let transaction = SemanticTransaction::rename_display_name(
         service.active_generation().workspace_revision(),
         SemanticTransactionRenameDisplayName::new("calculator.add", "add", "sum"),
@@ -478,6 +501,12 @@ fn transaction_validation_is_direct_exact_read_only_and_stales_after_refresh() {
     let through_service = service
         .validate_transaction(transaction.to_json().as_bytes())
         .unwrap();
+    assert_eq!(through_service.base_program_root(), &selected_program_root);
+    assert_eq!(direct.base_program_root(), &selected_program_root);
+    assert_eq!(
+        through_service.candidate_program_root(),
+        direct.candidate_program_root()
+    );
     assert_eq!(through_service.impact(), direct.impact());
     assert_eq!(through_service.review(), direct.review());
     assert_eq!(through_service.result(), direct.result());

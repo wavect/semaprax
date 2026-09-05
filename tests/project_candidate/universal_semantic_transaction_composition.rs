@@ -133,6 +133,25 @@ fn structural_diff_is_deterministic_exact_and_freshly_replayable() {
         SemanticWorkspaceStructuralDiff::derive(candidate, candidate.candidate_digest()).unwrap();
     let second =
         SemanticWorkspaceStructuralDiff::derive(candidate, candidate.candidate_digest()).unwrap();
+    assert_eq!(first.base_program_root(), artifacts.base_program_root());
+    assert_eq!(
+        first.candidate_program_root(),
+        artifacts.candidate_program_root()
+    );
+    assert_eq!(
+        first
+            .base_program_root()
+            .segments()
+            .iter()
+            .map(|segment| (segment.kind(), segment.node_digest()))
+            .collect::<Vec<_>>(),
+        artifacts
+            .base_program_root()
+            .segments()
+            .iter()
+            .map(|segment| (segment.kind(), segment.node_digest()))
+            .collect::<Vec<_>>()
+    );
     assert_eq!(first.to_json(), second.to_json());
     assert_eq!(first.digest(), second.digest());
     assert_eq!(
@@ -144,6 +163,18 @@ fn structural_diff_is_deterministic_exact_and_freshly_replayable() {
     let value =
         assert_canonical_document(first.to_json(), SEMANTIC_WORKSPACE_STRUCTURAL_DIFF_SCHEMA);
     assert_eq!(value["candidate_digest"], candidate.candidate_digest());
+    for segment in first.base_program_root().segments() {
+        assert_eq!(
+            value["base"]["nodes"][segment.kind()],
+            segment.node_digest()
+        );
+    }
+    for segment in first.candidate_program_root().segments() {
+        assert_eq!(
+            value["candidate"]["nodes"][segment.kind()],
+            segment.node_digest()
+        );
+    }
     assert_eq!(
         value["base"]["workspace_revision"],
         base.canonical_workspace_revision()

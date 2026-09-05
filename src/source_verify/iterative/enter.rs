@@ -8,7 +8,7 @@ use crate::source_verify::arguments::{
 };
 use crate::source_verify::binding::{Availability, CheckedValue};
 use crate::source_verify::declared_type::{
-    check_declared_type, direct_function_type_argument, validation_specialize_signature,
+    check_declared_type, generic_function_arguments_are_admitted, validation_specialize_signature,
 };
 use crate::source_verify::diagnostics::{error, source_identifier};
 use crate::source_verify::hints;
@@ -351,11 +351,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             ).with_help(hints::generic_call_help(name)));
                             return None;
                         }
-                        if type_arguments.iter().any(|argument| !direct_function_type_argument(argument)) {
+                        if !generic_function_arguments_are_admitted(target, type_arguments, self.types) {
                             self.diagnostics.push(error(
                                 self.program,
                                 "SPX-T225",
-                                format!("generic function `{name}` accepts only direct `i64` or `bool` type arguments"),
+                                format!("generic function `{name}` accepts only direct `i64` or `bool` type arguments, except admitted Copy scalars in an owned-record relay"),
                                 expression.span,
                             ));
                             return None;

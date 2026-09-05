@@ -544,6 +544,46 @@ impl<'a> TypeTable<'a> {
             })
     }
 
+    pub(super) fn is_flat_owned_byte_record_template(
+        &self,
+        ty: &Type,
+        function_parameters: &HashSet<&str>,
+    ) -> bool {
+        let Type::Named { name, arguments } = ty else {
+            return false;
+        };
+        let Some(declaration) = self.declaration(name) else {
+            return false;
+        };
+        let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+            return false;
+        };
+        if arguments.len() != declaration.type_parameters.len()
+            || arguments.iter().any(|argument| {
+                *argument != Type::Bytes
+                    && !owned_byte_record_copy_field_is_admitted(argument)
+                    && !matches!(argument, Type::Named { name, arguments }
+                        if arguments.is_empty() && function_parameters.contains(name.as_str()))
+            })
+        {
+            return false;
+        }
+        fields
+            .iter()
+            .map(|field| Self::substitute_variant_type(declaration, arguments, &field.ty))
+            .collect::<Option<Vec<_>>>()
+            .is_some_and(|fields| {
+                fields.contains(&Type::Bytes)
+                    && fields.iter().all(|field| {
+                        *field == Type::Bytes
+                            || owned_byte_record_copy_field_is_admitted(field)
+                            || matches!(field, Type::Named { name, arguments }
+                                if arguments.is_empty()
+                                    && function_parameters.contains(name.as_str()))
+                    })
+            })
+    }
+
     /// Exact non-Copy variant profile admitted by Owned Byte Variant Algebra
     /// v1. Authored variants are monomorphic and flat. The only generic
     /// carriers are the compiler-owned prelude identities, whose source names

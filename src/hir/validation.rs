@@ -11,7 +11,10 @@ mod host_command;
 mod type_profiles;
 mod unsafe_scan;
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
-use type_profiles::{resolved_type_is_flat_owned_byte_variant, validate_nested_update_base_shape};
+use type_profiles::{
+    generic_instance_arguments_are_admitted, resolved_type_is_flat_owned_byte_variant,
+    template_has_owned_record_slot, template_ownership, validate_nested_update_base_shape,
+};
 use unsafe_scan::contains_unsafe_boundary;
 
 /// Validate resolved meaning without consulting attached cleanup metadata.
@@ -432,7 +435,8 @@ impl<'a> HirValidator<'a> {
             let execution = FunctionExecutionId::Monomorphic(template.id.clone());
             for (index, parameter) in template.params.iter().enumerate() {
                 if parameter.id != ValueId::parameter(&execution, index)
-                    || parameter.ownership != Self::template_ownership(&parameter.ty)
+                    || parameter.ownership
+                        != template_ownership(self.program, template, &parameter.ty)
                 {
                     return Err(hir_error(format!(
                         "generic template `{}` has invalid parameter identity or ownership",
@@ -449,7 +453,12 @@ impl<'a> HirValidator<'a> {
                 )));
             }
             self.validate_template_expressions(template, &execution)?;
-            for arguments in resolved_scalar_substitutions(template.type_parameters.len()) {
+            let substitutions = if template_has_owned_record_slot(self.program, template) {
+                resolved_owned_record_substitutions(template.type_parameters.len())
+            } else {
+                resolved_scalar_substitutions(template.type_parameters.len())
+            };
+            for arguments in substitutions {
                 let materialized = materialize_function_template(template, &arguments)?;
                 let saved_expression_ids = self.expression_ids.clone();
                 let saved_value_ids = self.value_ids.clone();
@@ -1080,10 +1089,11 @@ impl<'a> HirValidator<'a> {
                 || FunctionInstanceId::derive(&instance.template, &instance.type_arguments)
                     != instance.id
                 || instance.function.id != instance.template
-                || instance
-                    .type_arguments
-                    .iter()
-                    .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+                || !generic_instance_arguments_are_admitted(
+                    self.program,
+                    &instance.template,
+                    &instance.type_arguments,
+                )
             {
                 return Err(hir_error(
                     "generic function instance identity is inconsistent",
@@ -1146,18 +1156,6 @@ impl<'a> HirValidator<'a> {
         Ok(())
     }
 
-    fn template_ownership(ty: &ResolvedType) -> OwnershipMode {
-        // Template parameters have no concrete type facts until substitution;
-        // both admitted substitutions (i64/bool) are Copy. A concrete String
-        // slot retains the resolver's canonical owned classification, and a
-        // rooted `str` view keeps the borrow the resolver gave it.
-        match ty {
-            ResolvedType::String => OwnershipMode::Own,
-            ResolvedType::Str => OwnershipMode::Borrow,
-            _ => OwnershipMode::Value,
-        }
-    }
-
     fn validate_function_template_type(
         &self,
         template: &ResolvedFunctionTemplate,
@@ -1183,6 +1181,16 @@ impl<'a> HirValidator<'a> {
                     && usize::try_from(*index)
                         .ok()
                         .is_some_and(|index| index < template.type_parameters.len()) =>
+            {
+                Ok(())
+            }
+            ResolvedType::Nominal { .. }
+                if super::type_reachability::is_flat_owned_byte_record_template(
+                    &self.program.declarations,
+                    ty,
+                    &template.id,
+                    template.type_parameters.len(),
+                ) =>
             {
                 Ok(())
             }
@@ -1241,7 +1249,7 @@ impl<'a> HirValidator<'a> {
     ) -> Result<(), Diagnostic> {
         if expression.id != ExpressionId::new(execution, path)
             || !self.expression_ids.insert(expression.id.clone())
-            || expression.ownership != Self::template_ownership(&expression.ty)
+            || expression.ownership != template_ownership(self.program, template, &expression.ty)
         {
             return Err(hir_error(format!(
                 "generic template `{}` has invalid expression identity or ownership",
@@ -1352,7 +1360,8 @@ impl<'a> HirValidator<'a> {
                                 &format!("{statement_path}.value"),
                             )?;
                             if binding.id != ValueId::local(execution, &statement_path)
-                                || binding.ownership != Self::template_ownership(&binding.ty)
+                                || binding.ownership
+                                    != template_ownership(self.program, template, &binding.ty)
                                 || binding.ty != value.ty
                             {
                                 return Err(hir_error("generic template binding is not canonical"));
@@ -3348,11 +3357,13 @@ impl<'a> HirValidator<'a> {
                                 Some(_) if type_arguments.is_empty() => return Err(hir_error("generic resolved call has no concrete type arguments")),
                                 None | Some(_) => {}
                             }
-                            if type_arguments.iter().any(|argument| {
-                                !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                            }) {
+                            if !generic_instance_arguments_are_admitted(
+                                self.program,
+                                callee,
+                                type_arguments,
+                            ) {
                                 return Err(hir_error(
-                                    "resolved call has a non-scalar generic type argument",
+                                    "resolved call has a generic type argument outside the direct-scalar or owned-record relay profile",
                                 ));
                             }
                             let (params, return_type) = if let Some(op) =
@@ -6358,12 +6369,10 @@ impl<'a> HirValidator<'a> {
                     }
                     None | Some(_) => {}
                 }
-                for argument in type_arguments {
-                    if !matches!(argument, ResolvedType::I64 | ResolvedType::Bool) {
-                        return Err(hir_error(
-                            "resolved call has a non-scalar generic type argument",
-                        ));
-                    }
+                if !generic_instance_arguments_are_admitted(self.program, callee, type_arguments) {
+                    return Err(hir_error(
+                        "resolved call has a generic type argument outside the direct-scalar or owned-record relay profile",
+                    ));
                 }
                 let string_intrinsic = instance
                     .is_none()

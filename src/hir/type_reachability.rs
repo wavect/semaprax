@@ -525,6 +525,56 @@ pub(crate) fn is_flat_owned_byte_record(
         })
 }
 
+pub(super) fn is_flat_owned_byte_record_template(
+    declarations: &DeclarationIndex,
+    ty: &ResolvedType,
+    function_owner: &DeclarationId,
+    parameter_count: usize,
+) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    if declarations
+        .declaration(declaration)
+        .is_none_or(|item| item.kind != DeclarationKind::Record)
+        || declarations
+            .type_parameters(declaration)
+            .is_none_or(|parameters| parameters.len() != arguments.len())
+        || arguments.iter().any(|argument| {
+            *argument != ResolvedType::Bytes
+                && !nested_record_copy_scalar_is_admitted(argument)
+                && !matches!(argument, ResolvedType::TypeParameter { owner, index }
+                    if owner == function_owner
+                        && usize::try_from(*index).is_ok_and(|index| index < parameter_count))
+        })
+    {
+        return false;
+    }
+    declarations
+        .record_fields(declaration)
+        .and_then(|fields| {
+            fields
+                .iter()
+                .map(|field| substitute_type(&field.ty, declaration, arguments).ok())
+                .collect::<Option<Vec<_>>>()
+        })
+        .is_some_and(|fields| {
+            fields.contains(&ResolvedType::Bytes)
+                && fields.iter().all(|field| {
+                    *field == ResolvedType::Bytes
+                        || nested_record_copy_scalar_is_admitted(field)
+                        || matches!(field, ResolvedType::TypeParameter { owner, index }
+                            if owner == function_owner
+                                && usize::try_from(*index)
+                                    .is_ok_and(|index| index < parameter_count))
+                })
+        })
+}
+
 pub(super) fn record_args_ok(
     declarations: &DeclarationIndex,
     declaration: &DeclarationId,

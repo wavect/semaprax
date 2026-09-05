@@ -2531,14 +2531,17 @@ fn scan_closure(
             ResolvedExprKind::Call {
                 callee, instance, ..
             } => {
-                if instance.is_some() {
-                    return Err(reject_scan(expression, REASON_GENERIC_CALL));
-                }
                 let intrinsic = crate::string_ops::by_id(callee.as_str()).is_some()
                     || crate::str_ops::by_id(callee.as_str()).is_some()
                     || crate::byte_ops::by_id(callee.as_str()).is_some()
                     || crate::host_io_ops::by_id(callee.as_str()).is_some();
-                if !intrinsic && !admitted.contains_key(callee.as_str()) {
+                let execution = instance
+                    .as_ref()
+                    .map_or_else(|| callee.as_str(), hir::FunctionInstanceId::as_str);
+                if !intrinsic && !admitted.contains_key(execution) {
+                    if instance.is_some() {
+                        return Err(reject_scan(expression, REASON_GENERIC_CALL));
+                    }
                     return Err(reject_scan(expression, REASON_UNSUPPORTED_CALLEE));
                 }
                 Ok(())
@@ -2573,11 +2576,17 @@ fn scan_closure(
         for child in child_expressions(expression) {
             scan(child, admitted, declarations, root_types, visited, queue)?;
         }
-        if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
+        if let ResolvedExprKind::Call {
+            callee, instance, ..
+        } = &expression.kind
+        {
             // Callee bodies are enqueued once; the monotone `visited` set
             // makes recursive call cycles terminate.
-            if admitted.contains_key(callee.as_str()) && visited.insert(callee.as_str()) {
-                queue.push(callee.as_str());
+            let execution = instance
+                .as_ref()
+                .map_or_else(|| callee.as_str(), hir::FunctionInstanceId::as_str);
+            if admitted.contains_key(execution) && visited.insert(execution) {
+                queue.push(execution);
             }
         }
         Ok(())
@@ -2697,7 +2706,7 @@ fn admitted_resolved_functions_with_profile(
     program: &hir::ResolvedProgram,
     profile: SourceProfile,
 ) -> BTreeMap<&str, &ResolvedFunction> {
-    program
+    let mut admitted = program
         .functions
         .iter()
         .filter(|function| {
@@ -2718,7 +2727,19 @@ fn admitted_resolved_functions_with_profile(
             }
         })
         .map(|function| (function.id.as_str(), function))
-        .collect()
+        .collect::<BTreeMap<_, _>>();
+    if matches!(profile, SourceProfile::Legacy) {
+        admitted.extend(
+            program
+                .function_instances
+                .iter()
+                .filter(|instance| {
+                    resolved_signature_is_admitted(&instance.function, &program.declarations)
+                })
+                .map(|instance| (instance.id.as_str(), &instance.function)),
+        );
+    }
+    admitted
 }
 
 fn resolved_signature_is_admitted(
@@ -3422,7 +3443,8 @@ enum FunctionLookup<'a> {
     Borrowed(&'a BTreeMap<&'a str, &'a ResolvedFunction>),
     Prepared {
         functions: &'a [ResolvedFunction],
-        indices: &'a BTreeMap<String, usize>,
+        function_instances: &'a [hir::ResolvedFunctionInstance],
+        indices: &'a BTreeMap<String, prepared::PreparedFunctionIndex>,
     },
 }
 
@@ -3430,9 +3452,16 @@ impl<'a> FunctionLookup<'a> {
     fn get(&self, id: &str) -> Option<&'a ResolvedFunction> {
         match self {
             Self::Borrowed(functions) => functions.get(id).copied(),
-            Self::Prepared { functions, indices } => {
-                indices.get(id).and_then(|index| functions.get(*index))
-            }
+            Self::Prepared {
+                functions,
+                function_instances,
+                indices,
+            } => match indices.get(id)? {
+                prepared::PreparedFunctionIndex::Function(index) => functions.get(*index),
+                prepared::PreparedFunctionIndex::FunctionInstance(index) => function_instances
+                    .get(*index)
+                    .map(|instance| &instance.function),
+            },
         }
     }
 }
@@ -4362,8 +4391,8 @@ impl Evaluator<'_> {
                 type_arguments,
                 args,
             } => {
-                if instance.is_some() || !type_arguments.is_empty() {
-                    return Err(Flow::Guard("generic call inside the scalar profile"));
+                if instance.is_some() != !type_arguments.is_empty() {
+                    return Err(Flow::Guard("generic call identity is incomplete"));
                 }
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                     // Compiler-owned string operations evaluate in place;
@@ -4574,7 +4603,10 @@ impl Evaluator<'_> {
                     transcript.extend_from_slice(value.bytes());
                     return Ok(Value::Usize(value.bytes().len() as u64));
                 }
-                let Some(function) = self.admitted.get(callee.as_str()) else {
+                let execution = instance
+                    .as_ref()
+                    .map_or_else(|| callee.as_str(), hir::FunctionInstanceId::as_str);
+                let Some(function) = self.admitted.get(execution) else {
                     return Err(Flow::Guard("call outside the admitted closure"));
                 };
                 let mut values: Vec<(ValueId, Value)> = Vec::with_capacity(args.len());

@@ -57,6 +57,12 @@ pub(crate) enum PreparedResolvedEvaluationOutcome {
     GuardError(String),
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum PreparedFunctionIndex {
+    Function(usize),
+    FunctionInstance(usize),
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PreparedResolvedEvaluation {
     pub(crate) outcome: PreparedResolvedEvaluationOutcome,
@@ -74,7 +80,7 @@ pub(crate) struct PreparedResolvedEvaluation {
 pub(crate) struct PreparedResolvedI64 {
     entry_id: String,
     entry_index: usize,
-    function_indices: BTreeMap<String, usize>,
+    function_indices: BTreeMap<String, PreparedFunctionIndex>,
     origin_nodes: usize,
     index_bytes: usize,
 }
@@ -142,18 +148,35 @@ pub(crate) fn prepare_resolved_zero_arg_i64(
     let mut origin_nodes = 0usize;
     let mut expression_ids = BTreeSet::new();
     for id in &closure {
-        let index = program
+        let function_index = program
             .functions
             .iter()
-            .position(|function| function.id.as_str() == id)
-            .ok_or_else(|| vec![guard_error("prepared closure lost an admitted function")])?;
+            .position(|function| function.id.as_str() == id);
+        let instance_index = program
+            .function_instances
+            .iter()
+            .position(|instance| instance.id.as_str() == id);
+        let (index, function) = match (function_index, instance_index) {
+            (Some(index), None) => (
+                PreparedFunctionIndex::Function(index),
+                &program.functions[index],
+            ),
+            (None, Some(index)) => (
+                PreparedFunctionIndex::FunctionInstance(index),
+                &program.function_instances[index].function,
+            ),
+            _ => {
+                return Err(vec![guard_error(
+                    "prepared closure lost its unique admitted function target",
+                )]);
+            }
+        };
         index_bytes = index_bytes.checked_add(id.len()).ok_or_else(|| {
             vec![option_error(
                 "prepared interpreter index byte accounting overflowed".to_owned(),
             )]
         })?;
         function_indices.insert(id.clone(), index);
-        let function = &program.functions[index];
         let mut expressions = function
             .requires
             .iter()
@@ -228,6 +251,19 @@ pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
             .functions
             .get(prepared.entry_index)
             .is_none_or(|entry| entry.id.as_str() != prepared.entry_id)
+        || prepared
+            .function_indices
+            .iter()
+            .any(|(id, index)| match index {
+                PreparedFunctionIndex::Function(index) => program
+                    .functions
+                    .get(*index)
+                    .is_none_or(|function| function.id.as_str() != id.as_str()),
+                PreparedFunctionIndex::FunctionInstance(index) => program
+                    .function_instances
+                    .get(*index)
+                    .is_none_or(|instance| instance.id.as_str() != id.as_str()),
+            })
     {
         return Err(vec![guard_error(
             "prepared closure no longer matches its resolved program",
@@ -235,6 +271,7 @@ pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
     }
     let lookup = FunctionLookup::Prepared {
         functions: &program.functions,
+        function_instances: &program.function_instances,
         indices: &prepared.function_indices,
     };
     let entry = &program.functions[prepared.entry_index];
@@ -279,4 +316,75 @@ pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
 /// Read-only structural traversal seam used by Project Source Trace replay.
 pub(crate) fn trace_child_expressions(expression: &ResolvedExpr) -> Vec<&ResolvedExpr> {
     child_expressions(expression)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::*;
+
+    #[test]
+    fn repeated_preparation_indexes_and_dispatches_exact_generic_function_instance() {
+        let source = r#"
+module test.prepared_generic_function;
+
+@id("generic.pair")
+record Pair<T, U> {
+  @id("generic.pair.payload") payload: T,
+  @id("generic.pair.marker") marker: U,
+}
+
+@id("generic.relay")
+fn relay<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
+
+@id("generic.consume")
+fn consume(value: own Pair<Bytes, u8>) -> i64 {
+  match own value {
+    Pair { payload: payload, marker: marker } =>
+      if byte_len(bytes_as_slice(payload)) == 1usize && marker == 42u8 { 42 } else { 0 },
+  }
+}
+
+@id("app.main")
+fn main() -> i64 {
+  let input = [7u8];
+  let value = Pair<Bytes, u8> {
+    payload: bytes_copy(array_as_slice(input)), marker: 42u8,
+  };
+  consume(relay<u8>(value))
+}
+"#;
+        let parsed = crate::parse(source, Path::new("prepared-generic-function.spx")).unwrap();
+        let diagnostics = crate::verify::verify(&parsed);
+        assert!(
+            diagnostics
+                .iter()
+                .all(|diagnostic| !diagnostic.severity.is_error()),
+            "{diagnostics:?}"
+        );
+        let program = hir::resolve(&parsed).unwrap();
+        let instance_id = program.function_instances[0].id.as_str().to_owned();
+
+        for _ in 0..4 {
+            let prepared = prepare_resolved_zero_arg_i64(&program, "app.main").unwrap();
+            let function_ids = prepared.function_ids().collect::<Vec<_>>();
+            assert_eq!(function_ids.len(), 3);
+            assert!(function_ids.contains(&"app.main"));
+            assert!(function_ids.contains(&"generic.consume"));
+            assert!(function_ids.contains(&instance_id.as_str()));
+            let evaluated = evaluate_prepared_resolved_zero_arg_i64(
+                &program,
+                &prepared,
+                1_000,
+                64,
+                PreparedCancellation::Never,
+            )
+            .unwrap();
+            assert_eq!(
+                evaluated.outcome,
+                PreparedResolvedEvaluationOutcome::ReturnedI64(42)
+            );
+        }
+    }
 }

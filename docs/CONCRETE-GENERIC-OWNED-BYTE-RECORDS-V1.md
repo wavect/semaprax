@@ -111,6 +111,30 @@ local source/HIR/layout and interpreter/native/Wasm gates exercise the complete
 Copy-scalar set; no hosted execution is claimed until the required Linux CI
 step records a real run.
 
+## Project integration prerequisite
+
+An owned-data Project may retain an explicitly imported flat generic record
+template when its fields are only its own type parameters, direct `Bytes`, or
+the admitted Copy scalars. The completely linked Project must still validate
+every concrete use through the ordinary HIR, ownership, cleanup, native, and
+Wasm gates. A frozen Project v8 scalar public export may call through that
+internal closure, but its descriptor exposes only the already-admitted scalar
+signature. Project v9 and v11 descriptors continue to reject a selected
+generic result and no existing descriptor, carrier, or package schema widens.
+
+A sound public generic-owned revision still requires all of the following:
+
+- a new versioned Project descriptor and carrier rather than reinterpretation
+  of v8, v9, or v11 bytes;
+- an exact public type grammar binding template identity, ordered concrete
+  arguments, substituted fields, target-neutral ownership, limits, and replay;
+- candidate ABI-delta rows that select the public generic signature and retain
+  those ordered arguments through mutation, recovery, and independent replay;
+- generated external-consumer mappings with bounded allocation, failure
+  settlement, hostile-input rejection, and byte-exact metadata replay; and
+- hosted native and Wasm consumer evidence plus explicit cross-platform ABI
+  policy before any stable C, Rust, WIT, Component, or package claim.
+
 ## Nonclaims
 
 This contract does not define a stable C, Rust, WIT, Component, Project, or

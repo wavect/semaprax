@@ -6,7 +6,8 @@ use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding};
 use crate::source_verify::declared_type::{
     check_declared_type, check_ownership_mode, function_reaches, function_reaches_any,
-    generic_function_expression_is_direct_scalar, generic_function_signature_slot,
+    generic_function_expression_is_direct_scalar, generic_function_owned_record_slot,
+    generic_function_signature_slot, owned_record_function_substitutions,
     scalar_function_substitutions, validation_specialize_function,
 };
 use crate::source_verify::diagnostics::{
@@ -194,26 +195,38 @@ pub(super) fn check_function_declarations<'p>(
                 ));
             }
             for param in &function.params {
-                if param.mode != ParamMode::Value
-                    || !generic_function_signature_slot(&param.ty, &parameter_names)
+                let owned_record = generic_function_owned_record_slot(
+                    function,
+                    &param.ty,
+                    &TypeTable::new(program),
+                );
+                if !((param.mode == ParamMode::Value
+                    && generic_function_signature_slot(&param.ty, &parameter_names))
+                    || (param.mode == ParamMode::Own && owned_record))
                 {
                     diagnostics.push(error(
                         program,
                         "SPX-T224",
                         format!(
-                            "generic function `{}.{}` must use a direct `i64`, `bool`, or an in-scope function type parameter by value",
+                            "generic function `{}.{}` must use the direct-scalar profile by value or one admitted flat owned-record template by ownership",
                             function.name, param.name
                         ),
                         param.span,
                     ));
                 }
             }
-            if !generic_function_signature_slot(&function.return_type, &parameter_names) {
+            if !generic_function_signature_slot(&function.return_type, &parameter_names)
+                && !generic_function_owned_record_slot(
+                    function,
+                    &function.return_type,
+                    &TypeTable::new(program),
+                )
+            {
                 diagnostics.push(error(
                     program,
                     "SPX-T224",
                     format!(
-                        "generic function `{}` must return direct `i64`, `bool`, or an in-scope function type parameter",
+                        "generic function `{}` must return the direct-scalar profile or one admitted flat owned-record template",
                         function.name
                     ),
                     function.span,
@@ -340,7 +353,17 @@ pub(super) fn check_function_bodies<'p>(
             // These clones exist only to validate every admitted direct-scalar
             // substitution. Executable HIR instances are discovered separately
             // from reachable explicit calls and never originate here.
-            scalar_function_substitutions(template.type_parameters.len())
+            let owned_record = template
+                .params
+                .iter()
+                .any(|param| generic_function_owned_record_slot(template, &param.ty, types))
+                || generic_function_owned_record_slot(template, &template.return_type, types);
+            let substitutions = if owned_record {
+                owned_record_function_substitutions(template.type_parameters.len())
+            } else {
+                scalar_function_substitutions(template.type_parameters.len())
+            };
+            substitutions
                 .iter()
                 .filter_map(|arguments| validation_specialize_function(template, arguments))
                 .collect()

@@ -41,6 +41,8 @@ mod byte_variant_native;
 mod byte_variant_wasm;
 #[path = "owned_data/concrete_generic_owned_record_update.rs"]
 mod concrete_generic_owned_record_update;
+#[path = "owned_data/generic_owned_function_runtime.rs"]
+mod generic_owned_function_runtime;
 #[path = "owned_data/interpreter.rs"]
 mod interpreter;
 #[path = "owned_data/nested_owned_record_frontend_hir.rs"]

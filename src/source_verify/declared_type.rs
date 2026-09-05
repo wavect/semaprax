@@ -198,12 +198,15 @@ pub(super) fn check_declared_type(
             arguments: arguments.clone(),
         };
         let admitted_owned_record = types.is_flat_owned_byte_record(&instance);
+        let admitted_owned_record_template =
+            types.is_flat_owned_byte_record_template(&instance, parameters);
         if arguments
             .iter()
             .any(|argument| matches!(argument, Type::ArrayU8(_)))
             || (arguments.contains(&Type::Bytes)
                 && !owned_byte_prelude_instance_is_admitted(name, arguments)
-                && !admitted_owned_record)
+                && !admitted_owned_record
+                && !admitted_owned_record_template)
         {
             diagnostics.push(error(
                 program,
@@ -217,6 +220,7 @@ pub(super) fn check_declared_type(
         if !arguments.is_empty()
             && !owned_byte_prelude_instance_is_admitted(name, arguments)
             && !admitted_owned_record
+            && !admitted_owned_record_template
             && (!matches!(
                 declaration.kind,
                 TypeDeclarationKind::Record { .. }
@@ -258,6 +262,52 @@ pub(super) fn generic_function_signature_slot(ty: &Type, parameters: &HashSet<&s
             arguments.is_empty() && parameters.contains(name.as_str())
         }
     }
+}
+
+pub(super) fn generic_function_owned_record_slot(
+    function: &Function,
+    ty: &Type,
+    types: &TypeTable<'_>,
+) -> bool {
+    let parameters = function
+        .type_parameters
+        .iter()
+        .map(|parameter| parameter.name.as_str())
+        .collect::<HashSet<_>>();
+    types.is_flat_owned_byte_record_template(ty, &parameters)
+}
+
+pub(super) fn generic_function_arguments_are_admitted(
+    function: &Function,
+    arguments: &[Type],
+    types: &TypeTable<'_>,
+) -> bool {
+    if arguments.iter().all(direct_function_type_argument) {
+        return true;
+    }
+    let has_owned_record_parameter = function.params.iter().any(|param| {
+        param.mode == ParamMode::Own
+            && generic_function_owned_record_slot(function, &param.ty, types)
+    });
+    let has_owned_record_result =
+        generic_function_owned_record_slot(function, &function.return_type, types);
+    if arguments.len() != function.type_parameters.len()
+        || arguments
+            .iter()
+            .any(|argument| !super::type_table::owned_byte_record_copy_field_is_admitted(argument))
+        || !has_owned_record_parameter
+        || !has_owned_record_result
+    {
+        return false;
+    }
+    validation_specialize_function(function, arguments).is_some_and(|specialized| {
+        specialized
+            .params
+            .iter()
+            .filter(|param| param.mode == ParamMode::Own)
+            .all(|param| types.is_flat_owned_byte_record(&param.ty))
+            && types.is_flat_owned_byte_record(&specialized.return_type)
+    })
 }
 
 pub(super) fn substitute_function_type(
@@ -329,6 +379,33 @@ pub(super) fn scalar_function_substitutions(parameter_count: usize) -> Vec<Vec<T
                     } else {
                         Type::Bool
                     }
+                })
+                .collect()
+        })
+        .collect()
+}
+
+pub(super) fn owned_record_function_substitutions(parameter_count: usize) -> Vec<Vec<Type>> {
+    let copy = [
+        Type::I64,
+        Type::I32,
+        Type::Char,
+        Type::U8,
+        Type::Usize,
+        Type::F32,
+        Type::F64,
+        Type::Bool,
+    ];
+    let count = copy
+        .len()
+        .pow(u32::try_from(parameter_count).unwrap_or(u32::MAX));
+    (0..count)
+        .map(|mut ordinal| {
+            (0..parameter_count)
+                .map(|_| {
+                    let ty = copy[ordinal % copy.len()].clone();
+                    ordinal /= copy.len();
+                    ty
                 })
                 .collect()
         })

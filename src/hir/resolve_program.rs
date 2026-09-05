@@ -27,6 +27,49 @@ use super::nodes::{
 use super::{validate, Binding, Resolver};
 
 impl Resolver<'_> {
+    pub(super) fn generic_function_arguments_are_admitted(
+        &self,
+        function: &crate::ast::Function,
+        arguments: &[ResolvedType],
+    ) -> Result<bool, Diagnostic> {
+        if arguments
+            .iter()
+            .all(|argument| matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        {
+            return Ok(true);
+        }
+        if arguments.len() != function.type_parameters.len()
+            || arguments.iter().any(|argument| {
+                !super::type_reachability::nested_record_copy_scalar_is_admitted(argument)
+            })
+        {
+            return Ok(false);
+        }
+        let owner = DeclarationId::new(function.stable_id.clone());
+        let return_type =
+            self.resolve_function_type(function, &function.return_type, function.span)?;
+        let owned_return = super::type_reachability::is_flat_owned_byte_record_template(
+            &self.declarations,
+            &return_type,
+            &owner,
+            function.type_parameters.len(),
+        );
+        let owned_parameter = function.params.iter().any(|parameter| {
+            parameter.mode == ParamMode::Own
+                && self
+                    .resolve_function_type(function, &parameter.ty, parameter.span)
+                    .is_ok_and(|ty| {
+                        super::type_reachability::is_flat_owned_byte_record_template(
+                            &self.declarations,
+                            &ty,
+                            &owner,
+                            function.type_parameters.len(),
+                        )
+                    })
+        });
+        Ok(owned_parameter && owned_return)
+    }
+
     pub(super) fn resolve(
         mut self,
     ) -> Result<(ResolvedProgram, super::FunctionResolutionWork), Diagnostic> {
@@ -460,9 +503,13 @@ impl Resolver<'_> {
             .map(|(index, param)| {
                 let ty = self.resolve_function_type(function, &param.ty, param.span)?;
                 let id = ValueId::parameter(&function_scope, index);
-                // Type parameters range over Copy i64/bool; concrete String
-                // slots use the same implicit ownership as ordinary functions.
-                let ownership = if ty == ResolvedType::String {
+                let ownership = if ty == ResolvedType::String
+                    || super::type_reachability::is_flat_owned_byte_record_template(
+                        &self.declarations,
+                        &ty,
+                        &function_id,
+                        function.type_parameters.len(),
+                    ) {
                     OwnershipMode::Own
                 } else {
                     OwnershipMode::Value
@@ -508,7 +555,13 @@ impl Resolver<'_> {
             Binding {
                 id: result_id.clone(),
                 ty: return_type.clone(),
-                ownership: if return_type == ResolvedType::String {
+                ownership: if return_type == ResolvedType::String
+                    || super::type_reachability::is_flat_owned_byte_record_template(
+                        &self.declarations,
+                        &return_type,
+                        &function_id,
+                        function.type_parameters.len(),
+                    ) {
                     OwnershipMode::Own
                 } else {
                     OwnershipMode::Value
@@ -843,30 +896,71 @@ impl Resolver<'_> {
         ty: &Type,
         span: Span,
     ) -> Result<ResolvedType, Diagnostic> {
-        if let Type::Named { name, arguments } = ty {
-            if arguments.is_empty() {
-                if let Some(index) = function
-                    .type_parameters
-                    .iter()
-                    .position(|parameter| parameter.name == *name)
-                {
-                    return Ok(ResolvedType::TypeParameter {
-                        owner: DeclarationId::new(function.stable_id.clone()),
-                        index: u32::try_from(index).map_err(|_| {
-                            self.error(
-                                "SPX-H006",
-                                format!(
-                                    "function `{}` type parameter index does not fit u32",
-                                    function.name
-                                ),
-                                span,
-                            )
-                        })?,
-                    });
-                }
+        let Type::Named { name, arguments } = ty else {
+            return self.resolve_type(ty, span);
+        };
+        if arguments.is_empty() {
+            if let Some(index) = function
+                .type_parameters
+                .iter()
+                .position(|parameter| parameter.name == *name)
+            {
+                return Ok(ResolvedType::TypeParameter {
+                    owner: DeclarationId::new(function.stable_id.clone()),
+                    index: u32::try_from(index).map_err(|_| {
+                        self.error(
+                            "SPX-H006",
+                            format!(
+                                "function `{}` type parameter index does not fit u32",
+                                function.name
+                            ),
+                            span,
+                        )
+                    })?,
+                });
             }
         }
-        self.resolve_type(ty, span)
+        let declaration = self
+            .declarations
+            .type_id(name)
+            .cloned()
+            .ok_or_else(|| self.error("SPX-H001", format!("unresolved type `{name}`"), span))?;
+        let resolved = arguments
+            .iter()
+            .map(|argument| self.resolve_function_type(function, argument, span))
+            .collect::<Result<Vec<_>, _>>()?;
+        let instance = ResolvedType::Nominal {
+            declaration: declaration.clone(),
+            arguments: resolved.clone(),
+        };
+        let owner = DeclarationId::new(function.stable_id.clone());
+        if self
+            .declarations
+            .type_parameters(&declaration)
+            .is_none_or(|parameters| parameters.len() != resolved.len())
+            || (!admitted_owned_byte_prelude_instance(&declaration, &resolved)
+                && !super::type_reachability::is_flat_owned_byte_record(
+                    &self.declarations,
+                    &instance,
+                )
+                && !super::type_reachability::is_flat_owned_byte_record_template(
+                    &self.declarations,
+                    &instance,
+                    &owner,
+                    function.type_parameters.len(),
+                )
+                && !resolved.is_empty()
+                && resolved
+                    .iter()
+                    .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)))
+        {
+            return Err(self.error(
+                "SPX-H006",
+                format!("type `{declaration}` has invalid generic function arguments"),
+                span,
+            ));
+        }
+        Ok(instance)
     }
 }
 

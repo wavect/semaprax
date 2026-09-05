@@ -65,6 +65,8 @@ mod borrowed_bytes_call_interpreter;
 mod class_project;
 #[path = "project/command_argument_borrow.rs"]
 mod command_argument_borrow;
+#[path = "project/concrete_generic_project_prerequisites.rs"]
+mod concrete_generic_project_prerequisites;
 #[path = "project/cxx_owned_data_package.rs"]
 mod cxx_owned_data_package;
 #[path = "project/dependency_resolution_v1.rs"]

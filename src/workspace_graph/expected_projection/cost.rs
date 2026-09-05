@@ -21,7 +21,7 @@ pub(super) struct GenericInstanceCost {
 /// Bytes the resolver clones from one source tree, split into the fixed node
 /// footprints that expand by the structural factor and the string contents
 /// that expand by the copy factor. `string_bytes` is always part of `total`.
-pub(super) struct StructuralCost {
+pub(in crate::workspace_graph) struct StructuralCost {
     pub(super) total: usize,
     pub(super) string_bytes: usize,
 }

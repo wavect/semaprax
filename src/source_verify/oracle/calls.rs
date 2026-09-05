@@ -7,7 +7,7 @@ use crate::source_verify::arguments::{
 };
 use crate::source_verify::binding::{Binding, CheckedValue};
 use crate::source_verify::declared_type::{
-    direct_function_type_argument, validation_specialize_function,
+    generic_function_arguments_are_admitted, validation_specialize_function,
 };
 use crate::source_verify::diagnostics::{error, reject_native_unit_value};
 use crate::source_verify::hints;
@@ -149,15 +149,12 @@ pub(super) fn oracle_call(
             );
             return None;
         }
-        if type_arguments
-            .iter()
-            .any(|argument| !direct_function_type_argument(argument))
-        {
+        if !generic_function_arguments_are_admitted(target, type_arguments, types) {
             diagnostics.push(error(
                 program,
                 "SPX-T225",
                 format!(
-                    "generic function `{name}` accepts only direct `i64` or `bool` type arguments"
+                    "generic function `{name}` accepts only direct `i64` or `bool` type arguments, except admitted Copy scalars in an owned-record relay"
                 ),
                 expr.span,
             ));

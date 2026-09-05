@@ -520,9 +520,8 @@ impl Resolver<'_> {
                     (template.clone(), None, target.return_type.clone())
                 } else {
                     if resolved_arguments.len() != target.type_parameters.len()
-                        || resolved_arguments.iter().any(|argument| {
-                            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                        })
+                        || !self
+                            .generic_function_arguments_are_admitted(target, &resolved_arguments)?
                     {
                         return Err(self.error(
                             "SPX-H006",

@@ -171,6 +171,111 @@ fn explicit_generic_functions_round_trip_and_materialize_only_reachable_instance
 }
 
 #[test]
+fn explicit_generic_function_relays_one_admitted_owned_record_instance() {
+    let source = r#"
+module test.generic_owned_relay;
+@id("generic.relay.pair") record Pair<T, U> {
+    @id("generic.relay.pair.payload") payload: T,
+    @id("generic.relay.pair.marker") marker: U,
+}
+@id("generic.relay.function")
+fn relay<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
+@id("generic.relay.consume")
+fn consume(value: own Pair<Bytes, u8>) -> i64 {
+    match own value { Pair { payload: payload, marker: marker } =>
+        if marker == 7u8 { 42 } else { 0 }, }
+}
+@id("app.main") fn main() -> i64 {
+    let input = [1u8, 2u8];
+    let value = Pair<Bytes, u8> {
+        payload: bytes_copy(array_as_slice(input)), marker: 7u8,
+    };
+    consume(relay<u8>(value))
+}
+"#;
+    let program = parse_source(source);
+    assert!(verify::verify(&program).is_empty());
+    let canonical = format::canonical(&program);
+    assert!(canonical.contains("fn relay<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T>"));
+    assert_eq!(canonical, format::canonical(&parse_source(&canonical)));
+
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let instance = resolved
+        .function_instances
+        .iter()
+        .find(|instance| instance.template.as_str() == "generic.relay.function")
+        .expect("reachable relay instance");
+    assert_eq!(instance.type_arguments, [ResolvedType::U8]);
+    let expected = ResolvedType::Nominal {
+        declaration: DeclarationId::new("generic.relay.pair"),
+        arguments: vec![ResolvedType::Bytes, ResolvedType::U8],
+    };
+    assert_eq!(
+        instance.function.params[0].ownership,
+        hir::OwnershipMode::Own
+    );
+    assert_eq!(instance.function.params[0].ty, expected);
+    assert_eq!(instance.function.return_type, expected);
+
+    let mut hostile = resolved.clone();
+    let instance = hostile
+        .function_instances
+        .iter_mut()
+        .find(|instance| instance.template.as_str() == "generic.relay.function")
+        .unwrap();
+    instance.type_arguments[0] = ResolvedType::F32;
+    assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
+fn direct_scalar_generics_and_owned_relay_template_hostility_keep_stable_diagnostics() {
+    let direct = r#"
+module test.direct_u8_stays_closed;
+@id("generic.direct.id") fn id<T>(value: T) -> T { value }
+@id("app.main") fn main() -> i64 { if id<u8>(1u8) == 1u8 { 0 } else { 1 } }
+"#;
+    assert_eq!(error_codes(direct), ["SPX-T225"]);
+
+    let noncopy = r#"
+module test.generic_owned_relay_noncopy;
+@id("generic.closed.pair") record Pair<T, U> {
+    @id("generic.closed.pair.payload") payload: T,
+    @id("generic.closed.pair.marker") marker: U,
+}
+@id("generic.closed.relay")
+fn relay<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let program = parse_source(noncopy);
+    assert!(verify::verify(&program).is_empty());
+    let mut resolved = hir::resolve(&program).unwrap();
+    resolved.function_templates[0].params[0].ownership = hir::OwnershipMode::Value;
+    assert_eq!(hir::validate(&resolved).unwrap_err().code, "SPX-H006");
+
+    let result_only_factory = r#"
+module test.generic_owned_result_only;
+@id("generic.factory.pair") record Pair<T, U> {
+    @id("generic.factory.pair.payload") payload: T,
+    @id("generic.factory.pair.marker") marker: U,
+}
+@id("generic.factory.make")
+fn make<T>(marker: T) -> Pair<Bytes, T> { marker }
+@id("app.main") fn main() -> i64 {
+    let value = make<u8>(7u8);
+    0
+}
+"#;
+    let program = parse_source(result_only_factory);
+    let diagnostics = verify::verify(&program);
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == "SPX-T225"
+            && diagnostic.message
+                == "generic function `make` accepts only direct `i64` or `bool` type arguments, except admitted Copy scalars in an owned-record relay"
+    }), "{diagnostics:?}");
+}
+
+#[test]
 fn invalid_arity_is_bounded_and_specialized_diagnostics_are_stable() {
     let invalid_arity = r#"
 module test.invalid_generic_arity;

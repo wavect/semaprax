@@ -261,7 +261,8 @@ pub use expr_nodes::{
 pub use ids::{DeclarationId, ExpressionId, FunctionExecutionId, FunctionInstanceId, ValueId};
 pub(crate) use monomorphize::substitute_type;
 use monomorphize::{
-    materialize_function_template, resolved_scalar_substitutions, same_function_meaning,
+    materialize_function_template, resolved_owned_record_substitutions,
+    resolved_scalar_substitutions, same_function_meaning,
 };
 pub(crate) use nodes::{
     admitted_owned_byte_prelude_instance, is_scalar_resolved_type, LinkedDeclarationFact,

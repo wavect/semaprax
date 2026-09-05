@@ -17,10 +17,15 @@ format: `Unreleased` then release buckets, grouped by impact.
   construction and partial update failures without replacing the selected
   status. Focused local interpreter, Clang O0/O2 and Node/Core-Wasm evidence
   covers borrow-then-own execution, update execution, both partial failures,
-  repeated entry, one-live-owner capacity, and hostile plan mutation. Generic
-  variants/functions, classes, nested storage, Project/public ABIs, and hosted
-  execution remain unchanged or unclaimed; the required Linux step is authored
-  but has not yet produced hosted evidence.
+  repeated entry, one-live-owner capacity, and hostile plan mutation. Explicitly
+  instantiated generic functions can now consume and return the admitted flat
+  owned-record template, with exact instance dispatch and failure settlement in
+  the interpreter, native C11, and Core-Wasm. Real cross-file Project linking,
+  semantic-recipe replay, candidate rename/recovery, and ABI-delta replay retain
+  the internal generic identity while frozen public descriptors stay closed.
+  Generic variants, classes, nested storage, public generic ABIs, and hosted
+  execution remain unchanged or unclaimed; the required Linux steps are
+  authored but have not yet produced hosted evidence.
 
 - Bounded native C11 name resolution by the same aggregate operation deadline
   as the rest of the operation. A numeric endpoint is answered under

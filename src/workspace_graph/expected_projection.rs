@@ -91,7 +91,7 @@ pub(super) fn synthetic_builder_bytes(
                 identity_slots,
                 ast_type_declaration_identity_slots(declaration)?,
             )?;
-            rewrite_type_declaration_runtime_cost(
+            super::generic_type_import::rewrite_declaration_runtime_cost(
                 declaration,
                 target.module,
                 program,
@@ -232,49 +232,7 @@ pub(super) fn checked_builder_sum(left: usize, right: usize) -> Result<usize, Ve
         .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])
 }
 
-fn rewrite_type_declaration_runtime_cost(
-    declaration: &TypeDeclaration,
-    target_module: &str,
-    caller: &Program,
-    programs: &[Program],
-    cost: &mut StructuralCost,
-) -> Result<(), Vec<Diagnostic>> {
-    match &declaration.kind {
-        TypeDeclarationKind::Record { fields } => {
-            for field in fields {
-                rewrite_type_runtime_cost(&field.ty, target_module, caller, programs, cost)?;
-            }
-        }
-        TypeDeclarationKind::Class { fields, methods } => {
-            for field in fields {
-                rewrite_type_runtime_cost(&field.ty, target_module, caller, programs, cost)?;
-            }
-            for method in methods {
-                for param in &method.params {
-                    rewrite_type_runtime_cost(&param.ty, target_module, caller, programs, cost)?;
-                }
-                rewrite_type_runtime_cost(
-                    &method.return_type,
-                    target_module,
-                    caller,
-                    programs,
-                    cost,
-                )?;
-            }
-        }
-        TypeDeclarationKind::Variant { cases } => {
-            for case in cases {
-                for field in &case.fields {
-                    rewrite_type_runtime_cost(&field.ty, target_module, caller, programs, cost)?;
-                }
-            }
-        }
-        TypeDeclarationKind::Resource { .. } => unreachable!("resource imports are rejected"),
-    }
-    Ok(())
-}
-
-fn rewrite_type_runtime_cost(
+pub(super) fn rewrite_type_runtime_cost(
     ty: &Type,
     target_module: &str,
     caller: &Program,
@@ -962,7 +920,7 @@ pub(super) fn synthetic_program(
         let target = &authored[module_use.persistent_id.as_str()];
         let mut ty = target.ty.expect("validated type target").clone();
         ty.name = crate::bounded_output::budgeted_clone(&module_use.alias);
-        rewrite_type_declaration(&mut ty, target.module, program, programs)?;
+        super::generic_type_import::rewrite_declaration(&mut ty, target.module, program, programs)?;
         synthetic.types.push(ty);
     }
     let type_index_bytes = synthetic
@@ -1034,42 +992,7 @@ pub(super) fn synthetic_program(
     Ok(synthetic)
 }
 
-fn rewrite_type_declaration(
-    declaration: &mut TypeDeclaration,
-    target_module: &str,
-    caller: &Program,
-    programs: &[Program],
-) -> Result<(), Vec<Diagnostic>> {
-    match &mut declaration.kind {
-        TypeDeclarationKind::Record { fields } => {
-            for field in fields {
-                rewrite_type(&mut field.ty, target_module, caller, programs)?;
-            }
-        }
-        TypeDeclarationKind::Class { fields, methods } => {
-            for field in fields {
-                rewrite_type(&mut field.ty, target_module, caller, programs)?;
-            }
-            for method in methods {
-                for param in &mut method.params {
-                    rewrite_type(&mut param.ty, target_module, caller, programs)?;
-                }
-                rewrite_type(&mut method.return_type, target_module, caller, programs)?;
-            }
-        }
-        TypeDeclarationKind::Variant { cases } => {
-            for case in cases {
-                for field in &mut case.fields {
-                    rewrite_type(&mut field.ty, target_module, caller, programs)?;
-                }
-            }
-        }
-        TypeDeclarationKind::Resource { .. } => unreachable!("resource imports are rejected"),
-    }
-    Ok(())
-}
-
-fn rewrite_type(
+pub(super) fn rewrite_type(
     ty: &mut Type,
     target_module: &str,
     caller: &Program,

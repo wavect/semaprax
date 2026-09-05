@@ -11,6 +11,7 @@
     reason = "sealed validation and test-only replay seams remain non-public"
 )]
 mod expected_projection;
+mod generic_type_import;
 mod operation_sidecar;
 mod owned_generics;
 mod package;
@@ -5641,21 +5642,23 @@ fn validate_imported_type(
     programs: &[Program],
 ) -> Result<(), Vec<Diagnostic>> {
     let ty = target.ty.expect("type target carries a type");
-    if !ty.type_parameters.is_empty()
-        || !type_is_admitted(target.module, ty, authored, programs, &mut BTreeSet::new())
-        || !exposed_types_are_directly_imported(
-            caller,
-            target.module,
-            ty,
-            authored,
-            programs,
-            &mut BTreeSet::new(),
-        )
+    let generic_owned_record = generic_type_import::template_is_admitted(ty);
+    if !generic_owned_record
+        && (!ty.type_parameters.is_empty()
+            || !type_is_admitted(target.module, ty, authored, programs, &mut BTreeSet::new())
+            || !exposed_types_are_directly_imported(
+                caller,
+                target.module,
+                ty,
+                authored,
+                programs,
+                &mut BTreeSet::new(),
+            ))
     {
         return Err(vec![use_error(
             caller,
             module_use,
-            "type target must be an explicit nongeneric recursive value type without borrowed storage",
+            "type target must be an admitted nongeneric value type or flat generic record template without borrowed or nested storage",
         )]);
     }
     Ok(())

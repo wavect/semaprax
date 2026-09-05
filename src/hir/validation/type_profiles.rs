@@ -2,6 +2,70 @@
 
 use super::*;
 
+pub(super) fn template_ownership(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+    ty: &ResolvedType,
+) -> OwnershipMode {
+    match ty {
+        ResolvedType::String => OwnershipMode::Own,
+        ResolvedType::Str => OwnershipMode::Borrow,
+        _ if crate::hir::type_reachability::is_flat_owned_byte_record_template(
+            &program.declarations,
+            ty,
+            &template.id,
+            template.type_parameters.len(),
+        ) =>
+        {
+            OwnershipMode::Own
+        }
+        _ => OwnershipMode::Value,
+    }
+}
+
+pub(super) fn template_has_owned_record_slot(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+) -> bool {
+    template.params.iter().any(|parameter| {
+        parameter.ownership == OwnershipMode::Own
+            && crate::hir::type_reachability::is_flat_owned_byte_record_template(
+                &program.declarations,
+                &parameter.ty,
+                &template.id,
+                template.type_parameters.len(),
+            )
+    }) && crate::hir::type_reachability::is_flat_owned_byte_record_template(
+        &program.declarations,
+        &template.return_type,
+        &template.id,
+        template.type_parameters.len(),
+    )
+}
+
+pub(super) fn generic_instance_arguments_are_admitted(
+    program: &ResolvedProgram,
+    template_id: &DeclarationId,
+    arguments: &[ResolvedType],
+) -> bool {
+    arguments
+        .iter()
+        .all(|argument| matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        || program
+            .function_templates
+            .iter()
+            .find(|template| &template.id == template_id)
+            .is_some_and(|template| {
+                arguments.len() == template.type_parameters.len()
+                    && arguments.iter().all(|argument| {
+                        crate::hir::type_reachability::nested_record_copy_scalar_is_admitted(
+                            argument,
+                        )
+                    })
+                    && template_has_owned_record_slot(program, template)
+            })
+}
+
 pub(crate) fn resolved_type_contains_owned_bytes(
     program: &ResolvedProgram,
     ty: &ResolvedType,

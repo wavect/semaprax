@@ -272,6 +272,34 @@ pub(super) fn resolved_scalar_substitutions(parameter_count: usize) -> Vec<Vec<R
         .collect()
 }
 
+pub(super) fn resolved_owned_record_substitutions(
+    parameter_count: usize,
+) -> Vec<Vec<ResolvedType>> {
+    debug_assert!((1..=2).contains(&parameter_count));
+    let copy = [
+        ResolvedType::I64,
+        ResolvedType::I32,
+        ResolvedType::Char,
+        ResolvedType::U8,
+        ResolvedType::Usize,
+        ResolvedType::F32,
+        ResolvedType::F64,
+        ResolvedType::Bool,
+    ];
+    let count = copy.len().pow(parameter_count as u32);
+    (0..count)
+        .map(|mut ordinal| {
+            (0..parameter_count)
+                .map(|_| {
+                    let ty = copy[ordinal % copy.len()].clone();
+                    ordinal /= copy.len();
+                    ty
+                })
+                .collect()
+        })
+        .collect()
+}
+
 pub(super) fn same_function_meaning(
     expected: &ResolvedFunction,
     actual: &ResolvedFunction,

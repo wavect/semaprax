@@ -13,7 +13,11 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
     let windows_source = read(root, "platform-tests/desktop-native/ui-windows.c");
     let lock = read(root, "platform-tests/desktop-native/toolchain.lock");
     let workflow = read(root, ".github/workflows/ci.yml");
-    let diagnostics = read(root, "src/codegen.rs");
+    let diagnostics = format!(
+        "{}\n{}",
+        read(root, "src/codegen.rs"),
+        read(root, "src/codegen/native_scalar_runtime.rs")
+    );
 
     assert_contains_all(
         "private engine feature",

@@ -119,7 +119,7 @@ const output = 65536;
 memory.setUint8(1024,7); memory.setUint8(1025,8);
 const input = (1024n << 32n) | 2n;
 for(let round=0;round<3;++round) {{
-  for(const [start,end,code,value] of [[0n,2n,0,42n],[1n,1n,0,0n],[3n,1n,1,0n],[0n,3n,2,0n],[0n,2n,0,42n]]) {{
+  for(const [start,end,code,value] of [[0n,2n,0,42n],[1n,1n,0,0n],[3n,1n,11,0n],[0n,3n,12,0n],[0n,2n,0,42n]]) {{
     memory.setBigInt64(output,12345n,true);
     if(window(input,start,end,output)!==code) throw Error('wrong range status');
     if(memory.getBigInt64(output,true)!==(code===0?value:12345n)) throw Error('wrong result or changed failed output');

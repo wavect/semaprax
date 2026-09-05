@@ -713,8 +713,8 @@ impl<'a> ValidatedPrivateCheckedComponentV2<'a> {
 }
 
 const CHECKED_RUNTIME_CORE_V2_SHA256: [u8; 32] = [
-    107, 218, 111, 164, 153, 237, 95, 189, 213, 36, 9, 38, 76, 115, 211, 151, 91, 30, 214, 179, 58,
-    220, 84, 251, 168, 250, 95, 166, 49, 17, 148, 45,
+    49, 42, 6, 148, 128, 25, 224, 97, 188, 114, 181, 7, 75, 208, 67, 250, 140, 179, 237, 126, 145,
+    140, 175, 71, 194, 87, 23, 233, 130, 230, 239, 153,
 ];
 
 /// Compose one verified SEMAPRAX program with the private checked core runtime
@@ -983,8 +983,8 @@ fn emit_checked_runtime_core_v2() -> Vec<u8> {
         &mut module,
         1,
         &[
-            0x03, 0x60, 0x02, 0x7e, 0x7e, 0x01, 0x7e, 0x60, 0x01, 0x7e, 0x01, 0x7e, 0x60, 0x00,
-            0x00,
+            0x03, 0x60, 0x02, 0x7e, 0x7e, 0x01, 0x7e, 0x60, 0x01, 0x7e, 0x01, 0x7e, 0x60, 0x01,
+            0x7f, 0x00,
         ],
     );
     push_section(

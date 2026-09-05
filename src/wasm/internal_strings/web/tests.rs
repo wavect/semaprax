@@ -189,7 +189,7 @@ fn empty_identity_rejects_and_leading_dash_identity_remains_exact() {
     let output = root.join("output");
     std::fs::write(&source, SOURCE.replace("@id(\"main\")", "@id(\"\")")).unwrap();
     let errors = build_web_from_source(&source, &output, &[String::new()]).unwrap_err();
-    assert_eq!(errors[0].code, "SPX-H006");
+    assert_eq!(errors[0].code, "SPX-S102");
     assert!(!output.exists());
     std::fs::write(&source, SOURCE.replace("@id(\"main\")", "@id(\"-main\")")).unwrap();
     build_web_from_source(&source, &output, &["-main".to_owned()]).unwrap();

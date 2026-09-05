@@ -301,7 +301,7 @@ pub(in crate::project) fn replay_carrier(
             }
         } else if row["function_ids"]
             != json!(revision
-                .entry_program()
+                .public_api_program()
                 .functions
                 .iter()
                 .map(|function| function.id.as_str())
@@ -543,7 +543,7 @@ fn verify_exports(
 
 fn generate(revision: &ProjectRevision, max_bytes: usize) -> Result<String, Vec<Diagnostic>> {
     let (native, overflowed) = crate::bounded_output::with_limit(max_bytes, || {
-        crate::codegen::emit_hir_c(revision.entry_program())
+        crate::codegen::emit_hir_c(revision.public_api_program())
     });
     if overflowed {
         return Err(error(
@@ -562,7 +562,7 @@ fn generate(revision: &ProjectRevision, max_bytes: usize) -> Result<String, Vec<
         max_bytes,
     )?];
     artifacts[0]["function_ids"] = json!(revision
-        .entry_program()
+        .public_api_program()
         .functions
         .iter()
         .map(|function| function.id.as_str())
@@ -607,7 +607,7 @@ fn generate(revision: &ProjectRevision, max_bytes: usize) -> Result<String, Vec<
             .ok_or_else(|| error("SPX-G292", "C header source is absent"))?;
         for id in selected {
             if !revision
-                .entry_program()
+                .public_api_program()
                 .functions
                 .iter()
                 .any(|function| function.id.as_str() == id)

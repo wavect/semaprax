@@ -720,7 +720,7 @@ impl ProjectSnapshot {
                 .map_err(|drift| self.publication_uncertainty(drift));
         }
         let prepared = crate::wasm::prepare_project_web_with_scalar_exports(
-            &self.entry_program,
+            &self.public_api_program,
             self.manifest.name(),
             &self.project_revision,
             &self.workspace_revision,

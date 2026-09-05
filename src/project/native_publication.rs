@@ -30,10 +30,17 @@ impl NativeOutput {
                 };
                 Diagnostic::io(
                     code,
-                    format!(
-                        "cannot reserve fresh project native destination {}: {error}",
-                        path.display()
-                    ),
+                    if error.kind() == io::ErrorKind::AlreadyExists {
+                        format!(
+                            "cannot reserve fresh project native destination {}: destination already exists",
+                            path.display()
+                        )
+                    } else {
+                        format!(
+                            "cannot reserve fresh project native destination {}: {error}",
+                            path.display()
+                        )
+                    },
                 )
             })?;
         let identity = Handle::from_file(file).map_err(|error| {

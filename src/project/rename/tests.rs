@@ -169,6 +169,7 @@ fn automatic_function_identity_is_rejected_before_planning() {
     let fixture = fixture();
     let core = fixture.0.join("src/core.spx");
     let mut source = std::fs::read_to_string(&core).unwrap();
+    source = source.replacen("left + right", "helper(left) + right", 1);
     source.push_str("\nfn helper(value: i64) -> i64\n{\n    value\n}\n");
     std::fs::write(&core, source).unwrap();
     let diagnostics = super::super::load_snapshot(&fixture.0.join("semaprax.toml"))

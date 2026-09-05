@@ -976,7 +976,7 @@ fn selected_disconnected_web_export_is_an_exact_additional_link_root() {
 
     with_authenticated_project(&root.join(MANIFEST_FILE), |snapshot| {
         let ids = snapshot
-            .entry_program()
+            .public_api_program()
             .functions
             .iter()
             .map(|function| function.id.as_str())

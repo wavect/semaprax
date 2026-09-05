@@ -296,6 +296,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             let arm_scope = self.scopes.len();
             self.scopes.push(VerifierScope {
                 bindings: self.scopes[scope].bindings.clone(),
+                local_borrow_count: self.scopes[scope].local_borrow_count,
             });
             if match_mode == MatchMode::Borrow {
                 if let Some(place) =

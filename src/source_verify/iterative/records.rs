@@ -28,11 +28,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         mut supplied: HashSet<&'p str>,
     ) -> Result<(), Diagnostic> {
         let field = &fields[index];
-        let declared = declared_fields.and_then(|declared| {
-            declared
-                .iter()
-                .find(|candidate| candidate.name == field.name)
-        });
+        let declared = self
+            .types
+            .declared_field(type_name, &field.name)
+            .or_else(|| {
+                declared_fields.and_then(|declared| {
+                    declared
+                        .iter()
+                        .find(|candidate| candidate.name == field.name)
+                })
+            });
         if !supplied.insert(field.name.as_str()) || declared.is_none() {
             self.diagnostics.push(error(
                 self.program,
@@ -75,11 +80,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
     ) -> Result<(), Diagnostic> {
         let actual = self.values.pop().unwrap_or(None);
         let field = &fields[index];
-        let declared = declared_fields.and_then(|declared| {
-            declared
-                .iter()
-                .find(|candidate| candidate.name == field.name)
-        });
+        let declared = self
+            .types
+            .declared_field(type_name, &field.name)
+            .or_else(|| {
+                declared_fields.and_then(|declared| {
+                    declared
+                        .iter()
+                        .find(|candidate| candidate.name == field.name)
+                })
+            });
         if let (Some(declared), Some(actual)) = (declared, actual) {
             reject_native_unit_value(self.program, &field.value, &actual, self.diagnostics);
             let expected = self

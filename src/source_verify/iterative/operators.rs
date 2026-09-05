@@ -54,15 +54,21 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         scope: usize,
     ) -> Result<(), Diagnostic> {
         let left_value = self.values.pop().unwrap_or(None);
-        let baseline_names = self.scopes[scope]
-            .bindings
-            .keys()
-            .cloned()
-            .collect::<Vec<_>>();
-        let evaluated_scope = if matches!(op, BinaryOp::And | BinaryOp::Or) {
+        let lazy = matches!(op, BinaryOp::And | BinaryOp::Or);
+        let baseline_names = if lazy {
+            self.scopes[scope]
+                .bindings
+                .keys()
+                .cloned()
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        let evaluated_scope = if lazy {
             let index = self.scopes.len();
             self.scopes.push(VerifierScope {
                 bindings: self.scopes[scope].bindings.clone(),
+                local_borrow_count: self.scopes[scope].local_borrow_count,
             });
             index
         } else {
@@ -277,6 +283,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let then_scope = self.scopes.len();
         self.scopes.push(VerifierScope {
             bindings: self.scopes[scope].bindings.clone(),
+            local_borrow_count: self.scopes[scope].local_borrow_count,
         });
         self.frames.push(VerifierFrame::ResumeIfThen {
             expression,
@@ -315,6 +322,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let else_scope = self.scopes.len();
         self.scopes.push(VerifierScope {
             bindings: self.scopes[scope].bindings.clone(),
+            local_borrow_count: self.scopes[scope].local_borrow_count,
         });
         let then_branch = match &expression.kind {
             ExprKind::If { then_branch, .. } => then_branch.as_ref(),

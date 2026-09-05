@@ -53,6 +53,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Source verification now skips lazy-branch snapshots for ordinary binary
+  operators, tracks whether a scope has local borrows before liveness work,
+  and indexes declared record fields once, removing quadratic rescans from
+  wide scalar blocks and record literals.
+
 - Formatter capacity accounting now measures all expression-subtree lengths
   during one canonical traversal instead of re-rendering every subtree, making
   revision hashing linear in expression size while preserving exact bytes.

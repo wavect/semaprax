@@ -99,6 +99,10 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
     ) -> Self {
         const { assert!(std::mem::size_of::<VerifierFrame<'static>>() == 320) };
         const { assert!(std::mem::size_of::<VariantMatchState<'static>>() == 312) };
+        let local_borrow_count = variables
+            .values()
+            .filter(|binding| binding.borrow_origin.is_some())
+            .count();
         Self {
             program,
             current,
@@ -109,6 +113,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             diagnostics,
             scopes: vec![VerifierScope {
                 bindings: variables,
+                local_borrow_count,
             }],
             frames: Vec::new(),
             values: Vec::new(),

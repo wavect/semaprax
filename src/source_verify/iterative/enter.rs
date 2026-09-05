@@ -510,6 +510,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 let block_scope = self.scopes.len();
                 self.scopes.push(VerifierScope {
                     bindings: self.scopes[scope].bindings.clone(),
+                    local_borrow_count: self.scopes[scope].local_borrow_count,
                 });
                 if let Some(first_statement) = statements.first() {
                     if let Statement::Let {

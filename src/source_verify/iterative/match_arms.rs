@@ -117,6 +117,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let arm_scope = self.scopes.len();
         self.scopes.push(VerifierScope {
             bindings: state.baseline.clone(),
+            local_borrow_count: state
+                .baseline
+                .values()
+                .filter(|binding| binding.borrow_origin.is_some())
+                .count(),
         });
         match &arm.pattern {
             MatchPattern::Wildcard { span } => {
@@ -376,6 +381,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let arm_scope = self.scopes.len();
         self.scopes.push(VerifierScope {
             bindings: state.baseline.clone(),
+            local_borrow_count: state
+                .baseline
+                .values()
+                .filter(|binding| binding.borrow_origin.is_some())
+                .count(),
         });
         match &arm.pattern {
             MatchPattern::Wildcard { .. } => {}

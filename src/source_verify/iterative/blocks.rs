@@ -144,6 +144,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         .flatten();
                     if let Some(origin) = &borrow_origin {
                         activate_local_loan(&mut self.scopes[block_scope].bindings, origin);
+                        self.scopes[block_scope].local_borrow_count += 1;
                     }
                     self.scopes[block_scope].bindings.insert(
                         name.clone(),
@@ -365,11 +366,19 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             // they complete through ResumeWhileBody instead.
             Statement::While { .. } => {}
         }
-        release_dead_local_loans(
-            &mut self.scopes[block_scope].bindings,
-            statements.get(index + 1..).unwrap_or_default(),
-            tail,
-        );
+        // Most blocks have no borrowed local at all. Avoid rescanning every
+        // accumulated scalar binding after each statement in that common
+        // case; the full liveness walk remains exact once a borrow exists.
+        if self.scopes[block_scope].local_borrow_count != 0 {
+            let released = release_dead_local_loans(
+                &mut self.scopes[block_scope].bindings,
+                statements.get(index + 1..).unwrap_or_default(),
+                tail,
+            );
+            self.scopes[block_scope].local_borrow_count = self.scopes[block_scope]
+                .local_borrow_count
+                .saturating_sub(released);
+        }
         self.advance_block_statement(
             expression,
             statements,

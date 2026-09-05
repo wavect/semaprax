@@ -186,7 +186,7 @@ pub(super) fn release_dead_local_loans(
     variables: &mut HashMap<String, Binding>,
     remaining: &[Statement],
     tail: &Expr,
-) {
+) -> usize {
     let dead = variables
         .iter()
         .filter_map(|(name, binding)| {
@@ -200,14 +200,19 @@ pub(super) fn release_dead_local_loans(
                     condition, body, ..
                 } => expression_uses_name(condition, name) || expression_uses_name(body, name),
             }) || expression_uses_name(tail, name);
-            (!used).then_some((origin.root.clone(), origin.loan.clone()))
+            (!used).then_some((name.clone(), origin.root.clone(), origin.loan.clone()))
         })
         .collect::<Vec<_>>();
-    for (root, loan) in dead {
+    let released = dead.len();
+    for (name, root, loan) in dead {
         if let Some(owner) = variables.get_mut(&root) {
             owner.active_loans.retain(|active| active.id != loan);
         }
+        if let Some(binding) = variables.get_mut(&name) {
+            binding.borrow_origin = None;
+        }
     }
+    released
 }
 
 pub(super) fn mark_value_sources_moved(

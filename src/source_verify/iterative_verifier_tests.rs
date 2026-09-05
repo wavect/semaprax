@@ -298,6 +298,31 @@ fn scalar_frame_machine_matches_recursive_oracle() {
 }
 
 #[test]
+fn wide_scalar_blocks_and_record_literals_verify_without_quadratic_rescans() {
+    use std::fmt::Write as _;
+
+    let mut statements = String::from(
+        "module test.wide_scalars;\n@id(\"work.main\") fn main() -> i64 {\nlet v0 = 0;\n",
+    );
+    for index in 1..1_000 {
+        writeln!(statements, "let v{index} = v{} + 1;", index - 1).unwrap();
+    }
+    statements.push_str("v999\n}\n");
+    assert!(source_diagnostics(&statements).is_empty());
+
+    let mut record = String::from("module test.wide_record;\n@id(\"work.wide\") record Wide {\n");
+    for index in 0..1_000 {
+        writeln!(record, "@id(\"work.wide.f{index}\") f{index}: i64,").unwrap();
+    }
+    record.push_str("}\n@id(\"work.main\") fn main() -> i64 {\nlet value = Wide { ");
+    for index in 0..1_000 {
+        write!(record, "f{index}: {index}, ").unwrap();
+    }
+    record.push_str("};\nvalue.f0\n}\n");
+    assert!(source_diagnostics(&record).is_empty());
+}
+
+#[test]
 fn byte_capacity_reclaims_shallow_wide_sibling_scopes_at_last_continuation() {
     let mut program = crate::parse(
             "module capacity.scope_peak; @id(\"capacity.scope_peak.wide\") fn wide() -> i64 { 0 } @id(\"capacity.scope_peak.main\") fn main() -> i64 { 0 }",

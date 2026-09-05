@@ -15,6 +15,7 @@ use std::collections::{HashMap, HashSet};
 
 pub(super) struct VerifierScope {
     pub(super) bindings: HashMap<String, Binding>,
+    pub(super) local_borrow_count: usize,
 }
 
 pub(super) enum VerifierFrame<'a> {

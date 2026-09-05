@@ -58,6 +58,7 @@ pub(super) fn effective_record_fields<'t>(
 
 pub(super) struct TypeTable<'a> {
     pub(super) declarations: HashMap<&'a str, &'a TypeDeclaration>,
+    declared_fields: HashMap<&'a str, HashMap<&'a str, &'a FieldDeclaration>>,
     /// Class Inheritance v1: declared parent name per extending class.
     pub(super) class_parents: HashMap<&'a str, &'a str>,
     /// Class Inheritance v1: the effective declared-field list of every
@@ -75,6 +76,20 @@ impl<'a> TypeTable<'a> {
             .map(|declaration| (declaration.name.as_str(), declaration))
             .collect();
         let mut merged_class_fields = HashMap::new();
+        let mut declared_fields = HashMap::new();
+        for (name, declaration) in &declarations {
+            if let TypeDeclarationKind::Record { fields }
+            | TypeDeclarationKind::Class { fields, .. } = &declaration.kind
+            {
+                declared_fields.insert(
+                    *name,
+                    fields
+                        .iter()
+                        .map(|field| (field.name.as_str(), field))
+                        .collect(),
+                );
+            }
+        }
         for (name, declaration) in &declarations {
             if !matches!(declaration.kind, TypeDeclarationKind::Class { .. }) {
                 continue;
@@ -129,6 +144,7 @@ impl<'a> TypeTable<'a> {
         }
         Self {
             declarations,
+            declared_fields,
             merged_class_fields,
             class_parents,
         }
@@ -148,6 +164,17 @@ impl<'a> TypeTable<'a> {
             }
             TypeDeclarationKind::Resource { .. } | TypeDeclarationKind::Variant { .. } => None,
         }
+    }
+
+    pub(super) fn declared_field(
+        &self,
+        type_name: &str,
+        field_name: &str,
+    ) -> Option<&'a FieldDeclaration> {
+        self.declared_fields
+            .get(type_name)
+            .and_then(|fields| fields.get(field_name))
+            .copied()
     }
 
     pub(super) fn record_field_type(

@@ -130,7 +130,7 @@ fn arguments(executable: &Path, command: &[&str]) -> io::Result<Vec<CString>> {
 }
 
 fn environment() -> Vec<CString> {
-    [
+    let environment = [
         "GIT_ATTR_NOSYSTEM=1",
         "GIT_CONFIG_GLOBAL=/dev/null",
         "GIT_CONFIG_NOSYSTEM=1",
@@ -143,7 +143,25 @@ fn environment() -> Vec<CString> {
     ]
     .into_iter()
     .map(|value| CString::new(value).expect("fixed Git environment has no NUL"))
-    .collect()
+    .collect::<Vec<_>>();
+    #[cfg(target_os = "macos")]
+    {
+        let mut environment = environment;
+        // CoreFoundation validates the leading UID before it accepts this
+        // value. Supplying the process identity prevents its fallback from
+        // reading the user's home-directory encoding file and rewriting the
+        // child environment.
+        environment.push(
+            CString::new(format!(
+                "__CF_USER_TEXT_ENCODING=0x{:X}:0:0",
+                rustix::process::getuid().as_raw()
+            ))
+            .expect("derived macOS Git environment has no NUL"),
+        );
+        environment
+    }
+    #[cfg(not(target_os = "macos"))]
+    environment
 }
 
 pub(super) fn run(

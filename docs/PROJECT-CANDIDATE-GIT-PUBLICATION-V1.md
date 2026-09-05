@@ -124,7 +124,10 @@ agreement. A namespace substitution that prevents exact Darwin vnode agreement
 fails closed before resume. The child receives only its exact
 standard-pipe inventory; every other descriptor is closed. It has an empty
 inherited environment and explicit null global/system config, no replacement
-objects, no lazy fetching, no terminal prompts and no optional locks. A fixed
+objects, no lazy fetching, no terminal prompts and no optional locks. A macOS
+safety entry pre-seeds CoreFoundation's user-text-encoding key with the process
+UID and fixed encoding fields, preventing CoreFoundation's fallback from reading
+the user-home encoding file and rewriting the child environment. A fixed
 command-line `protocol.allow=never` forbids transport;
 there are no network commands or request-selected command names. Hashing uses
 `--no-filters`. Fixed `core.hooksPath=/dev/null` disables hooks, including

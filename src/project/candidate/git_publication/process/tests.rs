@@ -225,6 +225,14 @@ fn held_runner_never_executes_a_replacement_path() {
 
 #[test]
 fn held_runner_clears_environment_and_non_whitelisted_descriptors() {
+    #[cfg(target_os = "macos")]
+    let expected_environment = format!(
+        "environment=GIT_ATTR_NOSYSTEM=1|GIT_CONFIG_GLOBAL=/dev/null|GIT_CONFIG_NOSYSTEM=1|GIT_CONFIG_SYSTEM=/dev/null|GIT_NO_LAZY_FETCH=1|GIT_NO_REPLACE_OBJECTS=1|GIT_OPTIONAL_LOCKS=0|GIT_TERMINAL_PROMPT=0|LC_ALL=C|__CF_USER_TEXT_ENCODING=0x{:X}:0:0\nsecret_fd_visible=false\n",
+        rustix::process::getuid().as_raw()
+    );
+    #[cfg(not(target_os = "macos"))]
+    let expected_environment = "environment=GIT_ATTR_NOSYSTEM=1|GIT_CONFIG_GLOBAL=/dev/null|GIT_CONFIG_NOSYSTEM=1|GIT_CONFIG_SYSTEM=/dev/null|GIT_NO_LAZY_FETCH=1|GIT_NO_REPLACE_OBJECTS=1|GIT_OPTIONAL_LOCKS=0|GIT_TERMINAL_PROMPT=0|LC_ALL=C\nsecret_fd_visible=false\n";
+
     let fixture = ProcessFixture::new("isolation");
     let secret_path = fixture.root.join("ambient-secret");
     std::fs::write(&secret_path, b"must not cross exec").unwrap();
@@ -247,7 +255,7 @@ fn held_runner_clears_environment_and_non_whitelisted_descriptors() {
     assert_eq!(status, 17);
     assert_eq!(
         std::fs::read_to_string(fixture.root.join("isolation-observation")).unwrap(),
-        "environment=GIT_ATTR_NOSYSTEM=1|GIT_CONFIG_GLOBAL=/dev/null|GIT_CONFIG_NOSYSTEM=1|GIT_CONFIG_SYSTEM=/dev/null|GIT_NO_LAZY_FETCH=1|GIT_NO_REPLACE_OBJECTS=1|GIT_OPTIONAL_LOCKS=0|GIT_TERMINAL_PROMPT=0|LC_ALL=C\nsecret_fd_visible=false\n"
+        expected_environment
     );
     drop(secret);
 }

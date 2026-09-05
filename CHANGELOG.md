@@ -108,6 +108,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   The existing source-patch form remains unchanged, no files are written, and
   the focused three-case CLI gate passes locally.
 
+- Fixed the macOS held-Git process boundary to preseed CoreFoundation's
+  user-text-encoding key with the process UID and fixed encoding fields. This
+  prevents CoreFoundation from reading the user-home encoding file or rewriting
+  the child environment, while the exact environment assertion remains closed.
 - Added `semaprax.network-fixture.v3` as an ordered, bounded HTTPS
   request/response replay carrier. V1 and v2 reject the new member, URL or
   response mismatches do not consume queue entries, and hosted `https_get`

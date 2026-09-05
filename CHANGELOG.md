@@ -119,6 +119,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Rejected a trailing semicolon after a block's value with the existing
   `SPX-P106` expression-statement diagnostic. Canonical formatting no longer
   accepts and silently removes that source token.
+- Scalar Project v1 now retains module-local record declarations through HIR
+  replay, while aggregate function boundaries fail at their declaration with
+  actionable `SPX-G174` guidance. The language card and generated project
+  agent guide now state that boundary explicitly.
+
 - Workspace declaration replay now retains classes as `Class` rather than
   `Record`, includes their owned methods in the independent fact map, and names
   the first differing stable identity in genuine `SPX-G173` disagreements.

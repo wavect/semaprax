@@ -143,6 +143,8 @@ mod owned_utf8_npm;
 mod package_manifest_v1;
 #[path = "project/profile_admission.rs"]
 mod profile_admission;
+#[path = "project/project_local_aggregates.rs"]
+mod project_local_aggregates;
 #[path = "project/project_lock_v1.rs"]
 mod project_lock_v1;
 #[path = "project/resource_free_record_evolution.rs"]

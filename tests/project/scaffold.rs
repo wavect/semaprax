@@ -317,8 +317,8 @@ fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
     assert_ne!(tables.digest(), frozen.digest());
     assert_ne!(tables.canonical_bytes(), frozen.canonical_bytes());
 
-    // Only the manifest file differs from the frozen capsule; the layout is the
-    // extensible table manifest, and everything else is identical.
+    // The table capsule carries the extensible manifest and its current
+    // project-boundary guidance; the frozen v2 bytes remain unchanged.
     assert_eq!(tables.files().len(), frozen.files().len());
     for (table_file, frozen_file) in tables.files().iter().zip(frozen.files()) {
         assert_eq!(table_file.path(), frozen_file.path());
@@ -326,6 +326,9 @@ fn tables_layout_derives_a_v3_capsule_and_replays_only_as_itself() {
             assert_eq!(table_file.bytes(), CALCULATOR_TABLES_MANIFEST);
             assert_ne!(table_file.bytes(), frozen_file.bytes());
             assert_eq!(table_file.sha256(), sha256(table_file.bytes()));
+        } else if table_file.path() == "AGENTS.md" {
+            assert!(table_file.utf8().contains("Project v1 function boundaries"));
+            assert_ne!(table_file.bytes(), frozen_file.bytes());
         } else {
             assert_eq!(table_file.bytes(), frozen_file.bytes());
         }

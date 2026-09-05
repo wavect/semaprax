@@ -1162,6 +1162,37 @@ pub(super) fn scalar_native_imports<'a>(
     }
 }
 
+pub(super) fn scalar_web_entrypoint(
+    profile: crate::project::ProjectProfile,
+    available: &BTreeMap<hir::DeclarationId, hir::LinkedScalarFunction>,
+    ordinary_entrypoint: &hir::DeclarationId,
+    selected_root: &str,
+) -> hir::DeclarationId {
+    if profile != crate::project::ProjectProfile::ScalarV1 {
+        return ordinary_entrypoint.clone();
+    }
+    let selected = hir::DeclarationId::new(selected_root.to_owned());
+    available
+        .get(&selected)
+        .filter(|linked| {
+            linked.function.params.is_empty()
+                && linked.function.return_type == hir::ResolvedType::I64
+        })
+        .map(|_| selected)
+        .or_else(|| {
+            available
+                .values()
+                .find(|linked| {
+                    linked.function.id != *ordinary_entrypoint
+                        && linked.function.name == "main"
+                        && linked.function.params.is_empty()
+                        && linked.function.return_type == hir::ResolvedType::I64
+                })
+                .map(|linked| linked.function.id.clone())
+        })
+        .unwrap_or_else(|| ordinary_entrypoint.clone())
+}
+
 impl ScalarNativeImports {
     /// Whether every one of these declared effects or module permits is
     /// carried by a retained Native Rust import. With nothing retained only

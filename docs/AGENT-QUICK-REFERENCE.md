@@ -573,7 +573,11 @@ rejects native builds with `SPX-J122`.
 Modules import by stable identity, not by path:
 `use function @id("calculator.add") from calculator.core as add;` directly
 after the `module` line of the importing file; `entry` names the one module
-that declares `main`. A test module is an ordinary module whose `main` returns
+that declares `main`. Project v1 function parameters and results are limited
+to Copy scalar values. Records, classes, variants, `Option`, and `Result` may
+be used as module-local implementation details inside scalar-signature
+functions, but cannot cross a function boundary; `SPX-G174` points at a
+declaration whose signature leaves that profile. A test module is an ordinary module whose `main` returns
 `0` on success; `semaprax test semaprax.toml` prints `project tests passed`.
 Give each check its own `fn test_<name>() -> i64` with an `@id` in the test
 module: every such zero-parameter function runs on its own and a failure is

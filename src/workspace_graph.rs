@@ -485,7 +485,6 @@ impl WorkspaceGraphProjection {
     pub(crate) fn shared_prelude_ids(&self) -> &[&'static str] {
         &self.shared_prelude_ids
     }
-
     pub(crate) fn usage(&self) -> WorkspaceGraphProjectionUsage {
         self.usage
     }
@@ -537,35 +536,30 @@ impl WorkspaceGraphProjectionModule {
     pub(crate) fn module(&self) -> &str {
         &self.module
     }
-
     pub(crate) fn source_graph_schema(&self) -> &str {
         &self.source_graph_schema
     }
     pub(crate) fn source_revision(&self) -> &str {
         &self.source_revision
     }
-
     pub(crate) fn source_digest(&self) -> &str {
         &self.source_digest
     }
     pub(crate) fn dependency_depth(&self) -> usize {
         self.dependency_depth
     }
-
     pub(crate) fn permits(&self) -> &[String] {
         &self.permits
     }
     pub(crate) fn types(&self) -> &[hir::ResolvedTypeDeclaration] {
         &self.types
     }
-
     pub(crate) fn interfaces(&self) -> &[hir::ResolvedInterface] {
         &self.interfaces
     }
     pub(crate) fn functions(&self) -> &[hir::ResolvedFunction] {
         &self.functions
     }
-
     pub(crate) fn function_templates(&self) -> &[hir::ResolvedFunctionTemplate] {
         &self.function_templates
     }
@@ -581,14 +575,12 @@ impl WorkspaceGraphProjectionDeclaration {
     pub(crate) fn kind(&self) -> hir::DeclarationKind {
         self.kind
     }
-
     pub(crate) fn origin(&self) -> hir::IdentityOrigin {
         self.origin
     }
     pub(crate) fn owner(&self) -> Option<&str> {
         self.owner.as_deref()
     }
-
     pub(crate) fn path(&self) -> Option<&str> {
         self.path.as_deref()
     }
@@ -604,49 +596,42 @@ impl WorkspaceGraphProjectionUsage {
     pub(crate) fn used_total_source_bytes(self) -> usize {
         self.used_total_source_bytes
     }
-
     pub(crate) fn used_entry_module_bytes(self) -> usize {
         self.used_entry_module_bytes
     }
     pub(crate) fn used_declarations(self) -> usize {
         self.used_declarations
     }
-
     pub(crate) fn used_callables(self) -> usize {
         self.used_callables
     }
     pub(crate) fn used_call_sites(self) -> usize {
         self.used_call_sites
     }
-
     pub(crate) fn used_uses(self) -> usize {
         self.used_uses
     }
     pub(crate) fn used_resolved_cross_file_edges(self) -> usize {
         self.used_resolved_cross_file_edges
     }
-
     pub(crate) fn used_dependency_depth(self) -> usize {
         self.used_dependency_depth
     }
     pub(crate) fn used_builder_bytes(self) -> usize {
         self.used_builder_bytes
     }
-
     pub(crate) fn used_manifest_bytes(self) -> usize {
         self.used_manifest_bytes
     }
     pub(crate) fn used_output_bytes(self) -> usize {
         self.used_output_bytes
     }
-
     pub(crate) fn used_retained_generations(self) -> usize {
         self.used_retained_generations
     }
     pub(crate) fn used_staging_attempts(self) -> usize {
         self.used_staging_attempts
     }
-
     pub(crate) fn used_unexpected_inventory_entries(self) -> usize {
         self.used_unexpected_inventory_entries
     }
@@ -662,35 +647,30 @@ impl WorkspaceSemanticGraph {
     pub fn workspace_manifest_schema(&self) -> &str {
         WORKSPACE_MANIFEST_SCHEMA
     }
-
     pub fn workspace_revision(&self) -> &str {
         &self.workspace_revision
     }
     pub fn graph_digest(&self) -> &str {
         &self.graph_digest
     }
-
     pub fn entry(&self) -> &WorkspaceSemanticGraphEntry {
         &self.entry
     }
     pub fn modules(&self) -> &[WorkspaceSemanticGraphModule] {
         &self.modules
     }
-
     pub fn declarations(&self) -> &[WorkspaceSemanticGraphDeclaration] {
         &self.declarations
     }
     pub fn edges(&self) -> &[WorkspaceSemanticGraphEdge] {
         &self.edges
     }
-
     pub fn limits(&self) -> WorkspaceSemanticGraphLimits {
         self.limits
     }
     pub fn budget(&self) -> WorkspaceSemanticGraphBudget {
         self.budget
     }
-
     pub fn nonclaims(&self) -> &'static [&'static str] {
         &NONCLAIMS
     }
@@ -707,7 +687,6 @@ impl WorkspaceSemanticGraphEntry {
         &self.path
     }
 }
-
 impl WorkspaceSemanticGraphModule {
     pub fn path(&self) -> &str {
         &self.path
@@ -1424,6 +1403,12 @@ impl WorkspaceGraphBuild {
             }
         }
 
+        let web_entrypoint = retained_validation::scalar_web_entrypoint(
+            profile,
+            &available,
+            &base.entrypoint,
+            &additional_roots[0],
+        );
         let mut retained = if profile == crate::project::ProjectProfile::ScalarV1 {
             BTreeSet::new()
         } else {
@@ -1436,6 +1421,7 @@ impl WorkspaceGraphBuild {
             .iter()
             .map(|root| hir::DeclarationId::new(root.clone()))
             .collect::<BTreeSet<_>>();
+        pending.insert(web_entrypoint.clone());
         while let Some(function_id) = pending.pop_first() {
             let Some(linked) = available.get(&function_id) else {
                 return Err(vec![Diagnostic::io(
@@ -1486,7 +1472,7 @@ impl WorkspaceGraphBuild {
                 };
                 natives.link(
                     base.module,
-                    hir::DeclarationId::new(additional_roots[0].clone()),
+                    web_entrypoint,
                     functions,
                     types,
                     &self.hir.declarations,
@@ -2204,14 +2190,25 @@ impl WorkspaceGraphBuild {
                                 | crate::host_io_ops::STDOUT_WRITE_EFFECT
                         )
                     }));
-                if !effects_admitted
-                    || (!class_method
-                        && (!admitted_return
-                            || function
-                                .params
-                                .iter()
-                                .any(|parameter| !admitted_parameter(parameter))))
-                {
+                let signature_admitted = class_method
+                    || (admitted_return
+                        && function
+                            .params
+                            .iter()
+                            .all(|parameter| admitted_parameter(parameter)));
+                if !signature_admitted {
+                    return Err(vec![Diagnostic::error(
+                        "SPX-G174",
+                        format!(
+                            "project function `{}` has a signature outside the selected profile",
+                            function.id
+                        ),
+                        function.span,
+                    )
+                    .at_path(&module.path)
+                    .with_help(PROJECT_SIGNATURE_HELP)]);
+                }
+                if !effects_admitted {
                     let profile = match profile {
                         crate::project::ProjectProfile::ScalarV1 => "pure scalar linker",
                         crate::project::ProjectProfile::UsefulTextConsumerV1 => {
@@ -5577,7 +5574,8 @@ fn validate_imported_function(
                 caller,
                 module_use,
                 "function signature leaves the admitted scalar/Copy workspace domain",
-            )]);
+            )
+            .with_help(PROJECT_SIGNATURE_HELP)]);
         }
     }
     let ty = &function.return_type;
@@ -5594,7 +5592,8 @@ fn validate_imported_function(
                 caller,
                 module_use,
                 "function signature leaves the admitted scalar/Copy workspace domain",
-            )]);
+            )
+            .with_help(PROJECT_SIGNATURE_HELP)]);
         }
     }
     Ok(())
@@ -6758,6 +6757,7 @@ fn graph_error(code: &'static str, message: impl Into<String>) -> Diagnostic {
 }
 
 const PROVIDER_MAIN_HELP: &str = "`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`";
+const PROJECT_SIGNATURE_HELP: &str = "Project v1 function boundaries admit only Copy scalar values; keep records, classes, variants, Option, and Result inside functions, or select a project profile that explicitly admits the required public carrier";
 
 fn limit_error(field: &'static str, maximum: usize) -> Diagnostic {
     graph_error(

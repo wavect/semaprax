@@ -195,7 +195,10 @@ def scenario_inputs(root: pathlib.Path, scenario: dict) -> list:
     for member in inputs:
         rows.append(
             {
-                "path": str(member.relative_to(root))
+                # Repository-relative identities are portable data, not host
+                # filesystem syntax. Keep the committed `/` spelling on every
+                # platform so Windows and Unix runs identify the same input.
+                "path": member.relative_to(root).as_posix()
                 if member.is_relative_to(root)
                 else str(member),
                 "digest": sha256_file(member),

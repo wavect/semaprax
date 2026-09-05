@@ -42,15 +42,46 @@ fn plan(output: &Path) -> Value {
     serde_json::from_str(&std::fs::read_to_string(output).unwrap()).unwrap()
 }
 
+fn comparable_absolute(path: &str) -> String {
+    #[cfg(windows)]
+    {
+        if let Some(path) = path.strip_prefix(r"\\?\UNC\") {
+            return format!(r"\\{path}");
+        }
+        return path.strip_prefix(r"\\?\").unwrap_or(path).to_owned();
+    }
+    #[cfg(not(windows))]
+    path.to_owned()
+}
+
+fn canonical(path: impl AsRef<Path>) -> String {
+    comparable_absolute(path.as_ref().canonicalize().unwrap().to_str().unwrap())
+}
+
+#[cfg(windows)]
+fn wrapper() -> Command {
+    let script = root().join(SUITE).join("run.sh");
+    let mut command = Command::new("bash");
+    command.arg(script);
+    command
+}
+
+#[cfg(not(windows))]
+fn wrapper() -> Command {
+    let script = root().join(SUITE).join("run.sh");
+    let command = Command::new(script);
+    command
+}
+
 fn assert_committed_plan(document: &Value) {
     assert_eq!(
-        document["root"].as_str().unwrap(),
-        root().canonicalize().unwrap().to_str().unwrap(),
+        comparable_absolute(document["root"].as_str().unwrap()),
+        canonical(root()),
         "the plan must resolve the repository root"
     );
     assert_eq!(
-        document["suite"].as_str().unwrap(),
-        root().join(SUITE).canonicalize().unwrap().to_str().unwrap(),
+        comparable_absolute(document["suite"].as_str().unwrap()),
+        canonical(root().join(SUITE)),
         "the plan must resolve the suite directory"
     );
     let scenarios = document["scenarios"].as_array().unwrap();
@@ -100,7 +131,7 @@ fn shell_wrapper_resolves_the_committed_suite_from_any_working_directory() {
         // wrapper as one argument.
         let output_directory = scratch("wrapper output");
         let output = output_directory.join("bench plan.json");
-        let result = Command::new(root().join(SUITE).join("run.sh"))
+        let result = wrapper()
             .arg("--dry-run")
             .arg("--output")
             .arg(&output)
@@ -125,7 +156,7 @@ fn wrapper_forwards_a_compare_path_containing_spaces_as_one_argument() {
     // either argument on whitespace fails the runner's own argument parsing or
     // records a truncated path here.
     let output = scratch("compare output").join("plan.json");
-    let result = Command::new(root().join(SUITE).join("run.sh"))
+    let result = wrapper()
         .arg("--dry-run")
         .arg("--compare")
         .arg(&baseline)
@@ -314,11 +345,8 @@ fn the_recorded_host_and_subject_come_from_the_run_that_happened() {
     // The measured binary is identified, and it is the one that was selected.
     let subject = &document["subject"];
     assert_eq!(
-        subject["binary"].as_str().unwrap(),
-        std::fs::canonicalize(env!("CARGO_BIN_EXE_semaprax"))
-            .unwrap()
-            .to_str()
-            .unwrap()
+        comparable_absolute(subject["binary"].as_str().unwrap()),
+        canonical(env!("CARGO_BIN_EXE_semaprax"))
     );
     assert_eq!(subject["profile"].as_str().unwrap(), "provided");
     assert!(subject["digest"].as_str().unwrap().starts_with("sha256:"));

@@ -205,10 +205,11 @@ fn fmt_project_failures_write_nothing() {
     assert_eq!(status, 1);
     assert!(stdout.is_empty());
     assert!(
-        stderr.starts_with(&format!(
-            "cannot read {}: ",
-            empty.join("semaprax.toml").display()
-        )),
+        stderr.starts_with("error[SPX-J102]: cannot read Project v1 manifest"),
+        "{stderr}"
+    );
+    assert!(
+        stderr.contains(&empty.join("semaprax.toml").display().to_string()),
         "{stderr}"
     );
     std::fs::remove_dir_all(root).unwrap();

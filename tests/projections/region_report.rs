@@ -750,7 +750,7 @@ fn cli_rejects_bad_invocations() {
         "region-report",
         big.to_str().unwrap(),
         "--max-bytes",
-        "1024",
+        "2048",
     ]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-L102"), "stderr was: {err}");

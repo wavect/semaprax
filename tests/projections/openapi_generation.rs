@@ -320,7 +320,7 @@ fn status_schema_tracks_contracts_and_signature() {
 #[test]
 fn budget_exhaustion_fails_closed_on_generation() {
     let source_path = write_source("budget.spx", KAT_SINGLE_SOURCE);
-    let options = OpenApiOptions::new(1024).unwrap();
+    let options = OpenApiOptions::new(2048).unwrap();
     let errors = openapi::generate(&source_path, &["api.echo".to_owned()], &options).unwrap_err();
     assert_eq!(errors[0].code, "SPX-OA105");
     assert!(

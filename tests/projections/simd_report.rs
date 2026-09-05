@@ -717,7 +717,7 @@ fn cli_rejects_bad_invocations() {
     let big = write_temp(
         "module app.big;\n\n@id(\"big.one\")\nfn one(value: i64) -> i64\n    requires value >= 0\n{ value + 1 }\n\n@id(\"app.main\")\nfn main() -> i64 { one(41) }\n",
     );
-    let (code, _, err) = cli(&["simd-report", big.to_str().unwrap(), "--max-bytes", "1024"]);
+    let (code, _, err) = cli(&["simd-report", big.to_str().unwrap(), "--max-bytes", "2048"]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-V102"), "stderr was: {err}");
     cleanup(&big);

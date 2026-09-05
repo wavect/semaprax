@@ -637,7 +637,7 @@ fn cli_rejects_bad_invocations() {
         "plugin-manifest",
         big.to_str().unwrap(),
         "--max-bytes",
-        "1024",
+        "2048",
     ]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-Q103"), "stderr was: {err}");

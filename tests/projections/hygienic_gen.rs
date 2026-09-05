@@ -587,13 +587,13 @@ fn envelope_floor_fails_closed_with_spx_y105() {
     let path = write_source("floor.spx", GOLDEN_SOURCE);
     let options = HygienicGenOptions::new(
         &[Template::DefaultConstructor, Template::FieldAccessors],
-        1200,
+        2048,
     )
     .unwrap();
     let errors = hygienic::generate(&path, &options).unwrap_err();
     assert_eq!(errors.len(), 1);
     assert_eq!(errors[0].code, "SPX-Y105");
-    assert!(errors[0].message.contains("1200"));
+    assert!(errors[0].message.contains("2048"));
 }
 
 #[test]

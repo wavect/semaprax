@@ -40,7 +40,8 @@ fn main() -> i64 { Point { x: 2 }.x }
 "#;
 
 fn write_temp(source: &str) -> PathBuf {
-    let path = std::env::temp_dir().join(format!(
+    let temp_dir = std::env::temp_dir().canonicalize().unwrap();
+    let path = temp_dir.join(format!(
         "semaprax-protocol-projection-{}-{}.spx",
         std::process::id(),
         COUNTER.fetch_add(1, Ordering::SeqCst)
@@ -184,14 +185,20 @@ fn canonical_formatting_round_trips_protocols() {
 }
 
 #[test]
-fn malformed_fmt_options_reject_before_reading_or_rewriting_source() {
+fn fmt_check_is_read_only_and_malformed_options_reject_before_reading() {
     let path = write_temp(FIXTURE_SOURCE);
     let path_text = path.to_str().unwrap();
+    let before = std::fs::read(&path).unwrap();
+    let (status, stdout, stderr) = cli(&["fmt", "--check", path_text]);
+    assert_eq!(status, 1, "{stderr}");
+    assert!(stdout.is_empty());
+    assert!(stderr.contains("is not canonically formatted"), "{stderr}");
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+
     for arguments in [
         vec!["fmt", path_text, "extra"],
         vec!["fmt", path_text, "--unknown"],
         vec!["fmt", path_text, "--check", "--check"],
-        vec!["fmt", "--check", path_text],
     ] {
         let before = std::fs::read(&path).unwrap();
         let (status, stdout, stderr) = cli(&arguments);

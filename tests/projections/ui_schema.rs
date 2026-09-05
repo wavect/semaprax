@@ -464,7 +464,7 @@ fn cli_rejects_bad_invocations() {
     assert_eq!(code, 2);
     // Byte-budget exhaustion is fail-closed; the smallest legal budget is
     // below any real envelope size.
-    let (code, _, err) = cli(&["ui-schema", MEANING_PATH, "--max-bytes", "1024"]);
+    let (code, _, err) = cli(&["ui-schema", MEANING_PATH, "--max-bytes", "2048"]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-U102"));
     // Unverifiable sources fail closed as ordinary diagnostics.

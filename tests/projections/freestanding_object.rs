@@ -77,7 +77,7 @@ fn golden_envelope_digest_is_pinned() {
         .expect("envelope");
     assert_eq!(
         sha256_hex(envelope.as_bytes()),
-        "sha256:6f398268ddad277b173c51e3f2122abbaca6e66d686e8e9b839eb4ebd4101655"
+        "sha256:d51d7cc001a8e47e6dc4aeadacd39588a616b3fe72464052fa5d83d0ea8a4e18"
     );
     assert!(envelope.contains("\"schema\":\"semaprax.freestanding.v1\""));
     assert!(envelope.contains("\"no_runtime\":true"));
@@ -98,7 +98,7 @@ fn golden_translation_unit_digest_is_pinned_and_path_independent() {
     assert_eq!(from_examples, from_temp);
     assert_eq!(
         sha256_hex(from_examples.as_bytes()),
-        "sha256:5b07f0923b05c20a7d79395a3be37824fa10ca5f8451e4d6a77978744c73a9f6"
+        "sha256:7dc78c346536a1d8173a76839a73971bafd6ce1b3c515d5c8fbcb765f39a9cc9"
     );
 }
 
@@ -219,12 +219,12 @@ fn re_signed_payloads_are_still_caught_by_assertion_replay() {
 
 #[test]
 fn budget_exhaustion_fails_closed_with_exit_one() {
-    let args = ["freestanding-object", MEANING_PATH, "--max-bytes", "1024"];
+    let args = ["freestanding-object", MEANING_PATH, "--max-bytes", "2048"];
     let (code, out, err) = cli(&args);
     assert_eq!(code, 1);
     assert!(out.is_empty());
     assert!(err.contains("SPX-A103"), "{err}");
-    let tiny = FreestandingObjectOptions::new(1024).expect("in bounds");
+    let tiny = FreestandingObjectOptions::new(2048).expect("in bounds");
     let errors = freestanding_object::generate(Path::new(MEANING_PATH), &tiny)
         .expect_err("must fail closed");
     assert!(errors.iter().any(|item| item.code == "SPX-A103"));
@@ -368,7 +368,7 @@ const HOST_REFERENCES: &[&str] = &[
 ];
 
 /// The emitted unit differs from the hosted native lane exactly by the
-/// documented host-scaffolding removals plus the two documented
+/// documented host-scaffolding removals plus the three documented
 /// substitutions; it contains zero host/main references while the hosted
 /// lane contains every one of them, keeps the failstop substitution, and
 /// promotes exactly two linkage sites per admitted function.
@@ -401,13 +401,36 @@ fn emitted_unit_differs_from_hosted_lane_only_by_documented_delta() {
         "hosted lane must keep every module function internal"
     );
     // Every non-blank unit line either exists verbatim in the hosted lane or
-    // is part of the two documented substitutions.
+    // is part of the three documented substitutions. The contract-argument
+    // replacement is enumerated exactly so emitter drift cannot broaden the
+    // accepted delta silently.
+    const CONTRACT_ARGUMENT_SUBSTITUTION: &[&str] = &[
+        "size_t arguments_length = 0;",
+        "while (arguments[arguments_length] != '\\0' &&",
+        "arguments_length + 1 < sizeof detail.failure_arguments) {",
+        "detail.failure_arguments[arguments_length] = arguments[arguments_length];",
+        "arguments_length += 1;",
+        "if (arguments[arguments_length] != '\\0') {",
+        "spx_runtime_invariant_failure(\"contract argument detail overflow\");",
+        "detail.failure_arguments[arguments_length] = '\\0';",
+    ];
     for line in unit.lines() {
-        let documented = line.trim()
+        let trimmed = line.trim();
+        let contract_call_elision = trimmed
+            .strip_prefix("spx_status = spx_rt_contract(")
+            .and_then(|arguments| arguments.strip_suffix(");"))
+            .is_some_and(|arguments| {
+                hosted.contains(&format!(
+                    "spx_status = spx_rt_contract_with_arguments({arguments}, spx_contract_arguments);"
+                ))
+            });
+        let documented = trimmed
             == "/* SEMAPRAX freestanding profile: hosted diagnostics are excluded. */"
-            || line.trim() == "(void)message;"
-            || line.trim() == "for (;;) {"
-            || line.trim() == "}"
+            || trimmed == "(void)message;"
+            || trimmed == "for (;;) {"
+            || trimmed == "}"
+            || CONTRACT_ARGUMENT_SUBSTITUTION.contains(&trimmed)
+            || contract_call_elision
             || line.starts_with("spx_status_token spx_decl_");
         assert!(
             documented || hosted.contains(line),

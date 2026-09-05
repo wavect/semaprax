@@ -7,9 +7,10 @@ use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, ProjectCandidate, ProjectRevision, ProjectSemanticImage,
     SemanticChange, SemanticTransaction, SemanticTransactionRenameDisplayName,
-    MAX_SEMANTIC_TRANSACTION_BYTES, SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA,
-    SEMANTIC_TRANSACTION_IMPACT_SCHEMA, SEMANTIC_TRANSACTION_RESULT_SCHEMA,
-    SEMANTIC_TRANSACTION_REVIEW_SCHEMA, SEMANTIC_TRANSACTION_SCHEMA,
+    SemanticTransactionReplaceBlock, MAX_SEMANTIC_TRANSACTION_BYTES,
+    SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
+    SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_REVIEW_SCHEMA,
+    SEMANTIC_TRANSACTION_SCHEMA,
 };
 use serde_json::{json, Value};
 
@@ -247,4 +248,103 @@ fn comment_bearing_source_is_outside_the_bounded_v1_rewrite_domain() {
     let revision = fixture.revision();
     let transaction = transaction(&revision);
     assert_code(transaction.validate(revision), "SPX-G525");
+}
+
+fn replacement_block() -> Value {
+    json!({
+        "kind":"binary", "op":"-",
+        "left":{"kind":"place","name":"left"},
+        "right":{"kind":"place","name":"right"}
+    })
+}
+
+#[test]
+fn replace_block_preserves_source_outside_the_selected_span_and_exact_replays() {
+    let fixture = Fixture::new();
+    let disk_before = inventory(&fixture.0);
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let transaction = SemanticTransaction::replace_block(
+        workspace.workspace_revision(),
+        SemanticTransactionReplaceBlock::new(
+            "calculator.add",
+            "{\n    left + right\n}",
+            replacement_block(),
+        ),
+    )
+    .unwrap();
+    assert_eq!(
+        SemanticTransaction::from_json(transaction.to_json().as_bytes())
+            .unwrap()
+            .to_json(),
+        transaction.to_json()
+    );
+
+    let artifacts = transaction.validate(Arc::clone(&revision)).unwrap();
+    let result: Value = serde_json::from_str(artifacts.result()).unwrap();
+    assert_eq!(result["operation_results"][0]["kind"], "replace_block");
+    assert_eq!(
+        result["operation_results"][0]["new_block"],
+        "{\n    left - right\n}"
+    );
+    let review: Value = serde_json::from_str(artifacts.review()).unwrap();
+    assert_eq!(
+        review["review"]["source_outside_selected_block_preserved"],
+        true
+    );
+
+    let direct_open =
+        ProjectCandidate::open(Arc::clone(&revision), revision.project_revision()).unwrap();
+    let direct_change = SemanticChange::new(
+        revision.project_revision(),
+        &json!({
+            "kind":"replace_function_body",
+            "target":"calculator.add",
+            "body":replacement_block(),
+        }),
+    )
+    .unwrap();
+    let direct = direct_open
+        .apply(direct_open.candidate_digest(), &direct_change)
+        .unwrap();
+    assert_eq!(artifacts.candidate().to_json(), direct.to_json());
+    assert_eq!(
+        SemanticTransaction::replay(
+            Arc::clone(&revision),
+            transaction.to_json().as_bytes(),
+            artifacts.evidence().as_bytes(),
+        )
+        .unwrap()
+        .result(),
+        artifacts.result()
+    );
+    assert_eq!(inventory(&fixture.0), disk_before);
+}
+
+#[test]
+fn replace_block_rejects_stale_old_source_and_malformed_replacements() {
+    let fixture = Fixture::new();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let stale = SemanticTransaction::replace_block(
+        workspace.workspace_revision(),
+        SemanticTransactionReplaceBlock::new(
+            "calculator.add",
+            "{\n    left - right\n}",
+            replacement_block(),
+        ),
+    )
+    .unwrap();
+    assert_code(stale.validate(Arc::clone(&revision)), "SPX-G527");
+    assert_code(
+        SemanticTransaction::replace_block(
+            workspace.workspace_revision(),
+            SemanticTransactionReplaceBlock::new(
+                "calculator.add",
+                "{\n    left + right\n}",
+                json!({"value":0}),
+            ),
+        ),
+        "SPX-G525",
+    );
 }

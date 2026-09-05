@@ -69,7 +69,9 @@ mod tests {
             parse(&strings(&["fixtures/semaprax.toml"]))
                 .unwrap()
                 .manifest,
-            PathBuf::from("fixtures/semaprax.toml")
+            std::env::current_dir()
+                .unwrap()
+                .join("fixtures/semaprax.toml")
         );
         for malformed in [
             &[][..],

@@ -17,10 +17,13 @@ file without applying it:
 semaprax review <file> <patch.spatch>
 ```
 
-The public Rust surface is `review::preview`. The command has fixed arity and
-no flags, target selection, output selection, Context query, approval action,
-or verification mode. Extra arguments reject with exit status 2. Successful
-CLI output is the exact API JSON plus one LF.
+The public Rust surface is `review::preview`. This single-file form has fixed
+arity and no flags, target selection, output selection, Context query, approval
+action, or verification mode. Extra arguments reject with exit status 2.
+Successful CLI output is the exact API JSON plus one LF. The additive
+authenticated-Project overload over a Universal Semantic Transaction is owned
+by [Unified CLI v1](UNIFIED-CLI-V1.md); it does not change this report schema or
+the single-file form's bytes.
 
 Patch v1/v2 review embeds one complete, nontruncated Semantic Impact v1 report
 built from the same owned Patch preflight with fixed options `depth = 1024`,
@@ -227,6 +230,10 @@ Review adds no Context contract, target execution, proof-carrying patch,
 signature, verifier, authenticated provenance, general v3 Impact, new patch or
 repair operation, Graph/CleanupPlan schema widening, backend/runtime semantic
 change, repository index, multi-file transaction, or commit authority.
+
+Those statements describe the single-file report. The Project overload's
+explicit `--evidence` selects existing Universal Semantic Transaction evidence;
+it adds no field, proof artifact, or authority to this schema.
 
 The separate [Semantic Patch Evidence v1](SEMANTIC-PATCH-EVIDENCE-V1.md)
 capsule domain-digest-binds an independently rebuilt Review and carries the

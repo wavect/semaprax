@@ -44,6 +44,7 @@ mod scalar_wit_compare;
 mod semantic;
 mod semantic_query;
 mod semantic_service;
+mod semantic_service_indexes;
 mod semantic_transaction;
 mod semantic_transaction_composition;
 mod source_hint;
@@ -364,8 +365,15 @@ pub use semantic_service::{
     MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES, SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA,
     SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA,
 };
+pub use semantic_service_indexes::{
+    SemanticServiceIndexItem, SemanticServiceIndexItemKind, SemanticServiceIndexOperation,
+    SemanticServiceIndexQuery, SemanticServiceIndexResult, MAX_SEMANTIC_SERVICE_INDEX_ITEMS,
+    MAX_SEMANTIC_SERVICE_INDEX_QUERY_BYTES, MAX_SEMANTIC_SERVICE_INDEX_RESULT_BYTES,
+    SEMANTIC_SERVICE_INDEX_QUERY_SCHEMA, SEMANTIC_SERVICE_INDEX_RESULT_SCHEMA,
+};
 pub use semantic_transaction::{
-    SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionRenameDisplayName,
+    SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionOperation,
+    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceBlock,
     MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES, MAX_SEMANTIC_TRANSACTION_BYTES,
     SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
     SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_REVIEW_SCHEMA,

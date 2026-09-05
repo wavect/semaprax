@@ -7,8 +7,8 @@ use std::sync::Arc;
 
 use semaprax::project::{
     with_authenticated_project, ProjectFrontendSource, ProjectManifest, ProjectRevision,
-    SemanticQuery, SemanticTransaction, SemanticTransactionRenameDisplayName,
-    SemanticWorkspaceService,
+    SemanticQuery, SemanticServiceIndexQuery, SemanticTransaction,
+    SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
 };
 use semaprax::semantic_service_transport::{
     SemanticWorkspaceStdioSession, MAX_SEMANTIC_SERVICE_REQUEST_BYTES,
@@ -186,6 +186,7 @@ fn one_session_retains_one_generation_and_delegates_exact_query_and_transaction_
             "workspace/open",
             "workspace/status",
             "workspace/query",
+            "workspace/index-query",
             "workspace/validate-transaction",
             "workspace/refresh",
             "shutdown"
@@ -224,6 +225,29 @@ fn one_session_retains_one_generation_and_delegates_exact_query_and_transaction_
     assert_eq!(
         queried["payload"]["result_digest"],
         direct_query.result_digest()
+    );
+
+    let index_query =
+        SemanticServiceIndexQuery::tests_covering_declaration(&workspace, "calculator.add")
+            .unwrap();
+    let direct_index = direct
+        .index_query(index_query.to_json().as_bytes())
+        .unwrap();
+    let indexed = result(&call(
+        &mut session,
+        json!(41),
+        "workspace/index-query",
+        json!({"query":index_query.to_json()}),
+    ))
+    .clone();
+    assert_eq!(indexed["workspace_revision"], workspace);
+    assert_eq!(
+        indexed["payload"]["value"],
+        serde_json::from_str::<Value>(direct_index.to_json()).unwrap()
+    );
+    assert_eq!(
+        indexed["payload"]["result_digest"],
+        direct_index.result_digest()
     );
 
     let transaction = transaction(&workspace);

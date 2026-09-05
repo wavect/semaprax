@@ -542,12 +542,15 @@ v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md).
 
 `src/project/semantic_transaction.rs` owns the bounded authority-free Universal
 Semantic Transaction v1 kernel. It binds an exact canonical workspace revision
-and typed old-name precondition, delegates its one admitted function display
-rename to the immutable `ProjectCandidate` machinery, and derives canonical
-impact, review, result, and exact-replay evidence. Its comment-free canonical
-source guard prevents the reused candidate formatter from introducing trivia
-changes. It has no filesystem or publication authority. See [Universal
-Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md).
+and admits a closed one-operation algebra containing a typed display rename and
+a typed whole-function `ReplaceBlock`. Both delegate to immutable
+`ProjectCandidate` machinery and derive canonical impact, review, result, and
+exact-replay evidence. `ReplaceBlock` authenticates the old body span, then
+requires exact prefix, suffix, and unrelated-source equality after the complete
+candidate rebuild. The shared comment-free canonical source guard prevents the
+reused candidate formatter from introducing other trivia changes. It has no
+filesystem or publication authority. See [Universal Semantic Transaction
+v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md).
 
 `src/project/semantic_transaction_composition.rs` owns Universal Semantic
 Transaction Composition v1. It derives an exact four-component/nine-node
@@ -595,9 +598,10 @@ MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
 v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
 
 `src/semantic_service_transport.rs` owns the bounded JSON-RPC-lines adapter
-over one retained semantic service. It admits a closed seven-method lifecycle,
-wraps exact query, transaction, work, and refresh artifacts, and accepts only
-caller-owned canonical manifest/source bytes for refresh. `src/cli/service.rs`
+over one retained semantic service. It admits a closed eight-method lifecycle,
+wraps exact universal query, retained-index query, transaction, work, and
+refresh artifacts, and accepts only caller-owned canonical manifest/source
+bytes for refresh. `src/cli/service.rs`
 authenticates one explicitly selected Project at startup and serves that
 session on standard input/output. The transport is single-process and
 single-client; it has no path selection after startup, socket, MCP/LSP,

@@ -1,8 +1,8 @@
 //! Bounded, authority-free Universal Semantic Transaction v1 kernel.
 //!
-//! V1 admits exactly one display-name rename over one immutable canonical
-//! semantic workspace revision. Validation derives a Project candidate and
-//! deterministic evidence; it never writes source or grants publication authority.
+//! V1 admits exactly one typed operation over one immutable canonical semantic
+//! workspace revision. Validation derives a Project candidate and deterministic
+//! evidence; it never writes source or grants publication authority.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -42,6 +42,73 @@ pub struct SemanticTransactionRenameDisplayName {
     new_value: String,
 }
 
+/// Replace one complete function body block while preserving all source bytes
+/// outside its authenticated span. The replacement uses the existing closed
+/// Project Candidate expression grammar and is admitted only after a complete
+/// Project rebuild.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SemanticTransactionReplaceBlock {
+    target: String,
+    expected_old_block: String,
+    replacement: Value,
+}
+
+impl SemanticTransactionReplaceBlock {
+    pub fn new(
+        target: impl Into<String>,
+        expected_old_block: impl Into<String>,
+        replacement: Value,
+    ) -> Self {
+        Self {
+            target: target.into(),
+            expected_old_block: expected_old_block.into(),
+            replacement,
+        }
+    }
+
+    pub fn target(&self) -> &str {
+        &self.target
+    }
+    pub fn expected_old_block(&self) -> &str {
+        &self.expected_old_block
+    }
+    pub fn replacement(&self) -> &Value {
+        &self.replacement
+    }
+
+    fn value(&self) -> Value {
+        json!({
+            "expected_old_block": self.expected_old_block,
+            "kind": "replace_block",
+            "replacement": self.replacement,
+            "target": self.target,
+        })
+    }
+}
+
+/// Closed operation algebra for the one-operation v1 envelope.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SemanticTransactionOperation {
+    RenameDisplayName(SemanticTransactionRenameDisplayName),
+    ReplaceBlock(SemanticTransactionReplaceBlock),
+}
+
+impl SemanticTransactionOperation {
+    pub fn target(&self) -> &str {
+        match self {
+            Self::RenameDisplayName(operation) => operation.target(),
+            Self::ReplaceBlock(operation) => operation.target(),
+        }
+    }
+
+    fn value(&self) -> Value {
+        match self {
+            Self::RenameDisplayName(operation) => operation.value(),
+            Self::ReplaceBlock(operation) => operation.value(),
+        }
+    }
+}
+
 impl SemanticTransactionRenameDisplayName {
     pub fn new(
         target: impl Into<String>,
@@ -79,7 +146,7 @@ impl SemanticTransactionRenameDisplayName {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SemanticTransaction {
     expected_workspace_revision: String,
-    operation: SemanticTransactionRenameDisplayName,
+    operation: SemanticTransactionOperation,
     json: String,
     digest: String,
 }
@@ -89,14 +156,57 @@ impl SemanticTransaction {
         expected_workspace_revision: &str,
         operation: SemanticTransactionRenameDisplayName,
     ) -> Result<Self, Vec<Diagnostic>> {
+        Self::new(
+            expected_workspace_revision,
+            SemanticTransactionOperation::RenameDisplayName(operation),
+        )
+    }
+
+    pub fn replace_block(
+        expected_workspace_revision: &str,
+        operation: SemanticTransactionReplaceBlock,
+    ) -> Result<Self, Vec<Diagnostic>> {
+        Self::new(
+            expected_workspace_revision,
+            SemanticTransactionOperation::ReplaceBlock(operation),
+        )
+    }
+
+    fn new(
+        expected_workspace_revision: &str,
+        operation: SemanticTransactionOperation,
+    ) -> Result<Self, Vec<Diagnostic>> {
         validate_digest(expected_workspace_revision)?;
-        validate_text(&operation.target, 4096, "transaction target is not bounded")?;
         validate_text(
-            &operation.expected_old_value,
-            128,
-            "expected display name is not bounded",
+            operation.target(),
+            4096,
+            "transaction target is not bounded",
         )?;
-        validate_text(&operation.new_value, 128, "new display name is not bounded")?;
+        if let SemanticTransactionOperation::RenameDisplayName(operation) = &operation {
+            validate_text(
+                &operation.expected_old_value,
+                128,
+                "expected display name is not bounded",
+            )?;
+            validate_text(&operation.new_value, 128, "new display name is not bounded")?;
+        }
+        if let SemanticTransactionOperation::ReplaceBlock(operation) = &operation {
+            validate_text(
+                &operation.expected_old_block,
+                MAX_SEMANTIC_TRANSACTION_BYTES / 2,
+                "expected function block is not bounded",
+            )?;
+            if operation
+                .replacement
+                .get("kind")
+                .and_then(Value::as_str)
+                .is_none()
+            {
+                return Err(invalid(
+                    "ReplaceBlock v1 requires a typed body-expression replacement",
+                ));
+            }
+        }
         let json = render(
             json!({
                 "expected_workspace_revision": expected_workspace_revision,
@@ -145,32 +255,57 @@ impl SemanticTransaction {
         let operation = operations[0]
             .as_object()
             .ok_or_else(|| invalid("semantic transaction operation is not an object"))?;
-        let operation_keys = ["expected_old_value", "kind", "new_value", "target"];
-        if operation.len() != operation_keys.len()
-            || operation_keys
-                .iter()
-                .any(|key| !operation.contains_key(*key))
-            || operations[0]["kind"] != "rename_display_name"
-        {
-            return Err(invalid(
-                "semantic transaction operation is not RenameDisplayName v1",
-            ));
-        }
         let text = |key: &str| {
             operations[0][key]
                 .as_str()
                 .ok_or_else(|| invalid("semantic transaction operation text is invalid"))
         };
-        let transaction = Self::rename_display_name(
-            value["expected_workspace_revision"]
-                .as_str()
-                .ok_or_else(|| invalid("semantic transaction expected revision is invalid"))?,
-            SemanticTransactionRenameDisplayName::new(
-                text("target")?,
-                text("expected_old_value")?,
-                text("new_value")?,
-            ),
-        )?;
+        let revision = value["expected_workspace_revision"]
+            .as_str()
+            .ok_or_else(|| invalid("semantic transaction expected revision is invalid"))?;
+        let transaction = match operations[0]["kind"].as_str() {
+            Some("rename_display_name") => {
+                let keys = ["expected_old_value", "kind", "new_value", "target"];
+                if operation.len() != keys.len()
+                    || keys.iter().any(|key| !operation.contains_key(*key))
+                {
+                    return Err(invalid(
+                        "semantic transaction RenameDisplayName field set is invalid",
+                    ));
+                }
+                Self::rename_display_name(
+                    revision,
+                    SemanticTransactionRenameDisplayName::new(
+                        text("target")?,
+                        text("expected_old_value")?,
+                        text("new_value")?,
+                    ),
+                )?
+            }
+            Some("replace_block") => {
+                let keys = ["expected_old_block", "kind", "replacement", "target"];
+                if operation.len() != keys.len()
+                    || keys.iter().any(|key| !operation.contains_key(*key))
+                {
+                    return Err(invalid(
+                        "semantic transaction ReplaceBlock field set is invalid",
+                    ));
+                }
+                Self::replace_block(
+                    revision,
+                    SemanticTransactionReplaceBlock::new(
+                        text("target")?,
+                        text("expected_old_block")?,
+                        operations[0]["replacement"].clone(),
+                    ),
+                )?
+            }
+            _ => {
+                return Err(invalid(
+                    "semantic transaction operation kind is unsupported",
+                ))
+            }
+        };
         if transaction.json.as_bytes() != bytes {
             return Err(invalid(
                 "semantic transaction is not the exact canonical v1 envelope",
@@ -191,8 +326,15 @@ impl SemanticTransaction {
     pub fn expected_workspace_revision(&self) -> &str {
         &self.expected_workspace_revision
     }
-    pub fn operation(&self) -> &SemanticTransactionRenameDisplayName {
+    pub fn operation(&self) -> &SemanticTransactionOperation {
         &self.operation
+    }
+
+    pub(super) fn rename_operation(&self) -> Option<&SemanticTransactionRenameDisplayName> {
+        match &self.operation {
+            SemanticTransactionOperation::RenameDisplayName(operation) => Some(operation),
+            SemanticTransactionOperation::ReplaceBlock(_) => None,
+        }
     }
 
     /// Validate from immutable compiler state and mint deterministic evidence.
@@ -207,40 +349,107 @@ impl SemanticTransaction {
             ));
         }
         require_canonical_comment_free_sources(&base)?;
-        require_function_preconditions(&base, &self.operation)?;
-
         let initial = ProjectCandidate::open(Arc::clone(&base), base.project_revision())?;
-        let change = SemanticChange::new(
-            base.project_revision(),
-            &json!({
-                "kind": "rename_declaration",
-                "name": self.operation.new_value,
-                "target": self.operation.target,
-            }),
-        )?;
+        let change = match &self.operation {
+            SemanticTransactionOperation::RenameDisplayName(operation) => {
+                require_rename_preconditions(&base, operation)?;
+                SemanticChange::new(
+                    base.project_revision(),
+                    &json!({
+                        "kind": "rename_declaration",
+                        "name": operation.new_value,
+                        "target": operation.target,
+                    }),
+                )?
+            }
+            SemanticTransactionOperation::ReplaceBlock(operation) => {
+                require_replace_block_preconditions(&base, operation)?;
+                SemanticChange::new(
+                    base.project_revision(),
+                    &json!({
+                        "kind": "replace_function_body",
+                        "target": operation.target,
+                        "body": operation.replacement,
+                    }),
+                )?
+            }
+        };
         let candidate = initial.apply(initial.candidate_digest(), &change)?;
         require_canonical_comment_free_sources(candidate.revision())?;
         let candidate_workspace = candidate.revision().canonical_workspace_revision()?;
         let source_review_text = candidate.source_review(candidate.candidate_digest())?;
         let source_review: Value = serde_json::from_str(&source_review_text)
             .map_err(|_| invalid("candidate source review is not valid JSON"))?;
-        let before = base
-            .semantic
-            .image_symbol(&self.operation.target)
-            .ok_or_else(|| stale("transaction target disappeared from the base revision"))?;
-        let after = candidate
-            .revision()
-            .semantic
-            .image_symbol(&self.operation.target)
-            .ok_or_else(|| stale("transaction target disappeared from the candidate revision"))?;
-        if before.get("name").and_then(Value::as_str)
-            != Some(self.operation.expected_old_value.as_str())
-            || after.get("name").and_then(Value::as_str) != Some(self.operation.new_value.as_str())
-        {
-            return Err(stale(
-                "RenameDisplayName result does not match its exact name preconditions",
-            ));
-        }
+        let (impact_key, impact_detail, review_detail, operation_result) = match &self.operation {
+            SemanticTransactionOperation::RenameDisplayName(operation) => {
+                let before = base
+                    .semantic
+                    .image_symbol(&operation.target)
+                    .ok_or_else(|| {
+                        stale("transaction target disappeared from the base revision")
+                    })?;
+                let after = candidate
+                    .revision()
+                    .semantic
+                    .image_symbol(&operation.target)
+                    .ok_or_else(|| {
+                        stale("transaction target disappeared from the candidate revision")
+                    })?;
+                if before.get("name").and_then(Value::as_str)
+                    != Some(operation.expected_old_value.as_str())
+                    || after.get("name").and_then(Value::as_str)
+                        != Some(operation.new_value.as_str())
+                {
+                    return Err(stale(
+                        "RenameDisplayName result does not match its exact name preconditions",
+                    ));
+                }
+                (
+                    "display_name",
+                    json!({"before": before["name"], "after": after["name"]}),
+                    json!({
+                        "candidate_rebuilt_from_canonical_source": true,
+                        "exact_old_value_precondition": true,
+                        "stable_identity_preserved": true,
+                        "trivia_preservation": "comment_free_canonical_base_and_candidate",
+                    }),
+                    json!({
+                        "kind": "rename_display_name", "outcome": "validated",
+                        "target": operation.target, "old_value": operation.expected_old_value,
+                        "new_value": operation.new_value,
+                    }),
+                )
+            }
+            SemanticTransactionOperation::ReplaceBlock(operation) => {
+                let replacement = require_source_preserving_block_replacement(
+                    &base,
+                    candidate.revision(),
+                    operation,
+                )?;
+                (
+                    "block",
+                    json!({
+                        "before": operation.expected_old_block,
+                        "after": replacement.new_block,
+                        "source_path": replacement.path,
+                        "source_outside_block_preserved": true,
+                    }),
+                    json!({
+                        "candidate_rebuilt_from_canonical_source": true,
+                        "exact_old_block_precondition": true,
+                        "source_outside_selected_block_preserved": true,
+                        "stable_identity_preserved": true,
+                        "trivia_preservation": "exact_outside_authenticated_block_span",
+                    }),
+                    json!({
+                        "kind": "replace_block", "outcome": "validated",
+                        "target": operation.target,
+                        "old_block": operation.expected_old_block,
+                        "new_block": replacement.new_block,
+                    }),
+                )
+            }
+        };
         if base_workspace.manifest_digest() != candidate_workspace.manifest_digest()
             || base_workspace.dependency_lock_digest()
                 != candidate_workspace.dependency_lock_digest()
@@ -248,34 +457,30 @@ impl SemanticTransaction {
             || base_workspace.target_profiles() != candidate_workspace.target_profiles()
         {
             return Err(stale(
-                "RenameDisplayName changed manifest, dependency, authority, or target facts",
+                "semantic transaction changed manifest, dependency, authority, or target facts",
             ));
         }
 
-        let impact = render(
-            json!({
-                "base_workspace_revision": base_workspace.workspace_revision(),
-                "candidate_workspace_revision": candidate_workspace.workspace_revision(),
-                "classification": "descriptive_compiler_projection",
-                "display_name": {"before": before["name"], "after": after["name"]},
-                "identity": {"preserved": true, "target": self.operation.target},
-                "nonclaims": ["not_behavioral_equivalence", "not_runtime_execution", "no_authority"],
-                "schema": SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
-                "transaction_digest": self.digest,
-            }),
-            MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES,
-        )?;
+        let mut impact_value = json!({
+            "base_workspace_revision": base_workspace.workspace_revision(),
+            "candidate_workspace_revision": candidate_workspace.workspace_revision(),
+            "classification": "descriptive_compiler_projection",
+            "identity": {"preserved": true, "target": self.operation.target()},
+            "nonclaims": ["not_behavioral_equivalence", "not_runtime_execution", "no_authority"],
+            "schema": SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
+            "transaction_digest": self.digest,
+        });
+        impact_value
+            .as_object_mut()
+            .expect("impact projection is an object")
+            .insert(impact_key.to_owned(), impact_detail);
+        let impact = render(impact_value, MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES)?;
         let impact_digest = digest(IMPACT_DOMAIN, impact.as_bytes());
         let review = render(
             json!({
                 "authority": {"granted": false, "requested": "none"},
                 "impact_digest": impact_digest,
-                "review": {
-                    "candidate_rebuilt_from_canonical_source": true,
-                    "exact_old_value_precondition": true,
-                    "stable_identity_preserved": true,
-                    "trivia_preservation": "comment_free_canonical_base_and_candidate",
-                },
+                "review": review_detail,
                 "schema": SEMANTIC_TRANSACTION_REVIEW_SCHEMA,
                 "transaction_digest": self.digest,
             }),
@@ -297,11 +502,7 @@ impl SemanticTransaction {
                     "revision": candidate.candidate_digest(),
                     "workspace_revision": candidate_workspace.workspace_revision(),
                 },
-                "operation_results": [{
-                    "kind": "rename_display_name", "outcome": "validated",
-                    "target": self.operation.target, "old_value": self.operation.expected_old_value,
-                    "new_value": self.operation.new_value,
-                }],
+                "operation_results": [operation_result],
                 "schema": SEMANTIC_TRANSACTION_RESULT_SCHEMA,
                 "source_review": source_review,
                 "transaction_digest": self.digest,
@@ -395,7 +596,7 @@ impl SemanticTransactionArtifacts {
     }
 }
 
-fn require_function_preconditions(
+fn require_rename_preconditions(
     revision: &ProjectRevision,
     operation: &SemanticTransactionRenameDisplayName,
 ) -> Result<(), Vec<Diagnostic>> {
@@ -421,6 +622,132 @@ fn require_function_preconditions(
         ));
     }
     Ok(())
+}
+
+struct BlockSelection {
+    path: String,
+    start: usize,
+    end: usize,
+    block: String,
+    explicit_identity: bool,
+    monomorphic: bool,
+    non_main: bool,
+}
+
+struct BlockReplacement {
+    path: String,
+    new_block: String,
+}
+
+fn select_block(
+    revision: &ProjectRevision,
+    target: &str,
+) -> Result<BlockSelection, Vec<Diagnostic>> {
+    let mut selected = None;
+    for source in revision.sources() {
+        let program =
+            crate::parse(source.source(), Path::new(source.path())).map_err(|error| vec![error])?;
+        for function in &program.functions {
+            if function.stable_id != target {
+                continue;
+            }
+            if selected.is_some() {
+                return Err(invalid(
+                    "ReplaceBlock v1 requires one unambiguous function target",
+                ));
+            }
+            let start = function.body.span.start;
+            let end = function.body.span.end;
+            let block = source
+                .source()
+                .get(start..end)
+                .ok_or_else(|| stale("ReplaceBlock function block span is unavailable"))?;
+            selected = Some(BlockSelection {
+                path: source.path().to_owned(),
+                start,
+                end,
+                block: block.to_owned(),
+                explicit_identity: function.explicit_id,
+                monomorphic: function.type_parameters.is_empty(),
+                non_main: function.name != "main",
+            });
+        }
+    }
+    selected.ok_or_else(|| invalid("ReplaceBlock v1 requires an explicit function target"))
+}
+
+fn require_replace_block_preconditions(
+    revision: &ProjectRevision,
+    operation: &SemanticTransactionReplaceBlock,
+) -> Result<(), Vec<Diagnostic>> {
+    let selected = select_block(revision, &operation.target)?;
+    if !selected.explicit_identity || !selected.monomorphic || !selected.non_main {
+        return Err(invalid(
+            "ReplaceBlock v1 requires an explicit monomorphic non-main function",
+        ));
+    }
+    if selected.block != operation.expected_old_block {
+        return Err(stale(
+            "ReplaceBlock expected old block does not match the exact base source",
+        ));
+    }
+    Ok(())
+}
+
+fn require_source_preserving_block_replacement(
+    base: &ProjectRevision,
+    candidate: &ProjectRevision,
+    operation: &SemanticTransactionReplaceBlock,
+) -> Result<BlockReplacement, Vec<Diagnostic>> {
+    let before = select_block(base, &operation.target)?;
+    let after = select_block(candidate, &operation.target)?;
+    if before.path != after.path {
+        return Err(stale("ReplaceBlock changed the source owner of its target"));
+    }
+    if before.block != operation.expected_old_block || before.block == after.block {
+        return Err(stale(
+            "ReplaceBlock result does not match its exact block preconditions",
+        ));
+    }
+    if base.sources().len() != candidate.sources().len() {
+        return Err(stale("ReplaceBlock changed the source inventory"));
+    }
+    for (base_source, candidate_source) in base.sources().iter().zip(candidate.sources()) {
+        if base_source.path() != candidate_source.path() {
+            return Err(stale("ReplaceBlock changed the source inventory"));
+        }
+        if base_source.path() != before.path {
+            if base_source.source() != candidate_source.source() {
+                return Err(stale("ReplaceBlock changed an unrelated source"));
+            }
+            continue;
+        }
+        let base_prefix = base_source
+            .source()
+            .get(..before.start)
+            .ok_or_else(|| stale("ReplaceBlock base prefix is unavailable"))?;
+        let base_suffix = base_source
+            .source()
+            .get(before.end..)
+            .ok_or_else(|| stale("ReplaceBlock base suffix is unavailable"))?;
+        let candidate_prefix = candidate_source
+            .source()
+            .get(..after.start)
+            .ok_or_else(|| stale("ReplaceBlock candidate prefix is unavailable"))?;
+        let candidate_suffix = candidate_source
+            .source()
+            .get(after.end..)
+            .ok_or_else(|| stale("ReplaceBlock candidate suffix is unavailable"))?;
+        if base_prefix != candidate_prefix || base_suffix != candidate_suffix {
+            return Err(stale(
+                "ReplaceBlock changed source outside the authenticated block span",
+            ));
+        }
+    }
+    Ok(BlockReplacement {
+        path: before.path,
+        new_block: after.block,
+    })
 }
 
 /// Shared, read-only classifier used by transaction validation and installed

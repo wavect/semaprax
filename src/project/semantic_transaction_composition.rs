@@ -165,8 +165,11 @@ impl SemanticTransactionRebase {
         if onto_workspace.workspace_revision() != expected_onto_workspace_revision {
             return Err(stale("semantic transaction rebase destination is stale"));
         }
+        let operation = transaction.rename_operation().ok_or_else(|| {
+            conflict("semantic transaction composition v1 admits RenameDisplayName only")
+        })?;
         let original_artifacts = transaction.validate(Arc::clone(&original_base))?;
-        let eligibility = rename_display_name_eligibility(&onto, transaction.operation().target())?;
+        let eligibility = rename_display_name_eligibility(&onto, operation.target())?;
         if !eligibility.available() {
             return Err(conflict(
                 "semantic transaction rebase target is outside RenameDisplayName v1",
@@ -175,7 +178,7 @@ impl SemanticTransactionRebase {
         let current_name = eligibility.expected_old_value.ok_or_else(|| {
             conflict("semantic transaction rebase target is absent from the destination")
         })?;
-        if current_name == transaction.operation().new_value() {
+        if current_name == operation.new_value() {
             return Err(conflict(
                 "semantic transaction rebase is already satisfied on the destination",
             ));
@@ -193,9 +196,9 @@ impl SemanticTransactionRebase {
         let rebased = SemanticTransaction::rename_display_name(
             onto_workspace.workspace_revision(),
             SemanticTransactionRenameDisplayName::new(
-                transaction.operation().target(),
+                operation.target(),
                 &current_name,
-                transaction.operation().new_value(),
+                operation.new_value(),
             ),
         )?;
         let artifacts = rebased.validate(Arc::clone(&onto))?;
@@ -361,7 +364,13 @@ impl SemanticTransactionMerge {
                 "semantic transaction merge parents do not share a workspace revision",
             ));
         }
-        if left.operation().target() == right.operation().target() {
+        let left_operation = left.rename_operation().ok_or_else(|| {
+            conflict("semantic transaction composition v1 admits RenameDisplayName only")
+        })?;
+        let right_operation = right.rename_operation().ok_or_else(|| {
+            conflict("semantic transaction composition v1 admits RenameDisplayName only")
+        })?;
+        if left_operation.target() == right_operation.target() {
             return Err(conflict(
                 "semantic transaction merge requires distinct stable-ID targets",
             ));

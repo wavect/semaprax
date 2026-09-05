@@ -15,10 +15,12 @@ use crate::workspace_analysis::{
     WorkspaceAnalysisTargetKind, WorkspaceContextOptions, WorkspaceImpactOptions,
 };
 
+use super::semantic_service_indexes::SemanticServiceIndexes;
 use super::{
     ProjectFrontendCache, ProjectFrontendSource, ProjectManifest, ProjectRevision,
-    ProjectSemanticImage, SemanticQuery, SemanticQueryResult, SemanticTransaction,
-    SemanticTransactionArtifacts, SemanticWorkspaceRevision,
+    ProjectSemanticImage, SemanticQuery, SemanticQueryResult, SemanticServiceIndexQuery,
+    SemanticServiceIndexResult, SemanticTransaction, SemanticTransactionArtifacts,
+    SemanticWorkspaceRevision,
 };
 
 pub const SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA: &str =
@@ -37,6 +39,7 @@ pub struct SemanticWorkspaceGeneration {
     revision: Arc<ProjectRevision>,
     canonical: SemanticWorkspaceRevision,
     image: Arc<ProjectSemanticImage>,
+    indexes: SemanticServiceIndexes,
 }
 
 impl SemanticWorkspaceGeneration {
@@ -54,6 +57,10 @@ impl SemanticWorkspaceGeneration {
 
     pub fn workspace_revision(&self) -> &str {
         self.canonical.workspace_revision()
+    }
+
+    pub(crate) fn indexes(&self) -> &SemanticServiceIndexes {
+        &self.indexes
     }
 }
 
@@ -107,6 +114,14 @@ impl SemanticWorkspaceSnapshot {
     }
 
     pub fn query(&self, query: &SemanticQuery) -> Result<SemanticQueryResult> {
+        query.execute(self)
+    }
+
+    /// Execute one typed, exact-revision retained-index query.
+    pub fn index_query(
+        &self,
+        query: &SemanticServiceIndexQuery,
+    ) -> Result<SemanticServiceIndexResult> {
         query.execute(self)
     }
 }
@@ -241,6 +256,16 @@ impl SemanticWorkspaceService {
         query.execute(&snapshot)
     }
 
+    /// Admit and execute one exact canonical retained-index query against the
+    /// active generation. This reads no filesystem state and grants no authority.
+    pub fn index_query(&self, query_bytes: &[u8]) -> Result<SemanticServiceIndexResult> {
+        let query = SemanticServiceIndexQuery::from_json(query_bytes)?;
+        let snapshot = SemanticWorkspaceSnapshot {
+            generation: Arc::clone(&self.active),
+        };
+        query.execute(&snapshot)
+    }
+
     /// Select only the exact active canonical revision. A returned snapshot
     /// remains internally consistent even after a later service refresh.
     pub fn snapshot(&self, expected_workspace_revision: &str) -> Result<SemanticWorkspaceSnapshot> {
@@ -349,10 +374,12 @@ fn derive_generation(revision: Arc<ProjectRevision>) -> Result<SemanticWorkspace
         Arc::clone(&revision),
         revision.project_revision(),
     )?);
+    let indexes = SemanticServiceIndexes::derive(&revision)?;
     Ok(SemanticWorkspaceGeneration {
         revision,
         canonical,
         image,
+        indexes,
     })
 }
 

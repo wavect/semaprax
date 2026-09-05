@@ -246,7 +246,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::PluginManifest, canonical: "plugin-manifest", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax plugin-manifest <file> [--max-bytes N]"] },
     CommandSpec { id: CommandId::CxxShim, canonical: "cxx-shim", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax cxx-shim <file> --function name|stable-id[,...] [--function ...] [--max-bytes N] [--emit-fragment]"] },
     CommandSpec { id: CommandId::CxxPackage, canonical: "cxx-package", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax cxx-package <file> --function name|stable-id[,...] [--function ...] [--max-bytes N]"] },
-    CommandSpec { id: CommandId::Review, canonical: "review", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax review <file> <patch.spatch>"] },
+    CommandSpec { id: CommandId::Review, canonical: "review", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax review <file> <patch.spatch>", "semaprax review <project> <transaction.json> [--evidence]"] },
     CommandSpec { id: CommandId::TargetEvidence, canonical: "target-evidence", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax target-evidence <file> <patch.spatch>"] },
     CommandSpec { id: CommandId::PatchEvidence, canonical: "patch-evidence", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax patch-evidence <file> <patch.spatch>"] },
     CommandSpec { id: CommandId::PatchEvidenceV2, canonical: "patch-evidence-v2", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax patch-evidence-v2 <file> <patch.spatch>"] },
@@ -692,8 +692,8 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Review,
-                shape: "review <file> <patch.spatch>",
-                summary: "Review a patch without writing",
+                shape: "review <input> <change>",
+                summary: "Review a patch or transaction without writing",
             },
             GuideEntry {
                 id: CommandId::Verify,

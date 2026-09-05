@@ -92,6 +92,14 @@ through a bounded single-client stdio process. That separately specified
 adapter does not change this core or turn its in-memory state into durable,
 shared, MCP, or LSP service state.
 
+Each immutable generation also owns bounded retained indexes for tests that
+statically reach a stable declaration and functions that statically reach a
+named effect. Index derivation completes before refresh adopts the replacement
+generation, so revision selection, semantic cache, image, and indexes change
+together. Exact canonical query/result bytes support deterministic replay;
+these are static HIR reachability facts, not runtime coverage or path
+feasibility.
+
 Snapshots are suitable for caller-coordinated concurrent read-only use. V1
 does not provide a scheduler, worker pool, request cancellation, fairness,
 transport ordering, or simultaneous refresh API.

@@ -6,7 +6,8 @@ use std::sync::Arc;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, ProjectFrontendSource, ProjectManifest, ProjectRevision,
-    SemanticTransaction, SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
+    SemanticServiceIndexItemKind, SemanticServiceIndexQuery, SemanticTransaction,
+    SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
 };
 use semaprax::workspace_analysis::{
     WorkspaceAnalysisTargetKind, WorkspaceContextOptions, WorkspaceImpactOptions,
@@ -156,6 +157,155 @@ fn frontend_work(value: &Value, resolved: u64, reused: u64) {
     assert_eq!(value["work"]["full_source_verification"], true);
     assert_eq!(value["work"]["full_HIR_validation"], true);
     assert_eq!(value["work"]["full_link_and_profile_admission"], true);
+}
+
+fn ids(result: &semaprax::project::SemanticServiceIndexResult) -> Vec<&str> {
+    result.items().iter().map(|item| item.stable_id()).collect()
+}
+
+#[test]
+fn retained_indexes_answer_exact_canonical_coverage_and_effect_queries() {
+    let fixture = Fixture::new();
+    let service = SemanticWorkspaceService::open(fixture.revision()).unwrap();
+    let revision = service.active_generation().workspace_revision();
+
+    let coverage =
+        SemanticServiceIndexQuery::tests_covering_declaration(revision, "calculator.add").unwrap();
+    assert_eq!(
+        SemanticServiceIndexQuery::from_json(coverage.to_json().as_bytes()).unwrap(),
+        coverage
+    );
+    let first = service.index_query(coverage.to_json().as_bytes()).unwrap();
+    let second = service.index_query(coverage.to_json().as_bytes()).unwrap();
+    assert_eq!(first.to_json(), second.to_json());
+    assert_eq!(first.result_digest(), second.result_digest());
+    assert_eq!(ids(&first), ["calculator.tests.main"]);
+    assert_eq!(
+        first.items()[0].kind(),
+        SemanticServiceIndexItemKind::TestMain
+    );
+    assert_eq!(first.query_digest(), coverage.query_digest());
+    assert_eq!(first.workspace_revision(), revision);
+    let snapshot = service.snapshot(revision).unwrap();
+    let replayed = SemanticServiceIndexQuery::replay(
+        &snapshot,
+        coverage.to_json().as_bytes(),
+        first.result_digest(),
+        first.to_json().as_bytes(),
+    )
+    .unwrap();
+    assert_eq!(replayed.to_json(), first.to_json());
+
+    let no_effect =
+        SemanticServiceIndexQuery::functions_reaching_effect(revision, "process.stdout.write")
+            .unwrap();
+    assert!(service
+        .index_query(no_effect.to_json().as_bytes())
+        .unwrap()
+        .items()
+        .is_empty());
+    assert_code(
+        SemanticServiceIndexQuery::from_json(coverage.to_json().trim_end().as_bytes()),
+        "SPX-G528",
+    );
+    let unknown =
+        SemanticServiceIndexQuery::tests_covering_declaration(revision, "unknown").unwrap();
+    assert_code(
+        service.index_query(unknown.to_json().as_bytes()),
+        "SPX-G528",
+    );
+
+    let manifest = fixture.manifest();
+    let mut case_sources = fixture.sources();
+    let test_source = case_sources
+        .iter_mut()
+        .find(|source| source.path() == "src/tests.spx")
+        .unwrap();
+    let with_case = format!(
+        "{}\n@id(\"calculator.tests.test_add\") fn test_add() -> i64 {{ if add(1, 2) == 3 {{ 0 }} else {{ 1 }} }}\n",
+        test_source.source()
+    );
+    let canonical =
+        semaprax::format::canonical(&semaprax::parse(&with_case, "src/tests.spx").unwrap());
+    *test_source = ProjectFrontendSource::new("src/tests.spx", &canonical).unwrap();
+    let case_service = SemanticWorkspaceService::open(cold(&manifest, &case_sources)).unwrap();
+    let case_query = SemanticServiceIndexQuery::tests_covering_declaration(
+        case_service.active_generation().workspace_revision(),
+        "calculator.add",
+    )
+    .unwrap();
+    let case_result = case_service
+        .index_query(case_query.to_json().as_bytes())
+        .unwrap();
+    assert_eq!(
+        ids(&case_result),
+        ["calculator.tests.main", "calculator.tests.test_add"]
+    );
+    assert_eq!(
+        case_result.items()[1].kind(),
+        SemanticServiceIndexItemKind::TestCase
+    );
+
+    let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/spxgrep-project");
+    let manifest =
+        ProjectManifest::parse(&std::fs::read_to_string(sample.join("semaprax.toml")).unwrap())
+            .unwrap();
+    let sources = ["src/app.spx", "src/tests.spx"]
+        .iter()
+        .map(|path| {
+            ProjectFrontendSource::new(path, &std::fs::read_to_string(sample.join(path)).unwrap())
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    let effect_service = SemanticWorkspaceService::open(cold(&manifest, &sources)).unwrap();
+    let query = SemanticServiceIndexQuery::functions_reaching_effect(
+        effect_service.active_generation().workspace_revision(),
+        "process.stdout.write",
+    )
+    .unwrap();
+    let result = effect_service
+        .index_query(query.to_json().as_bytes())
+        .unwrap();
+    assert_eq!(ids(&result), ["spxgrep.contains"]);
+    assert_eq!(
+        result.items()[0].kind(),
+        SemanticServiceIndexItemKind::Function
+    );
+}
+
+#[test]
+fn index_refresh_is_atomic_and_old_queries_stale_while_snapshots_remain_exact() {
+    let fixture = Fixture::new();
+    let manifest = fixture.manifest();
+    let sources = fixture.sources();
+    let mut service = SemanticWorkspaceService::open(fixture.revision()).unwrap();
+    let initial = service.active_generation().workspace_revision().to_owned();
+    let old_snapshot = service.snapshot(&initial).unwrap();
+    let query =
+        SemanticServiceIndexQuery::tests_covering_declaration(&initial, "calculator.add").unwrap();
+    assert_eq!(
+        ids(&old_snapshot.index_query(&query).unwrap()),
+        ["calculator.tests.main"]
+    );
+
+    let changed = replace_source(&sources, "src/tests.spx", "add(19, 23) == 42 && ", "");
+    service
+        .refresh_owned_sources(&manifest, &changed, &initial)
+        .unwrap();
+    assert_code(service.index_query(query.to_json().as_bytes()), "SPX-G530");
+    assert_eq!(
+        ids(&old_snapshot.index_query(&query).unwrap()),
+        ["calculator.tests.main"]
+    );
+
+    let current = service.active_generation().workspace_revision();
+    let current_query =
+        SemanticServiceIndexQuery::tests_covering_declaration(current, "calculator.add").unwrap();
+    assert!(service
+        .index_query(current_query.to_json().as_bytes())
+        .unwrap()
+        .items()
+        .is_empty());
 }
 
 #[test]

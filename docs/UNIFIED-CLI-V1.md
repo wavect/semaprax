@@ -1,4 +1,4 @@
-# Unified CLI v1: `verify`, `agent inspect`, `query`, `package`, `add`, and `fetch`
+# Unified CLI v1: `review`, `verify`, `agent`, `query`, `package`, `add`, and `fetch`
 
 Status: authored with local executable evidence; unpublished and unpromoted.
 The completion matrix and release evidence own product status.
@@ -9,11 +9,41 @@ compiler contributors.
 ## Purpose
 
 The 1.0 command surface converges public workflows on one `semaprax` binary
-and a short list of verbs. Two of those verbs, `verify` and `agent`, front
-capabilities the compiler already had under long protocol-specific names. This
-revision admits them without changing any verifier or the agent compiler: the
-new verbs select and delegate, add no verification of their own, and grant no
-authority the long forms did not have.
+and a short list of verbs. These verbs front capabilities the compiler already
+had under protocol-specific names or library APIs. They select and delegate;
+they add no semantic validation or authority of their own.
+
+## `semaprax review`
+
+```sh
+semaprax review <file> <patch.spatch>
+semaprax review <project> <transaction.json> [--evidence]
+```
+
+The first form remains the byte-preserved Bounded Semantic Review v1 workflow.
+The additive Project form authenticates the selected Project for the complete
+invocation, opens one process-local `SemanticWorkspaceService`, and passes the
+transaction file's exact bytes to `validate_transaction`. The transaction must
+therefore be the canonical, revision-bound closed Universal Semantic
+Transaction v1 envelope; stale, malformed, noncanonical, unsupported, and
+oversize inputs retain the transaction kernel diagnostics, while the service's
+active-generation precheck owns stale revision `SPX-G530`.
+
+Ordinary success prints the exact `SemanticTransactionArtifacts::review()`
+bytes. `--evidence` prints the exact
+`SemanticTransactionArtifacts::evidence()` bytes, which digest-bind the intent,
+impact, review, and complete validation result. The adapter introduces no
+wrapper or competing result schema. The grammar is closed: `--evidence` is the
+only option, is admitted only once and only on the Project form, and no stdin,
+implicit transaction construction, or old-revision retrieval is admitted.
+
+This workflow reads explicitly selected local inputs and derives an in-memory
+candidate. It does not change source, write a candidate or cache, stage, apply,
+commit, publish, pivot `ACTIVE`, approve a change, or grant reusable authority.
+The evidence is proof data, not permission. It is not a daemon, shared service,
+transport, editor session, behavioral-equivalence proof, runtime execution, or
+general transaction algebra; Universal Semantic Transaction v1's operation and
+comment-free canonical-source limits remain unchanged.
 
 ## `semaprax verify`
 
@@ -240,15 +270,21 @@ only reader of the cache and still replays every subject itself.
 
 ## Guided help
 
-The guided page lists `verify` under `Change by meaning`, `query` under
-`Inspect meaning`, and `agent inspect` under a new `Agents` group; `package`,
-`add`, and `fetch` appear in the exhaustive catalog only. Both capability pages stay within the 2048-byte
-bound of [Guided CLI Help v4](CLI-HELP-V4.md); the shapes and several summaries
-were shortened to make room, and the exhaustive catalog remains the grammar
-authority.
+The guided page lists `review` and `verify` under `Change by meaning`, `query`
+under `Inspect meaning`, and `agent inspect` under a new `Agents` group;
+`package`, `add`, and `fetch` appear in the exhaustive catalog only. Both
+capability pages stay within the 2048-byte bound of [Guided CLI Help
+v4](CLI-HELP-V4.md); the shapes and several summaries were shortened to make
+room, and the exhaustive catalog remains the grammar authority.
 
 ## Executable gates
 
+- `tests/workspace/unified_review_cli.rs` (workspace harness): the Project form
+  prints the exact transaction review and evidence artifacts and leaves every
+  input byte unchanged; noncanonical and stale transactions retain kernel
+  diagnostics; unknown, repeated, and misplaced options fail as usage; scoped
+  help pins both forms. The existing semantic harness continues to pin the
+  single-file form's exact API bytes plus one LF.
 - `tests/semantic/verify_front.rs` (semantic harness): for patch evidence v1
   and v2, workspace patch evidence, semantic workspace change evidence, and a
   project image, the `verify` receipt is byte-identical to the long-form

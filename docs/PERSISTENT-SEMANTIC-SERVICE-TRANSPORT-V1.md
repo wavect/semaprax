@@ -1,7 +1,7 @@
 # Persistent Semantic Workspace Service Transport v1
 
 Status: additive single-client stdio transport; four focused integration cases
-are authored and local execution is pending.
+pass locally.
 
 Audience: compiler contributors, local tool hosts, agent clients, and reviewers
 of process-resident semantic service boundaries.
@@ -52,6 +52,7 @@ service/protocol
 workspace/open
 workspace/status
 workspace/query
+workspace/index-query
 workspace/validate-transaction
 workspace/refresh
 shutdown
@@ -74,6 +75,13 @@ request ID is returned by the existing shared codec.
 `workspace/query` accepts exactly one `query` string containing canonical
 Universal Semantic Query v1 JSON. It returns the exact core result value and
 its query, payload, and result digests.
+
+`workspace/index-query` accepts exactly one `query` string containing a
+canonical retained-index query. It returns the exact bounded core result for
+tests covering a stable declaration or functions that can reach a named
+effect, plus the query and result digests. Refresh derives the replacement
+indexes before the generation/cache/index CAS, so old snapshots retain their
+old indexes and active queries reject stale revisions.
 
 `workspace/validate-transaction` accepts exactly one `transaction` string
 containing canonical Universal Semantic Transaction v1 JSON. It returns the
@@ -152,5 +160,4 @@ CARGO_TARGET_DIR=target/persistent-semantic-service-transport-v1 \
   persistent_semantic_service_transport --no-fail-fast
 ```
 
-The four cases are authored; execution status changes only after a completed
-current-checkout run.
+The four cases pass on the current checkout.

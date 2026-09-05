@@ -77,12 +77,30 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Added Persistent Semantic Workspace Service Transport v1 and the
   `semaprax service <project>` adapter. One authenticated Project and one
   incremental semantic service remain alive across bounded JSON-RPC-lines
-  query, transaction-validation, and caller-owned refresh requests; failed or
-  stale refresh rolls back before the in-memory generation/cache CAS. Four
-  focused Workspace-harness cases are authored and local execution is pending.
+  universal-query, retained-index-query, transaction-validation, and
+  caller-owned refresh requests; failed or stale refresh rolls back before the
+  in-memory generation/cache/index CAS. Four focused Workspace-harness cases
+  pass locally.
   This is a single-client local stdio process, not MCP/LSP, a socket, daemon,
   durable/shared state, source writer, execution service, or authority broker;
   frozen Project Agent Transport v5 remains separate and unchanged.
+- Extended Universal Semantic Transaction v1 with typed whole-function
+  `ReplaceBlock`. It binds an exact old source block, delegates the replacement
+  expression to complete ProjectCandidate validation, proves byte-identical
+  source outside the selected span, and exact-replays the ordinary transaction
+  artifacts without commit authority. The focused transaction/composition
+  selection passes 10 cases locally; nested expression replacement,
+  multi-operation transactions, and ReplaceBlock composition remain open.
+- Added refresh-atomic retained semantic-service indexes for tests covering a
+  stable declaration and functions that can reach a named effect. Canonical,
+  revision-bound query/results are bounded, deterministic, replayable, and
+  available through both the service core and `workspace/index-query`.
+  Persistent-core focused evidence passes five cases locally.
+- Extended `semaprax review` with the closed Project form
+  `review <project> <transaction.json> [--evidence]`. Default output is the
+  exact concise semantic review; evidence is displayed only when requested.
+  The existing source-patch form remains unchanged, no files are written, and
+  the focused three-case CLI gate passes locally.
 
 - Added `semaprax.network-fixture.v3` as an ordered, bounded HTTPS
   request/response replay carrier. V1 and v2 reject the new member, URL or

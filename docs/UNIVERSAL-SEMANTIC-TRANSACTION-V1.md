@@ -15,10 +15,11 @@ artifacts.
 
 The additive [Universal Semantic Transaction Composition
 v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md) derives structural diffs,
-rebases this exact single rename onto an independently admitted revision, and
+rebases a `RenameDisplayName` onto an independently admitted revision, and
 orders two sibling rename Candidates through the existing Project Candidate
-merge. It preserves this schema and all v1 artifact bytes; its merge result is
-explicitly a validated Candidate rather than a multi-operation v1 transaction.
+merge. It preserves the existing rename artifact bytes, remains closed to
+`ReplaceBlock`, and returns a validated Candidate rather than a multi-operation
+v1 transaction.
 
 ## Closed v1 envelope
 
@@ -27,7 +28,8 @@ recursively key-sorted, and terminated by one LF. The envelope contains exactly:
 
 - `expected_workspace_revision`, the Canonical Semantic Workspace Revision v1
   composite digest;
-- `operations`, exactly one operation in v1;
+- `operations`, exactly one operation selected from the closed
+  `RenameDisplayName | ReplaceBlock` algebra;
 - `invariants`, exactly the mandatory Project Candidate semantic-change
   requirements;
 - `requested_validation`, exactly canonical source round-trip, complete Project
@@ -44,7 +46,7 @@ Project Candidate diagnostics retain their existing meanings.
 
 ## RenameDisplayName
 
-The only v1 operation is `rename_display_name`, with `target`,
+The first v1 operation is `rename_display_name`, with `target`,
 `expected_old_value`, and `new_value`. The target must be one explicit,
 monomorphic, non-`main` function stable identity. The expected old name is read
 from the immutable base before candidate creation. A different base composite
@@ -58,6 +60,32 @@ prevents the reused candidate formatter from silently erasing comments or
 normalizing unrelated trivia. Comment-bearing and noncanonical projects are not
 admitted by this first slice.
 
+## ReplaceBlock
+
+`replace_block` carries `target`, `expected_old_block`, and `replacement`. The
+target has the same explicit, monomorphic, non-`main`, unique-function
+restriction as `RenameDisplayName`. `expected_old_block` is the exact canonical
+source slice from the opening `{` through the closing `}` of that function's
+body. `replacement` is a typed body expression in the existing closed Project
+Candidate expression-constructor grammar; the canonical formatter supplies the
+function body's outer braces.
+
+The kernel maps this operation to Project Candidate's existing
+`replace_function_body` intention. That path performs typed construction,
+complete source reparse, Project admission, ownership/cleanup replay, and
+native/Wasm admission. After candidate construction, the kernel independently
+locates the target body in both immutable revisions and requires byte equality
+for the complete prefix and suffix of its source plus exact equality for every
+other source. The result therefore changes only the authenticated block span;
+it does not accept caller-provided byte offsets or raw replacement source.
+
+An old-block mismatch is stale (`SPX-G527`). A malformed replacement,
+ambiguous/missing target, generic target, or `main` target is invalid
+(`SPX-G525`). Candidate expression, type, and ownership diagnostics retain
+their existing meanings when the typed replacement itself is invalid. Like
+the rename operation, this slice retains the comment-free canonical base
+requirement.
+
 [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md) projects whether
 a retained declaration currently satisfies these structural prerequisites.
 Its `available_operations` result calls the same read-only classifier used by
@@ -68,8 +96,9 @@ still repeats all checks against its exact immutable base.
 ## Artifacts and replay
 
 The intent is the exact transaction envelope. The impact schema is
-`semaprax.semantic-transaction-impact.v1`; it records exact before/after display
-names, stable identity preservation, and base/candidate composite revisions.
+`semaprax.semantic-transaction-impact.v1`; it records the operation-specific
+exact before/after display name or block, stable identity preservation, and
+base/candidate composite revisions.
 It is descriptive compiler projection evidence, not behavioral equivalence or
 runtime execution.
 
@@ -118,10 +147,13 @@ from the same authenticated Project generation and prints this kernel's exact
 result or evidence. That adapter does not add an operation, wrapper schema,
 commit path, or authority.
 
-This badge is not yet a universal operation algebra, multi-operation planner,
-general semantic completeness claim, behavioral proof, persistent service,
-managed-workspace commit route, source-with-comments rewrite, or authority
-grant. Those remain future work.
+This badge is one real two-variant operation algebra, not a general or
+multi-operation planner, general semantic completeness claim, behavioral
+proof, persistent service, managed-workspace commit route,
+source-with-comments rewrite, nested-expression replacement surface, or
+authority grant. Those remain future work. Universal Semantic Transaction
+Composition v1 continues to admit `RenameDisplayName` only and rejects
+`ReplaceBlock`; it has not acquired block rebase or merge semantics.
 
 ## Focused gate
 
@@ -131,10 +163,11 @@ CARGO_TARGET_DIR=target/universal-semantic-transaction-v1 \
   universal_semantic_transaction --no-fail-fast
 ```
 
-The gate covers canonical admission, deterministic artifacts, exact replay,
-stale base and old-name rejection, reminted-evidence rejection, direct
-ProjectCandidate parity, zero filesystem writes, and unchanged retained legacy
-Project/workspace/graph/source bytes.
+The gate covers both operation variants, canonical admission, deterministic
+artifacts, exact replay, stale base/name/block rejection, malformed and
+reminted-evidence rejection, direct ProjectCandidate parity, exact preservation
+outside an authenticated body span, zero filesystem writes, and unchanged
+retained legacy Project/workspace/graph/source bytes.
 
 The repository-wide full profile also reached 1,536 passing library tests on
 the same rebased source, then stopped on 11 unrelated existing Project, Wasm,

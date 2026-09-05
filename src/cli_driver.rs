@@ -12,7 +12,7 @@ use semaprax::{
     abi_report, agent_economics, agent_transport, c_header, capability_manifest, codegen, cxx_shim,
     freestanding_object, graph, hir, hosted_interpreter, hygienic, impact, interpreter, openapi,
     package_report, parse, patch, patch_evidence, plugin_manifest, project, properties,
-    protocol_check, quality_route, region_report, repair, review, semantic_workspace,
+    protocol_check, quality_route, region_report, repair, semantic_workspace,
     semantic_workspace_change, semantic_workspace_operations, semantic_workspace_structural_change,
     simd_report, target_evidence, ui_schema, verify, wasm, workspace, workspace_analysis,
     workspace_graph, workspace_patch_evidence,
@@ -1139,15 +1139,11 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             Ok(())
         }
         CommandId::Review => {
-            if args.len() != 3 {
-                eprintln!("review requires exactly <file> <patch.spatch>");
-                return Err(2);
-            }
-            let source_path = required_path(&args, 1)?;
-            let patch_path = required_path(&args, 2)?;
-            let report = review::preview(&source_path, &patch_path)
-                .map_err(|errors| report(&errors, false))?;
-            println!("{report}");
+            let output = cli::review::run(&args[1..]).map_err(|error| match error {
+                cli::review::ReviewError::Usage => 2,
+                cli::review::ReviewError::Diagnostics(errors) => report(&errors, false),
+            })?;
+            print!("{output}");
             Ok(())
         }
         CommandId::Properties => {

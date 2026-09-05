@@ -20,6 +20,13 @@ pub const MAX_CXX_OWNED_DATA_PACKAGE_BYTES: usize = 4 * 1024 * 1024;
 const MAX_CXX_PROVIDER_WRAPPER_BYTES: usize = 2 * 1024 * 1024;
 const DIGEST_DOMAIN: &[u8] = b"semaprax.project-cxx-owned-data-package.digest.v1\0";
 
+/// Render the shared low-level C11 provider boundary for an authenticated v8
+/// owned-data or v10 owned-UTF8 descriptor. Safe language projections retain
+/// responsibility for copying and settling opaque result handles.
+pub fn render_owned_data_c_header(descriptor: &PublicApiDescriptor) -> String {
+    render::c_header(descriptor)
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct CxxOwnedDataPackage {
     canonical: Vec<u8>,

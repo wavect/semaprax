@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Exposed the shared descriptor-derived C11 provider header for Project-v10
+  owned UTF-8. A separately compiled consumer links against the actual provider
+  at O0/O2 and copies, drops, and closes an exact-length result containing both
+  embedded NUL and multibyte UTF-8, without exposing native String layout.
 - Added a descriptor-derived C11 header for the Project-v11 nested
   owned-record provider. Its fixed-width leaf carrier preserves full
   descriptor occurrence order without exposing native record layout. A

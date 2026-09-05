@@ -248,8 +248,8 @@ pub use canonical_workspace_revision::{
     SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY, SEMANTIC_WORKSPACE_REVISION_SCHEMA,
 };
 pub use cxx_owned_data::{
-    replay_cxx_owned_data_package, CxxOwnedDataPackage, MAX_CXX_OWNED_DATA_PACKAGE_BYTES,
-    PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
+    render_owned_data_c_header, replay_cxx_owned_data_package, CxxOwnedDataPackage,
+    MAX_CXX_OWNED_DATA_PACKAGE_BYTES, PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
 };
 pub use execution::{
     verify_execution_envelope, ProjectContractArgument, ProjectContractFailure, ProjectExecution,

@@ -1,7 +1,7 @@
 use semaprax::project::{
-    derive_public_api_descriptor, replay_public_api_descriptor, PublicApiResultType,
-    PublicApiSubject, PUBLIC_OWNED_DATA_PROJECT_SCHEMA, PUBLIC_OWNED_UTF8_API_SCHEMA,
-    PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
+    derive_public_api_descriptor, render_owned_data_c_header, replay_public_api_descriptor,
+    PublicApiResultType, PublicApiSubject, PUBLIC_OWNED_DATA_PROJECT_SCHEMA,
+    PUBLIC_OWNED_UTF8_API_SCHEMA, PUBLIC_OWNED_UTF8_PROJECT_SCHEMA,
 };
 use std::fs;
 use std::process::Command;
@@ -208,6 +208,7 @@ int main(void) {
     if (spx_owned_data_context_drop_v1(context) != 0) return 19;
     free(storage); return 0;
 }
+
 "#;
     fs::write(&c, format!("{}\n{probe}", provider.source())).unwrap();
     let compiled = Command::new("clang")
@@ -232,4 +233,98 @@ int main(void) {
     let status = Command::new(&executable).status().unwrap();
     let _ = fs::remove_dir_all(&directory);
     assert!(status.success());
+}
+
+#[test]
+fn generated_c11_header_links_owned_utf8_provider_by_exact_length() {
+    let program = program();
+    let selected = vec!["utf8.greeting".to_owned()];
+    let subject = subject(PUBLIC_OWNED_UTF8_PROJECT_SCHEMA);
+    let descriptor = derive_public_api_descriptor(&program, &selected, subject).unwrap();
+    let provider = semaprax::codegen::emit_project_v10_native_owned_utf8_provider(
+        &program,
+        &selected,
+        subject,
+        &descriptor.canonical_bytes(),
+        &descriptor.digest(),
+    )
+    .unwrap();
+    let header = render_owned_data_c_header(&descriptor);
+    assert_eq!(header, render_owned_data_c_header(&descriptor));
+    assert!(header.contains("spx_owned_data_call_spx_utf8_dot_greeting_v1"));
+    let directory =
+        std::env::temp_dir().join(format!("semaprax-utf8-c-header-{}", std::process::id()));
+    let _ = fs::remove_dir_all(&directory);
+    fs::create_dir(&directory).unwrap();
+    fs::write(directory.join("semaprax_owned_data.h"), header).unwrap();
+    fs::write(directory.join("provider.c"), provider.source()).unwrap();
+    fs::write(
+        directory.join("consumer.c"),
+        r#"#include "semaprax_owned_data.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+union aligned_context { max_align_t alignment; uint8_t bytes[UINT64_C(1) << 20]; };
+int main(void) {
+ union aligned_context storage;uint64_t size=spx_owned_data_context_size_v1(),align=spx_owned_data_context_align_v1();
+ if(!size||size>sizeof(storage.bytes)||!align||align>_Alignof(max_align_t))return 1;
+ if(spx_owned_data_context_init_v1(storage.bytes,size)!=SPX_OWNED_DATA_SUCCESS)return 2;
+ spx_context_v1*context=(spx_context_v1*)storage.bytes;uint32_t tag=UINT32_MAX;spx_owned_bytes_handle_v1 handle=0;int64_t error=INT64_MIN;
+ if(spx_owned_data_call_spx_utf8_dot_greeting_v1(context,&tag,&handle,&error)!=SPX_OWNED_DATA_SUCCESS||tag||!handle||error)return 3;
+ uint64_t length=UINT64_MAX;if(spx_owned_bytes_len_v1(context,handle,&length)!=SPX_OWNED_DATA_SUCCESS||length!=UINT64_C(12))return 4;
+ uint8_t output[12]={0};const uint8_t expected[12]={'h','e','l','l','o',0,0xe4,0xb8,0x96,0xe7,0x95,0x8c};
+ if(spx_owned_bytes_copy_v1(context,handle,output,length)!=SPX_OWNED_DATA_SUCCESS||memcmp(output,expected,sizeof(expected)))return 5;
+ if(spx_owned_bytes_drop_v1(context,handle)!=SPX_OWNED_DATA_SUCCESS)return 6;
+ if(spx_owned_data_context_drop_v1(context)!=SPX_OWNED_DATA_SUCCESS)return 7;return 0;
+}
+"#,
+    )
+    .unwrap();
+    let clang = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
+    for optimization in ["-O0", "-O2"] {
+        for input in ["provider.c", "consumer.c"] {
+            let object = format!("{input}-{optimization}.o");
+            let output = Command::new(&clang)
+                .current_dir(&directory)
+                .args([
+                    "-std=c11",
+                    optimization,
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-c",
+                    input,
+                    "-o",
+                    object.as_str(),
+                ])
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+        let executable = format!("consumer-{optimization}");
+        let output = Command::new(&clang)
+            .current_dir(&directory)
+            .args([
+                format!("provider.c-{optimization}.o"),
+                format!("consumer.c-{optimization}.o"),
+                "-o".to_owned(),
+                executable.clone(),
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(Command::new(directory.join(executable))
+            .status()
+            .unwrap()
+            .success());
+    }
+    fs::remove_dir_all(directory).unwrap();
 }

@@ -54,6 +54,15 @@ without changing v10 output. Before it attaches an opaque handle or publishes re
 it validates the exact bytes as Unicode scalar-value UTF-8. An invalid value
 returns the adapter-failure status and publishes no result.
 
+`render_owned_data_c_header` now exposes the same descriptor-derived low-level
+C11 integration boundary used by the owned-data provider. It declares only
+fixed-width values, an opaque context, opaque byte handles, and the closed
+status/tag result. A C integrator obtains the exact length, copies the bytes,
+and drops the handle before closing the context; no native String layout or
+NUL-terminated spelling crosses the boundary. Focused local evidence compiles
+the header consumer and actual v10 provider separately, links and executes at
+O0/O2, and preserves the embedded NUL plus multibyte UTF-8 by exact length.
+
 The Wasm adapter transports the same length-delimited owned carrier. The npm
 facade consumes the carrier once and decodes only an `owned-utf8` result with a
 fatal UTF-8 decoder. An `owned-bytes` result remains `Uint8Array`; it is never
@@ -369,7 +378,8 @@ matrix; separately provisioned and ignored gates remain outside that claim. No
 generated package is published and formal promotion is not claimed.
 Project v10 remains blocked on an explicit Project v9 promotion decision; the
 v0.2.0 tag supplies hosted regression evidence for selected cases, not that
-decision.
+decision. The local C11 integration test is not package publication,
+cross-platform support, or a promotion decision.
 
 This profile adds no command, filesystem, process, network, daemon, recovery,
 arbitrary publication, or general text-streaming authority. It does not decode

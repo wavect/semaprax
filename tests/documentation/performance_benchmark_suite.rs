@@ -61,7 +61,16 @@ fn canonical(path: impl AsRef<Path>) -> String {
 #[cfg(windows)]
 fn wrapper() -> Command {
     let script = root().join(SUITE).join("run.sh");
-    let mut command = Command::new("bash");
+    // Resolve Git for Windows' Bash from the same Git installation CI uses.
+    // A bare `bash` can select the Windows Subsystem for Linux launcher first,
+    // which has no mapping for the runner's `D:` checkout.
+    let git = Command::new("git").arg("--exec-path").output().unwrap();
+    assert!(git.status.success());
+    let exec_path = PathBuf::from(String::from_utf8(git.stdout).unwrap().trim());
+    let install = exec_path.ancestors().nth(3).unwrap();
+    let bash = install.join("bin").join("bash.exe");
+    assert!(bash.is_file(), "Git Bash is absent at {}", bash.display());
+    let mut command = Command::new(bash);
     // Git Bash accepts drive-qualified paths with `/`, while native Windows
     // `Path` display uses `\` and Bash interprets those as escapes.
     command.arg(script.to_string_lossy().replace('\\', "/"));
@@ -141,8 +150,10 @@ fn shell_wrapper_resolves_the_committed_suite_from_any_working_directory() {
             .unwrap();
         assert!(
             result.status.success(),
-            "run.sh failed from {}: {}",
+            "run.sh failed from {} with {}\nstdout:\n{}\nstderr:\n{}",
             working_directory.display(),
+            result.status,
+            String::from_utf8_lossy(&result.stdout),
             String::from_utf8_lossy(&result.stderr)
         );
         assert_committed_plan(&plan(&output));
@@ -168,7 +179,9 @@ fn wrapper_forwards_a_compare_path_containing_spaces_as_one_argument() {
         .unwrap();
     assert!(
         result.status.success(),
-        "{}",
+        "run.sh failed with {}\nstdout:\n{}\nstderr:\n{}",
+        result.status,
+        String::from_utf8_lossy(&result.stdout),
         String::from_utf8_lossy(&result.stderr)
     );
     let document = plan(&output);

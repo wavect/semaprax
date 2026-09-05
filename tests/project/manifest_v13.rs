@@ -21,8 +21,10 @@ impl Drop for Output {
     }
 }
 
+#[cfg(unix)]
 struct NativeOutput(PathBuf);
 
+#[cfg(unix)]
 impl Drop for NativeOutput {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(&self.0);

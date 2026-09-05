@@ -357,7 +357,7 @@ fn params_errors_echo_ids_and_stay_closed() {
         (
             42,
             "{\"symbol\":\"math.add\",\"max_bytes\":1}",
-            "agent context max_bytes 1 is outside 1024..=16777216",
+            "agent context max_bytes 1 is outside 2048..=16777216",
         ),
         (
             43,

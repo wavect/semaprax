@@ -872,6 +872,7 @@ dependencies = [
  "rustix",
  "same-file",
  "semaprax",
+ "semaprax-native-rust-interop",
  "semaprax-native-rust-interop-platform",
  "semaprax-native-rust-owned-data-package",
  "semaprax-project-revision-store-windows-sys",

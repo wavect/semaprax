@@ -687,14 +687,15 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                         if options.target == "rust" {
                             output = cli::build::absolute_rust_output(&output)
                                 .map_err(|error| vec![error])?;
-                            if !snapshot.manifest().is_v8()
+                            if snapshot.manifest().schema() != project::PROJECT_SCHEMA
+                                && !snapshot.manifest().is_v8()
                                 && !snapshot.manifest().is_v9()
                                 && !snapshot.manifest().is_v10()
                                 && !snapshot.manifest().is_v11()
                             {
                                 return Err(vec![Diagnostic::io(
                                     "SPX-J114",
-                                    "the rust target requires the exact Project v8 owned-data-api.v1, Project v9 flat-owned-record-api.v1, Project v10 owned-utf8-api.v1, or Project v11 nested-owned-record-api.v1 profile",
+                                    "the rust target requires Project v1 scalar exports or the exact Project v8 owned-data-api.v1, Project v9 flat-owned-record-api.v1, Project v10 owned-utf8-api.v1, or Project v11 nested-owned-record-api.v1 profile",
                                 )]);
                             }
                         }

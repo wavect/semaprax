@@ -21,6 +21,16 @@ A change is ready only when:
 A local green test can support a local claim. It cannot be promoted to hosted,
 public, cross-platform, or production evidence without the corresponding gate.
 
+Dependency changes additionally run the complete
+`tests/project.rs::package_manifest_v1` module and the Native Rust builder's
+library and `project_sdk_cli` tests. Effectful Rust-crate coverage requires the
+explicit tool environment documented by
+[Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md); a skipped tool-dependent
+case is not promotion evidence. The arbitrary-crate gate must generate the
+Project SDK, lock and build its consumer offline, invoke a declared external
+crate from `NativeRustSdkImports`, cross the `import rust fn` boundary, and
+observe the resulting value through a SEMAPRAX export.
+
 An exact-byte native fixture that replaces the compiler's entry wrapper must
 establish its own stdout transport mode. String fixtures use the shared
 test-only binary-stdout setup before allocator instrumentation and check setup
@@ -158,6 +168,7 @@ Select every row touched by the change; these categories are cumulative.
 | Lexer, parser, or formatter | Success and diagnostic cases, canonical round-trip, unchanged legacy formatting |
 | Verifier or HIR | Focused verifier tests, hostile-HIR rejection where applicable, deterministic identity checks |
 | Runtime semantics | Interpreter/native O0/native O2/Wasm agreement for success, failure, evaluation order, and re-entry |
+| Agent/payment harness | Exact AgentDefinition, AgentGraph, Economic Policy and payment-graph replay; model-output rejection; disjoint-host authority inventory; completed-run handoff; Economic Agent all-rail, x402, restart, cancellation and hostile-document evidence |
 | Opt-in internal String interpreter | Distinct schema/domain and cross-profile rejection, frozen ordinary/Project/prepared/effectful admission, unchanged external String rejection, source and envelope bounds, canonical/duplicate/re-signed hostile-wire rejection, exact output capacity, String call/contract/failure value parity, fuel/depth boundaries, CLI behavior, and unchanged legacy golden/fuel facts; no heap-memory or Wasm settlement inference |
 | Standalone Wasm internal String settlement | Distinct explicit profile, structural module validation, fixed memory and selected acyclic stack/owner bounds; independent raw mint/drop accounting and every reached mint-refusal path, generated-host exact/+1 quotas and poison/reentry, exact artifact/input binding, native O0/O2 and internal-String interpreter parity, legal scalar-loop helper reuse, unchanged U105/T252/J113 rejection and legacy artifact known answers; [local validation record](WASM-INTERNAL-STRINGS-V1.md#local-validation-record) owns bounded partial evidence, with cross-platform, full-profile, and hosted gates remaining; no support promotion or ordinary-Wasm, peak-heap or trap-recovery inference |
 | Standalone internal String Web package | Actual explicit-source CLI selection and pre-effect usage rejection; bounded source snapshot and final drift recheck; source/descriptor/package exact/+1 bounds; exact eight-file inventory, independent manifest/digest replay and direct compiler-output equality; deterministic repeat and stable-ID rename, hostile identities, fresh-parent publication and foreign-byte preservation; real generated Node, strict provisioned TypeScript and provisioned browser consumers including streamed fetch rejection before EOF; pre-effect legacy String rejection including materialized generic bodies, unchanged raw emission and String-free legacy bytes; the [package validation record](WASM-INTERNAL-STRINGS-WEB-V1.md#local-validation-record) separates selected local consumers and real source/descriptor boundaries from private renderer accounting and unrun required-host/release gates; no support promotion |

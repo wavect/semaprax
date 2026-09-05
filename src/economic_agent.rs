@@ -47,7 +47,7 @@ mod transaction;
 mod validate;
 
 use crate::agent_runtime::AgentCancellation;
-use crate::bounded_output::reserve_active_preserving;
+use crate::bounded_output::{reserve_active, reserve_active_preserving, with_limit_usage};
 use crate::diagnostic::Diagnostic;
 
 use self::validate::{g210, g216, info};
@@ -634,6 +634,27 @@ struct Policy {
     limits: Limits,
     source: String,
     digest: String,
+}
+
+fn admit_policy_source(source: &str) -> Result<(Policy, usize), Vec<Diagnostic>> {
+    let (result, overflowed, consumed) = with_limit_usage(MAX_BUILDER_BYTES, || {
+        if !reserve_active(source.len().saturating_mul(MAX_JSON_DEPTH + 2)) {
+            return Err(g216("builder_bytes", MAX_BUILDER_BYTES as u64));
+        }
+        policy::parse_policy(source)
+    });
+    if overflowed {
+        return Err(vec![g216("builder_bytes", MAX_BUILDER_BYTES as u64)]);
+    }
+    result
+        .map(|policy| (policy, consumed))
+        .map_err(|diagnostic| vec![diagnostic])
+}
+
+/// Validates one canonical Economic Agent Policy and returns its
+/// domain-separated digest without consulting a host or acquiring authority.
+pub fn economic_agent_policy_digest(source: &str) -> Result<String, Vec<Diagnostic>> {
+    admit_policy_source(source).map(|(policy, _)| policy.digest)
 }
 
 #[derive(Clone)]

@@ -45,6 +45,7 @@ Additional required references:
 | `semaprax.toml` layout, tables, or lowering | [Package Manifest v1](PACKAGE-MANIFEST-V1.md) and the frozen [Project Manifest v1](PROJECT-MANIFEST-V1.md) profile it lowers to |
 | `semaprax.lock` render or verification | [Project Lock v1](PROJECT-LOCK-V1.md) |
 | Resolving manifest `[dependencies]` against a cache | [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md), [Offline Resolver v2](OFFLINE-PACKAGE-RESOLVER-V2.md) |
+| Linking exact SEMAPRAX subjects or exposing exact Rust crates | [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md), [Package Manifest v1](PACKAGE-MANIFEST-V1.md), [Native Rust Interoperability v1](NATIVE-RUST-INTEROP-V1.md) |
 | Native Rust SDK or host integration | [Native Rust Interoperability v1](NATIVE-RUST-INTEROP-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
 | Authenticated Project input persistence | [Project Revision Store v1](PROJECT-REVISION-STORE-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md), and the additive manifest profile selected by the subject |
 | Offline semantic lock snapshot or fixed-inventory publication | [Published Semantic Lock Snapshot v1](OFFLINE-PUBLISHED-SEMANTIC-LOCK-SNAPSHOT-V1.md), [Offline Resolver v1](OFFLINE-PACKAGE-RESOLVER-V1.md), and [Offline Semantic Lock v2](OFFLINE-SEMANTIC-PACKAGE-LOCK-V2.md) |

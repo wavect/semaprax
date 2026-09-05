@@ -831,7 +831,18 @@ fn build_sdk_inner(
                 parse_project_descriptor(&descriptor, module, &subject.digest, target, &options)?
             }
         };
-        let sources = render_package_sources(&descriptor_facts, &options.capabilities);
+        let project_manifest = match &input {
+            SdkInput::Source(_) => None,
+            SdkInput::Project { subject, .. } => Some(
+                semaprax::project::ProjectManifest::parse(&subject.manifest)
+                    .map_err(|_| sdk_error("Native Rust Project SDK subject replay failed"))?,
+            ),
+        };
+        let rust_dependencies = project_manifest
+            .as_ref()
+            .map_or(&[][..], |manifest| manifest.rust_dependencies());
+        let sources =
+            render_package_sources(&descriptor_facts, &options.capabilities, rust_dependencies);
         Ok((
             descriptor,
             inner_manifest,

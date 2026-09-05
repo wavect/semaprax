@@ -50,18 +50,27 @@ pub fn build_project_native_rust_sdk(
     output: &Path,
 ) -> Result<ProjectNativeRustSdkBundle, Vec<Diagnostic>> {
     semaprax::project::with_authenticated_project(manifest_path, |snapshot| {
-        snapshot.with_authenticated_native_rust_sdk_subject(|input| {
-            let subject = ProjectSdkSubject::from_authenticated(&input)?;
-            verify_project_subject(subject.canonical.as_bytes(), &subject)
-                .map_err(|error| vec![error])?;
-            let sdk = build_project_native_rust_sdk_inner(input.program(), &subject, output)
-                .map_err(PublicBuildError::into_diagnostics)?;
-            Ok(ProjectNativeRustSdkBundle {
-                sdk,
-                project_revision: subject.project_revision.clone(),
-                workspace_revision: subject.workspace_revision.clone(),
-                subject_digest: subject.digest.clone(),
-            })
+        build_authenticated_project_native_rust_sdk(snapshot, output)
+    })
+}
+
+/// Builds from a caller-held authenticated snapshot without reopening any
+/// Project authority. This is the full-toolchain CLI's publication boundary.
+pub fn build_authenticated_project_native_rust_sdk(
+    snapshot: &mut semaprax::project::ProjectSnapshot,
+    output: &Path,
+) -> Result<ProjectNativeRustSdkBundle, Vec<Diagnostic>> {
+    snapshot.with_authenticated_native_rust_sdk_subject(|input| {
+        let subject = ProjectSdkSubject::from_authenticated(&input)?;
+        verify_project_subject(subject.canonical.as_bytes(), &subject)
+            .map_err(|error| vec![error])?;
+        let sdk = build_project_native_rust_sdk_inner(input.program(), &subject, output)
+            .map_err(PublicBuildError::into_diagnostics)?;
+        Ok(ProjectNativeRustSdkBundle {
+            sdk,
+            project_revision: subject.project_revision.clone(),
+            workspace_revision: subject.workspace_revision.clone(),
+            subject_digest: subject.digest.clone(),
         })
     })
 }
@@ -312,12 +321,14 @@ pub(super) fn verify_project_subject(
         .map_err(|_| sdk_error("Native Rust Project SDK subject replay failed"))?;
     if manifest.name() != expected.name
         || manifest.entry() != expected.entry_module
-        || manifest.sources().len() != expected.sources.len()
+        || manifest.sources().len() > expected.sources.len()
         || manifest
             .sources()
             .iter()
-            .zip(&expected.sources)
-            .any(|(path, source)| path != &source.path)
+            .any(|path| !expected.sources.iter().any(|source| path == &source.path))
+        || expected.sources.iter().any(|source| {
+            !manifest.sources().contains(&source.path) && !source.path.starts_with("dependencies/")
+        })
         || manifest.web_exports().len() != expected.exports.len()
         || manifest
             .web_exports()

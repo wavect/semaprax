@@ -23,9 +23,10 @@ use std::path::Path;
 mod public_sdk;
 
 pub use public_sdk::{
-    build_native_rust_owned_data_sdk, build_native_rust_sdk, build_project_native_rust_sdk,
-    NativeRustOwnedDataSdkBundle, NativeRustSdkBundle, NativeRustSdkOptions,
-    ProjectNativeRustSdkBundle, NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
+    build_authenticated_project_native_rust_sdk, build_native_rust_owned_data_sdk,
+    build_native_rust_sdk, build_project_native_rust_sdk, NativeRustOwnedDataSdkBundle,
+    NativeRustSdkBundle, NativeRustSdkOptions, ProjectNativeRustSdkBundle,
+    NATIVE_RUST_OWNED_DATA_SDK_SCHEMA, PROJECT_NATIVE_RUST_SDK_SCHEMA,
     PROJECT_NATIVE_RUST_SUBJECT_SCHEMA,
 };
 

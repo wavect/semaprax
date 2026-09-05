@@ -165,6 +165,21 @@ impl CompiledAgentDefinition {
     pub fn runtime_v1_profile(&self) -> &str {
         self.definition.runtime_v1_profile()
     }
+
+    /// Instantiates the admitted definition through its exact Runtime v1
+    /// compatibility projection.
+    ///
+    /// The caller supplies every provider and tool effect through `host` and
+    /// retains cooperative cancellation authority. The compiler-owned graph
+    /// and profile remain immutable; no graph fact is accepted as execution
+    /// input and no ambient authority is introduced by this bridge.
+    pub fn instantiate<H: AgentHost>(
+        &self,
+        host: H,
+        cancellation: AgentCancellation,
+    ) -> Result<Agent<H>, Vec<Diagnostic>> {
+        Agent::new(self.runtime_v1_profile(), host, cancellation)
+    }
 }
 
 /// Compiles one canonical AgentDefinition v1 into a deterministic AgentGraph v1.

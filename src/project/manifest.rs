@@ -1,7 +1,8 @@
 mod tables;
 
 pub use tables::{
-    ManifestLayout, PackageDependency, MAX_DEPENDENCIES, PACKAGE_MANIFEST_RESERVED_TABLES,
+    ManifestLayout, PackageDependency, PackageDependencySource, RustDependency, MAX_DEPENDENCIES,
+    MAX_DEPENDENCY_SOURCES, MAX_RUST_DEPENDENCIES, PACKAGE_MANIFEST_RESERVED_TABLES,
     PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_TABLES, PACKAGE_RESERVED_KEYS,
     PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32,
 };
@@ -75,6 +76,8 @@ pub struct ProjectManifest {
     capabilities: Vec<String>,
     test_module: String,
     dependencies: Vec<PackageDependency>,
+    dependency_sources: Vec<PackageDependencySource>,
+    rust_dependencies: Vec<RustDependency>,
     target_matrix: Option<Vec<String>>,
 }
 
@@ -97,6 +100,8 @@ impl ProjectManifest {
             .and_then(|line| parse_string_assignment(line, "schema"))?;
         let mut layout = ManifestLayout::Frozen;
         let mut dependencies = Vec::new();
+        let mut dependency_sources = Vec::new();
+        let mut rust_dependencies = Vec::new();
         let mut target_matrix = None;
         let (
             schema,
@@ -114,6 +119,8 @@ impl ProjectManifest {
             let parts = tables::parse(&lines)?;
             layout = ManifestLayout::Tables;
             dependencies = parts.dependencies;
+            dependency_sources = parts.dependency_sources;
+            rust_dependencies = parts.rust_dependencies;
             target_matrix = parts.target_matrix;
             (
                 parts.schema,
@@ -629,6 +636,8 @@ impl ProjectManifest {
             capabilities,
             test_module: tests.into_iter().next().expect("one test module"),
             dependencies,
+            dependency_sources,
+            rust_dependencies,
             target_matrix,
         };
         let canonical = manifest.to_canonical_toml();

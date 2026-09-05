@@ -70,6 +70,21 @@ pub struct VerifiedLock {
     pub packages: Vec<Coordinate>,
 }
 
+/// Independently replayed Subject-v3 facts needed by a Project that links an
+/// exact local SEMAPRAX dependency. The canonical source comes only from the
+/// authenticated embedded Report-v2 subject.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VerifiedDependencySubject {
+    pub coordinate: Coordinate,
+    pub subject_digest: String,
+    pub report_digest: String,
+    pub source_revision: String,
+    pub canonical_source: String,
+    pub dependencies: Vec<DependencyRequirement>,
+    pub capabilities: Vec<String>,
+    pub targets: BTreeMap<String, String>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct ResolutionSubject {
     pub(crate) coordinate: Coordinate,
@@ -114,6 +129,43 @@ pub fn create_subject(
         return Err(vec![wire::limit_error(
             "semantic subject render budget exceeded",
         )]);
+    }
+    result
+}
+
+/// Replay one exact Subject-v3 envelope and return its source-authenticated
+/// implementation facts. This grants no path, cache, registry, build, or
+/// publication authority.
+pub fn verify_dependency_subject(bytes: &str) -> Result<VerifiedDependencySubject, Diagnostic> {
+    let (result, overflowed) = crate::bounded_output::with_limit(MAX_RENDER_BYTES, || {
+        let mut work = 0usize;
+        let subject = subject::parse_subject_for_resolution(bytes, &mut work)?;
+        let source = crate::package_report_v2::verify_envelope_for_package_build(&subject.report)
+            .map_err(|_| {
+            wire::authentication_error("semantic dependency report replay failed")
+        })?;
+        if source.package != subject.coordinate.package
+            || source.source_revision != subject.revision
+        {
+            return Err(wire::confusion_error(
+                "semantic dependency source differs from its Subject-v3 coordinate",
+            ));
+        }
+        Ok(VerifiedDependencySubject {
+            coordinate: subject.coordinate,
+            subject_digest: subject.digest,
+            report_digest: subject.report_digest,
+            source_revision: subject.revision,
+            canonical_source: source.canonical_source,
+            dependencies: subject.dependencies,
+            capabilities: subject.capabilities,
+            targets: subject.targets,
+        })
+    });
+    if overflowed {
+        return Err(wire::limit_error(
+            "semantic dependency subject render budget exceeded",
+        ));
     }
     result
 }

@@ -33,18 +33,24 @@ use crate::project::profile::{
 pub const PACKAGE_MANIFEST_SCHEMA: &str = "semaprax.manifest.v1";
 /// Upper bound on `[dependencies]` rows.
 pub const MAX_DEPENDENCIES: usize = 64;
+/// Upper bound on exact local Semantic Package Subject-v3 inputs.
+pub const MAX_DEPENDENCY_SOURCES: usize = 4;
+/// Upper bound on exact crates.io dependencies carried by a generated Rust SDK.
+pub const MAX_RUST_DEPENDENCIES: usize = 32;
 /// The 64-bit native target identity admitted in `[targets] matrix`.
 pub const PACKAGE_TARGET_NATIVE64: &str = "native64";
 /// The 32-bit WebAssembly target identity admitted in `[targets] matrix`.
 pub const PACKAGE_TARGET_WASM32: &str = "wasm32";
 /// Tables this toolchain admits, in canonical order.
-pub const PACKAGE_MANIFEST_TABLES: [&str; 7] = [
+pub const PACKAGE_MANIFEST_TABLES: [&str; 9] = [
     "package",
     "modules",
     "exports",
     "command",
     "capabilities",
     "dependencies",
+    "dependency-sources",
+    "rust-dependencies",
     "targets",
 ];
 /// Tables the specification reserves for additive revisions. They reject with
@@ -84,6 +90,53 @@ pub struct PackageDependency {
     range: String,
 }
 
+/// One exact local Semantic Package Subject-v3 input. The package key is
+/// repeated in the authenticated subject and the path is project-relative.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PackageDependencySource {
+    name: String,
+    path: String,
+}
+
+impl PackageDependencySource {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+}
+
+/// One exact crates.io dependency for a generated Native Rust SDK. The table
+/// key determines the package and stable public re-export name; the generated
+/// Cargo dependency itself uses a private positional alias. The first array
+/// member is exact; remaining members are byte-sorted Cargo feature names.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RustDependency {
+    name: String,
+    version: String,
+    features: Vec<String>,
+}
+
+impl RustDependency {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn version(&self) -> &str {
+        &self.version
+    }
+
+    pub fn features(&self) -> &[String] {
+        &self.features
+    }
+
+    pub fn crate_ident(&self) -> String {
+        self.name.replace('-', "_")
+    }
+}
+
 impl PackageDependency {
     pub fn name(&self) -> &str {
         &self.name
@@ -109,6 +162,8 @@ pub(super) struct TableParts {
     pub(super) capabilities: Vec<String>,
     pub(super) tests: Vec<String>,
     pub(super) dependencies: Vec<PackageDependency>,
+    pub(super) dependency_sources: Vec<PackageDependencySource>,
+    pub(super) rust_dependencies: Vec<RustDependency>,
     pub(super) target_matrix: Option<Vec<String>>,
 }
 
@@ -236,6 +291,30 @@ pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>> {
         Some(dependencies) => parse_dependencies(dependencies)?,
     };
 
+    let dependency_sources = match optional_table(&tables, "dependency-sources") {
+        None => Vec::new(),
+        Some(sources) => parse_dependency_sources(sources, &dependencies)?,
+    };
+
+    let rust_dependencies = match optional_table(&tables, "rust-dependencies") {
+        None => Vec::new(),
+        Some(dependencies) => parse_rust_dependencies(dependencies)?,
+    };
+    if profile != ProjectProfile::ScalarV1
+        && (!dependency_sources.is_empty() || !rust_dependencies.is_empty())
+    {
+        return Err(grammar(format!(
+            "{LABEL} `[dependency-sources]` and `[rust-dependencies]` require the scalar profile"
+        )));
+    }
+    if !dependency_sources.is_empty()
+        && sources.iter().any(|path| path.starts_with("dependencies/"))
+    {
+        return Err(grammar(format!(
+            "{LABEL} project sources may not use the reserved `dependencies/` prefix when `[dependency-sources]` is present"
+        )));
+    }
+
     let target_matrix = match optional_table(&tables, "targets") {
         None => None,
         Some(mut targets) => {
@@ -264,6 +343,8 @@ pub(super) fn parse(lines: &[&str]) -> Result<TableParts, Vec<Diagnostic>> {
         capabilities,
         tests,
         dependencies,
+        dependency_sources,
+        rust_dependencies,
         target_matrix,
     })
 }
@@ -655,6 +736,143 @@ fn dependency_range_error(message: String) -> Diagnostic {
     Diagnostic::io("SPX-J100", format!("{LABEL} dependency {message}"))
 }
 
+fn parse_dependency_sources(
+    table: TableReader<'_>,
+    requirements: &[PackageDependency],
+) -> Result<Vec<PackageDependencySource>, Vec<Diagnostic>> {
+    if table.entries.len() > MAX_DEPENDENCY_SOURCES {
+        return Err(capacity("dependency_sources", MAX_DEPENDENCY_SOURCES));
+    }
+    let mut sources = Vec::with_capacity(table.entries.len());
+    for (name, value) in table.entries {
+        if !valid_dependency_identity(name) {
+            return Err(grammar(format!(
+                "{LABEL} dependency-source names must be valid dependency identities; found `{name}`"
+            )));
+        }
+        let Value::Text(path) = value else {
+            return Err(grammar(format!(
+                "{LABEL} dependency source `{name}` must be one project-relative Subject-v3 `.json` path"
+            )));
+        };
+        let portable_probe = path.strip_suffix(".json").map(|stem| format!("{stem}.spx"));
+        if path.len() > super::MAX_PATH_BYTES
+            || portable_probe
+                .as_deref()
+                .is_none_or(|probe| !crate::workspace::evidence_path_is_valid(probe))
+        {
+            return Err(grammar(format!(
+                "{LABEL} dependency source `{name}` must be a canonical project-relative `.json` path of at most {} bytes",
+                super::MAX_PATH_BYTES
+            )));
+        }
+        sources.push(PackageDependencySource {
+            name: name.to_owned(),
+            path,
+        });
+    }
+    if !sources.windows(2).all(|pair| pair[0].name < pair[1].name) {
+        return Err(grammar(format!(
+            "{LABEL} dependency sources must be strictly byte-sorted by name"
+        )));
+    }
+    for source in &sources {
+        if !requirements
+            .iter()
+            .any(|requirement| requirement.name == source.name)
+            && requirements.is_empty()
+        {
+            return Err(grammar(format!(
+                "{LABEL} dependency source `{}` requires a `[dependencies]` root requirement",
+                source.name
+            )));
+        }
+    }
+    Ok(sources)
+}
+
+fn parse_rust_dependencies(table: TableReader<'_>) -> Result<Vec<RustDependency>, Vec<Diagnostic>> {
+    if table.entries.len() > MAX_RUST_DEPENDENCIES {
+        return Err(capacity("rust_dependencies", MAX_RUST_DEPENDENCIES));
+    }
+    let mut dependencies = Vec::with_capacity(table.entries.len());
+    for (name, value) in table.entries {
+        if !valid_rust_dependency_name(name) {
+            return Err(grammar(format!(
+                "{LABEL} Rust dependency names must match lowercase Cargo package names [a-z][a-z0-9_-]*; found `{name}`"
+            )));
+        }
+        let Value::List(mut values) = value else {
+            return Err(grammar(format!(
+                "{LABEL} Rust dependency `{name}` must be an array whose first item is an exact version and whose remaining items are feature names"
+            )));
+        };
+        if values.is_empty() {
+            return Err(grammar(format!(
+                "{LABEL} Rust dependency `{name}` requires an exact `=x.y.z` version"
+            )));
+        }
+        let version = values.remove(0);
+        if !version.starts_with('=')
+            || package_range::parse_range(&version, dependency_range_error).is_err()
+        {
+            return Err(grammar(format!(
+                "{LABEL} Rust dependency `{name}` version must use exact `=x.y.z` syntax"
+            )));
+        }
+        if !values.windows(2).all(|pair| pair[0] < pair[1])
+            || values.iter().any(|feature| !valid_rust_feature(feature))
+        {
+            return Err(grammar(format!(
+                "{LABEL} Rust dependency `{name}` features must be strictly byte-sorted Cargo feature names"
+            )));
+        }
+        dependencies.push(RustDependency {
+            name: name.to_owned(),
+            version,
+            features: values,
+        });
+    }
+    if !dependencies
+        .windows(2)
+        .all(|pair| pair[0].name < pair[1].name)
+    {
+        return Err(grammar(format!(
+            "{LABEL} Rust dependencies must be strictly byte-sorted by name"
+        )));
+    }
+    let mut crate_idents = dependencies
+        .iter()
+        .map(RustDependency::crate_ident)
+        .collect::<Vec<_>>();
+    crate_idents.sort();
+    if crate_idents.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(grammar(format!(
+            "{LABEL} Rust dependency names collide after Cargo maps `-` to `_`"
+        )));
+    }
+    Ok(dependencies)
+}
+
+fn valid_rust_dependency_name(name: &str) -> bool {
+    (1..=64).contains(&name.len())
+        && name
+            .bytes()
+            .next()
+            .is_some_and(|byte| byte.is_ascii_lowercase())
+        && name.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_')
+        })
+        && !name.ends_with(['-', '_'])
+}
+
+fn valid_rust_feature(feature: &str) -> bool {
+    (1..=64).contains(&feature.len())
+        && feature
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'/' | b'.'))
+}
+
 fn validate_target_matrix(matrix: Vec<String>) -> Result<Vec<String>, Vec<Diagnostic>> {
     if matrix.is_empty() {
         return Err(grammar(format!(
@@ -679,7 +897,7 @@ fn validate_target_matrix(matrix: Vec<String>) -> Result<Vec<String>, Vec<Diagno
 /// Render the canonical table layout. Empty optional tables are omitted, and
 /// the `profile` key is omitted for the scalar contract.
 pub(super) fn render(manifest: &ProjectManifest) -> String {
-    let mut blocks = Vec::with_capacity(8);
+    let mut blocks = Vec::with_capacity(10);
     blocks.push(format!("schema = \"{PACKAGE_MANIFEST_SCHEMA}\"\n"));
     let mut package = format!(
         "[package]\nname = \"{}\"\nversion = \"{}\"\n",
@@ -720,6 +938,26 @@ pub(super) fn render(manifest: &ProjectManifest) -> String {
         let mut block = String::from("[dependencies]\n");
         for dependency in &manifest.dependencies {
             block.push_str(&format!("{} = \"{}\"\n", dependency.name, dependency.range));
+        }
+        blocks.push(block);
+    }
+    if !manifest.dependency_sources.is_empty() {
+        let mut block = String::from("[dependency-sources]\n");
+        for source in &manifest.dependency_sources {
+            block.push_str(&format!("{} = \"{}\"\n", source.name, source.path));
+        }
+        blocks.push(block);
+    }
+    if !manifest.rust_dependencies.is_empty() {
+        let mut block = String::from("[rust-dependencies]\n");
+        for dependency in &manifest.rust_dependencies {
+            let mut values = vec![dependency.version.clone()];
+            values.extend(dependency.features.iter().cloned());
+            block.push_str(&format!(
+                "{} = {}\n",
+                dependency.name,
+                super::render_array(&values)
+            ));
         }
         blocks.push(block);
     }
@@ -784,6 +1022,17 @@ impl ProjectManifest {
     /// admits their grammar and rejects any project build that declares one.
     pub fn dependencies(&self) -> &[PackageDependency] {
         &self.dependencies
+    }
+
+    /// Exact local Subject-v3 files that close ordinary SEMAPRAX dependency
+    /// resolution without registry or ambient-cache access.
+    pub fn dependency_sources(&self) -> &[PackageDependencySource] {
+        &self.dependency_sources
+    }
+
+    /// Exact crates.io dependencies carried into a generated Native Rust SDK.
+    pub fn rust_dependencies(&self) -> &[RustDependency] {
+        &self.rust_dependencies
     }
 
     /// The declared `[targets] matrix`, or `None` when the manifest leaves every

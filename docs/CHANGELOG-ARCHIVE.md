@@ -345,7 +345,7 @@ Audience: maintainers and historians requiring chronological context.
   helpers in `src/source_verify/hints.rs`; `tests/language/verifier_hints.rs`
   pins each case and the no-hint baselines.
 
-## 0.3.0 — 2026-09-04
+## 0.3.5 — 2026-09-04
 
 - Fixed the owning `add_record_field` Bytes lane, which emitted
   `bytes_copy(array_as_slice([...]))` and was rejected by its own admission:

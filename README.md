@@ -8,7 +8,7 @@ An experimental systems programming language with a stable semantic program
 graph designed for humans and software agents.
 
 [![CI](https://github.com/wavect/semaprax/actions/workflows/ci.yml/badge.svg)](https://github.com/wavect/semaprax/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.3.0-7c3aed.svg)](Cargo.toml)
+[![Version](https://img.shields.io/badge/version-0.3.5-7c3aed.svg)](Cargo.toml)
 [![Status](https://img.shields.io/badge/status-pre--alpha-f59e0b.svg)](#project-status)
 [![Rust](https://img.shields.io/badge/Rust-1.88%2B-000000.svg?logo=rust)](Cargo.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb.svg)](LICENSE)
@@ -50,7 +50,7 @@ failed command means.
 ### Releases and changelog
 
 The published tag is the
-[v0.3.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.0)
+[v0.3.5 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.5)
 smoke-test archives, SHA256 checksums, and release evidence in the
 [release process](docs/RELEASE-PROCESS.md). The
 development changelog is now summarized in [CHANGELOG.md](CHANGELOG.md),
@@ -150,10 +150,15 @@ semaprax build examples/calculator-project/semaprax.toml \
   --target web -o target/calculator-project-web
 ```
 
-The current `semaprax.toml` profile names a closed source set, entry and test
-modules, and selected exports. It is a bounded project input, not a dependency
-manager or package registry. See [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md)
-and its additive versioned extensions for exact limits.
+The extensible `semaprax.manifest.v1` layout can also name exact local
+Subject-v3 files for a complete SEMAPRAX dependency closure and exact Cargo
+crate inputs for the generated Native Rust SDK. There is no crate allowlist:
+typed `import rust fn` adapters can invoke any declared crate while keeping its
+Rust-only API and authority outside checked SEMAPRAX code. The compiler performs no
+implicit acquisition or registry access; see [Project Dependencies
+v1](docs/PROJECT-DEPENDENCIES-V1.md) for the manifest shape, replay boundary,
+and Cargo handoff. [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md) owns the
+underlying bounded project contract.
 
 The additive library-only [Offline Multi-Package Source Capsule v1](docs/OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md)
 authenticates a narrow caller-owned, effect-free scalar package source closure
@@ -264,7 +269,7 @@ and [Public Owned UTF-8 API v1](docs/PUBLIC-OWNED-UTF8-API-V1.md).
 
 ## Project status
 
-**Release:** [v0.3.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.0) · **Changelog:** [CHANGELOG.md](CHANGELOG.md) · **Maturity:** pre-alpha research · **Overall goal:**
+**Release:** [v0.3.5 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.5) · **Changelog:** [CHANGELOG.md](CHANGELOG.md) · **Maturity:** pre-alpha research · **Overall goal:**
 Partial
 
 SEMAPRAX has executable vertical slices across its language, semantic graph,

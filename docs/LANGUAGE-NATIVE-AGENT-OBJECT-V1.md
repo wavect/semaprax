@@ -221,6 +221,7 @@ let definition = compiled.definition();
 let graph = compiled.graph();
 let profile = compiled.runtime_v1_profile();
 semaprax::agent_definition::verify_agent_graph_bundle(source, profile, graph.canonical_json())?;
+let agent = compiled.instantiate(host, cancellation)?;
 ```
 
 `AgentDefinition`, `AgentGraph`, and `CompiledAgentDefinition` expose only
@@ -228,6 +229,13 @@ immutable canonical source, identities, digests, and the compatibility
 projection. They expose no constructor that can bypass compiler admission and
 no provider, tool, filesystem, process, network, approval, or publication
 authority.
+
+The additive [Agent Payment Harness v1](AGENT-PAYMENT-HARNESS-V1.md) binds this
+exact compilation product to one independently admitted Economic Agent Policy,
+constructs Runtime v1 without caller-side profile extraction, and carries a
+completed final message into the existing authority-separated payment state
+machine. It does not change the v1 graph bytes or imply language-level
+transition execution.
 
 ## Diagnostics
 

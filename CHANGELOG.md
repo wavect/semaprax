@@ -183,6 +183,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 - `test` treats missing operands as domain failures rather than usage errors,
   `--max-steps` uses one closed usage-error range, and failed project summaries
   distinguish `main` from their consistently counted named cases.
+- Added a replayable Agent Payment Graph and unified injected-host harness that
+  compiles one AgentDefinition into Runtime v1, binds an independently admitted
+  Economic Agent Policy, and carries a completed canonical Payment Intent into
+  the existing approval/custody/broadcast/reconciliation state machine. The
+  graph binds all three semantic digests and grants no model, wallet, signing,
+  network, journal, approval, custody, or publication authority.
+- Added exact project dependency inputs: scalar Package Manifest projects can
+  replay and link a complete project-local Subject-v3 SEMAPRAX closure across
+  check, test, run, analysis, and build routes, while generated Native Rust SDK
+  packages carry exact Cargo versions/features and deterministic crate
+  re-exports. An offline executable consumer now proves that a non-allowlisted
+  crate can implement a typed `import rust fn` adapter and return its result
+  through a SEMAPRAX export. Both routes remain bounded, authenticated, and
+  free of implicit registry or network authority.
 - Deepened four existing standard-library packages without widening ambient
   authority: `std.time` rounds durations upward and measures elapsed
   milliseconds, `std.path`
@@ -615,7 +629,7 @@ format: `Unreleased` then release buckets, grouped by impact.
   helpers in `src/source_verify/hints.rs`; `tests/language/verifier_hints.rs`
   pins each case and the no-hint baselines.
 
-## 0.3.0 — 2026-09-04
+## 0.3.5 — 2026-09-04
 
 - Fixed the owning `add_record_field` Bytes lane, which emitted
   `bytes_copy(array_as_slice([...]))` and was rejected by its own admission:
@@ -5602,7 +5616,7 @@ format: `Unreleased` then release buckets, grouped by impact.
   `SPX-B104` claim.
 - Migrated browser manifests from `semaprax.web.v2` to `semaprax.web.v3`. Version 3 retains module, graph revision, Wasm entry, and capabilities while adding the required `owned_abi` object with schema `semaprax.wasm-owned.v1` and a declaration-ordered function mapping; scalar-only packages use an empty function array. Version-2-only consumers must reject or explicitly migrate rather than inferring ownership ABI metadata.
 
-## 0.3.0
+## 0.3.5
 
 This is the most recent published tag and the full historical changelog is archived in
 [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).

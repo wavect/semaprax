@@ -111,6 +111,13 @@ pub(super) fn extend_sources(
     let mut pending = Vec::new();
     for dependency in manifest.dependencies() {
         let Some(package) = package(dependency.name()) else {
+            if manifest
+                .dependency_sources()
+                .iter()
+                .any(|source| source.name() == dependency.name())
+            {
+                continue;
+            }
             return Err(unresolved(format!(
                 "dependency `{}` is not a compiler-bundled standard-library package",
                 dependency.name()
@@ -148,9 +155,13 @@ fn package(name: &str) -> Option<&'static BundledPackage> {
     PACKAGES.iter().find(|package| package.name == name)
 }
 
+pub(super) fn is_bundled(name: &str) -> bool {
+    package(name).is_some()
+}
+
 fn unresolved(message: String) -> Vec<Diagnostic> {
     vec![Diagnostic::io("SPX-J121", message).with_help(
-        "use a bundled `std.*` dependency at version 0.1.0, or run `semaprax resolve` for an ordinary package; resolved ordinary packages are not yet linked by Project builds",
+        "use a bundled `std.*` dependency at version 0.1.0, or list an ordinary package's complete exact Subject-v3 closure under `[dependency-sources]`",
     )]
 }
 

@@ -6,12 +6,11 @@ use super::intent::{admit_intent, parse_intent};
 use super::journal::{
     clone_journal_bounded, BroadcastReceipt, Journal, JournalState, Reconciliation,
 };
-use super::policy::parse_policy;
 use super::replay::{cas_journal, cumulative_usage, diagnostic_terminal, finish_run};
 use super::validate::{admitted_now_from, g212, g216, g217, info, terminal_floor};
 use super::{
-    Budget, EconomicAgent, EconomicAgentHost, EconomicRollingReservationUpdate, EconomicRun, Event,
-    Intent, MAX_BUILDER_BYTES, MAX_JSON_DEPTH,
+    admit_policy_source, Budget, EconomicAgent, EconomicAgentHost,
+    EconomicRollingReservationUpdate, EconomicRun, Event, Intent, MAX_JSON_DEPTH,
 };
 use crate::agent_runtime::{AgentCancellation, AgentRun, AgentRunStatus};
 use crate::bounded_output::{active_remaining, reserve_active, set_active_floor, with_limit_usage};
@@ -35,23 +34,12 @@ impl<H: EconomicAgentHost> EconomicAgent<H> {
         host: H,
         cancellation: AgentCancellation,
     ) -> Result<Self, Vec<Diagnostic>> {
-        let (result, overflowed, consumed) = with_limit_usage(MAX_BUILDER_BYTES, || {
-            if !reserve_active(policy.len().saturating_mul(MAX_JSON_DEPTH + 2)) {
-                return Err(g216("builder_bytes", MAX_BUILDER_BYTES as u64));
-            }
-            parse_policy(policy)
-        });
-        if overflowed {
-            return Err(vec![g216("builder_bytes", MAX_BUILDER_BYTES as u64)]);
-        }
-        result
-            .map(|policy| Self {
-                policy,
-                retained_policy_bytes: consumed,
-                host,
-                cancellation,
-            })
-            .map_err(|diagnostic| vec![diagnostic])
+        admit_policy_source(policy).map(|(policy, consumed)| Self {
+            policy,
+            retained_policy_bytes: consumed,
+            host,
+            cancellation,
+        })
     }
 
     /// Executes one canonical Payment Intent proposed by a completed sealed Agent run.

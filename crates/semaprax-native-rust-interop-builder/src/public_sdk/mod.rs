@@ -609,7 +609,7 @@ mod project;
 
 pub use build::build_native_rust_sdk;
 pub use owned_data::build_native_rust_owned_data_sdk;
-pub use project::build_project_native_rust_sdk;
+pub use project::{build_authenticated_project_native_rust_sdk, build_project_native_rust_sdk};
 
 #[cfg(test)]
 mod tests;

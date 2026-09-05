@@ -15,6 +15,7 @@ serde_json = "=1.0.151"
 [target.'cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))'.dependencies]
 semaprax-native-rust-owned-data-package = { version = "=0.1.0", path = "../semaprax-native-rust-owned-data-package" }
 semaprax-native-rust-interop-platform = { version = "=0.1.0", path = "../semaprax-native-rust-interop-platform" }
+semaprax-native-rust-interop = { version = "=0.1.0", path = "../semaprax-native-rust-interop-builder" }
 
 [target.'cfg(windows)'.dependencies]
 semaprax-project-revision-store-windows-sys = { version = "=0.1.0", path = "../semaprax-project-revision-store-windows-sys" }

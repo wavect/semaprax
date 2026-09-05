@@ -85,6 +85,7 @@ Audience: all documentation readers.
 - [Project Lock v1](PROJECT-LOCK-V1.md)
 - [Project Test Cases and Runtime Failure Report v1](PROJECT-TEST-CASES-V1.md)
 - [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)
+- [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md)
 - [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md)
 - [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Project Candidates and Semantic Change IR v1](PROJECT-CANDIDATES-V1.md)
@@ -302,6 +303,7 @@ Audience: all documentation readers.
 ## Private and proof-only runtime contracts
 
 - [Language-native Agent Object and unified harness v1](LANGUAGE-NATIVE-AGENT-OBJECT-V1.md)
+- [Agent Payment Harness v1](AGENT-PAYMENT-HARNESS-V1.md)
 - [Bounded native Agent Runtime](AGENT-RUNTIME-V1.md)
 - [Agent context economics](AGENT-ECONOMICS-V1.md)
 - [Agent task economics v1](AGENT-TASK-ECONOMICS-V1.md)

@@ -49,12 +49,9 @@ impl Fixture {
             .stderr(Stdio::piped())
             .spawn()
             .unwrap();
-        child
-            .stdin
-            .take()
-            .unwrap()
-            .write_all(input.as_bytes())
-            .unwrap();
+        let mut stdin = child.stdin.take().unwrap();
+        let _ = stdin.write_all(input.as_bytes());
+        drop(stdin);
         child.wait_with_output().unwrap()
     }
     fn sources(&self) -> Vec<Vec<u8>> {

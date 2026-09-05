@@ -14,6 +14,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   the existing approval/custody/broadcast/reconciliation state machine. The
   graph binds all three semantic digests and grants no model, wallet, signing,
   network, journal, approval, custody, or publication authority.
+- Added exact project dependency inputs: scalar Package Manifest projects can
+  replay and link a complete project-local Subject-v3 SEMAPRAX closure across
+  check, test, run, analysis, and build routes, while generated Native Rust SDK
+  packages carry exact Cargo versions/features and deterministic crate
+  re-exports. Both routes remain bounded, authenticated, and free of implicit
+  registry or network authority.
 - Deepened four existing standard-library packages without widening ambient
   authority: `std.time` rounds durations upward and measures elapsed
   milliseconds, `std.path`

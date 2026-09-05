@@ -150,10 +150,13 @@ semaprax build examples/calculator-project/semaprax.toml \
   --target web -o target/calculator-project-web
 ```
 
-The current `semaprax.toml` profile names a closed source set, entry and test
-modules, and selected exports. It is a bounded project input, not a dependency
-manager or package registry. See [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md)
-and its additive versioned extensions for exact limits.
+The extensible `semaprax.manifest.v1` layout can also name exact local
+Subject-v3 files for a complete SEMAPRAX dependency closure and exact Cargo
+crate inputs for the generated Native Rust SDK. The compiler performs no
+implicit acquisition or registry access; see [Project Dependencies
+v1](docs/PROJECT-DEPENDENCIES-V1.md) for the manifest shape, replay boundary,
+and Cargo handoff. [Project Manifest v1](docs/PROJECT-MANIFEST-V1.md) owns the
+underlying bounded project contract.
 
 The additive library-only [Offline Multi-Package Source Capsule v1](docs/OFFLINE-MULTI-PACKAGE-SOURCE-CAPSULE-V1.md)
 authenticates a narrow caller-owned, effect-free scalar package source closure

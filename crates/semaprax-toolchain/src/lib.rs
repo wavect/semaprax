@@ -74,6 +74,13 @@ pub fn build_rust(snapshot: &mut ProjectSnapshot, output: &Path) -> Result<(), V
     use semaprax::project::ProjectNativeRustPackageMode;
     use semaprax_native_rust_owned_data_package as package;
 
+    if snapshot.manifest().schema() == semaprax::project::PROJECT_SCHEMA {
+        return semaprax_native_rust_interop::build_authenticated_project_native_rust_sdk(
+            snapshot, output,
+        )
+        .map(|_| ());
+    }
+
     snapshot.build_rust_with(output, |subject, output| {
         let (mode, version) = match subject.mode() {
             ProjectNativeRustPackageMode::OwnedData => (package::PackageMode::ProjectV8, "v8"),

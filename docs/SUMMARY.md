@@ -85,6 +85,7 @@ Audience: all documentation readers.
 - [Project Lock v1](PROJECT-LOCK-V1.md)
 - [Project Test Cases and Runtime Failure Report v1](PROJECT-TEST-CASES-V1.md)
 - [Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)
+- [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md)
 - [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md)
 - [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Project Candidates and Semantic Change IR v1](PROJECT-CANDIDATES-V1.md)

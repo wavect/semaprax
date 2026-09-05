@@ -1268,6 +1268,11 @@ It grants neither a reusable authority token nor raw Git-source writes.
 `src/project/manifest.rs` parses the bounded `semaprax.toml` profiles; its
 `tables` submodule parses the extensible `semaprax.manifest.v1` table layout
 and lowers it onto the same frozen profile contracts.
+`src/project/external_dependencies.rs` replays the exact held Subject-v3
+inventory, proves that it is precisely the per-target selected closure, and
+lends only embedded canonical source to the linker. Rust dependencies remain
+outside that workspace and are rendered only into the authenticated generated
+SDK Cargo package.
 `src/project/` owns held input authority, immutable revisions, semantic
 admission, linking, execution, builds, npm carriers, rename planning, and the
 unpublished native Rust SDK bridge.
@@ -1745,12 +1750,13 @@ a supported language, CLI, ABI, or runtime surface.
 | Exact Project semantic references | `src/project/image_reference.rs` |
 | Exact Project target reuse | `src/project/target_cache.rs` |
 | Immutable Project revision inputs | `src/project_revision_store.rs`, `src/project_revision_store/unix.rs` |
-| Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/` |
+| Generated Rust package authority | `src/project/native_sdk.rs`, `crates/semaprax-native-rust-owned-data-package/`, `crates/semaprax-native-rust-interop-builder/`; exact Project crate inputs originate in `src/project/manifest/tables.rs` |
 | Signed doctor generation store | `crates/semaprax-doctor-release/src/install.rs`, `crates/semaprax-doctor-release/src/install/` |
 | Interpreter | `src/interpreter.rs`, `src/interpreter/prepared.rs`, `src/hosted_interpreter.rs`, `src/project/prepared_interpreter/`, `src/project/prepared_interpreter/trace/` |
 | Native backend | `src/codegen.rs`, `src/codegen/native_*` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
 | Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules; candidate replay/conflict projection in `src/project/candidate/package_consumer_replay.rs` |
+| Project dependency admission | `src/project/external_dependencies.rs` for exact ordinary Subject-v3 closure replay and `src/project/standard_dependencies.rs` for compiler-bundled packages |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
 | Standard library | `std/<package>/` Project packages, `src/project/standard_dependencies.rs` for closed bundled dependency expansion, `std/packages.json` tier and target metadata, generated `std/catalog.json`; gate `tests/project/standard_library.rs` |

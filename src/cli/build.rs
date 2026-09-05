@@ -241,7 +241,7 @@ pub(crate) fn absolute_rust_output(path: &Path) -> Result<PathBuf, Diagnostic> {
         std::env::current_dir()
             .map_err(|error| {
                 parent_error(format!(
-                    "cannot resolve Project v8 Rust output {}: {error}",
+                    "cannot resolve Project Rust output {}: {error}",
                     path.display()
                 ))
             })?
@@ -256,14 +256,14 @@ pub(crate) fn absolute_rust_output(path: &Path) -> Result<PathBuf, Diagnostic> {
             Component::CurDir => {}
             Component::ParentDir => {
                 return Err(parent_error(
-                    "Project v8 Rust output may not contain parent traversal",
+                    "Project Rust output may not contain parent traversal",
                 ))
             }
         }
     }
     if normalized.file_name().is_none() {
         return Err(parent_error(
-            "Project v8 Rust output must name one package directory",
+            "Project Rust output must name one package directory",
         ));
     }
     Ok(normalized)
@@ -272,15 +272,15 @@ pub(crate) fn absolute_rust_output(path: &Path) -> Result<PathBuf, Diagnostic> {
 pub(crate) fn bind_rust_output_parent(path: &Path) -> Result<PathBuf, Diagnostic> {
     #[cfg(windows)]
     {
-        let name = path.file_name().ok_or_else(|| {
-            parent_error("Project v8 Rust output must name one package directory")
-        })?;
+        let name = path
+            .file_name()
+            .ok_or_else(|| parent_error("Project Rust output must name one package directory"))?;
         let parent = path.parent().ok_or_else(|| {
-            parent_error("Project v8 Rust output must have an explicit parent directory")
+            parent_error("Project Rust output must have an explicit parent directory")
         })?;
         let canonical_parent = parent.canonicalize().map_err(|error| {
             parent_error(format!(
-                "cannot bind Project v8 Rust output parent {}: {error}",
+                "cannot bind Project Rust output parent {}: {error}",
                 parent.display()
             ))
         })?;

@@ -19,7 +19,22 @@ fn arguments(parameters: &[Parameter]) -> String {
         .join(", ")
 }
 
-fn render_lib(facts: &DescriptorFacts, capabilities: &[String]) -> String {
+fn cargo_features(features: &[String]) -> String {
+    format!(
+        "[{}]",
+        features
+            .iter()
+            .map(|feature| format!("\"{feature}\""))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+fn render_lib(
+    facts: &DescriptorFacts,
+    capabilities: &[String],
+    rust_dependencies: &[semaprax::project::RustDependency],
+) -> String {
     let mut output = String::with_capacity(65_536);
     output.push_str("#[path=\"semaprax_native_rust_interop.rs\"]mod inner;\nmod public_api{#![forbid(unsafe_code)]\nuse super::inner;\nuse core::num::NonZeroU32;\n#[repr(u8)]#[derive(Clone,Copy,Debug,Eq,PartialEq)]pub enum NativeRustSdkStatusClass{Semantic=1,Contract=2,Import=3,Adapter=4}\n#[derive(Debug,Eq,PartialEq)]pub enum NativeRustSdkImportResult<T>{Success(T),Status{code:NonZeroU32,class:NativeRustSdkStatusClass,retryable:bool},HostFailure}\n#[derive(Debug,Eq,PartialEq)]pub enum NativeRustSdkCallError{Semantic{domain_id:&'static str,code:NonZeroU32,class:NativeRustSdkStatusClass,retryable:bool},HostFailed,HostPanicked,AdapterRejected}\n#[derive(Clone,Copy,Debug,Eq,PartialEq)]pub struct NativeRustSdkAdmissionError;\n");
     output.push_str("pub trait NativeRustSdkImports{");
@@ -77,16 +92,46 @@ fn render_lib(facts: &DescriptorFacts, capabilities: &[String]) -> String {
         json_string(&mut output, capability);
     }
     output.push_str("];\n}\npub use public_api::*;\n");
+    for (index, dependency) in rust_dependencies.iter().enumerate() {
+        let ident = dependency.crate_ident();
+        writeln!(
+            output,
+            "pub use ::spx_rust_dependency_{index} as rust_dependency_{ident};"
+        )
+        .expect("writing generated Rust cannot fail");
+    }
     output
 }
 
 pub(super) fn render_package_sources(
     facts: &DescriptorFacts,
     capabilities: &[String],
+    rust_dependencies: &[semaprax::project::RustDependency],
 ) -> PackageSources {
-    let cargo_toml = format!(
+    let mut cargo_toml = format!(
         "[package]\nname = \"{CRATE_NAME}\"\nversion = \"{CRATE_VERSION}\"\nedition = \"2021\"\nrust-version = \"1.85\"\npublish = false\nbuild = \"build.rs\"\n\n[lib]\npath = \"src/lib.rs\"\n\n[workspace]\n"
     );
+    if !rust_dependencies.is_empty() {
+        cargo_toml.push_str("\n[dependencies]\n");
+        for (index, dependency) in rust_dependencies.iter().enumerate() {
+            write!(
+                cargo_toml,
+                "spx_rust_dependency_{index} = {{ package = \"{}\", version = \"{}\"",
+                dependency.name(),
+                dependency.version()
+            )
+            .expect("writing generated Cargo manifest cannot fail");
+            if !dependency.features().is_empty() {
+                write!(
+                    cargo_toml,
+                    ", features = {}",
+                    cargo_features(dependency.features())
+                )
+                .expect("writing generated Cargo manifest cannot fail");
+            }
+            cargo_toml.push_str(" }\n");
+        }
+    }
     let archive = if cfg!(windows) {
         "semaprax_native_rust_sdk.lib"
     } else {
@@ -99,7 +144,7 @@ pub(super) fn render_package_sources(
     PackageSources {
         cargo_toml,
         build_rs,
-        lib_rs: render_lib(facts, capabilities),
+        lib_rs: render_lib(facts, capabilities, rust_dependencies),
     }
 }
 

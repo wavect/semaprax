@@ -325,6 +325,58 @@ fn configured_effectful_project_build_emits_one_canonical_result() {
     assert!(output.join("semaprax.native-rust-sdk.json").is_file());
 }
 
+#[test]
+fn configured_project_rust_dependency_compiles_offline_from_an_exact_lock() {
+    if !effectful_tools_available() || std::env::var_os("CARGO").is_none() {
+        return;
+    }
+    let root = TestRoot::new();
+    let project = root.0.join("project");
+    fs::create_dir_all(project.join("src")).unwrap();
+    let example = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/calculator-project");
+    for source in ["app.spx", "core.spx", "tests.spx"] {
+        fs::copy(
+            example.join("src").join(source),
+            project.join("src").join(source),
+        )
+        .unwrap();
+    }
+    fs::write(
+        project.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"calculator\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"calculator.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\ntests = [\"calculator.tests\"]\n\n[exports]\nweb = [\"calculator.add\", \"calculator.divide\", \"calculator.is-negative\", \"calculator.multiply\", \"calculator.not\", \"calculator.subtract\"]\n\n[rust-dependencies]\nsame-file = [\"=1.0.6\"]\n",
+    )
+    .unwrap();
+    let generated = root.0.join("generated-sdk");
+    let result = binary()
+        .args(["project", "--manifest-path"])
+        .arg(project.join("semaprax.toml"))
+        .arg("--output")
+        .arg(&generated)
+        .output()
+        .unwrap();
+    assert!(result.status.success(), "{}", stderr(&result));
+    let cargo_toml = fs::read_to_string(generated.join("Cargo.toml")).unwrap();
+    assert!(cargo_toml
+        .contains("spx_rust_dependency_0 = { package = \"same-file\", version = \"=1.0.6\" }"));
+    let lib = fs::read_to_string(generated.join("src/lib.rs")).unwrap();
+    assert!(lib.contains("pub use ::spx_rust_dependency_0 as rust_dependency_same_file;"));
+
+    let cargo = std::env::var_os("CARGO").unwrap();
+    let lock = Command::new(&cargo)
+        .args(["generate-lockfile", "--offline", "--manifest-path"])
+        .arg(generated.join("Cargo.toml"))
+        .output()
+        .unwrap();
+    assert!(lock.status.success(), "{}", stderr(&lock));
+    let check = Command::new(cargo)
+        .args(["check", "--locked", "--offline", "--manifest-path"])
+        .arg(generated.join("Cargo.toml"))
+        .env("CARGO_TARGET_DIR", root.0.join("cargo-target"))
+        .output()
+        .unwrap();
+    assert!(check.status.success(), "{}", stderr(&check));
+}
+
 const CALLBACK_MANIFEST: &str = "schema = \"semaprax.project.v1\"\nname = \"callback\"\nentry = \"callback.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"callback.apply\"]\ntests = [\"callback.tests\"]\n";
 
 const CALLBACK_APP: &str = r#"

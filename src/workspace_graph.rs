@@ -1,34 +1,23 @@
-//! Public read-only Workspace Semantic Graph over an authenticated managed
-//! workspace snapshot. The route holds the shared workspace lock through one
-//! bounded resolver pass, canonical bounded wire rendering, final
-//! authentication, and checked unlock; the fixed `workspace-graph` CLI prints
-//! that exact API body plus one terminal LF.
-//!
-//! This module exposes no parser, verifier, raw-source constructor, write,
-//! staging, ACTIVE-pivot, backend, or runtime authority.
+//! Bounded read-only Workspace Semantic Graph; no mutation or runtime authority.
 
 #![allow(
     dead_code,
     reason = "sealed validation and test-only replay seams remain non-public"
 )]
-
 mod expected_projection;
 mod operation_sidecar;
 mod owned_generics;
 mod package;
 mod retained_validation;
-
 use operation_sidecar::build_operation_sidecar;
 pub(crate) use operation_sidecar::project_operation_sidecar;
 #[cfg(test)]
 use retained_validation::validate_effect_and_capability_edges;
 use retained_validation::validate_retained_facts;
-
+use sha2::{Digest, Sha256};
 use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
-
-use sha2::{Digest, Sha256};
 
 use crate::ast::{
     Expr, ExprKind, Function, ModuleUse, ModuleUseKind, ParamMode, Program, Span, Type,
@@ -190,6 +179,7 @@ pub(crate) struct ProjectSemanticParts {
 pub(crate) struct ProjectWebRoots<'a> {
     pub(crate) stable_ids: &'a [String],
     pub(crate) profile: crate::project::ProjectProfile,
+    pub(crate) dependency_anchors: bool,
 }
 
 pub(crate) struct ProjectSemanticGraphArtifact {
@@ -1063,29 +1053,25 @@ impl WorkspaceGraphBuild {
         self.hir.module_paths.contains_key(module)
     }
 
-    /// Every checked function of this validated workspace, in module order. A
-    /// linked program keeps only its own call closure, so a reader of a
-    /// declaration outside it reads this rather than source text.
+    /// Every checked function of this validated workspace, in module order.
     pub(crate) fn validated_functions(&self) -> impl Iterator<Item = &hir::ResolvedFunction> {
         let modules = self.hir.modules.iter();
         modules.flat_map(|module| module.functions.iter())
     }
 
-    /// Consume one validated workspace build into the entry module's complete
-    /// provider closure and link its real scalar function bodies. This is a
-    /// private backend-preparation seam, not a new Workspace authority or a
-    /// general cross-file composition surface.
+    /// Link the entry module's complete scalar provider closure.
     pub(crate) fn linked_scalar_program(
         &self,
         entry_module: &str,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
-        self.linked_project_program(entry_module, crate::project::ProjectProfile::ScalarV1)
+        self.linked_project_program(
+            entry_module,
+            crate::project::ProjectProfile::ScalarV1,
+            false,
+        )
     }
 
-    /// Link an authenticated package's exact public scalar roots without
-    /// inheriting the Project profile's display-name requirement for `main`.
-    /// The byte-lowest selected `fn() -> i64` root is only the internal HIR
-    /// anchor; every selected root and its transitive callees is retained.
+    /// Link an authenticated package's exact public scalar roots.
     pub(crate) fn linked_package_scalar_exports(
         &self,
         root_module: &str,
@@ -1224,6 +1210,7 @@ impl WorkspaceGraphBuild {
         &self,
         entry_module: &str,
         profile: crate::project::ProjectProfile,
+        dependency_anchors: bool,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
         if profile.is_owned_api() {
             return self.linked_owned_data_api_program_with_roots(entry_module, &[]);
@@ -1318,15 +1305,23 @@ impl WorkspaceGraphBuild {
                 )]);
             }
             for function in &module.functions {
+                let dependency_anchor = dependency_anchors
+                    && module.path.starts_with("dependencies/")
+                    && module.module != entry_module
+                    && function.name == "main";
                 if profile == crate::project::ProjectProfile::ScalarV1
                     && module.module != entry_module
                     && function.name == "main"
+                    && !dependency_anchor
                 {
                     return Err(vec![graph_error(
                         "SPX-G172",
                         "workspace scalar provider modules may not declare `main`",
                     )
                     .with_help(PROVIDER_MAIN_HELP)]);
+                }
+                if dependency_anchor {
+                    continue;
                 }
                 let Some(fact) = self.hir.declarations.get(function.id.as_str()) else {
                     return Err(vec![graph_error(
@@ -1443,21 +1438,18 @@ impl WorkspaceGraphBuild {
         .map_err(|error| vec![error])
     }
 
-    /// Link the ordinary entry-provider closure plus exact persistent
-    /// function identities selected as additional roots. This is the Project
-    /// Web planning seam: a selected export need not be called by `main`, but
-    /// unrelated unselected functions outside the entry closure remain out of
-    /// the backend HIR.
+    /// Link the entry closure plus exact persistent additional roots.
     pub(crate) fn linked_scalar_program_with_roots(
         &self,
         entry_module: &str,
         additional_roots: &[String],
         profile: crate::project::ProjectProfile,
+        dependency_anchors: bool,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
         if profile.is_owned_api() {
             return self.linked_owned_data_api_program_with_roots(entry_module, additional_roots);
         }
-        let base = self.linked_project_program(entry_module, profile)?;
+        let base = self.linked_project_program(entry_module, profile, dependency_anchors)?;
         if additional_roots.is_empty() {
             return Ok(base);
         }
@@ -1935,9 +1927,7 @@ impl WorkspaceGraphBuild {
         .map_err(|error| vec![error])
     }
 
-    /// Consume one Phase-A graph build only after deriving both requested
-    /// closures. The returned programs retain independently validated HIR, but
-    /// their common provider bodies originate from this one graph build.
+    /// Consume one Phase-A graph after deriving both requested closures.
     pub(crate) fn into_linked_scalar_programs(
         self,
         entry_module: &str,
@@ -1949,10 +1939,7 @@ impl WorkspaceGraphBuild {
         Ok((entry, test))
     }
 
-    /// Consume one Project Phase-A build into its two executable closures and
-    /// one complete declared-project projection. The projection moves the
-    /// already validated HIR and graph edges; it never reparses or resolves a
-    /// source and it is not a managed Workspace authority.
+    /// Consume Project Phase A into executable closures and one projection.
     pub(crate) fn into_project_semantic_parts(
         self,
         workspace_revision: &str,
@@ -1962,7 +1949,12 @@ impl WorkspaceGraphBuild {
         test_module: &str,
         web_roots: ProjectWebRoots<'_>,
     ) -> Result<ProjectSemanticParts, Vec<Diagnostic>> {
-        self.validate_entire_project_workspace(entry_module, test_module, web_roots.profile)?;
+        self.validate_entire_project_workspace(
+            entry_module,
+            test_module,
+            web_roots.profile,
+            web_roots.dependency_anchors,
+        )?;
         if matches!(
             web_roots.profile,
             crate::project::ProjectProfile::LanguageCommandIoV1
@@ -2005,8 +1997,13 @@ impl WorkspaceGraphBuild {
             entry_module,
             web_roots.stable_ids,
             web_roots.profile,
+            web_roots.dependency_anchors,
         )?;
-        let test_program = self.linked_project_program(test_module, web_roots.profile)?;
+        let test_program = self.linked_project_program(
+            test_module,
+            web_roots.profile,
+            web_roots.dependency_anchors,
+        )?;
         let projection = self.into_project_projection(
             workspace_revision,
             source_facts,
@@ -2128,6 +2125,7 @@ impl WorkspaceGraphBuild {
         entry_module: &str,
         test_module: &str,
         profile: crate::project::ProjectProfile,
+        dependency_anchors: bool,
     ) -> Result<(), Vec<Diagnostic>> {
         validate_entry_module(entry_module)?;
         validate_entry_module(test_module)?;
@@ -2162,6 +2160,7 @@ impl WorkspaceGraphBuild {
                     .functions
                     .iter()
                     .any(|function| function.name == "main")
+                && !(dependency_anchors && module.path.starts_with("dependencies/"))
             {
                 return Err(vec![graph_error(
                     "SPX-G172",
@@ -2316,6 +2315,7 @@ impl WorkspaceGraphBuild {
             entry_module,
             test_module,
             crate::project::ProjectProfile::ScalarV1,
+            false,
         )
     }
 

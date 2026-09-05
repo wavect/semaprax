@@ -12,6 +12,7 @@ mod candidate;
 mod create;
 mod cxx_owned_data;
 mod execution;
+mod external_dependencies;
 mod flat_owned_record;
 mod image;
 mod image_coverage;
@@ -293,8 +294,9 @@ pub use incremental::{
 };
 use manifest::{capacity, grammar};
 pub use manifest::{
-    ManifestLayout, PackageDependency, ProjectManifest, MAX_DEPENDENCIES, MAX_MANIFEST_BYTES,
-    MAX_MODULE_BYTES, MAX_NAME_BYTES, MAX_PATH_BYTES, MAX_SOURCES, MAX_STABLE_ID_BYTES,
+    ManifestLayout, PackageDependency, PackageDependencySource, ProjectManifest, RustDependency,
+    MAX_DEPENDENCIES, MAX_DEPENDENCY_SOURCES, MAX_MANIFEST_BYTES, MAX_MODULE_BYTES, MAX_NAME_BYTES,
+    MAX_PATH_BYTES, MAX_RUST_DEPENDENCIES, MAX_SOURCES, MAX_STABLE_ID_BYTES,
     MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS, PACKAGE_MANIFEST_RESERVED_TABLES,
     PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_TABLES, PACKAGE_RESERVED_KEYS,
     PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
@@ -467,6 +469,7 @@ pub struct ProjectSnapshot {
     declared_inputs: Vec<DeclaredPathSelection>,
     held_manifest: HeldFile,
     held_sources: Vec<HeldFile>,
+    held_dependency_sources: Vec<HeldFile>,
     held_directories: Vec<HeldDirectory>,
     published_subject: Option<&'static str>,
     request_invalidation: Option<Vec<Diagnostic>>,
@@ -863,6 +866,9 @@ impl ProjectSnapshot {
         for source in &mut self.held_sources {
             source.recheck()?;
         }
+        for subject in &mut self.held_dependency_sources {
+            subject.recheck()?;
+        }
         Ok(())
     }
 }
@@ -1047,6 +1053,86 @@ fn load_snapshot_building<T>(
         declared_inputs.push(selection);
     }
 
+    let mut held_dependency_sources = Vec::with_capacity(manifest.dependency_sources().len());
+    let mut dependency_inputs = Vec::with_capacity(manifest.dependency_sources().len());
+    let mut total_subject_bytes = 0usize;
+    for dependency in manifest.dependency_sources() {
+        let relative_path = Path::new(dependency.path());
+        let mut ancestor = root.clone();
+        if let Some(parent) = relative_path.parent() {
+            for component in parent.components() {
+                ancestor.push(component.as_os_str());
+                if seen_directories.insert(ancestor.clone()) {
+                    if seen_directories.len() > MAX_HELD_DIRECTORIES {
+                        return Err(capacity("ancestor_directories", MAX_HELD_DIRECTORIES));
+                    }
+                    held_directories.push(HeldDirectory::open(ancestor.clone())?);
+                }
+            }
+        }
+        let selection =
+            DeclaredPathSelection::open(&root.join(relative_path), "SEMAPRAX dependency subject")?;
+        let path = selection.canonical_path.clone();
+        let remaining_subject_bytes = crate::package_resolver_v2::MAX_TOTAL_SUBJECT_BYTES
+            .checked_sub(total_subject_bytes)
+            .ok_or_else(|| {
+                capacity(
+                    "dependency_subject_bytes",
+                    crate::package_resolver_v2::MAX_TOTAL_SUBJECT_BYTES,
+                )
+            })?;
+        let mut held = HeldFile::open(
+            path,
+            remaining_subject_bytes.min(crate::package_lock_v3::MAX_SUBJECT_BYTES),
+        )?;
+        if held.identity != selection.identity {
+            return Err(authentication(format!(
+                "SEMAPRAX dependency subject {} changed while opening",
+                dependency.name()
+            )));
+        }
+        if held.identity == held_manifest.identity
+            || held_sources
+                .iter()
+                .any(|existing| existing.identity == held.identity)
+            || held_dependency_sources
+                .iter()
+                .any(|existing: &HeldFile| existing.identity == held.identity)
+        {
+            return Err(authentication(
+                "Project manifest, sources, and dependency subjects must be distinct physical files",
+            ));
+        }
+        let bytes = held.utf8()?;
+        total_subject_bytes = total_subject_bytes
+            .checked_add(bytes.len())
+            .ok_or_else(|| {
+                capacity(
+                    "dependency_subject_bytes",
+                    crate::package_resolver_v2::MAX_TOTAL_SUBJECT_BYTES,
+                )
+            })?;
+        dependency_inputs.push(external_dependencies::HeldDependencySubject {
+            declared_name: dependency.name().to_owned(),
+            bytes,
+        });
+        held_dependency_sources.push(held);
+        declared_inputs.push(selection);
+    }
+    let dependency_sources = external_dependencies::resolve(&manifest, dependency_inputs)?;
+    for source in &dependency_sources {
+        total_source_bytes = total_source_bytes
+            .checked_add(source.source.len())
+            .ok_or_else(|| capacity("total_source_bytes", MAX_TOTAL_SOURCE_BYTES))?;
+        if total_source_bytes > MAX_TOTAL_SOURCE_BYTES {
+            return Err(capacity("total_source_bytes", MAX_TOTAL_SOURCE_BYTES));
+        }
+    }
+    workspace_sources.extend(dependency_sources);
+    if workspace_sources.len() > MAX_SOURCES {
+        return Err(capacity("resolved_sources", MAX_SOURCES));
+    }
+
     let declared_sources = manifest.sources().to_vec();
     let (revision, result) = build(manifest, workspace_sources)
         .map_err(|errors| source_hint::hint_unlisted_module(errors, &root, &declared_sources))?;
@@ -1056,6 +1142,7 @@ fn load_snapshot_building<T>(
         declared_inputs,
         held_manifest,
         held_sources,
+        held_dependency_sources,
         held_directories,
         published_subject: None,
         request_invalidation: None,

@@ -77,6 +77,7 @@ fn finish_build(
         crate::workspace_graph::ProjectWebRoots {
             stable_ids: manifest.web_exports(),
             profile: manifest.project_profile(),
+            dependency_anchors: !manifest.dependency_sources().is_empty(),
         },
     )?;
     let entry_program = semantic_parts.entry_program;

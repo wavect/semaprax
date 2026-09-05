@@ -223,9 +223,11 @@ The unpublished builder crate exposes the narrow Rust API
 `build_native_rust_sdk(source, source_path, NativeRustSdkOptions, output)`.
 It constructs the existing canonical private Spec internally, invokes unchanged
 private A+B exactly once, and publishes a fresh local generated Cargo package.
-The generated package is named `semaprax-generated-native-rust-sdk`, has no
-Rust dependencies, is not registry-publishable, and fixes this nine-file
-inventory:
+The generated package is named `semaprax-generated-native-rust-sdk`, is not
+registry-publishable, and fixes this nine-file inventory. A standalone source
+build has no Rust dependencies; a scalar Project build carries the exact
+`[rust-dependencies]` declared by its authenticated Package Manifest as
+specified by [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md):
 
 - `Cargo.toml`
 - `build.rs`
@@ -362,10 +364,12 @@ consumers. It proves stable-ID behavior while requiring the Project,
 workspace, subject, and changed-source revisions to change; it deliberately
 does not claim whole-package byte equality across a semantic source rename.
 Hosted Ubuntu/macOS/Windows promotion is satisfied by the blocking Project
-Product Acceptance jobs in the exact run cited above. This entry point adds no
-root or installed/public CLI, registry, dependency, general Project SDK,
-capability, aggregate, resource, or publication-path claim beyond the existing
-bounded builder output. It does now carry an import selection, described next.
+Product Acceptance jobs in the exact run cited above. The unpublished
+`semaprax-full build --target rust` route now admits this scalar Project SDK;
+the standalone crates.io CLI remains unchanged. Exact Project-declared Cargo
+inputs are a consumer handoff, not registry acquisition or a general ABI,
+aggregate, resource, or support-promotion claim. The Project route also carries
+an import selection, described next.
 
 The Project route is no longer export-only. The subject's `imports` are the
 sorted native Rust imports declared by the authenticated entry program, and its

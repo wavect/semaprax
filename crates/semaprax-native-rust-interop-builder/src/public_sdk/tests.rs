@@ -180,7 +180,7 @@ fn generated_cargo_package_has_no_dependency_or_repository_escape() {
             exports: Vec::new(),
             imports: Vec::new(),
         };
-        let sources = render_package_sources(&facts, &[]);
+        let sources = render_package_sources(&facts, &[], &[]);
         assert!(sources.cargo_toml.contains("publish = false"));
         assert!(!sources.cargo_toml.contains("dependencies"));
         assert!(!sources.cargo_toml.contains("path = \"../"));
@@ -193,6 +193,42 @@ fn generated_cargo_package_has_no_dependency_or_repository_escape() {
             .contains("cargo:rustc-link-search=native=native"));
         assert!(!sources.build_rs.contains("eprintln!"));
     }
+}
+
+#[test]
+fn project_rust_dependencies_are_exact_and_publicly_reexported() {
+    let manifest = semaprax::project::ProjectManifest::parse(concat!(
+        "schema = \"semaprax.manifest.v1\"\n\n",
+        "[package]\nname = \"calculator\"\nversion = \"0.1.0\"\n\n",
+        "[modules]\nentry = \"calculator.app\"\n",
+        "sources = [\"src/app.spx\", \"src/tests.spx\"]\n",
+        "tests = [\"calculator.tests\"]\n\n",
+        "[exports]\nweb = [\"calculator.add\"]\n\n",
+        "[rust-dependencies]\n",
+        "same-file = [\"=1.0.6\"]\n",
+        "serde = [\"=1.0.228\", \"derive\", \"std\"]\n",
+    ))
+    .unwrap();
+    let facts = DescriptorFacts {
+        module: "calculator".into(),
+        source_revision: "sha256:00".into(),
+        target: "x86_64-unknown-linux-gnu".into(),
+        exports: Vec::new(),
+        imports: Vec::new(),
+    };
+    let sources = render_package_sources(&facts, &[], manifest.rust_dependencies());
+    assert!(sources.cargo_toml.contains(concat!(
+        "[dependencies]\n",
+        "spx_rust_dependency_0 = { package = \"same-file\", version = \"=1.0.6\" }\n",
+        "spx_rust_dependency_1 = { package = \"serde\", version = \"=1.0.228\", features = [\"derive\", \"std\"] }\n",
+    )));
+    assert!(sources
+        .lib_rs
+        .contains("pub use ::spx_rust_dependency_0 as rust_dependency_same_file;"));
+    assert!(sources
+        .lib_rs
+        .contains("pub use ::spx_rust_dependency_1 as rust_dependency_serde;"));
+    assert!(!sources.cargo_toml.contains("path = \"../"));
 }
 
 #[test]
@@ -515,7 +551,7 @@ fn main() -> i64 { 0 }
     .unwrap();
     assert_eq!(facts.exports[0].public_method, "spx_sdk_dot_add");
     assert_eq!(facts.imports[0].public_method, "spx_host_dot_add");
-    let sources = render_package_sources(&facts, &options.capabilities);
+    let sources = render_package_sources(&facts, &options.capabilities, &[]);
     assert!(!sources.lib_rs.starts_with("#![forbid(unsafe_code)]"));
     assert!(sources
         .lib_rs

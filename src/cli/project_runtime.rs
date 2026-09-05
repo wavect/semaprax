@@ -172,6 +172,7 @@ pub(crate) fn build_success(
         ("rust", project::ProjectProfile::NestedOwnedRecordApiV1) => {
             "Project v11 Native Rust nested owned-record package"
         }
+        ("rust", project::ProjectProfile::ScalarV1) => "Project v1 Native Rust SDK package",
         ("rust", _) => "Project v8 Native Rust owned-data package",
         ("npm", project::ProjectProfile::FlatOwnedRecordApiV1) => "Project v9 npm package",
         ("npm", project::ProjectProfile::OwnedUtf8ApiV1) => "Project v10 npm package",
@@ -200,6 +201,10 @@ mod tests {
     #[test]
     fn profile_selected_success_labels_are_exact() {
         let output = Path::new("dist");
+        assert_eq!(
+            build_success("rust", project::ProjectProfile::ScalarV1, output),
+            "built Project v1 Native Rust SDK package dist"
+        );
         assert_eq!(
             build_success(
                 "rust",

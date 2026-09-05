@@ -18,6 +18,7 @@ use semaprax::project::{
     PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6,
     PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
+use semaprax::{package_lock_v3, package_report_v2};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -187,6 +188,8 @@ fn table_layout_lowers_every_profile_to_its_frozen_contract() {
         assert_eq!(lowered.capabilities(), frozen.capabilities());
         assert_eq!(lowered.package_version(), Some("1.2.3"));
         assert!(lowered.dependencies().is_empty());
+        assert!(lowered.dependency_sources().is_empty());
+        assert!(lowered.rust_dependencies().is_empty());
         assert!(lowered.target_matrix().is_none());
         assert_eq!(
             frozen.package_version(),
@@ -487,6 +490,204 @@ fn dependency_grammar_is_admitted_and_ordinary_builds_fail_closed_with_spx_j121(
         "{stderr}"
     );
     assert!(!fixture.root.join("calculator-web").exists());
+}
+
+#[test]
+fn exact_semaprax_sources_and_rust_crates_are_canonical_manifest_inputs() {
+    let source = format!(
+        "{CALCULATOR_TABLES}\n[dependencies]\nalpha = \"^1.2.0\"\n\n[dependency-sources]\nalpha = \"vendor/alpha.subject.json\"\nbeta = \"vendor/beta.subject.json\"\n\n[rust-dependencies]\nitoa = [\"=1.0.15\"]\nserde = [\"=1.0.228\", \"derive\", \"std\"]\n\n[targets]\nmatrix = [\"native64\"]\n"
+    );
+    let manifest = ProjectManifest::parse(&source).unwrap();
+    assert_eq!(manifest.to_canonical_toml(), source);
+    assert_eq!(
+        manifest
+            .dependency_sources()
+            .iter()
+            .map(|dependency| (dependency.name(), dependency.path()))
+            .collect::<Vec<_>>(),
+        [
+            ("alpha", "vendor/alpha.subject.json"),
+            ("beta", "vendor/beta.subject.json"),
+        ]
+    );
+    assert_eq!(
+        manifest
+            .rust_dependencies()
+            .iter()
+            .map(|dependency| (
+                dependency.name(),
+                dependency.version(),
+                dependency.features()
+            ))
+            .collect::<Vec<_>>(),
+        [
+            ("itoa", "=1.0.15", &[][..]),
+            (
+                "serde",
+                "=1.0.228",
+                &["derive".to_owned(), "std".to_owned()][..]
+            ),
+        ]
+    );
+
+    for (suffix, fragment) in [
+        (
+            "\n[dependency-sources]\nalpha = \"../alpha.json\"\n",
+            "canonical project-relative `.json` path",
+        ),
+        (
+            "\n[dependency-sources]\nalpha = \"vendor/alpha.spx\"\n",
+            "canonical project-relative `.json` path",
+        ),
+        (
+            "\n[rust-dependencies]\nserde = [\"^1.0.0\"]\n",
+            "must use exact `=x.y.z` syntax",
+        ),
+        (
+            "\n[rust-dependencies]\nserde = [\"=1.0.0\", \"std\", \"derive\"]\n",
+            "features must be strictly byte-sorted",
+        ),
+        (
+            "\n[rust-dependencies]\nfoo-bar = [\"=1.0.0\"]\nfoo_bar = [\"=1.0.0\"]\n",
+            "collide after Cargo maps `-` to `_`",
+        ),
+    ] {
+        let errors = reject(&format!(
+            "{CALCULATOR_TABLES}\n[dependencies]\nalpha = \"^1.0.0\"{suffix}"
+        ));
+        assert_eq!(codes(&errors), ["SPX-J100"], "{suffix}");
+        assert!(
+            errors[0].message.contains(fragment),
+            "{suffix}: {}",
+            errors[0].message
+        );
+    }
+
+    for table in [
+        "[dependencies]\nalpha = \"^1.0.0\"\n\n[dependency-sources]\nalpha = \"vendor/alpha.json\"\n",
+        "[rust-dependencies]\nsame-file = [\"=1.0.6\"]\n",
+    ] {
+        let errors = reject(&format!("{SPXGREP_TABLES}\n{table}"));
+        assert_eq!(codes(&errors), ["SPX-J100"]);
+        assert!(errors[0].message.contains("require the scalar profile"));
+    }
+
+    let reserved = CALCULATOR_TABLES.replacen("src/app.spx", "dependencies/app.spx", 1);
+    let errors = reject(&format!(
+        "{reserved}\n[dependencies]\nalpha = \"^1.0.0\"\n\n[dependency-sources]\nalpha = \"vendor/alpha.json\"\n"
+    ));
+    assert_eq!(codes(&errors), ["SPX-J100"]);
+    assert!(errors[0]
+        .message
+        .contains("reserved `dependencies/` prefix"));
+}
+
+#[test]
+fn exact_local_semaprax_subjects_link_through_every_project_route() {
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-external-dependency-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(root.join("src")).unwrap();
+    std::fs::create_dir_all(root.join("vendor")).unwrap();
+    let provider = root.join("provider.spx");
+    std::fs::write(
+        &provider,
+        "module acme.math;\n\n@id(\"acme.math.double\")\nfn double(value: i64) -> i64\n{\n    value * 2\n}\n\n@id(\"acme.math.main\")\nfn main() -> i64\n{\n    double(21)\n}\n",
+    )
+    .unwrap();
+    let report = package_report_v2::generate(
+        &provider,
+        &package_report_v2::PackageReportV2Options::default(),
+    )
+    .unwrap();
+    let subject = package_lock_v3::create_subject(
+        &package_lock_v3::Coordinate {
+            package: "acme.math".to_owned(),
+            version: "1.2.0".to_owned(),
+        },
+        &report,
+        &[],
+        &[],
+    )
+    .unwrap();
+    std::fs::write(root.join("vendor/acme-math.subject.json"), &subject).unwrap();
+    std::fs::write(
+        root.join("src/app.spx"),
+        "module consumer.app;\nuse function @id(\"acme.math.double\") from acme.math as double;\n\n@id(\"consumer.answer\")\nfn answer() -> i64\n{\n    double(21)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    answer()\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("src/tests.spx"),
+        "module consumer.tests;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    )
+    .unwrap();
+    let manifest = "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"consumer\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.answer\"]\n\n[dependencies]\nacme.math = \"^1.0.0\"\n\n[dependency-sources]\nacme.math = \"vendor/acme-math.subject.json\"\n\n[rust-dependencies]\nsame-file = [\"=1.0.6\"]\n";
+    std::fs::write(root.join("semaprax.toml"), manifest).unwrap();
+
+    for arguments in [
+        vec!["check", "semaprax.toml"],
+        vec!["test", "semaprax.toml"],
+        vec!["project-image", "semaprax.toml"],
+        vec!["lock", "semaprax.toml"],
+    ] {
+        let output = cli(&root, &arguments);
+        assert!(
+            output.status.success(),
+            "{arguments:?}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let output = cli(&root, &["run", "semaprax.toml"]);
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(String::from_utf8_lossy(&output.stdout).starts_with("42\n"));
+    let output = cli(
+        &root,
+        &[
+            "build",
+            "semaprax.toml",
+            "--target",
+            "web",
+            "-o",
+            "consumer-web",
+        ],
+    );
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(root.join("consumer-web/app.wasm").is_file());
+
+    let image = cli(&root, &["project-image", "semaprax.toml"]);
+    assert!(image.status.success());
+    let image: serde_json::Value = serde_json::from_slice(&image.stdout).unwrap();
+    let subject_digest = package_lock_v3::verify_dependency_subject(&subject)
+        .unwrap()
+        .subject_digest;
+    let dependency_path = format!(
+        "dependencies/{}/{}.spx",
+        &subject_digest[7..39],
+        &subject_digest[39..]
+    );
+    assert!(image["sources"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|source| source["path"] == dependency_path));
+
+    let tampered = subject.replacen("1.2.0", "1.3.0", 1);
+    std::fs::write(root.join("vendor/acme-math.subject.json"), tampered).unwrap();
+    let output = cli(&root, &["check", "semaprax.toml"]);
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("SPX-J123"));
+
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[test]

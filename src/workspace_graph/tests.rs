@@ -45,7 +45,6 @@ fn nominal_values_outside_signatures_retain_exact_checked_type_facts() {
         );
     }
 }
-
 #[test]
 fn retained_value_facts_keep_the_4096_cap_and_reject_missing_checked_facts() {
     let resolved = checked_value_fixture();
@@ -74,7 +73,6 @@ fn retained_value_facts_keep_the_4096_cap_and_reject_missing_checked_facts() {
         .unwrap_err();
     assert!(error.iter().any(|error| error.code == "SPX-G173"));
 }
-
 #[test]
 fn checked_value_cursor_traversal_enforces_visit_and_depth_limits() {
     let resolved = checked_value_fixture();
@@ -124,14 +122,12 @@ fn checked_value_cursor_traversal_enforces_visit_and_depth_limits() {
     .unwrap_err();
     assert!(is_named_limit(&error, "checked_value_depth"));
 }
-
 fn source(path: &str, source: &str) -> WorkspaceSource {
     WorkspaceSource {
         path: path.to_owned(),
         source: source.to_owned(),
     }
 }
-
 fn canonical_source(path: &str, source: &str) -> WorkspaceSource {
     let program = crate::parse(source, Path::new(path)).expect("test source must parse");
     WorkspaceSource {
@@ -139,7 +135,6 @@ fn canonical_source(path: &str, source: &str) -> WorkspaceSource {
         source: format::canonical(&program),
     }
 }
-
 #[test]
 fn scalar_linker_uses_real_provider_bodies_for_two_closures() {
     let provider = canonical_source(
@@ -199,7 +194,6 @@ fn main() -> i64 { answer() + 2 }
     assert_eq!(entry.entrypoint.as_str(), "app.main");
     assert_eq!(test.entrypoint.as_str(), "test.main");
 }
-
 #[test]
 fn project_web_roots_retain_selected_disconnected_call_closure_only() {
     let app = canonical_source(
@@ -244,6 +238,7 @@ fn unselected(value: i64) -> i64 { value + 100 }
             "app.main",
             &["lib.selected".to_owned()],
             crate::project::ProjectProfile::ScalarV1,
+            false,
         )
         .unwrap();
     let ids = linked
@@ -264,6 +259,7 @@ fn unselected(value: i64) -> i64 { value + 100 }
             "app.main",
             &["lib.absent".to_owned()],
             crate::project::ProjectProfile::ScalarV1,
+            false,
         )
         .unwrap_err();
     assert_eq!(error[0].code, "SPX-W115");
@@ -349,6 +345,7 @@ fn unselected(value: i64) -> i64 {
             "app.main",
             &["lib.selected".to_owned()],
             crate::project::ProjectProfile::OwnedDataApiV1,
+            false,
         )
         .unwrap();
     let functions = linked
@@ -386,6 +383,7 @@ fn unselected(value: i64) -> i64 {
             "app.main",
             &["lib.selected".to_owned()],
             crate::project::ProjectProfile::OwnedDataApiV1,
+            false,
         )
         .unwrap_err();
     assert_eq!(error[0].code, "SPX-G173");
@@ -446,6 +444,7 @@ fn unselected(value: i64) -> i64 { value + 1 }
             "app.main",
             "test.main",
             crate::project::ProjectProfile::UsefulDataV1,
+            false,
         )
         .unwrap();
     build
@@ -453,6 +452,7 @@ fn unselected(value: i64) -> i64 { value + 1 }
             "app.main",
             &["lib.byte-count".to_owned(), "lib.byte-length".to_owned()],
             crate::project::ProjectProfile::UsefulDataV1,
+            false,
         )
         .unwrap();
     build
@@ -460,10 +460,10 @@ fn unselected(value: i64) -> i64 { value + 1 }
             "app.main",
             "test.main",
             crate::project::ProjectProfile::LineCommandIoV1,
+            false,
         )
         .unwrap();
 }
-
 #[test]
 fn scalar_linker_is_identity_based_when_provider_display_names_match() {
     let left = canonical_source(

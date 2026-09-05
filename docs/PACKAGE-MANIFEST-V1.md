@@ -1,9 +1,10 @@
 # Package Manifest v1
 
 Status: additive implementation with local executable gates; unpromoted. The
-table layout is admitted by every project route, and Project builds link the
-closed compiler-bundled `std.*` inventory. No ordinary-package build,
-acquisition, registry, or publication claim is made.
+table layout is admitted by every project route. Scalar Project builds link
+the closed compiler-bundled `std.*` inventory and exact project-local ordinary
+package subjects. No acquisition, registry, or ecosystem-promotion claim is
+made.
 
 Audience: people and agents writing `semaprax.toml`, package-tooling authors,
 and compiler contributors.
@@ -87,6 +88,8 @@ optional table is omitted when it would be empty.
 | `[command]` | `function`, `input` | required for command profiles, forbidden otherwise | Entry point of a command profile. `input` is required exactly when the profile fixes an input contract. |
 | `[capabilities]` | `required` | required for command profiles, forbidden otherwise | Required capabilities. Each command profile fixes the exact list. |
 | `[dependencies]` | one `name = "range"` row per dependency | optional | Dependency requirements. Names are dotted lowercase package identities (`[a-z][a-z0-9._-]*` of at most 128 bytes with non-empty `.`-separated segments, e.g. `examples.meaning`), strictly byte-sorted, matching the resolver package identity; ranges use only `=x.y.z`, `~x.y.z`, or `^x.y.z` with canonical `u32` components, the grammar of [Offline Semantic Lock v3](OFFLINE-SEMANTIC-PACKAGE-LOCK-V3.md). At most 64 rows. `semaprax resolve` selects them against a content-addressed cache ([Project Dependency Resolution v1](PROJECT-DEPENDENCY-RESOLUTION-V1.md)). |
+| `[dependency-sources]` | one `name = "relative.subject.json"` row per supplied package | optional | Exact scalar SEMAPRAX package closure. At most four strictly byte-sorted rows name canonical project-relative Subject-v3 files; roots and every selected transitive package are required. See [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md). |
+| `[rust-dependencies]` | one `name = ["=x.y.z", "feature", ...]` row per crate | optional | Exact Cargo inputs for the generated scalar Native Rust SDK. At most 32 rows; names, features, and rows are canonical and collision-checked. See [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md). |
 | `[targets]` | `matrix` | optional | Target matrix: a non-empty, strictly byte-sorted subset of `native64` and `wasm32`. Absent means every target is admitted. |
 
 Values are plain strings without escapes or one-line arrays of such strings
@@ -156,14 +159,15 @@ normalization.
 
 ## Semantics of the optional tables
 
-`[dependencies]` admits the requirement grammar and has two deliberately
-separate routes. `semaprax resolve` selects ordinary packages from its explicit
-caller-populated cache, but Project builds do not yet consume those results.
-Project build/check/test/run instead recognize only the closed compiler-bundled
-`std.*` inventory at version `0.1.0`, validate the range, and link its immutable
-source plus transitive standard dependencies in memory. This requires no cache
-and performs no acquisition or network access. An unknown dependency or a
-range excluding the bundled version fails with `SPX-J121` before output.
+`[dependencies]` has two explicit sources. Compiler-bundled `std.*` packages at
+version `0.1.0` are range-checked and linked from the immutable built-in
+inventory. Ordinary packages require `[dependency-sources]`, whose exact held
+Subject-v3 closure is replayed and resolved for every declared target before
+its embedded sources enter the workspace. `[rust-dependencies]` is separate:
+it contributes exact dependencies and deterministic re-exports only to a
+scalar Project's generated Native Rust SDK. Neither route performs implicit
+network access. [Project Dependencies v1](PROJECT-DEPENDENCIES-V1.md) owns the
+complete semantics and authority boundary.
 
 `[targets] matrix` gates the CLI `build` route: `web`, `wasm`, and `npm`
 require `wasm32`, and every other target requires `native64`. A target the
@@ -180,6 +184,7 @@ that a target builds, runs, or is supported on any host.
 | `SPX-J120` | A reserved or unknown table or key. The message names the reserved name or the admitted catalog. |
 | `SPX-J121` | A dependency is not in the bundled standard-library inventory or its range excludes the bundled version. |
 | `SPX-J122` | A CLI build target outside the declared `[targets] matrix`. |
+| `SPX-J123` | An ordinary local SEMAPRAX dependency subject or its complete per-target closure fails replay or resolution. |
 
 ## Evidence and nonclaims
 
@@ -187,18 +192,20 @@ that a target builds, runs, or is supported on any host.
 profiles against their frozen equivalents, including `is_vN` and the
 per-profile command rules; the reserved and unknown table and key rejections;
 the first-differing-line canonical diagnostics; the dependency grammar and the
-`SPX-J121` CLI rejection; the target grammar, `SPX-J122` CLI rejection, and an
-admitted web build; `check`, `test`, `run`, `project-image`, and web `build`
+`SPX-J121` CLI rejection; exact SEMAPRAX and Rust dependency tables, ordinary
+package linking, and tamper rejection; the target grammar, `SPX-J122` CLI
+rejection, and an admitted web build; `check`, `test`, `run`, `project-image`,
+project `lock`, and web `build`
 over the calculator example rewritten into the table layout, with byte-equal
 Wasm against the frozen manifest; `check` and `test` over the spxgrep command
 example; and canonical parsing of every `toml` block in this document.
 
-This specification does not claim dependency resolution, a lockfile, a
-content-addressed cache, registry access, feature flags, agent definitions,
+This specification does not claim package acquisition, a registry, trusted
+publisher provenance, Cargo vendoring, feature flags, agent definitions,
 build profiles, generated-artifact records, a compatibility policy, licenses,
 provenance, or an interface digest. Those are the reserved names above and
 the subjects of [Offline Semantic Lock v3](OFFLINE-SEMANTIC-PACKAGE-LOCK-V3.md),
 [Offline Resolver v2](OFFLINE-PACKAGE-RESOLVER-V2.md), and
 [Compatibility Evidence v1](OFFLINE-PACKAGE-COMPATIBILITY-EVIDENCE-V1.md),
-which still operate on caller-supplied envelopes rather than on this manifest.
+which still operate on caller-supplied envelopes rather than ambient inputs.
 `semaprax project-scaffold` continues to print the frozen v1 layout.

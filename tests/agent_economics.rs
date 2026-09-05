@@ -126,43 +126,43 @@ fn manifests_reject_unknown_malformed_and_escaping_fields() {
         ("schema", "schema\tunknown\n"),
         (
             "escape",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\t../x.spx\tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\t../x.spx\tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n",
         ),
         (
             "current",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\t./x.spx\tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\t./x.spx\tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n",
         ),
         (
             "absolute",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\t/tmp/x.spx\tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\t/tmp/x.spx\tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n",
         ),
         (
             "trailing-dot",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx.\tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx.\tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n",
         ),
         (
             "trailing-space",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx \tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx \tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n",
         ),
         (
             "alternate-stream",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx:stream\tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx:stream\tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n",
         ),
         (
             "filter",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx\tapp.main\t0\t1024\t1\tunknown\tapp.main\tapp.main\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx\tapp.main\t0\t2048\t1\tunknown\tapp.main\tapp.main\n",
         ),
         (
             "unavailable-filter",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx\tapp.main\t0\t1024\t1\ttargets\tapp.main\tapp.main\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx\tapp.main\t0\t2048\t1\ttargets\tapp.main\tapp.main\n",
         ),
         (
             "control",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\rx.spx\tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\rx.spx\tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n",
         ),
         (
             "subset",
-            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx\tapp.main\t0\t1024\t1\teffects\tapp.main\tother\n",
+            "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx\tapp.main\t0\t2048\t1\teffects\tapp.main\tother\n",
         ),
     ] {
         let path = fixture.directory.join(format!("{name}.tsv"));
@@ -180,7 +180,7 @@ fn manifests_reject_unknown_malformed_and_escaping_fields() {
     let unknown_label = fixture.directory.join("unknown-label.tsv");
     fs::write(
         &unknown_label,
-        "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx\tapp.main\t0\t1024\t1\teffects\tmissing\tmissing\n",
+        "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tx.spx\tapp.main\t0\t2048\t1\teffects\tmissing\tmissing\n",
     )
     .unwrap();
     let error = agent_economics::benchmark_manifest(&unknown_label).unwrap_err();
@@ -213,7 +213,7 @@ fn manifests_reject_noncanonical_and_windows_reserved_source_aliases() {
         fs::write(
             &manifest,
             format!(
-                "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\t{alias}\tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n"
+                "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\t{alias}\tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n"
             ),
         )
         .unwrap();
@@ -239,7 +239,7 @@ fn source_alias_requires_exact_directory_entry_spelling() {
     let manifest = fixture.directory.join("case-alias.tsv");
     fs::write(
         &manifest,
-        "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\texactcase/source.spx\tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n",
+        "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\texactcase/source.spx\tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n",
     )
     .unwrap();
     assert_eq!(
@@ -269,7 +269,7 @@ fn manifests_and_sources_reject_symlink_aliases() {
     let manifest = fixture.directory.join("corpus.tsv");
     fs::write(
         &manifest,
-        "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tlink.spx\tapp.main\t0\t1024\t1\teffects\tapp.main\tapp.main\n",
+        "schema\tsemaprax.agent-context-benchmark.v1\nx\tq\tlink.spx\tapp.main\t0\t2048\t1\teffects\tapp.main\tapp.main\n",
     )
     .unwrap();
     assert_eq!(

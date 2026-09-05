@@ -11,6 +11,7 @@ extern crate self as semaprax;
 
 pub mod abi_report;
 pub mod agent_definition;
+pub mod agent_deployment;
 pub mod agent_economics;
 pub mod agent_harness;
 pub mod agent_proposal;

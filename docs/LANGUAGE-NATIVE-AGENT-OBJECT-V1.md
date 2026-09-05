@@ -4,9 +4,9 @@ Audience: compiler contributors, Agent Runtime contributors, provider-adapter
 authors, and semantic-workspace integrators.
 
 Status: bounded phase-1 compiler slice implemented locally, extended by the
-additive Agent Proposal Schema v1 grammar and decoder; long-term language,
-harness, effects, durability, and deployment goals remain proposed and
-unsupported.
+additive Agent Proposal Schema v1 grammar and decoder and by the additive
+AgentDefinition v2 / AgentDeployment v1 separation; long-term language,
+harness, effects, and durability goals remain proposed and unsupported.
 
 ## Purpose
 
@@ -121,10 +121,10 @@ task, contact a provider, or invoke a tool. Therefore the existing Profile v1
 schema, diagnostics, known answers, and runtime behavior remain authoritative
 and byte-frozen.
 
-The compatibility projection deliberately keeps deployment and v1 semantic
-material together. A later additive `AgentDeployment` contract must split
-concrete provider/model binding from the source-owned definition before
-AgentGraph is consumed directly by Runtime v2.
+The v1 compatibility projection deliberately keeps deployment and semantic
+material together. The additive AgentDefinition v2 and AgentDeployment v1
+contracts below split concrete provider/model binding from the source-owned
+definition; v1 remains their exact projection.
 
 ## AgentGraph v1
 
@@ -279,6 +279,88 @@ Generated Python, TypeScript, and Rust consumers of this grammar are not part
 of this slice; the decimal-string integer wire is the contract that lets one be
 written, not evidence that one exists.
 
+## AgentDefinition v2 and AgentDeployment v1
+
+These two additive documents separate source-owned agent semantics from an
+explicit deployment and model binding. They change no AgentDefinition v1,
+AgentGraph v1, or Runtime v1 byte: v1 is preserved as an exact projection.
+
+### What each document owns
+
+| Owned by source (`semaprax.agent-definition.v2`) | Owned by deployment (`semaprax.agent-deployment.v1`) |
+| --- | --- |
+| the six type and six operation identities | concrete `models` rows: provider, model, locality, quality tier, tokenizer, context, price, capabilities |
+| `tools`: the complete tool contracts, with their effects and required capabilities | `selection`: `allowed_provider_ids` and `allowed_model_ids` |
+| `requirements`: `required_locality`, `minimum_quality_tier`, `required_model_capabilities`, `required_capabilities`, `allowed_tool_ids`, `required_target_features` | `grants`: `granted_capabilities`, `allowed_tool_ids`, `target_features` |
+| `ceilings`: the maximum value of each of the 22 Runtime v1 limits | `limits`: the effective value of each of those limits |
+
+Both documents are compact UTF-8 JSON with exactly one terminal LF, closed
+objects, canonical key order, a maximum size of 1,310,720 bytes, and a maximum
+parsed depth of 16. Identifier lists are strictly increasing, so a duplicate or
+an unsorted grant is rejected rather than normalized.
+
+Neither schema has a field that can hold a credential, a secret, a token, or an
+environment reference. Because the objects are closed, adding one is rejected
+as noncanonical rather than ignored, and nothing in the binding path reads the
+environment, the filesystem, or the network. Live authorities and secrets stay
+with the host, exactly as Runtime v1 already requires.
+
+### Binding
+
+`bind_agent_deployment` takes the two documents and nothing else — there is no
+host parameter, so no provider can be contacted while compatibility is being
+decided. It rejects, with `SPX-G556` and the exact failing field:
+
+| Field | Rejected because |
+| --- | --- |
+| `definition_digest` | the deployment names a different semantic revision |
+| `granted_capabilities` | the deployment grants a capability the source does not require |
+| `allowed_tool_ids` | the deployment allows a tool the source does not allow |
+| `tool_capabilities` | an allowed tool needs a capability the deployment does not grant |
+| `target_features` | a required target feature is unavailable in this deployment |
+| `limits` | an effective limit exceeds the source ceiling |
+| `selection` | a model row is not selected by both allowed lists |
+| `required_locality` | a selected model is remote where the source requires local only |
+| `minimum_quality_tier` | a selected model is below the source's minimum tier |
+| `required_model_capabilities` | a selected model lacks a required model capability |
+
+A deployment may always narrow: fewer turns, a smaller budget, fewer granted
+capabilities, fewer allowed tools. It can never add authority the source
+contract does not carry, and the host's own grant remains separate and live.
+
+Target features are opaque canonical identifiers compared by exact subset. This
+document claims no backend admission or target implementation for them.
+
+### The bound product
+
+`semaprax.agent-bound-deployment.v1` is compact UTF-8 JSON with one terminal LF
+and a maximum size of 262,144 bytes. Its ordered fields are `schema`,
+`agent_id`, `definition_digest`, `deployment_id`, `deployment_digest`,
+`effective`, `v1_definition_digest`, `agent_graph_digest`,
+`runtime_v1_profile_digest`, and `nonclaims`. It authenticates both revisions
+and publishes the effective selection and limits, but no tokenizer, price, or
+tool schema material, and no credential.
+
+Substituting an eligible provider or model changes `deployment_digest` and the
+bound digest while `definition_digest` is unchanged. Changing a type or
+operation identity, a tool contract, an effect or capability requirement, or a
+ceiling changes `definition_digest` and stales every existing deployment and
+bound product built on it.
+
+### v1 compatibility and migration
+
+`migrate_agent_definition_v1` admits a v1 document through the unchanged v1
+compiler and then splits it. The source contract receives every capability its
+own declared tools need and may allow every tool it declares; the deployment
+narrows to exactly the v1 policy's grants. Binding the resulting pair
+reproduces the original v1 document byte for byte, and therefore its AgentGraph
+and Runtime v1 profile known answers. The caller supplies the deployment
+identity; the compiler invents none.
+
+Runtime v2 is not wired to descriptive AgentGraph JSON here. The bound product
+is an independently checked binding, and execution still runs through the
+frozen Runtime v1 projection.
+
 ## Digests
 
 Digests are lowercase `sha256:` values over domain bytes followed by the exact
@@ -290,6 +372,9 @@ AgentGraph:       "semaprax.agent-graph.digest.v1\0"
 Runtime profile:  "semaprax.agent-runtime.profile-digest.v1\0"
 Proposal schema:  "semaprax.agent-proposal-schema.digest.v1\0"
 Proposal type:    "semaprax.agent-proposal-type.revision.v1\0"
+Definition v2:    "semaprax.agent-definition.digest.v2\0"
+Deployment:       "semaprax.agent-deployment.digest.v1\0"
+Bound deployment: "semaprax.agent-bound-deployment.digest.v1\0"
 ```
 
 The proposal-type revision is taken over the exact bytes
@@ -340,6 +425,24 @@ expose only immutable canonical documents, identities, digests, and exact
 decoded scalars. `AgentDefinition` gains one additive read-only
 `proposal_type_id` accessor and no other change.
 
+The additive definition/deployment surface is:
+
+```rust
+let (definition_v2, deployment) =
+    semaprax::agent_deployment::migrate_agent_definition_v1(v1_source, deployment_id)?;
+let bound = semaprax::agent_deployment::bind_agent_deployment(&definition_v2, &deployment)?;
+semaprax::agent_deployment::verify_bound_agent_deployment_bundle(
+    &definition_v2,
+    &deployment,
+    bound.canonical_json(),
+)?;
+let agent = bound.instantiate(host, cancellation)?;
+```
+
+`AgentDefinitionV2`, `AgentDeployment`, and `BoundAgentDeployment` expose only
+immutable canonical documents, identities, digests, and the exact v1
+projection. `bind_agent_deployment` takes no host and no capability.
+
 The additive [Agent Payment Harness v1](AGENT-PAYMENT-HARNESS-V1.md) binds this
 exact compilation product to one independently admitted Economic Agent Policy,
 constructs Runtime v1 without caller-side profile extraction, and carries a
@@ -359,6 +462,12 @@ transition execution.
 | `SPX-G549` | Supplied proposal-schema bytes do not equal the independently rederived grammar. |
 | `SPX-G550` | The proposal is not canonical closed `semaprax.agent-proposal.v1` JSON. |
 | `SPX-G551` | A proposal identity, case, field, representation, or exact integer bound failed. |
+| `SPX-G552` | The document is not canonical closed `semaprax.agent-definition.v2` JSON. |
+| `SPX-G553` | An AgentDefinition v2 identity, requirement, or ceiling invariant failed. |
+| `SPX-G554` | The document is not canonical closed `semaprax.agent-deployment.v1` JSON. |
+| `SPX-G555` | An AgentDeployment identity, list, or limit invariant failed. |
+| `SPX-G556` | The deployment is incompatible with its semantic definition. |
+| `SPX-G557` | Supplied bound-product bytes do not equal the independently rebound product. |
 
 Module compilation diagnostics reach the caller unchanged: a `.spx` module
 that does not verify fails with its own source diagnostics rather than an
@@ -411,6 +520,25 @@ Its `agent_proposal_schema_v1` module additionally proves:
   tampered evidence does not, and whose proposal another agent's grammar
   refuses.
 
+Its `agent_deployment_v1` module additionally proves:
+
+- deterministic migration of the v1 fixture into a v2 definition plus one
+  deployment whose binding reproduces the exact v1 document, AgentGraph digest
+  and Runtime v1 profile bytes;
+- exact bound-product replay and tamper rejection;
+- provider/model substitution changing the deployment and bound identities
+  while the semantic-definition identity is unchanged;
+- five source-semantic changes staling the existing deployment;
+- admitted narrowing of turns, granted capabilities and allowed tools, against
+  nine rejected widenings and incompatibilities plus an unavailable required
+  target feature and a below-minimum quality tier, each decided from the two
+  documents alone;
+- one semantic definition running two offline scripted deployments to distinct
+  evidence, one of which independently replays; and
+- rejection of every attempt to add a credential, token, or environment key to
+  either closed document, and a source scan proving the binding path performs
+  no environment, filesystem, process, or network access.
+
 The fixture known answers are:
 
 - AgentDefinition digest:
@@ -431,8 +559,9 @@ This slice does not implement or claim:
 - generated Python, TypeScript, or Rust proposal consumers;
 - proposal values beyond the closed monomorphic scalar record/variant subset;
 - compiled execution of `initialize`, `observe`, `authorize`, or `reduce`;
+- a Runtime v2 that consumes AgentGraph or the bound product directly;
+- target-feature implementation, backend admission, or provider transport;
 - typed mutation, testing, build, approval, or publication effects;
-- a deployment document or model portability;
 - semantic context construction;
 - `Authorized<T>` minting or consumption;
 - checkpoint, resume, exact replay, re-execution, or reconciliation;
@@ -440,9 +569,11 @@ This slice does not implement or claim:
 - the signature-change reference vertical slice.
 
 Agent Proposal Schema v1 closes the previously named next gate for the derived
-proposal grammar; the Runtime v1 compatibility projection still carries its own
-authored action/tool schemas, and replacing those is separate work. The next
-bounded gates are generated consumers for the grammar, and definition/deployment
-separation. Runtime v2 must not consume AgentGraph directly until that
-separation and opaque authorization-token semantics have their own reviewed
-contracts and executable rejection evidence.
+proposal grammar, and AgentDefinition v2 with AgentDeployment v1 closes the
+definition/deployment separation gate. The Runtime v1 compatibility projection
+still carries its own authored action/tool schemas, and replacing those is
+separate work. The next bounded gates are generated consumers for the proposal
+grammar, and compiled execution of the deterministic stages with an opaque
+one-use authorization value. Runtime v2 must not consume AgentGraph directly
+until those authorization-token semantics have their own reviewed contract and
+executable rejection evidence.

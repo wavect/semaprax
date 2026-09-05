@@ -353,45 +353,8 @@ fn render_runtime_v1(value: &Value) -> Result<String, Diagnostic> {
         "{{\"models\":{},\"tools\":{},\"policy\":{},\"limits\":{}}}",
         render_models(runtime.get("models").ok_or_else(malformed)?)?,
         render_tools(runtime.get("tools").ok_or_else(malformed)?)?,
-        render_plain_object(
-            runtime.get("policy").ok_or_else(malformed)?,
-            &[
-                "allowed_provider_ids",
-                "allowed_model_ids",
-                "required_locality",
-                "minimum_quality_tier",
-                "required_model_capabilities",
-                "granted_capabilities",
-                "allowed_tool_ids",
-            ],
-        )?,
-        render_plain_object(
-            runtime.get("limits").ok_or_else(malformed)?,
-            &[
-                "max_turns",
-                "max_provider_attempts",
-                "max_retries_per_turn",
-                "max_concurrency",
-                "max_elapsed_ms",
-                "max_provider_request_bytes",
-                "max_provider_response_bytes",
-                "max_stream_chunks",
-                "max_total_provider_input_bytes",
-                "max_total_provider_output_bytes",
-                "max_reported_model_input_tokens",
-                "max_reported_model_output_tokens",
-                "max_usd_microunits",
-                "max_tool_calls",
-                "max_tool_arguments_bytes",
-                "max_tool_result_bytes",
-                "max_total_tool_bytes",
-                "max_retained_state_bytes",
-                "max_trace_events",
-                "max_trace_bytes",
-                "max_evidence_bytes",
-                "max_builder_bytes",
-            ],
-        )?,
+        render_plain_object(runtime.get("policy").ok_or_else(malformed)?, &POLICY_KEYS,)?,
+        render_plain_object(runtime.get("limits").ok_or_else(malformed)?, &LIMIT_KEYS,)?,
     ))
 }
 
@@ -411,7 +374,7 @@ fn render_runtime_v1_profile(agent_id: &str, value: &Value) -> Result<String, Di
     ))
 }
 
-fn render_models(value: &Value) -> Result<String, Diagnostic> {
+pub(crate) fn render_models(value: &Value) -> Result<String, Diagnostic> {
     render_plain_object_array(
         value,
         &[
@@ -428,7 +391,7 @@ fn render_models(value: &Value) -> Result<String, Diagnostic> {
     )
 }
 
-fn render_tools(value: &Value) -> Result<String, Diagnostic> {
+pub(crate) fn render_tools(value: &Value) -> Result<String, Diagnostic> {
     let rows = value.as_array().ok_or_else(malformed)?;
     let mut output = String::from("[");
     for (index, value) in rows.iter().enumerate() {
@@ -493,7 +456,7 @@ fn render_plain_object_array(value: &Value, keys: &[&str]) -> Result<String, Dia
     Ok(output)
 }
 
-fn render_plain_object(value: &Value, keys: &[&str]) -> Result<String, Diagnostic> {
+pub(crate) fn render_plain_object(value: &Value, keys: &[&str]) -> Result<String, Diagnostic> {
     let object = value.as_object().ok_or_else(malformed)?;
     if !exact_keys(object, keys) {
         return Err(malformed());
@@ -519,6 +482,90 @@ fn validate_profile(profile: &str) -> Result<(), Diagnostic> {
     Agent::new(profile, ValidationHost, AgentCancellation::new())
         .map(|_| ())
         .map_err(|_| profile_failure())
+}
+
+/// The exact canonical Runtime v1 policy key order.
+pub(crate) const POLICY_KEYS: [&str; 7] = [
+    "allowed_provider_ids",
+    "allowed_model_ids",
+    "required_locality",
+    "minimum_quality_tier",
+    "required_model_capabilities",
+    "granted_capabilities",
+    "allowed_tool_ids",
+];
+
+/// The exact canonical Runtime v1 limit key order.
+pub(crate) const LIMIT_KEYS: [&str; 22] = [
+    "max_turns",
+    "max_provider_attempts",
+    "max_retries_per_turn",
+    "max_concurrency",
+    "max_elapsed_ms",
+    "max_provider_request_bytes",
+    "max_provider_response_bytes",
+    "max_stream_chunks",
+    "max_total_provider_input_bytes",
+    "max_total_provider_output_bytes",
+    "max_reported_model_input_tokens",
+    "max_reported_model_output_tokens",
+    "max_usd_microunits",
+    "max_tool_calls",
+    "max_tool_arguments_bytes",
+    "max_tool_result_bytes",
+    "max_total_tool_bytes",
+    "max_retained_state_bytes",
+    "max_trace_events",
+    "max_trace_bytes",
+    "max_evidence_bytes",
+    "max_builder_bytes",
+];
+
+/// Renders one canonical AgentDefinition v1 document from assembled material.
+///
+/// This is the compiler-owned projection seam the additive
+/// definition/deployment split uses. It renders bytes only; admission stays
+/// [`compile_agent_definition`]'s job, so no caller bypasses validation.
+pub(crate) fn render_v1_definition_source(
+    agent_id: &str,
+    types: &[String],
+    operations: &[String],
+    runtime_v1: &Value,
+) -> Result<String, Diagnostic> {
+    if types.len() != TYPE_ROLES.len() || operations.len() != OPERATION_ROLES.len() {
+        return Err(malformed());
+    }
+    let mut output = format!(
+        "{{\"schema\":{},\"agent_id\":{},\"types\":[",
+        quote_json(DEFINITION_SCHEMA),
+        quote_json(agent_id)
+    );
+    for (index, (stable_id, role)) in types.iter().zip(TYPE_ROLES).enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        output.push_str(&format!(
+            "{{\"role\":{},\"stable_id\":{}}}",
+            quote_json(role),
+            quote_json(stable_id)
+        ));
+    }
+    output.push_str("],\"operations\":[");
+    for (index, (stable_id, (role, kind))) in operations.iter().zip(OPERATION_ROLES).enumerate() {
+        if index > 0 {
+            output.push(',');
+        }
+        output.push_str(&format!(
+            "{{\"role\":{},\"stable_id\":{},\"kind\":{}}}",
+            quote_json(role),
+            quote_json(stable_id),
+            quote_json(kind)
+        ));
+    }
+    output.push_str("],\"runtime_v1\":");
+    output.push_str(&render_runtime_v1(runtime_v1)?);
+    output.push_str("}\n");
+    Ok(output)
 }
 
 fn render_definition(definition: &AgentDefinition) -> String {
@@ -689,30 +736,7 @@ fn render_graph(definition: &AgentDefinition) -> String {
             runtime
                 .get("limits")
                 .expect("admitted Runtime v1 limits remain present"),
-            &[
-                "max_turns",
-                "max_provider_attempts",
-                "max_retries_per_turn",
-                "max_concurrency",
-                "max_elapsed_ms",
-                "max_provider_request_bytes",
-                "max_provider_response_bytes",
-                "max_stream_chunks",
-                "max_total_provider_input_bytes",
-                "max_total_provider_output_bytes",
-                "max_reported_model_input_tokens",
-                "max_reported_model_output_tokens",
-                "max_usd_microunits",
-                "max_tool_calls",
-                "max_tool_arguments_bytes",
-                "max_tool_result_bytes",
-                "max_total_tool_bytes",
-                "max_retained_state_bytes",
-                "max_trace_events",
-                "max_trace_bytes",
-                "max_evidence_bytes",
-                "max_builder_bytes",
-            ],
+            &LIMIT_KEYS,
         )
         .expect("admitted Runtime v1 limits remain canonical"),
     );

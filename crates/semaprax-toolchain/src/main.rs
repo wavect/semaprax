@@ -3,7 +3,6 @@ mod driver;
 mod new_project;
 
 static HOST: driver::PrivateHost = driver::PrivateHost {
-    doctor: semaprax_toolchain::run_doctor,
     new_project: |arguments| {
         new_project::run(arguments).map_err(|error| (error.to_string(), error.exit_code()))
     },

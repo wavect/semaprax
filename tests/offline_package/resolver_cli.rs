@@ -46,8 +46,10 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // so every historical witness below still measures the shape it recorded:
     // `semaprax lock` is new, directory inputs were added to check/build/run
     // /test, the scaffold gained a library template, `new` became public, and
-    // `doc`, `verify`, `agent`, `query`, `package`, `add`, and `fetch` were added.
-    const RESTORED: [(&str, &str); 25] = [
+    // `doc`, `verify`, `agent`, `query`, `package`, `add`, and `fetch` were added,
+    // and `doctor` became standalone.
+    const RESTORED: [(&str, &str); 26] = [
+        ("semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n", ""),
         ("semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]\n", ""),
         ("semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>\n", ""),
         ("semaprax add <dir>|semaprax.toml <package> <range>\n", ""),

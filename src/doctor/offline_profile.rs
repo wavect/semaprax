@@ -5,7 +5,7 @@ use super::{
     DoctorHost, DoctorOutcome, DoctorTarget,
 };
 
-pub(crate) trait OfflineProfileHost {
+pub trait OfflineProfileHost {
     fn os(&self) -> &str;
     fn arch(&self) -> &str;
     fn acquire(&self, selector: &str) -> Result<AdmittedProfile<'_>, DoctorError>;
@@ -13,9 +13,9 @@ pub(crate) trait OfflineProfileHost {
 
 /// Holds one admission for the complete report, including every tool check.
 /// A selector string alone never constructs a production admission.
-pub(crate) struct AdmittedProfile<'a> {
-    pub(crate) selector: String,
-    pub(crate) host: Box<dyn DoctorHost + 'a>,
+pub struct AdmittedProfile<'a> {
+    pub selector: String,
+    pub host: Box<dyn DoctorHost + 'a>,
 }
 
 pub(super) struct RealOfflineProfileHost;
@@ -54,7 +54,7 @@ pub(super) fn validate_selector(selector: &str) -> Result<(), DoctorError> {
     Ok(())
 }
 
-pub(crate) fn run_with_profile_host(
+pub fn run_with_profile_host(
     arguments: &[String],
     host: &dyn OfflineProfileHost,
 ) -> Result<DoctorOutcome, DoctorError> {
@@ -69,7 +69,7 @@ pub(crate) fn run_with_profile_host(
     )
 }
 
-pub(crate) fn inspect_profile(
+pub fn inspect_profile(
     host: &dyn OfflineProfileHost,
     target: DoctorTarget,
     json: bool,

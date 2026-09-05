@@ -120,6 +120,9 @@ pub(crate) enum CommandId {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Availability {
     Public,
+    /// Retained for commands that only the unpublished toolchain can serve;
+    /// none is catalogued today, since `doctor` moved into the root crate.
+    #[allow(dead_code)]
     Private,
 }
 #[derive(Clone, Copy, Debug)]
@@ -174,7 +177,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::ContextBenchmark, canonical: "context-benchmark", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax context-benchmark <manifest>"] },
     CommandSpec { id: CommandId::Serve, canonical: "serve", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax serve <file> [--max-request-bytes N]"] },
     CommandSpec { id: CommandId::QualityPlan, canonical: "quality-plan", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax quality-plan <quick|changed|full> [exact-changed-path ...]"] },
-    CommandSpec { id: CommandId::Doctor, canonical: "doctor", aliases: &[], availability: Availability::Private, global: true, usages: &["semaprax doctor [--profile <id>] [--target native|web|all] [--json]"] },
+    CommandSpec { id: CommandId::Doctor, canonical: "doctor", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doctor [--profile <id>] [--target native|web|all] [--json]"] },
     CommandSpec { id: CommandId::New, canonical: "new", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax new <destination> [--name project-name] [--template calculator|library]"] },
     CommandSpec { id: CommandId::ProjectScaffold, canonical: "project-scaffold", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-scaffold --name project-name [--template calculator|library] [--layout frozen|tables]"] },
     CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]", "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|rust] [-o|--output path] [--json]"] },
@@ -751,7 +754,7 @@ mod tests {
             assert!(help.contains("\n  help all "));
             assert!(help.contains("\n  help language "));
             assert!(help.contains("\n  new "));
-            assert_eq!(help.contains("\n  doctor "), private);
+            assert!(help.contains("\n  doctor "), "private={private}");
             assert!(!help.contains("|rust"));
             assert!(catalog(private).starts_with(BANNER));
             assert!(catalog(private).contains("\nsemaprax check "));
@@ -782,7 +785,7 @@ mod tests {
         assert_eq!(suggestion("checl", false), Some("check"));
         assert_eq!(suggestion("buidl", false), Some("build"));
         assert_eq!(suggestion("-v", false), None);
-        assert_eq!(suggestion("doctro", false), None);
+        assert_eq!(suggestion("doctro", false), Some("doctor"));
         assert_eq!(suggestion("doctro", true), Some("doctor"));
         assert_eq!(suggestion("not-a-command", true), None);
         assert_eq!(suggestion("gráph", true), None);

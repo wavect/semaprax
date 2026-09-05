@@ -150,19 +150,13 @@ impl Sources {
                 read(repository, "src/cli_driver/supply_chain.rs"),
                 read(repository, "src/cli/project_runtime.rs"),
                 read(repository, "src/cli/help.rs"),
-                read(repository, "crates/semaprax-toolchain/src/doctor.rs"),
+                read(repository, "src/doctor.rs"),
+                read(repository, "src/doctor/offline_profile.rs"),
                 read(
                     repository,
-                    "crates/semaprax-toolchain/src/doctor/offline_profile.rs",
+                    "crates/semaprax-toolchain/src/settled_report.rs",
                 ),
-                read(
-                    repository,
-                    "crates/semaprax-toolchain/src/doctor/settled_report.rs",
-                ),
-                read(
-                    repository,
-                    "crates/semaprax-toolchain/src/doctor/version_token.rs",
-                ),
+                read(repository, "src/doctor/version_token.rs"),
             ]
             .join("\n"),
             specification: read(repository, SPEC),

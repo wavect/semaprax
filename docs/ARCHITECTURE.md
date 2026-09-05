@@ -92,8 +92,13 @@ artifact owns no path, file handle, staging namespace, process, or publication
 authority; materialization remains entirely caller-owned. See [Public Project
 Scaffold Capsule v2](PROJECT-SCAFFOLD-V2.md).
 
-The toolchain library's shared doctor module owns strict bounded `--profile` selection and one
-scoped offline-profile admission per report. Missing/unavailable profiles fail
+`src/doctor.rs` (with `src/doctor/offline_profile.rs` and
+`src/doctor/version_token.rs`) is the doctor policy module shared by both
+binaries: it owns strict bounded `--profile` selection and one scoped
+offline-profile admission per report, and it spawns nothing. The toolchain's
+`settled_report.rs` renders a provisioner-owned settled observation through
+the same policy and is the only doctor code that names the private platform
+crate. Missing/unavailable profiles fail
 required checks without ambient discovery or tool execution; returned selector
 and platform facts are checked before tool callbacks. No production admission
 backend is implemented, so the real CLI currently reports unavailable rather

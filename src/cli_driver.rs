@@ -46,13 +46,11 @@ use source_execution::*;
 mod native_scratch_tests;
 
 /// Explicit private-host hooks supplied only by the unpublished toolchain.
-pub type DoctorHook = fn(&[String]) -> Result<(String, u8), String>;
 /// Creates a project and returns the destination as spelled plus the
 /// template it published.
 pub type NewProjectHook = fn(&[String]) -> Result<(PathBuf, &'static str), (String, u8)>;
 
 pub struct PrivateHost {
-    pub doctor: DoctorHook,
     pub new_project: NewProjectHook,
     pub build_rust: fn(&mut project::ProjectSnapshot, &Path) -> Result<(), Vec<Diagnostic>>,
     #[cfg(windows)]
@@ -591,11 +589,11 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             Ok(())
         }
         CommandId::Doctor => {
-            let (output, exit_code) = (require_private_host(host, "doctor")?.doctor)(&args[1..])
-                .map_err(|error| {
-                    eprintln!("doctor: {error}");
-                    2
-                })?;
+            let outcome = semaprax::doctor::run(&args[1..]).map_err(|error| {
+                eprintln!("doctor: {error}");
+                2
+            })?;
+            let (output, exit_code) = (outcome.output, outcome.exit_code);
             print!("{output}");
             if exit_code == 0 {
                 Ok(())

@@ -40,9 +40,10 @@ static, source-owned guide:
   diagnostic form.
 
 Every entry names a catalog command by its canonical name, and the capability
-filter is the catalog's: the standalone executable omits `doctor` and the
-`rust` build target exactly as its catalog does, and a group with no
-visible entry is omitted. The guided page for either capability class is at
+filter is the catalog's: since `doctor` moved into the root crate no catalog
+command is private any more, the standalone executable omits only the `rust`
+build target exactly as its build catalog does, and a group with no visible
+entry is omitted. The guided page for either capability class is at
 most 2048 bytes; that bound is a contract, enforced by unit and integration
 evidence, so the page stays one screen as commands are added.
 

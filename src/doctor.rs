@@ -1,4 +1,9 @@
-//! Private-host tool probes, intentionally absent from the registry CLI.
+//! Doctor: offline tool-profile admission and version policy, shared by the
+//! standalone and full-toolchain binaries. Selection is not authority: the
+//! real CLI reports unavailable required checks until a platform backend
+//! admits the offline closure, and this module never spawns a process itself.
+//! The settled-observation renderer that consumes the private platform
+//! crate's types stays in `crates/semaprax-toolchain`.
 use std::fmt;
 use std::path::{Path, PathBuf};
 
@@ -6,19 +11,14 @@ use semaprax::diagnostic::quote_json;
 
 #[path = "doctor/offline_profile.rs"]
 mod offline_profile;
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
-#[path = "doctor/settled_report.rs"]
-mod settled_report;
 #[path = "doctor/version_token.rs"]
 mod version_token;
-#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
-pub(crate) use settled_report::render_settled;
 
 #[cfg(test)]
 // Used by the path-included integration harness, not the library test target.
 #[allow(unused_imports)]
-pub(crate) use offline_profile::{inspect_profile, AdmittedProfile};
-pub(crate) use offline_profile::{run_with_profile_host, OfflineProfileHost};
+pub use offline_profile::{inspect_profile, AdmittedProfile};
+pub use offline_profile::{run_with_profile_host, OfflineProfileHost};
 
 const SCHEMA: &str = "semaprax.doctor.v1";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -26,7 +26,7 @@ const MIN_NODE_MAJOR: u64 = 22;
 const MIN_RUST_MAJOR: u64 = 1;
 const MIN_RUST_MINOR: u64 = 88;
 
-pub(crate) trait DoctorHost {
+pub trait DoctorHost {
     fn os(&self) -> &str;
     fn arch(&self) -> &str;
     fn resolve_tool(&self, name: &str) -> Result<PathBuf, DoctorError>;
@@ -34,12 +34,12 @@ pub(crate) trait DoctorHost {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct DoctorError {
+pub struct DoctorError {
     message: String,
 }
 
 impl DoctorError {
-    pub(crate) fn new(message: impl Into<String>) -> Self {
+    pub fn new(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
         }
@@ -53,7 +53,7 @@ impl fmt::Display for DoctorError {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum DoctorTarget {
+pub enum DoctorTarget {
     Contributor,
     Native,
     Web,
@@ -79,7 +79,7 @@ struct DoctorOptions {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct Check {
+pub struct Check {
     id: &'static str,
     required: bool,
     passed: bool,
@@ -87,7 +87,7 @@ struct Check {
 }
 
 impl Check {
-    fn ok(id: &'static str, detail: impl Into<String>) -> Self {
+    pub fn ok(id: &'static str, detail: impl Into<String>) -> Self {
         Self {
             id,
             required: true,
@@ -106,12 +106,12 @@ impl Check {
     }
 }
 
-pub(crate) struct DoctorOutcome {
-    pub(crate) output: String,
-    pub(crate) exit_code: u8,
+pub struct DoctorOutcome {
+    pub output: String,
+    pub exit_code: u8,
 }
 
-pub(crate) fn run(arguments: &[String]) -> Result<DoctorOutcome, DoctorError> {
+pub fn run(arguments: &[String]) -> Result<DoctorOutcome, DoctorError> {
     let host: &dyn OfflineProfileHost = &offline_profile::RealOfflineProfileHost;
     run_with_profile_host(arguments, host)
 }
@@ -119,7 +119,7 @@ pub(crate) fn run(arguments: &[String]) -> Result<DoctorOutcome, DoctorError> {
 #[cfg(test)]
 // Preserves the legacy injected-harness view; production uses explicit profiles.
 #[allow(dead_code)]
-pub(crate) fn inspect(
+pub fn inspect(
     host: &dyn DoctorHost,
     target: DoctorTarget,
     json: bool,
@@ -137,7 +137,7 @@ fn base_checks(os: &str, arch: &str, release_build: bool) -> Result<Vec<Check>, 
 }
 
 // Callers either validate free-form host facts or supply closed platform enums.
-fn platform_checks(os: &str, arch: &str, release_build: bool) -> Vec<Check> {
+pub fn platform_checks(os: &str, arch: &str, release_build: bool) -> Vec<Check> {
     vec![
         Check::ok("semaprax", VERSION),
         Check::ok("os", os),
@@ -158,7 +158,7 @@ fn append_tool_checks(checks: &mut Vec<Check>, host: &dyn DoctorHost, target: Do
     }
 }
 
-fn report(target: DoctorTarget, json: bool, checks: &[Check]) -> DoctorOutcome {
+pub fn report(target: DoctorTarget, json: bool, checks: &[Check]) -> DoctorOutcome {
     let passed = checks.iter().all(|check| !check.required || check.passed);
     let output = if json {
         render_json(target, checks)
@@ -254,7 +254,7 @@ fn check_clang(host: &dyn DoctorHost) -> Check {
     clang_version(&path.display().to_string(), host.run_version(&path))
 }
 
-fn clang_version(path: &str, output: Result<String, DoctorError>) -> Check {
+pub fn clang_version(path: &str, output: Result<String, DoctorError>) -> Check {
     match normalized_version(output) {
         Ok(version) => Check::ok("clang", format!("{path} ({version})")),
         Err(error) => Check::failed("clang", error.to_string()),
@@ -272,7 +272,7 @@ fn check_node(host: &dyn DoctorHost) -> Check {
     node_version(host.run_version(&path))
 }
 
-fn node_version(output: Result<String, DoctorError>) -> Check {
+pub fn node_version(output: Result<String, DoctorError>) -> Check {
     let version = match normalized_version(output) {
         Ok(version) => version,
         Err(error) => return Check::failed("node", error.to_string()),
@@ -298,7 +298,7 @@ fn check_rust(host: &dyn DoctorHost) -> Check {
     rust_version_check(host.run_version(&path))
 }
 
-fn rust_version_check(output: Result<String, DoctorError>) -> Check {
+pub fn rust_version_check(output: Result<String, DoctorError>) -> Check {
     let version = match normalized_version(output) {
         Ok(version) => version,
         Err(error) => return Check::failed("rust", error.to_string()),

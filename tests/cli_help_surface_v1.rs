@@ -82,7 +82,7 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert_eq!(guide.matches("\n  help language ").count(), 1);
     assert_eq!(guide.matches("\n  project-scaffold ").count(), 1);
     assert_eq!(guide.matches("\n  new ").count(), 1);
-    assert_eq!(guide.matches("\n  doctor ").count(), 0);
+    assert_eq!(guide.matches("\n  doctor ").count(), 1);
     assert_eq!(guide.matches("|rust").count(), 0);
     assert_eq!(guide.matches("\nsemaprax ").count(), 0);
     for name in guide_commands(&guide) {
@@ -106,7 +106,7 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert!(help.starts_with(&format!("{BANNER}\nUsage:\nsemaprax check ")));
     assert_eq!(help.matches(BUILD_SOURCE_LINE).count(), 1);
     assert_eq!(help.matches(BUILD_PROJECT_LINE).count(), 1);
-    assert_eq!(help.matches(DOCTOR_LINE).count(), 0);
+    assert_eq!(help.matches(DOCTOR_LINE).count(), 1);
     assert_eq!(help.matches(NEW_LINE).count(), 1);
     assert_eq!(help.matches(PROJECT_SCAFFOLD_LINE).count(), 1);
     assert!(help.find(NEW_LINE).unwrap() < help.find(PROJECT_SCAFFOLD_LINE).unwrap());
@@ -132,10 +132,14 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
         b"unknown command `chek`; did you mean `check`?\n\n"
     );
 
+    // `doctor` is catalogued by both binaries, so its typo is suggested too.
     let (hidden_typo, hidden_typo_dir) = invoke(&["doctro"]);
     assert_eq!(hidden_typo.status.code(), Some(2));
     assert_eq!(hidden_typo.stdout, empty.stdout);
-    assert_eq!(hidden_typo.stderr, b"unknown command `doctro`\n\n");
+    assert_eq!(
+        hidden_typo.stderr,
+        b"unknown command `doctro`; did you mean `doctor`?\n\n"
+    );
 
     let (malformed_known, malformed_known_dir) = invoke(&["check", "--unknown"]);
     assert_eq!(malformed_known.status.code(), Some(2));
@@ -145,10 +149,14 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
         b"unknown check option `--unknown`\nhint: run `semaprax check --help` for usage\n"
     );
 
+    // `doctor` is admitted by both binaries; its option grammar is closed.
     let (hidden_known, hidden_known_dir) = invoke(&["doctor", "--unknown"]);
     assert_eq!(hidden_known.status.code(), Some(2));
     assert!(hidden_known.stdout.is_empty());
-    assert_eq!(hidden_known.stderr, b"doctor is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI\n");
+    assert_eq!(
+        hidden_known.stderr,
+        b"doctor: unknown doctor option `--unknown`\nhint: run `semaprax doctor --help` for usage\n"
+    );
 
     let (help_extra, help_extra_dir) = invoke(&["help", "all", "extra"]);
     assert_eq!(help_extra.status.code(), Some(2));
@@ -206,11 +214,12 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         }
     }
 
-    // The one command still hidden by the standalone capability boundary.
+    // No command is hidden by a capability boundary any more: `doctor` has
+    // scoped help in the standalone binary too.
     let (hidden, hidden_dir) = invoke(&["help", "doctor"]);
-    assert_eq!(hidden.status.code(), Some(2));
-    assert_eq!(hidden.stdout, global.stdout);
-    assert_eq!(hidden.stderr, b"unknown command `doctor`\n\n");
+    assert!(hidden.status.success());
+    assert!(hidden.stderr.is_empty());
+    assert_eq!(hidden.stdout, format!("Usage:\n  {DOCTOR_LINE}").as_bytes());
     std::fs::remove_dir(hidden_dir).unwrap();
     let (language, language_dir) = invoke(&["help", "language"]);
     assert!(language.status.success());

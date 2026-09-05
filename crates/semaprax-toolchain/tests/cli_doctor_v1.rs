@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-#[path = "../src/doctor.rs"]
+#[path = "../../../src/doctor.rs"]
 mod doctor;
 
 #[path = "cli_doctor_v1/offline_profiles.rs"]

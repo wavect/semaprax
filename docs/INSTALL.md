@@ -247,8 +247,7 @@ stdout. Invocation errors exit `2` and compiler or execution failures exit `1`.
 | --- | --- | --- |
 | `zsh: command not found: semaprax` (or `sh: semaprax: command not found`) | Cargo's binary directory is not on `PATH`, or the install never ran. | Follow [Put Cargo's binary directory on your PATH](#put-cargos-binary-directory-on-your-path), open a new shell, and check `command -v semaprax`. |
 | Global help on stdout, empty stderr, exit `2` | No subcommand was given. | Pick a subcommand from `semaprax --help`, or read the [CLI user guide](CLI-GUIDE.md). |
-| `doctor is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI` | A private full-toolchain command was run on the standalone compiler. | Install the full toolchain from the same checkout and run `semaprax-full doctor`, or use an archive binary, where the command is simply `semaprax doctor`. |
-| ``unknown command `doctor` `` followed by global help | Same cause, reached through `semaprax doctor --help`. Names hidden by the capability boundary get no suggestion, by design. | As above. |
+| `failed profile: an explicit offline profile is required; use --profile <id>` with exit `1` | `doctor` ran without an offline tool profile. It never discovers or runs tools ambiently. | Pass `--profile <id>` naming an admitted offline profile; the report lists which required checks stay unavailable. |
 | `new: cannot create project first-semaprax: an entry already exists` | The destination already exists. `new` never replaces or writes into an existing entry. | Choose a fresh destination name, or remove the entry yourself. |
 | ``unknown command `chekc`; did you mean `check`?`` | A misspelled command name. The suggestion compares only names already visible in that binary's catalog; see [capability-aware CLI typo guidance](CLI-HELP-V2.md). | Run the suggested name. |
 | `error[SPX-I001]: cannot read missing.spx: No such file or directory (os error 2)` | The source path does not exist, usually because the shell is in the wrong directory. | Check the working directory and the path. Paths are resolved relative to the process working directory. |
@@ -283,10 +282,10 @@ project-scaffold requires --name project-name
 hint: run `semaprax project-scaffold --help` for usage
 ```
 
-A private command on the standalone compiler:
+`doctor` without an offline profile (exit `1`, report on stdout):
 
 ```text
-doctor is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI
+failed profile: an explicit offline profile is required; use --profile <id>
 ```
 
 A misspelling, whose global help still goes to stdout:

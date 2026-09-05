@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- `semaprax doctor` is now admitted by the standalone compiler: the pure
+  offline-profile admission and version-policy module moved from the private
+  toolchain into the root crate (`src/doctor.rs`), so both binaries print the
+  same report and the guided help pages are identical; only the settled
+  provisioner-observation renderer remains in the toolchain, and only
+  `build --target rust` still needs the private host.
 - The VS Code adapter adds `Show Ownership, Contracts, and Effects` (the
   compiler's bounded `context` facets for a chosen callable) and `Inspect Agent
   Definition` (`agent inspect` over the saved AgentDefinition v1 file), both

@@ -280,15 +280,14 @@ mod install_guide {
     use std::process::{Command, Output};
 
     /// Commands the standalone compiler hides behind its capability boundary.
-    const FULL_TOOLCHAIN_ONLY: &[&str] = &["doctor"];
+    /// `doctor` moved into the root crate, so none remains.
+    const FULL_TOOLCHAIN_ONLY: &[&str] = &[];
 
     const GLOBAL_HELP_BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 
-    const PRIVATE_DOCTOR_STDERR: &str =
-        "doctor is unavailable in the standalone crates.io package; \
-use the unpublished semaprax-full toolchain CLI\n";
-
-    const HIDDEN_DOCTOR_STDERR: &str = "unknown command `doctor`\n";
+    const DOCTOR_WITHOUT_PROFILE_REPORT: &str = "semaprax doctor (contributor)\n";
+    const DOCTOR_WITHOUT_PROFILE_FAILURE: &str =
+        "failed profile: an explicit offline profile is required; use --profile <id>\n";
 
     const TYPO_SUGGESTION_STDERR: &str = "unknown command `chekc`; did you mean `check`?\n";
 
@@ -445,8 +444,7 @@ use the unpublished semaprax-full toolchain CLI\n"
         let fixture = super::Fixture::new("install-guide-failures");
 
         for quoted in [
-            PRIVATE_DOCTOR_STDERR,
-            HIDDEN_DOCTOR_STDERR,
+            DOCTOR_WITHOUT_PROFILE_FAILURE,
             TYPO_SUGGESTION_STDERR,
             MISSING_GRAPH_OPERAND_STDERR,
             UNSUPPORTED_TARGET_STDERR,
@@ -466,7 +464,7 @@ use the unpublished semaprax-full toolchain CLI\n"
             MISSING_GRAPH_OPERAND_STDERR,
             UNSUPPORTED_TARGET_STDERR,
             MISSING_SCAFFOLD_NAME_STDERR,
-            PRIVATE_DOCTOR_STDERR,
+            DOCTOR_WITHOUT_PROFILE_FAILURE,
             TYPO_SUGGESTION_STDERR,
         ] {
             assert!(
@@ -481,14 +479,18 @@ use the unpublished semaprax-full toolchain CLI\n"
         assert!(empty.stderr.is_empty());
         assert!(stdout(&empty).starts_with(GLOBAL_HELP_BANNER));
 
-        let private = standalone(&fixture.root, &["doctor"]);
-        assert_eq!(private.status.code(), Some(2));
-        assert_eq!(stderr(&private), PRIVATE_DOCTOR_STDERR);
+        // `doctor` is admitted by the standalone compiler and requires an
+        // explicit offline profile; it never discovers or runs a tool.
+        let doctor = standalone(&fixture.root, &["doctor"]);
+        assert_eq!(doctor.status.code(), Some(1));
+        assert!(stderr(&doctor).is_empty());
+        assert!(stdout(&doctor).starts_with(DOCTOR_WITHOUT_PROFILE_REPORT));
+        assert!(stdout(&doctor).contains(DOCTOR_WITHOUT_PROFILE_FAILURE));
 
-        let hidden = standalone(&fixture.root, &["doctor", "--help"]);
-        assert_eq!(hidden.status.code(), Some(2));
-        assert!(stderr(&hidden).starts_with(HIDDEN_DOCTOR_STDERR));
-        assert!(stdout(&hidden).starts_with(GLOBAL_HELP_BANNER));
+        let scoped = standalone(&fixture.root, &["doctor", "--help"]);
+        assert_eq!(scoped.status.code(), Some(0));
+        assert!(stderr(&scoped).is_empty());
+        assert!(stdout(&scoped).starts_with("Usage:\n  semaprax doctor "));
 
         let typo = standalone(&fixture.root, &["chekc"]);
         assert_eq!(typo.status.code(), Some(2));

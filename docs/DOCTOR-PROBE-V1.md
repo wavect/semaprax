@@ -6,8 +6,10 @@ Audience: CLI/platform contributors and reviewers.
 
 ## Scope
 
-The unpublished `semaprax-full doctor` now requires an explicitly selected
-offline tool profile instead of ambient PATH/home discovery. Selection is not
+`semaprax doctor`, admitted by the standalone and the full-toolchain binary
+alike since the policy module moved into the root crate (`src/doctor.rs`),
+requires an explicitly selected offline tool profile instead of ambient
+PATH/home discovery. Selection is not
 authority: a platform backend must admit the complete offline execution/input
 closure before any tool lookup or version probe. The separate signed
 [Linux production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md) now authors
@@ -16,8 +18,10 @@ or connected to ordinary CLI acquisition. Consequently, the real CLI still
 reports unavailable required checks (exit 1), even for a syntactically valid
 selector. It never falls back to the retained installed-tool probe.
 
-The standalone crates.io CLI rejects `doctor` without invoking tools. Report
-policy and version parsing live in `crates/semaprax-toolchain`. The retained safe
+Both binaries run the same report policy and version parsing, which live in
+`src/doctor.rs`; only the settled-observation renderer that consumes the
+private platform crate's types stays in `crates/semaprax-toolchain`. Neither
+binary discovers or spawns a tool from this route. The retained safe
 platform facade/sys quarantine probe is described below, but is no longer
 connected to the real CLI. Its partial isolation is not profile admission.
 
@@ -30,7 +34,7 @@ runner is unchanged.
 ## Offline profile selection
 
 ```text
-semaprax-full doctor [--profile <id>] [--target native|web|all] [--json]
+semaprax doctor [--profile <id>] [--target native|web|all] [--json]
 ```
 
 An ID is 1–64 ASCII bytes matching `[a-z][a-z0-9-]{0,63}`. It selects one

@@ -5,7 +5,7 @@ use semaprax_native_rust_interop_platform::{
     SettledDoctorObservation,
 };
 
-use super::{
+use semaprax::doctor::{
     clang_version, node_version, platform_checks, report, rust_version_check, Check, DoctorError,
     DoctorOutcome, DoctorTarget,
 };

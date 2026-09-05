@@ -5,6 +5,10 @@
 //! The source projection is for humans. Semantic graphs and the bounded
 //! project transport are the agent-facing interfaces.
 
+// Path-included by the toolchain crate and its harnesses, where the same
+// sources name this crate as `semaprax`.
+extern crate self as semaprax;
+
 pub mod abi_report;
 pub mod agent_definition;
 pub mod agent_economics;
@@ -46,6 +50,7 @@ pub mod diagnostic;
 #[doc(hidden)]
 pub mod digest_hex;
 pub mod doc;
+pub mod doctor;
 pub mod economic_agent;
 pub mod format;
 pub mod freestanding_object;

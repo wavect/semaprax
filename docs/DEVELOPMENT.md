@@ -132,8 +132,8 @@ rather than a requirement.
 
 The standalone `semaprax` registry package has no private-host dependency.
 The unpublished `crates/semaprax-toolchain` package builds `semaprax-full`
-using the same compiler and CLI driver. Use it for `new`, `doctor`, and
-`build --target rust`; Windows revision-store persistence/loading live in
+using the same compiler and CLI driver. `new` and `doctor` are standalone
+routes; use the full toolchain for `build --target rust`; Windows revision-store persistence/loading live in
 its library. Source installs retain the distinct binary name. Tag archives
 package that binary as `semaprax`, alongside `semapraxd`.
 

@@ -10,7 +10,7 @@ fn rows(outcome: &DoctorOutcome) -> Vec<serde_json::Value> {
 #[test]
 fn production_adapter_requires_the_opaque_settled_observation() {
     // Signature evidence only: this neither constructs authority nor runs a tool.
-    let _: fn(&SettledDoctorObservation, bool) -> DoctorOutcome = super::super::render_settled;
+    let _: fn(&SettledDoctorObservation, bool) -> DoctorOutcome = super::render_settled;
 }
 
 #[test]

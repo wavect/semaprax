@@ -1431,7 +1431,12 @@ fn emit_byte_exports_profile(
     );
     let contract_fail = intern_type(
         Signature {
-            params: vec![I32],
+            // Data-export failures publish their typed status through the
+            // existing status globals and never call this imported fallback.
+            // Keep its historical void signature so legacy byte-export
+            // modules remain byte-for-byte stable; the ordinary entry wrapper
+            // below owns the status-carrying contract-failure import.
+            params: Vec::new(),
             results: Vec::new(),
         },
         &mut types,

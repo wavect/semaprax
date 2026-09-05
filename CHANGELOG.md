@@ -40,6 +40,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Added a hosted Network Services v1 extension with Rustls-authenticated TLS
   clients, explicit listener/accept lifecycle, deterministic fixture v2, four
   effect-gated source operations, and a bounded real structured-task runtime.
+- Restored the frozen legacy Project-v3 Wasm byte projection by keeping the
+  data-export profile's unused `spx_contract_fail` import at its historical
+  void signature. Data exports continue to publish typed arithmetic, contract,
+  and byte-range failures through status globals; the ordinary entry wrapper
+  retains its status-carrying failure import. The byte-capacity unit module now
+  names its test submodule path explicitly so both its library owner and the
+  consolidated cleanup harness remain resolvable by `cargo fmt --all`.
 - Added the developer-preview `network-command-io.v1` Project v12 profile,
   native and deterministic fixture-only npm/Web build lanes, the bounded
   `semaprax network-run --fixture` command, and a committed HTTP Project

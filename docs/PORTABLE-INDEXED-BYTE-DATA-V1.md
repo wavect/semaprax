@@ -327,6 +327,13 @@ function's `requires` and `ensures` lines, naming the return value `result`,
 so replay binds contracts byte for byte with the body. Functions that
 declare effects are still rejected with `SPX-W121`.
 
+The data-export module retains the historical void Core-Wasm signature for its
+otherwise unused `spx_contract_fail` import. Data-export arithmetic, contract,
+and byte-range failures publish through `__spx_data_status_v1`; they do not call
+that fallback. The ordinary entry-wrapper profile separately uses the
+status-carrying form. Keeping those profiles distinct preserves the frozen
+legacy Project-v3 byte KAT without weakening typed status publication.
+
 The ordinary Web wrapper reserves internal status values 11 and 12 for the
 two byte-range outcomes before dispatch through its existing failure import;
 they are not public byte-range codes. Generated JavaScript maps them back to

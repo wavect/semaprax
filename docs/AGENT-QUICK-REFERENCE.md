@@ -510,6 +510,7 @@ Other first-attempt diagnostics and their fixes:
 | `let t = (1, 2);` | `SPX-P106` | No tuples; declare a `record` |
 | `id(4)` for `fn id<T>` | `SPX-T225` | `id<i64>(4)` |
 | `Option::Some { value: 1 }` | `SPX-T221` | `Option<i64>::Some { value: 1 }` |
+| `index + 1` when `index: usize` | `SPX-T208` | Integer literals default to `i64`; write `index + 1usize` |
 | `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |
 | `f("abc")` or `f(owned)` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |

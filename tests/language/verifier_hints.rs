@@ -171,6 +171,22 @@ fn unsuffixed_literal_against_a_narrower_operand_names_the_suffix() {
 }
 
 #[test]
+fn unsuffixed_literal_in_narrow_integer_arithmetic_is_rejected_at_check() {
+    for (declaration, expression, expected_help) in [
+        ("let n = 3usize;", "n + 1", "1usize"),
+        ("let n = 3u8;", "n * 1", "1u8"),
+        ("let n = 3i32;", "n - 1", "1i32"),
+    ] {
+        let source = format!(
+            "module habit.arithmetic_suffix;\n\
+             @id(\"app.main\")\nfn main() -> i64\n{{\n    {declaration}\n    let bad = {expression};\n    0\n}}\n"
+        );
+        let diagnostic = only(&source, "SPX-T208");
+        assert!(help(&diagnostic).contains(expected_help), "{diagnostic}");
+    }
+}
+
+#[test]
 fn mismatched_non_literal_operands_get_no_literal_hint() {
     let diagnostic = only(
         "module habit.nolit;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let n = 3usize;\n    let m = 4;\n    if n < m { 1 } else { 0 }\n}\n",

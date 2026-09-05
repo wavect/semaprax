@@ -35,6 +35,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Pinned source-verifier rejection of unsuffixed `i64` literals mixed with
+  `usize`, `u8`, or `i32` arithmetic. `SPX-T208` now has explicit regression
+  coverage for the suffix help before HIR or a backend can observe the input.
+
 - Rejected a trailing semicolon after a block's value with the existing
   `SPX-P106` expression-statement diagnostic. Canonical formatting no longer
   accepts and silently removes that source token.

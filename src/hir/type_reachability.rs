@@ -330,14 +330,25 @@ fn classify_nested_owned_byte_record(
     declarations: &DeclarationIndex,
     root: &ResolvedType,
 ) -> NestedOwnedRecordAdmission {
+    if matches!(root, ResolvedType::Nominal { arguments, .. } if !arguments.is_empty())
+        && !is_flat_owned_byte_record(declarations, root)
+    {
+        return NestedOwnedRecordAdmission::OutsideProfile;
+    }
     enum Frame<'a> {
-        Type(&'a ResolvedType, usize),
-        Fields(&'a [ResolvedFieldDeclaration], usize, usize),
+        Type(ResolvedType, usize),
+        Fields(
+            DeclarationId,
+            &'a [ResolvedFieldDeclaration],
+            Vec<ResolvedType>,
+            usize,
+            usize,
+        ),
         LeaveRecord(String),
         LeaveField,
     }
 
-    let mut frames = vec![Frame::Type(root, 1)];
+    let mut frames = vec![Frame::Type(root.clone(), 1)];
     let mut active = BTreeSet::new();
     let mut path = Vec::new();
     let mut byte_paths = Vec::new();
@@ -351,7 +362,7 @@ fn classify_nested_owned_byte_record(
                     return NestedOwnedRecordAdmission::LimitExceeded;
                 }
             }
-            Frame::Type(ty, _) if nested_record_copy_scalar_is_admitted(ty) => {}
+            Frame::Type(ref ty, _) if nested_record_copy_scalar_is_admitted(ty) => {}
             Frame::Type(
                 ResolvedType::Nominal {
                     declaration,
@@ -362,25 +373,37 @@ fn classify_nested_owned_byte_record(
                 if depth > MAX_NESTED_OWNED_RECORD_DEPTH {
                     return NestedOwnedRecordAdmission::LimitExceeded;
                 }
-                if !arguments.is_empty()
+                if depth > 1 && !arguments.is_empty() {
+                    return NestedOwnedRecordAdmission::OutsideProfile;
+                }
+                if declarations
+                    .type_parameters(&declaration)
+                    .is_none_or(|parameters| parameters.len() != arguments.len())
+                    || arguments.iter().any(|argument| {
+                        !matches!(
+                            argument,
+                            ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Bytes
+                        )
+                    })
                     || declarations
-                        .type_parameters(declaration)
-                        .is_none_or(|parameters| !parameters.is_empty())
-                    || declarations
-                        .declaration(declaration)
+                        .declaration(&declaration)
                         .is_none_or(|item| item.kind != DeclarationKind::Record)
                 {
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 }
-                let Some(fields) = declarations.record_fields(declaration) else {
+                let Some(fields) = declarations.record_fields(&declaration) else {
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 };
-                let identity = declaration.as_str().to_owned();
+                let identity = ResolvedType::Nominal {
+                    declaration: declaration.clone(),
+                    arguments: arguments.clone(),
+                }
+                .identity_key();
                 if !active.insert(identity.clone()) {
                     return NestedOwnedRecordAdmission::Recursive;
                 }
                 frames.push(Frame::LeaveRecord(identity));
-                frames.push(Frame::Fields(fields, 0, depth));
+                frames.push(Frame::Fields(declaration, fields, arguments, 0, depth));
             }
             Frame::Type(
                 ResolvedType::Unit
@@ -402,7 +425,7 @@ fn classify_nested_owned_byte_record(
                 | ResolvedType::Bool,
                 _,
             ) => unreachable!("admitted scalar handled above"),
-            Frame::Fields(fields, index, depth) => {
+            Frame::Fields(declaration, fields, arguments, index, depth) => {
                 let Some(field) = fields.get(index) else {
                     continue;
                 };
@@ -410,10 +433,19 @@ fn classify_nested_owned_byte_record(
                 if visited_fields > MAX_NESTED_OWNED_RECORD_FIELDS {
                     return NestedOwnedRecordAdmission::LimitExceeded;
                 }
-                frames.push(Frame::Fields(fields, index + 1, depth));
+                frames.push(Frame::Fields(
+                    declaration.clone(),
+                    fields,
+                    arguments.clone(),
+                    index + 1,
+                    depth,
+                ));
                 path.push(PlaceProjection::Field(field.id.clone()));
                 frames.push(Frame::LeaveField);
-                frames.push(Frame::Type(&field.ty, depth + 1));
+                let Ok(field_ty) = substitute_type(&field.ty, &declaration, &arguments) else {
+                    return NestedOwnedRecordAdmission::OutsideProfile;
+                };
+                frames.push(Frame::Type(field_ty, depth + 1));
             }
             Frame::LeaveRecord(identity) => {
                 active.remove(&identity);
@@ -460,16 +492,53 @@ pub(super) fn is_flat_owned_byte_record(
     else {
         return false;
     };
-    arguments.is_empty()
-        && declarations
-            .record_fields(declaration)
-            .is_some_and(|fields| {
-                fields.iter().any(|field| field.ty == ResolvedType::Bytes)
-                    && fields.iter().all(|field| {
-                        field.ty == ResolvedType::Bytes
-                            || nested_record_copy_scalar_is_admitted(&field.ty)
-                    })
-            })
+    let Some(parameters) = declarations.type_parameters(declaration) else {
+        return false;
+    };
+    if arguments.len() != parameters.len() {
+        return false;
+    }
+    if !arguments.is_empty()
+        && arguments.iter().any(|argument| {
+            !matches!(
+                argument,
+                ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Bytes
+            )
+        })
+    {
+        return false;
+    }
+    declarations
+        .record_fields(declaration)
+        .and_then(|fields| {
+            fields
+                .iter()
+                .map(|field| substitute_type(&field.ty, declaration, arguments).ok())
+                .collect::<Option<Vec<_>>>()
+        })
+        .is_some_and(|fields| {
+            fields.contains(&ResolvedType::Bytes)
+                && fields.iter().all(|field| {
+                    *field == ResolvedType::Bytes || nested_record_copy_scalar_is_admitted(field)
+                })
+        })
+}
+
+pub(super) fn record_args_ok(
+    declarations: &DeclarationIndex,
+    declaration: &DeclarationId,
+    arguments: &[ResolvedType],
+) -> bool {
+    arguments
+        .iter()
+        .all(|argument| matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        || is_flat_owned_byte_record(
+            declarations,
+            &ResolvedType::Nominal {
+                declaration: declaration.clone(),
+                arguments: arguments.to_vec(),
+            },
+        )
 }
 
 pub(super) fn is_nested_nonflat_owned_byte_record(

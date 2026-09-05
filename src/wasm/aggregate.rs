@@ -992,12 +992,15 @@ fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagn
         return Ok(false);
     }
     if arguments.len() != item.type_parameters.len()
-        || arguments
-            .iter()
-            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        || arguments.iter().any(|argument| {
+            !matches!(
+                argument,
+                ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Bytes
+            )
+        })
     {
         return Err(error(format!(
-            "Wasm record representation requires exact concrete i64/bool arguments for `{}`",
+            "Wasm record representation requires admitted exact concrete arguments for `{}`",
             ty.identity_key()
         )));
     }

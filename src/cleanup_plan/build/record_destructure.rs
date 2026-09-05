@@ -40,7 +40,7 @@ pub(super) fn contains_nested(fields: &[ResolvedRecordMatchPatternField]) -> boo
     false
 }
 
-pub(super) fn transfer_if_nested(
+pub(super) fn transfer_owned(
     builder: &mut super::PlanBuilder<'_>,
     expression: &ResolvedExpr,
     block: BlockId,
@@ -48,18 +48,17 @@ pub(super) fn transfer_if_nested(
     source: &CleanupPlace,
     state: &mut super::FlowState,
     arm: &ResolvedMatchArm,
-) -> Result<bool, Diagnostic> {
+) -> Result<(), Diagnostic> {
     let ResolvedMatchPattern::Record {
         record,
         instance,
         fields,
     } = &arm.pattern
     else {
-        return Ok(false);
+        return Err(super::plan_error(
+            "owned record match has no exact record pattern",
+        ));
     };
-    if !contains_nested(fields) {
-        return Ok(false);
-    }
     let destructure = derive(
         builder.program,
         record,
@@ -67,11 +66,6 @@ pub(super) fn transfer_if_nested(
         fields,
         ResolvedMatchMode::Own,
     )?;
-    if !destructure.nested {
-        return Err(super::plan_error(
-            "nested record destructure lost its recursive pattern",
-        ));
-    }
     // One effect-free block owns the complete declaration-order transfer
     // sequence. No branch, status selection, or finalizer can observe a
     // partially committed destructure.
@@ -101,7 +95,7 @@ pub(super) fn transfer_if_nested(
             "nested record destructure left an owned source leaf live",
         ));
     }
-    Ok(true)
+    Ok(())
 }
 
 pub(super) fn observe_borrow(

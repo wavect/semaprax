@@ -64,7 +64,11 @@ pub(super) fn record_contains_owned_bytes(
                         "non-record nominal reached nested owned Wasm lowering",
                     ));
                 }
-                let ResolvedType::Nominal { declaration, .. } = &ty else {
+                let ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                } = &ty
+                else {
                     unreachable!()
                 };
                 if !active.insert(declaration.clone()) {
@@ -86,7 +90,10 @@ pub(super) fn record_contains_owned_bytes(
                 }
                 pending.push(Frame::Leave(declaration.clone()));
                 for field in fields.iter().rev() {
-                    pending.push(Frame::Enter(field.ty.clone(), depth + 1));
+                    pending.push(Frame::Enter(
+                        crate::hir::substitute_type(&field.ty, declaration, arguments)?,
+                        depth + 1,
+                    ));
                 }
             }
             Frame::Enter(_, _) => {
@@ -185,11 +192,10 @@ fn is_exact_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool,
         .declarations
         .declaration(declaration)
         .ok_or_else(|| super::error("nested owned nominal declaration is absent"))?;
-    Ok(arguments.is_empty()
-        && program
-            .declarations
-            .type_parameters(declaration)
-            .is_some_and(|parameters| parameters.is_empty())
+    Ok(program
+        .declarations
+        .type_parameters(declaration)
+        .is_some_and(|parameters| parameters.len() == arguments.len())
         && item.kind == DeclarationKind::Record)
 }
 

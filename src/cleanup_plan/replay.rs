@@ -5004,10 +5004,16 @@ fn validate_match_skeleton_shape(
             let declarations = program.declarations.record_fields(record).ok_or_else(|| {
                 replay_error(function, "explicit record match has no field inventory")
             })?;
+            let ResolvedMatchPattern::Record { instance, .. } = &arm.pattern else {
+                unreachable!("record pattern matched above")
+            };
+            let ResolvedType::Nominal { arguments, .. } = instance else {
+                return Err(replay_error(
+                    function,
+                    "explicit record match instance is not nominal",
+                ));
+            };
             if record_destructure::contains_nested(fields) {
-                let ResolvedMatchPattern::Record { instance, .. } = &arm.pattern else {
-                    unreachable!("record pattern matched above")
-                };
                 let expected =
                     record_destructure::replay(program, function, record, instance, fields, *mode)?;
                 if !expected.nested {
@@ -5019,23 +5025,24 @@ fn validate_match_skeleton_shape(
                 return Ok(is_record);
             }
             for declaration in declarations {
+                let field_ty = crate::hir::substitute_type(&declaration.ty, record, arguments)?;
                 let field = fields
                     .iter()
                     .find(|field| field.field == declaration.id)
                     .ok_or_else(|| {
                         replay_error(function, "explicit record pattern is incomplete")
                     })?;
-                let expected = if type_needs_drop(program, function, &declaration.ty)? {
+                let expected = if type_needs_drop(program, function, &field_ty)? {
                     expected_scrutinee_ownership
                 } else {
                     OwnershipMode::Value
                 };
                 match &field.pattern {
                     ResolvedRecordMatchFieldPattern::Binding(binding)
-                        if binding.ty == declaration.ty && binding.ownership == expected => {}
+                        if binding.ty == field_ty && binding.ownership == expected => {}
                     ResolvedRecordMatchFieldPattern::Wildcard
                         if *mode == crate::hir::ResolvedMatchMode::Borrow
-                            || !type_needs_drop(program, function, &declaration.ty)? => {}
+                            || !type_needs_drop(program, function, &field_ty)? => {}
                     ResolvedRecordMatchFieldPattern::Binding(_) => {
                         return Err(replay_error(
                             function,

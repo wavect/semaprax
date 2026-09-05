@@ -10,8 +10,8 @@ use crate::diagnostic::Diagnostic;
 use crate::hir::{
     DeclarationId, DeclarationKind, ExpressionId, IdentityOrigin, OwnershipMode, Place,
     PlaceProjection, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchArm,
-    ResolvedMatchMode, ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern,
-    ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
+    ResolvedMatchMode, ResolvedMatchPattern, ResolvedProgram, ResolvedStatement, ResolvedType,
+    ResolvedTypeDeclarationKind,
 };
 use crate::prelude;
 
@@ -1033,13 +1033,16 @@ impl<'a> PlanBuilder<'a> {
             }
             ResolvedTypeDeclarationKind::Record { fields }
             | ResolvedTypeDeclarationKind::Class { fields, .. } => {
-                if !arguments.is_empty() {
+                if !arguments.is_empty()
+                    && !matches!(&item.kind, ResolvedTypeDeclarationKind::Record { .. })
+                {
                     return Err(plan_error("generic cleanup-plan storage is unsupported"));
                 }
                 let mut shapes = Vec::with_capacity(fields.len());
                 for field in fields {
                     projections.push(field.id.clone());
-                    let shape = self.shape_for_type(&field.ty, storage, projections)?;
+                    let field_ty = crate::hir::substitute_type(&field.ty, declaration, arguments)?;
+                    let shape = self.shape_for_type(&field_ty, storage, projections)?;
                     projections.pop();
                     shapes.push(FieldLiveness {
                         field: field.id.clone(),
@@ -6182,7 +6185,7 @@ impl<'a> PlanBuilder<'a> {
                     .owned_source
                     .take()
                     .ok_or_else(|| plan_error("owned record match has no transfer source"))?;
-                if record_destructure::transfer_if_nested(
+                record_destructure::transfer_owned(
                     self,
                     expression,
                     entry,
@@ -6190,52 +6193,7 @@ impl<'a> PlanBuilder<'a> {
                     &source,
                     &mut evaluated.state,
                     arm,
-                )? {
-                    return Ok((entry, evaluated.state, arm_region));
-                }
-                let ResolvedMatchPattern::Record { record, fields, .. } = &arm.pattern else {
-                    unreachable!("explicit record pattern checked above")
-                };
-                let declared = self
-                    .program
-                    .declarations
-                    .record_fields(record)
-                    .ok_or_else(|| plan_error("owned record match has no field inventory"))?
-                    .to_vec();
-                for declaration in declared {
-                    if !self.needs_drop(&declaration.ty)? {
-                        continue;
-                    }
-                    let field = fields
-                        .iter()
-                        .find(|field| field.field == declaration.id)
-                        .ok_or_else(|| plan_error("owned record pattern is incomplete"))?;
-                    let ResolvedRecordMatchFieldPattern::Binding(binding) = &field.pattern else {
-                        return Err(plan_error(
-                            "owned record pattern must bind every droppable field",
-                        ));
-                    };
-                    let destination = self
-                        .binding_slot(binding, arm_region)?
-                        .ok_or_else(|| plan_error("owned record binding has no cleanup slot"))?;
-                    self.transfer(
-                        entry,
-                        expression.id.clone(),
-                        source.projected(declaration.id),
-                        destination,
-                        &mut evaluated.state,
-                        false,
-                    )?;
-                }
-                if self
-                    .flags_under(&source)
-                    .iter()
-                    .any(|flag| evaluated.state.is_live(*flag))
-                {
-                    return Err(plan_error(
-                        "owned record match left an undisposed source leaf",
-                    ));
-                }
+                )?;
             }
         }
         Ok((entry, evaluated.state, arm_region))

@@ -160,6 +160,54 @@ fn fail() -> i64 {
 }
 "#;
 
+const GENERIC_OWNED_SOURCE: &str = r#"
+module test.generic_owned_record_runtime;
+
+@id("generic.box") record Box<T> {
+    @id("generic.box.value") value: T,
+}
+@id("generic.pair") record Pair<T, U> {
+    @id("generic.pair.left") left: T,
+    @id("generic.pair.right") right: U,
+}
+
+@id("generic.inspect")
+fn inspect(packet: borrow Pair<Bytes, bool>) -> i64 {
+    match borrow packet {
+        Pair { left: payload, right: enabled } =>
+            if enabled && byte_len(bytes_as_slice(payload)) == 1usize { 41 } else { 0 },
+    }
+}
+
+@id("generic.consume")
+fn consume(packet: own Pair<Bytes, bool>) -> i64 {
+    match own packet {
+        Pair { left: payload, right: enabled } => if enabled { 1 } else { 0 },
+    }
+}
+
+@id("generic.make")
+fn make() -> Pair<Bytes, bool> {
+    let input = [42u8];
+    Pair<Bytes, bool> { left: bytes_copy(array_as_slice(input)), right: true }
+}
+
+@id("generic.run")
+fn run() -> i64 {
+    let packet = make();
+    inspect(packet) + consume(packet)
+}
+
+@id("generic.fail")
+fn fail() -> i64 {
+    let packet = make();
+    let failure = 1 / 0;
+    consume(packet) + failure
+}
+
+@id("app.main") fn main() -> i64 { run() }
+"#;
+
 fn symbol(id: &str) -> String {
     use std::fmt::Write as _;
     let mut hex = String::with_capacity(id.len() * 2);
@@ -167,6 +215,145 @@ fn symbol(id: &str) -> String {
         write!(hex, "{byte:02x}").unwrap();
     }
     format!("spx_decl_{hex}")
+}
+
+#[test]
+fn concrete_generic_owned_records_execute_and_settle_on_all_three_backends() {
+    let parsed = parse(
+        GENERIC_OWNED_SOURCE,
+        Path::new("generic-owned-record-runtime-v1.spx"),
+    )
+    .unwrap();
+    let diagnostics = verify::verify(&parsed);
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
+        "{diagnostics:?}"
+    );
+
+    let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
+    let path = std::env::temp_dir().join(format!(
+        "semaprax-generic-owned-interpreter-{}-{serial}.spx",
+        std::process::id()
+    ));
+    std::fs::write(&path, GENERIC_OWNED_SOURCE).unwrap();
+    let result =
+        interpreter::interpret(&path, "app.main", &[], &InterpreterOptions::default()).unwrap();
+    let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
+    assert_eq!(envelope["payload"]["outcome"]["value"], "42");
+    interpreter::verify_envelope(&result.envelope).unwrap();
+    let failure =
+        interpreter::interpret(&path, "generic.fail", &[], &InterpreterOptions::default()).unwrap();
+    assert!(!failure.returned);
+    interpreter::verify_envelope(&failure.envelope).unwrap();
+    let _ = std::fs::remove_file(path);
+
+    if Command::new("clang").arg("--version").output().is_ok() {
+        let generated = codegen::emit_c(&parsed).unwrap();
+        assert_eq!(generated, codegen::emit_c(&parsed).unwrap());
+        let tracked = generated
+            .replace(
+                "uint8_t *payload = (uint8_t *)malloc(",
+                "uint8_t *payload = (uint8_t *)spx_test_malloc(",
+            )
+            .replace("free(value->ptr);", "spx_test_free(value->ptr);");
+        let probe = format!(
+            r#"
+int main(void) {{
+    struct spx_status_entry entries[UINT32_C(16)];
+    struct spx_context context = {{0}};
+    if (!spx_context_init(&context, UINT64_C(101), entries, UINT32_C(16), NULL, NULL, NULL)) return 1;
+    int64_t result = INT64_C(0);
+    for (uint32_t iteration = 0; iteration < UINT32_C(4); ++iteration) {{
+        if ({main}(&context, &result) != SPX_STATUS_SUCCESS || result != INT64_C(42)) return 2;
+        if (spx_test_live_allocations != UINT64_C(0)) return 3;
+    }}
+    if ({fail}(&context, &result) == SPX_STATUS_SUCCESS) return 4;
+    if (spx_test_live_allocations != UINT64_C(0)) return 5;
+    return 0;
+}}
+"#,
+            main = symbol("app.main"),
+            fail = symbol("generic.fail"),
+        );
+        let allocator = r#"
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+static uint64_t spx_test_live_allocations = UINT64_C(0);
+static void *spx_test_malloc(size_t size) {
+    void *allocation = malloc(size);
+    if (allocation != NULL) spx_test_live_allocations += UINT64_C(1);
+    return allocation;
+}
+static void spx_test_free(void *allocation) {
+    if (allocation != NULL) {
+        if (spx_test_live_allocations == UINT64_C(0)) abort();
+        spx_test_live_allocations -= UINT64_C(1);
+    }
+    free(allocation);
+}
+"#;
+        for optimization in ["-O0", "-O2"] {
+            let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "semaprax-generic-owned-native-{}-{serial}",
+                std::process::id()
+            ));
+            let c = root.with_extension("c");
+            let executable = root.with_extension(std::env::consts::EXE_EXTENSION);
+            std::fs::write(&c, format!("{allocator}\n{tracked}\n{probe}")).unwrap();
+            let output = Command::new("clang")
+                .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror"])
+                .arg("-DSPX_NO_ENTRY_WRAPPER")
+                .arg(&c)
+                .arg("-o")
+                .arg(&executable)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(Command::new(&executable).status().unwrap().success());
+            let _ = std::fs::remove_file(c);
+            let _ = std::fs::remove_file(executable);
+        }
+    }
+
+    if Command::new("node").arg("--version").output().is_ok() {
+        let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "semaprax-generic-owned-wasm-{}-{serial}",
+            std::process::id()
+        ));
+        wasm::build_web(&parsed, &root).unwrap();
+        std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
+        std::fs::write(
+            root.join("probe.mjs"),
+            r#"import {readFile} from 'node:fs/promises';
+import {instantiateBytes} from './semaprax.js';
+const bytes=await readFile('./app.wasm');
+const {instance}=await instantiateBytes(bytes,{maxOwnedByteEntries:1});
+for(let i=0;i<4;i+=1){const value=instance.exports.semaprax_main();if(value!==42n)throw Error(`generic-owned:${value}`);}
+"#,
+        )
+        .unwrap();
+        let output = Command::new("node")
+            .arg("probe.mjs")
+            .current_dir(&root)
+            .output()
+            .unwrap();
+        let _ = std::fs::remove_dir_all(root);
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 }
 
 #[test]

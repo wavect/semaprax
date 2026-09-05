@@ -374,9 +374,12 @@ fn layout_nominal(
         ResolvedTypeDeclarationKind::Record { fields }
         | ResolvedTypeDeclarationKind::Class { fields, .. } => {
             if arguments.len() != item.type_parameters.len()
-                || arguments
-                    .iter()
-                    .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+                || arguments.iter().any(|argument| {
+                    !matches!(
+                        argument,
+                        ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Bytes
+                    )
+                })
             {
                 return Err(layout_error(format!(
                     "record `{declaration}` has invalid concrete arguments"

@@ -47,6 +47,14 @@ record ArrayHolder {
     zero: [u8; 0],
 }
 
+@id("generic-pair.type")
+record GenericPair<T, U> {
+    @id("generic-pair.left")
+    left: T,
+    @id("generic-pair.right")
+    right: U,
+}
+
 @id("app.main")
 fn main() -> i64 { 0 }
 "#;
@@ -228,6 +236,45 @@ fn direct_owned_bytes_layout_matches_existing_carriers_without_becoming_copy() {
     let mut copy_confused = native;
     copy_confused.fields[0].value_kind = AggregateFieldValueKind::Copy;
     assert!(copy_confused.validate(&program).is_err());
+}
+
+#[test]
+fn concrete_generic_owned_bytes_layout_substitutes_before_target_layout() {
+    let program = program();
+    let instance = ResolvedType::Nominal {
+        declaration: DeclarationId::new("generic-pair.type"),
+        arguments: vec![ResolvedType::Bytes, ResolvedType::Bool],
+    };
+    let native = AggregateLayout::for_type(&program, AggregateTarget::Native64, &instance)
+        .expect("Native64 concrete generic owned-byte layout");
+    assert_eq!((native.size, native.align), (24, 8));
+    assert_eq!(
+        native
+            .fields
+            .iter()
+            .map(|field| (field.ty.clone(), field.value_kind, field.offset))
+            .collect::<Vec<_>>(),
+        vec![
+            (ResolvedType::Bytes, AggregateFieldValueKind::OwnedBytes, 0),
+            (ResolvedType::Bool, AggregateFieldValueKind::Copy, 16),
+        ]
+    );
+    native.validate(&program).unwrap();
+
+    let wasm = AggregateLayout::for_type(&program, AggregateTarget::Wasm32, &instance)
+        .expect("Wasm32 concrete generic owned-byte layout");
+    assert_eq!((wasm.size, wasm.align), (16, 8));
+    assert_eq!(
+        wasm.fields
+            .iter()
+            .map(|field| (field.ty.clone(), field.value_kind, field.offset))
+            .collect::<Vec<_>>(),
+        vec![
+            (ResolvedType::Bytes, AggregateFieldValueKind::OwnedBytes, 0),
+            (ResolvedType::Bool, AggregateFieldValueKind::Copy, 8),
+        ]
+    );
+    wasm.validate(&program).unwrap();
 }
 
 #[test]

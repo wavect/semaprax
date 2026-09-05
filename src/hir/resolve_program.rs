@@ -798,8 +798,16 @@ impl Resolver<'_> {
                                     span,
                                 )
                             })?;
+                        let instance = ResolvedType::Nominal {
+                            declaration: declaration.clone(),
+                            arguments: resolved.clone(),
+                        };
                         if resolved.len() != parameters.len()
                             || (!admitted_owned_byte_prelude_instance(&declaration, &resolved)
+                                && !crate::hir::type_reachability::is_flat_owned_byte_record(
+                                    &self.declarations,
+                                    &instance,
+                                )
                                 && !resolved.is_empty()
                                 && resolved.iter().any(|argument| {
                                     !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)

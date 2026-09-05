@@ -4786,6 +4786,7 @@ impl Evaluator<'_> {
                         hir::ResolvedMatchMode::Borrow => {
                             bind_borrowed_pattern(
                                 self.declarations,
+                                &scrutinee.ty,
                                 &record,
                                 fields,
                                 &mut bindings,

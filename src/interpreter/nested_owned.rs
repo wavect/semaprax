@@ -130,7 +130,11 @@ fn validate_runtime_record(
                 "record update carrier is aliased or over-depth",
             ));
         }
-        let ResolvedType::Nominal { declaration, .. } = ty else {
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = ty
+        else {
             return Err(Flow::Guard("record update carrier has a non-record type"));
         };
         let declared = declarations
@@ -146,14 +150,16 @@ fn validate_runtime_record(
             return Err(Flow::Guard("record update exceeds its field-work bound"));
         }
         for field in declared {
+            let field_ty = hir::substitute_type(&field.ty, &declaration, &arguments)
+                .map_err(|_| Flow::Guard("record update field substitution failed"))?;
             let value = record
                 .fields
                 .get(&field.id)
                 .ok_or(Flow::Guard("record update carrier omits a field"))?;
-            if let (ResolvedType::Nominal { .. }, Value::Record(nested)) = (&field.ty, value) {
-                pending.push((field.ty.clone(), nested, depth + 1));
+            if let (ResolvedType::Nominal { .. }, Value::Record(nested)) = (&field_ty, value) {
+                pending.push((field_ty, nested, depth + 1));
             } else {
-                validate_runtime_value(declarations, &field.ty, value, require_unique)?;
+                validate_runtime_value(declarations, &field_ty, value, require_unique)?;
             }
         }
     }
@@ -203,13 +209,17 @@ pub(super) fn admitted_owned_record_field(
         let hir::PlaceProjection::Field(field) = projection else {
             return false;
         };
-        let ResolvedType::Nominal { declaration, .. } = &ty else {
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = &ty
+        else {
             return false;
         };
         let Some(next) = declarations
             .record_fields(declaration)
             .and_then(|fields| fields.iter().find(|candidate| candidate.id == *field))
-            .map(|field| field.ty.clone())
+            .and_then(|field| hir::substitute_type(&field.ty, declaration, arguments).ok())
         else {
             return false;
         };
@@ -269,7 +279,11 @@ pub(super) fn bind_owned_pattern(
                 "owned record pattern is outside its bounded profile",
             ))?
             .has_bytes;
-        let ResolvedType::Nominal { declaration, .. } = &ty else {
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = &ty
+        else {
             return Err(Flow::Guard("owned record pattern has a non-record type"));
         };
         let declared = declarations
@@ -282,7 +296,9 @@ pub(super) fn bind_owned_pattern(
                 let field_ty = declared
                     .iter()
                     .find(|candidate| candidate.id == field.field)
-                    .map(|candidate| candidate.ty.clone())
+                    .and_then(|candidate| {
+                        hir::substitute_type(&candidate.ty, declaration, arguments).ok()
+                    })
                     .ok_or(Flow::Guard("owned record pattern field is not declared"))?;
                 let value = record.fields.remove(&field.field).ok_or(Flow::Guard(
                     "owned-byte record pattern references an absent field",
@@ -312,7 +328,9 @@ pub(super) fn bind_owned_pattern(
                 let field_ty = declared
                     .iter()
                     .find(|candidate| candidate.id == field.field)
-                    .map(|candidate| candidate.ty.clone())
+                    .and_then(|candidate| {
+                        hir::substitute_type(&candidate.ty, declaration, arguments).ok()
+                    })
                     .ok_or(Flow::Guard("Copy record pattern field is not declared"))?;
                 let value = record.fields.get(&field.field).ok_or(Flow::Guard(
                     "Copy record pattern references an absent field",
@@ -339,15 +357,12 @@ pub(super) fn bind_owned_pattern(
 
 pub(super) fn bind_borrowed_pattern(
     declarations: &hir::DeclarationIndex,
+    root_type: &ResolvedType,
     record: &Arc<OwnedRecordValue>,
     fields: &[hir::ResolvedRecordMatchPatternField],
     bindings: &mut Vec<(ValueId, Value)>,
 ) -> Result<(), Flow> {
-    let root_type = ResolvedType::Nominal {
-        declaration: record.record.clone(),
-        arguments: Vec::new(),
-    };
-    validate_runtime_pattern(declarations, &root_type, record, fields, false)?;
+    validate_runtime_pattern(declarations, root_type, record, fields, false)?;
     enum Action<'a> {
         Record(
             &'a Arc<OwnedRecordValue>,
@@ -464,7 +479,7 @@ fn classify_record(
 ) -> Option<RecordProfile> {
     enum Frame {
         Enter(ResolvedType, usize),
-        Leave(hir::DeclarationId),
+        Leave(String),
     }
     let mut pending = vec![Frame::Enter(root.clone(), 1)];
     let mut active = BTreeSet::new();
@@ -492,16 +507,18 @@ fn classify_record(
                 else {
                     unreachable!()
                 };
-                if !arguments.is_empty()
-                    || declarations
-                        .type_parameters(declaration)
-                        .is_none_or(|parameters| !parameters.is_empty())
+                if declarations
+                    .type_parameters(declaration)
+                    .is_none_or(|parameters| parameters.len() != arguments.len())
                     || !matches!(
                         declarations.declaration(declaration)?.kind,
                         hir::DeclarationKind::Record | hir::DeclarationKind::Class
                     )
-                    || !active.insert(declaration.clone())
                 {
+                    return None;
+                }
+                let identity = ty.identity_key();
+                if !active.insert(identity.clone()) {
                     return None;
                 }
                 let fields = declarations.record_fields(declaration)?;
@@ -509,14 +526,17 @@ fn classify_record(
                 if visited_fields > crate::cleanup::MAX_CLEANUP_VISITED_FIELDS {
                     return None;
                 }
-                pending.push(Frame::Leave(declaration.clone()));
+                pending.push(Frame::Leave(identity));
                 for field in fields.iter().rev() {
-                    pending.push(Frame::Enter(field.ty.clone(), depth + 1));
+                    pending.push(Frame::Enter(
+                        hir::substitute_type(&field.ty, declaration, arguments).ok()?,
+                        depth + 1,
+                    ));
                 }
             }
             Frame::Enter(_, _) => return None,
-            Frame::Leave(declaration) => {
-                active.remove(&declaration);
+            Frame::Leave(identity) => {
+                active.remove(&identity);
             }
         }
     }
@@ -584,10 +604,9 @@ fn pattern_is_exact(
         let Some(declared_fields) = declarations.record_fields(declaration) else {
             return false;
         };
-        if !arguments.is_empty()
-            || declarations
-                .type_parameters(declaration)
-                .is_none_or(|parameters| !parameters.is_empty())
+        if declarations
+            .type_parameters(declaration)
+            .is_none_or(|parameters| parameters.len() != arguments.len())
             || declarations
                 .declaration(declaration)
                 .is_none_or(|item| item.kind != hir::DeclarationKind::Record)
@@ -613,12 +632,15 @@ fn pattern_is_exact(
             if !seen.insert(field.field.clone()) {
                 return false;
             }
-            let owns = declared.ty == ResolvedType::Bytes
-                || classify_record(declarations, &declared.ty)
+            let Ok(declared_ty) = hir::substitute_type(&declared.ty, declaration, arguments) else {
+                return false;
+            };
+            let owns = declared_ty == ResolvedType::Bytes
+                || classify_record(declarations, &declared_ty)
                     .is_some_and(|profile| profile.has_bytes);
             match &field.pattern {
                 hir::ResolvedRecordMatchFieldPattern::Binding(binding) => {
-                    if owns && declared.ty != ResolvedType::Bytes {
+                    if owns && declared_ty != ResolvedType::Bytes {
                         return false;
                     }
                     let ownership = if owns {
@@ -630,7 +652,7 @@ fn pattern_is_exact(
                     } else {
                         hir::OwnershipMode::Value
                     };
-                    if binding.ty != declared.ty || binding.ownership != ownership {
+                    if binding.ty != declared_ty || binding.ownership != ownership {
                         return false;
                     }
                 }
@@ -644,13 +666,13 @@ fn pattern_is_exact(
                     instance,
                     fields,
                 } => {
-                    if declared.ty == ResolvedType::Bytes
-                        || classify_record(declarations, &declared.ty).is_none()
+                    if declared_ty == ResolvedType::Bytes
+                        || classify_record(declarations, &declared_ty).is_none()
                     {
                         return false;
                     }
                     pending.push(Frame::Enter {
-                        ty: declared.ty.clone(),
+                        ty: declared_ty,
                         record,
                         instance,
                         fields,

@@ -463,6 +463,7 @@ impl DeclarationIndex {
                     if arguments.len() != parameters.len()
                         || (!compiler_byte_option
                             && !owned_byte_variant
+                            && item.kind != DeclarationKind::Record
                             && arguments.iter().any(|argument| {
                                 !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
                             }))

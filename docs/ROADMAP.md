@@ -345,7 +345,10 @@ ABIs prematurely.
 - define restricted raw-memory operations and an auditable `unsafe` policy;
 - extend aggregate, `Option`, `Result`, and matching beyond the exact
   [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) profiles,
-  including nesting, authored generics, non-Copy propagation, and public ABIs;
+  retaining the locally exercised flat [Concrete Generic Owned-Byte Records
+  v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) composition while completing
+  nested generic storage, authored generic variants, broader non-Copy
+  propagation, hosted evidence, and public ABIs;
 - complete mutation and generic interactions across interpreter, native, and
   Wasm lanes.
 

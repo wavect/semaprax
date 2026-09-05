@@ -14,6 +14,7 @@ use super::nodes::{
     OwnershipMode, ResolvedBinding, ResolvedHostCommandCall, ResolvedImportResultKind,
     ResolvedMatchMode, ResolvedNativeRustImportCall, ResolvedType,
 };
+use super::type_reachability::record_args_ok;
 use super::{Binding, Place, PlaceProjection, Resolver};
 use crate::ast::{BinaryOp, Expr, ExprKind, MatchPattern, Statement, TypeDeclarationKind, UnaryOp};
 use crate::diagnostic::Diagnostic;
@@ -1066,9 +1067,7 @@ impl Resolver<'_> {
                     )
                 })?;
                 if arguments.len() != parameters.len()
-                    || arguments
-                        .iter()
-                        .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+                    || !record_args_ok(&self.declarations, &record, &arguments)
                 {
                     return Err(self.error(
                         "SPX-H006",

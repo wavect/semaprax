@@ -114,7 +114,9 @@ fn derive(
                     }
                     ResolvedTypeDeclarationKind::Record { fields }
                     | ResolvedTypeDeclarationKind::Class { fields, .. } => {
-                        if !arguments.is_empty() {
+                        if !arguments.is_empty()
+                            && !matches!(&item.kind, ResolvedTypeDeclarationKind::Record { .. })
+                        {
                             return Err(replay_error(
                                 function,
                                 "record cleanup slot has generic arguments",
@@ -149,7 +151,10 @@ fn derive(
                             })?;
                         frames.push(Frame::FinishRecord(declaration.clone(), meta));
                         for field in fields.iter().rev() {
-                            frames.push(Frame::Enter(field.ty.clone(), child_depth));
+                            frames.push(Frame::Enter(
+                                crate::hir::substitute_type(&field.ty, declaration, arguments)?,
+                                child_depth,
+                            ));
                         }
                     }
                     ResolvedTypeDeclarationKind::Variant { cases } => {

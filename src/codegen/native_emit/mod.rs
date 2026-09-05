@@ -963,12 +963,15 @@ fn record_declaration_id<'a>(
         return Ok(None);
     }
     if arguments.len() != item.type_parameters.len()
-        || arguments
-            .iter()
-            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        || arguments.iter().any(|argument| {
+            !matches!(
+                argument,
+                ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Bytes
+            )
+        })
     {
         return Err(backend_error(format!(
-            "native record representation requires exact concrete i64/bool arguments for `{}`",
+            "native record representation requires admitted exact concrete arguments for `{}`",
             ty.identity_key()
         )));
     }

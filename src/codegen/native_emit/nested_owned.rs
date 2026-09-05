@@ -280,10 +280,9 @@ fn is_exact_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool,
         .declarations
         .declaration(declaration)
         .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
-    Ok(arguments.is_empty()
-        && program
-            .declarations
-            .type_parameters(declaration)
-            .is_some_and(|parameters| parameters.is_empty())
+    Ok(program
+        .declarations
+        .type_parameters(declaration)
+        .is_some_and(|parameters| parameters.len() == arguments.len())
         && item.kind == DeclarationKind::Record)
 }

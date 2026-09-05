@@ -294,6 +294,13 @@ fn owned_byte_aggregates_are_classified_flat_nested_or_outside_the_profile() {
     );
     assert!(types.is_flat_owned_byte_record(&named("Buffer")));
 
+    let generic_bytes = generic("Cell", vec![Type::Bytes]);
+    assert_eq!(
+        classify_nested_owned_byte_record(&types, &generic_bytes),
+        NestedOwnedRecordAdmission::Admitted
+    );
+    assert!(types.is_flat_owned_byte_record(&generic_bytes));
+
     // A record whose owned bytes sit one level down is admitted by the nested
     // profile but is not flat; the exact-pattern rules read both answers.
     assert_eq!(
@@ -307,8 +314,8 @@ fn owned_byte_aggregates_are_classified_flat_nested_or_outside_the_profile() {
         classify_nested_owned_byte_record(&types, &named("Plain")),
         NestedOwnedRecordAdmission::NoOwnedBytes
     );
-    // `string`, authored resources, generic instances, and variants are all
-    // outside the record profile rather than "no owned bytes".
+    // `string`, authored resources, generic instances without an owned leaf,
+    // and variants are outside the record profile rather than "no owned bytes".
     for outside in [
         named("Label"),
         named("Holder"),

@@ -492,8 +492,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             .iter()
             .find(|item| item.id == *declaration)
             .ok_or_else(|| backend_error(format!("unknown native type `{declaration}`")))?;
-        Ok(arguments.is_empty()
-            && item.type_parameters.is_empty()
+        Ok(item.type_parameters.len() == arguments.len()
             && matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. }))
     }
 

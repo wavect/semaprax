@@ -3639,9 +3639,11 @@ impl<'a> HirValidator<'a> {
                                 })?;
                             if instance != record
                                 || arguments.len() != parameters.len()
-                                || arguments.iter().any(|argument| {
-                                    !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                                })
+                                || !super::type_reachability::record_args_ok(
+                                    &self.program.declarations,
+                                    record,
+                                    arguments,
+                                )
                             {
                                 return Err(hir_error(format!(
                                     "constructor for `{record}` has an invalid concrete instance"
@@ -7022,9 +7024,11 @@ impl<'a> HirValidator<'a> {
                     .ok_or_else(|| hir_error(format!("record `{record}` has no parameters")))?;
                 if instance_record != record
                     || arguments.len() != parameters.len()
-                    || arguments
-                        .iter()
-                        .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+                    || !super::type_reachability::record_args_ok(
+                        &self.program.declarations,
+                        record,
+                        arguments,
+                    )
                 {
                     return Err(hir_error(format!(
                         "constructor for `{record}` has an invalid concrete instance"
@@ -8638,9 +8642,14 @@ impl<'a> HirValidator<'a> {
                             "nominal type `{declaration}` has incorrect argument arity"
                         )));
                     }
+                    let admitted_owned_record = super::type_reachability::is_flat_owned_byte_record(
+                        &self.program.declarations,
+                        ty,
+                    );
                     if !arguments.is_empty()
                         && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
                             || (!admitted_owned_byte_prelude_instance(declaration, arguments)
+                                && !admitted_owned_record
                                 && (arguments.as_slice() != [ResolvedType::U8]
                                     || declaration.as_str() != crate::prelude::OPTION_ID)
                                 && arguments.iter().any(|argument| {

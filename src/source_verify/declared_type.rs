@@ -193,11 +193,17 @@ pub(super) fn check_declared_type(
             }
             diagnostics.push(diagnostic);
         }
+        let instance = Type::Named {
+            name: name.clone(),
+            arguments: arguments.clone(),
+        };
+        let admitted_owned_record = types.is_flat_owned_byte_record(&instance);
         if arguments
             .iter()
             .any(|argument| matches!(argument, Type::ArrayU8(_)))
             || (arguments.contains(&Type::Bytes)
-                && !owned_byte_prelude_instance_is_admitted(name, arguments))
+                && !owned_byte_prelude_instance_is_admitted(name, arguments)
+                && !admitted_owned_record)
         {
             diagnostics.push(error(
                 program,
@@ -210,6 +216,7 @@ pub(super) fn check_declared_type(
         }
         if !arguments.is_empty()
             && !owned_byte_prelude_instance_is_admitted(name, arguments)
+            && !admitted_owned_record
             && (!matches!(
                 declaration.kind,
                 TypeDeclarationKind::Record { .. }

@@ -515,16 +515,33 @@ impl<'a> TypeTable<'a> {
         let Type::Named { name, arguments } = ty else {
             return false;
         };
-        if !arguments.is_empty() {
+        let Some(declaration) = self.declaration(name) else {
+            return false;
+        };
+        let TypeDeclarationKind::Record { fields } = &declaration.kind else {
+            return false;
+        };
+        if arguments.len() != declaration.type_parameters.len() {
             return false;
         }
-        matches!(
-            self.declaration(name).map(|declaration| &declaration.kind),
-            Some(TypeDeclarationKind::Record { fields })
-                if fields.iter().any(|field| field.ty == Type::Bytes)
-                    && fields.iter().all(|field| field.ty == Type::Bytes
-                        || owned_byte_record_copy_field_is_admitted(&field.ty))
-        )
+        if !arguments.is_empty()
+            && arguments
+                .iter()
+                .any(|argument| !matches!(argument, Type::I64 | Type::Bool | Type::Bytes))
+        {
+            return false;
+        }
+        let Some(fields) = fields
+            .iter()
+            .map(|field| Self::substitute_variant_type(declaration, arguments, &field.ty))
+            .collect::<Option<Vec<_>>>()
+        else {
+            return false;
+        };
+        fields.contains(&Type::Bytes)
+            && fields.iter().all(|field| {
+                *field == Type::Bytes || owned_byte_record_copy_field_is_admitted(field)
+            })
     }
 
     /// Exact non-Copy variant profile admitted by Owned Byte Variant Algebra
@@ -657,13 +674,24 @@ pub(super) fn classify_nested_owned_byte_record(
     types: &TypeTable<'_>,
     root: &Type,
 ) -> NestedOwnedRecordAdmission {
+    if matches!(root, Type::Named { arguments, .. } if !arguments.is_empty())
+        && !types.is_flat_owned_byte_record(root)
+    {
+        return NestedOwnedRecordAdmission::OutsideProfile;
+    }
     enum Frame<'a> {
-        Type(&'a Type, usize),
-        Fields(&'a [FieldDeclaration], usize, usize),
-        LeaveRecord(&'a str),
+        Type(Type, usize),
+        Fields(
+            &'a TypeDeclaration,
+            &'a [FieldDeclaration],
+            Vec<Type>,
+            usize,
+            usize,
+        ),
+        LeaveRecord(String),
     }
 
-    let mut frames = vec![Frame::Type(root, 1)];
+    let mut frames = vec![Frame::Type(root.clone(), 1)];
     let mut active = HashSet::new();
     let mut owned_leaves = 0usize;
     let mut visited_fields = 0usize;
@@ -676,28 +704,37 @@ pub(super) fn classify_nested_owned_byte_record(
                     return NestedOwnedRecordAdmission::LimitExceeded;
                 }
             }
-            Frame::Type(ty, _) if owned_byte_record_copy_field_is_admitted(ty) => {}
+            Frame::Type(ref ty, _) if owned_byte_record_copy_field_is_admitted(ty) => {}
             Frame::Type(Type::Named { name, arguments }, depth) => {
                 if depth > MAX_NESTED_OWNED_RECORD_DEPTH {
                     return NestedOwnedRecordAdmission::LimitExceeded;
                 }
-                if !arguments.is_empty() {
+                if depth > 1 && !arguments.is_empty() {
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 }
-                let Some(declaration) = types.declaration(name) else {
+                let Some(declaration) = types.declaration(&name) else {
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 };
-                if !declaration.type_parameters.is_empty() {
+                if arguments.len() != declaration.type_parameters.len()
+                    || arguments
+                        .iter()
+                        .any(|argument| !matches!(argument, Type::I64 | Type::Bool | Type::Bytes))
+                {
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 }
                 let TypeDeclarationKind::Record { fields } = &declaration.kind else {
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 };
-                if !active.insert(name.as_str()) {
+                let identity = Type::Named {
+                    name: name.clone(),
+                    arguments: arguments.clone(),
+                }
+                .to_string();
+                if !active.insert(identity.clone()) {
                     return NestedOwnedRecordAdmission::Recursive;
                 }
-                frames.push(Frame::LeaveRecord(name));
-                frames.push(Frame::Fields(fields, 0, depth));
+                frames.push(Frame::LeaveRecord(identity));
+                frames.push(Frame::Fields(declaration, fields, arguments, 0, depth));
             }
             Frame::Type(
                 Type::I64
@@ -713,7 +750,7 @@ pub(super) fn classify_nested_owned_byte_record(
             Frame::Type(Type::ArrayU8(_) | Type::String | Type::Str | Type::SliceU8, _) => {
                 return NestedOwnedRecordAdmission::OutsideProfile
             }
-            Frame::Fields(fields, index, depth) => {
+            Frame::Fields(declaration, fields, arguments, index, depth) => {
                 let Some(field) = fields.get(index) else {
                     continue;
                 };
@@ -721,11 +758,22 @@ pub(super) fn classify_nested_owned_byte_record(
                 if visited_fields > MAX_NESTED_OWNED_RECORD_FIELDS {
                     return NestedOwnedRecordAdmission::LimitExceeded;
                 }
-                frames.push(Frame::Fields(fields, index + 1, depth));
-                frames.push(Frame::Type(&field.ty, depth + 1));
+                frames.push(Frame::Fields(
+                    declaration,
+                    fields,
+                    arguments.clone(),
+                    index + 1,
+                    depth,
+                ));
+                let Some(field_ty) =
+                    TypeTable::substitute_variant_type(declaration, &arguments, &field.ty)
+                else {
+                    return NestedOwnedRecordAdmission::OutsideProfile;
+                };
+                frames.push(Frame::Type(field_ty, depth + 1));
             }
-            Frame::LeaveRecord(name) => {
-                active.remove(name);
+            Frame::LeaveRecord(identity) => {
+                active.remove(&identity);
             }
         }
     }

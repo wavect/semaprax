@@ -305,6 +305,16 @@ validated meaning without shallow owner copies. Project, FFI, package and
 Component boundaries remain closed, and the tranche is not promoted until its
 three-engine and hostile-plan gate executes.
 
+The additive [Concrete Generic Owned-Byte Records
+v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) composes the flat projected-byte
+cleanup path with exact generic-record substitution. Only concrete authored
+record instances whose substituted direct fields are `Bytes` or Copy scalars
+are admitted. Source verification, validated HIR, cleanup inventory/replay,
+interpreter, Native64 layout/emission, and Wasm32 layout/emission each derive
+the same concrete field types; target layout is never substitution authority.
+Nested generic storage, generic classes/variants/resources/functions, Project,
+FFI, package, Component, and public ABI surfaces remain closed.
+
 The additive [Acyclic Nested Owned-Record Exact Destructuring
 v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) consumes the same bounded record
 shape and stable paths for recursive `match own` and `match borrow` only.

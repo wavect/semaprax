@@ -139,6 +139,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   authority; existing `repairs`, `repair`, and Diagnostic Repair bytes remain
   unchanged.
 
+- Admitted a bounded internal concrete generic owned-byte record slice. Exact
+  authored instances such as `Pair<Bytes, bool>` now substitute fields through
+  source verification, HIR facts, cleanup inventory and replay, interpreter,
+  Native64 C11, and Wasm32 lowering. Focused local evidence covers borrow then
+  own, repeated success, and failure after owner creation across interpreter,
+  C11 `-O0`/`-O2`, and Node/Core-Wasm; stable diagnostics keep nested generic,
+  class, variant, non-Copy, and `Result<Bytes, Bytes>` shapes closed. This does
+  not expose a Project, C, Rust, WIT, Component, or package ABI.
 - Named the exact `Option<Bytes>` and `Result<Bytes, i64>` tags in the public
   Project-v8 C11 header. A separately compiled C consumer now executes all four
   cases at O0/O2, proves inactive cases grant no handle authority, and copies,

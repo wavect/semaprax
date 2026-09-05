@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use semaprax::cleanup::{FieldLivenessShape, BYTES_DROP_LIFECYCLE_ID};
 use semaprax::hir::{
     self, DeclarationId, OwnershipMode, PlaceProjection, ResolvedExpr, ResolvedExprKind,
     ResolvedMatchMode, ResolvedMatchPattern, ResolvedProgram, ResolvedRecordMatchFieldPattern,
@@ -455,6 +456,154 @@ fn error_codes(source: &str) -> Vec<&'static str> {
         .filter(|diagnostic| diagnostic.severity.is_error())
         .map(|diagnostic| diagnostic.code)
         .collect()
+}
+
+#[test]
+fn concrete_generic_owned_record_substitution_is_exact_in_hir_and_cleanup() {
+    let source = r#"
+module test.generic_owned_record_frontend_hir;
+@id("generic.frontend.pair") record Pair<T, U> {
+  @id("generic.frontend.pair.left") left: T,
+  @id("generic.frontend.pair.right") right: U,
+}
+@id("generic.frontend.consume") fn consume(packet: own Pair<Bytes, bool>) -> i64 {
+  match own packet {
+    Pair { left: payload, right: enabled } =>
+      if enabled && byte_len(bytes_as_slice(payload)) == 0usize { 1 } else { 0 },
+  }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = parse(source, Path::new("generic-owned-record-frontend-v1.spx")).unwrap();
+    let report = verify::verify(&parsed);
+    assert!(
+        report
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
+        "generic owned record source verification failed: {report:?}"
+    );
+    let program = hir::resolve(&parsed).expect("generic owned record resolves and validates");
+    let consume = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "generic.frontend.consume")
+        .expect("consume function");
+    let expected_ty = hir::ResolvedType::Nominal {
+        declaration: DeclarationId::new("generic.frontend.pair"),
+        arguments: vec![hir::ResolvedType::Bytes, hir::ResolvedType::Bool],
+    };
+    assert_eq!(consume.params[0].ty, expected_ty);
+    let slot = consume
+        .cleanup
+        .slots
+        .iter()
+        .find(|slot| slot.ty == expected_ty)
+        .expect("concrete generic owner has a cleanup slot");
+    let FieldLivenessShape::Record {
+        declaration,
+        fields,
+    } = &slot.shape
+    else {
+        panic!("concrete generic owner does not retain its record shape")
+    };
+    assert_eq!(declaration.as_str(), "generic.frontend.pair");
+    assert_eq!(fields.len(), 2);
+    assert_eq!(fields[0].field.as_str(), "generic.frontend.pair.left");
+    assert!(matches!(
+        &fields[0].shape,
+        FieldLivenessShape::Leaf { lifecycle, .. }
+            if lifecycle.as_str() == BYTES_DROP_LIFECYCLE_ID
+    ));
+    assert!(matches!(fields[1].shape, FieldLivenessShape::NoDrop));
+
+    let ResolvedExprKind::Match { arms, .. } = &block_tail(&consume.body).kind else {
+        panic!("consume tail is not a match")
+    };
+    assert_eq!(
+        pattern_binding(&arms[0].pattern, "payload").ty,
+        hir::ResolvedType::Bytes
+    );
+    assert_eq!(
+        pattern_binding(&arms[0].pattern, "enabled").ty,
+        hir::ResolvedType::Bool
+    );
+}
+
+#[test]
+fn generic_owned_record_profile_rejects_noncopy_nested_class_and_variant_arguments() {
+    let cases = [
+        (
+            r#"
+module test.generic_owned_string_closed;
+record Box<T> { value: T, }
+fn reject(value: own Box<string>) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#,
+            "SPX-T223",
+        ),
+        (
+            r#"
+module test.generic_owned_unadmitted_scalar_argument_closed;
+record Pair<T, U> { left: T, right: U, }
+fn reject(value: own Pair<Bytes, u8>) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#,
+            "SPX-T268",
+        ),
+        (
+            r#"
+module test.generic_owned_nested_closed;
+record Box<T> { value: T, }
+record Outer<T> { value: T, }
+fn reject(value: own Outer<Box<Bytes>>) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#,
+            "SPX-T223",
+        ),
+        (
+            r#"
+module test.generic_owned_nested_storage_closed;
+record Box<T> { value: T, }
+record Outer { value: Box<Bytes>, }
+fn reject(value: own Outer) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#,
+            "SPX-T268",
+        ),
+        (
+            r#"
+module test.generic_owned_class_closed;
+class Box<T> { value: T, }
+fn reject(value: own Box<Bytes>) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#,
+            "SPX-T268",
+        ),
+        (
+            r#"
+module test.generic_owned_variant_closed;
+variant Choice<T> { Some { value: T, }, }
+fn reject(value: own Choice<Bytes>) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#,
+            "SPX-T268",
+        ),
+        (
+            r#"
+module test.generic_owned_result_closed;
+fn reject(value: own Result<Bytes, Bytes>) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#,
+            "SPX-T268",
+        ),
+    ];
+    for (source, code) in cases {
+        let errors = diagnostics(source);
+        assert!(
+            errors.iter().any(|diagnostic| diagnostic.code == code),
+            "missing {code} for closed generic owned shape: {errors:?}"
+        );
+    }
 }
 
 #[test]

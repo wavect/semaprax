@@ -92,6 +92,8 @@ Audience: all documentation readers.
 - [Public Project Scaffold Capsule v3](PROJECT-SCAFFOLD-V3.md)
 - [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md)
 - [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md)
+- [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md)
+- [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md)
 - [Project Candidates and Semantic Change IR v1](PROJECT-CANDIDATES-V1.md)
 - [Project Lexical Binding Constructor v1](PROJECT-LEXICAL-BINDING-CONSTRUCTOR-V1.md)
 - [Project Signature Argument Expressions v1](PROJECT-SIGNATURE-ARGUMENT-EXPRESSIONS-V1.md)

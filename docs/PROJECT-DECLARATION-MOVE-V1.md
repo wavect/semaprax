@@ -46,13 +46,13 @@ local/pattern bindings. Bare source `string` parameters retain their checked
 owning mode; explicit `own` remains required for Bytes and admitted owned
 nominals. A source type's spelling or field shape does not establish eligibility.
 
-Planning does not widen cross-module admission. Existing `SPX-G172` rules reject
-imports of explicitly owning parameters and owning nominal types. An unused
-direct-Bytes helper can move without creating an import, but surviving callers
-that would need an unsupported import still reject. String signatures and
-scalar signatures with internal owned byte work can relocate under existing
-import rules. Owned nominal planning does not establish that such a function
-can actually cross the current type-import boundary.
+Planning reuses the Project's bounded cross-module admission. An explicit
+nongeneric resource-free record or variant containing owned `Bytes` may cross
+the boundary as a stable-ID type import, so an owning nominal function can move
+when no surviving caller needs a forbidden callable import. Imports of
+functions exposing owned nominal arguments retain `SPX-G172`; borrowed storage,
+generic types, resources and dependency cycles remain closed. Direct-Bytes and
+String helpers retain their existing behavior.
 
 Bodies and contracts can contain admitted scalar expressions, local bindings,
 whole-binding assignments, loops, explicit monomorphic calls, Copy record and
@@ -203,13 +203,14 @@ bindings, aggregate syntax, replay, and rejected relocation shapes. Discovery
 advertises checked nominal identity and type-binding migration constraints;
 an advertised destination still requires full candidate admission.
 
-`tests/project_candidate/owned_movement.rs` adds authored, unrun String
-call/import migration, scalar-signature internal byte work, unused owning Bytes
-relocation, exact replay and unchanged-source assertions. Existing owning import
-and cycle failures remain negative cases. These are not physical execution or
-cross-module owning ABI evidence.
+`tests/project_candidate/owned_movement.rs` and
+`tests/project_candidate/nominal_movement.rs` cover String call/import
+migration, scalar-signature internal byte work, unused owning Bytes relocation,
+one exact owning-nominal type import, replay and unchanged-source assertions.
+Owned callable-import and cycle failures remain negative cases. These are not
+physical execution or cross-module owning ABI evidence.
 
-General declaration kinds, owning type-import admission, public-export
+General declaration kinds, owned callable-import admission, public-export
 origin migration, audited boundary relocation, broader expression syntax,
 runtime equivalence evidence, and full graph-operational programme completion
 remain outside this bounded slice.

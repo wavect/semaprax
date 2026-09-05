@@ -1,0 +1,7 @@
+module network_http.tests;
+
+@id("network-http.tests.main")
+fn main() -> i64
+{
+    0
+}

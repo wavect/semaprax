@@ -356,6 +356,44 @@ fn unused_owned_bytes_move_while_borrowed_generic_exported_and_cyclic_moves_reje
 }
 
 #[test]
+fn owning_nominal_move_creates_one_exact_type_import_without_a_callable_import() {
+    let fixture = Fixture::new(false, false);
+    fixture.append(
+        "core",
+        r#"
+@id("movement.owned-packet") record OwnedPacket { @id("movement.owned-packet.bytes") bytes:Bytes, @id("movement.owned-packet.marker") marker:i64, }
+@id("movement.owned-forward") fn owned_forward(value:own OwnedPacket)->OwnedPacket {value}
+"#,
+    );
+    let disk = fixture.bytes();
+    let base = fixture.candidate();
+    let moved = apply(&base, movement("movement.owned-forward")).unwrap();
+    let destination = program(&moved, "support");
+    let import = destination
+        .module_uses
+        .iter()
+        .find(|binding| binding.persistent_id == "movement.owned-packet")
+        .unwrap();
+    assert_eq!(import.kind, ModuleUseKind::Type);
+    assert_eq!(import.target_module, "movement.core");
+    assert!(!destination
+        .module_uses
+        .iter()
+        .any(|binding| binding.persistent_id == "movement.owned-forward"));
+    let function = destination
+        .functions
+        .iter()
+        .find(|function| function.stable_id == "movement.owned-forward")
+        .unwrap();
+    assert_eq!(function.params[0].mode, semaprax::ast::ParamMode::Own);
+    assert_eq!(function.params[0].ty, named(&import.alias));
+    assert_eq!(function.return_type, named(&import.alias));
+    assert!(!source(&moved, "core").contains("fn owned_forward("));
+    replay(&moved);
+    assert_eq!(fixture.bytes(), disk);
+}
+
+#[test]
 fn nominal_movement_rebases_over_unrelated_display_rename_with_exact_recovery_and_stale_guard() {
     let fixture = Fixture::new(true, false);
     let disk = fixture.bytes();

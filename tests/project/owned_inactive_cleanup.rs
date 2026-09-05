@@ -66,7 +66,7 @@ fn initialized_bytes_settle_before_successful_none_and_err_publication() {
         let revision = snapshot.retain_revision();
         let descriptor = snapshot.public_api_descriptor()?;
         let provider = semaprax::codegen::emit_project_v8_native_owned_data_provider(
-            revision.entry_program(),
+            revision.public_api_program(),
             revision.manifest().web_exports(),
             PublicApiSubject {
                 project_schema: revision.manifest().schema(),

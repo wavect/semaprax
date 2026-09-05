@@ -1,4 +1,4 @@
-//! Append-only scalar additions over checked Copy and flat owned records; unrun.
+//! Append-only scalar additions over checked Copy and flat owned records.
 use semaprax::ast::{ExprKind, MatchMode, MatchPattern, RecordMatchFieldPattern};
 use semaprax::cleanup::FieldLivenessShape;
 use semaprax::diagnostic::Diagnostic;
@@ -430,7 +430,7 @@ fn owned_field_history_replays_unrelated_changes_but_rejects_stale_and_competing
 }
 
 #[test]
-fn owned_type_aliases_remain_outside_project_admission() {
+fn owned_type_aliases_are_admitted_as_exact_type_imports() {
     let fixture = Fixture::new();
     let bridge = std::fs::read_to_string(fixture.0.join("src/bridge.spx")).unwrap();
     fixture.write(
@@ -442,9 +442,11 @@ fn owned_type_aliases_remain_outside_project_admission() {
         ),
     );
     let disk = fixture.bytes();
-    code(
-        with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(())),
-        "SPX-G172",
-    );
+    let graph = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        Ok(snapshot.semantic_graph().to_owned())
+    })
+    .unwrap();
+    assert!(graph.contains("\"target\":\"append.packet\""));
+    assert!(graph.contains("\"kind\":\"type_import\""));
     assert_eq!(fixture.bytes(), disk);
 }

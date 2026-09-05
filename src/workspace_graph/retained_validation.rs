@@ -1333,6 +1333,13 @@ pub(super) fn permits_admitted(
                     crate::command_io_ops::STDIN_READ_EFFECT,
                     crate::host_io_ops::STDOUT_WRITE_EFFECT,
                 ])
+        || (profile == crate::project::ProjectProfile::NetworkCommandIoV1
+            && module.module == entry_module
+            && module
+                .permits
+                .iter()
+                .map(String::as_str)
+                .eq(crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1))
 }
 
 /// Bind one retained declaration to its authenticated Phase-A fact. Both an

@@ -1,4 +1,4 @@
-//! Ordered resource-free owning signatures and the closed module-import boundary.
+//! Ordered resource-free owning signatures and the bounded module-import boundary.
 use semaprax::ast::{Expr, ExprKind, Function, ParamMode, Program, Statement};
 use semaprax::diagnostic::Diagnostic;
 use semaprax::hir::OwnershipMode;
@@ -343,12 +343,28 @@ fn strings_and_owned_records_and_variants_reorder_each_local_call_once_and_repla
 }
 
 #[test]
-fn owned_type_and_owned_argument_imports_remain_outside_project_admission() {
-    for import in [
-        "use type @id(\"owned.packet\") from owned.core as Frame;",
-        "use type @id(\"owned.choice\") from owned.core as Signal;",
-        "use function @id(\"owned.record-select\") from owned.core as select_frame;",
-        "use function @id(\"owned.variant-select\") from owned.core as select_signal;",
+fn owned_type_imports_are_admitted_but_owned_argument_function_imports_remain_closed() {
+    for (import, target, admitted) in [
+        (
+            "use type @id(\"owned.packet\") from owned.core as Frame;",
+            "owned.packet",
+            true,
+        ),
+        (
+            "use type @id(\"owned.choice\") from owned.core as Signal;",
+            "owned.choice",
+            true,
+        ),
+        (
+            "use function @id(\"owned.record-select\") from owned.core as select_frame;",
+            "owned.record-select",
+            false,
+        ),
+        (
+            "use function @id(\"owned.variant-select\") from owned.core as select_signal;",
+            "owned.variant-select",
+            false,
+        ),
     ] {
         let fixture = Fixture::new();
         let _base = fixture.candidate();
@@ -362,10 +378,16 @@ fn owned_type_and_owned_argument_imports_remain_outside_project_admission() {
         )
         .unwrap();
         let disk = fixture.bytes();
-        code(
-            with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(())),
-            "SPX-G172",
-        );
+        let opened = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+            Ok(snapshot.semantic_graph().to_owned())
+        });
+        if admitted {
+            let graph = opened.unwrap();
+            assert!(graph.contains(&format!("\"target\":\"{target}\"")));
+            assert!(graph.contains("\"kind\":\"type_import\""));
+        } else {
+            code(opened, "SPX-G172");
+        }
         assert_eq!(fixture.bytes(), disk);
     }
 }

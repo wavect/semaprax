@@ -56,10 +56,10 @@ A guided shape must not be parsed as an admission rule.
 
 ## Exhaustive catalog
 
-`semaprax help all` is one of two new admitted forms. For either executable it returns
+`semaprax help all` is one of the admitted forms. For either executable it returns
 status zero, empty stderr, and exactly the bytes v1 defined for the global
 page: the banner, a blank line, `Usage:`, and every capability-visible global
-catalog line in catalog order. Scoped help for `help` lists both of its
+catalog line in catalog order. Scoped help for `help` lists all admitted
 shapes:
 
 ```text
@@ -68,6 +68,7 @@ Usage:
   semaprax help all
   semaprax help language
   semaprax help library
+  semaprax help library <module|name|stable-id>
   semaprax help shapes
 ```
 
@@ -87,7 +88,7 @@ An agent or developer working from an installed compiler, without the source
 checkout, can read the admitted shapes, the diagnostics that habits from other
 languages trigger, and their fixes offline. The document's own gate checks its
 code blocks against the compiler, so the card cannot describe syntax the
-binary rejects. Scoped help for `help` lists all five shapes.
+binary rejects. Scoped help for `help` lists all six shapes.
 
 ## Standard-library catalog
 
@@ -99,9 +100,28 @@ contracts. `tests/project.rs::standard_library` regenerates that document from
 `std/` and pins it, so the printed catalog cannot list a function the compiler
 does not ship.
 
+`semaprax help library <module|name|stable-id>` is the fifth shape and uses the
+generated `std/catalog.json` from that same gate. Matching is exact and
+case-sensitive. A module identity returns its declarations in catalog order;
+a declaration name or persistent identity returns every exact match in that
+order. Each result contains only the persistent identity, exact manifest
+dependency row, required project profile, and canonical signature, effects,
+and contracts. Results are separated by one blank line. No match exits two,
+emits no stdout, and reports
+`standard library has no exact match for \`<selector>\`` on stderr. The route
+does not admit fuzzy or prefix matching, so an underspecified query cannot
+silently expand into the full catalog.
+
+The full catalog is currently 22,076 bytes and 6,662 lexical units. The
+`std.core.compare` name and stable-ID lookup outputs are identical: 226 bytes
+and 68 lexical units, with ceilings of 512 bytes and 128 units. Both measures
+must remain more than 50 times smaller than the full catalog. Integration
+evidence pins those bounds while the original full-catalog byte equality
+remains unchanged.
+
 ## Language shapes catalog
 
-`semaprax help shapes` is the fifth `help` shape. For either executable it
+`semaprax help shapes` is the sixth `help` shape. For either executable it
 returns status zero, empty stderr, and exactly the bytes of the repository's
 generated [language shapes catalog](LANGUAGE-SHAPES-CATALOG.md), compiled into
 the binary: every declaration of every committed example, grouped by kind,
@@ -123,8 +143,10 @@ The standalone and full-toolchain help harnesses prove: the guided page's
 banner, byte bound, group headings, capability filtering, and that each guided
 entry resolves to a scoped-help command; `help all` byte structure, ordering,
 and capability filtering for both executables; that every `help all` line still
-has exact scoped help; the two-line `help help`; the malformed `help all extra`
-case; and empty working directories with no created entries.
+has exact scoped help; all six `help` grammar lines; full library-catalog byte
+identity; exact name, stable-ID, module, missing-selector, and token-economics
+behavior for scoped library lookup; malformed extra operands; and empty working
+directories with no created entries.
 
 ## Nonclaims
 

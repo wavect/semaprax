@@ -1,3 +1,4 @@
+use std::fmt::Write as _;
 use std::process::ExitCode;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -50,6 +51,7 @@ pub(crate) enum CommandId {
     ProjectScaffold,
     Build,
     Run,
+    NetworkRun,
     Test,
     Fmt,
     Patch,
@@ -182,6 +184,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::ProjectScaffold, canonical: "project-scaffold", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-scaffold --name project-name [--template calculator|library] [--layout frozen|tables]"] },
     CommandSpec { id: CommandId::Build, canonical: "build", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]", "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm|rust] [-o|--output path] [--json]"] },
     CommandSpec { id: CommandId::Run, canonical: "run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native]", "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
+    CommandSpec { id: CommandId::NetworkRun, canonical: "network-run", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax network-run [<dir>|semaprax.toml|--manifest-path path] --fixture fixture.json [--arg UTF8]... [--stdin path] [--max-steps N]"] },
     CommandSpec { id: CommandId::Test, canonical: "test", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]"] },
     CommandSpec { id: CommandId::Fmt, canonical: "fmt", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax fmt <file>|<dir>|semaprax.toml [--check]"] },
     CommandSpec { id: CommandId::Patch, canonical: "patch", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax patch <file> <patch.spatch>"] },
@@ -245,7 +248,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help library", "semaprax help shapes"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -322,6 +325,116 @@ pub(crate) const LANGUAGE_REFERENCE: &str = include_str!("../../docs/AGENT-QUICK
 /// pick a library function offline. The bytes are the repository document that
 /// `tests/project.rs::standard_library` regenerates from `std/` and pins.
 pub(crate) const LIBRARY_CATALOG: &str = include_str!("../../docs/STANDARD-LIBRARY-CATALOG.md");
+const LIBRARY_INDEX: &str = include_str!("../../std/catalog.json");
+
+pub(crate) fn library_entry(query: &str) -> Result<String, String> {
+    let catalog: serde_json::Value =
+        serde_json::from_str(LIBRARY_INDEX).expect("generated standard-library JSON must parse");
+    let modules = catalog["modules"]
+        .as_array()
+        .expect("generated standard-library JSON must contain modules");
+    let mut output = String::new();
+    for module in modules {
+        let module_id = module["module"]
+            .as_str()
+            .expect("generated standard-library module must have an identity");
+        let whole_module = query == module_id;
+        for declaration in module["declarations"]
+            .as_array()
+            .expect("generated standard-library module must contain declarations")
+        {
+            let id = declaration["id"]
+                .as_str()
+                .expect("generated standard-library declaration must have an identity");
+            let name = declaration["name"]
+                .as_str()
+                .expect("generated standard-library declaration must have a name");
+            if !whole_module && query != id && query != name {
+                continue;
+            }
+            if !output.is_empty() {
+                output.push('\n');
+            }
+            writeln!(output, "{id}").expect("writing to a string cannot fail");
+            writeln!(
+                output,
+                "dependency {}",
+                module["dependency"]
+                    .as_str()
+                    .expect("generated standard-library dependency must be text")
+            )
+            .expect("writing to a string cannot fail");
+            writeln!(
+                output,
+                "profile {}",
+                module["required_profile"]
+                    .as_str()
+                    .expect("generated standard-library profile must be text")
+            )
+            .expect("writing to a string cannot fail");
+            for line in declaration["head"]
+                .as_array()
+                .expect("generated standard-library declaration must have a head")
+            {
+                writeln!(
+                    output,
+                    "{}",
+                    line.as_str()
+                        .expect("generated standard-library head line must be text")
+                )
+                .expect("writing to a string cannot fail");
+            }
+        }
+    }
+    if output.is_empty() {
+        Err(format!("standard library has no exact match for `{query}`"))
+    } else {
+        Ok(output)
+    }
+}
+
+pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>> {
+    if args.first().map(String::as_str) != Some("help") || args.len() == 1 {
+        return None;
+    }
+    if args.len() == 2 {
+        let output = match args[1].as_str() {
+            "all" => catalog(private),
+            "language" => LANGUAGE_REFERENCE.to_owned(),
+            "library" => LIBRARY_CATALOG.to_owned(),
+            "shapes" => SHAPES_CATALOG.to_owned(),
+            command => match scoped(command, private) {
+                Some(output) => output,
+                None => {
+                    eprint!("{}", unknown_diagnostic(command, private));
+                    print!("{}", global(private));
+                    return Some(Err(2));
+                }
+            },
+        };
+        print!("{output}");
+        return Some(Ok(()));
+    }
+    if args.len() == 3 && args[1] == "library" {
+        return Some(match library_entry(&args[2]) {
+            Ok(output) => {
+                print!("{output}");
+                Ok(())
+            }
+            Err(error) => {
+                eprintln!("{error}");
+                Err(2)
+            }
+        });
+    }
+    let extra = if args[1] == "library" {
+        &args[3]
+    } else {
+        &args[2]
+    };
+    eprintln!("help accepts exactly one operand; unexpected extra operand `{extra}`");
+    Some(Err(2))
+}
 
 /// The generated language shapes catalog, printed by `semaprax help shapes`:
 /// every declaration of every committed example as the documentation model
@@ -462,7 +575,7 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Version,
-                shape: "version [--json]",
+                shape: "version",
                 summary: "Package and commit identity",
             },
             GuideEntry {
@@ -482,8 +595,8 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Help,
-                shape: "help library",
-                summary: "The standard-library catalog",
+                shape: "help library [selector]",
+                summary: "One API or the full catalog",
             },
             GuideEntry {
                 id: CommandId::Help,
@@ -539,7 +652,8 @@ pub(crate) fn global(private: bool) -> String {
     out.push_str(GUIDE_FOOTER);
     debug_assert!(
         out.len() <= GUIDE_MAX_BYTES,
-        "guided help must stay one screen"
+        "guided help must stay one screen: {} bytes",
+        out.len()
     );
     out
 }
@@ -652,6 +766,7 @@ mod tests {
         "project-scaffold",
         "build",
         "run",
+        "network-run",
         "test",
         "fmt",
         "patch",
@@ -787,6 +902,32 @@ mod tests {
         assert!(SHAPES_CATALOG.contains("\n## Functions\n"));
         assert!(SHAPES_CATALOG.contains("```semaprax\n"));
         assert!(SHAPES_CATALOG.ends_with('\n'));
+    }
+
+    #[test]
+    fn library_entry_is_exact_deterministic_and_compact() {
+        let expected = concat!(
+            "std.core.compare\n",
+            "dependency std.core = \"^0.1.0\"\n",
+            "profile scalar\n",
+            "fn compare(left: i64, right: i64) -> i64\n",
+            "    ensures result >= -1 && result <= 1\n",
+            "    ensures result != 0 || left == right\n",
+            "    ensures result == 0 || left != right\n",
+        );
+        assert_eq!(library_entry("compare").unwrap(), expected);
+        assert_eq!(library_entry("std.core.compare").unwrap(), expected);
+        assert!(expected.len() <= 512);
+        assert!(expected.len() * 50 < LIBRARY_CATALOG.len());
+
+        let module = library_entry("std.core").unwrap();
+        assert!(module.starts_with("std.core.ordering.less\n"));
+        assert!(module.contains("\nstd.core.compare\n"));
+        assert!(!module.contains("std.bytes."));
+        assert_eq!(
+            library_entry("not_a_library_function").unwrap_err(),
+            "standard library has no exact match for `not_a_library_function`"
+        );
     }
 
     #[test]

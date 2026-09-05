@@ -370,15 +370,17 @@ fn copy_type_import_aliases_keep_exact_field_owners() {
 }
 
 #[test]
-fn owned_type_and_owned_argument_imports_keep_their_closed_workspace_boundaries() {
-    for (binding, diagnostic) in [
+fn owned_type_imports_open_without_widening_owned_function_imports() {
+    for (binding, target, admitted) in [
         (
             "use type @id(\"fields.packet\") from fields.core as RemotePacket;",
-            "SPX-G172",
+            "fields.packet",
+            true,
         ),
         (
             "use function @id(\"fields.consume\") from fields.core as remote_consume;",
-            "SPX-G172",
+            "fields.consume",
+            false,
         ),
     ] {
         let fixture = Fixture::new();
@@ -392,10 +394,16 @@ fn owned_type_and_owned_argument_imports_keep_their_closed_workspace_boundaries(
             ),
         );
         let disk = fixture.bytes();
-        code(
-            with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(())),
-            diagnostic,
-        );
+        let opened = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+            Ok(snapshot.semantic_graph().to_owned())
+        });
+        if admitted {
+            let graph = opened.unwrap();
+            assert!(graph.contains(&format!("\"target\":\"{target}\"")));
+            assert!(graph.contains("\"kind\":\"type_import\""));
+        } else {
+            code(opened, "SPX-G172");
+        }
         assert_eq!(fixture.bytes(), disk);
     }
 }

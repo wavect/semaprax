@@ -325,6 +325,7 @@ mod tests {
             ProjectProfile::UsefulDataCommandV2,
             ProjectProfile::LanguageCommandIoV1,
             ProjectProfile::LineCommandIoV1,
+            ProjectProfile::NetworkCommandIoV1,
         ] {
             assert!(!public.accepts_project_profile(profile));
         }

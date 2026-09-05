@@ -12,7 +12,9 @@ required module set, the effect vocabulary hosted modules declare, and the
 Everyday profile. The [completion matrix](COMPLETION-MATRIX.md) owns status;
 the generated [standard library catalog](STANDARD-LIBRARY-CATALOG.md) lists the
 declarations that exist today and `semaprax help library` prints it offline;
-`tests/project.rs::standard_library` is the executable gate.
+`semaprax help library <module|name|stable-id>` selects an exact compact entry
+from its generated JSON companion; `tests/project.rs::standard_library` is the
+executable gate.
 
 ## Library architecture
 

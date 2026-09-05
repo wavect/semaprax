@@ -1,4 +1,4 @@
-//! Frozen Project-v1-through-v7 target admission.
+//! Frozen Project target admission for profiles without public descriptors.
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::ResolvedProgram;
@@ -36,4 +36,8 @@ pub(super) fn language_command(program: &ResolvedProgram, command: &str) -> Resu
 
 pub(super) fn line_command(program: &ResolvedProgram, command: &str) -> Result<(), Diagnostic> {
     crate::wasm::emit_resolved_line_command_io_v1(program, command).map(drop)
+}
+
+pub(super) fn network_command(program: &ResolvedProgram, command: &str) -> Result<(), Diagnostic> {
+    crate::wasm::emit_resolved_language_network_io_v1(program, command).map(drop)
 }

@@ -212,13 +212,15 @@ fn checked_component_v2_is_generated_bound_and_independently_parsed() {
     let second = emit_private_checked_component_v2(&program).unwrap();
     assert_eq!(first, second);
     assert_eq!(first.source_revision(), graph::revision(&program));
-    assert_eq!(first.runtime_core_digest(), CHECKED_RUNTIME_CORE_V2_SHA256);
     assert_eq!(
-        first.digest(),
-        [
-            192, 191, 163, 225, 184, 136, 50, 55, 236, 153, 52, 82, 12, 249, 177, 205, 178, 73, 40,
-            157, 49, 141, 108, 208, 65, 62, 99, 183, 22, 112, 59, 192,
-        ]
+        (first.runtime_core_digest(), first.digest()),
+        (
+            CHECKED_RUNTIME_CORE_V2_SHA256,
+            [
+                119, 64, 121, 190, 218, 225, 188, 152, 163, 144, 126, 124, 65, 232, 17, 166, 244,
+                208, 224, 245, 49, 82, 137, 203, 164, 156, 135, 55, 14, 182, 32, 80,
+            ]
+        )
     );
 
     let validated =
@@ -407,7 +409,7 @@ for (const invoke of [
   () => runtime.exports.spx_div(min, -1n),
   () => runtime.exports.spx_rem(min, -1n),
   () => runtime.exports.spx_neg(min),
-  () => runtime.exports.spx_contract_fail()
+  () => runtime.exports.spx_contract_fail(1)
 ]) {{
   let trapped = false;
   try {{ invoke(); }} catch (error) {{ trapped = error instanceof WebAssembly.RuntimeError; }}

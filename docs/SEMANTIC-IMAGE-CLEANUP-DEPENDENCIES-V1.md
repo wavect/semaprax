@@ -1,6 +1,7 @@
 # Semantic Image Cleanup Dependencies v1
 
-Status: Partial; implementation and regression evidence authored, unrun.
+Status: Partial; focused image and transport regression evidence executed
+locally.
 
 Audience: compiler contributors, agent authors and embedding hosts.
 
@@ -140,10 +141,12 @@ Existing stale candidate/image and underlying collector diagnostics propagate.
 Transport stale-image, invalid UTF-8 range and output-bound failures retain
 their ordinary diagnostics.
 
-Authored cases in [image evidence](../tests/image_protocol/cleanup_dependencies_v1.rs)
+Focused [image evidence](../tests/image_protocol/cleanup_dependencies_v1.rs)
 and [transport evidence](../tests/image_transport_v5/cleanup_dependencies.rs)
-cover real plan relationships, unchanged older reports, source bindings,
-candidate review and hostile selectors. These checks remain unrun, so no
-completion-matrix row is promoted. General lifetime/alias analysis, external
-consumers, physical settlement, runtime observations, broader ownership
-admission and measured agent productivity remain outstanding.
+executed locally. The cases cover real plan relationships across an explicit
+owned-record type import, unchanged older reports, source bindings, candidate
+review, hostile selectors, exact source-graph coordinates, deterministic
+parallel reads and closed transport chunks. No completion-matrix row is
+promoted. General lifetime/alias analysis, external consumers, physical
+settlement, runtime observations, broader ownership admission, a hosted full
+gate and measured agent productivity remain outstanding.

@@ -302,7 +302,7 @@ legacy Project/workspace/Image v1 artifacts.
 
 The three focused canonical-revision regressions passed locally on 2026-09-05.
 They establish only this bounded authority-free projection, not any nonclaim
-above or completion of a broader product row. The repository-wide full gate
-also reached 1,521 passing library tests, but stopped on 26 existing failures;
-representative digest, Project-linking, and WIT failures reproduced unchanged
-on the untouched `main` checkout.
+above or completion of a broader product row. After later upstream baseline
+repairs, the repository-wide full gate reached 1,536 passing library tests but
+still stopped on 11 unrelated Project, Wasm, and WIT failures before its later
+stages.

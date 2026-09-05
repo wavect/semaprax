@@ -3,7 +3,7 @@
     reason = "the CLI preserves structured Diagnostic values across command boundaries"
 )]
 
-use std::io::Write as _;
+use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
@@ -98,31 +98,8 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         print_help(host.is_some());
         return Err(2);
     };
-    if command == "help" && args.len() == 2 {
-        if args[1] == "all" {
-            print!("{}", cli::help::catalog(host.is_some()));
-            return Ok(());
-        }
-        if args[1] == "language" {
-            print!("{}", cli::help::LANGUAGE_REFERENCE);
-            return Ok(());
-        }
-        if args[1] == "library" {
-            print!("{}", cli::help::LIBRARY_CATALOG);
-            return Ok(());
-        }
-        if args[1] == "shapes" {
-            print!("{}", cli::help::SHAPES_CATALOG);
-            return Ok(());
-        }
-        return print_scoped_help(&args[1], host.is_some());
-    }
-    if command == "help" && args.len() > 2 {
-        eprintln!(
-            "help accepts exactly one operand; unexpected extra operand `{}`",
-            args[2]
-        );
-        return Err(2);
+    if let Some(outcome) = cli::help::dispatch(&args, host.is_some()) {
+        return outcome;
     }
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         return print_scoped_help(command, host.is_some());
@@ -759,6 +736,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                     cli::project_runtime::execute_held("run", manifest_path, &options)
                 }
             }
+        }
+        CommandId::NetworkRun => {
+            let options = cli::execution::parse_network_run(&args[1..])?;
+            run_network_project(&options)
         }
         CommandId::Test => {
             let options = cli::execution::parse_test(&args[1..])?;
@@ -1478,11 +1459,11 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
 }
 
 fn print_help(has_private_host: bool) {
-    print!("{}", global_help(has_private_host));
+    print!("{}", cli::help::global(has_private_host));
 }
 
 fn print_scoped_help(command: &str, has_private_host: bool) -> Result<(), u8> {
-    let help = global_help(has_private_host);
+    let help = cli::help::global(has_private_host);
     if let Some(scoped) = cli::help::scoped(command, has_private_host) {
         print!("{scoped}");
         Ok(())
@@ -1494,8 +1475,4 @@ fn print_scoped_help(command: &str, has_private_host: bool) -> Result<(), u8> {
         print!("{help}");
         Err(2)
     }
-}
-
-fn global_help(has_private_host: bool) -> String {
-    cli::help::global(has_private_host)
 }

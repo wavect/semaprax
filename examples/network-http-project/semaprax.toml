@@ -1,0 +1,11 @@
+schema = "semaprax.project.v12"
+name = "network-http"
+version = "1.0.0"
+profile = "network-command-io.v1"
+entry = "network_http.app"
+sources = ["src/app.spx", "src/tests.spx"]
+web_exports = ["network-http.fetch"]
+command = "network-http.fetch"
+input = "argv-utf8+stdin-bytes.v1"
+capabilities = ["network.connect", "network.read", "network.write", "process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
+tests = ["network_http.tests"]

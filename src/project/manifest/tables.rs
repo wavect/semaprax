@@ -1,6 +1,6 @@
 //! Package Manifest v1: the one extensible, table-structured `semaprax.toml`.
 //!
-//! Each frozen Project v1-v11 manifest fixes a whole-file line shape, so every
+//! Each frozen Project v1-v12 manifest fixes a whole-file line shape, so every
 //! feature tranche so far has added a new schema string. This layout instead
 //! admits one closed catalog of optional tables and keys and lowers every
 //! admitted manifest onto the frozen profile contract it selects. Existing
@@ -14,16 +14,18 @@
 
 use super::{
     valid_semver, ProjectManifest, MAX_VERSION_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
-    PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
-    PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+    PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
+    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
+    PROJECT_SCHEMA_V9,
 };
 use crate::diagnostic::Diagnostic;
 use crate::package_range;
 use crate::project::profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_INPUT_V1,
     PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_LANGUAGE_COMMAND_INPUT_V1,
-    PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1, PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1,
-    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1,
+    PROJECT_NETWORK_COMMAND_CAPABILITIES_V1, PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1,
+    PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1, PROJECT_PROFILE_LINE_COMMAND_IO_V1,
+    PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1, PROJECT_PROFILE_NETWORK_COMMAND_IO_V1,
     PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_OWNED_UTF8_API_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2,
     PROJECT_PROFILE_USEFUL_DATA_V1, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
@@ -76,7 +78,7 @@ const SCAFFOLD_HELP: &str = "start from `semaprax new <destination>` or render a
 /// table layout lower to the same profile contract and differ only in bytes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ManifestLayout {
-    /// One of the frozen `semaprax.project.v1`-`v11` whole-file line shapes.
+    /// One of the frozen `semaprax.project.v1`-`v12` whole-file line shapes.
     Frozen,
     /// The extensible `semaprax.manifest.v1` table layout.
     Tables,
@@ -652,6 +654,11 @@ fn lower_profile(
             ProjectProfile::FlatOwnedRecordApiV1 => (PROJECT_SCHEMA_V9, None, &[]),
             ProjectProfile::OwnedUtf8ApiV1 => (PROJECT_SCHEMA_V10, None, &[]),
             ProjectProfile::NestedOwnedRecordApiV1 => (PROJECT_SCHEMA_V11, None, &[]),
+            ProjectProfile::NetworkCommandIoV1 => (
+                PROJECT_SCHEMA_V12,
+                Some(PROJECT_LANGUAGE_COMMAND_INPUT_V1),
+                &PROJECT_NETWORK_COMMAND_CAPABILITIES_V1,
+            ),
         };
     let is_command_profile = !expected_capabilities.is_empty();
     match (is_command_profile, command) {
@@ -1240,6 +1247,7 @@ fn profile_by_name(name: &str) -> Option<ProjectProfile> {
         PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1 => ProjectProfile::FlatOwnedRecordApiV1,
         PROJECT_PROFILE_OWNED_UTF8_API_V1 => ProjectProfile::OwnedUtf8ApiV1,
         PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1 => ProjectProfile::NestedOwnedRecordApiV1,
+        PROJECT_PROFILE_NETWORK_COMMAND_IO_V1 => ProjectProfile::NetworkCommandIoV1,
         _ => return None,
     })
 }

@@ -29,7 +29,7 @@ fn provider(manifest: &Path, flat: bool) -> NativeOwnedDataProviderArtifact {
             workspace_revision: revision.workspace_revision(),
             project_graph_digest: revision.semantic_graph_digest(),
         };
-        let program = revision.entry_program();
+        let program = revision.public_api_program();
         let selected = revision.manifest().web_exports();
         let (bytes, digest, provider) = if flat {
             let descriptor = revision.flat_owned_record_api_descriptor()?;

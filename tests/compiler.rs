@@ -378,9 +378,10 @@ fn main() -> i64 { down(1000000) }
         let _ = std::fs::remove_file(&output);
         assert_eq!(result.status.code(), Some(73), "{name}");
         assert!(result.stdout.is_empty(), "{name}");
+        let line_ending = if cfg!(windows) { "\r\n" } else { "\n" };
         assert_eq!(
             String::from_utf8_lossy(&result.stderr),
-            "SEMAPRAX runtime failure: call depth exceeded (256 frames)\n",
+            format!("SEMAPRAX runtime failure: call depth exceeded (256 frames){line_ending}"),
             "{name}"
         );
     }

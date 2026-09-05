@@ -299,7 +299,10 @@ Catalog assertions distinguish implicit String ownership from source mode and
 preserve legacy Bytes/scalar descriptors. String declarations are retained and
 checked outside this fixture's executable closure; this is not a claim that
 the mixed owned-variant Project Wasm lane executes internal String literals.
-Owned-type and owned-argument function imports retain `SPX-G172` rejection.
+Explicit nongeneric resource-free record and variant type imports may contain
+owned `Bytes` storage and retain their stable nominal identity across modules.
+Importing a function whose signature exposes owned nominal arguments retains
+`SPX-G172` rejection.
 Asymmetric conditional variant-owner roots retain `SPX-H006` rejection; the
 positive variant target consumes its first owner and returns its second through
 an admitted straight-line body. These tests do not establish runtime or

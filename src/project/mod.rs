@@ -42,6 +42,8 @@ mod scaffold;
 mod scalar_wit;
 mod scalar_wit_compare;
 mod semantic;
+mod semantic_service;
+mod semantic_transaction;
 mod source_hint;
 mod standard_dependencies;
 mod target_cache;
@@ -308,8 +310,9 @@ pub use manifest::{
     MAX_TOTAL_SOURCE_BYTES, MAX_VERSION_BYTES, MAX_WEB_EXPORTS, PACKAGE_MANIFEST_RESERVED_TABLES,
     PACKAGE_MANIFEST_SCHEMA, PACKAGE_MANIFEST_TABLES, PACKAGE_RESERVED_KEYS,
     PACKAGE_TARGET_NATIVE64, PACKAGE_TARGET_WASM32, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
-    PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5,
-    PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+    PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
+    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
+    PROJECT_SCHEMA_V9,
 };
 pub use native_sdk::{
     with_native_owned_data_sdk_subject, ProjectNativeRustPackage, ProjectNativeRustPackageMode,
@@ -326,9 +329,10 @@ pub use nested_owned_record::{
 };
 pub use npm::{
     ProjectNpmBuild, ProjectNpmPublication, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
-    PROJECT_NPM_BUILD_SCHEMA_V10, PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3,
-    PROJECT_NPM_BUILD_SCHEMA_V4, PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
-    PROJECT_NPM_BUILD_SCHEMA_V7, PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
+    PROJECT_NPM_BUILD_SCHEMA_V10, PROJECT_NPM_BUILD_SCHEMA_V11, PROJECT_NPM_BUILD_SCHEMA_V2,
+    PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4, PROJECT_NPM_BUILD_SCHEMA_V5,
+    PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7, PROJECT_NPM_BUILD_SCHEMA_V8,
+    PROJECT_NPM_BUILD_SCHEMA_V9,
 };
 pub use prepared_interpreter::{
     prepare_project_interpreter, verify_project_source_trace,
@@ -345,6 +349,19 @@ pub use project_lock::{
 };
 pub use scalar_wit_compare::{
     classify_scalar_wit_change, ScalarWitCompatibility, SCALAR_WIT_COMPATIBILITY_SCHEMA,
+};
+pub use semantic_service::{
+    SemanticWorkspaceGeneration, SemanticWorkspaceService, SemanticWorkspaceServiceRefresh,
+    SemanticWorkspaceServiceWork, SemanticWorkspaceSnapshot,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES, SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA,
+};
+pub use semantic_transaction::{
+    SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionRenameDisplayName,
+    MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES, MAX_SEMANTIC_TRANSACTION_BYTES,
+    SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
+    SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_REVIEW_SCHEMA,
+    SEMANTIC_TRANSACTION_SCHEMA,
 };
 pub use target_cache::{
     ProjectCTargetBuild, ProjectNpmTargetBuild, ProjectTargetBuild, ProjectTargetCache,
@@ -376,9 +393,10 @@ pub use profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_ARGS_READ_CAPABILITY,
     PROJECT_COMMAND_INPUT_V1, PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,
     PROJECT_COMMAND_STDIN_READ_CAPABILITY, PROJECT_COMMAND_STDOUT_CAPABILITY,
-    PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1,
-    PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1, PROJECT_PROFILE_LINE_COMMAND_IO_V1,
-    PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1, PROJECT_PROFILE_OWNED_DATA_API_V1,
+    PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_NETWORK_COMMAND_CAPABILITIES_V1,
+    PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1, PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1,
+    PROJECT_PROFILE_LINE_COMMAND_IO_V1, PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1,
+    PROJECT_PROFILE_NETWORK_COMMAND_IO_V1, PROJECT_PROFILE_OWNED_DATA_API_V1,
     PROJECT_PROFILE_OWNED_UTF8_API_V1, PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1,
     PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2, PROJECT_PROFILE_USEFUL_DATA_V1,
     PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1,
@@ -587,6 +605,30 @@ impl ProjectSnapshot {
         self.revision.execute(role, options)
     }
 
+    /// Execute the manifest-selected Project-v12 command with one explicit,
+    /// invocation-owned provider. This route grants no ambient socket access.
+    pub fn execute_network_command(
+        &self,
+        input: &crate::hosted_interpreter::HostedCommandInput,
+        provider: &mut dyn crate::network_provider::NetworkProvider,
+        max_steps: usize,
+    ) -> Result<crate::hosted_interpreter::HostedCommandResult, Vec<Diagnostic>> {
+        if self.manifest.project_profile() != ProjectProfile::NetworkCommandIoV1 {
+            return Err(vec![Diagnostic::io(
+                "SPX-B104",
+                "fixture-backed network execution requires network-command-io.v1",
+            )]);
+        }
+        crate::hosted_interpreter::execute_network_command(
+            &self.public_api_program,
+            self.manifest.command().unwrap_or(""),
+            input,
+            provider,
+            max_steps,
+        )
+        .map_err(|error| vec![error])
+    }
+
     pub fn build_web_inline(&self, max_bytes: usize) -> Result<ProjectWebBuild, Vec<Diagnostic>> {
         self.revision.build_web_inline(max_bytes)
     }
@@ -712,7 +754,7 @@ impl ProjectSnapshot {
                 .map_err(|drift| self.publication_uncertainty(drift));
         }
         let prepared = crate::wasm::prepare_project_web_with_scalar_exports(
-            &self.entry_program,
+            &self.public_api_program,
             self.manifest.name(),
             &self.project_revision,
             &self.workspace_revision,
@@ -782,7 +824,9 @@ impl ProjectSnapshot {
             .map_err(|drift| self.publication_uncertainty(drift))
     }
 
-    /// Build the authenticated project entry closure as one native executable.
+    /// Build one authenticated native executable. Ordinary profiles use the
+    /// entry-only closure; command profiles use the admitted entry-plus-command
+    /// public closure selected by the manifest stable ID.
     ///
     /// The executable is compiled from exactly the linked entry HIR that Web
     /// publication and internal lowering-equivalence evidence consume. The
@@ -818,17 +862,21 @@ impl ProjectSnapshot {
         let profile = self.manifest.project_profile();
         let prepared = match profile {
             ProjectProfile::UsefulDataCommandV2 => crate::codegen::emit_hir_c_with_native_command(
-                &self.entry_program,
+                &self.public_api_program,
                 self.manifest.command().unwrap_or(""),
             ),
             ProjectProfile::LanguageCommandIoV1 => {
                 crate::codegen::emit_hir_c_with_language_command_io(
-                    &self.entry_program,
+                    &self.public_api_program,
                     self.manifest.command().unwrap_or(""),
                 )
             }
             ProjectProfile::LineCommandIoV1 => crate::codegen::emit_hir_c_with_line_command_io(
-                &self.entry_program,
+                &self.public_api_program,
+                self.manifest.command().unwrap_or(""),
+            ),
+            ProjectProfile::NetworkCommandIoV1 => crate::codegen::emit_hir_c_with_network_io(
+                &self.public_api_program,
                 self.manifest.command().unwrap_or(""),
             ),
             _ => crate::codegen::emit_hir_c(&self.entry_program),
@@ -840,6 +888,7 @@ impl ProjectSnapshot {
             ProjectProfile::UsefulDataCommandV2
                 | ProjectProfile::LanguageCommandIoV1
                 | ProjectProfile::LineCommandIoV1
+                | ProjectProfile::NetworkCommandIoV1
         ) {
             crate::codegen::compile_native_command_executable_into(&prepared, destination.file())
         } else {

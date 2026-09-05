@@ -24,6 +24,7 @@ pub(crate) fn execute_held(
                     project::ProjectProfile::UsefulDataCommandV2
                         | project::ProjectProfile::LanguageCommandIoV1
                         | project::ProjectProfile::LineCommandIoV1
+                        | project::ProjectProfile::NetworkCommandIoV1
                 ) {
                 snapshot.manifest().command().map(|command_id| {
                     (
@@ -216,6 +217,7 @@ fn build_product(target: &str, profile: project::ProjectProfile) -> &'static str
         ("npm", project::ProjectProfile::FlatOwnedRecordApiV1) => "Project v9 npm package",
         ("npm", project::ProjectProfile::OwnedUtf8ApiV1) => "Project v10 npm package",
         ("npm", project::ProjectProfile::NestedOwnedRecordApiV1) => "Project v11 npm package",
+        ("npm", project::ProjectProfile::NetworkCommandIoV1) => "Project v12 network npm package",
         ("npm", _) => "Project v2 npm package",
         _ => "project web package",
     }

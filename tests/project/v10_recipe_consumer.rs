@@ -70,7 +70,8 @@ fn publish(root: &Path, renamed: bool, retained: &mut Vec<(PathBuf, Vec<u8>)>) -
         retained.push((path.clone(), fs::read(path).unwrap()));
     }
     with_authenticated_project(&manifest, |snapshot| {
-        let linked = snapshot.entry_program();
+        let revision = snapshot.retain_revision();
+        let linked = revision.public_api_program();
         assert_eq!(linked.functions.len(), 6);
         for (id, expected_name) in [
             ("helper.left\u{8}\u{c}\u{7f}\u{85}", "finish"),

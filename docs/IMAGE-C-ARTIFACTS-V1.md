@@ -1,6 +1,7 @@
 # Source-bound C artifacts v1
 
-Status: Partial; implementation and regression evidence authored, unrun.
+Status: Partial; focused image/candidate and transport regression evidence
+executed locally.
 
 Audience: compiler contributors, semantic agent clients and embedding hosts.
 
@@ -19,9 +20,11 @@ The carrier schema is `semaprax.project-c-build.v1`.
 
 The builder uses the exact manifest export stable IDs and retained canonical
 source declarations. The ordinary native emitter receives the checked complete
-linked entry program, including its manifest-selected export roots. No imported
-callee is replaced with a stub, no synthetic body substitutes for source
-meaning and no backend verification is bypassed.
+public-API program, which contains the entry closure plus its independently
+admitted manifest-selected export roots. Executable entry semantics retain the
+separate entry-only program. No imported callee is replaced with a stub, no
+synthetic body substitutes for source meaning and no backend verification is
+bypassed.
 
 Before returning carrier bytes, the builder reparses the canonical manifest
 and rebuilds every canonical source through ordinary complete Project
@@ -116,12 +119,12 @@ bounds, binding and exact-replay failures retain their existing diagnostic
 families. No rejection is replaced with an invented prototype or partial
 successful native output.
 
-Authored cases in [image/candidate evidence](../tests/image_protocol/c_artifacts_v1.rs)
-and [transport evidence](../tests/image_transport_v5/c_artifacts.rs) cover
-actual prototype/file correspondence, cross-file source identity, candidate
-signature evolution, exact replay, exclusions, hostile inputs and build grants.
-Tests, compiler checks and native execution were not run; no completion-matrix
-row is promoted.
+Focused [image/candidate evidence](../tests/image_protocol/c_artifacts_v1.rs)
+executed locally and covers actual prototype/file correspondence, cross-file
+source identity, candidate signature evolution, exact replay, exclusions and
+hostile inputs. The [transport evidence](../tests/image_transport_v5/c_artifacts.rs)
+also executed locally and retains its build-grant cases. No C compiler or
+native executable was run, and no completion-matrix row is promoted.
 
 Broader C ABI/ownership admission, Rust carriers, compiled consumers, safe
 wrappers, cross-package migration, artifact filesystem authority and measured

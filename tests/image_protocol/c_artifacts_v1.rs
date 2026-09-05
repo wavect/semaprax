@@ -177,7 +177,7 @@ fn cross_file_headers_and_export_bindings_match_the_exact_whole_project_native_p
     let native = std::str::from_utf8(&files["native/entry.c"]).unwrap();
     assert_eq!(
         native,
-        semaprax::codegen::emit_hir_c(revision.entry_program()).unwrap()
+        semaprax::codegen::emit_hir_c(revision.public_api_program()).unwrap()
     );
     for (id, path) in [("api.add", "src/core.spx"), ("api.flag", "src/flags.spx")] {
         let export = projection["exports"]
@@ -363,7 +363,7 @@ fn excluded_owned_signatures_are_explicit_and_never_gain_public_c_prototypes() {
     let (_, _, files) = carrier(&revision);
     assert_eq!(
         std::str::from_utf8(&files["native/entry.c"]).unwrap(),
-        semaprax::codegen::emit_hir_c(revision.entry_program()).unwrap()
+        semaprax::codegen::emit_hir_c(revision.public_api_program()).unwrap()
     );
     let envelope = std::str::from_utf8(&files["c-header/src/frame.spx.json"]).unwrap();
     let header = semaprax::c_header::verify_envelope(envelope).unwrap();

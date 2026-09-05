@@ -192,7 +192,7 @@ fn project_v11_native_provider_and_safe_rust_are_atomic_and_repeatable() {
                 project_graph_digest: revision.semantic_graph_digest(),
             };
             let provider = semaprax::codegen::emit_project_v11_native_nested_owned_record_provider(
-                revision.entry_program(),
+                revision.public_api_program(),
                 revision.manifest().web_exports(),
                 subject,
                 &descriptor.canonical_bytes(),

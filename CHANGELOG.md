@@ -8,6 +8,41 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the developer-preview `network-command-io.v1` Project v12 profile,
+  native and deterministic fixture-only npm/Web build lanes, the bounded
+  `semaprax network-run --fixture` command, and a committed HTTP Project
+  fixture. Browser and npm packages receive no ambient or real socket
+  authority.
+- Added the authority-free, transport-neutral Persistent Incremental Semantic
+  Workspace Service v1 core. A process can retain one immutable Project,
+  Canonical Semantic Workspace Revision, Semantic Workspace Image, and semantic
+  cache generation; serve revision-bound bounded snapshot queries; stage a
+  complete source-exact incremental successor; and install it through one
+  expected-current in-memory generation/cache compare-and-swap. Transaction
+  validation returns Universal Semantic Transaction artifacts without adopting
+  their candidate. The three focused lifecycle regressions pass locally; no
+  wire, CLI, MCP, LSP, disk persistence, build, execution, commit, publication,
+  or broad operation-algebra claim is added.
+- Corrected the pathless public C-artifact projection after entry and public
+  target closures were separated: native inspection now emits the independently
+  admitted entry-plus-export program, so unsupported owned exports remain
+  explicit header exclusions instead of failing because they are absent from
+  the executable entry-only closure. Native useful-data, language-I/O, and
+  line-I/O command products likewise emit that public closure so the
+  manifest-selected command and its exact permits remain present. Entry
+  execution semantics remain unchanged.
+- Admitted explicit nongeneric resource-free record and variant type imports
+  containing owned `Bytes` in owned Project profiles. Stable-ID HIR and cleanup
+  plans now survive that module boundary, and an owning nominal function can
+  move with one exact type import; imported callables exposing owned nominal
+  arguments, borrowed storage, resources, generics, cycles, runtime execution,
+  and public carrier widening remain closed. Promoted the focused cleanup
+  dependency image/transport corpus into the ordinary suite.
+- Promoted the focused nominal record/variant rename regressions into the
+  ordinary candidate suite after correcting an invalid shadowed pattern
+  fixture; the corpus now executes owning and generic nominal renames, stable
+  member identities, immutable rejection, recovery, conservative rebase, and
+  the existing transport surface; runtime and hosted gates remain unrun.
 - Hardened `std.http.status_code` so an HTTP/1.x status code is accepted only
   when the required space before the reason phrase is present; truncated lines
   such as `HTTP/1.1 299` now return `-1` consistently on the interpreter,
@@ -28,6 +63,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   same report and the guided help pages are identical; only the settled
   provisioner-observation renderer remains in the toolchain, and only
   `build --target rust` still needs the private host.
+- Added exact offline `semaprax help library <module|name|stable-id>` lookup,
+  returning only the generated dependency row, required profile, signature,
+  effects, and contracts while preserving the full catalog bytes. The guarded
+  `std.core.compare` lookup stays within 512 bytes and 128 lexical units and is
+  more than 50 times smaller than the 22,076-byte, 6,662-unit catalog in both
+  measures.
 - The VS Code adapter adds `Show Ownership, Contracts, and Effects` (the
   compiler's bounded `context` facets for a chosen callable) and `Inspect Agent
   Definition` (`agent inspect` over the saved AgentDefinition v1 file), both
@@ -39,6 +80,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   transport, clock, or tool authority, so runs are deterministic and a replay
   proves an evidence capsule byte for byte (`SPX-V221` malformed transcript,
   `SPX-V222` replay mismatch). `resume` and `reconcile` stay unadmitted.
+- Added the bounded, authority-free Universal Semantic Transaction v1 kernel
+  over Canonical Semantic Workspace Revision v1, with one typed
+  `RenameDisplayName` operation, exact base/old-name preconditions,
+  deterministic intent/impact/review/result/evidence, fresh exact replay, and
+  a locally passed focused Project-candidate gate. The additive slice does not
+  alter legacy Project, workspace, Image, Semantic Change, or Candidate bytes.
 - The bundled standard-library catalog (`semaprax help library`,
   `std/catalog.json`) is now rendered from the `semaprax doc` documentation
   model, with every signature cross-checked against the source text and each

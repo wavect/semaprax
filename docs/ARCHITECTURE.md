@@ -527,6 +527,31 @@ Workspace, and Semantic Workspace Image v1 bytes and revision algorithms remain
 unchanged. See [Canonical Semantic Workspace Revision
 v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md).
 
+`src/project/semantic_transaction.rs` owns the bounded authority-free Universal
+Semantic Transaction v1 kernel. It binds an exact canonical workspace revision
+and typed old-name precondition, delegates its one admitted function display
+rename to the immutable `ProjectCandidate` machinery, and derives canonical
+impact, review, result, and exact-replay evidence. Its comment-free canonical
+source guard prevents the reused candidate formatter from introducing trivia
+changes. It has no filesystem or publication authority. See [Universal
+Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md).
+
+`src/project/semantic_service.rs` owns the transport-neutral, process-resident
+Persistent Incremental Semantic Workspace Service v1 core. One service retains
+one immutable current generation, including its admitted Project revision,
+Canonical Semantic Workspace Revision, Semantic Workspace Image, and
+compiler-created semantic cache. Refresh builds a complete successor from
+caller-owned source bytes, then performs one expected-current in-memory
+generation/cache compare-and-swap; stale or failed work leaves the complete old
+generation installed. Revision-bound snapshots delegate bounded symbol,
+context, and impact queries to the retained immutable image. Transaction
+validation delegates to Universal Semantic Transaction v1 and returns its
+authority-free artifacts without adopting the candidate or changing current
+state. The core opens no path, owns no disk store, and exposes no wire, CLI,
+MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
+[Persistent Incremental Semantic Service
+v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
+
 `src/project/image.rs` derives an immutable, bounded Semantic Workspace
 Image from one already admitted `Arc<ProjectRevision>`. It retains validated
 HIR in memory and projects the complete Project graph plus existing typed
@@ -1253,7 +1278,9 @@ The movement planner retains exact checked builtin occurrences and reserves
 their unchanged spellings during alias migration. Place roots, view operations,
 type and ownership identities are compared after source rebuilding. Internal
 owned byte work and String signatures add no staging or cleanup-plan edits;
-existing owning parameter/type import restrictions remain authoritative.
+explicit nongeneric resource-free record and variant type imports may carry
+owned `Bytes`, while callable imports exposing owned nominal arguments remain
+closed.
 `candidate/record_field.rs` appends a typed scalar field and migrates
 constructors and exact patterns using retained type identities and the owning
 compiler type facts. `hir/record_evolution.rs` reconstructs only the bounded
@@ -1840,7 +1867,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Project dependency admission | `src/project/external_dependencies.rs` for exact ordinary Subject-v3 closure replay and `src/project/standard_dependencies.rs` for compiler-bundled packages |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
-| Standard library | `std/<package>/` Project packages, `src/project/standard_dependencies.rs` for closed bundled dependency expansion, `std/packages.json` tier and target metadata, generated `std/catalog.json`; gate `tests/project/standard_library.rs` |
+| Standard library | `std/<package>/` Project packages, `src/project/standard_dependencies.rs` for closed bundled dependency expansion, `std/packages.json` tier and target metadata, generated `std/catalog.json`; `src/cli/help.rs` embeds the generated Markdown catalog unchanged and derives exact module/name/stable-ID lookups from the JSON catalog; gate `tests/project/standard_library.rs` |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
 
 This table is the single module-level map. Other contributor documents should

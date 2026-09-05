@@ -1,4 +1,4 @@
-//! Nominal declaration rename evidence: authored and intentionally unrun.
+//! Nominal declaration rename evidence.
 use semaprax::ast::{Program, Type, TypeDeclarationKind};
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{with_authenticated_project, ProjectCandidate, SemanticChange};
@@ -51,8 +51,8 @@ tests = ["rename.tests"]
     match choice {Choice::Some {value} => value, Choice::None {} => 0,}
 }
 @id("rename.boxed") fn boxed(value:i64)->Box<i64> {Box<i64> {value:value}}
-@id("rename.generic-selected") fn generic_selected(value:i64)->i64 {
-    let selected:GenericChoice<i64> = GenericChoice<i64>::Some {value:value};
+@id("rename.generic-selected") fn generic_selected(input:i64)->i64 {
+    let selected:GenericChoice<i64> = GenericChoice<i64>::Some {value:input};
     match selected {GenericChoice::Some {value} => value, GenericChoice::None {} => 0,}
 }
 @id("rename.shadow") fn shadow<Pair>(Pair:Pair)->Pair {Pair}
@@ -182,7 +182,6 @@ fn error<T>(result: Result<T, Vec<Diagnostic>>, expected: &str) {
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn record_rename_updates_nested_types_patterns_and_contract_bodies_without_alias_edits() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -247,7 +246,6 @@ fn record_rename_updates_nested_types_patterns_and_contract_bodies_without_alias
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn variant_owner_rename_preserves_case_payload_ids_and_order_and_imported_match_labels() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -309,7 +307,6 @@ fn variant_owner_rename_preserves_case_payload_ids_and_order_and_imported_match_
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn local_generic_record_and_variant_rename_preserve_concrete_arguments_and_shadowed_parameters() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -333,7 +330,6 @@ fn local_generic_record_and_variant_rename_preserve_concrete_arguments_and_shado
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn owned_record_rename_retains_own_signature_and_ordinary_cleanup_admission() {
     let fixture = Fixture::new();
     fixture.append(
@@ -362,7 +358,6 @@ fn owned_record_rename_retains_own_signature_and_ordinary_cleanup_admission() {
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn collisions_nonowners_and_implicit_identity_reject_without_changing_sources() {
     let fixture = Fixture::new();
     fixture.append("\nrecord Occupied { flag:bool, }\n");
@@ -382,24 +377,53 @@ fn collisions_nonowners_and_implicit_identity_reject_without_changing_sources() 
         rename("rename.pair", "Option"),
         rename("rename.pair", "Pair"),
         rename("rename.pair", "Pair {}"),
-        rename("rename.pair.value", "Different"),
-        rename("rename.choice.some", "Different"),
         rename("core.option", "Different"),
         rename(&implicit.stable_id, "Different"),
     ] {
-        assert!(apply(&base, request).is_err());
+        assert!(
+            apply(&base, request.clone()).is_err(),
+            "unsupported nominal rename accepted: {request}"
+        );
         assert_eq!(base.to_json(), before);
     }
     error(apply(&base, rename("rename.pair", "Pair {}")), "SPX-G225");
-    error(
-        apply(&base, rename("rename.pair.value", "Different")),
-        "SPX-G225",
-    );
+
+    // Field and case identities are supported by the additive Member Rename
+    // v1 route. Keep them in this mixed nominal fixture to prove that the
+    // owner-level rejection cases above do not mask valid member selection.
+    let field = apply(&base, rename("rename.pair.value", "different")).unwrap();
+    let field_program = program(&field, "core");
+    let pair = field_program
+        .types
+        .iter()
+        .find(|ty| ty.stable_id == "rename.pair")
+        .unwrap();
+    let TypeDeclarationKind::Record { fields } = &pair.kind else {
+        panic!("expected record");
+    };
+    assert!(fields
+        .iter()
+        .any(|field| field.stable_id == "rename.pair.value" && field.name == "different"));
+    replay(&field);
+
+    let case = apply(&base, rename("rename.choice.some", "Present")).unwrap();
+    let case_program = program(&case, "core");
+    let choice = case_program
+        .types
+        .iter()
+        .find(|ty| ty.stable_id == "rename.choice")
+        .unwrap();
+    let TypeDeclarationKind::Variant { cases } = &choice.kind else {
+        panic!("expected variant");
+    };
+    assert!(cases
+        .iter()
+        .any(|case| case.stable_id == "rename.choice.some" && case.name == "Present"));
+    replay(&case);
     assert_eq!(fixture.bytes(), disk);
 }
 
 #[test]
-#[ignore = "repro at be5d3da: choose Signal::Some value shadowing"]
 fn nominal_rename_history_replays_and_rebases_without_reinterpreting_stale_revision() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();

@@ -416,7 +416,7 @@ fn arguments_are_bounded_and_authenticated_before_evaluation() {
     // and has an otherwise admitted signature, but is not itself selected.
     // An admission diagnostic proves descriptor membership wins before entry.
     assert!(revision
-        .entry_program()
+        .public_api_program()
         .functions
         .iter()
         .any(|function| function.id.as_str() == "reference.unselected"));

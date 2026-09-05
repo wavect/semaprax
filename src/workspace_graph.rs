@@ -1381,6 +1381,9 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::LineCommandIoV1 => {
                 hir::link_useful_data_workspace(entry_module.to_owned(), entrypoint, functions)
             }
+            crate::project::ProjectProfile::NetworkCommandIoV1 => {
+                hir::link_network_entry_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
             crate::project::ProjectProfile::OwnedDataApiV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
             }
@@ -1560,6 +1563,20 @@ impl WorkspaceGraphBuild {
                     )]);
                 };
                 hir::link_line_command_io_workspace(
+                    base.module,
+                    base.entrypoint,
+                    hir::DeclarationId::new(command_id.clone()),
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::NetworkCommandIoV1 => {
+                let [command_id] = additional_roots else {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "Network Command I/O v1 must select exactly one command identity",
+                    )]);
+                };
+                hir::link_network_command_io_workspace(
                     base.module,
                     base.entrypoint,
                     hir::DeclarationId::new(command_id.clone()),
@@ -2213,6 +2230,7 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::UsefulDataCommandV2
                     | crate::project::ProjectProfile::LanguageCommandIoV1
                     | crate::project::ProjectProfile::LineCommandIoV1
+                    | crate::project::ProjectProfile::NetworkCommandIoV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
                     | crate::project::ProjectProfile::OwnedUtf8ApiV1
@@ -2235,7 +2253,8 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::UsefulDataCommandV1
                     | crate::project::ProjectProfile::UsefulDataCommandV2
                     | crate::project::ProjectProfile::LanguageCommandIoV1
-                    | crate::project::ProjectProfile::LineCommandIoV1 => {
+                    | crate::project::ProjectProfile::LineCommandIoV1
+                    | crate::project::ProjectProfile::NetworkCommandIoV1 => {
                         hir::useful_data_workspace_return_admitted(&function.return_type)
                     }
                     crate::project::ProjectProfile::OwnedDataApiV1 => {
@@ -2267,7 +2286,12 @@ impl WorkspaceGraphBuild {
                                 | crate::command_io_ops::STDIN_READ_EFFECT
                                 | crate::host_io_ops::STDOUT_WRITE_EFFECT
                         )
-                    }));
+                    }))
+                    || (profile == crate::project::ProjectProfile::NetworkCommandIoV1
+                        && function.effects.iter().all(|effect| {
+                            crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1
+                                .contains(&effect.as_str())
+                        }));
                 let signature_admitted = class_method
                     || (admitted_return && function.params.iter().all(admitted_parameter));
                 if !signature_admitted {
@@ -2300,6 +2324,9 @@ impl WorkspaceGraphBuild {
                         }
                         crate::project::ProjectProfile::LineCommandIoV1 => {
                             "Line Command I/O v1 linker"
+                        }
+                        crate::project::ProjectProfile::NetworkCommandIoV1 => {
+                            "Network Command I/O v1 linker"
                         }
                         crate::project::ProjectProfile::OwnedDataApiV1 => {
                             "Owned Data API v1 linker"
@@ -5632,7 +5659,7 @@ fn validate_imported_type(
         return Err(vec![use_error(
             caller,
             module_use,
-            "type target must be an explicit nongeneric recursive Copy value type",
+            "type target must be an explicit nongeneric recursive value type without borrowed storage",
         )]);
     }
     Ok(())
@@ -5691,7 +5718,8 @@ fn exposed_type_reference_is_directly_imported(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => false,
+        Type::SliceU8 | Type::ArrayU8(_) => false,
+        Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -5767,7 +5795,8 @@ fn type_reference_is_admitted(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => false,
+        Type::SliceU8 | Type::ArrayU8(_) => false,
+        Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {
                 return false;

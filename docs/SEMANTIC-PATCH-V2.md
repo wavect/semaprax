@@ -65,6 +65,12 @@ lower-schema programs remain v10-v13, and CleanupPlan selection is unchanged.
 - Existing v1 parse, name, stale-revision, effect, verification, and A0 I/O
   diagnostics retain their codes and behavior.
 
+The direct single-file apply route also rejects a schema-less rename whose
+candidate revision equals its base as `SPX-G106`, before creating a staging
+file. A source whose retained permissions are read-only rejects as
+`SPX-I205`; atomic replacement never turns read-only input into write
+authority.
+
 ## Threat model and nonclaims
 
 The source snapshot, lock, staging handle, sibling paths, final source reparse,

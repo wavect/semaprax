@@ -65,6 +65,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- The CLI now rejects single-file semantic-patch no-ops and read-only sources
+  before staging, admits Context byte budgets only from the viable 2048-byte
+  envelope floor, and refuses `fmt` source, manifest, or project-directory
+  symlink/reparse aliases with `SPX-J102`.
+
 - Cleanup replay now validates long scalar checked-status sequences through
   bounded status-source/edge/exit summaries instead of cloning every failed
   path's successful prefix, eliminating quadratic replay memory and preflight

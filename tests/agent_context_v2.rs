@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use semaprax::graph::{
     self, AgentContextDirection, AgentContextFilter, AgentContextOptions, AgentContextV2Options,
-    MAX_AGENT_CONTEXT_BYTES,
+    MAX_AGENT_CONTEXT_BYTES, MIN_AGENT_CONTEXT_BYTES,
 };
 use semaprax::parse;
 use sha2::{Digest, Sha256};
@@ -294,20 +294,22 @@ fn traversal_and_reference_cursors_replay_with_direction_bound_progress() {
                 && item["resume"]["min_bytes"] == MAX_AGENT_CONTEXT_BYTES
         }));
 
-    let byte_page = (1024..=8192).step_by(64).find_map(|max_bytes| {
-        let options = AgentContextV2Options::new(
-            1,
-            max_bytes,
-            64,
-            [AgentContextFilter::Effects],
-            AgentContextDirection::Forward,
-        )
-        .unwrap();
-        let json = graph::agent_context_v2_json(&program, "ctx.root", &options)
-            .ok()
-            .flatten()?;
-        (json.contains("\"used_nodes\":0") && json.contains("\"max_bytes\"")).then_some(json)
-    });
+    let byte_page = (MIN_AGENT_CONTEXT_BYTES..=8192)
+        .step_by(64)
+        .find_map(|max_bytes| {
+            let options = AgentContextV2Options::new(
+                1,
+                max_bytes,
+                64,
+                [AgentContextFilter::Effects],
+                AgentContextDirection::Forward,
+            )
+            .unwrap();
+            let json = graph::agent_context_v2_json(&program, "ctx.root", &options)
+                .ok()
+                .flatten()?;
+            (json.contains("\"used_nodes\":0") && json.contains("\"max_bytes\"")).then_some(json)
+        });
     let byte_page = byte_page.expect("a v2 zero-fact byte page must exist");
     let byte_page: serde_json::Value = serde_json::from_str(&byte_page).unwrap();
     let resume = &byte_page["frontier"][0]["resume"];

@@ -68,6 +68,7 @@ pub(crate) fn run(options: FmtOptions, report: impl Fn(&[Diagnostic]) -> u8) -> 
     };
     let mut formatted = Vec::with_capacity(paths.len());
     for path in paths {
+        reject_symlink_components(&path).map_err(|diagnostic| report(&[diagnostic]))?;
         let source = std::fs::read_to_string(&path).map_err(|error| {
             report(&[Diagnostic::io(
                 "SPX-I001",
@@ -130,6 +131,7 @@ fn project_sources(
     manifest_path: &Path,
     report: &impl Fn(&[Diagnostic]) -> u8,
 ) -> Result<Vec<PathBuf>, u8> {
+    reject_symlink_components(manifest_path).map_err(|diagnostic| report(&[diagnostic]))?;
     let manifest_source = std::fs::read_to_string(manifest_path).map_err(|error| {
         report(&[Diagnostic::io(
             "SPX-J102",
@@ -148,6 +150,51 @@ fn project_sources(
         .iter()
         .map(|relative| root.join(relative))
         .collect())
+}
+
+/// Formatting is a write-capable Project command, so it rejects the same
+/// symlink/reparse aliases as authenticated Project selection. Missing paths
+/// are left to the existing read diagnostic.
+fn reject_symlink_components(path: &Path) -> Result<(), Diagnostic> {
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map_err(|error| {
+                Diagnostic::io(
+                    "SPX-J102",
+                    format!("cannot inspect fmt input {}: {error}", path.display()),
+                )
+            })?
+            .join(path)
+    };
+    for component in absolute.ancestors() {
+        let Ok(metadata) = std::fs::symlink_metadata(component) else {
+            continue;
+        };
+        if metadata.file_type().is_symlink() || metadata_is_reparse(&metadata) {
+            return Err(Diagnostic::io(
+                "SPX-J102",
+                format!(
+                    "fmt input {} traverses a symlink or reparse point at {}",
+                    path.display(),
+                    component.display()
+                ),
+            ));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn metadata_is_reparse(metadata: &std::fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    metadata.file_attributes() & 0x400 != 0
+}
+
+#[cfg(not(windows))]
+fn metadata_is_reparse(_: &std::fs::Metadata) -> bool {
+    false
 }
 
 #[cfg(test)]

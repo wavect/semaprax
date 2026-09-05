@@ -13,6 +13,11 @@ semaprax context <file> <symbol|stable-id>
   [--filters contracts,ownership,effects,types,targets,diagnostics,tests]
 ```
 
+The admitted byte budget is `2048..=16777216`. The lower bound is large
+enough for the smallest canonical v1/v2 envelope; longer identities or a
+resumable frontier can still require the exact larger budget reported by
+`SPX-G004` or by a frontier cursor.
+
 The public Rust surface is `AgentContextDirection`,
 `AgentContextV2Options`, and `agent_context_v2_json`. Direction names are
 closed, exact, and case-sensitive. Unknown, missing, or duplicated direction

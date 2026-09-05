@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use semaprax::graph::{self, AgentContextFilter, AgentContextOptions, MAX_AGENT_CONTEXT_BYTES};
+use semaprax::graph::{
+    self, AgentContextFilter, AgentContextOptions, MAX_AGENT_CONTEXT_BYTES, MIN_AGENT_CONTEXT_BYTES,
+};
 use semaprax::parse;
 
 const SOURCE: &str = r#"
@@ -94,30 +96,54 @@ fn budgets_emit_exact_counts_reasons_and_reexpandable_frontier() {
         assert!(expanded.contains(&format!("\"id\":\"{id}\",\"kind\":\"function\"")));
     }
 
-    let byte_bounded = options(1, 1150, 8, &[AgentContextFilter::Ownership]);
-    let json = graph::agent_context_json(&program, "ctx.root", &byte_bounded)
-        .unwrap()
-        .unwrap();
-    assert!(json.len() <= 1150);
-    assert_eq!(json.len(), used_bytes(&json));
-    assert!(json.contains("\"reasons\":[\"max_bytes\"]"));
-    assert!(json.contains("\"omitted_fact_bytes\":"));
-    assert!(json.contains("\"symbol\":\"ctx.root\""));
-
     let meaning = parse(
         include_str!("../examples/meaning.spx"),
         Path::new("meaning.spx"),
     )
     .unwrap();
-    let minimum = options(1, 1150, 256, &[AgentContextFilter::Ownership]);
-    let minimum_json = graph::agent_context_json(&meaning, "app.main", &minimum)
+    let byte_bounded = options(
+        1,
+        MIN_AGENT_CONTEXT_BYTES,
+        8,
+        &[
+            AgentContextFilter::Contracts,
+            AgentContextFilter::Ownership,
+            AgentContextFilter::Effects,
+            AgentContextFilter::Types,
+        ],
+    );
+    let json = graph::agent_context_json(&meaning, "app.main", &byte_bounded)
         .unwrap()
         .unwrap();
-    assert!(minimum_json.len() <= 1150);
+    assert!(json.len() <= MIN_AGENT_CONTEXT_BYTES);
+    assert_eq!(json.len(), used_bytes(&json));
+    assert!(json.contains("\"reasons\":[\"max_bytes\"]"));
+    assert!(json.contains("\"omitted_fact_bytes\":"));
+    assert!(json.contains("\"symbol\":\"math.add\""));
+
+    let long_name = "a".repeat(MIN_AGENT_CONTEXT_BYTES);
+    let long_leaf_name = "b".repeat(MIN_AGENT_CONTEXT_BYTES);
+    let minimum_program = parse(
+        &format!(
+            "module test.agent_minimum; @id(\"ctx.leaf\") fn {long_leaf_name}() -> i64 {{ 0 }} @id(\"ctx.root\") fn {long_name}() -> i64 {{ {long_leaf_name}() }} @id(\"app.main\") fn main() -> i64 {{ 0 }}"
+        ),
+        Path::new("agent-minimum.spx"),
+    )
+    .unwrap();
+    let minimum = options(
+        1,
+        MIN_AGENT_CONTEXT_BYTES,
+        256,
+        &[AgentContextFilter::Ownership],
+    );
+    let minimum_json = graph::agent_context_json(&minimum_program, "ctx.root", &minimum)
+        .unwrap()
+        .unwrap();
+    assert!(minimum_json.len() <= MIN_AGENT_CONTEXT_BYTES);
     assert_eq!(minimum_json.len(), used_bytes(&minimum_json));
     assert!(minimum_json.contains("\"used_nodes\":0"));
     assert!(minimum_json.contains(
-        "\"frontier\":[{\"id\":\"app.main\",\"kind\":\"function\",\"reasons\":[\"max_bytes\"]"
+        "\"frontier\":[{\"id\":\"ctx.root\",\"kind\":\"function\",\"reasons\":[\"max_bytes\"]"
     ));
     assert!(minimum_json.contains("\"deferred_known_nodes\":1"));
     assert!(minimum_json.contains(
@@ -133,22 +159,34 @@ fn budgets_emit_exact_counts_reasons_and_reexpandable_frontier() {
         minimum.max_nodes(),
         &[AgentContextFilter::Ownership],
     );
-    let resumed = graph::agent_context_json(&meaning, "app.main", &resumed_options)
+    let resumed = graph::agent_context_json(&minimum_program, "ctx.root", &resumed_options)
         .unwrap()
         .unwrap();
-    assert!(resumed.contains("\"used_nodes\":1"));
-    assert!(resumed.contains("\"facts\":[{\"id\":\"app.main\",\"kind\":\"function\""));
+    assert!(resumed.contains("\"used_nodes\":1"), "{resumed}");
+    assert!(resumed.contains("\"facts\":[{\"id\":\"ctx.root\",\"kind\":\"function\""));
     assert_independent_json_parse(&resumed);
 
-    let multi_callee = (1024..=4096).step_by(64).find_map(|max_bytes| {
-        let bounded = options(1, max_bytes, 8, &[AgentContextFilter::Effects]);
-        let json = graph::agent_context_json(&program, "ctx.root", &bounded)
-            .ok()
-            .flatten()?;
-        (json.contains("\"used_nodes\":1")
-            && json.contains("\"reasons\":[\"depth\",\"max_bytes\"]"))
-        .then_some(json)
-    });
+    let multi_callee = (MIN_AGENT_CONTEXT_BYTES..=4096)
+        .step_by(64)
+        .find_map(|max_bytes| {
+            let bounded = options(
+                1,
+                max_bytes,
+                8,
+                &[
+                    AgentContextFilter::Contracts,
+                    AgentContextFilter::Ownership,
+                    AgentContextFilter::Effects,
+                    AgentContextFilter::Types,
+                ],
+            );
+            let json = graph::agent_context_json(&program, "ctx.root", &bounded)
+                .ok()
+                .flatten()?;
+            (json.contains("\"used_nodes\":1")
+                && json.contains("\"reasons\":[\"depth\",\"max_bytes\"]"))
+            .then_some(json)
+        });
     let multi_callee = multi_callee.expect("a bounded root-only page must exist");
     assert!(multi_callee.contains("\"calls\":[\"ctx.left\",\"ctx.right\"]"));
     for id in ["ctx.left", "ctx.right"] {
@@ -212,7 +250,7 @@ fn aggregate_larger_than_contract_maximum_paginates_individually_small_facts() {
     let program = parse(&source, Path::new("agent-aggregate.spx")).unwrap();
     let minimum = options(
         FACT_COUNT,
-        1024,
+        MIN_AGENT_CONTEXT_BYTES,
         FACT_COUNT + 1,
         &[AgentContextFilter::Effects],
     );
@@ -376,25 +414,32 @@ fn source_revision_references_and_mutations_are_bound_deterministically() {
 #[test]
 fn option_api_and_cli_reject_unknown_duplicate_and_malformed_inputs() {
     assert_eq!(
-        AgentContextOptions::new(0, 1023, 1, [AgentContextFilter::Effects])
+        AgentContextOptions::new(
+            0,
+            MIN_AGENT_CONTEXT_BYTES - 1,
+            1,
+            [AgentContextFilter::Effects],
+        )
+        .unwrap_err()
+        .code,
+        "SPX-G004"
+    );
+    assert_eq!(
+        AgentContextOptions::new(0, MIN_AGENT_CONTEXT_BYTES, 0, [AgentContextFilter::Effects],)
             .unwrap_err()
             .code,
         "SPX-G004"
     );
     assert_eq!(
-        AgentContextOptions::new(0, 1024, 0, [AgentContextFilter::Effects])
+        AgentContextOptions::new(0, MIN_AGENT_CONTEXT_BYTES, 1, [])
             .unwrap_err()
             .code,
-        "SPX-G004"
-    );
-    assert_eq!(
-        AgentContextOptions::new(0, 1024, 1, []).unwrap_err().code,
         "SPX-G004"
     );
     assert_eq!(
         AgentContextOptions::new(
             0,
-            1024,
+            MIN_AGENT_CONTEXT_BYTES,
             1,
             [AgentContextFilter::Effects, AgentContextFilter::Effects]
         )
@@ -410,7 +455,7 @@ fn option_api_and_cli_reject_unknown_duplicate_and_malformed_inputs() {
         vec!["--depth", "nope"],
         vec!["--depth"],
         vec!["--max-nodes", "0"],
-        vec!["--max-bytes", "1023"],
+        vec!["--max-bytes", "2047"],
         vec!["--filters", "effects,wat"],
         vec!["--filters", "effects,effects"],
         vec!["--depth", "1", "--depth", "2"],

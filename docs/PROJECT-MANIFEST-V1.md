@@ -113,12 +113,14 @@ manifest. For `check`, `run`, `test`, `build`, and `fmt`, a positional operand
 that names an existing directory selects the `semaprax.toml` inside it, with
 inert `.` components removed; `--manifest-path` is never resolved this way, and
 a directory without a manifest reports `SPX-J102` for that path. `fmt <dir>`
-and `fmt semaprax.toml` read only the manifest, not the authenticated project:
-they format every `sources` entry in manifest order through the single-file
-comment-preserving projection, parse every file before writing any, and with
-`--check` print one `<path>:<line> is not canonically formatted` line per
-drifting file, naming its first differing line, and exit one; a manifest that
-cannot be read is reported as `cannot read
+and `fmt semaprax.toml` do not load the authenticated semantic project, but
+they reject a symlink/reparse point in the selected directory, manifest, or
+source ancestry before writing. They format every `sources` entry in manifest
+order through the single-file comment-preserving projection, parse every file
+before writing any, and with `--check` print one
+`<path>:<line> is not canonically formatted` line per drifting file, naming
+its first differing line, and exit one; a manifest that cannot be read is
+reported as `cannot read
 <path>`. Project builds publish two explicit targets:
 
 - `--target web` (the default) publishes the digest-bound scalar Web package;

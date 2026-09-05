@@ -132,8 +132,10 @@ fn semantic_patch_keeps_comments_and_stays_canonical() {
         .replace("add(40, 2)", "sum(40, 2)");
     let program = parse(source, Path::new("patch.spx")).unwrap();
     let revision = graph::revision(&program);
-    let directory =
-        std::env::temp_dir().join(format!("semaprax-patch-comments-{}", std::process::id()));
+    let directory = std::env::temp_dir()
+        .canonicalize()
+        .unwrap()
+        .join(format!("semaprax-patch-comments-{}", std::process::id()));
     std::fs::create_dir_all(&directory).unwrap();
     let source_path = directory.join("module.spx");
     let patch_path = directory.join("rename.spatch");
@@ -456,6 +458,37 @@ fn semantic_patch_cleans_owned_lock_and_staging_after_success() {
     assert!(std::fs::read_to_string(&source_path)
         .unwrap()
         .contains("fn computed()"));
+    assert_no_owned_artifacts(&source_path);
+}
+
+#[test]
+fn semantic_patch_rejects_a_single_file_noop_before_staging() {
+    let (source_path, patch_path, revision) = a0_fixture("noop");
+    std::fs::write(
+        &patch_path,
+        format!("base {revision}\nrename helper.answer to answer\n"),
+    )
+    .unwrap();
+
+    let error = patch::apply(&source_path, &patch_path).unwrap_err();
+    assert_eq!(error[0].code, "SPX-G106");
+    assert!(error[0].message.contains("no semantic revision change"));
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), A0_SOURCE);
+    assert_no_owned_artifacts(&source_path);
+}
+
+#[cfg(unix)]
+#[test]
+fn semantic_patch_rejects_a_read_only_source_before_staging() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let (source_path, patch_path, _) = a0_fixture("read-only");
+    std::fs::set_permissions(&source_path, std::fs::Permissions::from_mode(0o444)).unwrap();
+
+    let error = patch::apply(&source_path, &patch_path).unwrap_err();
+    assert_eq!(error[0].code, "SPX-I205");
+    assert!(error[0].message.contains("is read-only"));
+    assert_eq!(std::fs::read_to_string(&source_path).unwrap(), A0_SOURCE);
     assert_no_owned_artifacts(&source_path);
 }
 

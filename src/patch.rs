@@ -1,3 +1,4 @@
+mod direct_apply;
 mod source_index;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -10,6 +11,7 @@ use crate::ast::{Program, Type, TypeDeclaration, TypeDeclarationKind};
 use crate::diagnostic::Diagnostic;
 use crate::{graph, hir, lexer, parse, verify};
 
+use self::direct_apply::apply_with_commit_hook;
 use self::source_index::SemanticSourceIndex;
 
 #[derive(Debug)]
@@ -1993,39 +1995,6 @@ fn preflight_parsed_owned(
         planned_edits: checked_planned_edits,
         identity_rebase: None,
     })
-}
-
-fn apply_with_commit_hook(
-    source_path: &Path,
-    patch_path: &Path,
-    hook: impl FnMut(CommitPhase, &Path, &Path) -> std::io::Result<()>,
-) -> Result<String, Vec<Diagnostic>> {
-    let guard = acquire_a0_commit_guard(source_path)?;
-    let patch_source = std::fs::read_to_string(patch_path).map_err(|error| {
-        vec![Diagnostic::io(
-            "SPX-I202",
-            format!("cannot read {}: {error}", patch_path.display()),
-        )]
-    })?;
-    let parsed_patch = parse_patch(&patch_source)?;
-    let bounded_v3 = parsed_patch.schema == PatchSchema::V3;
-    let authenticated = if bounded_v3 {
-        authenticate_a0_source(&guard, Some((crate::repair::MAX_SOURCE_BYTES, "SPX-R101")))?
-    } else {
-        authenticate_a0_source(&guard, None)?
-    };
-    let source = authenticated.source().to_owned();
-    let preflight = preflight_parsed_owned(
-        source,
-        patch_source,
-        source_path.to_path_buf(),
-        parsed_patch,
-        None,
-        None,
-        CandidateValidation::Standalone,
-    )?;
-    let prepared = prepare_a0_commit(&authenticated, &preflight)?;
-    commit_prepared_a0(prepared, hook)
 }
 
 pub(crate) fn commit_prepared_a0(

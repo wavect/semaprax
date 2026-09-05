@@ -213,3 +213,32 @@ fn fmt_project_failures_write_nothing() {
     );
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(unix)]
+#[test]
+fn fmt_rejects_symlinked_sources_manifests_and_project_directories() {
+    use std::os::unix::fs::symlink;
+
+    let root = fixture("symlinks");
+    write_project(&root);
+    let source_link = root.join("source-link.spx");
+    let manifest_link = root.join("manifest-link").join("semaprax.toml");
+    let directory_link = root.with_extension("project-link");
+    std::fs::create_dir(root.join("manifest-link")).unwrap();
+    symlink(root.join("src/app.spx"), &source_link).unwrap();
+    symlink(root.join("semaprax.toml"), &manifest_link).unwrap();
+    symlink(&root, &directory_link).unwrap();
+
+    for operand in [&source_link, &manifest_link, &directory_link] {
+        let before = read(&root, "src/app.spx");
+        let (status, stdout, stderr) = cli(&["fmt", operand.to_str().unwrap()]);
+        assert_eq!(status, 1, "{}: {stderr}", operand.display());
+        assert!(stdout.is_empty());
+        assert!(stderr.contains("error[SPX-J102]"), "{stderr}");
+        assert!(stderr.contains("symlink or reparse point"), "{stderr}");
+        assert_eq!(read(&root, "src/app.spx"), before);
+    }
+
+    std::fs::remove_file(&directory_link).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}

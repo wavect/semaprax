@@ -103,9 +103,10 @@ pub fn context_json(
 pub const MAX_AGENT_CONTEXT_BYTES: usize = 16 * 1024 * 1024;
 /// Smallest accepted requested byte budget.
 ///
-/// A particular query can still fail closed when its canonical envelope and
-/// first resumable frontier entry do not fit this budget.
-pub const MIN_AGENT_CONTEXT_BYTES: usize = 1024;
+/// This leaves room for the smallest canonical Context v1/v2 envelope. A
+/// particular query can still fail closed when its identity fields or first
+/// resumable frontier entry do not fit this budget.
+pub const MIN_AGENT_CONTEXT_BYTES: usize = 2048;
 /// Maximum function-fact budget accepted by one query.
 pub const MAX_AGENT_CONTEXT_NODES: usize = 65_536;
 /// Maximum transitive call depth accepted by one context query.

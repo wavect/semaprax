@@ -61,6 +61,30 @@ fn assert_no_owned_artifacts(source_path: &Path) {
 }
 
 #[test]
+fn cli_patch_rejects_surplus_operands_before_reading_or_writing() {
+    let (source_path, patch_path, _) = a0_fixture("cli-surplus-operands");
+    let original = std::fs::read(&source_path).unwrap();
+
+    for surplus in ["extra.spatch", "--bogus", "--dry-run"] {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .arg("patch")
+            .arg(&source_path)
+            .arg(&patch_path)
+            .arg(surplus)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2), "{surplus}");
+        assert!(output.stdout.is_empty(), "{surplus}");
+        assert_eq!(
+            output.stderr,
+            b"patch requires exactly <file> <patch.spatch>\nhint: run `semaprax patch --help` for usage\n",
+            "{surplus}"
+        );
+        assert_eq!(std::fs::read(&source_path).unwrap(), original, "{surplus}");
+    }
+}
+
+#[test]
 fn semantic_rename_is_atomic_and_updates_calls() {
     let source = r#"module patch.demo;
 

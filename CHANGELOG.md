@@ -64,6 +64,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Rejected a trailing semicolon after a block's value with the existing
   `SPX-P106` expression-statement diagnostic. Canonical formatting no longer
   accepts and silently removes that source token.
+- `semaprax patch` rejects every surplus positional argument or unknown option
+  with usage status 2 before reading or rewriting the source, matching the
+  strict `impact` and `review` command grammars.
 
 - Deepened four existing standard-library packages without widening ambient
   authority: `std.time` rounds durations upward and measures elapsed

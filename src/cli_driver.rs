@@ -746,6 +746,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             cli::fmt::run(options, |errors| report(errors, false))
         }
         CommandId::Patch => {
+            if args.len() != 3 {
+                eprintln!("patch requires exactly <file> <patch.spatch>");
+                return Err(2);
+            }
             let source_path = required_path(&args, 1)?;
             let patch_path = required_path(&args, 2)?;
             let revision =

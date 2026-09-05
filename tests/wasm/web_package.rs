@@ -163,9 +163,15 @@ fn inline_narrow_arithmetic_failures_keep_their_semantic_status() {
         return;
     }
     for (ordinal, body) in [
-        (1, "let value = 2147483647i32; let ignored = value + 1i32; 0"),
+        (
+            1,
+            "let value = 2147483647i32; let ignored = value + 1i32; 0",
+        ),
         (2, "let value = 255u8; let ignored = value + 1u8; 0"),
-        (3, "let value = 18446744073709551615usize; let ignored = value + 1usize; 0"),
+        (
+            3,
+            "let value = 18446744073709551615usize; let ignored = value + 1usize; 0",
+        ),
     ] {
         let source = format!(
             "module test.web_narrow_{ordinal};\n@id(\"app.main\")\nfn main() -> i64 {{ {body} }}\n"
@@ -191,8 +197,18 @@ const directory = process.argv[2];
 const runtime = await import(pathToFileURL(join(directory, "semaprax.js")));
 const { instance } = await runtime.instantiateBytes(await readFile(join(directory, "app.wasm")));
 let observed = null;
-try { instance.exports.semaprax_main(); } catch (error) { observed = runtime.semanticStatus(error); }
+try {
+  instance.exports.semaprax_main();
+} catch (error) {
+  assert(error instanceof RangeError);
+  assert.match(error.message, /SEMAPRAX checked arithmetic failure: addition overflow/);
+  observed = runtime.semanticStatus(error);
+}
 assert.deepEqual(observed, Object.freeze({schema:"semaprax.status.v1",domain_id:"semaprax.arithmetic.v1",code:1}));
+assert.throws(
+  () => runtime.imports.env.spx_add((1n << 63n) - 1n, 1n),
+  error => error instanceof RangeError && error.message.includes("SEMAPRAX checked arithmetic failure: addition overflow")
+);
 "#,
         )
         .unwrap();

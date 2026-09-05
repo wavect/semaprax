@@ -1590,10 +1590,7 @@ fn emit_resolved_module_internal(
             .any(needs_i32_wide_scratch)
         {
             let first_scratch = function.params.len() as u32 + layout.declarations.len() as u32;
-            layout.wide_scratch = [
-                first_scratch,
-                first_scratch + 1,
-            ];
+            layout.wide_scratch = [first_scratch, first_scratch + 1];
             layout.declarations.push(ResolvedType::I64);
             layout.declarations.push(ResolvedType::I64);
         }
@@ -4838,8 +4835,8 @@ const SPX_MAX_DYNAMIC_STATUS = 0x7ffffffe;
 const SPX_EXHAUSTED_STATUS = 0x7fffffff;
 const SPX_OWNED_EXPORTS = __SEMAPRAX_OWNED_EXPORTS__;
 const SPX_WASM_SHA256 = "__SEMAPRAX_WASM_SHA256__";
-class SpxSemanticFailure extends Error {
-  constructor(domainId, code) { super("SEMAPRAX semantic failure"); this.domainId = domainId; this.code = code; }
+class SpxSemanticFailure extends RangeError {
+  constructor(domainId, code, message) { super(message); this.domainId = domainId; this.code = code; }
 }
 export function semanticStatus(error) {
   return error instanceof SpxSemanticFailure
@@ -4898,7 +4895,7 @@ async function authenticatedWasmBytes(bytes) {
 
 function checked(value, operation) {
   if (value < SPX_MIN || value > SPX_MAX) {
-    throw new SpxSemanticFailure("semaprax.arithmetic.v1", ({ "addition overflow": 1, "subtraction overflow": 2, "multiplication overflow": 3, "negation overflow": 8 })[operation]);
+    throw new SpxSemanticFailure("semaprax.arithmetic.v1", ({ "addition overflow": 1, "subtraction overflow": 2, "multiplication overflow": 3, "negation overflow": 8 })[operation], `SEMAPRAX checked arithmetic failure: ${operation}`);
   }
   return value;
 }
@@ -5010,20 +5007,20 @@ export const imports = {
     spx_sub: (a, b) => checked(a - b, "subtraction overflow"),
     spx_mul: (a, b) => checked(a * b, "multiplication overflow"),
     spx_div: (a, b) => {
-      if (b === 0n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 4);
-      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 5);
+      if (b === 0n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 4, "SEMAPRAX checked arithmetic failure: invalid division");
+      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 5, "SEMAPRAX checked arithmetic failure: invalid division");
       return a / b;
     },
     spx_rem: (a, b) => {
-      if (b === 0n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 6);
-      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 7);
+      if (b === 0n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 6, "SEMAPRAX checked arithmetic failure: invalid remainder");
+      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 7, "SEMAPRAX checked arithmetic failure: invalid remainder");
       return a % b;
     },
     spx_neg: value => checked(-value, "negation overflow"),
     spx_contract_fail: code => {
-      if (code === 11) throw new SpxSemanticFailure("semaprax.byte-range.v1", 1);
-      if (code === 12) throw new SpxSemanticFailure("semaprax.byte-range.v1", 2);
-      throw new SpxSemanticFailure("semaprax.contract.v1", code);
+      if (code === 11) throw new SpxSemanticFailure("semaprax.byte-range.v1", 1, "SEMAPRAX byte range failure");
+      if (code === 12) throw new SpxSemanticFailure("semaprax.byte-range.v1", 2, "SEMAPRAX byte range failure");
+      throw new SpxSemanticFailure("semaprax.contract.v1", code, "SEMAPRAX contract failure");
     },
   },
 };

@@ -12,6 +12,9 @@ allow = [
   "BSD-2-Clause",
   "BSD-3-Clause",
   "CC0-1.0",
+  # webpki-roots distributes Mozilla's public root store under this
+  # permissive data license through semaprax's exact rustls graph.
+  "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
   "MPL-2.0",

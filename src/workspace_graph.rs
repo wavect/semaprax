@@ -1976,7 +1976,11 @@ impl WorkspaceGraphBuild {
                 )]);
             }
         }
-        let entry_program = self.linked_project_program(entry_module, web_roots.profile)?;
+        let entry_program = self.linked_project_program(
+            entry_module,
+            web_roots.profile,
+            web_roots.dependency_anchors,
+        )?;
         let web_program = self.linked_scalar_program_with_roots(
             entry_module,
             web_roots.stable_ids,

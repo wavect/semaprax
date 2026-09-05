@@ -797,7 +797,9 @@ impl ProjectSnapshot {
             .map_err(|drift| self.publication_uncertainty(drift))
     }
 
-    /// Build the authenticated project entry closure as one native executable.
+    /// Build one authenticated native executable. Ordinary profiles use the
+    /// entry-only closure; command profiles use the admitted entry-plus-command
+    /// public closure selected by the manifest stable ID.
     ///
     /// The executable is compiled from exactly the linked entry HIR that Web
     /// publication and internal lowering-equivalence evidence consume. The
@@ -833,17 +835,17 @@ impl ProjectSnapshot {
         let profile = self.manifest.project_profile();
         let prepared = match profile {
             ProjectProfile::UsefulDataCommandV2 => crate::codegen::emit_hir_c_with_native_command(
-                &self.entry_program,
+                &self.public_api_program,
                 self.manifest.command().unwrap_or(""),
             ),
             ProjectProfile::LanguageCommandIoV1 => {
                 crate::codegen::emit_hir_c_with_language_command_io(
-                    &self.entry_program,
+                    &self.public_api_program,
                     self.manifest.command().unwrap_or(""),
                 )
             }
             ProjectProfile::LineCommandIoV1 => crate::codegen::emit_hir_c_with_line_command_io(
-                &self.entry_program,
+                &self.public_api_program,
                 self.manifest.command().unwrap_or(""),
             ),
             _ => crate::codegen::emit_hir_c(&self.entry_program),

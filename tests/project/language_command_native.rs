@@ -169,8 +169,14 @@ fn project_v6_native_publication_is_no_clobber_and_stable_id_selected() {
 
     with_authenticated_project(&project.root.join("semaprax.toml"), |snapshot| {
         assert_eq!(snapshot.entry_program().entrypoint.as_str(), "main");
-        assert!(snapshot
+        assert!(!snapshot
             .entry_program()
+            .functions
+            .iter()
+            .any(|function| function.id.as_str() == "spxgrep-language.run"));
+        assert!(snapshot
+            .retain_revision()
+            .public_api_program()
             .functions
             .iter()
             .any(|function| function.id.as_str() == "spxgrep-language.run"));

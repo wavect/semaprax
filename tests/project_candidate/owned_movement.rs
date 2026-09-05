@@ -366,18 +366,32 @@ fn scalar_signature_byte_work_keeps_compiler_operations_loans_and_cleanup_in_pla
 }
 
 #[test]
-fn owned_nominal_imports_and_real_module_cycles_remain_full_project_rejections() {
+fn owned_nominal_imports_move_exactly_while_real_module_cycles_remain_rejected() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let before = base.to_json().to_owned();
-    for target in [
-        "relocate.record",
-        "relocate.variant",
-        "relocate.record-match",
-        "relocate.variant-match",
+    for (target, type_id) in [
+        ("relocate.record", "relocate.packet"),
+        ("relocate.variant", "relocate.choice"),
+        ("relocate.record-match", "relocate.packet"),
+        ("relocate.variant-match", "relocate.choice"),
     ] {
-        code(apply(&base, &movement(target)), "SPX-G172");
+        let moved = apply(&base, &movement(target)).unwrap();
+        let destination = program(&moved, "support");
+        let import = destination
+            .module_uses
+            .iter()
+            .find(|binding| binding.persistent_id == type_id)
+            .unwrap();
+        assert_eq!(import.kind, ModuleUseKind::Type);
+        assert_eq!(import.target_module, "relocate.owned");
+        assert!(destination
+            .functions
+            .iter()
+            .any(|function| function.stable_id == target));
+        assert!(!source(&moved, "owned").contains(&format!("@id(\"{target}\") fn")));
+        replay(&moved);
         assert_eq!(base.to_json(), before);
     }
     for target in ["relocate.borrow", "relocate.public", "relocate.main"] {

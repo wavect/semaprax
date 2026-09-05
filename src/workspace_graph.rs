@@ -5632,7 +5632,7 @@ fn validate_imported_type(
         return Err(vec![use_error(
             caller,
             module_use,
-            "type target must be an explicit nongeneric recursive Copy value type",
+            "type target must be an explicit nongeneric recursive value type without borrowed storage",
         )]);
     }
     Ok(())
@@ -5691,7 +5691,8 @@ fn exposed_type_reference_is_directly_imported(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => false,
+        Type::SliceU8 | Type::ArrayU8(_) => false,
+        Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(target_id) = resolve_type_id(module, name, programs) else {
                 return false;
@@ -5767,7 +5768,8 @@ fn type_reference_is_admitted(
         | Type::Bool
         | Type::String
         | Type::Str => true,
-        Type::SliceU8 | Type::ArrayU8(_) | Type::Bytes => false,
+        Type::SliceU8 | Type::ArrayU8(_) => false,
+        Type::Bytes => true,
         Type::Named { name, arguments } if arguments.is_empty() => {
             let Some(program) = programs.iter().find(|item| item.module == module) else {
                 return false;

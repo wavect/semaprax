@@ -1278,7 +1278,9 @@ The movement planner retains exact checked builtin occurrences and reserves
 their unchanged spellings during alias migration. Place roots, view operations,
 type and ownership identities are compared after source rebuilding. Internal
 owned byte work and String signatures add no staging or cleanup-plan edits;
-existing owning parameter/type import restrictions remain authoritative.
+explicit nongeneric resource-free record and variant type imports may carry
+owned `Bytes`, while callable imports exposing owned nominal arguments remain
+closed.
 `candidate/record_field.rs` appends a typed scalar field and migrates
 constructors and exact patterns using retained type identities and the owning
 compiler type facts. `hir/record_evolution.rs` reconstructs only the bounded

@@ -1,4 +1,4 @@
-//! Source-bound cleanup/loan dependency regressions, authored and unrun.
+//! Source-bound cleanup/loan dependency regressions.
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, ProjectCandidate, ProjectRevision, ProjectSemanticImage,
@@ -172,7 +172,6 @@ fn provenance(value: &Value, revision: &ProjectRevision, image: &ProjectSemantic
 }
 
 #[test]
-#[ignore = "needs source-bound Copy value type fix (repro at 8032ace)"]
 fn projected_field_selects_real_cleanup_and_loan_dependencies_across_source_aliases() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -234,7 +233,6 @@ fn projected_field_selects_real_cleanup_and_loan_dependencies_across_source_alia
 }
 
 #[test]
-#[ignore = "needs source-bound Copy value type fix (repro at 8032ace)"]
 fn copy_fields_do_not_inherit_sibling_byte_finalizers_or_loan_obligations() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -308,7 +306,6 @@ fn type_and_variant_case_queries_retain_case_qualified_owned_leaves_without_inve
 }
 
 #[test]
-#[ignore = "needs source-bound Copy value type fix (repro at 8032ace)"]
 fn queries_are_deterministic_and_leave_image_and_existing_dependency_bytes_unchanged() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -354,7 +351,6 @@ fn queries_are_deterministic_and_leave_image_and_existing_dependency_bytes_uncha
 }
 
 #[test]
-#[ignore = "needs source-bound Copy value type fix (repro at 8032ace)"]
 fn malformed_unknown_and_stale_selection_fails_without_poisoning_subsequent_queries() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -387,7 +383,6 @@ fn malformed_unknown_and_stale_selection_fails_without_poisoning_subsequent_quer
 }
 
 #[test]
-#[ignore = "needs source-bound Copy value type fix (repro at 8032ace)"]
 fn every_plan_coordinate_selects_the_exact_source_graph_fact_without_vector_reordering() {
     for fixture in [Fixture::new(), Fixture::variant()] {
         let disk = fixture.bytes();
@@ -398,7 +393,15 @@ fn every_plan_coordinate_selects_the_exact_source_graph_fact_without_vector_reor
             .iter()
             .find(|source| source.path() == "src/core.spx")
             .unwrap();
-        let parsed = semaprax::parse(source.source(), source.path()).unwrap();
+        // The public single-module graph boundary requires an executable
+        // `main`, while this Project source is intentionally a library module.
+        // Append an inert, fresh test-only entry point before rebuilding; it
+        // cannot alter any retained function plan selected below.
+        let standalone = format!(
+            "{}\n@id(\"cleanup.graph-main\") fn main() -> i64 {{ 0 }}\n",
+            source.source()
+        );
+        let parsed = semaprax::parse(&standalone, source.path()).unwrap();
         // Rebuild independently from canonical source; this is authored test
         // code, never an execution step of the read-only query itself.
         let graph: Value =
@@ -476,7 +479,6 @@ fn every_plan_coordinate_selects_the_exact_source_graph_fact_without_vector_reor
 }
 
 #[test]
-#[ignore = "needs source-bound Copy value type fix (repro at 8032ace)"]
 fn exact_image_recomputation_rejects_reordered_and_noncanonical_report_bytes() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -528,7 +530,6 @@ fn exact_image_recomputation_rejects_reordered_and_noncanonical_report_bytes() {
 }
 
 #[test]
-#[ignore = "needs source-bound Copy value type fix (repro at 8032ace)"]
 fn candidate_cleanup_report_compares_real_body_changes_and_replays_exact_history() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
@@ -610,7 +611,6 @@ fn candidate_cleanup_report_compares_real_body_changes_and_replays_exact_history
 }
 
 #[test]
-#[ignore = "needs source-bound Copy value type fix (repro at 8032ace)"]
 fn newly_added_copy_field_has_absent_base_and_present_empty_obligations() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();

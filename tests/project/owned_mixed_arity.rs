@@ -118,7 +118,7 @@ fn real_project_zero_through_eight_mixed_arguments_match_native_and_npm() {
             );
         }
         let provider = semaprax::codegen::emit_project_v8_native_owned_data_provider(
-            revision.entry_program(),
+            revision.public_api_program(),
             revision.manifest().web_exports(),
             PublicApiSubject {
                 project_schema: revision.manifest().schema(),

@@ -71,7 +71,7 @@ fn same_source_result_extrema_match_interpreter_native_and_npm() {
     let provider = with_authenticated_project(&manifest, |snapshot| {
         snapshot.check()?;
         let revision = snapshot.retain_revision();
-        let program = revision.entry_program();
+        let program = revision.public_api_program();
         let input = [0, 255, 128, 65, 0];
         for length in [0, 1, 2, 3, 4, 5, 2, 1, 0, 3] {
             let evaluation = evaluate_resolved_owned_data(

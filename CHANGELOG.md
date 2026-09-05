@@ -18,6 +18,21 @@ format: `Unreleased` then release buckets, grouped by impact.
   their candidate. The three focused lifecycle regressions pass locally; no
   wire, CLI, MCP, LSP, disk persistence, build, execution, commit, publication,
   or broad operation-algebra claim is added.
+- Corrected the pathless public C-artifact projection after entry and public
+  target closures were separated: native inspection now emits the independently
+  admitted entry-plus-export program, so unsupported owned exports remain
+  explicit header exclusions instead of failing because they are absent from
+  the executable entry-only closure. Native useful-data, language-I/O, and
+  line-I/O command products likewise emit that public closure so the
+  manifest-selected command and its exact permits remain present. Entry
+  execution semantics remain unchanged.
+- Admitted explicit nongeneric resource-free record and variant type imports
+  containing owned `Bytes` in owned Project profiles. Stable-ID HIR and cleanup
+  plans now survive that module boundary, and an owning nominal function can
+  move with one exact type import; imported callables exposing owned nominal
+  arguments, borrowed storage, resources, generics, cycles, runtime execution,
+  and public carrier widening remain closed. Promoted the focused cleanup
+  dependency image/transport corpus into the ordinary suite.
 - Promoted the focused nominal record/variant rename regressions into the
   ordinary candidate suite after correcting an invalid shadowed pattern
   fixture; the corpus now executes owning and generic nominal renames, stable

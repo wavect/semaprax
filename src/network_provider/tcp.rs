@@ -1,24 +1,31 @@
 //! Real-socket provider over `std::net::TcpStream`.
 //!
-//! This provider opens real TCP sockets on the host, optionally wraps either
-//! side in explicit Rustls client/server policy, and applies a 30 second
-//! connect, accept, read, and write timeout. Nothing in the compiler constructs
-//! it implicitly: a host that wants a program to reach the network must build
-//! one and pass it to `hosted_interpreter::execute_network_command` itself.
+//! This provider opens real TCP sockets on the host and optionally wraps
+//! either side in explicit Rustls client/server policy. Nothing in the
+//! compiler constructs it implicitly: a host that wants a program to reach the
+//! network must build one and pass it to
+//! `hosted_interpreter::execute_network_command` itself.
+//!
+//! Every provider operation runs under one aggregate monotonic deadline drawn
+//! from the caller-selected [`DeadlinePolicy`]. Name resolution, each
+//! candidate address, the TLS handshake, each partial write, each retried
+//! read, and each readiness wait draw down that single budget; nothing
+//! restarts it. [`super::deadline`] states the difference between a
+//! per-syscall timeout, an operation deadline, and the evaluator's invocation
+//! budget.
 
 use std::collections::BTreeMap;
 use std::io::{ErrorKind, Read as _, Write as _};
-use std::net::{Shutdown, TcpListener, TcpStream, ToSocketAddrs as _};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
+use super::deadline::{deadline_expired, Deadline, DeadlinePolicy, DeadlineSocket};
+use super::resolver::{NameResolver, ResolveFailure, SystemResolver};
 use super::{
     HttpFailure, NetworkFailure, NetworkProvider, ProviderConnection, ProviderListener, WaitState,
 };
 use crate::network_io_ops;
-
-/// Connect, read, and write timeout applied to every socket.
-pub const SOCKET_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// A [`NetworkProvider`] over blocking `std::net` sockets.
 ///
@@ -34,59 +41,77 @@ pub struct TcpNetworkProvider {
     next_listener_token: u64,
     tls_config: Arc<rustls::ClientConfig>,
     server_tls_config: Option<Arc<rustls::ServerConfig>>,
+    policy: DeadlinePolicy,
+    resolver: Arc<dyn NameResolver>,
     #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
     https_client: Option<crate::https_client::HttpsClient>,
 }
 
+/// One established transport. The TLS variants keep the connection and the
+/// socket separate so every syscall a rustls call performs can be routed
+/// through a [`DeadlineSocket`] and charged to the operation deadline.
 #[derive(Debug)]
 enum TransportStream {
     Tcp(TcpStream),
-    TlsClient(Box<rustls::StreamOwned<rustls::ClientConnection, TcpStream>>),
-    TlsServer(Box<rustls::StreamOwned<rustls::ServerConnection, TcpStream>>),
+    TlsClient(Box<rustls::ClientConnection>, TcpStream),
+    TlsServer(Box<rustls::ServerConnection>, TcpStream),
 }
 
 impl TransportStream {
     fn socket(&self) -> &TcpStream {
         match self {
-            Self::Tcp(stream) => stream,
-            Self::TlsClient(stream) => stream.get_ref(),
-            Self::TlsServer(stream) => stream.get_ref(),
+            Self::Tcp(socket) | Self::TlsClient(_, socket) | Self::TlsServer(_, socket) => socket,
         }
     }
 
     fn socket_mut(&mut self) -> &mut TcpStream {
         match self {
-            Self::Tcp(stream) => stream,
-            Self::TlsClient(stream) => stream.get_mut(),
-            Self::TlsServer(stream) => stream.get_mut(),
-        }
-    }
-}
-
-impl std::io::Read for TransportStream {
-    fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
-        match self {
-            Self::Tcp(stream) => stream.read(buffer),
-            Self::TlsClient(stream) => stream.read(buffer),
-            Self::TlsServer(stream) => stream.read(buffer),
-        }
-    }
-}
-
-impl std::io::Write for TransportStream {
-    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-        match self {
-            Self::Tcp(stream) => stream.write(bytes),
-            Self::TlsClient(stream) => stream.write(bytes),
-            Self::TlsServer(stream) => stream.write(bytes),
+            Self::Tcp(socket) | Self::TlsClient(_, socket) | Self::TlsServer(_, socket) => socket,
         }
     }
 
-    fn flush(&mut self) -> std::io::Result<()> {
+    /// Read once, with every underlying syscall bounded by `deadline`.
+    fn read_bounded(&mut self, deadline: &Deadline, buffer: &mut [u8]) -> std::io::Result<usize> {
         match self {
-            Self::Tcp(stream) => stream.flush(),
-            Self::TlsClient(stream) => stream.flush(),
-            Self::TlsServer(stream) => stream.flush(),
+            Self::Tcp(socket) => DeadlineSocket::new(socket, deadline).read(buffer),
+            Self::TlsClient(connection, socket) => {
+                let mut bounded = DeadlineSocket::new(socket, deadline);
+                rustls::Stream::new(connection.as_mut(), &mut bounded).read(buffer)
+            }
+            Self::TlsServer(connection, socket) => {
+                let mut bounded = DeadlineSocket::new(socket, deadline);
+                rustls::Stream::new(connection.as_mut(), &mut bounded).read(buffer)
+            }
+        }
+    }
+
+    /// Write once, with every underlying syscall bounded by `deadline`.
+    fn write_bounded(&mut self, deadline: &Deadline, bytes: &[u8]) -> std::io::Result<usize> {
+        match self {
+            Self::Tcp(socket) => DeadlineSocket::new(socket, deadline).write(bytes),
+            Self::TlsClient(connection, socket) => {
+                let mut bounded = DeadlineSocket::new(socket, deadline);
+                rustls::Stream::new(connection.as_mut(), &mut bounded).write(bytes)
+            }
+            Self::TlsServer(connection, socket) => {
+                let mut bounded = DeadlineSocket::new(socket, deadline);
+                rustls::Stream::new(connection.as_mut(), &mut bounded).write(bytes)
+            }
+        }
+    }
+
+    /// Flush, with every underlying syscall bounded by `deadline`.
+    fn flush_bounded(&mut self, deadline: &Deadline) -> std::io::Result<()> {
+        match self {
+            Self::Tcp(socket) => DeadlineSocket::new(socket, deadline).flush(),
+            Self::TlsClient(connection, socket) => {
+                let mut bounded = DeadlineSocket::new(socket, deadline);
+                rustls::Stream::new(connection.as_mut(), &mut bounded).flush()
+            }
+            Self::TlsServer(connection, socket) => {
+                let mut bounded = DeadlineSocket::new(socket, deadline);
+                rustls::Stream::new(connection.as_mut(), &mut bounded).flush()
+            }
         }
     }
 }
@@ -115,6 +140,8 @@ impl Default for TcpNetworkProvider {
             next_listener_token: 0,
             tls_config: Arc::new(tls_config),
             server_tls_config: None,
+            policy: DeadlinePolicy::default(),
+            resolver: Arc::new(SystemResolver::new()),
             #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
             https_client,
         }
@@ -156,6 +183,29 @@ impl TcpNetworkProvider {
         provider
     }
 
+    /// Select the aggregate deadline every operation runs under. The budget is
+    /// clamped to [`super::deadline::MAX_OPERATION_DEADLINE`], so no host
+    /// configuration produces an unbounded operation.
+    #[must_use]
+    pub fn with_deadline_policy(mut self, policy: DeadlinePolicy) -> Self {
+        self.policy = policy;
+        self
+    }
+
+    /// Install an explicitly injected bounded name resolver in place of the
+    /// shipped [`SystemResolver`].
+    #[must_use]
+    pub fn with_resolver(mut self, resolver: Arc<dyn NameResolver>) -> Self {
+        self.resolver = resolver;
+        self
+    }
+
+    /// The aggregate deadline policy in force.
+    #[must_use]
+    pub fn deadline_policy(&self) -> &DeadlinePolicy {
+        &self.policy
+    }
+
     fn stream_mut(
         &mut self,
         connection: ProviderConnection,
@@ -165,24 +215,38 @@ impl TcpNetworkProvider {
             .ok_or(NetworkFailure::UnknownHandle)
     }
 
-    fn connect_socket(host: &str, port: u16) -> Result<TcpStream, NetworkFailure> {
+    /// Resolve and connect within one aggregate deadline.
+    ///
+    /// Resolution is charged to the same budget as the connection attempts,
+    /// and each candidate address receives only what is *left*, so several
+    /// failing addresses cannot multiply the budget.
+    fn connect_socket(
+        &self,
+        host: &str,
+        port: u16,
+        deadline: &Deadline,
+    ) -> Result<TcpStream, NetworkFailure> {
         validate_endpoint(host, port)?;
-        let addresses = (host, port)
-            .to_socket_addrs()
-            .map_err(|_| NetworkFailure::ConnectFailed)?;
-        let mut stream = None;
+        let budget = deadline.remaining().ok_or(NetworkFailure::ConnectFailed)?;
+        let addresses =
+            self.resolver
+                .resolve(host, port, budget)
+                .map_err(|failure| match failure {
+                    ResolveFailure::InvalidEndpoint => NetworkFailure::InvalidEndpoint,
+                    ResolveFailure::NotFound | ResolveFailure::DeadlineExceeded => {
+                        NetworkFailure::ConnectFailed
+                    }
+                })?;
         for address in addresses {
-            if let Ok(connected) = TcpStream::connect_timeout(&address, SOCKET_TIMEOUT) {
-                stream = Some(connected);
+            let Some(slice) = deadline.slice() else {
                 break;
+            };
+            if let Ok(connected) = TcpStream::connect_timeout(&address, slice) {
+                apply_remaining(&connected, deadline).map_err(|_| NetworkFailure::ConnectFailed)?;
+                return Ok(connected);
             }
         }
-        let stream = stream.ok_or(NetworkFailure::ConnectFailed)?;
-        stream
-            .set_read_timeout(Some(SOCKET_TIMEOUT))
-            .and_then(|()| stream.set_write_timeout(Some(SOCKET_TIMEOUT)))
-            .map_err(|_| NetworkFailure::ConnectFailed)?;
-        Ok(stream)
+        Err(NetworkFailure::ConnectFailed)
     }
 
     fn insert_stream(
@@ -197,19 +261,25 @@ impl TcpNetworkProvider {
         Ok(ProviderConnection::new(token))
     }
 
-    fn accept_socket(&self, listener: ProviderListener) -> Result<TcpStream, NetworkFailure> {
+    fn accept_socket(
+        &self,
+        listener: ProviderListener,
+        deadline: &Deadline,
+    ) -> Result<TcpStream, NetworkFailure> {
         let listener = self
             .listeners
             .get(&listener.token())
             .ok_or(NetworkFailure::UnknownHandle)?;
-        let deadline = Instant::now() + SOCKET_TIMEOUT;
         let stream = loop {
             match listener.accept() {
                 Ok((stream, _)) => break stream,
+                // An interrupted call keeps the same deadline; it never
+                // restarts one.
                 Err(error) if error.kind() == ErrorKind::Interrupted => continue,
-                Err(error)
-                    if error.kind() == ErrorKind::WouldBlock && Instant::now() < deadline =>
-                {
+                Err(error) if error.kind() == ErrorKind::WouldBlock => {
+                    if deadline.expired() {
+                        return Err(NetworkFailure::AcceptFailed);
+                    }
                     std::thread::sleep(Duration::from_millis(1));
                 }
                 Err(_) => return Err(NetworkFailure::AcceptFailed),
@@ -217,11 +287,19 @@ impl TcpNetworkProvider {
         };
         stream
             .set_nonblocking(false)
-            .and_then(|()| stream.set_read_timeout(Some(SOCKET_TIMEOUT)))
-            .and_then(|()| stream.set_write_timeout(Some(SOCKET_TIMEOUT)))
             .map_err(|_| NetworkFailure::AcceptFailed)?;
+        apply_remaining(&stream, deadline).map_err(|_| NetworkFailure::AcceptFailed)?;
         Ok(stream)
     }
+}
+
+/// Apply what is left of the aggregate deadline as this socket's per-syscall
+/// timeout. It is refreshed before every blocking call, so a later call can
+/// only ever get a shorter slice.
+fn apply_remaining(socket: &TcpStream, deadline: &Deadline) -> std::io::Result<()> {
+    let slice = deadline.slice().ok_or_else(deadline_expired)?;
+    socket.set_read_timeout(Some(slice))?;
+    socket.set_write_timeout(Some(slice))
 }
 
 /// Reject endpoints the evaluator already excludes, so a direct library caller
@@ -263,22 +341,27 @@ impl NetworkProvider for TcpNetworkProvider {
     }
 
     fn connect(&mut self, host: &str, port: u16) -> Result<ProviderConnection, NetworkFailure> {
-        let stream = Self::connect_socket(host, port)?;
+        let deadline = self.policy.start();
+        let stream = self.connect_socket(host, port, &deadline)?;
         self.insert_stream(TransportStream::Tcp(stream))
     }
 
     fn connect_tls(&mut self, host: &str, port: u16) -> Result<ProviderConnection, NetworkFailure> {
-        let mut socket = Self::connect_socket(host, port)?;
+        // Resolution, every candidate address, and the whole handshake share
+        // one budget.
+        let deadline = self.policy.start();
+        let mut socket = self.connect_socket(host, port, &deadline)?;
         let server_name = rustls::pki_types::ServerName::try_from(host.to_owned())
             .map_err(|_| NetworkFailure::InvalidEndpoint)?;
         let mut connection = rustls::ClientConnection::new(self.tls_config.clone(), server_name)
             .map_err(|_| NetworkFailure::TlsFailed)?;
-        connection
-            .complete_io(&mut socket)
-            .map_err(|_| NetworkFailure::TlsFailed)?;
-        self.insert_stream(TransportStream::TlsClient(Box::new(
-            rustls::StreamOwned::new(connection, socket),
-        )))
+        {
+            let mut bounded = DeadlineSocket::new(&mut socket, &deadline);
+            connection
+                .complete_io(&mut bounded)
+                .map_err(|_| NetworkFailure::TlsFailed)?;
+        }
+        self.insert_stream(TransportStream::TlsClient(Box::new(connection), socket))
     }
 
     fn listen(&mut self, host: &str, port: u16) -> Result<ProviderListener, NetworkFailure> {
@@ -296,7 +379,8 @@ impl NetworkProvider for TcpNetworkProvider {
     }
 
     fn accept(&mut self, listener: ProviderListener) -> Result<ProviderConnection, NetworkFailure> {
-        let stream = self.accept_socket(listener)?;
+        let deadline = self.policy.start();
+        let stream = self.accept_socket(listener, &deadline)?;
         self.insert_stream(TransportStream::Tcp(stream))
     }
 
@@ -304,19 +388,21 @@ impl NetworkProvider for TcpNetworkProvider {
         &mut self,
         listener: ProviderListener,
     ) -> Result<ProviderConnection, NetworkFailure> {
-        let mut socket = self.accept_socket(listener)?;
+        let deadline = self.policy.start();
+        let mut socket = self.accept_socket(listener, &deadline)?;
         let config = self
             .server_tls_config
             .clone()
             .ok_or(NetworkFailure::AuthorityDenied)?;
         let mut connection =
             rustls::ServerConnection::new(config).map_err(|_| NetworkFailure::TlsFailed)?;
-        connection
-            .complete_io(&mut socket)
-            .map_err(|_| NetworkFailure::TlsFailed)?;
-        self.insert_stream(TransportStream::TlsServer(Box::new(
-            rustls::StreamOwned::new(connection, socket),
-        )))
+        {
+            let mut bounded = DeadlineSocket::new(&mut socket, &deadline);
+            connection
+                .complete_io(&mut bounded)
+                .map_err(|_| NetworkFailure::TlsFailed)?;
+        }
+        self.insert_stream(TransportStream::TlsServer(Box::new(connection), socket))
     }
 
     fn close_listener(&mut self, listener: ProviderListener) -> Result<(), NetworkFailure> {
@@ -331,11 +417,27 @@ impl NetworkProvider for TcpNetworkProvider {
         connection: ProviderConnection,
         bytes: &[u8],
     ) -> Result<usize, NetworkFailure> {
+        // One deadline covers every partial write and the flush, so a peer
+        // that accepts one byte at a time cannot extend the operation.
+        let deadline = self.policy.start();
         let stream = self.stream_mut(connection)?;
-        stream
-            .write_all(bytes)
-            .and_then(|()| stream.flush())
-            .map_err(|_| NetworkFailure::TransferFailed)?;
+        let mut written = 0usize;
+        while written < bytes.len() {
+            match stream.write_bounded(&deadline, &bytes[written..]) {
+                Ok(0) => return Err(NetworkFailure::TransferFailed),
+                Ok(count) => written += count,
+                // An interrupted call resumes against the same deadline.
+                Err(error) if error.kind() == ErrorKind::Interrupted => continue,
+                Err(_) => return Err(NetworkFailure::TransferFailed),
+            }
+        }
+        loop {
+            match stream.flush_bounded(&deadline) {
+                Ok(()) => break,
+                Err(error) if error.kind() == ErrorKind::Interrupted => continue,
+                Err(_) => return Err(NetworkFailure::TransferFailed),
+            }
+        }
         Ok(bytes.len())
     }
 
@@ -344,10 +446,11 @@ impl NetworkProvider for TcpNetworkProvider {
         connection: ProviderConnection,
         max: usize,
     ) -> Result<Vec<u8>, NetworkFailure> {
+        let deadline = self.policy.start();
         let stream = self.stream_mut(connection)?;
         let mut buffer = vec![0u8; max];
         loop {
-            match stream.read(&mut buffer) {
+            match stream.read_bounded(&deadline, &mut buffer) {
                 Ok(count) => {
                     buffer.truncate(count);
                     return Ok(buffer);
@@ -363,6 +466,7 @@ impl NetworkProvider for TcpNetworkProvider {
         connection: ProviderConnection,
         timeout_ms: u32,
     ) -> Result<WaitState, NetworkFailure> {
+        let deadline = self.policy.start();
         let stream = self.stream_mut(connection)?;
         let mut probe = [0u8; 1];
         let observed = if timeout_ms == 0 {
@@ -377,14 +481,23 @@ impl NetworkProvider for TcpNetworkProvider {
                 .map_err(|_| NetworkFailure::TransferFailed)?;
             peeked
         } else {
+            // The program's own timeout is a cap, never a licence to wait past
+            // the operation deadline.
+            let Some(slice) = deadline.slice_capped(Duration::from_millis(u64::from(timeout_ms)))
+            else {
+                return Ok(WaitState::Timeout);
+            };
             stream
                 .socket_mut()
-                .set_read_timeout(Some(Duration::from_millis(u64::from(timeout_ms))))
+                .set_read_timeout(Some(slice))
                 .map_err(|_| NetworkFailure::TransferFailed)?;
             let peeked = stream.socket().peek(&mut probe);
+            let restored = deadline
+                .slice()
+                .unwrap_or(super::deadline::MIN_SYSCALL_SLICE);
             stream
                 .socket_mut()
-                .set_read_timeout(Some(SOCKET_TIMEOUT))
+                .set_read_timeout(Some(restored))
                 .map_err(|_| NetworkFailure::TransferFailed)?;
             peeked
         };
@@ -411,8 +524,15 @@ impl NetworkProvider for TcpNetworkProvider {
             let _ = stream.socket().shutdown(Shutdown::Both);
         }
         self.listeners.clear();
+        // A timed-out connect leaves no retained connection, and the resolver
+        // reaps whatever worker its caller stopped waiting on.
+        self.resolver.settle();
     }
 }
+
+#[cfg(test)]
+#[path = "tcp/deadline_tests.rs"]
+mod deadline_tests;
 
 #[cfg(test)]
 mod tests {

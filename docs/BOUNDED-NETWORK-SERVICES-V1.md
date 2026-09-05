@@ -28,6 +28,16 @@ provider implements bounded blocking TCP bind/accept. Raw OS and TLS errors
 are normalized to the closed `TLS_FAILED`, `LISTEN_FAILED`, or `ACCEPT_FAILED`
 statuses.
 
+The TLS client and server lifecycles run under the same caller-selected
+aggregate operation deadline as plain TCP, described in [Bounded Language
+Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md#three-different-bounds). One
+budget covers name resolution, every candidate address, and the whole
+handshake: each record the handshake reads or writes passes through a socket
+whose per-syscall timeout is re-derived from what is *left*, so a peer that
+trickles handshake bytes cannot extend the operation. `listen` binds without
+blocking; `accept` and `accept_tls` stop waiting at the deadline and issue no
+handle.
+
 Fixture v2 preserves v1 and adds `tls: true` to outbound and accepted connections plus a
 bounded `listeners` array with ordered `accept` queues. npm/Web remain on
 fixture v1 through Project v12; no browser receives raw sockets.

@@ -19,10 +19,17 @@
 //! operation with `AUTHORITY_DENIED`. [`TcpNetworkProvider`] opens real
 //! `std::net` sockets and is constructed only by an explicit host caller.
 
+pub mod deadline;
 mod fixture;
+pub mod resolver;
 mod tcp;
 
+pub use deadline::{
+    DeadlinePolicy, MonotonicClock, ScriptedClock, SystemClock, DEFAULT_OPERATION_DEADLINE,
+    MAX_OPERATION_DEADLINE,
+};
 pub use fixture::{FixtureNetworkProvider, FIXTURE_SCHEMA_V3, MAX_NETWORK_FIXTURE_BYTES};
+pub use resolver::{NameResolver, ResolveFailure, ScriptedResolver, SystemResolver};
 pub use tcp::TcpNetworkProvider;
 
 use crate::network_io_ops;

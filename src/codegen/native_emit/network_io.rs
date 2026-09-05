@@ -151,7 +151,8 @@ fn emit_constants(output: &mut impl COutput) {
          #define SPX_NETWORK_WAIT_TIMEOUT_V1 UINT64_C({wait_timeout})\n\
          #define SPX_NETWORK_WAIT_READABLE_V1 UINT64_C({wait_readable})\n\
          #define SPX_NETWORK_WAIT_CLOSED_V1 UINT64_C({wait_closed})\n\
-         #define SPX_NETWORK_IO_TIMEOUT_MILLIS_V1 {io_timeout_millis}",
+         #define SPX_NETWORK_IO_TIMEOUT_MILLIS_V1 {io_timeout_millis}\n\
+         #define SPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1 UINT64_C({operation_deadline_millis})",
         domain = ops::STATUS_DOMAIN,
         connect_failed = ops::CONNECT_FAILED,
         invalid_endpoint = ops::INVALID_ENDPOINT,
@@ -169,6 +170,7 @@ fn emit_constants(output: &mut impl COutput) {
         wait_readable = ops::WAIT_READABLE,
         wait_closed = ops::WAIT_CLOSED,
         io_timeout_millis = ops::MAX_WAIT_MILLIS,
+        operation_deadline_millis = ops::MAX_WAIT_MILLIS,
     )
     .expect("writing native network constants cannot fail");
 }
@@ -179,9 +181,12 @@ fn emit_constants(output: &mut impl COutput) {
 /// shape onto Winsock2. The runner calls `spx_network_settle_v1` on every
 /// path, so no socket outlives the invocation regardless of program outcome.
 const NETWORK_RUNTIME_C: &str = r#"
+#include <limits.h>
+#include <time.h>
 #if defined(_WIN32)
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <sysinfoapi.h>
 typedef SOCKET spx_net_socket_v1;
 typedef int spx_net_ssize_v1;
 typedef int spx_net_len_v1;
@@ -302,9 +307,65 @@ static __attribute__((unused)) int spx_network_poll_v1(spx_net_socket_v1 socket_
 #endif
 }
 
-static __attribute__((unused)) bool spx_network_set_timeouts_v1(spx_net_socket_v1 socket_handle) {
+/* One aggregate operation deadline, on a monotonic clock. Name resolution,
+   every candidate address, every partial write, every retried read, and every
+   readiness wait draw down this single budget; nothing restarts it. This is
+   distinct from the per-syscall timeout the socket options below enforce and
+   from the evaluator's byte/handle invocation budget. */
+struct spx_network_deadline_v1 {
+    uint64_t expires_at_millis;
+};
+
+static __attribute__((unused)) uint64_t spx_network_monotonic_millis_v1(void) {
 #if defined(_WIN32)
-    DWORD timeout = (DWORD)SPX_NETWORK_IO_TIMEOUT_MILLIS_V1;
+    return (uint64_t)GetTickCount64();
+#else
+    struct timespec now;
+#if defined(CLOCK_MONOTONIC)
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) return UINT64_C(0);
+#else
+    if (clock_gettime(CLOCK_REALTIME, &now) != 0) return UINT64_C(0);
+#endif
+    return (uint64_t)now.tv_sec * UINT64_C(1000) + (uint64_t)(now.tv_nsec / 1000000L);
+#endif
+}
+
+static __attribute__((unused)) struct spx_network_deadline_v1 spx_network_deadline_start_v1(void) {
+    struct spx_network_deadline_v1 deadline;
+    deadline.expires_at_millis =
+        spx_network_monotonic_millis_v1() + SPX_NETWORK_OPERATION_DEADLINE_MILLIS_V1;
+    return deadline;
+}
+
+/* Remaining budget, never negative. Zero means the aggregate deadline is spent
+   and the caller must fail rather than start another blocking call. */
+static __attribute__((unused)) uint64_t spx_network_deadline_remaining_v1(
+    struct spx_network_deadline_v1 deadline
+) {
+    uint64_t now = spx_network_monotonic_millis_v1();
+    if (now >= deadline.expires_at_millis) return UINT64_C(0);
+    return deadline.expires_at_millis - now;
+}
+
+/* The remaining budget as a per-syscall timeout, never zero so a socket option
+   is never read as "block forever". Returns false once the budget is spent. */
+static __attribute__((unused)) bool spx_network_deadline_slice_v1(
+    struct spx_network_deadline_v1 deadline,
+    uint64_t *slice_out
+) {
+    uint64_t remaining = spx_network_deadline_remaining_v1(deadline);
+    if (remaining == UINT64_C(0)) return false;
+    *slice_out = remaining;
+    return true;
+}
+
+static __attribute__((unused)) bool spx_network_set_timeouts_v1(
+    spx_net_socket_v1 socket_handle,
+    uint64_t timeout_millis
+) {
+    if (timeout_millis == UINT64_C(0)) return false;
+#if defined(_WIN32)
+    DWORD timeout = (DWORD)timeout_millis;
     return setsockopt(
             socket_handle, SOL_SOCKET, SO_RCVTIMEO,
             (const char *)&timeout, (int)sizeof(timeout)
@@ -316,8 +377,8 @@ static __attribute__((unused)) bool spx_network_set_timeouts_v1(spx_net_socket_v
 #else
     struct timeval timeout;
     memset(&timeout, 0, sizeof(timeout));
-    timeout.tv_sec = SPX_NETWORK_IO_TIMEOUT_MILLIS_V1 / 1000;
-    timeout.tv_usec = (SPX_NETWORK_IO_TIMEOUT_MILLIS_V1 % 1000) * 1000;
+    timeout.tv_sec = (time_t)(timeout_millis / 1000);
+    timeout.tv_usec = (suseconds_t)((timeout_millis % 1000) * 1000);
 #if defined(SO_NOSIGPIPE)
     int no_sigpipe = 1;
     if (setsockopt(
@@ -339,8 +400,12 @@ static __attribute__((unused)) bool spx_network_set_timeouts_v1(spx_net_socket_v
 static __attribute__((unused)) bool spx_network_connect_with_timeout_v1(
     spx_net_socket_v1 socket_handle,
     const struct sockaddr *address,
-    socklen_t address_length
+    socklen_t address_length,
+    struct spx_network_deadline_v1 deadline
 ) {
+    uint64_t remaining = UINT64_C(0);
+    if (!spx_network_deadline_slice_v1(deadline, &remaining)) return false;
+    if (remaining > (uint64_t)INT_MAX) remaining = (uint64_t)INT_MAX;
     if (!spx_network_set_blocking_v1(socket_handle, false)) return false;
     if (connect(socket_handle, address, address_length) != 0) {
 #if defined(_WIN32)
@@ -348,7 +413,9 @@ static __attribute__((unused)) bool spx_network_connect_with_timeout_v1(
 #else
         if (errno != EINPROGRESS) return false;
 #endif
-        if (spx_network_poll_v1(socket_handle, POLLOUT, SPX_NETWORK_IO_TIMEOUT_MILLIS_V1) <= 0) {
+        /* Each candidate address gets only what is left of the aggregate
+           budget, so several failing addresses cannot multiply it. */
+        if (spx_network_poll_v1(socket_handle, POLLOUT, (int)remaining) <= 0) {
             return false;
         }
         int error = 0;
@@ -376,19 +443,32 @@ static __attribute__((unused)) bool spx_network_lookup_v1(
     return true;
 }
 
+/* One read, bounded by what is left of the aggregate deadline. An interrupted
+   call resumes against the same deadline instead of paying a fresh timeout. */
 static __attribute__((unused)) spx_net_ssize_v1 spx_network_recv_once_v1(
     spx_net_socket_v1 socket_handle,
     uint8_t *buffer,
     uint64_t max,
-    int flags
+    int flags,
+    struct spx_network_deadline_v1 deadline
 ) {
     spx_net_ssize_v1 received;
+    uint64_t remaining = UINT64_C(0);
+    if (!spx_network_deadline_slice_v1(deadline, &remaining) ||
+        !spx_network_set_timeouts_v1(socket_handle, remaining)) {
+        return (spx_net_ssize_v1)-1;
+    }
 #if defined(_WIN32)
     received = recv(socket_handle, (char *)buffer, (int)max, flags);
 #else
-    do {
+    for (;;) {
         received = recv(socket_handle, buffer, (spx_net_len_v1)max, flags);
-    } while (received < 0 && errno == EINTR);
+        if (received >= 0 || errno != EINTR) break;
+        if (!spx_network_deadline_slice_v1(deadline, &remaining) ||
+            !spx_network_set_timeouts_v1(socket_handle, remaining)) {
+            return (spx_net_ssize_v1)-1;
+        }
+    }
 #endif
     return received;
 }
@@ -433,6 +513,12 @@ static __attribute__((unused)) spx_status_token spx_host_net_connect_v1(
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
+    /* The aggregate deadline starts before resolution, so a slow name service
+       consumes the same budget the connection attempts draw from. The C11
+       adapter cannot interrupt getaddrinfo itself: this bounds what the
+       adapter does with the answer, and the specification states that
+       non-claim rather than promising cancellation the host cannot enforce. */
+    struct spx_network_deadline_v1 deadline = spx_network_deadline_start_v1();
     struct addrinfo *candidates = NULL;
     if (getaddrinfo(host_name, port_text, &hints, &candidates) != 0 || candidates == NULL) {
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_CONNECT_FAILED_V1);
@@ -441,13 +527,16 @@ static __attribute__((unused)) spx_status_token spx_host_net_connect_v1(
     for (const struct addrinfo *candidate = candidates;
          candidate != NULL && connected == SPX_NET_INVALID_SOCKET_V1;
          candidate = candidate->ai_next) {
+        uint64_t remaining = UINT64_C(0);
+        if (!spx_network_deadline_slice_v1(deadline, &remaining)) break;
         spx_net_socket_v1 attempt = socket(
             candidate->ai_family, candidate->ai_socktype, candidate->ai_protocol
         );
         if (attempt == SPX_NET_INVALID_SOCKET_V1) continue;
         if (spx_network_connect_with_timeout_v1(
-                attempt, candidate->ai_addr, (socklen_t)candidate->ai_addrlen
-            ) && spx_network_set_timeouts_v1(attempt)) {
+                attempt, candidate->ai_addr, (socklen_t)candidate->ai_addrlen, deadline
+            ) && spx_network_deadline_slice_v1(deadline, &remaining)
+            && spx_network_set_timeouts_v1(attempt, remaining)) {
             connected = attempt;
         } else {
             spx_network_close_socket_v1(attempt);
@@ -486,8 +575,16 @@ static __attribute__((unused)) spx_status_token spx_host_net_send_v1(
     if (value.len > SPX_NETWORK_MAX_TOTAL_BYTES_V1 - state->total_bytes) {
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_CAPACITY_EXCEEDED_V1);
     }
+    /* One deadline covers every partial write, so a peer that accepts one byte
+       at a time cannot extend the operation past its budget. */
+    struct spx_network_deadline_v1 deadline = spx_network_deadline_start_v1();
     uint64_t sent = UINT64_C(0);
     while (sent < value.len) {
+        uint64_t remaining = UINT64_C(0);
+        if (!spx_network_deadline_slice_v1(deadline, &remaining) ||
+            !spx_network_set_timeouts_v1(socket_handle, remaining)) {
+            return spx_network_status_v1(spx_ctx, SPX_NETWORK_TRANSFER_FAILED_V1);
+        }
         spx_net_ssize_v1 written = send(
             socket_handle,
             (const char *)value.ptr + (size_t)sent,
@@ -495,6 +592,7 @@ static __attribute__((unused)) spx_status_token spx_host_net_send_v1(
             SPX_NET_SEND_FLAGS_V1
         );
 #if !defined(_WIN32)
+        /* An interrupted call resumes against the same deadline. */
         if (written < 0 && errno == EINTR) continue;
 #endif
         if (written <= 0) {
@@ -529,7 +627,9 @@ static __attribute__((unused)) spx_status_token spx_host_net_recv_v1(
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_UNKNOWN_HANDLE_V1);
     }
     if (max == UINT64_C(0)) return SPX_STATUS_SUCCESS;
-    spx_net_ssize_v1 received = spx_network_recv_once_v1(socket_handle, state->scratch, max, 0);
+    struct spx_network_deadline_v1 deadline = spx_network_deadline_start_v1();
+    spx_net_ssize_v1 received =
+        spx_network_recv_once_v1(socket_handle, state->scratch, max, 0, deadline);
     if (received < 0) {
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_TRANSFER_FAILED_V1);
     }
@@ -571,7 +671,9 @@ static __attribute__((unused)) spx_status_token spx_host_net_stream_stdout_v1(
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_UNKNOWN_HANDLE_V1);
     }
     if (max == UINT64_C(0)) return SPX_STATUS_SUCCESS;
-    spx_net_ssize_v1 received = spx_network_recv_once_v1(socket_handle, state->scratch, max, 0);
+    struct spx_network_deadline_v1 deadline = spx_network_deadline_start_v1();
+    spx_net_ssize_v1 received =
+        spx_network_recv_once_v1(socket_handle, state->scratch, max, 0, deadline);
     if (received < 0) {
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_TRANSFER_FAILED_V1);
     }
@@ -619,7 +721,17 @@ static __attribute__((unused)) spx_status_token spx_host_net_wait_v1(
     if (!spx_network_lookup_v1(state, handle, &socket_handle)) {
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_UNKNOWN_HANDLE_V1);
     }
-    int ready = spx_network_poll_v1(socket_handle, POLLIN, (int)timeout_ms);
+    /* The program's own timeout caps the wait; the operation deadline caps it
+       again, so a readiness wait can never outlast the aggregate budget. */
+    struct spx_network_deadline_v1 deadline = spx_network_deadline_start_v1();
+    uint64_t remaining = UINT64_C(0);
+    if (!spx_network_deadline_slice_v1(deadline, &remaining)) {
+        *result_out = SPX_NETWORK_WAIT_TIMEOUT_V1;
+        return SPX_STATUS_SUCCESS;
+    }
+    if (timeout_ms < remaining) remaining = timeout_ms;
+    if (remaining > (uint64_t)INT_MAX) remaining = (uint64_t)INT_MAX;
+    int ready = spx_network_poll_v1(socket_handle, POLLIN, (int)remaining);
     if (ready < 0) {
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_TRANSFER_FAILED_V1);
     }
@@ -628,7 +740,8 @@ static __attribute__((unused)) spx_status_token spx_host_net_wait_v1(
         return SPX_STATUS_SUCCESS;
     }
     uint8_t probe = UINT8_C(0);
-    spx_net_ssize_v1 peeked = spx_network_recv_once_v1(socket_handle, &probe, UINT64_C(1), MSG_PEEK);
+    spx_net_ssize_v1 peeked =
+        spx_network_recv_once_v1(socket_handle, &probe, UINT64_C(1), MSG_PEEK, deadline);
     if (peeked < 0) {
         return spx_network_status_v1(spx_ctx, SPX_NETWORK_TRANSFER_FAILED_V1);
     }

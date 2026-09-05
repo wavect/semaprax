@@ -68,6 +68,52 @@ bound; otherwise `net_connect` fails with `INVALID_ENDPOINT`. Exceeding any
 other bound is `CAPACITY_EXCEEDED`, including a `net_stream_stdout` call whose
 bytes would overflow the transcript.
 
+### Three different bounds
+
+"Thirty seconds" can name three unrelated things, and this tranche keeps them
+apart.
+
+| Bound | Scope | Selected by | Guarantees |
+| --- | --- | --- | --- |
+| per-syscall timeout | one blocking `recv`, `send`, `poll`, or `connect` | the provider, derived from the deadline | that *one* call returns |
+| operation deadline | one whole provider operation: name resolution, every candidate address, the TLS handshake, every partial write, every retried read, and every readiness wait | the host, when it constructs the provider | the operation returns, whatever the peer or resolver does |
+| invocation budget | one program invocation | the language | dense handles `1..=8`, `max` at most 65,536, 1,048,576 cumulative bytes |
+
+The invocation budget bounds *how much* a program transfers, never *how long*
+that takes; evaluator fuel likewise bounds language steps, not time spent
+inside an injected provider.
+
+The operation deadline is monotonic and caller-selected, clamped to a fixed
+safe maximum of 30,000 ms. A host that asks for more is clamped rather than
+refused, so no configuration path produces an unbounded operation. Every
+sub-operation receives the *remaining* duration, so several failing candidate
+addresses, several partial writes, or several interrupted calls draw down one
+total instead of restarting it. An interrupted system call resumes against the
+same deadline and preserves the same selected failure. A timed-out operation
+retains no connection: no handle was issued, and settlement still runs on
+every path.
+
+Name resolution is inside the deadline. The Rust provider takes an explicitly
+injected bounded resolver; the shipped one answers a literal address with no
+name service at all, and otherwise runs the platform resolver on a worker it
+*owns* — a worker whose caller stopped waiting stays registered and is reaped,
+never detached and forgotten.
+
+This is a bound on *waiting*, not forced cancellation. `getaddrinfo` and its
+`std` wrapper cannot be aborted from another thread, so the honest guarantee
+is that the caller stops waiting on time and the abandoned work stays
+accounted for. Nothing here promises cancellation a selected host cannot
+enforce.
+
+The generated native C11 adapter carries the same aggregate deadline on a
+monotonic clock across candidate addresses, partial writes, retried reads, and
+readiness waits, and derives each per-syscall timeout from what is left.
+`getaddrinfo` itself is the one step it cannot bound: the C11 adapter has no
+owned resolver worker, so a native program's connect may still block in the
+platform resolver before its deadline arithmetic begins. That gap is stated,
+not closed, and the native adapter's resolution bound must not be described as
+equivalent to the Rust seam's.
+
 `net_recv` follows `stdin_read` exactly: its owned result slot is initialized
 only on status zero, and each `net_recv` call site counts as one owned-byte
 allocation site with the conservative payload `65,536`, so sixteen sites reach
@@ -167,10 +213,12 @@ adapter for one invocation:
   browsers, driven by the JSON document below; it is the first deterministic
   handler of the standard library's `test` tier and performs no I/O;
 - the **TCP provider** (interpreter library seam and native runtime) uses
-  blocking `std::net` or POSIX/Winsock sockets with 30 s connect and read
-  timeouts, no TLS, and no name resolution beyond the platform resolver. It
-  exists only when a host explicitly constructs it; Project v12's CLI and Web
-  lanes construct only the deterministic fixture provider.
+  blocking `std::net` or POSIX/Winsock sockets under one caller-selected
+  aggregate operation deadline (see [three different
+  bounds](#three-different-bounds)), no TLS, and either an injected bounded
+  resolver or the platform resolver on an owned worker. It exists only when a
+  host explicitly constructs it; Project v12's CLI and Web lanes construct
+  only the deterministic fixture provider.
 
 An invocation without a provider fails every operation with
 `AUTHORITY_DENIED`. `semaprax capability-manifest` projects such a module
@@ -287,9 +335,22 @@ cargo test --locked -p semaprax --test useful_data -- network_io_wasm::
 cargo test --locked -p semaprax --test project -- standard_library::
 cargo test --locked -p semaprax --test project -- manifest_v12::
 cargo test --locked -p semaprax --test examples
+cargo test --locked -p semaprax --lib network_provider::deadline::
+cargo test --locked -p semaprax --lib network_provider::resolver::
+cargo test --locked -p semaprax --lib network_provider::tcp::deadline_tests::
 ```
 
-They cover the closed operation table, effect and reserved-name diagnostics,
+The three `--lib` gates cover the aggregate deadline itself: budget clamping,
+remaining-duration propagation, a slice that is never zero and never restarts,
+literal-address resolution without a worker, an abandoned resolver worker that
+is reaped rather than detached, and — over real loopback sockets under a short
+selected budget — a slow resolver, several candidate addresses, a silent
+reader, a stalled writer, a capped readiness wait, and a bounded accept. Each
+one finishes in under a second by advancing an injected clock or selecting a
+short budget, never by waiting out thirty seconds.
+
+The remaining gates cover the closed operation table, effect and reserved-name
+diagnostics,
 loop admission, the fixture provider's connection binding, chunk splitting,
 `expect_send`, and readiness rules, the six status codes, handle and byte
 capacities, transcript sealing, the interpreter seam, the native adapter, the

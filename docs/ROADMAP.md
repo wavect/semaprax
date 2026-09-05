@@ -333,7 +333,9 @@ ABIs prematurely.
 - use the bounded [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) as the
   independently replayed proof foundation; the exact-tag nonignored
   [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
-  admits one direct `Bytes` field while the nested-record tranche authors
+  admits one direct `Bytes` field; Graph v32/v33 now compose owned-variant
+  cleanup with unprojected or stable-field-projected loans without masking
+  either contract, while the nested-record tranche authors
   bounded multi-field paths; general lifetime inference, mutable borrowing,
   escape analysis, variants and public borrowed ABIs remain later work;
 - make cleanup plans cover general control flow, nested aggregates, calls, and

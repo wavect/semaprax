@@ -335,7 +335,6 @@ fn owned_source_refresh_reuses_checked_modules_and_rolls_back_failed_admission()
 }
 
 #[test]
-#[ignore = "SPX-G410 owned-variant Graph v22 masking, needs loan plan fix"]
 fn nonempty_loan_plan_clones_preserve_cold_graph_builder_accounting() {
     let root = std::env::temp_dir().join(format!(
         "spx-semantic-loan-cache-{}-{}",
@@ -383,6 +382,11 @@ fn projected() -> i64 {
     let mut cache = ProjectFrontendCache::new_with_semantic_cache();
     let cold = cache.build(&manifest, &sources).unwrap();
     work(&cold, 3, 0);
+    assert!(cold
+        .revision()
+        .sources()
+        .iter()
+        .any(|source| source.source_graph_schema() == "semaprax.graph.v32"));
     let projected = cold
         .revision()
         .test_program()

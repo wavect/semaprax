@@ -104,18 +104,18 @@ pub(super) fn select_schema<'a>(
     let has_loans = functions
         .iter()
         .any(|function| !function.loan_plan.loans.is_empty());
-    if has_owned_variant && has_loans {
-        return Err(composition_error(
-            "Shared Loan Plan v1 cannot mask owned-variant Graph v22 semantics",
-        ));
-    }
-    if functions.iter().any(|function| {
+    let has_projected_loans = functions.iter().any(|function| {
         function
             .loan_plan
             .loans
             .iter()
             .any(|loan| !loan.origin.projections.is_empty())
-    }) {
+    });
+    if has_owned_variant && has_projected_loans {
+        Ok("semaprax.graph.v33")
+    } else if has_owned_variant && has_loans {
+        Ok("semaprax.graph.v32")
+    } else if has_projected_loans {
         Ok("semaprax.graph.v24")
     } else if has_loans {
         Ok("semaprax.graph.v23")
@@ -213,6 +213,8 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v29"
             | "semaprax.graph.v30"
             | "semaprax.graph.v31"
+            | "semaprax.graph.v32"
+            | "semaprax.graph.v33"
     )
 }
 
@@ -224,13 +226,19 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v27"
             | "semaprax.graph.v29"
             | "semaprax.graph.v31"
+            | "semaprax.graph.v32"
+            | "semaprax.graph.v33"
     )
 }
 
 pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
     matches!(
         schema,
-        "semaprax.graph.v24" | "semaprax.graph.v27" | "semaprax.graph.v29" | "semaprax.graph.v31"
+        "semaprax.graph.v24"
+            | "semaprax.graph.v27"
+            | "semaprax.graph.v29"
+            | "semaprax.graph.v31"
+            | "semaprax.graph.v33"
     )
 }
 
@@ -242,6 +250,8 @@ pub(super) fn rejected_evidence_schema(schema: &str) -> Option<Diagnostic> {
         "semaprax.graph.v28" => "nested owned-record destructuring selects `semaprax.graph.v28`, which is outside this evidence flow's admission",
         "semaprax.graph.v31" => "nested owned-record update composed with authenticated projected loans selects `semaprax.graph.v31`, which is outside this evidence flow's admission",
         "semaprax.graph.v30" => "nested owned-record update selects `semaprax.graph.v30`, which is outside this evidence flow's admission",
+        "semaprax.graph.v33" => "owned-variant programs composed with projected shared loans select `semaprax.graph.v33`, which is outside this evidence flow's admission",
+        "semaprax.graph.v32" => "owned-variant programs composed with shared loans select `semaprax.graph.v32`, which is outside this evidence flow's admission",
         _ => return None,
     };
     Some(Diagnostic::io("SPX-G410", message))

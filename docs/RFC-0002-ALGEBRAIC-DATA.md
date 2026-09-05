@@ -323,7 +323,10 @@ identities, exact owner-place and parent-reborrow provenance, multiple shared
 loans, path-sensitive last-use edges, deterministic bounds, and
 independent replay. Graph v23 keeps its unprojected schema and fields; additive
 Graph v24 carries the direct field's stable projection and authenticated type
-while preserving legacy schema selection and cleanup bytes. This proof foundation does
+while preserving legacy schema selection and cleanup bytes. Graph v32/v33
+compose those unprojected/projected loan facts with the complete owned-variant
+Graph v22 conditional cleanup contract so neither base schema masks the other.
+This proof foundation does
 admit the authored-but-unrun
 [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md)
 only for `bytes_as_slice` of one stable-ID `Bytes` field on a named `own` flat

@@ -13,6 +13,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   `semaprax network-run --fixture` command, and a committed HTTP Project
   fixture. Browser and npm packages receive no ambient or real socket
   authority.
+- Added Graph v32/v33 for exact composition of owned-variant conditional
+  cleanup with unprojected or stable-field-projected Shared Loan Plan facts.
+  Semantic Workspace now preserves those source schemas, unknown spellings and
+  evidence flows remain closed, and the formerly ignored checked-HIR cache
+  regression executes cold/warm Graph v32 accounting and replay.
 - Added the authority-free, transport-neutral Persistent Incremental Semantic
   Workspace Service v1 core. A process can retain one immutable Project,
   Canonical Semantic Workspace Revision, Semantic Workspace Image, and semantic

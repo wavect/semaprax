@@ -1293,7 +1293,7 @@ fn main() -> i64 { 0 }
 }
 
 #[test]
-fn shared_loans_cannot_mask_an_owned_variant_v22_workspace_base_schema() {
+fn shared_loans_compose_with_owned_variant_workspace_facts_without_masking() {
     let app = canonical_source(
         "app/main.spx",
         r#"
@@ -1337,17 +1337,11 @@ fn ready() -> i64 { 0 }
     );
     let sources = vec![app, support];
     let build = build_owned(sources.clone()).unwrap();
-    let error = build
-        .source_graph_schemas()
-        .expect_err("Graph v23 must not hide an unsupported v22 base schema");
-    assert_eq!(error[0].code, "SPX-G410");
-    assert!(error[0].message.contains("cannot mask"));
+    let schemas = build.source_graph_schemas().unwrap();
+    assert_eq!(schemas["app/main.spx"], "semaprax.graph.v32");
+    assert_eq!(schemas["lib/support.spx"], "semaprax.graph.v10");
 
     let (change, _) =
         build_owned_retaining_sources_for_change(sources, MAX_CHANGE_BUILDER_BYTES).unwrap();
-    let error = match change.into_change_view() {
-        Err(error) => error,
-        Ok(_) => panic!("change view must share the same complete schema gate"),
-    };
-    assert_eq!(error[0].code, "SPX-G410");
+    change.into_change_view().unwrap();
 }

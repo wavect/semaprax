@@ -36,6 +36,8 @@ fn nested_cleanup_versions_are_closed_and_legacy_selection_is_unchanged() {
         "semaprax.graph.v29",
         "semaprax.graph.v30",
         "semaprax.graph.v31",
+        "semaprax.graph.v32",
+        "semaprax.graph.v33",
     ] {
         assert!(graph_schema_includes_modern_composite_facts(schema));
     }
@@ -45,6 +47,8 @@ fn nested_cleanup_versions_are_closed_and_legacy_selection_is_unchanged() {
     assert!(graph_schema_includes_loans("semaprax.graph.v29"));
     assert!(!graph_schema_includes_loans("semaprax.graph.v30"));
     assert!(graph_schema_includes_loans("semaprax.graph.v31"));
+    assert!(graph_schema_includes_loans("semaprax.graph.v32"));
+    assert!(graph_schema_includes_loans("semaprax.graph.v33"));
     assert!(!graph_schema_includes_projected_provenance(
         "semaprax.graph.v26"
     ));
@@ -62,6 +66,12 @@ fn nested_cleanup_versions_are_closed_and_legacy_selection_is_unchanged() {
     ));
     assert!(graph_schema_includes_projected_provenance(
         "semaprax.graph.v31"
+    ));
+    assert!(!graph_schema_includes_projected_provenance(
+        "semaprax.graph.v32"
+    ));
+    assert!(graph_schema_includes_projected_provenance(
+        "semaprax.graph.v33"
     ));
     for schema in [
         "semaprax.graph.v25",

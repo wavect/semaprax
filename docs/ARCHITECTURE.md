@@ -279,9 +279,10 @@ parent reborrow provenance, and records path-sensitive last-use edges for
 multiple loans. Validated HIR independently rebuilds and exactly replays the
 plan before Graph v23/v24 may project it. Try propagation retains distinct normal
 and residual-return CFG successors so later uses cannot extend a loan across
-an early return. Semantic Workspace v1 rejects a nonempty loan plan combined
-with an owned-variant Graph v22 base schema instead of masking that older
-contract. The plan neither changes CleanupPlan
+an early return. When the same module also carries owned-variant Graph v22
+facts, additive Graph v32/v33 serialize the complete conditional cleanup and
+unprojected/projected loan contracts together; Semantic Workspace admits those
+exact schemas and continues to reject unknown spellings. The plan neither changes CleanupPlan
 liveness nor creates runtime
 references; legacy programs retain their prior Graph and cleanup bytes.
 The additive authored-but-unrun

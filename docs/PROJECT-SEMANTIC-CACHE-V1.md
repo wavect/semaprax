@@ -1,6 +1,6 @@
 # Project Semantic Cache v1
 
-Status: Partial; implementation and focused regression evidence authored, unrun.
+Status: Partial; focused implementation and regression evidence executed locally.
 
 Audience: compiler contributors, embedding hosts, and semantic workspace agents.
 
@@ -73,8 +73,10 @@ output consumption so cache hits preserve graph-builder accounting and cold
 graph/image bytes. Cloning can shrink loan-plan vector/string capacities;
 the original aggregate loan-plan charge is retained and any clone-capacity
 difference is restored before existing graph filtering/accounting. The
-nonempty-loan regression checks this path, including a range and sibling views
-of owned bytes, instead of relying only on empty scalar loan plans.
+nonempty-loan regression now executes this path, including a range and sibling
+views of owned bytes in a module that also carries owned-variant cleanup. Its
+Graph v32 cold/warm bytes and accounting remain exact instead of relying only
+on empty scalar loan plans.
 This charge is construction accounting, not a measurement
 of allocator use or peak process memory. Cold and warm routes still rebuild
 the Project's linked representation and graph; neither promises constant-time
@@ -125,7 +127,8 @@ whole-function-lane invalidation after contract drift; changed import
 signatures/bindings; matching cold rejection diagnostics; failed-build rollback;
 manifest reset; and owned-source image refresh with failed-proposal rollback.
 
-These tests were not run. No compiler, interpreter, generated client, target,
-or long quality gate was executed. Hosted executable evidence and broader
-incremental-verification performance work remain required before stronger
+The focused Project semantic-cache corpus, including nonempty combined
+owned-variant/loan Graph v32 cloning, executed locally. No hosted executable,
+generated client, target, or long quality gate was executed. Broader
+incremental-verification performance work remains required before stronger
 completion or speed claims.

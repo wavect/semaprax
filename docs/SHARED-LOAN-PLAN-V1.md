@@ -109,7 +109,7 @@ requires exact agreement. It rejects, at minimum:
 The plan is descriptive proof data. Neither a serialized plan nor its digest
 authorizes source changes, execution, memory access, or publication.
 
-## Graph v23/v24 and compatibility
+## Graph v23/v24/v32/v33 and compatibility
 
 A program carrying a nonempty authenticated unprojected Shared Loan Plan v1
 selects `semaprax.graph.v23`. The exact projected field profile selects
@@ -118,16 +118,22 @@ field type to byte-slice provenance. Both project dense loan identity, exact
 owner place, parent provenance, and canonical path edges. Consumers must reject
 either schema until explicitly implemented; v24 must never be read as v23.
 
+A module that also requires owned-variant Cleanup Inventory v2 or CleanupPlan
+v6 selects additive `semaprax.graph.v32` for unprojected loans and
+`semaprax.graph.v33` for projected loans. These combined schemas serialize the
+complete Graph v22 conditional cleanup facts together with the corresponding
+v23/v24 loan and provenance facts. They never relabel the composition as one
+of its incomplete base schemas. Evidence flows remain fail-closed until they
+explicitly admit v32/v33.
+
 Programs that require no Shared Loan Plan preserve their legacy Graph version,
 bytes, Cleanup Inventory, and CleanupPlan schema and meaning. Shared Loan Plan
 v1 does not widen CleanupPlan v6, Graph v22, the interpreter value model,
 native C11 layout, Core-Wasm layout, or any public ABI.
 
-Semantic Workspace v1 rejects a module that simultaneously requires the
-owned-variant Graph v22 base schema and a nonempty Shared Loan Plan. Graph v23/v24
-must not mask an unsupported v22 base contract at either the source-schema or
-change-view boundary; a later combined schema requires its own specification
-and evidence.
+Semantic Workspace v1 admits v32/v33 as exact source-schema facts and rejects
+unknown or composite-looking spellings. Change views preserve the same schema
+selection without masking either ownership contract.
 
 ## Executable evidence
 
@@ -157,7 +163,11 @@ The local evidence gate owns:
   rejection on the final unit, and a production-limit overflow that stops at
   unit 1,000,001; and
 - preservation of Graph v22 selection with no loan carrier when no plan is
-  needed, while the existing cleanup-plan gates remain the cleanup authority.
+  needed, while the existing cleanup-plan gates remain the cleanup authority;
+  and
+- deterministic Graph v32/v33 composition of owned-variant conditional cleanup
+  with unprojected or stable-field-projected loans, plus Semantic Workspace and
+  checked-HIR cache replay without graph-builder accounting drift.
 
 The dedicated exact-boundary fixtures are authored in the current source tree
 but were not executed by this implementation audit. Their source presence is

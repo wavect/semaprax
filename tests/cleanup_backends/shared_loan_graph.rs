@@ -196,3 +196,60 @@ fn a_no_loan_owned_variant_preserves_graph_v22_and_contains_no_v23_carrier() {
     assert!(!first.contains("semaprax.loan-plan.v1"));
     assert!(!first.contains("\"loans\":"));
 }
+
+#[test]
+fn owned_variants_and_unprojected_loans_select_graph_v32_without_masking_either_fact() {
+    let source = LEGACY_V22_SOURCE.replace(
+        "@id(\"app.main\")",
+        r#"@id("loan.consume-bytes") fn consume_bytes(value: own Bytes) -> i64 { 7 }
+@id("loan.projected") fn projected() -> i64 {
+    let source = [7u8, 8u8, 9u8];
+    let owned = bytes_copy(array_as_slice(source));
+    let parent = bytes_as_slice(owned);
+    let child = byte_range(parent, 1usize, byte_len(parent));
+    let sibling = bytes_as_slice(owned);
+    let observed = if byte_len(child) + byte_len(sibling) > 0usize { 1 } else { 0 };
+    consume_bytes(owned) + observed
+}
+@id("app.main")"#,
+    );
+    let parsed = parsed(&source, "owned-variant-shared-loan-v32.spx");
+    let first = graph::to_json(&parsed).unwrap();
+    assert_eq!(first, graph::to_json(&parsed).unwrap());
+    assert!(first.starts_with("{\"schema\":\"semaprax.graph.v32\","));
+    assert!(first.contains("\"schema\":\"semaprax.cleanup-plan.v6\""));
+    assert!(first.contains("\"kind\":\"loan_plan\",\"schema\":\"semaprax.loan-plan.v1\""));
+    assert!(!first.contains("\"projected_type\""));
+    let diagnostic = graph::reject_evidence_schema("semaprax.graph.v32").unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-G410");
+}
+
+#[test]
+fn owned_variants_and_projected_loans_select_graph_v33_with_stable_field_provenance() {
+    let source = LEGACY_V22_SOURCE.replace(
+        "@id(\"app.main\")",
+        r#"@id("loan.packet") record Packet {
+    @id("loan.packet.payload") payload: Bytes,
+    @id("loan.packet.sibling") sibling: Bytes,
+}
+@id("loan.consume-bytes") fn consume_bytes(value: own Bytes) -> i64 { 7 }
+@id("loan.projected-field") fn projected_field(packet: own Packet) -> usize {
+    let view = bytes_as_slice(packet.payload);
+    let range = byte_range(view, 0usize, byte_len(view));
+    let moved = consume_bytes(packet.sibling);
+    byte_len(range)
+}
+@id("app.main")"#,
+    );
+    let parsed = parsed(&source, "owned-variant-projected-loan-v33.spx");
+    let first = graph::to_json(&parsed).unwrap();
+    assert_eq!(first, graph::to_json(&parsed).unwrap());
+    assert!(first.starts_with("{\"schema\":\"semaprax.graph.v33\","));
+    assert!(first.contains("\"schema\":\"semaprax.cleanup-plan.v6\""));
+    assert!(
+        first.contains("\"projections\":[{\"kind\":\"field\",\"field\":\"loan.packet.payload\"}]")
+    );
+    assert!(first.contains("\"projected_type\":{\"kind\":\"owned_bytes\"}"));
+    let diagnostic = graph::reject_evidence_schema("semaprax.graph.v33").unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-G410");
+}

@@ -1,4 +1,5 @@
-use std::fs;
+use std::fs::{self, File, OpenOptions};
+use std::io::{self, Write as _};
 use std::path::{Component, Path, PathBuf};
 
 use same_file::Handle;
@@ -36,6 +37,139 @@ impl ProjectBuildParentHook for NoopProjectBuildParentHook {
 pub(crate) struct ProjectOutputParent {
     created: Option<CreatedProjectOutputParent>,
     retain: bool,
+}
+
+/// Create-new reservation for one single-file native artifact.
+///
+/// Holding the exact destination file from before compilation through final
+/// publication prevents both accidental overwrite and two concurrent builds
+/// from claiming the same spelling.
+pub(crate) struct SourceNativeOutput {
+    parent: PathBuf,
+    parent_identity: Handle,
+    path: PathBuf,
+    identity: Option<Handle>,
+    file: Option<File>,
+    retained: bool,
+}
+
+impl SourceNativeOutput {
+    pub(crate) fn prepare(path: &Path) -> Result<Self, Diagnostic> {
+        path.file_name().ok_or_else(|| {
+            parent_error("single-file native output must name one destination file")
+        })?;
+        let parent = path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."));
+        let parent_metadata = fs::symlink_metadata(parent).map_err(|error| {
+            parent_error(format!(
+                "cannot inspect single-file native output parent {}: {error}",
+                parent.display()
+            ))
+        })?;
+        if !is_plain_directory(&parent_metadata) {
+            return Err(parent_error(
+                "single-file native output parent must be a real non-reparse directory",
+            ));
+        }
+        let parent_identity = Handle::from_path(parent).map_err(|error| {
+            parent_error(format!(
+                "cannot identify single-file native output parent: {error}"
+            ))
+        })?;
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .map_err(|error| {
+                let code = if error.kind() == io::ErrorKind::AlreadyExists {
+                    "SPX-I307"
+                } else {
+                    "SPX-I301"
+                };
+                Diagnostic::io(
+                    code,
+                    format!(
+                        "cannot reserve fresh single-file native destination {}: {error}",
+                        path.display()
+                    ),
+                )
+            })?;
+        let identity = Handle::from_file(file).map_err(|error| {
+            parent_error(format!(
+                "cannot identify reserved single-file native destination: {error}"
+            ))
+        })?;
+        let file = identity.as_file().try_clone().map_err(|error| {
+            parent_error(format!("cannot retain native destination handle: {error}"))
+        })?;
+        Ok(Self {
+            parent: parent.to_path_buf(),
+            parent_identity,
+            path: path.to_path_buf(),
+            identity: Some(identity),
+            file: Some(file),
+            retained: false,
+        })
+    }
+
+    pub(crate) fn publish(&mut self, compiled: &Path) -> Result<(), Diagnostic> {
+        if !same_plain_directory(&self.parent, &self.parent_identity)
+            || Handle::from_path(&self.path).ok().as_ref() != self.identity.as_ref()
+        {
+            return Err(parent_error(
+                "single-file native destination changed during compilation",
+            ));
+        }
+        let mut compiled_file = File::open(compiled).map_err(|error| {
+            parent_error(format!("cannot open compiled native artifact: {error}"))
+        })?;
+        let metadata = compiled_file.metadata().map_err(|error| {
+            parent_error(format!("cannot inspect compiled native artifact: {error}"))
+        })?;
+        if !metadata.is_file() {
+            return Err(parent_error("compiled native artifact is not a plain file"));
+        }
+        let file = self
+            .file
+            .as_mut()
+            .ok_or_else(|| parent_error("single-file native destination handle is unavailable"))?;
+        io::copy(&mut compiled_file, file).map_err(|error| {
+            parent_error(format!("cannot publish native artifact bytes: {error}"))
+        })?;
+        file.set_permissions(metadata.permissions())
+            .map_err(|error| {
+                parent_error(format!(
+                    "cannot publish native artifact permissions: {error}"
+                ))
+            })?;
+        file.flush().map_err(|error| {
+            parent_error(format!("cannot flush native artifact publication: {error}"))
+        })?;
+        if Handle::from_path(&self.path).ok().as_ref() != self.identity.as_ref() {
+            return Err(parent_error(
+                "single-file native destination changed during publication",
+            ));
+        }
+        self.retained = true;
+        Ok(())
+    }
+}
+
+impl Drop for SourceNativeOutput {
+    fn drop(&mut self) {
+        if self.retained
+            || !same_plain_directory(&self.parent, &self.parent_identity)
+            || Handle::from_path(&self.path).ok().as_ref() != self.identity.as_ref()
+        {
+            return;
+        }
+        drop(self.file.take());
+        drop(self.identity.take());
+        let _ = fs::remove_file(&self.path);
+    }
 }
 
 struct CreatedProjectOutputParent {

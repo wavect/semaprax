@@ -2555,7 +2555,34 @@ fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), 
         .expect("source build options always have an output");
     match options.target.as_str() {
         "native" => {
-            codegen::build(&program, output).map_err(|error| report(&[error], false))?;
+            let mut destination = cli::build::SourceNativeOutput::prepare(output)
+                .map_err(|error| report(&[error], false))?;
+            let c_source = codegen::emit_c(&program).map_err(|error| report(&[error], false))?;
+            let leaf = format!("program{}", std::env::consts::EXE_SUFFIX);
+            let mut scratch = native_scratch::Scratch::create(&leaf, None).map_err(|error| {
+                report(
+                    &[Diagnostic::io(
+                        "SPX-I301",
+                        format!("cannot create native build scratch: {error}"),
+                    )],
+                    false,
+                )
+            })?;
+            codegen::compile_native_executable(&c_source, scratch.path())
+                .map_err(|error| report(&[error], false))?;
+            scratch.seal().map_err(|error| {
+                report(
+                    &[Diagnostic::io(
+                        "SPX-I301",
+                        format!("cannot seal native build scratch: {error}"),
+                    )],
+                    false,
+                )
+            })?;
+            destination
+                .publish(scratch.path())
+                .map_err(|error| report(&[error], false))?;
+            let _ = scratch.cleanup();
             println!("built native executable {}", output.display());
         }
         "web" | "wasm" => {

@@ -117,6 +117,14 @@ available build targets differ between the standalone and full toolchains.
 Commands that list `--json` in scoped help provide their structured form for
 automation.
 
+Every explicit single-file build output is create-new. Native builds reserve
+the exact destination before invoking the compiler and publish through that
+retained file; Web/Wasm builds atomically create a fresh package directory.
+An existing file, directory, symlink, or concurrent winner is rejected with
+`SPX-I307` and left unchanged. An invalid or unavailable parent is rejected as
+`SPX-I301`; builds never merge into an existing directory or overwrite their
+own `.spx` input.
+
 ## Diagnose command-line errors
 
 Command-line grammar errors exit without compiling the input. Start with

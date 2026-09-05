@@ -1735,10 +1735,18 @@ pub fn build_web(program: &Program, output: &Path) -> Result<(), Diagnostic> {
             "for admitted scalar exports, use --target web --profile internal-strings-v1 --export <stable-id>; generics, resources and public String signatures remain outside that profile",
         ));
     }
-    std::fs::create_dir_all(output).map_err(|error| {
+    std::fs::create_dir(output).map_err(|error| {
+        let code = if error.kind() == std::io::ErrorKind::AlreadyExists {
+            "SPX-I307"
+        } else {
+            "SPX-I301"
+        };
         Diagnostic::io(
-            "SPX-I301",
-            format!("cannot create web output {}: {error}", output.display()),
+            code,
+            format!(
+                "cannot create fresh web output {}: {error}",
+                output.display()
+            ),
         )
     })?;
     let wasm_bytes = emit_resolved_module(&resolved)?;

@@ -474,3 +474,126 @@ fn human_diagnostics_include_terminal_safe_source_locations() {
         "{\"code\":\"SPX-T001\",\"severity\":\"error\",\"message\":\"invalid source\",\"path\":\"src/main.spx\",\"location\":{\"line\":2,\"column\":3,\"start\":4,\"end\":9},\"help\":\"replace it\"}"
     );
 }
+
+#[test]
+fn single_file_build_refuses_existing_and_invalid_destinations_without_clobbering() {
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-source-build-freshness-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir(&root).unwrap();
+    let source = root.join("input.spx");
+    std::fs::write(&source, VALID).unwrap();
+    let source_bytes = std::fs::read(&source).unwrap();
+
+    let run = |target: &str, output: &Path| {
+        Command::new(env!("CARGO_BIN_EXE_semaprax"))
+            .arg("build")
+            .arg(&source)
+            .args(["--target", target, "-o"])
+            .arg(output)
+            .output()
+            .unwrap()
+    };
+
+    let victim = root.join("victim");
+    std::fs::write(&victim, b"precious\n").unwrap();
+    let result = run("native", &victim);
+    assert_eq!(result.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("SPX-I307"));
+    assert_eq!(std::fs::read(&victim).unwrap(), b"precious\n");
+
+    let result = run("native", &source);
+    assert_eq!(result.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("SPX-I307"));
+    assert_eq!(std::fs::read(&source).unwrap(), source_bytes);
+
+    let web = root.join("web");
+    std::fs::create_dir(&web).unwrap();
+    std::fs::write(web.join("index.html"), b"mine\n").unwrap();
+    std::fs::write(web.join("keep.txt"), b"keep\n").unwrap();
+    let result = run("web", &web);
+    assert_eq!(result.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("SPX-I307"));
+    assert_eq!(std::fs::read(web.join("index.html")).unwrap(), b"mine\n");
+    assert_eq!(std::fs::read(web.join("keep.txt")).unwrap(), b"keep\n");
+
+    let missing = root.join("missing").join("artifact");
+    let result = run("native", &missing);
+    assert_eq!(result.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&result.stderr).contains("SPX-I301"));
+    assert!(!root.join("missing").exists());
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        let read_only = root.join("read-only");
+        std::fs::create_dir(&read_only).unwrap();
+        std::fs::set_permissions(&read_only, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let output = read_only.join("artifact");
+        let result = run("native", &output);
+        std::fs::set_permissions(&read_only, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(result.status.code(), Some(1));
+        assert!(String::from_utf8_lossy(&result.stderr).contains("SPX-I301"));
+        assert!(!output.exists());
+        std::fs::remove_dir(read_only).unwrap();
+    }
+
+    if Command::new("clang").arg("--version").output().is_ok() {
+        let fresh = root.join(format!("fresh{}", std::env::consts::EXE_SUFFIX));
+        let result = run("native", &fresh);
+        assert!(
+            result.status.success(),
+            "{}",
+            String::from_utf8_lossy(&result.stderr)
+        );
+        let executed = Command::new(&fresh).output().unwrap();
+        assert!(executed.status.success());
+        assert_eq!(executed.stdout, b"42\n");
+        std::fs::remove_file(fresh).unwrap();
+    }
+
+    let concurrent = root.join("concurrent-web");
+    let command = || {
+        let mut child = Command::new(env!("CARGO_BIN_EXE_semaprax"));
+        child
+            .arg("build")
+            .arg(&source)
+            .args(["--target", "web", "-o"])
+            .arg(&concurrent)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
+        child.spawn().unwrap()
+    };
+    let first = command();
+    let second = command();
+    let results = [
+        first.wait_with_output().unwrap(),
+        second.wait_with_output().unwrap(),
+    ];
+    assert_eq!(
+        results
+            .iter()
+            .filter(|result| result.status.success())
+            .count(),
+        1
+    );
+    let loser = results
+        .iter()
+        .find(|result| !result.status.success())
+        .unwrap();
+    assert_eq!(loser.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&loser.stderr).contains("SPX-I307"));
+    std::fs::remove_dir_all(concurrent).unwrap();
+
+    std::fs::remove_file(web.join("index.html")).unwrap();
+    std::fs::remove_file(web.join("keep.txt")).unwrap();
+    std::fs::remove_dir(web).unwrap();
+    std::fs::remove_file(victim).unwrap();
+    std::fs::remove_file(source).unwrap();
+    std::fs::remove_dir(root).unwrap();
+}

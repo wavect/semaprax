@@ -21,6 +21,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Single-file native and Web/Wasm builds now require fresh destinations.
+  Native output is reserved before compiler invocation and Web output uses an
+  atomic create-new directory, so existing sources/artifacts and concurrent
+  winners are never overwritten or merged; invalid parents report `SPX-I301`
+  and existing destinations report `SPX-I307`.
 - Native contract-failure stderr now includes the canonical clause, persistent
   function identity, and declaration-ordered observed arguments, matching the
   interpreter's human repair detail while preserving the normalized status

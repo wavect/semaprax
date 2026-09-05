@@ -50,6 +50,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   rejection, stable-ID native contract details, and the precise scalar-profile
   signature diagnostic while preserving owned-result and lazy-temporary
   cleanup coverage.
+- Kept the freestanding C profile libc-free after native contract details
+  gained argument rendering by replacing hosted formatting with a bounded
+  byte copy and eliding per-call formatting, refreshed the affected native
+  known answers, and made the depth-512 HIR oracle independent of the parser's
+  depth-128 source admission boundary.
 - Added the locally exercised Canonical Semantic Workspace Revision v1
   foundation: one immutable authority-free object derived from an admitted
   Project, with nine typed node projections, distinct semantic, source

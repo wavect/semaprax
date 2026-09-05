@@ -5,11 +5,13 @@
 //! start from the production native C11 projection (`codegen::emit_c`) with
 //! the documented host-process scaffolding excluded: the `int main` entry
 //! wrapper, the hosted `<stdio.h>`/`<stdlib.h>` includes, and the
-//! exit-code failure reporter. Two bounded substitutions are applied and
+//! exit-code failure reporter. Three bounded substitutions are applied and
 //! recorded in every envelope: the hosted stderr/abort invariant reporter is
 //! replaced by a closed failstop loop, and each module function is promoted
 //! from internal to external linkage so the relocatable object actually
-//! exports callable symbols. Four profile assertions — no-runtime,
+//! exports callable symbols. Hosted contract-argument formatting is reduced
+//! to the same status, stable function ID, and expression detail without its
+//! unavailable formatted argument string. Four profile assertions — no-runtime,
 //! no-allocation, no-blocking, and no-libc-dependency modulo declared
 //! compiler-primitive exceptions — are recomputed from explicit checks over
 //! the emitted text and re-checked during independent replay.
@@ -63,7 +65,8 @@ const NONCLAIMS_JSON: &str = "\"no_mmio_volatile_or_atomics_support\",\
 
 const SCAFFOLDING_EXCLUSIONS_JSON: &str =
     "\"entry_wrapper\",\"stdio_include\",\"stdlib_include\",\"public_failure_reporter\"";
-const SCAFFOLDING_SUBSTITUTIONS_JSON: &str = "\"invariant_failstop\",\"external_function_linkage\"";
+const SCAFFOLDING_SUBSTITUTIONS_JSON: &str =
+    "\"invariant_failstop\",\"external_function_linkage\",\"contract_argument_elision\"";
 const ALLOWED_SYMBOLS_JSON: &str = "\
 {\"symbol\":\"memcpy\",\"justification\":\"compiler-emitted memory primitive that ISO C \
 freestanding environments are expected to provide\"},\
@@ -79,6 +82,9 @@ const INVARIANT_FAILURE_ORIGINAL: &str = "static __attribute__((noreturn, unused
 /// Freestanding replacement: same signature, closed failstop instead of the
 /// hosted stderr/abort reporter.
 const INVARIANT_FAILURE_FAILSTOP: &str = "static __attribute__((noreturn, unused)) void spx_runtime_invariant_failure(\n    const char *message\n) {\n    /* SEMAPRAX freestanding profile: hosted diagnostics are excluded. */\n    (void)message;\n    for (;;) {\n    }\n}";
+
+const CONTRACT_ARGUMENT_COPY_ORIGINAL: &str = "    int arguments_written = snprintf(\n        detail.failure_arguments,\n        sizeof detail.failure_arguments,\n        \"%s\",\n        arguments\n    );\n    if (arguments_written < 0 ||\n        (size_t)arguments_written >= sizeof detail.failure_arguments) {\n        spx_runtime_invariant_failure(\"contract argument detail overflow\");\n    }";
+const CONTRACT_ARGUMENT_COPY_FREESTANDING: &str = "    size_t arguments_length = 0;\n    while (arguments[arguments_length] != '\\0' &&\n        arguments_length + 1 < sizeof detail.failure_arguments) {\n        detail.failure_arguments[arguments_length] = arguments[arguments_length];\n        arguments_length += 1;\n    }\n    if (arguments[arguments_length] != '\\0') {\n        spx_runtime_invariant_failure(\"contract argument detail overflow\");\n    }\n    detail.failure_arguments[arguments_length] = '\\0';";
 
 const PUBLIC_FAILURE_ANCHOR: &str = "static __attribute__((unused)) int spx_public_failure(";
 const STDIO_INCLUDE: &str = "#include <stdio.h>\n\n";
@@ -445,8 +451,15 @@ fn freestanding_translation_unit(
         )]);
     }
     let mut unit = native_text.replace(INVARIANT_FAILURE_ORIGINAL, INVARIANT_FAILURE_FAILSTOP);
+    replace_once(
+        &mut unit,
+        CONTRACT_ARGUMENT_COPY_ORIGINAL,
+        CONTRACT_ARGUMENT_COPY_FREESTANDING,
+        "the hosted contract-argument copy",
+    )?;
     remove_once(&mut unit, STDIO_INCLUDE, "the stdio include")?;
     remove_once(&mut unit, STDLIB_INCLUDE, "the stdlib include")?;
+    elide_hosted_contract_arguments(&mut unit)?;
     let reporter_start = unit.find(PUBLIC_FAILURE_ANCHOR);
     let reporter_end = reporter_start.and_then(|start| {
         unit[start..]
@@ -487,6 +500,70 @@ fn freestanding_translation_unit(
     Ok(unit)
 }
 
+/// Replace each exact four-line hosted contract-argument formatter with the
+/// runtime helper that records the same contract identity without formatting
+/// parameter values. Any emitter-shape drift fails closed.
+fn elide_hosted_contract_arguments(unit: &mut String) -> Result<(), Vec<Diagnostic>> {
+    const DECLARATION: &str = "char spx_contract_arguments[SPX_STATUS_ARGUMENTS_MAX_BYTES];";
+    let ends_with_newline = unit.ends_with('\n');
+    let lines = unit.lines().collect::<Vec<_>>();
+    let mut rebuilt = Vec::with_capacity(lines.len());
+    let mut index = 0usize;
+    while index < lines.len() {
+        if lines[index].trim() != DECLARATION {
+            rebuilt.push(lines[index].to_owned());
+            index += 1;
+            continue;
+        }
+        let Some(format_line) = lines.get(index + 1) else {
+            return Err(vec![consistency_error(
+                "native contract-argument formatter is truncated".to_owned(),
+            )]);
+        };
+        let Some(bound_line) = lines.get(index + 2) else {
+            return Err(vec![consistency_error(
+                "native contract-argument formatter is truncated".to_owned(),
+            )]);
+        };
+        let Some(status_line) = lines.get(index + 3) else {
+            return Err(vec![consistency_error(
+                "native contract-argument formatter is truncated".to_owned(),
+            )]);
+        };
+        if !format_line
+            .trim()
+            .starts_with("int spx_contract_arguments_written = snprintf(")
+            || !bound_line
+                .trim()
+                .starts_with("if (spx_contract_arguments_written < 0 ||")
+            || !status_line
+                .trim()
+                .starts_with("spx_status = spx_rt_contract_with_arguments(")
+            || !status_line.ends_with(", spx_contract_arguments);")
+        {
+            return Err(vec![consistency_error(
+                "native contract-argument formatter shape changed".to_owned(),
+            )]);
+        }
+        let status = status_line
+            .replace("spx_rt_contract_with_arguments(", "spx_rt_contract(")
+            .strip_suffix(", spx_contract_arguments);")
+            .map(|prefix| format!("{prefix});"))
+            .ok_or_else(|| {
+                vec![consistency_error(
+                    "native contract-argument formatter call changed".to_owned(),
+                )]
+            })?;
+        rebuilt.push(status);
+        index += 4;
+    }
+    *unit = rebuilt.join("\n");
+    if ends_with_newline {
+        unit.push('\n');
+    }
+    Ok(())
+}
+
 fn remove_once(text: &mut String, needle: &str, label: &str) -> Result<(), Vec<Diagnostic>> {
     let count = text.matches(needle).count();
     if count != 1 {
@@ -495,6 +572,22 @@ fn remove_once(text: &mut String, needle: &str, label: &str) -> Result<(), Vec<D
         ))]);
     }
     *text = text.replace(needle, "");
+    Ok(())
+}
+
+fn replace_once(
+    text: &mut String,
+    needle: &str,
+    replacement: &str,
+    label: &str,
+) -> Result<(), Vec<Diagnostic>> {
+    let count = text.matches(needle).count();
+    if count != 1 {
+        return Err(vec![consistency_error(format!(
+            "native projection has {count} occurrences of {label}; expected exactly one"
+        ))]);
+    }
+    *text = text.replace(needle, replacement);
     Ok(())
 }
 

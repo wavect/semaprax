@@ -468,14 +468,34 @@ fn validator_oracle_suppresses_failed_block_branch_lazy_and_match_child_scopes()
 fn validator_oracle_handles_an_exact_depth_512_late_error_with_a_nonempty_scope() {
     fn run() {
         const UNARY_NODES: usize = 510;
-        let source = format!(
-                "module test.validator_depth; @id(\"token.type\") resource Token {{ @id(\"token.drop\") drop trivial; }} @id(\"token.consume\") fn consume(token: own Token) -> i64 {{ 1 }} @id(\"hostile.depth\") fn deep(token: own Token) -> i64 {{ {}consume(token) }} @id(\"app.main\") fn main() -> i64 {{ 0 }}",
-                "-".repeat(UNARY_NODES)
-            );
+        let source = "module test.validator_depth; @id(\"token.type\") resource Token { @id(\"token.drop\") drop trivial; } @id(\"token.consume\") fn consume(token: own Token) -> i64 { 1 } @id(\"hostile.depth\") fn deep(token: own Token) -> i64 { consume(token) } @id(\"app.main\") fn main() -> i64 { 0 }";
         let mut hostile =
-            hir::resolve(&parse(&source, Path::new("validator-depth-hostile.spx")).unwrap())
+            hir::resolve(&parse(source, Path::new("validator-depth-hostile.spx")).unwrap())
                 .unwrap();
         let index = function_index(&hostile, "hostile.depth");
+        let execution = FunctionExecutionId::Monomorphic(hostile.functions[index].id.clone());
+        let mut nested = tail_mut(&mut hostile.functions[index]).clone();
+        let call_path = format!("body.tail{}", ".value".repeat(UNARY_NODES));
+        nested.id = ExpressionId::new(&execution, &call_path);
+        let ResolvedExprKind::Call { args, .. } = &mut nested.kind else {
+            panic!("exact-depth fixture tail must remain a call")
+        };
+        args[0].id = ExpressionId::new(&execution, &format!("{call_path}.arg.0"));
+        for ordinal in 0..UNARY_NODES {
+            let span = nested.span;
+            let path = format!("body.tail{}", ".value".repeat(UNARY_NODES - ordinal - 1));
+            nested = ResolvedExpr {
+                id: ExpressionId::new(&execution, &path),
+                ty: ResolvedType::I64,
+                ownership: OwnershipMode::Value,
+                kind: ResolvedExprKind::Unary {
+                    op: crate::ast::UnaryOp::Neg,
+                    value: Box::new(nested),
+                },
+                span,
+            };
+        }
+        *tail_mut(&mut hostile.functions[index]) = nested;
         let expression = tail_mut(&mut hostile.functions[index]);
         let mut depth = 0;
         let mut cursor = &*expression;

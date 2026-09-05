@@ -122,8 +122,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 const env = Object.fromEntries([
-  'spx_add', 'spx_sub', 'spx_mul', 'spx_div', 'spx_rem', 'spx_neg', 'spx_contract_fail',
+  'spx_add', 'spx_sub', 'spx_div', 'spx_rem', 'spx_neg', 'spx_contract_fail',
 ].map(name => [name, () => { throw new Error(`unexpected host import ${name}`); }]));
+env.spx_mul = (left, right) => {
+  const value = BigInt.asUintN(64, left) * BigInt.asUintN(64, right);
+  if (value > 18446744073709551615n) throw new WebAssembly.RuntimeError('usize multiplication overflow');
+  return BigInt.asIntN(64, value);
+};
 for (const [file, succeeds] of [
   ['success.wasm', true], ['overflow.wasm', false], ['boundary-overflow.wasm', false],
 ]) {

@@ -75,7 +75,7 @@ impl OutputDirectory {
             "semaprax-wasm-owned-{}-{ordinal}",
             std::process::id()
         ));
-        std::fs::create_dir(&path).unwrap();
+        assert!(!path.exists(), "fresh web output path already exists");
         Self { path }
     }
 }

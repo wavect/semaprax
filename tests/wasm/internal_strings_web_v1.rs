@@ -263,11 +263,11 @@ fn invalid_cli_profiles_and_admission_create_no_output_and_existing_bytes_surviv
     let invalid_source = source().replace("@id(\"-web.constant\")", "@id(\"\")");
     let invalid_path = fixture.write("empty-identity.spx", &invalid_source);
     let errors = semaprax::check(&invalid_source, "empty-identity.spx").unwrap_err();
-    assert!(errors.iter().any(|error| error.code == "SPX-H006"));
+    assert!(errors.iter().any(|error| error.code == "SPX-S102"));
     // An unselected invalid identity must still fail before publication.
     let error = cli(&invalid_path, &absent, "web", &["web.content"]);
     assert!(!error.status.success());
-    assert!(String::from_utf8_lossy(&error.stderr).contains("SPX-H006"));
+    assert!(String::from_utf8_lossy(&error.stderr).contains("SPX-S102"));
     assert!(!absent.exists());
     let error = cli(&path, &absent, "web", &["missing"]);
     assert!(!error.status.success());

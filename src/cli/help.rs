@@ -250,7 +250,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -321,6 +321,64 @@ const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 /// The bytes are the repository document; `tests/documentation.rs` checks its
 /// code blocks against this compiler.
 pub(crate) const LANGUAGE_REFERENCE: &str = include_str!("../../docs/AGENT-QUICK-REFERENCE.md");
+
+const LANGUAGE_TOPICS: &[(&str, &str)] = &[
+    ("workflow", "Spend tokens on source, not on dumps"),
+    ("module", "A complete file"),
+    ("scalars", "Scalars and literals"),
+    ("control-flow", "Control flow, mutation, contracts, effects"),
+    ("records", "Records, variants, classes"),
+    ("ownership", "Ownership and resources"),
+    ("strings", "Strings and bytes"),
+    ("builtins", "Compiler-owned functions"),
+    (
+        "mistakes-code",
+        "Habits from other languages: diagnostic examples",
+    ),
+    (
+        "mistakes-index",
+        "Habits from other languages: diagnostic index",
+    ),
+    ("projects", "Projects"),
+    ("specifications", "Where the rules live"),
+];
+
+fn language_topics() -> String {
+    let width = LANGUAGE_TOPICS
+        .iter()
+        .map(|(selector, _)| selector.len())
+        .max()
+        .unwrap_or(0);
+    let mut output = String::from("Language topics:\n");
+    for (selector, heading) in LANGUAGE_TOPICS {
+        writeln!(output, "  {selector:<width$}  {heading}")
+            .expect("writing to a string cannot fail");
+    }
+    output
+}
+
+pub(crate) fn language_topic(query: &str) -> Result<String, String> {
+    if query == "topics" {
+        return Ok(language_topics());
+    }
+    let heading = LANGUAGE_TOPICS
+        .iter()
+        .find_map(|(selector, heading)| (*selector == query).then_some(*heading))
+        .ok_or_else(|| format!("language card has no exact topic `{query}`"))?;
+    let marker = format!("## {heading}\n");
+    let mut matches = LANGUAGE_REFERENCE.match_indices(&marker);
+    let start = matches
+        .next()
+        .map(|(index, _)| index)
+        .expect("every language topic must name a card heading");
+    assert!(
+        matches.next().is_none(),
+        "every language topic heading must be unique"
+    );
+    let section = &LANGUAGE_REFERENCE[start..];
+    let end = section.find("\n## ").unwrap_or(section.len());
+    Ok(section[..end].to_owned())
+}
 
 /// The generated standard-library catalog, printed by `semaprax help library`:
 /// every `std.*` declaration with its signature and contracts, so an agent can
@@ -503,11 +561,12 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
         print!("{output}");
         return Some(Ok(()));
     }
-    if args.len() == 3 && matches!(args[1].as_str(), "library" | "shapes") {
-        let result = if args[1] == "library" {
-            library_entry(&args[2])
-        } else {
-            shape_entry(&args[2])
+    if args.len() == 3 && matches!(args[1].as_str(), "language" | "library" | "shapes") {
+        let result = match args[1].as_str() {
+            "language" => language_topic(&args[2]),
+            "library" => library_entry(&args[2]),
+            "shapes" => shape_entry(&args[2]),
+            _ => unreachable!("closed scoped help catalog"),
         };
         return Some(match result {
             Ok(output) => {
@@ -520,7 +579,7 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
             }
         });
     }
-    let extra = if matches!(args[1].as_str(), "library" | "shapes") {
+    let extra = if matches!(args[1].as_str(), "language" | "library" | "shapes") {
         &args[3]
     } else {
         &args[2]
@@ -683,8 +742,8 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Help,
-                shape: "help language",
-                summary: "The language card and diagnostics",
+                shape: "help language [topic]",
+                summary: "One topic or the language card",
             },
             GuideEntry {
                 id: CommandId::Help,
@@ -1071,10 +1130,39 @@ mod tests {
     }
 
     #[test]
-    fn language_reference_is_the_repository_card() {
+    fn language_reference_and_exact_topics_are_bounded_repository_sections() {
         assert!(LANGUAGE_REFERENCE.starts_with("# Agent quick reference\n"));
         assert!(LANGUAGE_REFERENCE.contains("```semaprax\n"));
         assert!(LANGUAGE_REFERENCE.ends_with('\n'));
+        let reference_units = semaprax::agent_economics::lexical_tokens(LANGUAGE_REFERENCE);
+        assert_eq!(LANGUAGE_TOPICS.len(), 12);
+        for (selector, heading) in LANGUAGE_TOPICS {
+            let topic = language_topic(selector).unwrap();
+            assert!(topic.starts_with(&format!("## {heading}\n")), "{selector}");
+            assert!(!topic.contains("\n## "), "{selector}");
+            assert!(topic.len() <= 4_600, "{selector}: {} bytes", topic.len());
+            assert!(
+                topic.len() * 5 < LANGUAGE_REFERENCE.len(),
+                "{selector}: {}/{} bytes",
+                topic.len(),
+                LANGUAGE_REFERENCE.len()
+            );
+            let units = semaprax::agent_economics::lexical_tokens(&topic);
+            assert!(units <= 1_500, "{selector}: {units} lexical units");
+            assert!(
+                units * 5 < reference_units,
+                "{selector}: {units}/{reference_units} lexical units"
+            );
+        }
+        let topics = language_topic("topics").unwrap();
+        assert!(topics.starts_with("Language topics:\n  workflow"));
+        assert!(topics.ends_with("specifications  Where the rules live\n"));
+        assert!(topics.len() <= 768);
+        assert_eq!(topics.lines().count(), LANGUAGE_TOPICS.len() + 1);
+        assert_eq!(
+            language_topic("Scalars").unwrap_err(),
+            "language card has no exact topic `Scalars`"
+        );
     }
 
     #[test]

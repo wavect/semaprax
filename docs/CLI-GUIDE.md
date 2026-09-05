@@ -49,6 +49,15 @@ semaprax help library compare
 semaprax help library std.core.compare
 ```
 
+List the language card's stable topics or print only one compiler-checked
+section instead of transferring the complete card:
+
+```sh
+semaprax help language topics
+semaprax help language scalars
+semaprax help language ownership
+```
+
 Print every canonical declaration shape from the committed examples, or ask
 for only one exact shape. A kind returns its smallest generated exemplar;
 `path#stable-id` disambiguates identities reused by multiple examples:

@@ -23,6 +23,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   request identities and support fresh exact replay. The six focused integration
   regressions pass locally. No wire, CLI, MCP, LSP, mutation,
   publication, or frozen Project Agent Transport v5 change is claimed.
+- Added exact `semaprax help language <topic>` lookup and the bounded
+  `semaprax help language topics` selector list. An installed compiler can now
+  return one compiler-checked section of the agent quick reference without
+  transferring the whole card; every topic is guarded at more than five times
+  smaller in both bytes and repository lexical units. The `scalars` result is
+  793 bytes and 296 units versus 25,435 bytes and 7,237 units for the full card.
 - Added the developer-preview `network-command-io.v1` Project v12 profile,
   native and deterministic fixture-only npm/Web build lanes, the bounded
   `semaprax network-run --fixture` command, and a committed HTTP Project

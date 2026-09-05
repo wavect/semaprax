@@ -52,6 +52,11 @@ so it is available without the source checkout.
   grouped by task, with one-line purposes. `semaprax help all` is the 7 KB
   exhaustive catalog; use `semaprax help <command>` for one command's exact
   grammar.
+- Use `semaprax help language topics` to list the stable language-card topics,
+  then `semaprax help language <topic>` to transfer only the compiler-checked
+  section needed for the current question. Matching is exact; the full
+  `semaprax help language` card remains available when several topics are
+  needed.
 - When one canonical declaration example is enough, use `semaprax help shapes
   <kind|stable-id|path#stable-id>` instead of the full shapes catalog. Kind
   selectors return the smallest compiler-verified exemplar. The guarded
@@ -88,19 +93,18 @@ fn main() -> i64
 
 ## Scalars and literals
 
-| Type | Literal | Notes |
-| --- | --- | --- |
-| `i64` | `42`, `-1` | Default integer type; overflow is a checked failure |
-| `i32` | `42i32` | Suffix required, no implicit widening |
-| `u8` | `255u8` | Bytes |
-| `usize` | `3usize` | Lengths and indices; compare only with `usize` |
-| `f64`, `f32` | `1.5`, `1.5f32` | |
-| `bool` | `true`, `false` | `&&`, `\|\|`, `!` |
-| `char` | `'a'`, `'\n'`, `'\u{2603}'` | |
-| `string` | `"text"` | Owned UTF-8; `==` compares contents |
-| `str` | none | Borrowed view: `borrow str` parameters or `string_as_str(binding)` |
-| `[u8; N]` | `[97u8, 98u8]` | Fixed array; `array_as_slice(binding)` gives `Slice<u8>` |
-| `Bytes`, `Slice<u8>` | none | Owned bytes and a borrowed byte view |
+- `i64`: `42`, `-1`; default integer, checked overflow.
+- `i32`: `42i32`; suffix required, no implicit widening.
+- `u8`: `255u8`; byte value.
+- `usize`: `3usize`; lengths and indices; compare only with `usize`.
+- `f64`, `f32`: `1.5`, `1.5f32`.
+- `bool`: `true`, `false`; `&&`, `||`, `!`.
+- `char`: `'a'`, `'\n'`, `'\u{2603}'`.
+- `string`: `"text"`; owned UTF-8, content equality with `==`.
+- `str`: no literal; borrowed by `borrow str` or `string_as_str(binding)`.
+- `[u8; N]`: `[97u8, 98u8]`; fixed; `array_as_slice(binding)` gives
+  `Slice<u8>`.
+- `Bytes`, `Slice<u8>`: no literal; owned bytes and borrowed byte view.
 
 Operators never mix types: `n < 5` fails with `SPX-T208` when `n` is `usize`;
 write `n < 5usize`. Strings do not support `+`; use `string_concat`.
@@ -402,7 +406,7 @@ fn main() -> i64
 
 `semaprax run count.spx` prints `42`. Use `string_from_i64` for signed values.
 
-## Habits from other languages and what the compiler says
+## Habits from other languages: diagnostic examples
 
 Each block below is what an agent typically writes first. The marker names
 the diagnostic it produces; the fix is in the text after it. For parser and
@@ -535,6 +539,8 @@ fn main() -> i64
 `str_as_bytes` takes a `str` view, not an owned `string`, and `string_as_str`
 takes a binding, not a literal (`SPX-T266`):
 `let view = string_as_str(text); stdout_write(str_as_bytes(view))`.
+
+## Habits from other languages: diagnostic index
 
 Other first-attempt diagnostics and their fixes:
 

@@ -21,6 +21,21 @@ const GUIDE_HEADINGS: &[&str] = &[
     "Start a project",
     "Toolchain",
 ];
+const LANGUAGE_TOPICS: &str = concat!(
+    "Language topics:\n",
+    "  workflow        Spend tokens on source, not on dumps\n",
+    "  module          A complete file\n",
+    "  scalars         Scalars and literals\n",
+    "  control-flow    Control flow, mutation, contracts, effects\n",
+    "  records         Records, variants, classes\n",
+    "  ownership       Ownership and resources\n",
+    "  strings         Strings and bytes\n",
+    "  builtins        Compiler-owned functions\n",
+    "  mistakes-code   Habits from other languages: diagnostic examples\n",
+    "  mistakes-index  Habits from other languages: diagnostic index\n",
+    "  projects        Projects\n",
+    "  specifications  Where the rules live\n",
+);
 
 /// The command named by every indented entry of the guided overview.
 fn guide_commands(guide: &str) -> Vec<&str> {
@@ -233,6 +248,32 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert_eq!(language.stdout, card);
     assert!(language.stdout.starts_with(b"# Agent quick reference\n"));
     std::fs::remove_dir(language_dir).unwrap();
+    let (topics, topics_dir) = invoke(&["help", "language", "topics"]);
+    assert!(topics.status.success());
+    assert!(topics.stderr.is_empty());
+    assert_eq!(topics.stdout, LANGUAGE_TOPICS.as_bytes());
+    assert!(topics.stdout.len() <= 768);
+    std::fs::remove_dir(topics_dir).unwrap();
+    let (scalars, scalars_dir) = invoke(&["help", "language", "scalars"]);
+    assert!(scalars.status.success());
+    assert!(scalars.stderr.is_empty());
+    assert!(scalars.stdout.starts_with(b"## Scalars and literals\n"));
+    assert!(scalars
+        .stdout
+        .windows(b"- `u8`:".len())
+        .any(|window| window == b"- `u8`:"));
+    assert!(!scalars
+        .stdout
+        .windows(b"## Control flow".len())
+        .any(|window| window == b"## Control flow"));
+    assert!(scalars.stdout.len() <= 1_024);
+    assert!(scalars.stdout.len() * 20 < card.len());
+    let scalar_units =
+        semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&scalars.stdout).unwrap());
+    let card_units = semaprax::agent_economics::lexical_tokens(std::str::from_utf8(&card).unwrap());
+    assert!(scalar_units <= 300);
+    assert!(scalar_units * 20 < card_units);
+    std::fs::remove_dir(scalars_dir).unwrap();
     let (library, library_dir) = invoke(&["help", "library"]);
     assert!(library.status.success());
     assert!(library.stderr.is_empty());
@@ -337,7 +378,15 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
         b"standard library has no exact match for `not_a_library_function`\n"
     );
     std::fs::remove_dir(missing_library_dir).unwrap();
-    let (language_extra, language_extra_dir) = invoke(&["help", "language", "extra"]);
+    let (missing_topic, missing_topic_dir) = invoke(&["help", "language", "not-a-topic"]);
+    assert_eq!(missing_topic.status.code(), Some(2));
+    assert!(missing_topic.stdout.is_empty());
+    assert_eq!(
+        missing_topic.stderr,
+        b"language card has no exact topic `not-a-topic`\n"
+    );
+    std::fs::remove_dir(missing_topic_dir).unwrap();
+    let (language_extra, language_extra_dir) = invoke(&["help", "language", "scalars", "extra"]);
     assert_eq!(language_extra.status.code(), Some(2));
     assert!(language_extra.stdout.is_empty());
     assert_eq!(
@@ -360,6 +409,7 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 "  semaprax help <command>\n",
                 "  semaprax help all\n",
                 "  semaprax help language\n",
+                "  semaprax help language <topic|topics>\n",
                 "  semaprax help library\n",
                 "  semaprax help library <module|name|stable-id>\n",
                 "  semaprax help shapes\n",

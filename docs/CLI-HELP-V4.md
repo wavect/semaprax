@@ -33,7 +33,7 @@ static, source-owned guide:
   `test`, `build`), `Inspect meaning` (`graph`, `context`, `doc`, `query`), `Change by
   meaning` (`patch`, `impact`, `review`, `verify`), `Agents` (`agent inspect`),
   `Start a project` (`new`, `project-scaffold`), and `Toolchain` (`doctor`,
-  `version`, `help <command>`, `help all`, `help language`, `help library`,
+  `version`, `help <command>`, `help all`, `help language [topic]`, `help library`,
   `help shapes`);
 - each entry is an abbreviated command shape, padded to one column, followed
   by a one-line purpose;
@@ -67,18 +67,19 @@ Usage:
   semaprax help <command>
   semaprax help all
   semaprax help language
+  semaprax help language <topic|topics>
   semaprax help library
   semaprax help library <module|name|stable-id>
   semaprax help shapes
   semaprax help shapes <kind|stable-id|path#stable-id>
 ```
 
-`all` is not a command. A third token in any help form, including
-`semaprax help all extra`, is an extra operand: it exits two, emits no stdout,
-and names that operand in a precise `help accepts exactly one operand`
-diagnostic. `semaprax all` and other placements retain the ordinary
-unknown-command behavior. The typo suggestion and hidden-command refusal are
-otherwise unchanged in bytes and status.
+`all` is not a command. An operand beyond one of the admitted shapes, including
+`semaprax help all extra` or `semaprax help language scalars extra`, exits two,
+emits no stdout, and names that operand in a precise
+`help accepts exactly one operand` diagnostic. `semaprax all` and other
+placements retain the ordinary unknown-command behavior. The typo suggestion
+and hidden-command refusal are otherwise unchanged in bytes and status.
 
 ## Language card
 
@@ -89,11 +90,31 @@ An agent or developer working from an installed compiler, without the source
 checkout, can read the admitted shapes, the diagnostics that habits from other
 languages trigger, and their fixes offline. The document's own gate checks its
 code blocks against the compiler, so the card cannot describe syntax the
-binary rejects. Scoped help for `help` lists all seven shapes.
+binary rejects.
+
+`semaprax help language <topic|topics>` is the fourth shape. `topics` returns
+the closed stable selector list and its card headings. The exact,
+case-sensitive topic selectors are `workflow`, `module`, `scalars`,
+`control-flow`, `records`, `ownership`, `strings`, `builtins`,
+`mistakes-code`, `mistakes-index`, `projects`, and `specifications`. A selector
+returns exactly its complete `##` section, including the heading, from the same
+compiled card; it cannot drift from or reinterpret the compiler-checked
+document. It never includes the next section. No match exits two, emits no
+stdout, and reports the literal diagnostic “language card has no exact topic
+`<selector>`” on stderr. No fuzzy, prefix, heading, or case-folded matching is
+admitted.
+
+The topic inventory is capped at 768 bytes. Every topic is capped at 4,600
+bytes and 1,500 repository lexical units and must remain more than five times
+smaller than the full card in both measures. The guarded `scalars` section is
+also capped at 1,024 bytes and 300 units and must remain more than twenty times
+smaller in both measures. The current card is 25,435 bytes and 7,237 units;
+`scalars` is 793 bytes and 296 units, while the topic inventory is 569 bytes
+and 77 units. Scoped help for `help` lists all eight shapes.
 
 ## Standard-library catalog
 
-`semaprax help library` is the fourth `help` shape. For either executable it
+`semaprax help library` is the fifth `help` shape. For either executable it
 returns status zero, empty stderr, and exactly the bytes of the repository's
 generated [standard library catalog](STANDARD-LIBRARY-CATALOG.md), compiled
 into the binary: every `std.*` declaration with its signature, effects, and
@@ -101,7 +122,7 @@ contracts. `tests/project.rs::standard_library` regenerates that document from
 `std/` and pins it, so the printed catalog cannot list a function the compiler
 does not ship.
 
-`semaprax help library <module|name|stable-id>` is the fifth shape and uses the
+`semaprax help library <module|name|stable-id>` is the sixth shape and uses the
 generated `std/catalog.json` from that same gate. Matching is exact and
 case-sensitive. A module identity returns its declarations in catalog order;
 a declaration name or persistent identity returns every exact match in that
@@ -122,7 +143,7 @@ remains unchanged.
 
 ## Language shapes catalog
 
-`semaprax help shapes` is the sixth `help` shape. For either executable it
+`semaprax help shapes` is the seventh `help` shape. For either executable it
 returns status zero, empty stderr, and exactly the bytes of the repository's
 generated [language shapes catalog](LANGUAGE-SHAPES-CATALOG.md), compiled into
 the binary: every declaration of every committed example, grouped by kind,
@@ -131,7 +152,7 @@ with its `@id` and canonical header as the `semaprax doc` model renders it.
 `examples/` and pins it, so the printed shapes are exactly the ones the
 compiler verifies.
 
-`semaprax help shapes <kind|stable-id|path#stable-id>` is the seventh shape and
+`semaprax help shapes <kind|stable-id|path#stable-id>` is the eighth shape and
 uses the generated `docs/LANGUAGE-SHAPES-CATALOG.json` companion from the same
 gate. Matching is exact and case-sensitive. A declaration kind returns the
 canonical exemplar with the fewest repository lexical units, then fewest
@@ -163,11 +184,12 @@ The standalone and full-toolchain help harnesses prove: the guided page's
 banner, byte bound, group headings, capability filtering, and that each guided
 entry resolves to a scoped-help command; `help all` byte structure, ordering,
 and capability filtering for both executables; that every `help all` line still
-has exact scoped help; all seven `help` grammar lines; both full generated
-catalogs' byte identities; exact name, stable-ID, module, path-disambiguation,
+has exact scoped help; all eight `help` grammar lines; the full language-card
+and both generated catalogs' byte identities; exact topic inventory and
+section boundaries; exact name, stable-ID, module, path-disambiguation,
 kind-exemplar, missing-selector, and token-economics behavior for scoped
-catalog lookup; malformed extra operands; and empty working directories with
-no created entries.
+lookups; malformed extra operands; and empty working directories with no
+created entries.
 
 ## Nonclaims
 

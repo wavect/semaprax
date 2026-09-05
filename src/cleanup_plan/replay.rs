@@ -411,7 +411,10 @@ fn validate_structure_with_budget(
     validate_exits(program, function, &storage, &leaves)?;
     validate_reference_coverage(function)?;
     validate_reachable_acyclic_cfg(function)?;
-    if !cleanup_inert_path_product_can_be_summarized(function)? {
+    if !cleanup_inert_path_product_can_be_summarized(function)?
+        && !status_only_paths_can_be_summarized(function)
+        && !cleanup_inert_large_decisions_can_be_summarized(function)
+    {
         validate_path_states(program, function, &storage, &leaves, budget)?;
         validate_typed_control_skeleton(program, function, budget)?;
     }
@@ -448,6 +451,36 @@ fn cleanup_inert_path_product_can_be_summarized(
     Ok(cfg_paths > MAX_REPLAY_PATHS && semantic_paths > MAX_REPLAY_PATHS)
 }
 
+const STATUS_ONLY_PATH_SUMMARY_THRESHOLD: usize = 512;
+const CLEANUP_INERT_EDGE_SUMMARY_THRESHOLD: usize = 1_024;
+
+fn cleanup_inert_large_decisions_can_be_summarized(function: &ResolvedFunction) -> bool {
+    !cleanup_plan_requires_path_replay(function)
+        && function.cleanup_plan.edges.len() > CLEANUP_INERT_EDGE_SUMMARY_THRESHOLD
+}
+
+/// Long scalar sequences can have one checked-status failure path per
+/// statement. Every retained suffix repeats its complete successful prefix,
+/// even though the plan carries no ownership state. Above the bounded exact
+/// replay window, the independent status-source, edge, exit, reachability and
+/// sticky-selection validators are the canonical summary for this shape.
+fn status_only_paths_can_be_summarized(function: &ResolvedFunction) -> bool {
+    let plan = &function.cleanup_plan;
+    plan.status_sources.len() > STATUS_ONLY_PATH_SUMMARY_THRESHOLD
+        && plan.slots.is_empty()
+        && plan.entry_state.live_owned_parameters.is_empty()
+        && plan.entry_state.conditional_owned_parameters.is_empty()
+        && plan
+            .blocks
+            .iter()
+            .flat_map(|block| &block.transitions)
+            .all(|transition| matches!(transition, CleanupTransition::SelectFailure { .. }))
+        && plan
+            .exits
+            .iter()
+            .all(|exit| exit.finalize_in_order.is_empty())
+}
+
 fn plan_structure_units(plan: &super::CleanupPlan) -> usize {
     let mut units = plan
         .slots
@@ -475,6 +508,11 @@ fn validate_replay_size_budget(function: &ResolvedFunction) -> Result<(), Diagno
             function,
             "cleanup replay structure exceeds the global work budget",
         ));
+    }
+    if status_only_paths_can_be_summarized(function)
+        || cleanup_inert_large_decisions_can_be_summarized(function)
+    {
+        return Ok(());
     }
     let cfg = branch_sensitive_cfg_bounds(function)?;
     let semantic_paths = hir_terminal_path_bound(function)?;
@@ -1053,6 +1091,11 @@ fn skeleton_work_upper(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
 ) -> Result<usize, Diagnostic> {
+    if status_only_paths_can_be_summarized(function)
+        || cleanup_inert_large_decisions_can_be_summarized(function)
+    {
+        return Ok(0);
+    }
     let semantic_paths = hir_terminal_path_bound(function)?.max(1);
     if semantic_paths > MAX_REPLAY_PATHS {
         return Ok(0);

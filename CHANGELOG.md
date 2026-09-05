@@ -58,6 +58,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Cleanup replay now validates long scalar checked-status sequences through
+  bounded status-source/edge/exit summaries instead of cloning every failed
+  path's successful prefix, eliminating quadratic replay memory and preflight
+  rejection for large straight-line functions.
+
 - Cleanup replay now recognizes decision-only CFGs with no cleanup state and
   validates them structurally without enumerating every lazy-boolean outcome,
   so ordinary long `&&`/`||` chains no longer hit the path budget.

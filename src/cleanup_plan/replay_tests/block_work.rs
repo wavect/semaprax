@@ -13,7 +13,8 @@ fn source(statements: usize, literal: &str) -> String {
 
 fn checked(statements: usize, literal: &str) -> crate::ast::Program {
     let parsed = parse(&source(statements, literal), Path::new("block-work.spx")).unwrap();
-    assert!(crate::verify::verify(&parsed).is_empty());
+    let diagnostics = crate::verify::verify(&parsed);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
     parsed
 }
 
@@ -214,6 +215,48 @@ fn cleanup_inert_lazy_boolean_decisions_do_not_enumerate_outcome_products() {
     hir::validate(&program).unwrap();
     assert!(!cleanup_plan_requires_path_replay(&program.functions[0]));
     assert!(cleanup_inert_path_product_can_be_summarized(&program.functions[0]).unwrap());
+}
+
+#[test]
+fn long_status_only_statement_sequences_use_bounded_summary_replay() {
+    let mut source = String::from(
+        "module test.status_summary;\n@id(\"work.main\") fn main() -> i64 {\nlet v0 = 1;\n",
+    );
+    for index in 1..2_000 {
+        writeln!(source, "let v{index} = v{} + 1;", index - 1).unwrap();
+    }
+    source.push_str("v1999\n}\n");
+    let parsed = parse(&source, Path::new("status-summary.spx")).unwrap();
+    assert!(crate::verify::verify(&parsed).is_empty());
+    let program = hir::resolve(&parsed).unwrap();
+    hir::validate(&program).unwrap();
+    let function = &program.functions[0];
+    assert!(function.cleanup_plan.status_sources.len() > STATUS_ONLY_PATH_SUMMARY_THRESHOLD);
+    assert!(status_only_paths_can_be_summarized(function));
+    assert_eq!(skeleton_work_upper(&program, function).unwrap(), 0);
+}
+
+#[test]
+fn wide_cleanup_inert_match_uses_bounded_decision_summary() {
+    let mut source = String::from(
+        "module test.match_summary;\n@id(\"work.select\") fn select(value: i64) -> i64 {\nmatch value { ",
+    );
+    for index in 0..700 {
+        write!(source, "{index} => {index}, ").unwrap();
+    }
+    source.push_str("_ => 0, }\n}\n@id(\"app.main\") fn main() -> i64 { select(3) }\n");
+    let parsed = parse(&source, Path::new("match-summary.spx")).unwrap();
+    let diagnostics = crate::verify::verify(&parsed);
+    assert!(diagnostics.is_empty(), "{diagnostics:?}");
+    let program = hir::resolve(&parsed).unwrap();
+    hir::validate(&program).unwrap();
+    let function = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "work.select")
+        .unwrap();
+    assert!(cleanup_inert_large_decisions_can_be_summarized(function));
+    assert_eq!(skeleton_work_upper(&program, function).unwrap(), 0);
 }
 
 #[test]

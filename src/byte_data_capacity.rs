@@ -1137,3 +1137,6 @@ fn invariant(function: Option<&str>, detail: impl Into<String>) -> CapacityError
         detail: detail.into(),
     }
 }
+
+#[cfg(test)]
+mod tests;

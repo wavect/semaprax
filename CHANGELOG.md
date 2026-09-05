@@ -21,6 +21,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Reference-interpreter frames now use indexed binding slots instead of
+  reverse linear scans. Interned `ValueId` handles also make executed `let`
+  binding insertion allocation-free after HIR construction; scalar reads keep
+  their existing by-value copy path. The runtime loop is retained in the
+  Criterion interpreter benchmark as a regression gate.
 - Single-file `semaprax run` now executes `app.main` through the bounded
   reference interpreter, accepts `--json`, `--max-steps`, and `--max-bytes`,
   and automatically admits the exact bounded stdout-transcript profile. The

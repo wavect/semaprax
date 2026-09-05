@@ -172,11 +172,11 @@ fn main() -> i64 { helper(1) }
         assert_nul_rejected(&program, "expression");
 
         let mut program = original.clone();
-        program.functions[helper_index].params[0].id = ValueId("value\0forged".to_owned());
+        program.functions[helper_index].params[0].id = ValueId::new("value\0forged".to_owned());
         assert_nul_rejected(&program, "parameter value");
 
         let mut program = original;
-        program.functions[helper_index].result_id = ValueId("result\0forged".to_owned());
+        program.functions[helper_index].result_id = ValueId::new("result\0forged".to_owned());
         assert_nul_rejected(&program, "result value");
     }
 
@@ -220,7 +220,7 @@ fn main() -> i64 { helper(1) }
         else {
             panic!("helper must return a place")
         };
-        place.root = ValueId("place\0forged".to_owned());
+        place.root = ValueId::new("place\0forged".to_owned());
         assert_nul_rejected(&program, "place root");
 
         let mut program = original.clone();
@@ -276,7 +276,7 @@ fn main() -> i64 { helper(1) }
         else {
             panic!("discard must own parameter storage")
         };
-        *value = ValueId("inventory\0forged".to_owned());
+        *value = ValueId::new("inventory\0forged".to_owned());
         assert_nul_rejected(&program, "inventory value");
 
         let mut program = original.clone();
@@ -658,7 +658,7 @@ fn main() -> i64 { 0 }
     let super::ResolvedExprKind::Place(place) = &mut value.kind else {
         panic!("fixture slice alias is a place");
     };
-    place.root = super::ValueId("hostile.missing-root".to_owned());
+    place.root = super::ValueId::new("hostile.missing-root".to_owned());
     let error =
         super::link_useful_data_workspace(resolved.module, entrypoint, hostile).unwrap_err();
     assert_eq!(error.code, "SPX-H006");

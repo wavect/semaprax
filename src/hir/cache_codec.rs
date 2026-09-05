@@ -1,11 +1,19 @@
 //! Complete private checked-module wire carriers. Access stays behind the
 //! authenticated cache owner; this module grants no source or backend authority.
 use super::*;
-use crate::cache_codec::{codec_enum, codec_struct, codec_tuple};
+use crate::cache_codec::{codec_enum, codec_struct, codec_tuple, Codec, Decoder, Encoder};
 
 codec_tuple!(DeclarationId(0));
 codec_tuple!(FunctionInstanceId(0));
-codec_tuple!(ValueId(0));
+impl Codec for ValueId {
+    fn encode(&self, encoder: &mut Encoder) -> crate::cache_codec::Result<()> {
+        self.as_str().to_owned().encode(encoder)
+    }
+
+    fn decode(decoder: &mut Decoder<'_>) -> crate::cache_codec::Result<Self> {
+        String::decode(decoder).map(Self::new)
+    }
+}
 codec_tuple!(ExpressionId(0));
 codec_enum!(FunctionExecutionId {0=>Monomorphic(value),1=>Generic(value)});
 codec_enum!(DeclarationKind {0=>Resource,1=>ResourceDrop,2=>Record,3=>Field,4=>Class,5=>Variant,6=>VariantCase,7=>CaseField,8=>Interface,9=>Import,10=>Function});

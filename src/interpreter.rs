@@ -70,7 +70,7 @@ pub(crate) use resolved_case::evaluate_resolved_zero_arg_i64_function;
 
 use expression_children::child_expressions;
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -3686,7 +3686,83 @@ fn normalize_byte_range(code: u32) -> NormalizedStatus {
     .expect("compiler-owned byte range status table is valid")
 }
 
-type Environment = Vec<(ValueId, Value)>;
+/// One call frame with constant-time binding lookup.
+///
+/// Resolved value identities are unique within a live frame. Blocks truncate
+/// their suffix in structural order, so the index never needs to search or
+/// rebuild the retained prefix.
+struct Environment {
+    bindings: Vec<(ValueId, Value)>,
+    slots: HashMap<ValueId, usize>,
+}
+
+impl From<Vec<(ValueId, Value)>> for Environment {
+    fn from(bindings: Vec<(ValueId, Value)>) -> Self {
+        let slots = bindings
+            .iter()
+            .enumerate()
+            .map(|(index, (id, _))| (id.clone(), index))
+            .collect();
+        Self { bindings, slots }
+    }
+}
+
+impl Environment {
+    fn len(&self) -> usize {
+        self.bindings.len()
+    }
+
+    fn push(&mut self, binding: (ValueId, Value)) {
+        let index = self.bindings.len();
+        let previous = self.slots.insert(binding.0.clone(), index);
+        debug_assert!(previous.is_none(), "resolved frame identities are unique");
+        self.bindings.push(binding);
+    }
+
+    fn extend(&mut self, bindings: impl IntoIterator<Item = (ValueId, Value)>) {
+        for binding in bindings {
+            self.push(binding);
+        }
+    }
+
+    fn pop(&mut self) -> Option<(ValueId, Value)> {
+        let binding = self.bindings.pop()?;
+        self.slots.remove(&binding.0);
+        Some(binding)
+    }
+
+    fn truncate(&mut self, length: usize) {
+        while self.bindings.len() > length {
+            let _ = self.pop();
+        }
+    }
+
+    fn get(&self, id: &ValueId) -> Option<&Value> {
+        self.slots
+            .get(id)
+            .and_then(|index| self.bindings.get(*index))
+            .map(|(_, value)| value)
+    }
+
+    fn binding(&self, id: &ValueId) -> Option<&(ValueId, Value)> {
+        self.slots
+            .get(id)
+            .and_then(|index| self.bindings.get(*index))
+    }
+
+    fn get_mut(&mut self, id: &ValueId) -> Option<&mut Value> {
+        let index = *self.slots.get(id)?;
+        self.bindings.get_mut(index).map(|(_, value)| value)
+    }
+
+    fn iter(&self) -> impl DoubleEndedIterator<Item = &(ValueId, Value)> {
+        self.bindings.iter()
+    }
+
+    fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut (ValueId, Value)> {
+        self.bindings.iter_mut()
+    }
+}
 
 enum FunctionLookup<'a> {
     Borrowed(&'a BTreeMap<&'a str, &'a ResolvedFunction>),
@@ -3901,11 +3977,7 @@ impl Evaluator<'_> {
     }
 
     fn lookup(&mut self, environment: &Environment, root: &ValueId) -> Result<Option<Value>, Flow> {
-        let value = environment
-            .iter()
-            .rev()
-            .find(|(key, _)| key == root)
-            .map(|(_, value)| value);
+        let value = environment.get(root);
         match value {
             Some(Value::Moved) | None => Ok(None),
             Some(value) => self.clone_value(value).map(Some),
@@ -3957,9 +4029,7 @@ impl Evaluator<'_> {
         };
         if !place.projections.is_empty() {
             let root_ty = environment
-                .iter()
-                .rev()
-                .find(|(id, _)| id == &place.root)
+                .binding(&place.root)
                 .and_then(|(_, value)| match value {
                     Value::Record(record) => Some(ResolvedType::Nominal {
                         declaration: record.record.clone(),
@@ -4113,7 +4183,7 @@ impl Evaluator<'_> {
         values: Vec<(ValueId, Value)>,
         depth: usize,
     ) -> Result<Value, Flow> {
-        let mut frame: Environment = values;
+        let mut frame = Environment::from(values);
         self.set_trace_phase(ResolvedTracePhase::Requires);
         for (index, clause) in function.requires.iter().enumerate() {
             self.charge()?;
@@ -4825,12 +4895,7 @@ impl Evaluator<'_> {
                         ResolvedStatement::Assign { binding, value, .. } => {
                             match self.evaluate(value, environment, depth) {
                                 Ok(value) => {
-                                    let Some(slot) = environment
-                                        .iter_mut()
-                                        .rev()
-                                        .find(|(key, _)| *key == binding.id)
-                                        .map(|(_, slot)| slot)
-                                    else {
+                                    let Some(slot) = environment.get_mut(&binding.id) else {
                                         interrupted =
                                             Some(Flow::Guard("assignment to an unknown binding"));
                                         break;
@@ -6002,7 +6067,7 @@ mod tests {
             allocation: 2,
             bytes: Arc::from([3u8].as_slice()),
         };
-        let mut environment = vec![(
+        let mut environment = Environment::from(vec![(
             root.clone(),
             Value::Record(Arc::new(OwnedRecordValue {
                 record: hir::DeclarationId::new("test.packet"),
@@ -6011,7 +6076,7 @@ mod tests {
                     (right.clone(), Value::Bytes(right_value.clone())),
                 ]),
             })),
-        )];
+        )]);
         let moved = take_owned_place(
             &mut environment,
             &hir::Place {
@@ -6021,7 +6086,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(moved, Value::Bytes(left_value));
-        let Value::Record(record) = &environment[0].1 else {
+        let Value::Record(record) = environment.get(&root).unwrap() else {
             panic!("parent record must remain present");
         };
         assert!(matches!(record.fields.get(&left), Some(Value::Moved)));

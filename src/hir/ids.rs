@@ -5,6 +5,8 @@
 
 use std::fmt;
 use std::fmt::Write as _;
+use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 use super::nodes::ResolvedType;
 
@@ -104,31 +106,35 @@ impl fmt::Display for FunctionInstanceId {
     }
 }
 
-#[derive(Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct ValueId(pub(super) String);
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct ValueId(pub(super) Arc<str>, u64);
 
 impl ValueId {
+    pub(super) fn new(value: String) -> Self {
+        let value = exact_string(value);
+        let fingerprint = value.bytes().fold(0xcbf29ce484222325u64, |hash, byte| {
+            (hash ^ u64::from(byte)).wrapping_mul(0x100000001b3)
+        });
+        Self(Arc::from(value), fingerprint)
+    }
+
     /// Synthetic identity for one compiler-owned intrinsic operation
     /// parameter; intrinsic operations have no authored declaration, so the
     /// identity only labels diagnostics and never indexes a binding.
     pub(crate) fn intrinsic_parameter(operation: &str, index: usize) -> Self {
-        Self(exact_string(format!("{operation}.param.{index}")))
+        Self::new(format!("{operation}.param.{index}"))
     }
 
     pub(super) fn parameter(function: &FunctionExecutionId, index: usize) -> Self {
-        Self(exact_string(scoped_identity(
-            function,
-            "value:param",
-            &index.to_string(),
-        )))
+        Self::new(scoped_identity(function, "value:param", &index.to_string()))
     }
 
     pub(super) fn local(function: &FunctionExecutionId, path: &str) -> Self {
-        Self(exact_string(scoped_identity(function, "value:local", path)))
+        Self::new(scoped_identity(function, "value:local", path))
     }
 
     pub(super) fn result(function: &FunctionExecutionId) -> Self {
-        Self(exact_string(scoped_identity(function, "value:result", "")))
+        Self::new(scoped_identity(function, "value:result", ""))
     }
 
     pub fn as_str(&self) -> &str {
@@ -136,9 +142,9 @@ impl ValueId {
     }
 }
 
-impl Clone for ValueId {
-    fn clone(&self) -> Self {
-        Self(exact_string(self.0.clone()))
+impl Hash for ValueId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        state.write_u64(self.1);
     }
 }
 

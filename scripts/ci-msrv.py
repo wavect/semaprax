@@ -53,15 +53,16 @@ def plan(metadata, excluded_packages=()):
             # Bench targets are for `cargo bench` (criterion) and are not
             # part of `cargo test` sharding; they are inventoried but not
             # routed to a test shard.
-            if kind not in (["lib"], ["bin"], ["test"], ["bench"]):
+            if kind not in (["lib"], ["bin"], ["test"], ["bench"], ["custom-build"]):
                 raise ValueError(f"unrouted target kind: {kind}")
             key = (package["id"], kind[0], target["name"])
             if key in seen:
                 raise ValueError(f"duplicate workspace target: {key}")
             seen.add(key)
-            # Only test-related kinds are part of `cargo test` inventory;
-            # bench is inventoried for completeness but excluded from shards
-            # (it is run via `cargo bench --benches` separately).
+            # Build scripts are routed with the unit shard because `cargo test
+            # --lib --bins` builds them automatically. Bench is inventoried for
+            # completeness but excluded from shards (it is run separately via
+            # `cargo bench --benches`).
             if kind == ["bench"]:
                 continue
             targets.append(dict(package=key[0], kind=key[1], name=key[2]))

@@ -1052,11 +1052,7 @@ fn emit_resolved_module_internal(
     );
     let contract_fail = intern_type(
         Signature {
-            params: if !has_public_profile {
-                vec![]
-            } else {
-                vec![I32]
-            },
+            params: vec![I32],
             results: vec![],
         },
         &mut types,
@@ -1641,7 +1637,7 @@ fn emit_resolved_module_internal(
                 &layout,
                 None,
             )?;
-            emit_contract_guard(&mut body, has_public_profile.then_some(1));
+            emit_contract_guard(&mut body, Some(1));
         }
         emit_expr(
             &mut body,
@@ -1662,7 +1658,7 @@ fn emit_resolved_module_internal(
                 &layout,
                 None,
             )?;
-            emit_contract_guard(&mut body, has_public_profile.then_some(2));
+            emit_contract_guard(&mut body, Some(2));
         }
         body.push(0x20);
         write_u32(&mut body, result_local);
@@ -3011,26 +3007,6 @@ fn scalar_profile_runtime(wasm_sha256: &str) -> String {
             ),
         )
         .replace("export const imports =", "const imports =")
-        .replace(
-            "const SPX_RUNTIME_TAG_ALLOCATOR_KEY =",
-            "class SpxSemanticFailure extends Error {\n  constructor(domainId, code) { super(\"SEMAPRAX semantic failure\"); this.domainId = domainId; this.code = code; }\n}\nexport function semanticStatus(error) {\n  return error instanceof SpxSemanticFailure\n    ? Object.freeze({ schema: \"semaprax.status.v1\", domain_id: error.domainId, code: error.code })\n    : null;\n}\nconst SPX_RUNTIME_TAG_ALLOCATOR_KEY =",
-        )
-        .replace(
-            "throw new RangeError(`SEMAPRAX checked arithmetic failure: ${operation}`);",
-            "throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", ({ \"addition overflow\": 1, \"subtraction overflow\": 2, \"multiplication overflow\": 3, \"negation overflow\": 8 })[operation]);",
-        )
-        .replace(
-            "if (b === 0n || (a === SPX_MIN && b === -1n)) throw new RangeError(\"SEMAPRAX checked arithmetic failure: invalid division\");",
-            "if (b === 0n) throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", 4);\n      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", 5);",
-        )
-        .replace(
-            "if (b === 0n || (a === SPX_MIN && b === -1n)) throw new RangeError(\"SEMAPRAX checked arithmetic failure: invalid remainder\");",
-            "if (b === 0n) throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", 6);\n      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure(\"semaprax.arithmetic.v1\", 7);",
-        )
-        .replace(
-            "spx_contract_fail: () => { throw new Error(\"SEMAPRAX contract failure\"); },",
-            "spx_contract_fail: code => { throw new SpxSemanticFailure(\"semaprax.contract.v1\", code); },",
-        )
 }
 
 fn scalar_bindings(plans: &[scalar_exports::ScalarExportPlan], wasm_sha256: &str) -> String {
@@ -3595,7 +3571,7 @@ fn emit_expr(
                     output.push(0x41);
                     write_i64(output, i32::MIN as i64);
                     output.push(0x46);
-                    emit_unreachable_trap(output);
+                    emit_arithmetic_failure_if(output, aggregate::STATUS_NEG_OVERFLOW);
                     output.push(0x42);
                     write_i64(output, 0);
                     local_get(output, wide);
@@ -3774,7 +3750,7 @@ fn emit_expr(
                     output.push(0x20);
                     write_u32(output, right_scratch);
                     output.push(0x45);
-                    emit_failure_trap(output);
+                    emit_arithmetic_failure_if(output, aggregate::STATUS_DIV_ZERO);
                     output.push(0x20);
                     write_u32(output, left_scratch);
                     output.push(0x20);
@@ -3798,7 +3774,15 @@ fn emit_expr(
                 output.push(0x41);
                 write_i64(output, 255);
                 output.push(0x4b);
-                emit_failure_trap(output);
+                emit_arithmetic_failure_if(
+                    output,
+                    match op {
+                        BinaryOp::Add => aggregate::STATUS_ADD_OVERFLOW,
+                        BinaryOp::Sub => aggregate::STATUS_SUB_OVERFLOW,
+                        BinaryOp::Mul => aggregate::STATUS_MUL_OVERFLOW,
+                        _ => unreachable!("u8 arithmetic operation was matched above"),
+                    },
+                );
                 output.push(0x20);
                 write_u32(output, left_scratch);
                 return Ok(());
@@ -3837,7 +3821,7 @@ fn emit_expr(
                         output.push(0x20);
                         write_u32(output, left_scratch);
                         output.push(0x54); // i64.lt_u(result, left)
-                        emit_failure_trap(output);
+                        emit_arithmetic_failure_if(output, aggregate::STATUS_ADD_OVERFLOW);
                         output.push(0x20);
                         write_u32(output, right_scratch);
                     }
@@ -3847,7 +3831,7 @@ fn emit_expr(
                         output.push(0x20);
                         write_u32(output, right_scratch);
                         output.push(0x54); // i64.lt_u(left, right)
-                        emit_failure_trap(output);
+                        emit_arithmetic_failure_if(output, aggregate::STATUS_SUB_OVERFLOW);
                         output.push(0x20);
                         write_u32(output, left_scratch);
                         output.push(0x20);
@@ -3868,7 +3852,7 @@ fn emit_expr(
                         write_u32(output, right_scratch);
                         output.push(0x80); // i64.div_u
                         output.push(0x56); // i64.gt_u
-                        emit_failure_trap(output);
+                        emit_arithmetic_failure_if(output, aggregate::STATUS_MUL_OVERFLOW);
                         output.push(0x0b); // end overflow check
                         output.push(0x20);
                         write_u32(output, left_scratch);
@@ -3880,7 +3864,14 @@ fn emit_expr(
                         output.push(0x20);
                         write_u32(output, right_scratch);
                         output.push(0x50);
-                        emit_failure_trap(output);
+                        emit_arithmetic_failure_if(
+                            output,
+                            if *op == BinaryOp::Div {
+                                aggregate::STATUS_DIV_ZERO
+                            } else {
+                                aggregate::STATUS_REM_ZERO
+                            },
+                        );
                         output.push(0x20);
                         write_u32(output, left_scratch);
                         output.push(0x20);
@@ -4389,10 +4380,31 @@ fn local_set(output: &mut impl ByteOutput, index: u32) {
     write_u32(output, index);
 }
 
-/// An `if (condition) unreachable` block: the core-module failure channel for
-/// detected i32 arithmetic overflow, which has no status local in this lane.
-fn emit_unreachable_trap(output: &mut impl ByteOutput) {
-    output.extend_bytes(&[0x04, 0x40, 0x00, 0x0b]);
+/// Raise one typed arithmetic status through the existing scalar import set.
+/// The canonical operands deterministically force the selected import to fail;
+/// `unreachable` remains only a fail-closed fallback for a hostile raw host
+/// that returns instead of honoring the checked-arithmetic import contract.
+fn emit_arithmetic_failure_if(output: &mut impl ByteOutput, status: i32) {
+    output.extend_bytes(&[0x04, 0x40]);
+    let (import, left, right) = match status {
+        aggregate::STATUS_ADD_OVERFLOW => (0, i64::MAX, Some(1)),
+        aggregate::STATUS_SUB_OVERFLOW => (1, i64::MIN, Some(1)),
+        aggregate::STATUS_MUL_OVERFLOW => (2, i64::MAX, Some(2)),
+        aggregate::STATUS_DIV_ZERO => (3, 1, Some(0)),
+        aggregate::STATUS_DIV_OVERFLOW => (3, i64::MIN, Some(-1)),
+        aggregate::STATUS_REM_ZERO => (4, 1, Some(0)),
+        aggregate::STATUS_REM_OVERFLOW => (4, i64::MIN, Some(-1)),
+        aggregate::STATUS_NEG_OVERFLOW => (5, i64::MIN, None),
+        _ => unreachable!("arithmetic failure status is compiler-owned"),
+    };
+    output.push(0x42);
+    write_i64(output, left);
+    if let Some(right) = right {
+        output.push(0x42);
+        write_i64(output, right);
+    }
+    call_import(output, import);
+    output.extend_bytes(&[0x1a, 0x00, 0x0b]);
 }
 
 /// Inline checked i32 arithmetic without new host imports. Operands widen to
@@ -4447,8 +4459,15 @@ fn emit_i32_checked_binary(
             local_set(output, wide);
             local_get(output, other);
             output.push(0x50);
-            emit_unreachable_trap(output);
-            if op == BinaryOp::Div {
+            emit_arithmetic_failure_if(
+                output,
+                if op == BinaryOp::Div {
+                    aggregate::STATUS_DIV_ZERO
+                } else {
+                    aggregate::STATUS_REM_ZERO
+                },
+            );
+            if matches!(op, BinaryOp::Div | BinaryOp::Rem) {
                 local_get(output, wide);
                 output.push(0xa7);
                 output.push(0x41);
@@ -4460,7 +4479,14 @@ fn emit_i32_checked_binary(
                 write_i64(output, -1);
                 output.push(0x46);
                 output.push(0x71);
-                emit_unreachable_trap(output);
+                emit_arithmetic_failure_if(
+                    output,
+                    if op == BinaryOp::Div {
+                        aggregate::STATUS_DIV_OVERFLOW
+                    } else {
+                        aggregate::STATUS_REM_OVERFLOW
+                    },
+                );
             }
             local_get(output, wide);
             local_get(output, other);
@@ -4476,7 +4502,15 @@ fn emit_i32_checked_binary(
         local_get(output, wide);
         output.push(0x51);
         output.push(0x45);
-        emit_unreachable_trap(output);
+        emit_arithmetic_failure_if(
+            output,
+            match op {
+                BinaryOp::Add => aggregate::STATUS_ADD_OVERFLOW,
+                BinaryOp::Sub => aggregate::STATUS_SUB_OVERFLOW,
+                BinaryOp::Mul => aggregate::STATUS_MUL_OVERFLOW,
+                _ => unreachable!("i32 arithmetic operation was matched above"),
+            },
+        );
     }
     local_get(output, wide);
     output.push(0xa7);
@@ -4570,16 +4604,6 @@ pub(crate) fn needs_i32_wide_scratch(expression: &ResolvedExpr) -> bool {
         }
     }
     false
-}
-
-/// One deterministic checked-arithmetic failure trap: an empty void `if`
-/// block whose body is `unreachable`. Callers keep live values in scratch
-/// locals because the polymorphic block taints the operand stack.
-fn emit_failure_trap(output: &mut impl ByteOutput) {
-    output.push(0x04);
-    output.push(0x40);
-    output.push(0x00);
-    output.push(0x0b);
 }
 
 /// Whether an expression contains checked u8 arithmetic that needs the
@@ -4814,6 +4838,14 @@ const SPX_MAX_DYNAMIC_STATUS = 0x7ffffffe;
 const SPX_EXHAUSTED_STATUS = 0x7fffffff;
 const SPX_OWNED_EXPORTS = __SEMAPRAX_OWNED_EXPORTS__;
 const SPX_WASM_SHA256 = "__SEMAPRAX_WASM_SHA256__";
+class SpxSemanticFailure extends Error {
+  constructor(domainId, code) { super("SEMAPRAX semantic failure"); this.domainId = domainId; this.code = code; }
+}
+export function semanticStatus(error) {
+  return error instanceof SpxSemanticFailure
+    ? Object.freeze({ schema: "semaprax.status.v1", domain_id: error.domainId, code: error.code })
+    : null;
+}
 const SPX_RUNTIME_TAG_ALLOCATOR_KEY = Symbol.for("semaprax.wasm-owned.runtime-tags.v1");
 const spxLocalRuntimeTags = new Set();
 
@@ -4866,7 +4898,7 @@ async function authenticatedWasmBytes(bytes) {
 
 function checked(value, operation) {
   if (value < SPX_MIN || value > SPX_MAX) {
-    throw new RangeError(`SEMAPRAX checked arithmetic failure: ${operation}`);
+    throw new SpxSemanticFailure("semaprax.arithmetic.v1", ({ "addition overflow": 1, "subtraction overflow": 2, "multiplication overflow": 3, "negation overflow": 8 })[operation]);
   }
   return value;
 }
@@ -4978,15 +5010,21 @@ export const imports = {
     spx_sub: (a, b) => checked(a - b, "subtraction overflow"),
     spx_mul: (a, b) => checked(a * b, "multiplication overflow"),
     spx_div: (a, b) => {
-      if (b === 0n || (a === SPX_MIN && b === -1n)) throw new RangeError("SEMAPRAX checked arithmetic failure: invalid division");
+      if (b === 0n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 4);
+      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 5);
       return a / b;
     },
     spx_rem: (a, b) => {
-      if (b === 0n || (a === SPX_MIN && b === -1n)) throw new RangeError("SEMAPRAX checked arithmetic failure: invalid remainder");
+      if (b === 0n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 6);
+      if (a === SPX_MIN && b === -1n) throw new SpxSemanticFailure("semaprax.arithmetic.v1", 7);
       return a % b;
     },
     spx_neg: value => checked(-value, "negation overflow"),
-    spx_contract_fail: () => { throw new Error("SEMAPRAX contract failure"); },
+    spx_contract_fail: code => {
+      if (code === 11) throw new SpxSemanticFailure("semaprax.byte-range.v1", 1);
+      if (code === 12) throw new SpxSemanticFailure("semaprax.byte-range.v1", 2);
+      throw new SpxSemanticFailure("semaprax.contract.v1", code);
+    },
   },
 };
 

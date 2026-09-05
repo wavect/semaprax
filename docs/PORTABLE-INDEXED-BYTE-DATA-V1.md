@@ -327,6 +327,15 @@ function's `requires` and `ensures` lines, naming the return value `result`,
 so replay binds contracts byte for byte with the body. Functions that
 declare effects are still rejected with `SPX-W121`.
 
+The ordinary Web wrapper reserves internal status values 11 and 12 for the
+two byte-range outcomes before dispatch through its existing failure import;
+they are not public byte-range codes. Generated JavaScript maps them back to
+`semaprax.byte-range.v1` codes 1 (`start > end`) and 2 (`end > length`). Its
+exported `semanticStatus(error)` returns the same frozen
+`semaprax.status.v1` triple used by scalar exports. This lane encoding prevents
+byte-range codes 1 and 2 from colliding with arithmetic statuses without adding
+ambient authority or changing the Core-Wasm import inventory.
+
 The JavaScript facade accepts exactly an ordinary, attached, fixed-length
 `Uint8Array`. It rejects `SharedArrayBuffer` backing, resizable backing,
 detached buffers, other typed-array element types, `DataView`, and implicit

@@ -94,6 +94,8 @@ pub(super) const STATUS_REM_OVERFLOW: i32 = 7;
 pub(super) const STATUS_NEG_OVERFLOW: i32 = 8;
 pub(super) const STATUS_REQUIRES_FALSE: i32 = 9;
 pub(super) const STATUS_ENSURES_FALSE: i32 = 10;
+pub(super) const STATUS_BYTE_RANGE_START_AFTER_END: i32 = 11;
+pub(super) const STATUS_BYTE_RANGE_END_OUT_OF_BOUNDS: i32 = 12;
 pub(super) const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
 
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -1427,7 +1429,7 @@ fn emit_byte_exports_profile(
     );
     let contract_fail = intern_type(
         Signature {
-            params: Vec::new(),
+            params: vec![I32],
             results: Vec::new(),
         },
         &mut types,
@@ -1997,7 +1999,7 @@ fn emit_profile(
     );
     let contract_fail = intern_type(
         Signature {
-            params: Vec::new(),
+            params: vec![I32],
             results: Vec::new(),
         },
         &mut types,
@@ -5965,7 +5967,12 @@ impl Emitter<'_> {
         code: u32,
     ) -> Result<(), Diagnostic> {
         self.output.extend([0x04, 0x40, 0x41]);
-        write_i64(self.output, i64::from(code));
+        let encoded = match code {
+            crate::byte_ops::RANGE_START_AFTER_END_CODE => STATUS_BYTE_RANGE_START_AFTER_END,
+            crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE => STATUS_BYTE_RANGE_END_OUT_OF_BOUNDS,
+            _ => return Err(error("byte range failure has an unknown status code")),
+        };
+        write_i64(self.output, i64::from(encoded));
         self.output.push(0x21);
         write_u32(self.output, self.plan.status);
         self.emit_failure_cleanup(expression, StatusLane::OperationFailure)?;
@@ -7442,6 +7449,8 @@ fn emit_wrapper(main_index: u32, host_output: bool) -> Vec<u8> {
     body.push(0x45);
     body.extend([0x04, 0x40]);
     body.push(0x05);
+    body.push(0x20);
+    write_u32(&mut body, status);
     body.push(0x10);
     write_u32(&mut body, 6);
     body.push(0x00);

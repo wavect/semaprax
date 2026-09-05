@@ -16,6 +16,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Web packages now preserve semantic status domains for byte-range failures
+  and checked i32, u8, and usize arithmetic. Generated JavaScript exposes the
+  same frozen `{schema, domain_id, code}` observation for these failures as
+  the interpreter and native lanes instead of mislabeling or bare trapping.
 - Native builds now accept legal scalar self-comparisons such as `x == x`
   under the generated C warning policy, including the idiomatic floating-point
   NaN test shape, while retaining `-Werror` for actionable generator warnings.

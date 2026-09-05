@@ -45,6 +45,20 @@ fn remainder_overflow() -> i64 { (-9223372036854775807 - 1) % -1 }
 @id("case.neg")
 fn negation_overflow() -> i64 { -(-9223372036854775807 - 1) }
 
+@id("case.i32")
+fn i32_overflow() -> i64 {
+    let maximum = 2147483647i32;
+    let ignored = maximum + 1i32;
+    0
+}
+
+@id("case.u8")
+fn u8_overflow() -> i64 {
+    let maximum = 255u8;
+    let ignored = maximum + 1u8;
+    0
+}
+
 @id("case.first")
 fn first() -> i64 requires false { 1 }
 
@@ -68,6 +82,8 @@ const EXPORT_IDS: &[&str] = &[
     "case.ensures",
     "case.mul",
     "case.neg",
+    "case.i32",
+    "case.u8",
     "case.nested",
     "case.rem.overflow",
     "case.rem.zero",
@@ -90,6 +106,8 @@ const EXPECTED_TRANSCRIPT: &str = concat!(
     "{\"id\":\"case.rem.zero\",\"ok\":false,\"status\":{\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.arithmetic.v1\",\"code\":6}}\n",
     "{\"id\":\"case.rem.overflow\",\"ok\":false,\"status\":{\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.arithmetic.v1\",\"code\":7}}\n",
     "{\"id\":\"case.neg\",\"ok\":false,\"status\":{\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.arithmetic.v1\",\"code\":8}}\n",
+    "{\"id\":\"case.i32\",\"ok\":false,\"status\":{\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.arithmetic.v1\",\"code\":1}}\n",
+    "{\"id\":\"case.u8\",\"ok\":false,\"status\":{\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.arithmetic.v1\",\"code\":1}}\n",
     "{\"id\":\"case.nested\",\"ok\":false,\"status\":{\"schema\":\"semaprax.status.v1\",\"domain_id\":\"semaprax.contract.v1\",\"code\":1}}\n",
 );
 
@@ -207,6 +225,10 @@ int main(void) {
     if (result != 0) return result;
     result = spx_emit_failure("case.neg", __NEG__);
     if (result != 0) return result;
+    result = spx_emit_failure("case.i32", __I32__);
+    if (result != 0) return result;
+    result = spx_emit_failure("case.u8", __U8__);
+    if (result != 0) return result;
     result = spx_emit_failure("case.nested", __NESTED__);
     if (result != 0) return result;
     return 0;
@@ -226,6 +248,8 @@ int main(void) {
         ("__REM_ZERO__", "case.rem.zero"),
         ("__REM_OVERFLOW__", "case.rem.overflow"),
         ("__NEG__", "case.neg"),
+        ("__I32__", "case.i32"),
+        ("__U8__", "case.u8"),
         ("__NESTED__", "case.nested"),
     ] {
         source = source.replace(placeholder, &c_symbol(declaration_id));
@@ -308,6 +332,8 @@ const cases = [
   "case.rem.zero",
   "case.rem.overflow",
   "case.neg",
+  "case.i32",
+  "case.u8",
   "case.nested",
 ];
 for (const id of cases) {

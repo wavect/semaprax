@@ -158,6 +158,12 @@ semantic failure is normalized; an unknown JavaScript exception, missing raw
 adapter, or Wasm trap remains an out-of-band failure rather than being
 misreported as a language status.
 
+The ordinary scalar emitter raises checked `i32`, `u8`, and `usize` failures
+through the same typed arithmetic imports. Its inline guards use canonical
+failing operands and retain `unreachable` only as a fail-closed fallback for a
+raw host that violates an import contract by returning. Narrow arithmetic is
+therefore never exposed as an unclassified Wasm trap by the generated runtime.
+
 ## Package and integrity binding
 
 The destination must not exist and its parent directory must already exist.

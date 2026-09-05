@@ -33,8 +33,11 @@ switched off with the machine setting `semaprax.checkOnSave`. The extension's
 Also additively, `SEMAPRAX: Go to Declaration by Stable ID`, `SEMAPRAX: Show
 Callers of a Declaration`, `SEMAPRAX: Show Module Documentation`, `SEMAPRAX:
 Show Ownership, Contracts, and Effects`, `SEMAPRAX: Inspect Agent Definition`,
-and the declaration code lenses run the same binary's read-only
-`query <file> --json`, `doc <file>`, `context`, and `agent inspect`
+`SEMAPRAX: Show Cleanup Plan`, `SEMAPRAX: Run Agent Transcript`, and the
+declaration code lenses run the same binary's read-only `query <file> --json`,
+`doc <file>`, `context`, `graph`, `agent inspect`, and `agent run`;
+`SEMAPRAX: Safe Rename by Stable ID` authors a one-line semantic patch, shows
+`impact`, and applies it only through the replay-checked `patch` route
 ([Unified CLI v1](UNIFIED-CLI-V1.md),
 [Documentation Projection v1](DOC-PROJECTION-V1.md)) over the saved active
 file, with the same bounds and no session. The

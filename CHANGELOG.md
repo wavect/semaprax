@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- The VS Code adapter adds `Safe Rename by Stable ID` (authors the semantic
+  rename patch, shows `impact`, applies through the replay-checked `patch`
+  route), `Show Cleanup Plan` (the module graph's canonical cleanup plan for a
+  function), and `Run Agent Transcript` (trace, evidence, or receipt of a
+  scripted `agent run`), all bounded like check-on-save.
 - `semaprax doctor` is now admitted by the standalone compiler: the pure
   offline-profile admission and version-policy module moved from the private
   toolchain into the root crate (`src/doctor.rs`), so both binaries print the

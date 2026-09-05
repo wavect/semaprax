@@ -35,6 +35,56 @@ function contextArguments(file, id) {
   return ['context', file, id, '--depth', '1', '--filters', 'contracts,ownership,effects', '--max-bytes', String(CONTEXT_MAX_BYTES)];
 }
 
+// Safe rename goes through the compiler's replay-checked semantic patch: the
+// editor only authors the patch text and asks `impact`, then `patch`.
+const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
+function renamePatch(revision, id, newName) {
+  if (typeof revision !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(revision)) throw new Error('A graph revision is required to author a rename');
+  if (typeof id !== 'string' || !id) throw new Error('A stable identity is required to author a rename');
+  if (typeof newName !== 'string' || !IDENTIFIER.test(newName) || newName.length > 128) throw new Error('A new name must be a lowercase identifier: [a-z_][a-z0-9_]*');
+  return `base ${revision}\nrename ${id} to ${newName}\n`;
+}
+function impactArguments(file, patch) { return ['impact', file, patch]; }
+function patchArguments(file, patch) { return ['patch', file, patch]; }
+
+// What a rename would touch, from `semaprax.semantic-impact.v1`, or null.
+function impactSummary(text) {
+  const value = parseSchemaDocument(text, 'semaprax.semantic-impact.');
+  if (!value || !Array.isArray(value.changes)) return null;
+  const changes = value.changes.filter(change => change && typeof change === 'object');
+  const consumers = new Set();
+  for (const change of changes) {
+    for (const consumer of Array.isArray(change.source_consumers) ? change.source_consumers : []) {
+      if (consumer && typeof consumer.id === 'string') consumers.add(consumer.id);
+    }
+  }
+  return {
+    baseRevision: typeof value.base_revision === 'string' ? value.base_revision : null,
+    candidateRevision: typeof value.candidate_revision === 'string' ? value.candidate_revision : null,
+    changes: changes.length,
+    consumers: [...consumers].sort()
+  };
+}
+
+// The cleanup plan the module graph records for one function, or null.
+function graphArguments(file) { return ['graph', file]; }
+function cleanupPlan(text, id) {
+  const value = parseSchemaDocument(text, 'semaprax.graph.');
+  if (!value || !Array.isArray(value.nodes)) return null;
+  const node = value.nodes.find(node => node && node.kind === 'function' && node.id === id);
+  if (!node || !node.cleanup || typeof node.cleanup !== 'object') return null;
+  return { id, revision: typeof value.revision === 'string' ? value.revision : null, cleanup: node.cleanup };
+}
+
+// `agent run` with the caller's task and transcript; `output` selects the
+// receipt (default), the trace, or the evidence document.
+function agentRunArguments(definition, task, transcript, output) {
+  const args = ['agent', 'run', definition, task, transcript];
+  if (output === 'trace') args.push('--trace');
+  else if (output === 'evidence') args.push('--evidence');
+  return args;
+}
+
 // `agent inspect` over a saved AgentDefinition v1 document.
 function agentInspectArguments(file) { return ['agent', 'inspect', file]; }
 
@@ -178,6 +228,7 @@ function failureReason(result, compiler) {
 
 module.exports = {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
-  queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason,
+  queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
+  renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason,
   cwdOf: file => path.dirname(file)
 };

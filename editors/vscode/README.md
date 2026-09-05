@@ -65,6 +65,19 @@ source, so parameter and result ownership modes, contract clauses, and effect
 sets are read from the checked graph rather than inferred from text.
 `SEMAPRAX: Inspect Agent Definition` runs `agent inspect` on the saved active
 AgentDefinition v1 `.json` file and opens its AgentGraph v1 beside it.
+`SEMAPRAX: Safe Rename by Stable ID` asks for a function or method and a new
+lowercase name, authors the one-line semantic patch `base <revision>` /
+`rename <id> to <name>` in a temporary file, shows the compiler's `impact`
+analysis (how many declarations change and which consumers), and only on
+confirmation lets the compiler's replay-checked `patch` route rewrite the
+saved file; the stable identity never changes and the temporary patch is
+removed afterwards. `SEMAPRAX: Show Cleanup Plan` opens the canonical cleanup
+plan the module graph records for a chosen function, exactly as `graph`
+emits it, so cleanup order is read rather than inferred. `SEMAPRAX: Run Agent
+Transcript (Trace/Evidence)` takes the saved active AgentDefinition v1 file,
+asks for a task and a transcript document, and opens the scripted run's
+trace, evidence, or receipt from `agent run`; the run has no provider, tool,
+or network authority.
 Every run is bounded exactly like check-on-save (4 MiB, 30 seconds, direct
 spawn without a shell, never workspace settings) and its failure is written to
 the `SEMAPRAX Check` output channel. `test/navigation.test.js` covers the

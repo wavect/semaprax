@@ -4,6 +4,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const { McpClient, parse, digest, invalidates } = require('./protocol');
 const { fetchReview } = require('./review');
 const { HoleDraft } = require('./holes');
@@ -170,6 +171,71 @@ function activateChecks(context, testMode) {
     if (!navigation.parseSchemaDocument(graph, 'semaprax.agent-graph.')) throw new Error('The compiler returned an unexpected agent graph');
     return openBeside(graph, 'json');
   }
+  // Safe rename: the editor authors a one-line semantic patch, shows the
+  // compiler's impact analysis, and only then lets the compiler's replay-checked
+  // `patch` route rewrite the saved file. The patch text lives in a temporary
+  // file for the duration of the command and is removed afterwards.
+  async function safeRename(pick, input) {
+    const binary = requireCompiler('rename by stable identity');
+    const doc = activeSource();
+    const result = await queryFile(binary, doc.uri.fsPath, {});
+    const items = navigation.declarationItems(result).filter(item => item.kind === 'function' || item.kind === 'method');
+    if (!items.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable to rename'); return; }
+    const target = await pick(items, { placeHolder: 'Declaration to rename (stable identity stays the same)', matchOnDescription: true });
+    if (!target) return;
+    const newName = await input({ prompt: `New name for ${target.id} (currently ${target.label})`, validateInput: value => { try { navigation.renamePatch(result.revision, target.id, value); return null; } catch (error) { return String(error.message); } } });
+    if (!newName) return;
+    const patchPath = path.join(os.tmpdir(), `semaprax-rename-${process.pid}-${crypto.randomUUID()}.spatch`);
+    fs.writeFileSync(patchPath, navigation.renamePatch(result.revision, target.id, newName), { flag: 'wx' });
+    try {
+      const impact = navigation.impactSummary(await runNavigation(binary, navigation.impactArguments(doc.uri.fsPath, patchPath), doc.uri.fsPath));
+      if (!impact) throw new Error('The compiler returned an unexpected impact document');
+      const apply = await pick([
+        { label: `Apply: rename ${target.id} to ${newName}`, description: `${impact.changes} change${impact.changes === 1 ? '' : 's'}, ${impact.consumers.length} consumer${impact.consumers.length === 1 ? '' : 's'}${impact.consumers.length ? ': ' + impact.consumers.join(', ') : ''}`, apply: true },
+        { label: 'Cancel', description: 'Leave the source unchanged', apply: false }
+      ], { placeHolder: 'Impact of the rename' });
+      if (!apply || !apply.apply) return impact;
+      const applied = await runNavigation(binary, navigation.patchArguments(doc.uri.fsPath, patchPath), doc.uri.fsPath);
+      void vscode.window.showInformationMessage(`SEMAPRAX: ${applied.trim()}`);
+      return { ...impact, applied: applied.trim() };
+    } finally {
+      try { fs.unlinkSync(patchPath); } catch { /* already gone */ }
+    }
+  }
+  async function showCleanupPlan(pick) {
+    const binary = requireCompiler('show a cleanup plan');
+    const doc = activeSource();
+    const callables = navigation.declarationItems(await queryFile(binary, doc.uri.fsPath, { kind: 'function,method' }));
+    if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable'); return; }
+    const target = await pick(callables, { placeHolder: 'Function whose canonical cleanup plan to show', matchOnDescription: true });
+    if (!target) return;
+    const plan = navigation.cleanupPlan(await runNavigation(binary, navigation.graphArguments(doc.uri.fsPath), doc.uri.fsPath), target.id);
+    if (!plan) throw new Error(`The module graph records no cleanup plan for ${target.id}`);
+    return openBeside(JSON.stringify(plan, null, 2) + '\n', 'json');
+  }
+  async function runAgentTranscript(pick) {
+    const binary = requireCompiler('run an agent transcript');
+    const doc = vscode.window.activeTextEditor?.document;
+    if (!doc || doc.uri.scheme !== 'file' || !doc.uri.fsPath.endsWith('.json')) throw new Error('Open a saved AgentDefinition v1 .json file first');
+    if (doc.isDirty) throw new Error('Save the file first; the run reads saved documents');
+    const choose = async title => {
+      const chosen = await vscode.window.showOpenDialog({ canSelectMany: false, openLabel: title, filters: { JSON: ['json'] }, title });
+      return chosen && chosen[0] ? chosen[0].fsPath : undefined;
+    };
+    const task = await choose('Select the agent task document');
+    if (!task) return;
+    const transcript = await choose('Select the provider/tool transcript');
+    if (!transcript) return;
+    const output = await pick([
+      { label: 'Trace', description: 'The canonical semaprax.agent-runtime-trace.v1 document', output: 'trace' },
+      { label: 'Evidence', description: 'The canonical semaprax.agent-runtime-evidence.v1 document', output: 'evidence' },
+      { label: 'Receipt', description: 'Status, final message, and digests', output: 'receipt' }
+    ], { placeHolder: 'What to show from the scripted run' });
+    if (!output) return;
+    const text = await runNavigation(binary, navigation.agentRunArguments(doc.uri.fsPath, task, transcript, output.output), doc.uri.fsPath);
+    if (!navigation.parseSchemaDocument(text, 'semaprax.agent-')) throw new Error('The compiler returned an unexpected run document');
+    return openBeside(text, 'json');
+  }
   const lensesEnabled = () => machineSetting('codeLens') !== false;
   const lensProvider = {
     async provideCodeLenses(doc) {
@@ -188,7 +254,7 @@ function activateChecks(context, testMode) {
   const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); };
   context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose },
     vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider));
-  return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
+  return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, safeRename, showCleanupPlan, runAgentTranscript, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
 }
 function activate(context) {
   let client, config, image, candidate, target, stale = true, epoch = 0, busy = false;
@@ -680,6 +746,9 @@ function activate(context) {
     async showDocumentation() { await checking.showDocumentation(); },
     async showOwnership() { await checking.showOwnership(pick); },
     async inspectAgent() { await checking.inspectAgent(); },
+    async safeRename() { await checking.safeRename(pick, input); },
+    async showCleanupPlan() { await checking.showCleanupPlan(pick); },
+    async runAgentTranscript() { await checking.runAgentTranscript(pick); },
     async refresh() {
       saved(); if (!client || !image) throw new Error('Start a session first');
       const refreshEpoch = epoch, refreshClient = client, refreshImage = image, refreshDraft = holes, refreshRevision = holes?.draftRevision;

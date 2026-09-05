@@ -7,7 +7,8 @@ const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
-  queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
+  queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
+  renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
 } = require('../navigation');
 
 const root = path.resolve(path.sep, 'work');
@@ -124,4 +125,35 @@ test('context and agent inspect argument vectors are exact and schema documents 
   assert.equal(parseSchemaDocument('[1]', 'semaprax.'), null);
   assert.equal(parseSchemaDocument('nope', 'semaprax.'), null);
   assert.equal(parseSchemaDocument(7, 'semaprax.'), null);
+});
+
+test('a safe rename authors exactly the replay-checked patch text and rejects bad names', () => {
+  const revision = 'sha256:' + 'ab'.repeat(32);
+  assert.equal(renamePatch(revision, 'math.add', 'checked_add'), `base ${revision}\nrename math.add to checked_add\n`);
+  for (const bad of ['Add', '1x', 'a-b', '', 'x'.repeat(129), 42]) assert.throws(() => renamePatch(revision, 'math.add', bad), /lowercase identifier/);
+  assert.throws(() => renamePatch('sha256:00', 'math.add', 'ok'), /graph revision/);
+  assert.throws(() => renamePatch(revision, '', 'ok'), /stable identity/);
+  assert.deepEqual(impactArguments(at('m.spx'), at('r.spatch')), ['impact', at('m.spx'), at('r.spatch')]);
+  assert.deepEqual(patchArguments(at('m.spx'), at('r.spatch')), ['patch', at('m.spx'), at('r.spatch')]);
+  const impact = JSON.stringify({ schema: 'semaprax.semantic-impact.v1', base_revision: revision, candidate_revision: revision,
+    changes: [{ kind: 'rename', target: 'math.add', source_consumers: [{ id: 'app.main' }, { id: 'app.other' }] }, { kind: 'rename', target: 'x', source_consumers: [{ id: 'app.main' }] }, 'junk'] });
+  assert.deepEqual(impactSummary(impact), { baseRevision: revision, candidateRevision: revision, changes: 2, consumers: ['app.main', 'app.other'] });
+  assert.equal(impactSummary('{"schema":"semaprax.semantic-review.v1","changes":[]}'), null);
+  assert.equal(impactSummary('{"schema":"semaprax.semantic-impact.v1"}'), null);
+});
+
+test('the cleanup plan is read from the module graph by function identity', () => {
+  const graph = JSON.stringify({ schema: 'semaprax.graph.v10', revision: 'sha256:00', nodes: [
+    { id: 'geometry.point', kind: 'record' },
+    { id: 'app.main', kind: 'function', cleanup: { kind: 'plan', slots: [] } },
+    { id: 'app.other', kind: 'function' }
+  ] });
+  assert.deepEqual(cleanupPlan(graph, 'app.main'), { id: 'app.main', revision: 'sha256:00', cleanup: { kind: 'plan', slots: [] } });
+  assert.equal(cleanupPlan(graph, 'app.other'), null);
+  assert.equal(cleanupPlan(graph, 'geometry.point'), null);
+  assert.equal(cleanupPlan('{"schema":"semaprax.doc.v1","nodes":[]}', 'app.main'), null);
+  assert.deepEqual(graphArguments(at('m.spx')), ['graph', at('m.spx')]);
+  assert.deepEqual(agentRunArguments(at('a.json'), at('t.json'), at('x.json'), 'receipt'), ['agent', 'run', at('a.json'), at('t.json'), at('x.json')]);
+  assert.deepEqual(agentRunArguments(at('a.json'), at('t.json'), at('x.json'), 'trace'), ['agent', 'run', at('a.json'), at('t.json'), at('x.json'), '--trace']);
+  assert.deepEqual(agentRunArguments(at('a.json'), at('t.json'), at('x.json'), 'evidence'), ['agent', 'run', at('a.json'), at('t.json'), at('x.json'), '--evidence']);
 });

@@ -60,7 +60,10 @@
       { "command": "semaprax.showReferences", "title": "SEMAPRAX: Show Callers of a Declaration" },
       { "command": "semaprax.showDocumentation", "title": "SEMAPRAX: Show Module Documentation" },
       { "command": "semaprax.showOwnership", "title": "SEMAPRAX: Show Ownership, Contracts, and Effects" },
-      { "command": "semaprax.inspectAgent", "title": "SEMAPRAX: Inspect Agent Definition" }
+      { "command": "semaprax.inspectAgent", "title": "SEMAPRAX: Inspect Agent Definition" },
+      { "command": "semaprax.safeRename", "title": "SEMAPRAX: Safe Rename by Stable ID" },
+      { "command": "semaprax.showCleanupPlan", "title": "SEMAPRAX: Show Cleanup Plan" },
+      { "command": "semaprax.runAgentTranscript", "title": "SEMAPRAX: Run Agent Transcript (Trace/Evidence)" }
     ],
     "configuration": {
       "title": "SEMAPRAX Saved Source",

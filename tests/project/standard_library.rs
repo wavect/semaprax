@@ -753,6 +753,43 @@ fn package_manifest_links_transitive_std_url_encoding() {
 }
 
 #[test]
+fn package_manifest_links_bundled_std_data_json() {
+    let scratch = temporary("manifest-json-dependency");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.json\"\nsources = [\"src/json.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.json-string\"]\n\n[dependencies]\nstd.data.json = \"^0.1.0\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    0\n}\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/json.spx"),
+        "module consumer.json;\nuse function @id(\"std.data.json.is_string\") from std.data.json as is_string;\n\n@id(\"consumer.json-string\")\nfn json_string(input: borrow Slice<u8>) -> bool\n{\n    is_string(input)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let quoted = [34u8, 111u8, 107u8, 34u8];\n    let truncated = [34u8, 111u8, 107u8];\n    if json_string(array_as_slice(quoted)) && !json_string(array_as_slice(truncated)) { 0 } else { 1 }\n}\n",
+    )
+    .unwrap();
+
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        assert_eq!(
+            snapshot
+                .execute_entry(&project::ProjectExecutionOptions::default())?
+                .outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.json/0.1.0/json.spx"));
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+#[test]
 fn package_manifest_links_borrowed_text_from_std_text() {
     let scratch = temporary("manifest-text-dependency");
     std::fs::create_dir_all(scratch.join("src")).unwrap();

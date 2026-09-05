@@ -42,6 +42,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.data.json",
+        path: "dependencies/std.data.json/0.1.0/json.spx",
+        source: include_str!("../../std/data-json/src/json.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.data.toml",
         path: "dependencies/std.data.toml/0.1.0/toml.spx",
         source: include_str!("../../std/data-toml/src/toml.spx"),

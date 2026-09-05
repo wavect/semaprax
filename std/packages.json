@@ -5,6 +5,7 @@
     {"directory": "bytes", "module": "std.bytes", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "core", "module": "std.core", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-csv", "module": "std.data.csv", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "data-json", "module": "std.data.json", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-toml", "module": "std.data.toml", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "encoding", "module": "std.encoding", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "http", "module": "std.http", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

@@ -1,0 +1,13 @@
+module std.data.json.examples;
+use function @id("std.data.json.is_failure") from std.data.json as is_failure;
+use function @id("std.data.json.string_end") from std.data.json as string_end;
+
+@id("std.data.json.examples.main")
+fn main() -> i64
+{
+    let quoted = [34u8, 111u8, 107u8, 92u8, 110u8, 34u8, 44u8];
+    let broken = [34u8, 111u8, 107u8];
+    let view = array_as_slice(quoted);
+    let cut = array_as_slice(broken);
+    if string_end(view, 0usize) == 6usize && is_failure(cut, string_end(cut, 0usize)) { 0 } else { 1 }
+}

@@ -1,6 +1,6 @@
 # Standard Library v1
 
-- Status: versioned reference; eight `core`-tier packages, seven
+- Status: versioned reference; eight `core`-tier packages, eight
   `portable`-tier packages, and one `test`-tier package under `std/` are
   executable; every other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
@@ -136,7 +136,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.net` | Addresses, DNS, TCP, UDP, and explicit target support | Partial: pure helpers and the v1 TCP client operations now have a hosted-only bind/accept extension; native/Wasm service ABI, structured addresses, DNS policy, and UDP are Missing |
 | `std.tls` | Vetted provider-backed TLS interface and certificate policy | Partial: the explicit Rust host supports authenticated outbound TLS 1.2/1.3 and server-side TLS with caller-installed certificate/key policy; source-level server TLS and native-C11/Wasm lanes are Missing |
 | `std.http` | HTTP request/response types, client and server interfaces, streaming, and limits | Partial: allocation-free HTTP/1.x parsing helpers remain portable; hosted source can call bounded `https_get` and parse its canonical bytes, while the explicit Rust host exposes the typed HTTP/1.1/2 response, redirects, pooling, and body limits. A source-level typed response API, server parser, HTTP/3, and generated target adapters are Missing |
-| `std.data.json` | Typed and value-based JSON parsing and encoding | Missing |
+| `std.data.json` | Typed and value-based JSON parsing and encoding | Partial: an allocation-free JSON string-token scanner over `borrow Slice<u8>` with whitespace skipping, escape classification, `\uXXXX` decoding, strict surrogate-pair and control-byte rules, and the byte offset of the first rejection carried in the same `usize` result. Number and literal tokens, structural document validation, UTF-8 validation, decoded strings, an owned document tree, and a writer are Missing; the `SPX-G171` pre-bound, not the design, is what bounds the admitted scope. [Bounded JSON Scanner v1](BOUNDED-JSON-SCANNER-V1.md) owns the result encoding and policy |
 | `std.data.toml` | TOML parsing and encoding | Partial: allocation-free bare-key validation, blank/comment line recognition, and simple-quote/comment-aware assignment-delimiter location over borrowed bytes; escaped and complete quoted-key validation, values, tables, decoding, validation, and encoding are Missing |
 | `std.data.csv` | Streaming CSV reading and writing | Partial: allocation-free single-record field counting with quoted-comma and escaped-quote handling, balanced-quote checks, and strict complete-record quote-placement validation; typed fields, record iteration, dialects, streaming reads, and writing are Missing |
 | `std.encoding` | Base encodings, hex, UTF, and safe binary conversion | Partial: ASCII-byte classification, hexadecimal nibble conversion, byte-pair decoding, lowercase/uppercase hex digit encoding, and standard Base64 digit conversion plus unpadded quad decoding; buffer codecs, padded/streaming base encodings, and UTF conversion are Missing |

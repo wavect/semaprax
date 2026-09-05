@@ -1,0 +1,84 @@
+module std.data.json.tests;
+use function @id("std.data.json.at_in") from std.data.json as at_in;
+use function @id("std.data.json.at_is") from std.data.json as at_is;
+use function @id("std.data.json.code_unit") from std.data.json as code_unit;
+use function @id("std.data.json.escape_end") from std.data.json as escape_end;
+use function @id("std.data.json.escape_kind") from std.data.json as escape_kind;
+use function @id("std.data.json.failure") from std.data.json as failure;
+use function @id("std.data.json.failure_offset") from std.data.json as failure_offset;
+use function @id("std.data.json.hex_at") from std.data.json as hex_at;
+use function @id("std.data.json.is_failure") from std.data.json as is_failure;
+use function @id("std.data.json.is_string") from std.data.json as is_string;
+use function @id("std.data.json.skip_whitespace") from std.data.json as skip_whitespace;
+use function @id("std.data.json.string_end") from std.data.json as string_end;
+
+@id("std.data.json.tests.cursor")
+fn cursor() -> bool
+{
+    let blank = [32u8, 9u8, 10u8, 13u8, 97u8];
+    let view = array_as_slice(blank);
+    skip_whitespace(view, 0usize) == 4usize && skip_whitespace(view, 9usize) == 5usize && at_is(view, 4usize, 97u8) && !at_is(view, 9usize, 97u8) && at_in(view, 4usize, 97u8, 122u8) && !at_in(view, 0usize, 97u8, 122u8)
+}
+
+@id("std.data.json.tests.faults")
+fn faults() -> bool
+{
+    let blank = [32u8, 9u8, 10u8, 13u8, 97u8];
+    let view = array_as_slice(blank);
+    failure(view, 2usize) == 8usize && is_failure(view, 8usize) && !is_failure(view, 5usize) && failure_offset(view, 8usize, 0usize) == 2usize && failure_offset(view, 5usize, 3usize) == 3usize
+}
+
+@id("std.data.json.tests.hexadecimal")
+fn hexadecimal() -> bool
+{
+    let sample = [34u8, 97u8, 92u8, 92u8, 98u8, 92u8, 34u8, 99u8, 92u8, 117u8, 48u8, 48u8, 52u8, 49u8, 92u8, 110u8, 34u8];
+    let view = array_as_slice(sample);
+    hex_at(view, 10usize) == 0 && hex_at(view, 12usize) == 4 && hex_at(view, 13usize) == 1 && hex_at(view, 8usize) == -1 && code_unit(view, 10usize) == 65 && code_unit(view, 0usize) == -1
+}
+
+@id("std.data.json.tests.escapes")
+fn escapes() -> bool
+{
+    let sample = [34u8, 97u8, 92u8, 92u8, 98u8, 92u8, 34u8, 99u8, 92u8, 117u8, 48u8, 48u8, 52u8, 49u8, 92u8, 110u8, 34u8];
+    let view = array_as_slice(sample);
+    escape_kind(view, 2usize) == 1 && escape_kind(view, 8usize) == 2 && escape_kind(view, 1usize) == 0 && escape_end(view, 2usize) == 4usize && escape_end(view, 5usize) == 7usize && escape_end(view, 8usize) == 14usize && escape_end(view, 14usize) == 16usize && is_failure(view, escape_end(view, 1usize))
+}
+
+@id("std.data.json.tests.surrogates")
+fn surrogates() -> bool
+{
+    let pair = [34u8, 92u8, 117u8, 100u8, 56u8, 51u8, 100u8, 92u8, 117u8, 100u8, 101u8, 48u8, 48u8, 34u8];
+    let lone = [34u8, 92u8, 117u8, 100u8, 56u8, 48u8, 48u8, 34u8];
+    let trail = [34u8, 92u8, 117u8, 100u8, 99u8, 48u8, 48u8, 34u8];
+    let paired = array_as_slice(pair);
+    let high = array_as_slice(lone);
+    let low = array_as_slice(trail);
+    escape_kind(paired, 1usize) == 3 && escape_end(paired, 1usize) == 13usize && string_end(paired, 0usize) == 14usize && escape_kind(high, 1usize) == 3 && is_failure(high, escape_end(high, 1usize)) && escape_kind(low, 1usize) == 0 && is_failure(low, escape_end(low, 1usize))
+}
+
+@id("std.data.json.tests.strings")
+fn strings() -> bool
+{
+    let sample = [34u8, 97u8, 92u8, 92u8, 98u8, 92u8, 34u8, 99u8, 92u8, 117u8, 48u8, 48u8, 52u8, 49u8, 92u8, 110u8, 34u8];
+    let control = [34u8, 97u8, 10u8, 98u8, 34u8];
+    let open = [34u8, 97u8];
+    let blank = [34u8, 34u8];
+    let view = array_as_slice(sample);
+    let raw = array_as_slice(control);
+    let unterminated = array_as_slice(open);
+    let empty = array_as_slice(blank);
+    is_string(view) && is_string(empty) && !is_string(raw) && string_end(view, 0usize) == 17usize && string_end(empty, 0usize) == 2usize && is_failure(view, string_end(view, 1usize)) && is_failure(raw, string_end(raw, 0usize)) && failure_offset(raw, string_end(raw, 0usize), 0usize) == 2usize && is_failure(unterminated, string_end(unterminated, 0usize))
+}
+
+@id("std.data.json.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if cursor() { 0 } else { 1 };
+    failed = failed + if faults() { 0 } else { 2 };
+    failed = failed + if hexadecimal() { 0 } else { 4 };
+    failed = failed + if escapes() { 0 } else { 8 };
+    failed = failed + if surrogates() { 0 } else { 16 };
+    failed = failed + if strings() { 0 } else { 32 };
+    failed
+}

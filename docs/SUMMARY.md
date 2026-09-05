@@ -61,6 +61,7 @@ Audience: all documentation readers.
 - [Native owned-data internal String settlement](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)
 - [Class inheritance](CLASS-INHERITANCE-V1.md)
 - [Portable indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md)
+- [Bounded JSON scanner](BOUNDED-JSON-SCANNER-V1.md)
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
 - [Concrete Generic Owned-Byte Records](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md)
 - [Acyclic Nested Owned-Byte Records](NESTED-OWNED-BYTE-RECORDS-V1.md)

@@ -269,6 +269,87 @@ fn has_balanced_quotes(record: borrow Slice<u8>) -> bool
 fn is_well_formed_record(record: borrow Slice<u8>) -> bool
 ```
 
+## `std.data.json`
+
+Package `std/data-json`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.json.at_is`
+
+```semaprax
+fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+```
+
+### `std.data.json.at_in`
+
+```semaprax
+fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool
+```
+
+### `std.data.json.failure`
+
+```semaprax
+fn failure(input: borrow Slice<u8>, offset: usize) -> usize
+    ensures result > byte_len(input)
+```
+
+### `std.data.json.is_failure`
+
+```semaprax
+fn is_failure(input: borrow Slice<u8>, scan: usize) -> bool
+```
+
+### `std.data.json.failure_offset`
+
+```semaprax
+fn failure_offset(input: borrow Slice<u8>, scan: usize, fallback: usize) -> usize
+```
+
+### `std.data.json.skip_whitespace`
+
+```semaprax
+fn skip_whitespace(input: borrow Slice<u8>, start: usize) -> usize
+    ensures result <= byte_len(input)
+```
+
+### `std.data.json.hex_at`
+
+```semaprax
+fn hex_at(input: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 15
+```
+
+### `std.data.json.code_unit`
+
+```semaprax
+fn code_unit(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1 && result <= 65535
+```
+
+### `std.data.json.escape_kind`
+
+```semaprax
+fn escape_kind(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= 0 && result <= 3
+```
+
+### `std.data.json.escape_end`
+
+```semaprax
+fn escape_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.string_end`
+
+```semaprax
+fn string_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.is_string`
+
+```semaprax
+fn is_string(input: borrow Slice<u8>) -> bool
+```
+
 ## `std.data.toml`
 
 Package `std/data-toml`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.toml = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

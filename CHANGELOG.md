@@ -37,6 +37,19 @@ format: `Unreleased` then release buckets, grouped by impact.
   O0/O2. The C header now preserves its C11 static-array minimum while using
   C++-legal syntax when included from C++.
 
+- Added `std.data.json`, the first JSON facility a SEMAPRAX program can call.
+  [Bounded JSON Scanner v1](docs/BOUNDED-JSON-SCANNER-V1.md) specifies a pure,
+  allocation-free JSON string-token scanner over `borrow Slice<u8>`:
+  whitespace skipping, escape classification, `\uXXXX` code-unit decoding,
+  strict surrogate-pair rules that reject a lone or unpaired surrogate, RFC
+  8259 control-byte rejection, and the byte offset of the first rejection
+  carried in the same `usize` result. Number and literal tokens, structural
+  document validation, UTF-8 validation, decoded strings, an owned document
+  tree, and a writer stay Missing: the `SPX-G171` workspace-graph pre-bound
+  admits roughly 4.7 KiB of library source for a package of this density, and
+  rejects a consumer that links two such packages, so the remaining scope
+  needs that bound raised rather than more library code.
+
 - Added invocation-owned HTTPS work to the bounded structured-task runtime.
   Providers now settle exactly once across success, HTTP failure,
   cancellation, panic, deadline expiry, and registration rejection; results

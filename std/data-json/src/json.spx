@@ -1,0 +1,115 @@
+module std.data.json;
+
+@id("std.data.json.at_is")
+fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value: byte } => byte == expected, Option::None {} => false, }
+}
+
+@id("std.data.json.at_in")
+fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value: byte } => byte >= low && byte <= high, Option::None {} => false, }
+}
+
+@id("std.data.json.failure")
+fn failure(input: borrow Slice<u8>, offset: usize) -> usize
+    ensures result > byte_len(input)
+{
+    byte_len(input) + 1usize + offset
+}
+
+@id("std.data.json.is_failure")
+fn is_failure(input: borrow Slice<u8>, scan: usize) -> bool
+{
+    scan > byte_len(input)
+}
+
+@id("std.data.json.failure_offset")
+fn failure_offset(input: borrow Slice<u8>, scan: usize, fallback: usize) -> usize
+{
+    if scan > byte_len(input) { scan - byte_len(input) - 1usize } else { fallback }
+}
+
+@id("std.data.json.skip_whitespace")
+fn skip_whitespace(input: borrow Slice<u8>, start: usize) -> usize
+    ensures result <= byte_len(input)
+{
+    let length = byte_len(input);
+    let mut index = if start > length { length } else { start };
+    let mut scanning = index < length;
+    while scanning {
+        let space = at_is(input, index, 32u8) || at_is(input, index, 9u8) || at_is(input, index, 10u8) || at_is(input, index, 13u8);
+        index = if space { index + 1usize } else { index };
+        scanning = space && index < length;
+        scanning
+    }
+    index
+}
+
+@id("std.data.json.hex_at")
+fn hex_at(input: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 15
+{
+    match byte_get(input, index) { Option::Some { value: byte } => match byte { 48u8 => 0, 49u8 => 1, 50u8 => 2, 51u8 => 3, 52u8 => 4, 53u8 => 5, 54u8 => 6, 55u8 => 7, 56u8 => 8, 57u8 => 9, 97u8 => 10, 98u8 => 11, 99u8 => 12, 100u8 => 13, 101u8 => 14, 102u8 => 15, 65u8 => 10, 66u8 => 11, 67u8 => 12, 68u8 => 13, 69u8 => 14, 70u8 => 15, _ => -1, }, Option::None {} => -1, }
+}
+
+@id("std.data.json.code_unit")
+fn code_unit(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1 && result <= 65535
+{
+    let first = hex_at(input, start);
+    let second = hex_at(input, start + 1usize);
+    let third = hex_at(input, start + 2usize);
+    let fourth = hex_at(input, start + 3usize);
+    let ready = first >= 0 && second >= 0 && third >= 0 && fourth >= 0;
+    if ready { first * 4096 + second * 256 + third * 16 + fourth } else { -1 }
+}
+
+@id("std.data.json.escape_kind")
+fn escape_kind(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= 0 && result <= 3
+{
+    let simple = match byte_get(input, start + 1usize) { Option::Some { value: byte } => match byte { 34u8 => true, 92u8 => true, 47u8 => true, 98u8 => true, 102u8 => true, 110u8 => true, 114u8 => true, 116u8 => true, _ => false, }, Option::None {} => false, };
+    let unit = if at_is(input, start + 1usize, 117u8) { code_unit(input, start + 2usize) } else { -1 };
+    let high = unit >= 55296 && unit <= 56319;
+    let scalar = unit >= 0 && unit < 55296 || unit > 57343;
+    if !at_is(input, start, 92u8) { 0 } else { if simple { 1 } else { if high { 3 } else { if scalar { 2 } else { 0 } } } }
+}
+
+@id("std.data.json.escape_end")
+fn escape_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let kind = escape_kind(input, start);
+    let marked = at_is(input, start + 6usize, 92u8) && at_is(input, start + 7usize, 117u8);
+    let trailing = if kind == 3 && marked { code_unit(input, start + 8usize) } else { -1 };
+    let paired = trailing >= 56320 && trailing <= 57343;
+    if kind == 1 { start + 2usize } else { if kind == 2 { start + 6usize } else { if paired { start + 12usize } else { failure(input, start) } } }
+}
+
+@id("std.data.json.string_end")
+fn string_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let mut index = start + 1usize;
+    let mut fault = start;
+    let mut bad = !at_is(input, start, 34u8);
+    let mut running = !bad;
+    while running {
+        let closed = at_is(input, index, 34u8);
+        let escape = at_is(input, index, 92u8);
+        let plain = at_in(input, index, 32u8, 255u8);
+        let step = if closed { index } else { if escape { escape_end(input, index) } else { if plain { index + 1usize } else { failure(input, index) } } };
+        bad = is_failure(input, step);
+        fault = if bad { failure_offset(input, step, index) } else { fault };
+        index = if closed || bad { index } else { step };
+        running = !closed && !bad;
+        running
+    }
+    if bad { failure(input, fault) } else { index + 1usize }
+}
+
+@id("std.data.json.is_string")
+fn is_string(input: borrow Slice<u8>) -> bool
+{
+    string_end(input, 0usize) == byte_len(input)
+}

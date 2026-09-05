@@ -365,14 +365,20 @@ fn expected_projection_source_boundary_is_pure_and_keeps_shared_helpers_in_root(
     assert!(root.contains("mod expected_projection;"));
     assert!(!projection.contains("use super::*;"));
     let exact_facade = [
+        // `cost` became `pub(super)` and `rewrite_type_runtime_cost`/`rewrite_type`
+        // were exposed on `main`; the inventory had not been updated with them, so
+        // this contract was already failing before this branch.
+        "pub(super) mod cost;",
         "pub(super) struct SyntheticBuilderCosts {",
         "pub(super) raw_clone_and_hir: usize,",
         "pub(super) runtime: usize,",
         "pub(super) fn synthetic_builder_bytes(",
         "pub(super) fn checked_builder_sum(left: usize, right: usize) -> Result<usize, Vec<Diagnostic>> {",
+        "pub(super) fn rewrite_type_runtime_cost(",
         "pub(super) fn validate_dependency_dag(",
         "pub(super) fn dependency_depths<'a>(",
         "pub(super) fn synthetic_program(",
+        "pub(super) fn rewrite_type(",
         "pub(super) fn collect_expected_edges(",
         "pub(super) fn verify_resolved_call_edges(",
     ];

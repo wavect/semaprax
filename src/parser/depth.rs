@@ -44,3 +44,6 @@ pub(super) fn validate_program(program: Program) -> Result<Program, Diagnostic> 
     }
     Ok(program)
 }
+
+#[cfg(test)]
+mod tests;

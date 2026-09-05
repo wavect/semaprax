@@ -736,3 +736,6 @@ fn is_ident_start(character: char) -> bool {
 fn is_ident_continue(character: char) -> bool {
     character == '_' || character.is_ascii_alphanumeric()
 }
+
+#[cfg(test)]
+mod tests;

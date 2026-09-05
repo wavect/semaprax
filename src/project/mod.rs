@@ -9,6 +9,7 @@ mod admission;
 mod authority;
 mod build;
 mod candidate;
+mod canonical_workspace_revision;
 mod create;
 mod cxx_owned_data;
 mod execution;
@@ -235,6 +236,12 @@ pub use candidate::{
 pub use candidate::{
     MAX_PROJECT_HOLE_NAVIGATION_BYTES, MAX_PROJECT_HOLE_NAVIGATION_ITEMS, PROJECT_HOLE_PAGE_SCHEMA,
     PROJECT_HOLE_SUMMARY_SCHEMA,
+};
+pub use canonical_workspace_revision::{
+    AgentDefinitions, AuthorityPolicies, ContractsAndTests, DependencyClosure, ProjectionMetadata,
+    SemanticProgram, SemanticWorkspaceRevision, SourceProjection, StableIdentityIndex,
+    TargetProfiles, MAX_SEMANTIC_WORKSPACE_REVISION_BYTES,
+    SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY, SEMANTIC_WORKSPACE_REVISION_SCHEMA,
 };
 pub use cxx_owned_data::{
     replay_cxx_owned_data_package, CxxOwnedDataPackage, MAX_CXX_OWNED_DATA_PACKAGE_BYTES,

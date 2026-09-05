@@ -65,6 +65,14 @@ impl ProjectRevision {
         &self.project_revision
     }
 
+    /// Derive the canonical, authority-free semantic workspace identity over
+    /// this already admitted immutable Project revision.
+    pub fn canonical_workspace_revision(
+        &self,
+    ) -> Result<super::SemanticWorkspaceRevision, Vec<Diagnostic>> {
+        super::SemanticWorkspaceRevision::derive(self)
+    }
+
     pub fn entry_program(&self) -> &crate::hir::ResolvedProgram {
         &self.entry_program
     }

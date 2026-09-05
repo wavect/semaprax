@@ -28,6 +28,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Fixed Project owned-API target preparation to retain the already-admitted
   entry-plus-export HIR closure, and updated the typed-expression schema gate
   for the two newly admitted numeric-to-String operation alternatives.
+- Added the locally exercised Canonical Semantic Workspace Revision v1
+  foundation: one immutable authority-free object derived from an admitted
+  Project, with nine typed node projections, distinct semantic, source
+  projection, manifest, and dependency-closure digests, one composite revision,
+  and exact fresh replay. Existing Project, managed Workspace, and Semantic
+  Workspace Image v1 schemas, bytes, and revision identities remain unchanged;
+  universal transactions, full semantic coverage, persistent service, `.spx`
+  agent syntax, and publication authority remain separate work.
 - Added Bounded Language Network I/O v1: six compiler-owned, effect-gated TCP
   client operations (`net_connect`, `net_send`, owned `net_recv`,
   transcript-streaming `net_stream_stdout`, bounded-readiness `net_wait`,

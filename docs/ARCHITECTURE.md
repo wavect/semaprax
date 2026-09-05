@@ -510,6 +510,18 @@ capsules never carry reusable authority.
 
 ### Operational semantic images
 
+`src/project/canonical_workspace_revision.rs` derives the authority-free
+Canonical Semantic Workspace Revision v1 from one already admitted immutable
+`ProjectRevision`. It owns nine distinct typed node projections and keeps the
+semantic, exact source projection, canonical Project manifest, and admitted
+dependency-closure digests separate before binding their four digest strings
+into one composite canonical revision. Replay always rederives the complete
+object and exact-compares caller bytes; it never trusts serialized HIR or grants
+mutation, cache, service, or publication authority. Existing Project, managed
+Workspace, and Semantic Workspace Image v1 bytes and revision algorithms remain
+unchanged. See [Canonical Semantic Workspace Revision
+v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md).
+
 `src/project/image.rs` derives an immutable, bounded Semantic Workspace
 Image from one already admitted `Arc<ProjectRevision>`. It retains validated
 HIR in memory and projects the complete Project graph plus existing typed
@@ -1789,6 +1801,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Automatic candidate/draft retention lifecycle | `src/semantic_retention_lifecycle.rs`, `src/semantic_retention_lifecycle/automatic.rs`, held replay adapters in `src/candidate_archive_store.rs` |
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
+| Canonical Project-derived semantic workspace revision | `src/project/canonical_workspace_revision.rs` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
 | Project v8 promotion observation replay | `src/project/v8_promotion.rs` |
 | Exact Project semantic references | `src/project/image_reference.rs` |

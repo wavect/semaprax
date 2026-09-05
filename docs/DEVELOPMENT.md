@@ -41,6 +41,7 @@ Additional required references:
 | Single-file semantic changes | [Patch v2](SEMANTIC-PATCH-V2.md), [Impact](SEMANTIC-IMPACT-V1.md), [Review](SEMANTIC-REVIEW-V1.md), and the relevant evidence version |
 | Managed multi-file publication | [Workspace Transaction v1](SEMANTIC-WORKSPACE-TRANSACTION-V1.md), [Workspace Patch Evidence v1](SEMANTIC-WORKSPACE-PATCH-EVIDENCE-V1.md) |
 | Cross-file semantic analysis or change | [Workspace overview](SEMANTIC-WORKSPACE-V1.md), [graph](WORKSPACE-SEMANTIC-GRAPH-V1.md), [analysis](WORKSPACE-ANALYSIS-V1.md), [change](SEMANTIC-WORKSPACE-CHANGE-V1.md), [operations](SEMANTIC-WORKSPACE-OPERATIONS-V1.md) |
+| Canonical Project-derived semantic workspace revision | [Canonical Semantic Workspace Revision v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md), [Semantic Workspace Image v1](SEMANTIC-WORKSPACE-IMAGE-V1.md) |
 | Project daemon rename/workflow | [Project Transport v2](PROJECT-AGENT-TRANSPORT-V2.md), [Rename Transaction v1](PROJECT-RENAME-TRANSACTION-V1.md), [Workflow v1](PROJECT-AGENT-WORKFLOW-V1.md) |
 | `semaprax.toml` layout, tables, or lowering | [Package Manifest v1](PACKAGE-MANIFEST-V1.md) and the frozen [Project Manifest v1](PROJECT-MANIFEST-V1.md) profile it lowers to |
 | `semaprax.lock` render or verification | [Project Lock v1](PROJECT-LOCK-V1.md) |

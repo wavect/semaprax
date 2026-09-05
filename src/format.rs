@@ -3,16 +3,13 @@ use crate::ast::{
     ResourceLifecycleKind, Statement, TypeDeclarationKind, UnaryOp,
 };
 use std::fmt::Write as _;
-
 // Explicit paths: other crates include this file by `#[path]`, where a bare
 // `mod` would resolve beside the file instead of under `format/`.
 #[path = "format/capacity.rs"]
 mod capacity;
 #[path = "format/comments.rs"]
 pub mod comments;
-
 use capacity::{legacy_canonical_temporary_bytes, legacy_expr_temporary_bytes};
-
 /// Canonical `f64` literal text: shortest round-trip decimal that always
 /// re-parses as a floating-point literal (it keeps a fraction or exponent).
 pub(crate) fn canonical_f64_bits(bits: u64) -> String {
@@ -26,7 +23,6 @@ pub(crate) fn canonical_f64_bits(bits: u64) -> String {
         format!("{text}.0")
     }
 }
-
 /// Canonical `f32` literal text in the same style, without the suffix.
 pub(crate) fn canonical_f32_bits(bits: u32) -> String {
     let text = format!("{}", f32::from_bits(bits));
@@ -39,7 +35,6 @@ pub(crate) fn canonical_f32_bits(bits: u32) -> String {
         format!("{text}.0")
     }
 }
-
 /// Canonical `char` literal text for one Unicode scalar value. Printable
 /// ASCII (except quote and backslash) and the named escapes project directly;
 /// every other scalar projects as lowercase `\u{...}` so the round trip is
@@ -64,7 +59,6 @@ pub(crate) fn canonical_char(value: u32) -> String {
     text.push('\'');
     text
 }
-
 pub(crate) fn canonical_string(value: &str) -> String {
     let mut text = String::from("\"");
     for ch in value.chars() {
@@ -83,7 +77,6 @@ pub(crate) fn canonical_string(value: &str) -> String {
     text.push('"');
     text
 }
-
 fn write_string_escaped(output: &mut impl std::fmt::Write, value: &str) {
     for ch in value.chars() {
         match ch {
@@ -99,7 +92,6 @@ fn write_string_escaped(output: &mut impl std::fmt::Write, value: &str) {
         }
     }
 }
-
 enum ExprFormatFrame<'a> {
     Expr(&'a Expr, u8),
     CallArgs(&'a [Expr], usize),
@@ -120,12 +112,10 @@ enum ExprFormatFrame<'a> {
     MethodCallSuffix(&'a str, &'a [crate::ast::Type], &'a [Expr], bool),
     Close(char),
 }
-
 enum PatternFormatFrame<'a> {
     Enter(&'a str, &'a [crate::ast::RecordMatchPatternField]),
     Fields(&'a [crate::ast::RecordMatchPatternField], usize),
 }
-
 enum ContainsRecordFrame<'a> {
     Enter(&'a Expr),
     Children(&'a Expr, usize),
@@ -370,7 +360,9 @@ pub(crate) fn write_canonical_commented(
                             writeln!(output, "\";").unwrap();
                         }
                     }
+                    placement.trailing(output, lifecycle.span.start, 1);
                 }
+                placement.closing(output, declaration.span.end.saturating_sub(1), 1);
                 writeln!(output, "}}").unwrap();
             }
             TypeDeclarationKind::Record { fields } => {
@@ -389,6 +381,7 @@ pub(crate) fn write_canonical_commented(
                     writeln!(output, ",").unwrap();
                     placement.trailing(output, field.span.start, 1);
                 }
+                placement.closing(output, declaration.span.end.saturating_sub(1), 1);
                 writeln!(output, "}}").unwrap();
             }
             TypeDeclarationKind::Variant { cases } => {
@@ -404,10 +397,12 @@ pub(crate) fn write_canonical_commented(
                     }
                     if case.fields.is_empty() {
                         writeln!(output, "    {},", case.name).unwrap();
+                        placement.trailing(output, case.span.start, 1);
                         continue;
                     }
                     writeln!(output, "    {} {{", case.name).unwrap();
                     for field in &case.fields {
+                        placement.leading(output, field.span.start, 2);
                         if field.explicit_id {
                             write!(output, "        @id(\"").unwrap();
                             write_escaped(output, &field.stable_id);
@@ -416,9 +411,13 @@ pub(crate) fn write_canonical_commented(
                         write!(output, "        {}: ", field.name).unwrap();
                         write_type(output, &field.ty);
                         writeln!(output, ",").unwrap();
+                        placement.trailing(output, field.span.start, 2);
                     }
+                    placement.closing(output, case.span.end.saturating_sub(2), 2);
                     writeln!(output, "    }},").unwrap();
+                    placement.trailing(output, case.span.start, 1);
                 }
+                placement.closing(output, declaration.span.end.saturating_sub(1), 1);
                 writeln!(output, "}}").unwrap();
             }
             TypeDeclarationKind::Class { fields, methods } => {

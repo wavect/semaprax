@@ -64,6 +64,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Rejected a trailing semicolon after a block's value with the existing
   `SPX-P106` expression-statement diagnostic. Canonical formatting no longer
   accepts and silently removes that source token.
+- Canonical formatting now emits comment hooks for variant cases, variant
+  payload fields, resource lifecycle items, and their closing braces. Comments
+  in those bodies survive exactly once and formatting is a fixed point.
+
 - `semaprax patch` rejects every surplus positional argument or unknown option
   with usage status 2 before reading or rewriting the source, matching the
   strict `impact` and `review` command grammars.

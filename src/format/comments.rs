@@ -239,9 +239,18 @@ fn type_members(kind: &TypeDeclarationKind) -> Vec<Item> {
         TypeDeclarationKind::Record { fields } => {
             fields.iter().map(|field| leaf(field.span)).collect()
         }
-        TypeDeclarationKind::Variant { cases } => {
-            cases.iter().map(|case| leaf(case.span)).collect()
-        }
+        TypeDeclarationKind::Variant { cases } => cases
+            .iter()
+            .map(|case| Item {
+                start: case.span.start,
+                end: case.span.end,
+                body: (!case.fields.is_empty()).then(|| Sequence {
+                    items: case.fields.iter().map(|field| leaf(field.span)).collect(),
+                    open: case.name_span.end,
+                    close: Some(case.span.end.saturating_sub(2)),
+                }),
+            })
+            .collect(),
         TypeDeclarationKind::Class { fields, methods } => fields
             .iter()
             .map(|field| leaf(field.span))
@@ -330,6 +339,25 @@ mod tests {
         let once = formatted(source);
         let expected = "module app.n;\n\n@id(\"n.point\")\nrecord Point {\n    // horizontal\n    @id(\"n.point.x\")\n    x: i64,\n    @id(\"n.point.y\")\n    y: i64,\n    // vertical\n}\n\n@id(\"n.counter\")\nclass Counter {\n    @id(\"n.counter.value\")\n    value: i64,\n\n    // the only method\n    @id(\"n.counter.get\")\n    fn get(self: Counter) -> i64\n{\n        self.value\n    }\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    let mut i = 0;\n    while i < 3 {\n        // loop body\n        i = i + 1;\n        i < 3\n        // keep looping\n    }\n    i\n}\n";
         assert_eq!(once, expected);
+        assert_eq!(formatted(&once), once);
+    }
+
+    #[test]
+    fn variant_case_fields_and_resource_lifecycles_keep_every_comment() {
+        let source = "module app.items;\n\n@id(\"items.choice\")\nvariant Choice {\n    // before unit\n    @id(\"items.choice.a\")\n    A,\n    // after unit\n    @id(\"items.choice.b\")\n    B { // after case open\n        @id(\"items.choice.b.value\")\n        value: i64, // after field\n        // before case close\n    },\n    // after payload case\n}\n\n@id(\"items.token\")\nresource Token {\n    @id(\"items.token.drop\")\n    drop trivial; // after drop\n    // before resource close\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n";
+        let once = formatted(source);
+        for comment in [
+            "// before unit",
+            "// after unit",
+            "// after case open",
+            "// after field",
+            "// before case close",
+            "// after payload case",
+            "// after drop",
+            "// before resource close",
+        ] {
+            assert_eq!(once.matches(comment).count(), 1, "{comment}:\n{once}");
+        }
         assert_eq!(formatted(&once), once);
     }
 }

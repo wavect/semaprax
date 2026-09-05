@@ -67,6 +67,26 @@ fn fmt_keeps_comments_and_is_idempotent() {
 }
 
 #[test]
+fn fmt_keeps_variant_and_resource_body_comments() {
+    let source = "module app.items;\n\n@id(\"items.choice\")\nvariant Choice {\n    // before unit\n    @id(\"items.choice.a\")\n    A,\n    // after unit\n    @id(\"items.choice.b\")\n    B { // after case open\n        @id(\"items.choice.b.value\")\n        value: i64, // after field\n        // before case close\n    },\n    // after payload case\n}\n\n@id(\"items.token\")\nresource Token {\n    @id(\"items.token.drop\")\n    drop trivial; // after drop\n    // before resource close\n}\n\n@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n";
+    let root = fixture("variant-resource");
+    let path = root.join("items.spx");
+    std::fs::write(&path, source).unwrap();
+    let text = path.to_str().unwrap();
+
+    let (status, _, stderr) = cli(&["fmt", text]);
+    assert_eq!(status, 0, "{stderr}");
+    let once = std::fs::read_to_string(&path).unwrap();
+    let (status, _, stderr) = cli(&["fmt", text, "--check"]);
+    assert_eq!(status, 0, "{stderr}");
+    let (status, _, stderr) = cli(&["fmt", text]);
+    assert_eq!(status, 0, "{stderr}");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), once);
+    assert_eq!(once.matches("//").count(), 8);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn comments_do_not_reach_the_semantic_graph() {
     let root = fixture("graph");
     let commented = root.join("calc.spx");

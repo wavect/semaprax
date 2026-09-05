@@ -12,7 +12,7 @@ src/cleanup_plan/build.rs	7126
 src/cleanup_plan/execute.rs	1939
 src/cleanup_plan/replay.rs	8117
 src/cleanup_plan/replay_tests.rs	1875
-src/cli_driver.rs	2643
+src/cli_driver.rs	2644
 src/codegen.rs	1573
 src/codegen/native_bytes.rs	1530
 src/codegen/native_callable_provider_v3.rs	1678

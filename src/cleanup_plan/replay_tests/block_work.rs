@@ -139,6 +139,63 @@ fn shallow_wide_scalar_and_string_bindings_resolve_without_budget_underestimatio
     }
 }
 
+fn wide_constructor_source(variant: bool, fields: usize) -> String {
+    let mut source = String::from("module test.wide_constructor;\n");
+    if variant {
+        source.push_str("@id(\"work.wide\") variant Wide { @id(\"work.wide.payload\") Payload {\n");
+    } else {
+        source.push_str("@id(\"work.wide\") record Wide {\n");
+    }
+    for index in 0..fields {
+        if variant {
+            writeln!(source, "@id(\"work.wide.payload.f{index}\") f{index}: i64,").unwrap();
+        } else {
+            writeln!(source, "@id(\"work.wide.f{index}\") f{index}: i64,").unwrap();
+        }
+    }
+    source.push_str(if variant { "}, }\n" } else { "}\n" });
+    source.push_str("@id(\"work.main\") fn main() -> i64 {\nlet value = ");
+    source.push_str(if variant {
+        "Wide::Payload { "
+    } else {
+        "Wide { "
+    });
+    for index in 0..fields {
+        write!(source, "f{index}: {index}, ").unwrap();
+    }
+    source.push_str("};\n0\n}\n");
+    source
+}
+
+#[test]
+fn wide_record_and_variant_constructor_census_covers_real_replay_work() {
+    for variant in [false, true] {
+        let source = wide_constructor_source(variant, 64);
+        let parsed = parse(&source, Path::new("wide-constructor.spx")).unwrap();
+        assert!(crate::verify::verify(&parsed).is_empty());
+        let program = hir::resolve(&parsed).unwrap();
+        hir::validate(&program).unwrap();
+        let ResolvedExprKind::Block { statements, .. } = &program.functions[0].body.kind else {
+            panic!("main body must remain a block");
+        };
+        let constructor = statements[0].value();
+        assert!(matches!(
+            &constructor.kind,
+            ResolvedExprKind::ConstructRecord { .. } | ResolvedExprKind::ConstructVariant { .. }
+        ));
+        let derived =
+            expression_skeleton_work_upper(&program, &program.functions[0], constructor).unwrap();
+        let (result, used, materialized) = measure(&program, constructor, derived);
+        let paths = result.unwrap();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].observations.is_empty());
+        assert!(paths[0].owned_source.is_some());
+        assert!(!paths[0].failed && !paths[0].residual);
+        assert!(used <= derived, "census {derived} < actual {used}");
+        assert_eq!(used, materialized);
+    }
+}
+
 #[test]
 fn valid_resource_bindings_and_block_results_include_transfer_work() {
     for (body, expected, transfers) in [("value", 16, 1), ("let moved = value; moved", 30, 2)] {

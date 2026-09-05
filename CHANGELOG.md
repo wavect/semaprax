@@ -39,6 +39,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Cleanup replay's preflight now accounts for every constructor-field
+  continuation, so wide record and variant literals no longer exhaust an
+  underestimated per-function skeleton budget.
+
 - Corrected the installed language card: `while` repetition is controlled by
   the re-evaluated condition, while the required body tail is discarded; the
   card now names the Copy-scalar and aggregate restrictions behind `SPX-T252`.

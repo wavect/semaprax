@@ -48,8 +48,11 @@ graph projection or backend.
 ## Representations
 
 The registry compiler and unpublished full toolchain share one compiler library
-and `src/cli_driver.rs`; `src/cli_driver/report_options.rs` owns the bounded
-option parsers for report and analysis commands while the root retains dispatch.
+and `src/cli_driver.rs`. The root retains dispatch;
+`src/cli_driver/options.rs` owns command-specific bounded option parsing,
+`src/cli_driver/report_options.rs` owns report and analysis option parsing, and
+`src/cli_driver/source_execution.rs` owns single-file build, run, and diagnostic
+publication.
 The standalone binary supplies no private-host hooks.
 `crates/semaprax-toolchain` owns the `doctor` implementation and the held-parent
 staged publication behind its `new`; the compiler library owns the bounded

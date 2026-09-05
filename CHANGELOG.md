@@ -29,6 +29,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   identities fail closed with `SPX-V211`/`SPX-V212`.
 - Added the `semaprax package report|lock|resolve` namespace, each subcommand
   exactly its long-form offline package route.
+- Split CLI option parsing and single-file execution/reporting out of the
+  command dispatcher, bringing `src/cli_driver.rs` below the module-size limit
+  while retaining the moved surfaces in the source-locked doctor contract.
 - Added `semaprax verify`, one verb for every independent evidence verifier:
   the capsule's `schema` selects the owning route (semantic patch evidence
   v1/v2, workspace patch evidence, semantic workspace change, structural

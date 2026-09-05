@@ -529,6 +529,8 @@ jobs:
           "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Fetch the complete locked workspace dependency closure
         run: cargo fetch --locked
+      - name: Fetch the standalone owned-data Rust setup dependency closure
+        run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
       - name: Require native O0/O2 and Core-Wasm scalar status equivalence
@@ -736,6 +738,8 @@ jobs:
           "CLANG=$clang" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Fetch the complete locked workspace dependency closure
         run: cargo fetch --locked
+      - name: Fetch the standalone owned-data Rust setup dependency closure
+        run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
       - name: Test the complete workspace target shard (Unix)
         if: runner.os != 'Windows'
         run: python3 scripts/ci-msrv.py --label "Rust $RUNNER_OS" --shard "${{ matrix.shard }}"
@@ -1090,6 +1094,8 @@ jobs:
         run: echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
       - name: Fetch the complete locked workspace dependency closure
         run: cargo fetch --locked
+      - name: Fetch the standalone owned-data Rust setup dependency closure
+        run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
       - run: cargo check --locked --workspace --all-targets --all-features
       - name: Test the complete workspace target shard
         run: python3 scripts/ci-msrv.py --shard "${{ matrix.shard }}"

@@ -640,7 +640,14 @@ mod tests {
     }
 
     fn source_for(url: &str) -> String {
-        let source = include_str!("../../../examples/https-project/src/app.spx");
+        // This is an emitter unit fixture, so flatten the example's imported
+        // response helpers into one source module before single-module HIR
+        // resolution. Project integration retains the real import boundary.
+        let source = include_str!("../../../examples/https-project/src/app.spx")
+            .lines()
+            .filter(|line| !line.starts_with("use function "))
+            .collect::<Vec<_>>()
+            .join("\n");
         let start = source.find("    let url = [").unwrap();
         let relative_end = source[start..].find("];\n").unwrap();
         let end = start + relative_end + 2;
@@ -649,7 +656,7 @@ mod tests {
             .map(|byte| format!("{byte}u8"))
             .collect::<Vec<_>>()
             .join(", ");
-        format!(
+        let source = format!(
             "{}    let url = [{bytes}];{}",
             &source[..start],
             &source[end..]
@@ -658,7 +665,10 @@ mod tests {
             "https_get(array_as_slice(url), 1024usize)",
             "https_get(array_as_slice(url), 65536usize)",
         )
-        .replace("== 46usize", "> 0usize")
+        .replace("== 46usize", "> 0usize");
+        let response = include_str!("../../../examples/https-project/src/response.spx");
+        let (_, declarations) = response.split_once("\n\n").unwrap();
+        format!("{source}\n\n{declarations}")
     }
 
     fn c_string(path: &Path) -> String {
@@ -696,6 +706,7 @@ mod tests {
         std::fs::create_dir(&fixture.0).unwrap();
         let cert = fixture.0.join("localhost.pem");
         let key = fixture.0.join("localhost-key.pem");
+        std::fs::write(fixture.0.join("data"), b"OK").unwrap();
         let generated = Command::new("openssl")
             .args(["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout"])
             .arg(&key)
@@ -722,7 +733,7 @@ mod tests {
         let port = reservation.local_addr().unwrap().port();
         drop(reservation);
         let mut server = Command::new("openssl")
-            .args(["s_server", "-quiet", "-www", "-accept"])
+            .args(["s_server", "-quiet", "-WWW", "-accept"])
             .arg(port.to_string())
             .arg("-cert")
             .arg(&cert)
@@ -731,11 +742,12 @@ mod tests {
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
+            .current_dir(&fixture.0)
             .spawn()
             .unwrap();
         std::thread::sleep(Duration::from_millis(200));
 
-        let source = source_for(&format!("https://localhost:{port}/"));
+        let source = source_for(&format!("https://localhost:{port}/data"));
         let ast = crate::parse(&source, Path::new("native-https-loopback.spx")).unwrap();
         let emitted = emit_c_with_https_io(&ast, "https-client.fetch").unwrap();
         let configured = emitted.replacen(
@@ -768,7 +780,7 @@ mod tests {
             String::from_utf8_lossy(&run.stdout)
         );
         assert!(
-            run.stdout.ends_with(b"</HTML>\r\n\r\n"),
+            run.stdout.ends_with(b"\r\n\r\nOK"),
             "unexpected canonical response ending: {:?}",
             &run.stdout[run.stdout.len().saturating_sub(32)..]
         );

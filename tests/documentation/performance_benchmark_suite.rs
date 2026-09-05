@@ -62,7 +62,9 @@ fn canonical(path: impl AsRef<Path>) -> String {
 fn wrapper() -> Command {
     let script = root().join(SUITE).join("run.sh");
     let mut command = Command::new("bash");
-    command.arg(script);
+    // Git Bash accepts drive-qualified paths with `/`, while native Windows
+    // `Path` display uses `\` and Bash interprets those as escapes.
+    command.arg(script.to_string_lossy().replace('\\', "/"));
     command
 }
 

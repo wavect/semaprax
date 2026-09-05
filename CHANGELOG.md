@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `semaprax doc <file> [--json]`, the documentation projection of one
+  checked module: a Markdown page or one `semaprax.doc.v1` document of every
+  declaration's identity, canonical signature, ownership modes, effects,
+  contracts, members, and leading `//` comments, bound to the graph revision.
+  The projections harness proves the page and `semaprax graph` name the same
+  declarations at the same revision on every committed example. The guided
+  help lists it under `Inspect meaning`; several guide summaries were
+  shortened to keep both capability pages under the 2048-byte bound.
 - Project-link diagnostics now name and locate the exact entry, test, or
   provider module responsible for missing or invalid `main` declarations and
   distinguish capability exclusions from declaration-shape exclusions.

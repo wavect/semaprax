@@ -24,6 +24,8 @@ mod cli;
 mod native_scratch;
 #[path = "cli_driver/report_options.rs"]
 mod report_options;
+#[path = "cli_driver/project_scaffold_options.rs"]
+mod project_scaffold_options;
 #[path = "cli_driver/supply_chain.rs"]
 mod supply_chain;
 
@@ -81,72 +83,6 @@ fn require_private_host<'a>(
         eprintln!("{operation} is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI");
         2
     })
-}
-
-fn parse_project_scaffold_options(
-    arguments: &[String],
-) -> Result<(&str, &str, project::ScaffoldLayout), u8> {
-    let mut name = None;
-    let mut template = None;
-    let mut layout = None;
-    let mut index = 0usize;
-    while index < arguments.len() {
-        let option = arguments[index].as_str();
-        if !matches!(option, "--name" | "--template" | "--layout") {
-            eprintln!("project-scaffold accepts only --name, --template, and --layout");
-            return Err(2);
-        }
-        let value = arguments
-            .get(index + 1)
-            .filter(|value| !value.starts_with('-'))
-            .ok_or_else(|| {
-                eprintln!("project-scaffold option requires one value");
-                2
-            })?;
-        match option {
-            "--name" if name.is_none() => name = Some(value.as_str()),
-            "--template" if template.is_none() => {
-                if !project::PROJECT_SCAFFOLD_TEMPLATES.contains(&value.as_str()) {
-                    eprintln!("project-scaffold template must be calculator or library");
-                    return Err(2);
-                }
-                template = Some(value.as_str());
-            }
-            "--layout" if layout.is_none() => {
-                layout = Some(match value.as_str() {
-                    "frozen" => project::ScaffoldLayout::Frozen,
-                    "tables" => project::ScaffoldLayout::Tables,
-                    _ => {
-                        eprintln!("project-scaffold layout must be frozen or tables");
-                        return Err(2);
-                    }
-                });
-            }
-            "--name" => {
-                eprintln!("duplicate project-scaffold option --name");
-                return Err(2);
-            }
-            "--template" => {
-                eprintln!("duplicate project-scaffold option --template");
-                return Err(2);
-            }
-            "--layout" => {
-                eprintln!("duplicate project-scaffold option --layout");
-                return Err(2);
-            }
-            _ => unreachable!("closed project-scaffold option grammar"),
-        }
-        index += 2;
-    }
-    let name = name.ok_or_else(|| {
-        eprintln!("project-scaffold requires --name project-name");
-        2
-    })?;
-    Ok((
-        name,
-        template.unwrap_or(project::PROJECT_SCAFFOLD_TEMPLATE_CALCULATOR),
-        layout.unwrap_or(project::ScaffoldLayout::Frozen),
-    ))
 }
 
 fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
@@ -485,6 +421,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             println!("{output}");
             Ok(())
         }
+        CommandId::Doc => {
+            let options = cli::doc::parse(&args[1..])?;
+            cli::doc::run(options, |errors| report(errors, false))
+        }
         CommandId::Context => {
             let path = required_path(&args, 1)?;
             let symbol = args.get(2).ok_or_else(|| {
@@ -644,7 +584,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             Ok(())
         }
         CommandId::ProjectScaffold => {
-            let (name, template, layout) = parse_project_scaffold_options(&args[1..])?;
+            let (name, template, layout) = project_scaffold_options::parse(&args[1..])?;
             let artifact = project::derive_project_scaffold_v1_with_layout(name, template, layout)
                 .map_err(|errors| report(&errors, false))?;
             let bytes = artifact.canonical_bytes();

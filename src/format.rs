@@ -1127,7 +1127,7 @@ fn write_expr_measured(
     }
 }
 
-fn write_record_literal_delimited_expr(output: &mut impl std::fmt::Write, value: &Expr) {
+pub(crate) fn write_record_literal_delimited_expr(output: &mut impl std::fmt::Write, value: &Expr) {
     let delimited = contains_record_construction(value);
     if delimited {
         output.write_char('(').unwrap();
@@ -1138,7 +1138,7 @@ fn write_record_literal_delimited_expr(output: &mut impl std::fmt::Write, value:
     }
 }
 
-fn write_type_parameters(
+pub(crate) fn write_type_parameters(
     output: &mut impl std::fmt::Write,
     parameters: &[crate::ast::TypeParameterDeclaration],
 ) {
@@ -1169,7 +1169,7 @@ fn write_type_arguments(output: &mut impl std::fmt::Write, arguments: &[crate::a
     output.write_char('>').unwrap();
 }
 
-fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
+pub(crate) fn write_type(output: &mut impl std::fmt::Write, ty: &crate::ast::Type) {
     use TypeFormatFrame as Frame;
     let mut frames = FormatFrameStack::new(Frame::Type(ty), ScratchStackKind::Type);
     while let Some(frame) = frames.pop() {
@@ -1570,7 +1570,7 @@ fn write_block_statement(
     }
 }
 
-fn write_escaped(output: &mut impl std::fmt::Write, value: &str) {
+pub(crate) fn write_escaped(output: &mut impl std::fmt::Write, value: &str) {
     for value in value.chars() {
         match value {
             '\\' => output.write_str("\\\\").unwrap(),
@@ -1580,7 +1580,7 @@ fn write_escaped(output: &mut impl std::fmt::Write, value: &str) {
     }
 }
 
-fn write_joined(output: &mut impl std::fmt::Write, values: &[String], separator: &str) {
+pub(crate) fn write_joined(output: &mut impl std::fmt::Write, values: &[String], separator: &str) {
     for (index, value) in values.iter().enumerate() {
         if index != 0 {
             output.write_str(separator).unwrap();

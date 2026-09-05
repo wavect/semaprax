@@ -45,8 +45,10 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // Undo the intentional surface changes made after this ledger was frozen,
     // so every historical witness below still measures the shape it recorded:
     // `semaprax lock` is new, directory inputs were added to check/build/run
-    // /test, the scaffold gained a library template, and `new` became public.
-    const RESTORED: [(&str, &str); 10] = [
+    // /test, the scaffold gained a library template, `new` became public, and
+    // `doc` was added.
+    const RESTORED: [(&str, &str); 11] = [
+        ("semaprax doc <file> [--json]\n", ""),
         (
             "semaprax lock [<dir>|semaprax.toml] [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n",
             "",

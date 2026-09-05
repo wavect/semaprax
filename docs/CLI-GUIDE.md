@@ -98,6 +98,20 @@ semaprax context examples/meaning.spx app.main --depth 1
 caller-owned file. Redirecting that output is the caller's publication action;
 the query itself does not modify the source.
 
+Render the module's documentation from the same checked facts:
+
+```sh
+semaprax doc examples/meaning.spx
+semaprax doc examples/meaning.spx --json
+```
+
+`doc` prints a Markdown page of every declaration: its `@id`, signature,
+ownership modes, effects, contracts, members, and the `//` comments written
+above it, bound to the graph revision `graph` prints for the same file.
+`--json` emits the same facts as one `semaprax.doc.v1` document for tools.
+[Documentation projection](DOC-PROJECTION-V1.md) owns the layout and the gate
+that keeps the page and the graph naming the same declarations.
+
 ## Work on a project
 
 From a directory containing `semaprax.toml`, the manifest argument can be

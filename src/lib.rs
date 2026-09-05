@@ -44,6 +44,7 @@ pub mod cxx_shim;
 pub mod diagnostic;
 #[doc(hidden)]
 pub mod digest_hex;
+pub mod doc;
 pub mod economic_agent;
 pub mod format;
 pub mod freestanding_object;

@@ -1545,6 +1545,18 @@ Read-only commands are implemented in focused modules such as
 `src/package_report.rs`, `src/plugin_manifest.rs`, `src/region_report.rs`,
 `src/simd_report.rs`, and `src/ui_schema.rs`.
 
+`src/doc.rs` is the documentation projection. It builds one model of a checked
+module's declarations from the parsed program and its comments (identities,
+canonical signatures without bodies, ownership modes, effects, contracts,
+members, and leading-comment descriptions) and renders it as Markdown or as a
+one-line `semaprax.doc.v1` document, both carrying `graph::revision`. It
+reuses the canonical formatter's type, contract, and escaping writers, so a
+signature is the formatter's text. `src/cli/doc.rs` owns the closed
+`doc <file> [--json]` grammar and verifies before rendering. The projections
+harness proves that every documented identity of a graph-carried kind is a
+node of `semaprax graph` at the same revision. See
+[Documentation Projection v1](DOC-PROJECTION-V1.md).
+
 `src/package_lock.rs` is an authority-free additive offline graph layer above
 the Interface Package Report. It accepts only explicit already-owned subject
 envelopes, independently replays each exact report, rejects coordinate and
@@ -1740,7 +1752,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Verification | `src/verify.rs`, `src/source_verify.rs`, `src/source_verify/` — `declaration/` owns the per-pass declaration checks, `iterative/` the frame machine, `oracle/` the test-only recursive cross-check, `hints.rs` the shared fix hints both verifiers attach to unknown-function, generic-argument, literal-suffix, and borrowed-view diagnostics, and `loans.rs`/`place.rs` the loan lifecycle |
 | HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `validation.rs` owns core validation |
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
-| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs` |
+| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs` |
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
 | Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/`, explicit adapter `src/cli/retention_metadata.rs` |
 | Retention registry cursor | `src/semantic_retention_registry.rs`, `src/semantic_retention_registry/` |

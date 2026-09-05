@@ -138,6 +138,13 @@ impl Placement {
         }
     }
 
+    /// The comments placed directly before the item that starts at `start`,
+    /// as the lexer recorded them: without `//`, in source order.
+    #[must_use]
+    pub fn leading_texts(&self, start: usize) -> &[String] {
+        self.leading.get(&start).map_or(&[], Vec::as_slice)
+    }
+
     pub(super) fn header(&self, output: &mut impl std::fmt::Write) {
         write_comments(output, &self.header, 0);
     }

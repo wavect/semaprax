@@ -5,6 +5,7 @@ use std::process::ExitCode;
 pub(crate) enum CommandId {
     Check,
     Graph,
+    Doc,
     ProjectImage,
     ProjectImageStore,
     ProjectImageLoad,
@@ -127,6 +128,7 @@ struct CommandSpec {
 static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Check, canonical: "check", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax check [<file>|<dir>|semaprax.toml|--manifest-path path] [--json]"] },
     CommandSpec { id: CommandId::Graph, canonical: "graph", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax graph <file>"] },
+    CommandSpec { id: CommandId::Doc, canonical: "doc", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doc <file> [--json]"] },
     CommandSpec { id: CommandId::ProjectImage, canonical: "project-image", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-image <manifest>"] },
     CommandSpec { id: CommandId::ProjectImageStore, canonical: "project-image-store", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-image-store <manifest> <store-root>"] },
     CommandSpec { id: CommandId::ProjectImageLoad, canonical: "project-image-load", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-image-load <store-root> <receipt.json> <expected-image-digest>"] },
@@ -333,12 +335,12 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Check,
                 shape: "check [<input>] [--json]",
-                summary: "Parse, resolve, type-check, and verify",
+                summary: "Parse, resolve, type-check, verify",
             },
             GuideEntry {
                 id: CommandId::Fmt,
                 shape: "fmt <input> [--check]",
-                summary: "Rewrite canonically, or report drift with --check",
+                summary: "Rewrite canonically; --check reports drift",
             },
             GuideEntry {
                 id: CommandId::Run,
@@ -363,12 +365,17 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Graph,
                 shape: "graph <file>",
-                summary: "Emit the complete semantic graph as JSON",
+                summary: "The complete semantic graph as JSON",
             },
             GuideEntry {
                 id: CommandId::Context,
                 shape: "context <file> <stable-id> [--depth N]",
                 summary: "Bounded facts about one declaration as JSON",
+            },
+            GuideEntry {
+                id: CommandId::Doc,
+                shape: "doc <file> [--json]",
+                summary: "The module's documentation, from its graph",
             },
         ],
     },
@@ -403,7 +410,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::ProjectScaffold,
                 shape: "project-scaffold --name <name>",
-                summary: "Print the calculator template as one JSON capsule",
+                summary: "The calculator template as one JSON capsule",
             },
         ],
     },
@@ -413,7 +420,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Doctor,
                 shape: "doctor [--profile <id>]",
-                summary: "Check the local toolchain against an offline profile",
+                summary: "Check the local toolchain offline",
             },
             GuideEntry {
                 id: CommandId::Version,
@@ -423,12 +430,12 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help <command>",
-                summary: "Exact grammar for one command (also <command> --help)",
+                summary: "Exact grammar for one command",
             },
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help all",
-                summary: "Every command, including tool-author protocol surfaces",
+                summary: "Every command, including protocol surfaces",
             },
             GuideEntry {
                 id: CommandId::Help,
@@ -438,7 +445,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help library",
-                summary: "The standard-library catalog: std functions and contracts",
+                summary: "The standard-library catalog and contracts",
             },
         ],
     },
@@ -557,6 +564,7 @@ mod tests {
     const DISPATCHER_INVENTORY: &[&str] = &[
         "check",
         "graph",
+        "doc",
         "project-image",
         "project-image-store",
         "project-image-load",

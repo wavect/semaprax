@@ -70,4 +70,34 @@ impl StructuralCost {
         self.add(std::mem::size_of::<String>())?;
         self.add_split(value.len(), value.len())
     }
+
+    pub(super) fn program(&mut self, program: &crate::ast::Program) -> Result<(), Vec<Diagnostic>> {
+        self.add(program_carrier_bytes(std::slice::from_ref(program)).unwrap())?;
+        for agent in &program.agents {
+            self.string(&agent.stable_id)?;
+            self.string(&agent.name)?;
+            for role in &agent.types {
+                self.value(role)?;
+                self.string(&role.stable_id)?;
+            }
+            for operation in &agent.operations {
+                self.value(operation)?;
+                self.string(&operation.stable_id)?;
+            }
+            self.string(&agent.runtime_v1_json)?;
+        }
+        Ok(())
+    }
+}
+
+pub(crate) fn program_carrier_bytes(programs: &[crate::ast::Program]) -> Option<usize> {
+    let base = std::mem::size_of::<crate::ast::Program>()
+        - std::mem::size_of::<Vec<crate::ast::AgentDeclaration>>();
+    programs.len().checked_mul(base)?.checked_add(
+        programs
+            .iter()
+            .map(|program| program.agents.len())
+            .try_fold(0usize, usize::checked_add)?
+            .checked_mul(std::mem::size_of::<crate::ast::AgentDeclaration>())?,
+    )
 }

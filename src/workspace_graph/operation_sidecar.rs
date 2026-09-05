@@ -9,6 +9,7 @@ use crate::ast::{Expr, ExprKind, ModuleUseKind, Program, Span, Type, TypeDeclara
 use crate::diagnostic::Diagnostic;
 use crate::hir;
 
+use super::expected_projection::cost::program_carrier_bytes;
 use super::{
     active_builder_limit, graph_error, limit_error, reserve_builder_structure, AuthoredDeclaration,
     WorkspaceOperationDeclaration, WorkspaceOperationImport, WorkspaceOperationOccurrence,
@@ -81,17 +82,7 @@ fn build_sidecar(
         .ok_or_else(|| vec![limit_error("change_builder_bytes", active_builder_limit())])?;
     let structural_prebound = source_bytes
         .checked_mul(4)
-        .and_then(|bytes| {
-            let base_program_bytes = std::mem::size_of::<Program>()
-                - std::mem::size_of::<Vec<crate::ast::AgentDeclaration>>();
-            let program_bytes = programs.len().checked_mul(base_program_bytes)?;
-            let agent_bytes = programs
-                .iter()
-                .map(|program| program.agents.len())
-                .try_fold(0usize, usize::checked_add)?
-                .checked_mul(std::mem::size_of::<crate::ast::AgentDeclaration>())?;
-            bytes.checked_add(program_bytes)?.checked_add(agent_bytes)
-        })
+        .and_then(|bytes| bytes.checked_add(program_carrier_bytes(programs)?))
         .and_then(|bytes| {
             bytes.checked_add(authored.len().checked_mul(
                 std::mem::size_of::<WorkspaceOperationDeclaration>()

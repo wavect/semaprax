@@ -19,7 +19,7 @@ use super::{
 };
 
 #[path = "expected_projection/cost.rs"]
-mod cost;
+pub(super) mod cost;
 #[path = "expected_projection/identity_slots.rs"]
 mod identity_slots;
 use cost::{ExpandedDefaultCost, GenericInstanceCost, StructuralCost};
@@ -326,9 +326,7 @@ fn synthetic_main_runtime_cost(module: &str) -> Result<StructuralCost, Vec<Diagn
 }
 
 fn ast_program_cost(program: &Program, cost: &mut StructuralCost) -> Result<(), Vec<Diagnostic>> {
-    cost.add(
-        std::mem::size_of::<Program>() - std::mem::size_of::<Vec<crate::ast::AgentDeclaration>>(),
-    )?;
+    cost.program(program)?;
     cost.string(&program.path)?;
     cost.string(&program.module)?;
     for module_use in &program.module_uses {
@@ -339,20 +337,6 @@ fn ast_program_cost(program: &Program, cost: &mut StructuralCost) -> Result<(), 
     }
     for permit in &program.permits {
         cost.string(permit)?;
-    }
-    for agent in &program.agents {
-        cost.value(agent)?;
-        cost.string(&agent.stable_id)?;
-        cost.string(&agent.name)?;
-        for role in &agent.types {
-            cost.value(role)?;
-            cost.string(&role.stable_id)?;
-        }
-        for operation in &agent.operations {
-            cost.value(operation)?;
-            cost.string(&operation.stable_id)?;
-        }
-        cost.string(&agent.runtime_v1_json)?;
     }
     for declaration in &program.types {
         ast_type_declaration_cost(declaration, cost)?;

@@ -40,6 +40,20 @@ pub enum HttpFailure {
     AuthorityDenied,
 }
 
+impl HttpFailure {
+    /// The `semaprax.http.v1` status code this failure normalizes to.
+    pub const fn status_code(self) -> u32 {
+        match self {
+            Self::InvalidUrl => network_io_ops::HTTP_INVALID_URL,
+            Self::InsecureScheme => network_io_ops::HTTP_INSECURE_SCHEME,
+            Self::TransportFailed => network_io_ops::HTTP_TRANSPORT_FAILED,
+            Self::ResponseTooLarge => network_io_ops::HTTP_RESPONSE_TOO_LARGE,
+            Self::UnsupportedVersion => network_io_ops::HTTP_UNSUPPORTED_VERSION,
+            Self::AuthorityDenied => network_io_ops::HTTP_AUTHORITY_DENIED,
+        }
+    }
+}
+
 /// One normalized network failure. Every variant maps onto exactly one code
 /// of the closed `semaprax.network.v1` status domain.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -23,9 +23,11 @@ integration, no language syntax, no parser/HIR/Graph/backend changes, and no
 `Sendable` checking of real programs. Like the callable-v3 settlement model,
 everything it produces is evidence of what a conforming implementation MUST do,
 never authority to execute anything. Real closure execution is owned by
-[Structured Tasks Runtime v1](STRUCTURED-TASKS-RUNTIME-V1.md). A modeled task body is a closed scripted
-outcome (`Succeed`, `Fail(Semantic)`, or `Fail(Physical(nonzero))`); nothing is
-run and no work is performed.
+[Structured Tasks Runtime v1](STRUCTURED-TASKS-RUNTIME-V1.md), including an
+invocation-owned HTTPS task whose provider must settle before result
+publication. A modeled task body here is still a closed scripted outcome
+(`Succeed`, `Fail(Semantic)`, or `Fail(Physical(nonzero))`); this proof module
+runs no work and grants no network authority.
 
 The key rule is:
 
@@ -49,8 +51,9 @@ This model extends, but does not replace, existing contracts:
 - Cleanup-plan vectors remain canonical execution order; this model never
   repairs, sorts, or substitutes them.
 - The completion-matrix "Structured concurrency" row remains far from complete;
-  actors/reducers, synchronization, real schedulers, and verified concurrency
-  on implemented backends stay open exactly as before.
+  the bounded host runtime and its HTTPS helper do not provide language task
+  syntax, actors/reducers, synchronization, dependency scheduling, or verified
+  task lowering on native and Wasm backends.
 
 ## Normative goals
 

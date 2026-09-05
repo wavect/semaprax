@@ -50,6 +50,14 @@ publishes output only after cleanup succeeds. It imports neither browser
 the executable local gate currently runs the real generated package under
 Node, which is not multi-engine browser evidence.
 
+The bounded Rust structured-task runtime exposes
+`TaskScope::spawn_https_get`. It moves an explicit provider into the lexical
+task, settles it exactly once on every exit path, and publishes the typed HTTP
+result only after settlement. Cancellation before transport prevents the
+request; started blocking I/O drains, with responses completing after the
+bounded deadline discarded. This is scoped host execution, not an async
+executor or SEMAPRAX native/Wasm task lowering.
+
 Failures use the closed `semaprax.http.v1` status domain:
 
 | Code | Meaning |
@@ -77,4 +85,5 @@ cargo test --locked --test project manifest_v13::
 ```
 
 The native-C11 adapter, live browser-fetch adapter, multi-engine browser gate,
-HTTP/3, and structured asynchronous execution remain open.
+HTTP/3, structured asynchronous execution, and language/backend task lowering
+remain open.

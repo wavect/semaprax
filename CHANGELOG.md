@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added invocation-owned HTTPS work to the bounded structured-task runtime.
+  Providers now settle exactly once across success, HTTP failure,
+  cancellation, panic, deadline expiry, and registration rejection; results
+  publish only after settlement, while started blocking I/O drains and late
+  responses are discarded.
+
 - Added the Project-v13 HTTPS Core-Wasm and npm lanes. The new replayable
   `semaprax.project-npm-build.v12` package authenticates one
   `spx_https_get_v1` import, a distinct HTTP status marker, owned response

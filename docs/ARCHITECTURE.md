@@ -409,6 +409,14 @@ Core-Wasm import/status boundary and owned-result authentication;
 Project-v13 fixture-v3 carrier. Those generated adapters grant no ambient
 browser fetch, Node socket, TLS-key, or WASI authority.
 
+`src/structured_tasks.rs` owns the bounded Rust scoped-thread runtime and its
+invocation-owned HTTPS task adapter. A provider moves into one lexical task,
+settles exactly once on every exit path, and publishes a typed result only
+after settlement. Pre-start cancellation prevents transport; started blocking
+I/O drains, and a late response is discarded against a bounded caller-selected
+deadline. This is host runtime behavior, not SEMAPRAX task syntax or native/Wasm
+task lowering. See [Structured Tasks Runtime v1](STRUCTURED-TASKS-RUNTIME-V1.md).
+
 `src/codegen.rs` owns native orchestration and admission. The
 `src/codegen/native_*` modules own C11 emission, runtime statuses, aggregate
 and byte-data lowering, command I/O, callable bundles, resource fixtures,

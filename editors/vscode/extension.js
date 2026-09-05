@@ -10,6 +10,7 @@ const { HoleDraft } = require('./holes');
 const { Repairs, validateCandidateHandle } = require('./repairs');
 const { CandidateTestTask, METHODS: TEST_TASK_METHODS } = require('./tasks');
 const checks = require('./diagnostics');
+const navigation = require('./navigation');
 let stopActive = () => {};
 // Check-on-save: run the user-selected compiler's read-only `check --json` on
 // the saved file's project and publish the result as editor diagnostics. It
@@ -78,9 +79,91 @@ function activateChecks(context, testMode) {
     void vscode.window.showInformationMessage(count ? `SEMAPRAX check of ${path.basename(subject)}: ${count} diagnostic${count === 1 ? '' : 's'}` : `SEMAPRAX check of ${path.basename(subject)}: no diagnostics`);
     return result.records;
   }
+  // Navigation by meaning: read-only `query <file> --json` and `doc <file>`
+  // runs of the same user-selected binary over the saved active file. Nothing
+  // here starts a session, writes a file, or reads workspace settings.
+  const requireCompiler = purpose => {
+    const binary = compiler();
+    if (!binary) throw new Error(`Set the user setting semaprax.compilerPath to the absolute path of a semaprax binary to ${purpose}`);
+    if (!vscode.workspace.isTrusted) throw new Error('A trusted workspace is required');
+    return binary;
+  };
+  const activeSource = () => {
+    const doc = vscode.window.activeTextEditor?.document;
+    if (!doc || doc.uri.scheme !== 'file' || !doc.uri.fsPath.endsWith('.spx')) throw new Error('Open a saved .spx file first');
+    if (doc.isDirty) throw new Error('Save the file first; navigation reads saved source');
+    return doc;
+  };
+  async function runNavigation(binary, args, file) {
+    const result = await navigation.runCommand(spawn, binary, args, path.dirname(file));
+    const reason = navigation.failureReason(result, binary);
+    if (reason) {
+      output.appendLine(`${file}: ${reason}`);
+      if (result.stderr) output.appendLine(result.stderr.trimEnd());
+      throw new Error(result.stderr.trim() ? `${reason}\n${result.stderr.trim().slice(0, 2048)}` : reason);
+    }
+    return result.stdout;
+  }
+  async function queryFile(binary, file, filters) {
+    const parsed = navigation.parseQueryResult(await runNavigation(binary, navigation.queryArguments(file, filters), file));
+    if (!parsed) throw new Error('The compiler returned an unexpected query result');
+    return parsed;
+  }
+  async function reveal(doc, range) {
+    const editor = await vscode.window.showTextDocument(doc);
+    const target = new vscode.Range(range.startLine, range.startColumn, range.endLine, range.endColumn);
+    editor.selection = new vscode.Selection(target.start, target.end);
+    editor.revealRange(target, vscode.TextEditorRevealType.InCenter);
+  }
+  async function goToDeclaration(pick) {
+    const binary = requireCompiler('navigate by stable identity');
+    const doc = activeSource();
+    const items = navigation.declarationItems(await queryFile(binary, doc.uri.fsPath, {}));
+    if (!items.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares nothing'); return; }
+    const chosen = await pick(items, { placeHolder: 'Declaration (name · kind · stable identity)', matchOnDescription: true, matchOnDetail: true });
+    if (chosen) await reveal(doc, chosen.range);
+    return items;
+  }
+  async function showReferences(pick) {
+    const binary = requireCompiler('show semantic references');
+    const doc = activeSource();
+    const callables = navigation.declarationItems(await queryFile(binary, doc.uri.fsPath, { kind: 'function,method' }));
+    if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable'); return; }
+    const target = await pick(callables, { placeHolder: 'Callable whose callers to show', matchOnDescription: true });
+    if (!target) return;
+    const items = navigation.referenceItems(await queryFile(binary, doc.uri.fsPath, { calls: target.id }), target.id);
+    if (!items.length) { void vscode.window.showInformationMessage(`SEMAPRAX: nothing in this module calls ${target.id}`); return items; }
+    const chosen = await pick(items, { placeHolder: `Callers of ${target.id}`, matchOnDescription: true });
+    if (chosen) await reveal(doc, chosen.range);
+    return items;
+  }
+  async function showDocumentation() {
+    const binary = requireCompiler('render module documentation');
+    const doc = activeSource();
+    const markdown = await runNavigation(binary, navigation.docArguments(doc.uri.fsPath), doc.uri.fsPath);
+    const view = await vscode.workspace.openTextDocument({ language: 'markdown', content: markdown });
+    await vscode.window.showTextDocument(view, { preview: true, viewColumn: vscode.ViewColumn.Beside, preserveFocus: true });
+    return markdown;
+  }
+  const lensesEnabled = () => machineSetting('codeLens') !== false;
+  const lensProvider = {
+    async provideCodeLenses(doc) {
+      const binary = compiler();
+      if (!binary || !lensesEnabled() || !vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || doc.isDirty || !doc.uri.fsPath.endsWith('.spx')) return [];
+      const result = await navigation.runCommand(spawn, binary, navigation.queryArguments(doc.uri.fsPath, {}), path.dirname(doc.uri.fsPath));
+      if (navigation.failureReason(result, binary)) return [];
+      const parsed = navigation.parseQueryResult(result.stdout);
+      if (!parsed) return [];
+      return navigation.lensRecords(parsed).map(lens => new vscode.CodeLens(
+        new vscode.Range(lens.range.startLine, lens.range.startColumn, lens.range.endLine, lens.range.endColumn),
+        { title: lens.title, command: '' }
+      ));
+    }
+  };
   const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); };
-  context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose });
-  return { checkProject, test: testMode ? { check, ledger, collection } : undefined };
+  context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose },
+    vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider));
+  return { checkProject, goToDeclaration, showReferences, showDocumentation, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
 }
 function activate(context) {
   let client, config, image, candidate, target, stale = true, epoch = 0, busy = false;
@@ -567,6 +650,9 @@ function activate(context) {
       holes = undefined; selectedHole = undefined; changedDraft();
     },
     async checkProject() { await checking.checkProject(); },
+    async goToDeclaration() { await checking.goToDeclaration(pick); },
+    async showReferences() { await checking.showReferences(pick); },
+    async showDocumentation() { await checking.showDocumentation(); },
     async refresh() {
       saved(); if (!client || !image) throw new Error('Start a session first');
       const refreshEpoch = epoch, refreshClient = client, refreshImage = image, refreshDraft = holes, refreshRevision = holes?.draftRevision;

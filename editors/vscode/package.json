@@ -55,13 +55,17 @@
       { "command": "semaprax.completeDraft", "title": "SEMAPRAX: Complete Ready Draft as Candidate" },
       { "command": "semaprax.discardDraft", "title": "SEMAPRAX: Discard Typed-Hole Draft" },
       { "command": "semaprax.refresh", "title": "SEMAPRAX: Preview and Explicitly Refresh Saved Source" },
-      { "command": "semaprax.checkProject", "title": "SEMAPRAX: Check Project" }
+      { "command": "semaprax.checkProject", "title": "SEMAPRAX: Check Project" },
+      { "command": "semaprax.goToDeclaration", "title": "SEMAPRAX: Go to Declaration by Stable ID" },
+      { "command": "semaprax.showReferences", "title": "SEMAPRAX: Show Callers of a Declaration" },
+      { "command": "semaprax.showDocumentation", "title": "SEMAPRAX: Show Module Documentation" }
     ],
     "configuration": {
       "title": "SEMAPRAX Saved Source",
       "properties": {
         "semaprax.compilerPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute compiler binary path. Never read from workspace settings." },
         "semaprax.checkOnSave": { "type": "boolean", "default": true, "scope": "machine", "description": "Run the selected compiler's read-only `check --json` on the saved file's project and show its diagnostics. Effective only when semaprax.compilerPath is set." },
+        "semaprax.codeLens": { "type": "boolean", "default": true, "scope": "machine", "description": "Show stable identity, effect, and contract code lenses above each declaration of a saved .spx file, from the selected compiler's read-only `query --json`. Effective only when semaprax.compilerPath is set." },
         "semaprax.manifestPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute saved semaprax.toml path." },
         "semaprax.hostPolicyPath": { "type": "string", "default": "", "scope": "machine", "description": "User-selected absolute existing v1-v7 host-policy JSON path. Candidate tests remain unavailable unless that policy explicitly selects its fixed interpreter limits; this extension cannot invoke builds, approval, or publication." }
       }

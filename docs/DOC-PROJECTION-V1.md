@@ -89,9 +89,17 @@ identity.
 {"schema":"semaprax.doc.v1","module":"...","revision":"sha256:...","permits":[...],
  "uses":[{"kind":"function","id":"...","module":"...","alias":"..."}],
  "declarations":[{"kind":"function","id":"...","name":"...","persistent":true,
-   "description":["..."],"signature":"...","facts":[{"label":"Returns","values":["i64"]}],
-   "members":[{"kind":"field","id":"...","name":"...","persistent":true,"text":"x: i64"}]}]}
+   "description":["..."],"signature":"...","location":{"line":6,"column":4,"start":78,"end":90},
+   "facts":[{"label":"Returns","values":["i64"]}],
+   "members":[{"kind":"field","id":"...","name":"...","persistent":true,"text":"x: i64",
+     "location":{"line":8,"column":5,"start":120,"end":121}}]}]}
 ```
+
+`location` is where the declaration or member is written: the one-based line
+and column and the byte offsets of its name token (of the whole item for an
+implementation, binding, or drop lifecycle), exactly as diagnostics report
+locations, so an editor can move to a declaration by stable identity. The
+Markdown page does not print locations.
 
 Key order is fixed, strings are escaped with the compiler's own JSON quoting,
 and the document ends with one newline. It is the same model as the Markdown

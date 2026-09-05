@@ -230,12 +230,16 @@ pub fn json(result: &QueryResult) -> String {
         }
         write!(
             output,
-            "{{\"kind\":{},\"id\":{},\"name\":{},\"persistent\":{},\"signature\":{},\"effects\":{},\"calls\":{},\"called_by\":{}}}",
+            "{{\"kind\":{},\"id\":{},\"name\":{},\"persistent\":{},\"signature\":{},\"location\":{{\"line\":{},\"column\":{},\"start\":{},\"end\":{}}},\"effects\":{},\"calls\":{},\"called_by\":{}}}",
             quote_json(found.entry.kind),
             quote_json(&found.entry.id),
             quote_json(&found.entry.name),
             found.entry.persistent,
             quote_json(&found.entry.signature),
+            found.entry.location.line,
+            found.entry.location.column,
+            found.entry.location.start,
+            found.entry.location.end,
             json_strings(effects(&found.entry)),
             json_strings(&found.calls),
             json_strings(&found.called_by)

@@ -123,7 +123,10 @@ text search. Without `--json` the output is one tab-separated line per match:
 kind, identity, and the first non-`@id` line of the canonical signature.
 `--json` prints one `semaprax.query.v1` line with the module, revision, the
 filters as given, and every match's kind, identity, name, persistence,
-signature, effects, callees, and callers.
+signature, location (the one-based line and column and byte offsets of the
+name token, as in `doc`), effects, callees, and callers. The VS Code adapter's
+go-to-declaration, callers, and code-lens features are this route
+([VS Code adapter](VSCODE-SAVED-SOURCE-ADAPTER-V1.md)).
 
 The query fails closed rather than matching nothing: an unknown kind reports
 `SPX-V211` with the admitted list, and a `--calls`/`--called-by` identity that

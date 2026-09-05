@@ -42,6 +42,28 @@ nothing, publishes nothing, writes no file, and starts no saved-source session.
 severity/range mapping, appended help, stale clearing, and the byte and time
 bounds against a scripted child.
 
+## Navigate by meaning
+
+With `semaprax.compilerPath` set, three commands and one code-lens provider
+read the saved active `.spx` file through the compiler's read-only
+`query <file> --json` and `doc <file>` routes; nothing runs on a dirty buffer.
+`SEMAPRAX: Go to Declaration by Stable ID` lists every declaration of the
+module (name, kind, `@id`, canonical header) and moves the cursor to the chosen
+declaration's name token, using the one-based line and column the compiler
+reports. `SEMAPRAX: Show Callers of a Declaration` asks for a function or
+method, then lists the declarations whose bodies call it, from the compiler's
+persistent call index rather than a text search, and jumps to the chosen
+caller. `SEMAPRAX: Show Module Documentation` opens the Markdown page
+`semaprax doc` renders beside the source. Code lenses above each declaration
+show its `@id` (or that the identity is automatic), its `uses { … }` effects
+when it declares any, and its `requires`/`ensures` counts when it declares
+contracts; `semaprax.codeLens` (default `true`, machine scope) turns them off.
+Every run is bounded exactly like check-on-save (4 MiB, 30 seconds, direct
+spawn without a shell, never workspace settings) and its failure is written to
+the `SEMAPRAX Check` output channel. `test/navigation.test.js` covers the
+argument vectors, result validation, source-ordered items, zero-based ranges,
+lens titles, and the byte and time bounds against a scripted child.
+
 ## Saved-source session
 
 Load this directory as a development extension using VS Code's extension

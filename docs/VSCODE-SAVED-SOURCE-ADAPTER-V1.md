@@ -30,6 +30,14 @@ starts no session, is disabled by an empty `semaprax.compilerPath`, and can be
 switched off with the machine setting `semaprax.checkOnSave`. The extension's
 [README](../editors/vscode/README.md#check-on-save) owns the behavior.
 
+Also additively, `SEMAPRAX: Go to Declaration by Stable ID`, `SEMAPRAX: Show
+Callers of a Declaration`, `SEMAPRAX: Show Module Documentation`, and the
+declaration code lenses run the same binary's read-only `query <file> --json`
+and `doc <file>` ([Unified CLI v1](UNIFIED-CLI-V1.md),
+[Documentation Projection v1](DOC-PROJECTION-V1.md)) over the saved active
+file, with the same bounds and no session. The
+[README](../editors/vscode/README.md#navigate-by-meaning) owns the behavior.
+
 Startup invokes the selected executable directly with
 `serve-workspace-mcp <manifest> <host-policy>` and no shell. The executable and
 policy are host choices, not values inferred from source or tool responses.

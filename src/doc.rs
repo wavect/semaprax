@@ -12,8 +12,8 @@
 use std::fmt::Write as _;
 
 use crate::ast::{
-    Expr, Function, ImportFailure, ModuleUseKind, Param, Program, ResourceLifecycleKind, Type,
-    TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration,
+    Expr, Function, ImportFailure, ModuleUseKind, Param, Program, ResourceLifecycleKind, Span,
+    Type, TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration,
 };
 use crate::diagnostic::quote_json;
 use crate::format::comments::{Comments, Placement};
@@ -45,6 +45,35 @@ pub struct Use {
     pub alias: String,
 }
 
+/// Where a declaration or member is written: one-based line and column of its
+/// name (or of the item when it has no name) and the byte offsets of that
+/// token, exactly as diagnostics report locations.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Location {
+    pub line: usize,
+    pub column: usize,
+    pub start: usize,
+    pub end: usize,
+}
+
+impl Location {
+    fn of(span: Span) -> Self {
+        Self {
+            line: span.line,
+            column: span.column,
+            start: span.start,
+            end: span.end,
+        }
+    }
+
+    fn json(self) -> String {
+        format!(
+            "{{\"line\":{},\"column\":{},\"start\":{},\"end\":{}}}",
+            self.line, self.column, self.start, self.end
+        )
+    }
+}
+
 /// One documented declaration.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Entry {
@@ -61,6 +90,7 @@ pub struct Entry {
     pub description: Vec<String>,
     /// The declaration header in canonical source syntax, without bodies.
     pub signature: String,
+    pub location: Location,
     pub facts: Vec<Fact>,
     pub members: Vec<Member>,
 }
@@ -82,6 +112,7 @@ pub struct Member {
     pub persistent: bool,
     /// The member in canonical source syntax.
     pub text: String,
+    pub location: Location,
 }
 
 /// Build the documentation model of a parsed program. Callers verify the
@@ -273,6 +304,7 @@ fn function_entry(function: &Function, placement: &Placement, kind: &'static str
         persistent: function.explicit_id,
         description: description(placement, function.span.start),
         signature,
+        location: Location::of(function.name_span),
         facts,
         members: Vec::new(),
     }
@@ -297,6 +329,7 @@ fn field_members(
             name: field.name.clone(),
             persistent: field.explicit_id,
             text,
+            location: Location::of(field.name_span),
         });
     }
 }
@@ -341,6 +374,7 @@ fn type_entry(declaration: &TypeDeclaration, placement: &Placement) -> Entry {
                         name: "drop".to_owned(),
                         persistent: lifecycle.stable_id.is_some(),
                         text,
+                        location: Location::of(lifecycle.span),
                     });
                 }
                 signature.push_str("}\n");
@@ -392,6 +426,7 @@ fn type_entry(declaration: &TypeDeclaration, placement: &Placement) -> Entry {
                         name: case.name.clone(),
                         persistent: case.explicit_id,
                         text,
+                        location: Location::of(case.name_span),
                     });
                     members.extend(case_fields);
                     continue;
@@ -402,6 +437,7 @@ fn type_entry(declaration: &TypeDeclaration, placement: &Placement) -> Entry {
                     name: case.name.clone(),
                     persistent: case.explicit_id,
                     text,
+                    location: Location::of(case.name_span),
                 });
             }
             signature.push_str("}\n");
@@ -447,6 +483,7 @@ fn type_entry(declaration: &TypeDeclaration, placement: &Placement) -> Entry {
         persistent: declaration.explicit_id,
         description: description(placement, declaration.span.start),
         signature,
+        location: Location::of(declaration.name_span),
         facts,
         members,
     }
@@ -497,6 +534,7 @@ fn interface_entry(interface: &crate::ast::InterfaceDeclaration, placement: &Pla
             name: import.name.clone(),
             persistent: import.explicit_id,
             text,
+            location: Location::of(import.name_span),
         });
     }
     signature.push_str("}\n");
@@ -509,6 +547,7 @@ fn interface_entry(interface: &crate::ast::InterfaceDeclaration, placement: &Pla
         persistent: interface.explicit_id,
         description: description(placement, interface.span.start),
         signature,
+        location: Location::of(interface.name_span),
         facts,
         members,
     }
@@ -536,6 +575,7 @@ fn protocol_entry(protocol: &crate::ast::ProtocolDeclaration, placement: &Placem
             name: method.name.clone(),
             persistent: method.explicit_id,
             text,
+            location: Location::of(method.name_span),
         });
     }
     signature.push_str("}\n");
@@ -546,6 +586,7 @@ fn protocol_entry(protocol: &crate::ast::ProtocolDeclaration, placement: &Placem
         persistent: protocol.explicit_id,
         description: description(placement, protocol.span.start),
         signature,
+        location: Location::of(protocol.name_span),
         facts: Vec::new(),
         members,
     }
@@ -578,6 +619,7 @@ fn implementation_entry(
             name: member.method_id.clone(),
             persistent: true,
             text,
+            location: Location::of(member.span),
         });
     }
     signature.push_str("}\n");
@@ -591,6 +633,7 @@ fn implementation_entry(
         persistent: implementation.explicit_id,
         description: description(placement, implementation.span.start),
         signature: signature.clone(),
+        location: Location::of(implementation.span),
         facts: vec![
             Fact {
                 label: "Protocol",
@@ -778,13 +821,14 @@ fn render_json(document: &Document) -> String {
         }
         write!(
             output,
-            "{{\"kind\":{},\"id\":{},\"name\":{},\"persistent\":{},\"description\":{},\"signature\":{},\"facts\":[",
+            "{{\"kind\":{},\"id\":{},\"name\":{},\"persistent\":{},\"description\":{},\"signature\":{},\"location\":{},\"facts\":[",
             quote_json(entry.kind),
             quote_json(&entry.id),
             quote_json(&entry.name),
             entry.persistent,
             json_strings(&entry.description),
-            quote_json(&entry.signature)
+            quote_json(&entry.signature),
+            entry.location.json()
         )
         .unwrap();
         for (index, fact) in entry.facts.iter().enumerate() {
@@ -806,12 +850,13 @@ fn render_json(document: &Document) -> String {
             }
             write!(
                 output,
-                "{{\"kind\":{},\"id\":{},\"name\":{},\"persistent\":{},\"text\":{}}}",
+                "{{\"kind\":{},\"id\":{},\"name\":{},\"persistent\":{},\"text\":{},\"location\":{}}}",
                 quote_json(member.kind),
                 quote_json(&member.id),
                 quote_json(&member.name),
                 member.persistent,
-                quote_json(&member.text)
+                quote_json(&member.text),
+                member.location.json()
             )
             .unwrap();
         }

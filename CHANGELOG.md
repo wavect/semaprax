@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- The VS Code adapter navigates by meaning: `Go to Declaration by Stable ID`,
+  `Show Callers of a Declaration`, and `Show Module Documentation` run the
+  selected compiler's read-only `query --json` and `doc` over the saved active
+  file, and code lenses show each declaration's `@id`, effects, and contract
+  counts (`semaprax.codeLens`). The `doc` and `query` JSON projections now
+  carry each declaration's and member's `location`.
 - Added Bounded Language Network I/O v1: six compiler-owned, effect-gated TCP
   client operations (`net_connect`, `net_send`, owned `net_recv`,
   transcript-streaming `net_stream_stdout`, bounded-readiness `net_wait`,

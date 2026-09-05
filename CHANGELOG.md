@@ -35,6 +35,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Nominal aggregate-valued `match` arms now fail during source verification
+  with a located `SPX-T258` and an `if`/scalar-extraction remedy. `check`,
+  native, and Wasm agree before unsupported record/variant lowering begins.
+
 - Added a deterministic 128-level source-nesting limit. Deep balanced or
   truncated delimiters, unary chains, and expression trees now fail with a
   located `SPX-P207` and extraction help instead of overflowing the Rust

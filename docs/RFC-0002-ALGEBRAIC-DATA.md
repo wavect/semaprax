@@ -241,6 +241,10 @@ fn example(point: Point, value: Option<i64>) -> i64 {
 - Generic functions use the same explicit projection:
   `fn id<T>(value: T) -> T { value }` and `id<i64>(value)`. The bounded function slice accepts one or
   two parameters and only direct `i64`/`bool` substitutions.
+- Match expressions currently cannot produce nominal aggregates. An arm that
+  yields a record, variant, `Option`, or `Result` is rejected at source
+  verification with `SPX-T258`; construct the aggregate with `if`, or extract
+  scalars in the arms.
 
 `Option<T>` and `Result<T, E>` are ordinary compiler-owned variants from the
 authenticated versioned prelude, not hidden backend primitives. Their reserved

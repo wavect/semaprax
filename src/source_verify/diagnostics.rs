@@ -24,6 +24,38 @@ pub(super) fn reject_native_unit_value(
     }
 }
 
+pub(super) fn reject_aggregate_match_result(
+    program: &Program,
+    expression: &Expr,
+    value: &CheckedValue,
+    diagnostics: &mut Vec<Diagnostic>,
+) {
+    if !matches!(
+        value.ty,
+        Type::I64
+            | Type::I32
+            | Type::U8
+            | Type::Usize
+            | Type::Char
+            | Type::F32
+            | Type::F64
+            | Type::Bool
+            | Type::String
+    ) {
+        diagnostics.push(
+            error(
+                program,
+                "SPX-T258",
+                "aggregate-valued match arms are outside the executable match profile",
+                expression.span,
+            )
+            .with_help(
+                "build the aggregate with `if`, or make the match arms extract scalar values",
+            ),
+        );
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(super) fn require_bool(
     program: &Program,

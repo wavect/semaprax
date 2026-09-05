@@ -147,6 +147,8 @@ fn main() -> i64
   `SPX-E101`; a missing `uses` is `SPX-E102`.
 - `match` on scalars needs a final catch-all arm (`_` or a binding) without a
   guard, else `SPX-T257`.
+- Match arms cannot yield nominal aggregates. `SPX-T258` means to use `if` to
+  construct the record/variant, or extract scalars first.
 
 ## Records, variants, classes
 

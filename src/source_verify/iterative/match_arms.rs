@@ -4,7 +4,9 @@
 use crate::ast::{MatchMode, MatchPattern, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding};
-use crate::source_verify::diagnostics::{error, reject_native_unit_value, source_identifier};
+use crate::source_verify::diagnostics::{
+    error, reject_aggregate_match_result, reject_native_unit_value, source_identifier,
+};
 use crate::source_verify::loans::merge_moved;
 use crate::source_verify::place::{join_definitely_partial, join_moved_places};
 use crate::source_verify::scope::{
@@ -279,6 +281,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let arm_value = self.values.pop().unwrap_or(None);
         if let Some(value) = &arm_value {
             reject_native_unit_value(self.program, &arm.value, value, self.diagnostics);
+            reject_aggregate_match_result(self.program, &arm.value, value, self.diagnostics);
         }
         if let Some(arm_value) = arm_value {
             if state.needs_drop
@@ -459,6 +462,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
         let arm_value = self.values.pop().unwrap_or(None);
         if let Some(value) = &arm_value {
             reject_native_unit_value(self.program, &arm.value, value, self.diagnostics);
+            reject_aggregate_match_result(self.program, &arm.value, value, self.diagnostics);
         }
         if let Some(arm_value) = arm_value {
             if let Some(expected) = &state.result {

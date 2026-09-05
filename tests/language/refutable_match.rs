@@ -25,6 +25,7 @@ fn scalar_match_retains_owned_string_arm_result_classification() {
 @id("match.text") fn text(value: i64) -> string {
     match value { 0 => "zero", _ => "other", }
 }
+
 @id("app.main") fn main() -> i64 { string_len(text(0)) }
 "#;
     let program = semaprax::check(source, "owned-match.spx").unwrap();
@@ -40,6 +41,27 @@ fn scalar_match_retains_owned_string_arm_result_classification() {
     };
     tail.ownership = hir::OwnershipMode::Value;
     assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
+fn nominal_aggregate_valued_match_is_rejected_before_backend_lowering() {
+    let source = r#"module test.aggregate_match;
+@id("match.wrap") fn wrap(value: i64) -> Option<i64> {
+    match value { 0 => Option<i64>::None {}, _ => Option<i64>::Some { value: value }, }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let program = parse(source, Path::new("aggregate-match.spx")).unwrap();
+    let diagnostics = verify::verify(&program);
+    let aggregate = diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.code == "SPX-T258")
+        .collect::<Vec<_>>();
+    assert_eq!(aggregate.len(), 2);
+    assert!(aggregate
+        .iter()
+        .all(|diagnostic| diagnostic.span.is_some() && diagnostic.help.is_some()));
+    assert!(hir::resolve(&program).is_err());
 }
 
 const CORPUS: &str = r#"

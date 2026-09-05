@@ -5,7 +5,9 @@ use crate::ast::{Expr, Function, MatchMode, MatchPattern, ParamMode, Program, Ty
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding, CheckedValue};
 use crate::source_verify::declared_type::check_record_pattern;
-use crate::source_verify::diagnostics::{error, reject_native_unit_value, source_identifier};
+use crate::source_verify::diagnostics::{
+    error, reject_aggregate_match_result, reject_native_unit_value, source_identifier,
+};
 use crate::source_verify::loans::{activate_match_loan, mark_value_sources_moved, merge_moved};
 use crate::source_verify::oracle::check_expr;
 use crate::source_verify::place::{join_definitely_partial, join_moved_places, source_place};
@@ -204,6 +206,7 @@ pub(super) fn oracle_match(
             );
             if let Some(value) = &arm_value {
                 reject_native_unit_value(program, &arm.value, value, diagnostics);
+                reject_aggregate_match_result(program, &arm.value, value, diagnostics);
             }
             if let Some(arm_value) = arm_value {
                 if let Some(expected) = &result {
@@ -675,6 +678,7 @@ pub(super) fn oracle_match(
         );
         if let Some(value) = &arm_value {
             reject_native_unit_value(program, &arm.value, value, diagnostics);
+            reject_aggregate_match_result(program, &arm.value, value, diagnostics);
         }
         if let Some(arm_value) = arm_value {
             if variant_needs_drop

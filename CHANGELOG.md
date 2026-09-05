@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added a descriptor-derived C11 header for the Project-v11 nested
+  owned-record provider. Its fixed-width leaf carrier preserves full
+  descriptor occurrence order without exposing native record layout. A
+  separate C consumer links and runs at O0/O2, copies and settles two distinct
+  byte owners, rejects both duplicate drops, and closes their shared context.
 - Added a descriptor-derived low-level C11 header for the Project-v9 flat
   owned-record provider. It publishes fixed-width carrier field counts,
   ordinals and kinds without exposing native record layout. A separate C

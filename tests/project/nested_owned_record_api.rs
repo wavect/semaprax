@@ -1,11 +1,13 @@
 use semaprax::hir;
 use semaprax::project::{
-    derive_nested_owned_record_api_descriptor, replay_nested_owned_record_api_descriptor,
-    NestedOwnedRecordFieldType, NestedOwnedRecordLeafType, PublicApiSubject,
-    NESTED_OWNED_RECORD_API_SCHEMA, NESTED_OWNED_RECORD_PROJECT_SCHEMA,
+    derive_nested_owned_record_api_descriptor, render_nested_owned_record_c_header,
+    replay_nested_owned_record_api_descriptor, NestedOwnedRecordFieldType,
+    NestedOwnedRecordLeafType, PublicApiSubject, NESTED_OWNED_RECORD_API_SCHEMA,
+    NESTED_OWNED_RECORD_PROJECT_SCHEMA,
 };
 use sha2::{Digest, Sha256};
 use std::path::Path;
+use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
@@ -217,4 +219,108 @@ fn retained_v11_subject_replays_the_same_descriptor() {
         retained.nested_owned_record_api_descriptor().unwrap(),
         descriptor
     );
+}
+
+#[test]
+fn generated_c11_header_links_nested_provider_and_settles_every_leaf_owner() {
+    let root = Fixture(std::env::temp_dir().join(format!(
+        "semaprax-nested-record-c-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed),
+    )));
+    std::fs::create_dir(&root.0).unwrap();
+    let program = resolved();
+    let selected = vec!["nested.build".to_owned()];
+    let descriptor =
+        derive_nested_owned_record_api_descriptor(&program, &selected, subject()).unwrap();
+    let header = render_nested_owned_record_c_header(&descriptor);
+    assert_eq!(header, render_nested_owned_record_c_header(&descriptor));
+    assert!(header.contains("SPX_NESTED_RECORD_EXPORT_0_LEAF_COUNT UINT32_C(5)"));
+    assert_eq!(header.matches("SPX_NESTED_RECORD_OWNED_BYTES").count(), 3);
+    let bytes = descriptor.canonical_bytes();
+    let digest = descriptor.digest();
+    let provider = semaprax::codegen::emit_project_v11_native_nested_owned_record_provider(
+        &program,
+        &selected,
+        subject(),
+        &bytes,
+        &digest,
+    )
+    .unwrap();
+    let method = descriptor.exports()[0].rust_method_name();
+    std::fs::write(root.0.join("semaprax_nested_owned_record.h"), header).unwrap();
+    std::fs::write(root.0.join("provider.c"), provider.source()).unwrap();
+    std::fs::write(
+        root.0.join("consumer.c"),
+        format!(
+            r#"#include "semaprax_nested_owned_record.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+union aligned_context {{ max_align_t alignment; uint8_t bytes[UINT64_C(1) << 20]; }};
+int main(void) {{
+ union aligned_context storage;uint64_t size=spx_owned_data_context_size_v1(),align=spx_owned_data_context_align_v1();
+ if(!size||size>sizeof(storage.bytes)||!align||align>_Alignof(max_align_t))return 1;
+ if(spx_owned_data_context_init_v1(storage.bytes,size)!=SPX_OWNED_DATA_SUCCESS)return 2;
+ spx_context_v1*context=(spx_context_v1*)storage.bytes;const uint8_t input[]={{3,1,4}};
+ uint64_t carrier[SPX_NESTED_RECORD_EXPORT_0_LEAF_COUNT];for(uint32_t i=0;i<SPX_NESTED_RECORD_EXPORT_0_LEAF_COUNT;++i)carrier[i]=UINT64_MAX;
+ if(spx_owned_data_call_{method}_v1(context,input,sizeof(input),carrier)!=SPX_OWNED_DATA_SUCCESS)return 3;
+ if(!carrier[0]||carrier[1]!=sizeof(input)||carrier[2]!=UINT64_C(1)||!carrier[3]||carrier[4]!=sizeof(input)||carrier[0]==carrier[3])return 4;
+ for(uint32_t slot=0;slot<=3;slot+=3){{uint64_t length=UINT64_MAX;uint8_t output[3]={{0}};spx_owned_bytes_handle_v1 handle=carrier[slot];
+  if(spx_owned_bytes_len_v1(context,handle,&length)!=SPX_OWNED_DATA_SUCCESS||length!=sizeof(input))return 5;
+  if(spx_owned_bytes_copy_v1(context,handle,output,length)!=SPX_OWNED_DATA_SUCCESS||memcmp(input,output,sizeof(input)))return 6;
+  if(spx_owned_bytes_drop_v1(context,handle)!=SPX_OWNED_DATA_SUCCESS)return 7;
+  if(spx_owned_bytes_drop_v1(context,handle)!=SPX_OWNED_DATA_INVALID_HANDLE)return 8;}}
+ if(spx_owned_data_context_drop_v1(context)!=SPX_OWNED_DATA_SUCCESS)return 9;return 0;
+}}
+"#
+        ),
+    )
+    .unwrap();
+    let clang = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
+    for optimization in ["-O0", "-O2"] {
+        for input in ["provider.c", "consumer.c"] {
+            let object = format!("{input}-{optimization}.o");
+            let output = Command::new(&clang)
+                .current_dir(&root.0)
+                .args([
+                    "-std=c11",
+                    optimization,
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-c",
+                    input,
+                    "-o",
+                    object.as_str(),
+                ])
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+        let executable = format!("consumer-{optimization}");
+        let output = Command::new(&clang)
+            .current_dir(&root.0)
+            .args([
+                format!("provider.c-{optimization}.o"),
+                format!("consumer.c-{optimization}.o"),
+                "-o".to_owned(),
+                executable.clone(),
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(Command::new(root.0.join(executable))
+            .status()
+            .unwrap()
+            .success());
+    }
 }

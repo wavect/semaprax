@@ -321,13 +321,13 @@ pub use native_sdk::{
     ProjectNativeSdkExport, ProjectNativeSdkSubject, ProjectOwnedDataNativeSdkSubject,
 };
 pub use nested_owned_record::{
-    derive_nested_owned_record_api_descriptor, replay_nested_owned_record_api_descriptor,
-    NestedOwnedRecordApiDescriptor, NestedOwnedRecordExport, NestedOwnedRecordField,
-    NestedOwnedRecordFieldType, NestedOwnedRecordLeaf, NestedOwnedRecordLeafType,
-    NestedOwnedRecordType, MAX_NESTED_RECORD_DEPTH, MAX_NESTED_RECORD_DESCRIPTOR_BYTES,
-    MAX_NESTED_RECORD_OWNED_LEAVES, MAX_NESTED_RECORD_OWNED_OUTPUT_BYTES,
-    MAX_NESTED_RECORD_VISITED_FIELDS, NESTED_OWNED_RECORD_API_SCHEMA,
-    NESTED_OWNED_RECORD_PROJECT_SCHEMA,
+    derive_nested_owned_record_api_descriptor, render_nested_owned_record_c_header,
+    replay_nested_owned_record_api_descriptor, NestedOwnedRecordApiDescriptor,
+    NestedOwnedRecordExport, NestedOwnedRecordField, NestedOwnedRecordFieldType,
+    NestedOwnedRecordLeaf, NestedOwnedRecordLeafType, NestedOwnedRecordType,
+    MAX_NESTED_RECORD_DEPTH, MAX_NESTED_RECORD_DESCRIPTOR_BYTES, MAX_NESTED_RECORD_OWNED_LEAVES,
+    MAX_NESTED_RECORD_OWNED_OUTPUT_BYTES, MAX_NESTED_RECORD_VISITED_FIELDS,
+    NESTED_OWNED_RECORD_API_SCHEMA, NESTED_OWNED_RECORD_PROJECT_SCHEMA,
 };
 pub use npm::{
     ProjectNpmBuild, ProjectNpmPublication, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,

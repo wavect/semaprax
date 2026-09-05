@@ -73,13 +73,23 @@ and exact canonical byte reconstruction. Submitted record tables or paths never
 override retained HIR facts. A descriptor grants no source, target, allocator,
 filesystem, process, publication, or execution authority.
 
-## Private carriers and atomic settlement
+## Carrier integration and atomic settlement
 
 There is no public C, Rust, or Wasm aggregate layout. Each target independently
 validates its compiler-private aggregate layout against retained HIR, then
-flattens leaf occurrences into a private fixed-width carrier in descriptor
-order. Scalar slots are copied values. Owned slots contain invocation-local
-opaque handles only.
+flattens leaf occurrences into a fixed-width carrier in descriptor order.
+Scalar slots are copied values. Owned slots contain invocation-local opaque
+handles only.
+
+`render_nested_owned_record_c_header` exposes the low-level C11 provider
+carrier without exposing native record layout. The header contains the closed
+status and leaf-kind vocabularies, exact export leaf counts, descriptor-order
+leaf ordinals and kinds, opaque context/handle operations, and one call per
+authenticated export with a minimum-length `uint64_t[static N]` result. A C
+integrator must initialize every slot to `UINT64_MAX`, validate every leaf,
+copy all owned payloads, drop every distinct handle exactly once, and close the
+context only after the complete owner set is settled. This is not the safe
+Rust or TypeScript application projection.
 
 Before transferring any owner, a provider authenticates the complete result
 shape, every scalar, every owned leaf, cumulative byte length, all required free
@@ -119,6 +129,12 @@ owner settlement, and absence of partial publication. Native evidence executes
 the emitted C at `-O0` and `-O2`; portable evidence validates the module and
 executes the generated package under Node. Neither is evidence for a Component,
 browser matrix, registry publication, or stable aggregate ABI.
+
+Focused low-level C evidence separately compiles the descriptor-derived header
+consumer and actual native provider, links and executes at O0/O2, validates the
+five-leaf nested occurrence order, copies two distinct owned payloads, rejects
+duplicate drops for both handles, and closes the shared context after complete
+settlement. It is local integration evidence, not package or support promotion.
 
 ## Compatibility
 
@@ -162,8 +178,8 @@ is recorded.
 
 ## Nonclaims
 
-Project v11 does not provide a public C/Wasm aggregate layout, WIT or Component
-ABI, zero-copy output, allocator transfer, foreign ownership, nested parameters,
-mutable host views, escaping borrows, variants, generic aggregates, resources,
-classes, `String` fields, concurrency, registry publication, browser support, or
-production readiness by itself.
+Project v11 does not provide a public C/Wasm native aggregate layout, WIT or
+Component ABI, zero-copy output, allocator transfer, foreign ownership, nested
+parameters, mutable host views, escaping borrows, variants, generic aggregates,
+resources, classes, `String` fields, concurrency, registry publication, browser
+support, or production readiness by itself.

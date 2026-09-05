@@ -10,8 +10,10 @@ use super::{PublicApiParameterType, PublicApiSubject};
 
 mod codec;
 mod derivation;
+mod projections;
 
 pub use derivation::derive_nested_owned_record_api_descriptor;
+pub use projections::render_nested_owned_record_c_header;
 
 pub const NESTED_OWNED_RECORD_PROJECT_SCHEMA: &str = "semaprax.project.v11";
 pub const NESTED_OWNED_RECORD_API_SCHEMA: &str = "semaprax.public-nested-owned-record-api.v1";

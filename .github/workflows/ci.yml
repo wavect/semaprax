@@ -160,6 +160,21 @@ jobs:
           "$SEMAPRAX_DIRECT_CALCULATOR_ROOT"
           "$SEMAPRAX_PROJECT_CALCULATOR_ROOT"
           "$SEMAPRAX_RENAMED_PROJECT_CALCULATOR_ROOT"
+      - name: Build the Project v13 HTTPS package into an isolated fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          https_root="$RUNNER_TEMP/semaprax-https-browser-v1"
+          cargo run --locked -p semaprax -- build \
+            examples/https-project/semaprax.toml --target npm \
+            -o "$https_root"
+          echo "SEMAPRAX_HTTPS_PACKAGE_ROOT=$https_root" >> "$GITHUB_ENV"
+      - name: Install the locked HTTPS browser fixture
+        working-directory: platform-tests/https-browser-v1
+        run: npm ci --ignore-scripts
+      - name: Exercise generated fixture-backed HTTPS in real Chromium
+        working-directory: platform-tests/https-browser-v1
+        run: npm test
 
   project-product-acceptance-v1:
     name: Project Product Acceptance v1 (${{ matrix.os }})

@@ -427,6 +427,14 @@ I/O drains, and a late response is discarded against a bounded caller-selected
 deadline. This is host runtime behavior, not SEMAPRAX task syntax or native/Wasm
 task lowering. See [Structured Tasks Runtime v1](STRUCTURED-TASKS-RUNTIME-V1.md).
 
+`platform-tests/https-browser-v1` owns the provisioned Chromium consumer for
+the generated Project-v13 npm carrier. Its loopback server exposes only the
+committed harness and a separately generated package; the browser test
+authenticates Wasm through the generated runtime, proves one-shot invocation
+and hostile-byte rejection, and records every request origin. This gate proves
+fixture-provider browser execution without granting ambient browser `fetch` or
+live public-network authority.
+
 `src/codegen.rs` owns native orchestration and admission. The
 `src/codegen/native_*` modules own C11 emission, runtime statuses, aggregate
 and byte-data lowering, command I/O, callable bundles, resource fixtures,

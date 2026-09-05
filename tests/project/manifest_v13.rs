@@ -175,3 +175,62 @@ fn project_v13_rejects_capability_and_profile_drift() {
         assert!(ProjectManifest::parse(&invalid).is_err());
     }
 }
+
+#[test]
+fn project_v13_https_browser_gate_is_locked_isolated_and_provisioned() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let fixture = root.join("platform-tests/https-browser-v1");
+    let package: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(fixture.join("package.json")).unwrap())
+            .unwrap();
+    assert_eq!(package["devDependencies"]["@playwright/test"], "1.62.0");
+    let lock: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(fixture.join("package-lock.json")).unwrap())
+            .unwrap();
+    assert_eq!(lock["lockfileVersion"], 3);
+    assert_eq!(
+        lock["packages"]["node_modules/playwright-core"]["version"],
+        "1.62.0"
+    );
+
+    let config = std::fs::read_to_string(fixture.join("playwright.config.mjs")).unwrap();
+    let server = std::fs::read_to_string(fixture.join("serve.mjs")).unwrap();
+    let browser = std::fs::read_to_string(fixture.join("tests/https.spec.mjs")).unwrap();
+    for required in [
+        "SEMAPRAX_HTTPS_PACKAGE_ROOT",
+        "browserName: \"chromium\"",
+        "workers: 1",
+        "retries: 0",
+        "reuseExistingServer: false",
+    ] {
+        assert!(
+            config.contains(required),
+            "browser config lost `{required}`"
+        );
+    }
+    assert!(server.contains("127.0.0.1"));
+    assert!(server.contains("application/wasm"));
+    for required in [
+        "reuseRejected: true",
+        "authenticationRejected: true",
+        "new Set(origins)",
+        "pageErrors",
+        "requestfailed",
+    ] {
+        assert!(browser.contains(required), "browser test lost `{required}`");
+    }
+
+    let workflow = std::fs::read_to_string(root.join(".github/workflows/ci.yml")).unwrap();
+    for required in [
+        "Build the Project v13 HTTPS package into an isolated fixture",
+        "examples/https-project/semaprax.toml --target npm",
+        "SEMAPRAX_HTTPS_PACKAGE_ROOT=$https_root",
+        "working-directory: platform-tests/https-browser-v1",
+        "Exercise generated fixture-backed HTTPS in real Chromium",
+    ] {
+        assert!(
+            workflow.contains(required),
+            "HTTPS browser CI lost `{required}`"
+        );
+    }
+}

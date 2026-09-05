@@ -1,7 +1,7 @@
 # HTTPS Client I/O v1
 
 Status: locally evidenced source, hosted-provider, Core-Wasm, and generated
-npm/Node fixture tranche.
+npm fixture tranche under Node and Chromium.
 
 Audience: language users, host integrators, compiler contributors, and reviewers.
 
@@ -46,9 +46,12 @@ independent `__spx_http_status_v1` marker. The generated npm package supplies
 that import from a branded, one-invocation fixture-v3 provider, authenticates
 the Wasm before instantiation, validates the returned owned-byte carrier, and
 publishes output only after cleanup succeeds. It imports neither browser
-`fetch`, Node sockets, nor WASI sockets. The JavaScript is browser-compatible;
-the executable local gate currently runs the real generated package under
-Node, which is not multi-engine browser evidence.
+`fetch`, Node sockets, nor WASI sockets. The provisioned HTTPS Browser v1 gate
+executes the real generated package under Chromium, checks exact output,
+one-shot invocation and tampered-Wasm rejection, and observes that every
+browser request remains on the loopback fixture origin. Node executes the same
+generated carrier in the Project-v13 integration suite. This is not
+multi-engine or live-browser-TLS evidence.
 
 The bounded Rust structured-task runtime exposes
 `TaskScope::spawn_https_get`. It moves an explicit provider into the lexical
@@ -82,6 +85,7 @@ cargo test --locked --lib network_provider::fixture::tests
 cargo test --locked --lib wasm::http_io::tests
 cargo test --locked --test useful_data hosted_http_profile_executes_a_turnkey_https_get
 cargo test --locked --test project manifest_v13::
+SEMAPRAX_HTTPS_PACKAGE_ROOT=/absolute/generated npm --prefix platform-tests/https-browser-v1 test
 ```
 
 The native-C11 adapter, live browser-fetch adapter, multi-engine browser gate,

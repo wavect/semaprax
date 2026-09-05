@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added a locked Project-v13 HTTPS browser fixture and provisioned Chromium CI
+  gate. It executes the real generated npm/Wasm package, verifies exact
+  fixture-v3 output, one-shot invocation and tampered-Wasm rejection, and
+  proves every browser request stays on the loopback harness origin.
+
 - Added invocation-owned HTTPS work to the bounded structured-task runtime.
   Providers now settle exactly once across success, HTTP failure,
   cancellation, panic, deadline expiry, and registration rejection; results

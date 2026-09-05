@@ -280,7 +280,7 @@ fn one_byte_past_the_inline_array_limit_is_rejected() {
     );
 }
 
-fn stdout_argument<'a>(function: &'a ResolvedFunction) -> &'a ResolvedExpr {
+fn stdout_argument(function: &ResolvedFunction) -> &ResolvedExpr {
     let mut pending = vec![&function.body];
     while let Some(expression) = pending.pop() {
         if let ResolvedExprKind::Call { callee, args, .. } = &expression.kind {

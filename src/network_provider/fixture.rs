@@ -391,8 +391,7 @@ mod tests {
         let connection = r#"{"host":"a","port":1}"#;
         let too_many = format!(
             r#"{{"schema":"semaprax.network-fixture.v1","connections":[{}]}}"#,
-            std::iter::repeat(connection)
-                .take(9)
+            std::iter::repeat_n(connection, 9)
                 .collect::<Vec<_>>()
                 .join(",")
         );

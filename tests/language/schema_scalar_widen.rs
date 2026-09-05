@@ -350,7 +350,7 @@ fn openapi_widened_cli_exit_codes_hold() {
         "--function",
         "widen.mix",
         "--max-bytes",
-        "1024",
+        "2048",
     ]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-OA105"), "stderr was: {err}");
@@ -684,7 +684,7 @@ fn package_report_widened_cli_exit_codes_hold() {
     assert!(first_out.contains("\"result\":\"char\""));
     assert!(first_out.ends_with("}\n"));
 
-    let (code, _, err) = cli(&["package-report", MIXED_PATH, "--max-bytes", "1024"]);
+    let (code, _, err) = cli(&["package-report", MIXED_PATH, "--max-bytes", "2048"]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-P302"), "stderr was: {err}");
 }
@@ -962,7 +962,7 @@ fn main() -> i64 { 0 }
     assert!(first_out.contains("\"type\":\"char\""));
     assert!(first_out.ends_with("}\n"));
 
-    let (code, _, err) = cli(&["ui-schema", STATE_PATH, "--max-bytes", "1024"]);
+    let (code, _, err) = cli(&["ui-schema", STATE_PATH, "--max-bytes", "2048"]);
     assert_eq!(code, 1);
     assert!(err.contains("SPX-U102"), "stderr was: {err}");
 }

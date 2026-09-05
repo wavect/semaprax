@@ -864,7 +864,7 @@ pub fn evaluate_resolved_owned_data(
 
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
     let admitted = admitted_resolved_functions(program);
-    scan_closure(entry_id, &admitted, &program.declarations)?;
+    scan_closure(entry_id, &admitted, &program.declarations, true)?;
     let arguments = [(
         parameter.name.clone(),
         ArgumentValue::BorrowedSlice(input.to_vec()),
@@ -1040,7 +1040,7 @@ pub(crate) fn evaluate_resolved_public_api(
             format!("resolved public API export `{entry_id}` is outside the interpreter profile"),
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let closure = scan_closure(entry_id, &admitted, &program.declarations, true)?;
     if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -1252,7 +1252,7 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
             ),
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let closure = scan_closure(entry_id, &admitted, &program.declarations, true)?;
     if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -1460,7 +1460,7 @@ pub(crate) fn evaluate_resolved_owned_utf8_api(
             format!("resolved owned UTF-8 export `{entry_id}` is outside the interpreter profile"),
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let closure = scan_closure(entry_id, &admitted, &program.declarations, true)?;
     if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -1998,7 +1998,7 @@ fn interpret_on_current_thread(
     // them internally.
     let admitted = admitted_resolved_functions_with_profile(&resolved, profile);
 
-    scan_closure(entry.id.as_str(), &admitted, &resolved.declarations)?;
+    scan_closure(entry.id.as_str(), &admitted, &resolved.declarations, false)?;
 
     let (evaluated, steps_used, _) = evaluate_resolved_entry(
         entry,
@@ -2421,10 +2421,17 @@ fn bind_arguments(
 /// Walks the selected function's contracts, body, and every transitively
 /// reachable admitted callee, rejecting every shape outside the scalar
 /// interpreter profile with one closed reason.
+#[derive(Clone, Copy)]
+struct CopyRecordAdmission {
+    contextual: bool,
+    project_profile: bool,
+}
+
 fn scan_closure(
     entry_id: &str,
     admitted: &BTreeMap<&str, &ResolvedFunction>,
     declarations: &hir::DeclarationIndex,
+    allow_copy_records: bool,
 ) -> Result<BTreeSet<String>, Vec<Diagnostic>> {
     fn scan<'a>(
         expression: &'a ResolvedExpr,
@@ -2433,14 +2440,14 @@ fn scan_closure(
         root_types: &BTreeMap<ValueId, ResolvedType>,
         visited: &mut BTreeMap<&'a str, bool>,
         queue: &mut Vec<(&'a str, bool)>,
-        allow_copy_record_constructor: bool,
+        copy_records: CopyRecordAdmission,
     ) -> Result<(), Vec<Diagnostic>> {
         match &expression.kind {
             ResolvedExprKind::ConstructRecord { .. }
                 if record_construction_is_admitted(
                     declarations,
                     &expression.ty,
-                    allow_copy_record_constructor,
+                    copy_records.project_profile || copy_records.contextual,
                 ) =>
             {
                 Ok(())
@@ -2602,7 +2609,7 @@ fn scan_closure(
                         }
                     }
                 }
-                children.push((tail.as_ref(), allow_copy_record_constructor));
+                children.push((tail.as_ref(), copy_records.contextual));
             }
             ResolvedExprKind::If {
                 condition,
@@ -2610,8 +2617,8 @@ fn scan_closure(
                 else_branch,
             } => {
                 children.push((condition.as_ref(), false));
-                children.push((then_branch.as_ref(), allow_copy_record_constructor));
-                children.push((else_branch.as_ref(), allow_copy_record_constructor));
+                children.push((then_branch.as_ref(), copy_records.contextual));
+                children.push((else_branch.as_ref(), copy_records.contextual));
             }
             ResolvedExprKind::Match {
                 scrutinee, arms, ..
@@ -2621,7 +2628,7 @@ fn scan_closure(
                     if let Some(guard) = &arm.guard {
                         children.push((guard.as_ref(), false));
                     }
-                    children.push((&arm.value, allow_copy_record_constructor));
+                    children.push((&arm.value, copy_records.contextual));
                 }
             }
             _ => children.extend(
@@ -2638,14 +2645,17 @@ fn scan_closure(
                 root_types,
                 visited,
                 queue,
-                child_copy_context,
+                CopyRecordAdmission {
+                    contextual: child_copy_context,
+                    ..copy_records
+                },
             )?;
         }
         if let ResolvedExprKind::Call { callee, .. } = &expression.kind {
             // Callee bodies are enqueued once; the monotone `visited` set
             // makes recursive call cycles terminate.
             if admitted.contains_key(callee.as_str()) {
-                let copy_result = allow_copy_record_constructor
+                let copy_result = copy_records.contextual
                     && record_construction_is_admitted(declarations, &expression.ty, true);
                 let prior = visited.get(callee.as_str()).copied();
                 if prior.is_none() || (copy_result && prior == Some(false)) {
@@ -2674,7 +2684,10 @@ fn scan_closure(
                 &root_types,
                 &mut visited,
                 &mut queue,
-                false,
+                CopyRecordAdmission {
+                    contextual: false,
+                    project_profile: allow_copy_records,
+                },
             )?;
         }
         scan(
@@ -2684,7 +2697,10 @@ fn scan_closure(
             &root_types,
             &mut visited,
             &mut queue,
-            copy_result_context,
+            CopyRecordAdmission {
+                contextual: copy_result_context,
+                project_profile: allow_copy_records,
+            },
         )?;
         frontier.extend(queue);
     }
@@ -2912,7 +2928,7 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
         )]);
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
-    scan_closure(entry_id, &admitted, &program.declarations)?;
+    scan_closure(entry_id, &admitted, &program.declarations, true)?;
     let (evaluated, steps_used, mut transcript) = evaluate_resolved_entry(
         entry,
         &[],
@@ -3041,7 +3057,7 @@ pub(crate) fn evaluate_resolved_language_command(
         )]);
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
-    scan_closure(entry_id, &admitted, &program.declarations)?;
+    scan_closure(entry_id, &admitted, &program.declarations, true)?;
 
     let command_input = CommandInputState {
         arguments: arguments

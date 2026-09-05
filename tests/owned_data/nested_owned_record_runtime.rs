@@ -371,7 +371,6 @@ fn wasm_executes_nested_views_repeatedly_without_owner_growth() {
         "semaprax-nested-owned-wasm-{}-{serial}",
         std::process::id()
     ));
-    std::fs::create_dir_all(&root).unwrap();
     wasm::build_web(&parsed, &root).unwrap();
     std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
     std::fs::write(

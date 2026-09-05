@@ -109,7 +109,7 @@ fn provisioned_bytes_call_arguments_asan_ubsan() {
 }
 
 #[test]
-fn copy_variant_owned_match_keeps_cleanup_admission_closed() {
+fn copy_variant_owned_match_is_rejected_before_cleanup_lowering() {
     let source = r#"module native.closed_variant_match;
 @id("closed.main") fn main() -> i64 { 0 }
 @id("closed.value") fn value(input: borrow Slice<u8>, branch: bool) -> Bytes {
@@ -120,20 +120,17 @@ fn copy_variant_owned_match_keeps_cleanup_admission_closed() {
     }
 }
 "#;
-    // Source typing alone is not executable admission: the mandatory cleanup
-    // builder still rejects a Copy-variant match with a droppable result.
-    let parsed = semaprax::check(source, "closed-variant-match.spx").unwrap();
-    let errors = semaprax::hir::resolve(&parsed).unwrap_err();
-    assert_eq!(errors.len(), 1);
-    assert_eq!(errors[0].code, "SPX-H006");
-    assert_eq!(
-        errors[0].message,
-        "cleanup plan: droppable match result reached the copy-only cleanup slice"
-    );
+    let errors = semaprax::check(source, "closed-variant-match.spx").unwrap_err();
+    assert_eq!(errors.len(), 2);
+    assert!(errors.iter().all(|error| {
+        error.code == "SPX-T258"
+            && error.message
+                == "aggregate-valued match arms are outside the executable match profile"
+    }));
 }
 
 #[test]
-fn scalar_owned_match_keeps_cleanup_replay_admission_closed() {
+fn scalar_owned_match_is_rejected_before_cleanup_replay() {
     for arms in [
         "0 => bytes_copy(input), _ => bytes_copy(input),",
         "0 => bytes, _ => bytes,",
@@ -149,15 +146,12 @@ fn scalar_owned_match_keeps_cleanup_replay_admission_closed() {
              @id(\"closed.value\") fn value(input: borrow Slice<u8>, branch: i64) -> Bytes {{\n\
              {binding} match branch {{ {arms} }}\n}}\n"
         );
-        let parsed = semaprax::check(&source, "closed-scalar-match.spx").unwrap();
-        // Resolving includes mandatory independent cleanup-plan replay,
-        // which still rejects the owned result despite successful source typing.
-        let errors = semaprax::hir::resolve(&parsed).unwrap_err();
-        assert_eq!(errors.len(), 1);
-        assert_eq!(errors[0].code, "SPX-H006");
-        assert_eq!(
-            errors[0].message,
-            "cleanup plan: droppable match result reached the copy-only cleanup slice"
-        );
+        let errors = semaprax::check(&source, "closed-scalar-match.spx").unwrap_err();
+        assert_eq!(errors.len(), 2);
+        assert!(errors.iter().all(|error| {
+            error.code == "SPX-T258"
+                && error.message
+                    == "aggregate-valued match arms are outside the executable match profile"
+        }));
     }
 }

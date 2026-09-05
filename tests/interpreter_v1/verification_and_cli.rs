@@ -164,12 +164,18 @@ fn cli_exit_codes_follow_the_documented_contract() {
     assert_eq!(code, 1);
 
     // Byte-budget exhaustion fails closed with SPX-F104.
-    let big = write_temp(PARITY_FIXTURE);
+    let oversized_id = format!("case.{}", "x".repeat(1_800));
+    let oversized_source = PARITY_FIXTURE.replacen(
+        "@id(\"case.mutate.chain\")",
+        &format!("@id(\"{oversized_id}\")"),
+        1,
+    );
+    let big = write_temp(&oversized_source);
     let (code, _, err) = cli(&[
         "interpret",
         big.to_str().unwrap(),
         "--function",
-        "case.mutate.chain",
+        &oversized_id,
         "--max-bytes",
         "2048",
     ]);

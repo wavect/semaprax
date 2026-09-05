@@ -1455,11 +1455,11 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
 }
 
 fn print_help(has_private_host: bool) {
-    print!("{}", global_help(has_private_host));
+    print!("{}", cli::help::global(has_private_host));
 }
 
 fn print_scoped_help(command: &str, has_private_host: bool) -> Result<(), u8> {
-    let help = global_help(has_private_host);
+    let help = cli::help::global(has_private_host);
     if let Some(scoped) = cli::help::scoped(command, has_private_host) {
         print!("{scoped}");
         Ok(())
@@ -1471,8 +1471,4 @@ fn print_scoped_help(command: &str, has_private_host: bool) -> Result<(), u8> {
         print!("{help}");
         Err(2)
     }
-}
-
-fn global_help(has_private_host: bool) -> String {
-    cli::help::global(has_private_host)
 }

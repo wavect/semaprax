@@ -1192,7 +1192,7 @@ fn main() -> i64 { 0 }
 // ---------------------------------------------------------------------------
 
 #[test]
-fn admission_rejections_use_closed_reasons() {
+fn admission_and_rejections_use_closed_results() {
     // Automatic-identity functions are outside the profile.
     let automatic = r#"
 module test.interpreter_automatic;
@@ -1218,7 +1218,8 @@ fn main() -> i64 { helper(1) }
     );
     cleanup(&path);
 
-    // Aggregate bodies are rejected before any evaluation.
+    // Copy-record construction and projection are part of the admitted
+    // interpreter profile and execute before the remaining rejection cases.
     let aggregate_body = r#"
 module test.interpreter_aggregate;
 
@@ -1237,14 +1238,11 @@ fn make_y() -> i64 {
 fn main() -> i64 { make_y() }
 "#;
     let path = write_temp(aggregate_body);
-    let errors = interpreter::interpret(&path, "make_y", &[], &InterpreterOptions::default())
-        .expect_err("aggregate construction is outside the profile");
-    assert!(
-        errors
-            .iter()
-            .any(|item| item.code == "SPX-F102" && item.message.contains("record_construction")),
-        "{errors:?}"
-    );
+    let interpretation =
+        interpreter::interpret(&path, "make_y", &[], &InterpreterOptions::default())
+            .expect("copy-record construction and projection are admitted");
+    assert!(interpretation.returned);
+    assert!(interpretation.envelope.contains("\"value\":\"2\""));
     cleanup(&path);
 
     // Callees outside the profile poison an otherwise admitted entry.

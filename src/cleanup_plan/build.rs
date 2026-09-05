@@ -25,6 +25,8 @@ use super::{
     CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4,
 };
 
+#[cfg(test)]
+mod hostile_tests;
 mod record_destructure;
 mod schema;
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
@@ -440,8 +442,6 @@ fn resolved_param_owned_capacity(param: &crate::hir::ResolvedParam) -> usize {
     param.id.as_str().len() + param.name.capacity() + resolved_type_owned_capacity(&param.ty)
 }
 
-/// The routine is pure: identifiers and ordering derive exclusively from HIR
-/// identities, declaration order, and the independently checked inventory.
 pub(crate) fn build_plan(
     program: &ResolvedProgram,
     function: &ResolvedFunction,

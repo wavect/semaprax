@@ -43,14 +43,19 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
     }
     let capacity_functions = source_capacity_functions(program);
     if capacity_functions.len() > crate::byte_data_capacity::MAX_FUNCTIONS {
-        diagnostics.push(error(
-            program,
-            "SPX-H006",
-            "byte-data capacity function count exceeds the compiler bound",
-            capacity_functions[crate::byte_data_capacity::MAX_FUNCTIONS]
-                .1
-                .span,
-        ));
+        let (_, function) = capacity_functions[crate::byte_data_capacity::MAX_FUNCTIONS];
+        diagnostics.push(
+            error(
+                program,
+                "SPX-T270",
+                format!(
+                    "module declares more than the admitted {} functions",
+                    crate::byte_data_capacity::MAX_FUNCTIONS
+                ),
+                function.name_span,
+            )
+            .with_help("split the program into modules with at most 4096 functions each"),
+        );
         return diagnostics;
     }
     let mut functions = HashMap::new();
@@ -145,22 +150,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             .with_help(super::hints::LIBRARY_MODULE_HELP),
         );
     }
-    let capacity_functions = source_capacity_functions(program);
-    if capacity_functions.len() > crate::byte_data_capacity::MAX_FUNCTIONS {
-        let (_, function) = capacity_functions[crate::byte_data_capacity::MAX_FUNCTIONS];
-        diagnostics.push(
-            error(
-                program,
-                "SPX-T270",
-                format!(
-                    "module declares more than the admitted {} functions",
-                    crate::byte_data_capacity::MAX_FUNCTIONS
-                ),
-                function.name_span,
-            )
-            .with_help("split the program into modules with at most 4096 functions each"),
-        );
-    } else if let Err(capacity) = verify_byte_data_capacity(program, &types) {
+    if let Err(capacity) = verify_byte_data_capacity(program, &types) {
         if capacity.diagnostic != crate::byte_data_capacity::CapacityDiagnostic::Invariant
             || !diagnostics
                 .iter()

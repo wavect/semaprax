@@ -672,10 +672,11 @@ fn function_count_bound_rejects_before_per_function_capacity_projection() {
     let program = crate::parse(&source, Path::new("many.spx")).unwrap();
     let diagnostics = super::declaration::verify(&program);
     assert_eq!(diagnostics.len(), 1);
-    assert_eq!(diagnostics[0].code, "SPX-H006");
+    assert_eq!(diagnostics[0].code, "SPX-T270");
     assert_eq!(
         diagnostics[0].message,
-        "byte-data capacity function count exceeds the compiler bound"
+        "module declares more than the admitted 4096 functions"
     );
-    assert_eq!(diagnostics[0].span, Some(program.functions[4096].span));
+    assert_eq!(diagnostics[0].span, Some(program.functions[4096].name_span));
+    assert!(diagnostics[0].help.is_some());
 }

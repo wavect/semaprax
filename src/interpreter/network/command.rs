@@ -22,13 +22,14 @@ use super::NetworkState;
 
 /// The closed permit inventory a network command module may declare, in the
 /// canonical permit order.
-const ADMITTED_EFFECTS: [&str; 10] = [
+const ADMITTED_EFFECTS: [&str; 11] = [
     crate::network_io_ops::NETWORK_CONNECT_EFFECT,
     crate::network_io_ops::NETWORK_READ_EFFECT,
     crate::network_io_ops::NETWORK_WRITE_EFFECT,
     crate::network_io_ops::NETWORK_TLS_EFFECT,
     crate::network_io_ops::NETWORK_LISTEN_EFFECT,
     crate::network_io_ops::NETWORK_ACCEPT_EFFECT,
+    crate::network_io_ops::NETWORK_HTTP_EFFECT,
     crate::command_io_ops::ARGS_READ_EFFECT,
     crate::command_io_ops::STDERR_WRITE_EFFECT,
     crate::command_io_ops::STDIN_READ_EFFECT,
@@ -110,7 +111,13 @@ pub(crate) fn evaluate_resolved_network_command(
             format!("hosted network command entry `{entry_id}` must have type `fn () -> bool`"),
         ));
     }
-    let profile = if program.permits.iter().any(|permit| {
+    let profile = if program
+        .permits
+        .iter()
+        .any(|permit| permit == crate::network_io_ops::NETWORK_HTTP_EFFECT)
+    {
+        crate::command_io_ops::CommandOperationProfile::HttpV1
+    } else if program.permits.iter().any(|permit| {
         [
             crate::network_io_ops::NETWORK_TLS_EFFECT,
             crate::network_io_ops::NETWORK_LISTEN_EFFECT,

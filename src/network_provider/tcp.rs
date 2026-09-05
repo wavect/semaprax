@@ -12,7 +12,9 @@ use std::net::{Shutdown, TcpListener, TcpStream, ToSocketAddrs as _};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use super::{NetworkFailure, NetworkProvider, ProviderConnection, ProviderListener, WaitState};
+use super::{
+    HttpFailure, NetworkFailure, NetworkProvider, ProviderConnection, ProviderListener, WaitState,
+};
 use crate::network_io_ops;
 
 /// Connect, read, and write timeout applied to every socket.
@@ -32,6 +34,8 @@ pub struct TcpNetworkProvider {
     next_listener_token: u64,
     tls_config: Arc<rustls::ClientConfig>,
     server_tls_config: Option<Arc<rustls::ServerConfig>>,
+    #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+    https_client: Option<crate::https_client::HttpsClient>,
 }
 
 #[derive(Debug)]
@@ -98,6 +102,12 @@ impl Default for TcpNetworkProvider {
         .expect("rustls ring provider has safe protocol versions")
         .with_root_certificates(roots)
         .with_no_client_auth();
+        #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+        let https_client = crate::https_client::HttpsClient::with_tls_config(
+            crate::https_client::HttpsClientConfig::default(),
+            tls_config.clone(),
+        )
+        .ok();
         Self {
             streams: BTreeMap::new(),
             listeners: BTreeMap::new(),
@@ -105,6 +115,8 @@ impl Default for TcpNetworkProvider {
             next_listener_token: 0,
             tls_config: Arc::new(tls_config),
             server_tls_config: None,
+            #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+            https_client,
         }
     }
 }
@@ -119,10 +131,17 @@ impl TcpNetworkProvider {
     /// This is useful for private roots and deterministic local conformance;
     /// callers remain responsible for choosing an appropriate trust store.
     pub fn with_tls_config(config: Arc<rustls::ClientConfig>) -> Self {
-        Self {
-            tls_config: config,
-            ..Self::default()
+        let mut provider = Self::default();
+        #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+        {
+            provider.https_client = crate::https_client::HttpsClient::with_tls_config(
+                crate::https_client::HttpsClientConfig::default(),
+                config.as_ref().clone(),
+            )
+            .ok();
         }
+        provider.tls_config = config;
+        provider
     }
 
     /// Create a provider with explicit client and server TLS policies.
@@ -132,11 +151,9 @@ impl TcpNetworkProvider {
         client: Arc<rustls::ClientConfig>,
         server: Arc<rustls::ServerConfig>,
     ) -> Self {
-        Self {
-            tls_config: client,
-            server_tls_config: Some(server),
-            ..Self::default()
-        }
+        let mut provider = Self::with_tls_config(client);
+        provider.server_tls_config = Some(server);
+        provider
     }
 
     fn stream_mut(
@@ -229,6 +246,22 @@ fn classify_wait_error(error: &std::io::Error) -> Result<WaitState, NetworkFailu
 }
 
 impl NetworkProvider for TcpNetworkProvider {
+    #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
+    fn https_get(&mut self, url: &str, max: usize) -> Result<Vec<u8>, HttpFailure> {
+        let client = self
+            .https_client
+            .as_ref()
+            .ok_or(HttpFailure::TransportFailed)?;
+        client.get_canonical(url, max).map_err(|error| match error {
+            crate::https_client::HttpsError::InvalidConfiguration => HttpFailure::ResponseTooLarge,
+            crate::https_client::HttpsError::InvalidUrl => HttpFailure::InvalidUrl,
+            crate::https_client::HttpsError::InsecureScheme => HttpFailure::InsecureScheme,
+            crate::https_client::HttpsError::TransportFailed => HttpFailure::TransportFailed,
+            crate::https_client::HttpsError::ResponseTooLarge => HttpFailure::ResponseTooLarge,
+            crate::https_client::HttpsError::UnsupportedVersion => HttpFailure::UnsupportedVersion,
+        })
+    }
+
     fn connect(&mut self, host: &str, port: u16) -> Result<ProviderConnection, NetworkFailure> {
         let stream = Self::connect_socket(host, port)?;
         self.insert_stream(TransportStream::Tcp(stream))
@@ -496,12 +529,46 @@ mod tests {
             stream.write_all(b"pong").unwrap();
             stream.flush().unwrap();
         });
-        let mut provider = TcpNetworkProvider::with_tls_config(Arc::new(client_config));
+        let mut provider = TcpNetworkProvider::with_tls_config(Arc::new(client_config.clone()));
         let connection = provider.connect_tls("localhost", port).unwrap();
         assert_eq!(provider.send(connection, b"ping"), Ok(4));
         assert_eq!(provider.recv(connection, 4), Ok(b"pong".to_vec()));
         provider.settle();
         server.join().unwrap();
+
+        let https_listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let https_port = https_listener.local_addr().unwrap().port();
+        let https_cert = rustls::pki_types::CertificateDer::from(decode64(LEAF));
+        let https_key = rustls::pki_types::PrivatePkcs8KeyDer::from(decode64(LEAF_KEY));
+        let https_server_config = rustls::ServerConfig::builder_with_provider(crypto())
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(vec![https_cert], https_key.into())
+            .unwrap();
+        let https_server = std::thread::spawn(move || {
+            let (socket, _) = https_listener.accept().unwrap();
+            let connection = rustls::ServerConnection::new(Arc::new(https_server_config)).unwrap();
+            let mut stream = rustls::StreamOwned::new(connection, socket);
+            let mut request = Vec::new();
+            let mut byte = [0u8; 1];
+            while !request.ends_with(b"\r\n\r\n") {
+                stream.read_exact(&mut byte).unwrap();
+                request.push(byte[0]);
+            }
+            assert!(request.starts_with(b"GET / HTTP/1.1\r\n"));
+            stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
+                .unwrap();
+            stream.flush().unwrap();
+        });
+        let mut https_provider = TcpNetworkProvider::with_tls_config(Arc::new(client_config));
+        let response = https_provider
+            .https_get(&format!("https://localhost:{https_port}/"), 1024)
+            .unwrap();
+        assert!(response.starts_with(b"HTTP/1.1 200 semaprax\r\n"));
+        assert!(response.ends_with(b"\r\n\r\nok"));
+        https_server.join().unwrap();
 
         let server_cert = rustls::pki_types::CertificateDer::from(decode64(LEAF));
         let server_key = rustls::pki_types::PrivatePkcs8KeyDer::from(decode64(LEAF_KEY));

@@ -27,6 +27,19 @@ pub use tcp::TcpNetworkProvider;
 
 use crate::network_io_ops;
 
+/// One normalized failure from a complete HTTPS request. This is kept
+/// separate from stream failures because URL validation and HTTP protocol
+/// negotiation happen above a single transport connection.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HttpFailure {
+    InvalidUrl,
+    InsecureScheme,
+    TransportFailed,
+    ResponseTooLarge,
+    UnsupportedVersion,
+    AuthorityDenied,
+}
+
 /// One normalized network failure. Every variant maps onto exactly one code
 /// of the closed `semaprax.network.v1` status domain.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -139,6 +152,12 @@ impl ProviderListener {
 ///
 /// [`settle`]: NetworkProvider::settle
 pub trait NetworkProvider {
+    /// Fetch one HTTPS URL and return a bounded, canonical HTTP/1.1-shaped
+    /// response that can be consumed by `std.http`.
+    fn https_get(&mut self, _url: &str, _max: usize) -> Result<Vec<u8>, HttpFailure> {
+        Err(HttpFailure::AuthorityDenied)
+    }
+
     /// Open a connection to `host:port`.
     fn connect(&mut self, host: &str, port: u16) -> Result<ProviderConnection, NetworkFailure>;
 

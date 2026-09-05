@@ -40,6 +40,10 @@ pub(super) fn flow(
             site,
             conservative_payload_bytes: crate::network_io_ops::MAX_CHUNK_BYTES,
         }),
+        ResolvedHostCommandOperation::HttpsGet => Some(CapacityFlow::BytesCopy {
+            site,
+            conservative_payload_bytes: crate::network_io_ops::MAX_CHUNK_BYTES,
+        }),
         ResolvedHostCommandOperation::ArgsLen
         | ResolvedHostCommandOperation::ArgUtf8
         | ResolvedHostCommandOperation::NetConnect
@@ -49,6 +53,7 @@ pub(super) fn flow(
         | ResolvedHostCommandOperation::NetTlsConnect
         | ResolvedHostCommandOperation::NetListen
         | ResolvedHostCommandOperation::NetAccept
+        | ResolvedHostCommandOperation::NetTlsAccept
         | ResolvedHostCommandOperation::NetCloseListener => None,
     }
 }

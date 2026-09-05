@@ -15,7 +15,8 @@ use semaprax::hosted_interpreter::{
 };
 use semaprax::interpreter::CommandEvaluationOutcome;
 use semaprax::network_provider::{
-    DeniedNetworkProvider, FixtureNetworkProvider, NetworkProvider, TcpNetworkProvider,
+    DeniedNetworkProvider, FixtureNetworkProvider, HttpFailure, NetworkFailure, NetworkProvider,
+    ProviderConnection, TcpNetworkProvider, WaitState,
 };
 use semaprax::{hir, parse, verify};
 
@@ -120,6 +121,40 @@ fn run(source: &str, provider: &mut dyn NetworkProvider) -> HostedCommandResult 
         100_000,
     )
     .unwrap()
+}
+
+#[derive(Default)]
+struct HttpsFixture;
+
+impl NetworkProvider for HttpsFixture {
+    fn https_get(&mut self, url: &str, max: usize) -> Result<Vec<u8>, HttpFailure> {
+        assert_eq!(url, "https://example.test/data");
+        let response = b"HTTP/1.1 200 semaprax\r\ncontent-length: 2\r\n\r\nok".to_vec();
+        assert!(response.len() <= max);
+        Ok(response)
+    }
+
+    fn connect(&mut self, _: &str, _: u16) -> Result<ProviderConnection, NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
+
+    fn send(&mut self, _: ProviderConnection, _: &[u8]) -> Result<usize, NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
+
+    fn recv(&mut self, _: ProviderConnection, _: usize) -> Result<Vec<u8>, NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
+
+    fn wait(&mut self, _: ProviderConnection, _: u32) -> Result<WaitState, NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
+
+    fn close(&mut self, _: ProviderConnection) -> Result<(), NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
+
+    fn settle(&mut self) {}
 }
 
 fn fixture(port: u16, chunks: &[&str], expect_send: Option<&str>, ready: bool) -> String {
@@ -382,7 +417,7 @@ fn run() -> bool
     let tls_closed = net_close(tls);
     let bind_host = [49u8, 50u8, 55u8, 46u8, 48u8, 46u8, 48u8, 46u8, 49u8];
     let listener = net_listen(array_as_slice(bind_host), 8080usize);
-    let peer = net_accept(listener);
+    let peer = net_tls_accept(listener);
     let inbound = net_recv(peer, 8usize);
     let peer_closed = net_close(peer);
     let listener_closed = net_close_listener(listener);
@@ -395,11 +430,34 @@ fn main() -> i64 { 0 }
     let fixture = r#"{
         "schema":"semaprax.network-fixture.v2",
         "connections":[{"host":"secure.example","port":443,"tls":true,"expect_send":"GET","recv":["ok"]}],
-        "listeners":[{"host":"127.0.0.1","port":8080,"accept":[{"host":"peer","port":1,"recv":["hello"]}]}]
+        "listeners":[{"host":"127.0.0.1","port":8080,"accept":[{"host":"peer","port":1,"tls":true,"recv":["hello"]}]}]
     }"#;
     let mut provider = FixtureNetworkProvider::from_json(fixture).unwrap();
     let result = run(source, &mut provider);
     expect_true(&result);
+}
+
+#[test]
+fn hosted_http_profile_executes_a_turnkey_https_get() {
+    let source = r#"
+module net.https;
+
+permit { network.http }
+
+@id("net.run")
+fn run() -> bool
+    uses { network.http }
+{
+    let url = [104u8, 116u8, 116u8, 112u8, 115u8, 58u8, 47u8, 47u8, 101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 116u8, 101u8, 115u8, 116u8, 47u8, 100u8, 97u8, 116u8, 97u8];
+    let response = https_get(array_as_slice(url), 1024usize);
+    byte_len(bytes_as_slice(response)) == 46usize
+}
+
+@id("main")
+fn main() -> i64 { 0 }
+"#;
+    let mut provider = HttpsFixture;
+    expect_true(&run(source, &mut provider));
 }
 
 #[test]

@@ -16,7 +16,7 @@ use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 use crate::hir::{ResolvedHostCommandCall, ResolvedHostCommandOperation as Operation};
 use crate::network_io_ops;
 use crate::network_provider::{
-    NetworkFailure, NetworkProvider, ProviderConnection, ProviderListener,
+    HttpFailure, NetworkFailure, NetworkProvider, ProviderConnection, ProviderListener,
 };
 
 use super::{Environment, Evaluator, Flow, OwnedBytesValue, Value};
@@ -134,16 +134,18 @@ impl<'a> NetworkState<'a> {
         Ok(handle)
     }
 
-    fn accept(&mut self, handle: u64) -> Result<u64, Flow> {
+    fn accept(&mut self, handle: u64, tls: bool) -> Result<u64, Flow> {
         let listener = self
             .listeners
             .get(&handle)
             .copied()
             .ok_or_else(|| service_failure(network_io_ops::UNKNOWN_HANDLE))?;
-        let accepted = self
-            .provider
-            .accept(listener)
-            .map_err(provider_service_failure)?;
+        let accepted = if tls {
+            self.provider.accept_tls(listener)
+        } else {
+            self.provider.accept(listener)
+        }
+        .map_err(provider_service_failure)?;
         let connection_handle = self.next_handle;
         if connection_handle > network_io_ops::MAX_HANDLES {
             return Err(service_failure(network_io_ops::CAPACITY_EXCEEDED));
@@ -225,6 +227,30 @@ impl<'a> NetworkState<'a> {
         self.provider.close(connection).map_err(provider_failure)?;
         Ok(0)
     }
+
+    fn https_get(&mut self, url: &[u8], max: u64) -> Result<Vec<u8>, Flow> {
+        if url.is_empty() || url.len() > 2_048 || url.contains(&0) {
+            return Err(http_failure(network_io_ops::HTTP_INVALID_URL));
+        }
+        let url =
+            std::str::from_utf8(url).map_err(|_| http_failure(network_io_ops::HTTP_INVALID_URL))?;
+        if max == 0 || max > network_io_ops::MAX_CHUNK_BYTES {
+            return Err(http_failure(network_io_ops::HTTP_RESPONSE_TOO_LARGE));
+        }
+        let max = usize::try_from(max)
+            .map_err(|_| http_failure(network_io_ops::HTTP_RESPONSE_TOO_LARGE))?;
+        let mut response = self
+            .provider
+            .https_get(url, max)
+            .map_err(provider_http_failure)?;
+        if response.len() > max {
+            response.truncate(max);
+            return Err(http_failure(network_io_ops::HTTP_RESPONSE_TOO_LARGE));
+        }
+        self.charge(response.len())
+            .map_err(|_| http_failure(network_io_ops::HTTP_RESPONSE_TOO_LARGE))?;
+        Ok(response)
+    }
 }
 
 fn failure(code: u32) -> Flow {
@@ -233,6 +259,10 @@ fn failure(code: u32) -> Flow {
 
 fn service_failure(code: u32) -> Flow {
     failure_in(network_io_ops::SERVICE_STATUS_DOMAIN, code)
+}
+
+fn http_failure(code: u32) -> Flow {
+    failure_in(network_io_ops::HTTP_STATUS_DOMAIN, code)
 }
 
 fn failure_in(domain: &'static str, code: u32) -> Flow {
@@ -253,6 +283,17 @@ fn provider_failure(error: NetworkFailure) -> Flow {
 
 fn provider_service_failure(error: NetworkFailure) -> Flow {
     service_failure(error.status_code())
+}
+
+fn provider_http_failure(error: HttpFailure) -> Flow {
+    http_failure(match error {
+        HttpFailure::InvalidUrl => network_io_ops::HTTP_INVALID_URL,
+        HttpFailure::InsecureScheme => network_io_ops::HTTP_INSECURE_SCHEME,
+        HttpFailure::TransportFailed => network_io_ops::HTTP_TRANSPORT_FAILED,
+        HttpFailure::ResponseTooLarge => network_io_ops::HTTP_RESPONSE_TOO_LARGE,
+        HttpFailure::UnsupportedVersion => network_io_ops::HTTP_UNSUPPORTED_VERSION,
+        HttpFailure::AuthorityDenied => network_io_ops::HTTP_AUTHORITY_DENIED,
+    })
 }
 
 impl Evaluator<'_> {
@@ -289,7 +330,10 @@ impl Evaluator<'_> {
                 network.listen(host.bytes(), *port).map(Value::Usize)
             }
             (Operation::NetAccept, [Value::Usize(listener)]) => {
-                network.accept(*listener).map(Value::Usize)
+                network.accept(*listener, false).map(Value::Usize)
+            }
+            (Operation::NetTlsAccept, [Value::Usize(listener)]) => {
+                network.accept(*listener, true).map(Value::Usize)
             }
             (Operation::NetCloseListener, [Value::Usize(listener)]) => {
                 network.close_listener(*listener).map(Value::Usize)
@@ -321,6 +365,31 @@ impl Evaluator<'_> {
                 Ok(Value::Bytes(OwnedBytesValue {
                     allocation: next_count,
                     bytes: Arc::from(received),
+                }))
+            }
+            (Operation::HttpsGet, [Value::BorrowedSlice(url), Value::Usize(max)]) => {
+                let next_count = self
+                    .next_byte_allocation
+                    .checked_add(1)
+                    .ok_or_else(|| http_failure(network_io_ops::HTTP_RESPONSE_TOO_LARGE))?;
+                if next_count > crate::byte_data_capacity::MAX_BYTES_COPY_SITES {
+                    return Err(http_failure(network_io_ops::HTTP_RESPONSE_TOO_LARGE));
+                }
+                let response = network.https_get(url.bytes(), *max)?;
+                let length = u64::try_from(response.len())
+                    .map_err(|_| http_failure(network_io_ops::HTTP_RESPONSE_TOO_LARGE))?;
+                let next_payload = self
+                    .allocated_byte_payload
+                    .checked_add(length)
+                    .ok_or_else(|| http_failure(network_io_ops::HTTP_RESPONSE_TOO_LARGE))?;
+                if next_payload > crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES {
+                    return Err(http_failure(network_io_ops::HTTP_RESPONSE_TOO_LARGE));
+                }
+                self.next_byte_allocation = next_count;
+                self.allocated_byte_payload = next_payload;
+                Ok(Value::Bytes(OwnedBytesValue {
+                    allocation: next_count,
+                    bytes: Arc::from(response),
                 }))
             }
             (Operation::NetStreamStdout, [Value::Usize(handle), Value::Usize(max)]) => {

@@ -36,6 +36,53 @@ pub struct HttpsResponse {
     pub body: Vec<u8>,
 }
 
+impl HttpsResponse {
+    /// Render a deterministic HTTP/1.1-shaped projection for byte-oriented
+    /// language consumers. The projection records the actually negotiated
+    /// version in `x-semaprax-http-version`, removes hop-by-hop framing, and
+    /// supplies the collected body's exact content length.
+    pub fn canonical_http1_bytes(&self, max_bytes: usize) -> Result<Vec<u8>, HttpsError> {
+        let version = match self.version {
+            HttpVersion::Http09 => "0.9",
+            HttpVersion::Http10 => "1.0",
+            HttpVersion::Http11 => "1.1",
+            HttpVersion::Http2 => "2",
+            HttpVersion::Http3 => "3",
+        };
+        let mut output = format!(
+            "HTTP/1.1 {} semaprax\r\nx-semaprax-http-version: {version}\r\n",
+            self.status
+        )
+        .into_bytes();
+        for (name, value) in &self.headers {
+            if matches!(
+                name.as_str(),
+                "connection"
+                    | "content-length"
+                    | "keep-alive"
+                    | "proxy-authenticate"
+                    | "proxy-authorization"
+                    | "te"
+                    | "trailer"
+                    | "transfer-encoding"
+                    | "upgrade"
+            ) {
+                continue;
+            }
+            output.extend_from_slice(name.as_bytes());
+            output.extend_from_slice(b": ");
+            output.extend_from_slice(value);
+            output.extend_from_slice(b"\r\n");
+        }
+        output.extend_from_slice(format!("content-length: {}\r\n\r\n", self.body.len()).as_bytes());
+        output.extend_from_slice(&self.body);
+        if output.len() > max_bytes {
+            return Err(HttpsError::ResponseTooLarge);
+        }
+        Ok(output)
+    }
+}
+
 /// Closed failures from client construction and request execution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HttpsError {
@@ -81,10 +128,23 @@ impl HttpsClient {
     }
 
     pub fn with_config(config: HttpsClientConfig) -> Result<Self, HttpsError> {
-        Self::build(config, true)
+        Self::build(config, true, None)
     }
 
-    fn build(config: HttpsClientConfig, https_only: bool) -> Result<Self, HttpsError> {
+    /// Construct a client around an explicit Rustls policy, preserving the
+    /// same redirect, pooling, timeout, and HTTPS-only bounds.
+    pub fn with_tls_config(
+        config: HttpsClientConfig,
+        tls: rustls::ClientConfig,
+    ) -> Result<Self, HttpsError> {
+        Self::build(config, true, Some(tls))
+    }
+
+    fn build(
+        config: HttpsClientConfig,
+        https_only: bool,
+        tls: Option<rustls::ClientConfig>,
+    ) -> Result<Self, HttpsError> {
         if config.timeout.is_zero()
             || config.max_redirects > MAX_HTTPS_REDIRECTS
             || config.max_idle_per_host == 0
@@ -92,15 +152,21 @@ impl HttpsClient {
         {
             return Err(HttpsError::InvalidConfiguration);
         }
-        let roots =
-            rustls::RootCertStore::from_iter(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-        let tls = rustls::ClientConfig::builder_with_provider(std::sync::Arc::new(
-            rustls::crypto::ring::default_provider(),
-        ))
-        .with_safe_default_protocol_versions()
-        .map_err(|_| HttpsError::InvalidConfiguration)?
-        .with_root_certificates(roots)
-        .with_no_client_auth();
+        let tls = match tls {
+            Some(tls) => tls,
+            None => {
+                let roots = rustls::RootCertStore::from_iter(
+                    webpki_roots::TLS_SERVER_ROOTS.iter().cloned(),
+                );
+                rustls::ClientConfig::builder_with_provider(std::sync::Arc::new(
+                    rustls::crypto::ring::default_provider(),
+                ))
+                .with_safe_default_protocol_versions()
+                .map_err(|_| HttpsError::InvalidConfiguration)?
+                .with_root_certificates(roots)
+                .with_no_client_auth()
+            }
+        };
         let mut builder = reqwest::blocking::Client::builder()
             .no_proxy()
             .tls_backend_preconfigured(tls)
@@ -127,6 +193,12 @@ impl HttpsClient {
             return Err(HttpsError::InsecureScheme);
         }
         self.get_parsed(parsed, max_body_bytes)
+    }
+
+    /// Fetch and normalize the final response into bytes accepted by the
+    /// existing `std.http` HTTP/1 parser.
+    pub fn get_canonical(&self, url: &str, max_bytes: usize) -> Result<Vec<u8>, HttpsError> {
+        self.get(url, max_bytes)?.canonical_http1_bytes(max_bytes)
     }
 
     fn get_parsed(
@@ -202,7 +274,7 @@ mod tests {
     }
 
     fn local_client() -> HttpsClient {
-        HttpsClient::build(HttpsClientConfig::default(), false).unwrap()
+        HttpsClient::build(HttpsClientConfig::default(), false, None).unwrap()
     }
 
     #[test]
@@ -295,6 +367,29 @@ mod tests {
             assert_eq!(result, Err(HttpsError::ResponseTooLarge));
             server.join().unwrap();
         }
+    }
+
+    #[test]
+    fn canonical_projection_preserves_status_and_body_but_rewrites_framing() {
+        let response = HttpsResponse {
+            status: 206,
+            version: HttpVersion::Http2,
+            final_url: "https://example.test/final".to_owned(),
+            headers: vec![
+                ("content-type".to_owned(), b"text/plain".to_vec()),
+                ("transfer-encoding".to_owned(), b"chunked".to_vec()),
+            ],
+            body: b"hello".to_vec(),
+        };
+        let bytes = response.canonical_http1_bytes(256).unwrap();
+        assert_eq!(
+            bytes,
+            b"HTTP/1.1 206 semaprax\r\nx-semaprax-http-version: 2\r\ncontent-type: text/plain\r\ncontent-length: 5\r\n\r\nhello"
+        );
+        assert_eq!(
+            response.canonical_http1_bytes(bytes.len() - 1),
+            Err(HttpsError::ResponseTooLarge)
+        );
     }
 
     /// Opt-in public PKI and endpoint smoke. It is deliberately ignored by

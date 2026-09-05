@@ -44,6 +44,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     Operation::NetTlsConnect
                     | Operation::NetListen
                     | Operation::NetAccept
+                    | Operation::NetTlsAccept
+                    | Operation::HttpsGet
                     | Operation::NetCloseListener => {
                         return Err(backend_error(
                             "TLS and listen operations are currently hosted-provider only",

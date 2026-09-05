@@ -37,6 +37,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   consumer compiles, links and runs with the actual provider at O0/O2 while
   checking poison preservation, scalar decoding, byte copy/drop, stale-handle
   rejection, and context closure.
+- Added source-level `https_get` through an explicit `network.http` capability,
+  a closed `semaprax.http.v1` status domain, canonical bytes consumable by
+  `std.http`, and a reusable authenticated HTTP/1.1/2 host provider; added
+  `net_tls_accept` for source-controlled server-side TLS without changing the
+  existing network status domains or prior HIR cache tags.
 - Added a pure C11 consumer gate for the authenticated Project-v8 owned-data
   package. The generated provider and a translation unit using only the public
   C header compile separately, link, and execute at O0/O2 while checking
@@ -83,7 +88,7 @@ format: `Unreleased` then release buckets, grouped by impact.
   smaller in both bytes and repository lexical units. The `scalars` result is
   793 bytes and 296 units versus 25,435 bytes and 7,237 units for the full card.
 - Added a hosted Network Services v1 extension with Rustls-authenticated TLS
-  clients, explicit listener/accept lifecycle, deterministic fixture v2, four
+  clients, explicit listener/accept lifecycle, deterministic fixture v2, five
   effect-gated source operations, and a bounded real structured-task runtime.
 - Restored the frozen legacy Project-v3 Wasm byte projection by keeping the
   data-export profile's unused `spx_contract_fail` import at its historical

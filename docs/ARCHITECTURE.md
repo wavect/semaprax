@@ -395,11 +395,14 @@ the sole status authority.
 `src/https_client.rs` owns a separate explicit native-host HTTP service. Its
 reusable Reqwest client disables ambient proxy discovery, applies bounded
 redirect/body/pool policy, and reports HTTP/1.1 or HTTP/2 through a typed
-response. It is not constructed by source execution and grants no compiler or
+response. Hosted source execution reaches it only through the explicit
+`network.http` capability and injected provider; it grants no compiler or
 generated target ambient network authority. `src/network_provider/tcp.rs`
 owns the lower Rustls client/server stream policy, including explicit
 server-config injection and accepted-stream settlement. See [HTTPS Client
 Runtime v1](HTTPS-CLIENT-RUNTIME-V1.md).
+`src/interpreter/network.rs` owns the source-visible `https_get` capacity and
+status boundary described by [HTTPS Client I/O v1](HTTPS-CLIENT-IO-V1.md).
 
 `src/codegen.rs` owns native orchestration and admission. The
 `src/codegen/native_*` modules own C11 emission, runtime statuses, aggregate

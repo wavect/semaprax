@@ -56,6 +56,10 @@ pub(crate) enum CommandOperationProfile {
     /// Network Service I/O v1 adds authenticated TLS clients and explicit
     /// listen/accept lifecycle operations.
     ServiceV1,
+    /// HTTPS Client I/O v1 adds one complete bounded request with redirect
+    /// handling, protocol negotiation, and connection reuse owned by the
+    /// injected provider.
+    HttpV1,
 }
 
 /// Validate exactly the operations reachable from the selected command.
@@ -87,6 +91,7 @@ pub(crate) fn validate_operation_profile(
     let mut saw_legacy_write = false;
     let mut saw_network = false;
     let mut saw_service = false;
+    let mut saw_http = false;
 
     while let Some((execution_id, function)) = pending_functions.pop() {
         if !visited.insert(execution_id) {
@@ -110,6 +115,7 @@ pub(crate) fn validate_operation_profile(
                     network if crate::network_io_ops::is_network(network) => {
                         saw_network = true;
                         saw_service |= crate::network_io_ops::is_service(network);
+                        saw_http |= crate::network_io_ops::is_http(network);
                     }
                     _ => unreachable!("closed host-command operation inventory"),
                 },
@@ -146,14 +152,23 @@ pub(crate) fn validate_operation_profile(
         CommandOperationProfile::NetworkV1 if saw_legacy_write => Err(profile_error(
             "Language Network I/O v1 cannot mix legacy transcript writes with append operations",
         )),
-        CommandOperationProfile::NetworkV1 if saw_service => Err(profile_error(
-            "TLS and listen operations require the Network Service I/O v1 profile",
+        CommandOperationProfile::NetworkV1 if saw_service || saw_http => Err(profile_error(
+            "TLS, listen, and HTTPS operations require an additive network service profile",
         )),
         CommandOperationProfile::ServiceV1 if !saw_service => Err(profile_error(
             "Network Service I/O v1 must reach TLS or listen operations",
         )),
         CommandOperationProfile::ServiceV1 if saw_legacy_write => Err(profile_error(
             "Network Service I/O v1 cannot mix legacy transcript writes with append operations",
+        )),
+        CommandOperationProfile::ServiceV1 if saw_http => Err(profile_error(
+            "HTTPS operations require the HTTPS Client I/O v1 profile",
+        )),
+        CommandOperationProfile::HttpV1 if !saw_http => Err(profile_error(
+            "HTTPS Client I/O v1 must reach at least one HTTPS operation",
+        )),
+        CommandOperationProfile::HttpV1 if saw_legacy_write => Err(profile_error(
+            "HTTPS Client I/O v1 cannot mix legacy transcript writes with append operations",
         )),
         CommandOperationProfile::LanguageV1 if saw_range || saw_append => Err(profile_error(
             "Language Command I/O v1 cannot reach byte_range, stdout_append, or stderr_append",
@@ -167,7 +182,8 @@ pub(crate) fn validate_operation_profile(
         CommandOperationProfile::LanguageV1
         | CommandOperationProfile::LineV1
         | CommandOperationProfile::NetworkV1
-        | CommandOperationProfile::ServiceV1 => Ok(()),
+        | CommandOperationProfile::ServiceV1
+        | CommandOperationProfile::HttpV1 => Ok(()),
     }
 }
 
@@ -288,6 +304,10 @@ pub(crate) const fn status_metadata(
             })
         }
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StderrWrite => None,
+        http if crate::network_io_ops::is_http(http) => Some(CommandIoStatusMetadata {
+            domain: crate::network_io_ops::HTTP_STATUS_DOMAIN,
+            codes: &crate::network_io_ops::HTTP_STATUS_CODES,
+        }),
         service if crate::network_io_ops::is_service(service) => Some(CommandIoStatusMetadata {
             domain: crate::network_io_ops::SERVICE_STATUS_DOMAIN,
             codes: &crate::network_io_ops::SERVICE_STATUS_CODES,
@@ -602,14 +622,21 @@ fn legacy() -> bool uses { network.connect, process.stdout.write } {
         for op in crate::network_io_ops::OPERATIONS {
             assert_eq!(
                 admitted_in_while(op),
-                op != ResolvedHostCommandOperation::NetRecv,
+                !matches!(
+                    op,
+                    ResolvedHostCommandOperation::NetRecv | ResolvedHostCommandOperation::HttpsGet
+                ),
                 "{op:?}"
             );
             let required = required_effects(op).collect::<Vec<_>>();
             assert_eq!(required[0], effect(op));
             assert_eq!(
                 required.len(),
-                if op == ResolvedHostCommandOperation::NetStreamStdout {
+                if matches!(
+                    op,
+                    ResolvedHostCommandOperation::NetStreamStdout
+                        | ResolvedHostCommandOperation::NetTlsAccept
+                ) {
                     2
                 } else {
                     1

@@ -419,6 +419,8 @@ pub enum ResolvedHostCommandOperation {
     NetListen,
     NetAccept,
     NetCloseListener,
+    NetTlsAccept,
+    HttpsGet,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

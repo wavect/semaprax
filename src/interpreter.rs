@@ -4150,6 +4150,8 @@ impl Evaluator<'_> {
                     | Operation::NetTlsConnect
                     | Operation::NetListen
                     | Operation::NetAccept
+                    | Operation::NetTlsAccept
+                    | Operation::HttpsGet
                     | Operation::NetCloseListener => {
                         self.evaluate_network_operation(call, environment, depth)
                     }

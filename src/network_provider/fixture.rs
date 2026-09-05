@@ -389,19 +389,14 @@ impl NetworkProvider for FixtureNetworkProvider {
     }
 
     fn accept(&mut self, listener: ProviderListener) -> Result<ProviderConnection, NetworkFailure> {
-        let listener = usize::try_from(listener.token())
-            .ok()
-            .and_then(|index| self.listeners.get_mut(index))
-            .filter(|listener| listener.open)
-            .ok_or(NetworkFailure::UnknownHandle)?;
-        let mut connection = listener
-            .accepted
-            .pop_front()
-            .ok_or(NetworkFailure::AcceptFailed)?;
-        connection.open = true;
-        let token = self.connections.len() as u64;
-        self.connections.push(connection);
-        Ok(ProviderConnection::new(token))
+        self.accept_with_tls(listener, false)
+    }
+
+    fn accept_tls(
+        &mut self,
+        listener: ProviderListener,
+    ) -> Result<ProviderConnection, NetworkFailure> {
+        self.accept_with_tls(listener, true)
     }
 
     fn close_listener(&mut self, listener: ProviderListener) -> Result<(), NetworkFailure> {
@@ -436,18 +431,15 @@ impl NetworkProvider for FixtureNetworkProvider {
     ) -> Result<Vec<u8>, NetworkFailure> {
         let connection = self.connection_mut(connection)?;
         connection.check_expected_send()?;
-        let Some(front) = connection.pending.front_mut() else {
+        let Some(mut chunk) = connection.pending.pop_front() else {
             return Ok(Vec::new());
         };
-        if front.len() <= max {
-            return Ok(connection
-                .pending
-                .pop_front()
-                .expect("front chunk presence was checked"));
+        if chunk.len() <= max {
+            return Ok(chunk);
         }
-        let rest = front.split_off(max);
-        let delivered = std::mem::replace(front, rest);
-        Ok(delivered)
+        let remainder = chunk.split_off(max);
+        connection.pending.push_front(remainder);
+        Ok(chunk)
     }
 
     fn wait(
@@ -468,7 +460,9 @@ impl NetworkProvider for FixtureNetworkProvider {
     }
 
     fn close(&mut self, connection: ProviderConnection) -> Result<(), NetworkFailure> {
-        self.connection_mut(connection)?.open = false;
+        let connection = self.connection_mut(connection)?;
+        connection.check_expected_send()?;
+        connection.open = false;
         Ok(())
     }
 
@@ -479,6 +473,39 @@ impl NetworkProvider for FixtureNetworkProvider {
         for listener in &mut self.listeners {
             listener.open = false;
         }
+    }
+}
+
+impl FixtureNetworkProvider {
+    fn accept_with_tls(
+        &mut self,
+        listener: ProviderListener,
+        tls: bool,
+    ) -> Result<ProviderConnection, NetworkFailure> {
+        let listener = usize::try_from(listener.token())
+            .ok()
+            .and_then(|index| self.listeners.get_mut(index))
+            .filter(|listener| listener.open)
+            .ok_or(NetworkFailure::UnknownHandle)?;
+        if listener
+            .accepted
+            .front()
+            .is_some_and(|peer| peer.tls != tls)
+        {
+            return Err(if tls {
+                NetworkFailure::TlsFailed
+            } else {
+                NetworkFailure::AcceptFailed
+            });
+        }
+        let mut connection = listener
+            .accepted
+            .pop_front()
+            .ok_or(NetworkFailure::AcceptFailed)?;
+        connection.open = true;
+        let token = self.connections.len() as u64;
+        self.connections.push(connection);
+        Ok(ProviderConnection::new(token))
     }
 }
 

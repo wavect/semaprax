@@ -1,6 +1,7 @@
 # HTTPS Client Runtime v1
 
-Status: locally evidenced native-host Rust runtime; language and generated-target adapters remain open.
+Status: locally evidenced native-host Rust runtime and source operation;
+generated-target adapters remain open.
 
 Audience: compiler embedders, runtime contributors, and reviewers.
 
@@ -37,7 +38,8 @@ case is an opt-in live public-PKI smoke. It is intentionally outside the
 deterministic default gate because DNS, routing, and the remote service are not
 repository-owned inputs.
 
-This runtime is not yet a SEMAPRAX `https_get` operation or `std.http` API.
-HTTP/3, server request parsing, native-C11 binding, Core-Wasm imports,
+The additive [HTTPS Client I/O v1](HTTPS-CLIENT-IO-V1.md) profile exposes this
+runtime as the source-level `https_get` operation and returns a canonical byte
+projection accepted by the existing `std.http` parsers. HTTP/3, server request parsing, native-C11 binding, Core-Wasm imports,
 npm/browser Fetch binding, Project admission, structured async integration,
 observability, and broad target conformance remain open.

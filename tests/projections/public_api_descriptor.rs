@@ -591,11 +591,28 @@ fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
     let profile = include_str!("../../src/project/profile.rs");
     let npm = concat!(
         include_str!("../../src/project/npm.rs"),
-        include_str!("../../src/project/npm/nested_owned_record.rs")
+        include_str!("../../src/project/npm/carrier.rs"),
+        include_str!("../../src/project/npm/command.rs"),
+        include_str!("../../src/project/npm/command_v2.rs"),
+        include_str!("../../src/project/npm/command_v3.rs"),
+        include_str!("../../src/project/npm/command_v4.rs"),
+        include_str!("../../src/project/npm/data.rs"),
+        include_str!("../../src/project/npm/flat_owned_record.rs"),
+        include_str!("../../src/project/npm/https_command.rs"),
+        include_str!("../../src/project/npm/nested_owned_record.rs"),
+        include_str!("../../src/project/npm/network_command.rs"),
+        include_str!("../../src/project/npm/owned_data.rs"),
+        include_str!("../../src/project/npm/owned_utf8.rs"),
+        include_str!("../../src/project/npm/publication.rs"),
+        include_str!("../../src/project/npm/publication_plan.rs"),
+        include_str!("../../src/project/npm/semantic_recipe_v8.rs"),
+        include_str!("../../src/project/npm/semantic_recipe_v8/type_names.rs"),
+        include_str!("../../src/project/npm/validation.rs")
     );
     let native_sdk = include_str!("../../src/project/native_sdk.rs");
     let wasm = concat!(
         include_str!("../../src/wasm.rs"),
+        include_str!("../../src/wasm/http_io.rs"),
         include_str!("../../src/wasm/network_io.rs"),
         include_str!("../../src/wasm/project_web_build_tests.rs"),
         include_str!("../../src/wasm/stdout_profile_authority_tests.rs"),

@@ -13,6 +13,7 @@ mod depth;
 mod entry;
 mod hints;
 mod patterns;
+mod signed_minimum;
 mod types;
 pub struct Parser {
     tokens: Vec<Token>,
@@ -961,6 +962,9 @@ impl Parser {
                 } else {
                     UnaryOp::Not
                 };
+                if op == UnaryOp::Neg && self.at_signed_minimum() {
+                    return self.signed_minimum_literal(token.span);
+                }
                 let value = self.expression_with_record_literals(7, allow_record_literals)?;
                 let span = token.span.merge(value.span);
                 if op == UnaryOp::Neg && matches!(value.kind, ExprKind::Usize(_)) {
@@ -993,12 +997,7 @@ impl Parser {
                 }
             }
             TokenKind::LBrace => self.block_after_open(token.span)?,
-            _ => {
-                return Err(
-                    Diagnostic::error("SPX-P201", "expected an expression", token.span)
-                        .at_path(&self.path),
-                );
-            }
+            _ => return Err(self.prefix_atom_rejection(&token)),
         };
         Ok(expression)
     }
@@ -1543,61 +1542,6 @@ impl Parser {
             },
             span: start.merge(end),
         })
-    }
-
-    /// Parse `own`/`borrow` as contextual match-mode words only when the next
-    /// token begins a distinct expression and cannot legally continue the
-    /// legacy identifier expression. In particular, `match own { ... }` and
-    /// `match own(value) { ... }` remain matches over identifiers/calls named
-    /// `own`; the same rule applies to `borrow`.
-    fn contextual_match_mode(&mut self) -> Result<crate::ast::MatchMode, Diagnostic> {
-        use crate::ast::MatchMode;
-
-        let candidate = if self.at_keyword("own") {
-            Some(MatchMode::Own)
-        } else if self.at_keyword("borrow") {
-            Some(MatchMode::Borrow)
-        } else {
-            None
-        };
-        let Some(mode) = candidate else {
-            return Ok(MatchMode::Value);
-        };
-        if !self.next_token_starts_unambiguous_match_scrutinee() {
-            return Ok(MatchMode::Value);
-        }
-
-        let mode_span = self.bump().span;
-        if self.at_keyword("own") || self.at_keyword("borrow") {
-            return Err(Diagnostic::error(
-                "SPX-P207",
-                "a match expression accepts exactly one ownership mode: `own` or `borrow`",
-                mode_span.merge(self.current().span),
-            )
-            .at_path(&self.path));
-        }
-        Ok(mode)
-    }
-
-    fn next_token_starts_unambiguous_match_scrutinee(&self) -> bool {
-        match self.tokens.get(self.cursor + 1).map(|token| &token.kind) {
-            // `with` is a legal postfix continuation of the legacy
-            // identifier scrutinee: `match own with { field: value } { ... }`.
-            Some(TokenKind::Ident(value)) => value != "with",
-            Some(
-                TokenKind::Int(_)
-                | TokenKind::Int32(_)
-                | TokenKind::Float(_)
-                | TokenKind::Char(_)
-                | TokenKind::Uint8(_)
-                | TokenKind::Usize(_)
-                | TokenKind::String(_)
-                | TokenKind::LBracket
-                | TokenKind::Minus
-                | TokenKind::Bang,
-            ) => true,
-            _ => false,
-        }
     }
 
     fn field_initializers(

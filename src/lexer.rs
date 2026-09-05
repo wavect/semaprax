@@ -22,8 +22,18 @@ impl PartialEq for FloatLiteral {
 pub enum TokenKind {
     Ident(String),
     Int(i64),
+    /// One unsuffixed decimal literal whose magnitude is exactly
+    /// `i64::MAX + 1`. The grammar admits it only as the immediate operand of
+    /// a unary `-`, where it denotes `i64::MIN`; every other position keeps
+    /// the stable `SPX-P003` out-of-range rejection. Carrying the magnitude
+    /// as its own token keeps tokenization context-free: the lexer never
+    /// consults a preceding `-`, so subtraction is unaffected.
+    IntMinMagnitude,
     /// One integer literal with an explicit `i32` suffix and its exact value.
     Int32(i32),
+    /// The `i32` counterpart of [`TokenKind::IntMinMagnitude`]: a suffixed
+    /// decimal literal whose magnitude is exactly `i32::MAX + 1`.
+    Int32MinMagnitude,
     Float(FloatLiteral),
     /// One `char` literal held as its exact Unicode scalar value.
     Char(u32),
@@ -270,14 +280,23 @@ impl Lexer<'_> {
                     ));
                 }
                 let text = &self.source[start..self.offset];
-                let number = text.parse::<i64>().map_err(|_| {
-                    self.error(
-                        "SPX-P003",
-                        "integer literal is outside the i64 range",
-                        self.span_from(start, line, column),
-                    )
-                })?;
-                TokenKind::Int(number)
+                match text.parse::<i64>() {
+                    Ok(number) => TokenKind::Int(number),
+                    // Signed Minimum Literals v1: exactly `i64::MAX + 1`
+                    // survives tokenization so that a directly applied unary
+                    // `-` can spell `i64::MIN`. The parser rejects it with
+                    // the same stable diagnostic everywhere else.
+                    Err(_) if is_signed_minimum_magnitude(text, I64_MIN_MAGNITUDE) => {
+                        TokenKind::IntMinMagnitude
+                    }
+                    Err(_) => {
+                        return Err(self.error(
+                            "SPX-P003",
+                            "integer literal is outside the i64 range",
+                            self.span_from(start, line, column),
+                        ))
+                    }
+                }
             }
             value if is_ident_start(value) => {
                 while matches!(self.peek(), Some(next) if is_ident_continue(next)) {
@@ -323,15 +342,22 @@ impl Lexer<'_> {
             ));
         }
         let text = &self.source[start..self.offset - 3];
-        let value = text.parse::<i32>().map_err(|_| {
-            self.error(
-                "SPX-P003",
-                "integer literal is outside the i32 range",
-                self.span_from(start, line, column),
-            )
-        })?;
+        let kind = match text.parse::<i32>() {
+            Ok(value) => TokenKind::Int32(value),
+            // Signed Minimum Literals v1: see `TokenKind::IntMinMagnitude`.
+            Err(_) if is_signed_minimum_magnitude(text, I32_MIN_MAGNITUDE) => {
+                TokenKind::Int32MinMagnitude
+            }
+            Err(_) => {
+                return Err(self.error(
+                    "SPX-P003",
+                    "integer literal is outside the i32 range",
+                    self.span_from(start, line, column),
+                ))
+            }
+        };
         Ok(Token {
-            kind: TokenKind::Int32(value),
+            kind,
             span: self.span_from(start, line, column),
         })
     }
@@ -728,6 +754,19 @@ impl Lexer<'_> {
     fn error(&self, code: &'static str, message: impl Into<String>, span: Span) -> Diagnostic {
         Diagnostic::error(code, message, span).at_path(self.path)
     }
+}
+
+/// The decimal magnitude of `i64::MIN`, which is one past `i64::MAX`.
+const I64_MIN_MAGNITUDE: &str = "9223372036854775808";
+
+/// The decimal magnitude of `i32::MIN`, which is one past `i32::MAX`.
+const I32_MIN_MAGNITUDE: &str = "2147483648";
+
+/// Whether `text` spells exactly the magnitude of a signed minimum. The rule
+/// is numeric rather than textual, so leading zeros are ignored the same way
+/// every other in-range decimal literal ignores them.
+fn is_signed_minimum_magnitude(text: &str, magnitude: &str) -> bool {
+    text.trim_start_matches('0') == magnitude
 }
 
 fn is_ident_start(character: char) -> bool {

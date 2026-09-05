@@ -557,6 +557,7 @@ Other first-attempt diagnostics and their fixes:
 | `Option::Some { value: 1 }` | `SPX-T221` | `Option<i64>::Some { value: 1 }` |
 | `index + 1` when `index: usize` | `SPX-T208` | Integer literals default to `i64`; write `index + 1usize` |
 | `let a: i32 = 5` | `SPX-T232` | Suffix the literal: `let a: i32 = 5i32` |
+| `9223372036854775808` or `-(9223372036854775808)` | `SPX-P003` | The signed minimum is one literal: write `-9223372036854775808`, or `-2147483648i32` for `i32`. Whitespace between the sign and the magnitude is trivia; a parenthesis is not. `-MIN` and `MIN / -1` still fail closed on checked overflow |
 | `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |
 | `f("abc")` or `f(owned)` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |

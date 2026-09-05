@@ -11,7 +11,7 @@ use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write as _;
 
 use super::{
-    backend_error, c_i64, native_byte_data, native_bytes, native_command, native_command_io,
+    backend_error, c_i32, c_i64, native_byte_data, native_bytes, native_command, native_command_io,
     native_host_output, native_resource, native_runtime, resource_lowering_gate, COutput,
     NATIVE_SCALAR_RUNTIME_C,
 };
@@ -2262,7 +2262,7 @@ pub(super) fn c_function_symbol(id: &DeclarationId) -> String {
 fn c_pattern_literal(value: hir::PatternValue) -> String {
     match value {
         hir::PatternValue::Int(value) => c_i64(value),
-        hir::PatternValue::Int32(value) => format!("INT32_C({value})"),
+        hir::PatternValue::Int32(value) => c_i32(value),
         hir::PatternValue::Uint8(value) => format!("UINT8_C({value})"),
         hir::PatternValue::Usize(value) => format!("UINT64_C({value})"),
         hir::PatternValue::Char(value) => format!("UINT32_C(0x{value:x})"),

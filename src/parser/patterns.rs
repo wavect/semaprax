@@ -35,8 +35,9 @@ impl Parser {
     fn match_pattern_atom(&mut self) -> Result<MatchPattern, Diagnostic> {
         // Refutable Match v1: negative integer literals fold their sign at
         // parse time so patterns stay exact constants like expression
-        // literals; `-9223372036854775808` stays unrepresentable exactly as
-        // in the expression grammar (SPX-P003 at the lexer).
+        // literals. Signed Minimum Literals v1 admits `-9223372036854775808`
+        // and `-2147483648i32` here on exactly the expression-grammar rule:
+        // the magnitude token is claimed only by a directly applied `-`.
         if self.take(&TokenKind::Minus) {
             let minus_span = self.previous_span();
             let token = self.bump().clone();
@@ -63,6 +64,8 @@ impl Parser {
                     i128::from(i32::MIN),
                     token.span,
                 )? as i32),
+                TokenKind::IntMinMagnitude => PatternLiteral::Int(i64::MIN),
+                TokenKind::Int32MinMagnitude => PatternLiteral::Int32(i32::MIN),
                 TokenKind::Usize(_) => {
                     return Err(Diagnostic::error(
                         "SPX-T260",
@@ -166,6 +169,9 @@ impl Parser {
                 value: PatternLiteral::Char(value),
                 span: token.span,
             },
+            TokenKind::IntMinMagnitude | TokenKind::Int32MinMagnitude => {
+                return Err(super::signed_minimum::out_of_range(&token, &self.path))
+            }
             _ => {
                 return Err(Diagnostic::error(
                     "SPX-P206",
@@ -223,5 +229,62 @@ impl Parser {
             }
         }
         Ok(fields)
+    }
+
+    /// Parse `own`/`borrow` as contextual match-mode words only when the next
+    /// token begins a distinct expression and cannot legally continue the
+    /// legacy identifier expression. In particular, `match own { ... }` and
+    /// `match own(value) { ... }` remain matches over identifiers/calls named
+    /// `own`; the same rule applies to `borrow`.
+    pub(super) fn contextual_match_mode(&mut self) -> Result<crate::ast::MatchMode, Diagnostic> {
+        use crate::ast::MatchMode;
+
+        let candidate = if self.at_keyword("own") {
+            Some(MatchMode::Own)
+        } else if self.at_keyword("borrow") {
+            Some(MatchMode::Borrow)
+        } else {
+            None
+        };
+        let Some(mode) = candidate else {
+            return Ok(MatchMode::Value);
+        };
+        if !self.next_token_starts_unambiguous_match_scrutinee() {
+            return Ok(MatchMode::Value);
+        }
+
+        let mode_span = self.bump().span;
+        if self.at_keyword("own") || self.at_keyword("borrow") {
+            return Err(Diagnostic::error(
+                "SPX-P207",
+                "a match expression accepts exactly one ownership mode: `own` or `borrow`",
+                mode_span.merge(self.current().span),
+            )
+            .at_path(&self.path));
+        }
+        Ok(mode)
+    }
+
+    fn next_token_starts_unambiguous_match_scrutinee(&self) -> bool {
+        match self.tokens.get(self.cursor + 1).map(|token| &token.kind) {
+            // `with` is a legal postfix continuation of the legacy
+            // identifier scrutinee: `match own with { field: value } { ... }`.
+            Some(TokenKind::Ident(value)) => value != "with",
+            Some(
+                TokenKind::Int(_)
+                | TokenKind::IntMinMagnitude
+                | TokenKind::Int32(_)
+                | TokenKind::Int32MinMagnitude
+                | TokenKind::Float(_)
+                | TokenKind::Char(_)
+                | TokenKind::Uint8(_)
+                | TokenKind::Usize(_)
+                | TokenKind::String(_)
+                | TokenKind::LBracket
+                | TokenKind::Minus
+                | TokenKind::Bang,
+            ) => true,
+            _ => false,
+        }
     }
 }

@@ -126,6 +126,16 @@ format: `Unreleased` then release buckets, grouped by impact.
   prevents CoreFoundation from reading the user-home encoding file or rewriting
   the child environment, while the exact environment assertion remains closed.
 
+- Added Signed Minimum Literals v1: `-9223372036854775808` and
+  `-2147483648i32` are ordinary literals in expressions and match patterns, so
+  boundary constants no longer need a `-MAX - 1` workaround. The magnitude
+  survives tokenization as its own token and is claimed only by a directly
+  applied unary `-`, so tokenization stays context-free and subtraction is
+  unchanged; the bare magnitude, a parenthesized one, and `MIN - 1` all keep
+  the stable located `SPX-P003` rejection. `-MIN` and `MIN / -1` still select
+  checked arithmetic failures, and the native C11 backend now spells both
+  signed minimums as a negated maximum less one so no C literal names an
+  unrepresentable magnitude.
 - Fixed `run <file> --json` publishing human diagnostics on stderr when its
   preliminary load or verification failed. Parse errors, unreadable inputs, and
   type/effect/ownership failures now emit the same diagnostic records on stdout

@@ -241,14 +241,38 @@ fn integer_literals_cover_the_i64_range_and_reject_overflow() {
         TokenKind::Int(7),
         "leading zeros are kept"
     );
-    assert_eq!(code("9223372036854775808"), "SPX-P003");
-    // `-` is a separate token, so `i64::MIN` is unrepresentable as a literal:
-    // the magnitude alone overflows before the sign is ever applied.
+    // Signed Minimum Literals v1: exactly `i64::MAX + 1` survives
+    // tokenization as its own magnitude token, so a directly applied unary
+    // `-` in the grammar can spell `i64::MIN`. Tokenization stays
+    // context-free: the magnitude never consults the preceding token, and the
+    // parser rejects the magnitude wherever no `-` claims it.
+    assert_eq!(only("9223372036854775808").kind, TokenKind::IntMinMagnitude);
+    assert_eq!(
+        only("0009223372036854775808").kind,
+        TokenKind::IntMinMagnitude,
+        "the rule is the numeric magnitude, not its spelling"
+    );
+    assert_eq!(code("9223372036854775809"), "SPX-P003");
     assert_eq!(
         kinds("-9223372036854775807"),
         vec![TokenKind::Minus, TokenKind::Int(i64::MAX), TokenKind::Eof]
     );
-    assert_eq!(code("-9223372036854775808"), "SPX-P003");
+    assert_eq!(
+        kinds("-9223372036854775808"),
+        vec![TokenKind::Minus, TokenKind::IntMinMagnitude, TokenKind::Eof]
+    );
+    // Subtraction is untouched: the magnitude token is produced identically
+    // whether or not a `-` precedes it, so no expression retokenizes.
+    assert_eq!(
+        kinds("1 - 9223372036854775808"),
+        vec![
+            TokenKind::Int(1),
+            TokenKind::Minus,
+            TokenKind::IntMinMagnitude,
+            TokenKind::Eof
+        ]
+    );
+    assert_eq!(code("-9223372036854775809"), "SPX-P003");
 }
 
 #[test]
@@ -272,7 +296,13 @@ fn suffixed_integer_literals_carry_their_declared_width() {
     );
     // Out of range for the declared width, including a magnitude that does
     // not even fit the i64 the `u8` path parses through first.
-    assert_eq!(code("2147483648i32"), "SPX-P003");
+    assert_eq!(
+        only("2147483648i32").kind,
+        TokenKind::Int32MinMagnitude,
+        "Signed Minimum Literals v1 keeps exactly i32::MAX + 1 for the parser"
+    );
+    assert_eq!(code("2147483649i32"), "SPX-P003");
+    assert_eq!(code("9223372036854775808i32"), "SPX-P003");
     assert_eq!(code("256u8"), "SPX-P003");
     assert_eq!(code("99999999999999999999u8"), "SPX-P003");
     assert_eq!(code("18446744073709551616usize"), "SPX-T260");

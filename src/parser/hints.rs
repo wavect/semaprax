@@ -88,7 +88,9 @@ impl Parser {
             next,
             TokenKind::Ident(_)
                 | TokenKind::Int(_)
+                | TokenKind::IntMinMagnitude
                 | TokenKind::Int32(_)
+                | TokenKind::Int32MinMagnitude
                 | TokenKind::Float(_)
                 | TokenKind::Char(_)
                 | TokenKind::Uint8(_)

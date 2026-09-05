@@ -33,8 +33,9 @@ New pattern forms, all parsed only in match-arm position:
 
 - Integer literals (`0`, `-5`, `9u8`, `1i32`) with sign folding at parse time.
   Suffix typing rules are identical to expression literals because the same
-  lexer tokens feed both; `-9223372036854775808` stays unrepresentable exactly
-  as in the expression grammar (`SPX-P003` at the lexer).
+  lexer tokens feed both, and so is the signed-minimum rule:
+  `-9223372036854775808` and `-2147483648i32` are admitted patterns, while the
+  bare magnitude keeps its `SPX-P003` out-of-range rejection.
 - Bool literals (`true`, `false`) and char literals (`'a'`, `'\u{fc}'`).
   Float and string literal patterns never parse (`SPX-P206`) — bit-exactness
   hazards keep floats outside v1 by design.

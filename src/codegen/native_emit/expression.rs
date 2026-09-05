@@ -11,9 +11,9 @@ use crate::hir::{
 use crate::variant_layout::VariantLayout;
 
 use super::{
-    backend_error, c_case_symbol, c_field_symbol, c_i64, c_pattern_literal, c_string, c_value_type,
-    is_aggregate_type, record_declaration_id, variant_declaration_id, CBinding, CEmitter, COutput,
-    CValue,
+    backend_error, c_case_symbol, c_field_symbol, c_i32, c_i64, c_pattern_literal, c_string,
+    c_value_type, is_aggregate_type, record_declaration_id, variant_declaration_id, CBinding,
+    CEmitter, COutput, CValue,
 };
 
 mod host_command;
@@ -421,7 +421,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             ResolvedExprKind::Int32(value) => {
                 self.require_type(&expr.ty, &ResolvedType::I32, "i32 literal")?;
                 CValue {
-                    code: format!("INT32_C({value})"),
+                    code: c_i32(*value),
                     ty: ResolvedType::I32,
                 }
             }

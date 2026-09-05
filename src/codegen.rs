@@ -1316,6 +1316,19 @@ fn c_i64(value: i64) -> String {
     }
 }
 
+/// The `i32` counterpart of [`c_i64`]. C has no negative integer literals, so
+/// `INT32_C(-2147483648)` would name a wider type than `int32_t`; the minimum
+/// is spelled as the negated maximum less one, exactly as for `i64`.
+fn c_i32(value: i32) -> String {
+    if value == i32::MIN {
+        "(-INT32_C(2147483647) - INT32_C(1))".to_owned()
+    } else if value < 0 {
+        format!("-INT32_C({})", value.unsigned_abs())
+    } else {
+        format!("INT32_C({value})")
+    }
+}
+
 fn backend_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-B103", message)
 }

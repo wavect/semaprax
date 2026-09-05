@@ -77,6 +77,8 @@ mod resource_lifecycle;
 mod result_try_semantics;
 #[path = "language/schema_scalar_widen.rs"]
 mod schema_scalar_widen;
+#[path = "language/signed_minimum_literals.rs"]
+mod signed_minimum_literals;
 #[path = "language/stable_id_nul.rs"]
 mod stable_id_nul;
 #[path = "language/string_numeric_text.rs"]

@@ -10,6 +10,15 @@
       ]
     },
     {
+      "code": "SPX-P003",
+      "rows": [
+        {
+          "fix": "The signed minimum is one literal: write `-9223372036854775808`, or `-2147483648i32` for `i32`. Whitespace between the sign and the magnitude is trivia; a parenthesis is not. `-MIN` and `MIN / -1` still fail closed on checked overflow",
+          "wrote": "`9223372036854775808` or `-(9223372036854775808)`"
+        }
+      ]
+    },
+    {
       "code": "SPX-P104",
       "rows": [
         {

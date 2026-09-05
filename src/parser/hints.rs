@@ -72,12 +72,18 @@ impl Parser {
         let TokenKind::Ident(word) = &self.current().kind else {
             return None;
         };
+        let next = self.tokens.get(self.cursor + 1).map(|token| &token.kind)?;
+        if matches!(next, TokenKind::Semicolon) {
+            return Some(
+                self.error_here("SPX-P106", "expected `}` after block")
+                    .with_help(EXPRESSION_STATEMENT_HELP),
+            );
+        }
         let (message, help) = match word.as_str() {
             "return" => (RETURN_MESSAGE, RETURN_HELP),
             "for" | "loop" => (LOOP_MESSAGE, LOOP_HELP),
             _ => return None,
         };
-        let next = self.tokens.get(self.cursor + 1).map(|token| &token.kind)?;
         let begins_operand = matches!(
             next,
             TokenKind::Ident(_)

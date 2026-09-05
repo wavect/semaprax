@@ -483,8 +483,15 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             }
             .map_err(|errors| report(&errors, false))?
             .ok_or_else(|| {
-                eprintln!("symbol `{symbol}` was not found");
-                1
+                report(
+                    &[Diagnostic::io(
+                        "SPX-G404",
+                        format!("symbol `{symbol}` was not found"),
+                    )
+                    .at_path(path.display().to_string())
+                    .with_help("inspect available declaration identities with `semaprax graph <file>`")],
+                    false,
+                )
             })?;
             println!("{context}");
             Ok(())

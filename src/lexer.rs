@@ -110,6 +110,20 @@ pub fn lex(source: &str, path: &str) -> Result<Vec<Token>, Diagnostic> {
 
 /// Lex the source and also return every comment, in source order.
 pub fn lex_with_comments(source: &str, path: &str) -> Result<(Vec<Token>, Comments), Diagnostic> {
+    if source.starts_with('\u{feff}') {
+        return Err(Diagnostic::error(
+            "SPX-P001",
+            "file starts with a UTF-8 byte-order mark",
+            Span {
+                start: 0,
+                end: '\u{feff}'.len_utf8(),
+                line: 1,
+                column: 1,
+            },
+        )
+        .at_path(path)
+        .with_help("remove the UTF-8 byte-order mark before the `module` header"));
+    }
     Lexer {
         source,
         path,

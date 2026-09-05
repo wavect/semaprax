@@ -575,7 +575,10 @@ pub(crate) fn read_patch_bounded(path: &Path) -> Result<String, Vec<Diagnostic>>
     String::from_utf8(bytes).map_err(|_| {
         vec![Diagnostic::io(
             "SPX-I202",
-            format!("semantic review patch {} is not UTF-8", path.display()),
+            format!(
+                "cannot read {}: stream did not contain valid UTF-8",
+                path.display()
+            ),
         )]
     })
 }
@@ -1202,6 +1205,22 @@ mod tests {
         std::fs::write(&source_path, source).unwrap();
         std::fs::write(&patch_path, patch_source).unwrap();
         (directory, source_path, patch_path)
+    }
+
+    #[test]
+    fn non_utf8_patch_uses_the_shared_read_diagnostic() {
+        let (directory, _source_path, patch_path) = fixture("", "");
+        std::fs::write(&patch_path, [0xff]).unwrap();
+        let diagnostics = read_patch_bounded(&patch_path).unwrap_err();
+        assert_eq!(diagnostics[0].code, "SPX-I202");
+        assert_eq!(
+            diagnostics[0].message,
+            format!(
+                "cannot read {}: stream did not contain valid UTF-8",
+                patch_path.display()
+            )
+        );
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[test]

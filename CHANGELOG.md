@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- CLI and parser diagnostic gaps now retain stable codes and actionable source
+  anchors: missing `fmt` inputs use `SPX-I001`/`SPX-J102`, unknown `context`
+  symbols use `SPX-G404`, bare identifier statements point at their token,
+  UTF-8 BOMs name their removal, and semantic-review patch decoding shares the
+  ordinary `SPX-I202` wording.
 - Improved newcomer diagnostics: statement-position `if` failures now name
   the mandatory `else` and discard form, immutable parameters show the
   mutable-copy repair, and unknown bundled standard-library functions name

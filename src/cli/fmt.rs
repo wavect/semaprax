@@ -12,6 +12,7 @@ use semaprax::diagnostic::Diagnostic;
 use semaprax::format;
 use semaprax::project::ProjectManifest;
 
+use super::manifest_hint::MISSING_MANIFEST_HELP;
 use super::project::{is_project_manifest, resolve_positional};
 
 #[derive(Debug, Eq, PartialEq)]
@@ -63,8 +64,11 @@ pub(crate) fn run(options: FmtOptions, report: impl Fn(&[Diagnostic]) -> u8) -> 
     let mut formatted = Vec::with_capacity(paths.len());
     for path in paths {
         let source = std::fs::read_to_string(&path).map_err(|error| {
-            eprintln!("cannot read {}: {error}", path.display());
-            1
+            report(&[Diagnostic::io(
+                "SPX-I001",
+                format!("cannot read {}: {error}", path.display()),
+            )
+            .at_path(path.display().to_string())])
         })?;
         let (program, comments) =
             semaprax::parse_with_comments(&source, &path).map_err(|error| report(&[error]))?;
@@ -103,8 +107,15 @@ fn project_sources(
     report: &impl Fn(&[Diagnostic]) -> u8,
 ) -> Result<Vec<PathBuf>, u8> {
     let manifest_source = std::fs::read_to_string(manifest_path).map_err(|error| {
-        eprintln!("cannot read {}: {error}", manifest_path.display());
-        1
+        report(&[Diagnostic::io(
+            "SPX-J102",
+            format!(
+                "cannot read Project v1 manifest {}: {error}",
+                manifest_path.display()
+            ),
+        )
+        .at_path(manifest_path.display().to_string())
+        .with_help(MISSING_MANIFEST_HELP)])
     })?;
     let manifest = ProjectManifest::parse(&manifest_source).map_err(|errors| report(&errors))?;
     let root = manifest_path.parent().unwrap_or_else(|| Path::new(""));

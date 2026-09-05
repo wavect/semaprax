@@ -276,3 +276,50 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     std::fs::remove_dir(malformed_dir).unwrap();
     std::fs::remove_dir(global_dir).unwrap();
 }
+
+#[test]
+fn fmt_and_context_failures_keep_stable_diagnostic_codes() {
+    let directory = empty_working_directory();
+    let source_path = directory.join("module.spx");
+    std::fs::write(
+        &source_path,
+        "module cli.diagnostics;\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+    )
+    .unwrap();
+
+    let context = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .current_dir(&directory)
+        .args(["context", "module.spx", "missing"])
+        .output()
+        .unwrap();
+    assert_eq!(context.status.code(), Some(1));
+    let stderr = String::from_utf8(context.stderr).unwrap();
+    assert!(stderr.contains("error[SPX-G404]"), "{stderr}");
+    assert!(stderr.contains("module.spx"), "{stderr}");
+
+    let missing_source = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .current_dir(&directory)
+        .args(["fmt", "missing.spx"])
+        .output()
+        .unwrap();
+    assert_eq!(missing_source.status.code(), Some(1));
+    assert!(String::from_utf8(missing_source.stderr)
+        .unwrap()
+        .contains("error[SPX-I001]"));
+
+    let empty_project = directory.join("empty-project");
+    std::fs::create_dir(&empty_project).unwrap();
+    let missing_manifest = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .current_dir(&directory)
+        .args(["fmt", "empty-project"])
+        .output()
+        .unwrap();
+    assert_eq!(missing_manifest.status.code(), Some(1));
+    let stderr = String::from_utf8(missing_manifest.stderr).unwrap();
+    assert!(stderr.contains("error[SPX-J102]"), "{stderr}");
+    assert!(stderr.contains("help:"), "{stderr}");
+
+    std::fs::remove_dir(empty_project).unwrap();
+    std::fs::remove_file(source_path).unwrap();
+    std::fs::remove_dir(directory).unwrap();
+}

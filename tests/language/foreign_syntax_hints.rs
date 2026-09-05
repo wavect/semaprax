@@ -108,6 +108,39 @@ fn main() -> i64
 }
 
 #[test]
+fn keyword_and_unknown_identifier_statements_point_at_the_offending_token() {
+    for word in ["module", "struct", "frobnicate"] {
+        let source = format!(
+            "module habit.bad_statement;\n@id(\"app.main\")\nfn main() -> i64\n{{\n    {word};\n    42\n}}\n"
+        );
+        let diagnostic = rejection(&source);
+        assert_eq!(diagnostic.code, "SPX-P106", "{diagnostic}");
+        assert_eq!(
+            diagnostic.span.map(|span| (span.line, span.column)),
+            Some((5, 5)),
+            "{diagnostic}"
+        );
+        assert!(help(&diagnostic).contains("let _ ="), "{diagnostic}");
+    }
+}
+
+#[test]
+fn utf8_bom_has_a_targeted_removal_diagnostic() {
+    let diagnostic =
+        rejection("\u{feff}module habit.bom;\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n");
+    assert_eq!(diagnostic.code, "SPX-P001");
+    assert!(
+        diagnostic.message.contains("byte-order mark"),
+        "{diagnostic}"
+    );
+    assert!(help(&diagnostic).contains("remove"), "{diagnostic}");
+    assert_eq!(
+        diagnostic.span.map(|span| (span.line, span.column)),
+        Some((1, 1))
+    );
+}
+
+#[test]
 fn trailing_expression_semicolon_is_never_silently_rewritten() {
     for tail in ["42;", "side(1);", "let value = 1; value;"] {
         let source = format!(

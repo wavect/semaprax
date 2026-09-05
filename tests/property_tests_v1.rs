@@ -356,7 +356,7 @@ fn third(value: i64) -> i64
 fn main() -> i64 { 0 }
 "#;
     let path = write_source("bytes.spx", source);
-    let options = PropertyTestOptions::new(8, 16, 1024, 11).unwrap();
+    let options = PropertyTestOptions::new(8, 16, 2048, 11).unwrap();
     let report_text = properties::generate(&path, &options).unwrap();
     let report: Value = serde_json::from_str(&report_text)
         .unwrap_or_else(|error| panic!("truncated output must stay valid JSON: {error}"));

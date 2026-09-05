@@ -48,14 +48,20 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // /test, the scaffold gained a library template, `new` became public, and
     // `doc`, `verify`, `agent`, `query`, `package`, `add`, and `fetch` were added,
     // and `doctor` became standalone.
-    const RESTORED: [(&str, &str); 26] = [
+    const RESTORED: [(&str, &str); 33] = [
         ("semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n", ""),
         ("semaprax agent run <definition.json> <task.json> <transcript.json> [--evidence|--trace]\n", ""),
         ("semaprax agent replay <definition.json> <task.json> <transcript.json> <evidence.json>\n", ""),
         ("semaprax add <dir>|semaprax.toml <package> <range>\n", ""),
         ("semaprax fetch <cache-dir> <subject.json>...\n", ""),
         ("semaprax context <file|project> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n", "semaprax context <file> <symbol|stable-id> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--filters contracts,ownership,effects,types,targets,diagnostics,tests]\n"),
+        ("semaprax query <project> declarations [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--offset N] [--limit N] [--revision digest]\n", ""),
+        ("semaprax query <project> symbol <stable-id> [--revision digest]\n", ""),
+        ("semaprax query <project> context <declaration|capability> <target> [--direction forward|reverse|both] [--depth N] [--max-bytes N] [--max-nodes N] [--revision digest]\n", ""),
+        ("semaprax query <project> impact <declaration|capability> <target> [--depth N] [--max-bytes N] [--max-nodes N] [--revision digest]\n", ""),
+        ("semaprax query <project> available-operations <stable-id> [--revision digest]\n", ""),
         ("semaprax query <file|project> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>] [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]\n", ""),
+        ("semaprax change preview <project> rename-display-name <stable-id> <new-name> [--revision digest] [--evidence]\n", ""),
         ("semaprax package report <file> [--max-bytes N]\n", ""),
         ("semaprax package lock <subject.json>... [--max-bytes N]\n", ""),
         ("semaprax package resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]\n", ""),
@@ -99,6 +105,10 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
         (
             "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
             "semaprax run [semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",
+        ),
+        (
+            "semaprax network-run [<dir>|semaprax.toml|--manifest-path path] --fixture fixture.json [--arg UTF8]... [--stdin path] [--max-steps N]\n",
+            "",
         ),
         (
             "semaprax test [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",

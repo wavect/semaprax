@@ -65,6 +65,22 @@ fn context(direction: AgentContextDirection, depth: usize) -> String {
 }
 
 #[test]
+fn modern_byte_data_context_projects_while_statements() {
+    let source = include_str!("../examples/text_analytics.spx");
+    let program = parse(source, Path::new("examples/text_analytics.spx")).unwrap();
+    let output = graph::agent_context_v2_json(
+        &program,
+        "text.count_byte",
+        &options(AgentContextDirection::Forward, 1),
+    )
+    .unwrap()
+    .unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+    assert_eq!(parsed["source_graph_schema"], "semaprax.graph.v23");
+    assert!(output.contains("\"kind\":\"while\""));
+}
+
+#[test]
 fn v2_forward_reverse_and_both_have_exact_directional_closure() {
     let forward = context(AgentContextDirection::Forward, 2);
     let reverse = context(AgentContextDirection::Reverse, 1);

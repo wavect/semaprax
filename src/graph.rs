@@ -2523,15 +2523,13 @@ pub(crate) fn agent_contract_expr_json(expression: &ResolvedExpr) -> Result<Stri
                             quote_json(audit),
                             agent_contract_expr_json(body)?
                         ),
-                        ResolvedStatement::While { .. } => {
-                            // Contract expressions reject while statements at
-                            // verification time, so this projection can never
-                            // observe one.
-                            return Err(Diagnostic::io(
-                                "SPX-G218",
-                                "while statements are outside the current semantic Graph contract projections",
-                            ));
-                        }
+                        ResolvedStatement::While {
+                            condition, body, ..
+                        } => format!(
+                            "{{\"kind\":\"while\",\"condition\":{},\"body\":{}}}",
+                            agent_contract_expr_json(condition)?,
+                            agent_contract_expr_json(body)?
+                        ),
                     })
                 })
                 .collect::<Result<Vec<_>, Diagnostic>>()?

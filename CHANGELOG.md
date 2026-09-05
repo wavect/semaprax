@@ -35,6 +35,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Agent Context v2 now projects `while` statements in modern byte-data
+  function bodies, so every declaration in `examples/text_analytics.spx` is
+  available through the bounded context route when the full graph succeeds.
+
 - Pinned source-verifier rejection of unsuffixed `i64` literals mixed with
   `usize`, `u8`, or `i32` arithmetic. `SPX-T208` now has explicit regression
   coverage for the suffix help before HIR or a backend can observe the input.

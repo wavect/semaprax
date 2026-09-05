@@ -31,6 +31,9 @@ statuses.
 Fixture v2 preserves v1 and adds `tls: true` to outbound and accepted connections plus a
 bounded `listeners` array with ordered `accept` queues. npm/Web remain on
 fixture v1 through Project v12; no browser receives raw sockets.
+Fixture v3 is the additive ordered HTTPS replay carrier specified by
+[HTTPS Client I/O v1](HTTPS-CLIENT-IO-V1.md); v1 and v2 reject its `https`
+member rather than interpreting newer input.
 
 The additive native-host API can install an explicit Rustls server policy and
 call `accept_tls` on a listener; source programs reach it through

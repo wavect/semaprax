@@ -15,8 +15,7 @@ use semaprax::hosted_interpreter::{
 };
 use semaprax::interpreter::CommandEvaluationOutcome;
 use semaprax::network_provider::{
-    DeniedNetworkProvider, FixtureNetworkProvider, HttpFailure, NetworkFailure, NetworkProvider,
-    ProviderConnection, TcpNetworkProvider, WaitState,
+    DeniedNetworkProvider, FixtureNetworkProvider, NetworkProvider, TcpNetworkProvider,
 };
 use semaprax::{hir, parse, verify};
 
@@ -121,40 +120,6 @@ fn run(source: &str, provider: &mut dyn NetworkProvider) -> HostedCommandResult 
         100_000,
     )
     .unwrap()
-}
-
-#[derive(Default)]
-struct HttpsFixture;
-
-impl NetworkProvider for HttpsFixture {
-    fn https_get(&mut self, url: &str, max: usize) -> Result<Vec<u8>, HttpFailure> {
-        assert_eq!(url, "https://example.test/data");
-        let response = b"HTTP/1.1 200 semaprax\r\ncontent-length: 2\r\n\r\nok".to_vec();
-        assert!(response.len() <= max);
-        Ok(response)
-    }
-
-    fn connect(&mut self, _: &str, _: u16) -> Result<ProviderConnection, NetworkFailure> {
-        Err(NetworkFailure::AuthorityDenied)
-    }
-
-    fn send(&mut self, _: ProviderConnection, _: &[u8]) -> Result<usize, NetworkFailure> {
-        Err(NetworkFailure::AuthorityDenied)
-    }
-
-    fn recv(&mut self, _: ProviderConnection, _: usize) -> Result<Vec<u8>, NetworkFailure> {
-        Err(NetworkFailure::AuthorityDenied)
-    }
-
-    fn wait(&mut self, _: ProviderConnection, _: u32) -> Result<WaitState, NetworkFailure> {
-        Err(NetworkFailure::AuthorityDenied)
-    }
-
-    fn close(&mut self, _: ProviderConnection) -> Result<(), NetworkFailure> {
-        Err(NetworkFailure::AuthorityDenied)
-    }
-
-    fn settle(&mut self) {}
 }
 
 fn fixture(port: u16, chunks: &[&str], expect_send: Option<&str>, ready: bool) -> String {
@@ -456,7 +421,12 @@ fn run() -> bool
 @id("main")
 fn main() -> i64 { 0 }
 "#;
-    let mut provider = HttpsFixture;
+    let fixture = r#"{
+        "schema":"semaprax.network-fixture.v3",
+        "connections":[],
+        "https":[{"url":"https://example.test/data","response":"HTTP/1.1 200 semaprax\r\ncontent-length: 2\r\n\r\nok"}]
+    }"#;
+    let mut provider = FixtureNetworkProvider::from_json(fixture).unwrap();
     expect_true(&run(source, &mut provider));
 }
 

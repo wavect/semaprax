@@ -28,6 +28,13 @@ disables ambient proxy discovery, negotiates HTTP/1.1 or HTTP/2, follows at
 most ten redirects, and keeps at most eight idle connections per origin. The
 ordinary interpreter has no provider and cannot perform network I/O.
 
+`semaprax.network-fixture.v3` is the deterministic carrier. It preserves v1
+TCP and v2 TLS/listener fields and adds an ordered `https` array whose entries
+carry exactly `url` and canonical string `response`. At most eight entries are
+accepted; URLs are exact-match HTTPS values and responses obey the 65,536-byte
+source result bound. A mismatched URL or undersized invocation bound fails
+without consuming the queued entry.
+
 Failures use the closed `semaprax.http.v1` status domain:
 
 | Code | Meaning |
@@ -48,6 +55,7 @@ Focused evidence:
 ```sh
 cargo test --locked --lib https_client::tests
 cargo test --locked --lib network_provider::tcp::tests::tls_client_authenticates_name_and_transfers_over_loopback
+cargo test --locked --lib network_provider::fixture::tests
 cargo test --locked --test useful_data hosted_http_profile_executes_a_turnkey_https_get
 ```
 

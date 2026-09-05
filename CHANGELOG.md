@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `semaprax.network-fixture.v3` as an ordered, bounded HTTPS
+  request/response replay carrier. V1 and v2 reject the new member, URL or
+  response mismatches do not consume queue entries, and hosted `https_get`
+  conformance now uses the serialized carrier shared with generated lanes.
+
 - Named the exact `Option<Bytes>` and `Result<Bytes, i64>` tags in the public
   Project-v8 C11 header. A separately compiled C consumer now executes all four
   cases at O0/O2, proves inactive cases grant no handle authority, and copies,

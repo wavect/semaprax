@@ -1,5 +1,6 @@
-//! Deterministic replay provider for the `semaprax.network-fixture.v1`
-//! document.
+//! Deterministic replay provider for versioned `semaprax.network-fixture`
+//! documents. V1 owns TCP replay, v2 adds TLS/listeners, and v3 adds an
+//! ordered HTTPS request/response queue without changing earlier bytes.
 //!
 //! ```json
 //! {
@@ -29,14 +30,18 @@ use std::collections::VecDeque;
 
 use serde_json::Value;
 
-use super::{NetworkFailure, NetworkProvider, ProviderConnection, ProviderListener, WaitState};
+use super::{
+    HttpFailure, NetworkFailure, NetworkProvider, ProviderConnection, ProviderListener, WaitState,
+};
 use crate::diagnostic::Diagnostic;
 
 /// The exact schema identity a fixture document must carry.
 pub const FIXTURE_SCHEMA: &str = "semaprax.network-fixture.v1";
 pub const FIXTURE_SCHEMA_V2: &str = "semaprax.network-fixture.v2";
+pub const FIXTURE_SCHEMA_V3: &str = "semaprax.network-fixture.v3";
 /// Maximum canonical fixture document bytes accepted by any host lane.
 pub const MAX_NETWORK_FIXTURE_BYTES: usize = 1_048_576;
+pub const MAX_HTTPS_FIXTURE_REQUESTS: usize = 8;
 
 const FIXTURE_DIAGNOSTIC_CODE: &str = "SPX-F110";
 
@@ -63,6 +68,12 @@ struct FixtureListener {
     open: bool,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct FixtureHttpsRequest {
+    url: String,
+    response: Vec<u8>,
+}
+
 /// A replaying [`NetworkProvider`] driven by a fixture document. It performs
 /// no I/O and is fully deterministic.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -72,6 +83,7 @@ pub struct FixtureNetworkProvider {
     next_connection: usize,
     listeners: Vec<FixtureListener>,
     next_listener: usize,
+    https: VecDeque<FixtureHttpsRequest>,
 }
 
 fn fixture_error(message: impl Into<String>) -> Diagnostic {
@@ -93,7 +105,7 @@ impl FixtureNetworkProvider {
             .as_object()
             .ok_or_else(|| fixture_error("network fixture must be a JSON object"))?;
         for key in root.keys() {
-            if key != "schema" && key != "connections" && key != "listeners" {
+            if key != "schema" && key != "connections" && key != "listeners" && key != "https" {
                 return Err(fixture_error(format!(
                     "network fixture has unknown key `{key}`"
                 )));
@@ -102,14 +114,20 @@ impl FixtureNetworkProvider {
         let schema = match root.get("schema").and_then(Value::as_str) {
             Some(FIXTURE_SCHEMA) => FIXTURE_SCHEMA,
             Some(FIXTURE_SCHEMA_V2) => FIXTURE_SCHEMA_V2,
+            Some(FIXTURE_SCHEMA_V3) => FIXTURE_SCHEMA_V3,
             _ => {
                 return Err(fixture_error(format!(
-                    "network fixture must declare `schema`: \"{FIXTURE_SCHEMA}\" or \"{FIXTURE_SCHEMA_V2}\""
+                    "network fixture must declare `schema`: \"{FIXTURE_SCHEMA}\", \"{FIXTURE_SCHEMA_V2}\", or \"{FIXTURE_SCHEMA_V3}\""
                 )))
             }
         };
         if schema == FIXTURE_SCHEMA && root.contains_key("listeners") {
             return Err(fixture_error("network fixture v1 cannot carry listeners"));
+        }
+        if schema != FIXTURE_SCHEMA_V3 && root.contains_key("https") {
+            return Err(fixture_error(
+                "only network fixture v3 can carry HTTPS requests",
+            ));
         }
         let connections = root
             .get("connections")
@@ -125,7 +143,7 @@ impl FixtureNetworkProvider {
             .iter()
             .enumerate()
             .map(|(index, connection)| {
-                parse_connection(index, connection, schema == FIXTURE_SCHEMA_V2)
+                parse_connection(index, connection, schema != FIXTURE_SCHEMA)
             })
             .collect::<Result<Vec<_>, _>>()?;
         let listeners = match root.get("listeners") {
@@ -148,11 +166,28 @@ impl FixtureNetworkProvider {
                 ))
             }
         };
+        let https = match root.get("https") {
+            None => VecDeque::new(),
+            Some(Value::Array(requests)) if requests.len() <= MAX_HTTPS_FIXTURE_REQUESTS => {
+                requests
+                    .iter()
+                    .enumerate()
+                    .map(|(index, value)| parse_https_request(index, value))
+                    .collect::<Result<VecDeque<_>, _>>()?
+            }
+            Some(Value::Array(_)) => {
+                return Err(fixture_error(
+                    "network fixture exceeds the HTTPS request limit",
+                ))
+            }
+            Some(_) => return Err(fixture_error("network fixture `https` must be an array")),
+        };
         Ok(Self {
             connections,
             next_connection: 0,
             listeners,
             next_listener: 0,
+            https,
         })
     }
 
@@ -166,6 +201,43 @@ impl FixtureNetworkProvider {
             .filter(|connection| connection.open)
             .ok_or(NetworkFailure::UnknownHandle)
     }
+}
+
+fn parse_https_request(index: usize, value: &Value) -> Result<FixtureHttpsRequest, Diagnostic> {
+    let object = value.as_object().ok_or_else(|| {
+        fixture_error(format!(
+            "network fixture HTTPS request {index} must be an object"
+        ))
+    })?;
+    for key in object.keys() {
+        if !["url", "response"].contains(&key.as_str()) {
+            return Err(fixture_error(format!(
+                "network fixture HTTPS request {index} has unknown key `{key}`"
+            )));
+        }
+    }
+    let url = object
+        .get("url")
+        .and_then(Value::as_str)
+        .filter(|url| url.starts_with("https://") && url.len() <= 2_048 && !url.contains('\0'))
+        .ok_or_else(|| {
+            fixture_error(format!(
+                "network fixture HTTPS request {index} must carry a bounded `https` URL"
+            ))
+        })?
+        .to_owned();
+    let response = object
+        .get("response")
+        .and_then(Value::as_str)
+        .filter(|response| response.len() <= crate::network_io_ops::MAX_CHUNK_BYTES as usize)
+        .ok_or_else(|| {
+            fixture_error(format!(
+                "network fixture HTTPS request {index} must carry a bounded string `response`"
+            ))
+        })?
+        .as_bytes()
+        .to_vec();
+    Ok(FixtureHttpsRequest { url, response })
 }
 
 fn parse_connection(
@@ -343,6 +415,20 @@ impl FixtureConnection {
 }
 
 impl NetworkProvider for FixtureNetworkProvider {
+    fn https_get(&mut self, url: &str, max: usize) -> Result<Vec<u8>, HttpFailure> {
+        let request = self.https.front().ok_or(HttpFailure::TransportFailed)?;
+        if request.url != url {
+            return Err(HttpFailure::TransportFailed);
+        }
+        if request.response.len() > max {
+            return Err(HttpFailure::ResponseTooLarge);
+        }
+        self.https
+            .pop_front()
+            .map(|request| request.response)
+            .ok_or(HttpFailure::TransportFailed)
+    }
+
     fn connect(&mut self, host: &str, port: u16) -> Result<ProviderConnection, NetworkFailure> {
         let index = self.next_connection;
         let connection = self
@@ -634,5 +720,51 @@ mod tests {
             Err(NetworkFailure::UnknownHandle)
         );
         provider.settle();
+    }
+
+    #[test]
+    fn v3_replays_bounded_https_requests_in_order() {
+        let document = r#"{
+            "schema":"semaprax.network-fixture.v3",
+            "connections":[],
+            "https":[
+                {"url":"https://example.test/first","response":"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok"},
+                {"url":"https://example.test/second","response":"HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n"}
+            ]
+        }"#;
+        let mut provider = FixtureNetworkProvider::from_json(document).unwrap();
+        assert_eq!(
+            provider.https_get("https://other.test/", 1024),
+            Err(HttpFailure::TransportFailed)
+        );
+        assert_eq!(
+            provider.https_get("https://example.test/first", 1),
+            Err(HttpFailure::ResponseTooLarge)
+        );
+        let first = provider
+            .https_get("https://example.test/first", 1024)
+            .unwrap();
+        assert!(first.starts_with(b"HTTP/1.1 200 OK\r\n"));
+        let second = provider
+            .https_get("https://example.test/second", 1024)
+            .unwrap();
+        assert!(second.starts_with(b"HTTP/1.1 204 No Content\r\n"));
+        assert_eq!(
+            provider.https_get("https://example.test/second", 1024),
+            Err(HttpFailure::TransportFailed)
+        );
+    }
+
+    #[test]
+    fn earlier_fixture_versions_reject_https_members() {
+        for schema in [FIXTURE_SCHEMA, FIXTURE_SCHEMA_V2] {
+            let document = format!(r#"{{"schema":"{schema}","connections":[],"https":[]}}"#);
+            assert_eq!(
+                FixtureNetworkProvider::from_json(&document)
+                    .unwrap_err()
+                    .code,
+                FIXTURE_DIAGNOSTIC_CODE
+            );
+        }
     }
 }

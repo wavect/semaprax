@@ -419,6 +419,15 @@ Core-Wasm import/status boundary and owned-result authentication;
 Project-v13 fixture-v3 carrier. Those generated adapters grant no ambient
 browser fetch, Node socket, TLS-key, or WASI authority.
 
+`src/codegen/native_emit/http_io.rs` owns the distinct Project-v13 native C11
+HTTPS runtime and command runner. It embeds the pinned
+`src/codegen/mozilla-roots.pem` trust projection, configures bounded libcurl
+TLS/HTTP policy, canonicalizes the complete response, and settles its
+invocation-owned handle before publication. `src/codegen/native_emit/compiler.rs`
+owns the narrow `-lcurl` link route; ordinary native profiles retain their
+existing linker inputs. The explicit test-CA override exists only in generated-C
+loopback tests and is never selected by production emission.
+
 `src/structured_tasks.rs` owns the bounded Rust scoped-thread runtime and its
 invocation-owned HTTPS task adapter. A provider moves into one lexical task,
 settles exactly once on every exit path, and publishes a typed result only
@@ -2044,7 +2053,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Signed doctor generation store | `crates/semaprax-doctor-release/src/install.rs`, `crates/semaprax-doctor-release/src/install/` |
 | Interpreter | `src/interpreter.rs`, `src/interpreter/prepared.rs`, `src/hosted_interpreter.rs`, `src/project/prepared_interpreter/`, `src/project/prepared_interpreter/trace/` |
 | Explicit Rust HTTP/TLS host runtime | `src/https_client.rs`, `src/network_provider.rs`, `src/network_provider/tcp.rs` |
-| Native backend | `src/codegen.rs`, `src/codegen/native_*` |
+| Native backend | `src/codegen.rs`, `src/codegen/native_*`; Project-v13 HTTPS runtime in `src/codegen/native_emit/http_io.rs`, pinned trust data in `src/codegen/mozilla-roots.pem` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
 | Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules; candidate replay/conflict projection in `src/project/candidate/package_consumer_replay.rs` |
 | Project dependency admission | `src/project/external_dependencies.rs` for exact ordinary Subject-v3 closure replay and `src/project/standard_dependencies.rs` for compiler-bundled packages |

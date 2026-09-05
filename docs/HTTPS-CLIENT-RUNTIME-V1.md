@@ -1,7 +1,7 @@
 # HTTPS Client Runtime v1
 
-Status: locally evidenced native-host Rust runtime and source operation;
-generated-target adapters remain open.
+Status: locally evidenced native-host Rust runtime, source operation, and
+Project-v13 native-C11 client; broader generated-target adapters remain open.
 
 Audience: compiler embedders, runtime contributors, and reviewers.
 
@@ -40,6 +40,8 @@ repository-owned inputs.
 
 The additive [HTTPS Client I/O v1](HTTPS-CLIENT-IO-V1.md) profile exposes this
 runtime as the source-level `https_get` operation and returns a canonical byte
-projection accepted by the existing `std.http` parsers. HTTP/3, server request parsing, native-C11 binding, Core-Wasm imports,
-npm/browser Fetch binding, Project admission, structured async integration,
-observability, and broad target conformance remain open.
+projection accepted by the existing `std.http` parsers. Its separate native-C11
+adapter uses libcurl with compiler-owned Mozilla roots and the same bounded
+canonical response contract. HTTP/3, server request parsing, live browser Fetch
+authority, structured async integration, observability, cross-platform libcurl
+provisioning, and broad target conformance remain open.

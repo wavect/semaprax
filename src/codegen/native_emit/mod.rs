@@ -23,6 +23,7 @@ use super::{
 
 mod compiler;
 mod expression;
+mod http_io;
 mod nested_owned;
 mod network_io;
 mod output_profile;
@@ -33,8 +34,10 @@ mod symbols;
 #[cfg(test)]
 use compiler::write_and_compile_c_with_runner;
 pub(super) use compiler::{
-    write_and_compile_c, write_and_compile_c_with_mode, write_compile_and_publish_c,
+    write_and_compile_c, write_and_compile_c_with_curl, write_and_compile_c_with_mode,
+    write_compile_and_publish_c, write_compile_and_publish_c_with_curl,
 };
+pub use http_io::{emit_c_with_https_io, emit_hir_c_with_https_io};
 use nested_owned::{borrowed_aggregate_byte_paths, borrowed_aggregate_path_suffix};
 pub use network_io::{emit_c_with_network_io, emit_hir_c_with_network_io};
 pub(super) use output_profile::NativeOutputProfile;
@@ -89,6 +92,8 @@ pub(super) fn emit_hir_c_with_labels(
     }
     if output_profile == NativeOutputProfile::NetworkCommandIo {
         network_io::emit_runtime(&mut output, program);
+    } else if output_profile == NativeOutputProfile::HttpsCommandIo {
+        http_io::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::LineCommandIo {
         native_host_output::emit_line_command_runtime(&mut output);
         native_command_io::emit_line_runtime(&mut output);
@@ -143,6 +148,9 @@ pub(super) fn emit_hir_c_with_labels(
             .symbol;
         if output_profile == NativeOutputProfile::NetworkCommandIo {
             network_io::emit_runner(&mut output, symbol);
+            native_command_io::emit_process_adapter(&mut output);
+        } else if output_profile == NativeOutputProfile::HttpsCommandIo {
+            http_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
         } else if output_profile.is_language_command() {
             native_command_io::emit_runner(&mut output, symbol);

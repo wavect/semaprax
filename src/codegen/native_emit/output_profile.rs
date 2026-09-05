@@ -20,6 +20,9 @@ pub(crate) enum NativeOutputProfile {
     /// Bounded Language Network I/O v1: the line-command input/output
     /// machinery plus the closed TCP operation family and its settlement.
     NetworkCommandIo,
+    /// HTTPS Client I/O v1: the line-command input/output machinery plus one
+    /// bounded libcurl-backed `https_get` operation.
+    HttpsCommandIo,
 }
 
 /// Representation and provider carrier support are separate decisions:
@@ -58,7 +61,8 @@ impl NativeOutputProfile {
             Self::UsefulDataCommand
             | Self::LanguageCommandIo
             | Self::LineCommandIo
-            | Self::NetworkCommandIo => StringRuntimeSelection::FROZEN,
+            | Self::NetworkCommandIo
+            | Self::HttpsCommandIo => StringRuntimeSelection::FROZEN,
         }
     }
 
@@ -82,6 +86,7 @@ impl NativeOutputProfile {
                 | Self::LanguageCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
+                | Self::HttpsCommandIo
         )
     }
 
@@ -94,6 +99,7 @@ impl NativeOutputProfile {
                 | Self::LanguageCommandIo
                 | Self::LineCommandIo
                 | Self::NetworkCommandIo
+                | Self::HttpsCommandIo
         )
     }
 
@@ -102,7 +108,10 @@ impl NativeOutputProfile {
     pub(super) const fn is_language_command(self) -> bool {
         matches!(
             self,
-            Self::LanguageCommandIo | Self::LineCommandIo | Self::NetworkCommandIo
+            Self::LanguageCommandIo
+                | Self::LineCommandIo
+                | Self::NetworkCommandIo
+                | Self::HttpsCommandIo
         )
     }
 }

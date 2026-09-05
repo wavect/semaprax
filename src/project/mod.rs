@@ -905,12 +905,6 @@ impl ProjectSnapshot {
                 "Project v11 does not expose a native executable aggregate ABI",
             )]);
         }
-        if self.manifest.project_profile() == ProjectProfile::HttpsCommandIoV1 {
-            return Err(vec![Diagnostic::io(
-                "SPX-B104",
-                "Project v13 HTTPS native executable emission is not available yet",
-            )]);
-        }
         let mut destination =
             native_publication::NativeOutput::prepare(output).map_err(|error| vec![error])?;
         let profile = self.manifest.project_profile();
@@ -933,6 +927,10 @@ impl ProjectSnapshot {
                 &self.public_api_program,
                 self.manifest.command().unwrap_or(""),
             ),
+            ProjectProfile::HttpsCommandIoV1 => crate::codegen::emit_hir_c_with_https_io(
+                &self.public_api_program,
+                self.manifest.command().unwrap_or(""),
+            ),
             _ => crate::codegen::emit_hir_c(&self.entry_program),
         }
         .map_err(|error| vec![error])?;
@@ -943,8 +941,19 @@ impl ProjectSnapshot {
                 | ProjectProfile::LanguageCommandIoV1
                 | ProjectProfile::LineCommandIoV1
                 | ProjectProfile::NetworkCommandIoV1
+                | ProjectProfile::HttpsCommandIoV1
         ) {
-            crate::codegen::compile_native_command_executable_into(&prepared, destination.file())
+            if profile == ProjectProfile::HttpsCommandIoV1 {
+                crate::codegen::compile_native_https_command_executable_into(
+                    &prepared,
+                    destination.file(),
+                )
+            } else {
+                crate::codegen::compile_native_command_executable_into(
+                    &prepared,
+                    destination.file(),
+                )
+            }
         } else {
             crate::codegen::compile_native_executable_into(&prepared, destination.file())
         }

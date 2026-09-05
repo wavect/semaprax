@@ -383,6 +383,9 @@ cargo test --locked -p semaprax --test project manifest_v13:: -- --test-threads=
 Project v13 Core-Wasm and the replayable `semaprax.project-npm-build.v12`
 carrier expose one `spx_https_get_v1` import backed by fixture v3. The generated
 JavaScript package executes under Node and is browser-compatible without
-granting ambient fetch or sockets. Native executable emission, a live-fetch
-browser adapter, and multi-engine browser evidence remain separate promotion
-work and fail closed rather than using Project v12’s raw-socket ABI.
+granting ambient fetch or sockets. The native target emits and compiles the
+same selected command as C11 linked with libcurl, using compiler-owned Mozilla
+roots, TLS 1.2/1.3 validation, redirect and response bounds, HTTP/2 negotiation,
+and HTTP/1.1 fallback. A live-fetch browser adapter, HTTP/3, cross-platform
+libcurl provisioning, and multi-engine browser evidence remain separate
+promotion work and fail closed rather than using Project v12’s raw-socket ABI.

@@ -21,6 +21,14 @@ impl Drop for Output {
     }
 }
 
+struct NativeOutput(PathBuf);
+
+impl Drop for NativeOutput {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
 #[test]
 fn project_v13_manifest_round_trips_the_exact_https_profile() {
     let manifest = ProjectManifest::parse(MANIFEST).unwrap();
@@ -81,6 +89,25 @@ fn project_v13_builds_a_replayable_fixture_only_npm_web_carrier() {
         .envelope()
         .contains(semaprax::project::PROJECT_NPM_BUILD_SCHEMA_V12));
     assert!(build.envelope().contains("semaprax.https.json"));
+}
+
+#[cfg(unix)]
+#[test]
+fn project_v13_builds_the_libcurl_native_https_executable() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/https-project");
+    let suffix = std::env::consts::EXE_SUFFIX;
+    let output = NativeOutput(std::env::temp_dir().join(format!(
+        "semaprax-https-project-native-{}-{}{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed),
+        suffix
+    )));
+    with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        snapshot.build_native(&output.0)
+    })
+    .unwrap();
+    let metadata = std::fs::metadata(&output.0).unwrap();
+    assert!(metadata.is_file() && metadata.len() != 0);
 }
 
 #[test]

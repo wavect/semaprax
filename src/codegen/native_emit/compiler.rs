@@ -27,6 +27,22 @@ pub(in crate::codegen) fn write_compile_and_publish_c(
     output: &mut File,
     native_command: bool,
 ) -> Result<(), Diagnostic> {
+    write_compile_and_publish_c_with_libraries(c_source, output, native_command, &[])
+}
+
+pub(in crate::codegen) fn write_compile_and_publish_c_with_curl(
+    c_source: &str,
+    output: &mut File,
+) -> Result<(), Diagnostic> {
+    write_compile_and_publish_c_with_libraries(c_source, output, true, &["curl"])
+}
+
+fn write_compile_and_publish_c_with_libraries(
+    c_source: &str,
+    output: &mut File,
+    native_command: bool,
+    libraries: &[&str],
+) -> Result<(), Diagnostic> {
     let leaf = format!("program{}", std::env::consts::EXE_SUFFIX);
     let mut artifact = native_scratch::Scratch::create(&leaf, None).map_err(|error| {
         Diagnostic::io(
@@ -34,7 +50,7 @@ pub(in crate::codegen) fn write_compile_and_publish_c(
             format!("cannot create native artifact scratch: {error}"),
         )
     })?;
-    write_and_compile_c_with_mode(c_source, artifact.path(), native_command)?;
+    write_and_compile_c_with_libraries(c_source, artifact.path(), native_command, libraries)?;
     artifact.seal().map_err(|error| {
         Diagnostic::io(
             "SPX-I301",
@@ -77,10 +93,42 @@ pub(in crate::codegen) fn write_compile_and_publish_c(
     Ok(())
 }
 
+pub(in crate::codegen) fn write_and_compile_c_with_curl(
+    c_source: &str,
+    output: &Path,
+) -> Result<(), Diagnostic> {
+    write_and_compile_c_with_libraries(c_source, output, true, &["curl"])
+}
+
+fn write_and_compile_c_with_libraries(
+    c_source: &str,
+    output: &Path,
+    native_command: bool,
+    libraries: &[&str],
+) -> Result<(), Diagnostic> {
+    write_and_compile_c_with_runner_and_libraries(
+        c_source,
+        output,
+        native_command,
+        libraries,
+        Command::output,
+    )
+}
+
 pub(super) fn write_and_compile_c_with_runner(
     c_source: &str,
     output: &Path,
     native_command: bool,
+    run: impl FnOnce(&mut Command) -> std::io::Result<std::process::Output>,
+) -> Result<(), Diagnostic> {
+    write_and_compile_c_with_runner_and_libraries(c_source, output, native_command, &[], run)
+}
+
+fn write_and_compile_c_with_runner_and_libraries(
+    c_source: &str,
+    output: &Path,
+    native_command: bool,
+    libraries: &[&str],
     run: impl FnOnce(&mut Command) -> std::io::Result<std::process::Output>,
 ) -> Result<(), Diagnostic> {
     let mut scratch = native_scratch::Scratch::create("source.c", Some(c_source.as_bytes()))
@@ -115,6 +163,9 @@ pub(super) fn write_and_compile_c_with_runner(
     #[cfg(not(all(windows, target_env = "gnu")))]
     let _ = native_command;
     compiler.arg(scratch.path()).arg("-o").arg(output);
+    for library in libraries {
+        compiler.arg(format!("-l{library}"));
+    }
     let result = run(&mut compiler).map_err(|error| {
         Diagnostic::io(
             "SPX-B101",

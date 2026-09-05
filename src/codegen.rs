@@ -73,7 +73,10 @@ use native_emit::{
     c_function_symbol, c_record_symbol, c_string, emit_function_prototypes, emit_native_prelude,
     function_index, preflight_resource_lowering,
 };
-pub use native_emit::{emit_c_with_network_io, emit_hir_c_with_network_io};
+pub use native_emit::{
+    emit_c_with_https_io, emit_c_with_network_io, emit_hir_c_with_https_io,
+    emit_hir_c_with_network_io,
+};
 use native_emit::{emit_hir_c_with_labels, NativeOutputProfile};
 use native_scalar_runtime::NATIVE_SCALAR_RUNTIME_C;
 
@@ -1292,6 +1295,14 @@ pub fn compile_native_command_executable(c_source: &str, output: &Path) -> Resul
     native_emit::write_and_compile_c_with_mode(c_source, output, true)
 }
 
+/// Compile an emitted HTTPS command translation unit against libcurl.
+pub fn compile_native_https_command_executable(
+    c_source: &str,
+    output: &Path,
+) -> Result<(), Diagnostic> {
+    native_emit::write_and_compile_c_with_curl(c_source, output)
+}
+
 pub(crate) fn compile_native_executable_into(
     c_source: &str,
     output: &mut std::fs::File,
@@ -1304,6 +1315,13 @@ pub(crate) fn compile_native_command_executable_into(
     output: &mut std::fs::File,
 ) -> Result<(), Diagnostic> {
     native_emit::write_compile_and_publish_c(c_source, output, true)
+}
+
+pub(crate) fn compile_native_https_command_executable_into(
+    c_source: &str,
+    output: &mut std::fs::File,
+) -> Result<(), Diagnostic> {
+    native_emit::write_compile_and_publish_c_with_curl(c_source, output)
 }
 
 fn c_i64(value: i64) -> String {

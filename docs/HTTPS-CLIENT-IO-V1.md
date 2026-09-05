@@ -1,7 +1,7 @@
 # HTTPS Client I/O v1
 
-Status: locally evidenced source, hosted-provider, Core-Wasm, and generated
-npm fixture tranche under Node and Chromium.
+Status: locally evidenced source, hosted-provider, native C11, Core-Wasm, and
+generated npm fixture tranche under Node and Chromium.
 
 Audience: language users, host integrators, compiler contributors, and reviewers.
 
@@ -40,6 +40,19 @@ Project Manifest v13 exposes this boundary as
 `profile = "https-command-io.v1"` with an exact `network.http` capability.
 The `network-run --fixture` CLI authenticates the selected project command and
 replays fixture v3 without opening a socket.
+
+The Project-v13 native target emits a real C11 HTTPS client and links it with
+libcurl 7.85 or newer. Each command invocation owns one reusable easy handle,
+disables proxy discovery, accepts only HTTPS through redirects, bounds the URL,
+headers, body, redirects, connection cache and timeouts, and settles before
+publishing output. It requires certificate and hostname verification, permits
+only TLS 1.2 or TLS 1.3, requests HTTP/2 with HTTP/1.1 fallback, and embeds the
+compiler-owned 146-certificate Mozilla root projection documented in
+[`src/codegen/MOZILLA-ROOTS.md`](../src/codegen/MOZILLA-ROOTS.md). It does not
+read a host trust-store path. The deterministic gate performs an actual
+encrypted localhost handshake using an explicit fixture CA; a separate ignored
+public-endpoint smoke proves the production embedded-root path when public DNS
+and network authority are deliberately granted.
 
 Project v13 Core-Wasm appends one synchronous `spx_https_get_v1` import and an
 independent `__spx_http_status_v1` marker. The generated npm package supplies
@@ -83,11 +96,12 @@ cargo test --locked --lib https_client::tests
 cargo test --locked --lib network_provider::tcp::tests::tls_client_authenticates_name_and_transfers_over_loopback
 cargo test --locked --lib network_provider::fixture::tests
 cargo test --locked --lib wasm::http_io::tests
+cargo test --locked --lib codegen::native_emit::http_io::tests
 cargo test --locked --test useful_data hosted_http_profile_executes_a_turnkey_https_get
 cargo test --locked --test project manifest_v13::
 SEMAPRAX_HTTPS_PACKAGE_ROOT=/absolute/generated npm --prefix platform-tests/https-browser-v1 test
 ```
 
-The native-C11 adapter, live browser-fetch adapter, multi-engine browser gate,
-HTTP/3, structured asynchronous execution, and language/backend task lowering
-remain open.
+Live browser-fetch authority, multi-engine browser evidence, HTTP/3,
+structured asynchronous execution, cross-platform libcurl provisioning, and
+language/backend task lowering remain open.

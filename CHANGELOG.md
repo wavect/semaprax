@@ -24,6 +24,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   and identities are unchanged. The 33-case combined focused gate and strict
   all-target clippy pass locally.
 
+- Added the Project-v13 native C11 HTTPS lane. Generated commands link through
+  a narrow libcurl route, embed a pinned 146-certificate Mozilla trust bundle,
+  require hostname/certificate validation with TLS 1.2 or 1.3, negotiate
+  HTTP/2 with HTTP/1.1 fallback, bound redirects/connections/headers/body and
+  time, suppress ambient proxies, canonicalize the complete response, and
+  settle before publication. A real encrypted loopback gate and an opt-in
+  public-PKI smoke exercise the generated executable.
+
 - Added a locked Project-v13 HTTPS browser fixture and provisioned Chromium CI
   gate. It executes the real generated npm/Wasm package, verifies exact
   fixture-v3 output, one-shot invocation and tampered-Wasm rejection, and

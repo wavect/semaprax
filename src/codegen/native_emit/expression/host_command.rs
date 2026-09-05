@@ -41,11 +41,11 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     | Operation::NetStreamStdout
                     | Operation::NetWait
                     | Operation::NetClose => self.emit_network_command_expr(expr, call)?,
+                    Operation::HttpsGet => self.emit_https_command_expr(expr, call)?,
                     Operation::NetTlsConnect
                     | Operation::NetListen
                     | Operation::NetAccept
                     | Operation::NetTlsAccept
-                    | Operation::HttpsGet
                     | Operation::NetCloseListener => {
                         return Err(backend_error(
                             "TLS and listen operations are currently hosted-provider only",
@@ -170,6 +170,49 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         };
         self.require_type(&value.ty, &expr.ty, "expression")?;
         Ok(value)
+    }
+
+    fn emit_https_command_expr(
+        &mut self,
+        expr: &ResolvedExpr,
+        call: &hir::ResolvedHostCommandCall,
+    ) -> Result<CValue, Diagnostic> {
+        use hir::ResolvedHostCommandOperation as Operation;
+
+        if self.output_profile != NativeOutputProfile::HttpsCommandIo
+            || call.operation != Operation::HttpsGet
+            || call.args.len() != 2
+        {
+            return Err(backend_error(
+                "https_get requires the native HTTPS command profile",
+            ));
+        }
+        let url = self.emit_expr(&call.args[0])?;
+        self.require_type(&url.ty, &ResolvedType::SliceU8, "https_get URL")?;
+        let max = self.emit_expr(&call.args[1])?;
+        self.require_type(&max.ty, &ResolvedType::Usize, "https_get bound")?;
+        let plan = self
+            .bytes_plan
+            .ok_or_else(|| backend_error("https_get owned result has no cleanup plan"))?;
+        let temporary = plan
+            .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+            .to_owned();
+        self.line(&format!(
+            "spx_status = spx_host_https_get_v1(spx_ctx, {}, {}, &{temporary});",
+            url.code, max.code
+        ));
+        self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+        let transitions = plan.apply_at(&expr.id)?;
+        for line in transitions.lines() {
+            self.line(line);
+        }
+        Ok(CValue {
+            code: plan
+                .result_at(&expr.id)
+                .ok_or_else(|| backend_error("https_get has no canonical owned result transfer"))?
+                .to_owned(),
+            ty: ResolvedType::Bytes,
+        })
     }
 
     /// Lower one network operation: arguments evaluate left to right, the host

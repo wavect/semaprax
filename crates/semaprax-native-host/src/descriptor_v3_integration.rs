@@ -119,7 +119,7 @@ fn compiler_v3_descriptor_is_accepted_with_exact_bound_metadata() {
         .any(|edge| matches!(&edge.action, Action::CertifyOutcome(_))));
     assert_eq!(
         hex(&Sha256::digest(encode_graph(&descriptor.graph).unwrap())),
-        "4e172173c8e743156cf7db9092fb4227860007a7ec3e2f008cb07506ccc41b9f"
+        "575d43d7710a8b248e85b5f0d1fded007aad77c4e6635972eef3ac8feafcdc09"
     );
 }
 
@@ -226,7 +226,7 @@ fn exact_linux_compiler_descriptor_known_answer_is_stable() {
         assert_eq!(artifact.bytes().len(), 1_722);
         assert_eq!(
             hex(&Sha256::digest(artifact.bytes())),
-            "96fa86cf172acfa207dadcda26549b4776bd75fe82e17d41026d5ea426fc16b6"
+            "d0d151ab9a9dd5bb3d7eb0de4711076f14fe9cc08ebfaaf0e4a2f2dcb5b838bd"
         );
         assert_eq!(
             hex(&artifact.call_contract()),

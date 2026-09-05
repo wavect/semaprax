@@ -199,10 +199,24 @@ fn rename_preview_is_canonical_read_only_and_digest_bound_to_exact_patch_bytes()
     .unwrap();
     assert_ne!(changed["patch"]["digest"], first_digest);
     assert_eq!(changed["operations"], parsed["operations"]);
+    let mut envelope_source = source.to_owned();
+    for index in 0..12 {
+        envelope_source.push_str(&format!(
+            "@id(\"app.caller-{index}\") fn caller_{index}()->i64{{answer()}}\n"
+        ));
+    }
+    let (envelope_fixture, envelope_revision) = Fixture::new("rename-envelope", &envelope_source);
+    std::fs::write(
+        &envelope_fixture.patch,
+        format!("base {envelope_revision}\nrename helper.answer to computed\n"),
+    )
+    .unwrap();
     let envelope_error = impact::preview(
-        &fixture.source,
-        &fixture.patch,
-        &impact::SemanticImpactOptions::new(1, 1024, 256).unwrap(),
+        &envelope_fixture.source,
+        &envelope_fixture.patch,
+        // Use the smallest admitted envelope so this still exercises preview's
+        // fail-closed output bound rather than failing options construction.
+        &impact::SemanticImpactOptions::new(1, 2048, 256).unwrap(),
     )
     .unwrap_err();
     assert_eq!(envelope_error[0].code, "SPX-G109");

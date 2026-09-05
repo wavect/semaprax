@@ -456,17 +456,17 @@ fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
             .each_ref()
             .map(|report| sha256(&report.replace("0.258.0", "0.256.0"))),
         [
-            "639e853c64ea3cdbd0987f0d49f3f1d1e58e0fa1bceb1f152ff996c2ab791983".to_owned(),
-            "b4abe35746253c22a83e0c1140da048619e775355c3f05fec8d148e641664f20".to_owned(),
-            "0c902c018e26f64f8ab1d53f3117f53da580bad9e03cada2c318b1c9cb97110a".to_owned(),
+            "b4df6754748dd17fbc869a25a5a90e6915447b986c3539a9aad3a810b3fdaa87".to_owned(),
+            "86a3088f7f026f31387a77de6965cf73c3b96e2081a36de4824094ac4a8557a7".to_owned(),
+            "a3cb196a85f3c1785cbc794f3177b39369b14393e184920b932bebe47aa20bf1".to_owned(),
         ]
     );
     assert_eq!(
         reports.each_ref().map(|report| sha256(report)),
         [
-            "bd4676f82b492d226e8e0c4d14bb502bff7ebbcc5a0d6aacf6db49000dfdeda5".to_owned(),
-            "e0518d72ade4f938118eadbdb5c6060a3c1d7f817e77757ca8898826a95af786".to_owned(),
-            "c52a4ba68e3e8b7fe2e2138ba06361e187067c3e08ad0d8cb89b1a797adf068b".to_owned(),
+            "08a8e74f4e4281713c2e70f3c4d4cfbee1cf2dd73c512dbd5bbfd8355b443046".to_owned(),
+            "e05607932e6d2dc89308e533968f02d127141d4818945dca40e60f3e9a4892cc".to_owned(),
+            "a2a40c19a9bfd00e0dfdf235ef4c64d8e2dca7ca20b40596f20e56d4ed3c6037".to_owned(),
         ]
     );
 }

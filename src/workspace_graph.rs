@@ -4336,7 +4336,8 @@ type ResolvedCore = (
 // frozen no-native workspace accounting bytes rather than charging an empty,
 // backend-private map into existing Graph evidence.
 const GRAPH_ACCOUNTED_RESOLVED_PROGRAM_BYTES: usize = std::mem::size_of::<hir::ResolvedProgram>()
-    - std::mem::size_of::<BTreeMap<String, hir::DeclarationId>>();
+    - std::mem::size_of::<BTreeMap<String, hir::DeclarationId>>()
+    - std::mem::size_of::<Vec<hir::ResolvedAgentDeclaration>>();
 // Shared Loan Plan v1 is an independently bounded proof sidecar. Preserve the
 // frozen empty-sidecar accounting for legacy workspaces, then charge the full
 // carrier and its owned allocation only when a retained function has a real
@@ -4448,12 +4449,13 @@ fn build_resolved_core(
     reserve_builder_structure(
         synthetic_modules
             .len()
-            // Empty private signature facts must not change frozen scalar
-            // graph accounting. Nonempty carriers are charged separately.
+            // Empty private signature and Agent facts must not change frozen
+            // scalar graph accounting. Nonempty carriers are charged separately.
             .checked_mul(
                 std::mem::size_of::<WorkspaceResolvedModule>()
                     - std::mem::size_of::<BTreeMap<String, (hir::DeclarationKind, hir::TypeFacts)>>(
-                    ),
+                    )
+                    - std::mem::size_of::<Vec<hir::ResolvedAgentDeclaration>>(),
             )
             .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
     )?;
@@ -4493,11 +4495,12 @@ fn build_resolved_core(
             },
         )?;
         let signature_types = retained_signature_type_facts(&functions, &resolved.declarations)?;
+        let agents = filter_owned_vec(resolved.agents, |_| true)?;
         modules.push(WorkspaceResolvedModule {
             path: crate::bounded_output::budgeted_clone(&program.path),
             module,
             permits: resolved.permits,
-            agents: resolved.agents,
+            agents,
             types,
             interfaces: resolved.interfaces,
             functions,

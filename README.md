@@ -8,7 +8,7 @@ An experimental systems programming language with a stable semantic program
 graph designed for humans and software agents.
 
 [![CI](https://github.com/wavect/semaprax/actions/workflows/ci.yml/badge.svg)](https://github.com/wavect/semaprax/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-0.3.0-7c3aed.svg)](Cargo.toml)
+[![Version](https://img.shields.io/badge/version-0.3.5-7c3aed.svg)](Cargo.toml)
 [![Status](https://img.shields.io/badge/status-pre--alpha-f59e0b.svg)](#project-status)
 [![Rust](https://img.shields.io/badge/Rust-1.88%2B-000000.svg?logo=rust)](Cargo.toml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2563eb.svg)](LICENSE)
@@ -50,7 +50,7 @@ failed command means.
 ### Releases and changelog
 
 The published tag is the
-[v0.3.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.0)
+[v0.3.5 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.5)
 smoke-test archives, SHA256 checksums, and release evidence in the
 [release process](docs/RELEASE-PROCESS.md). The
 development changelog is now summarized in [CHANGELOG.md](CHANGELOG.md),
@@ -264,7 +264,7 @@ and [Public Owned UTF-8 API v1](docs/PUBLIC-OWNED-UTF8-API-V1.md).
 
 ## Project status
 
-**Release:** [v0.3.0 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.0) · **Changelog:** [CHANGELOG.md](CHANGELOG.md) · **Maturity:** pre-alpha research · **Overall goal:**
+**Release:** [v0.3.5 prerelease](https://github.com/wavect/semaprax/releases/tag/v0.3.5) · **Changelog:** [CHANGELOG.md](CHANGELOG.md) · **Maturity:** pre-alpha research · **Overall goal:**
 Partial
 
 SEMAPRAX has executable vertical slices across its language, semantic graph,

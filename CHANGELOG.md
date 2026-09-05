@@ -440,7 +440,7 @@ format: `Unreleased` then release buckets, grouped by impact.
   helpers in `src/source_verify/hints.rs`; `tests/language/verifier_hints.rs`
   pins each case and the no-hint baselines.
 
-## 0.3.0 — 2026-09-04
+## 0.3.5 — 2026-09-04
 
 - Fixed the owning `add_record_field` Bytes lane, which emitted
   `bytes_copy(array_as_slice([...]))` and was rejected by its own admission:
@@ -5427,7 +5427,7 @@ format: `Unreleased` then release buckets, grouped by impact.
   `SPX-B104` claim.
 - Migrated browser manifests from `semaprax.web.v2` to `semaprax.web.v3`. Version 3 retains module, graph revision, Wasm entry, and capabilities while adding the required `owned_abi` object with schema `semaprax.wasm-owned.v1` and a declaration-ordered function mapping; scalar-only packages use an empty function array. Version-2-only consumers must reject or explicitly migrate rather than inferring ownership ABI metadata.
 
-## 0.3.0
+## 0.3.5
 
 This is the most recent published tag and the full historical changelog is archived in
 [docs/CHANGELOG-ARCHIVE.md](docs/CHANGELOG-ARCHIVE.md).

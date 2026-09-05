@@ -30,7 +30,7 @@ For complete chronological detail, including historical context and archived art
 
 ## Latest published milestone
 
-- `v0.3.0` is the current published prerelease tag used by installation and distribution docs.
+- `v0.3.5` is the current published prerelease tag used by installation and distribution docs.
 - `v0.2.0` remains an archived historical tagged release milestone referenced by legacy completion and release-history records.
 
 This file is intentionally compact: it highlights what changed most recently, not a complete project ledger.

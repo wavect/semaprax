@@ -1,4 +1,15 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use semaprax::diagnostic::Diagnostic;
+
+pub(crate) fn project_output(path: &Path) -> Result<Option<String>, Vec<Diagnostic>> {
+    if !super::project::is_project_manifest(path) {
+        return Ok(None);
+    }
+    semaprax::project::with_authenticated_project(path, |snapshot| {
+        Ok(Some(snapshot.semantic_graph().to_owned()))
+    })
+}
 
 pub(crate) fn parse(args: &[String]) -> Result<PathBuf, u8> {
     match args {

@@ -26,7 +26,7 @@ cd first-semaprax\n\
 semaprax check semaprax.toml\n\
 semaprax test semaprax.toml\n\
 semaprax run semaprax.toml\n\
-semaprax graph src/app.spx\n\
+semaprax graph semaprax.toml\n\
 semaprax build semaprax.toml --target web -o dist/web";
 
 const QUICKSTART_SCAFFOLD_COMMAND: &str = "semaprax project-scaffold --name first-semaprax";
@@ -102,8 +102,8 @@ fn documented_quickstart_executes_the_exact_seven_commands() {
         String::from_utf8(success(&project, &["run", "semaprax.toml"]).stdout).unwrap(),
         "42\n"
     );
-    let graph = String::from_utf8(success(&project, &["graph", "src/app.spx"]).stdout).unwrap();
-    assert!(graph.starts_with("{\"schema\":\"semaprax.graph.v"));
+    let graph = String::from_utf8(success(&project, &["graph", "semaprax.toml"]).stdout).unwrap();
+    assert!(graph.starts_with("{\"schema\":\"semaprax.project-semantic-graph.v"));
     assert!(graph.contains("\"module\":\"first_semaprax.app\""));
     success(
         &project,

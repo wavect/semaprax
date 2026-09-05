@@ -405,6 +405,12 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
         }
         CommandId::Graph => {
             let path = cli::graph::parse(&args[1..])?;
+            if let Some(output) =
+                cli::graph::project_output(&path).map_err(|errors| report(&errors, false))?
+            {
+                println!("{output}");
+                return Ok(());
+            }
             let program = checked(&path)?;
             let output = graph::to_json(&program).map_err(|errors| report(&errors, false))?;
             println!("{output}");

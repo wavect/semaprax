@@ -47,12 +47,13 @@ cd first-semaprax
 semaprax check semaprax.toml
 semaprax test semaprax.toml
 semaprax run semaprax.toml
-semaprax graph src/app.spx
+semaprax graph semaprax.toml
 semaprax build semaprax.toml --target web -o dist/web
 ```
 
 The run command prints `42`. The graph command emits deterministic JSON for
-the generated application module. The final command creates the single
+the authenticated project, including the generated application and its imported
+modules. The final command creates the single
 missing `dist` parent and publishes the Web package at `dist/web`.
 
 SEMAPRAX remains pre-alpha. This flow demonstrates the bounded calculator

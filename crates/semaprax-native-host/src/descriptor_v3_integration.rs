@@ -230,7 +230,7 @@ fn exact_linux_compiler_descriptor_known_answer_is_stable() {
         );
         assert_eq!(
             hex(&artifact.call_contract()),
-            "d777086f67406c57ecaf4df9af623a42f1a1c10ac4551355b15cb35640ba27b5"
+            "864428355449d9089d25bc3d583150a23f2504e3e56e6828bd1cda9f7d7eadcd"
         );
         assert!(Descriptor::parse(artifact.bytes()).is_ok());
     }

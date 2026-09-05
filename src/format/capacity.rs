@@ -200,10 +200,20 @@ pub(super) fn legacy_canonical_temporary_bytes(program: &Program) -> usize {
 }
 
 pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> usize {
+    // One measured render records every subtree boundary. Looking up those
+    // exact byte lengths below avoids re-rendering each subtree and turns the
+    // capacity census from O(nodes × depth) into O(nodes).
+    let rendered_lengths = rendered_expr_lengths(root, root_precedence);
+    let cached_rendered = |value: &Expr, precedence: u8| {
+        rendered_lengths
+            .get(&(value as *const Expr as usize, precedence))
+            .copied()
+            .expect("measured formatter omitted an expression subtree")
+    };
     let mut total = 0usize;
     let mut stack = vec![(root, root_precedence)];
     while let Some((value, parent_precedence)) = stack.pop() {
-        let rendered = rendered_expr_len(value, parent_precedence);
+        let rendered = cached_rendered(value, parent_precedence);
         match &value.kind {
             ExprKind::Int(_)
             | ExprKind::Int32(_)
@@ -219,7 +229,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
             ExprKind::Var(name) => total = total.saturating_add(name.len()),
             ExprKind::MethodCall { receiver, args, .. } => {
                 let joined = joined_len(
-                    args.iter().map(|argument| rendered_expr_len(argument, 0)),
+                    args.iter().map(|argument| cached_rendered(argument, 0)),
                     args.len(),
                     2,
                 );
@@ -242,7 +252,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                         .saturating_add(joined.saturating_add(2));
                 }
                 let joined = joined_len(
-                    args.iter().map(|argument| rendered_expr_len(argument, 0)),
+                    args.iter().map(|argument| cached_rendered(argument, 0)),
                     args.len(),
                     2,
                 );
@@ -256,8 +266,8 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
             ExprKind::Binary {
                 op, left, right, ..
             } => {
-                let inner = rendered_expr_len(left, op.precedence())
-                    .saturating_add(rendered_expr_len(right, op.precedence() + 1))
+                let inner = cached_rendered(left, op.precedence())
+                    .saturating_add(cached_rendered(right, op.precedence() + 1))
                     .saturating_add(op.text().len())
                     .saturating_add(2);
                 total = total.saturating_add(inner);
@@ -278,7 +288,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                             ..
                         } => name
                             .len()
-                            .saturating_add(rendered_expr_len(value, 0))
+                            .saturating_add(cached_rendered(value, 0))
                             .saturating_add(if *mutable { 12 } else { 8 }),
                         Statement::Assign {
                             name, field, value, ..
@@ -290,14 +300,14 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                                     .map(|field| field.name.len().saturating_add(1))
                                     .unwrap_or(0),
                             )
-                            .saturating_add(rendered_expr_len(value, 0))
+                            .saturating_add(cached_rendered(value, 0))
                             .saturating_add(4),
                         Statement::Unsafe { audit, .. } => escaped_len(audit).saturating_add(18),
                         // `while ` + condition + one separator space; the body
                         // block renders through the shared expression budget
                         // below.
                         Statement::While { condition, .. } => {
-                            rendered_expr_len(condition, 0).saturating_add(7)
+                            cached_rendered(condition, 0).saturating_add(7)
                         }
                     };
                     total = total.saturating_add(part);
@@ -309,7 +319,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                         }
                     }
                 }
-                parts.push(rendered_expr_len(tail, 0));
+                parts.push(cached_rendered(tail, 0));
                 let joined = joined_len(parts, statements.len() + 1, 1);
                 total = total.saturating_add(joined).saturating_add(rendered);
                 stack.push((tail, 0));
@@ -320,7 +330,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                 else_branch,
             } => {
                 if contains_record_construction(condition) {
-                    total = total.saturating_add(rendered_expr_len(condition, 0).saturating_add(2));
+                    total = total.saturating_add(cached_rendered(condition, 0).saturating_add(2));
                 }
                 total = total.saturating_add(rendered);
                 stack.push((else_branch, 0));
@@ -355,7 +365,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                     let part = field
                         .name
                         .len()
-                        .saturating_add(rendered_expr_len(&field.value, 0))
+                        .saturating_add(cached_rendered(&field.value, 0))
                         .saturating_add(2);
                     total = total.saturating_add(part);
                     parts.push(part);
@@ -373,7 +383,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
             } => {
                 total = total.saturating_add(mode.source_prefix().len());
                 if contains_record_construction(scrutinee) {
-                    total = total.saturating_add(rendered_expr_len(scrutinee, 0).saturating_add(2));
+                    total = total.saturating_add(cached_rendered(scrutinee, 0).saturating_add(2));
                 }
                 let mut parts = Vec::with_capacity(arms.len());
                 for arm in arms {
@@ -383,9 +393,9 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                     let guard_len = arm
                         .guard
                         .as_ref()
-                        .map_or(0, |guard| rendered_expr_len(guard, 0).saturating_add(4));
+                        .map_or(0, |guard| cached_rendered(guard, 0).saturating_add(4));
                     let part = rendered_match_pattern_len(&arm.pattern)
-                        .saturating_add(rendered_expr_len(&arm.value, 0))
+                        .saturating_add(cached_rendered(&arm.value, 0))
                         .saturating_add(5)
                         .saturating_add(guard_len);
                     total = total.saturating_add(part);
@@ -406,7 +416,7 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                     ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
                 );
                 if delimited {
-                    total = total.saturating_add(rendered_expr_len(operand, 0).saturating_add(2));
+                    total = total.saturating_add(cached_rendered(operand, 0).saturating_add(2));
                 }
                 total = total.saturating_add(rendered);
                 stack.push((operand, if delimited { 0 } else { 8 }));
@@ -417,14 +427,14 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                     ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
                 );
                 if delimited {
-                    total = total.saturating_add(rendered_expr_len(base, 0).saturating_add(2));
+                    total = total.saturating_add(cached_rendered(base, 0).saturating_add(2));
                 }
                 let mut parts = Vec::with_capacity(fields.len());
                 for field in fields {
                     let part = field
                         .name
                         .len()
-                        .saturating_add(rendered_expr_len(&field.value, 0))
+                        .saturating_add(cached_rendered(&field.value, 0))
                         .saturating_add(2);
                     total = total.saturating_add(part);
                     parts.push(part);
@@ -442,14 +452,14 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                     ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
                 );
                 if delimited {
-                    total = total.saturating_add(rendered_expr_len(base, 0).saturating_add(2));
+                    total = total.saturating_add(cached_rendered(base, 0).saturating_add(2));
                 }
                 total = total.saturating_add(rendered);
                 stack.push((base, if delimited { 0 } else { 8 }));
             }
             ExprKind::SuperMethod { method, args, .. } => {
                 let joined = joined_len(
-                    args.iter().map(|argument| rendered_expr_len(argument, 0)),
+                    args.iter().map(|argument| cached_rendered(argument, 0)),
                     args.len(),
                     2,
                 );

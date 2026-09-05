@@ -2,6 +2,7 @@ use crate::ast::{
     BinaryOp, Expr, ExprKind, ImportFailure, MatchPattern, ModuleUseKind, Program,
     ResourceLifecycleKind, Statement, TypeDeclarationKind, UnaryOp,
 };
+use std::collections::HashMap;
 use std::fmt::Write as _;
 // Explicit paths: other crates include this file by `#[path]`, where a bare
 // `mod` would resolve beside the file instead of under `format/`.
@@ -94,6 +95,7 @@ fn write_string_escaped(output: &mut impl std::fmt::Write, value: &str) {
 }
 enum ExprFormatFrame<'a> {
     Expr(&'a Expr, u8),
+    MeasureEnd(usize, u8, usize),
     CallArgs(&'a [Expr], usize),
     BinaryRight(&'a Expr, BinaryOp, bool),
     Block(&'a [Statement], &'a Expr, usize),
@@ -158,7 +160,9 @@ pub(crate) fn private_scratch_capacity(
     type_depth: usize,
     pattern_depth: usize,
 ) -> Option<PrivateScratchCapacity> {
-    let expression_slots = expression_depth.checked_mul(2)?.checked_add(3)?;
+    // The measured formatter retains one end marker beside each authored
+    // expression and its ordinary continuation frame.
+    let expression_slots = expression_depth.checked_mul(3)?.checked_add(4)?;
     let contains_record_slots = expression_depth.checked_add(1)?;
     let type_slots = type_depth.checked_add(1)?;
     let pattern_slots = pattern_depth.checked_add(1)?;
@@ -661,6 +665,43 @@ pub fn expr(value: &Expr, parent_precedence: u8) -> String {
 }
 
 fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence: u8) {
+    write_expr_measured(output, value, parent_precedence, None);
+}
+
+fn rendered_expr_lengths(value: &Expr, parent_precedence: u8) -> HashMap<(usize, u8), usize> {
+    struct Sink;
+    impl std::fmt::Write for Sink {
+        fn write_str(&mut self, _: &str) -> std::fmt::Result {
+            Ok(())
+        }
+    }
+    let mut lengths = HashMap::new();
+    write_expr_measured(&mut Sink, value, parent_precedence, Some(&mut lengths));
+    lengths
+}
+
+fn write_expr_measured(
+    output: &mut impl std::fmt::Write,
+    value: &Expr,
+    parent_precedence: u8,
+    mut lengths: Option<&mut HashMap<(usize, u8), usize>>,
+) {
+    struct Positioned<'a, W> {
+        inner: &'a mut W,
+        bytes: usize,
+    }
+    impl<W: std::fmt::Write> std::fmt::Write for Positioned<'_, W> {
+        fn write_str(&mut self, value: &str) -> std::fmt::Result {
+            self.inner.write_str(value)?;
+            self.bytes = self.bytes.saturating_add(value.len());
+            Ok(())
+        }
+    }
+
+    let mut output = Positioned {
+        inner: output,
+        bytes: 0,
+    };
     use ExprFormatFrame as Frame;
     let mut frames = FormatFrameStack::new(
         Frame::Expr(value, parent_precedence),
@@ -668,231 +709,248 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
     );
     while let Some(frame) = frames.pop() {
         match frame {
-            Frame::Expr(value, parent_precedence) => match &value.kind {
-                ExprKind::Int(number) => write!(output, "{number}").unwrap(),
-                ExprKind::Int32(value) => {
-                    // The explicit suffix keeps the declared width stable
-                    // across canonical round trips.
-                    output.write_str(&format!("{value}i32")).unwrap();
+            Frame::Expr(value, parent_precedence) => {
+                if lengths.is_some() {
+                    frames.push(Frame::MeasureEnd(
+                        value as *const Expr as usize,
+                        parent_precedence,
+                        output.bytes,
+                    ));
                 }
-                ExprKind::Uint8(value) => {
-                    // The explicit suffix keeps the declared width stable
-                    // across canonical round trips.
-                    write!(output, "{value}u8").unwrap();
-                }
-                ExprKind::Usize(value) => {
-                    write!(output, "{value}usize").unwrap();
-                }
-                ExprKind::ArrayU8(values) => {
-                    output.write_char('[').unwrap();
-                    for (index, value) in values.iter().enumerate() {
-                        if index != 0 {
-                            output.write_str(", ").unwrap();
-                        }
+                match &value.kind {
+                    ExprKind::Int(number) => write!(output, "{number}").unwrap(),
+                    ExprKind::Int32(value) => {
+                        // The explicit suffix keeps the declared width stable
+                        // across canonical round trips.
+                        output.write_str(&format!("{value}i32")).unwrap();
+                    }
+                    ExprKind::Uint8(value) => {
+                        // The explicit suffix keeps the declared width stable
+                        // across canonical round trips.
                         write!(output, "{value}u8").unwrap();
                     }
-                    output.write_char(']').unwrap();
-                }
-                ExprKind::RepeatArrayU8 { value, count } => {
-                    write!(output, "[{value}u8; {count}]").unwrap();
-                }
-                ExprKind::Char(value) => {
-                    output.write_str(&canonical_char(*value)).unwrap();
-                }
-                ExprKind::Float32(bits) => {
-                    // The explicit suffix keeps the declared precision stable
-                    // across canonical round trips.
-                    output.write_str(&canonical_f32_bits(*bits)).unwrap();
-                    output.write_str("f32").unwrap();
-                }
-                ExprKind::Float64(bits) => output.write_str(&canonical_f64_bits(*bits)).unwrap(),
-                ExprKind::Bool(value) => write!(output, "{value}").unwrap(),
-                ExprKind::String(value) => {
-                    output.write_char('"').unwrap();
-                    write_string_escaped(output, value);
-                    output.write_char('"').unwrap();
-                }
-                ExprKind::Var(name) => output.write_str(name).unwrap(),
-                ExprKind::Call {
-                    name,
-                    type_arguments,
-                    args,
-                } => {
-                    output.write_str(name).unwrap();
-                    if !type_arguments.is_empty() {
-                        output.write_char('<').unwrap();
-                        for (index, argument) in type_arguments.iter().enumerate() {
+                    ExprKind::Usize(value) => {
+                        write!(output, "{value}usize").unwrap();
+                    }
+                    ExprKind::ArrayU8(values) => {
+                        output.write_char('[').unwrap();
+                        for (index, value) in values.iter().enumerate() {
                             if index != 0 {
                                 output.write_str(", ").unwrap();
                             }
-                            write_type(output, argument);
+                            write!(output, "{value}u8").unwrap();
                         }
-                        output.write_char('>').unwrap();
+                        output.write_char(']').unwrap();
                     }
-                    output.write_char('(').unwrap();
-                    frames.push(Frame::Close(')'));
-                    frames.push(Frame::CallArgs(args, 0));
-                }
-                ExprKind::Unary { op, value } => {
-                    output
-                        .write_str(match op {
-                            UnaryOp::Neg => "-",
-                            UnaryOp::Not => "!",
-                        })
-                        .unwrap();
-                    frames.push(Frame::Expr(value, 7));
-                }
-                ExprKind::Binary { op, left, right } => {
-                    let precedence = op.precedence();
-                    let delimited = precedence < parent_precedence;
-                    if delimited {
-                        output.write_char('(').unwrap();
+                    ExprKind::RepeatArrayU8 { value, count } => {
+                        write!(output, "[{value}u8; {count}]").unwrap();
                     }
-                    frames.push(Frame::BinaryRight(right, *op, delimited));
-                    frames.push(Frame::Expr(left, precedence));
-                }
-                ExprKind::Block { statements, tail } => {
-                    output.write_str("{ ").unwrap();
-                    frames.push(Frame::Block(statements, tail, 0));
-                }
-                ExprKind::If {
-                    condition,
-                    then_branch,
-                    else_branch,
-                } => {
-                    output.write_str("if ").unwrap();
-                    let delimited = contains_record_construction(condition);
-                    if delimited {
-                        output.write_char('(').unwrap();
+                    ExprKind::Char(value) => {
+                        output.write_str(&canonical_char(*value)).unwrap();
                     }
-                    frames.push(Frame::IfThen(then_branch, else_branch));
-                    if delimited {
-                        frames.push(Frame::Close(')'));
+                    ExprKind::Float32(bits) => {
+                        // The explicit suffix keeps the declared precision stable
+                        // across canonical round trips.
+                        output.write_str(&canonical_f32_bits(*bits)).unwrap();
+                        output.write_str("f32").unwrap();
                     }
-                    frames.push(Frame::Expr(condition, 0));
-                }
-                ExprKind::ConstructRecord {
-                    type_name,
-                    type_arguments,
-                    fields,
-                    ..
-                } => {
-                    output.write_str(type_name).unwrap();
-                    write_type_arguments(output, type_arguments);
-                    if fields.is_empty() {
-                        output.write_str(" {}").unwrap();
-                    } else {
-                        output.write_str(" { ").unwrap();
-                        frames.push(Frame::Fields(fields, 0, " }"));
+                    ExprKind::Float64(bits) => {
+                        output.write_str(&canonical_f64_bits(*bits)).unwrap()
                     }
-                }
-                ExprKind::ConstructVariant {
-                    type_name,
-                    type_arguments,
-                    case_name,
-                    fields,
-                    ..
-                } => {
-                    output.write_str(type_name).unwrap();
-                    write_type_arguments(output, type_arguments);
-                    write!(output, "::{case_name}").unwrap();
-                    if fields.is_empty() {
-                        output.write_str(" {}").unwrap();
-                    } else {
-                        output.write_str(" { ").unwrap();
-                        frames.push(Frame::Fields(fields, 0, " }"));
+                    ExprKind::Bool(value) => write!(output, "{value}").unwrap(),
+                    ExprKind::String(value) => {
+                        output.write_char('"').unwrap();
+                        write_string_escaped(&mut output, value);
+                        output.write_char('"').unwrap();
                     }
-                }
-                ExprKind::Match {
-                    mode,
-                    scrutinee,
-                    arms,
-                } => {
-                    output.write_str("match ").unwrap();
-                    output.write_str(mode.source_prefix()).unwrap();
-                    let delimited = contains_record_construction(scrutinee);
-                    if delimited {
-                        output.write_char('(').unwrap();
-                    }
-                    frames.push(Frame::MatchArms(arms, 0));
-                    if delimited {
-                        frames.push(Frame::Close(')'));
-                    }
-                    frames.push(Frame::Expr(scrutinee, 0));
-                }
-                ExprKind::Try { operand } => {
-                    let delimited = matches!(
-                        operand.kind,
-                        ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
-                    );
-                    if delimited {
-                        output.write_char('(').unwrap();
-                    }
-                    frames.push(Frame::TryEnd(delimited));
-                    frames.push(Frame::Expr(operand, if delimited { 0 } else { 8 }));
-                }
-                ExprKind::UpdateRecord { base, fields } => {
-                    let delimited = matches!(
-                        base.kind,
-                        ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
-                    );
-                    if delimited {
-                        output.write_char('(').unwrap();
-                    }
-                    frames.push(Frame::PostfixFields(fields));
-                    if delimited {
-                        frames.push(Frame::Close(')'));
-                    }
-                    frames.push(Frame::Expr(base, if delimited { 0 } else { 8 }));
-                }
-                ExprKind::Project { base, field, .. } => {
-                    let delimited = matches!(
-                        base.kind,
-                        ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
-                    );
-                    if delimited {
-                        output.write_char('(').unwrap();
-                    }
-                    frames.push(Frame::ProjectField(field));
-                    if delimited {
-                        frames.push(Frame::Close(')'));
-                    }
-                    frames.push(Frame::Expr(base, if delimited { 0 } else { 8 }));
-                }
-                ExprKind::MethodCall {
-                    receiver,
-                    method,
-                    type_arguments,
-                    args,
-                    ..
-                } => {
-                    let delimited = matches!(
-                        receiver.kind,
-                        ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
-                    );
-                    if delimited {
-                        output.write_char('(').unwrap();
-                    }
-                    frames.push(Frame::MethodCallSuffix(
-                        method,
+                    ExprKind::Var(name) => output.write_str(name).unwrap(),
+                    ExprKind::Call {
+                        name,
                         type_arguments,
                         args,
-                        delimited,
-                    ));
-                    frames.push(Frame::Expr(receiver, if delimited { 0 } else { 8 }));
-                }
-                ExprKind::SuperMethod { method, args, .. } => {
-                    output.write_str("super.").unwrap();
-                    output.write_str(method).unwrap();
-                    output.write_char('(').unwrap();
-                    if args.is_empty() {
-                        output.write_char(')').unwrap();
-                    } else {
+                    } => {
+                        output.write_str(name).unwrap();
+                        if !type_arguments.is_empty() {
+                            output.write_char('<').unwrap();
+                            for (index, argument) in type_arguments.iter().enumerate() {
+                                if index != 0 {
+                                    output.write_str(", ").unwrap();
+                                }
+                                write_type(&mut output, argument);
+                            }
+                            output.write_char('>').unwrap();
+                        }
+                        output.write_char('(').unwrap();
                         frames.push(Frame::Close(')'));
                         frames.push(Frame::CallArgs(args, 0));
                     }
+                    ExprKind::Unary { op, value } => {
+                        output
+                            .write_str(match op {
+                                UnaryOp::Neg => "-",
+                                UnaryOp::Not => "!",
+                            })
+                            .unwrap();
+                        frames.push(Frame::Expr(value, 7));
+                    }
+                    ExprKind::Binary { op, left, right } => {
+                        let precedence = op.precedence();
+                        let delimited = precedence < parent_precedence;
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::BinaryRight(right, *op, delimited));
+                        frames.push(Frame::Expr(left, precedence));
+                    }
+                    ExprKind::Block { statements, tail } => {
+                        output.write_str("{ ").unwrap();
+                        frames.push(Frame::Block(statements, tail, 0));
+                    }
+                    ExprKind::If {
+                        condition,
+                        then_branch,
+                        else_branch,
+                    } => {
+                        output.write_str("if ").unwrap();
+                        let delimited = contains_record_construction(condition);
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::IfThen(then_branch, else_branch));
+                        if delimited {
+                            frames.push(Frame::Close(')'));
+                        }
+                        frames.push(Frame::Expr(condition, 0));
+                    }
+                    ExprKind::ConstructRecord {
+                        type_name,
+                        type_arguments,
+                        fields,
+                        ..
+                    } => {
+                        output.write_str(type_name).unwrap();
+                        write_type_arguments(&mut output, type_arguments);
+                        if fields.is_empty() {
+                            output.write_str(" {}").unwrap();
+                        } else {
+                            output.write_str(" { ").unwrap();
+                            frames.push(Frame::Fields(fields, 0, " }"));
+                        }
+                    }
+                    ExprKind::ConstructVariant {
+                        type_name,
+                        type_arguments,
+                        case_name,
+                        fields,
+                        ..
+                    } => {
+                        output.write_str(type_name).unwrap();
+                        write_type_arguments(&mut output, type_arguments);
+                        write!(output, "::{case_name}").unwrap();
+                        if fields.is_empty() {
+                            output.write_str(" {}").unwrap();
+                        } else {
+                            output.write_str(" { ").unwrap();
+                            frames.push(Frame::Fields(fields, 0, " }"));
+                        }
+                    }
+                    ExprKind::Match {
+                        mode,
+                        scrutinee,
+                        arms,
+                    } => {
+                        output.write_str("match ").unwrap();
+                        output.write_str(mode.source_prefix()).unwrap();
+                        let delimited = contains_record_construction(scrutinee);
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::MatchArms(arms, 0));
+                        if delimited {
+                            frames.push(Frame::Close(')'));
+                        }
+                        frames.push(Frame::Expr(scrutinee, 0));
+                    }
+                    ExprKind::Try { operand } => {
+                        let delimited = matches!(
+                            operand.kind,
+                            ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
+                        );
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::TryEnd(delimited));
+                        frames.push(Frame::Expr(operand, if delimited { 0 } else { 8 }));
+                    }
+                    ExprKind::UpdateRecord { base, fields } => {
+                        let delimited = matches!(
+                            base.kind,
+                            ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
+                        );
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::PostfixFields(fields));
+                        if delimited {
+                            frames.push(Frame::Close(')'));
+                        }
+                        frames.push(Frame::Expr(base, if delimited { 0 } else { 8 }));
+                    }
+                    ExprKind::Project { base, field, .. } => {
+                        let delimited = matches!(
+                            base.kind,
+                            ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
+                        );
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::ProjectField(field));
+                        if delimited {
+                            frames.push(Frame::Close(')'));
+                        }
+                        frames.push(Frame::Expr(base, if delimited { 0 } else { 8 }));
+                    }
+                    ExprKind::MethodCall {
+                        receiver,
+                        method,
+                        type_arguments,
+                        args,
+                        ..
+                    } => {
+                        let delimited = matches!(
+                            receiver.kind,
+                            ExprKind::Binary { .. } | ExprKind::If { .. } | ExprKind::Block { .. }
+                        );
+                        if delimited {
+                            output.write_char('(').unwrap();
+                        }
+                        frames.push(Frame::MethodCallSuffix(
+                            method,
+                            type_arguments,
+                            args,
+                            delimited,
+                        ));
+                        frames.push(Frame::Expr(receiver, if delimited { 0 } else { 8 }));
+                    }
+                    ExprKind::SuperMethod { method, args, .. } => {
+                        output.write_str("super.").unwrap();
+                        output.write_str(method).unwrap();
+                        output.write_char('(').unwrap();
+                        if args.is_empty() {
+                            output.write_char(')').unwrap();
+                        } else {
+                            frames.push(Frame::Close(')'));
+                            frames.push(Frame::CallArgs(args, 0));
+                        }
+                    }
                 }
-            },
+            }
+            Frame::MeasureEnd(expression, precedence, start) => {
+                lengths
+                    .as_deref_mut()
+                    .expect("measurement frames require a length table")
+                    .insert((expression, precedence), output.bytes.saturating_sub(start));
+            }
             Frame::CallArgs(args, index) => {
                 if let Some(argument) = args.get(index) {
                     if index != 0 {
@@ -926,7 +984,7 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                             }
                             if let Some(ty) = declared {
                                 write!(output, ": ").unwrap();
-                                write_type(output, ty);
+                                write_type(&mut output, ty);
                             }
                             write!(output, " = ").unwrap();
                             frames.push(Frame::BlockNext(statements, tail, index + 1));
@@ -946,7 +1004,7 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                         }
                         Statement::Unsafe { audit, body, .. } => {
                             write!(output, "@audit(\"").unwrap();
-                            write_escaped(output, audit);
+                            write_escaped(&mut output, audit);
                             write!(output, "\") unsafe ").unwrap();
                             // Unsafe boundary statements are not
                             // semicolon-terminated by the grammar, so the
@@ -1019,7 +1077,7 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                     } else {
                         output.write_str(", ").unwrap();
                     }
-                    write_match_pattern(output, &arm.pattern);
+                    write_match_pattern(&mut output, &arm.pattern);
                     // Frames run LIFO: the continuation frame goes in first
                     // so the guard/value render before the next arm.
                     frames.push(Frame::MatchArms(arms, index + 1));
@@ -1073,7 +1131,7 @@ fn write_expr(output: &mut impl std::fmt::Write, value: &Expr, parent_precedence
                         if index != 0 {
                             output.write_str(", ").unwrap();
                         }
-                        write_type(output, argument);
+                        write_type(&mut output, argument);
                     }
                     output.write_char('>').unwrap();
                 }
@@ -1575,6 +1633,35 @@ mod iterative_formatter_tests {
             unreachable!()
         };
         assert_eq!(expr(tail, 0), "match value {  }");
+    }
+
+    #[test]
+    fn measured_render_records_each_subtree_once() {
+        let mut sum = String::from("value");
+        for _ in 1..64 {
+            sum.push_str(" + value");
+        }
+        let source = format!("module t; fn main(value: i64) -> i64 {{ {sum} }}");
+        let program = crate::parse(&source, Path::new("format-measured.spx")).unwrap();
+        let ExprKind::Block { tail, .. } = &program.functions[0].body.kind else {
+            unreachable!()
+        };
+        let lengths = rendered_expr_lengths(tail, 0);
+        let mut nodes = 0usize;
+        let mut stack = vec![tail.as_ref()];
+        while let Some(expression) = stack.pop() {
+            nodes += 1;
+            let mut index = 0;
+            while let Some(child) = expression.child(index) {
+                stack.push(child);
+                index += 1;
+            }
+        }
+        assert_eq!(lengths.len(), nodes);
+        assert_eq!(
+            lengths[&(tail.as_ref() as *const Expr as usize, 0)],
+            sum.len()
+        );
     }
 
     #[test]

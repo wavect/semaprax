@@ -44,6 +44,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Formatter capacity accounting now measures all expression-subtree lengths
+  during one canonical traversal instead of re-rendering every subtree, making
+  revision hashing linear in expression size while preserving exact bytes.
+
 - Cleanup replay's preflight now accounts for every constructor-field
   continuation, so wide record and variant literals no longer exhaust an
   underestimated per-function skeleton budget.

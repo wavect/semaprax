@@ -25,9 +25,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   file, and code lenses show each declaration's `@id`, effects, and contract
   counts (`semaprax.codeLens`). The `doc` and `query` JSON projections now
   carry each declaration's and member's `location`.
-- Fixed Project owned-API target preparation to retain the already-admitted
-  entry-plus-export HIR closure, and updated the typed-expression schema gate
-  for the two newly admitted numeric-to-String operation alternatives.
+- Fixed Project owned-API target preparation to retain a distinct,
+  already-admitted entry-plus-export HIR closure without changing entry-only
+  execution or cleanup semantics, and updated both typed-expression schema
+  gates for the two newly admitted numeric-to-String operation alternatives.
+- Updated cleanup and protocol regression fixtures for aggregate-equality
+  rejection, stable-ID native contract details, and the precise scalar-profile
+  signature diagnostic while preserving owned-result and lazy-temporary
+  cleanup coverage.
 - Added the locally exercised Canonical Semantic Workspace Revision v1
   foundation: one immutable authority-free object derived from an admitted
   Project, with nine typed node projections, distinct semantic, source

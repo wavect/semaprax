@@ -142,10 +142,16 @@ fn scalar_project_still_rejects_record_conformance_subjects() {
 "#,
     );
     let result = with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(()));
-    assert!(result
-        .unwrap_err()
-        .iter()
-        .any(|diagnostic| diagnostic.code == "SPX-G172"));
+    let diagnostics = result.unwrap_err();
+    assert!(
+        diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-G174"
+                && diagnostic
+                    .message
+                    .contains("signature outside the selected profile")),
+        "{diagnostics:?}"
+    );
 }
 
 #[test]

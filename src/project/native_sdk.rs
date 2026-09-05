@@ -144,7 +144,7 @@ impl<'a> ProjectNativeSdkSubject<'a> {
             entry_module: snapshot.manifest.entry(),
             sources: &snapshot.sources,
             exports,
-            program: &snapshot.entry_program,
+            program: &snapshot.public_api_program,
         })
     }
 
@@ -263,12 +263,12 @@ impl ProjectSnapshot {
             project_graph_digest: self.semantic.graph_digest(),
         };
         let descriptor =
-            super::derive_public_api_descriptor(self.entry_program(), &selected, subject)
+            super::derive_public_api_descriptor(self.public_api_program(), &selected, subject)
                 .map_err(|error| vec![error])?;
         let descriptor_bytes = descriptor.canonical_bytes();
         let descriptor_digest = descriptor.digest();
         let replayed = super::replay_public_api_descriptor(
-            self.entry_program(),
+            self.public_api_program(),
             &selected,
             subject,
             &descriptor_bytes,
@@ -281,10 +281,10 @@ impl ProjectSnapshot {
             ))]);
         }
 
-        let recipe = super::npm::render_owned_data_semantic_recipe(self.entry_program())
+        let recipe = super::npm::render_owned_data_semantic_recipe(self.public_api_program())
             .map_err(|error| vec![error])?;
         let replayed_program =
-            super::npm::replay_owned_data_semantic_recipe(self.entry_program(), &recipe)
+            super::npm::replay_owned_data_semantic_recipe(self.public_api_program(), &recipe)
                 .map_err(|error| vec![error])?;
         let replayed_descriptor = super::replay_public_api_descriptor(
             &replayed_program,
@@ -306,7 +306,7 @@ impl ProjectSnapshot {
             crate::codegen::emit_project_v8_native_owned_data_provider
         };
         let provider = emit_provider(
-            self.entry_program(),
+            self.public_api_program(),
             &selected,
             subject,
             &descriptor_bytes,
@@ -367,7 +367,7 @@ impl ProjectSnapshot {
             project_graph_digest: self.semantic.graph_digest(),
         };
         let descriptor = super::derive_flat_owned_record_api_descriptor(
-            self.entry_program(),
+            self.public_api_program(),
             &selected,
             subject,
         )
@@ -375,7 +375,7 @@ impl ProjectSnapshot {
         let bytes = descriptor.canonical_bytes();
         let digest = descriptor.digest();
         let replayed = super::replay_flat_owned_record_api_descriptor(
-            self.entry_program(),
+            self.public_api_program(),
             &selected,
             subject,
             &bytes,
@@ -387,10 +387,10 @@ impl ProjectSnapshot {
                 "Project v9 descriptor derivation and replay disagree",
             )]);
         }
-        let recipe = super::npm::render_owned_data_semantic_recipe(self.entry_program())
+        let recipe = super::npm::render_owned_data_semantic_recipe(self.public_api_program())
             .map_err(|error| vec![error])?;
         let replayed_program =
-            super::npm::replay_owned_data_semantic_recipe(self.entry_program(), &recipe)
+            super::npm::replay_owned_data_semantic_recipe(self.public_api_program(), &recipe)
                 .map_err(|error| vec![error])?;
         let replayed_descriptor = super::replay_flat_owned_record_api_descriptor(
             &replayed_program,
@@ -406,7 +406,7 @@ impl ProjectSnapshot {
             )]);
         }
         let provider = crate::codegen::emit_project_v9_native_flat_owned_record_provider(
-            self.entry_program(),
+            self.public_api_program(),
             &selected,
             subject,
             &bytes,
@@ -458,7 +458,7 @@ impl ProjectSnapshot {
             project_graph_digest: self.semantic.graph_digest(),
         };
         let descriptor = super::derive_nested_owned_record_api_descriptor(
-            self.entry_program(),
+            self.public_api_program(),
             &selected,
             subject,
         )
@@ -470,15 +470,15 @@ impl ProjectSnapshot {
                 program, &selected, subject, &bytes, &digest,
             )
         };
-        if replay(self.entry_program()).map_err(|error| vec![error])? != descriptor {
+        if replay(self.public_api_program()).map_err(|error| vec![error])? != descriptor {
             return Err(vec![rust_build_error(
                 "Project v11 descriptor derivation and replay disagree",
             )]);
         }
-        let recipe = super::npm::render_owned_data_semantic_recipe(self.entry_program())
+        let recipe = super::npm::render_owned_data_semantic_recipe(self.public_api_program())
             .map_err(|error| vec![error])?;
         let replayed_program =
-            super::npm::replay_owned_data_semantic_recipe(self.entry_program(), &recipe)
+            super::npm::replay_owned_data_semantic_recipe(self.public_api_program(), &recipe)
                 .map_err(|error| vec![error])?;
         if replay(&replayed_program).map_err(|error| vec![error])? != descriptor {
             return Err(vec![rust_build_error(
@@ -490,7 +490,7 @@ impl ProjectSnapshot {
                 program, &selected, subject, &bytes, &digest,
             )
         };
-        let provider = emit(self.entry_program()).map_err(|error| vec![error])?;
+        let provider = emit(self.public_api_program()).map_err(|error| vec![error])?;
         let replayed_provider = emit(&replayed_program).map_err(|error| vec![error])?;
         if provider != replayed_provider
             || provider.descriptor() != bytes

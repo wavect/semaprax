@@ -227,7 +227,6 @@ fn node_wasm_executes_repeated_shared_loan_reentry_without_leaking_owned_slots()
         "semaprax-shared-loan-wasm-{}-{serial}",
         std::process::id()
     ));
-    std::fs::create_dir_all(&root).unwrap();
     wasm::build_web(&program, &root).unwrap();
     std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
     std::fs::write(
@@ -270,7 +269,6 @@ fn generated_node_adapter_rejects_every_forged_byte_range_descriptor_field() {
         "semaprax-shared-loan-adapter-hostile-{}-{serial}",
         std::process::id()
     ));
-    std::fs::create_dir_all(&root).unwrap();
     wasm::build_web(&program, &root).unwrap();
     std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
 

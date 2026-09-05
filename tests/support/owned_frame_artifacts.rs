@@ -43,7 +43,7 @@ pub(crate) fn native_provider(
     let revision = &product.revision;
     let descriptor = &product.descriptor;
     let provider = semaprax::codegen::emit_project_v8_native_owned_data_provider(
-        revision.entry_program(),
+        revision.public_api_program(),
         revision.manifest().web_exports(),
         subject(revision),
         &descriptor.canonical_bytes(),
@@ -76,7 +76,7 @@ pub(crate) fn verify_artifacts(project: &Path, npm: &Path, rust: &Path) -> Bound
         serde_json::from_slice(&actual_npm["semaprax.api.json"]).unwrap();
     let npm_descriptor = metadata["descriptor"].as_str().unwrap().as_bytes();
     let replayed = replay_public_api_descriptor(
-        revision.entry_program(),
+        revision.public_api_program(),
         selected,
         subject(revision),
         npm_descriptor,
@@ -91,7 +91,7 @@ pub(crate) fn verify_artifacts(project: &Path, npm: &Path, rust: &Path) -> Bound
     assert_eq!(rust_descriptor, npm_descriptor);
     assert_eq!(
         &replay_public_api_descriptor(
-            revision.entry_program(),
+            revision.public_api_program(),
             selected,
             subject(revision),
             &rust_descriptor,
@@ -163,7 +163,7 @@ pub(crate) fn verify_display_rename(before: &BoundProduct, after: &BoundProduct)
     assert_eq!(old, new, "only the three revision bindings may change");
     for (authority, foreign) in [(before, after), (after, before)] {
         let error = replay_public_api_descriptor(
-            authority.revision.entry_program(),
+            authority.revision.public_api_program(),
             authority.revision.manifest().web_exports(),
             subject(&authority.revision),
             &foreign.descriptor.canonical_bytes(),

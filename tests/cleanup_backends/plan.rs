@@ -59,6 +59,11 @@ fn consume(value: own Token) -> bool {
     true
 }
 
+@id("token.inspect")
+fn inspect(value: borrow Token) -> bool {
+    true
+}
+
 @id("token.forward")
 fn forward(first: own Token, second: own Token) -> i64 {
     take_two(first, second)
@@ -114,10 +119,14 @@ fn take_first(first: own Token, second: own Token) -> Token {
 
 @id("pair.ensure-owned")
 fn ensure_owned(value: own Pair) -> Pair
-    ensures result == result
+    ensures inspect_pair(result)
 {
     value
 }
+
+
+@id("pair.inspect")
+fn inspect_pair(value: borrow Pair) -> bool { true }
 
 @id("outer.partial")
 fn nested_partial(left: own Token, right: own Token, tail: own Token) -> Outer {
@@ -224,7 +233,7 @@ fn lazy_owned(condition: bool, first: own Token, second: own Token) -> bool {
 
 @id("flow.lazy-temp")
 fn lazy_temp(condition: bool, first: own Token, second: own Token) -> bool {
-    condition && identity(first) == identity(second)
+    condition && inspect(identity(first)) == inspect(identity(second))
 }
 
 @id("flow.if-owned")
@@ -659,23 +668,30 @@ fn unnamed_owned_temporaries_remain_guarded_across_a_lazy_join() {
         panic!("lazy_temp must be a lazy binary expression")
     };
     let ResolvedExprKind::Binary {
-        left: first_call,
-        right: second_call,
+        left: first_inspection,
+        right: second_inspection,
         ..
     } = &right.kind
     else {
-        panic!("lazy_temp right operand must compare two owned calls")
+        panic!("lazy_temp right operand must compare two inspections")
     };
+    fn identity_argument(inspection: &ResolvedExpr) -> &ResolvedExpr {
+        let ResolvedExprKind::Call { args, .. } = &inspection.kind else {
+            panic!("lazy_temp comparison operand must inspect one owned call")
+        };
+        let call = &args[0];
+        assert!(matches!(call.kind, ResolvedExprKind::Call { .. }));
+        call
+    }
+    let first_call = identity_argument(first_inspection);
+    let second_call = identity_argument(second_inspection);
     assert!(matches!(first_call.kind, ResolvedExprKind::Call { .. }));
     assert!(matches!(second_call.kind, ResolvedExprKind::Call { .. }));
 
     let plan = &function.cleanup_plan;
     let first_temp = StorageId::Temporary(first_call.id.clone());
     let second_temp = StorageId::Temporary(second_call.id.clone());
-    for (call, storage) in [
-        (first_call.as_ref(), &first_temp),
-        (second_call.as_ref(), &second_temp),
-    ] {
+    for (call, storage) in [(first_call, &first_temp), (second_call, &second_temp)] {
         assert!(plan.blocks.iter().flat_map(|block| &block.transitions).any(
             |transition| matches!(
                 transition,

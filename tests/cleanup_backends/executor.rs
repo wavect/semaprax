@@ -78,10 +78,13 @@ fn later_failure(first: own Token, second: own Token) -> i64 {
 
 @id("token.ensure-owned")
 fn ensure_owned(value: own Token) -> Token
-    ensures result == result
+    ensures inspect_token(result)
 {
     value
 }
+
+@id("token.inspect")
+fn inspect_token(value: borrow Token) -> bool { true }
 
 @id("token.branch-cleanup")
 fn branch_cleanup(condition: bool, value: own Token) -> i64 {
@@ -726,6 +729,10 @@ fn ensures_failure_finalizes_the_provisional_owned_result_without_publication() 
         .filter(|transition| matches!(transition, CleanupTransition::Transfer { .. }))
         .collect::<Vec<_>>();
     assert_eq!(transfers.len(), 2);
+    let inspection_commit = transitions(function)
+        .into_iter()
+        .find(|transition| matches!(transition, CleanupTransition::CallCommit { .. }))
+        .expect("owned-result inspector must commit before the postcondition");
     let failure_exit = function
         .cleanup_plan
         .exits
@@ -741,6 +748,13 @@ fn ensures_failure_finalizes_the_provisional_owned_result_without_publication() 
     let cleanup = &failure_exit.finalize_in_order[0];
     let status = NormalizedStatus::contract(ContractPhase::Ensures);
     let mut scenario = CleanupScenario::new("owned-ensures-failure", None);
+    for source in &function.cleanup_plan.status_sources {
+        if matches!(source.producer, StatusProducer::PropagatedCall { .. }) {
+            scenario
+                .operations
+                .insert(source.id.clone(), OperationOutcome::Success);
+        }
+    }
     scenario.booleans.insert(source.expression.clone(), false);
 
     let trace = execute_for_conformance(&program, &function.id, scenario).unwrap();
@@ -748,6 +762,7 @@ fn ensures_failure_finalizes_the_provisional_owned_result_without_publication() 
         .iter()
         .map(|transfer| transition_event(function, transfer).unwrap())
         .collect::<Vec<_>>();
+    expected.push(transition_event(function, &inspection_commit).unwrap());
     expected.extend([
         trace_event(
             function,

@@ -271,19 +271,19 @@ int main(void) {{
     scalar = INT64_C(0x2525252525252525);
     spx_status_token status = {guard_i64}(&context, INT64_C(7), false, &scalar);
     if (!spx_test_status(&context, status, "semaprax.contract.v1", UINT32_C(1)) ||
-        !spx_test_contract_detail(&context, status, "guard", "allowed") ||
+        !spx_test_contract_detail(&context, status, "test.guard", "allowed") ||
         scalar != INT64_C(0x2525252525252525)) return 16;
 
     scalar = INT64_C(0x2525252525252525);
     status = {post_i64}(&context, INT64_C(7), &scalar);
     if (!spx_test_status(&context, status, "semaprax.contract.v1", UINT32_C(2)) ||
-        !spx_test_contract_detail(&context, status, "post", "false") ||
+        !spx_test_contract_detail(&context, status, "test.post", "false") ||
         scalar != INT64_C(0x2525252525252525)) return 17;
 
     scalar = INT64_C(0x2525252525252525);
     status = {body_fail_i64}(&context, INT64_C(7), &scalar);
     if (!spx_test_status(&context, status, "semaprax.contract.v1", UINT32_C(1)) ||
-        !spx_test_contract_detail(&context, status, "crash", "false") ||
+        !spx_test_contract_detail(&context, status, "test.crash", "false") ||
         scalar != INT64_C(0x2525252525252525)) return 18;
 
     uint32_t before = context.status_arena.length;

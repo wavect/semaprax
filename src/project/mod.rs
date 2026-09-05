@@ -531,6 +531,10 @@ impl ProjectSnapshot {
         self.revision.entry_program()
     }
 
+    pub(super) fn public_api_program(&self) -> &crate::hir::ResolvedProgram {
+        self.revision.public_api_program()
+    }
+
     pub fn test_program(&self) -> &crate::hir::ResolvedProgram {
         self.revision.test_program()
     }
@@ -693,7 +697,7 @@ impl ProjectSnapshot {
         if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
             let prepared = npm::prepare(
                 &self.manifest,
-                &self.entry_program,
+                &self.public_api_program,
                 &self.project_revision,
                 &self.workspace_revision,
                 self.semantic.graph_digest(),
@@ -728,7 +732,7 @@ impl ProjectSnapshot {
     pub fn build_npm(&mut self, output: &Path) -> Result<(), Vec<Diagnostic>> {
         let prepared = npm::prepare(
             &self.manifest,
-            &self.entry_program,
+            &self.public_api_program,
             &self.project_revision,
             &self.workspace_revision,
             self.semantic.graph_digest(),
@@ -762,7 +766,7 @@ impl ProjectSnapshot {
         }
         let prepared = npm::prepare(
             &self.manifest,
-            &self.entry_program,
+            &self.public_api_program,
             &self.project_revision,
             &self.workspace_revision,
             self.semantic.graph_digest(),

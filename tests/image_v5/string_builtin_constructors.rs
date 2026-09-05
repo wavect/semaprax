@@ -158,8 +158,8 @@ fn payload(response: Value) -> Value {
 }
 fn metadata(catalog: &Value) {
     let rows = catalog["builtin_calls"].as_array().unwrap();
-    // Eight byte operations and seven String operations.
-    assert_eq!(rows.len(), 15);
+    // Eight byte operations and nine String-producing or String operations.
+    assert_eq!(rows.len(), 17);
     assert!(rows[..8]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_byte_operations"));
@@ -268,7 +268,7 @@ fn every_string_builtin_body_is_replayed_with_exact_selected_identity_and_no_cha
 }
 
 #[test]
-fn schemas_publish_fifteen_exact_arity_branches_and_both_client_type_graphs() {
+fn schemas_publish_seventeen_exact_arity_branches_and_both_client_type_graphs() {
     let fixture = Fixture::new();
     for diagnostics in [false, true] {
         let mut session = fixture.session(diagnostics);
@@ -286,7 +286,7 @@ fn schemas_publish_fifteen_exact_arity_branches_and_both_client_type_graphs() {
                 .iter()
                 .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
                 .count(),
-            15
+            17
         );
         assert!(forms
             .iter()
@@ -309,7 +309,7 @@ fn schemas_publish_fifteen_exact_arity_branches_and_both_client_type_graphs() {
             .iter()
             .find(|doc| doc["$id"] == "urn:semaprax.project-change-catalog.v1")
             .unwrap();
-        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 15);
+        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 17);
         let kinds = catalogue["properties"]["builtin_calls"]["items"]["oneOf"]
             .as_array()
             .unwrap();

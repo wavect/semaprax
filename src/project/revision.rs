@@ -25,6 +25,7 @@ pub struct ProjectRevision {
     pub(super) workspace_revision: String,
     pub(super) project_revision: String,
     pub(super) entry_program: crate::hir::ResolvedProgram,
+    pub(super) public_api_program: crate::hir::ResolvedProgram,
     pub(super) test_program: crate::hir::ResolvedProgram,
     pub(super) semantic: semantic::ProjectSemanticState,
     pub(super) profile_admission: admission::PreparedProjectAdmission,
@@ -39,6 +40,7 @@ impl ProjectRevision {
             workspace_revision: built.workspace_revision,
             project_revision: built.project_revision,
             entry_program: built.entry_program,
+            public_api_program: built.public_api_program,
             test_program: built.test_program,
             semantic: built.semantic,
             profile_admission: built.profile_admission,
@@ -75,6 +77,13 @@ impl ProjectRevision {
 
     pub fn entry_program(&self) -> &crate::hir::ResolvedProgram {
         &self.entry_program
+    }
+
+    /// Return the admitted entry-plus-selected-export closure used by public
+    /// API targets. This remains distinct from [`Self::entry_program`], which
+    /// owns executable entry semantics and cleanup ordering.
+    pub fn public_api_program(&self) -> &crate::hir::ResolvedProgram {
+        &self.public_api_program
     }
 
     pub fn test_program(&self) -> &crate::hir::ResolvedProgram {
@@ -265,7 +274,7 @@ impl ProjectRevision {
     pub fn build_npm_inline(&self, max_bytes: usize) -> Result<ProjectNpmBuild, Vec<Diagnostic>> {
         npm::prepare(
             &self.manifest,
-            &self.entry_program,
+            &self.public_api_program,
             &self.project_revision,
             &self.workspace_revision,
             self.semantic.graph_digest(),
@@ -296,7 +305,7 @@ impl ProjectRevision {
             )]
         })?;
         super::replay_public_api_descriptor(
-            &self.entry_program,
+            &self.public_api_program,
             self.manifest.web_exports(),
             subject,
             &descriptor.canonical_bytes(),
@@ -333,7 +342,7 @@ impl ProjectRevision {
             )]);
         }
         crate::interpreter::evaluate_resolved_public_api(
-            &self.entry_program,
+            &self.public_api_program,
             entry_id,
             arguments,
             max_steps,
@@ -394,7 +403,7 @@ impl ProjectRevision {
             }
         }
         crate::interpreter::evaluate_resolved_public_api(
-            &self.entry_program,
+            &self.public_api_program,
             entry_id,
             arguments,
             max_steps,
@@ -428,7 +437,7 @@ impl ProjectRevision {
                 )]
             })?;
         super::replay_flat_owned_record_api_descriptor(
-            &self.entry_program,
+            &self.public_api_program,
             self.manifest.web_exports(),
             subject,
             &descriptor.canonical_bytes(),
@@ -490,7 +499,7 @@ impl ProjectRevision {
             }
         }
         crate::interpreter::evaluate_resolved_flat_owned_record_api(
-            &self.entry_program,
+            &self.public_api_program,
             export,
             arguments,
             max_steps,
@@ -519,7 +528,7 @@ impl ProjectRevision {
             )]
         })?;
         super::replay_public_api_descriptor(
-            &self.entry_program,
+            &self.public_api_program,
             self.manifest.web_exports(),
             subject,
             &descriptor.canonical_bytes(),
@@ -555,7 +564,7 @@ impl ProjectRevision {
                 )]
             })?;
         super::replay_nested_owned_record_api_descriptor(
-            &self.entry_program,
+            &self.public_api_program,
             self.manifest.web_exports(),
             subject,
             &descriptor.canonical_bytes(),
@@ -618,7 +627,7 @@ impl ProjectRevision {
             }
         }
         crate::interpreter::evaluate_resolved_owned_utf8_api(
-            &self.entry_program,
+            &self.public_api_program,
             export,
             arguments,
             max_steps,

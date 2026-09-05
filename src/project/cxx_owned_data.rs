@@ -82,7 +82,7 @@ impl ProjectSnapshot {
                     ));
                 }
                 let provider = crate::codegen::emit_project_v8_native_owned_data_provider(
-                    self.entry_program(),
+                    self.public_api_program(),
                     selected,
                     subject,
                     &descriptor_bytes,

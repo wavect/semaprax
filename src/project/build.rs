@@ -13,6 +13,7 @@ pub(super) struct BuiltProject {
     pub(super) workspace_revision: String,
     pub(super) project_revision: String,
     pub(super) entry_program: crate::hir::ResolvedProgram,
+    pub(super) public_api_program: crate::hir::ResolvedProgram,
     pub(super) test_program: crate::hir::ResolvedProgram,
     pub(super) semantic: semantic::ProjectSemanticState,
     pub(super) profile_admission: admission::PreparedProjectAdmission,
@@ -101,14 +102,12 @@ fn finish_build(
         },
     )
     .map_err(|error| vec![error])?;
-    // Owned API targets compile the exact entry-plus-export closure admitted
-    // above. Retaining only the entry-only program here would discard every
-    // selected public function before npm, Web, or native SDK preparation.
-    let entry_program = if manifest.project_profile().is_owned_api() {
-        semantic_parts.web_program
-    } else {
-        semantic_parts.entry_program
-    };
+    // Keep execution bound to the entry-only closure while retaining the
+    // independently admitted entry-plus-export closure for public targets.
+    // Conflating these programs changes cleanup plans and executable ABIs;
+    // discarding the latter loses selected exports that `main` does not call.
+    let entry_program = semantic_parts.entry_program;
+    let public_api_program = semantic_parts.web_program;
     let test_program = semantic_parts.test_program;
     let sources = files
         .into_iter()
@@ -130,6 +129,7 @@ fn finish_build(
         workspace_revision,
         project_revision,
         entry_program,
+        public_api_program,
         test_program,
         semantic,
         profile_admission,

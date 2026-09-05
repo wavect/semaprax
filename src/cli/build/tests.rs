@@ -147,7 +147,9 @@ fn project_selectors_do_not_confuse_legacy_sources() {
     .unwrap();
     assert_eq!(
         explicit.input,
-        BuildInput::Project(PathBuf::from("fixtures/semaprax.toml"))
+        BuildInput::Project(normalize_project_path(PathBuf::from(
+            "fixtures/semaprax.toml"
+        )))
     );
     assert_eq!(explicit.output, Some(PathBuf::from("site")));
     let directory = std::env::temp_dir().join(format!(

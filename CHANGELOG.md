@@ -119,6 +119,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Rejected a trailing semicolon after a block's value with the existing
   `SPX-P106` expression-statement diagnostic. Canonical formatting no longer
   accepts and silently removes that source token.
+- Project command operands now accept shell-natural `.` and `..` spellings,
+  including `--manifest-path`, consistently across check, run, test, lock,
+  build, and new-project verification. Manifest-declared source paths retain
+  their strict no-alias rule.
+
 - Scalar Project v1 now retains module-local record declarations through HIR
   replay, while aggregate function boundaries fail at their declaration with
   actionable `SPX-G174` guidance. The language card and generated project

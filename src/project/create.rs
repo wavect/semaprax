@@ -64,22 +64,23 @@ pub fn create_project(
                 .join("; ")
         ))
     })?;
-    let absolute = std::path::absolute(destination).map_err(|error| {
+    let requested_destination = std::path::absolute(destination).map_err(|error| {
         CreateProjectError::new(format!("cannot resolve new project destination: {error}"))
     })?;
-    if absolute.file_name().is_none() {
-        return Err(CreateProjectError::new(
-            "new project destination must name one directory",
-        ));
-    }
-    let parent = absolute
+    let file_name = requested_destination
+        .file_name()
+        .map(ToOwned::to_owned)
+        .ok_or_else(|| {
+            CreateProjectError::new("new project destination must name one directory")
+        })?;
+    let requested_parent = requested_destination
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
         .unwrap_or_else(|| Path::new("."));
-    let parent_metadata = fs::symlink_metadata(parent).map_err(|error| {
+    let parent_metadata = fs::symlink_metadata(requested_parent).map_err(|error| {
         CreateProjectError::new(format!(
             "cannot inspect new project parent {}: {error}",
-            parent.display()
+            requested_parent.display()
         ))
     })?;
     if !parent_metadata.is_dir() {
@@ -87,6 +88,14 @@ pub fn create_project(
             "new project parent must be a real directory",
         ));
     }
+    let absolute = fs::canonicalize(requested_parent)
+        .map_err(|error| {
+            CreateProjectError::new(format!(
+                "cannot canonicalize new project parent {}: {error}",
+                requested_parent.display()
+            ))
+        })?
+        .join(file_name);
     match fs::symlink_metadata(&absolute) {
         Ok(_) => {
             return Err(CreateProjectError::new(format!(

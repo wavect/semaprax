@@ -64,7 +64,7 @@ pub(crate) fn parse_check_options(args: &[String]) -> Result<CheckOptions, u8> {
     }
     let input = match (positional, manifest) {
         (None, None) => CheckInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
-        (None, Some(path)) => CheckInput::Project(path),
+        (None, Some(path)) => CheckInput::Project(normalize_project_path(path)),
         (Some(path), None) => match resolve_positional(path) {
             path if is_project_manifest(&path) => CheckInput::Project(path),
             path => CheckInput::Source(path),
@@ -81,21 +81,41 @@ pub(crate) fn is_project_manifest(path: &Path) -> bool {
 /// A positional operand that names an existing directory selects the
 /// `semaprax.toml` inside it, so `semaprax check my-project` means the same as
 /// `semaprax check my-project/semaprax.toml`. Only the positional operand is
-/// resolved; `--manifest-path` stays exact, and a missing manifest surfaces as
-/// the ordinary `SPX-J102` manifest diagnostic rather than an unreadable
-/// directory.
+/// resolved. User-spelled `.` and `..` components are folded lexically before
+/// the strict manifest authority receives the path; source entries declared
+/// inside that manifest remain subject to their stronger no-alias rule.
 pub(crate) fn resolve_positional(path: PathBuf) -> PathBuf {
     if !path.is_dir() {
-        return path;
+        return if is_project_manifest(&path) {
+            normalize_project_path(path)
+        } else {
+            path
+        };
     }
-    // `.` components are inert, and the manifest authenticator rejects them,
-    // so `semaprax check .` selects plain `semaprax.toml`.
-    let mut manifest: PathBuf = path
-        .components()
-        .filter(|component| !matches!(component, std::path::Component::CurDir))
-        .collect();
+    let mut manifest = normalize_project_path(path);
     manifest.push(DEFAULT_MANIFEST);
     manifest
+}
+
+pub(crate) fn normalize_project_path(path: PathBuf) -> PathBuf {
+    let absolute = if path.is_absolute() {
+        path
+    } else {
+        std::env::current_dir()
+            .map(|current| current.join(&path))
+            .unwrap_or(path)
+    };
+    let mut normalized = PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                normalized.pop();
+            }
+            component => normalized.push(component.as_os_str()),
+        }
+    }
+    normalized
 }
 
 #[cfg(test)]
@@ -123,7 +143,9 @@ mod tests {
             ]))
             .unwrap(),
             CheckOptions {
-                input: CheckInput::Project(PathBuf::from("fixtures/semaprax.toml")),
+                input: CheckInput::Project(normalize_project_path(PathBuf::from(
+                    "fixtures/semaprax.toml",
+                ))),
                 json: true,
             }
         );
@@ -135,7 +157,9 @@ mod tests {
             ]))
             .unwrap(),
             CheckOptions {
-                input: CheckInput::Project(PathBuf::from("fixtures/semaprax.toml")),
+                input: CheckInput::Project(normalize_project_path(PathBuf::from(
+                    "fixtures/semaprax.toml",
+                ))),
                 json: true,
             }
         );
@@ -200,7 +224,7 @@ mod tests {
         assert_eq!(resolve_positional(expected.clone()), expected);
         assert_eq!(
             resolve_positional(PathBuf::from(".")),
-            PathBuf::from(DEFAULT_MANIFEST)
+            std::env::current_dir().unwrap().join(DEFAULT_MANIFEST)
         );
         let dotted = Path::new(".").join(&directory);
         assert_eq!(resolve_positional(dotted), expected);

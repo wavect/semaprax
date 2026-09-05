@@ -5,7 +5,9 @@ use std::path::{Component, Path, PathBuf};
 use same_file::Handle;
 use semaprax::diagnostic::Diagnostic;
 
-use super::project::{is_project_manifest, resolve_positional, DEFAULT_MANIFEST};
+use super::project::{
+    is_project_manifest, normalize_project_path, resolve_positional, DEFAULT_MANIFEST,
+};
 
 pub(crate) struct BuildOptions {
     pub(crate) input: BuildInput,
@@ -512,7 +514,7 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
             path if is_project_manifest(&path) => BuildInput::Project(path),
             path => BuildInput::Source(path),
         },
-        (None, Some(path)) => BuildInput::Project(path),
+        (None, Some(path)) => BuildInput::Project(normalize_project_path(path)),
         (None, None) => BuildInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
         (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
     };

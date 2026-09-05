@@ -44,6 +44,14 @@ fn cli(root: &Path, arguments: &[&str]) -> Output {
         .unwrap()
 }
 
+fn cli_owned(root: &Path, arguments: &[String]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .args(arguments)
+        .current_dir(root)
+        .output()
+        .unwrap()
+}
+
 fn stdout(output: &Output) -> String {
     String::from_utf8(output.stdout.clone()).unwrap()
 }
@@ -138,6 +146,83 @@ fn standalone_new_creates_the_exact_template_and_the_project_works() {
         read_tree(&fixture.root.join("apps/second")),
         scaffold_files("second", "calculator")
     );
+}
+
+#[test]
+fn project_commands_normalize_user_spelled_manifest_paths() {
+    let fixture = Fixture::new("path-spellings");
+    let caller = fixture.root.join("caller");
+    std::fs::create_dir(&caller).unwrap();
+
+    let created = cli(&caller, &["new", "../operand-project"]);
+    assert!(created.status.success(), "{}", stderr(&created));
+    assert_eq!(
+        stdout(&created),
+        "created calculator project ../operand-project\n"
+    );
+
+    let project = fixture.root.join("operand-project");
+    let manifest = project.join("semaprax.toml");
+    let absolute_with_dot = format!("{}/./semaprax.toml", project.display());
+    let positional_spellings = [
+        "../operand-project".to_owned(),
+        "../operand-project/./semaprax.toml".to_owned(),
+        manifest.to_string_lossy().into_owned(),
+        absolute_with_dot.clone(),
+    ];
+    let build_output = fixture.root.join("web-output");
+
+    for command in ["check", "run", "test", "lock", "build"] {
+        let invoke = |operand: &str, manifest_flag: bool| {
+            if build_output.exists() {
+                std::fs::remove_dir_all(&build_output).unwrap();
+            }
+            let mut arguments = vec![command.to_owned()];
+            if manifest_flag {
+                arguments.extend(["--manifest-path".to_owned(), operand.to_owned()]);
+            } else {
+                arguments.push(operand.to_owned());
+            }
+            if command == "build" {
+                arguments.extend([
+                    "--target".to_owned(),
+                    "web".to_owned(),
+                    "--output".to_owned(),
+                    build_output.to_string_lossy().into_owned(),
+                ]);
+            }
+            cli_owned(&caller, &arguments)
+        };
+
+        let expected = invoke(manifest.to_str().unwrap(), false);
+        assert!(
+            expected.status.success(),
+            "{}: {}",
+            command,
+            stderr(&expected)
+        );
+        for spelling in &positional_spellings {
+            let observed = invoke(spelling, false);
+            assert_eq!(observed.status, expected.status, "{command} {spelling}");
+            assert_eq!(observed.stdout, expected.stdout, "{command} {spelling}");
+            assert_eq!(observed.stderr, expected.stderr, "{command} {spelling}");
+        }
+        if command != "lock" {
+            let observed = invoke(&absolute_with_dot, true);
+            assert_eq!(
+                observed.status, expected.status,
+                "{command} --manifest-path"
+            );
+            assert_eq!(
+                observed.stdout, expected.stdout,
+                "{command} --manifest-path"
+            );
+            assert_eq!(
+                observed.stderr, expected.stderr,
+                "{command} --manifest-path"
+            );
+        }
+    }
 }
 
 #[test]

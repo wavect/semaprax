@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use super::project::{is_project_manifest, resolve_positional, DEFAULT_MANIFEST};
+use super::project::{
+    is_project_manifest, normalize_project_path, resolve_positional, DEFAULT_MANIFEST,
+};
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) enum ExecutionInput {
@@ -104,7 +106,7 @@ fn parse(args: &[String], command: &str, allow_source: bool) -> Result<Execution
     }
     let input = match (positional, manifest) {
         (None, None) => ExecutionInput::Project(PathBuf::from(DEFAULT_MANIFEST)),
-        (None, Some(path)) => ExecutionInput::Project(path),
+        (None, Some(path)) => ExecutionInput::Project(normalize_project_path(path)),
         (Some(path), None) => match resolve_positional(path) {
             path if is_project_manifest(&path) => ExecutionInput::Project(path),
             path if allow_source => ExecutionInput::Source(path),
@@ -227,7 +229,9 @@ mod tests {
             ]))
             .unwrap(),
             ExecutionOptions {
-                input: ExecutionInput::Project(PathBuf::from("fixtures/semaprax.toml")),
+                input: ExecutionInput::Project(normalize_project_path(PathBuf::from(
+                    "fixtures/semaprax.toml",
+                ))),
                 json: true,
                 max_steps: Some(4096),
                 max_bytes: Some(65536),
@@ -260,7 +264,9 @@ mod tests {
         assert_eq!(
             parse_test(&strings(&["fixtures/semaprax.toml", "--max-steps", "1",])).unwrap(),
             ExecutionOptions {
-                input: ExecutionInput::Project(PathBuf::from("fixtures/semaprax.toml")),
+                input: ExecutionInput::Project(normalize_project_path(PathBuf::from(
+                    "fixtures/semaprax.toml",
+                ))),
                 json: false,
                 max_steps: Some(1),
                 native: false,

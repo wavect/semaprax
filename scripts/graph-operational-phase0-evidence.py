@@ -100,7 +100,7 @@ def validate_outcomes(name,value):
   if "packaged_sdk_editor_ui_or_mcp_certification" not in value.get("nonclaims",[]): raise Failure("product workflow MCP/package nonclaim is absent")
  else:
   if repo.get("clean_before_and_after") is not True or repo.get("current_head") is not True: raise Failure("VS Code repository state mismatch")
-  expected=[{"id":"vscode_node_mock_controllers_v2","passed":57,"failed":0,"ignored":0},{"id":"vscode_extension_host_real_compiler_task_control_v2","passed":1,"failed":0,"ignored":0}]
+  expected=[{"id":"vscode_node_mock_controllers_v3","passed":97,"failed":0,"ignored":0},{"id":"vscode_extension_host_real_compiler_task_control_v3","passed":1,"failed":0,"ignored":0}]
   if value.get("executions")!=expected: raise Failure("VS Code execution outcomes mismatch")
   observation=value.get("observation",{}); required={"schema":"semaprax.vscode-extension-host-result.v2","app_name":"Visual Studio Code","typed_intent":"rename_declaration","verified_virtual_diff":True,"explicit_cooperative_cancellation":True,"pending_task_dirty_buffer_invalidated":True,"dirty_buffer_invalidated":True,"source_bytes_unchanged":True}
   if any(observation.get(k)!=v for k,v in required.items()): raise Failure("VS Code host observation mismatch")

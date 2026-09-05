@@ -25,7 +25,11 @@ boundaries. Opening a repository does not start a compiler process.
 Additively, saving a `.spx` file or manifest, or running `SEMAPRAX: Check
 Project`, invokes the same user-selected binary directly as
 `check <nearest semaprax.toml or file> --json` and shows its diagnostics in
-the editor. The route is read-only and bounded (4 MiB of output, 30 seconds),
+the editor. A run whose exit status and output the adapter cannot classify is a
+check failure that retains the previous diagnostics instead of reporting a clean
+project, and every published range is the compiler's byte span translated
+against the exact saved source into the editor's UTF-16, possibly multiline,
+coordinates. The route is read-only and bounded (4 MiB of output, 30 seconds),
 starts no session, is disabled by an empty `semaprax.compilerPath`, and can be
 switched off with the machine setting `semaprax.checkOnSave`. The extension's
 [README](../editors/vscode/README.md#check-on-save) owns the behavior.
@@ -34,13 +38,21 @@ Also additively, `SEMAPRAX: Go to Declaration by Stable ID`, `SEMAPRAX: Show
 Callers of a Declaration`, `SEMAPRAX: Show Module Documentation`, `SEMAPRAX:
 Show Ownership, Contracts, and Effects`, `SEMAPRAX: Inspect Agent Definition`,
 `SEMAPRAX: Show Cleanup Plan`, `SEMAPRAX: Run Agent Transcript`, and the
-declaration code lenses run the same binary's read-only `query <file> --json`,
-`doc <file>`, `context`, `graph`, `agent inspect`, and `agent run`;
+declaration code lenses run the same binary's read-only `query`, `doc <file>`,
+`context`, `graph`, `agent inspect`, and `agent run`. The query subject is
+resolved exactly as check-on-save resolves one: a module with `use` imports has
+no standalone meaning, so a project-owned file is read through
+`query <manifest> --json` and its `semaprax.project-query.v1` result and its
+own `context <manifest> <id>` route, and declarations, callers and selections
+span the whole project.
 `SEMAPRAX: Safe Rename by Stable ID` authors a one-line semantic patch, shows
 `impact`, and applies it only through the replay-checked `patch` route
 ([Unified CLI v1](UNIFIED-CLI-V1.md),
 [Documentation Projection v1](DOC-PROJECTION-V1.md)) over the saved active
-file, with the same bounds and no session. The
+file, with the same bounds and no session; a project-owned file is not renamed
+there at all, because a standalone patch rewrites one file — that rename
+belongs to the session's replay-checked typed intent. `doc` and `graph` remain
+module routes over one standalone executable module and name that boundary. The
 [README](../editors/vscode/README.md#navigate-by-meaning) owns the behavior.
 
 Startup invokes the selected executable directly with

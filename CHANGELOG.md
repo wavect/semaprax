@@ -8,6 +8,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Repaired the VS Code Extension Host inventory and widened its scenario. The
+  host test asserted exactly 28 contributed commands while the manifest
+  contributes 37, so a provisioned run failed before its workflow. The
+  assertion is now the exact 37-command inventory in manifest order, every
+  contributed command must be registered, no registered `semaprax.` command may
+  be undeclared, and the forbidden authority-bearing list is checked against
+  both contribution and registration. The scenario additionally covers
+  check-on-save positions past a supplementary character, retention of previous
+  diagnostics across an unclassifiable run, project-routed navigation across all
+  three calculator sources, and the dirty-buffer and project-rename refusals.
+  The provisioned runner's node-controller inventory, recorded inputs, and
+  command count were updated to match. The Extension Host gate itself was not
+  run for this change: no Visual Studio Code product is installed here.
+
 - Routed VS Code declaration navigation, callers, code lenses, and ownership
   through the project that owns the saved file, resolved exactly as
   check-on-save resolves its subject. A module with `use` imports has no

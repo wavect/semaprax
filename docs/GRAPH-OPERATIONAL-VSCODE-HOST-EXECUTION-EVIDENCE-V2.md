@@ -42,25 +42,46 @@ system process was sandboxed.
 
 ## Extension Host scenario
 
-The runner first executes the six standalone Node controller files and requires
-exactly 57 passes, including the candidate-test task controller. These remain
-standalone Node evidence. It then starts an actual Extension Host using
-`--extensionDevelopmentPath` and `--extensionTestsPath`.
+The runner first executes the eight standalone Node controller files and
+requires exactly 97 passes, including the candidate-test task, check-on-save,
+and navigation controllers. These remain standalone Node evidence. It then
+starts an actual Extension Host using `--extensionDevelopmentPath` and
+`--extensionTestsPath`.
 
 The host must:
 
-1. discover and activate extension version 0.1.0 and all 28 commands;
+1. discover and activate extension version 0.1.0 and the exact contributed
+   command inventory — all 37 commands, in manifest order, each registered with
+   VS Code, with no registered `semaprax.` command the manifest does not
+   declare and no build, commit, publish, approve, Git-commit, package-install,
+   or native-run command contributed or registered;
 2. select the global compiler, manifest, and startup policy paths;
-3. launch the freshly built compiler directly as `serve-workspace-mcp`;
-4. open a candidate, apply the catalogued `rename_declaration` intention, and
+3. check a saved source outside the fixture workspace whose reported token
+   follows a supplementary character, and require the published diagnostic to
+   underline exactly that token in the editor's own UTF-16 columns;
+4. require a compiler run whose output the adapter cannot classify — malformed
+   output with status 1, and status 0 without a verified record — to retain the
+   previous diagnostics rather than report a clean project, and require a
+   believable verified run to clear them;
+5. resolve declarations, callers, and code lenses for the importing module
+   `src/app.spx` through the project that owns it, reach all three project
+   sources, open the authenticated file a selection names, refuse both on a
+   dirty buffer, and refuse a project-owned safe rename in favour of the
+   session's replay-checked typed intent;
+6. launch the freshly built compiler directly as `serve-workspace-mcp`;
+7. open a candidate, apply the catalogued `rename_declaration` intention, and
    verify the read-only source diff without changing saved source;
-5. invoke Run Candidate Tests and immediately invoke Cancel Candidate Tests;
-6. observe the compiler's sticky cooperative cancellation, expose no passing
+8. invoke Run Candidate Tests and immediately invoke Cancel Candidate Tests;
+9. observe the compiler's sticky cooperative cancellation, expose no passing
    report, and preserve every saved source byte;
-7. start a fresh session, launch another test task, then dirty a real `.spx`
-   buffer while the task is pending;
-8. require the source epoch to invalidate the candidate and late task result,
-   revert the buffer, and again verify that all saved fixture bytes are unchanged.
+10. start a fresh session, launch another test task, then dirty a real `.spx`
+    buffer while the task is pending;
+11. require the source epoch to invalidate the candidate and late task result,
+    revert the buffer, and again verify that all saved fixture bytes are
+    unchanged.
+
+Steps 3 to 5 write only under the operating system temporary directory; the
+runner independently re-hashes every fixture file before and after the run.
 
 The task start response is held in `queued` state by the compiler. Immediate
 editor cancellation therefore reaches the compiler cancel method before the
@@ -83,7 +104,9 @@ authenticated artifacts:
 - `vscode-extension-host.log`;
 - `vscode-host-observation.json`.
 
-The observation closes over the startup test limits, all-false editor authority,
+The v2 observation shape is unchanged by the added steps: they either pass or
+abort the host before it prints its single result marker. The observation closes
+over the startup test limits, all-false editor authority,
 explicit cooperative cancellation, pending-task dirty-buffer invalidation,
 verified virtual diff, and unchanged source bytes. The runner refuses a dirty
 subject, repository drift, tool drift, an unexpected command inventory, or a

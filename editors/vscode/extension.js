@@ -830,15 +830,17 @@ function activate(context) {
       await draftOperation(() => holes.discard()); ensureHoleToken(token, true);
       holes = undefined; selectedHole = undefined; changedDraft();
     },
-    async checkProject() { await checking.checkProject(); },
-    async goToDeclaration() { await checking.goToDeclaration(pick); },
-    async showReferences() { await checking.showReferences(pick); },
-    async showDocumentation() { await checking.showDocumentation(); },
-    async showOwnership() { await checking.showOwnership(pick); },
-    async inspectAgent() { await checking.inspectAgent(); },
-    async safeRename() { await checking.safeRename(pick, input); },
-    async showCleanupPlan() { await checking.showCleanupPlan(pick); },
-    async runAgentTranscript() { await checking.runAgentTranscript(pick); },
+    // These return what they found so the Extension Host test can assert it;
+    // the registered command wrapper discards every return value.
+    async checkProject() { return checking.checkProject(); },
+    async goToDeclaration() { return checking.goToDeclaration(pick); },
+    async showReferences() { return checking.showReferences(pick); },
+    async showDocumentation() { return checking.showDocumentation(); },
+    async showOwnership() { return checking.showOwnership(pick); },
+    async inspectAgent() { return checking.inspectAgent(); },
+    async safeRename() { return checking.safeRename(pick, input); },
+    async showCleanupPlan() { return checking.showCleanupPlan(pick); },
+    async runAgentTranscript() { return checking.runAgentTranscript(pick); },
     async refresh() {
       saved(); if (!client || !image) throw new Error('Start a session first');
       const refreshEpoch = epoch, refreshClient = client, refreshImage = image, refreshDraft = holes, refreshRevision = holes?.draftRevision;
@@ -888,7 +890,10 @@ function activate(context) {
         testTaskUsed,
         documents: [...documents].map(([uri, text]) => ({ uri, text }))
       };
-    }
+    },
+    // The check-on-save half, so the host test can exercise the diagnostic
+    // ledger, its classification of a compiler run, and the code lenses.
+    checks: checking.test
   });
 }
 function deactivate() { stopActive(); }

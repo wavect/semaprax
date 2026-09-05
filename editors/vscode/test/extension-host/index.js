@@ -2,8 +2,32 @@
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const vscode = require('vscode');
+
+// The exact command inventory this extension contributes, in manifest order.
+// A removed, renamed, added or reordered command fails here, and every entry
+// must also be registered with VS Code; neither half is a count alone.
+const CONTRIBUTED = [
+  'semaprax.start', 'semaprax.stop', 'semaprax.openCandidate', 'semaprax.selectTarget',
+  'semaprax.changeCatalog', 'semaprax.newIntent', 'semaprax.applyIntent', 'semaprax.tryIntent',
+  'semaprax.attemptSummary', 'semaprax.attemptDiagnostics', 'semaprax.repairCatalog',
+  'semaprax.applyRepair', 'semaprax.discardAttempt', 'semaprax.previewSourceDiff',
+  'semaprax.runCandidateTests', 'semaprax.cancelCandidateTests', 'semaprax.openHole',
+  'semaprax.selectHole', 'semaprax.holeSummary', 'semaprax.holeFacet', 'semaprax.holeContext',
+  'semaprax.showHoleConstructors', 'semaprax.newHoleFillScratch', 'semaprax.suggestHoleFill',
+  'semaprax.fillHole', 'semaprax.completeDraft', 'semaprax.discardDraft', 'semaprax.refresh',
+  'semaprax.checkProject', 'semaprax.goToDeclaration', 'semaprax.showReferences',
+  'semaprax.showDocumentation', 'semaprax.showOwnership', 'semaprax.inspectAgent',
+  'semaprax.safeRename', 'semaprax.showCleanupPlan', 'semaprax.runAgentTranscript'
+];
+// Authority this extension must never contribute or register, whatever a host
+// selects. Build, commit and publication stay outside the editor entirely.
+const FORBIDDEN = [
+  'semaprax.build', 'semaprax.commit', 'semaprax.publish', 'semaprax.approve',
+  'semaprax.gitCommit', 'semaprax.installPackage', 'semaprax.runNative'
+];
 
 const digest = body => `sha256:${crypto.createHash('sha256').update(body).digest('hex')}`;
 const required = name => {
@@ -54,10 +78,97 @@ async function run() {
 
   const registered = new Set(await vscode.commands.getCommands(true));
   const contributed = extension.packageJSON.contributes.commands.map(row => row.command);
-  assert.equal(contributed.length, 28);
+  assert.deepEqual(contributed, CONTRIBUTED, 'the contributed command inventory is exact');
+  assert.equal(contributed.length, CONTRIBUTED.length);
+  assert.equal(new Set(contributed).size, contributed.length, 'no command may be contributed twice');
   for (const command of contributed) assert.ok(registered.has(command), `${command} must be registered`);
-  for (const command of ['semaprax.build', 'semaprax.commit', 'semaprax.publish']) {
+  for (const command of FORBIDDEN) {
     assert.equal(contributed.includes(command), false, `${command} must not be contributed`);
+    assert.equal(registered.has(command), false, `${command} must not be registered`);
+  }
+  // Every registered `semaprax.` command must be one this manifest declares:
+  // an unlisted registration is as much an inventory break as a missing one.
+  assert.deepEqual([...registered].filter(name => name.startsWith('semaprax.')).sort(), [...CONTRIBUTED].sort());
+
+  // Check-on-save and navigation by meaning, against the real compiler. The
+  // probe file lives outside the fixture workspace so the workspace bytes stay
+  // exactly as they were, which the runner verifies independently.
+  const probeDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'semaprax-vscode-probe-'));
+  try {
+    // An astral character before the reported token: the compiler's byte span
+    // and Unicode-scalar column and VS Code's UTF-16 columns all differ here.
+    const probe = path.join(probeDirectory, 'astral.spx');
+    fs.writeFileSync(probe, 'module probe;\n\n@id("probe.main")\nfn main() -> i64\n{\n    let greeting: string = "\u{1F600}"; undefined_call()\n}\n');
+    const failing = await api.checks.check(probe, compiler);
+    assert.equal(failing.failure, undefined, 'an ordinary error stream is usable');
+    assert.deepEqual(failing.records.map(record => ({ code: record.code, range: record.range })), [
+      { code: 'SPX-T203', range: { startLine: 5, startColumn: 33, endLine: 5, endColumn: 49 } }
+    ], 'the diagnostic underlines `undefined_call()` in UTF-16 columns');
+    const probeText = fs.readFileSync(probe, 'utf8').split('\n')[5];
+    assert.equal(probeText.slice(33, 49), 'undefined_call()');
+    assert.equal(api.checks.collection.get(vscode.Uri.file(probe)).length, 1);
+
+    // A run whose output the adapter cannot classify must not clear it.
+    const broken = path.join(probeDirectory, 'broken-compiler');
+    fs.writeFileSync(broken, "#!/bin/sh\necho '{broken json'\nexit 1\n", { mode: 0o700 });
+    const unusable = await api.checks.check(probe, broken);
+    assert.match(unusable.failure, /neither a diagnostic nor a verified record/);
+    assert.equal(unusable.retained, true);
+    assert.equal(api.checks.collection.get(vscode.Uri.file(probe)).length, 1, 'a failed check keeps the previous diagnostics');
+
+    const silent = path.join(probeDirectory, 'silent-compiler');
+    fs.writeFileSync(silent, '#!/bin/sh\nexit 0\n', { mode: 0o700 });
+    const empty = await api.checks.check(probe, silent);
+    assert.equal(empty.failure, 'check exited 0 without printing a verified record');
+    assert.equal(api.checks.collection.get(vscode.Uri.file(probe)).length, 1);
+
+    // Only a believable verified run clears them.
+    fs.writeFileSync(probe, 'module probe;\n\n@id("probe.main")\nfn main() -> i64\n{\n    0\n}\n');
+    const verified = await api.checks.check(probe, compiler);
+    assert.equal(verified.failure, undefined);
+    assert.deepEqual(verified.records, []);
+    assert.equal(api.checks.collection.get(vscode.Uri.file(probe)), undefined);
+
+    // The project route: an importing module has no standalone meaning, so
+    // `app.spx` resolves its declarations, callers and lenses through the
+    // project that owns it and reaches the other two files.
+    const app = path.join(path.dirname(manifest), 'src', 'app.spx');
+    const appDocument = await vscode.workspace.openTextDocument(vscode.Uri.file(app));
+    await vscode.window.showTextDocument(appDocument, { preview: false });
+    api.enqueuePick('add');
+    const declarations = await api.execute('goToDeclaration');
+    const files = [...new Set(declarations.map(item => item.file))].sort();
+    assert.equal(files.length, 3, `project navigation must reach every source: ${files}`);
+    for (const name of ['app.spx', 'core.spx', 'tests.spx']) {
+      assert.ok(files.some(file => path.basename(file) === name), `${name} must be reachable`);
+    }
+    const chosen = declarations.find(item => item.id === 'calculator.add');
+    assert.ok(chosen && path.basename(chosen.file) === 'core.spx');
+    assert.equal(path.basename(vscode.window.activeTextEditor.document.uri.fsPath), 'core.spx', 'the selection opens the file the match lives in');
+    assert.equal(vscode.window.activeTextEditor.document.getText(vscode.window.activeTextEditor.selection), 'add');
+
+    // Callers cross files through the project's persistent call index.
+    api.enqueuePick('add');
+    api.enqueuePick('main');
+    const callers = await api.execute('showReferences');
+    assert.deepEqual(callers.map(item => item.id).sort(), ['calculator.app.main', 'calculator.tests.main']);
+
+    // Code lenses for the importing module come from the project, filtered to
+    // the file, without spawning an inevitably failing standalone query.
+    const lenses = await api.checks.lensProvider.provideCodeLenses(appDocument);
+    assert.equal(lenses.length, 1);
+    assert.equal(lenses[0].command.title, '@id calculator.app.main');
+
+    // Navigation reads saved source: a dirty buffer is refused, not guessed.
+    const dirtyEditor = await vscode.window.showTextDocument(appDocument, { preview: false });
+    assert.equal(await dirtyEditor.edit(edit => edit.insert(appDocument.lineAt(0).range.end, ' ')), true);
+    await assert.rejects(api.execute('goToDeclaration'), /Save the file first/);
+    assert.deepEqual(await api.checks.lensProvider.provideCodeLenses(appDocument), []);
+    await vscode.commands.executeCommand('workbench.action.files.revert');
+    // A rename of a project-owned file belongs to the session's typed intent.
+    await assert.rejects(api.execute('safeRename'), /saved-source session/);
+  } finally {
+    fs.rmSync(probeDirectory, { recursive: true, force: true });
   }
 
   const sourceBefore = fs.readFileSync(source);

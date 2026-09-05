@@ -550,7 +550,9 @@ jobs:
         # report themselves unavailable — never as parity — wherever they are
         # not. The larger bounded campaign stays `#[ignore]`d and runs
         # separately with SEMAPRAX_DIFFERENTIAL_SEEDS.
-        run: cargo test --locked -p semaprax --test scalar_status_backend_equivalence differential:: -- --test-threads=1 --nocapture
+        run: >-
+          cargo test --locked -p semaprax --test scalar_status_backend_equivalence
+          differential:: -- --test-threads=1 --nocapture
       - name: Require semantic-workspace change pre/post-pivot process termination evidence
         run: cargo test --locked -p semaprax --lib semantic_workspace_change::tests::semantic_change_apply_killed_process_boundaries_preserve_exact_old_or_new -- --exact --nocapture
       - name: Require structural-change pre/post-pivot process termination evidence

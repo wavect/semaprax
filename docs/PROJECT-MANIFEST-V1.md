@@ -330,3 +330,30 @@ native, and Core-Wasm/Node tests. It does not claim real-browser or multi-engine
 execution, general streaming, files,
 WASI, physical cross-descriptor atomicity, persistence, safe Windows npm
 publication, registry publication, or exact-head hosted promotion.
+
+## Additive Project Manifest v12 network-command profile
+
+V12 preserves every v1-v11 canonical manifest and adds exactly
+`profile = "network-command-io.v1"`. It requires one selected `() -> bool`
+command, `input = "argv-utf8+stdin-bytes.v1"`, and the exact sorted capability
+inventory `network.connect`, `network.read`, `network.write`,
+`process.args.read`, `process.stderr.write`, `process.stdin.read`, and
+`process.stdout.write`. The linked closure is replayed through the existing
+Language Network I/O v1 Wasm admission before a Project snapshot is exposed.
+
+`build --target native` emits the explicit TCP-provider command executable.
+`build --target npm` and `build --target web` emit the independently replayed
+`semaprax.project-npm-build.v11` package. Its browser-compatible JavaScript
+surface takes an invocation-owned `semaprax.network-fixture.v1` provider; it
+does not expose real sockets. `network-run --fixture` executes the same
+manifest-selected command in the hosted interpreter with the Rust fixture
+provider. The committed fixture is `examples/network-http-project`.
+
+Focused local evidence is:
+
+```sh
+cargo test --locked -p semaprax --test project manifest_v12:: -- --test-threads=1
+```
+
+This profile does not claim TLS, listen sockets, UDP, DNS policy, structured
+tasks, production service hosting, registry publication, or public support.

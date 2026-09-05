@@ -1,0 +1,1 @@
+{"schema":"semaprax.network-fixture.v1","connections":[{"host":"example.org","port":80,"recv":["HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello"],"expect_send":"GET / HTTP/1.1\r\nHost: example.org\r\nConnection: close\r\n\r\n","ready":true}]}

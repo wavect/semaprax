@@ -1,0 +1,27 @@
+module network_http.app;
+
+permit { network.connect, network.read, network.write, process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("network-http.fetch")
+fn fetch() -> bool
+    uses { network.connect, network.read, network.write, process.stdout.write }
+{
+    let host = [101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 111u8, 114u8, 103u8];
+    let handle = net_connect(array_as_slice(host), 80usize);
+    let request = [71u8, 69u8, 84u8, 32u8, 47u8, 32u8, 72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 13u8, 10u8, 72u8, 111u8, 115u8, 116u8, 58u8, 32u8, 101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 111u8, 114u8, 103u8, 13u8, 10u8, 67u8, 111u8, 110u8, 110u8, 101u8, 99u8, 116u8, 105u8, 111u8, 110u8, 58u8, 32u8, 99u8, 108u8, 111u8, 115u8, 101u8, 13u8, 10u8, 13u8, 10u8];
+    let sent = net_send(handle, array_as_slice(request));
+    let mut streamed = 1usize;
+    while streamed > 0usize {
+        let ready = net_wait(handle, 5000usize);
+        streamed = net_stream_stdout(handle, 4096usize);
+        ready != 0usize && streamed > 0usize
+    }
+    let closed = net_close(handle);
+    sent == 56usize && closed == 0usize
+}
+
+@id("network-http.main")
+fn main() -> i64
+{
+    0
+}

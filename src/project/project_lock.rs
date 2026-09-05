@@ -85,7 +85,8 @@ pub fn render_project_lock(snapshot: &ProjectSnapshot) -> Result<String, Vec<Dia
         | ProjectProfile::UsefulDataCommandV1
         | ProjectProfile::UsefulDataCommandV2
         | ProjectProfile::LanguageCommandIoV1
-        | ProjectProfile::LineCommandIoV1 => ("unproven", None),
+        | ProjectProfile::LineCommandIoV1
+        | ProjectProfile::NetworkCommandIoV1 => ("unproven", None),
     };
     let default_targets = [
         PACKAGE_TARGET_NATIVE64.to_owned(),
@@ -133,7 +134,7 @@ pub fn render_project_lock(snapshot: &ProjectSnapshot) -> Result<String, Vec<Dia
             "package": env!("CARGO_PKG_NAME"),
             "version": env!("CARGO_PKG_VERSION"),
             "lock_compatibility": PROJECT_LOCK_SCHEMA,
-            "manifest_layouts": [PACKAGE_MANIFEST_SCHEMA, "semaprax.project.v1-v11"],
+            "manifest_layouts": [PACKAGE_MANIFEST_SCHEMA, "semaprax.project.v1-v12"],
         },
         "resolution_policy": {
             "dependencies": "none",

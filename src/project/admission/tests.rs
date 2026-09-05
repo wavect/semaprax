@@ -27,6 +27,10 @@ fn every_legacy_marker_reports_one_exact_closed_profile() {
             PreparedProjectAdmission::LineCommandIoV1,
             ProjectProfile::LineCommandIoV1,
         ),
+        (
+            PreparedProjectAdmission::NetworkCommandIoV1,
+            ProjectProfile::NetworkCommandIoV1,
+        ),
     ];
     for (prepared, expected) in legacy {
         assert_eq!(prepared.profile(), expected);

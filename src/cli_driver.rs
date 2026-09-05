@@ -3,7 +3,7 @@
     reason = "the CLI preserves structured Diagnostic values across command boundaries"
 )]
 
-use std::io::Write as _;
+use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitCode};
 
@@ -736,6 +736,10 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                     cli::project_runtime::execute_held("run", manifest_path, &options)
                 }
             }
+        }
+        CommandId::NetworkRun => {
+            let options = cli::execution::parse_network_run(&args[1..])?;
+            run_network_project(&options)
         }
         CommandId::Test => {
             let options = cli::execution::parse_test(&args[1..])?;

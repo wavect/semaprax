@@ -544,8 +544,9 @@ without pretending every platform is identical.
 - general command, filesystem, network, clock, and service I/O through explicit
   capabilities; the bounded TCP client tranche
   ([Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)) has
-  landed locally, leaving TLS, DNS policy, listen sockets, a Project manifest
-  profile, npm/web package lanes, and structured tasks;
+  landed locally with a Project v12 profile, a fixture-backed CLI verb, and
+  fixture-only npm/Web lanes, leaving TLS, DNS policy, listen sockets, real
+  hosted Web transports, and structured tasks;
 - server/edge packaging, observability, deployment diagnostics, and load tests.
 
 ### Application model

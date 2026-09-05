@@ -38,6 +38,7 @@ pub(super) enum PreparedProjectAdmission {
     UsefulDataCommandV2,
     LanguageCommandIoV1,
     LineCommandIoV1,
+    NetworkCommandIoV1,
     OwnedDataApiV1(Box<PublicApiDescriptor>),
     FlatOwnedRecordApiV1(Box<FlatOwnedRecordApiDescriptor>),
     OwnedUtf8ApiV1(Box<PublicApiDescriptor>),
@@ -54,6 +55,7 @@ impl PreparedProjectAdmission {
             Self::UsefulDataCommandV2 => ProjectProfile::UsefulDataCommandV2,
             Self::LanguageCommandIoV1 => ProjectProfile::LanguageCommandIoV1,
             Self::LineCommandIoV1 => ProjectProfile::LineCommandIoV1,
+            Self::NetworkCommandIoV1 => ProjectProfile::NetworkCommandIoV1,
             Self::OwnedDataApiV1(_descriptor) => ProjectProfile::OwnedDataApiV1,
             Self::FlatOwnedRecordApiV1(_descriptor) => ProjectProfile::FlatOwnedRecordApiV1,
             Self::OwnedUtf8ApiV1(_descriptor) => ProjectProfile::OwnedUtf8ApiV1,
@@ -151,6 +153,10 @@ pub(super) fn prepare(
         ProjectProfile::LineCommandIoV1 => {
             legacy::line_command(program, manifest.command().unwrap_or(""))?;
             Ok(PreparedProjectAdmission::LineCommandIoV1)
+        }
+        ProjectProfile::NetworkCommandIoV1 => {
+            legacy::network_command(program, manifest.command().unwrap_or(""))?;
+            Ok(PreparedProjectAdmission::NetworkCommandIoV1)
         }
         ProjectProfile::OwnedDataApiV1 => owned::prepare(program, manifest, subject)
             .map(Box::new)

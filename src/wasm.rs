@@ -909,6 +909,16 @@ pub(crate) fn emit_resolved_language_command_io_v1(
     aggregate::emit_language_command_io(program, &plan)
 }
 
+/// Emit the closed Language Network I/O v1 command module selected by a
+/// Project profile. The resulting module still requires an explicit provider
+/// for every network import.
+pub(crate) fn emit_resolved_language_network_io_v1(
+    program: &ResolvedProgram,
+    command_id: &str,
+) -> Result<Vec<u8>, Diagnostic> {
+    network_io::emit_resolved_language_network_io_v1(program, command_id)
+}
+
 /// Emit the additive Project-v7 line-command boundary. Admission remains in
 /// the shared command profile; the backend adds range descriptors and the
 /// independent command-output status marker only when those operations are

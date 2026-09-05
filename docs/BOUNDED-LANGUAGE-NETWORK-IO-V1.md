@@ -167,8 +167,8 @@ adapter for one invocation:
 - the **TCP provider** (interpreter library seam and native runtime) uses
   blocking `std::net` or POSIX/Winsock sockets with 30 s connect and read
   timeouts, no TLS, and no name resolution beyond the platform resolver. It
-  exists only when a host explicitly constructs it; no CLI command, Project
-  build, or test constructs one implicitly.
+  exists only when a host explicitly constructs it; Project v12's CLI and Web
+  lanes construct only the deterministic fixture provider.
 
 An invocation without a provider fails every operation with
 `AUTHORITY_DENIED`. `semaprax capability-manifest` projects such a module
@@ -231,6 +231,18 @@ The fixture provider consumes one `semaprax.network-fixture.v1` document:
   this language refuses, and browsers have no raw TCP in any case. Under the
   earlier `LanguageV1` and `LineV1` command profiles a network operation is
   rejected with `SPX-W114`.
+- **Project/npm/Web.** `network-command-io.v1` is the exact Project v12
+  profile. It selects one `() -> bool` command, the existing
+  `argv-utf8+stdin-bytes.v1` snapshot, and the sorted seven-capability
+  inventory. Native builds use the TCP adapter. npm/Web builds expose
+  `createFixture`, one-shot `createInvocation`, and authenticated
+  `instantiate`; they accept only `semaprax.network-fixture.v1` data and never
+  import Node sockets, WASI sockets, or browser fetch.
+- **CLI fixture execution.** `semaprax network-run <project> --fixture file`
+  executes the manifest command through the fixture provider. Repeated
+  `--arg`, optional `--stdin`, and `--max-steps` configure the bounded command
+  snapshot. The fixture is capped at 1 MiB and eight connections; combined
+  argv/stdin remains capped at 65,536 bytes.
 
 ## Standard library
 
@@ -271,6 +283,7 @@ cargo test --locked -p semaprax --test useful_data -- network_io_interpreter::
 cargo test --locked -p semaprax --test useful_data -- network_io_native::
 cargo test --locked -p semaprax --test useful_data -- network_io_wasm::
 cargo test --locked -p semaprax --test project -- standard_library::
+cargo test --locked -p semaprax --test project -- manifest_v12::
 cargo test --locked -p semaprax --test examples
 ```
 
@@ -287,11 +300,9 @@ they promote no completion row.
 This tranche does not add TLS or certificate policy, DNS policy beyond the
 platform resolver, listen or accept sockets, UDP, HTTP/2 or HTTP/3, a
 request/response type model, structured tasks or cancellation, threads,
-callbacks, timers other than the bounded `net_wait`, connection reuse across
-invocations, proxies, or observability. No Project manifest profile selects
-network I/O yet, so `semaprax build` produces no network-capable native
-binary, npm package, or web package; there is no CLI command that runs a
-network program; and no npm or web lane grants sockets. The example executes
-only through the hosted interpreter seam and the native build lane exercised
-by the gates above. Each of these is sequenced in the
+  callbacks, timers other than the bounded `net_wait`, connection reuse across
+invocations, proxies, or observability. Project v12, its CLI verb, and its
+npm/Web package are developer-preview fixture lanes, not TLS or public socket
+support; npm and browsers gain no real socket authority. Each later protocol
+is sequenced in the
 [roadmap](ROADMAP.md#concurrency-and-services).

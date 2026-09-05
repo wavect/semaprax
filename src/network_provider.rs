@@ -22,7 +22,7 @@
 mod fixture;
 mod tcp;
 
-pub use fixture::FixtureNetworkProvider;
+pub use fixture::{FixtureNetworkProvider, MAX_NETWORK_FIXTURE_BYTES};
 pub use tcp::TcpNetworkProvider;
 
 use crate::network_io_ops;

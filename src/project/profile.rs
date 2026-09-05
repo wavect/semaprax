@@ -7,6 +7,7 @@ pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1: &str = "useful-data-command.v1
 pub const PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2: &str = "useful-data-command.v2";
 pub const PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1: &str = "language-command-io.v1";
 pub const PROJECT_PROFILE_LINE_COMMAND_IO_V1: &str = "line-command-io.v1";
+pub const PROJECT_PROFILE_NETWORK_COMMAND_IO_V1: &str = "network-command-io.v1";
 pub const PROJECT_PROFILE_OWNED_DATA_API_V1: &str = "owned-data-api.v1";
 pub const PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1: &str = "flat-owned-record-api.v1";
 pub const PROJECT_PROFILE_OWNED_UTF8_API_V1: &str = "owned-utf8-api.v1";
@@ -19,6 +20,18 @@ pub const PROJECT_COMMAND_ARGS_READ_CAPABILITY: &str = "process.args.read";
 pub const PROJECT_COMMAND_STDERR_WRITE_CAPABILITY: &str = "process.stderr.write";
 pub const PROJECT_COMMAND_STDIN_READ_CAPABILITY: &str = "process.stdin.read";
 pub const PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2: [&str; 4] = [
+    PROJECT_COMMAND_ARGS_READ_CAPABILITY,
+    PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,
+    PROJECT_COMMAND_STDIN_READ_CAPABILITY,
+    PROJECT_COMMAND_STDOUT_CAPABILITY,
+];
+/// Fixed authority inventory admitted only by Project v12. Network authority
+/// stays inert until a native socket provider or an invocation-owned fixture
+/// provider is explicitly supplied by the host.
+pub const PROJECT_NETWORK_COMMAND_CAPABILITIES_V1: [&str; 7] = [
+    "network.connect",
+    "network.read",
+    "network.write",
     PROJECT_COMMAND_ARGS_READ_CAPABILITY,
     PROJECT_COMMAND_STDERR_WRITE_CAPABILITY,
     PROJECT_COMMAND_STDIN_READ_CAPABILITY,
@@ -42,6 +55,7 @@ pub enum ProjectProfile {
     UsefulDataCommandV2,
     LanguageCommandIoV1,
     LineCommandIoV1,
+    NetworkCommandIoV1,
     OwnedDataApiV1,
     FlatOwnedRecordApiV1,
     OwnedUtf8ApiV1,
@@ -68,6 +82,7 @@ impl ProjectProfile {
             Self::UsefulDataCommandV2 => Some(PROJECT_PROFILE_USEFUL_DATA_COMMAND_V2),
             Self::LanguageCommandIoV1 => Some(PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1),
             Self::LineCommandIoV1 => Some(PROJECT_PROFILE_LINE_COMMAND_IO_V1),
+            Self::NetworkCommandIoV1 => Some(PROJECT_PROFILE_NETWORK_COMMAND_IO_V1),
             Self::OwnedDataApiV1 => Some(PROJECT_PROFILE_OWNED_DATA_API_V1),
             Self::FlatOwnedRecordApiV1 => Some(PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1),
             Self::OwnedUtf8ApiV1 => Some(PROJECT_PROFILE_OWNED_UTF8_API_V1),

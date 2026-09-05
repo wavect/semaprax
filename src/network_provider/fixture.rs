@@ -34,6 +34,8 @@ use crate::diagnostic::Diagnostic;
 
 /// The exact schema identity a fixture document must carry.
 pub const FIXTURE_SCHEMA: &str = "semaprax.network-fixture.v1";
+/// Maximum canonical fixture document bytes accepted by any host lane.
+pub const MAX_NETWORK_FIXTURE_BYTES: usize = 1_048_576;
 
 const FIXTURE_DIAGNOSTIC_CODE: &str = "SPX-F110";
 
@@ -68,6 +70,11 @@ impl FixtureNetworkProvider {
     /// Parse one `semaprax.network-fixture.v1` document. Unknown keys, a
     /// foreign schema identity, or an ill-typed field fail closed.
     pub fn from_json(document: &str) -> Result<Self, Diagnostic> {
+        if document.len() > MAX_NETWORK_FIXTURE_BYTES {
+            return Err(fixture_error(format!(
+                "network fixture exceeds the {MAX_NETWORK_FIXTURE_BYTES}-byte limit"
+            )));
+        }
         let value: Value = serde_json::from_str(document)
             .map_err(|error| fixture_error(format!("network fixture is not JSON: {error}")))?;
         let root = value
@@ -92,6 +99,12 @@ impl FixtureNetworkProvider {
             .get("connections")
             .and_then(Value::as_array)
             .ok_or_else(|| fixture_error("network fixture must carry a `connections` array"))?;
+        if connections.len() > crate::network_io_ops::MAX_HANDLES as usize {
+            return Err(fixture_error(format!(
+                "network fixture exceeds the {}-connection limit",
+                crate::network_io_ops::MAX_HANDLES
+            )));
+        }
         let connections = connections
             .iter()
             .enumerate()
@@ -364,5 +377,30 @@ mod tests {
             let error = FixtureNetworkProvider::from_json(document).unwrap_err();
             assert_eq!(error.code, FIXTURE_DIAGNOSTIC_CODE, "{document}");
         }
+    }
+
+    #[test]
+    fn fixture_document_and_connection_counts_are_bounded() {
+        let oversized = " ".repeat(MAX_NETWORK_FIXTURE_BYTES + 1);
+        assert_eq!(
+            FixtureNetworkProvider::from_json(&oversized)
+                .unwrap_err()
+                .code,
+            FIXTURE_DIAGNOSTIC_CODE
+        );
+        let connection = r#"{"host":"a","port":1}"#;
+        let too_many = format!(
+            r#"{{"schema":"semaprax.network-fixture.v1","connections":[{}]}}"#,
+            std::iter::repeat(connection)
+                .take(9)
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+        assert_eq!(
+            FixtureNetworkProvider::from_json(&too_many)
+                .unwrap_err()
+                .code,
+            FIXTURE_DIAGNOSTIC_CODE
+        );
     }
 }

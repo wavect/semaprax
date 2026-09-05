@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the developer-preview `network-command-io.v1` Project v12 profile,
+  native and deterministic fixture-only npm/Web build lanes, the bounded
+  `semaprax network-run --fixture` command, and a committed HTTP Project
+  fixture. Browser and npm packages receive no ambient or real socket
+  authority.
 - Added the authority-free, transport-neutral Persistent Incremental Semantic
   Workspace Service v1 core. A process can retain one immutable Project,
   Canonical Semantic Workspace Revision, Semantic Workspace Image, and semantic

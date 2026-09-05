@@ -210,6 +210,139 @@ pub(super) fn run_interpreted_source(
     publish_interpretation(&interpretation.envelope)
 }
 
+pub(super) fn run_network_project(options: &cli::execution::NetworkRunOptions) -> Result<(), u8> {
+    use interpreter::CommandEvaluationOutcome;
+
+    const MAX_COMMAND_INPUT_BYTES: usize = 65_536;
+    let fixture = read_bounded_file(
+        &options.fixture_path,
+        semaprax::network_provider::MAX_NETWORK_FIXTURE_BYTES,
+        "network fixture",
+    )?;
+    let fixture = String::from_utf8(fixture).map_err(|_| {
+        report(
+            &[Diagnostic::io("SPX-F110", "network fixture is not UTF-8")],
+            false,
+        )
+    })?;
+    let mut provider = semaprax::network_provider::FixtureNetworkProvider::from_json(&fixture)
+        .map_err(|error| report(&[error], false))?;
+    let stdin = match &options.stdin_path {
+        Some(path) => read_bounded_file(path, MAX_COMMAND_INPUT_BYTES, "network stdin")?,
+        None => Vec::new(),
+    };
+    let argument_bytes = options
+        .arguments
+        .iter()
+        .try_fold(0usize, |total, argument| {
+            total
+                .checked_add(argument.len())
+                .filter(|sum| *sum <= MAX_COMMAND_INPUT_BYTES)
+        });
+    if argument_bytes
+        .and_then(|total| total.checked_add(stdin.len()))
+        .is_none_or(|total| total > MAX_COMMAND_INPUT_BYTES)
+    {
+        return Err(report(
+            &[Diagnostic::io(
+                "SPX-F111",
+                "network command argv and stdin exceed the 65536-byte invocation limit",
+            )],
+            false,
+        ));
+    }
+    let input = hosted_interpreter::HostedCommandInput {
+        arguments: options.arguments.clone(),
+        stdin,
+    };
+    let max_steps = options
+        .max_steps
+        .unwrap_or_else(|| interpreter::InterpreterOptions::default().max_steps);
+    let result = project::with_authenticated_project(&options.manifest_path, |snapshot| {
+        snapshot.execute_network_command(&input, &mut provider, max_steps)
+    })
+    .map_err(|errors| report(&errors, false))?;
+
+    std::io::stdout()
+        .write_all(&result.stdout)
+        .map_err(|error| {
+            report(
+                &[Diagnostic::io(
+                    "SPX-I101",
+                    format!("cannot write stdout: {error}"),
+                )],
+                false,
+            )
+        })?;
+    std::io::stderr()
+        .write_all(&result.stderr)
+        .map_err(|error| {
+            report(
+                &[Diagnostic::io(
+                    "SPX-I101",
+                    format!("cannot write stderr: {error}"),
+                )],
+                false,
+            )
+        })?;
+    match result.evaluation.outcome {
+        CommandEvaluationOutcome::ReturnedBool(true) => Ok(()),
+        CommandEvaluationOutcome::ReturnedBool(false) => Err(1),
+        CommandEvaluationOutcome::LanguageFailure(status) => {
+            eprintln!(
+                "network command failed with language status {}",
+                status.to_json()
+            );
+            Err(1)
+        }
+        CommandEvaluationOutcome::FuelExhausted => {
+            eprintln!("network command exhausted its step budget");
+            Err(1)
+        }
+        CommandEvaluationOutcome::CallDepthExceeded => {
+            eprintln!("network command exceeded the call-depth limit");
+            Err(1)
+        }
+        CommandEvaluationOutcome::GuardError(detail) => {
+            Err(report(&[Diagnostic::io("SPX-F105", detail)], false))
+        }
+    }
+}
+
+fn read_bounded_file(path: &Path, max_bytes: usize, label: &str) -> Result<Vec<u8>, u8> {
+    let file = std::fs::File::open(path).map_err(|error| {
+        report(
+            &[Diagnostic::io(
+                "SPX-I001",
+                format!("cannot read {label} {}: {error}", path.display()),
+            )],
+            false,
+        )
+    })?;
+    let mut bytes = Vec::with_capacity(max_bytes.min(64 * 1024));
+    file.take(max_bytes.saturating_add(1) as u64)
+        .read_to_end(&mut bytes)
+        .map_err(|error| {
+            report(
+                &[Diagnostic::io(
+                    "SPX-I001",
+                    format!("cannot read {label} {}: {error}", path.display()),
+                )],
+                false,
+            )
+        })?;
+    if bytes.len() > max_bytes {
+        return Err(report(
+            &[Diagnostic::io(
+                "SPX-F111",
+                format!("{label} exceeds the {max_bytes}-byte limit"),
+            )],
+            false,
+        ));
+    }
+    Ok(bytes)
+}
+
 pub(super) fn publish_interpretation(envelope: &str) -> Result<(), u8> {
     let parsed: serde_json::Value = serde_json::from_str(envelope).map_err(|error| {
         report(

@@ -12,6 +12,7 @@ mod command_v4;
 mod data;
 mod flat_owned_record;
 mod nested_owned_record;
+mod network_command;
 mod owned_data;
 mod owned_utf8;
 mod publication_plan;
@@ -29,16 +30,18 @@ use crate::diagnostic::{quote_json, Diagnostic};
 use super::{ProjectManifest, PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1};
 
 use carrier::{
-    artifact, json_string, payload_digest, payload_digest_artifacts_v2,
-    payload_digest_artifacts_v3, payload_digest_artifacts_v4, payload_digest_artifacts_v5,
-    payload_digest_artifacts_v6, render_carrier, render_carrier_artifacts, require_exact_keys,
-    trusted_binding, validate_carrier_limit, NpmArtifact, NpmBuildIdentity,
+    artifact, json_string, payload_digest, payload_digest_artifacts_v11,
+    payload_digest_artifacts_v2, payload_digest_artifacts_v3, payload_digest_artifacts_v4,
+    payload_digest_artifacts_v5, payload_digest_artifacts_v6, render_carrier,
+    render_carrier_artifacts, require_exact_keys, trusted_binding, validate_carrier_limit,
+    NpmArtifact, NpmBuildIdentity,
 };
 pub use carrier::{
     ProjectNpmBuild, MAX_PROJECT_NPM_BUILD_BYTES, PROJECT_NPM_BUILD_SCHEMA,
-    PROJECT_NPM_BUILD_SCHEMA_V10, PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3,
-    PROJECT_NPM_BUILD_SCHEMA_V4, PROJECT_NPM_BUILD_SCHEMA_V5, PROJECT_NPM_BUILD_SCHEMA_V6,
-    PROJECT_NPM_BUILD_SCHEMA_V7, PROJECT_NPM_BUILD_SCHEMA_V8, PROJECT_NPM_BUILD_SCHEMA_V9,
+    PROJECT_NPM_BUILD_SCHEMA_V10, PROJECT_NPM_BUILD_SCHEMA_V11, PROJECT_NPM_BUILD_SCHEMA_V2,
+    PROJECT_NPM_BUILD_SCHEMA_V3, PROJECT_NPM_BUILD_SCHEMA_V4, PROJECT_NPM_BUILD_SCHEMA_V5,
+    PROJECT_NPM_BUILD_SCHEMA_V6, PROJECT_NPM_BUILD_SCHEMA_V7, PROJECT_NPM_BUILD_SCHEMA_V8,
+    PROJECT_NPM_BUILD_SCHEMA_V9,
 };
 
 pub(crate) fn prepare_owned_data(
@@ -188,6 +191,16 @@ pub(crate) fn prepare(
     project_graph_digest: &str,
     max_bytes: usize,
 ) -> Result<ProjectNpmBuild, Diagnostic> {
+    if manifest.is_v12() {
+        return network_command::prepare(
+            manifest,
+            program,
+            project_revision,
+            workspace_revision,
+            project_graph_digest,
+            max_bytes,
+        );
+    }
     if manifest.is_v11() {
         let version = manifest
             .package_version()
@@ -478,7 +491,12 @@ fn render_semantic_recipe_profile(
             crate::command_io_ops::STDERR_WRITE_EFFECT,
             crate::command_io_ops::STDIN_READ_EFFECT,
             crate::host_io_ops::STDOUT_WRITE_EFFECT,
-        ];
+        ]
+        || program
+            .permits
+            .iter()
+            .map(String::as_str)
+            .eq(crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1);
     let mut output = if command_io {
         format!(
             "module semaprax_npm_recipe;\n\npermit {{ {} }}\n\n",

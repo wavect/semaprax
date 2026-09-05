@@ -424,12 +424,46 @@ pub(crate) fn link_line_command_io_workspace(
     )
 }
 
+/// Assemble the Project-v12 bounded network-command closure. Target adapters
+/// still require an explicitly injected provider before any network authority
+/// exists.
+pub(crate) fn link_network_command_io_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    command: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        linked_functions,
+        WorkspaceIoProfile::NetworkCommand { command },
+    )
+}
+
+/// Retain the Project-v12 entry module before the selected command is added
+/// as an authenticated public root. No command identity is inferred here.
+pub(crate) fn link_network_entry_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        linked_functions,
+        WorkspaceIoProfile::NetworkEntry,
+    )
+}
+
 #[derive(Clone, Eq, PartialEq)]
 enum WorkspaceIoProfile {
     Pure,
     Stdout,
     LanguageCommand { command: DeclarationId },
     LineCommand { command: DeclarationId },
+    NetworkCommand { command: DeclarationId },
+    NetworkEntry,
 }
 
 fn link_useful_data_workspace_profile(
@@ -476,6 +510,12 @@ fn link_useful_data_workspace_profile(
                         | crate::command_io_ops::STDERR_WRITE_EFFECT
                         | crate::command_io_ops::STDOUT_WRITE_EFFECT
                 )
+            }),
+            WorkspaceIoProfile::NetworkCommand { .. } => function.effects.iter().all(|effect| {
+                crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1.contains(&effect.as_str())
+            }),
+            WorkspaceIoProfile::NetworkEntry => function.effects.iter().all(|effect| {
+                crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1.contains(&effect.as_str())
             }),
         };
         let return_admitted = useful_data_workspace_return_admitted(&function.return_type);
@@ -575,6 +615,18 @@ fn link_useful_data_workspace_profile(
                 crate::command_io_ops::STDIN_READ_EFFECT.to_owned(),
                 crate::command_io_ops::STDOUT_WRITE_EFFECT.to_owned(),
             ],
+            WorkspaceIoProfile::NetworkCommand { .. } => {
+                crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1
+                    .iter()
+                    .map(|effect| (*effect).to_owned())
+                    .collect()
+            }
+            WorkspaceIoProfile::NetworkEntry => {
+                crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1
+                    .iter()
+                    .map(|effect| (*effect).to_owned())
+                    .collect()
+            }
         },
         entrypoint,
         declarations,
@@ -599,7 +651,16 @@ fn link_useful_data_workspace_profile(
                 crate::command_io_ops::CommandOperationProfile::LineV1,
             )?;
         }
-        WorkspaceIoProfile::Pure | WorkspaceIoProfile::Stdout => {}
+        WorkspaceIoProfile::NetworkCommand { command } => {
+            crate::command_io_ops::validate_operation_profile(
+                &linked,
+                command,
+                crate::command_io_ops::CommandOperationProfile::NetworkV1,
+            )?;
+        }
+        WorkspaceIoProfile::Pure
+        | WorkspaceIoProfile::Stdout
+        | WorkspaceIoProfile::NetworkEntry => {}
     }
     analyze_byte_data_capacity(&linked)?;
     rebuild_cleanup_metadata(&mut linked)?;

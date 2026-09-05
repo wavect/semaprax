@@ -91,6 +91,8 @@ mod manifest_hints;
 mod manifest_v10;
 #[path = "project/manifest_v11.rs"]
 mod manifest_v11;
+#[path = "project/manifest_v12.rs"]
+mod manifest_v12;
 #[path = "project/manifest_v4.rs"]
 mod manifest_v4;
 #[path = "project/manifest_v5.rs"]

@@ -284,3 +284,19 @@ authority.
   exact receipt, reports refetches as `present`, feeds `resolve` directly, and
   rejects tampered, foreign, missing, and colliding subjects before any write.
 - Unit tests pin the closed grammars, the route table, and the namespace map.
+
+## `semaprax network-run`
+
+```sh
+semaprax network-run [<dir>|semaprax.toml|--manifest-path path] \
+  --fixture fixture.json [--arg UTF8]... [--stdin path] [--max-steps N]
+```
+
+`network-run` is the deterministic execution verb for the exact Project v12
+`network-command-io.v1` profile. It authenticates the Project, injects one
+bounded `semaprax.network-fixture.v1` provider, and executes the manifest's
+selected command. It never constructs the TCP provider and therefore never
+opens a socket. The fixture is limited to 1 MiB and eight connections;
+combined argv/stdin remains limited to 65,536 bytes. Successful `true` writes
+the settled success-only transcripts and exits zero; `false` exits one, and
+all failed outcomes publish no transcript.

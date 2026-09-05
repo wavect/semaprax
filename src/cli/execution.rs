@@ -19,6 +19,106 @@ pub(crate) struct ExecutionOptions {
     pub(crate) native: bool,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct NetworkRunOptions {
+    pub(crate) manifest_path: PathBuf,
+    pub(crate) fixture_path: PathBuf,
+    pub(crate) arguments: Vec<String>,
+    pub(crate) stdin_path: Option<PathBuf>,
+    pub(crate) max_steps: Option<usize>,
+}
+
+pub(crate) fn parse_network_run(args: &[String]) -> Result<NetworkRunOptions, u8> {
+    let mut positional = None::<PathBuf>;
+    let mut manifest = None::<PathBuf>;
+    let mut fixture = None::<PathBuf>;
+    let mut arguments = Vec::new();
+    let mut stdin_path = None::<PathBuf>;
+    let mut max_steps = None;
+    let mut index = 0;
+    while index < args.len() {
+        let option = args[index].as_str();
+        match option {
+            "--manifest-path" if manifest.is_none() => {
+                manifest = Some(PathBuf::from(option_value(
+                    args,
+                    index,
+                    "network-run",
+                    option,
+                )?));
+                index += 2;
+            }
+            "--fixture" if fixture.is_none() => {
+                fixture = Some(PathBuf::from(option_value(
+                    args,
+                    index,
+                    "network-run",
+                    option,
+                )?));
+                index += 2;
+            }
+            "--arg" => {
+                arguments.push(option_value(args, index, "network-run", option)?.to_owned());
+                index += 2;
+            }
+            "--stdin" if stdin_path.is_none() => {
+                stdin_path = Some(PathBuf::from(option_value(
+                    args,
+                    index,
+                    "network-run",
+                    option,
+                )?));
+                index += 2;
+            }
+            "--max-steps" if max_steps.is_none() => {
+                max_steps = Some(positive_number(
+                    "network-run",
+                    option,
+                    number_option_value(args, index, "network-run", option)?,
+                )?);
+                index += 2;
+            }
+            value if value.starts_with('-') => {
+                eprintln!("unknown network-run option `{value}` or repeated singleton option");
+                return Err(2);
+            }
+            value if positional.is_none() => {
+                positional = Some(PathBuf::from(value));
+                index += 1;
+            }
+            _ => {
+                eprintln!("network-run accepts at most one project selector");
+                return Err(2);
+            }
+        }
+    }
+    if positional.is_some() && manifest.is_some() {
+        eprintln!("network-run cannot combine a project path with --manifest-path");
+        return Err(2);
+    }
+    if arguments.len() > 16 {
+        eprintln!("network-run accepts at most 16 --arg values");
+        return Err(2);
+    }
+    let fixture_path = fixture.ok_or_else(|| {
+        eprintln!("network-run requires --fixture <fixture.json>");
+        2
+    })?;
+    let manifest_path = match (positional, manifest) {
+        (None, None) => PathBuf::from(DEFAULT_MANIFEST),
+        (None, Some(path)) => normalize_project_path(path),
+        (Some(path), None) => resolve_positional(path),
+        (Some(_), Some(_)) => unreachable!("ambiguity rejected above"),
+    };
+    Ok(NetworkRunOptions {
+        manifest_path,
+        fixture_path,
+        arguments,
+        stdin_path,
+        max_steps,
+    })
+}
+
 pub(crate) fn parse_run(args: &[String]) -> Result<ExecutionOptions, u8> {
     parse(args, "run", true)
 }

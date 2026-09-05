@@ -9,6 +9,7 @@ mod collect_block;
 mod expressions;
 pub(super) mod internal_strings;
 mod nested_owned;
+mod network_io;
 mod owned_stack;
 mod owned_strings;
 
@@ -295,7 +296,7 @@ impl FunctionPlan {
             && program
                 .permits
                 .iter()
-                .any(|effect| effect == crate::command_io_ops::ARGS_READ_EFFECT))
+                .any(|effect| super::command_io::needs_command_byte(effect)))
         .then(|| add_local(I32))
         .transpose()?;
         let external_root_bytes = function
@@ -1381,6 +1382,7 @@ fn emit_byte_exports_profile(
         ));
     }
     let line_command_io = command_io.is_some_and(super::command_io::CommandPlan::is_line_command);
+    let network_io = command_io.is_some_and(super::command_io::CommandPlan::is_network_command);
     if program
         .types
         .iter()
@@ -1394,7 +1396,7 @@ fn emit_byte_exports_profile(
         record_layout.validate(program)?;
     }
 
-    let public_global_count = if line_command_io {
+    let public_global_count = if line_command_io || network_io {
         16_u32
     } else if command_io.is_some() {
         15
@@ -1524,11 +1526,7 @@ fn emit_byte_exports_profile(
         ));
     }
 
-    let command_import_count = if command_io.is_some() {
-        super::command_io::IMPORT_COUNT
-    } else {
-        0
-    };
+    let command_import_count = command_io.map_or(0, super::command_io::CommandPlan::import_count);
     let command_import_types = command_io.map(|_| {
         (
             intern_type(
@@ -1565,6 +1563,8 @@ fn emit_byte_exports_profile(
             ),
         )
     });
+    let network_import_types =
+        network_io.then(|| super::network_io::intern_import_types(&mut types, &mut type_indexes));
     let owned_utf8_validate = (!owned_plans.is_empty()).then(|| {
         intern_type(
             Signature {
@@ -1632,6 +1632,9 @@ fn emit_byte_exports_profile(
             "spx_command_owned_bytes_validate_v1",
             owned_validate,
         );
+    }
+    if let Some(types) = &network_import_types {
+        super::network_io::emit_imports(&mut imports, types);
     }
     if let Some(ty) = owned_utf8_validate {
         function_import(&mut imports, "env", "spx_owned_utf8_validate_v1", ty);
@@ -1705,7 +1708,7 @@ fn emit_byte_exports_profile(
         // Generic language failures continue to use only the ordinary status
         // global and must never be attributed to this domain.
         globals.extend([I32, 0x01, 0x41, 0x00, 0x0b]);
-        if line_command_io {
+        if line_command_io || network_io {
             super::line_command_io::append_global(&mut globals);
         }
     }
@@ -1717,7 +1720,7 @@ fn emit_byte_exports_profile(
     let mut exports = Vec::new();
     write_u32(
         &mut exports,
-        (if line_command_io {
+        (if line_command_io || network_io {
             12_u32
         } else if command_io.is_some() {
             11_u32
@@ -1754,6 +1757,8 @@ fn emit_byte_exports_profile(
         write_u32(&mut exports, super::command_io::INPUT_STATUS_GLOBAL);
         if line_command_io {
             super::line_command_io::append_export(&mut exports);
+        } else if network_io {
+            super::network_io::append_export(&mut exports);
         }
     }
     let wrapper_base = import_count
@@ -1877,7 +1882,7 @@ fn emit_byte_exports_profile(
             .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
             .copied()
             .ok_or_else(|| error("selected Language Command target is not indexed"))?;
-        let body = super::command_io::emit_wrapper_body(target, line_command_io);
+        let body = super::command_io::emit_wrapper_body(target, plan);
         write_u32(&mut code, body.len() as u32);
         code.extend(body);
     }
@@ -5083,6 +5088,9 @@ impl Emitter<'_> {
         self.emit_pointer(pointer);
         self.output.extend([0x42, 0x00, 0x37, 0x03, 0x00]);
         match call.operation {
+            network if crate::network_io_ops::is_network(network) => {
+                return self.emit_network_command_call(expr, call, &arguments, local, pointer);
+            }
             Op::ArgUtf8 => {
                 self.require_scalar(&arguments[0], &ResolvedType::Usize, "arg_utf8 index")?;
                 self.get_scalar(&arguments[0]);
@@ -5152,6 +5160,7 @@ impl Emitter<'_> {
                 });
             }
             Op::ArgsLen => unreachable!("handled above"),
+            _ => unreachable!("network operations return above"),
         }
         self.output.push(0x21);
         write_u32(self.output, self.plan.status);

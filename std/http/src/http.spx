@@ -1,0 +1,167 @@
+module std.http;
+
+@id("std.http.digit_value")
+fn digit_value(byte: u8) -> i64
+    ensures result >= -1 && result <= 9
+{
+    match byte { 48u8 => 0, 49u8 => 1, 50u8 => 2, 51u8 => 3, 52u8 => 4, 53u8 => 5, 54u8 => 6, 55u8 => 7, 56u8 => 8, 57u8 => 9, _ => -1, }
+}
+
+@id("std.http.digit_at")
+fn digit_at(view: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 9
+{
+    match byte_get(view, index) { Option::Some { value: byte } => digit_value(byte), Option::None {} => -1, }
+}
+
+@id("std.http.byte_is")
+fn byte_is(view: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(view, index) { Option::Some { value: byte } => byte == expected, Option::None {} => false, }
+}
+
+@id("std.http.lower")
+fn lower(byte: u8) -> u8
+{
+    if byte >= 65u8 && byte <= 90u8 { byte + 32u8 } else { byte }
+}
+
+@id("std.http.method_is_valid")
+fn method_is_valid(method: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(method);
+    let mut index = 0usize;
+    let mut valid = length >= 1usize && length <= 16usize;
+    while index < length && valid {
+        valid = match byte_get(method, index) { Option::Some { value: byte } => byte >= 65u8 && byte <= 90u8, Option::None {} => false, };
+        index = index + 1usize;
+        index < length && valid
+    }
+    valid
+}
+
+@id("std.http.status_code")
+fn status_code(response: borrow Slice<u8>) -> i64
+    ensures result >= -1 && result <= 999
+{
+    let version = byte_is(response, 0usize, 72u8) && byte_is(response, 1usize, 84u8) && byte_is(response, 2usize, 84u8) && byte_is(response, 3usize, 80u8) && byte_is(response, 4usize, 47u8) && byte_is(response, 5usize, 49u8) && byte_is(response, 6usize, 46u8) && digit_at(response, 7usize) >= 0 && byte_is(response, 8usize, 32u8);
+    let hundreds = digit_at(response, 9usize);
+    let tens = digit_at(response, 10usize);
+    let ones = digit_at(response, 11usize);
+    if version && hundreds >= 1 && tens >= 0 && ones >= 0 { hundreds * 100 + tens * 10 + ones } else { -1 }
+}
+
+@id("std.http.is_success")
+fn is_success(code: i64) -> bool
+{
+    code >= 200 && code <= 299
+}
+
+@id("std.http.terminator")
+fn terminator(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+{
+    let length = byte_len(response);
+    let mut index = 0usize;
+    let mut found = false;
+    while index + 4usize <= length && !found {
+        found = byte_is(response, index, 13u8) && byte_is(response, index + 1usize, 10u8) && byte_is(response, index + 2usize, 13u8) && byte_is(response, index + 3usize, 10u8);
+        index = if found { index } else { index + 1usize };
+        index + 4usize <= length && !found
+    }
+    if found { index } else { length }
+}
+
+@id("std.http.has_header_end")
+fn has_header_end(response: borrow Slice<u8>) -> bool
+{
+    terminator(response) + 4usize <= byte_len(response)
+}
+
+@id("std.http.header_end")
+fn header_end(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+{
+    let end = terminator(response);
+    if end + 4usize <= byte_len(response) { end + 4usize } else { byte_len(response) }
+}
+
+@id("std.http.body_len")
+fn body_len(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+{
+    byte_len(response) - header_end(response)
+}
+
+@id("std.http.name_at")
+fn name_at(response: borrow Slice<u8>, index: usize) -> bool
+{
+    let name = [99u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 108u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8];
+    let view = array_as_slice(name);
+    let mut offset = 0usize;
+    let mut same = true;
+    while offset < 15usize && same {
+        same = match byte_get(response, index + offset) { Option::Some { value: byte } => byte_is(view, offset, lower(byte)), Option::None {} => false, };
+        offset = offset + 1usize;
+        offset < 15usize && same
+    }
+    same
+}
+
+@id("std.http.length_start")
+fn length_start(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+{
+    let end = terminator(response);
+    let mut index = 0usize;
+    let mut found = false;
+    while index + 15usize <= end && !found {
+        found = (index == 0usize || byte_is(response, index - 1usize, 10u8)) && name_at(response, index);
+        index = if found { index } else { index + 1usize };
+        index + 15usize <= end && !found
+    }
+    if found { index } else { end }
+}
+
+@id("std.http.skip_blanks")
+fn skip_blanks(view: borrow Slice<u8>, cursor: usize) -> usize
+    ensures result >= cursor
+{
+    let mut next = cursor;
+    let mut skipping = true;
+    while skipping {
+        skipping = byte_is(view, next, 32u8) || byte_is(view, next, 9u8);
+        next = if skipping { next + 1usize } else { next };
+        skipping
+    }
+    next
+}
+
+@id("std.http.decimal_at")
+fn decimal_at(view: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1
+{
+    let mut cursor = start;
+    let mut value = 0;
+    let mut digits = 0;
+    let mut reading = true;
+    while reading {
+        let digit = digit_at(view, cursor);
+        reading = digit >= 0 && digits < 15;
+        value = if reading { value * 10 + digit } else { value };
+        digits = if reading { digits + 1 } else { digits };
+        cursor = if reading { cursor + 1usize } else { cursor };
+        reading
+    }
+    let after = skip_blanks(view, cursor);
+    if digits >= 1 && (after >= byte_len(view) || byte_is(view, after, 13u8)) { value } else { -1 }
+}
+
+@id("std.http.content_length")
+fn content_length(response: borrow Slice<u8>) -> i64
+    ensures result >= -1
+{
+    let end = terminator(response);
+    let start = length_start(response);
+    if end + 4usize <= byte_len(response) && start + 15usize <= end { decimal_at(response, skip_blanks(response, start + 15usize)) } else { -1 }
+}

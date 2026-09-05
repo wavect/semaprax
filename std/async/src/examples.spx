@@ -1,0 +1,21 @@
+module std.async.examples;
+use function @id("std.async.next_handle") from std.async as next_handle;
+use function @id("std.async.next_timeout_ms") from std.async as next_timeout_ms;
+use function @id("std.async.should_retry") from std.async as should_retry;
+use function @id("std.async.stream_ended") from std.async as stream_ended;
+
+@id("std.async.examples.main")
+fn main() -> i64
+{
+    let mut attempt = 0usize;
+    let mut handle = 1usize;
+    let mut waited = 0usize;
+    while should_retry(0usize, attempt, 4usize) {
+        waited = waited + next_timeout_ms(attempt, 100usize, 30000usize);
+        handle = next_handle(handle, 3usize);
+        attempt = attempt + 1usize;
+        should_retry(0usize, attempt, 4usize)
+    }
+    let last_chunk = [7u8];
+    if waited == 1500usize && handle == 2usize && attempt == 4usize && !stream_ended(array_as_slice(last_chunk)) { 0 } else { 1 }
+}

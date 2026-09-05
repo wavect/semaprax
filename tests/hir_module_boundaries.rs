@@ -3,6 +3,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     let validation = concat!(
         include_str!("../src/hir/validation.rs"),
         include_str!("../src/hir/validation/borrowed_str.rs"),
+        include_str!("../src/hir/validation/host_command.rs"),
         include_str!("../src/hir/validation/type_profiles.rs"),
         include_str!("../src/hir/validation/unsafe_scan.rs"),
     );

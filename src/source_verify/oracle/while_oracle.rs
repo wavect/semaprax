@@ -194,17 +194,24 @@ pub(super) fn reject_while_disallowed_oracle(
                 ));
                 return Err(());
             }
-            if crate::command_io_ops::by_name(name).is_some_and(|operation| {
-                !matches!(
-                    operation,
-                    crate::hir::ResolvedHostCommandOperation::StdoutAppend
-                        | crate::hir::ResolvedHostCommandOperation::StderrAppend
-                )
-            }) {
+            if crate::command_io_ops::by_name(name)
+                .is_some_and(|operation| !crate::command_io_ops::admitted_in_while(operation))
+            {
                 diagnostics.push(error(
                     program,
                     "SPX-T270",
                     format!("command I/O operation `{name}` is not admitted in while bodies"),
+                    expression.span,
+                ));
+                return Err(());
+            }
+            if crate::command_io_ops::by_name(name)
+                .is_some_and(|operation| args.len() != crate::command_io_ops::arity(operation))
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T270",
+                    format!("invalid command I/O operation `{name}` call shape"),
                     expression.span,
                 ));
                 return Err(());

@@ -1,0 +1,13 @@
+module std.net.examples;
+use function @id("std.net.host_is_valid") from std.net as host_is_valid;
+use function @id("std.net.is_ipv4") from std.net as is_ipv4;
+use function @id("std.net.port_is_valid") from std.net as port_is_valid;
+use function @id("std.net.wait_is_readable") from std.net as wait_is_readable;
+
+@id("std.net.examples.main")
+fn main() -> i64
+{
+    let host = [101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 111u8, 114u8, 103u8];
+    let loopback = [49u8, 50u8, 55u8, 46u8, 48u8, 46u8, 48u8, 46u8, 49u8];
+    if host_is_valid(array_as_slice(host)) && !is_ipv4(array_as_slice(host)) && is_ipv4(array_as_slice(loopback)) && port_is_valid(80usize) && wait_is_readable(1usize) { 0 } else { 1 }
+}

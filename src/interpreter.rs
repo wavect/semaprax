@@ -63,6 +63,7 @@ mod expression_children;
 mod failure_detail;
 pub mod internal_strings;
 mod nested_owned;
+pub(crate) mod network;
 mod prepared;
 mod resolved_case;
 
@@ -3049,6 +3050,7 @@ pub(crate) fn evaluate_resolved_language_command(
             .collect(),
         stdin: Arc::from(stdin),
         stdin_consumed: false,
+        network: None,
     };
     let mut evaluator = Evaluator {
         admitted: FunctionLookup::Borrowed(&admitted),
@@ -3521,7 +3523,7 @@ struct Evaluator<'a> {
     utf8_materialization_budget: Utf8MaterializationBudget,
     stdout_transcript: Option<Vec<u8>>,
     stderr_transcript: Option<Vec<u8>>,
-    command_input: Option<CommandInputState>,
+    command_input: Option<CommandInputState<'a>>,
     cancellation: PreparedCancellation<'a>,
     trace_limit: usize,
     trace_events: Vec<ResolvedTraceEvent>,
@@ -3532,7 +3534,8 @@ struct Evaluator<'a> {
     failure_detail: Option<ContractFailureDetail>,
 }
 
-struct CommandInputState {
+struct CommandInputState<'a> {
+    network: Option<network::NetworkState<'a>>,
     arguments: Vec<Arc<[u8]>>,
     stdin: Arc<[u8]>,
     stdin_consumed: bool,
@@ -4122,6 +4125,14 @@ impl Evaluator<'_> {
             ResolvedExprKind::HostCommandCall(call) => {
                 use hir::ResolvedHostCommandOperation as Operation;
                 match call.operation {
+                    Operation::NetConnect
+                    | Operation::NetSend
+                    | Operation::NetRecv
+                    | Operation::NetStreamStdout
+                    | Operation::NetWait
+                    | Operation::NetClose => {
+                        self.evaluate_network_operation(call, environment, depth)
+                    }
                     Operation::ArgsLen => {
                         if !call.args.is_empty() {
                             return Err(Flow::Guard("invalid args_len arity"));

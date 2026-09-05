@@ -511,7 +511,9 @@ on the interpreter, native C11, and Core Wasm lanes.
   metadata;
 - deterministic effect handlers for tests, then the `hosted` tier modules in
   the order the Everyday profile needs them: `std.env`, `std.io`, `std.fs`,
-  `std.path`, `std.time`, `std.process`;
+  `std.path`, `std.time`, `std.process`; the network fixture provider of
+  [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md) is the
+  first such handler and has local evidence only;
 - `semaprax new cli|service|web|agent` templates available offline; `library`
   exists through both the public capsule and the private staged authority.
 
@@ -540,7 +542,10 @@ without pretending every platform is identical.
 - structured tasks, cancellation, cleanup, `Sendable`, and `Shareable` checks;
 - deterministic effect handlers and test schedule replay;
 - general command, filesystem, network, clock, and service I/O through explicit
-  capabilities;
+  capabilities; the bounded TCP client tranche
+  ([Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)) has
+  landed locally, leaving TLS, DNS policy, listen sockets, a Project manifest
+  profile, npm/web package lanes, and structured tasks;
 - server/edge packaging, observability, deployment diagnostics, and load tests.
 
 ### Application model

@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-http"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.http.examples"
+sources = ["src/examples.spx", "src/http.spx", "src/tests.spx"]
+tests = ["std.http.tests"]
+
+[exports]
+web = ["std.http.body_len", "std.http.content_length", "std.http.has_header_end", "std.http.header_end", "std.http.method_is_valid", "std.http.status_code", "std.http.terminator"]

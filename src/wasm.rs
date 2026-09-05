@@ -8,6 +8,7 @@ use same_file::Handle;
 use sha2::{Digest, Sha256};
 
 use crate::ast::{BinaryOp, Program, UnaryOp};
+use crate::command_io_ops::CommandOperationProfile;
 use crate::diagnostic::{quote_json, Diagnostic};
 use crate::graph;
 use crate::hir::{
@@ -28,6 +29,7 @@ pub mod internal_strings;
 mod line_command_io;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod nested_record_component_v6;
+mod network_io;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod option_propagation_component_v10;
 mod owned;
@@ -903,11 +905,7 @@ pub(crate) fn emit_resolved_language_command_io_v1(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<Vec<u8>, Diagnostic> {
-    let plan = command_io::prepare(
-        program,
-        command_id,
-        crate::command_io_ops::CommandOperationProfile::LanguageV1,
-    )?;
+    let plan = command_io::prepare(program, command_id, CommandOperationProfile::LanguageV1)?;
     aggregate::emit_language_command_io(program, &plan)
 }
 
@@ -919,13 +917,11 @@ pub(crate) fn emit_resolved_line_command_io_v1(
     program: &ResolvedProgram,
     command_id: &str,
 ) -> Result<Vec<u8>, Diagnostic> {
-    let plan = command_io::prepare(
-        program,
-        command_id,
-        crate::command_io_ops::CommandOperationProfile::LineV1,
-    )?;
+    let plan = command_io::prepare(program, command_id, CommandOperationProfile::LineV1)?;
     aggregate::emit_language_command_io(program, &plan)
 }
+
+pub use network_io::emit_language_network_io_v1;
 
 fn emit_resolved_module_internal(
     program: &ResolvedProgram,

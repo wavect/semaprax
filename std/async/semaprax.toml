@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-async"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.async.examples"
+sources = ["src/async.spx", "src/examples.spx", "src/tests.spx"]
+tests = ["std.async.tests"]
+
+[exports]
+web = ["std.async.stream_ended"]

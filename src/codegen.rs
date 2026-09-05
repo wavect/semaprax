@@ -73,6 +73,7 @@ use native_emit::{
     c_function_symbol, c_record_symbol, c_string, emit_function_prototypes, emit_native_prelude,
     function_index, preflight_resource_lowering,
 };
+pub use native_emit::{emit_c_with_network_io, emit_hir_c_with_network_io};
 use native_emit::{emit_hir_c_with_labels, NativeOutputProfile};
 use native_scalar_runtime::NATIVE_SCALAR_RUNTIME_C;
 
@@ -143,11 +144,10 @@ pub fn emit_c_with_stdout_transcript(program: &Program) -> Result<String, Diagno
 
 /// Resolve source and emit the closed native Useful Data Command process.
 ///
-/// The selected stable ID is authenticated by the shared target-neutral
-/// command plan before C generation. The resulting translation unit contains
-/// the memory-only transcript runner and one fixed platform process adapter;
-/// it contains neither the legacy no-argument `main` nor its public failure
-/// reporter.
+/// The selected stable ID is authenticated by the shared target-neutral command plan before
+/// C generation. The resulting translation unit contains the memory-only transcript runner and
+/// one fixed platform process adapter; it contains neither the legacy no-argument `main` nor
+/// its public failure reporter.
 pub fn emit_c_with_native_command(
     program: &Program,
     command_id: &str,

@@ -591,17 +591,18 @@ pub(super) fn check_function_bodies<'p>(
                     return;
                 }
                 if let Some(op) = crate::command_io_ops::by_name(callee) {
-                    let effect = crate::command_io_ops::effect(op);
-                    if !declared.contains(effect) {
-                        diagnostics.push(error(
-                            program,
-                            "SPX-E102",
-                            format!(
-                                "call to `{callee}` requires effect `{effect}`; add it to `{}`",
-                                function.name
-                            ),
-                            span,
-                        ));
+                    for effect in crate::command_io_ops::required_effects(op) {
+                        if !declared.contains(effect) {
+                            diagnostics.push(error(
+                                program,
+                                "SPX-E102",
+                                format!(
+                                    "call to `{callee}` requires effect `{effect}`; add it to `{}`",
+                                    function.name
+                                ),
+                                span,
+                            ));
+                        }
                     }
                     return;
                 }

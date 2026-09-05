@@ -24,6 +24,8 @@ use super::{
 mod compiler;
 mod expression;
 mod nested_owned;
+mod network_io;
+mod output_profile;
 mod owned_strings;
 mod string_views;
 mod symbols;
@@ -34,6 +36,9 @@ pub(super) use compiler::{
     write_and_compile_c, write_and_compile_c_with_mode, write_compile_and_publish_c,
 };
 use nested_owned::{borrowed_aggregate_byte_paths, borrowed_aggregate_path_suffix};
+pub use network_io::{emit_c_with_network_io, emit_hir_c_with_network_io};
+pub(super) use output_profile::NativeOutputProfile;
+use output_profile::StringRuntimeSelection;
 pub(super) use symbols::{c_case_symbol, c_field_symbol, c_record_symbol, c_variant_symbol};
 
 #[path = "../../native_scratch.rs"]
@@ -63,12 +68,11 @@ pub(super) fn emit_hir_c_with_labels(
     let functions = function_index(program)?;
     debug_assert!(resource_abi.resources.is_empty());
     let mut output = crate::bounded_output::CappedString::new();
-    if matches!(
-        output_profile,
-        NativeOutputProfile::UsefulDataCommand
-            | NativeOutputProfile::LanguageCommandIo
-            | NativeOutputProfile::LineCommandIo
-    ) {
+    if output_profile == NativeOutputProfile::NetworkCommandIo {
+        // Feature-test macros must precede the first system include.
+        network_io::emit_feature_macros(&mut output);
+    }
+    if output_profile.is_command() {
         emit_native_prelude_without_public_failure(
             &mut output,
             &resource_abi,
@@ -83,7 +87,9 @@ pub(super) fn emit_hir_c_with_labels(
             output_profile.string_runtime(),
         );
     }
-    if output_profile == NativeOutputProfile::LineCommandIo {
+    if output_profile == NativeOutputProfile::NetworkCommandIo {
+        network_io::emit_runtime(&mut output, program);
+    } else if output_profile == NativeOutputProfile::LineCommandIo {
         native_host_output::emit_line_command_runtime(&mut output);
         native_command_io::emit_line_runtime(&mut output);
     } else if output_profile == NativeOutputProfile::LanguageCommandIo {
@@ -128,22 +134,17 @@ pub(super) fn emit_hir_c_with_labels(
         )?;
     }
 
-    if matches!(
-        output_profile,
-        NativeOutputProfile::UsefulDataCommand
-            | NativeOutputProfile::LanguageCommandIo
-            | NativeOutputProfile::LineCommandIo
-    ) {
+    if output_profile.is_command() {
         let command = selected_command
             .ok_or_else(|| backend_error("native command selection is unavailable"))?;
         let symbol = &functions
             .get(&FunctionExecutionId::Monomorphic(command.clone()))
             .ok_or_else(|| backend_error("selected native command is not indexed"))?
             .symbol;
-        if matches!(
-            output_profile,
-            NativeOutputProfile::LanguageCommandIo | NativeOutputProfile::LineCommandIo
-        ) {
+        if output_profile == NativeOutputProfile::NetworkCommandIo {
+            network_io::emit_runner(&mut output, symbol);
+            native_command_io::emit_process_adapter(&mut output);
+        } else if output_profile.is_language_command() {
             native_command_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);
         } else {
@@ -200,83 +201,6 @@ pub(super) fn emit_hir_c_with_labels(
         .expect("writing to a string cannot fail");
     }
     Ok(output.into_string())
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum NativeOutputProfile {
-    Legacy,
-    OwnedDataProvider,
-    OwnedUtf8Provider,
-    StdoutTranscript,
-    UsefulDataCommand,
-    LanguageCommandIo,
-    LineCommandIo,
-}
-
-/// Representation and provider carrier support are separate decisions:
-/// ordinary and owned-data-provider Strings need length headers but no
-/// additional status/Bytes ABI solely because Strings occur.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct StringRuntimeSelection {
-    length_delimited: bool,
-    provider_carriers: bool,
-    include_instances: bool,
-}
-
-impl StringRuntimeSelection {
-    const FROZEN: Self = Self {
-        length_delimited: false,
-        provider_carriers: false,
-        include_instances: false,
-    };
-}
-
-impl NativeOutputProfile {
-    const fn string_runtime(self) -> StringRuntimeSelection {
-        match self {
-            Self::Legacy | Self::StdoutTranscript | Self::OwnedDataProvider => {
-                StringRuntimeSelection {
-                    length_delimited: true,
-                    provider_carriers: false,
-                    include_instances: true,
-                }
-            }
-            Self::OwnedUtf8Provider => StringRuntimeSelection {
-                length_delimited: true,
-                provider_carriers: true,
-                include_instances: false,
-            },
-            Self::UsefulDataCommand | Self::LanguageCommandIo | Self::LineCommandIo => {
-                StringRuntimeSelection::FROZEN
-            }
-        }
-    }
-
-    const fn tracks_present_strings(self) -> bool {
-        matches!(
-            self,
-            Self::Legacy | Self::StdoutTranscript | Self::OwnedDataProvider
-        )
-    }
-
-    fn tracks_strings(self, function: &ResolvedFunction) -> bool {
-        self == Self::OwnedUtf8Provider
-            || (self.tracks_present_strings() && function_uses_strings(function))
-    }
-
-    const fn supports_stdout_transcript(self) -> bool {
-        matches!(
-            self,
-            Self::StdoutTranscript
-                | Self::UsefulDataCommand
-                | Self::LanguageCommandIo
-                | Self::LineCommandIo
-        )
-    }
-
-    const fn is_language_command(self) -> bool {
-        matches!(self, Self::LanguageCommandIo | Self::LineCommandIo)
-    }
 }
 
 /// Emit one length-indexed, alignment-one C type for each reachable nonempty

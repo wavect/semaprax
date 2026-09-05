@@ -1,0 +1,83 @@
+module std.net.tests;
+use function @id("std.net.digit_or_ten") from std.net as digit_or_ten;
+use function @id("std.net.host_is_valid") from std.net as host_is_valid;
+use function @id("std.net.is_ipv4") from std.net as is_ipv4;
+use function @id("std.net.is_label_byte") from std.net as is_label_byte;
+use function @id("std.net.port_is_valid") from std.net as port_is_valid;
+use function @id("std.net.wait_is_closed") from std.net as wait_is_closed;
+use function @id("std.net.wait_is_readable") from std.net as wait_is_readable;
+use function @id("std.net.wait_is_timeout") from std.net as wait_is_timeout;
+
+@id("std.net.tests.ports")
+fn ports() -> bool
+{
+    port_is_valid(1usize) && port_is_valid(80usize) && port_is_valid(65535usize) && !port_is_valid(0usize) && !port_is_valid(65536usize)
+}
+
+@id("std.net.tests.waits")
+fn waits() -> bool
+{
+    wait_is_timeout(0usize) && !wait_is_timeout(1usize) && wait_is_readable(1usize) && !wait_is_readable(2usize) && wait_is_closed(2usize) && !wait_is_closed(0usize)
+}
+
+@id("std.net.tests.bytes")
+fn bytes() -> bool
+{
+    is_label_byte(97u8) && is_label_byte(90u8) && is_label_byte(48u8) && is_label_byte(45u8) && !is_label_byte(46u8) && !is_label_byte(95u8) && digit_or_ten(48u8) == 0usize && digit_or_ten(57u8) == 9usize && digit_or_ten(46u8) == 10usize
+}
+
+@id("std.net.tests.hosts")
+fn hosts() -> bool
+{
+    let example = [101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 111u8, 114u8, 103u8];
+    let loopback = [49u8, 50u8, 55u8, 46u8, 48u8, 46u8, 48u8, 46u8, 49u8];
+    let dashed = [97u8, 45u8, 98u8];
+    let empty = [0u8; 0];
+    host_is_valid(array_as_slice(example)) && host_is_valid(array_as_slice(loopback)) && host_is_valid(array_as_slice(dashed)) && !host_is_valid(array_as_slice(empty))
+}
+
+@id("std.net.tests.bad_hosts")
+fn bad_hosts() -> bool
+{
+    let leading_dash = [45u8, 97u8, 46u8, 98u8];
+    let trailing_dash = [97u8, 45u8, 46u8, 98u8];
+    let empty_label = [97u8, 46u8, 46u8, 98u8];
+    let trailing_dot = [97u8, 46u8, 98u8, 46u8];
+    let underscore = [97u8, 95u8, 98u8];
+    !host_is_valid(array_as_slice(leading_dash)) && !host_is_valid(array_as_slice(trailing_dash)) && !host_is_valid(array_as_slice(empty_label)) && !host_is_valid(array_as_slice(trailing_dot)) && !host_is_valid(array_as_slice(underscore))
+}
+
+@id("std.net.tests.addresses")
+fn addresses() -> bool
+{
+    let loopback = [49u8, 50u8, 55u8, 46u8, 48u8, 46u8, 48u8, 46u8, 49u8];
+    let broadcast = [50u8, 53u8, 53u8, 46u8, 50u8, 53u8, 53u8, 46u8, 50u8, 53u8, 53u8, 46u8, 50u8, 53u8, 53u8];
+    let zero = [48u8, 46u8, 48u8, 46u8, 48u8, 46u8, 48u8];
+    let name = [101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 111u8, 114u8, 103u8];
+    is_ipv4(array_as_slice(loopback)) && is_ipv4(array_as_slice(broadcast)) && is_ipv4(array_as_slice(zero)) && !is_ipv4(array_as_slice(name))
+}
+
+@id("std.net.tests.bad_addresses")
+fn bad_addresses() -> bool
+{
+    let overflow = [50u8, 53u8, 54u8, 46u8, 48u8, 46u8, 48u8, 46u8, 49u8];
+    let three_groups = [49u8, 46u8, 50u8, 46u8, 51u8];
+    let leading_zero = [48u8, 49u8, 46u8, 50u8, 46u8, 51u8, 46u8, 52u8];
+    let five_groups = [49u8, 46u8, 50u8, 46u8, 51u8, 46u8, 52u8, 46u8, 53u8];
+    let trailing_dot = [49u8, 46u8, 50u8, 46u8, 51u8, 46u8, 52u8, 46u8];
+    !is_ipv4(array_as_slice(overflow)) && !is_ipv4(array_as_slice(three_groups)) && !is_ipv4(array_as_slice(leading_zero)) && !is_ipv4(array_as_slice(five_groups)) && !is_ipv4(array_as_slice(trailing_dot))
+}
+
+@id("std.net.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if ports() { 0 } else { 1 };
+    failed = failed + if waits() { 0 } else { 2 };
+    failed = failed + if bytes() { 0 } else { 4 };
+    failed = failed + if hosts() { 0 } else { 8 };
+    failed = failed + if bad_hosts() { 0 } else { 16 };
+    failed = failed + if addresses() { 0 } else { 32 };
+    failed = failed + if bad_addresses() { 0 } else { 64 };
+    failed
+}

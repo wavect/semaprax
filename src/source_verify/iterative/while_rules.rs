@@ -198,11 +198,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         continue;
                     }
                     if crate::command_io_ops::by_name(name).is_some_and(|operation| {
-                        !matches!(
-                            operation,
-                            crate::hir::ResolvedHostCommandOperation::StdoutAppend
-                                | crate::hir::ResolvedHostCommandOperation::StderrAppend
-                        )
+                        !crate::command_io_ops::admitted_in_while(operation)
                     }) {
                         self.diagnostics.push(error(
                             self.program,
@@ -210,6 +206,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             format!(
                                 "command I/O operation `{name}` is not admitted in while bodies"
                             ),
+                            expression.span,
+                        ));
+                        results.push(Err(()));
+                        continue;
+                    }
+                    if crate::command_io_ops::by_name(name).is_some_and(|operation| {
+                        args.len() != crate::command_io_ops::arity(operation)
+                    }) {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T270",
+                            format!("invalid command I/O operation `{name}` call shape"),
                             expression.span,
                         ));
                         results.push(Err(()));

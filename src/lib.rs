@@ -131,6 +131,8 @@ mod graph_cleanup;
 mod graph_loan;
 pub(crate) mod host_io_ops;
 mod host_ownership;
+pub(crate) mod network_io_ops;
+pub mod network_provider;
 mod prelude;
 pub mod semantic_workspace;
 pub mod semantic_workspace_change;

@@ -8,6 +8,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added Bounded Language Network I/O v1: six compiler-owned, effect-gated TCP
+  client operations (`net_connect`, `net_send`, owned `net_recv`,
+  transcript-streaming `net_stream_stdout`, bounded-readiness `net_wait`,
+  `net_close`) with the closed `semaprax.network.v1` status domain, a
+  `NetworkV1` operation profile, invocation-scoped handles, a deterministic
+  `semaprax.network-fixture.v1` provider, a real `TcpNetworkProvider` for the
+  hosted interpreter seam, native C11 POSIX/Winsock lowering, and Core Wasm
+  closed `env` imports with fixture injection; plus pure `std.net`,
+  `std.http`, and `std.async` helper packages and the `net_http_get` example.
+- Fixed the native C11 borrowed-view context extension: the `call_depth`
+  field added to `spx_context` had silently detached the text anchors that
+  splice in `borrowed_str_depth`, so every native program with a
+  `borrow Slice<u8>` or `borrow str` parameter failed to compile; the anchors
+  now target the current struct and the emitter asserts that they matched.
 - Added `semaprax query <file> [filters] [--json]`, a read-only declaration
   search over the checked module's documentation model with `--kind`,
   `--name`, `--id`, `--effect`, `--calls`, and `--called-by` filters from the

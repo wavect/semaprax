@@ -26,7 +26,9 @@ pub(super) fn prepare(
     operation_profile: crate::command_io_ops::CommandOperationProfile,
 ) -> Result<CommandPlan, Diagnostic> {
     crate::hir::validate(program)?;
-    if program.permits
+    if operation_profile == crate::command_io_ops::CommandOperationProfile::NetworkV1 {
+        super::network_io::check_permits(&program.permits)?;
+    } else if program.permits
         != [
             crate::command_io_ops::ARGS_READ_EFFECT,
             crate::command_io_ops::STDERR_WRITE_EFFECT,
@@ -67,9 +69,32 @@ impl CommandPlan {
     pub(super) fn is_line_command(&self) -> bool {
         self.operation_profile == crate::command_io_ops::CommandOperationProfile::LineV1
     }
+
+    pub(super) fn is_network_command(&self) -> bool {
+        self.operation_profile == crate::command_io_ops::CommandOperationProfile::NetworkV1
+    }
+
+    /// Command imports, plus the network imports appended after them for the
+    /// network profile only.
+    pub(super) fn import_count(&self) -> u32 {
+        if self.is_network_command() {
+            IMPORT_COUNT + super::network_io::IMPORT_COUNT
+        } else {
+            IMPORT_COUNT
+        }
+    }
 }
 
-pub(super) fn emit_wrapper_body(target_index: u32, line_command_io: bool) -> Vec<u8> {
+/// Transcript appends and provider validation need one scratch i32 local.
+/// Command modules get it from the args permit; network modules always append
+/// through the same path, so any network permit reserves it too.
+pub(super) fn needs_command_byte(permit: &str) -> bool {
+    permit == crate::command_io_ops::ARGS_READ_EFFECT
+        || crate::network_io_ops::NETWORK_EFFECTS.contains(&permit)
+}
+
+pub(super) fn emit_wrapper_body(target_index: u32, plan: &CommandPlan) -> Vec<u8> {
+    let line_command_io = plan.is_line_command();
     const OLD_STACK: u32 = 0;
     const RESULT_OUT: u32 = 1;
     const STATUS: u32 = 2;
@@ -86,6 +111,9 @@ pub(super) fn emit_wrapper_body(target_index: u32, line_command_io: bool) -> Vec
     if line_command_io {
         super::line_command_io::emit_reset(&mut body);
     }
+    if plan.is_network_command() {
+        super::network_io::emit_reset(&mut body);
+    }
     body.extend([0x23, 0x00, 0x22]);
     write_u32(&mut body, OLD_STACK);
     body.extend([0x41, 0x08, 0x49, 0x04, 0x40, 0x00, 0x0b]);
@@ -99,6 +127,9 @@ pub(super) fn emit_wrapper_body(target_index: u32, line_command_io: bool) -> Vec
     write_u32(&mut body, target_index);
     body.extend([0x21]);
     write_u32(&mut body, STATUS);
+    if plan.is_network_command() {
+        super::network_io::emit_settle(&mut body);
+    }
     body.push(0x20);
     write_u32(&mut body, OLD_STACK);
     body.extend([0x24, 0x00, 0x20]);

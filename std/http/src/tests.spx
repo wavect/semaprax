@@ -1,0 +1,81 @@
+module std.http.tests;
+use function @id("std.http.body_len") from std.http as body_len;
+use function @id("std.http.byte_is") from std.http as byte_is;
+use function @id("std.http.content_length") from std.http as content_length;
+use function @id("std.http.decimal_at") from std.http as decimal_at;
+use function @id("std.http.digit_at") from std.http as digit_at;
+use function @id("std.http.digit_value") from std.http as digit_value;
+use function @id("std.http.has_header_end") from std.http as has_header_end;
+use function @id("std.http.header_end") from std.http as header_end;
+use function @id("std.http.is_success") from std.http as is_success;
+use function @id("std.http.length_start") from std.http as length_start;
+use function @id("std.http.lower") from std.http as lower;
+use function @id("std.http.method_is_valid") from std.http as method_is_valid;
+use function @id("std.http.name_at") from std.http as name_at;
+use function @id("std.http.skip_blanks") from std.http as skip_blanks;
+use function @id("std.http.status_code") from std.http as status_code;
+use function @id("std.http.terminator") from std.http as terminator;
+
+@id("std.http.tests.digits")
+fn digits() -> bool
+{
+    let text = [72u8, 84u8, 53u8, 32u8, 9u8, 55u8];
+    let view = array_as_slice(text);
+    digit_value(48u8) == 0 && digit_value(57u8) == 9 && digit_value(65u8) == -1 && digit_at(view, 2usize) == 5 && digit_at(view, 0usize) == -1 && digit_at(view, 6usize) == -1 && byte_is(view, 0usize, 72u8) && !byte_is(view, 6usize, 72u8) && lower(72u8) == 104u8 && lower(53u8) == 53u8 && skip_blanks(view, 3usize) == 5usize && skip_blanks(view, 0usize) == 0usize && decimal_at(view, 5usize) == 7 && decimal_at(view, 0usize) == -1
+}
+
+@id("std.http.tests.methods")
+fn methods() -> bool
+{
+    let get = [71u8, 69u8, 84u8];
+    let lower_case = [103u8, 101u8, 116u8];
+    let spaced = [71u8, 69u8, 84u8, 32u8];
+    let empty = [0u8; 0];
+    method_is_valid(array_as_slice(get)) && !method_is_valid(array_as_slice(lower_case)) && !method_is_valid(array_as_slice(spaced)) && !method_is_valid(array_as_slice(empty)) && is_success(200) && is_success(299) && !is_success(199) && !is_success(301)
+}
+
+@id("std.http.tests.complete")
+fn complete() -> bool
+{
+    let ok = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 50u8, 48u8, 48u8, 32u8, 79u8, 75u8, 13u8, 10u8, 99u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 108u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 53u8, 13u8, 10u8, 13u8, 10u8, 104u8, 101u8, 108u8, 108u8, 111u8];
+    let view = array_as_slice(ok);
+    status_code(view) == 200 && terminator(view) == 34usize && has_header_end(view) && header_end(view) == 38usize && body_len(view) == 5usize && name_at(view, 17usize) && !name_at(view, 0usize) && length_start(view) == 17usize && content_length(view) == 5
+}
+
+@id("std.http.tests.bodiless")
+fn bodiless() -> bool
+{
+    let not_found = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 48u8, 32u8, 52u8, 48u8, 52u8, 32u8, 120u8, 13u8, 10u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 32u8, 48u8, 13u8, 10u8, 13u8, 10u8];
+    let empty = [0u8; 0];
+    let view = array_as_slice(not_found);
+    status_code(view) == 404 && !is_success(status_code(view)) && has_header_end(view) && header_end(view) == 38usize && body_len(view) == 0usize && content_length(view) == 0 && !has_header_end(array_as_slice(empty)) && header_end(array_as_slice(empty)) == 0usize && content_length(array_as_slice(empty)) == -1 && status_code(array_as_slice(empty)) == -1
+}
+
+@id("std.http.tests.partial")
+fn partial() -> bool
+{
+    let partial = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 48u8, 57u8, 57u8, 13u8, 10u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 49u8, 50u8];
+    let view = array_as_slice(partial);
+    status_code(view) == -1 && !has_header_end(view) && terminator(view) == 32usize && header_end(view) == 32usize && body_len(view) == 0usize && length_start(view) == 14usize && content_length(view) == -1
+}
+
+@id("std.http.tests.malformed")
+fn malformed() -> bool
+{
+    let decoy = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 50u8, 48u8, 48u8, 32u8, 79u8, 75u8, 13u8, 10u8, 88u8, 45u8, 67u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 76u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 49u8, 120u8, 13u8, 10u8, 13u8, 10u8];
+    let view = array_as_slice(decoy);
+    content_length(view) == -1 && length_start(view) == 37usize && decimal_at(view, 35usize) == -1
+}
+
+@id("std.http.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if digits() { 0 } else { 1 };
+    failed = failed + if methods() { 0 } else { 2 };
+    failed = failed + if complete() { 0 } else { 4 };
+    failed = failed + if bodiless() { 0 } else { 8 };
+    failed = failed + if partial() { 0 } else { 16 };
+    failed = failed + if malformed() { 0 } else { 32 };
+    failed
+}

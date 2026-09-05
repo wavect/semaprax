@@ -1,0 +1,15 @@
+module std.http.examples;
+use function @id("std.http.body_len") from std.http as body_len;
+use function @id("std.http.content_length") from std.http as content_length;
+use function @id("std.http.is_success") from std.http as is_success;
+use function @id("std.http.method_is_valid") from std.http as method_is_valid;
+use function @id("std.http.status_code") from std.http as status_code;
+
+@id("std.http.examples.main")
+fn main() -> i64
+{
+    let method = [71u8, 69u8, 84u8];
+    let response = [72u8, 84u8, 84u8, 80u8, 47u8, 49u8, 46u8, 49u8, 32u8, 50u8, 48u8, 48u8, 32u8, 79u8, 75u8, 13u8, 10u8, 99u8, 111u8, 110u8, 116u8, 101u8, 110u8, 116u8, 45u8, 108u8, 101u8, 110u8, 103u8, 116u8, 104u8, 58u8, 32u8, 53u8, 13u8, 10u8, 13u8, 10u8, 104u8, 101u8, 108u8, 108u8, 111u8];
+    let view = array_as_slice(response);
+    if method_is_valid(array_as_slice(method)) && is_success(status_code(view)) && content_length(view) == 5 && body_len(view) == 5usize { 0 } else { 1 }
+}

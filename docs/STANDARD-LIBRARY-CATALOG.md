@@ -8,6 +8,52 @@ Every declaration below is verified, canonical, and executed by its package's co
 
 Consume a package from an installed compiler by adding its dependency line to the extensible manifest, then importing the selected stable identity: `[dependencies] std.num = "^0.1.0"` and `use function @id("std.num.abs") from std.num as abs;`. Set `[package] profile` to the package's required profile below; `scalar` means omit the profile key. The compiler supplies the closed bundled package without a source checkout, cache, or network access.
 
+## `std.async`
+
+Package `std/async`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.async = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.async.clamp_wait_ms`
+
+```semaprax
+fn clamp_wait_ms(timeout_ms: usize) -> usize
+    ensures result <= 30000usize
+```
+
+### `std.async.next_timeout_ms`
+
+```semaprax
+fn next_timeout_ms(attempt: usize, base_ms: usize, cap_ms: usize) -> usize
+    requires base_ms >= 1usize && base_ms <= cap_ms && cap_ms <= 30000usize
+    ensures result >= base_ms && result <= cap_ms
+```
+
+### `std.async.should_retry`
+
+```semaprax
+fn should_retry(state: usize, attempts: usize, max_attempts: usize) -> bool
+```
+
+### `std.async.next_handle`
+
+```semaprax
+fn next_handle(current: usize, count: usize) -> usize
+    requires count >= 1usize && count <= 8usize && current >= 1usize && current <= count
+    ensures result >= 1usize && result <= count
+```
+
+### `std.async.remaining_ms`
+
+```semaprax
+fn remaining_ms(elapsed_ms: usize, budget_ms: usize) -> usize
+    ensures result <= budget_ms
+```
+
+### `std.async.stream_ended`
+
+```semaprax
+fn stream_ended(chunk: borrow Slice<u8>) -> bool
+```
+
 ## `std.bytes`
 
 Package `std/bytes`, tier `core`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.bytes = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
@@ -327,6 +373,169 @@ fn encode_base64_digit(value: i64) -> i64
 ```semaprax
 fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64
     ensures result >= -1 && result <= 16777215
+```
+
+## `std.http`
+
+Package `std/http`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.http = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.http.digit_value`
+
+```semaprax
+fn digit_value(byte: u8) -> i64
+    ensures result >= -1 && result <= 9
+```
+
+### `std.http.digit_at`
+
+```semaprax
+fn digit_at(view: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 9
+```
+
+### `std.http.byte_is`
+
+```semaprax
+fn byte_is(view: borrow Slice<u8>, index: usize, expected: u8) -> bool
+```
+
+### `std.http.lower`
+
+```semaprax
+fn lower(byte: u8) -> u8
+```
+
+### `std.http.method_is_valid`
+
+```semaprax
+fn method_is_valid(method: borrow Slice<u8>) -> bool
+```
+
+### `std.http.status_code`
+
+```semaprax
+fn status_code(response: borrow Slice<u8>) -> i64
+    ensures result >= -1 && result <= 999
+```
+
+### `std.http.is_success`
+
+```semaprax
+fn is_success(code: i64) -> bool
+```
+
+### `std.http.terminator`
+
+```semaprax
+fn terminator(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+```
+
+### `std.http.has_header_end`
+
+```semaprax
+fn has_header_end(response: borrow Slice<u8>) -> bool
+```
+
+### `std.http.header_end`
+
+```semaprax
+fn header_end(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+```
+
+### `std.http.body_len`
+
+```semaprax
+fn body_len(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+```
+
+### `std.http.name_at`
+
+```semaprax
+fn name_at(response: borrow Slice<u8>, index: usize) -> bool
+```
+
+### `std.http.length_start`
+
+```semaprax
+fn length_start(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+```
+
+### `std.http.skip_blanks`
+
+```semaprax
+fn skip_blanks(view: borrow Slice<u8>, cursor: usize) -> usize
+    ensures result >= cursor
+```
+
+### `std.http.decimal_at`
+
+```semaprax
+fn decimal_at(view: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1
+```
+
+### `std.http.content_length`
+
+```semaprax
+fn content_length(response: borrow Slice<u8>) -> i64
+    ensures result >= -1
+```
+
+## `std.net`
+
+Package `std/net`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.net = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.net.port_is_valid`
+
+```semaprax
+fn port_is_valid(port: usize) -> bool
+```
+
+### `std.net.wait_is_timeout`
+
+```semaprax
+fn wait_is_timeout(state: usize) -> bool
+```
+
+### `std.net.wait_is_readable`
+
+```semaprax
+fn wait_is_readable(state: usize) -> bool
+```
+
+### `std.net.wait_is_closed`
+
+```semaprax
+fn wait_is_closed(state: usize) -> bool
+```
+
+### `std.net.is_label_byte`
+
+```semaprax
+fn is_label_byte(byte: u8) -> bool
+```
+
+### `std.net.host_is_valid`
+
+```semaprax
+fn host_is_valid(host: borrow Slice<u8>) -> bool
+```
+
+### `std.net.digit_or_ten`
+
+```semaprax
+fn digit_or_ten(byte: u8) -> usize
+    ensures result <= 10usize
+```
+
+### `std.net.is_ipv4`
+
+```semaprax
+fn is_ipv4(host: borrow Slice<u8>) -> bool
 ```
 
 ## `std.num`

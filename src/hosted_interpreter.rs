@@ -8,6 +8,7 @@
 use crate::diagnostic::Diagnostic;
 use crate::hir::ResolvedProgram;
 use crate::interpreter::{CommandEvaluation, ResolvedEvaluation};
+use crate::network_provider::NetworkProvider;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HostedStdoutTranscript {
@@ -64,6 +65,41 @@ pub fn execute_language_command(
         &input.stdin,
         max_steps,
     )?;
+    Ok(HostedCommandResult {
+        evaluation,
+        stdout,
+        stderr,
+    })
+}
+
+/// Execute the exact selected zero-argument bool command with network
+/// authority supplied by `provider`.
+///
+/// The module's permits must stay within the seven Language Network I/O v1
+/// tokens (`network.connect`, `network.read`, `network.write`,
+/// `process.args.read`, `process.stdin.read`, `process.stdout.write`,
+/// `process.stderr.write`) and include at least one `network.*` token; the
+/// reachable operations must satisfy the `NetworkV1` profile. Nothing here
+/// grants ambient authority: the only transport is the provider the caller
+/// passes, and it is settled (every connection released) before the result is
+/// published, on every outcome. Both transcripts are sealed only when the
+/// entry returned a bool.
+pub fn execute_network_command(
+    program: &ResolvedProgram,
+    entry_id: &str,
+    input: &HostedCommandInput,
+    provider: &mut dyn NetworkProvider,
+    max_steps: usize,
+) -> Result<HostedCommandResult, Diagnostic> {
+    let (evaluation, stdout, stderr) =
+        crate::interpreter::network::command::evaluate_resolved_network_command(
+            program,
+            entry_id,
+            &input.arguments,
+            &input.stdin,
+            provider,
+            max_steps,
+        )?;
     Ok(HostedCommandResult {
         evaluation,
         stdout,

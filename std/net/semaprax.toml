@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-net"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.net.examples"
+sources = ["src/examples.spx", "src/net.spx", "src/tests.spx"]
+tests = ["std.net.tests"]
+
+[exports]
+web = ["std.net.host_is_valid", "std.net.is_ipv4"]

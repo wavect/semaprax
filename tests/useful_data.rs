@@ -18,6 +18,8 @@ mod aggregate_contract_failure_lanes;
 mod arrays_bytes_frontend;
 #[path = "useful_data/bounded_language_command_io.rs"]
 mod bounded_language_command_io;
+#[path = "useful_data/bounded_language_network_io.rs"]
+mod bounded_language_network_io;
 #[path = "useful_data/bounded_stdout_transcript.rs"]
 mod bounded_stdout_transcript;
 #[path = "useful_data/command_v1.rs"]
@@ -36,6 +38,12 @@ mod line_command_io_native;
 mod line_filter_project_v7;
 #[path = "useful_data/native.rs"]
 mod native;
+#[path = "useful_data/network_io_interpreter.rs"]
+mod network_io_interpreter;
+#[path = "useful_data/network_io_native.rs"]
+mod network_io_native;
+#[path = "useful_data/network_io_wasm.rs"]
+mod network_io_wasm;
 #[path = "useful_data/project.rs"]
 mod project;
 #[path = "useful_data/wasm.rs"]

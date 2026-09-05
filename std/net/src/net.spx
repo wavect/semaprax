@@ -1,0 +1,82 @@
+module std.net;
+
+@id("std.net.port_is_valid")
+fn port_is_valid(port: usize) -> bool
+{
+    port >= 1usize && port <= 65535usize
+}
+
+@id("std.net.wait_is_timeout")
+fn wait_is_timeout(state: usize) -> bool
+{
+    state == 0usize
+}
+
+@id("std.net.wait_is_readable")
+fn wait_is_readable(state: usize) -> bool
+{
+    state == 1usize
+}
+
+@id("std.net.wait_is_closed")
+fn wait_is_closed(state: usize) -> bool
+{
+    state == 2usize
+}
+
+@id("std.net.is_label_byte")
+fn is_label_byte(byte: u8) -> bool
+{
+    byte >= 65u8 && byte <= 90u8 || byte >= 97u8 && byte <= 122u8 || byte >= 48u8 && byte <= 57u8 || byte == 45u8
+}
+
+@id("std.net.host_is_valid")
+fn host_is_valid(host: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(host);
+    let mut index = 0usize;
+    let mut label = 0usize;
+    let mut hyphen = false;
+    let mut valid = length >= 1usize && length <= 253usize;
+    while index < length && valid {
+        let dot = match byte_get(host, index) { Option::Some { value: byte } => byte == 46u8, Option::None {} => false, };
+        let allowed = match byte_get(host, index) { Option::Some { value: byte } => is_label_byte(byte), Option::None {} => false, };
+        let dash = match byte_get(host, index) { Option::Some { value: byte } => byte == 45u8, Option::None {} => false, };
+        valid = if dot { label >= 1usize && !hyphen } else { allowed && label < 63usize && !(dash && label == 0usize) };
+        label = if dot { 0usize } else { label + 1usize };
+        hyphen = dash;
+        index = index + 1usize;
+        index < length && valid
+    }
+    valid && label >= 1usize && !hyphen
+}
+
+@id("std.net.digit_or_ten")
+fn digit_or_ten(byte: u8) -> usize
+    ensures result <= 10usize
+{
+    match byte { 48u8 => 0usize, 49u8 => 1usize, 50u8 => 2usize, 51u8 => 3usize, 52u8 => 4usize, 53u8 => 5usize, 54u8 => 6usize, 55u8 => 7usize, 56u8 => 8usize, 57u8 => 9usize, _ => 10usize, }
+}
+
+@id("std.net.is_ipv4")
+fn is_ipv4(host: borrow Slice<u8>) -> bool
+{
+    let length = byte_len(host);
+    let mut index = 0usize;
+    let mut groups = 1usize;
+    let mut digits = 0usize;
+    let mut value = 0usize;
+    let mut valid = length >= 7usize && length <= 15usize;
+    while index < length && valid {
+        let dot = match byte_get(host, index) { Option::Some { value: byte } => byte == 46u8, Option::None {} => false, };
+        let digit = match byte_get(host, index) { Option::Some { value: byte } => digit_or_ten(byte), Option::None {} => 10usize, };
+        valid = if dot { digits >= 1usize && groups < 4usize } else { digit < 10usize && digits < 3usize && (digits == 0usize || value > 0usize) };
+        value = if dot { 0usize } else { value * 10usize + digit };
+        valid = valid && value <= 255usize;
+        digits = if dot { 0usize } else { digits + 1usize };
+        groups = if dot { groups + 1usize } else { groups };
+        index = index + 1usize;
+        index < length && valid
+    }
+    valid && groups == 4usize && digits >= 1usize
+}

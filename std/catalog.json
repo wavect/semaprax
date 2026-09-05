@@ -6,6 +6,93 @@
           "effects": [],
           "ensures": 1,
           "head": [
+            "fn clamp_wait_ms(timeout_ms: usize) -> usize",
+            "    ensures result <= 30000usize"
+          ],
+          "id": "std.async.clamp_wait_ms",
+          "kind": "function",
+          "name": "clamp_wait_ms",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn next_timeout_ms(attempt: usize, base_ms: usize, cap_ms: usize) -> usize",
+            "    requires base_ms >= 1usize && base_ms <= cap_ms && cap_ms <= 30000usize",
+            "    ensures result >= base_ms && result <= cap_ms"
+          ],
+          "id": "std.async.next_timeout_ms",
+          "kind": "function",
+          "name": "next_timeout_ms",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn should_retry(state: usize, attempts: usize, max_attempts: usize) -> bool"
+          ],
+          "id": "std.async.should_retry",
+          "kind": "function",
+          "name": "should_retry",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn next_handle(current: usize, count: usize) -> usize",
+            "    requires count >= 1usize && count <= 8usize && current >= 1usize && current <= count",
+            "    ensures result >= 1usize && result <= count"
+          ],
+          "id": "std.async.next_handle",
+          "kind": "function",
+          "name": "next_handle",
+          "requires": 1
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn remaining_ms(elapsed_ms: usize, budget_ms: usize) -> usize",
+            "    ensures result <= budget_ms"
+          ],
+          "id": "std.async.remaining_ms",
+          "kind": "function",
+          "name": "remaining_ms",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn stream_ended(chunk: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.async.stream_ended",
+          "kind": "function",
+          "name": "stream_ended",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.async = \"^0.1.0\"",
+      "module": "std.async",
+      "package": "std/async",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
             "fn byte_to_i64(byte: u8) -> i64",
             "    ensures result >= 0 && result <= 255"
           ],
@@ -585,6 +672,311 @@
         "core-wasm"
       ],
       "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn digit_value(byte: u8) -> i64",
+            "    ensures result >= -1 && result <= 9"
+          ],
+          "id": "std.http.digit_value",
+          "kind": "function",
+          "name": "digit_value",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn digit_at(view: borrow Slice<u8>, index: usize) -> i64",
+            "    ensures result >= -1 && result <= 9"
+          ],
+          "id": "std.http.digit_at",
+          "kind": "function",
+          "name": "digit_at",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn byte_is(view: borrow Slice<u8>, index: usize, expected: u8) -> bool"
+          ],
+          "id": "std.http.byte_is",
+          "kind": "function",
+          "name": "byte_is",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn lower(byte: u8) -> u8"
+          ],
+          "id": "std.http.lower",
+          "kind": "function",
+          "name": "lower",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn method_is_valid(method: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.http.method_is_valid",
+          "kind": "function",
+          "name": "method_is_valid",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn status_code(response: borrow Slice<u8>) -> i64",
+            "    ensures result >= -1 && result <= 999"
+          ],
+          "id": "std.http.status_code",
+          "kind": "function",
+          "name": "status_code",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_success(code: i64) -> bool"
+          ],
+          "id": "std.http.is_success",
+          "kind": "function",
+          "name": "is_success",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn terminator(response: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(response)"
+          ],
+          "id": "std.http.terminator",
+          "kind": "function",
+          "name": "terminator",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn has_header_end(response: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.http.has_header_end",
+          "kind": "function",
+          "name": "has_header_end",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn header_end(response: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(response)"
+          ],
+          "id": "std.http.header_end",
+          "kind": "function",
+          "name": "header_end",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn body_len(response: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(response)"
+          ],
+          "id": "std.http.body_len",
+          "kind": "function",
+          "name": "body_len",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn name_at(response: borrow Slice<u8>, index: usize) -> bool"
+          ],
+          "id": "std.http.name_at",
+          "kind": "function",
+          "name": "name_at",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn length_start(response: borrow Slice<u8>) -> usize",
+            "    ensures result <= byte_len(response)"
+          ],
+          "id": "std.http.length_start",
+          "kind": "function",
+          "name": "length_start",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn skip_blanks(view: borrow Slice<u8>, cursor: usize) -> usize",
+            "    ensures result >= cursor"
+          ],
+          "id": "std.http.skip_blanks",
+          "kind": "function",
+          "name": "skip_blanks",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn decimal_at(view: borrow Slice<u8>, start: usize) -> i64",
+            "    ensures result >= -1"
+          ],
+          "id": "std.http.decimal_at",
+          "kind": "function",
+          "name": "decimal_at",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn content_length(response: borrow Slice<u8>) -> i64",
+            "    ensures result >= -1"
+          ],
+          "id": "std.http.content_length",
+          "kind": "function",
+          "name": "content_length",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.http = \"^0.1.0\"",
+      "module": "std.http",
+      "package": "std/http",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn port_is_valid(port: usize) -> bool"
+          ],
+          "id": "std.net.port_is_valid",
+          "kind": "function",
+          "name": "port_is_valid",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn wait_is_timeout(state: usize) -> bool"
+          ],
+          "id": "std.net.wait_is_timeout",
+          "kind": "function",
+          "name": "wait_is_timeout",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn wait_is_readable(state: usize) -> bool"
+          ],
+          "id": "std.net.wait_is_readable",
+          "kind": "function",
+          "name": "wait_is_readable",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn wait_is_closed(state: usize) -> bool"
+          ],
+          "id": "std.net.wait_is_closed",
+          "kind": "function",
+          "name": "wait_is_closed",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_label_byte(byte: u8) -> bool"
+          ],
+          "id": "std.net.is_label_byte",
+          "kind": "function",
+          "name": "is_label_byte",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn host_is_valid(host: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.net.host_is_valid",
+          "kind": "function",
+          "name": "host_is_valid",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn digit_or_ten(byte: u8) -> usize",
+            "    ensures result <= 10usize"
+          ],
+          "id": "std.net.digit_or_ten",
+          "kind": "function",
+          "name": "digit_or_ten",
+          "requires": 0
+        },
+        {
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_ipv4(host: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.net.is_ipv4",
+          "kind": "function",
+          "name": "is_ipv4",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.net = \"^0.1.0\"",
+      "module": "std.net",
+      "package": "std/net",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
     },
     {
       "declarations": [

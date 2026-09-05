@@ -2,6 +2,8 @@
 
 use super::*;
 
+mod command_io;
+
 pub(super) fn source_capacity_functions(program: &Program) -> Vec<(Option<&str>, &Function)> {
     let mut functions = program
         .functions
@@ -1056,26 +1058,13 @@ fn source_capacity_expr(
                                     )
                                 },
                             })
-                        } else if name == crate::command_io_ops::STDIN_READ_NAME {
-                            Some(CapacityFlow::StdinRead {
-                                site: path.clone(),
-                                conservative_payload_bytes: crate::command_io_ops::MAX_INPUT_BYTES,
-                            })
-                        } else if name == crate::command_io_ops::STDERR_WRITE_NAME {
-                            Some(CapacityFlow::StderrWrite {
-                                site: path.clone(),
-                                source: {
-                                    let scope = scope.borrow();
-                                    source_transcript_source_from_roots(
-                                        &args[0],
-                                        &scope.transcript_roots,
-                                    )
-                                },
-                            })
-                        } else if name == crate::command_io_ops::STDOUT_APPEND_NAME {
-                            Some(CapacityFlow::StdoutAppend { site: path.clone() })
-                        } else if name == crate::command_io_ops::STDERR_APPEND_NAME {
-                            Some(CapacityFlow::StderrAppend { site: path.clone() })
+                        } else if let Some(operation) = crate::command_io_ops::by_name(name) {
+                            command_io::flow(
+                                operation,
+                                &path,
+                                args,
+                                &scope.borrow().transcript_roots,
+                            )
                         } else {
                             target.map(|target| CapacityFlow::Call {
                                 site: path.clone(),

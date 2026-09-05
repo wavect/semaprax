@@ -324,6 +324,12 @@ fn main() -> i64
   transcript interpreter, so the example above prints `banana!0`. `args_len`, `arg_utf8`,
   `stdin_read`, and `stderr_write` need a project with the
   `useful-data-command.v1` profile built for the native target.
+- `net_connect`, `net_send`, `net_recv`, `net_stream_stdout`, `net_wait`, and
+  `net_close` are the effect-gated TCP client operations of
+  [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md); they
+  need `permit`/`uses` of `network.connect`, `network.read`, and
+  `network.write`, execute only through an injected provider, and `net_recv`
+  (an owned result) is not admitted inside `while` bodies (`SPX-T270`).
 - Reference-interpreter and generated native calls have a fixed 256-frame
   recursion bound. Exceeding it is a reported runtime-capacity failure, not a
   language status or process signal. Raw WebAssembly execution remains subject

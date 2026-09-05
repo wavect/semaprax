@@ -131,9 +131,9 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.process` | Bounded process launch, pipes, exit, and settlement | Missing |
 | `std.time` | Durations, monotonic time, wall time, and deadlines | Partial: nonnegative millisecond conversion/decomposition with floor and ceiling rounding, elapsed and remaining-duration calculation, deadline comparison, and saturating duration addition; duration types, clock reads, instants, sleeps, and timers are Missing |
 | `std.random` | Deterministic seeded generators and separately capability-gated secure randomness | Partial: pure Park–Miller seed normalization, next-step generation, bounded advancement, and sampling below an upper bound; stateful generators, unbiased range sampling, byte filling, and capability-gated secure randomness are Missing |
-| `std.net` | Addresses, DNS, TCP, UDP, and explicit target support | Missing |
+| `std.net` | Addresses, DNS, TCP, UDP, and explicit target support | Partial: pure host-name, port, IPv4 dotted-quad, and `net_wait` readiness-state helpers over borrowed bytes that compose with the compiler-owned `net_*` operations of [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md); addresses, DNS policy, UDP, listen sockets, and TLS are Missing |
 | `std.tls` | Vetted provider-backed TLS interface and certificate policy | Missing |
-| `std.http` | HTTP request/response types, client and server interfaces, streaming, and limits | Missing |
+| `std.http` | HTTP request/response types, client and server interfaces, streaming, and limits | Partial: allocation-free HTTP/1.1 status-line, header-boundary, `Content-Length`, method, and body-length helpers over borrowed response bytes, composed with `net_send`/`net_stream_stdout` for plain-TCP clients; typed request/response values, a server interface, chunked transfer, and TLS are Missing |
 | `std.data.json` | Typed and value-based JSON parsing and encoding | Missing |
 | `std.data.toml` | TOML parsing and encoding | Partial: allocation-free bare-key validation, blank/comment line recognition, and simple-quote/comment-aware assignment-delimiter location over borrowed bytes; escaped and complete quoted-key validation, values, tables, decoding, validation, and encoding are Missing |
 | `std.data.csv` | Streaming CSV reading and writing | Partial: allocation-free single-record field counting with quoted-comma and escaped-quote handling, balanced-quote checks, and strict complete-record quote-placement validation; typed fields, record iteration, dialects, streaming reads, and writing are Missing |
@@ -141,7 +141,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.url` | URL parsing, normalization, and query handling | Partial: RFC-style ASCII scheme and unreserved-byte classification plus percent-triplet validation and decoding through `std.encoding`; structured URLs, parsing, normalization, resolution, query handling, and encoding are Missing |
 | `std.regex` | Bounded regular-expression API or a first-party bundled package | Missing |
 | `std.sync` | Mutexes, read/write locks, atomics, and synchronization contracts | Missing |
-| `std.task` | Structured tasks, cancellation, scheduling, and channels | Missing; [Scoped Task Model v1](SCOPED-TASKS-V1.md) is the design |
+| `std.task` | Structured tasks, cancellation, scheduling, and channels | Missing; [Scoped Task Model v1](SCOPED-TASKS-V1.md) is the design. `std.async` holds the pure bounded-readiness-loop helpers (timeout clamping, exponential backoff, retry policy, round-robin handle selection, stream-end detection) for `net_wait`-driven loops |
 | `std.log` | Structured logging with field identities and redaction | Missing |
 | `std.metrics` | Counters, gauges, histograms, and effect-neutral instrumentation | Missing |
 | `std.test` | Assertions, fixtures, property tests, fuzz targets, and snapshots | Partial: scalar equality predicates and deterministic unit or caller-selected failure status helpers for the current return-code test model; rich diagnostics, fixtures, property tests, fuzz targets, and snapshots are Missing |
@@ -249,8 +249,10 @@ and `fn secure_bytes(length: usize) -> Result<Bytes, RandomError> uses { random.
 the block above spells only the effect discipline in the admitted scalar
 subset, and `tests/documentation.rs` checks that it verifies. Tests must be
 able to replace each effect with a deterministic handler without changing
-application logic; that handler mechanism is Missing and belongs to the `test`
-tier.
+application logic; the network fixture provider of
+[Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md) is the
+first such handler (local evidence, injected by the host, not selectable from
+source); a general handler mechanism is Missing and belongs to the `test` tier.
 
 ## The Everyday profile
 

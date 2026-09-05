@@ -7,6 +7,7 @@ use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
 mod borrowed_str;
+mod host_command;
 mod type_profiles;
 mod unsafe_scan;
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
@@ -1565,38 +1566,13 @@ impl<'a> HirValidator<'a> {
                     pending.push(Item::Expression(end));
                     pending.push(Item::Expression(start));
                 }
-                ResolvedExprKind::HostCommandCall(call)
-                    if matches!(
-                        call.operation,
-                        ResolvedHostCommandOperation::StdoutAppend
-                            | ResolvedHostCommandOperation::StderrAppend
-                    ) =>
-                {
-                    let Some(argument) = call.args.first() else {
-                        return Err(hir_error("while loop append is missing its byte slice"));
-                    };
-                    let ResolvedExprKind::Place(place) = &argument.kind else {
-                        return Err(hir_error(
-                            "while loop append requires an existing byte-slice alias",
-                        ));
-                    };
-                    if !place.projections.is_empty()
-                        || (!self.byte_slice_aliases.contains_key(&place.root)
-                            && self
-                                .program
-                                .declarations
-                                .byte_slice_provenance(&place.root)
-                                .is_none())
-                    {
-                        return Err(hir_error(
-                            "while loop append lacks authenticated slice provenance",
-                        ));
-                    }
-                }
-                ResolvedExprKind::HostCommandCall(_) => {
-                    return Err(hir_error(
-                        "while loops cannot contain non-append command I/O",
-                    ));
+                ResolvedExprKind::HostCommandCall(call) => {
+                    pending.extend(
+                        self.while_host_command_scalar_arguments(expression, call)?
+                            .into_iter()
+                            .rev()
+                            .map(Item::Expression),
+                    );
                 }
                 ResolvedExprKind::Unary { value, .. } => pending.push(Item::Expression(value)),
                 ResolvedExprKind::Binary { left, right, .. } => {
@@ -3512,24 +3488,7 @@ impl<'a> HirValidator<'a> {
                                     "host-command call has a non-canonical identity or shape",
                                 ));
                             }
-                            match allowed_effects {
-                                Some(allowed)
-                                    if !allowed.contains(crate::command_io_ops::effect(
-                                        call.operation,
-                                    )) =>
-                                {
-                                    return Err(hir_error(format!(
-                                        "host-command operation requires undeclared effect `{}`",
-                                        crate::command_io_ops::effect(call.operation)
-                                    )));
-                                }
-                                None => {
-                                    return Err(hir_error(
-                                        "contract calls effectful host-command operation",
-                                    ));
-                                }
-                                _ => {}
-                            }
+                            host_command::require_effects(call.operation, allowed_effects)?;
                             frames.push(Frame::CallNext {
                                 expression,
                                 args: &call.args,
@@ -6559,20 +6518,7 @@ impl<'a> HirValidator<'a> {
                         "host-command call has a non-canonical identity or shape",
                     ));
                 }
-                match allowed_effects {
-                    Some(allowed)
-                        if !allowed.contains(crate::command_io_ops::effect(call.operation)) =>
-                    {
-                        return Err(hir_error(format!(
-                            "host-command operation requires undeclared effect `{}`",
-                            crate::command_io_ops::effect(call.operation)
-                        )));
-                    }
-                    None => {
-                        return Err(hir_error("contract calls effectful host-command operation"));
-                    }
-                    _ => {}
-                }
+                host_command::require_effects(call.operation, allowed_effects)?;
                 let params = crate::command_io_ops::resolved_params(call.operation);
                 for (index, (argument, param)) in call.args.iter().zip(&params).enumerate() {
                     self.validate_expr_recursive_reference(

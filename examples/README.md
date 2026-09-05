@@ -47,6 +47,7 @@ the authority on what is covered.
 
 | Example | Teaches | Command (observed) | Reference |
 | --- | --- | --- | --- |
+| `examples/net_http_get.spx` | The six `net_*` operations composing a plain-TCP HTTP/1.1 `GET`: connect, piecewise `net_send`, `net_wait` readiness, `net_stream_stdout` into the bounded transcript, close. `main` returns `0` without touching the network; `fetch` executes only through the hosted network seam or the native network profile (no CLI command yet) | `semaprax run examples/net_http_get.spx` → `0` | [Bounded Language Network I/O v1](../docs/BOUNDED-LANGUAGE-NETWORK-IO-V1.md) |
 | `examples/effects.spx` | A module-level `permit` set with a function that declares `uses { clock.read }` | `semaprax run examples/effects.spx` → `42` | [RFC 0001](../docs/RFC-0001.md), [Capability Manifest v1](../docs/CAPABILITY-MANIFEST-V1.md) |
 | `examples/classes.spx` | A class with a field and two methods, one of them returning a new instance | `semaprax run examples/classes.spx` → `42` | [Class Inheritance v1](../docs/CLASS-INHERITANCE-V1.md) |
 | `examples/inheritance.spx` | A three-level class hierarchy with method override, `super` dispatch and an upcast binding | `semaprax run examples/inheritance.spx` → `6` | [Class Inheritance v1](../docs/CLASS-INHERITANCE-V1.md) |

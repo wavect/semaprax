@@ -100,6 +100,7 @@ explicit support decision.
 
 Evidence owners: [Project Manifest v1](PROJECT-MANIFEST-V1.md) and its additive
 v2–v7 references, [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md),
+[Bounded Language Network I/O](BOUNDED-LANGUAGE-NETWORK-IO-V1.md),
 [Project Agent Workflow](PROJECT-AGENT-WORKFLOW-V1.md),
 [Wasm Scalar Exports](WASM-SCALAR-EXPORTS-V1.md), and
 [Native Rust Interoperability](NATIVE-RUST-INTEROP-V1.md).
@@ -201,7 +202,7 @@ row.
 | JavaScript and TypeScript | Partial; exact-tag nonignored Node/TypeScript/Chromium coverage | [Wasm Scalar Exports v1](WASM-SCALAR-EXPORTS-V1.md), [Public Owned Data API v1](PUBLIC-OWNED-DATA-API-V1.md), [Public Owned UTF-8 API v1](PUBLIC-OWNED-UTF8-API-V1.md), [Standalone Wasm String Settlement v1](WASM-INTERNAL-STRINGS-V1.md), [Standalone String Web package](WASM-INTERNAL-STRINGS-WEB-V1.md#local-validation-record) | Complete separately provisioned host and multi-engine browser/runtime breadth; stable general bindings, owned resources, async/callbacks and packaging must still be verified. |
 | WIT and WebAssembly Components | Partial | [Public Scalar WIT Interface v1](PUBLIC-SCALAR-WIT-INTERFACE-V1.md), [private WIT Boundary v1](WIT-COMPONENT-BOUNDARY-V1.md) | Extend the retained Project-v1 scalar interface artifact into supported Component publication; source-selected interfaces and resources run through a supported Component Model toolchain on multiple runtimes. |
 | OpenAPI, Protobuf/gRPC, GraphQL, and SQL | Partial | [OpenAPI v1](OPENAPI-V1.md) | Import/export, compatibility, live conformance, and all named schema families are verified. |
-| Standard library | Partial; thirteen packages (eight `core`, four `portable`, one `test`) with local interpreter, native C11, and Core Wasm conformance; bundled `std.*` manifest dependencies, cross-file borrowed-text linking, and both hardened built-in templates have focused local evidence | [Standard Library v1](STANDARD-LIBRARY-V1.md), [catalog](STANDARD-LIBRARY-CATALOG.md) | Every required module exists at its tier with identities, contracts, effects, examples, conformance on every listed target, and generated documentation; the Everyday profile and remaining offline templates ship. |
+| Standard library | Partial; sixteen packages (eight `core`, seven `portable` including the pure `std.net`, `std.http`, and `std.async` helpers that compose with Bounded Language Network I/O v1, one `test`) with local interpreter, native C11, and Core Wasm conformance; bundled `std.*` manifest dependencies, cross-file borrowed-text linking, and both hardened built-in templates have focused local evidence | [Standard Library v1](STANDARD-LIBRARY-V1.md), [catalog](STANDARD-LIBRARY-CATALOG.md) | Every required module exists at its tier with identities, contracts, effects, examples, conformance on every listed target, and generated documentation; the Everyday profile and remaining offline templates ship. |
 
 ### Application platforms
 
@@ -214,7 +215,7 @@ row.
 | macOS | Partial | [Desktop App v1](DESKTOP-NATIVE-APP-V1.md) | Public host/UI generation, lifecycle, accessibility, packaging, signing/notarization, and a sample are verified. |
 | Windows | Partial | [Desktop UI v1](DESKTOP-NATIVE-UI-V1.md) | Public host/UI generation, lifecycle, accessibility, MSIX/signing metadata, and a sample are verified. |
 | Linux | Partial | [Roadmap](ROADMAP.md) | A supported UI/runtime adapter, accessibility, distribution formats, and a representative application are verified. |
-| Edge and server | Partial | [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md) | General I/O, async services, HTTP/data adapters, observability, deployment, and load/conformance tests are verified. |
+| Edge and server | Partial; [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md) adds six effect-gated TCP client operations (connect, send, owned receive, transcript streaming, bounded readiness wait, close) with a closed status domain, a deterministic fixture provider, and local interpreter, native C11 (loopback sockets), and Core Wasm (fixture-injected) evidence; HTTP/1.1 is composed from them by `std.http` helpers | [Bounded Language Command I/O](BOUNDED-LANGUAGE-COMMAND-IO-V1.md), [Bounded Language Network I/O](BOUNDED-LANGUAGE-NETWORK-IO-V1.md) | General I/O, TLS, listen sockets, structured async services, HTTP/data adapters with a Project profile and npm/web lanes, observability, deployment, and load/conformance tests are verified. |
 | Plugins | Partial | [Plugin Manifest v1](PLUGIN-MANIFEST-V1.md) | Capability-limited loading, lifecycle, compatibility, resource limits, packaging, and hostile-plugin tests are verified. |
 
 ### Agent economics, review, and operations

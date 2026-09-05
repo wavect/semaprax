@@ -409,6 +409,12 @@ pub enum ResolvedHostCommandOperation {
     StderrWrite,
     StdoutAppend,
     StderrAppend,
+    NetConnect,
+    NetSend,
+    NetRecv,
+    NetStreamStdout,
+    NetWait,
+    NetClose,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

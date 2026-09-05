@@ -912,6 +912,12 @@ pub(crate) fn visit_resolved_calls(
         } => {
             visit_resolved_calls(scrutinee, visit);
             for arm in arms {
+                // A guard is authored before the arm value and, under left to
+                // right evaluation, runs before it. Skipping it would hide a
+                // callee reached only from a guard.
+                if let Some(guard) = &arm.guard {
+                    visit_resolved_calls(guard, visit);
+                }
                 visit_resolved_calls(&arm.value, visit);
             }
         }
@@ -1039,6 +1045,12 @@ pub(crate) fn workspace_call_sites(
             } => {
                 walk(owner, scrutinee, sites);
                 for arm in arms {
+                    // Authored order places the guard before the arm value,
+                    // as `push_resolved_expression_children_in_authored_order`
+                    // already does for the byte-capacity walk.
+                    if let Some(guard) = &arm.guard {
+                        walk(owner, guard, sites);
+                    }
                     walk(owner, &arm.value, sites);
                 }
             }

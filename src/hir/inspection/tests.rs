@@ -203,6 +203,86 @@ fn main() -> i64
     assert_ne!(observed[0].1, observed[1].1);
 }
 
+/// `positive` is reachable only from a match guard and `tagged` only from the
+/// guarded arm's value, so a walk that skips guards loses `positive` entirely
+/// while still reporting `tagged`.
+const GUARDS: &str = r#"
+module test.hir_inspection_guards;
+
+@id("app.positive")
+fn positive(value: i64) -> bool
+{
+    value > 0
+}
+
+@id("app.tagged")
+fn tagged(value: i64) -> i64
+{
+    value + 1
+}
+
+@id("app.classify")
+fn classify(value: i64) -> i64
+{
+    match value { n if positive(n) => tagged(n), _ => 0, }
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    classify(1)
+}
+"#;
+
+#[test]
+fn call_projections_reach_a_callee_called_only_from_a_match_guard() {
+    let program = resolved(GUARDS, "hir-inspection-guards.spx");
+    // Both projections must see the guard. `visit_resolved_calls` feeds
+    // reachability and impact analysis, so a guard-only callee that is invisible
+    // here reads as dead code and as a function no edit can affect.
+    assert!(edge_pairs(&program).contains(&("app.classify".to_owned(), "app.positive".to_owned())));
+    assert!(site_pairs(&program).contains(&("app.classify".to_owned(), "app.positive".to_owned())));
+    assert_eq!(
+        edge_pairs(&program),
+        vec![
+            ("app.classify".to_owned(), "app.positive".to_owned()),
+            ("app.classify".to_owned(), "app.tagged".to_owned()),
+            ("app.main".to_owned(), "app.classify".to_owned()),
+        ]
+    );
+}
+
+#[test]
+fn guard_calls_precede_arm_value_calls_in_authored_order() {
+    let program = resolved(GUARDS, "hir-inspection-guards.spx");
+    // The guard is authored before the arm value and, under left to right
+    // evaluation, runs before it, so `positive` must precede `tagged`. This is
+    // the order `push_resolved_expression_children_in_authored_order` already
+    // uses for the same arms.
+    assert_eq!(
+        site_pairs(&program),
+        vec![
+            ("app.classify".to_owned(), "app.positive".to_owned()),
+            ("app.classify".to_owned(), "app.tagged".to_owned()),
+            ("app.main".to_owned(), "app.classify".to_owned()),
+        ]
+    );
+
+    let classify = program
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "app.classify")
+        .expect("guarded function resolved");
+    let mut observed = Vec::new();
+    visit_resolved_calls(&classify.body, &mut |callee, _, _| {
+        observed.push(callee.as_str().to_owned());
+    });
+    assert_eq!(
+        observed,
+        vec!["app.positive".to_owned(), "app.tagged".to_owned()]
+    );
+}
+
 const LIFECYCLE: &str = r#"
 module test.hir_inspection_lifecycle;
 

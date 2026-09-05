@@ -8,6 +8,9 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Project-link diagnostics now name and locate the exact entry, test, or
+  provider module responsible for missing or invalid `main` declarations and
+  distinguish capability exclusions from declaration-shape exclusions.
 - CLI and parser diagnostic gaps now retain stable codes and actionable source
   anchors: missing `fmt` inputs use `SPX-I001`/`SPX-J102`, unknown `context`
   symbols use `SPX-G404`, bare identifier statements point at their token,

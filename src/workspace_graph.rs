@@ -1130,7 +1130,9 @@ impl WorkspaceGraphBuild {
         let Some(entry_path) = self.hir.module_paths.get(entry_module).cloned() else {
             return Err(vec![graph_error(
                 "SPX-G172",
-                format!("Workspace Semantic Graph entry module `{entry_module}` is absent"),
+                format!(
+                    "Workspace Semantic Graph requested project module `{entry_module}` is absent"
+                ),
             )]);
         };
 
@@ -1159,7 +1161,7 @@ impl WorkspaceGraphBuild {
                 .insert(edge.target_path.clone());
         }
         let mut reachable_paths = BTreeSet::from([entry_path.clone()]);
-        let mut pending = BTreeSet::from([entry_path]);
+        let mut pending = BTreeSet::from([entry_path.clone()]);
         while let Some(path) = pending.pop_first() {
             if let Some(providers) = direct_providers.get(&path) {
                 for provider in providers {
@@ -1207,13 +1209,24 @@ impl WorkspaceGraphBuild {
                     && module.interfaces.is_empty()
                     && module.function_templates.is_empty()
                     && module.function_instances.is_empty());
-            if !permits_admitted || !project_shape_admitted {
-                return Err(vec![graph_error(
-                    "SPX-G172",
+            if !permits_admitted {
+                return Err(vec![project_function_error(
+                    module,
                     format!(
-                        "workspace module `{}` is outside the pure scalar linker profile",
+                        "workspace module `{}` declares capabilities outside the selected project linker profile",
                         module.module
                     ),
+                    None,
+                )]);
+            }
+            if !project_shape_admitted {
+                return Err(vec![project_function_error(
+                    module,
+                    format!(
+                        "workspace module `{}` contains declarations outside the selected project linker profile",
+                        module.module
+                    ),
+                    None,
                 )]);
             }
             if profile == crate::project::ProjectProfile::ScalarV1 {
@@ -1224,9 +1237,13 @@ impl WorkspaceGraphBuild {
                     && module.module != entry_module
                     && function.name == "main"
                 {
-                    return Err(vec![graph_error(
-                        "SPX-G172",
-                        "workspace scalar provider modules may not declare `main`",
+                    return Err(vec![project_function_error(
+                        module,
+                        format!(
+                            "workspace scalar provider module `{}` may not declare `main`",
+                            module.module
+                        ),
+                        Some(function.span),
                     )
                     .with_help(PROVIDER_MAIN_HELP)]);
                 }
@@ -1248,12 +1265,15 @@ impl WorkspaceGraphBuild {
                 if module.module == entry_module && function.name == "main" {
                     if !function.params.is_empty() || function.return_type != hir::ResolvedType::I64
                     {
-                        return Err(vec![graph_error(
-                            "SPX-G172",
-                            "workspace scalar entry module `main` must have the exact signature fn main() -> i64",
+                        return Err(vec![project_function_error(
+                            module,
+                            format!(
+                                "workspace scalar module `{entry_module}` function `main` must have the exact signature fn main() -> i64"
+                            ),
+                            Some(function.span),
                         )]);
                     }
-                    entrypoints.push((function.id.clone(), fact.origin));
+                    entrypoints.push((function.id.clone(), fact.origin, function.span));
                 }
                 // Project v6 has two deliberately distinct roots: the ordinary
                 // pure `main` closure and the manifest-selected effectful
@@ -1281,16 +1301,35 @@ impl WorkspaceGraphBuild {
             )]);
         }
         if entrypoints.len() != 1 {
-            return Err(vec![graph_error(
-                "SPX-G172",
-                "workspace scalar entry module must declare exactly one authored `main` function",
+            let module = self
+                .hir
+                .modules
+                .iter()
+                .find(|module| module.module == entry_module)
+                .expect("entry path came from one authenticated module");
+            return Err(vec![project_function_error(
+                module,
+                format!(
+                    "workspace scalar module `{entry_module}` must declare exactly one authored `main` function"
+                ),
+                None,
             )]);
         }
-        let (entrypoint, origin) = entrypoints.pop().expect("length checked above");
+        let (entrypoint, origin, entrypoint_span) =
+            entrypoints.pop().expect("length checked above");
         if origin != hir::IdentityOrigin::Explicit {
-            return Err(vec![graph_error(
-                "SPX-G172",
-                "workspace scalar entry module `main` must have an explicit identity",
+            let module = self
+                .hir
+                .modules
+                .iter()
+                .find(|module| module.module == entry_module)
+                .expect("entry path came from one authenticated module");
+            return Err(vec![project_function_error(
+                module,
+                format!(
+                    "workspace scalar module `{entry_module}` function `main` must have an explicit identity"
+                ),
+                Some(entrypoint_span),
             )]);
         }
         match profile {
@@ -2078,13 +2117,24 @@ impl WorkspaceGraphBuild {
                     && module.interfaces.is_empty()
                     && module.function_templates.is_empty()
                     && module.function_instances.is_empty());
-            if !permits_admitted || !project_shape_admitted {
-                return Err(vec![graph_error(
-                    "SPX-G172",
+            if !permits_admitted {
+                return Err(vec![project_function_error(
+                    module,
                     format!(
-                        "workspace module `{}` is outside the pure scalar linker profile",
+                        "workspace module `{}` declares capabilities outside the selected project linker profile",
                         module.module
                     ),
+                    None,
+                )]);
+            }
+            if !project_shape_admitted {
+                return Err(vec![project_function_error(
+                    module,
+                    format!(
+                        "workspace module `{}` contains declarations outside the selected project linker profile",
+                        module.module
+                    ),
+                    None,
                 )]);
             }
             if !roots.contains(module.module.as_str())
@@ -2093,9 +2143,18 @@ impl WorkspaceGraphBuild {
                     .iter()
                     .any(|function| function.name == "main")
             {
-                return Err(vec![graph_error(
-                    "SPX-G172",
-                    "workspace scalar provider modules may not declare `main`",
+                let function = module
+                    .functions
+                    .iter()
+                    .find(|function| function.name == "main")
+                    .expect("predicate found provider main");
+                return Err(vec![project_function_error(
+                    module,
+                    format!(
+                        "workspace scalar provider module `{}` may not declare `main`",
+                        module.module
+                    ),
+                    Some(function.span),
                 )
                 .with_help(PROVIDER_MAIN_HELP)]);
             }
@@ -6754,6 +6813,24 @@ fn use_error(program: &Program, module_use: &ModuleUse, message: &str) -> Diagno
 
 fn graph_error(code: &'static str, message: impl Into<String>) -> Diagnostic {
     Diagnostic::io(code, message)
+}
+
+fn project_function_error(
+    module: &WorkspaceResolvedModule,
+    message: impl Into<String>,
+    span: Option<Span>,
+) -> Diagnostic {
+    Diagnostic::error(
+        "SPX-G172",
+        message,
+        span.unwrap_or(Span {
+            start: 0,
+            end: 0,
+            line: 1,
+            column: 1,
+        }),
+    )
+    .at_path(&module.path)
 }
 
 const PROVIDER_MAIN_HELP: &str = "`entry` in semaprax.toml must name the module that declares `main`; every other listed source is a provider module and declares no `main`";

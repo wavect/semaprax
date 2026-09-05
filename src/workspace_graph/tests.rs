@@ -557,8 +557,57 @@ fn scalar_linker_rejects_entry_and_test_main_signature_drift_before_linking() {
         assert_eq!(error[0].code, "SPX-G172");
         assert_eq!(
             error[0].message,
-            "workspace scalar entry module `main` must have the exact signature fn main() -> i64"
+            format!(
+                "workspace scalar module `{module_name}` function `main` must have the exact signature fn main() -> i64"
+            )
         );
+        assert_eq!(
+            error[0].path.as_deref(),
+            Some(if module_name == "app.main" {
+                "app/main.spx"
+            } else {
+                "test/main.spx"
+            })
+        );
+        assert!(error[0].span.is_some());
+    }
+}
+
+#[test]
+fn scalar_linker_names_and_locates_the_module_missing_main() {
+    let source = |path: &str, module: &str, id: &str, name: &str| {
+        canonical_source(
+            path,
+            &format!("module {module};\n\n@id(\"{id}\")\nfn {name}() -> i64 {{ 0 }}\n"),
+        )
+    };
+    for (missing, path) in [("app.main", "app/main.spx"), ("test.main", "test/main.spx")] {
+        let app_name = if missing == "app.main" {
+            "value"
+        } else {
+            "main"
+        };
+        let test_name = if missing == "test.main" {
+            "value"
+        } else {
+            "main"
+        };
+        let error = build_owned(vec![
+            source("app/main.spx", "app.main", "app.entry", app_name),
+            source("test/main.spx", "test.main", "test.entry", test_name),
+        ])
+        .unwrap()
+        .into_linked_scalar_programs("app.main", "test.main")
+        .unwrap_err();
+        assert_eq!(error[0].code, "SPX-G172");
+        assert_eq!(
+            error[0].message,
+            format!(
+                "workspace scalar module `{missing}` must declare exactly one authored `main` function"
+            )
+        );
+        assert_eq!(error[0].path.as_deref(), Some(path));
+        assert_eq!(error[0].span.unwrap().line, 1);
     }
 }
 

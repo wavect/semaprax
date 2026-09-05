@@ -44,7 +44,14 @@ fn source_json_flag_order_cannot_select_a_shadow_file() {
     let after = cli(&root, &["valid.spx", "--json"]);
     same_result(&before, &after);
     assert!(before.status.success());
-    assert!(before.stdout.is_empty() && before.stderr.is_empty());
+    assert!(before.stderr.is_empty());
+    let verified: serde_json::Value = serde_json::from_slice(&before.stdout).unwrap();
+    assert_eq!(verified["status"], "verified");
+    assert_eq!(verified["path"], "valid.spx");
+    assert!(verified["revision"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
     assert_eq!(fs::read_to_string(root.join("--json")).unwrap(), INVALID);
 
     // A valid shadow would make the old argument-reparsing route report

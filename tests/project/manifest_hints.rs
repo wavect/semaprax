@@ -83,7 +83,8 @@ fn entry_naming_a_module_without_main_explains_the_entry_key() {
     let combined = format!("{stdout}{stderr}");
     assert!(combined.contains("\"code\":\"SPX-G172\""), "{combined}");
     assert!(
-        combined.contains("workspace scalar provider modules may not declare `main`"),
+        combined
+            .contains("workspace scalar provider module `calculator.app` may not declare `main`"),
         "{combined}"
     );
     assert!(

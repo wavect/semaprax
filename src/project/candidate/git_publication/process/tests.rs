@@ -5,14 +5,22 @@ use std::io::Write;
 use std::os::fd::{AsRawFd, OwnedFd};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, MutexGuard};
 
 static PROCESS_SERIAL: AtomicU64 = AtomicU64::new(0);
+static PROCESS_TEST_LOCK: Mutex<()> = Mutex::new(());
 const SURROGATE_FILTER: &str = "held_git_process_native_surrogate";
 /// Generous ceiling for the tests whose subject is not the deadline. Spawning
 /// and inspecting the suspended child takes seconds when the whole test binary
 /// runs in parallel, and a tight bound makes those runs report a deadline error
 /// instead of the outcome being asserted.
 const SETTLED_DEADLINE: Duration = Duration::from_secs(60);
+
+fn process_test_lock() -> MutexGuard<'static, ()> {
+    PROCESS_TEST_LOCK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
 
 struct ProcessFixture {
     root: PathBuf,
@@ -147,6 +155,7 @@ fn held_git_process_native_surrogate() {
 
 #[test]
 fn held_runner_preserves_exact_status_and_stdout() {
+    let _serial = process_test_lock();
     let fixture = ProcessFixture::new("exact");
     let (status, output) = fixture
         .run(4096, 4096, Instant::now() + SETTLED_DEADLINE)
@@ -164,6 +173,7 @@ fn held_runner_preserves_exact_status_and_stdout() {
 
 #[test]
 fn held_runner_executes_the_real_git_image() {
+    let _serial = process_test_lock();
     let mut fixture = ProcessFixture::new("exact");
     fixture.executable_path = std::env::var_os("SEMAPRAX_TEST_GIT")
         .map(PathBuf::from)
@@ -190,6 +200,7 @@ fn held_runner_executes_the_real_git_image() {
 
 #[test]
 fn held_runner_never_executes_a_replacement_path() {
+    let _serial = process_test_lock();
     let mut fixture = ProcessFixture::new("exact");
     let trusted = fixture.root.join("trusted-runner");
     let retained = fixture.root.join("retained-runner");
@@ -225,6 +236,7 @@ fn held_runner_never_executes_a_replacement_path() {
 
 #[test]
 fn held_runner_clears_environment_and_non_whitelisted_descriptors() {
+    let _serial = process_test_lock();
     #[cfg(target_os = "macos")]
     let expected_environment = format!(
         "environment=GIT_ATTR_NOSYSTEM=1|GIT_CONFIG_GLOBAL=/dev/null|GIT_CONFIG_NOSYSTEM=1|GIT_CONFIG_SYSTEM=/dev/null|GIT_NO_LAZY_FETCH=1|GIT_NO_REPLACE_OBJECTS=1|GIT_OPTIONAL_LOCKS=0|GIT_TERMINAL_PROMPT=0|LC_ALL=C|__CF_USER_TEXT_ENCODING=0x{:X}:0:0\nsecret_fd_visible=false\n",
@@ -262,6 +274,7 @@ fn held_runner_clears_environment_and_non_whitelisted_descriptors() {
 
 #[test]
 fn output_overflow_settles_the_entire_owned_process_group() {
+    let _serial = process_test_lock();
     let fixture = ProcessFixture::new("overflow");
     let error = fixture
         .run(4096, 4096, Instant::now() + SETTLED_DEADLINE)
@@ -272,6 +285,7 @@ fn output_overflow_settles_the_entire_owned_process_group() {
 
 #[test]
 fn stderr_overflow_settles_the_entire_owned_process_group() {
+    let _serial = process_test_lock();
     let fixture = ProcessFixture::new("stderr-overflow");
     let error = fixture
         .run(4096, 4096, Instant::now() + SETTLED_DEADLINE)
@@ -282,6 +296,7 @@ fn stderr_overflow_settles_the_entire_owned_process_group() {
 
 #[test]
 fn successful_leader_cannot_leave_a_live_descendant() {
+    let _serial = process_test_lock();
     let fixture = ProcessFixture::new("success-descendant");
     let (status, _) = fixture
         .run(4096, 4096, Instant::now() + SETTLED_DEADLINE)
@@ -292,6 +307,7 @@ fn successful_leader_cannot_leave_a_live_descendant() {
 
 #[test]
 fn deadline_settles_the_entire_owned_process_group() {
+    let _serial = process_test_lock();
     let fixture = ProcessFixture::new("deadline");
     let error = fixture
         .run(4096, 4096, Instant::now() + Duration::from_secs(1))

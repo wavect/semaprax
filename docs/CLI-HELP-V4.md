@@ -37,8 +37,8 @@ static, source-owned guide:
   `help shapes`);
 - each entry is an abbreviated command shape, padded to one column, followed
   by a one-line purpose;
-- a two-line footer naming the first command to run and the `--json`
-  diagnostic form.
+- a two-line footer naming the first command to run, exact diagnostic-code
+  help, and the `--json` diagnostic form.
 
 Every entry names a catalog command by its canonical name, and the capability
 filter is the catalog's: since `doctor` moved into the root crate no catalog
@@ -66,6 +66,7 @@ shapes:
 Usage:
   semaprax help <command>
   semaprax help all
+  semaprax help diagnostic <SPX-code|codes>
   semaprax help language
   semaprax help language <topic|topics>
   semaprax help library
@@ -75,15 +76,37 @@ Usage:
 ```
 
 `all` is not a command. An operand beyond one of the admitted shapes, including
-`semaprax help all extra` or `semaprax help language scalars extra`, exits two,
+`semaprax help all extra`, `semaprax help diagnostic SPX-T208 extra`, or
+`semaprax help language scalars extra`, exits two,
 emits no stdout, and names that operand in a precise
 `help accepts exactly one operand` diagnostic. `semaprax all` and other
 placements retain the ordinary unknown-command behavior. The typo suggestion
 and hidden-command refusal are otherwise unchanged in bytes and status.
 
+## Diagnostic help
+
+`semaprax help diagnostic <SPX-code|codes>` is the third `help` shape. An exact,
+case-sensitive `SPX-*` code returns only the common failed form and correction
+rows indexed for that code. `codes` returns the closed supported-code inventory.
+The response is derived from the diagnostic-index table in the compiler-checked
+[agent quick reference](AGENT-QUICK-REFERENCE.md) through the pinned
+`semaprax.agent-diagnostic-help.v1`
+[JSON companion](AGENT-DIAGNOSTIC-HELP.json); the CLI does not maintain a second
+copy of the advice. The documentation gate also requires every marked failing
+example in the card to have an indexed correction.
+
+No match exits two, emits no stdout, and reports the literal diagnostic
+“diagnostic help has no exact match for `<SPX-code>`” on stderr. Prefix, fuzzy,
+and case-folded matching are not admitted. The code inventory is capped at 256
+bytes and 100 repository
+lexical units. Every exact response is capped at 1,024 bytes and 300 units. The
+guarded `SPX-T208` response is 111 bytes and 32 units, more than twenty times
+smaller in both measures than the 2,513-byte, 916-unit complete diagnostic
+index. Even the six-row `SPX-P106` response is only 549 bytes and 182 units.
+
 ## Language card
 
-`semaprax help language` is the third `help` shape. For either executable it
+`semaprax help language` is the fourth `help` shape. For either executable it
 returns status zero, empty stderr, and exactly the bytes of the repository's
 [agent quick reference](AGENT-QUICK-REFERENCE.md), compiled into the binary.
 An agent or developer working from an installed compiler, without the source
@@ -92,7 +115,7 @@ languages trigger, and their fixes offline. The document's own gate checks its
 code blocks against the compiler, so the card cannot describe syntax the
 binary rejects.
 
-`semaprax help language <topic|topics>` is the fourth shape. `topics` returns
+`semaprax help language <topic|topics>` is the fifth shape. `topics` returns
 the closed stable selector list and its card headings. The exact,
 case-sensitive topic selectors are `workflow`, `module`, `scalars`,
 `control-flow`, `records`, `ownership`, `strings`, `builtins`,
@@ -108,13 +131,13 @@ The topic inventory is capped at 768 bytes. Every topic is capped at 4,600
 bytes and 1,500 repository lexical units and must remain more than five times
 smaller than the full card in both measures. The guarded `scalars` section is
 also capped at 1,024 bytes and 300 units and must remain more than twenty times
-smaller in both measures. The current card is 25,435 bytes and 7,237 units;
+smaller in both measures. The current card is 26,140 bytes and 7,418 units;
 `scalars` is 793 bytes and 296 units, while the topic inventory is 569 bytes
-and 77 units. Scoped help for `help` lists all eight shapes.
+and 77 units. Scoped help for `help` lists all nine shapes.
 
 ## Standard-library catalog
 
-`semaprax help library` is the fifth `help` shape. For either executable it
+`semaprax help library` is the sixth `help` shape. For either executable it
 returns status zero, empty stderr, and exactly the bytes of the repository's
 generated [standard library catalog](STANDARD-LIBRARY-CATALOG.md), compiled
 into the binary: every `std.*` declaration with its signature, effects, and
@@ -122,7 +145,7 @@ contracts. `tests/project.rs::standard_library` regenerates that document from
 `std/` and pins it, so the printed catalog cannot list a function the compiler
 does not ship.
 
-`semaprax help library <module|name|stable-id>` is the sixth shape and uses the
+`semaprax help library <module|name|stable-id>` is the seventh shape and uses the
 generated `std/catalog.json` from that same gate. Matching is exact and
 case-sensitive. A module identity returns its declarations in catalog order;
 a declaration name or persistent identity returns every exact match in that
@@ -143,7 +166,7 @@ remains unchanged.
 
 ## Language shapes catalog
 
-`semaprax help shapes` is the seventh `help` shape. For either executable it
+`semaprax help shapes` is the eighth `help` shape. For either executable it
 returns status zero, empty stderr, and exactly the bytes of the repository's
 generated [language shapes catalog](LANGUAGE-SHAPES-CATALOG.md), compiled into
 the binary: every declaration of every committed example, grouped by kind,
@@ -152,7 +175,7 @@ with its `@id` and canonical header as the `semaprax doc` model renders it.
 `examples/` and pins it, so the printed shapes are exactly the ones the
 compiler verifies.
 
-`semaprax help shapes <kind|stable-id|path#stable-id>` is the eighth shape and
+`semaprax help shapes <kind|stable-id|path#stable-id>` is the ninth shape and
 uses the generated `docs/LANGUAGE-SHAPES-CATALOG.json` companion from the same
 gate. Matching is exact and case-sensitive. A declaration kind returns the
 canonical exemplar with the fewest repository lexical units, then fewest
@@ -184,12 +207,12 @@ The standalone and full-toolchain help harnesses prove: the guided page's
 banner, byte bound, group headings, capability filtering, and that each guided
 entry resolves to a scoped-help command; `help all` byte structure, ordering,
 and capability filtering for both executables; that every `help all` line still
-has exact scoped help; all eight `help` grammar lines; the full language-card
-and both generated catalogs' byte identities; exact topic inventory and
-section boundaries; exact name, stable-ID, module, path-disambiguation,
-kind-exemplar, missing-selector, and token-economics behavior for scoped
-lookups; malformed extra operands; and empty working directories with no
-created entries.
+has exact scoped help; all nine `help` grammar lines; the full language-card
+and both generated catalogs' byte identities; exact diagnostic-code inventory,
+generated-companion pin, compiler-example coverage, topic inventory, and section
+boundaries; exact diagnostic, name, stable-ID, module, path-disambiguation,
+kind-exemplar, missing-selector, and token-economics behavior for scoped lookups;
+malformed extra operands; and empty working directories with no created entries.
 
 ## Nonclaims
 

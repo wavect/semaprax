@@ -405,6 +405,7 @@ mod agent_quick_reference {
     //! the page's "what the compiler says" claims cannot drift from the parser
     //! and verifier.
 
+    use std::collections::BTreeMap;
     use std::path::Path;
 
     use semaprax::{format, parse, verify};
@@ -413,6 +414,9 @@ mod agent_quick_reference {
     const FENCE: &str = "```semaprax";
     const MARKER_PREFIX: &str = "<!-- expect: ";
     const MARKER_SUFFIX: &str = " -->";
+    const DIAGNOSTIC_HEADING: &str = "## Habits from other languages: diagnostic index\n";
+    const DIAGNOSTIC_HELP: &str = "docs/AGENT-DIAGNOSTIC-HELP.json";
+    const DIAGNOSTIC_SCHEMA: &str = "semaprax.agent-diagnostic-help.v1";
 
     struct Block {
         line: usize,
@@ -469,6 +473,99 @@ mod agent_quick_reference {
             index = end + 1;
         }
         blocks
+    }
+
+    fn reference_text() -> String {
+        std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(REFERENCE))
+            .unwrap()
+            .replace("\r\n", "\n")
+    }
+
+    fn diagnostic_rows() -> BTreeMap<String, Vec<serde_json::Value>> {
+        let text = reference_text();
+        let section = text
+            .split_once(DIAGNOSTIC_HEADING)
+            .expect("the agent reference must contain the diagnostic index")
+            .1;
+        let section = section.split("\n## ").next().unwrap();
+        let mut rows = BTreeMap::<String, Vec<serde_json::Value>>::new();
+        for line in section.lines().filter(|line| line.starts_with("| ")) {
+            let cells = line
+                .trim_matches('|')
+                .split('|')
+                .map(str::trim)
+                .collect::<Vec<_>>();
+            assert_eq!(
+                cells.len(),
+                3,
+                "diagnostic table row must have three cells: {line}"
+            );
+            if cells[0] == "You wrote" || cells[0].starts_with("---") {
+                continue;
+            }
+            let codes = cells[1]
+                .split('`')
+                .filter(|part| part.starts_with("SPX-"))
+                .collect::<Vec<_>>();
+            assert!(
+                !codes.is_empty(),
+                "diagnostic table row has no SPX code: {line}"
+            );
+            for code in codes {
+                rows.entry(code.to_owned())
+                    .or_default()
+                    .push(serde_json::json!({
+                        "wrote": cells[0],
+                        "fix": cells[2],
+                    }));
+            }
+        }
+        rows
+    }
+
+    fn diagnostic_help_json() -> String {
+        let entries = diagnostic_rows()
+            .into_iter()
+            .map(|(code, rows)| serde_json::json!({ "code": code, "rows": rows }))
+            .collect::<Vec<_>>();
+        let mut output = serde_json::to_string_pretty(&serde_json::json!({
+            "schema": DIAGNOSTIC_SCHEMA,
+            "entries": entries,
+        }))
+        .unwrap();
+        output.push('\n');
+        output
+    }
+
+    #[test]
+    fn diagnostic_help_is_pinned_and_covers_compiler_checked_examples() {
+        let generated = diagnostic_help_json();
+        let pinned =
+            std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(DIAGNOSTIC_HELP))
+                .unwrap();
+        assert_eq!(pinned, generated, "regenerate {DIAGNOSTIC_HELP}");
+
+        let rows = diagnostic_rows();
+        assert!(
+            rows.len() >= 20,
+            "diagnostic help must retain broad coverage"
+        );
+        for expected in blocks().into_iter().filter_map(|block| block.expect) {
+            assert!(
+                rows.contains_key(&expected),
+                "compiler-checked example `{expected}` must have indexed help"
+            );
+        }
+    }
+
+    #[test]
+    #[ignore = "regenerates the pinned agent diagnostic help projection"]
+    fn regenerate_diagnostic_help() {
+        std::fs::write(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join(DIAGNOSTIC_HELP),
+            diagnostic_help_json(),
+        )
+        .unwrap();
     }
 
     #[test]

@@ -57,6 +57,9 @@ so it is available without the source checkout.
   section needed for the current question. Matching is exact; the full
   `semaprax help language` card remains available when several topics are
   needed.
+- When a diagnostic code is already known, use `semaprax help diagnostic
+  <SPX-code>` for only its indexed correction; list the exact supported codes
+  with `semaprax help diagnostic codes`.
 - When one canonical declaration example is enough, use `semaprax help shapes
   <kind|stable-id|path#stable-id>` instead of the full shapes catalog. Kind
   selectors return the smallest compiler-verified exemplar. The guarded
@@ -547,15 +550,18 @@ Other first-attempt diagnostics and their fixes:
 | You wrote | Code | Fix |
 | --- | --- | --- |
 | `for i in 0..n { … }` | `SPX-P106` | Use `while` with a `let mut` counter and an ordinary discarded tail |
+| a `while` body ending after assignment | `SPX-P203` | Add the continuation condition as the body's final expression |
 | `f(x);` as a statement | `SPX-P106` | Discard it with `let _ = f(x);` or make it the tail |
 | `let t = (1, 2);` | `SPX-P106` | No tuples; declare a `record` |
 | `id(4)` for `fn id<T>` | `SPX-T225` | `id<i64>(4)` |
 | `Option::Some { value: 1 }` | `SPX-T221` | `Option<i64>::Some { value: 1 }` |
 | `index + 1` when `index: usize` | `SPX-T208` | Integer literals default to `i64`; write `index + 1usize` |
+| `let a: i32 = 5` | `SPX-T232` | Suffix the literal: `let a: i32 = 5i32` |
 | `"a" + "b"` | `SPX-T250` | `string_concat("a", "b")` |
 | `f("abc")` or `f(owned)` for `borrow str` | `SPX-T205` | `let s = "abc"; f(string_as_str(s))` |
 | `point.get()` on a record | `SPX-T203` | Records have no methods; call `get(point)` or use a `class` |
 | `let x = 1; let x = x + 1;` | `SPX-T209` | No shadowing; pick a new name |
+| assignment to an immutable binding | `SPX-U101` | Declare it with `let mut` before assigning |
 | `fn main() -> bool` | `SPX-T104` | `main` returns `i64`; `0` conventionally means success |
 | a second `consume(b)` after `own` | `SPX-O101` | Take `borrow` in the callee or pass a fresh value |
 | `struct`, `enum`, `pub`, `const` | `SPX-P104` | `record`, `variant`, no visibility keyword, a function returning the value |
@@ -565,6 +571,8 @@ Other first-attempt diagnostics and their fixes:
 | `a[0]` | `SPX-P106` | `byte_get(array_as_slice(a), 0usize)` returns `Option<u8>` |
 | `Some(1)`, `None` | `SPX-T203`, `SPX-T202` | `Option<i64>::Some { value: 1 }`, `Option<i64>::None {}` |
 | `s.len()` on a `string` | `SPX-T203` | `string_len(s)`; no type but a `class` has methods |
+| `str_as_bytes(text)` when `text: string` | `SPX-T263` | Borrow first with `str_as_bytes(string_as_str(text))` |
+| `string_as_str("literal")` | `SPX-T266` | Bind the literal, then pass that binding to `string_as_str` |
 | `String`, `int`, `Vec` as types | `SPX-T001` | `string`, `i64`/`i32`/`u8`/`usize`, `[u8; N]`/`Bytes`/`Slice<u8>` |
 
 ## Projects

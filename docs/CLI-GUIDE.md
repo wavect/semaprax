@@ -34,6 +34,17 @@ their fixes, without a source checkout:
 semaprax help language
 ```
 
+When the compiler has already supplied a stable diagnostic code, request only
+its indexed correction, or list the exact codes that have compact help:
+
+```sh
+semaprax help diagnostic SPX-T208
+semaprax help diagnostic codes
+```
+
+Matching is exact and case-sensitive. The response comes from the diagnostic
+table in the compiler-checked quick reference; it does not load the full card.
+
 Print the generated standard-library catalog, every `std.*` function with its
 signature and contracts, without a source checkout:
 

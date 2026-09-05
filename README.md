@@ -82,7 +82,9 @@ Use `semaprax <command> --help` for the exact accepted command shape, or see
 the [CLI user guide](docs/CLI-GUIDE.md) for common source, project, formatting,
 and automation workflows. `semaprax help language` prints the compiler-checked
 [agent quick reference](docs/AGENT-QUICK-REFERENCE.md), the one-page card for
-writing `.spx`, without a checkout. Opening a `.spx` file in Visual Studio Code
+writing `.spx`, without a checkout. Given a stable compiler error code,
+`semaprax help diagnostic <SPX-code>` prints only its indexed correction.
+Opening a `.spx` file in Visual Studio Code
 with the [repository extension](editors/vscode/README.md) loaded gives syntax
 highlighting.
 
@@ -213,6 +215,10 @@ compiler-verified declaration example with
 `semaprax help shapes <kind|stable-id|path#stable-id>`, or one compiler-checked
 language-card section with `semaprax help language <topic>` after listing the
 stable selectors with `semaprax help language topics`.
+Given a diagnostic such as `SPX-T208`, the installed compiler can instead
+return only its common failed form and correction with `semaprax help
+diagnostic SPX-T208`; `semaprax help diagnostic codes` lists the closed exact
+inventory.
 
 ## The programming model
 

@@ -153,6 +153,9 @@ cargo test --locked -p semaprax --test documentation --test examples
 tour code block is a verbatim example excerpt, and that every SEMAPRAX block in
 the [agent quick reference](AGENT-QUICK-REFERENCE.md) either verifies cleanly in
 canonical form or produces exactly the diagnostic code its marker names. The
+same harness regenerates and pins the diagnostic-help JSON from the reference's
+correction table and requires every marked failing block to have indexed help.
+The
 docs workflow builds the mdBook using the pinned version in
 `.github/workflows/docs.yml`.
 

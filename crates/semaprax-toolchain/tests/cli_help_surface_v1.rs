@@ -28,6 +28,34 @@ const LANGUAGE_TOPICS: &str = concat!(
     "  projects        Projects\n",
     "  specifications  Where the rules live\n",
 );
+const DIAGNOSTIC_CODES: &str = concat!(
+    "Diagnostic codes:\n",
+    "  SPX-O101\n",
+    "  SPX-P104\n",
+    "  SPX-P105\n",
+    "  SPX-P106\n",
+    "  SPX-P201\n",
+    "  SPX-P203\n",
+    "  SPX-T001\n",
+    "  SPX-T104\n",
+    "  SPX-T202\n",
+    "  SPX-T203\n",
+    "  SPX-T205\n",
+    "  SPX-T208\n",
+    "  SPX-T209\n",
+    "  SPX-T221\n",
+    "  SPX-T225\n",
+    "  SPX-T232\n",
+    "  SPX-T250\n",
+    "  SPX-T263\n",
+    "  SPX-T266\n",
+    "  SPX-U101\n",
+);
+const DIAGNOSTIC_T208: &str = concat!(
+    "SPX-T208\n",
+    "wrote: `index + 1` when `index: usize`\n",
+    "fix: Integer literals default to `i64`; write `index + 1usize`\n",
+);
 
 fn guide_commands(guide: &str) -> Vec<&str> {
     guide
@@ -79,6 +107,7 @@ fn full_help_is_exact_capability_aware_and_inert() {
     assert_eq!(guide.matches("\n  new ").count(), 1);
     assert_eq!(guide.matches("\n  doctor ").count(), 1);
     assert_eq!(guide.matches("\n  help all ").count(), 1);
+    assert!(guide.contains("semaprax help diagnostic <code>`\n"));
     assert_eq!(guide.matches("\nsemaprax ").count(), 0);
     for name in guide_commands(&guide) {
         let (output, directory) = invoke(&["help", name]);
@@ -210,6 +239,56 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     assert!(scalar_units <= 300);
     assert!(scalar_units * 20 < card_units);
     std::fs::remove_dir(scalars_dir).unwrap();
+    let (diagnostic_codes, diagnostic_codes_dir) = invoke(&["help", "diagnostic", "codes"]);
+    assert!(diagnostic_codes.status.success());
+    assert!(diagnostic_codes.stderr.is_empty());
+    assert_eq!(diagnostic_codes.stdout, DIAGNOSTIC_CODES.as_bytes());
+    assert!(diagnostic_codes.stdout.len() <= 256);
+    std::fs::remove_dir(diagnostic_codes_dir).unwrap();
+    let (diagnostic, diagnostic_dir) = invoke(&["help", "diagnostic", "SPX-T208"]);
+    assert!(diagnostic.status.success());
+    assert!(diagnostic.stderr.is_empty());
+    assert_eq!(diagnostic.stdout, DIAGNOSTIC_T208.as_bytes());
+    assert!(diagnostic.stdout.len() <= 256);
+    let mistakes = invoke(&["help", "language", "mistakes-index"]);
+    assert!(diagnostic.stdout.len() * 20 < mistakes.0.stdout.len());
+    assert!(
+        semaprax::agent_economics::lexical_tokens(DIAGNOSTIC_T208) * 20
+            < semaprax::agent_economics::lexical_tokens(
+                std::str::from_utf8(&mistakes.0.stdout).unwrap()
+            )
+    );
+    std::fs::remove_dir(mistakes.1).unwrap();
+    std::fs::remove_dir(diagnostic_dir).unwrap();
+    let (p106, p106_dir) = invoke(&["help", "diagnostic", "SPX-P106"]);
+    assert!(p106.status.success());
+    assert!(p106.stderr.is_empty());
+    assert_eq!(
+        p106.stdout
+            .windows(b"\nwrote: ".len())
+            .filter(|window| *window == b"\nwrote: ")
+            .count(),
+        6
+    );
+    assert!(p106.stdout.len() <= 1_024);
+    std::fs::remove_dir(p106_dir).unwrap();
+    let (missing_diagnostic, missing_diagnostic_dir) = invoke(&["help", "diagnostic", "spx-t208"]);
+    assert_eq!(missing_diagnostic.status.code(), Some(2));
+    assert!(missing_diagnostic.stdout.is_empty());
+    assert_eq!(
+        missing_diagnostic.stderr,
+        b"diagnostic help has no exact match for `spx-t208`\n"
+    );
+    std::fs::remove_dir(missing_diagnostic_dir).unwrap();
+    let (diagnostic_extra, diagnostic_extra_dir) =
+        invoke(&["help", "diagnostic", "SPX-T208", "extra"]);
+    assert_eq!(diagnostic_extra.status.code(), Some(2));
+    assert!(diagnostic_extra.stdout.is_empty());
+    assert_eq!(
+        diagnostic_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    std::fs::remove_dir(diagnostic_extra_dir).unwrap();
     let (library, library_dir) = invoke(&["help", "library"]);
     assert!(library.status.success());
     assert!(library.stderr.is_empty());
@@ -354,6 +433,7 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
                 "Usage:\n",
                 "  semaprax help <command>\n",
                 "  semaprax help all\n",
+                "  semaprax help diagnostic <SPX-code|codes>\n",
                 "  semaprax help language\n",
                 "  semaprax help language <topic|topics>\n",
                 "  semaprax help library\n",

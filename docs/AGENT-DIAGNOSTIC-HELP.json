@@ -1,0 +1,213 @@
+{
+  "entries": [
+    {
+      "code": "SPX-O101",
+      "rows": [
+        {
+          "fix": "Take `borrow` in the callee or pass a fresh value",
+          "wrote": "a second `consume(b)` after `own`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-P104",
+      "rows": [
+        {
+          "fix": "`record`, `variant`, no visibility keyword, a function returning the value",
+          "wrote": "`struct`, `enum`, `pub`, `const`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-P105",
+      "rows": [
+        {
+          "fix": "Every function returns `i64` or `bool`; there is no unit",
+          "wrote": "`fn f()` or `-> ()`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-P106",
+      "rows": [
+        {
+          "fix": "Use `while` with a `let mut` counter and an ordinary discarded tail",
+          "wrote": "`for i in 0..n { … }`"
+        },
+        {
+          "fix": "Discard it with `let _ = f(x);` or make it the tail",
+          "wrote": "`f(x);` as a statement"
+        },
+        {
+          "fix": "No tuples; declare a `record`",
+          "wrote": "`let t = (1, 2);`"
+        },
+        {
+          "fix": "Every field and every match arm ends with `,`, including the last",
+          "wrote": "`x: i64` as the last field without `,`"
+        },
+        {
+          "fix": "Every function returns `i64` or `bool`; there is no unit",
+          "wrote": "`fn f()` or `-> ()`"
+        },
+        {
+          "fix": "`byte_get(array_as_slice(a), 0usize)` returns `Option<u8>`",
+          "wrote": "`a[0]`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-P201",
+      "rows": [
+        {
+          "fix": "`x = x + 1;`",
+          "wrote": "`x += 1;`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-P203",
+      "rows": [
+        {
+          "fix": "Add the continuation condition as the body's final expression",
+          "wrote": "a `while` body ending after assignment"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T001",
+      "rows": [
+        {
+          "fix": "`string`, `i64`/`i32`/`u8`/`usize`, `[u8; N]`/`Bytes`/`Slice<u8>`",
+          "wrote": "`String`, `int`, `Vec` as types"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T104",
+      "rows": [
+        {
+          "fix": "`main` returns `i64`; `0` conventionally means success",
+          "wrote": "`fn main() -> bool`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T202",
+      "rows": [
+        {
+          "fix": "`Option<i64>::Some { value: 1 }`, `Option<i64>::None {}`",
+          "wrote": "`Some(1)`, `None`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T203",
+      "rows": [
+        {
+          "fix": "Records have no methods; call `get(point)` or use a `class`",
+          "wrote": "`point.get()` on a record"
+        },
+        {
+          "fix": "`Option<i64>::Some { value: 1 }`, `Option<i64>::None {}`",
+          "wrote": "`Some(1)`, `None`"
+        },
+        {
+          "fix": "`string_len(s)`; no type but a `class` has methods",
+          "wrote": "`s.len()` on a `string`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T205",
+      "rows": [
+        {
+          "fix": "`let s = \"abc\"; f(string_as_str(s))`",
+          "wrote": "`f(\"abc\")` or `f(owned)` for `borrow str`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T208",
+      "rows": [
+        {
+          "fix": "Integer literals default to `i64`; write `index + 1usize`",
+          "wrote": "`index + 1` when `index: usize`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T209",
+      "rows": [
+        {
+          "fix": "No shadowing; pick a new name",
+          "wrote": "`let x = 1; let x = x + 1;`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T221",
+      "rows": [
+        {
+          "fix": "`Option<i64>::Some { value: 1 }`",
+          "wrote": "`Option::Some { value: 1 }`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T225",
+      "rows": [
+        {
+          "fix": "`id<i64>(4)`",
+          "wrote": "`id(4)` for `fn id<T>`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T232",
+      "rows": [
+        {
+          "fix": "Suffix the literal: `let a: i32 = 5i32`",
+          "wrote": "`let a: i32 = 5`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T250",
+      "rows": [
+        {
+          "fix": "`string_concat(\"a\", \"b\")`",
+          "wrote": "`\"a\" + \"b\"`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T263",
+      "rows": [
+        {
+          "fix": "Borrow first with `str_as_bytes(string_as_str(text))`",
+          "wrote": "`str_as_bytes(text)` when `text: string`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-T266",
+      "rows": [
+        {
+          "fix": "Bind the literal, then pass that binding to `string_as_str`",
+          "wrote": "`string_as_str(\"literal\")`"
+        }
+      ]
+    },
+    {
+      "code": "SPX-U101",
+      "rows": [
+        {
+          "fix": "Declare it with `let mut` before assigning",
+          "wrote": "assignment to an immutable binding"
+        }
+      ]
+    }
+  ],
+  "schema": "semaprax.agent-diagnostic-help.v1"
+}

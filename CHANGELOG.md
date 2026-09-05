@@ -180,6 +180,13 @@ format: `Unreleased` then release buckets, grouped by impact.
   compiler resources. The focused projections integration gate passes 5/5;
   no binary attestation, live discovery, skill execution,
   host authority, registry, network, MCP/LSP, or legacy-query change is claimed.
+- Added exact `semaprax help diagnostic <SPX-code>` lookup and the bounded
+  `semaprax help diagnostic codes` inventory. A generated JSON companion keeps
+  the CLI response identical in meaning to the compiler-checked quick
+  reference's correction table, and the documentation gate now requires every
+  marked failing example to have indexed help. The guarded `SPX-T208` answer
+  is 111 bytes and 32 lexical units versus 2,513 bytes and 916 units for the
+  complete diagnostic index.
 - Added the locally exercised Universal Semantic Workflow CLI v1 read-only
   adapter. Five Project-only `query` subcommands print exact
   Universal Semantic Query results, while `change preview rename-display-name`
@@ -200,7 +207,7 @@ format: `Unreleased` then release buckets, grouped by impact.
   return one compiler-checked section of the agent quick reference without
   transferring the whole card; every topic is guarded at more than five times
   smaller in both bytes and repository lexical units. The `scalars` result is
-  793 bytes and 296 units versus 25,435 bytes and 7,237 units for the full card.
+  793 bytes and 296 units versus 26,140 bytes and 7,418 units for the full card.
 - Added a hosted Network Services v1 extension with Rustls-authenticated TLS
   clients, explicit listener/accept lifecycle, deterministic fixture v2, five
   effect-gated source operations, and a bounded real structured-task runtime.

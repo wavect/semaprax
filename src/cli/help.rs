@@ -258,7 +258,7 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Repair, canonical: "repair", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax repair <file> <repair-id> --persistent-id <persistent-id>"] },
     CommandSpec { id: CommandId::Version, canonical: "version", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax version [--json]"] },
     CommandSpec { id: CommandId::VersionFlag, canonical: "--version", aliases: &["-V"], availability: Availability::Public, global: true, usages: &["semaprax --version"] },
-    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
+    CommandSpec { id: CommandId::Help, canonical: "help", aliases: &["--help", "-h"], availability: Availability::Public, global: false, usages: &["semaprax help <command>", "semaprax help all", "semaprax help diagnostic <SPX-code|codes>", "semaprax help language", "semaprax help language <topic|topics>", "semaprax help library", "semaprax help library <module|name|stable-id>", "semaprax help shapes", "semaprax help shapes <kind|stable-id|path#stable-id>"] },
 ];
 fn available(spec: &CommandSpec, private: bool) -> bool {
     spec.availability == Availability::Public || private
@@ -329,6 +329,9 @@ const BANNER: &str = "SEMAPRAX — Meaning in. Verified machine code out.\n";
 /// The bytes are the repository document; `tests/documentation.rs` checks its
 /// code blocks against this compiler.
 pub(crate) const LANGUAGE_REFERENCE: &str = include_str!("../../docs/AGENT-QUICK-REFERENCE.md");
+/// The deterministic diagnostic index generated and pinned by the quick
+/// reference documentation gate.
+const DIAGNOSTIC_INDEX: &str = include_str!("../../docs/AGENT-DIAGNOSTIC-HELP.json");
 
 const LANGUAGE_TOPICS: &[(&str, &str)] = &[
     ("workflow", "Spend tokens on source, not on dumps"),
@@ -386,6 +389,68 @@ pub(crate) fn language_topic(query: &str) -> Result<String, String> {
     let section = &LANGUAGE_REFERENCE[start..];
     let end = section.find("\n## ").unwrap_or(section.len());
     Ok(section[..end].to_owned())
+}
+
+pub(crate) fn diagnostic_entry(query: &str) -> Result<String, String> {
+    let index: serde_json::Value =
+        serde_json::from_str(DIAGNOSTIC_INDEX).expect("generated diagnostic-help JSON must parse");
+    assert_eq!(
+        index["schema"].as_str(),
+        Some("semaprax.agent-diagnostic-help.v1"),
+        "generated diagnostic-help JSON must have the current schema"
+    );
+    let entries = index["entries"]
+        .as_array()
+        .expect("generated diagnostic-help JSON must contain entries");
+    if query == "codes" {
+        let mut output = String::from("Diagnostic codes:\n");
+        for entry in entries {
+            writeln!(
+                output,
+                "  {}",
+                entry["code"]
+                    .as_str()
+                    .expect("generated diagnostic-help entry must have a code")
+            )
+            .expect("writing to a string cannot fail");
+        }
+        return Ok(output);
+    }
+
+    let entry = entries
+        .iter()
+        .find(|entry| entry["code"].as_str() == Some(query));
+    let Some(entry) = entry else {
+        return Err(format!("diagnostic help has no exact match for `{query}`"));
+    };
+    let mut output = format!("{query}\n");
+    for (index, row) in entry["rows"]
+        .as_array()
+        .expect("generated diagnostic-help entry must contain rows")
+        .iter()
+        .enumerate()
+    {
+        if index > 0 {
+            output.push('\n');
+        }
+        writeln!(
+            output,
+            "wrote: {}",
+            row["wrote"]
+                .as_str()
+                .expect("generated diagnostic-help row must describe the attempt")
+        )
+        .expect("writing to a string cannot fail");
+        writeln!(
+            output,
+            "fix: {}",
+            row["fix"]
+                .as_str()
+                .expect("generated diagnostic-help row must describe the fix")
+        )
+        .expect("writing to a string cannot fail");
+    }
+    Ok(output)
 }
 
 /// The generated standard-library catalog, printed by `semaprax help library`:
@@ -569,8 +634,14 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
         print!("{output}");
         return Some(Ok(()));
     }
-    if args.len() == 3 && matches!(args[1].as_str(), "language" | "library" | "shapes") {
+    if args.len() == 3
+        && matches!(
+            args[1].as_str(),
+            "diagnostic" | "language" | "library" | "shapes"
+        )
+    {
         let result = match args[1].as_str() {
+            "diagnostic" => diagnostic_entry(&args[2]),
             "language" => language_topic(&args[2]),
             "library" => library_entry(&args[2]),
             "shapes" => shape_entry(&args[2]),
@@ -587,7 +658,10 @@ pub(crate) fn dispatch(args: &[String], private: bool) -> Option<Result<(), u8>>
             }
         });
     }
-    let extra = if matches!(args[1].as_str(), "language" | "library" | "shapes") {
+    let extra = if matches!(
+        args[1].as_str(),
+        "diagnostic" | "language" | "library" | "shapes"
+    ) {
         &args[3]
     } else {
         &args[2]
@@ -768,8 +842,8 @@ static GUIDE: &[GuideGroup] = &[
 ];
 
 const GUIDE_FOOTER: &str =
-    "Start with `semaprax check <file>`. Diagnostics carry SPX codes and a `help:` line when\n\
-the compiler knows the fix; `--json` emits one diagnostic per line.\n";
+    "Start with `semaprax check <file>`. Diagnostics carry SPX codes; `semaprax help diagnostic <code>`\n\
+prints an indexed fix. `--json` emits one diagnostic per line.\n";
 
 fn guide_spec(id: CommandId) -> &'static CommandSpec {
     COMMANDS
@@ -1043,6 +1117,7 @@ mod tests {
             );
             assert!(help.contains("\n  help all "));
             assert!(help.contains("\n  help language "));
+            assert!(help.contains("semaprax help diagnostic <code>`\n"));
             assert!(help.contains("\n  new "));
             assert!(help.contains("\n  doctor "), "private={private}");
             assert!(!help.contains("|rust"));
@@ -1174,6 +1249,59 @@ mod tests {
         assert_eq!(
             language_topic("Scalars").unwrap_err(),
             "language card has no exact topic `Scalars`"
+        );
+    }
+
+    #[test]
+    fn diagnostic_help_is_exact_complete_and_cheaper_than_the_index() {
+        let index: serde_json::Value = serde_json::from_str(DIAGNOSTIC_INDEX).unwrap();
+        assert_eq!(
+            index["schema"], "semaprax.agent-diagnostic-help.v1",
+            "the embedded companion must use the current schema"
+        );
+        let entries = index["entries"].as_array().unwrap();
+        assert!(entries.len() >= 20);
+
+        let codes = diagnostic_entry("codes").unwrap();
+        assert!(codes.starts_with("Diagnostic codes:\n  SPX-O101\n"));
+        assert!(codes.ends_with("  SPX-U101\n"));
+        assert_eq!(codes.lines().count(), entries.len() + 1);
+        assert!(codes.len() <= 256, "{} bytes", codes.len());
+        assert!(semaprax::agent_economics::lexical_tokens(&codes) <= 100);
+
+        for entry in entries {
+            let code = entry["code"].as_str().unwrap();
+            let output = diagnostic_entry(code).unwrap();
+            assert!(output.starts_with(&format!("{code}\nwrote: ")));
+            assert!(output.ends_with('\n'));
+            assert!(output.len() <= 1_024, "{code}: {} bytes", output.len());
+            let units = semaprax::agent_economics::lexical_tokens(&output);
+            assert!(units <= 300, "{code}: {units} lexical units");
+        }
+
+        let t208 = diagnostic_entry("SPX-T208").unwrap();
+        assert_eq!(
+            t208,
+            concat!(
+                "SPX-T208\n",
+                "wrote: `index + 1` when `index: usize`\n",
+                "fix: Integer literals default to `i64`; write `index + 1usize`\n",
+            )
+        );
+        assert!(t208.len() <= 256);
+        let full_index = language_topic("mistakes-index").unwrap();
+        assert!(t208.len() * 20 < full_index.len());
+        assert!(
+            semaprax::agent_economics::lexical_tokens(&t208) * 20
+                < semaprax::agent_economics::lexical_tokens(&full_index)
+        );
+
+        let p106 = diagnostic_entry("SPX-P106").unwrap();
+        assert_eq!(p106.matches("\nwrote: ").count(), 6);
+        assert!(p106.contains("No tuples; declare a `record`"));
+        assert_eq!(
+            diagnostic_entry("spx-t208").unwrap_err(),
+            "diagnostic help has no exact match for `spx-t208`"
         );
     }
 

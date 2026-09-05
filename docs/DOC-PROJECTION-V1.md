@@ -157,6 +157,13 @@ dependency/profile/head response from that JSON rather than maintaining a
 second library index.
 `semaprax help shapes <kind|stable-id|path#stable-id>` likewise derives its
 bounded canonical exemplar or exact match from the generated shapes companion.
+The diagnostic-index table in the compiler-checked agent quick reference is
+the source for `docs/AGENT-DIAGNOSTIC-HELP.json`.
+`tests/documentation.rs::agent_quick_reference` renders and pins that ordered
+`semaprax.agent-diagnostic-help.v1` companion and proves every marked failing
+example has a table row. `semaprax help diagnostic <SPX-code|codes>` derives
+its closed inventory and compact exact corrections from that companion rather
+than duplicating the hand-written fixes in the CLI.
 
 ## Non-claims
 

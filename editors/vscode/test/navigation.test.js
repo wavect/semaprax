@@ -8,7 +8,7 @@ const { EventEmitter } = require('node:events');
 const {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
   queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
-  SourceIndex, renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
+  SourceIndex, PROJECT_QUERY_SCHEMA, parseProjectQueryResult, resolveInRoot, renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
 } = require('../navigation');
 
 const root = path.resolve(path.sep, 'work');
@@ -63,9 +63,11 @@ test('a query result is accepted only with its schema, and malformed matches are
 test('declaration items are in source order with zero-based name ranges and headers', () => {
   const items = declarationItems(parseQueryResult(text));
   assert.deepEqual(items.map(item => item.id), ['clock.logical_tick', 'app.main']);
+  // A module query names no file: those fields belong to a project match.
   assert.deepEqual(items[0], {
     label: 'logical_tick', description: 'function · clock.logical_tick', detail: 'fn logical_tick(value: i64) -> i64',
-    id: 'clock.logical_tick', kind: 'function', range: { startLine: 5, startColumn: 3, endLine: 5, endColumn: 15 }
+    id: 'clock.logical_tick', kind: 'function', path: null, file: null, sourceRevision: null,
+    range: { startLine: 5, startColumn: 3, endLine: 5, endColumn: 15 }
   });
   assert.equal(header('@id("x")\n'), '');
   assert.equal(referenceItems(parseQueryResult(text), 'clock.logical_tick')[1].description, 'function · app.main · calls clock.logical_tick');
@@ -188,4 +190,97 @@ test('a declaration whose offsets do not fit the saved source keeps the reported
   const other = new SourceIndex('module m;\n');
   assert.deepEqual(toRange(astralMatch.location, other), { startLine: 3, startColumn: 3, endLine: 3, endColumn: 12 });
   assert.deepEqual(toRange({ line: 2, column: 5, start: null, end: null }, astralIndex), { startLine: 1, startColumn: 4, endLine: 1, endColumn: 5 });
+});
+
+// Project routing. A module with `use` imports has no standalone meaning, so
+// declaration navigation, callers, and code lenses read it from its project.
+// The fixture below is the `semaprax query examples/calculator-project/
+// semaprax.toml --json` document, abridged to three files.
+const projectRoot = at('calculator');
+const projectRevision = 'sha256:' + '85'.repeat(32);
+const graphRevision = 'sha256:' + '0c'.repeat(32);
+const sourceRevision = 'sha256:' + '40'.repeat(32);
+const projectMatch = (relative, module, id, name, location, calls = [], calledBy = []) => ({
+  path: relative, module, source_revision: sourceRevision, kind: 'function', id, name, persistent: true,
+  signature: `@id("${id}")\nfn ${name}() -> i64\n`, location, effects: [], calls, called_by: calledBy
+});
+const projectText = JSON.stringify({
+  schema: 'semaprax.project-query.v1', project: 'calculator',
+  project_revision: projectRevision, graph_revision: graphRevision,
+  filters: { kinds: [], name: null, id_prefix: null, effect: null, calls: null, called_by: null },
+  matches: [
+    projectMatch('src/app.spx', 'calculator.app', 'calculator.app.main', 'main', [8, 4, 336, 340], ['calculator.add']),
+    projectMatch('src/core.spx', 'calculator.core', 'calculator.add', 'add', [4, 4, 50, 53], [], ['calculator.app.main', 'calculator.tests.main']),
+    projectMatch('src/tests.spx', 'calculator.tests', 'calculator.tests.main', 'main', [10, 4, 484, 488], ['calculator.add'])
+  ]
+}) + '\n';
+
+test('a project query result binds every match to its authenticated file and revisions', () => {
+  const parsed = parseProjectQueryResult(projectText, projectRoot);
+  assert.equal(parsed.schema, PROJECT_QUERY_SCHEMA);
+  assert.equal(parsed.project, 'calculator');
+  assert.equal(parsed.projectRevision, projectRevision);
+  assert.equal(parsed.graphRevision, graphRevision);
+  assert.equal(parsed.revision, null, 'a project result has no single module revision');
+  assert.deepEqual(parsed.matches.map(match => match.file), [
+    at('calculator', 'src', 'app.spx'), at('calculator', 'src', 'core.spx'), at('calculator', 'src', 'tests.spx')
+  ]);
+  assert.deepEqual(parsed.matches.map(match => match.sourceRevision), [sourceRevision, sourceRevision, sourceRevision]);
+  assert.deepEqual(parsed.matches[1].location, { line: 4, column: 4, start: 50, end: 53 });
+  assert.deepEqual(parsed.matches[1].calledBy, ['calculator.app.main', 'calculator.tests.main']);
+  // A module result is not a project result and the reverse.
+  assert.equal(parseProjectQueryResult(text, projectRoot), null);
+  assert.equal(parseQueryResult(projectText), null);
+});
+
+test('a project match outside the project root, or without its revision binding, is dropped', () => {
+  const hostile = value => JSON.stringify({
+    schema: 'semaprax.project-query.v1', project: 'calculator',
+    project_revision: projectRevision, graph_revision: graphRevision, filters: {}, matches: [value]
+  });
+  const good = projectMatch('src/core.spx', 'calculator.core', 'calculator.add', 'add', [4, 4, 50, 53]);
+  assert.equal(parseProjectQueryResult(hostile(good), projectRoot).matches.length, 1);
+  for (const broken of [
+    { ...good, path: '../outside/core.spx' },
+    { ...good, path: at('elsewhere', 'core.spx') },
+    { ...good, path: '' },
+    { ...good, source_revision: null },
+    { ...good, location: { line: 4, column: 4, start: 50, end: 53 } },
+    { ...good, location: [4, 4, 50] },
+    { ...good, location: [0, 4, 50, 53] },
+    { ...good, called_by: [1] }
+  ]) {
+    assert.deepEqual(parseProjectQueryResult(hostile(broken), projectRoot).matches, [], JSON.stringify(broken.path ?? broken.location));
+  }
+  assert.equal(resolveInRoot(projectRoot, 'src/core.spx'), at('calculator', 'src', 'core.spx'));
+  assert.equal(resolveInRoot(projectRoot, '../escape.spx'), null);
+  assert.equal(resolveInRoot(projectRoot, 'src/../../escape.spx'), null);
+});
+
+test('project declarations, callers, and lenses name the file each match lives in', () => {
+  const parsed = parseProjectQueryResult(projectText, projectRoot);
+  // Each match is mapped against its own saved source, not the active file.
+  const sources = { [at('calculator', 'src', 'core.spx')]: new SourceIndex('x'.repeat(49) + '\nadd extra\n') };
+  const items = declarationItems(parsed, match => sources[match.file] || null);
+  assert.deepEqual(items.map(item => item.path), ['src/app.spx', 'src/core.spx', 'src/tests.spx']);
+  assert.deepEqual(items.map(item => item.file), [
+    at('calculator', 'src', 'app.spx'), at('calculator', 'src', 'core.spx'), at('calculator', 'src', 'tests.spx')
+  ]);
+  assert.equal(items[1].description, 'function · calculator.add · src/core.spx');
+  // core.spx has a saved index here: bytes 50..53 are `add` on its second line.
+  assert.deepEqual(items[1].range, { startLine: 1, startColumn: 0, endLine: 1, endColumn: 3 });
+  // app.spx has none, so its reported line and column are used.
+  assert.deepEqual(items[0].range, { startLine: 7, startColumn: 3, endLine: 7, endColumn: 7 });
+  assert.equal(referenceItems(parsed, 'calculator.add')[0].description, 'function · calculator.app.main · src/app.spx · calls calculator.add');
+  assert.deepEqual(lensRecords(parsed).map(lens => lens.title), [
+    '@id calculator.app.main', '@id calculator.add', '@id calculator.tests.main'
+  ]);
+});
+
+test('the project context route drops the facet filter the compiler refuses', () => {
+  const manifest = at('calculator', 'semaprax.toml');
+  assert.deepEqual(contextArguments(manifest, 'calculator.add', true),
+    ['context', manifest, 'calculator.add', '--depth', '1', '--max-bytes', String(CONTEXT_MAX_BYTES)]);
+  assert.deepEqual(contextArguments(at('m.spx'), 'm.f'),
+    ['context', at('m.spx'), 'm.f', '--depth', '1', '--filters', 'contracts,ownership,effects', '--max-bytes', String(CONTEXT_MAX_BYTES)]);
 });

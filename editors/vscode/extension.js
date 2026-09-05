@@ -135,18 +135,39 @@ function activateChecks(context, testMode) {
     }
     return result.stdout;
   }
-  // One bounded query for a saved document, carrying the `SourceIndex` of the
-  // exact saved bytes its byte offsets belong to. A document the editor
-  // changed while the compiler ran is refused rather than mapped against
-  // offsets that no longer describe it.
-  async function queryFile(binary, doc, filters) {
-    const file = doc.uri.fsPath, version = doc.version;
-    const parsed = navigation.parseQueryResult(await runNavigation(binary, navigation.queryArguments(file, filters), file));
-    if (!parsed) throw new Error('The compiler returned an unexpected query result');
+  // The subject a read-only navigation query answers for, resolved exactly as
+  // check-on-save resolves a saved file: the project manifest that owns it, or
+  // the file alone. A module with `use` imports has no standalone meaning —
+  // the compiler answers `SPX-G172` for it — so its declarations, callers and
+  // lenses are only ever read from its project.
+  const navigationSubject = doc => {
+    const file = doc.uri.fsPath, subject = checks.checkSubject(file, exists);
+    return subject === file
+      ? { project: false, file, subject, root: path.dirname(file) }
+      : { project: true, file, subject, root: path.dirname(subject) };
+  };
+  // One bounded query for a saved document, carrying the subject it answered
+  // for and the `SourceIndex` of the exact saved bytes each match's byte
+  // offsets belong to. A document the editor changed while the compiler ran is
+  // refused rather than mapped against offsets that no longer describe it.
+  async function queryDeclarations(binary, doc, filters) {
+    const subject = navigationSubject(doc), version = doc.version;
+    const stdout = await runNavigation(binary, navigation.queryArguments(subject.subject, filters), subject.subject);
+    const parsed = subject.project ? navigation.parseProjectQueryResult(stdout, subject.root) : navigation.parseQueryResult(stdout);
+    if (!parsed) throw new Error(`The compiler returned an unexpected ${subject.project ? 'project ' : ''}query result`);
     if (doc.isDirty || doc.version !== version) throw new Error('The document changed while the compiler ran; save it and repeat the command');
-    return { ...parsed, index: savedIndex(file) };
+    const indexes = new Map();
+    const sources = match => {
+      const file = match.file || subject.file;
+      if (!indexes.has(file)) indexes.set(file, savedIndex(file));
+      return indexes.get(file);
+    };
+    return { ...parsed, subject, sources };
   }
-  async function reveal(doc, range) {
+  // Reveal one match in the authenticated file it was found in, which for a
+  // project query is not necessarily the active one.
+  async function reveal(file, range) {
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
     const editor = await vscode.window.showTextDocument(doc);
     const target = new vscode.Range(range.startLine, range.startColumn, range.endLine, range.endColumn);
     editor.selection = new vscode.Selection(target.start, target.end);
@@ -155,32 +176,39 @@ function activateChecks(context, testMode) {
   async function goToDeclaration(pick) {
     const binary = requireCompiler('navigate by stable identity');
     const doc = activeSource();
-    const result = await queryFile(binary, doc, {});
-    const items = navigation.declarationItems(result, result.index);
-    if (!items.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares nothing'); return; }
+    const result = await queryDeclarations(binary, doc, {});
+    const items = navigation.declarationItems(result, result.sources);
+    if (!items.length) { void vscode.window.showInformationMessage(`SEMAPRAX: the ${result.subject.project ? 'project' : 'module'} declares nothing`); return; }
     const chosen = await pick(items, { placeHolder: 'Declaration (name · kind · stable identity)', matchOnDescription: true, matchOnDetail: true });
-    if (chosen) await reveal(doc, chosen.range);
+    if (chosen) await reveal(chosen.file || doc.uri.fsPath, chosen.range);
     return items;
   }
   async function showReferences(pick) {
     const binary = requireCompiler('show semantic references');
     const doc = activeSource();
-    const result = await queryFile(binary, doc, { kind: 'function,method' });
-    const callables = navigation.declarationItems(result, result.index);
-    if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable'); return; }
+    const result = await queryDeclarations(binary, doc, { kind: 'function,method' });
+    const scope = result.subject.project ? 'project' : 'module';
+    const callables = navigation.declarationItems(result, result.sources);
+    if (!callables.length) { void vscode.window.showInformationMessage(`SEMAPRAX: the ${scope} declares no callable`); return; }
     const target = await pick(callables, { placeHolder: 'Callable whose callers to show', matchOnDescription: true });
     if (!target) return;
-    const callers = await queryFile(binary, doc, { calls: target.id });
-    const items = navigation.referenceItems(callers, target.id, callers.index);
-    if (!items.length) { void vscode.window.showInformationMessage(`SEMAPRAX: nothing in this module calls ${target.id}`); return items; }
+    const callers = await queryDeclarations(binary, doc, { calls: target.id });
+    const items = navigation.referenceItems(callers, target.id, callers.sources);
+    if (!items.length) { void vscode.window.showInformationMessage(`SEMAPRAX: nothing in this ${scope} calls ${target.id}`); return items; }
     const chosen = await pick(items, { placeHolder: `Callers of ${target.id}`, matchOnDescription: true });
-    if (chosen) await reveal(doc, chosen.range);
+    if (chosen) await reveal(chosen.file || doc.uri.fsPath, chosen.range);
     return items;
   }
   async function showDocumentation() {
     const binary = requireCompiler('render module documentation');
     const doc = activeSource();
-    const markdown = await runNavigation(binary, navigation.docArguments(doc.uri.fsPath), doc.uri.fsPath);
+    // `doc` is a module route over one standalone executable module. A module
+    // with `use` imports, and a library module without `fn main`, have no
+    // standalone meaning, so that boundary is named rather than left to the
+    // compiler's own diagnostic. There is no project documentation route yet.
+    let markdown;
+    try { markdown = await runNavigation(binary, navigation.docArguments(doc.uri.fsPath), doc.uri.fsPath); }
+    catch (error) { throw new Error(`${error.message}\nModule documentation is rendered from one standalone executable module; a module with \`use\` imports or without \`fn main\` has none of its own.`); }
     const view = await vscode.workspace.openTextDocument({ language: 'markdown', content: markdown });
     await vscode.window.showTextDocument(view, { preview: true, viewColumn: vscode.ViewColumn.Beside, preserveFocus: true });
     return markdown;
@@ -193,12 +221,15 @@ function activateChecks(context, testMode) {
   async function showOwnership(pick) {
     const binary = requireCompiler('show ownership and contracts');
     const doc = activeSource();
-    const result = await queryFile(binary, doc, { kind: 'function,method' });
-    const callables = navigation.declarationItems(result, result.index);
-    if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable'); return; }
+    const result = await queryDeclarations(binary, doc, { kind: 'function,method' });
+    const { project, subject } = result.subject;
+    const callables = navigation.declarationItems(result, result.sources);
+    if (!callables.length) { void vscode.window.showInformationMessage(`SEMAPRAX: the ${project ? 'project' : 'module'} declares no callable`); return; }
     const target = await pick(callables, { placeHolder: 'Callable whose ownership, contracts, and effects to show', matchOnDescription: true });
     if (!target) return;
-    const context = await runNavigation(binary, navigation.contextArguments(doc.uri.fsPath, target.id), doc.uri.fsPath);
+    // `context` answers for a project as well as a file; the project route
+    // resolves across modules and admits no facet filter.
+    const context = await runNavigation(binary, navigation.contextArguments(subject, target.id, project), subject);
     if (!navigation.parseSchemaDocument(context, 'semaprax.')) throw new Error('The compiler returned an unexpected context document');
     return openBeside(context, 'json');
   }
@@ -218,8 +249,12 @@ function activateChecks(context, testMode) {
   async function safeRename(pick, input) {
     const binary = requireCompiler('rename by stable identity');
     const doc = activeSource();
-    const result = await queryFile(binary, doc, {});
-    const items = navigation.declarationItems(result, result.index).filter(item => item.kind === 'function' || item.kind === 'method');
+    // A standalone patch rewrites one file. An importing module's rename is a
+    // project-wide semantic change, so it belongs to the saved-source session's
+    // replay-checked typed intent, not to this route.
+    if (navigationSubject(doc).project) throw new Error('This file belongs to a SEMAPRAX project. Rename it through the saved-source session: SEMAPRAX: Start Saved-Source Session, Select Stable Target ID, then New Typed Intent Scratch with a rename_declaration intent.');
+    const result = await queryDeclarations(binary, doc, {});
+    const items = navigation.declarationItems(result, result.sources).filter(item => item.kind === 'function' || item.kind === 'method');
     if (!items.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable to rename'); return; }
     const target = await pick(items, { placeHolder: 'Declaration to rename (stable identity stays the same)', matchOnDescription: true });
     if (!target) return;
@@ -245,12 +280,18 @@ function activateChecks(context, testMode) {
   async function showCleanupPlan(pick) {
     const binary = requireCompiler('show a cleanup plan');
     const doc = activeSource();
-    const result = await queryFile(binary, doc, { kind: 'function,method' });
-    const callables = navigation.declarationItems(result, result.index);
-    if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable'); return; }
+    const result = await queryDeclarations(binary, doc, { kind: 'function,method' });
+    const callables = navigation.declarationItems(result, result.sources).filter(item => !item.file || item.file === doc.uri.fsPath);
+    if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: this module declares no callable'); return; }
     const target = await pick(callables, { placeHolder: 'Function whose canonical cleanup plan to show', matchOnDescription: true });
     if (!target) return;
-    const plan = navigation.cleanupPlan(await runNavigation(binary, navigation.graphArguments(doc.uri.fsPath), doc.uri.fsPath), target.id);
+    // `graph` is a module route: it renders the cleanup plans of one file. A
+    // module with `use` imports has no standalone graph, so that boundary is
+    // reported rather than hidden behind the compiler's own diagnostic.
+    let graph;
+    try { graph = await runNavigation(binary, navigation.graphArguments(doc.uri.fsPath), doc.uri.fsPath); }
+    catch (error) { throw new Error(`${error.message}\nCleanup plans are read from the module graph, which a module with \`use\` imports does not have on its own.`); }
+    const plan = navigation.cleanupPlan(graph, target.id);
     if (!plan) throw new Error(`The module graph records no cleanup plan for ${target.id}`);
     return openBeside(JSON.stringify(plan, null, 2) + '\n', 'json');
   }
@@ -283,14 +324,18 @@ function activateChecks(context, testMode) {
       const binary = compiler();
       if (!binary || !lensesEnabled() || !vscode.workspace.isTrusted || doc.uri.scheme !== 'file' || doc.isDirty || !doc.uri.fsPath.endsWith('.spx')) return [];
       const version = doc.version;
-      const result = await navigation.runCommand(spawn, binary, navigation.queryArguments(doc.uri.fsPath, {}), path.dirname(doc.uri.fsPath));
+      // An importing module would fail every standalone query, so the lenses
+      // come from its project when it has one, filtered to this file.
+      const subject = navigationSubject(doc);
+      const result = await navigation.runCommand(spawn, binary, navigation.queryArguments(subject.subject, {}), subject.root);
       if (navigation.failureReason(result, binary)) return [];
-      const parsed = navigation.parseQueryResult(result.stdout);
+      const parsed = subject.project ? navigation.parseProjectQueryResult(result.stdout, subject.root) : navigation.parseQueryResult(result.stdout);
       if (!parsed) return [];
+      const here = { ...parsed, matches: parsed.matches.filter(match => !match.file || match.file === subject.file) };
       // The lens ranges are byte offsets into the saved source the query
       // answered for; a document edited since is left to the next request.
       if (doc.isDirty || doc.version !== version) return [];
-      return navigation.lensRecords(parsed, savedIndex(doc.uri.fsPath)).map(lens => new vscode.CodeLens(
+      return navigation.lensRecords(here, savedIndex(subject.file)).map(lens => new vscode.CodeLens(
         new vscode.Range(lens.range.startLine, lens.range.startColumn, lens.range.endLine, lens.range.endColumn),
         { title: lens.title, command: '' }
       ));

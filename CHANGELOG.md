@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Routed VS Code declaration navigation, callers, code lenses, and ownership
+  through the project that owns the saved file, resolved exactly as
+  check-on-save resolves its subject. A module with `use` imports has no
+  standalone meaning (`SPX-G172`), so those commands previously failed on every
+  importing file, including the shipped calculator project. The
+  `semaprax.project-query.v1` result is parsed with its per-match `path` and
+  `source_revision`, matches outside the project root are dropped, and a
+  selection opens the authenticated file the match was found in. Safe rename
+  reports that a project-owned file belongs to the saved-source session's
+  replay-checked typed intent rather than to a standalone patch, and the
+  module-only `doc` and `graph` routes name their boundary.
+
 - Made VS Code MCP frame assembly linear in received bytes. The receive path
   concatenated the whole retained response with every incoming chunk and
   rescanned it from byte zero, so a legal response fragmented into 1 KiB pieces

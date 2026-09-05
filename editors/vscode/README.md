@@ -67,8 +67,17 @@ failure, and the byte and time bounds against a scripted child.
 ## Navigate by meaning
 
 With `semaprax.compilerPath` set, three commands and one code-lens provider
-read the saved active `.spx` file through the compiler's read-only
-`query <file> --json` and `doc <file>` routes; nothing runs on a dirty buffer.
+read the saved active `.spx` file through the compiler's read-only `query` and
+`doc` routes; nothing runs on a dirty buffer. The query subject is resolved
+exactly as check-on-save resolves one: the nearest `semaprax.toml` walking up
+from the file, or the file alone. A module with `use` imports has no standalone
+meaning — the compiler answers `SPX-G172` — so a project-owned file is read
+through `query <manifest> --json` and its `semaprax.project-query.v1` result,
+whose matches carry their own `path` and `source_revision` under the project's
+`project_revision` and `graph_revision`. A match naming an absolute path or one
+that escapes the project root is dropped, never opened. Declarations and
+callers therefore span the whole project, and a selection opens the
+authenticated file the match was found in.
 `SEMAPRAX: Go to Declaration by Stable ID` lists every declaration of the
 module (name, kind, `@id`, canonical header) and moves the cursor to the chosen
 declaration's name token, translating the compiler's byte span against the
@@ -84,10 +93,13 @@ show its `@id` (or that the identity is automatic), its `uses { … }` effects
 when it declares any, and its `requires`/`ensures` counts when it declares
 contracts; `semaprax.codeLens` (default `true`, machine scope) turns them off.
 `SEMAPRAX: Show Ownership, Contracts, and Effects` asks for a function or
-method and opens the compiler's bounded `context` document for it (depth one,
-the `contracts`, `ownership`, and `effects` facets, an 8 KiB budget) beside the
-source, so parameter and result ownership modes, contract clauses, and effect
-sets are read from the checked graph rather than inferred from text.
+method and opens the compiler's bounded `context` document for it, which for a
+project-owned file is the project's own `context <manifest> <id>` route (the
+compiler admits no `--filters` there, so the whole bounded projection is
+shown; a standalone file keeps depth one, the `contracts`, `ownership`, and
+`effects` facets, and an 8 KiB budget) beside the source, so parameter and
+result ownership modes, contract clauses, and effect sets are read from the
+checked graph rather than inferred from text.
 `SEMAPRAX: Inspect Agent Definition` runs `agent inspect` on the saved active
 AgentDefinition v1 `.json` file and opens its AgentGraph v1 beside it.
 `SEMAPRAX: Safe Rename by Stable ID` asks for a function or method and a new
@@ -96,9 +108,20 @@ lowercase name, authors the one-line semantic patch `base <revision>` /
 analysis (how many declarations change and which consumers), and only on
 confirmation lets the compiler's replay-checked `patch` route rewrite the
 saved file; the stable identity never changes and the temporary patch is
-removed afterwards. `SEMAPRAX: Show Cleanup Plan` opens the canonical cleanup
-plan the module graph records for a chosen function, exactly as `graph`
-emits it, so cleanup order is read rather than inferred. `SEMAPRAX: Run Agent
+removed afterwards. A standalone patch rewrites one file, so a project-owned
+file is not renamed here at all: that command reports the boundary and points
+at the saved-source session's replay-checked `rename_declaration` typed intent,
+which is the project semantic workflow. `SEMAPRAX: Show Cleanup Plan` opens the
+canonical cleanup plan the module graph records for a chosen function, exactly
+as `graph` emits it, so cleanup order is read rather than inferred.
+
+`doc` and `graph` are module routes over one standalone executable module.
+A module with `use` imports, and a library module without `fn main`, has
+neither, and there is no project route for either today, so
+`SEMAPRAX: Show Module Documentation` and `SEMAPRAX: Show Cleanup Plan` name
+that boundary alongside the compiler's own diagnostic instead of leaving it
+unexplained. Everything else — declarations, callers, code lenses, ownership
+and contracts — resolves through the project. `SEMAPRAX: Run Agent
 Transcript (Trace/Evidence)` takes the saved active AgentDefinition v1 file,
 asks for a task and a transcript document, and opens the scripted run's
 trace, evidence, or receipt from `agent run`; the run has no provider, tool,

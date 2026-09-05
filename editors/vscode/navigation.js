@@ -15,6 +15,13 @@ const { SourceIndex, locationRange } = require('./positions');
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 const TIMEOUT_MS = 30 * 1000;
 const QUERY_SCHEMA = 'semaprax.query.v1';
+// A module that imports another with `use` has no standalone meaning: the
+// compiler answers `SPX-G172` for it and only the project route can resolve it.
+// The project result is a different document — `project_revision` and
+// `graph_revision` instead of one `revision`, a per-match `path` and
+// `source_revision`, and array-form locations — so it is parsed separately and
+// normalised into the same match shape the rest of this module consumes.
+const PROJECT_QUERY_SCHEMA = 'semaprax.project-query.v1';
 
 // The exact argument vector for one bounded declaration query. Only the
 // filters navigation needs are exposed; each is a plain string.
@@ -32,8 +39,15 @@ function docArguments(file) { return ['doc', file]; }
 // One bounded `context` query for a declaration's ownership, contract, and
 // effect facts: depth one, the three facet filters, and a fixed byte budget.
 const CONTEXT_MAX_BYTES = 8192;
-function contextArguments(file, id) {
-  return ['context', file, id, '--depth', '1', '--filters', 'contracts,ownership,effects', '--max-bytes', String(CONTEXT_MAX_BYTES)];
+// `context <file|project>` also answers for an authenticated project, which is
+// the only route that resolves a module with `use` imports. The compiler
+// rejects `--filters` for a project input, so the facet selection is dropped
+// there and the whole bounded projection is shown instead.
+function contextArguments(subject, id, project = false) {
+  const args = ['context', subject, id, '--depth', '1'];
+  if (!project) args.push('--filters', 'contracts,ownership,effects');
+  args.push('--max-bytes', String(CONTEXT_MAX_BYTES));
+  return args;
 }
 
 // Safe rename goes through the compiler's replay-checked semantic patch: the
@@ -122,6 +136,58 @@ function parseMatch(value) {
   };
 }
 
+// An absolute path inside `root`, or null when the compiler named an absolute
+// path or one that escapes the project root. A match the editor cannot bind to
+// an authenticated file of the project is dropped, never opened.
+function resolveInRoot(root, relative) {
+  if (typeof relative !== 'string' || !relative || path.isAbsolute(relative)) return null;
+  const base = path.resolve(root), resolved = path.resolve(base, relative);
+  return resolved === base || resolved.startsWith(base + path.sep) ? resolved : null;
+}
+
+// One validated project match, or null. `location` is array-form here, and the
+// match carries the authenticated file it was found in and that file's own
+// source revision alongside the fields a module match has.
+function parseProjectMatch(value, root) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const { path: relative, module, source_revision: sourceRevision, kind, id, name, signature } = value;
+  if ([relative, module, sourceRevision, kind, id, name, signature].some(field => typeof field !== 'string') || !id || !sourceRevision) return null;
+  const location = value.location;
+  if (!Array.isArray(location) || location.length !== 4 || !location.every(number => Number.isSafeInteger(number) && number >= 0)) return null;
+  const [line, column, start, end] = location;
+  if (line < 1 || column < 1) return null;
+  const file = resolveInRoot(root, relative);
+  if (!file) return null;
+  const effects = strings(value.effects), calls = strings(value.calls), calledBy = strings(value.called_by);
+  if (!effects || !calls || !calledBy) return null;
+  return {
+    kind, id, name, signature,
+    persistent: value.persistent === true,
+    path: relative, file, module, sourceRevision,
+    location: { line, column, start, end },
+    effects, calls, calledBy
+  };
+}
+
+// The whole project query result, or null when the document is not one.
+// `root` is the directory of the manifest the query answered for; matches
+// outside it are dropped rather than trusted.
+function parseProjectQueryResult(text, root) {
+  if (typeof text !== 'string') return null;
+  let value;
+  try { value = JSON.parse(text.trim()); } catch { return null; }
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.schema !== PROJECT_QUERY_SCHEMA) return null;
+  if (typeof value.project !== 'string' || typeof value.project_revision !== 'string' || typeof value.graph_revision !== 'string' || !Array.isArray(value.matches)) return null;
+  return {
+    schema: PROJECT_QUERY_SCHEMA,
+    project: value.project,
+    projectRevision: value.project_revision,
+    graphRevision: value.graph_revision,
+    revision: null,
+    matches: value.matches.map(match => parseProjectMatch(match, root)).filter(Boolean)
+  };
+}
+
 // The whole query result, or null when the document is not a query result.
 // Malformed matches are dropped rather than trusted.
 function parseQueryResult(text) {
@@ -147,26 +213,39 @@ function header(signature) {
   return signature.split('\n').find(line => line.trim() && !line.trim().startsWith('@id(')) || '';
 }
 
+// Source order within a file, and files in the order the compiler named them.
 function byPosition(first, second) {
+  const left = first.path || '', right = second.path || '';
+  if (left !== right) return left < right ? -1 : 1;
   return first.location.line - second.location.line || first.location.column - second.location.column;
 }
 
-// Quick-pick records for every declaration of the module, in source order.
-// `index` is the saved source the query answered for, or null.
-function declarationItems(result, index = null) {
+// `sources` is either the one `SourceIndex` every match belongs to, or a
+// function from a match to the `SourceIndex` of its own authenticated file.
+function indexer(sources) {
+  return typeof sources === 'function' ? sources : () => sources;
+}
+
+// Quick-pick records for every declaration the query returned, in source
+// order. A project match carries the authenticated file it lives in.
+function declarationItems(result, sources = null) {
+  const indexOf = indexer(sources);
   return result.matches.slice().sort(byPosition).map(match => ({
     label: match.name,
-    description: `${match.kind} · ${match.id}`,
+    description: match.path ? `${match.kind} · ${match.id} · ${match.path}` : `${match.kind} · ${match.id}`,
     detail: header(match.signature),
     id: match.id,
     kind: match.kind,
-    range: toRange(match.location, index)
+    path: match.path || null,
+    file: match.file || null,
+    sourceRevision: match.sourceRevision || null,
+    range: toRange(match.location, indexOf(match))
   }));
 }
 
 // Quick-pick records for the callers a `--calls <target>` query returned.
-function referenceItems(result, target, index = null) {
-  return declarationItems(result, index).map(item => ({ ...item, description: `${item.kind} · ${item.id} · calls ${target}` }));
+function referenceItems(result, target, sources = null) {
+  return declarationItems(result, sources).map(item => ({ ...item, description: `${item.kind} · ${item.id}${item.path ? ` · ${item.path}` : ''} · calls ${target}` }));
 }
 
 function contractCounts(signature) {
@@ -181,10 +260,11 @@ function contractCounts(signature) {
 
 // Code-lens records above every declaration: its stable identity, its
 // effects when it uses any, and its contract counts when it declares any.
-function lensRecords(result, index = null) {
+function lensRecords(result, sources = null) {
+  const indexOf = indexer(sources);
   const lenses = [];
   for (const match of result.matches.slice().sort(byPosition)) {
-    const range = toRange(match.location, index);
+    const range = toRange(match.location, indexOf(match));
     lenses.push({ range, title: `${match.persistent ? '@id' : 'auto id'} ${match.id}` });
     if (match.effects.length) lenses.push({ range, title: `uses { ${match.effects.join(', ')} }` });
     const { requires, ensures } = contractCounts(match.signature);
@@ -230,8 +310,8 @@ function failureReason(result, compiler) {
 }
 
 module.exports = {
-  MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
-  queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
+  MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA, PROJECT_QUERY_SCHEMA,
+  queryArguments, docArguments, contextArguments, resolveInRoot, parseProjectQueryResult, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult,
   SourceIndex, renamePatch, impactArguments, patchArguments, impactSummary, graphArguments, cleanupPlan, agentRunArguments, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason,
   cwdOf: file => path.dirname(file)
 };

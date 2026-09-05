@@ -41,6 +41,18 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         );
         return diagnostics;
     }
+    let capacity_functions = source_capacity_functions(program);
+    if capacity_functions.len() > crate::byte_data_capacity::MAX_FUNCTIONS {
+        diagnostics.push(error(
+            program,
+            "SPX-H006",
+            "byte-data capacity function count exceeds the compiler bound",
+            capacity_functions[crate::byte_data_capacity::MAX_FUNCTIONS]
+                .1
+                .span,
+        ));
+        return diagnostics;
+    }
     let mut functions = HashMap::new();
     let mut ids = crate::prelude::all_ids()
         .into_iter()

@@ -609,16 +609,17 @@ fn source_type_inference_mutates_one_owned_scope_for_many_inferred_lets() {
         .find(|function| function.name == "wide")
         .unwrap();
     let types = TypeTable::new(&program);
+    let ordinary = source_capacity_functions(&program)
+        .into_iter()
+        .filter_map(|(owner, function)| {
+            owner
+                .is_none()
+                .then_some((function.name.as_str(), function))
+        })
+        .collect();
     let context = SourceCapacityContext {
         types: &types,
-        ordinary: source_capacity_functions(&program)
-            .into_iter()
-            .filter_map(|(owner, function)| {
-                owner
-                    .is_none()
-                    .then_some((function.name.as_str(), function))
-            })
-            .collect(),
+        ordinary: &ordinary,
         enclosing_class: None,
     };
     let bindings = wide
@@ -632,4 +633,24 @@ fn source_type_inference_mutates_one_owned_scope_for_many_inferred_lets() {
         Some(Type::I64)
     );
     assert_eq!(source_type_scope_copy_totals(), (1, 256));
+}
+
+#[test]
+fn function_count_bound_rejects_before_per_function_capacity_projection() {
+    let mut source = String::from("module capacity.many;\n\n");
+    for index in 0..=crate::byte_data_capacity::MAX_FUNCTIONS {
+        source.push_str(&format!(
+            "@id(\"capacity.f{index}\")\nfn f{index}() -> i64\n{{\n    {index}\n}}\n\n"
+        ));
+    }
+    source.push_str("@id(\"app.main\")\nfn main() -> i64\n{\n    0\n}\n");
+    let program = crate::parse(&source, Path::new("many.spx")).unwrap();
+    let diagnostics = super::declaration::verify(&program);
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(diagnostics[0].code, "SPX-H006");
+    assert_eq!(
+        diagnostics[0].message,
+        "byte-data capacity function count exceeds the compiler bound"
+    );
+    assert_eq!(diagnostics[0].span, Some(program.functions[4096].span));
 }

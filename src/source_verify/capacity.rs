@@ -22,7 +22,7 @@ pub(super) fn source_capacity_functions(program: &Program) -> Vec<(Option<&str>,
 
 pub(super) struct SourceCapacityContext<'a> {
     pub(super) types: &'a TypeTable<'a>,
-    pub(super) ordinary: BTreeMap<&'a str, &'a Function>,
+    pub(super) ordinary: &'a BTreeMap<&'a str, &'a Function>,
     pub(super) enclosing_class: Option<&'a str>,
 }
 
@@ -1580,7 +1580,7 @@ pub(super) fn verify_byte_data_capacity(
         .map(|(enclosing_class, function)| {
             let context = SourceCapacityContext {
                 types,
-                ordinary: ordinary.clone(),
+                ordinary: &ordinary,
                 enclosing_class,
             };
             let mut slots = Vec::new();

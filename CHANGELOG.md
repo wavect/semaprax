@@ -64,6 +64,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 - Rejected a trailing semicolon after a block's value with the existing
   `SPX-P106` expression-statement diagnostic. Canonical formatting no longer
   accepts and silently removes that source token.
+- Source byte-data capacity verification borrows the ordinary-function index
+  instead of cloning its full `BTreeMap` once per function, and rejects the
+  4,096-function bound at the start of declaration verification with the first
+  excess declaration's source span.
+
 - Canonical formatting now emits comment hooks for variant cases, variant
   payload fields, resource lifecycle items, and their closing braces. Comments
   in those bodies survive exactly once and formatting is a fixed point.

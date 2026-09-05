@@ -1,0 +1,68 @@
+# Provisioned Linux offline doctor lifecycle gate.
+#
+# This workflow is deliberately NOT part of `ci.yml`. Issue #61 scopes it to a
+# disposable trusted environment and explicitly does not authorize running the
+# private provisioner in a privileged workflow over arbitrary fork input, so it
+# is dispatch-only and targets one dedicated self-hosted Linux x86-64 runner.
+#
+# The job has no `if:`, no `continue-on-error`, and no conditional step. Every
+# reason the environment cannot satisfy the owning contract is a nonzero exit
+# from the gate script, never a skip: `docs/DOCTOR-PRODUCTION-PROVISIONER-V1.md`
+# requires that missing namespace, cgroup, sealing, or kernel prerequisites fail
+# rather than skip, because a skip that reads as green is indistinguishable from
+# a passing confinement result.
+#
+# THIS WORKFLOW HAS NEVER BEEN EXECUTED. No such runner is registered.
+# `docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md` owns that status and the
+# provisioning procedure a maintainer must complete first.
+name: Doctor provisioned Linux gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: doctor-provisioned-linux
+  cancel-in-progress: false
+
+jobs:
+  doctor-provisioned-linux:
+    name: Linux offline doctor lifecycle (provisioned)
+    # A dedicated, disposable, trusted host. The gate additionally verifies
+    # every property it can observe; a runner label is not attestation.
+    runs-on: [self-hosted, linux, x64, semaprax-doctor-provisioned]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - name: Prove the gate refuses absent provisioning
+        run: python3 scripts/doctor-provisioned-linux-gate.py --self-test
+      - name: Print the preconditions and exact test selection
+        run: python3 scripts/doctor-provisioned-linux-gate.py --plan
+      - name: Run the provisioned Linux offline doctor lifecycle gate
+        # The provisioning wrapper is the trusted host's own entry: it creates
+        # the private mapped user/mount namespace and the empty delegated
+        # cgroup-v2 scope, exports the context acknowledgements and immutable
+        # current-head image paths, then execs this script. Absent that wrapper
+        # the script fails on its first unmet precondition. See
+        # docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md.
+        run: |
+          python3 scripts/doctor-provisioned-linux-gate.py \
+            --evidence "$RUNNER_TEMP/doctor-provisioned-linux-evidence.json"
+      - name: Record the evidence document in the run log
+        # Runs unconditionally so a failed gate still records what it observed.
+        # It never changes the job's conclusion.
+        if: ${{ always() }}
+        run: |
+          evidence="$RUNNER_TEMP/doctor-provisioned-linux-evidence.json"
+          if [ -f "$evidence" ]; then
+            cat "$evidence"
+          else
+            echo "the gate produced no evidence document; see the failure above"
+          fi

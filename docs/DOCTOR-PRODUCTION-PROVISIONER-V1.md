@@ -185,6 +185,14 @@ limit and controller disagreement; post-leader descendants; close/kill/reap/
 empty-cgroup uncertainty; and immutable request/bundle reacquisition. Missing
 namespace, cgroup, sealing, or kernel prerequisites fail rather than skip.
 
+[Provisioned Linux gate v1](DOCTOR-PROVISIONED-LINUX-GATE-V1.md) authors that
+required executable gate: the host preconditions it asserts before touching
+namespace or cgroup state, the exact serial selection of the twenty-six ignored
+lifecycle fixtures, the evidence it binds, and its refusal to treat absent
+provisioning as anything but a failure. That gate has never been executed. No
+provisioned host exists, so it produces no runtime confinement evidence, and
+authoring it promotes nothing here.
+
 The local packaging helper accepts only explicit absolute release, tar and gzip
 tools plus artifact paths, builds a fresh no-clobber directory, verifies it,
 then emits one ustar archive with an explicit sorted inventory, fixed modes, a

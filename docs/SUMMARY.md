@@ -39,6 +39,7 @@ Audience: all documentation readers.
 - [Provisioned offline doctor collector](DOCTOR-OFFLINE-COLLECTOR-V1.md)
 - [Provisioned offline doctor launcher](DOCTOR-OFFLINE-LAUNCHER-V1.md)
 - [Linux production offline doctor provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md)
+- [Provisioned Linux doctor lifecycle gate](DOCTOR-PROVISIONED-LINUX-GATE-V1.md)
 - [Signed doctor generation install and activation](DOCTOR-SIGNED-INSTALL-V1.md)
 - [Native compiler scratch](NATIVE-SCRATCH-V1.md)
 

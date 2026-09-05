@@ -14,6 +14,20 @@ format: `Unreleased` then release buckets, grouped by impact.
   content identities without authority, and preserve ProgramRoot v1 and every
   legacy Project/Image/Graph/lock byte. Versioned exact-root integration remains
   explicit follow-up work.
+- Added the provisioned Linux offline doctor lifecycle gate: one dispatch-only
+  workflow, `scripts/doctor-provisioned-linux-gate.py`, and
+  [Provisioned Linux gate v1](docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md). The
+  gate asserts host, kernel, delegated cgroup-v2, held-image, release and
+  trust-anchor preconditions before any test runs, selects the twenty-six
+  existing ignored lifecycle fixtures exactly and serially, binds commit,
+  platform, tools, fixture identity, bounded capture and final cgroup
+  emptiness into one evidence document, and keeps failure selection sticky
+  over cleanup. Absent provisioning is a failure, never a skip: unmet or
+  unobservable preconditions, still-ignored tests, an unmatched filter and a
+  narrowed selection are each rejected, and `--self-test` drives that logic
+  with synthetic inputs on any host. **The gate itself has never been
+  executed**; no provisioned Linux x86-64 host exists, no completion row
+  moves, and the private provisioner stays out of every ordinary CLI route.
 
 - Added the SEG-02 explicit AgentDefinition association bridge. A bounded,
   stable-ID-ordered set of exact compiler-admitted definition/graph/profile

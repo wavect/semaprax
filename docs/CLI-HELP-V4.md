@@ -47,8 +47,10 @@ most 2048 bytes; that bound is a contract, enforced by unit and integration
 evidence, so the page stays one screen as commands are added.
 
 Guided shapes are summaries, not grammar. The catalog's usage lines remain the
-single grammar authority: scoped help still renders them byte for byte, and a
-guided shape must not be parsed as an admission rule.
+single grammar authority: scoped help renders separate source and project
+`build` shapes so their target catalogs do not imply capabilities the input
+class lacks. Those shapes also expose `--json` and the `--output` spelling.
+A guided shape must not be parsed as an admission rule.
 
 ## Exhaustive catalog
 
@@ -96,9 +98,9 @@ does not ship.
 ## Preservation
 
 Scoped help (`help <command>`, `<command> --help`, `<command> -h`), the
-malformed-position rejection, the recovery hint, command diagnostics, JSON
-formats, and side effects are unchanged. Help still calls no host hook, reads
-no path, inspects no environment, and grants no authority.
+malformed-position rejection, and the recovery hint are unchanged except for
+the additive `build` grammar described above. Help still calls no host hook,
+reads no path, inspects no environment, and grants no authority.
 
 ## Evidence
 

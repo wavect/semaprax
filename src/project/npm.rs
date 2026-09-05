@@ -1470,6 +1470,26 @@ pub(super) fn package_error(message: impl Into<String>) -> Diagnostic {
     Diagnostic::io("SPX-W120", message)
 }
 
+#[derive(Clone, Copy)]
+pub(super) enum PublicationTarget {
+    Npm,
+    Web,
+}
+
+impl PublicationTarget {
+    fn fresh_destination_error(self, error: impl std::fmt::Display) -> Diagnostic {
+        match self {
+            Self::Npm => package_error(format!(
+                "cannot create fresh npm package destination: {error}"
+            )),
+            Self::Web => Diagnostic::io(
+                "SPX-I307",
+                format!("cannot create fresh web package destination: {error}"),
+            ),
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "npm/tests.rs"]
 mod tests;

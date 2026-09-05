@@ -1,10 +1,3 @@
-use std::collections::{BTreeSet, HashMap};
-use std::fmt::Write as _;
-use std::path::Path;
-use std::process::Command;
-
-use sha2::{Digest as _, Sha256};
-
 use crate::aggregate_layout::{AggregateLayoutCache, AggregateTarget};
 use crate::ast::BinaryOp;
 use crate::diagnostic::Diagnostic;
@@ -14,6 +7,8 @@ use crate::hir::{
     ValueId,
 };
 use crate::variant_layout::{VariantLayout, VariantLayoutCache, VariantTarget};
+use std::collections::{BTreeSet, HashMap};
+use std::fmt::Write as _;
 
 use super::{
     backend_error, c_i64, native_byte_data, native_bytes, native_command, native_command_io,
@@ -26,12 +21,20 @@ use super::{
     native_value,
 };
 
+mod compiler;
 mod expression;
 mod nested_owned;
 mod owned_strings;
 mod string_views;
+mod symbols;
 
+#[cfg(test)]
+use compiler::write_and_compile_c_with_runner;
+pub(super) use compiler::{
+    write_and_compile_c, write_and_compile_c_with_mode, write_compile_and_publish_c,
+};
 use nested_owned::{borrowed_aggregate_byte_paths, borrowed_aggregate_path_suffix};
+pub(super) use symbols::{c_case_symbol, c_field_symbol, c_record_symbol, c_variant_symbol};
 
 #[path = "../../native_scratch.rs"]
 mod native_scratch;
@@ -1081,65 +1084,6 @@ fn variant_declaration_id<'a>(
         )));
     }
     Ok(Some(declaration))
-}
-
-pub(super) fn c_record_symbol(ty: &ResolvedType) -> String {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        unreachable!("record C symbols require nominal types");
-    };
-    let mut symbol = stable_c_symbol("spx_record_", declaration);
-    if !arguments.is_empty() {
-        let mut digest = Sha256::new();
-        digest.update(b"semaprax.native-record-instance.v1\0");
-        digest.update(ty.identity_key().as_bytes());
-        symbol.push_str("_inst_");
-        for byte in digest.finalize() {
-            write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
-        }
-    }
-    symbol
-}
-
-pub(super) fn c_variant_symbol(ty: &ResolvedType) -> String {
-    let ResolvedType::Nominal {
-        declaration,
-        arguments,
-    } = ty
-    else {
-        unreachable!("variant C symbols require nominal types");
-    };
-    let mut symbol = stable_c_symbol("spx_variant_", declaration);
-    if !arguments.is_empty() {
-        let mut digest = Sha256::new();
-        digest.update(b"semaprax.native-variant-instance.v1\0");
-        digest.update(ty.identity_key().as_bytes());
-        symbol.push_str("_inst_");
-        for byte in digest.finalize() {
-            write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
-        }
-    }
-    symbol
-}
-
-pub(super) fn c_case_symbol(id: &DeclarationId) -> String {
-    stable_c_symbol("spx_case_", id)
-}
-
-pub(super) fn c_field_symbol(id: &DeclarationId) -> String {
-    stable_c_symbol("spx_field_", id)
-}
-
-fn stable_c_symbol(prefix: &str, id: &DeclarationId) -> String {
-    let mut symbol = crate::bounded_output::CappedString::new();
-    symbol.push_str(prefix);
-    for byte in id.as_str().bytes() {
-        write!(symbol, "{byte:02x}").expect("writing to a string cannot fail");
-    }
-    symbol.into_string()
 }
 
 pub(super) fn emit_function_prototypes(
@@ -2272,78 +2216,6 @@ fn expression_has_try(expression: &ResolvedExpr) -> bool {
         pending.extend(resolved_expr_children(expression));
     }
     false
-}
-
-pub(super) fn write_and_compile_c(c_source: &str, output: &Path) -> Result<(), Diagnostic> {
-    write_and_compile_c_with_mode(c_source, output, false)
-}
-
-pub(super) fn write_and_compile_c_with_mode(
-    c_source: &str,
-    output: &Path,
-    native_command: bool,
-) -> Result<(), Diagnostic> {
-    write_and_compile_c_with_runner(c_source, output, native_command, Command::output)
-}
-
-fn write_and_compile_c_with_runner(
-    c_source: &str,
-    output: &Path,
-    native_command: bool,
-    run: impl FnOnce(&mut Command) -> std::io::Result<std::process::Output>,
-) -> Result<(), Diagnostic> {
-    let mut scratch = native_scratch::Scratch::create("source.c", Some(c_source.as_bytes()))
-        .map_err(|error| {
-            Diagnostic::io(
-                "SPX-I101",
-                std::format!("cannot create temporary C source: {error}"),
-            )
-        })?;
-    scratch.seal().map_err(|error| {
-        Diagnostic::io(
-            "SPX-I101",
-            std::format!("cannot authenticate temporary C source: {error}"),
-        )
-    })?;
-    let mut compiler = Command::new("clang");
-    compiler.args([
-        "-std=c11",
-        "-O2",
-        "-Wall",
-        "-Wextra",
-        "-Werror",
-        // Source-level self-comparisons are legal and meaningful (notably for
-        // floating-point NaN tests). Generated locals preserve that spelling,
-        // so this warning is not a backend-quality failure.
-        "-Wno-tautological-compare",
-    ]);
-    #[cfg(all(windows, target_env = "gnu"))]
-    if native_command {
-        compiler.arg("-municode");
-    }
-    #[cfg(not(all(windows, target_env = "gnu")))]
-    let _ = native_command;
-    compiler.arg(scratch.path()).arg("-o").arg(output);
-    let result = run(&mut compiler);
-    let result = result.map_err(|error| {
-        Diagnostic::io(
-            "SPX-B101",
-            format!("failed to start clang; install a C11 toolchain: {error}"),
-        )
-    })?;
-    if !result.status.success() {
-        return Err(Diagnostic::io(
-            "SPX-B102",
-            format!(
-                "native backend failed:\n{}",
-                String::from_utf8_lossy(&result.stderr)
-            ),
-        ));
-    }
-    // A failed or uncertain compiler run retains all source scratch. Successful
-    // cleanup remains best-effort and cannot replace the compiler outcome.
-    let _ = scratch.cleanup();
-    Ok(())
 }
 
 #[derive(Clone)]

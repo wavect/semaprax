@@ -197,14 +197,17 @@ fn project_selectors_do_not_confuse_legacy_sources() {
     ]))
     .is_err());
 
-    let rust = parse(&strings(&[
-        "--manifest-path",
-        "fixtures/semaprax.toml",
-        "--target",
-        "rust",
-        "-o",
-        "sdk",
-    ]))
+    let rust = parse_with_capabilities(
+        &strings(&[
+            "--manifest-path",
+            "fixtures/semaprax.toml",
+            "--target",
+            "rust",
+            "-o",
+            "sdk",
+        ]),
+        true,
+    )
     .unwrap();
     assert_eq!(rust.target, "rust");
     assert_eq!(rust.output, Some(PathBuf::from("sdk")));
@@ -223,6 +226,25 @@ fn project_selectors_do_not_confuse_legacy_sources() {
     assert!(normalized.is_absolute());
     assert!(normalized.ends_with(Path::new("dist/rust")));
     assert!(absolute_rust_output(Path::new("dist/../rust")).is_err());
+}
+
+#[test]
+fn json_and_capability_selected_target_catalogs_are_explicit() {
+    let source = parse(&strings(&["app.spx", "--json"])).unwrap();
+    assert!(source.json);
+    assert_eq!(source.target, "native");
+    assert!(parse(&strings(&[
+        "semaprax.toml",
+        "--target",
+        "native-callable",
+        "--function",
+        "app.main",
+    ]))
+    .is_err());
+    assert!(parse(&strings(&["semaprax.toml", "--target", "rust"])).is_err());
+    assert!(
+        parse_with_capabilities(&strings(&["semaprax.toml", "--target", "rust"]), true,).is_ok()
+    );
 }
 
 #[test]

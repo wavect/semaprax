@@ -490,6 +490,35 @@ fn single_file_build_refuses_existing_and_invalid_destinations_without_clobberin
     std::fs::write(&source, VALID).unwrap();
     let source_bytes = std::fs::read(&source).unwrap();
 
+    let default_output = source.with_extension("out");
+    let wasm_default = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("build")
+        .arg(&source)
+        .args(["--target", "wasm", "--json"])
+        .output()
+        .unwrap();
+    assert!(wasm_default.status.success());
+    assert!(wasm_default.stderr.is_empty());
+    let report: serde_json::Value = serde_json::from_slice(&wasm_default.stdout).unwrap();
+    assert_eq!(report["status"], "built");
+    assert_eq!(report["target"], "wasm");
+    assert_eq!(report["product"], "web package");
+    assert_eq!(report["output"], default_output.display().to_string());
+    let wasm_bytes = std::fs::read(default_output.join("app.wasm")).unwrap();
+    std::fs::remove_dir_all(&default_output).unwrap();
+    let web_alias = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("build")
+        .arg(&source)
+        .args(["--target", "web"])
+        .output()
+        .unwrap();
+    assert!(web_alias.status.success());
+    assert_eq!(
+        std::fs::read(default_output.join("app.wasm")).unwrap(),
+        wasm_bytes
+    );
+    std::fs::remove_dir_all(&default_output).unwrap();
+
     let run = |target: &str, output: &Path| {
         Command::new(env!("CARGO_BIN_EXE_semaprax"))
             .arg("build")
@@ -506,6 +535,19 @@ fn single_file_build_refuses_existing_and_invalid_destinations_without_clobberin
     assert_eq!(result.status.code(), Some(1));
     assert!(String::from_utf8_lossy(&result.stderr).contains("SPX-I307"));
     assert_eq!(std::fs::read(&victim).unwrap(), b"precious\n");
+
+    let json_error = Command::new(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("build")
+        .arg(&source)
+        .args(["--target", "native", "-o"])
+        .arg(&victim)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert_eq!(json_error.status.code(), Some(1));
+    assert!(json_error.stderr.is_empty());
+    let diagnostic: serde_json::Value = serde_json::from_slice(&json_error.stdout).unwrap();
+    assert_eq!(diagnostic["code"], "SPX-I307");
 
     let result = run("native", &source);
     assert_eq!(result.status.code(), Some(1));

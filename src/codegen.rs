@@ -1616,6 +1616,20 @@ pub fn compile_native_command_executable(c_source: &str, output: &Path) -> Resul
     native_emit::write_and_compile_c_with_mode(c_source, output, true)
 }
 
+pub(crate) fn compile_native_executable_into(
+    c_source: &str,
+    output: &mut std::fs::File,
+) -> Result<(), Diagnostic> {
+    native_emit::write_compile_and_publish_c(c_source, output, false)
+}
+
+pub(crate) fn compile_native_command_executable_into(
+    c_source: &str,
+    output: &mut std::fs::File,
+) -> Result<(), Diagnostic> {
+    native_emit::write_compile_and_publish_c(c_source, output, true)
+}
+
 fn c_i64(value: i64) -> String {
     if value == i64::MIN {
         "(-INT64_C(9223372036854775807) - INT64_C(1))".to_owned()

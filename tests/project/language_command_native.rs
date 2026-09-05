@@ -205,3 +205,21 @@ fn project_v6_native_publication_is_no_clobber_and_stable_id_selected() {
     assert_eq!(result.stdout, b"a needle b");
     assert!(result.stderr.is_empty());
 }
+
+#[test]
+fn project_run_names_the_entry_and_the_command_adapters() {
+    let project = fixture("run-note");
+    let result = cli(&project.root, &["run", "semaprax.toml"]);
+    assert!(result.status.success());
+    assert_eq!(result.stdout, b"0\n");
+    assert_eq!(
+        result.stderr,
+        b"note: project run executes entry `main`; command function `spxgrep-language.run` is exercised by built native and web/npm adapters\n"
+    );
+
+    let json = cli(&project.root, &["run", "semaprax.toml", "--json"]);
+    assert!(json.status.success());
+    assert!(json.stderr.is_empty());
+    let envelope: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!(envelope["outcome"]["kind"], "returned");
+}

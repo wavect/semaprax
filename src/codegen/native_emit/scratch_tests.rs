@@ -34,19 +34,23 @@ fn exercise(outcome: Outcome) {
         write_and_compile_c_with_runner(SOURCE, Path::new("unproduced-output"), false, |command| {
             assert_eq!(command.get_program(), "clang");
             let args = command.get_args().collect::<Vec<_>>();
-            assert_eq!(args.len(), 8);
-            for (actual, expected) in args[..5]
-                .iter()
-                .zip(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"])
-            {
+            assert_eq!(args.len(), 9);
+            for (actual, expected) in args[..6].iter().zip([
+                "-std=c11",
+                "-O2",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-Wno-tautological-compare",
+            ]) {
                 assert_eq!(*actual, expected);
             }
-            let source = Path::new(args[5]);
+            let source = Path::new(args[6]);
             assert!(source.is_absolute());
             assert_eq!(source.file_name().unwrap(), "source.c");
             assert_eq!(fs::read(source).unwrap(), SOURCE.as_bytes());
-            assert_eq!(args[6], "-o");
-            assert_eq!(args[7], "unproduced-output");
+            assert_eq!(args[7], "-o");
+            assert_eq!(args[8], "unproduced-output");
             let directory = source.parent().unwrap();
             retained = Some((
                 directory.to_path_buf(),

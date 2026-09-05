@@ -241,7 +241,7 @@ fn project_web_builds_are_manifest_owned_and_byte_exact() {
             "--manifest-path",
             manifest.to_str().unwrap(),
             "--target",
-            "web",
+            "wasm",
             "--output",
             explicit_output.to_str().unwrap(),
         ],
@@ -256,9 +256,24 @@ fn project_web_builds_are_manifest_owned_and_byte_exact() {
         format!("built project web package {}\n", explicit_output.display())
     );
 
+    let default_output = fixture.root.join("calculator-web");
+    let default = cli(&fixture.root, &["build", "--json"]);
+    assert!(
+        default.status.success(),
+        "default JSON project build failed: {}",
+        stderr(&default)
+    );
+    assert!(stderr(&default).is_empty());
+    let report: serde_json::Value = serde_json::from_str(stdout(&default).trim()).unwrap();
+    assert_eq!(report["status"], "built");
+    assert_eq!(report["target"], "web");
+    assert_eq!(report["product"], "project web package");
+    assert_eq!(report["output"], default_output.display().to_string());
+
     let implicit_files = package_files(&implicit_output);
     let explicit_files = package_files(&explicit_output);
     assert_eq!(implicit_files, explicit_files);
+    assert_eq!(implicit_files, package_files(&default_output));
     assert_eq!(
         implicit_files
             .keys()
@@ -290,6 +305,19 @@ fn project_web_builds_are_manifest_owned_and_byte_exact() {
             .map(|function| function["stable_id"].as_str().unwrap())
             .collect::<Vec<_>>(),
         WEB_EXPORTS
+    );
+}
+
+#[test]
+fn standalone_project_target_error_uses_the_project_catalog() {
+    let fixture = fixture("target-catalog");
+    let rejected = cli(&fixture.root, &["build", "--target", "bogus"]);
+    assert_eq!(rejected.status.code(), Some(2));
+    assert!(rejected.stdout.is_empty());
+    assert_eq!(
+        stderr(&rejected),
+        "unsupported target `bogus`; available: native, web, wasm, npm\n\
+hint: run `semaprax build --help` for usage\n"
     );
 }
 

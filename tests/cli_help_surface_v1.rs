@@ -3,7 +3,8 @@ use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
-const BUILD_LINE: &str = "semaprax build [<file>|<dir>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n";
+const BUILD_SOURCE_LINE: &str = "semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]\n";
+const BUILD_PROJECT_LINE: &str = "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm] [-o|--output path] [--json]\n";
 const DOCTOR_LINE: &str = "semaprax doctor [--profile <id>] [--target native|web|all] [--json]\n";
 const NEW_LINE: &str =
     "semaprax new <destination> [--name project-name] [--template calculator|library]\n";
@@ -103,12 +104,13 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert!(all.stderr.is_empty());
     let help = String::from_utf8(all.stdout.clone()).unwrap();
     assert!(help.starts_with(&format!("{BANNER}\nUsage:\nsemaprax check ")));
-    assert_eq!(help.matches(BUILD_LINE).count(), 1);
+    assert_eq!(help.matches(BUILD_SOURCE_LINE).count(), 1);
+    assert_eq!(help.matches(BUILD_PROJECT_LINE).count(), 1);
     assert_eq!(help.matches(DOCTOR_LINE).count(), 0);
     assert_eq!(help.matches(NEW_LINE).count(), 1);
     assert_eq!(help.matches(PROJECT_SCAFFOLD_LINE).count(), 1);
     assert!(help.find(NEW_LINE).unwrap() < help.find(PROJECT_SCAFFOLD_LINE).unwrap());
-    assert!(help.find(PROJECT_SCAFFOLD_LINE).unwrap() < help.find(BUILD_LINE).unwrap());
+    assert!(help.find(PROJECT_SCAFFOLD_LINE).unwrap() < help.find(BUILD_SOURCE_LINE).unwrap());
     assert_eq!(
         help.matches("native|native-callable|web|wasm|npm|rust")
             .count(),

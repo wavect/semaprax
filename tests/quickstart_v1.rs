@@ -296,7 +296,7 @@ use the unpublished semaprax-full toolchain CLI\n";
         "graph requires exactly <file>\nhint: run `semaprax graph --help` for usage\n";
 
     const UNSUPPORTED_TARGET_STDERR: &str =
-        "unsupported target `webb`; available: native, native-callable, web, wasm, npm\n\
+        "unsupported target `webb`; available: native, native-callable, web, wasm\n\
 hint: run `semaprax build --help` for usage\n";
 
     const MISSING_SCAFFOLD_NAME_STDERR: &str = "project-scaffold requires --name project-name\n\

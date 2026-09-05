@@ -161,3 +161,48 @@ fn stable_id_display_rename_preserves_published_native_behavior() {
     );
     assert_eq!(run_stdout(&executable(&output)), "42");
 }
+
+#[test]
+fn concurrent_native_builds_have_exactly_one_create_new_winner() {
+    if Command::new("clang").arg("--version").output().is_err() {
+        return;
+    }
+    let project = fixture("concurrent");
+    let output = project.root.join("published");
+    let spawn = || {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_semaprax"));
+        command
+            .args([
+                "build",
+                "semaprax.toml",
+                "--target",
+                "native",
+                "-o",
+                output.to_str().unwrap(),
+            ])
+            .current_dir(&project.root)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped());
+        command.spawn().unwrap()
+    };
+    let first = spawn();
+    let second = spawn();
+    let results = [
+        first.wait_with_output().unwrap(),
+        second.wait_with_output().unwrap(),
+    ];
+    assert_eq!(
+        results
+            .iter()
+            .filter(|result| result.status.success())
+            .count(),
+        1
+    );
+    let loser = results
+        .iter()
+        .find(|result| !result.status.success())
+        .unwrap();
+    assert_eq!(loser.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&loser.stderr).contains("SPX-I307"));
+    assert_eq!(run_stdout(&executable(&output)), "42");
+}

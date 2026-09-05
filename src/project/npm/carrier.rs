@@ -682,6 +682,18 @@ impl ProjectNpmBuild {
     /// canonical artifact prefix already reported as successful. This method
     /// never guesses at cleanup authority or claims that prefix was removed.
     pub fn publish(&self, output: &Path) -> Result<(), Diagnostic> {
+        self.publish_as(output, super::PublicationTarget::Npm)
+    }
+
+    pub(crate) fn publish_web(&self, output: &Path) -> Result<(), Diagnostic> {
+        self.publish_as(output, super::PublicationTarget::Web)
+    }
+
+    fn publish_as(
+        &self,
+        output: &Path,
+        target: super::PublicationTarget,
+    ) -> Result<(), Diagnostic> {
         self.verify()?;
         let package = decode_carrier_artifacts(&self.envelope, self.max_bytes)?;
         let value: serde_json::Value = serde_json::from_str(&self.envelope)
@@ -692,7 +704,7 @@ impl ProjectNpmBuild {
             .and_then(|object| json_string(object, "schema"))?;
         #[cfg(not(any(target_arch = "wasm32", target_arch = "wasm64")))]
         {
-            super::publication::publish(output, package.as_slice(), schema)
+            super::publication::publish(output, package.as_slice(), schema, target)
         }
         #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
         {

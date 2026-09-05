@@ -21,6 +21,13 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Build target errors now use input- and toolchain-specific catalogs; scoped
+  help and the CLI guide document the Web-compatible `wasm` alias, `-o` /
+  `--output`, target and destination defaults, and structured `build --json`
+  results. Profile Web collisions report Web-specific `SPX-I307`, concurrent
+  project native builds have one create-new winner, and command-profile
+  `run` output explains that it executes the entry while built adapters invoke
+  the manifest command.
 - Single-file native and Web/Wasm builds now require fresh destinations.
   Native output is reserved before compiler invocation and Web output uses an
   atomic create-new directory, so existing sources/artifacts and concurrent

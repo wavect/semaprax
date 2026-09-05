@@ -16,6 +16,7 @@ pub(crate) struct BuildOptions {
     pub(crate) function: Option<String>,
     pub(crate) exports: Vec<String>,
     pub(crate) profile: Option<String>,
+    pub(crate) json: bool,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -46,6 +47,10 @@ pub(crate) struct ProjectOutputParent {
 /// Holding the exact destination file from before compilation through final
 /// publication prevents both accidental overwrite and two concurrent builds
 /// from claiming the same spelling.
+#[allow(
+    dead_code,
+    reason = "the quickstart parser harness includes this module without build execution"
+)]
 pub(crate) struct SourceNativeOutput {
     parent: PathBuf,
     parent_identity: Handle,
@@ -55,6 +60,10 @@ pub(crate) struct SourceNativeOutput {
     retained: bool,
 }
 
+#[allow(
+    dead_code,
+    reason = "the quickstart parser harness includes this module without build execution"
+)]
 impl SourceNativeOutput {
     pub(crate) fn prepare(path: &Path) -> Result<Self, Diagnostic> {
         path.file_name().ok_or_else(|| {
@@ -428,7 +437,18 @@ pub(crate) fn bind_rust_output_parent(path: &Path) -> Result<PathBuf, Diagnostic
     }
 }
 
+#[allow(
+    dead_code,
+    reason = "integration harnesses exercise the public capability class"
+)]
 pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
+    parse_with_capabilities(args, false)
+}
+
+pub(crate) fn parse_with_capabilities(
+    args: &[String],
+    private_toolchain: bool,
+) -> Result<BuildOptions, u8> {
     let mut input = None::<PathBuf>;
     let mut output = None::<PathBuf>;
     let mut manifest_path = None::<PathBuf>;
@@ -436,6 +456,7 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
     let mut function = None::<String>;
     let mut exports = Vec::<String>::new();
     let mut profile = None::<String>;
+    let mut json = false;
     let mut index = 0;
     while index < args.len() {
         let argument = &args[index];
@@ -445,6 +466,15 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
                 return Err(2);
             }
             exports.push(value.to_owned());
+            index += 1;
+            continue;
+        }
+        if argument == "--json" {
+            if json {
+                eprintln!("build option `--json` may not be repeated");
+                return Err(2);
+            }
+            json = true;
             index += 1;
             continue;
         }
@@ -471,6 +501,7 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
                                 | "--manifest-path"
                                 | "-o"
                                 | "--output"
+                                | "--json"
                         )
                         || !value.starts_with('-')
                 })
@@ -525,7 +556,6 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
             "native".to_owned()
         }
     });
-    let project_rust = matches!(&input, BuildInput::Project(_)) && target == "rust";
     if let Some(profile) = &profile {
         if profile != "internal-strings-v1"
             || !matches!(&input, BuildInput::Source(_))
@@ -536,19 +566,12 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
             return Err(2);
         }
     }
-    if !project_rust
-        && !matches!(
-            target.as_str(),
-            "native" | "native-callable" | "web" | "wasm" | "npm"
-        )
-    {
-        if matches!(&input, BuildInput::Project(_)) {
-            eprintln!("unsupported target `{target}`; available: native, web, wasm, npm, rust");
-        } else {
-            eprintln!(
-                "unsupported target `{target}`; available: native, native-callable, web, wasm, npm"
-            );
-        }
+    let available_targets = target_catalog(&input, private_toolchain);
+    if !available_targets.contains(&target.as_str()) {
+        eprintln!(
+            "unsupported target `{target}`; available: {}",
+            available_targets.join(", ")
+        );
         return Err(2);
     }
     if target == "native-callable" {
@@ -562,10 +585,6 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
     }
     if !exports.is_empty() && !matches!(target.as_str(), "web" | "wasm") {
         eprintln!("--export is only valid with --target web or wasm");
-        return Err(2);
-    }
-    if matches!(&input, BuildInput::Source(_)) && target == "npm" {
-        eprintln!("npm is only valid with an authenticated Project v2 manifest");
         return Err(2);
     }
     if matches!(&input, BuildInput::Project(_)) {
@@ -593,7 +612,16 @@ pub(crate) fn parse(args: &[String]) -> Result<BuildOptions, u8> {
         function,
         exports,
         profile,
+        json,
     })
+}
+
+fn target_catalog(input: &BuildInput, private_toolchain: bool) -> &'static [&'static str] {
+    match (input, private_toolchain) {
+        (BuildInput::Source(_), _) => &["native", "native-callable", "web", "wasm"],
+        (BuildInput::Project(_), false) => &["native", "web", "wasm", "npm"],
+        (BuildInput::Project(_), true) => &["native", "web", "wasm", "npm", "rust"],
+    }
 }
 
 #[cfg(test)]

@@ -119,6 +119,23 @@ available build targets differ between the standalone and full toolchains.
 Commands that list `--json` in scoped help provide their structured form for
 automation.
 
+`build` has separate target catalogs for its two input classes. A source file
+admits `native`, `native-callable`, `web`, and `wasm`; a project admits
+`native`, `web`, `wasm`, and `npm`, plus `rust` in the full toolchain. An
+unsupported-target diagnostic lists only the catalog the current input and
+toolchain can execute. `wasm` is an exact alias of `web`: both publish the
+same Web package directory, including `app.wasm`, rather than a bare Wasm
+file. `-o` and `--output` are equivalent.
+
+When omitted, a source target defaults to `native` and its destination to
+`<source-stem>.out` beside the source. A project target defaults to `web`; its
+destination defaults inside the project root to `<name>-web` for `web` or
+`wasm`, `<name>-npm` for `npm`, `<name>-rust` for `rust`, and
+`<name>-out` plus the platform executable suffix for `native`. `build --json`
+prints one success object with `status`, `target`, `product`, and `output`
+(plus `manifest_sha256` for a native-callable bundle); build diagnostics use
+the ordinary one-diagnostic-per-line JSON form.
+
 Every explicit single-file build output is create-new. Native builds reserve
 the exact destination before invoking the compiler and publish through that
 retained file; Web/Wasm builds atomically create a fresh package directory.
@@ -126,6 +143,11 @@ An existing file, directory, symlink, or concurrent winner is rejected with
 `SPX-I307` and left unchanged. An invalid or unavailable parent is rejected as
 `SPX-I301`; builds never merge into an existing directory or overwrite their
 own `.spx` input.
+
+For command-profile projects, `run` deliberately executes the project's
+ordinary entry rather than synthesizing process input for its command
+function. Human output includes a note naming both identities and points to
+the built native and Web/npm adapters that exercise the command function.
 
 ## Diagnose command-line errors
 

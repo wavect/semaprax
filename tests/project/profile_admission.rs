@@ -68,6 +68,17 @@ fn project_v9_phase_a_reaches_revision_npm_and_replayable_execution() {
             error[0].message,
             "Project v9 pathless Web builds use build_npm_inline"
         );
+        let occupied = fixture.0.join("occupied-web");
+        std::fs::create_dir(&occupied).unwrap();
+        let error = snapshot.build_web(&occupied).unwrap_err();
+        assert_eq!(error[0].code, "SPX-I307");
+        assert!(
+            error[0]
+                .message
+                .starts_with("cannot create fresh web package destination:"),
+            "{}",
+            error[0]
+        );
         Ok(())
     })
     .unwrap();

@@ -16,15 +16,43 @@ pub(crate) fn execute_held(
         options.max_steps.unwrap_or(defaults.max_steps),
     )
     .map_err(|error| report(&[error], options.json))?;
-    let execution = project::with_authenticated_project(manifest_path, |snapshot| match command {
-        "run" => snapshot.execute_entry(&execution_options),
-        "test" => snapshot.execute_test(&execution_options),
-        _ => unreachable!("validated project execution command"),
-    })
-    .map_err(|errors| {
-        let errors = super::manifest_hint::hint_missing_manifest(errors, manifest_path);
-        report(&errors, options.json)
-    })?;
+    let (execution, command_note) =
+        project::with_authenticated_project(manifest_path, |snapshot| {
+            let command_note = if command == "run"
+                && matches!(
+                    snapshot.manifest().project_profile(),
+                    project::ProjectProfile::UsefulDataCommandV2
+                        | project::ProjectProfile::LanguageCommandIoV1
+                        | project::ProjectProfile::LineCommandIoV1
+                ) {
+                snapshot.manifest().command().map(|command_id| {
+                    (
+                        snapshot.entry_program().entrypoint.as_str().to_owned(),
+                        command_id.to_owned(),
+                    )
+                })
+            } else {
+                None
+            };
+            let execution = match command {
+                "run" => snapshot.execute_entry(&execution_options),
+                "test" => snapshot.execute_test(&execution_options),
+                _ => unreachable!("validated project execution command"),
+            }?;
+            Ok((execution, command_note))
+        })
+        .map_err(|errors| {
+            let errors = super::manifest_hint::hint_missing_manifest(errors, manifest_path);
+            report(&errors, options.json)
+        })?;
+
+    if !options.json {
+        if let Some((entry_id, command_id)) = command_note {
+            eprintln!(
+                "note: project run executes entry `{entry_id}`; command function `{command_id}` is exercised by built native and web/npm adapters"
+            );
+        }
+    }
 
     if options.json {
         println!("{}", execution.envelope());
@@ -164,7 +192,15 @@ pub(crate) fn build_success(
     profile: project::ProjectProfile,
     output: &Path,
 ) -> String {
-    let product = match (target, profile) {
+    format!(
+        "built {} {}",
+        build_product(target, profile),
+        output.display()
+    )
+}
+
+fn build_product(target: &str, profile: project::ProjectProfile) -> &'static str {
+    match (target, profile) {
         ("native", _) => "project native executable",
         ("rust", project::ProjectProfile::FlatOwnedRecordApiV1) => {
             "Project v9 Native Rust flat owned-record package"
@@ -181,8 +217,28 @@ pub(crate) fn build_success(
         ("npm", project::ProjectProfile::NestedOwnedRecordApiV1) => "Project v11 npm package",
         ("npm", _) => "Project v2 npm package",
         _ => "project web package",
-    };
-    format!("built {product} {}", output.display())
+    }
+}
+
+pub(crate) fn report_build_success(
+    target: &str,
+    profile: project::ProjectProfile,
+    output: &Path,
+    json: bool,
+) {
+    if json {
+        println!(
+            "{}",
+            serde_json::json!({
+                "status": "built",
+                "target": target,
+                "product": build_product(target, profile),
+                "output": output.display().to_string(),
+            })
+        );
+    } else {
+        println!("{}", build_success(target, profile, output));
+    }
 }
 
 fn report(errors: &[Diagnostic], json: bool) -> u8 {

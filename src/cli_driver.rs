@@ -652,7 +652,7 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             Ok(())
         }
         CommandId::Build => {
-            let options = cli::build::parse(&args[1..])?;
+            let options = cli::build::parse_with_capabilities(&args[1..], host.is_some())?;
             if options.target == "rust" {
                 require_private_host(host, "build --target rust")?;
             }
@@ -734,11 +734,13 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
                     .map_err(|errors| {
                         let errors =
                             cli::manifest_hint::hint_missing_manifest(errors, manifest_path);
-                        report(&errors, false)
+                        report(&errors, options.json)
                     })?;
-                    println!(
-                        "{}",
-                        cli::project_runtime::build_success(&options.target, output.1, &output.0)
+                    cli::project_runtime::report_build_success(
+                        &options.target,
+                        output.1,
+                        &output.0,
+                        options.json,
                     );
                 }
             }
@@ -2526,10 +2528,14 @@ fn context_number(option: &str, value: &str) -> Result<usize, u8> {
 }
 
 fn checked(path: &Path) -> Result<semaprax::ast::Program, u8> {
-    let program = load(path).map_err(|errors| report(&errors, false))?;
+    checked_for_output(path, false)
+}
+
+fn checked_for_output(path: &Path, json: bool) -> Result<semaprax::ast::Program, u8> {
+    let program = load(path).map_err(|errors| report(&errors, json))?;
     let diagnostics = verify::verify(&program);
     if diagnostics.iter().any(|item| item.severity.is_error()) {
-        Err(report(&diagnostics, false))
+        Err(report(&diagnostics, json))
     } else {
         Ok(program)
     }
@@ -2556,11 +2562,11 @@ fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), 
     if options.profile.as_deref() == Some("internal-strings-v1") {
         let output = options.output.as_deref().expect("source output");
         wasm::internal_strings::build_web_from_source(input, output, &options.exports)
-            .map_err(|errors| report(&errors, false))?;
-        println!("built internal String web package {}", output.display());
+            .map_err(|errors| report(&errors, options.json))?;
+        report_source_build_success(options, "internal String web package", output, None);
         return Ok(());
     }
-    let program = checked(input)?;
+    let program = checked_for_output(input, options.json)?;
     let output = options
         .output
         .as_deref()
@@ -2568,8 +2574,9 @@ fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), 
     match options.target.as_str() {
         "native" => {
             let mut destination = cli::build::SourceNativeOutput::prepare(output)
-                .map_err(|error| report(&[error], false))?;
-            let c_source = codegen::emit_c(&program).map_err(|error| report(&[error], false))?;
+                .map_err(|error| report(&[error], options.json))?;
+            let c_source =
+                codegen::emit_c(&program).map_err(|error| report(&[error], options.json))?;
             let leaf = format!("program{}", std::env::consts::EXE_SUFFIX);
             let mut scratch = native_scratch::Scratch::create(&leaf, None).map_err(|error| {
                 report(
@@ -2577,34 +2584,35 @@ fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), 
                         "SPX-I301",
                         format!("cannot create native build scratch: {error}"),
                     )],
-                    false,
+                    options.json,
                 )
             })?;
             codegen::compile_native_executable(&c_source, scratch.path())
-                .map_err(|error| report(&[error], false))?;
+                .map_err(|error| report(&[error], options.json))?;
             scratch.seal().map_err(|error| {
                 report(
                     &[Diagnostic::io(
                         "SPX-I301",
                         format!("cannot seal native build scratch: {error}"),
                     )],
-                    false,
+                    options.json,
                 )
             })?;
             destination
                 .publish(scratch.path())
-                .map_err(|error| report(&[error], false))?;
+                .map_err(|error| report(&[error], options.json))?;
             let _ = scratch.cleanup();
-            println!("built native executable {}", output.display());
+            report_source_build_success(options, "native executable", output, None);
         }
         "web" | "wasm" => {
             if options.exports.is_empty() {
-                wasm::build_web(&program, output).map_err(|error| report(&[error], false))?;
+                wasm::build_web(&program, output)
+                    .map_err(|error| report(&[error], options.json))?;
             } else {
                 wasm::build_web_with_scalar_exports(&program, output, &options.exports)
-                    .map_err(|error| report(&[error], false))?;
+                    .map_err(|error| report(&[error], options.json))?;
             }
-            println!("built web package {}", output.display());
+            report_source_build_success(options, "web package", output, None);
         }
         "native-callable" => {
             let function = options
@@ -2612,16 +2620,47 @@ fn build_source(options: &cli::build::BuildOptions, input: &Path) -> Result<(), 
                 .as_deref()
                 .expect("validated build options");
             let bundle = codegen::build_native_callable_bundle(&program, function, output)
-                .map_err(|error| report(&[error], false))?;
-            println!(
-                "built native-callable bundle {} (manifest sha256:{})",
-                bundle.output_directory().display(),
-                bundle.manifest_sha256()
-            );
+                .map_err(|error| report(&[error], options.json))?;
+            if options.json {
+                report_source_build_success(
+                    options,
+                    "native-callable bundle",
+                    bundle.output_directory(),
+                    Some(bundle.manifest_sha256()),
+                );
+            } else {
+                println!(
+                    "built native-callable bundle {} (manifest sha256:{})",
+                    bundle.output_directory().display(),
+                    bundle.manifest_sha256()
+                );
+            }
         }
         _ => unreachable!("validated build target"),
     }
     Ok(())
+}
+
+fn report_source_build_success(
+    options: &cli::build::BuildOptions,
+    product: &str,
+    output: &Path,
+    manifest_sha256: Option<&str>,
+) {
+    if options.json {
+        let mut value = serde_json::json!({
+            "status": "built",
+            "target": options.target,
+            "product": product,
+            "output": output.display().to_string(),
+        });
+        if let Some(digest) = manifest_sha256 {
+            value["manifest_sha256"] = serde_json::Value::String(digest.to_owned());
+        }
+        println!("{value}");
+    } else {
+        println!("built {product} {}", output.display());
+    }
 }
 
 fn run_native_source(path: &Path) -> Result<(), u8> {

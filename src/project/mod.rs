@@ -23,6 +23,7 @@ mod image_store;
 mod image_targets;
 pub(crate) mod incremental;
 mod manifest;
+mod native_publication;
 mod native_sdk;
 mod nested_owned_record;
 mod npm;
@@ -679,7 +680,21 @@ impl ProjectSnapshot {
         // package-manager spelling. Frozen Project v1 bytes and publication
         // behavior stay on the scalar route below.
         if self.manifest.project_profile() != ProjectProfile::ScalarV1 {
-            return self.build_npm(output);
+            let prepared = npm::prepare(
+                &self.manifest,
+                &self.entry_program,
+                &self.project_revision,
+                &self.workspace_revision,
+                self.semantic.graph_digest(),
+                MAX_PROJECT_NPM_BUILD_BYTES,
+            )
+            .map_err(|error| vec![error])?;
+            self.recheck()?;
+            prepared.publish_web(output).map_err(|error| vec![error])?;
+            self.published_subject = Some(WEB_PUBLICATION_SUBJECT);
+            return self
+                .recheck()
+                .map_err(|drift| self.publication_uncertainty(drift));
         }
         let prepared = crate::wasm::prepare_project_web_with_scalar_exports(
             &self.entry_program,
@@ -783,27 +798,8 @@ impl ProjectSnapshot {
                 "Project v11 does not expose a native executable aggregate ABI",
             )]);
         }
-        match std::fs::symlink_metadata(output) {
-            Ok(_) => {
-                return Err(vec![Diagnostic::io(
-                    "SPX-I307",
-                    format!(
-                        "Project v1 native executable destination already exists: {}",
-                        output.display()
-                    ),
-                )]);
-            }
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-            Err(error) => {
-                return Err(vec![Diagnostic::io(
-                    "SPX-I301",
-                    format!(
-                        "cannot inspect Project v1 native destination {}: {error}",
-                        output.display()
-                    ),
-                )]);
-            }
-        }
+        let mut destination =
+            native_publication::NativeOutput::prepare(output).map_err(|error| vec![error])?;
         let profile = self.manifest.project_profile();
         let prepared = match profile {
             ProjectProfile::UsefulDataCommandV2 => crate::codegen::emit_hir_c_with_native_command(
@@ -830,11 +826,12 @@ impl ProjectSnapshot {
                 | ProjectProfile::LanguageCommandIoV1
                 | ProjectProfile::LineCommandIoV1
         ) {
-            crate::codegen::compile_native_command_executable(&prepared, output)
+            crate::codegen::compile_native_command_executable_into(&prepared, destination.file())
         } else {
-            crate::codegen::compile_native_executable(&prepared, output)
+            crate::codegen::compile_native_executable_into(&prepared, destination.file())
         }
         .map_err(|error| vec![error])?;
+        destination.retain().map_err(|error| vec![error])?;
         self.published_subject = Some(NATIVE_PUBLICATION_SUBJECT);
         self.recheck()
             .map_err(|drift| self.publication_uncertainty(drift))

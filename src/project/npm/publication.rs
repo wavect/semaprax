@@ -11,7 +11,7 @@ use std::path::{Component, PathBuf};
 
 use crate::diagnostic::Diagnostic;
 
-use super::{package_error, NpmArtifact};
+use super::{package_error, NpmArtifact, PublicationTarget};
 #[cfg(windows)]
 use super::{
     PROJECT_NPM_BUILD_SCHEMA_V10, PROJECT_NPM_BUILD_SCHEMA_V2, PROJECT_NPM_BUILD_SCHEMA_V3,
@@ -53,8 +53,9 @@ pub(super) fn publish(
     output: &Path,
     artifacts: &[NpmArtifact],
     _schema: &str,
+    target: PublicationTarget,
 ) -> Result<(), Diagnostic> {
-    unix::publish(output, artifacts)
+    unix::publish(output, artifacts, target)
 }
 
 #[cfg(windows)]
@@ -62,6 +63,7 @@ pub(super) fn publish(
     output: &Path,
     artifacts: &[NpmArtifact],
     schema: &str,
+    target: PublicationTarget,
 ) -> Result<(), Diagnostic> {
     if matches!(
         schema,
@@ -86,20 +88,25 @@ pub(super) fn publish(
             "useful-data npm publication requires safe handle-relative Windows authority",
         ));
     }
-    legacy_windows_publish(output, artifacts)
+    legacy_windows_publish(output, artifacts, target)
 }
 
 #[cfg(windows)]
-fn legacy_windows_publish(output: &Path, artifacts: &[NpmArtifact]) -> Result<(), Diagnostic> {
+fn legacy_windows_publish(
+    output: &Path,
+    artifacts: &[NpmArtifact],
+    target: PublicationTarget,
+) -> Result<(), Diagnostic> {
     use std::io::Write;
 
     match std::fs::symlink_metadata(output) {
-        Ok(_) => return Err(package_error("npm package destination already exists")),
+        Ok(_) => {
+            return Err(target.fresh_destination_error("destination already exists"));
+        }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(package_error(format!("cannot inspect npm output: {error}"))),
     }
-    std::fs::create_dir(output)
-        .map_err(|error| package_error(format!("cannot create npm output: {error}")))?;
+    std::fs::create_dir(output).map_err(|error| target.fresh_destination_error(error))?;
     run_test_after_create();
     for artifact in artifacts {
         let path = output.join(artifact.path);
@@ -126,7 +133,11 @@ mod unix {
 
     use super::*;
 
-    pub(super) fn publish(output: &Path, artifacts: &[NpmArtifact]) -> Result<(), Diagnostic> {
+    pub(super) fn publish(
+        output: &Path,
+        artifacts: &[NpmArtifact],
+        target: PublicationTarget,
+    ) -> Result<(), Diagnostic> {
         let absolute = absolute_normalized(output)?;
         let name = absolute
             .file_name()
@@ -140,11 +151,8 @@ mod unix {
             package_error(format!("cannot resolve npm package output parent: {error}"))
         })?;
         let parent = open_absolute_directory(&canonical_parent)?;
-        fs::mkdirat(&parent, name.as_bytes(), Mode::from_raw_mode(0o700)).map_err(|error| {
-            package_error(format!(
-                "cannot create fresh npm package destination: {error}"
-            ))
-        })?;
+        fs::mkdirat(&parent, name.as_bytes(), Mode::from_raw_mode(0o700))
+            .map_err(|error| target.fresh_destination_error(error))?;
         let destination = fs::openat(
             &parent,
             name.as_bytes(),

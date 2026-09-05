@@ -46,7 +46,7 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
     // so every historical witness below still measures the shape it recorded:
     // `semaprax lock` is new, directory inputs were added to check/build/run
     // /test, the scaffold gained a library template, and `new` became public.
-    const RESTORED: [(&str, &str); 9] = [
+    const RESTORED: [(&str, &str); 10] = [
         (
             "semaprax lock [<dir>|semaprax.toml] [--write|--verify|--compare <baseline.lock>|--emit-interface|--compare-interface <baseline.json>]\n",
             "",
@@ -68,8 +68,15 @@ fn help_keeps_frozen_package_resolve_usage_and_current_cli_snapshot() {
             "semaprax project-scaffold --name project-name [--template calculator]\n",
         ),
         (
-            "semaprax build [<file>|<dir>|semaprax.toml|--manifest-path path] [--target",
-            "semaprax build [<file>|semaprax.toml|--manifest-path path] [--target",
+            concat!(
+                "semaprax build <file> [--target native|native-callable|web|wasm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o|--output path] [--json]\n",
+                "semaprax build [<dir>|semaprax.toml|--manifest-path path] [--target native|web|wasm|npm] [-o|--output path] [--json]\n",
+            ),
+            "semaprax build [<file>|semaprax.toml|--manifest-path path] [--target native|native-callable|web|wasm|npm] [--profile internal-strings-v1] [--function stable-id] [--export stable-id ...] [-o path]\n",
+        ),
+        (
+            "semaprax run <file> [--json] [--max-steps N] [--max-bytes N] [--native]\n",
+            "semaprax run <file>\n",
         ),
         (
             "semaprax run [<dir>|semaprax.toml|--manifest-path path] [--json] [--max-steps N] [--max-bytes N]\n",

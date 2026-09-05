@@ -253,7 +253,7 @@ stdout. Invocation errors exit `2` and compiler or execution failures exit `1`.
 | ``unknown command `chekc`; did you mean `check`?`` | A misspelled command name. The suggestion compares only names already visible in that binary's catalog; see [capability-aware CLI typo guidance](CLI-HELP-V2.md). | Run the suggested name. |
 | `error[SPX-I001]: cannot read missing.spx: No such file or directory (os error 2)` | The source path does not exist, usually because the shell is in the wrong directory. | Check the working directory and the path. Paths are resolved relative to the process working directory. |
 | `error[SPX-J102]: cannot inspect declared Project v1 manifest <dir>/semaprax.toml: No such file or directory (os error 2)` | `check`, `run`, `test`, or `build` was given no input or a directory, and that directory holds no Project v1 manifest. A directory operand always means the `semaprax.toml` inside it. When no input was given, the diagnostic carries a `help:` line naming the admitted inputs. | Pass the `.spx` file, the project directory, or its `semaprax.toml`; from inside a project, `semaprax check .` works. See [Project Manifest v1](PROJECT-MANIFEST-V1.md). |
-| ``unsupported target `webb`; available: native, native-callable, web, wasm, npm`` | An unknown `--target` value. | Use one of the listed targets. |
+| ``unsupported target `webb`; available: native, native-callable, web, wasm`` | An unknown single-source `--target` value. | Use one of the listed targets; project and full-toolchain catalogs differ. |
 | `graph requires exactly <file>` | A required operand is missing. Every rejected known command appends a scoped-help hint; see [capability-aware CLI recovery](CLI-HELP-V3.md). | Run the hinted `semaprax <command> --help` for the exact accepted shape. |
 | `error[SPX-B101]: failed to start clang; install a C11 toolchain: No such file or directory (os error 2)` | The native lane could not spawn `clang`. | Install Clang and make sure it is on the `PATH` of the shell running the build. |
 | `project-scaffold requires --name project-name` | The scaffold capsule command was run without its required name. | Supply `--name`. See [Public Project Scaffold Capsule v1](PROJECT-SCAFFOLD-V1.md). |
@@ -272,7 +272,7 @@ hint: run `semaprax graph --help` for usage
 An unknown build target:
 
 ```text
-unsupported target `webb`; available: native, native-callable, web, wasm, npm
+unsupported target `webb`; available: native, native-callable, web, wasm
 hint: run `semaprax build --help` for usage
 ```
 

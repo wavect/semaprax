@@ -8,6 +8,12 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added a descriptor-derived low-level C11 header for the Project-v9 flat
+  owned-record provider. It publishes fixed-width carrier field counts,
+  ordinals and kinds without exposing native record layout. A separate C
+  consumer compiles, links and runs with the actual provider at O0/O2 while
+  checking poison preservation, scalar decoding, byte copy/drop, stale-handle
+  rejection, and context closure.
 - Added a pure C11 consumer gate for the authenticated Project-v8 owned-data
   package. The generated provider and a translation unit using only the public
   C header compile separately, link, and execute at O0/O2 while checking

@@ -1,13 +1,16 @@
 use semaprax::hir;
 use semaprax::project::{
-    derive_flat_owned_record_api_descriptor, render_flat_owned_record_metadata,
-    render_flat_owned_record_rust, render_flat_owned_record_typescript,
-    replay_flat_owned_record_api_descriptor, replay_flat_owned_record_metadata,
-    FlatOwnedRecordFieldType, FlatOwnedRecordSettlement, ProjectManifest, ProjectProfile,
-    PublicApiSubject, FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
-    FLAT_OWNED_RECORD_PROJECT_SCHEMA,
+    derive_flat_owned_record_api_descriptor, render_flat_owned_record_c_header,
+    render_flat_owned_record_metadata, render_flat_owned_record_rust,
+    render_flat_owned_record_typescript, replay_flat_owned_record_api_descriptor,
+    replay_flat_owned_record_metadata, FlatOwnedRecordFieldType, FlatOwnedRecordSettlement,
+    ProjectManifest, ProjectProfile, PublicApiSubject, FLAT_OWNED_RECORD_API_SCHEMA,
+    FLAT_OWNED_RECORD_METADATA_SCHEMA, FLAT_OWNED_RECORD_PROJECT_SCHEMA,
 };
 use sha2::{Digest, Sha256};
+use std::fs;
+use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 #[path = "../project_flat_owned_record_api_v1/admission.rs"]
 mod admission;
@@ -228,6 +231,7 @@ fn generated_mappings_are_safe_and_hide_the_carrier() {
             .unwrap();
     let typescript = render_flat_owned_record_typescript(&descriptor);
     let rust = render_flat_owned_record_rust(&descriptor);
+    let c = render_flat_owned_record_c_header(&descriptor);
     let export = &descriptor.exports()[0];
     let record = export.record_host_name();
     let payload = export
@@ -261,12 +265,132 @@ fn generated_mappings_are_safe_and_hide_the_carrier() {
     assert!(rust.contains(&format!("pub {kind}: i64")));
     assert!(rust.contains(&format!("pub {valid}: bool")));
     assert!(rust.contains("Vec<u8>"));
+    assert!(c.starts_with("#ifndef SEMAPRAX_FLAT_OWNED_RECORD_V1_H\n"));
+    assert!(c.contains("SPX_FLAT_RECORD_EXPORT_0_FIELD_COUNT UINT32_C(4)"));
+    assert!(c.contains("SPX_FLAT_RECORD_EXPORT_0_FIELD_0_KIND SPX_FLAT_RECORD_OWNED_BYTES"));
+    assert!(c.contains("uint64_t[static 4]"));
+    assert_eq!(c, render_flat_owned_record_c_header(&descriptor));
     for forbidden in ["handle", "pointer", "offset", "unsafe", "repr(C)"] {
         assert!(!typescript.contains(forbidden), "{forbidden}");
         if forbidden != "unsafe" {
             assert!(!rust.contains(forbidden), "{forbidden}");
         }
     }
+}
+
+#[test]
+fn generated_c11_header_links_the_flat_record_provider_and_settles_its_owner() {
+    static SERIAL: AtomicU64 = AtomicU64::new(0);
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-flat-record-c-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&root).unwrap();
+    let program = resolve(SOURCE);
+    let selected = vec!["frame.info".to_owned()];
+    let descriptor =
+        derive_flat_owned_record_api_descriptor(&program, &selected, subject()).unwrap();
+    let bytes = descriptor.canonical_bytes();
+    let digest = descriptor.digest();
+    let provider = semaprax::codegen::emit_project_v9_native_flat_owned_record_provider(
+        &program,
+        &selected,
+        subject(),
+        &bytes,
+        &digest,
+    )
+    .unwrap();
+    let export = &descriptor.exports()[0];
+    fs::write(
+        root.join("semaprax_flat_owned_record.h"),
+        render_flat_owned_record_c_header(&descriptor),
+    )
+    .unwrap();
+    fs::write(root.join("provider.c"), provider.source()).unwrap();
+    fs::write(
+        root.join("consumer.c"),
+        format!(
+            r#"#include "semaprax_flat_owned_record.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+union aligned_context {{ max_align_t alignment; uint8_t bytes[UINT64_C(1) << 20]; }};
+int main(void) {{
+    union aligned_context storage;
+    uint64_t size=spx_owned_data_context_size_v1(),align=spx_owned_data_context_align_v1();
+    if(!size||size>sizeof(storage.bytes)||!align||align>_Alignof(max_align_t))return 1;
+    if(spx_owned_data_context_init_v1(storage.bytes,size)!=SPX_OWNED_DATA_SUCCESS)return 2;
+    spx_context_v1*context=(spx_context_v1*)storage.bytes;
+    const uint8_t input[]={{9,8,7}};
+    uint64_t carrier[SPX_FLAT_RECORD_EXPORT_0_FIELD_COUNT];
+    for(uint32_t i=0;i<SPX_FLAT_RECORD_EXPORT_0_FIELD_COUNT;++i)carrier[i]=UINT64_MAX;
+    if(spx_owned_data_call_{}_v1(context,input,sizeof(input),UINT8_C(2),carrier)!=SPX_OWNED_DATA_ADAPTER_FAILURE)return 3;
+    for(uint32_t i=0;i<SPX_FLAT_RECORD_EXPORT_0_FIELD_COUNT;++i)if(carrier[i]!=UINT64_MAX)return 4;
+    if(spx_owned_data_call_{}_v1(context,input,sizeof(input),UINT8_C(1),carrier)!=SPX_OWNED_DATA_SUCCESS)return 5;
+    spx_owned_bytes_handle_v1 handle=carrier[SPX_FLAT_RECORD_EXPORT_0_FIELD_0];
+    int64_t count=0;uint64_t count_bits=carrier[SPX_FLAT_RECORD_EXPORT_0_FIELD_1];memcpy(&count,&count_bits,sizeof(count));
+    if(!handle||count!=INT64_C(7)||carrier[SPX_FLAT_RECORD_EXPORT_0_FIELD_2]!=UINT64_C(1)||carrier[SPX_FLAT_RECORD_EXPORT_0_FIELD_3]!=sizeof(input))return 6;
+    uint64_t length=UINT64_MAX;if(spx_owned_bytes_len_v1(context,handle,&length)!=SPX_OWNED_DATA_SUCCESS||length!=sizeof(input))return 7;
+    uint8_t output[3]={{0}};if(spx_owned_bytes_copy_v1(context,handle,output,length)!=SPX_OWNED_DATA_SUCCESS||memcmp(input,output,sizeof(input)))return 8;
+    if(spx_owned_bytes_drop_v1(context,handle)!=SPX_OWNED_DATA_SUCCESS)return 9;
+    if(spx_owned_bytes_drop_v1(context,handle)!=SPX_OWNED_DATA_INVALID_HANDLE)return 10;
+    if(spx_owned_data_context_drop_v1(context)!=SPX_OWNED_DATA_SUCCESS)return 11;
+    return 0;
+}}
+"#,
+            export.rust_method_name(),
+            export.rust_method_name(),
+        ),
+    )
+    .unwrap();
+    let clang = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
+    for optimization in ["-O0", "-O2"] {
+        for input in ["provider.c", "consumer.c"] {
+            let object = format!("{input}-{optimization}.o");
+            let output = Command::new(&clang)
+                .current_dir(&root)
+                .args([
+                    "-std=c11",
+                    optimization,
+                    "-Wall",
+                    "-Wextra",
+                    "-Werror",
+                    "-c",
+                    input,
+                    "-o",
+                    object.as_str(),
+                ])
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+        let executable = format!("consumer-{optimization}");
+        let output = Command::new(&clang)
+            .current_dir(&root)
+            .args([
+                format!("provider.c-{optimization}.o"),
+                format!("consumer.c-{optimization}.o"),
+                "-o".to_owned(),
+                executable.clone(),
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(Command::new(root.join(executable))
+            .status()
+            .unwrap()
+            .success());
+    }
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

@@ -256,12 +256,12 @@ pub use execution::{
     SkippedTestCase, PROJECT_EXECUTION_SCHEMA, TEST_CASE_PREFIX,
 };
 pub use flat_owned_record::{
-    derive_flat_owned_record_api_descriptor, render_flat_owned_record_metadata,
-    render_flat_owned_record_rust, render_flat_owned_record_typescript,
-    replay_flat_owned_record_api_descriptor, replay_flat_owned_record_metadata,
-    FlatOwnedRecordApiDescriptor, FlatOwnedRecordCarrierPlan, FlatOwnedRecordExport,
-    FlatOwnedRecordField, FlatOwnedRecordFieldType, FlatOwnedRecordSettlement,
-    FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
+    derive_flat_owned_record_api_descriptor, render_flat_owned_record_c_header,
+    render_flat_owned_record_metadata, render_flat_owned_record_rust,
+    render_flat_owned_record_typescript, replay_flat_owned_record_api_descriptor,
+    replay_flat_owned_record_metadata, FlatOwnedRecordApiDescriptor, FlatOwnedRecordCarrierPlan,
+    FlatOwnedRecordExport, FlatOwnedRecordField, FlatOwnedRecordFieldType,
+    FlatOwnedRecordSettlement, FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
     FLAT_OWNED_RECORD_NPM_BUILD_SCHEMA, FLAT_OWNED_RECORD_PROJECT_SCHEMA, MAX_FLAT_RECORD_FIELDS,
 };
 pub use image::{

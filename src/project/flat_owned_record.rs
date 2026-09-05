@@ -20,7 +20,10 @@ mod settlement;
 
 pub use derivation::derive_flat_owned_record_api_descriptor;
 pub use metadata::{render_flat_owned_record_metadata, replay_flat_owned_record_metadata};
-pub use projections::{render_flat_owned_record_rust, render_flat_owned_record_typescript};
+pub use projections::{
+    render_flat_owned_record_c_header, render_flat_owned_record_rust,
+    render_flat_owned_record_typescript,
+};
 pub use settlement::FlatOwnedRecordSettlement;
 
 pub const FLAT_OWNED_RECORD_PROJECT_SCHEMA: &str = "semaprax.project.v9";

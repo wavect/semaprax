@@ -132,16 +132,26 @@ previously produced invalid source and colliding names that previously failed
 resolution now have replayable projections. This correction does not widen
 language, Project-profile, descriptor, or target admission.
 
-| SEMAPRAX field | TypeScript | Rust |
-| --- | --- | --- |
-| `i64` | `bigint` | `i64` |
-| `bool` | `boolean` | `bool` |
-| `usize` | `bigint` | `usize` |
-| `Bytes` | `Uint8Array` | `Vec<u8>` |
+| SEMAPRAX field | TypeScript | Rust | C11 provider carrier |
+| --- | --- | --- | --- |
+| `i64` | `bigint` | `i64` | `uint64_t` slot containing copied `int64_t` bits |
+| `bool` | `boolean` | `bool` | canonical zero-or-one `uint64_t` slot |
+| `usize` | `bigint` | `usize` | checked `uint64_t` slot |
+| `Bytes` | `Uint8Array` | `Vec<u8>` | opaque owned handle in a `uint64_t` slot |
 
 The generated TypeScript result is a readonly interface. The generated safe
 Rust result is a public struct and the safe API source uses
 `#![forbid(unsafe_code)]`.
+
+`render_flat_owned_record_c_header` is the descriptor-derived low-level C11
+provider boundary. It declares only fixed-width values, opaque context and
+byte-handle types, the closed status vocabulary, descriptor-order field-count,
+ordinal and kind constants, and one provider call per authenticated export.
+Its result parameter is an exact minimum-length `uint64_t[static N]` carrier;
+it never exposes the compiler's native record layout. Callers initialize every
+carrier slot to `UINT64_MAX`, validate every successful field kind, copy an
+owned byte handle before dropping it exactly once, and close the context. This
+is an integration ABI, not the safe TypeScript/Rust application projection.
 
 ## Carrier and settlement
 
@@ -159,8 +169,10 @@ ordinal. It must:
 Failure leaves the caller result untouched. Scalar values are not observable
 before settlement. Invalid field order/type, stale or foreign handles,
 copy/drop failure, and settlement uncertainty fail closed. No allocator
-pointer, arena token, provider handle, struct offset, padding, alignment, or
-aggregate ABI reaches application code.
+pointer, arena token, struct offset, padding, alignment, or aggregate ABI
+reaches safe application code. The low-level C11 integration header exposes
+only the opaque provider handle and its mandatory copy/drop operations; it
+does not confer pointer access or allocator adoption.
 
 The authored input correction explicitly selects the same captured-intrinsic
 whole-tuple preflight as v8, before payload snapshots, scratch writes, or arena
@@ -269,9 +281,16 @@ descriptor derivation/replay and every-byte mutation, exact one-byte-field
 admission, every excluded field shape, persistent-ID rename behavior,
 TypeScript and safe Rust projections, opaque carrier planning, copy-before-
 settle and publish-after-settle traces, capacity boundaries, and v1-v8 known
-answers. This implementation tranche has not run those target consumers or
-equivalence gates. Hosted promotion requires one exact blocking
+answers. This implementation tranche has not run every broader target consumer
+or complete equivalence gate. Hosted promotion requires one exact blocking
 Linux/macOS/Windows head.
+
+The focused C11 projection evidence generates the header and actual v9 native
+provider independently, compiles them as separate translation units, links and
+executes at O0/O2, and checks invalid-bool carrier poison, exact field kinds and
+ordinals, copied scalars, owned-byte length/copy/drop, duplicate-drop rejection,
+and context closure. It is local host evidence, not package publication,
+cross-platform ABI support, or v9 promotion.
 
 The replay-alignment regressions are authored in
 `tests/project/flat_owned_record_api.rs` and the lower package's

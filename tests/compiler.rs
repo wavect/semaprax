@@ -300,6 +300,43 @@ fn native_backend_produces_executable() {
 }
 
 #[test]
+fn native_backend_accepts_legal_scalar_self_comparisons_under_werror() {
+    if Command::new("clang").arg("--version").output().is_err() {
+        return;
+    }
+    let source = r#"
+module test.native_self_comparison;
+@id("app.main")
+fn main() -> i64 {
+    let i64_value = 5;
+    let i32_value = 5i32;
+    let u8_value = 5u8;
+    let usize_value = 5usize;
+    let bool_value = true;
+    let f64_value = 5.0;
+    let f32_value = 5.0f32;
+    let char_value = 'A';
+    if i64_value == i64_value && i32_value != i32_value == false
+        && u8_value <= u8_value && usize_value >= usize_value
+        && bool_value == bool_value && f64_value == f64_value
+        && f32_value == f32_value && char_value == char_value
+    { 1 } else { 0 }
+}
+"#;
+    let program = parse(source, Path::new("native-self-comparison.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let output = std::env::temp_dir().join(format!(
+        "semaprax-self-comparison-{}",
+        std::process::id()
+    ));
+    codegen::build(&program, &output).unwrap();
+    let result = Command::new(&output).output().unwrap();
+    let _ = std::fs::remove_file(&output);
+    assert!(result.status.success());
+    assert_eq!(String::from_utf8_lossy(&result.stdout).trim(), "1");
+}
+
+#[test]
 fn backends_reject_unverified_programs_without_panicking() {
     let source = r#"
 module test.invalid_backend;

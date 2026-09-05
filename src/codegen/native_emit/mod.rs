@@ -2229,7 +2229,17 @@ fn write_and_compile_c_with_runner(
         )
     })?;
     let mut compiler = Command::new("clang");
-    compiler.args(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"]);
+    compiler.args([
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        // Source-level self-comparisons are legal and meaningful (notably for
+        // floating-point NaN tests). Generated locals preserve that spelling,
+        // so this warning is not a backend-quality failure.
+        "-Wno-tautological-compare",
+    ]);
     #[cfg(all(windows, target_env = "gnu"))]
     if native_command {
         compiler.arg("-municode");

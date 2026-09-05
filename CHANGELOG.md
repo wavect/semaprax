@@ -16,6 +16,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Native builds now accept legal scalar self-comparisons such as `x == x`
+  under the generated C warning policy, including the idiomatic floating-point
+  NaN test shape, while retaining `-Werror` for actionable generator warnings.
 - Fixed right-nested i32 arithmetic in the scalar Core-Wasm emitter by keeping
   the outer widened operand on the Wasm value stack until the nested operand
   finishes. Nested literal and function-call expressions now match native and

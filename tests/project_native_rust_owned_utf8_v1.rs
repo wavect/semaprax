@@ -172,7 +172,7 @@ fn rust_profile_rejection_precedes_explicit_parent_creation() {
         .output()
         .unwrap();
     assert!(!rejected.status.success());
-    assert!(String::from_utf8_lossy(&rejected.stderr).contains("SPX-J114"));
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("SPX-I233"));
     assert!(!fixture.0.join("missing-parent").exists());
 }
 

@@ -80,9 +80,6 @@ fn finish_build(
             dependency_anchors: !manifest.dependency_sources().is_empty(),
         },
     )?;
-    let entry_program = semantic_parts.entry_program;
-    let web_program = semantic_parts.web_program;
-    let test_program = semantic_parts.test_program;
     let semantic = semantic::ProjectSemanticState::new(
         semantic_parts.projection,
         manifest.schema(),
@@ -95,7 +92,7 @@ fn finish_build(
     // and every additive schema must pass this one exhaustive dispatcher.
     let profile_admission = admission::prepare(
         manifest,
-        &web_program,
+        &semantic_parts.web_program,
         PublicApiSubject {
             project_schema: manifest.schema(),
             project_revision: &project_revision,
@@ -104,6 +101,15 @@ fn finish_build(
         },
     )
     .map_err(|error| vec![error])?;
+    // Owned API targets compile the exact entry-plus-export closure admitted
+    // above. Retaining only the entry-only program here would discard every
+    // selected public function before npm, Web, or native SDK preparation.
+    let entry_program = if manifest.project_profile().is_owned_api() {
+        semantic_parts.web_program
+    } else {
+        semantic_parts.entry_program
+    };
+    let test_program = semantic_parts.test_program;
     let sources = files
         .into_iter()
         .map(|file| {

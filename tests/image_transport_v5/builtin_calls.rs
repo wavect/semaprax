@@ -97,8 +97,8 @@ fn place(name: &str) -> Value {
 }
 fn assert_metadata(value: &Value) {
     let rows = value["builtin_calls"].as_array().unwrap();
-    // Eight byte operations and seven String operations.
-    assert_eq!(rows.len(), 15);
+    // Eight byte operations and nine String operations.
+    assert_eq!(rows.len(), 17);
     let rows = rows
         .iter()
         .filter(|row| row["evidence_owner"] == "compiler_byte_operations")
@@ -131,7 +131,7 @@ fn assert_metadata(value: &Value) {
 }
 
 #[test]
-fn constructor_schemas_preserve_seven_byte_alternatives_with_string_operations_added() {
+fn constructor_schemas_preserve_builtin_alternatives_with_numeric_string_operations_added() {
     let fixture = Fixture::new();
     let mut session = fixture.session(true);
     let bundle = payload(bound(
@@ -152,8 +152,8 @@ fn constructor_schemas_preserve_seven_byte_alternatives_with_string_operations_a
         .iter()
         .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
         .collect::<Vec<_>>();
-    // Eight byte operations and seven String operations.
-    assert_eq!(builtins.len(), 15);
+    // Eight byte operations and nine String operations.
+    assert_eq!(builtins.len(), 17);
     assert_eq!(
         builtins
             .iter()

@@ -548,3 +548,163 @@ fn settlement_closes_handles_the_program_left_open() {
     let observed = server.join().unwrap();
     assert_eq!(observed, REQUEST.as_bytes());
 }
+
+/// The closed HTTPS Client I/O v1 status domain. It is separate from
+/// `semaprax.network.v1`: an HTTPS failure never borrows a TCP code.
+const HTTP_STATUS_DOMAIN: &str = "semaprax.http.v1";
+
+/// The 46-byte canonical response the committed fixture replays.
+const HTTPS_FIXTURE_RESPONSE: &str = "HTTP/1.1 200 semaprax\\r\\ncontent-length: 2\\r\\n\\r\\nok";
+
+/// One HTTPS-profile program whose URL bytes and response bound vary.
+fn https_program(url: &[u8], max: usize) -> String {
+    let bytes = url
+        .iter()
+        .map(|byte| format!("{byte}u8"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        r#"
+module net.https;
+
+permit {{ network.http }}
+
+@id("net.run")
+fn run() -> bool
+    uses {{ network.http }}
+{{
+    let url = [{bytes}];
+    let response = https_get(array_as_slice(url), {max}usize);
+    byte_len(bytes_as_slice(response)) > 0usize
+}}
+
+@id("main")
+fn main() -> i64 {{ 0 }}
+"#
+    )
+}
+
+/// A fixture that replays exactly one HTTPS request for `url`.
+fn https_fixture(url: &str) -> FixtureNetworkProvider {
+    FixtureNetworkProvider::from_json(&format!(
+        r#"{{"schema":"semaprax.network-fixture.v3","connections":[],"https":[{{"url":{url:?},"response":"{HTTPS_FIXTURE_RESPONSE}"}}]}}"#
+    ))
+    .unwrap()
+}
+
+/// The normalized HTTPS status code of a failed invocation. The domain must be
+/// the HTTPS one, and both transcripts must have been discarded.
+fn http_failure_code(result: &HostedCommandResult) -> u32 {
+    let CommandEvaluationOutcome::LanguageFailure(status) = &result.evaluation.outcome else {
+        panic!("expected a normalized HTTPS failure: {result:?}");
+    };
+    assert_eq!(status.domain_id(), HTTP_STATUS_DOMAIN);
+    assert!(result.stdout.is_empty(), "failure must discard stdout");
+    assert!(result.stderr.is_empty(), "failure must discard stderr");
+    status.code()
+}
+
+#[test]
+fn an_invocation_with_no_https_authority_selects_authority_denied() {
+    // The denied provider implements none of the HTTPS surface, so the
+    // trait's own closed default answers. No socket, DNS, or TLS authority is
+    // reachable from a program the host granted nothing.
+    let mut denied = DeniedNetworkProvider;
+    let result = run(
+        &https_program(b"https://example.test/data", 1024),
+        &mut denied,
+    );
+    assert_eq!(http_failure_code(&result), 6, "AUTHORITY_DENIED");
+}
+
+#[test]
+fn an_insecure_scheme_is_refused_before_any_transport() {
+    // The real client, not the fixture, owns scheme policy. A cleartext URL
+    // must be refused without opening a connection: the port here is one no
+    // listener holds, and the case still completes immediately.
+    let mut provider = TcpNetworkProvider::new();
+    let result = run(
+        &https_program(b"http://127.0.0.1:9/data", 1024),
+        &mut provider,
+    );
+    assert_eq!(http_failure_code(&result), 2, "INSECURE_SCHEME");
+}
+
+#[test]
+fn malformed_and_oversized_urls_fail_before_the_provider_sees_them() {
+    // A NUL inside the URL is not a transport problem; the evaluator rejects
+    // it, so a fixture holding a perfectly good entry is never consulted.
+    let mut provider = https_fixture("https://example.test/data");
+    let result = run(
+        &https_program(b"https://exa\0mple.test/", 1024),
+        &mut provider,
+    );
+    assert_eq!(http_failure_code(&result), 1, "INVALID_URL");
+
+    let long = {
+        let mut url = b"https://example.test/".to_vec();
+        url.resize(2_049, b'a');
+        url
+    };
+    let mut provider = https_fixture("https://example.test/data");
+    let result = run(&https_program(&long, 1024), &mut provider);
+    assert_eq!(http_failure_code(&result), 1, "INVALID_URL");
+}
+
+#[test]
+fn declared_and_streamed_response_bounds_select_response_too_large() {
+    // A declared bound above the chunk capacity is refused by the evaluator
+    // before the provider is reached.
+    let mut provider = https_fixture("https://example.test/data");
+    let result = run(
+        &https_program(b"https://example.test/data", 65_537),
+        &mut provider,
+    );
+    assert_eq!(http_failure_code(&result), 4, "RESPONSE_TOO_LARGE");
+
+    // A bound the queued response overflows is refused by the provider, and
+    // the entry is not consumed: a second attempt sees the same queue.
+    let mut provider = https_fixture("https://example.test/data");
+    let result = run(
+        &https_program(b"https://example.test/data", 8),
+        &mut provider,
+    );
+    assert_eq!(http_failure_code(&result), 4, "RESPONSE_TOO_LARGE");
+    let result = run(
+        &https_program(b"https://example.test/data", 1024),
+        &mut provider,
+    );
+    expect_true(&result);
+}
+
+#[test]
+fn an_unavailable_target_selects_transport_failed_without_a_partial_result() {
+    let mut provider = https_fixture("https://example.test/data");
+    let result = run(
+        &https_program(b"https://other.test/data", 1024),
+        &mut provider,
+    );
+    assert_eq!(http_failure_code(&result), 3, "TRANSPORT_FAILED");
+}
+
+#[test]
+fn a_credential_bearing_url_never_reaches_a_status_or_transcript() {
+    // Sentinel: the URL is a program input that may carry userinfo. No
+    // diagnostic, status, or transcript may echo it back. The HTTPS status
+    // domain carries a domain identifier and a closed code and nothing else,
+    // and a failed invocation discards both transcripts.
+    const SENTINEL: &str = "s3cr3t-must-not-appear";
+    let url = format!("https://user:{SENTINEL}@example.test/data");
+    let mut provider = https_fixture("https://example.test/data");
+    let result = run(&https_program(url.as_bytes(), 1024), &mut provider);
+    assert_eq!(http_failure_code(&result), 3, "TRANSPORT_FAILED");
+    let rendered = format!("{result:?}");
+    assert!(
+        !rendered.contains(SENTINEL),
+        "a credential-bearing URL leaked into the invocation result: {rendered}"
+    );
+    assert!(
+        !rendered.contains("example.test"),
+        "the requested host leaked into the invocation result: {rendered}"
+    );
+}

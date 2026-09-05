@@ -529,3 +529,65 @@ fn native_failures_normalize_to_the_network_status_domain() {
     assert_eq!(forged.code, 3, "UNKNOWN_HANDLE");
     assert!(forged.stdout.is_empty());
 }
+
+/// The native C11 lane has no HTTPS Client I/O v1 adapter. It must reject
+/// `https_get` precisely and *before* emission, naming the profile rather than
+/// borrowing the TLS/listen message, and never emit socket or HTTPS text.
+#[test]
+fn native_lane_rejects_https_get_precisely_and_emits_no_https_text() {
+    let source = r#"
+module test.native_https;
+permit { network.http, process.stdout.write }
+@id("https.run")
+fn run() -> bool uses { network.http, process.stdout.write } {
+    let url = [104u8, 116u8, 116u8, 112u8, 115u8, 58u8, 47u8, 47u8, 97u8, 46u8, 116u8, 101u8, 115u8, 116u8, 47u8];
+    let response = https_get(array_as_slice(url), 16usize);
+    stdout_append(bytes_as_slice(response)) > 0usize
+}
+@id("main") fn main() -> i64 { 0 }
+"#;
+    let program = resolved(source, "native-https.spx");
+    // The permit gate refuses `network.http` before the operation is reached,
+    // so the network lane never emits a translation unit for this module.
+    let permits = codegen::emit_hir_c_with_network_io(&program, "https.run")
+        .expect_err("the native network lane admits no network.http permit");
+    assert!(
+        permits
+            .message
+            .contains("network command permits must stay within"),
+        "{permits:?}"
+    );
+
+    // The language lane refuses the same module at its own permit gate, so
+    // both native entry points fail closed before any translation unit is
+    // produced. The emitter's HTTPS arm is therefore unreachable defence in
+    // depth, not the rejection a user actually observes.
+    let language = codegen::emit_hir_c_with_language_command_io(&program, "https.run")
+        .expect_err("the language lane admits no network.http permit");
+    assert_eq!(language.code, "SPX-B103", "{language:?}");
+    assert!(
+        language.message.contains("permit inventory"),
+        "{language:?}"
+    );
+
+    // Nothing HTTPS-shaped leaks into a translation unit the native lane does
+    // emit for a neighbouring profile.
+    let plain = resolved(
+        r#"
+module test.native_plain;
+permit { process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+@id("plain.run")
+fn run() -> bool uses { process.stdin.read, process.stdout.write } {
+    let input = stdin_read();
+    let view = bytes_as_slice(input);
+    stdout_write(view) == byte_len(view)
+}
+@id("main") fn main() -> i64 { 0 }
+"#,
+        "native-plain.spx",
+    );
+    let generated = codegen::emit_hir_c_with_language_command_io(&plain, "plain.run").unwrap();
+    for forbidden in ["https", "HTTPS", "spx_https_get_v1", "SPX_HTTP_"] {
+        assert!(!generated.contains(forbidden), "found {forbidden}");
+    }
+}

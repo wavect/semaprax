@@ -1,0 +1,68 @@
+module https_client.response;
+
+@id("https-client.response.digit_value")
+fn digit_value(byte: u8) -> i64
+    ensures result >= -1 && result <= 9
+{
+    if byte == 48u8 { 0 } else { if byte == 49u8 { 1 } else { if byte == 50u8 { 2 } else { if byte == 51u8 { 3 } else { if byte == 52u8 { 4 } else { if byte == 53u8 { 5 } else { if byte == 54u8 { 6 } else { if byte == 55u8 { 7 } else { if byte == 56u8 { 8 } else { if byte == 57u8 { 9 } else { -1 } } } } } } } } } }
+}
+
+@id("https-client.response.digit_at")
+fn digit_at(view: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 9
+{
+    match byte_get(view, index) { Option::Some { value: byte } => digit_value(byte), Option::None {} => -1, }
+}
+
+@id("https-client.response.byte_is")
+fn byte_is(view: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(view, index) { Option::Some { value: byte } => byte == expected, Option::None {} => false, }
+}
+
+@id("https-client.response.status_code")
+fn status_code(response: borrow Slice<u8>) -> i64
+    ensures result >= -1 && result <= 999
+{
+    let version = byte_is(response, 0usize, 72u8) && byte_is(response, 1usize, 84u8) && byte_is(response, 2usize, 84u8) && byte_is(response, 3usize, 80u8) && byte_is(response, 4usize, 47u8) && byte_is(response, 5usize, 49u8) && byte_is(response, 6usize, 46u8) && digit_at(response, 7usize) >= 0 && byte_is(response, 8usize, 32u8);
+    let hundreds = digit_at(response, 9usize);
+    let tens = digit_at(response, 10usize);
+    let ones = digit_at(response, 11usize);
+    if version && hundreds >= 1 && tens >= 0 && ones >= 0 && byte_is(response, 12usize, 32u8) { hundreds * 100 + tens * 10 + ones } else { -1 }
+}
+
+@id("https-client.response.is_success")
+fn is_success(code: i64) -> bool
+{
+    code >= 200 && code <= 299
+}
+
+@id("https-client.response.terminator")
+fn terminator(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+{
+    let length = byte_len(response);
+    let mut index = 0usize;
+    let mut found = false;
+    while index + 4usize <= length && !found {
+        found = byte_is(response, index, 13u8) && byte_is(response, index + 1usize, 10u8) && byte_is(response, index + 2usize, 13u8) && byte_is(response, index + 3usize, 10u8);
+        index = if found { index } else { index + 1usize };
+        index + 4usize <= length && !found
+    }
+    if found { index } else { length }
+}
+
+@id("https-client.response.header_end")
+fn header_end(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+{
+    let end = terminator(response);
+    if end + 4usize <= byte_len(response) { end + 4usize } else { byte_len(response) }
+}
+
+@id("https-client.response.body_len")
+fn body_len(response: borrow Slice<u8>) -> usize
+    ensures result <= byte_len(response)
+{
+    byte_len(response) - header_end(response)
+}

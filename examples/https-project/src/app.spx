@@ -1,4 +1,7 @@
 module https_client.app;
+use function @id("https-client.response.body_len") from https_client.response as body_len;
+use function @id("https-client.response.is_success") from https_client.response as is_success;
+use function @id("https-client.response.status_code") from https_client.response as status_code;
 
 permit { network.http, process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
 
@@ -8,7 +11,10 @@ fn fetch() -> bool
 {
     let url = [104u8, 116u8, 116u8, 112u8, 115u8, 58u8, 47u8, 47u8, 101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 116u8, 101u8, 115u8, 116u8, 47u8, 100u8, 97u8, 116u8, 97u8];
     let response = https_get(array_as_slice(url), 1024usize);
-    stdout_append(bytes_as_slice(response)) == 46usize
+    let code = status_code(bytes_as_slice(response));
+    let body = body_len(bytes_as_slice(response));
+    let echoed = stdout_append(bytes_as_slice(response));
+    is_success(code) && code == 200 && body == 2usize && echoed == 46usize
 }
 
 @id("https-client.main")

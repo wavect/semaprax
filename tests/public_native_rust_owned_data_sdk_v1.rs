@@ -103,6 +103,28 @@ fn run(command: &mut Command, label: &str) -> Output {
     output
 }
 
+fn locked_version<'a>(lock: &'a str, package: &str) -> &'a str {
+    let marker = format!("[[package]]\nname = \"{package}\"\nversion = \"");
+    lock.split_once(&marker)
+        .unwrap_or_else(|| panic!("lockfile is missing `{package}`"))
+        .1
+        .split_once('"')
+        .unwrap()
+        .0
+}
+
+#[test]
+fn standalone_setup_reuses_the_root_native_builder_toolchain_closure() {
+    let root = include_str!("../Cargo.lock");
+    let setup = include_str!("../examples/owned-data-rust/Cargo.lock");
+    for package in ["cc", "find-msvc-tools"] {
+        assert_eq!(
+            locked_version(setup, package),
+            locked_version(root, package)
+        );
+    }
+}
+
 #[test]
 fn provider_uses_compiler_layouts_and_rejects_hostile_handles_at_o0_and_o2() {
     assert!(

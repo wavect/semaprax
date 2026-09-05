@@ -15,7 +15,9 @@ use std::sync::Arc;
 use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
 use crate::hir::{ResolvedHostCommandCall, ResolvedHostCommandOperation as Operation};
 use crate::network_io_ops;
-use crate::network_provider::{NetworkFailure, NetworkProvider, ProviderConnection};
+use crate::network_provider::{
+    NetworkFailure, NetworkProvider, ProviderConnection, ProviderListener,
+};
 
 use super::{Environment, Evaluator, Flow, OwnedBytesValue, Value};
 
@@ -26,6 +28,7 @@ pub(super) struct NetworkState<'a> {
     /// Program handle to provider connection. Handles are dense from 1 and
     /// never reused within an invocation, so a closed handle stays unknown.
     handles: BTreeMap<u64, ProviderConnection>,
+    listeners: BTreeMap<u64, ProviderListener>,
     /// The next handle to hand out; `MAX_HANDLES + 1` once the table is spent.
     next_handle: u64,
     /// Cumulative bytes sent plus received.
@@ -37,6 +40,7 @@ impl<'a> NetworkState<'a> {
         Self {
             provider,
             handles: BTreeMap::new(),
+            listeners: BTreeMap::new(),
             next_handle: 1,
             transferred: 0,
         }
@@ -69,27 +73,95 @@ impl<'a> NetworkState<'a> {
     }
 
     fn connect(&mut self, host: &[u8], port: u64) -> Result<u64, Flow> {
+        self.connect_with(host, port, false)
+    }
+
+    fn connect_with(&mut self, host: &[u8], port: u64, tls: bool) -> Result<u64, Flow> {
+        let fail = if tls { service_failure } else { failure };
         let host_len = u64::try_from(host.len()).unwrap_or(u64::MAX);
         if host.is_empty() || host_len > network_io_ops::MAX_HOST_BYTES || host.contains(&0) {
-            return Err(failure(network_io_ops::INVALID_ENDPOINT));
+            return Err(fail(network_io_ops::INVALID_ENDPOINT));
         }
-        let host =
-            std::str::from_utf8(host).map_err(|_| failure(network_io_ops::INVALID_ENDPOINT))?;
+        let host = std::str::from_utf8(host).map_err(|_| fail(network_io_ops::INVALID_ENDPOINT))?;
         let port = u16::try_from(port)
             .ok()
             .filter(|port| *port != 0 && u64::from(*port) <= network_io_ops::MAX_PORT)
-            .ok_or_else(|| failure(network_io_ops::INVALID_ENDPOINT))?;
+            .ok_or_else(|| fail(network_io_ops::INVALID_ENDPOINT))?;
         let handle = self.next_handle;
         if handle > network_io_ops::MAX_HANDLES {
-            return Err(failure(network_io_ops::CAPACITY_EXCEEDED));
+            return Err(fail(network_io_ops::CAPACITY_EXCEEDED));
         }
-        let connection = self
-            .provider
-            .connect(host, port)
-            .map_err(provider_failure)?;
+        let connection = if tls {
+            self.provider.connect_tls(host, port)
+        } else {
+            self.provider.connect(host, port)
+        }
+        .map_err(|error| {
+            if tls {
+                provider_service_failure(error)
+            } else {
+                provider_failure(error)
+            }
+        })?;
         self.next_handle = handle + 1;
         self.handles.insert(handle, connection);
         Ok(handle)
+    }
+
+    fn listen(&mut self, host: &[u8], port: u64) -> Result<u64, Flow> {
+        let host = std::str::from_utf8(host)
+            .map_err(|_| service_failure(network_io_ops::INVALID_ENDPOINT))?;
+        if host.is_empty()
+            || host.len() as u64 > network_io_ops::MAX_HOST_BYTES
+            || host.as_bytes().contains(&0)
+        {
+            return Err(service_failure(network_io_ops::INVALID_ENDPOINT));
+        }
+        let port = u16::try_from(port)
+            .ok()
+            .filter(|port| *port != 0)
+            .ok_or_else(|| service_failure(network_io_ops::INVALID_ENDPOINT))?;
+        let handle = self.next_handle;
+        if handle > network_io_ops::MAX_HANDLES {
+            return Err(service_failure(network_io_ops::CAPACITY_EXCEEDED));
+        }
+        let listener = self
+            .provider
+            .listen(host, port)
+            .map_err(provider_service_failure)?;
+        self.next_handle += 1;
+        self.listeners.insert(handle, listener);
+        Ok(handle)
+    }
+
+    fn accept(&mut self, handle: u64) -> Result<u64, Flow> {
+        let listener = self
+            .listeners
+            .get(&handle)
+            .copied()
+            .ok_or_else(|| service_failure(network_io_ops::UNKNOWN_HANDLE))?;
+        let accepted = self
+            .provider
+            .accept(listener)
+            .map_err(provider_service_failure)?;
+        let connection_handle = self.next_handle;
+        if connection_handle > network_io_ops::MAX_HANDLES {
+            return Err(service_failure(network_io_ops::CAPACITY_EXCEEDED));
+        }
+        self.next_handle += 1;
+        self.handles.insert(connection_handle, accepted);
+        Ok(connection_handle)
+    }
+
+    fn close_listener(&mut self, handle: u64) -> Result<u64, Flow> {
+        let listener = self
+            .listeners
+            .remove(&handle)
+            .ok_or_else(|| service_failure(network_io_ops::UNKNOWN_HANDLE))?;
+        self.provider
+            .close_listener(listener)
+            .map_err(provider_service_failure)?;
+        Ok(0)
     }
 
     fn send(&mut self, handle: u64, bytes: &[u8]) -> Result<u64, Flow> {
@@ -156,9 +228,17 @@ impl<'a> NetworkState<'a> {
 }
 
 fn failure(code: u32) -> Flow {
+    failure_in(network_io_ops::STATUS_DOMAIN, code)
+}
+
+fn service_failure(code: u32) -> Flow {
+    failure_in(network_io_ops::SERVICE_STATUS_DOMAIN, code)
+}
+
+fn failure_in(domain: &'static str, code: u32) -> Flow {
     Flow::Failure(
         NormalizedStatus::try_new(
-            network_io_ops::STATUS_DOMAIN,
+            domain,
             code,
             StatusClass::Adapter,
             Retryability::Known(false),
@@ -169,6 +249,10 @@ fn failure(code: u32) -> Flow {
 
 fn provider_failure(error: NetworkFailure) -> Flow {
     failure(error.status_code())
+}
+
+fn provider_service_failure(error: NetworkFailure) -> Flow {
+    service_failure(error.status_code())
 }
 
 impl Evaluator<'_> {
@@ -197,6 +281,18 @@ impl Evaluator<'_> {
         match (call.operation, values.as_slice()) {
             (Operation::NetConnect, [Value::BorrowedSlice(host), Value::Usize(port)]) => {
                 network.connect(host.bytes(), *port).map(Value::Usize)
+            }
+            (Operation::NetTlsConnect, [Value::BorrowedSlice(host), Value::Usize(port)]) => network
+                .connect_with(host.bytes(), *port, true)
+                .map(Value::Usize),
+            (Operation::NetListen, [Value::BorrowedSlice(host), Value::Usize(port)]) => {
+                network.listen(host.bytes(), *port).map(Value::Usize)
+            }
+            (Operation::NetAccept, [Value::Usize(listener)]) => {
+                network.accept(*listener).map(Value::Usize)
+            }
+            (Operation::NetCloseListener, [Value::Usize(listener)]) => {
+                network.close_listener(*listener).map(Value::Usize)
             }
             (Operation::NetSend, [Value::Usize(handle), Value::BorrowedSlice(bytes)]) => {
                 network.send(*handle, bytes.bytes()).map(Value::Usize)

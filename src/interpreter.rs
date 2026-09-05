@@ -4146,7 +4146,11 @@ impl Evaluator<'_> {
                     | Operation::NetRecv
                     | Operation::NetStreamStdout
                     | Operation::NetWait
-                    | Operation::NetClose => {
+                    | Operation::NetClose
+                    | Operation::NetTlsConnect
+                    | Operation::NetListen
+                    | Operation::NetAccept
+                    | Operation::NetCloseListener => {
                         self.evaluate_network_operation(call, environment, depth)
                     }
                     Operation::ArgsLen => {

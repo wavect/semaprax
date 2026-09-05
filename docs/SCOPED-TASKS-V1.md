@@ -1,7 +1,7 @@
 # Deterministic Scoped Task Model v1
 
-- Status: Locally evidenced hidden proof model; no runtime, scheduler, language
-  syntax, compiler, or backend wiring exists or is claimed
+- Status: Locally evidenced proof model. A separately specified bounded Rust
+  scoped-thread runtime exists; language syntax and backend wiring do not.
 - Version: 0.1
 - Audience: language, compiler, runtime, and conformance-test implementers;
   agents auditing structured-concurrency semantics before any implementation
@@ -18,11 +18,12 @@ children-before-parents cleanup on scope exit in reverse completion order,
 first-failure stickiness with sibling draining, and closed per-task
 `Sendable`/`Shareable` annotations.
 
-The module deliberately contains no threads, no async runtime, no scheduler
+The proof module deliberately contains no threads, no async runtime, no scheduler
 integration, no language syntax, no parser/HIR/Graph/backend changes, and no
 `Sendable` checking of real programs. Like the callable-v3 settlement model,
 everything it produces is evidence of what a conforming implementation MUST do,
-never authority to execute anything. A modeled task body is a closed scripted
+never authority to execute anything. Real closure execution is owned by
+[Structured Tasks Runtime v1](STRUCTURED-TASKS-RUNTIME-V1.md). A modeled task body is a closed scripted
 outcome (`Succeed`, `Fail(Semantic)`, or `Fail(Physical(nonzero))`); nothing is
 run and no work is performed.
 

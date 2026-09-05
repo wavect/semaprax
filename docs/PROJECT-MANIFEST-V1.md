@@ -355,5 +355,6 @@ Focused local evidence is:
 cargo test --locked -p semaprax --test project manifest_v12:: -- --test-threads=1
 ```
 
-This profile does not claim TLS, listen sockets, UDP, DNS policy, structured
-tasks, production service hosting, registry publication, or public support.
+This profile does not admit the later hosted-provider TLS/listen operations or
+the Rust structured-task runtime. Those APIs do not change Project v12, its
+npm/Web fixture-v1 boundary, or its native ABI.

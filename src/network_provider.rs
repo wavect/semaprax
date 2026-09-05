@@ -44,6 +44,12 @@ pub enum NetworkFailure {
     TransferFailed,
     /// No network authority was granted to this invocation (`6`).
     AuthorityDenied,
+    /// TLS negotiation or certificate/name validation failed (`7`).
+    TlsFailed,
+    /// Binding a listening socket failed (`8`).
+    ListenFailed,
+    /// Accepting a connection failed (`9`).
+    AcceptFailed,
 }
 
 impl NetworkFailure {
@@ -56,6 +62,9 @@ impl NetworkFailure {
             Self::CapacityExceeded => network_io_ops::CAPACITY_EXCEEDED,
             Self::TransferFailed => network_io_ops::TRANSFER_FAILED,
             Self::AuthorityDenied => network_io_ops::AUTHORITY_DENIED,
+            Self::TlsFailed => network_io_ops::TLS_FAILED,
+            Self::ListenFailed => network_io_ops::LISTEN_FAILED,
+            Self::AcceptFailed => network_io_ops::ACCEPT_FAILED,
         }
     }
 }
@@ -102,6 +111,19 @@ impl ProviderConnection {
     }
 }
 
+/// Provider-side listening-socket token, never exposed directly to a program.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ProviderListener(u64);
+
+impl ProviderListener {
+    pub const fn new(token: u64) -> Self {
+        Self(token)
+    }
+    pub const fn token(self) -> u64 {
+        self.0
+    }
+}
+
 /// Transport behind the six network operations.
 ///
 /// Implementations receive endpoints the evaluator already validated (non-empty
@@ -119,6 +141,33 @@ impl ProviderConnection {
 pub trait NetworkProvider {
     /// Open a connection to `host:port`.
     fn connect(&mut self, host: &str, port: u16) -> Result<ProviderConnection, NetworkFailure>;
+
+    /// Open a TLS 1.2/1.3 client connection with authenticated server name.
+    fn connect_tls(
+        &mut self,
+        _host: &str,
+        _port: u16,
+    ) -> Result<ProviderConnection, NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
+
+    /// Bind a TCP listening socket to an explicitly admitted local address.
+    fn listen(&mut self, _host: &str, _port: u16) -> Result<ProviderListener, NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
+
+    /// Accept one connection from a listening socket.
+    fn accept(
+        &mut self,
+        _listener: ProviderListener,
+    ) -> Result<ProviderConnection, NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
+
+    /// Close one listening socket.
+    fn close_listener(&mut self, _listener: ProviderListener) -> Result<(), NetworkFailure> {
+        Err(NetworkFailure::AuthorityDenied)
+    }
 
     /// Write every byte of `bytes` and return the count written. A provider
     /// that cannot write the whole slice fails with
@@ -198,12 +247,16 @@ mod tests {
             NetworkFailure::CapacityExceeded,
             NetworkFailure::TransferFailed,
             NetworkFailure::AuthorityDenied,
+            NetworkFailure::TlsFailed,
+            NetworkFailure::ListenFailed,
+            NetworkFailure::AcceptFailed,
         ];
         let codes: Vec<u32> = failures.iter().map(|f| f.status_code()).collect();
-        assert_eq!(codes, network_io_ops::STATUS_CODES);
+        assert_eq!(codes, network_io_ops::SERVICE_STATUS_CODES);
         assert_eq!(WaitState::Timeout.code(), 0);
         assert_eq!(WaitState::Readable.code(), 1);
         assert_eq!(WaitState::Closed.code(), 2);
         assert_eq!(ProviderConnection::new(7).token(), 7);
+        assert_eq!(ProviderListener::new(3).token(), 3);
     }
 }

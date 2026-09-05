@@ -53,6 +53,9 @@ pub(crate) enum CommandOperationProfile {
     /// network operation family, appends, and `byte_range`; legacy
     /// single-write transcripts are excluded.
     NetworkV1,
+    /// Network Service I/O v1 adds authenticated TLS clients and explicit
+    /// listen/accept lifecycle operations.
+    ServiceV1,
 }
 
 /// Validate exactly the operations reachable from the selected command.
@@ -83,6 +86,7 @@ pub(crate) fn validate_operation_profile(
     let mut saw_append = false;
     let mut saw_legacy_write = false;
     let mut saw_network = false;
+    let mut saw_service = false;
 
     while let Some((execution_id, function)) = pending_functions.pop() {
         if !visited.insert(execution_id) {
@@ -103,7 +107,10 @@ pub(crate) fn validate_operation_profile(
                     ResolvedHostCommandOperation::ArgsLen
                     | ResolvedHostCommandOperation::ArgUtf8
                     | ResolvedHostCommandOperation::StdinRead => {}
-                    network if crate::network_io_ops::is_network(network) => saw_network = true,
+                    network if crate::network_io_ops::is_network(network) => {
+                        saw_network = true;
+                        saw_service |= crate::network_io_ops::is_service(network);
+                    }
                     _ => unreachable!("closed host-command operation inventory"),
                 },
                 ResolvedExprKind::Call {
@@ -139,6 +146,15 @@ pub(crate) fn validate_operation_profile(
         CommandOperationProfile::NetworkV1 if saw_legacy_write => Err(profile_error(
             "Language Network I/O v1 cannot mix legacy transcript writes with append operations",
         )),
+        CommandOperationProfile::NetworkV1 if saw_service => Err(profile_error(
+            "TLS and listen operations require the Network Service I/O v1 profile",
+        )),
+        CommandOperationProfile::ServiceV1 if !saw_service => Err(profile_error(
+            "Network Service I/O v1 must reach TLS or listen operations",
+        )),
+        CommandOperationProfile::ServiceV1 if saw_legacy_write => Err(profile_error(
+            "Network Service I/O v1 cannot mix legacy transcript writes with append operations",
+        )),
         CommandOperationProfile::LanguageV1 if saw_range || saw_append => Err(profile_error(
             "Language Command I/O v1 cannot reach byte_range, stdout_append, or stderr_append",
         )),
@@ -150,7 +166,8 @@ pub(crate) fn validate_operation_profile(
         )),
         CommandOperationProfile::LanguageV1
         | CommandOperationProfile::LineV1
-        | CommandOperationProfile::NetworkV1 => Ok(()),
+        | CommandOperationProfile::NetworkV1
+        | CommandOperationProfile::ServiceV1 => Ok(()),
     }
 }
 
@@ -271,6 +288,10 @@ pub(crate) const fn status_metadata(
             })
         }
         ResolvedHostCommandOperation::ArgsLen | ResolvedHostCommandOperation::StderrWrite => None,
+        service if crate::network_io_ops::is_service(service) => Some(CommandIoStatusMetadata {
+            domain: crate::network_io_ops::SERVICE_STATUS_DOMAIN,
+            codes: &crate::network_io_ops::SERVICE_STATUS_CODES,
+        }),
         _ => Some(CommandIoStatusMetadata {
             domain: crate::network_io_ops::STATUS_DOMAIN,
             codes: &crate::network_io_ops::STATUS_CODES,

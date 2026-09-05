@@ -415,6 +415,10 @@ pub enum ResolvedHostCommandOperation {
     NetStreamStdout,
     NetWait,
     NetClose,
+    NetTlsConnect,
+    NetListen,
+    NetAccept,
+    NetCloseListener,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

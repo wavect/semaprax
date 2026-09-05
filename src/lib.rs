@@ -113,6 +113,7 @@ pub mod simd_report;
 pub mod static_protocol;
 pub(crate) mod str_ops;
 pub(crate) mod string_ops;
+pub mod structured_tasks;
 pub mod target_evidence;
 #[cfg(any(test, feature = "unstable-native-host-internal"))]
 #[doc(hidden)]

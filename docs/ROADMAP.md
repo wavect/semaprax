@@ -541,14 +541,18 @@ without pretending every platform is identical.
 
 ### Concurrency and services
 
-- structured tasks, cancellation, cleanup, `Sendable`, and `Shareable` checks;
+- extend the bounded Rust scoped-thread runtime into language task syntax,
+  task HIR/Graph nodes, deterministic schedule replay, backend lowering, and
+  `Sendable`/`Shareable` checks;
 - deterministic effect handlers and test schedule replay;
 - general command, filesystem, network, clock, and service I/O through explicit
   capabilities; the bounded TCP client tranche
   ([Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)) has
   landed locally with a Project v12 profile, a fixture-backed CLI verb, and
-  fixture-only npm/Web lanes, leaving TLS, DNS policy, listen sockets, real
-  hosted Web transports, and structured tasks;
+  fixture-only npm/Web lanes; the hosted-provider extension now adds Rustls
+  TLS clients, TCP bind/accept, fixture-v2 accept queues, and a bounded Rust
+  task scope, leaving native/Wasm service ABI, server TLS, DNS policy, real
+  hosted Web transports, and language-level structured tasks;
 - server/edge packaging, observability, deployment diagnostics, and load tests.
 
 ### Application model

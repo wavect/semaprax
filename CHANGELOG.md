@@ -29,6 +29,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   transferring the whole card; every topic is guarded at more than five times
   smaller in both bytes and repository lexical units. The `scalars` result is
   793 bytes and 296 units versus 25,435 bytes and 7,237 units for the full card.
+- Added a hosted Network Services v1 extension with Rustls-authenticated TLS
+  clients, explicit listener/accept lifecycle, deterministic fixture v2, four
+  effect-gated source operations, and a bounded real structured-task runtime.
 - Added the developer-preview `network-command-io.v1` Project v12 profile,
   native and deterministic fixture-only npm/Web build lanes, the bounded
   `semaprax network-run --fixture` command, and a committed HTTP Project

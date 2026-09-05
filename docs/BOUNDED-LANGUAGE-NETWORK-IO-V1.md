@@ -5,7 +5,8 @@ Audience: language users, tool authors, and compiler contributors.
 Status: locally evidenced implementation tranche. This document freezes the
 reviewed contract for six compiler-owned TCP client operations, their closed
 status domain, the deterministic fixture provider, and the target adapters. No
-hosted, public, TLS, DNS-policy, listen-socket, structured-task, or
+hosted or public product claim is made. TLS clients and listen sockets are an
+additive hosted-only protocol in [Bounded Network Services v1](BOUNDED-NETWORK-SERVICES-V1.md); they do not mutate this v1 ABI. No DNS-policy, structured-task, or
 production claim is made; the [completion matrix](COMPLETION-MATRIX.md) owns
 status and its "Edge and server" row remains Partial.
 
@@ -146,8 +147,9 @@ host, `\r\nConnection: close\r\n\r\n`), then `net_stream_stdout` or
 status code, header terminator, body length, `Content-Length`, and method
 validation. `examples/net_http_get.spx` is the committed request shape.
 
-There is no TLS, so only `http://` endpoints are reachable; `https://` is a
-nonclaim, not a degraded mode.
+This v1 ABI has no TLS, so only `http://` endpoints are reachable through it.
+The additive hosted service profile provides authenticated outbound TLS
+without introducing a cleartext fallback.
 
 ## Authority
 
@@ -297,7 +299,7 @@ they promote no completion row.
 
 ## Non-claims and remaining work
 
-This tranche does not add TLS or certificate policy, DNS policy beyond the
+This v1 tranche does not add TLS or certificate policy, DNS policy beyond the
 platform resolver, listen or accept sockets, UDP, HTTP/2 or HTTP/3, a
 request/response type model, structured tasks or cancellation, threads,
   callbacks, timers other than the bounded `net_wait`, connection reuse across
@@ -305,4 +307,6 @@ invocations, proxies, or observability. Project v12, its CLI verb, and its
 npm/Web package are developer-preview fixture lanes, not TLS or public socket
 support; npm and browsers gain no real socket authority. Each later protocol
 is sequenced in the
-[roadmap](ROADMAP.md#concurrency-and-services).
+[roadmap](ROADMAP.md#concurrency-and-services). The separately versioned
+[Bounded Network Services v1](BOUNDED-NETWORK-SERVICES-V1.md) now implements
+the hosted-provider TLS/listen slice while preserving these bytes and targets.

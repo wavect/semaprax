@@ -27,6 +27,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   declarations at the same revision on every committed example. The guided
   help lists it under `Inspect meaning`; several guide summaries were
   shortened to keep both capability pages under the 2048-byte bound.
+- The canonical graph-operational agent workflow now uses compact candidate
+  source-review, function-summary, and impact-summary projections while full
+  candidate and semantic-delta replay stays inside the verifier. Its regression
+  rejects the older full-report routes and enforces aggregate protocol and
+  review-material byte/lexical-unit ceilings, preventing silent context-cost
+  regressions in the fixed twelve-step application change.
 - Project-link diagnostics now name and locate the exact entry, test, or
   provider module responsible for missing or invalid `main` declarations and
   distinguish capability exclusions from declaration-shape exclusions.

@@ -37,8 +37,8 @@ protocol traffic, never model tool calls.
 
 The workflow additionally records:
 
-- bounded review material sizes for the candidate report, semantic delta,
-  impact and human-readable source differences;
+- bounded review material sizes for compact source-review, function-summary,
+  and impact-summary projections;
 - one disjoint sibling-candidate reconciliation and the deliberately scripted conflict
   or authority-control rejections;
 - zero stale recoveries, because this scenario does not perform live-source
@@ -58,12 +58,15 @@ zero.
 All byte counts use exact UTF-8 lengths. Lexical units reuse
 `semaprax.lexical-token.v1` and retain `model_tokens: false`. Ratios or savings
 are not inferred from either measure. The pre-publication review traffic is
-source-deterministic. Commit, commit-report and source-commit-status routes bind
+source-deterministic. Complete candidate and semantic-delta reports are replayed
+inside the verifier rather than transferred through the agent-facing protocol.
+Commit, commit-report and source-commit-status routes bind
 the canonical temporary manifest and bare-repository identities, so their exact
 digests are invocation evidence and carry `host_route_bound: true`. Portable
 recovery traffic remains separately labeled. The regression checks schema,
-limits, relationships and counter self-consistency; it does not freeze
-invocation-specific byte, lexical, digest or method-count values as goldens.
+limits, relationships, selected compact-route counts and counter
+self-consistency. It enforces aggregate ceilings without freezing
+invocation-specific byte, lexical or digest values as exact goldens.
 
 ## Explicitly unobserved fields
 
@@ -105,12 +108,32 @@ host-bound. Their byte counts and digests may differ across otherwise valid
 runs; the outer evidence envelope authenticates the observed files without
 turning them into cross-host goldens.
 
+## Compact workflow cost guard
+
+The current regression rejects any twelve-step workflow that exceeds 24
+response-bearing protocol calls, 10 KiB of serialized requests, 64 KiB of
+serialized responses, or 16,384 `semaprax.lexical-token.v1` response units. It
+also rejects more than 16 KiB or 4,096 lexical units across the three explicit
+review materials. `candidate/query`, `candidate/impact`, and
+`candidate/semantic-delta` are excluded from the agent-facing method histogram;
+the workflow uses `candidate/source-review`, `candidate/function-summary`, and
+`candidate/impact-summary` while retaining complete authority-free candidate
+and semantic-delta replay as internal verification.
+
+These ceilings are regression budgets for one fixed scripted workflow, not
+measurements of a model context window. The lexical unit still carries
+`model_tokens: false`; the guard makes no tokenizer, usefulness, latency,
+success-rate, or monetary-cost claim. The authenticated historical bundle
+below predates this compact-route guard and remains evidence only for its exact
+recorded subject.
+
 ## Bounds and evidence
 
 The fixed test supplies two finite sessions and their response-bearing frames.
 Each request remains under the protocol's 64 KiB request limit, the session
 retains its existing 1 MiB response limit, and the regression rejects a final
-report over 256 KiB. The compact sorted-key JSON retains digests and counters
+report over 256 KiB in addition to the aggregate workflow ceilings above. The
+compact sorted-key JSON retains digests and counters
 rather than becoming a second source or candidate archive. The report has
 `source_authority: false`, `execution_authority: false`, and no publication
 authority; the separately attached Git host remains the sole authority for the

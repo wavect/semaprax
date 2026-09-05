@@ -24,6 +24,12 @@ use std::sync::{Arc, Mutex};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 const BRANCH: &str = "refs/heads/review";
+const MAX_WORKFLOW_PROTOCOL_CALLS: u64 = 24;
+const MAX_WORKFLOW_REQUEST_BYTES: u64 = 10 * 1024;
+const MAX_WORKFLOW_RESPONSE_BYTES: u64 = 64 * 1024;
+const MAX_WORKFLOW_RESPONSE_LEXICAL_UNITS: u64 = 16 * 1024;
+const MAX_REVIEW_MATERIAL_BYTES: u64 = 16 * 1024;
+const MAX_REVIEW_MATERIAL_LEXICAL_UNITS: u64 = 4 * 1024;
 const TASK_PHASES: [&str; 12] = [
     "workspace_snapshot",
     "stable_id_selection",
@@ -764,38 +770,30 @@ fn review(fixture: &Fixture) -> Reviewed {
     );
     let merged = digest(reconciled["candidate"].clone());
     session.trace.branch_reconciliations += 1;
-    // 10. Review exact source differences and selected semantic evidence.
+    // 10. Review exact source differences and selected semantic evidence through
+    // the compact candidate navigation routes. The complete candidate and
+    // semantic-delta reports are replayed through the library below, but are
+    // not charged to the agent-facing protocol transcript.
     session.trace.at(&[10]);
-    let report_bytes = chunks(
+    let source_review_bytes = chunks(
         &mut session,
-        "candidate/query",
+        "candidate/source-review",
         json!({"candidate_revision":merged}),
     );
     session
         .trace
-        .review("candidate_report", report_bytes.as_bytes());
-    let report: Value = serde_json::from_str(&report_bytes).unwrap();
-    let signature_operation = report["operations"]
+        .review("source_review", source_review_bytes.as_bytes());
+    let source_review: Value = serde_json::from_str(&source_review_bytes).unwrap();
+    assert_eq!(source_review["candidate_revision"], merged);
+    let paths: BTreeSet<_> = source_review["files"]
         .as_array()
         .unwrap()
         .iter()
-        .find(|operation| operation["kind"] == "change_function_signature")
-        .unwrap();
-    assert_eq!(signature_operation["migrated_calls"], 3);
-    session.trace.migrated_calls = 3;
-    // The third call is the same-module staging fixture; the application and
-    // test callers are the two cross-file migrations in the vertical slice.
-    session.trace.cross_file_migrated_calls = 2;
-    let source_review = serde_json::to_vec(&report["source_changes"]).unwrap();
-    session.trace.review("source_changes", &source_review);
-    let paths: BTreeSet<_> = report["source_changes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|c| {
-            assert!(!c["source_diff"].as_str().unwrap().is_empty());
-            assert!(!c["replacement_source"].as_str().unwrap().is_empty());
-            c["path"].as_str().unwrap().to_owned()
+        .map(|file| {
+            assert!(!file["source_diff"].as_str().unwrap().is_empty());
+            assert!(!file["base_source"].as_str().unwrap().is_empty());
+            assert!(!file["candidate_source"].as_str().unwrap().is_empty());
+            file["path"].as_str().unwrap().to_owned()
         })
         .collect();
     assert_eq!(
@@ -806,37 +804,44 @@ fn review(fixture: &Fixture) -> Reviewed {
             "src/tests.spx".into()
         ])
     );
-    let impact = payload(bound(
+    let function_summary = payload(bound(
         &mut session,
-        "candidate/impact",
+        "candidate/function-summary",
         json!({"candidate_revision":merged,"target":"calculator.add"}),
     ));
-    assert_eq!(impact["candidate_revision"], merged);
-    assert!(impact["impact"].is_object());
-    session.trace.review(
-        "semantic_impact",
-        serde_json::to_string(&impact).unwrap().as_bytes(),
-    );
-    let delta_bytes = chunks(
-        &mut session,
-        "candidate/semantic-delta",
-        json!({"candidate_revision":merged,"target":"calculator.add"}),
-    );
-    session
-        .trace
-        .review("semantic_delta", delta_bytes.as_bytes());
-    let delta: Value = serde_json::from_str(&delta_bytes).unwrap();
-    assert_eq!(delta["candidate_digest"], merged);
+    assert_eq!(function_summary["candidate_revision"], merged);
+    assert_eq!(function_summary["id"], "calculator.add");
+    assert_eq!(function_summary["parameter_count"], 3);
+    assert_eq!(function_summary["requires_count"], 1);
+    assert_eq!(function_summary["ensures_count"], 1);
     for name in ["signature", "contracts", "callers", "ownership", "cleanup"] {
         assert!(
-            delta["facets"]
+            function_summary["facets"]
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|f| f["facet"] == name),
+                .any(|facet| facet["facet"] == name),
             "missing {name}"
         );
     }
+    session.trace.review(
+        "function_summary",
+        serde_json::to_string(&function_summary).unwrap().as_bytes(),
+    );
+    let impact_summary = payload(bound(
+        &mut session,
+        "candidate/impact-summary",
+        json!({"candidate_revision":merged,"target":"calculator.add"}),
+    ));
+    assert_eq!(impact_summary["candidate_revision"], merged);
+    assert_eq!(impact_summary["target"]["id"], "calculator.add");
+    assert!(impact_summary["truncation"].is_object());
+    assert!(impact_summary["budget"].is_object());
+    assert_eq!(impact_summary["facets"].as_array().unwrap().len(), 3);
+    session.trace.review(
+        "impact_summary",
+        serde_json::to_string(&impact_summary).unwrap().as_bytes(),
+    );
     // 11. A competing signature fails without replacing retained review evidence.
     session.trace.at(&[11]);
     let competing = apply(&mut session, &root, signature("different"));
@@ -852,10 +857,18 @@ fn review(fixture: &Fixture) -> Reviewed {
     assert_eq!(
         chunks(
             &mut session,
-            "candidate/query",
+            "candidate/source-review",
             json!({"candidate_revision":merged})
         ),
-        report_bytes
+        source_review_bytes
+    );
+    assert_eq!(
+        payload(bound(
+            &mut session,
+            "candidate/function-summary",
+            json!({"candidate_revision":merged,"target":"calculator.add"}),
+        )),
+        function_summary
     );
     session.trace.pass(
         11,
@@ -872,43 +885,6 @@ fn review(fixture: &Fixture) -> Reviewed {
     session.trace.candidate_validations += 1;
     assert_eq!(validation["independently_replayed"], true);
     assert_eq!(validation["tests"], "not_run");
-    session.trace.at(&[9]);
-    let targets = report["core_targets"]["candidate"].as_array().unwrap();
-    assert_eq!(targets.len(), 4);
-    session.trace.target_admissions += targets.len();
-    let target_pairs: BTreeSet<_> = targets
-        .iter()
-        .map(|target| {
-            (
-                target["role"].as_str().unwrap(),
-                target["lane"].as_str().unwrap(),
-            )
-        })
-        .collect();
-    assert_eq!(
-        target_pairs,
-        BTreeSet::from([
-            ("entry", "native_c11"),
-            ("entry", "wasm_core"),
-            ("test", "native_c11"),
-            ("test", "wasm_core"),
-        ])
-    );
-    for target in targets {
-        assert_eq!(target["admitted"], true);
-        assert!(target["bytes"].as_u64().unwrap() > 0);
-        assert_eq!(
-            target["validation"],
-            if target["lane"] == "native_c11" {
-                "compiler_emission_not_native_execution"
-            } else {
-                "wasmparser_structural_not_execution"
-            }
-        );
-    }
-    session
-        .trace
-        .pass(9, "four target artifacts admitted without execution claims");
     // 8. The real v5 test method receives only the host's fixed interpreter policy.
     session.trace.at(&[8]);
     let plan = payload(bound(
@@ -950,7 +926,56 @@ fn review(fixture: &Fixture) -> Reviewed {
     .unwrap();
     session.trace.library_recovery_restores += 1;
     assert_eq!(candidate.candidate_digest(), merged);
-    assert_eq!(candidate.to_json(), report_bytes);
+    let report_bytes = candidate.to_json();
+    let report: Value = serde_json::from_str(report_bytes).unwrap();
+    let signature_operation = report["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|operation| operation["kind"] == "change_function_signature")
+        .unwrap();
+    assert_eq!(signature_operation["migrated_calls"], 3);
+    session.trace.migrated_calls = 3;
+    // The third call is the same-module staging fixture; the application and
+    // test callers are the two cross-file migrations in the vertical slice.
+    session.trace.cross_file_migrated_calls = 2;
+    session.trace.at(&[9]);
+    let targets = report["core_targets"]["candidate"].as_array().unwrap();
+    assert_eq!(targets.len(), 4);
+    session.trace.target_admissions += targets.len();
+    let target_pairs: BTreeSet<_> = targets
+        .iter()
+        .map(|target| {
+            (
+                target["role"].as_str().unwrap(),
+                target["lane"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        target_pairs,
+        BTreeSet::from([
+            ("entry", "native_c11"),
+            ("entry", "wasm_core"),
+            ("test", "native_c11"),
+            ("test", "wasm_core"),
+        ])
+    );
+    for target in targets {
+        assert_eq!(target["admitted"], true);
+        assert!(target["bytes"].as_u64().unwrap() > 0);
+        assert_eq!(
+            target["validation"],
+            if target["lane"] == "native_c11" {
+                "compiler_emission_not_native_execution"
+            } else {
+                "wasmparser_structural_not_execution"
+            }
+        );
+    }
+    session
+        .trace
+        .pass(9, "four target artifacts admitted without execution claims");
     assert_staged_call(
         candidate.revision(),
         "calculator.local-add",
@@ -967,13 +992,14 @@ fn review(fixture: &Fixture) -> Reviewed {
     session
         .trace
         .pass(4, "all three authenticated call sites migrated");
+    let delta_bytes = candidate.semantic_delta(&merged, "calculator.add").unwrap();
     candidate
         .verify_semantic_delta(&merged, "calculator.add", delta_bytes.as_bytes())
         .unwrap();
     session.trace.semantic_delta_verifications += 1;
     session.trace.pass(
         10,
-        "source diff, impact, and semantic delta reviewed and verified",
+        "compact source, function and impact review plus full semantic-delta replay verified",
     );
     assert_eq!(
         candidate.revision().manifest().web_exports(),
@@ -1155,6 +1181,12 @@ fn assert_task_report(trace: &TaskTrace, format: &str) -> String {
     let call_count = protocol["semantic_protocol_calls"].as_u64().unwrap();
     assert_eq!(call_count as usize, trace.frames.len());
     assert!(call_count > 0);
+    assert!(call_count <= MAX_WORKFLOW_PROTOCOL_CALLS);
+    assert!(protocol["request_bytes"].as_u64().unwrap() <= MAX_WORKFLOW_REQUEST_BYTES);
+    assert!(protocol["response_bytes"].as_u64().unwrap() <= MAX_WORKFLOW_RESPONSE_BYTES);
+    assert!(
+        protocol["response_lexical_units"].as_u64().unwrap() <= MAX_WORKFLOW_RESPONSE_LEXICAL_UNITS
+    );
     assert_eq!(protocol["notifications"], 0);
     assert_eq!(protocol["bounds"]["request_max_bytes"], 65_536);
     assert_eq!(protocol["bounds"]["response_max_bytes"], 1_048_576);
@@ -1168,6 +1200,19 @@ fn assert_task_report(trace: &TaskTrace, format: &str) -> String {
             .sum::<u64>(),
         call_count
     );
+    for superseded in [
+        "candidate/query",
+        "candidate/impact",
+        "candidate/semantic-delta",
+    ] {
+        assert!(protocol["method_histogram"].get(superseded).is_none());
+    }
+    assert_eq!(protocol["method_histogram"]["candidate/source-review"], 2);
+    assert_eq!(
+        protocol["method_histogram"]["candidate/function-summary"],
+        2
+    );
+    assert_eq!(protocol["method_histogram"]["candidate/impact-summary"], 1);
     let associations = protocol["criterion_associations"].as_array().unwrap();
     assert_eq!(associations.len(), 12);
     for (index, association) in associations.iter().enumerate() {
@@ -1274,7 +1319,22 @@ fn assert_task_report(trace: &TaskTrace, format: &str) -> String {
         report["publication_digest_policy"]["host_identity_bound"],
         true
     );
-    assert_eq!(report["review_material"].as_object().unwrap().len(), 4);
+    let review_material = report["review_material"].as_object().unwrap();
+    assert_eq!(review_material.len(), 3);
+    assert!(
+        review_material
+            .values()
+            .map(|material| material["bytes"].as_u64().unwrap())
+            .sum::<u64>()
+            <= MAX_REVIEW_MATERIAL_BYTES
+    );
+    assert!(
+        review_material
+            .values()
+            .map(|material| material["lexical_units"].as_u64().unwrap())
+            .sum::<u64>()
+            <= MAX_REVIEW_MATERIAL_LEXICAL_UNITS
+    );
     assert_eq!(report["source_authority"], false);
     assert_eq!(report["execution_authority"], false);
     assert_eq!(report["publication_authority"], false);

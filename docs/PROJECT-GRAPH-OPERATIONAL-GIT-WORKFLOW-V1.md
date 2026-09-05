@@ -34,8 +34,8 @@ Both `twelve_step_v5_review_to_real_sha1_git_commit` and
 | 2 | Discover the actual stable target and its two parameters, precondition, and postcondition with `image/function-summary`. |
 | 3 | Open a candidate and apply ordered `change_function_signature`; the compiler renames and reorders the retained parameters, adds `offset`, substitutes the body/contracts and reconstructs all three canonical sources. |
 | 4 | Merge a sibling display rename through `candidate/merge`, retaining the original source base. |
-| 5 | Read candidate impact plus bounded candidate/source-diff and semantic-delta chunks. Require signature, contracts, callers, ownership, and cleanup facets and exactly three migrated local/application/test calls. Inspect each staged call to prove its two original argument subtrees remain left-to-right while the final call uses them in the new parameter order. |
-| 6 | Reject a competing signature with `SPX-G235`; require the previously reviewed candidate report to remain byte-identical and raw sources unchanged. |
+| 5 | Read the bounded `candidate/source-review`, `candidate/function-summary`, and `candidate/impact-summary` projections. Require signature, contracts, callers, ownership, and cleanup handles and exactly three migrated local/application/test calls. Independently replay the complete candidate and semantic delta inside the verifier, and inspect each staged call to prove its two original argument subtrees remain left-to-right while the final call uses them in the new parameter order. |
+| 6 | Reject a competing signature with `SPX-G235`; require the previously reviewed compact source and function projections to remain byte-identical and raw sources unchanged. |
 | 7 | Request independent candidate validation and inspect the candidate's native-C11 and structurally validated Core-Wasm projections for entry and test closures. |
 | 8 | Request the manifest test plan and interpreter tests through v5 with an explicit host policy: 100,000 steps, 65,536 execution bytes, and 262,144 report bytes. |
 | 9 | Export exact recovery-capsule chunks, independently replay them, verify the exact semantic delta, and compare declaration identities, exports, parameter ownership, effects, contracts, module permits, and scalar cleanup inventory. Close the review session. |
@@ -67,7 +67,7 @@ original twelve requirements map as follows:
 | Contracts, ownership, cleanup | Nonempty predicates are scope-aware renamed with the parameters, their structure remains checked, parameter modes remain exact, and ordinary validation, selected facets and empty scalar cleanup inventories are checked. |
 | Affected tests | Explicit-policy v5 test request for the full manifest test closure; its passing assertion executed in the exact local subject bundle. |
 | Native/Wasm admission | All four entry/test native-C11/Core-Wasm evidence rows admitted; no target execution. |
-| Semantic impact and source diff | Real `candidate/impact` request, exact semantic-delta replay, and per-file human source differences. |
+| Semantic impact and source diff | Real compact `candidate/impact-summary` and `candidate/source-review` requests, exact authority-free semantic-delta replay, and per-file human source differences. The full candidate and delta reports do not enter the agent-facing protocol transcript. |
 | Concurrent change handling | Sibling candidate merge, competing signature rejection, and a real concurrent bare-ref advancement rejected before publication. Manual raw-source refresh/rebase and a mid-CAS race are not this fixture's coverage. |
 | Separate commit authority | A new startup-approved session, exact restored candidate, fixed real Git provider, and actual committed-source verification. |
 
@@ -190,3 +190,13 @@ than portable snapshots; recovery traffic remains separately labeled. Both
 format-specific task reports were executed and authenticated for the exact
 subject above; they are protocol traffic observations, not comparative
 task-performance measurements.
+
+The current regression selects the compact source-review, function-summary and
+impact-summary routes instead of transferring the complete candidate, impact
+and semantic-delta reports to the agent-facing transcript. Full candidate and
+delta replay still runs inside the verifier. The gate caps the complete
+twelve-step transcript at 24 response-bearing protocol calls, 10 KiB of
+requests, 64 KiB of responses and 16,384 repository lexical units in responses;
+the three review materials together are capped at 16 KiB and 4,096 lexical
+units. These are deterministic transport and repository-lexical bounds, not
+model-token, latency, success-rate or monetary-cost claims.

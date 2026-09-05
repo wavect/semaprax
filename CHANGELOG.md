@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the authority-free, transport-neutral Persistent Incremental Semantic
+  Workspace Service v1 core. A process can retain one immutable Project,
+  Canonical Semantic Workspace Revision, Semantic Workspace Image, and semantic
+  cache generation; serve revision-bound bounded snapshot queries; stage a
+  complete source-exact incremental successor; and install it through one
+  expected-current in-memory generation/cache compare-and-swap. Transaction
+  validation returns Universal Semantic Transaction artifacts without adopting
+  their candidate. The three focused lifecycle regressions pass locally; no
+  wire, CLI, MCP, LSP, disk persistence, build, execution, commit, publication,
+  or broad operation-algebra claim is added.
 - Promoted the focused nominal record/variant rename regressions into the
   ordinary candidate suite after correcting an invalid shadowed pattern
   fixture; the corpus now executes owning and generic nominal renames, stable

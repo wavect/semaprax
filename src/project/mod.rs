@@ -42,6 +42,7 @@ mod scaffold;
 mod scalar_wit;
 mod scalar_wit_compare;
 mod semantic;
+mod semantic_service;
 mod semantic_transaction;
 mod source_hint;
 mod standard_dependencies;
@@ -346,6 +347,12 @@ pub use project_lock::{
 };
 pub use scalar_wit_compare::{
     classify_scalar_wit_change, ScalarWitCompatibility, SCALAR_WIT_COMPATIBILITY_SCHEMA,
+};
+pub use semantic_service::{
+    SemanticWorkspaceGeneration, SemanticWorkspaceService, SemanticWorkspaceServiceRefresh,
+    SemanticWorkspaceServiceWork, SemanticWorkspaceSnapshot,
+    MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES, SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA,
+    SEMANTIC_WORKSPACE_SERVICE_WORK_SCHEMA,
 };
 pub use semantic_transaction::{
     SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionRenameDisplayName,

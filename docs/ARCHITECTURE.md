@@ -536,6 +536,22 @@ source guard prevents the reused candidate formatter from introducing trivia
 changes. It has no filesystem or publication authority. See [Universal
 Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md).
 
+`src/project/semantic_service.rs` owns the transport-neutral, process-resident
+Persistent Incremental Semantic Workspace Service v1 core. One service retains
+one immutable current generation, including its admitted Project revision,
+Canonical Semantic Workspace Revision, Semantic Workspace Image, and
+compiler-created semantic cache. Refresh builds a complete successor from
+caller-owned source bytes, then performs one expected-current in-memory
+generation/cache compare-and-swap; stale or failed work leaves the complete old
+generation installed. Revision-bound snapshots delegate bounded symbol,
+context, and impact queries to the retained immutable image. Transaction
+validation delegates to Universal Semantic Transaction v1 and returns its
+authority-free artifacts without adopting the candidate or changing current
+state. The core opens no path, owns no disk store, and exposes no wire, CLI,
+MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
+[Persistent Incremental Semantic Service
+v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md).
+
 `src/project/image.rs` derives an immutable, bounded Semantic Workspace
 Image from one already admitted `Arc<ProjectRevision>`. It retains validated
 HIR in memory and projects the complete Project graph plus existing typed

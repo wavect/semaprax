@@ -68,21 +68,20 @@ mod tests {
 
     #[test]
     fn grammar_is_closed() {
+        let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let project = repository.join("tests/project_scalar_wit_interface_v1");
         assert_eq!(
-            parse(&strings(&["tests/project_scalar_wit_interface_v1"]))
+            parse(&[project.to_string_lossy().into_owned()])
                 .unwrap()
                 .manifest,
-            std::env::current_dir()
-                .unwrap()
-                .join("tests/project_scalar_wit_interface_v1/semaprax.toml")
+            project.join("semaprax.toml")
         );
+        let manifest = repository.join("fixtures/semaprax.toml");
         assert_eq!(
-            parse(&strings(&["fixtures/semaprax.toml"]))
+            parse(&[manifest.to_string_lossy().into_owned()])
                 .unwrap()
                 .manifest,
-            std::env::current_dir()
-                .unwrap()
-                .join("fixtures/semaprax.toml")
+            manifest
         );
         assert!(
             parse(&strings(&["fixtures/semaprax.toml", "--mcp"]))

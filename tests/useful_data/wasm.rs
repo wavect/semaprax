@@ -62,7 +62,7 @@ fn core_wasm_arrays_and_owned_bytes_are_exact_and_execute() {
     }
     let root =
         std::env::temp_dir().join(format!("semaprax-useful-data-wasm-{}", std::process::id()));
-    std::fs::create_dir_all(&root).unwrap();
+    let _ = std::fs::remove_dir_all(&root);
     wasm::build_web(&program, &root).unwrap();
     std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
     std::fs::write(
@@ -114,7 +114,7 @@ fn main() -> i64 {
         "semaprax-useful-data-wasm-failure-{}",
         std::process::id()
     ));
-    std::fs::create_dir_all(&root).unwrap();
+    let _ = std::fs::remove_dir_all(&root);
     wasm::build_web(&program, &root).unwrap();
     std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
     std::fs::write(

@@ -60,7 +60,8 @@ fn project_v3_links_exact_data_roots_and_native_o0_o2_agree() {
             );
             for selected in snapshot.manifest().web_exports() {
                 assert!(snapshot
-                    .entry_program()
+                    .retain_revision()
+                    .public_api_program()
                     .functions
                     .iter()
                     .any(|function| function.id.as_str() == selected));
@@ -90,7 +91,8 @@ fn project_v3_links_exact_data_roots_and_native_o0_o2_agree() {
             assert_eq!(impact["project_schema"], project::PROJECT_SCHEMA_V3);
             let test_wasm = snapshot.test_wasm_module()?;
             assert!(test_wasm.starts_with(b"\0asm"));
-            codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])
+            codegen::emit_hir_c(snapshot.retain_revision().public_api_program())
+                .map_err(|error| vec![error])
         })
         .unwrap();
 
@@ -430,7 +432,8 @@ fn stable_id_exports_survive_a_display_name_change() {
     .unwrap();
     let renamed = project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         assert!(snapshot
-            .entry_program()
+            .retain_revision()
+            .public_api_program()
             .functions
             .iter()
             .any(|function| function.id.as_str() == "binary-frame.length"));

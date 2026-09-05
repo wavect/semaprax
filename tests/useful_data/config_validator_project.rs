@@ -103,23 +103,24 @@ fn v2_project_check_graph_and_disconnected_export_roots_are_real() {
             snapshot.manifest().profile(),
             Some(project::PROJECT_PROFILE_USEFUL_TEXT_CONSUMER_V1)
         );
-        let entry_ids = snapshot
-            .entry_program()
+        let revision = snapshot.retain_revision();
+        let public_ids = revision
+            .public_api_program()
             .functions
             .iter()
             .map(|function| function.id.as_str())
             .collect::<BTreeSet<_>>();
         for selected in snapshot.manifest().web_exports() {
             assert!(
-                entry_ids.contains(selected.as_str()),
+                public_ids.contains(selected.as_str()),
                 "missing selected root {selected}"
             );
             assert!(snapshot.semantic_graph().contains(selected));
         }
-        assert!(entry_ids.contains("config-validator.app.main"));
-        assert!(entry_ids.contains("config-validator.rules-ready"));
-        assert!(!entry_ids.contains("config-validator.tests.main"));
-        assert!(!entry_ids.contains("config-validator.unselected"));
+        assert!(public_ids.contains("config-validator.app.main"));
+        assert!(public_ids.contains("config-validator.rules-ready"));
+        assert!(!public_ids.contains("config-validator.tests.main"));
+        assert!(!public_ids.contains("config-validator.unselected"));
         Ok(())
     })
     .unwrap();
@@ -160,8 +161,9 @@ fn selected_stable_id_survives_a_display_rename() {
 
     project::with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
         snapshot.check()?;
-        let selected = snapshot
-            .entry_program()
+        let revision = snapshot.retain_revision();
+        let selected = revision
+            .public_api_program()
             .functions
             .iter()
             .find(|function| function.id.as_str() == "config-validator.classify")
@@ -190,7 +192,8 @@ fn project_linked_native_rules_are_length_aware_when_clang_is_available() {
     }
     let generated =
         project::with_authenticated_project(&fixture().join("semaprax.toml"), |snapshot| {
-            codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])
+            codegen::emit_hir_c(snapshot.retain_revision().public_api_program())
+                .map_err(|error| vec![error])
         })
         .unwrap();
     let probe = format!(

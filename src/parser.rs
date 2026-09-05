@@ -9,6 +9,10 @@ use crate::ast::{
 use crate::diagnostic::Diagnostic;
 use crate::lexer::{Token, TokenKind};
 
+#[cfg(test)]
+#[path = "parser/agent_tests.rs"]
+mod agent_tests;
+mod agents;
 mod depth;
 mod entry;
 mod hints;
@@ -43,6 +47,7 @@ impl Parser {
         let mut interfaces = Vec::new();
         let mut protocols = Vec::new();
         let mut implementations = Vec::new();
+        let mut agents = Vec::new();
         let mut functions = Vec::new();
         while !self.at(&TokenKind::Eof) {
             if self.at_keyword("use") {
@@ -52,7 +57,9 @@ impl Parser {
                 ));
             }
             let stable_id = self.stable_id_attribute()?;
-            if self.at_keyword("resource") {
+            if self.at_keyword("agent") {
+                agents.push(self.agent(stable_id)?);
+            } else if self.at_keyword("resource") {
                 types.push(self.resource(&module, stable_id)?);
             } else if self.at_keyword("record") {
                 types.push(self.record(&module, stable_id)?);
@@ -96,6 +103,7 @@ impl Parser {
             interfaces,
             protocols,
             implementations,
+            agents,
             functions,
         })
     }

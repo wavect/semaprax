@@ -252,12 +252,19 @@ fn validate_enriched_workspace(
     let definitions = agents["payload"]["definitions"]
         .as_array()
         .ok_or_else(|| invalid("exact context AgentDefinitions inventory is malformed"))?;
+    let integration = agents["payload"]["integration"].as_str();
     if definitions.is_empty()
-        || agents["payload"]["integration"] != "explicit_compiler_admitted_association_input"
+        || !matches!(
+            integration,
+            Some(
+                "explicit_compiler_admitted_association_input"
+                    | "source_owned_spx_agent_declarations"
+            )
+        )
         || agents["payload"]["expected_project_revision"] != revision.project_revision()
     {
         return Err(invalid(
-            "exact context requires a non-empty explicit AgentDefinitions association",
+            "exact context requires non-empty compiler-admitted AgentDefinitions",
         ));
     }
     Ok(())

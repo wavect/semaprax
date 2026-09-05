@@ -20,6 +20,33 @@ mod ast {
     });
     codec_enum!(ParamMode { 0 => Value, 1 => Own, 2 => Borrow, 3 => Shared });
     codec_enum!(MatchMode { 0 => Value, 1 => Own, 2 => Borrow });
+    codec_enum!(AgentTypeRole {
+        0 => Task, 1 => State, 2 => Observation, 3 => Proposal, 4 => Outcome, 5 => Result
+    });
+    codec_enum!(AgentOperationRole {
+        0 => Initialize, 1 => Observe, 2 => Propose, 3 => Authorize, 4 => Execute, 5 => Reduce
+    });
+    codec_enum!(AgentOperationKind { 0 => Deterministic, 1 => Model, 2 => Effect });
+    codec_struct!(AgentTypeRoleDeclaration {
+        role,
+        stable_id,
+        span
+    });
+    codec_struct!(AgentOperationDeclaration {
+        role,
+        kind,
+        stable_id,
+        span
+    });
+    codec_struct!(AgentDeclaration {
+        stable_id,
+        name,
+        name_span,
+        types,
+        operations,
+        runtime_v1_json,
+        span
+    });
     codec_struct!(Program {
         path,
         module,
@@ -29,6 +56,7 @@ mod ast {
         interfaces,
         protocols,
         implementations,
+        agents,
         functions
     });
     codec_enum!(ModuleUseKind { 0 => Function, 1 => Type, 2 => Protocol });

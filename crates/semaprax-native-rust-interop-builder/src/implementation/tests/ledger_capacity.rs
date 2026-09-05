@@ -121,6 +121,8 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     // frame machinery they describe, so bind the root and the resolver files.
     let hir_resolver = concat!(
         include_str!("../../../../../src/hir.rs"),
+        include_str!("../../../../../src/hir/agent_nodes.rs"),
+        include_str!("../../../../../src/hir/agent_validation.rs"),
         include_str!("../../../../../src/hir/resolve_class.rs"),
         include_str!("../../../../../src/hir/resolve_expr.rs"),
         include_str!("../../../../../src/hir/resolve_expr_frame.rs"),

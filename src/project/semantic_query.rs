@@ -53,6 +53,66 @@ const NONCLAIMS: &[&str] = &[
 ];
 type Result<T> = std::result::Result<T, Vec<Diagnostic>>;
 
+/// Additive in-memory selection of the canonical AgentDefinitions node.
+/// This deliberately does not extend the closed Universal Semantic Query v1
+/// wire grammar.
+pub struct AgentDefinitionsQuery {
+    expected_workspace_revision: String,
+}
+
+impl AgentDefinitionsQuery {
+    pub fn new(expected_workspace_revision: impl Into<String>) -> Result<Self> {
+        let expected_workspace_revision = expected_workspace_revision.into();
+        validate_digest(&expected_workspace_revision)?;
+        Ok(Self {
+            expected_workspace_revision,
+        })
+    }
+
+    pub fn expected_workspace_revision(&self) -> &str {
+        &self.expected_workspace_revision
+    }
+
+    pub fn execute(
+        &self,
+        snapshot: &SemanticWorkspaceSnapshot,
+    ) -> Result<AgentDefinitionsQueryResult> {
+        if self.expected_workspace_revision != snapshot.workspace_revision() {
+            return Err(stale("AgentDefinitions query workspace revision is stale"));
+        }
+        Ok(AgentDefinitionsQueryResult {
+            workspace_revision: self.expected_workspace_revision.clone(),
+            program_root: snapshot.program_root().clone(),
+            agent_definitions: snapshot
+                .generation()
+                .canonical()
+                .agent_definitions()
+                .clone(),
+        })
+    }
+}
+
+/// Typed query result retaining the exact canonical node and selected v1 root.
+pub struct AgentDefinitionsQueryResult {
+    workspace_revision: String,
+    program_root: super::ProgramRoot,
+    agent_definitions: super::AgentDefinitions,
+}
+
+impl AgentDefinitionsQueryResult {
+    pub fn workspace_revision(&self) -> &str {
+        &self.workspace_revision
+    }
+
+    pub fn program_root(&self) -> &super::ProgramRoot {
+        &self.program_root
+    }
+
+    pub fn agent_definitions(&self) -> &super::AgentDefinitions {
+        &self.agent_definitions
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum Operation {
     Declarations {

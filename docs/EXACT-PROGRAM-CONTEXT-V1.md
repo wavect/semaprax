@@ -6,17 +6,18 @@ completion, a runtime root, or `.spx` Agent syntax.
 Audience: compiler contributors, semantic-service implementers, and reviewers
 of exact cross-surface ProgramRoot selection.
 
-`ExactProgramContext` retains one `Arc<ProjectRevision>`, a non-empty explicitly
-associated `SemanticWorkspaceRevision`, its separately derived enriched v1
+`ExactProgramContext` retains one `Arc<ProjectRevision>`, a non-empty
+compiler-associated `SemanticWorkspaceRevision`, its separately selected v1
 ProgramRoot, the default Project-derived canonical workspace and v1 ProgramRoot,
 exact `InterfaceArtifactFacts`, an exact `ProgramRootDependencyLockAssociation`,
 and `ProgramRootV2`.
 
-The two v1 roots are intentionally distinct. The dependency-lock association
+The two v1-root slots are explicit. They are distinct for the legacy external
+association bridge and may be identical when the default Project-derived
+workspace is already populated from source-owned `.spx` Agents. The dependency-lock association
 and interface facts are admitted against the default Project subject. The
-enriched semantic workspace has a non-empty
-`explicit_compiler_admitted_association_input` AgentDefinitions node and thus a
-different semantic workspace and v1 root identity. ProgramRoot v2 binds both
+semantic workspace has a non-empty compiler-admitted AgentDefinitions node.
+ProgramRoot v2 binds both
 roots and both extensions without changing either legacy artifact.
 
 ## Construction and selection

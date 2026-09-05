@@ -568,6 +568,12 @@ capsules never carry reusable authority.
 
 ### Operational semantic images
 
+`src/project/agent_lowering.rs` lowers verified `.spx` Agent declarations
+through the frozen AgentDefinition v1 compiler and returns stable-ID-ordered
+HIR-equivalent Agent nodes plus exact AgentDefinition/AgentGraph/Runtime Profile
+products. `src/project/build.rs` and `src/project/revision.rs` retain those
+products as immutable Project facts.
+
 `src/project/canonical_workspace_revision.rs` derives the authority-free
 Canonical Semantic Workspace Revision v1 from one already admitted immutable
 `ProjectRevision`. It owns nine distinct typed node projections and keeps the
@@ -658,6 +664,8 @@ and neither route mutates the service. There is no wire, CLI, MCP, LSP, editor,
 streaming, or publication adapter in this badge, and frozen Project Agent
 Transport v5 bytes remain unchanged. See [Universal Semantic Query
 v1](UNIVERSAL-SEMANTIC-QUERY-V1.md).
+The same module also owns the additive in-memory `AgentDefinitionsQuery`; it
+selects the existing canonical node without extending the closed wire grammar.
 
 `src/project/semantic_service.rs` owns the transport-neutral, process-resident
 Persistent Incremental Semantic Workspace Service v1 core. One service retains

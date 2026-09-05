@@ -449,6 +449,7 @@ struct WorkspaceResolvedModule {
     path: String,
     module: String,
     permits: Vec<String>,
+    agents: Vec<hir::ResolvedAgentDeclaration>,
     types: Vec<hir::ResolvedTypeDeclaration>,
     interfaces: Vec<hir::ResolvedInterface>,
     functions: Vec<hir::ResolvedFunction>,
@@ -1127,7 +1128,9 @@ impl WorkspaceGraphBuild {
         dependency_anchors: bool,
     ) -> Result<hir::ResolvedProgram, Vec<Diagnostic>> {
         if profile.is_owned_api() {
-            return self.linked_owned_data_api_program_with_roots(entry_module, &[]);
+            let mut linked = self.linked_owned_data_api_program_with_roots(entry_module, &[])?;
+            self.attach_project_agents(&mut linked)?;
+            return Ok(linked);
         }
         validate_entry_module(entry_module)?;
         let Some(entry_path) = self.hir.module_paths.get(entry_module).cloned() else {
@@ -1343,7 +1346,7 @@ impl WorkspaceGraphBuild {
                 Some(entrypoint_span),
             )]);
         }
-        match profile {
+        let mut linked = match profile {
             crate::project::ProjectProfile::ScalarV1 => natives.link(
                 entry_module.to_owned(),
                 entrypoint,
@@ -1400,7 +1403,29 @@ impl WorkspaceGraphBuild {
                 unreachable!("Project v11 uses the exact aggregate-aware linker")
             }
         }
-        .map_err(|error| vec![error])
+        .map_err(|error| vec![error])?;
+        self.attach_project_agents(&mut linked)?;
+        Ok(linked)
+    }
+
+    fn attach_project_agents(
+        &self,
+        linked: &mut hir::ResolvedProgram,
+    ) -> Result<(), Vec<Diagnostic>> {
+        let mut agents = self
+            .hir
+            .modules
+            .iter()
+            .flat_map(|module| module.agents.iter().cloned())
+            .collect::<Vec<_>>();
+        agents.sort_by(|left, right| {
+            left.stable_id
+                .as_str()
+                .as_bytes()
+                .cmp(right.stable_id.as_str().as_bytes())
+        });
+        linked.agents = agents;
+        hir::validate(linked).map_err(|error| vec![error])
     }
 
     /// Link the entry closure plus exact persistent additional roots.
@@ -2015,12 +2040,13 @@ impl WorkspaceGraphBuild {
             web_roots.profile,
             web_roots.dependency_anchors,
         )?;
-        let web_program = self.linked_scalar_program_with_roots(
+        let mut web_program = self.linked_scalar_program_with_roots(
             entry_module,
             web_roots.stable_ids,
             web_roots.profile,
             web_roots.dependency_anchors,
         )?;
+        self.attach_project_agents(&mut web_program)?;
         let test_program = self.linked_project_program(
             test_module,
             web_roots.profile,
@@ -4471,6 +4497,7 @@ fn build_resolved_core(
             path: crate::bounded_output::budgeted_clone(&program.path),
             module,
             permits: resolved.permits,
+            agents: resolved.agents,
             types,
             interfaces: resolved.interfaces,
             functions,

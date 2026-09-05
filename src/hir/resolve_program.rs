@@ -267,12 +267,19 @@ impl Resolver<'_> {
             .map(|function| self.resolve_function_template(function))
             .collect::<Result<_, _>>()?;
         let function_instances = self.discover_function_instances()?;
+        let agents = self
+            .program
+            .agents
+            .iter()
+            .map(resolve_agent_declaration)
+            .collect();
         let byte_slice_roots = derive_byte_slice_provenance(&functions, &self.declarations)?;
         let mut declarations = self.declarations;
         declarations.byte_slice_roots = byte_slice_roots;
         let mut resolved = ResolvedProgram {
             module: self.program.module.clone(),
             permits: self.program.permits.clone(),
+            agents,
             entrypoint,
             declarations,
             types,
@@ -860,6 +867,73 @@ impl Resolver<'_> {
             }
         }
         self.resolve_type(ty, span)
+    }
+}
+
+fn resolve_agent_declaration(
+    declaration: &crate::ast::AgentDeclaration,
+) -> super::ResolvedAgentDeclaration {
+    super::ResolvedAgentDeclaration {
+        stable_id: DeclarationId::new(declaration.stable_id.clone()),
+        name: declaration.name.clone(),
+        types: declaration
+            .types
+            .iter()
+            .map(|role| super::ResolvedAgentTypeRole {
+                role: match role.role {
+                    crate::ast::AgentTypeRole::Task => super::ResolvedAgentTypeRoleKind::Task,
+                    crate::ast::AgentTypeRole::State => super::ResolvedAgentTypeRoleKind::State,
+                    crate::ast::AgentTypeRole::Observation => {
+                        super::ResolvedAgentTypeRoleKind::Observation
+                    }
+                    crate::ast::AgentTypeRole::Proposal => {
+                        super::ResolvedAgentTypeRoleKind::Proposal
+                    }
+                    crate::ast::AgentTypeRole::Outcome => super::ResolvedAgentTypeRoleKind::Outcome,
+                    crate::ast::AgentTypeRole::Result => super::ResolvedAgentTypeRoleKind::Result,
+                },
+                stable_id: DeclarationId::new(role.stable_id.clone()),
+            })
+            .collect(),
+        operations: declaration
+            .operations
+            .iter()
+            .map(|operation| super::ResolvedAgentOperationRole {
+                role: match operation.role {
+                    crate::ast::AgentOperationRole::Initialize => {
+                        super::ResolvedAgentOperationRoleKind::Initialize
+                    }
+                    crate::ast::AgentOperationRole::Observe => {
+                        super::ResolvedAgentOperationRoleKind::Observe
+                    }
+                    crate::ast::AgentOperationRole::Propose => {
+                        super::ResolvedAgentOperationRoleKind::Propose
+                    }
+                    crate::ast::AgentOperationRole::Authorize => {
+                        super::ResolvedAgentOperationRoleKind::Authorize
+                    }
+                    crate::ast::AgentOperationRole::Execute => {
+                        super::ResolvedAgentOperationRoleKind::Execute
+                    }
+                    crate::ast::AgentOperationRole::Reduce => {
+                        super::ResolvedAgentOperationRoleKind::Reduce
+                    }
+                },
+                kind: match operation.kind {
+                    crate::ast::AgentOperationKind::Deterministic => {
+                        super::ResolvedAgentOperationKind::Deterministic
+                    }
+                    crate::ast::AgentOperationKind::Model => {
+                        super::ResolvedAgentOperationKind::Model
+                    }
+                    crate::ast::AgentOperationKind::Effect => {
+                        super::ResolvedAgentOperationKind::Effect
+                    }
+                },
+                stable_id: DeclarationId::new(operation.stable_id.clone()),
+            })
+            .collect(),
+        runtime_v1_json: declaration.runtime_v1_json.clone(),
     }
 }
 

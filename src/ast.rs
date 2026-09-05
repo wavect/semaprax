@@ -168,6 +168,9 @@ pub struct Program {
     /// Static method requirements; no runtime dispatch representation.
     pub protocols: Vec<ProtocolDeclaration>,
     pub implementations: Vec<ProtocolImplementation>,
+    /// Language-native Agent declarations. Frontend admission fixes all six
+    /// roles and operation kinds before semantic lowering.
+    pub agents: Vec<AgentDeclaration>,
     pub functions: Vec<Function>,
 }
 
@@ -177,6 +180,7 @@ impl Drop for Program {
         // Take every recursive root before field drop glue runs, then replace
         // each node with a leaf before releasing its children from worklists.
         let mut functions = mem::take(&mut self.functions);
+        let _agents = mem::take(&mut self.agents);
         let mut types = Vec::new();
         let mut expressions = Vec::new();
         let mut patterns = Vec::new();
@@ -361,6 +365,97 @@ impl Drop for Program {
             }
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentTypeRole {
+    Task,
+    State,
+    Observation,
+    Proposal,
+    Outcome,
+    Result,
+}
+
+impl AgentTypeRole {
+    pub const fn source_name(self) -> &'static str {
+        match self {
+            Self::Task => "task",
+            Self::State => "state",
+            Self::Observation => "observation",
+            Self::Proposal => "proposal",
+            Self::Outcome => "outcome",
+            Self::Result => "result",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentOperationRole {
+    Initialize,
+    Observe,
+    Propose,
+    Authorize,
+    Execute,
+    Reduce,
+}
+
+impl AgentOperationRole {
+    pub const fn source_name(self) -> &'static str {
+        match self {
+            Self::Initialize => "initialize",
+            Self::Observe => "observe",
+            Self::Propose => "propose",
+            Self::Authorize => "authorize",
+            Self::Execute => "execute",
+            Self::Reduce => "reduce",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AgentOperationKind {
+    Deterministic,
+    Model,
+    Effect,
+}
+
+impl AgentOperationKind {
+    pub const fn source_prefix(self) -> &'static str {
+        match self {
+            Self::Deterministic => "",
+            Self::Model => "model ",
+            Self::Effect => "effect ",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentTypeRoleDeclaration {
+    pub role: AgentTypeRole,
+    pub stable_id: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentOperationDeclaration {
+    pub role: AgentOperationRole,
+    pub kind: AgentOperationKind,
+    pub stable_id: String,
+    pub span: Span,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentDeclaration {
+    pub stable_id: String,
+    pub name: String,
+    pub name_span: Span,
+    pub types: Vec<AgentTypeRoleDeclaration>,
+    pub operations: Vec<AgentOperationDeclaration>,
+    /// Exact canonical JSON for the AgentDefinition v1 `runtime_v1` object.
+    /// Semantic lowering re-admits it through the existing definition compiler.
+    pub runtime_v1_json: String,
+    pub span: Span,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]

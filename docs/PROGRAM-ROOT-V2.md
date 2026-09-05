@@ -10,8 +10,9 @@ of exact source-owned ProgramRoot identity.
 
 `semaprax.program-root.v2` is derived from four already-admitted typed values:
 
-1. one exact `SemanticWorkspaceRevision` with a non-empty explicit
-   `AgentDefinitions` v1 node;
+1. one exact `SemanticWorkspaceRevision` with a non-empty compiler-admitted
+   `AgentDefinitions` v1 node, populated either from source-owned `.spx`
+   declarations or the legacy explicit association bridge;
 2. the default Project-derived ProgramRoot v1 (`base_project_root_digest`),
    which anchors the admitted Project Lock association;
 3. one exact `InterfaceArtifactFacts` v1 bundle; and
@@ -19,8 +20,10 @@ of exact source-owned ProgramRoot identity.
 
 The manifest separately records `semantic_workspace_root_digest`, the
 ProgramRoot v1 derived from the possibly agent-enriched semantic workspace.
-The base and semantic-workspace roots are intentionally distinct, but their
-typed inputs must name the same legacy Project revision. The association must
+The base and semantic-workspace roots are distinct anchor roles, but their
+digests may coincide when default Project derivation already contains
+source-owned Agent definitions. Their typed inputs must name the same legacy
+Project revision. The association must
 name the exact supplied base root and its canonical workspace revision.
 
 The v2 identity is SHA-256 over the canonical manifest without
@@ -51,6 +54,12 @@ canonical AgentDefinitions node, never a duplicate extension. Entries 10–11
 use the ProgramRoot segment v1 descriptor schema and digest domain and bind the
 exact typed bundle/association schema, digest, and canonical byte count. Node
 payload bytes are not embedded in the root.
+
+For a Project containing `.spx` Agent declarations, ordinary Project admission
+retains the frozen compatibility products and default canonical derivation
+selects them automatically. The `agent_definitions` segment is therefore the
+same node digest observed through the Project revision, canonical workspace,
+typed AgentDefinitions query, and semantic-service generation.
 
 ## Relationships and replay
 

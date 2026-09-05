@@ -171,6 +171,15 @@ snapshots support exact revision-bound canonical queries in pages of at most
 of deterministic scheduling between concurrent callers, and the history is
 neither durable nor authority-bearing.
 
+## Source Agent visibility
+
+Every immutable generation exposes its canonical `AgentDefinitions` node, its
+retained HIR-equivalent source Agent inventory, and the unchanged compiler-made
+AgentDefinition v1 products. `query_agent_definitions` executes the additive
+typed in-memory query against the same generation and ProgramRoot selected by
+ordinary snapshots. No service transport or Universal Semantic Query v1 wire
+schema changes, and the accessors grant no runtime or external authority.
+
 ## Deterministic receipts
 
 Open work uses schema `semaprax.semantic-workspace-service-work.v1`. Its closed

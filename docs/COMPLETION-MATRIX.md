@@ -71,9 +71,12 @@ insertion. This does not promote the row or replace its remaining gate.
 
 SEG-02 additionally has locally passing focused evidence for explicit association of
 compiler-admitted AgentDefinition/AgentGraph/Runtime Profile bundles with one
-exact Project revision. It populates the existing canonical AgentDefinitions
-node and ProgramRoot segment with exact replay and no authority, while making
-no `.spx` syntax or intrinsic Project-ownership claim.
+exact Project revision. The bounded AGENT-03 source tranche now admits the
+closed `.spx` Agent declaration, retains HIR-equivalent Agent facts and the
+byte-identical v1 compatibility products on `ProjectRevision`, and populates the
+existing canonical AgentDefinitions node and ProgramRoot segment by default.
+Typed in-memory query and service accessors select that same node without a wire
+schema change or authority.
 
 The largest remaining gaps are general ownership and lifetime safety, stable
 public aggregate/resource/component ABIs, a package and dependency ecosystem,

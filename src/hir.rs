@@ -76,6 +76,8 @@ fn view() -> usize uses { process.args.read } {
     }
 }
 
+mod agent_nodes;
+mod agent_validation;
 mod byte_capacity;
 mod byte_slice_provenance;
 #[cfg(test)]
@@ -101,11 +103,16 @@ mod resolve_statement;
 mod type_reachability;
 mod validation;
 mod workspace_link;
+pub use agent_nodes::{
+    ResolvedAgentDeclaration, ResolvedAgentOperationKind, ResolvedAgentOperationRole,
+    ResolvedAgentOperationRoleKind, ResolvedAgentTypeRole, ResolvedAgentTypeRoleKind,
+};
 pub(crate) use workspace_link::compiler_prelude_declarations;
 
 /// Validate resolved HIR and independently replay its canonical shared-loan
 /// proof attachment before any semantic consumer may trust it.
 pub fn validate(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    agent_validation::validate(program)?;
     inspection::validate(program)?;
     crate::loan_plan::validate_program(program)
 }

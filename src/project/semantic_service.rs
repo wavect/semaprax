@@ -17,8 +17,9 @@ use crate::workspace_analysis::{
 
 use super::semantic_service_indexes::SemanticServiceIndexes;
 use super::{
-    ExactProgramContext, ProgramRoot, ProgramRootV2, ProjectFrontendCache, ProjectFrontendSource,
-    ProjectManifest, ProjectRevision, ProjectSemanticImage, SemanticQuery, SemanticQueryResult,
+    AgentDefinitions, AgentDefinitionsQuery, AgentDefinitionsQueryResult, ExactProgramContext,
+    ProgramRoot, ProgramRootV2, ProjectFrontendCache, ProjectFrontendSource, ProjectManifest,
+    ProjectRevision, ProjectSemanticImage, SemanticQuery, SemanticQueryResult,
     SemanticServiceIndexQuery, SemanticServiceIndexResult, SemanticTransaction,
     SemanticTransactionArtifacts, SemanticWorkspaceRevision,
 };
@@ -72,6 +73,20 @@ impl SemanticWorkspaceGeneration {
         &self.program_root
     }
 
+    pub fn agent_definitions(&self) -> &AgentDefinitions {
+        self.canonical.agent_definitions()
+    }
+
+    pub fn source_agents(&self) -> &[super::ResolvedSourceAgent] {
+        self.revision.source_agents()
+    }
+
+    pub fn compiled_agent_definitions(
+        &self,
+    ) -> &[crate::agent_definition::CompiledAgentDefinition] {
+        self.revision.agent_definitions()
+    }
+
     /// The additive exact ProgramRoot v2 selection retained by this generation.
     pub fn exact_context(&self) -> Option<&Arc<ExactProgramContext>> {
         self.exact_context.as_ref()
@@ -113,6 +128,20 @@ impl SemanticWorkspaceSnapshot {
 
     pub fn program_root(&self) -> &ProgramRoot {
         self.generation.program_root()
+    }
+
+    pub fn agent_definitions(&self) -> &AgentDefinitions {
+        self.generation.agent_definitions()
+    }
+
+    pub fn source_agents(&self) -> &[super::ResolvedSourceAgent] {
+        self.generation.source_agents()
+    }
+
+    pub fn compiled_agent_definitions(
+        &self,
+    ) -> &[crate::agent_definition::CompiledAgentDefinition] {
+        self.generation.compiled_agent_definitions()
     }
 
     pub fn exact_context(&self) -> Option<&ExactProgramContext> {
@@ -158,6 +187,13 @@ impl SemanticWorkspaceSnapshot {
     }
 
     pub fn query(&self, query: &SemanticQuery) -> Result<SemanticQueryResult> {
+        query.execute(self)
+    }
+
+    pub fn query_agent_definitions(
+        &self,
+        query: &AgentDefinitionsQuery,
+    ) -> Result<AgentDefinitionsQueryResult> {
         query.execute(self)
     }
 
@@ -369,6 +405,18 @@ impl SemanticWorkspaceService {
     /// Execute one exact canonical query against the active immutable generation.
     pub fn query(&self, query_bytes: &[u8]) -> Result<SemanticQueryResult> {
         let query = SemanticQuery::from_json(query_bytes)?;
+        let snapshot = SemanticWorkspaceSnapshot {
+            generation: Arc::clone(&self.active),
+        };
+        query.execute(&snapshot)
+    }
+
+    /// Select the existing canonical AgentDefinitions node without extending
+    /// any service or Universal Semantic Query wire schema.
+    pub fn query_agent_definitions(
+        &self,
+        query: &AgentDefinitionsQuery,
+    ) -> Result<AgentDefinitionsQueryResult> {
         let snapshot = SemanticWorkspaceSnapshot {
             generation: Arc::clone(&self.active),
         };

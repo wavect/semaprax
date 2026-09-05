@@ -63,7 +63,7 @@
           }
         },
         {
-          "match": "\\b(record|variant|class|resource|interface|protocol)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+          "match": "\\b(record|variant|class|resource|interface|protocol|agent)\\s+([A-Za-z_][A-Za-z0-9_]*)",
           "captures": {
             "1": { "name": "keyword.declaration.type.semaprax" },
             "2": { "name": "entity.name.type.semaprax" }
@@ -82,7 +82,7 @@
       "patterns": [
         {
           "name": "keyword.declaration.semaprax",
-          "match": "\\b(module|use|permit|fn|record|variant|class|resource|interface|protocol|impl|import|type|drop|trivial)\\b"
+          "match": "\\b(module|use|permit|fn|record|variant|class|resource|interface|protocol|agent|impl|import|type|types|operations|canonical_json|drop|trivial)\\b"
         },
         {
           "name": "keyword.control.semaprax",
@@ -90,7 +90,7 @@
         },
         {
           "name": "storage.modifier.semaprax",
-          "match": "\\b(let|mut|own|borrow|shared|rust)\\b"
+          "match": "\\b(let|mut|own|borrow|shared|rust|model|effect)\\b"
         },
         {
           "name": "keyword.other.contract.semaprax",

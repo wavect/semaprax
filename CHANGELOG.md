@@ -8,6 +8,17 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the bounded AGENT-03 language-native source Agent slice. A closed
+  `.spx` declaration with explicit identities and fixed deterministic/model/
+  effect roles now parses, round-trips canonically, lowers through the unchanged
+  AgentDefinition v1 compiler, and retains byte-identical AgentDefinition,
+  AgentGraph, and Runtime Profile products on the admitted Project revision.
+  Default canonical workspace derivation populates its existing
+  AgentDefinitions segment, with the same node selected through ProgramRoot,
+  exact context, a typed in-memory query, and the persistent service. The three
+  focused compatibility/hostile/integration cases pass locally; role execution,
+  provider authority, opaque authorization, and durability remain absent.
+
 - Added ProgramRoot v2 and Exact Program Context v1. The versioned root retains
   the enriched canonical workspace's nine v1 segments, appends exact interface/
   artifact and Project Lock association descriptors, and explicitly binds the

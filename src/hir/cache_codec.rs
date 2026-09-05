@@ -54,6 +54,22 @@ codec_struct!(TypeFacts {
 });
 codec_enum!(OwnershipMode {0=>Value,1=>Own,2=>Borrow,3=>Shared});
 codec_enum!(ResolvedMatchMode {0=>Value,1=>Own,2=>Borrow});
+codec_enum!(ResolvedAgentTypeRoleKind {0=>Task,1=>State,2=>Observation,3=>Proposal,4=>Outcome,5=>Result});
+codec_enum!(ResolvedAgentOperationRoleKind {0=>Initialize,1=>Observe,2=>Propose,3=>Authorize,4=>Execute,5=>Reduce});
+codec_enum!(ResolvedAgentOperationKind {0=>Deterministic,1=>Model,2=>Effect});
+codec_struct!(ResolvedAgentTypeRole { role, stable_id });
+codec_struct!(ResolvedAgentOperationRole {
+    role,
+    kind,
+    stable_id
+});
+codec_struct!(ResolvedAgentDeclaration {
+    stable_id,
+    name,
+    types,
+    operations,
+    runtime_v1_json
+});
 
 // Every lookup map is part of the complete HIR value, including native import,
 // inheritance, generic identity, and byte-slice provenance sidecars.
@@ -76,6 +92,7 @@ codec_struct!(DeclarationIndex {
 codec_struct!(ResolvedProgram {
     module,
     permits,
+    agents,
     entrypoint,
     declarations,
     types,

@@ -29,6 +29,8 @@ pub struct ProjectRevision {
     pub(super) test_program: crate::hir::ResolvedProgram,
     pub(super) semantic: semantic::ProjectSemanticState,
     pub(super) profile_admission: admission::PreparedProjectAdmission,
+    pub(super) source_agents: Vec<super::ResolvedSourceAgent>,
+    pub(super) agent_definitions: Vec<crate::agent_definition::CompiledAgentDefinition>,
 }
 
 impl ProjectRevision {
@@ -44,6 +46,8 @@ impl ProjectRevision {
             test_program: built.test_program,
             semantic: built.semantic,
             profile_admission: built.profile_admission,
+            source_agents: built.source_agents,
+            agent_definitions: built.agent_definitions,
         }
     }
 
@@ -67,12 +71,31 @@ impl ProjectRevision {
         &self.project_revision
     }
 
+    /// Compiler-admitted HIR-equivalent source Agent nodes in stable-ID order.
+    pub fn source_agents(&self) -> &[super::ResolvedSourceAgent] {
+        &self.source_agents
+    }
+
+    /// Frozen AgentDefinition v1 compatibility products for source Agents.
+    pub fn agent_definitions(&self) -> &[crate::agent_definition::CompiledAgentDefinition] {
+        &self.agent_definitions
+    }
+
     /// Derive the canonical, authority-free semantic workspace identity over
     /// this already admitted immutable Project revision.
     pub fn canonical_workspace_revision(
         &self,
     ) -> Result<super::SemanticWorkspaceRevision, Vec<Diagnostic>> {
-        super::SemanticWorkspaceRevision::derive(self)
+        if self.agent_definitions.is_empty() {
+            super::SemanticWorkspaceRevision::derive(self)
+        } else {
+            let definitions = self.agent_definitions.iter().collect::<Vec<_>>();
+            super::SemanticWorkspaceRevision::derive_with_agent_definitions(
+                self,
+                self.project_revision(),
+                &definitions,
+            )
+        }
     }
 
     pub fn entry_program(&self) -> &crate::hir::ResolvedProgram {

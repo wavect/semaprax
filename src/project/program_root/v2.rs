@@ -228,11 +228,18 @@ fn validate_input_bindings(
     let definitions = agent_payload["definitions"]
         .as_array()
         .ok_or_else(|| invalid("ProgramRoot v2 AgentDefinitions inventory is invalid"))?;
+    let integration = agent_payload["integration"].as_str();
     if definitions.is_empty()
-        || agent_payload["integration"] != "explicit_compiler_admitted_association_input"
+        || !matches!(
+            integration,
+            Some(
+                "explicit_compiler_admitted_association_input"
+                    | "source_owned_spx_agent_declarations"
+            )
+        )
     {
         return Err(invalid(
-            "ProgramRoot v2 requires non-empty explicit AgentDefinitions",
+            "ProgramRoot v2 requires non-empty compiler-admitted AgentDefinitions",
         ));
     }
     let project_revision = text(
@@ -307,7 +314,9 @@ fn validate_input_bindings(
         || dependency_lock_association.program_root_digest()
             != base_project_root.program_root_digest()
         || association_workspace_revision != base_project_root.workspace_revision()
-        || base_project_root.program_root_digest() == semantic_workspace_root.program_root_digest()
+        || (integration == Some("explicit_compiler_admitted_association_input")
+            && base_project_root.program_root_digest()
+                == semantic_workspace_root.program_root_digest())
     {
         return Err(stale(
             "ProgramRoot v2 inputs do not share exact Project and root bindings",

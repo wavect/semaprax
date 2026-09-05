@@ -170,6 +170,7 @@ fn link_scalar_workspace_impl(
     let mut linked = ResolvedProgram {
         module,
         permits: import_effects.into_iter().collect(),
+        agents: Vec::new(),
         entrypoint,
         declarations,
         types,
@@ -260,6 +261,7 @@ pub(crate) fn link_useful_text_workspace(
     let mut linked = ResolvedProgram {
         module,
         permits: Vec::new(),
+        agents: Vec::new(),
         entrypoint,
         declarations,
         types: Vec::new(),
@@ -359,6 +361,7 @@ pub(crate) fn link_owned_data_api_workspace(
     let mut linked = ResolvedProgram {
         module,
         permits: parts.permits,
+        agents: Vec::new(),
         entrypoint,
         declarations,
         types,
@@ -670,6 +673,7 @@ fn link_useful_data_workspace_profile(
                     .collect()
             }
         },
+        agents: Vec::new(),
         entrypoint,
         declarations,
         types: compiler_types,
@@ -775,6 +779,7 @@ pub(crate) fn compiler_prelude_declarations() -> Result<DeclarationIndex, Diagno
         interfaces: Vec::new(),
         protocols: Vec::new(),
         implementations: Vec::new(),
+        agents: Vec::new(),
         functions: Vec::new(),
     };
     DeclarationIndex::from_verified(&prelude_only)

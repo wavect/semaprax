@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::fmt::Write as _;
 // Explicit paths: other crates include this file by `#[path]`, where a bare
 // `mod` would resolve beside the file instead of under `format/`.
+#[path = "format/agents.rs"]
+mod agents;
 #[path = "format/capacity.rs"]
 mod capacity;
 #[path = "format/comments.rs"]
@@ -577,6 +579,7 @@ pub(crate) fn write_canonical_commented(
         writeln!(output, "}}").unwrap();
         placement.trailing(output, implementation.span.start, 0);
     }
+    agents::write_agents(&program.agents, placement, output);
     for function in &program.functions {
         writeln!(output).unwrap();
         placement.leading(output, function.span.start, 0);

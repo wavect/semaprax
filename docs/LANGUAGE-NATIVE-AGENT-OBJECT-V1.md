@@ -28,10 +28,17 @@ canonical AgentDefinition v1
                          `--> existing Agent<H>
 ```
 
-No `.spx` agent syntax is admitted in this slice. The canonical definition is
-an intermediate contract for reviewing identity, graph, and authority design
-before syntax is frozen. Runtime v1 material is structured definition data; the
+The additive AGENT-03 frontend and lowering slice admits the closed `.spx`
+Agent declaration described by [Language-native Agent syntax v1](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md).
+It lowers through this unchanged canonical definition contract. Runtime v1
+material is structured definition data; the
 compiler, rather than the author, supplies its frozen schema and nonclaims.
+
+For each admitted source Agent, Project construction retains one HIR-equivalent
+Agent node and the existing compiler-produced AgentDefinition v1, AgentGraph v1,
+and Runtime Profile v1 bytes. The default canonical workspace places those
+exact products in its existing `AgentDefinitions` node. This adds no execution,
+provider, tool, filesystem, process, network, or publication authority.
 
 ## Semantic object
 

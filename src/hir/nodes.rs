@@ -358,6 +358,7 @@ impl From<ParamMode> for OwnershipMode {
 pub struct ResolvedProgram {
     pub module: String,
     pub permits: Vec<String>,
+    pub agents: Vec<super::ResolvedAgentDeclaration>,
     pub entrypoint: DeclarationId,
     pub declarations: DeclarationIndex,
     pub types: Vec<ResolvedTypeDeclaration>,

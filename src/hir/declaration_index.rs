@@ -29,6 +29,10 @@ pub struct DeclarationIndex {
 }
 
 impl DeclarationIndex {
+    pub(super) fn contains_declaration_id(&self, id: &DeclarationId) -> bool {
+        self.declarations.contains_key(id)
+    }
+
     /// Moves every recursively nested resolved type out of the declaration
     /// index before ordinary field drop glue runs. Private bounded owners use
     /// this hook to feed their existing preallocated iterative disposer.

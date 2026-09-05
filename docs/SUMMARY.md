@@ -331,6 +331,8 @@ Audience: all documentation readers.
 
 ## Private and proof-only runtime contracts
 
+- [Language-native Agent syntax v1](LANGUAGE-NATIVE-AGENT-SYNTAX-V1.md)
+- [Language-native Agent lowering v1](LANGUAGE-NATIVE-AGENT-LOWERING-V1.md)
 - [Language-native Agent Object and unified harness v1](LANGUAGE-NATIVE-AGENT-OBJECT-V1.md)
 - [Agent Payment Harness v1](AGENT-PAYMENT-HARNESS-V1.md)
 - [Bounded native Agent Runtime](AGENT-RUNTIME-V1.md)

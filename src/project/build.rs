@@ -17,6 +17,8 @@ pub(super) struct BuiltProject {
     pub(super) test_program: crate::hir::ResolvedProgram,
     pub(super) semantic: semantic::ProjectSemanticState,
     pub(super) profile_admission: admission::PreparedProjectAdmission,
+    pub(super) source_agents: Vec<super::ResolvedSourceAgent>,
+    pub(super) agent_definitions: Vec<crate::agent_definition::CompiledAgentDefinition>,
 }
 
 /// Build and validate the complete manifest-owned Project from already-owned
@@ -58,6 +60,13 @@ fn finish_build(
     preflight: semantic_workspace::SemanticWorkspacePreflight,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
     let (files, workspace_manifest, workspace_revision, graph) = preflight.into_snapshot_parts();
+    let programs = files
+        .iter()
+        .map(|file| crate::parse(file.source(), file.path()).map_err(|error| vec![error]))
+        .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?;
+    let program_refs = programs.iter().collect::<Vec<_>>();
+    let (source_agents, agent_definitions) =
+        super::compile_source_project_agents(&program_refs)?.into_parts();
     let canonical_manifest = manifest.to_canonical_toml();
     let project_revision = project_revision(&canonical_manifest, &workspace_revision);
     let graph_source_facts = files
@@ -81,6 +90,13 @@ fn finish_build(
             dependency_anchors: !manifest.dependency_sources().is_empty(),
         },
     )?;
+    if source_agents != semantic_parts.entry_program.agents {
+        return Err(vec![Diagnostic::io(
+            "SPX-G559",
+            "source Agent lowering disagrees with the retained linked HIR inventory",
+        )]);
+    }
+    let source_agents = semantic_parts.entry_program.agents.clone();
     let semantic = semantic::ProjectSemanticState::new(
         semantic_parts.projection,
         manifest.schema(),
@@ -133,6 +149,8 @@ fn finish_build(
         test_program,
         semantic,
         profile_admission,
+        source_agents,
+        agent_definitions,
     })
 }
 

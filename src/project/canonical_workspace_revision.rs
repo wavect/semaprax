@@ -130,7 +130,17 @@ pub struct SemanticWorkspaceRevision {
 
 impl SemanticWorkspaceRevision {
     pub fn derive(revision: &ProjectRevision) -> Result<Self, Vec<Diagnostic>> {
-        Self::derive_inner(revision, None)
+        if revision.agent_definitions().is_empty() {
+            Self::derive_inner(revision, None)
+        } else {
+            let definitions = revision.agent_definitions().iter().collect::<Vec<_>>();
+            let payload = agent_definitions_payload(
+                revision,
+                &definitions,
+                "source_owned_spx_agent_declarations",
+            )?;
+            Self::derive_inner(revision, Some(payload))
+        }
     }
 
     /// Derive the same canonical workspace family with an explicit, bounded
@@ -151,7 +161,19 @@ impl SemanticWorkspaceRevision {
                 "AgentDefinitions association expected Project revision is stale",
             ));
         }
-        let payload = explicit_agent_definitions_payload(revision, definitions)?;
+        let retained = revision.agent_definitions();
+        let source_owned = definitions.len() == retained.len()
+            && definitions.iter().zip(retained).all(|(submitted, owned)| {
+                submitted.definition().canonical_source() == owned.definition().canonical_source()
+                    && submitted.graph().canonical_json() == owned.graph().canonical_json()
+                    && submitted.runtime_v1_profile() == owned.runtime_v1_profile()
+            });
+        let integration = if source_owned {
+            "source_owned_spx_agent_declarations"
+        } else {
+            "explicit_compiler_admitted_association_input"
+        };
+        let payload = agent_definitions_payload(revision, definitions, integration)?;
         Self::derive_inner(revision, Some(payload))
     }
 
@@ -224,7 +246,10 @@ impl SemanticWorkspaceRevision {
             "contract_fingerprints": semantic_program.digest(),
             "test_module": revision.manifest().test_module(),
         }))?;
-        let has_explicit_agent_definitions = explicit_agent_definitions.is_some();
+        let agent_integration = explicit_agent_definitions
+            .as_ref()
+            .and_then(|payload| payload["integration"].as_str())
+            .map(str::to_owned);
         let agent_definitions =
             AgentDefinitions::new(explicit_agent_definitions.unwrap_or_else(|| {
                 json!({
@@ -300,20 +325,25 @@ impl SemanticWorkspaceRevision {
             "stable_identity_index": node_value(&stable_identity_index.json, stable_identity_index.digest())?,
             "target_profiles": node_value(&target_profiles.json, target_profiles.digest())?,
         });
-        let nonclaims = if has_explicit_agent_definitions {
-            json!([
+        let nonclaims = match agent_integration.as_deref() {
+            Some("explicit_compiler_admitted_association_input") => json!([
                 "no_filesystem_or_publication_authority",
                 "no_trusted_hir_deserialization",
                 "explicit_compiler_admitted_association_is_not_spx_agent_syntax_or_intrinsic_project_ownership_proof",
                 "dependency_lock_is_a_local_admitted_closure_projection_not_project_lock_v1",
-            ])
-        } else {
-            json!([
+            ]),
+            Some("source_owned_spx_agent_declarations") => json!([
+                "no_filesystem_or_publication_authority",
+                "no_trusted_hir_deserialization",
+                "source_agent_definitions_do_not_grant_runtime_or_effect_authority",
+                "dependency_lock_is_a_local_admitted_closure_projection_not_project_lock_v1",
+            ]),
+            _ => json!([
                 "no_filesystem_or_publication_authority",
                 "no_trusted_hir_deserialization",
                 "no_project_agent_definition_integration",
                 "dependency_lock_is_a_local_admitted_closure_projection_not_project_lock_v1",
-            ])
+            ]),
         };
         let json = canonical_json(json!({
             "compatibility": SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY,
@@ -449,9 +479,10 @@ impl SemanticWorkspaceRevision {
     }
 }
 
-fn explicit_agent_definitions_payload(
+fn agent_definitions_payload(
     revision: &ProjectRevision,
     definitions: &[&CompiledAgentDefinition],
+    integration: &'static str,
 ) -> Result<Value, Vec<Diagnostic>> {
     if definitions.is_empty() || definitions.len() > MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITIONS {
         return Err(invalid(
@@ -515,7 +546,7 @@ fn explicit_agent_definitions_payload(
     Ok(json!({
         "definitions": rows,
         "expected_project_revision": revision.project_revision(),
-        "integration": "explicit_compiler_admitted_association_input",
+        "integration": integration,
     }))
 }
 

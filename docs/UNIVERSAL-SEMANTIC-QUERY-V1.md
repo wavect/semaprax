@@ -243,6 +243,15 @@ Transport vNext, MCP, LSP, editor integration, generated clients, streaming,
 subscriptions, a durable cursor, a repository-wide multi-workspace index, or a
 general semantic query algebra.
 
+## Source Agent visibility
+
+`AgentDefinitionsQuery` is an additive typed, in-memory query over one exact
+workspace snapshot. Its result retains the selected ProgramRoot v1 and the
+existing canonical `AgentDefinitions` node, including the exact compiler-made
+AgentDefinition, AgentGraph, and Runtime Profile bytes for source-owned Agents.
+It intentionally has no JSON parser or renderer and does not extend the closed
+Universal Semantic Query v1 wire operation grammar.
+
 ## Focused evidence
 
 The integration evidence lives in

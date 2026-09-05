@@ -527,6 +527,15 @@ Workspace, and Semantic Workspace Image v1 bytes and revision algorithms remain
 unchanged. See [Canonical Semantic Workspace Revision
 v1](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md).
 
+`src/project/semantic_transaction.rs` owns the bounded authority-free Universal
+Semantic Transaction v1 kernel. It binds an exact canonical workspace revision
+and typed old-name precondition, delegates its one admitted function display
+rename to the immutable `ProjectCandidate` machinery, and derives canonical
+impact, review, result, and exact-replay evidence. Its comment-free canonical
+source guard prevents the reused candidate formatter from introducing trivia
+changes. It has no filesystem or publication authority. See [Universal
+Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md).
+
 `src/project/image.rs` derives an immutable, bounded Semantic Workspace
 Image from one already admitted `Arc<ProjectRevision>`. It retains validated
 HIR in memory and projects the complete Project graph plus existing typed

@@ -141,5 +141,7 @@ mod string_builtin_calls;
 mod testing;
 #[path = "project_candidate/type_declarations.rs"]
 mod type_declarations;
+#[path = "project_candidate/universal_semantic_transaction.rs"]
+mod universal_semantic_transaction;
 #[path = "project_candidate/variant_case.rs"]
 mod variant_case;

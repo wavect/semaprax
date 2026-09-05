@@ -39,6 +39,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   transport, clock, or tool authority, so runs are deterministic and a replay
   proves an evidence capsule byte for byte (`SPX-V221` malformed transcript,
   `SPX-V222` replay mismatch). `resume` and `reconcile` stay unadmitted.
+- Added the bounded, authority-free Universal Semantic Transaction v1 kernel
+  over Canonical Semantic Workspace Revision v1, with one typed
+  `RenameDisplayName` operation, exact base/old-name preconditions,
+  deterministic intent/impact/review/result/evidence, fresh exact replay, and
+  a locally passed focused Project-candidate gate. The additive slice does not
+  alter legacy Project, workspace, Image, Semantic Change, or Candidate bytes.
 - The bundled standard-library catalog (`semaprax help library`,
   `std/catalog.json`) is now rendered from the `semaprax doc` documentation
   model, with every signature cross-checked against the source text and each

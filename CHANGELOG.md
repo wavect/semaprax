@@ -35,6 +35,11 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Empty function identities now fail at source verification with located
+  `SPX-S102` suffix guidance, and the 4,096-function byte-data capacity limit
+  uses located `SPX-T270` with the bound and a module-splitting remedy instead
+  of an unlocated internal replay diagnostic.
+
 - `semaprax check` now resolves and validates HIR, cleanup plans, and replay
   budgets after source verification, matching the verdict used by `graph`,
   `run`, and both build targets instead of accepting backend-invalid source.

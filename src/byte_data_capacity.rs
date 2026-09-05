@@ -18,7 +18,7 @@ pub(crate) const MAX_STDERR_WRITES_PER_PATH: u64 = 1;
 pub(crate) const MAX_STDIN_READS_PER_PATH: u64 = 1;
 pub(crate) const MAX_COMBINED_TRANSCRIPT_BYTES: u64 = 65_536;
 
-const MAX_FUNCTIONS: usize = 4_096;
+pub(crate) const MAX_FUNCTIONS: usize = 4_096;
 const MAX_FLOW_NODES: usize = 65_536;
 const MAX_ARRAY_SLOTS_PER_FUNCTION: usize = 65_536;
 

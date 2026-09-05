@@ -133,7 +133,22 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
             .with_help(super::hints::LIBRARY_MODULE_HELP),
         );
     }
-    if let Err(capacity) = verify_byte_data_capacity(program, &types) {
+    let capacity_functions = source_capacity_functions(program);
+    if capacity_functions.len() > crate::byte_data_capacity::MAX_FUNCTIONS {
+        let (_, function) = capacity_functions[crate::byte_data_capacity::MAX_FUNCTIONS];
+        diagnostics.push(
+            error(
+                program,
+                "SPX-T270",
+                format!(
+                    "module declares more than the admitted {} functions",
+                    crate::byte_data_capacity::MAX_FUNCTIONS
+                ),
+                function.name_span,
+            )
+            .with_help("split the program into modules with at most 4096 functions each"),
+        );
+    } else if let Err(capacity) = verify_byte_data_capacity(program, &types) {
         if capacity.diagnostic != crate::byte_data_capacity::CapacityDiagnostic::Invariant
             || !diagnostics
                 .iter()
@@ -143,8 +158,9 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
                 .function
                 .as_deref()
                 .and_then(|identity| {
-                    source_capacity_functions(program)
-                        .into_iter()
+                    capacity_functions
+                        .iter()
+                        .copied()
                         .find(|(_, function)| function.stable_id == identity)
                 })
                 .map_or(Span::default(), |(_, function)| function.span);

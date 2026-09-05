@@ -102,7 +102,17 @@ pub(super) fn check_function_declarations<'p>(
                 function.name_span,
             ));
         }
-        if function.stable_id.contains('\0') {
+        if function.stable_id.is_empty() {
+            diagnostics.push(
+                error(
+                    program,
+                    "SPX-S102",
+                    format!("function `{}` has an empty stable id", function.name),
+                    function.name_span,
+                )
+                .with_help("give the declaration a dotted stable identity with @id(\"your.namespace.symbol\")"),
+            );
+        } else if function.stable_id.contains('\0') {
             diagnostics.push(invalid_stable_id(
                 program,
                 "SPX-S102",

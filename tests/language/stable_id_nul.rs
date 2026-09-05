@@ -130,3 +130,16 @@ fn backslash_zero_remains_an_unsupported_string_escape() {
         "SPX-P005"
     );
 }
+
+#[test]
+fn empty_explicit_function_identity_is_a_located_source_diagnostic() {
+    let source = "module test.empty_id;\n@id(\"\")\nfn main() -> i64 { 0 }\n";
+    let program = parse(source, Path::new("empty-id.spx")).unwrap();
+    let diagnostics = verify::verify(&program);
+    let diagnostic = diagnostics
+        .iter()
+        .find(|diagnostic| diagnostic.code == "SPX-S102")
+        .expect("empty identity must fail at source verification");
+    assert_eq!(diagnostic.span.map(|span| (span.line, span.column)), Some((3, 4)));
+    assert!(diagnostic.help.as_deref().is_some_and(|help| help.contains("dotted stable identity")));
+}

@@ -80,6 +80,25 @@ fn ordered_errors(program: &semaprax::ast::Program) -> Vec<String> {
 }
 
 #[test]
+fn function_capacity_overflow_names_bound_and_first_excess_declaration() {
+    let mut source = String::from("module test.function_capacity;\n");
+    for index in 0..=4096 {
+        source.push_str(&format!(
+            "@id(\"test.f{index}\") fn f{index}() -> i64 {{ {index} }}\n"
+        ));
+    }
+    source.push_str("@id(\"app.main\") fn main() -> i64 { 0 }\n");
+    let program = parse(&source, Path::new("function-capacity.spx")).unwrap();
+    let diagnostic = verify::verify(&program)
+        .into_iter()
+        .find(|diagnostic| diagnostic.code == "SPX-T270")
+        .expect("capacity overflow must use its public diagnostic");
+    assert!(diagnostic.message.contains("4096"));
+    assert!(diagnostic.span.is_some_and(|span| span.line > 1));
+    assert!(diagnostic.help.is_some());
+}
+
+#[test]
 fn iterative_recovery_preserves_child_parent_and_fallback_order() {
     let source = r#"
 module test.verifier_recovery;

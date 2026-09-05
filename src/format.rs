@@ -1647,17 +1647,10 @@ mod iterative_formatter_tests {
             unreachable!()
         };
         let lengths = rendered_expr_lengths(tail, 0);
-        let mut nodes = 0usize;
-        let mut stack = vec![tail.as_ref()];
-        while let Some(expression) = stack.pop() {
-            nodes += 1;
-            let mut index = 0;
-            while let Some(child) = expression.child(index) {
-                stack.push(child);
-                index += 1;
-            }
-        }
-        assert_eq!(lengths.len(), nodes);
+        // The left-associated sum has 64 identifiers and 63 binary nodes.
+        // Keep this assertion independent of crate-private AST traversal so the
+        // formatter's shared-source consumer exercises the same regression.
+        assert_eq!(lengths.len(), 127);
         assert_eq!(
             lengths[&(tail.as_ref() as *const Expr as usize, 0)],
             sum.len()

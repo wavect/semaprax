@@ -145,6 +145,31 @@ function activateChecks(context, testMode) {
     await vscode.window.showTextDocument(view, { preview: true, viewColumn: vscode.ViewColumn.Beside, preserveFocus: true });
     return markdown;
   }
+  async function openBeside(content, language) {
+    const view = await vscode.workspace.openTextDocument({ language, content });
+    await vscode.window.showTextDocument(view, { preview: true, viewColumn: vscode.ViewColumn.Beside, preserveFocus: true });
+    return content;
+  }
+  async function showOwnership(pick) {
+    const binary = requireCompiler('show ownership and contracts');
+    const doc = activeSource();
+    const callables = navigation.declarationItems(await queryFile(binary, doc.uri.fsPath, { kind: 'function,method' }));
+    if (!callables.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable'); return; }
+    const target = await pick(callables, { placeHolder: 'Callable whose ownership, contracts, and effects to show', matchOnDescription: true });
+    if (!target) return;
+    const context = await runNavigation(binary, navigation.contextArguments(doc.uri.fsPath, target.id), doc.uri.fsPath);
+    if (!navigation.parseSchemaDocument(context, 'semaprax.')) throw new Error('The compiler returned an unexpected context document');
+    return openBeside(context, 'json');
+  }
+  async function inspectAgent() {
+    const binary = requireCompiler('inspect an agent definition');
+    const doc = vscode.window.activeTextEditor?.document;
+    if (!doc || doc.uri.scheme !== 'file' || !doc.uri.fsPath.endsWith('.json')) throw new Error('Open a saved AgentDefinition v1 .json file first');
+    if (doc.isDirty) throw new Error('Save the file first; inspection reads saved source');
+    const graph = await runNavigation(binary, navigation.agentInspectArguments(doc.uri.fsPath), doc.uri.fsPath);
+    if (!navigation.parseSchemaDocument(graph, 'semaprax.agent-graph.')) throw new Error('The compiler returned an unexpected agent graph');
+    return openBeside(graph, 'json');
+  }
   const lensesEnabled = () => machineSetting('codeLens') !== false;
   const lensProvider = {
     async provideCodeLenses(doc) {
@@ -163,7 +188,7 @@ function activateChecks(context, testMode) {
   const dispose = () => { for (const child of running.values()) child.kill(); running.clear(); };
   context.subscriptions.push(collection, output, vscode.workspace.onDidSaveTextDocument(onSave), { dispose },
     vscode.languages.registerCodeLensProvider({ language: 'semaprax', scheme: 'file' }, lensProvider));
-  return { checkProject, goToDeclaration, showReferences, showDocumentation, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
+  return { checkProject, goToDeclaration, showReferences, showDocumentation, showOwnership, inspectAgent, test: testMode ? { check, ledger, collection, lensProvider } : undefined };
 }
 function activate(context) {
   let client, config, image, candidate, target, stale = true, epoch = 0, busy = false;
@@ -653,6 +678,8 @@ function activate(context) {
     async goToDeclaration() { await checking.goToDeclaration(pick); },
     async showReferences() { await checking.showReferences(pick); },
     async showDocumentation() { await checking.showDocumentation(); },
+    async showOwnership() { await checking.showOwnership(pick); },
+    async inspectAgent() { await checking.inspectAgent(); },
     async refresh() {
       saved(); if (!client || !image) throw new Error('Start a session first');
       const refreshEpoch = epoch, refreshClient = client, refreshImage = image, refreshDraft = holes, refreshRevision = holes?.draftRevision;

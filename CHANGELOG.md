@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- The VS Code adapter adds `Show Ownership, Contracts, and Effects` (the
+  compiler's bounded `context` facets for a chosen callable) and `Inspect Agent
+  Definition` (`agent inspect` over the saved AgentDefinition v1 file), both
+  bounded like check-on-save and covered by `test/navigation.test.js`.
 - Added `semaprax agent run <definition.json> <task.json> <transcript.json>
   [--evidence|--trace]` and `semaprax agent replay ... <evidence.json>`: a
   scripted transcript of provider responses and tool results drives the

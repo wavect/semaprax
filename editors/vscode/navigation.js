@@ -28,6 +28,26 @@ function queryArguments(file, filters = {}) {
 
 function docArguments(file) { return ['doc', file]; }
 
+// One bounded `context` query for a declaration's ownership, contract, and
+// effect facts: depth one, the three facet filters, and a fixed byte budget.
+const CONTEXT_MAX_BYTES = 8192;
+function contextArguments(file, id) {
+  return ['context', file, id, '--depth', '1', '--filters', 'contracts,ownership,effects', '--max-bytes', String(CONTEXT_MAX_BYTES)];
+}
+
+// `agent inspect` over a saved AgentDefinition v1 document.
+function agentInspectArguments(file) { return ['agent', 'inspect', file]; }
+
+// A JSON document whose top-level `schema` starts with `prefix`, or null.
+function parseSchemaDocument(text, prefix) {
+  if (typeof text !== 'string') return null;
+  let value;
+  try { value = JSON.parse(text.trim()); } catch { return null; }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  if (typeof value.schema !== 'string' || !value.schema.startsWith(prefix)) return null;
+  return value;
+}
+
 function safeOffset(value) { return Number.isSafeInteger(value) && value >= 0 ? value : null; }
 
 function strings(value) {
@@ -158,6 +178,6 @@ function failureReason(result, compiler) {
 
 module.exports = {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
-  queryArguments, docArguments, parseQueryResult, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason,
+  queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason,
   cwdOf: file => path.dirname(file)
 };

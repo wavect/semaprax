@@ -7,7 +7,7 @@ const path = require('node:path');
 const { EventEmitter } = require('node:events');
 const {
   MAX_OUTPUT_BYTES, TIMEOUT_MS, QUERY_SCHEMA,
-  queryArguments, docArguments, parseQueryResult, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
+  queryArguments, docArguments, contextArguments, agentInspectArguments, parseSchemaDocument, CONTEXT_MAX_BYTES, parseQueryResult, toRange, header, declarationItems, referenceItems, lensRecords, runCommand, failureReason
 } = require('../navigation');
 
 const root = path.resolve(path.sep, 'work');
@@ -112,4 +112,16 @@ test('output beyond the byte budget and silence past the deadline kill the child
   const late = await runCommand(spawnInto([], slow), at('bin', 'semaprax'), ['doc', at('m.spx')], root, { timeoutMs: 5 });
   assert.equal(late.timedOut, true); assert.equal(slow.killed, true);
   assert.equal(failureReason(late, 'x'), `command timed out after ${TIMEOUT_MS / 1000}s`);
+});
+
+test('context and agent inspect argument vectors are exact and schema documents are checked by prefix', () => {
+  assert.deepEqual(contextArguments(at('m.spx'), 'app.main'), ['context', at('m.spx'), 'app.main', '--depth', '1', '--filters', 'contracts,ownership,effects', '--max-bytes', String(CONTEXT_MAX_BYTES)]);
+  assert.equal(CONTEXT_MAX_BYTES, 8192);
+  assert.deepEqual(agentInspectArguments(at('agent.json')), ['agent', 'inspect', at('agent.json')]);
+  assert.equal(parseSchemaDocument('{"schema":"semaprax.agent-graph.v1","agent_id":"a"}\n', 'semaprax.agent-graph.').agent_id, 'a');
+  assert.equal(parseSchemaDocument('{"schema":"semaprax.doc.v1"}', 'semaprax.agent-graph.'), null);
+  assert.equal(parseSchemaDocument('{"kind":"x"}', 'semaprax.'), null);
+  assert.equal(parseSchemaDocument('[1]', 'semaprax.'), null);
+  assert.equal(parseSchemaDocument('nope', 'semaprax.'), null);
+  assert.equal(parseSchemaDocument(7, 'semaprax.'), null);
 });

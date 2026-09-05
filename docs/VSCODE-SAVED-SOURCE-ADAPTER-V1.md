@@ -31,9 +31,11 @@ switched off with the machine setting `semaprax.checkOnSave`. The extension's
 [README](../editors/vscode/README.md#check-on-save) owns the behavior.
 
 Also additively, `SEMAPRAX: Go to Declaration by Stable ID`, `SEMAPRAX: Show
-Callers of a Declaration`, `SEMAPRAX: Show Module Documentation`, and the
-declaration code lenses run the same binary's read-only `query <file> --json`
-and `doc <file>` ([Unified CLI v1](UNIFIED-CLI-V1.md),
+Callers of a Declaration`, `SEMAPRAX: Show Module Documentation`, `SEMAPRAX:
+Show Ownership, Contracts, and Effects`, `SEMAPRAX: Inspect Agent Definition`,
+and the declaration code lenses run the same binary's read-only
+`query <file> --json`, `doc <file>`, `context`, and `agent inspect`
+([Unified CLI v1](UNIFIED-CLI-V1.md),
 [Documentation Projection v1](DOC-PROJECTION-V1.md)) over the saved active
 file, with the same bounds and no session. The
 [README](../editors/vscode/README.md#navigate-by-meaning) owns the behavior.

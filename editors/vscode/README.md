@@ -58,6 +58,13 @@ caller. `SEMAPRAX: Show Module Documentation` opens the Markdown page
 show its `@id` (or that the identity is automatic), its `uses { … }` effects
 when it declares any, and its `requires`/`ensures` counts when it declares
 contracts; `semaprax.codeLens` (default `true`, machine scope) turns them off.
+`SEMAPRAX: Show Ownership, Contracts, and Effects` asks for a function or
+method and opens the compiler's bounded `context` document for it (depth one,
+the `contracts`, `ownership`, and `effects` facets, an 8 KiB budget) beside the
+source, so parameter and result ownership modes, contract clauses, and effect
+sets are read from the checked graph rather than inferred from text.
+`SEMAPRAX: Inspect Agent Definition` runs `agent inspect` on the saved active
+AgentDefinition v1 `.json` file and opens its AgentGraph v1 beside it.
 Every run is bounded exactly like check-on-save (4 MiB, 30 seconds, direct
 spawn without a shell, never workspace settings) and its failure is written to
 the `SEMAPRAX Check` output channel. `test/navigation.test.js` covers the

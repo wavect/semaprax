@@ -525,9 +525,9 @@ impl<'a> TypeTable<'a> {
             return false;
         }
         if !arguments.is_empty()
-            && arguments
-                .iter()
-                .any(|argument| !matches!(argument, Type::I64 | Type::Bool | Type::Bytes))
+            && arguments.iter().any(|argument| {
+                *argument != Type::Bytes && !owned_byte_record_copy_field_is_admitted(argument)
+            })
         {
             return false;
         }
@@ -716,9 +716,10 @@ pub(super) fn classify_nested_owned_byte_record(
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 };
                 if arguments.len() != declaration.type_parameters.len()
-                    || arguments
-                        .iter()
-                        .any(|argument| !matches!(argument, Type::I64 | Type::Bool | Type::Bytes))
+                    || arguments.iter().any(|argument| {
+                        *argument != Type::Bytes
+                            && !owned_byte_record_copy_field_is_admitted(argument)
+                    })
                 {
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 }

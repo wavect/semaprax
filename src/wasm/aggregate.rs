@@ -3,7 +3,7 @@
 //! This is deliberately isolated from the scalar encoder so existing scalar,
 //! owned-resource, callable, and Component byte contracts remain unchanged.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 mod collect_block;
 mod expressions;
@@ -995,7 +995,15 @@ fn is_record(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagn
         || arguments.iter().any(|argument| {
             !matches!(
                 argument,
-                ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Bytes
+                ResolvedType::I64
+                    | ResolvedType::I32
+                    | ResolvedType::Char
+                    | ResolvedType::U8
+                    | ResolvedType::Usize
+                    | ResolvedType::F32
+                    | ResolvedType::F64
+                    | ResolvedType::Bool
+                    | ResolvedType::Bytes
             )
         })
     {
@@ -3520,9 +3528,75 @@ impl Emitter<'_> {
                 _ => None,
             })
             .collect::<Vec<_>>();
+        let flags_under = |place: &crate::cleanup_plan::CleanupPlace| {
+            self.plan
+                .cleanup_place_flags
+                .iter()
+                .filter(|(leaf, _)| {
+                    leaf.storage == place.storage
+                        && leaf.projections.starts_with(&place.projections)
+                })
+                .map(|(_, flag)| *flag)
+                .collect::<Vec<_>>()
+        };
+        let mut initial = BTreeMap::<u32, bool>::new();
+        let mut simulated = BTreeMap::<u32, bool>::new();
         for (source, destination) in transfers {
-            self.assert_storage_flag_state(&source, true)?;
-            self.assert_storage_flag_state(&destination, false)?;
+            let source_flags = flags_under(&source);
+            let destination_flags = flags_under(&destination);
+            if source_flags.is_empty() || source_flags.len() != destination_flags.len() {
+                return Err(error(
+                    "record transfer preflight leaf cardinality disagrees",
+                ));
+            }
+            if source_flags
+                .iter()
+                .any(|flag| destination_flags.contains(flag))
+            {
+                return Err(error(
+                    "record transfer transaction aliases source and destination",
+                ));
+            }
+            for flag in &source_flags {
+                match simulated.get(flag) {
+                    Some(false) => {
+                        return Err(error(
+                            "record transfer transaction consumes a simulated dead source",
+                        ));
+                    }
+                    Some(true) => {}
+                    None => {
+                        initial.insert(*flag, true);
+                    }
+                }
+            }
+            for flag in &destination_flags {
+                match simulated.get(flag) {
+                    Some(true) => {
+                        return Err(error(
+                            "record transfer transaction overwrites a simulated live destination",
+                        ));
+                    }
+                    Some(false) => {}
+                    None => {
+                        initial.insert(*flag, false);
+                    }
+                }
+            }
+            for flag in source_flags {
+                simulated.insert(flag, false);
+            }
+            for flag in destination_flags {
+                simulated.insert(flag, true);
+            }
+        }
+        for (flag, live) in initial {
+            self.output.push(0x20);
+            write_u32(self.output, flag);
+            if live {
+                self.output.push(0x45);
+            }
+            self.trap_if();
         }
         Ok(())
     }
@@ -4400,7 +4474,7 @@ impl Emitter<'_> {
                 fields,
             } => {
                 let base = self.emit_expr(base)?;
-                if nested_owned::record_is_nested_owned(self.program, &expr.ty)? {
+                if nested_owned::record_update_uses_owned_plan(self.program, &expr.ty)? {
                     return self.emit_nested_update_record(expr, &base, record, fields);
                 }
                 let destination = Value::Aggregate {

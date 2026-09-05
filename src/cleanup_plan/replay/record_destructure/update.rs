@@ -9,6 +9,30 @@ const DEPTH_LIMIT: usize = 64;
 const LEAF_LIMIT: usize = 256;
 const FIELD_LIMIT: usize = 4_096;
 
+pub(in crate::cleanup_plan::replay) fn concrete_arguments<'a>(
+    function: &ResolvedFunction,
+    expression: &'a ResolvedExpr,
+    record: &crate::hir::DeclarationId,
+) -> Result<&'a [ResolvedType], Diagnostic> {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = &expression.ty
+    else {
+        return Err(super::super::replay_error(
+            function,
+            "record update result is not a nominal instance",
+        ));
+    };
+    if declaration != record {
+        return Err(super::super::replay_error(
+            function,
+            "record update result changes declaration identity",
+        ));
+    }
+    Ok(arguments)
+}
+
 pub(in crate::cleanup_plan::replay) fn function_contains(
     program: &crate::hir::ResolvedProgram,
     function: &ResolvedFunction,
@@ -60,7 +84,13 @@ fn authenticate(
             "record update replay base is not nominal",
         ));
     };
-    if declaration != record || !is_nested_owned_bytes(program, function, &base.ty)? {
+    if declaration != record {
+        return Ok(false);
+    }
+    let nested = is_nested_owned_bytes(program, function, &base.ty)?;
+    let generic_flat = !arguments.is_empty()
+        && crate::hir::is_flat_owned_byte_record(&program.declarations, &base.ty);
+    if !nested && !generic_flat {
         return Ok(false);
     }
     let declared = program
@@ -94,7 +124,7 @@ fn authenticate(
             ));
         }
     }
-    Ok(true)
+    Ok(nested)
 }
 
 fn is_nested_owned_bytes(

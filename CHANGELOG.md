@@ -8,6 +8,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extended concrete generic owned-`Bytes` records across the complete direct
+  Copy-scalar set: `i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, and
+  `bool`. Source verification, resolved HIR, cleanup inventory/replay,
+  Native64/Wasm32 layout and native/Core-Wasm lowering retain the exact
+  owner-and-index substitution. Concrete generic immutable updates now retain
+  unchanged fields, replace owned fields left to right, and settle both partial
+  construction and partial update failures without replacing the selected
+  status. Focused local interpreter, Clang O0/O2 and Node/Core-Wasm evidence
+  covers borrow-then-own execution, update execution, both partial failures,
+  repeated entry, one-live-owner capacity, and hostile plan mutation. Generic
+  variants/functions, classes, nested storage, Project/public ABIs, and hosted
+  execution remain unchanged or unclaimed; the required Linux step is authored
+  but has not yet produced hosted evidence.
+
 - Added deterministic grammar-driven differential compiler tests with shrinking
   as a module of the existing `scalar_status_backend_equivalence` harness. A
   seed names one module in the admitted scalar subset — nested operands,

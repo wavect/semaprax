@@ -380,10 +380,8 @@ fn classify_nested_owned_byte_record(
                     .type_parameters(&declaration)
                     .is_none_or(|parameters| parameters.len() != arguments.len())
                     || arguments.iter().any(|argument| {
-                        !matches!(
-                            argument,
-                            ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Bytes
-                        )
+                        *argument != ResolvedType::Bytes
+                            && !nested_record_copy_scalar_is_admitted(argument)
                     })
                     || declarations
                         .declaration(&declaration)
@@ -481,7 +479,7 @@ pub(super) fn is_admitted_nested_owned_byte_record(
     }
 }
 
-pub(super) fn is_flat_owned_byte_record(
+pub(crate) fn is_flat_owned_byte_record(
     declarations: &DeclarationIndex,
     ty: &ResolvedType,
 ) -> bool {
@@ -492,6 +490,12 @@ pub(super) fn is_flat_owned_byte_record(
     else {
         return false;
     };
+    if declarations
+        .declaration(declaration)
+        .is_none_or(|item| item.kind != DeclarationKind::Record)
+    {
+        return false;
+    }
     let Some(parameters) = declarations.type_parameters(declaration) else {
         return false;
     };
@@ -500,10 +504,7 @@ pub(super) fn is_flat_owned_byte_record(
     }
     if !arguments.is_empty()
         && arguments.iter().any(|argument| {
-            !matches!(
-                argument,
-                ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Bytes
-            )
+            *argument != ResolvedType::Bytes && !nested_record_copy_scalar_is_admitted(argument)
         })
     {
         return false;
@@ -547,4 +548,30 @@ pub(super) fn is_nested_nonflat_owned_byte_record(
 ) -> bool {
     is_admitted_nested_owned_byte_record(declarations, ty)
         && !is_flat_owned_byte_record(declarations, ty)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn flat_generic_owned_record_classifier_rejects_classes() {
+        let source = crate::parse(
+            r#"module generic.classifier;
+@id("generic.classifier.box") class Box<T, U> {
+  @id("generic.classifier.box.payload") payload: T,
+  @id("generic.classifier.box.marker") marker: U,
+}
+@id("generic.classifier.main") fn main() -> i64 { 0 }
+"#,
+            std::path::Path::new("generic-classifier.spx"),
+        )
+        .unwrap();
+        let program = crate::hir::resolve(&source).unwrap();
+        let instance = ResolvedType::Nominal {
+            declaration: DeclarationId::new("generic.classifier.box"),
+            arguments: vec![ResolvedType::Bytes, ResolvedType::U8],
+        };
+        assert!(!is_flat_owned_byte_record(&program.declarations, &instance));
+    }
 }

@@ -309,7 +309,9 @@ The additive [Concrete Generic Owned-Byte Records
 v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) composes the flat projected-byte
 cleanup path with exact generic-record substitution. Only concrete authored
 record instances whose substituted direct fields are `Bytes` or Copy scalars
-are admitted. Source verification, validated HIR, cleanup inventory/replay,
+are admitted. The Copy closure is exactly `i64`, `i32`, `u8`, `usize`, `char`,
+`f32`, `f64`, and `bool`; variants, classes and generic functions retain their
+separate narrower gates. Source verification, validated HIR, cleanup inventory/replay,
 interpreter, Native64 layout/emission, and Wasm32 layout/emission each derive
 the same concrete field types; target layout is never substitution authority.
 Nested generic storage, generic classes/variants/resources/functions, Project,

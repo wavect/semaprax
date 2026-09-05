@@ -191,7 +191,7 @@ pub(crate) use inspection::{
     validate_attached_identity_references, workspace_call_sites, workspace_expression_identity,
 };
 
-pub(crate) use type_reachability::reachable_authored_types;
+pub(crate) use type_reachability::{is_flat_owned_byte_record, reachable_authored_types};
 pub(crate) use validation::resolved_type_contains_owned_bytes;
 pub(crate) use validation::validate_core;
 #[cfg(test)]

@@ -145,6 +145,64 @@ fn semantic_recipe_renders_contracts_that_replay_byte_for_byte() {
 }
 
 #[test]
+fn semantic_recipe_replays_concrete_generic_owned_record_identity() {
+    let source = crate::parse(
+        r#"module semaprax_npm_recipe;
+
+@id("generic.recipe.pair")
+record Pair<P0, P1> {
+    @id("generic.recipe.pair.left")
+    left: P0,
+    @id("generic.recipe.pair.right")
+    right: P1,
+}
+
+@id("generic.recipe.inspect")
+fn f0(value: borrow Pair<Bytes, bool>) -> i64
+{ 0 }
+
+@id("generic.recipe.main")
+fn main() -> i64
+{ 0 }
+
+"#,
+        std::path::Path::new("generic-recipe.spx"),
+    )
+    .unwrap();
+    let program = crate::hir::resolve(&source).unwrap();
+    let recipe = render_owned_data_semantic_recipe(&program).unwrap();
+    assert!(recipe.contains("record Pair<P0, P1>"));
+    assert!(recipe.contains("Pair<Bytes, bool>"));
+    let replayed = semantic_recipe_v8::replay_against(&program, &recipe).unwrap();
+    assert_eq!(replayed, program);
+    assert_eq!(
+        render_owned_data_semantic_recipe(&replayed).unwrap(),
+        recipe
+    );
+
+    let swapped = recipe.replacen("Pair<Bytes, bool>", "Pair<bool, Bytes>", 1);
+    let swapped_replayed = semantic_recipe_v8::replay(&swapped).unwrap();
+    let swapped_parameter = &swapped_replayed
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "generic.recipe.inspect")
+        .unwrap()
+        .params[0]
+        .ty;
+    assert_eq!(
+        swapped_parameter,
+        &crate::hir::ResolvedType::Nominal {
+            declaration: crate::hir::DeclarationId::new("generic.recipe.pair"),
+            arguments: vec![
+                crate::hir::ResolvedType::Bool,
+                crate::hir::ResolvedType::Bytes,
+            ],
+        }
+    );
+    assert!(semantic_recipe_v8::replay_against(&program, &swapped).is_err());
+}
+
+#[test]
 fn carrier_replay_rejects_a_canonical_self_resigned_generated_artifact_mutation() {
     let source = crate::parse(
             "module config.app;\n@id(\"config.valid\") fn valid(value: borrow str, expected: bool) -> bool { str_is_empty(value) == expected }\n@id(\"main\") fn main() -> i64 { 0 }\n",

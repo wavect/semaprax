@@ -7,6 +7,10 @@ use semaprax::{codegen, parse, verify, wasm};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
+fn generic_owned_backends_required() -> bool {
+    std::env::var_os("SEMAPRAX_REQUIRE_GENERIC_OWNED_BACKENDS").is_some()
+}
+
 const SOURCE: &str = r#"
 module test.nested_owned_record_runtime;
 
@@ -198,6 +202,90 @@ fn run() -> i64 {
     inspect(packet) + consume(packet)
 }
 
+@id("generic.inspect-u8") fn inspect_u8(packet: borrow Pair<Bytes, u8>) -> i64 {
+    match borrow packet { Pair { left: payload, right: marker } =>
+        if marker == 7u8 && byte_len(bytes_as_slice(payload)) == 1usize { 1 } else { 0 }, }
+}
+@id("generic.consume-u8") fn consume_u8(packet: own Pair<Bytes, u8>) -> i64 {
+    match own packet { Pair { left: payload, right: marker } => if marker == 7u8 { 1 } else { 0 }, }
+}
+@id("generic.check-u8") fn check_u8() -> i64 {
+    let input = [1u8]; let packet = Pair<Bytes, u8> { left: bytes_copy(array_as_slice(input)), right: 7u8 };
+    if inspect_u8(packet) + consume_u8(packet) == 2 { 0 } else { 100 }
+}
+
+@id("generic.inspect-i64") fn inspect_i64(packet: borrow Pair<Bytes, i64>) -> i64 {
+    match borrow packet { Pair { left: payload, right: marker } =>
+        if marker == -7 && byte_len(bytes_as_slice(payload)) == 1usize { 1 } else { 0 }, }
+}
+@id("generic.consume-i64") fn consume_i64(packet: own Pair<Bytes, i64>) -> i64 {
+    match own packet { Pair { left: payload, right: marker } => if marker == -7 { 1 } else { 0 }, }
+}
+@id("generic.check-i64") fn check_i64() -> i64 {
+    let input = [7u8]; let packet = Pair<Bytes, i64> { left: bytes_copy(array_as_slice(input)), right: -7 };
+    if inspect_i64(packet) + consume_i64(packet) == 2 { 0 } else { 100 }
+}
+
+@id("generic.inspect-i32") fn inspect_i32(packet: borrow Pair<Bytes, i32>) -> i64 {
+    match borrow packet { Pair { left: payload, right: marker } =>
+        if marker == -7i32 && byte_len(bytes_as_slice(payload)) == 1usize { 1 } else { 0 }, }
+}
+@id("generic.consume-i32") fn consume_i32(packet: own Pair<Bytes, i32>) -> i64 {
+    match own packet { Pair { left: payload, right: marker } => if marker == -7i32 { 1 } else { 0 }, }
+}
+@id("generic.check-i32") fn check_i32() -> i64 {
+    let input = [2u8]; let packet = Pair<Bytes, i32> { left: bytes_copy(array_as_slice(input)), right: -7i32 };
+    if inspect_i32(packet) + consume_i32(packet) == 2 { 0 } else { 100 }
+}
+
+@id("generic.inspect-usize") fn inspect_usize(packet: borrow Pair<Bytes, usize>) -> i64 {
+    match borrow packet { Pair { left: payload, right: marker } =>
+        if marker == 7usize && byte_len(bytes_as_slice(payload)) == 1usize { 1 } else { 0 }, }
+}
+@id("generic.consume-usize") fn consume_usize(packet: own Pair<Bytes, usize>) -> i64 {
+    match own packet { Pair { left: payload, right: marker } => if marker == 7usize { 1 } else { 0 }, }
+}
+@id("generic.check-usize") fn check_usize() -> i64 {
+    let input = [3u8]; let packet = Pair<Bytes, usize> { left: bytes_copy(array_as_slice(input)), right: 7usize };
+    if inspect_usize(packet) + consume_usize(packet) == 2 { 0 } else { 100 }
+}
+
+@id("generic.inspect-char") fn inspect_char(packet: borrow Pair<Bytes, char>) -> i64 {
+    match borrow packet { Pair { left: payload, right: marker } =>
+        if marker == 'x' && byte_len(bytes_as_slice(payload)) == 1usize { 1 } else { 0 }, }
+}
+@id("generic.consume-char") fn consume_char(packet: own Pair<Bytes, char>) -> i64 {
+    match own packet { Pair { left: payload, right: marker } => if marker == 'x' { 1 } else { 0 }, }
+}
+@id("generic.check-char") fn check_char() -> i64 {
+    let input = [4u8]; let packet = Pair<Bytes, char> { left: bytes_copy(array_as_slice(input)), right: 'x' };
+    if inspect_char(packet) + consume_char(packet) == 2 { 0 } else { 100 }
+}
+
+@id("generic.inspect-f32") fn inspect_f32(packet: borrow Pair<Bytes, f32>) -> i64 {
+    match borrow packet { Pair { left: payload, right: marker } =>
+        if marker == 1.5f32 && byte_len(bytes_as_slice(payload)) == 1usize { 1 } else { 0 }, }
+}
+@id("generic.consume-f32") fn consume_f32(packet: own Pair<Bytes, f32>) -> i64 {
+    match own packet { Pair { left: payload, right: marker } => if marker == 1.5f32 { 1 } else { 0 }, }
+}
+@id("generic.check-f32") fn check_f32() -> i64 {
+    let input = [5u8]; let packet = Pair<Bytes, f32> { left: bytes_copy(array_as_slice(input)), right: 1.5f32 };
+    if inspect_f32(packet) + consume_f32(packet) == 2 { 0 } else { 100 }
+}
+
+@id("generic.inspect-f64") fn inspect_f64(packet: borrow Pair<Bytes, f64>) -> i64 {
+    match borrow packet { Pair { left: payload, right: marker } =>
+        if marker == 2.5 && byte_len(bytes_as_slice(payload)) == 1usize { 1 } else { 0 }, }
+}
+@id("generic.consume-f64") fn consume_f64(packet: own Pair<Bytes, f64>) -> i64 {
+    match own packet { Pair { left: payload, right: marker } => if marker == 2.5 { 1 } else { 0 }, }
+}
+@id("generic.check-f64") fn check_f64() -> i64 {
+    let input = [6u8]; let packet = Pair<Bytes, f64> { left: bytes_copy(array_as_slice(input)), right: 2.5 };
+    if inspect_f64(packet) + consume_f64(packet) == 2 { 0 } else { 100 }
+}
+
 @id("generic.fail")
 fn fail() -> i64 {
     let packet = make();
@@ -205,7 +293,9 @@ fn fail() -> i64 {
     consume(packet) + failure
 }
 
-@id("app.main") fn main() -> i64 { run() }
+@id("app.main") fn main() -> i64 {
+    run() + check_u8() + check_i64() + check_i32() + check_usize() + check_char() + check_f32() + check_f64()
+}
 "#;
 
 fn symbol(id: &str) -> String {
@@ -249,7 +339,12 @@ fn concrete_generic_owned_records_execute_and_settle_on_all_three_backends() {
     interpreter::verify_envelope(&failure.envelope).unwrap();
     let _ = std::fs::remove_file(path);
 
-    if Command::new("clang").arg("--version").output().is_ok() {
+    let clang_available = Command::new("clang").arg("--version").output().is_ok();
+    assert!(
+        clang_available || !generic_owned_backends_required(),
+        "required generic-owned Clang backend is unavailable"
+    );
+    if clang_available {
         let generated = codegen::emit_c(&parsed).unwrap();
         assert_eq!(generated, codegen::emit_c(&parsed).unwrap());
         let tracked = generated
@@ -323,7 +418,12 @@ static void spx_test_free(void *allocation) {
         }
     }
 
-    if Command::new("node").arg("--version").output().is_ok() {
+    let node_available = Command::new("node").arg("--version").output().is_ok();
+    assert!(
+        node_available || !generic_owned_backends_required(),
+        "required generic-owned Node backend is unavailable"
+    );
+    if node_available {
         let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!(
             "semaprax-generic-owned-wasm-{}-{serial}",

@@ -225,6 +225,27 @@ fn admission_rejects_every_wider_record_family() {
 }
 
 #[test]
+fn frozen_v9_descriptor_rejects_an_admitted_concrete_generic_result() {
+    let program = crate::concrete_generic_record_product::resolved_standalone();
+    let error = derive_flat_owned_record_api_descriptor(
+        &program,
+        &["generic.product.make".to_owned()],
+        subject(),
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "SPX-J113");
+    assert_eq!(
+        error.message,
+        "flat owned-record result must be monomorphic"
+    );
+    assert_eq!(FLAT_OWNED_RECORD_PROJECT_SCHEMA, "semaprax.project.v9");
+    assert_eq!(
+        FLAT_OWNED_RECORD_API_SCHEMA,
+        "semaprax.public-flat-owned-record-api.v1"
+    );
+}
+
+#[test]
 fn generated_mappings_are_safe_and_hide_the_carrier() {
     let program = resolve(SOURCE);
     let descriptor =

@@ -4913,9 +4913,11 @@ impl<'a> HirValidator<'a> {
                         .ok_or_else(|| hir_error(format!("record `{record}` has no parameters")))?;
                     if instance != record
                         || arguments.len() != parameters.len()
-                        || arguments.iter().any(|argument| {
-                            !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
-                        })
+                        || !super::type_reachability::record_args_ok(
+                            &self.program.declarations,
+                            record,
+                            arguments,
+                        )
                     {
                         return Err(hir_error(format!(
                             "record update for `{record}` has an invalid concrete instance"
@@ -7962,9 +7964,11 @@ impl<'a> HirValidator<'a> {
                     .ok_or_else(|| hir_error(format!("record `{record}` has no parameters")))?;
                 if instance_record != record
                     || arguments.len() != parameters.len()
-                    || arguments
-                        .iter()
-                        .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+                    || !super::type_reachability::record_args_ok(
+                        &self.program.declarations,
+                        record,
+                        arguments,
+                    )
                 {
                     return Err(hir_error(format!(
                         "record update for `{record}` has an invalid concrete instance"
@@ -8183,9 +8187,11 @@ impl<'a> HirValidator<'a> {
             .type_parameters(declaration)
             .ok_or_else(|| hir_error(format!("record `{declaration}` has no parameters")))?;
         if arguments.len() != parameters.len()
-            || arguments
-                .iter()
-                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            || !super::type_reachability::record_args_ok(
+                &self.program.declarations,
+                declaration,
+                arguments,
+            )
         {
             return Err(hir_error(format!(
                 "field `{field}` projects from an invalid concrete record instance"

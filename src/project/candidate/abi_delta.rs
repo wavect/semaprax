@@ -481,3 +481,71 @@ fn verification() -> Vec<Diagnostic> {
         "candidate ABI delta failed exact independent replay",
     )]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::hir::DeclarationId;
+
+    #[test]
+    fn concrete_generic_nominal_keys_and_owner_index_substitution_are_exact() {
+        let owner = DeclarationId::new("generic.product.pair");
+        let concrete = ResolvedType::Nominal {
+            declaration: owner.clone(),
+            arguments: vec![ResolvedType::Bytes, ResolvedType::Bool],
+        };
+        let swapped = ResolvedType::Nominal {
+            declaration: owner.clone(),
+            arguments: vec![ResolvedType::Bool, ResolvedType::Bytes],
+        };
+        let mut budget = Budget::default();
+        let concrete_key = type_key(&concrete, &mut budget, 0).unwrap();
+        let swapped_key = type_key(&swapped, &mut budget, 0).unwrap();
+        assert_eq!(
+            concrete_key,
+            "nominal:20:generic.product.pair:2:5:bytes4:bool"
+        );
+        assert_eq!(
+            swapped_key,
+            "nominal:20:generic.product.pair:2:4:bool5:bytes"
+        );
+        assert_ne!(concrete_key, swapped_key);
+
+        let left = substitute(
+            &ResolvedType::TypeParameter {
+                owner: owner.clone(),
+                index: 0,
+            },
+            owner.as_str(),
+            &[ResolvedType::Bytes, ResolvedType::Bool],
+            &mut budget,
+            0,
+        )
+        .unwrap();
+        let right = substitute(
+            &ResolvedType::TypeParameter {
+                owner: owner.clone(),
+                index: 1,
+            },
+            owner.as_str(),
+            &[ResolvedType::Bytes, ResolvedType::Bool],
+            &mut budget,
+            0,
+        )
+        .unwrap();
+        let foreign = substitute(
+            &ResolvedType::TypeParameter {
+                owner: DeclarationId::new("generic.product.foreign"),
+                index: 0,
+            },
+            owner.as_str(),
+            &[ResolvedType::Bytes, ResolvedType::Bool],
+            &mut budget,
+            0,
+        )
+        .unwrap();
+        assert_eq!(left, ResolvedType::Bytes);
+        assert_eq!(right, ResolvedType::Bool);
+        assert!(matches!(foreign, ResolvedType::TypeParameter { .. }));
+    }
+}

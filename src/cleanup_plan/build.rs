@@ -4687,9 +4687,25 @@ impl<'a> PlanBuilder<'a> {
                                     ))
                                 })?
                                 .to_vec();
+                            let ResolvedType::Nominal {
+                                declaration,
+                                arguments,
+                            } = &expression.ty
+                            else {
+                                return Err(plan_error(
+                                    "record update result is not a nominal instance",
+                                ));
+                            };
+                            if declaration != record {
+                                return Err(plan_error(
+                                    "record update result changes declaration identity",
+                                ));
+                            }
                             let mut state = flow.state;
                             for field in declarations {
-                                if replaced.contains(&field.id) || !self.needs_drop(&field.ty)? {
+                                let field_ty =
+                                    crate::hir::substitute_type(&field.ty, record, arguments)?;
+                                if replaced.contains(&field.id) || !self.needs_drop(&field_ty)? {
                                     continue;
                                 }
                                 self.transfer(
@@ -6695,8 +6711,21 @@ impl<'a> PlanBuilder<'a> {
             .record_fields(record)
             .ok_or_else(|| plan_error(format!("record update has unknown record `{record}`")))?
             .to_vec();
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = &expression.ty
+        else {
+            return Err(plan_error("record update result is not a nominal instance"));
+        };
+        if declaration != record {
+            return Err(plan_error(
+                "record update result changes declaration identity",
+            ));
+        }
         for field in declarations {
-            if replaced.contains(&field.id) || !self.needs_drop(&field.ty)? {
+            let field_ty = crate::hir::substitute_type(&field.ty, record, arguments)?;
+            if replaced.contains(&field.id) || !self.needs_drop(&field_ty)? {
                 continue;
             }
             self.transfer(

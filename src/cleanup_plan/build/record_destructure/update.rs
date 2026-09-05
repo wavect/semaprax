@@ -40,7 +40,10 @@ pub(in crate::cleanup_plan::build) fn authenticate(
             "record update base and declaration disagree",
         ));
     }
-    if !is_nested_owned_bytes(builder.program, &base.ty)? {
+    let nested = is_nested_owned_bytes(builder.program, &base.ty)?;
+    let generic_flat = !arguments.is_empty()
+        && crate::hir::is_flat_owned_byte_record(&builder.program.declarations, &base.ty);
+    if !nested && !generic_flat {
         return Ok(false);
     }
     let declared = builder
@@ -77,8 +80,10 @@ pub(in crate::cleanup_plan::build) fn authenticate(
             ));
         }
     }
-    super::super::schema::promote_v9(&mut builder.schema);
-    Ok(true)
+    if nested {
+        super::super::schema::promote_v9(&mut builder.schema);
+    }
+    Ok(nested)
 }
 
 fn is_nested_owned_bytes(

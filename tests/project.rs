@@ -26,6 +26,8 @@
 // Support modules used by more than one module of this harness are declared once
 // here. Loading the same file as a module twice in one crate compiles it twice and
 // yields two unrelated sets of types; modules refer to these as `crate::<name>`.
+#[path = "support/concrete_generic_record_product.rs"]
+mod concrete_generic_record_product;
 #[path = "support/flat_record_product.rs"]
 mod flat_record_product;
 #[path = "support/full_toolchain.rs"]

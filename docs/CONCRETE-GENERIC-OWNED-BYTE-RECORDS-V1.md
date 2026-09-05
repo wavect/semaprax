@@ -17,15 +17,16 @@ An admitted instance:
 
 - names an authored `record`, never a class, variant, or resource;
 - supplies exactly one concrete argument per declared type parameter;
-- uses only direct `Bytes`, `i64`, or `bool` arguments;
+- uses only direct `Bytes` or Copy-scalar arguments: `i64`, `i32`, `u8`,
+  `usize`, `char`, `f32`, `f64`, or `bool`;
 - has, after exact owner-and-index substitution, at least one direct `Bytes`
   field; and
 - has, after substitution, only direct `Bytes` or admitted Copy-scalar fields.
 
 The substituted instance is flat. Nested generic arguments or storage,
 `String`, arrays, slices, classes, variants, resources, generic functions,
-record updates, Project exports, FFI, packages, Components, and public
-aggregate ABIs remain closed. `Option<Bytes>` and the separately admitted
+Project exports, FFI, packages, Components, and public aggregate ABIs remain
+closed. `Option<Bytes>` and the separately admitted
 one-owned-side `Result` profiles keep their compiler-owned rules;
 `Result<Bytes, Bytes>` remains rejected.
 
@@ -55,6 +56,15 @@ bindings; `match borrow` creates arm-scoped aliases and leaves the source owner
 live. Failure selection and result publication retain the ordinary cleanup
 contract.
 
+Immutable update admits only an exact owned base of the same concrete record
+instance. It evaluates the base and replacement initializers left to right,
+substitutes every replaced or retained field against the complete argument
+vector, and transfers the completed result only after all replacements
+succeed. Failure before a constructor completes settles exactly its completed
+owned prefix. Failure during update settles completed replacements and the
+staged base exactly once; displaced and retained byte leaves follow the
+authenticated child-region plan. The operation adds no mutation or authority.
+
 ## Proof surfaces and lowering
 
 This slice reuses the already-versioned identities it composes:
@@ -80,19 +90,26 @@ The local gate requires:
 
 - source verification plus resolved-HIR assertions for exact concrete type
   arguments, substituted match bindings, and byte/no-drop cleanup leaves;
+- every direct Copy-scalar substitution beside `Bytes`, with exact Native64
+  and Wasm32 layouts and distinct instance/layout identities;
 - stable rejection of non-Copy, nested generic, class, variant, and two-owned-
   side `Result` shapes;
-- reference-interpreter success and post-owner-creation failure settlement;
+- independent cleanup-plan replay plus rejection of type-argument, liveness,
+  and authored-field-order substitutions;
+- reference-interpreter immutable-update success, partial-construction
+  failure, and partial-update failure settlement;
 - separately optimized native C11 execution at `-O0` and `-O2`, with repeated
   entry and zero live allocations after success and failure; and
 - structurally valid Node/Core-Wasm execution under a one-live-owner capacity,
   including repeated entry.
 
 Focused evidence is necessary but does not promote generic ownership broadly.
-Hosted execution, hostile plan mutation, exact/+1 aggregate bounds, all Copy
-scalar substitutions, immutable update, nested storage, generic-function
-composition, Project/public consumers, cross-platform ABI compatibility, and
-distribution remain separate completion work.
+Hosted execution, exact/+1 aggregate bounds, nested storage, generic-function
+composition, Project/public consumers, cross-platform ABI
+compatibility, and distribution remain separate completion work. The focused
+local source/HIR/layout and interpreter/native/Wasm gates exercise the complete
+Copy-scalar set; no hosted execution is claimed until the required Linux CI
+step records a real run.
 
 ## Nonclaims
 

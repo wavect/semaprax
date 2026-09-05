@@ -241,40 +241,56 @@ fn direct_owned_bytes_layout_matches_existing_carriers_without_becoming_copy() {
 #[test]
 fn concrete_generic_owned_bytes_layout_substitutes_before_target_layout() {
     let program = program();
-    let instance = ResolvedType::Nominal {
-        declaration: DeclarationId::new("generic-pair.type"),
-        arguments: vec![ResolvedType::Bytes, ResolvedType::Bool],
-    };
-    let native = AggregateLayout::for_type(&program, AggregateTarget::Native64, &instance)
-        .expect("Native64 concrete generic owned-byte layout");
-    assert_eq!((native.size, native.align), (24, 8));
-    assert_eq!(
-        native
-            .fields
-            .iter()
-            .map(|field| (field.ty.clone(), field.value_kind, field.offset))
-            .collect::<Vec<_>>(),
-        vec![
-            (ResolvedType::Bytes, AggregateFieldValueKind::OwnedBytes, 0),
-            (ResolvedType::Bool, AggregateFieldValueKind::Copy, 16),
-        ]
-    );
-    native.validate(&program).unwrap();
+    let scalars = [
+        ResolvedType::I64,
+        ResolvedType::U8,
+        ResolvedType::I32,
+        ResolvedType::Usize,
+        ResolvedType::Char,
+        ResolvedType::F32,
+        ResolvedType::F64,
+        ResolvedType::Bool,
+    ];
+    let mut digests = std::collections::BTreeSet::new();
+    for scalar in scalars {
+        let instance = ResolvedType::Nominal {
+            declaration: DeclarationId::new("generic-pair.type"),
+            arguments: vec![ResolvedType::Bytes, scalar.clone()],
+        };
+        for (target, expected_size, expected_offset) in [
+            (AggregateTarget::Native64, 24, 16),
+            (AggregateTarget::Wasm32, 16, 8),
+        ] {
+            let layout = AggregateLayout::for_type(&program, target, &instance)
+                .expect("concrete generic owned-byte layout");
+            assert_eq!((layout.size, layout.align), (expected_size, 8));
+            assert_eq!(
+                layout
+                    .fields
+                    .iter()
+                    .map(|field| (field.ty.clone(), field.value_kind, field.offset))
+                    .collect::<Vec<_>>(),
+                vec![
+                    (ResolvedType::Bytes, AggregateFieldValueKind::OwnedBytes, 0),
+                    (
+                        scalar.clone(),
+                        AggregateFieldValueKind::Copy,
+                        expected_offset
+                    ),
+                ]
+            );
+            layout.validate(&program).unwrap();
+            assert!(digests.insert(layout.digest_hex().to_owned()));
 
-    let wasm = AggregateLayout::for_type(&program, AggregateTarget::Wasm32, &instance)
-        .expect("Wasm32 concrete generic owned-byte layout");
-    assert_eq!((wasm.size, wasm.align), (16, 8));
-    assert_eq!(
-        wasm.fields
-            .iter()
-            .map(|field| (field.ty.clone(), field.value_kind, field.offset))
-            .collect::<Vec<_>>(),
-        vec![
-            (ResolvedType::Bytes, AggregateFieldValueKind::OwnedBytes, 0),
-            (ResolvedType::Bool, AggregateFieldValueKind::Copy, 8),
-        ]
-    );
-    wasm.validate(&program).unwrap();
+            let mut substituted = layout;
+            substituted.fields[1].ty = if scalar == ResolvedType::Bool {
+                ResolvedType::I64
+            } else {
+                ResolvedType::Bool
+            };
+            assert!(substituted.validate(&program).is_err());
+        }
+    }
 }
 
 #[test]

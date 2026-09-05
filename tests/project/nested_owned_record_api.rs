@@ -166,6 +166,30 @@ fn descriptor_rejects_closed_shape_mutation_and_flat_legacy_does_not_widen() {
 }
 
 #[test]
+fn frozen_v11_descriptor_rejects_an_admitted_concrete_generic_result() {
+    let program = crate::concrete_generic_record_product::resolved_standalone();
+    let error = derive_nested_owned_record_api_descriptor(
+        &program,
+        &["generic.product.make".to_owned()],
+        PublicApiSubject {
+            project_schema: NESTED_OWNED_RECORD_PROJECT_SCHEMA,
+            ..subject()
+        },
+    )
+    .unwrap_err();
+    assert_eq!(error.code, "SPX-J118");
+    assert_eq!(
+        error.message,
+        "nested owned-record result must be monomorphic"
+    );
+    assert_eq!(NESTED_OWNED_RECORD_PROJECT_SCHEMA, "semaprax.project.v11");
+    assert_eq!(
+        NESTED_OWNED_RECORD_API_SCHEMA,
+        "semaprax.public-nested-owned-record-api.v1"
+    );
+}
+
+#[test]
 fn excluded_nested_result_shapes_fail_before_descriptor_creation() {
     for (field_type, initializer) in [("string", "\"text\""), ("[u8; 1]", "[1u8]")] {
         let source = format!(

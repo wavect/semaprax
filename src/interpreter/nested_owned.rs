@@ -42,7 +42,6 @@ pub(super) fn record_update_is_admitted(
         return false;
     };
     if declaration != record
-        || !arguments.is_empty()
         || !classify_record(declarations, result).is_some_and(|profile| profile.has_bytes)
     {
         return false;
@@ -54,18 +53,24 @@ pub(super) fn record_update_is_admitted(
     // nested child contains the owned byte leaf. A direct Bytes field plus an
     // admitted Copy-only nested record is equally non-flat and is admitted by
     // the independent source/HIR classifiers.
-    if !declared.iter().any(|field| {
-        matches!(&field.ty, ResolvedType::Nominal { .. })
-            && classify_record(declarations, &field.ty).is_some()
-    }) {
+    let generic_flat =
+        !arguments.is_empty() && hir::is_flat_owned_byte_record(declarations, result);
+    if !generic_flat
+        && !declared.iter().any(|field| {
+            matches!(&field.ty, ResolvedType::Nominal { .. })
+                && classify_record(declarations, &field.ty).is_some()
+        })
+    {
         return false;
     }
     let mut seen = BTreeSet::new();
     fields.iter().all(|replacement| {
         seen.insert(replacement.field.clone())
-            && declared
-                .iter()
-                .any(|field| field.id == replacement.field && field.ty == replacement.value.ty)
+            && declared.iter().any(|field| {
+                field.id == replacement.field
+                    && hir::substitute_type(&field.ty, record, arguments)
+                        .is_ok_and(|ty| ty == replacement.value.ty)
+            })
     })
 }
 
@@ -76,7 +81,11 @@ pub(super) fn update_owned_record(
     replacements: Vec<(hir::DeclarationId, Value)>,
 ) -> Result<Value, Flow> {
     validate_runtime_record(declarations, expected, &record, true)?;
-    let ResolvedType::Nominal { declaration, .. } = expected else {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = expected
+    else {
         return Err(Flow::Guard("record update result is not nominal"));
     };
     let declared = declarations
@@ -90,9 +99,9 @@ pub(super) fn update_owned_record(
         let ty = declared
             .iter()
             .find(|candidate| candidate.id == *field)
-            .map(|candidate| &candidate.ty)
+            .and_then(|candidate| hir::substitute_type(&candidate.ty, declaration, arguments).ok())
             .ok_or(Flow::Guard("record update replaces an unknown field"))?;
-        validate_runtime_value(declarations, ty, value, true)?;
+        validate_runtime_value(declarations, &ty, value, true)?;
     }
     let mut record = Arc::try_unwrap(record)
         .map_err(|_| Flow::Guard("record update base still has a live alias"))?;

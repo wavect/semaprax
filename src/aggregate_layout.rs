@@ -377,7 +377,15 @@ fn layout_nominal(
                 || arguments.iter().any(|argument| {
                     !matches!(
                         argument,
-                        ResolvedType::I64 | ResolvedType::Bool | ResolvedType::Bytes
+                        ResolvedType::I64
+                            | ResolvedType::I32
+                            | ResolvedType::Char
+                            | ResolvedType::U8
+                            | ResolvedType::Usize
+                            | ResolvedType::F32
+                            | ResolvedType::F64
+                            | ResolvedType::Bool
+                            | ResolvedType::Bytes
                     )
                 })
             {

@@ -1193,12 +1193,14 @@ fn untouched_update_field_work_upper(
             format!("record update has unknown record `{record}`"),
         )
     })?;
+    let arguments = record_destructure::update::concrete_arguments(function, expression, record)?;
     let mut untouched_droppable = 0usize;
     for field in declarations {
+        let field_ty = crate::hir::substitute_type(&field.ty, record, arguments)?;
         if replacements
             .iter()
             .any(|replacement| replacement.field == field.id)
-            || !type_needs_drop(program, function, &field.ty)?
+            || !type_needs_drop(program, function, &field_ty)?
         {
             continue;
         }
@@ -5560,8 +5562,10 @@ fn finish_update_paths(
             format!("record update has unknown record `{record}`"),
         )
     })?;
+    let arguments = record_destructure::update::concrete_arguments(function, expression, record)?;
     for field in declarations {
-        if replaced.contains(&field.id) || !type_needs_drop(program, function, &field.ty)? {
+        let field_ty = crate::hir::substitute_type(&field.ty, record, arguments)?;
+        if replaced.contains(&field.id) || !type_needs_drop(program, function, &field_ty)? {
             continue;
         }
         for path in &mut paths {

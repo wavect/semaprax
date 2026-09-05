@@ -72,10 +72,12 @@ promotion is not claimed.
 The additive [Concrete Generic Owned-Byte Records
 v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) composes explicit generic-record
 identity with that flat ownership model. Exact instances such as `Box<Bytes>`
-and `Pair<Bytes, bool>` substitute fields before HIR facts, cleanup, layout,
+and `Pair<Bytes, u8>` substitute every direct Copy scalar (`i64`, `i32`, `u8`,
+`usize`, `char`, `f32`, `f64`, and `bool`) before HIR facts, cleanup, layout,
 matching, and execution. Local interpreter, native C11 `-O0`/`-O2`, and
 Node/Core-Wasm evidence covers success, repeated entry, borrowing, owned
-destructuring, and post-construction failure settlement. Nested generic
+destructuring, post-construction failure settlement, and hostile-plan replay.
+Nested generic
 storage, classes, variants, resources, generic functions, public aggregate
 ABIs, and hosted promotion remain closed.
 The separate bounded generic-function slice admits one or two owner/index-

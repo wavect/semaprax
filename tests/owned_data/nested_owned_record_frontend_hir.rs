@@ -466,6 +466,7 @@ module test.generic_owned_record_frontend_hir;
   @id("generic.frontend.pair.left") left: T,
   @id("generic.frontend.pair.right") right: U,
 }
+
 @id("generic.frontend.consume") fn consume(packet: own Pair<Bytes, bool>) -> i64 {
   match own packet {
     Pair { left: payload, right: enabled } =>
@@ -530,6 +531,81 @@ module test.generic_owned_record_frontend_hir;
 }
 
 #[test]
+fn concrete_generic_owned_record_accepts_every_direct_copy_scalar_substitution() {
+    let cases = [
+        ("u8", hir::ResolvedType::U8),
+        ("i32", hir::ResolvedType::I32),
+        ("usize", hir::ResolvedType::Usize),
+        ("char", hir::ResolvedType::Char),
+        ("f32", hir::ResolvedType::F32),
+        ("f64", hir::ResolvedType::F64),
+    ];
+    for (source_name, resolved_scalar) in cases {
+        let source = format!(
+            r#"
+module test.generic_owned_record_copy_scalar;
+@id("generic.copy.pair") record Pair<T, U> {{
+  @id("generic.copy.pair.payload") payload: T,
+  @id("generic.copy.pair.marker") marker: U,
+}}
+@id("generic.copy.consume") fn consume(packet: own Pair<Bytes, {source_name}>) -> i64 {{
+  match own packet {{ Pair {{ payload: payload, marker: marker }} => 0, }}
+}}
+@id("app.main") fn main() -> i64 {{ 0 }}
+"#
+        );
+        let parsed = parse(
+            &source,
+            Path::new("generic-owned-record-copy-scalars-v1.spx"),
+        )
+        .unwrap();
+        let report = verify::verify(&parsed);
+        assert!(
+            report
+                .iter()
+                .all(|diagnostic| !diagnostic.severity.is_error()),
+            "{source_name}: {report:?}"
+        );
+        let program = hir::resolve(&parsed).unwrap();
+        let consume = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "generic.copy.consume")
+            .unwrap();
+        let expected_ty = hir::ResolvedType::Nominal {
+            declaration: DeclarationId::new("generic.copy.pair"),
+            arguments: vec![hir::ResolvedType::Bytes, resolved_scalar.clone()],
+        };
+        assert_eq!(consume.params[0].ty, expected_ty);
+        let slot = consume
+            .cleanup
+            .slots
+            .iter()
+            .find(|slot| slot.ty == expected_ty)
+            .unwrap();
+        let FieldLivenessShape::Record { fields, .. } = &slot.shape else {
+            panic!("{source_name}: concrete owner shape is not a record")
+        };
+        assert_eq!(fields.len(), 2);
+        assert_eq!(fields[0].field.as_str(), "generic.copy.pair.payload");
+        assert_eq!(fields[1].field.as_str(), "generic.copy.pair.marker");
+        assert!(matches!(
+            &fields[0].shape,
+            FieldLivenessShape::Leaf { lifecycle, .. }
+                if lifecycle.as_str() == BYTES_DROP_LIFECYCLE_ID
+        ));
+        assert!(matches!(fields[1].shape, FieldLivenessShape::NoDrop));
+        let ResolvedExprKind::Match { arms, .. } = &block_tail(&consume.body).kind else {
+            panic!("{source_name}: consume tail is not a match")
+        };
+        assert_eq!(
+            pattern_binding(&arms[0].pattern, "marker").ty,
+            resolved_scalar
+        );
+    }
+}
+
+#[test]
 fn generic_owned_record_profile_rejects_noncopy_nested_class_and_variant_arguments() {
     let cases = [
         (
@@ -540,15 +616,6 @@ fn reject(value: own Box<string>) -> i64 { 0 }
 fn main() -> i64 { 0 }
 "#,
             "SPX-T223",
-        ),
-        (
-            r#"
-module test.generic_owned_unadmitted_scalar_argument_closed;
-record Pair<T, U> { left: T, right: U, }
-fn reject(value: own Pair<Bytes, u8>) -> i64 { 0 }
-fn main() -> i64 { 0 }
-"#,
-            "SPX-T268",
         ),
         (
             r#"

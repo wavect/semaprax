@@ -294,7 +294,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         else {
             unreachable!("non-UpdateRecord expression reached emit_update_record_expr")
         };
-        if self.record_is_nested_owned(&expr.ty)? {
+        if self.record_update_uses_owned_plan(&expr.ty)? {
             return self.emit_nested_update_record(expr, base, record, fields);
         }
         let base = self.emit_expr(base)?;
@@ -449,6 +449,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
         }
         Ok(false)
+    }
+
+    fn record_update_uses_owned_plan(&self, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+        let generic_flat = matches!(ty, ResolvedType::Nominal { arguments, .. } if !arguments.is_empty())
+            && crate::hir::is_flat_owned_byte_record(&self.program.declarations, ty);
+        Ok(self.record_is_nested_owned(ty)? || generic_flat)
     }
 
     pub(crate) fn move_owned_record_fields(

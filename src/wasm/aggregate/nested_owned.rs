@@ -131,6 +131,19 @@ pub(super) fn record_is_nested_owned(
     Ok(false)
 }
 
+pub(super) fn record_update_uses_owned_plan(
+    program: &ResolvedProgram,
+    root: &ResolvedType,
+) -> Result<bool, Diagnostic> {
+    Ok(record_is_nested_owned(program, root)?
+        || is_concrete_generic_flat_owned_record(program, root))
+}
+
+fn is_concrete_generic_flat_owned_record(program: &ResolvedProgram, root: &ResolvedType) -> bool {
+    matches!(root, ResolvedType::Nominal { arguments, .. } if !arguments.is_empty())
+        && crate::hir::is_flat_owned_byte_record(&program.declarations, root)
+}
+
 pub(super) fn emit_update_scope_cleanup(
     emitter: &mut super::Emitter<'_>,
     expression: &ResolvedExpr,
@@ -138,10 +151,11 @@ pub(super) fn emit_update_scope_cleanup(
     let ResolvedExprKind::UpdateRecord { base, .. } = &expression.kind else {
         return Ok(());
     };
-    if !record_is_nested_owned(emitter.program, &expression.ty)? {
+    let nested = record_is_nested_owned(emitter.program, &expression.ty)?;
+    if !nested && !is_concrete_generic_flat_owned_record(emitter.program, &expression.ty) {
         return Ok(());
     }
-    if emitter.cleanup_plan.schema != crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9 {
+    if nested && emitter.cleanup_plan.schema != crate::cleanup_plan::CLEANUP_PLAN_SCHEMA_V9 {
         return Err(super::error(
             "nested record update cleanup requires CleanupPlan v9",
         ));

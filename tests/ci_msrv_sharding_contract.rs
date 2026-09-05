@@ -179,7 +179,10 @@ fn msrv_matrix_preserves_checks_timeout_complete_results_and_release_dependency(
         .split_once("\n  release-artifacts:\n")
         .unwrap()
         .0;
-    assert!(release.contains("if: ${{ success() }}"));
+    // The aggregate must run even when an MSRV shard fails so it can publish a
+    // failing required-check conclusion instead of a skipped one.
+    assert!(release.contains("if: ${{ always() }}"));
+    assert!(!release.contains("if: ${{ success() }}"));
     assert!(release.contains("      - msrv\n"));
 }
 

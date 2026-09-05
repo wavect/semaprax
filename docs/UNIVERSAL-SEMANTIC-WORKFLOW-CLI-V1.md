@@ -18,6 +18,13 @@ The separate [Installed Agent Guidance v1](INSTALLED-AGENT-GUIDANCE-V1.md)
 not authenticate a Project, create a semantic-service snapshot, or alter the
 five Project-bound universal query subcommands specified here.
 
+The additive [Universal Semantic Transaction Composition
+v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md) also supplies exact-output
+`change preview --structural-diff`, `change rebase`, and explicit-order
+`change merge` forms. They remain read-only one-shot adapters over the existing
+transaction and Project Candidate cores; the composition spec owns their exact
+grammar, results, limits, and narrower evidence status.
+
 This badge is one-shot and read-only. Each invocation authenticates one Project,
 derives one process-local semantic service, performs one operation, rechecks the
 held Project inputs, prints the result, and exits. It is not the persistent

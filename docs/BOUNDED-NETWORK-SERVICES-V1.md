@@ -4,8 +4,6 @@ Audience: language users, host integrators, and compiler contributors.
 
 Status: locally evidenced hosted-provider and language tranche.
 
-Audience: language users, runtime embedders, and compiler contributors.
-
 This protocol extends [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md)
 without changing its six operations, fixture-v1 bytes, Project-v12 profile, or
 native/Wasm admission. Four new compiler-owned operations are available only

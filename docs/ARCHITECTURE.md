@@ -546,6 +546,20 @@ source guard prevents the reused candidate formatter from introducing trivia
 changes. It has no filesystem or publication authority. See [Universal
 Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md).
 
+`src/project/semantic_transaction_composition.rs` owns Universal Semantic
+Transaction Composition v1. It derives an exact four-component/nine-node
+structural diff from a validated Candidate, rebases one RenameDisplayName
+transaction onto an independently admitted canonical workspace revision, and
+merges two distinct-target sibling rename transactions in one explicit order.
+It freshly validates transactions and delegates reconciliation, conflict
+selection, and complete source replay to Project Candidate; it does not fork a
+second merge engine. Rebase remints one ordinary v1 transaction and requires
+exact Candidate parity. Merge returns a validated Candidate and explicitly is
+not a multi-operation v1 transaction. All outputs are bounded immutable
+evidence with no commit, generation-pivot, transport, or publication authority.
+See [Universal Semantic Transaction Composition
+v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md).
+
 `src/project/semantic_query.rs` owns the transport-neutral Universal Semantic
 Query v1 core. Its closed canonical request/result boundary binds every read to
 one Canonical Semantic Workspace Revision and exposes exactly five operations:
@@ -587,6 +601,11 @@ routes run wholly within one `with_authenticated_project` lifetime, including
 the final held-input recheck. They create no parallel schemas or semantic
 implementation, do not retain the process-local service, and own no source,
 cache, commit, managed-Workspace, transport, MCP, LSP, or publication authority.
+Additive structural-diff, rebase, and explicit-order merge forms print the
+exact Universal Semantic Transaction Composition v1 reports. Rebase retains
+and finally rechecks both explicitly selected Projects; merge retains one
+shared-base Project. These adapters add no automatic order, transaction-input,
+source-commit, or publication path.
 Frozen Project Agent Transport v5 remains unchanged. See [Universal Semantic
 Workflow CLI v1](UNIVERSAL-SEMANTIC-WORKFLOW-CLI-V1.md).
 

@@ -20,6 +20,16 @@ format: `Unreleased` then release buckets, grouped by impact.
   invalid-bool output poison, owned-byte copy/drop, stale-handle rejection, and
   context closure. This establishes a local linkable C ABI slice without
   promoting Objective-C, cross-platform support, distribution, or compatibility.
+- Added the locally exercised Universal Semantic Transaction Composition v1
+  core. It derives a bounded canonical workspace structural diff, rebases one
+  validated display rename onto an exact independently admitted revision, and
+  merges two distinct-target sibling renames in an explicit order through the
+  existing Project Candidate conflict and replay machinery. The five focused
+  integration cases pass locally. Four focused Workspace-harness cases also
+  prove that the read-only CLI forms print the exact core structural-diff,
+  rebase, and merge reports; no general multi-operation
+  transaction, behavioral equivalence, source commit, transport, or authority
+  is claimed, and all Semantic Transaction v1 bytes remain unchanged.
 - Added Installed Agent Guidance v1: six deterministic, version-matched,
   authority-free skill documents are available through `skills get`, and
   `query --capabilities` reports the exact installed five-operation Universal

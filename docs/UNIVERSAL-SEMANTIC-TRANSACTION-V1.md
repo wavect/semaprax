@@ -13,6 +13,13 @@ validates one typed intention through the existing complete Project candidate
 rebuild, and returns deterministic intent, impact, review, result, and evidence
 artifacts.
 
+The additive [Universal Semantic Transaction Composition
+v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md) derives structural diffs,
+rebases this exact single rename onto an independently admitted revision, and
+orders two sibling rename Candidates through the existing Project Candidate
+merge. It preserves this schema and all v1 artifact bytes; its merge result is
+explicitly a validated Candidate rather than a multi-operation v1 transaction.
+
 ## Closed v1 envelope
 
 The schema is `semaprax.semantic-transaction.v1`. Canonical JSON is compact,

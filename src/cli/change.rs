@@ -1,54 +1,110 @@
-//! Validation-only `semaprax change preview` over Universal Semantic Transaction v1.
+//! Read-only `semaprax change` workflows over Universal Semantic Transaction v1.
 
 use std::path::PathBuf;
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
-    self, SemanticQuery, SemanticTransaction, SemanticTransactionRenameDisplayName,
-    SemanticWorkspaceService, SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
+    self, SemanticQuery, SemanticTransaction, SemanticTransactionMergeOrder,
+    SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
+    SemanticWorkspaceStructuralDiff, SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
 };
 
 use super::project::{is_project_manifest, resolve_positional};
+
+pub(crate) enum ChangeCommand {
+    Preview(ChangePreview),
+    Rebase(ChangeRebase),
+    Merge(ChangeMerge),
+}
 
 pub(crate) struct ChangePreview {
     manifest: PathBuf,
     target: String,
     new_name: String,
     revision: Option<String>,
-    evidence: bool,
+    output: PreviewOutput,
 }
 
-const USAGE: &str = "change requires preview <project> rename-display-name <stable-id> <new-name> [--revision digest] [--evidence]";
+pub(crate) struct ChangeRebase {
+    base_manifest: PathBuf,
+    onto_manifest: PathBuf,
+    target: String,
+    new_name: String,
+    revision: Option<String>,
+    onto_revision: Option<String>,
+}
 
-pub(crate) fn parse(args: &[String]) -> Result<ChangePreview, u8> {
-    if args.first().map(String::as_str) != Some("preview")
-        || args.get(2).map(String::as_str) != Some("rename-display-name")
-    {
-        return Err(usage());
+pub(crate) struct ChangeMerge {
+    manifest: PathBuf,
+    left_target: String,
+    left_new_name: String,
+    right_target: String,
+    right_new_name: String,
+    revision: Option<String>,
+    order: MergeOrder,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PreviewOutput {
+    Result,
+    Evidence,
+    StructuralDiff,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum MergeOrder {
+    LeftThenRight,
+    RightThenLeft,
+}
+
+const PREVIEW_USAGE: &str = "change requires preview <project> rename-display-name <stable-id> <new-name> [--revision digest] [--evidence|--structural-diff]";
+const REBASE_USAGE: &str = "change rebase requires <base-project> rename-display-name <stable-id> <new-name> --onto <onto-project> [--revision digest] [--onto-revision digest]";
+const MERGE_USAGE: &str = "change merge requires <project> rename-display-name <left-id> <left-new-name> --with rename-display-name <right-id> <right-new-name> [--revision digest] --order <left-then-right|right-then-left>";
+
+pub(crate) fn parse(args: &[String]) -> Result<ChangeCommand, u8> {
+    match args.first().map(String::as_str) {
+        Some("preview") => parse_preview(args).map(ChangeCommand::Preview),
+        Some("rebase") => parse_rebase(args).map(ChangeCommand::Rebase),
+        Some("merge") => parse_merge(args).map(ChangeCommand::Merge),
+        _ => Err(preview_usage()),
     }
-    let manifest = args.get(1).map(PathBuf::from).ok_or_else(usage)?;
+}
+
+fn parse_preview(args: &[String]) -> Result<ChangePreview, u8> {
+    if args.get(2).map(String::as_str) != Some("rename-display-name") {
+        return Err(preview_usage());
+    }
+    let manifest = args.get(1).map(PathBuf::from).ok_or_else(preview_usage)?;
     let manifest = resolve_positional(manifest);
     if !is_project_manifest(&manifest) {
         eprintln!("change preview requires a Project directory or semaprax.toml");
         return Err(2);
     }
-    let target = required(args, 3)?;
-    let new_name = required(args, 4)?;
+    let target = required(args, 3, preview_usage)?;
+    let new_name = required(args, 4, preview_usage)?;
     let mut revision = None;
-    let mut evidence = false;
+    let mut output = PreviewOutput::Result;
     let mut index = 5;
     while index < args.len() {
         match args[index].as_str() {
-            "--evidence" if !evidence => {
-                evidence = true;
+            "--evidence" if output == PreviewOutput::Result => {
+                output = PreviewOutput::Evidence;
                 index += 1;
             }
             "--evidence" => {
-                eprintln!("change preview option `--evidence` may not be repeated");
+                eprintln!("change preview output options are mutually exclusive and unique");
+                return Err(2);
+            }
+            "--structural-diff" if output == PreviewOutput::Result => {
+                output = PreviewOutput::StructuralDiff;
+                index += 1;
+            }
+            "--structural-diff" => {
+                eprintln!("change preview output options are mutually exclusive and unique");
                 return Err(2);
             }
             "--revision" if revision.is_none() => {
-                revision = Some(required(args, index + 1)?);
+                revision = Some(required(args, index + 1, preview_usage)?);
                 index += 2;
             }
             "--revision" => {
@@ -66,75 +122,267 @@ pub(crate) fn parse(args: &[String]) -> Result<ChangePreview, u8> {
         target,
         new_name,
         revision,
-        evidence,
+        output,
     })
 }
 
-fn required(args: &[String], index: usize) -> Result<String, u8> {
+fn parse_rebase(args: &[String]) -> Result<ChangeRebase, u8> {
+    if args.get(2).map(String::as_str) != Some("rename-display-name") {
+        return Err(rebase_usage());
+    }
+    let base_manifest = project_operand(args, 1, "change rebase base", rebase_usage)?;
+    let target = required(args, 3, rebase_usage)?;
+    let new_name = required(args, 4, rebase_usage)?;
+    let mut onto_manifest = None;
+    let mut revision = None;
+    let mut onto_revision = None;
+    let mut index = 5;
+    while index < args.len() {
+        let option = args[index].as_str();
+        let slot = match option {
+            "--onto" => &mut onto_manifest,
+            "--revision" => &mut revision,
+            "--onto-revision" => &mut onto_revision,
+            _ => {
+                eprintln!("unknown change rebase option `{option}`");
+                return Err(2);
+            }
+        };
+        if slot.is_some() {
+            eprintln!("change rebase option `{option}` may not be repeated");
+            return Err(2);
+        }
+        *slot = Some(required(args, index + 1, rebase_usage)?);
+        index += 2;
+    }
+    let onto_manifest = onto_manifest.ok_or_else(rebase_usage)?;
+    let onto_manifest = project_path(onto_manifest, "change rebase destination")?;
+    Ok(ChangeRebase {
+        base_manifest,
+        onto_manifest,
+        target,
+        new_name,
+        revision,
+        onto_revision,
+    })
+}
+
+fn parse_merge(args: &[String]) -> Result<ChangeMerge, u8> {
+    if args.get(2).map(String::as_str) != Some("rename-display-name")
+        || args.get(5).map(String::as_str) != Some("--with")
+        || args.get(6).map(String::as_str) != Some("rename-display-name")
+    {
+        return Err(merge_usage());
+    }
+    let manifest = project_operand(args, 1, "change merge", merge_usage)?;
+    let left_target = required(args, 3, merge_usage)?;
+    let left_new_name = required(args, 4, merge_usage)?;
+    let right_target = required(args, 7, merge_usage)?;
+    let right_new_name = required(args, 8, merge_usage)?;
+    let mut revision = None;
+    let mut order = None;
+    let mut index = 9;
+    while index < args.len() {
+        let option = args[index].as_str();
+        match option {
+            "--revision" if revision.is_none() => {
+                revision = Some(required(args, index + 1, merge_usage)?);
+            }
+            "--order" if order.is_none() => {
+                order = Some(match required(args, index + 1, merge_usage)?.as_str() {
+                    "left-then-right" => MergeOrder::LeftThenRight,
+                    "right-then-left" => MergeOrder::RightThenLeft,
+                    value => {
+                        eprintln!("unknown change merge order `{value}`");
+                        return Err(2);
+                    }
+                });
+            }
+            "--revision" | "--order" => {
+                eprintln!("change merge option `{option}` may not be repeated");
+                return Err(2);
+            }
+            _ => {
+                eprintln!("unknown change merge option `{option}`");
+                return Err(2);
+            }
+        }
+        index += 2;
+    }
+    let order = order.ok_or_else(merge_usage)?;
+    Ok(ChangeMerge {
+        manifest,
+        left_target,
+        left_new_name,
+        right_target,
+        right_new_name,
+        revision,
+        order,
+    })
+}
+
+fn project_operand(
+    args: &[String],
+    index: usize,
+    label: &str,
+    usage: fn() -> u8,
+) -> Result<PathBuf, u8> {
+    project_path(required(args, index, usage)?, label)
+}
+
+fn project_path(path: String, label: &str) -> Result<PathBuf, u8> {
+    let path = resolve_positional(PathBuf::from(path));
+    if !is_project_manifest(&path) {
+        eprintln!("{label} requires a Project directory or semaprax.toml");
+        return Err(2);
+    }
+    Ok(path)
+}
+
+fn required(args: &[String], index: usize, usage: fn() -> u8) -> Result<String, u8> {
     args.get(index)
         .filter(|value| !value.is_empty() && !value.starts_with('-'))
         .cloned()
         .ok_or_else(usage)
 }
 
-fn usage() -> u8 {
-    eprintln!("{USAGE}");
+fn preview_usage() -> u8 {
+    eprintln!("{PREVIEW_USAGE}");
     2
 }
 
-pub(crate) fn run(options: ChangePreview, report: impl Fn(&[Diagnostic]) -> u8) -> Result<(), u8> {
-    let output = project::with_authenticated_project(&options.manifest, |snapshot| {
-        let service = SemanticWorkspaceService::open(snapshot.retain_revision())?;
-        let expected = options
-            .revision
-            .as_deref()
-            .unwrap_or_else(|| service.active_generation().workspace_revision());
-        let discovery = SemanticQuery::available_operations(expected, &options.target)?;
-        let discovery = service.query(discovery.to_json().as_bytes())?;
-        let payload: serde_json::Value =
-            serde_json::from_str(discovery.payload()).map_err(|_| {
-                vec![Diagnostic::io(
-                    "SPX-G531",
-                    "available operations payload is not valid JSON",
-                )]
-            })?;
-        if payload.get("schema").and_then(serde_json::Value::as_str)
-            != Some(SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA)
-        {
-            return Err(vec![Diagnostic::io(
-                "SPX-G531",
-                "available operations payload schema is unsupported",
-            )]);
-        }
-        let operation = payload
-            .get("operations")
-            .and_then(serde_json::Value::as_array)
-            .and_then(|operations| operations.first())
-            .and_then(serde_json::Value::as_object)
-            .ok_or_else(|| {
-                vec![Diagnostic::io(
-                    "SPX-G531",
-                    "available operations payload has no operation entry",
-                )]
-            })?;
-        let old_name = operation
-            .get("expected_old_value")
-            .and_then(serde_json::Value::as_str)
-            .unwrap_or("");
-        let transaction = SemanticTransaction::rename_display_name(
-            expected,
-            SemanticTransactionRenameDisplayName::new(&options.target, old_name, &options.new_name),
-        )?;
-        let artifacts = service.validate_transaction(transaction.to_json().as_bytes())?;
-        Ok(if options.evidence {
-            artifacts.evidence().to_owned()
-        } else {
-            artifacts.result().to_owned()
-        })
-    })
+fn rebase_usage() -> u8 {
+    eprintln!("{REBASE_USAGE}");
+    2
+}
+
+fn merge_usage() -> u8 {
+    eprintln!("{MERGE_USAGE}");
+    2
+}
+
+pub(crate) fn run(command: ChangeCommand, report: impl Fn(&[Diagnostic]) -> u8) -> Result<(), u8> {
+    let output = match command {
+        ChangeCommand::Preview(options) => run_preview(options),
+        ChangeCommand::Rebase(options) => run_rebase(options),
+        ChangeCommand::Merge(options) => run_merge(options),
+    }
     .map_err(|errors| report(&errors))?;
     print!("{output}");
     Ok(())
+}
+
+fn run_preview(options: ChangePreview) -> Result<String, Vec<Diagnostic>> {
+    project::with_authenticated_project(&options.manifest, |snapshot| {
+        let service = SemanticWorkspaceService::open(snapshot.retain_revision())?;
+        let expected = selected_revision(&service, options.revision.as_deref());
+        let transaction =
+            rename_transaction(&service, &expected, &options.target, &options.new_name)?;
+        let artifacts = service.validate_transaction(transaction.to_json().as_bytes())?;
+        match options.output {
+            PreviewOutput::Result => Ok(artifacts.result().to_owned()),
+            PreviewOutput::Evidence => Ok(artifacts.evidence().to_owned()),
+            PreviewOutput::StructuralDiff => Ok(SemanticWorkspaceStructuralDiff::derive(
+                artifacts.candidate(),
+                artifacts.candidate().candidate_digest(),
+            )?
+            .to_json()
+            .to_owned()),
+        }
+    })
+}
+
+fn run_rebase(options: ChangeRebase) -> Result<String, Vec<Diagnostic>> {
+    project::with_authenticated_project(&options.base_manifest, |base_snapshot| {
+        let original_base = base_snapshot.retain_revision();
+        let service = SemanticWorkspaceService::open(original_base.clone())?;
+        let expected = selected_revision(&service, options.revision.as_deref());
+        let transaction =
+            rename_transaction(&service, &expected, &options.target, &options.new_name)?;
+        project::with_authenticated_project(&options.onto_manifest, |onto_snapshot| {
+            let onto = onto_snapshot.retain_revision();
+            let onto_service = SemanticWorkspaceService::open(onto.clone())?;
+            let expected_onto = selected_revision(&onto_service, options.onto_revision.as_deref());
+            Ok(transaction
+                .rebase(original_base, onto, &expected_onto)?
+                .to_json()
+                .to_owned())
+        })
+    })
+}
+
+fn run_merge(options: ChangeMerge) -> Result<String, Vec<Diagnostic>> {
+    project::with_authenticated_project(&options.manifest, |snapshot| {
+        let base = snapshot.retain_revision();
+        let service = SemanticWorkspaceService::open(base.clone())?;
+        let expected = selected_revision(&service, options.revision.as_deref());
+        let left = rename_transaction(
+            &service,
+            &expected,
+            &options.left_target,
+            &options.left_new_name,
+        )?;
+        let right = rename_transaction(
+            &service,
+            &expected,
+            &options.right_target,
+            &options.right_new_name,
+        )?;
+        let order = match options.order {
+            MergeOrder::LeftThenRight => SemanticTransactionMergeOrder::LeftThenRight,
+            MergeOrder::RightThenLeft => SemanticTransactionMergeOrder::RightThenLeft,
+        };
+        Ok(left.merge(&right, base, order)?.to_json().to_owned())
+    })
+}
+
+fn selected_revision(service: &SemanticWorkspaceService, requested: Option<&str>) -> String {
+    requested
+        .unwrap_or_else(|| service.active_generation().workspace_revision())
+        .to_owned()
+}
+
+fn rename_transaction(
+    service: &SemanticWorkspaceService,
+    expected: &str,
+    target: &str,
+    new_name: &str,
+) -> Result<SemanticTransaction, Vec<Diagnostic>> {
+    let discovery = SemanticQuery::available_operations(expected, target)?;
+    let discovery = service.query(discovery.to_json().as_bytes())?;
+    let payload: serde_json::Value = serde_json::from_str(discovery.payload()).map_err(|_| {
+        vec![Diagnostic::io(
+            "SPX-G531",
+            "available operations payload is not valid JSON",
+        )]
+    })?;
+    if payload.get("schema").and_then(serde_json::Value::as_str)
+        != Some(SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA)
+    {
+        return Err(vec![Diagnostic::io(
+            "SPX-G531",
+            "available operations payload schema is unsupported",
+        )]);
+    }
+    let operation = payload
+        .get("operations")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|operations| operations.first())
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G531",
+                "available operations payload has no operation entry",
+            )]
+        })?;
+    let old_name = operation
+        .get("expected_old_value")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("");
+    SemanticTransaction::rename_display_name(
+        expected,
+        SemanticTransactionRenameDisplayName::new(target, old_name, new_name),
+    )
 }
 
 #[cfg(test)]
@@ -147,7 +395,7 @@ mod tests {
 
     #[test]
     fn preview_grammar_is_closed() {
-        let parsed = parse(&strings(&[
+        let ChangeCommand::Preview(parsed) = parse(&strings(&[
             "preview",
             "fixtures/semaprax.toml",
             "rename-display-name",
@@ -157,11 +405,13 @@ mod tests {
             "sha256:abc",
             "--evidence",
         ]))
-        .unwrap();
+        .unwrap() else {
+            panic!("preview grammar selected another command");
+        };
         assert_eq!(parsed.target, "app.run");
         assert_eq!(parsed.new_name, "execute");
         assert_eq!(parsed.revision.as_deref(), Some("sha256:abc"));
-        assert!(parsed.evidence);
+        assert_eq!(parsed.output, PreviewOutput::Evidence);
         for malformed in [
             vec![],
             vec![
@@ -198,6 +448,115 @@ mod tests {
                 "app.run",
                 "execute",
                 "--unknown",
+            ],
+            vec![
+                "preview",
+                "fixtures/semaprax.toml",
+                "rename-display-name",
+                "app.run",
+                "execute",
+                "--evidence",
+                "--structural-diff",
+            ],
+        ] {
+            assert!(parse(&strings(&malformed)).is_err(), "{malformed:?}");
+        }
+    }
+
+    #[test]
+    fn rebase_and_merge_grammars_are_closed() {
+        let ChangeCommand::Rebase(rebase) = parse(&strings(&[
+            "rebase",
+            "fixtures/semaprax.toml",
+            "rename-display-name",
+            "app.run",
+            "execute",
+            "--onto",
+            "fixtures/semaprax.toml",
+            "--revision",
+            "sha256:base",
+            "--onto-revision",
+            "sha256:onto",
+        ]))
+        .unwrap() else {
+            panic!("rebase grammar selected another command");
+        };
+        assert_eq!(rebase.target, "app.run");
+        assert_eq!(rebase.new_name, "execute");
+        assert_eq!(rebase.revision.as_deref(), Some("sha256:base"));
+        assert_eq!(rebase.onto_revision.as_deref(), Some("sha256:onto"));
+
+        for order in ["left-then-right", "right-then-left"] {
+            let ChangeCommand::Merge(merge) = parse(&strings(&[
+                "merge",
+                "fixtures/semaprax.toml",
+                "rename-display-name",
+                "app.left",
+                "renamed_left",
+                "--with",
+                "rename-display-name",
+                "app.right",
+                "renamed_right",
+                "--order",
+                order,
+            ]))
+            .unwrap() else {
+                panic!("merge grammar selected another command");
+            };
+            assert_eq!(merge.left_target, "app.left");
+            assert_eq!(merge.right_target, "app.right");
+            assert_eq!(
+                merge.order,
+                if order == "left-then-right" {
+                    MergeOrder::LeftThenRight
+                } else {
+                    MergeOrder::RightThenLeft
+                }
+            );
+        }
+
+        for malformed in [
+            vec![
+                "rebase",
+                "fixtures/semaprax.toml",
+                "rename-display-name",
+                "app.run",
+                "execute",
+            ],
+            vec![
+                "rebase",
+                "fixtures/semaprax.toml",
+                "rename-display-name",
+                "app.run",
+                "execute",
+                "--onto",
+                "fixtures/semaprax.toml",
+                "--onto",
+                "fixtures/semaprax.toml",
+            ],
+            vec![
+                "merge",
+                "fixtures/semaprax.toml",
+                "rename-display-name",
+                "app.left",
+                "left",
+                "--with",
+                "rename-display-name",
+                "app.right",
+                "right",
+            ],
+            vec![
+                "merge",
+                "fixtures/semaprax.toml",
+                "rename-display-name",
+                "app.left",
+                "left",
+                "--with",
+                "rename-display-name",
+                "app.right",
+                "right",
+                "--order",
+                "automatic",
             ],
         ] {
             assert!(parse(&strings(&malformed)).is_err(), "{malformed:?}");

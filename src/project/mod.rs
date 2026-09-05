@@ -45,6 +45,7 @@ mod semantic;
 mod semantic_query;
 mod semantic_service;
 mod semantic_transaction;
+mod semantic_transaction_composition;
 mod source_hint;
 mod standard_dependencies;
 mod target_cache;
@@ -369,6 +370,12 @@ pub use semantic_transaction::{
     SEMANTIC_TRANSACTION_EVIDENCE_SCHEMA, SEMANTIC_TRANSACTION_IMPACT_SCHEMA,
     SEMANTIC_TRANSACTION_RESULT_SCHEMA, SEMANTIC_TRANSACTION_REVIEW_SCHEMA,
     SEMANTIC_TRANSACTION_SCHEMA,
+};
+pub use semantic_transaction_composition::{
+    SemanticTransactionMerge, SemanticTransactionMergeOrder, SemanticTransactionRebase,
+    SemanticWorkspaceStructuralDiff, MAX_SEMANTIC_TRANSACTION_COMPOSITION_BYTES,
+    MAX_SEMANTIC_WORKSPACE_STRUCTURAL_DIFF_BYTES, SEMANTIC_TRANSACTION_MERGE_SCHEMA,
+    SEMANTIC_TRANSACTION_REBASE_SCHEMA, SEMANTIC_WORKSPACE_STRUCTURAL_DIFF_SCHEMA,
 };
 pub use target_cache::{
     ProjectCTargetBuild, ProjectNpmTargetBuild, ProjectTargetBuild, ProjectTargetCache,

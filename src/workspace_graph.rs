@@ -2286,36 +2286,11 @@ impl WorkspaceGraphBuild {
                     }
                     crate::project::ProjectProfile::NestedOwnedRecordApiV1 => true,
                 };
-                let effects_admitted = function.effects.is_empty()
-                    || natives.effects_admitted(&function.effects)
-                    || (matches!(
-                        profile,
-                        crate::project::ProjectProfile::UsefulDataCommandV1
-                            | crate::project::ProjectProfile::UsefulDataCommandV2
-                    ) && function.effects == [crate::host_io_ops::STDOUT_WRITE_EFFECT])
-                    || (matches!(
-                        profile,
-                        crate::project::ProjectProfile::LanguageCommandIoV1
-                            | crate::project::ProjectProfile::LineCommandIoV1
-                    ) && function.effects.iter().all(|effect| {
-                        matches!(
-                            effect.as_str(),
-                            crate::command_io_ops::ARGS_READ_EFFECT
-                                | crate::command_io_ops::STDERR_WRITE_EFFECT
-                                | crate::command_io_ops::STDIN_READ_EFFECT
-                                | crate::host_io_ops::STDOUT_WRITE_EFFECT
-                        )
-                    }))
-                    || (profile == crate::project::ProjectProfile::NetworkCommandIoV1
-                        && function.effects.iter().all(|effect| {
-                            crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1
-                                .contains(&effect.as_str())
-                        }))
-                    || (profile == crate::project::ProjectProfile::HttpsCommandIoV1
-                        && function.effects.iter().all(|effect| {
-                            crate::project::PROJECT_HTTPS_COMMAND_CAPABILITIES_V1
-                                .contains(&effect.as_str())
-                        }));
+                let effects_admitted = retained_validation::project_effects_admitted(
+                    profile,
+                    &function.effects,
+                    &natives,
+                );
                 let signature_admitted = class_method
                     || (admitted_return && function.params.iter().all(admitted_parameter));
                 if !signature_admitted {
@@ -2331,43 +2306,7 @@ impl WorkspaceGraphBuild {
                     .with_help(PROJECT_SIGNATURE_HELP)]);
                 }
                 if !effects_admitted {
-                    let profile = match profile {
-                        crate::project::ProjectProfile::ScalarV1 => "pure scalar linker",
-                        crate::project::ProjectProfile::UsefulTextConsumerV1 => {
-                            "Useful Text Consumer linker"
-                        }
-                        crate::project::ProjectProfile::UsefulDataV1 => "Useful Data linker",
-                        crate::project::ProjectProfile::UsefulDataCommandV1 => {
-                            "Useful Data Command linker"
-                        }
-                        crate::project::ProjectProfile::UsefulDataCommandV2 => {
-                            "Useful Data Command v2 linker"
-                        }
-                        crate::project::ProjectProfile::LanguageCommandIoV1 => {
-                            "Language Command I/O v1 linker"
-                        }
-                        crate::project::ProjectProfile::LineCommandIoV1 => {
-                            "Line Command I/O v1 linker"
-                        }
-                        crate::project::ProjectProfile::NetworkCommandIoV1 => {
-                            "Network Command I/O v1 linker"
-                        }
-                        crate::project::ProjectProfile::HttpsCommandIoV1 => {
-                            "HTTPS Command I/O v1 linker"
-                        }
-                        crate::project::ProjectProfile::OwnedDataApiV1 => {
-                            "Owned Data API v1 linker"
-                        }
-                        crate::project::ProjectProfile::FlatOwnedRecordApiV1 => {
-                            "Flat Owned Record API v1 linker"
-                        }
-                        crate::project::ProjectProfile::OwnedUtf8ApiV1 => {
-                            "Owned UTF-8 API v1 linker"
-                        }
-                        crate::project::ProjectProfile::NestedOwnedRecordApiV1 => {
-                            "Nested Owned Record API v1 linker"
-                        }
-                    };
+                    let profile = retained_validation::project_linker_name(profile);
                     return Err(vec![graph_error(
                         "SPX-G172",
                         format!(

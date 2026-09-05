@@ -442,6 +442,7 @@ fn mapping(path: &str) -> (&'static str, &'static str, bool) {
         );
     }
     if path.starts_with("src/cli/")
+        || path.starts_with("src/cli_driver/")
         || path.starts_with("src/bin/")
         || matches!(path, "src/cli_driver.rs" | "src/main.rs")
     {

@@ -22,7 +22,7 @@ else widens the whole run to `full`. The classifications live in
 | --- | --- |
 | `documentation-truth` | `README.md`, `CHANGELOG.md`, any path under `docs/` ending `.md` |
 | `agent-context-economics` | `src/agent_economics.rs`, `tests/agent_economics.rs`, `benchmarks/agent-context-v1/`, `tests/snapshots/agent_context_*`, `tests/snapshots/agent_economics.*` |
-| `cli-surface` | `src/cli/`, `src/bin/`, `src/cli_driver.rs`, `src/main.rs`; adds the `test-cli` gate |
+| `cli-surface` | `src/cli/`, `src/cli_driver/`, `src/bin/`, `src/cli_driver.rs`, `src/main.rs`; adds the `test-cli` gate |
 | `editor-adapter` | `editors/`; adds the `test-editor` gate |
 | `broad-compiler-or-graph-dispatch` | `src/graph.rs` |
 | `unmapped-or-wide` | every other path |

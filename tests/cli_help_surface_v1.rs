@@ -150,6 +150,15 @@ fn standalone_help_is_exact_capability_aware_and_inert() {
     assert!(hidden_known.stdout.is_empty());
     assert_eq!(hidden_known.stderr, b"doctor is unavailable in the standalone crates.io package; use the unpublished semaprax-full toolchain CLI\n");
 
+    let (help_extra, help_extra_dir) = invoke(&["help", "all", "extra"]);
+    assert_eq!(help_extra.status.code(), Some(2));
+    assert!(help_extra.stdout.is_empty());
+    assert_eq!(
+        help_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+
+    std::fs::remove_dir(help_extra_dir).unwrap();
     std::fs::remove_dir(hidden_known_dir).unwrap();
     std::fs::remove_dir(malformed_known_dir).unwrap();
     std::fs::remove_dir(hidden_typo_dir).unwrap();
@@ -225,8 +234,11 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     std::fs::remove_dir(library_dir).unwrap();
     let (language_extra, language_extra_dir) = invoke(&["help", "language", "extra"]);
     assert_eq!(language_extra.status.code(), Some(2));
-    assert_eq!(language_extra.stdout, global.stdout);
-    assert_eq!(language_extra.stderr, b"unknown command `help`\n\n");
+    assert!(language_extra.stdout.is_empty());
+    assert_eq!(
+        language_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
     std::fs::remove_dir(language_extra_dir).unwrap();
     let (version_alias, version_alias_dir) = invoke(&["-V", "--help"]);
     assert!(version_alias.status.success());
@@ -245,8 +257,11 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     }
     let (all_extra, all_extra_dir) = invoke(&["help", "all", "extra"]);
     assert_eq!(all_extra.status.code(), Some(2));
-    assert_eq!(all_extra.stdout, global.stdout);
-    assert_eq!(all_extra.stderr, b"unknown command `help`\n\n");
+    assert!(all_extra.stdout.is_empty());
+    assert_eq!(
+        all_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
     std::fs::remove_dir(all_extra_dir).unwrap();
     let (typo, typo_dir) = invoke(&["help", "buidl"]);
     assert_eq!(typo.status.code(), Some(2));
@@ -258,8 +273,11 @@ fn standalone_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     std::fs::remove_dir(typo_dir).unwrap();
     let (malformed, malformed_dir) = invoke(&["help", "build", "extra"]);
     assert_eq!(malformed.status.code(), Some(2));
-    assert_eq!(malformed.stdout, global.stdout);
-    assert_eq!(malformed.stderr, b"unknown command `help`\n\n");
+    assert!(malformed.stdout.is_empty());
+    assert_eq!(
+        malformed.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
     let (embedded, embedded_dir) = invoke(&["fmt", "effectful.spx", "--help"]);
     assert_eq!(embedded.status.code(), Some(2));
     assert!(embedded.stdout.is_empty());

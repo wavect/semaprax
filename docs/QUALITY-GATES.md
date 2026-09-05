@@ -42,8 +42,9 @@ deterministic `semaprax.quality-route.v2` plan, then dispatches only the exact
 listed gates. `changed` may widen to `full` when the path classification is not
 safe enough for a narrower run. Two path classes stay narrow and append their
 own gate after the fixed `changed` list: CLI surface paths (`src/cli/`,
-`src/bin/`, `src/cli_driver.rs`, `src/main.rs`) add `test-cli`, which runs the
-CLI harnesses of both the standalone package and the full toolchain; editor
+`src/cli_driver/`, `src/bin/`, `src/cli_driver.rs`, `src/main.rs`) add
+`test-cli`, which runs the CLI harnesses of both the standalone package and the
+full toolchain; editor
 paths (`editors/`) add `test-editor`, which runs the extension's `node --test`
 suite and the documentation harness. Any other unmapped path still widens the
 whole run to `full`, and `full`'s gate list does not vary.

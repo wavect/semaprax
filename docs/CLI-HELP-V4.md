@@ -68,11 +68,12 @@ Usage:
   semaprax help library
 ```
 
-`all` is not a command. `semaprax help all extra`, `semaprax all`, and other
-placements keep the existing unknown-command and malformed-position behavior
-and print the guided page where v1 printed the exhaustive one. The
-unknown-command surface, the typo suggestion, and the hidden-command refusal
-are otherwise unchanged in bytes and status.
+`all` is not a command. A third token in any help form, including
+`semaprax help all extra`, is an extra operand: it exits two, emits no stdout,
+and names that operand in a precise `help accepts exactly one operand`
+diagnostic. `semaprax all` and other placements retain the ordinary
+unknown-command behavior. The typo suggestion and hidden-command refusal are
+otherwise unchanged in bytes and status.
 
 ## Language card
 

@@ -176,9 +176,20 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
     std::fs::remove_dir(library_dir).unwrap();
     let (language_extra, language_extra_dir) = invoke(&["help", "language", "extra"]);
     assert_eq!(language_extra.status.code(), Some(2));
-    assert_eq!(language_extra.stdout, global.stdout);
-    assert_eq!(language_extra.stderr, b"unknown command `help`\n\n");
+    assert!(language_extra.stdout.is_empty());
+    assert_eq!(
+        language_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
     std::fs::remove_dir(language_extra_dir).unwrap();
+    let (all_extra, all_extra_dir) = invoke(&["help", "all", "extra"]);
+    assert_eq!(all_extra.status.code(), Some(2));
+    assert!(all_extra.stdout.is_empty());
+    assert_eq!(
+        all_extra.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
+    std::fs::remove_dir(all_extra_dir).unwrap();
     let (version_alias, version_alias_dir) = invoke(&["-V", "--help"]);
     assert!(version_alias.status.success());
     assert!(version_alias.stderr.is_empty());
@@ -206,8 +217,11 @@ fn full_scoped_help_is_exhaustive_exact_capability_aware_and_inert() {
 
     let (malformed, malformed_dir) = invoke(&["help", "build", "extra"]);
     assert_eq!(malformed.status.code(), Some(2));
-    assert_eq!(malformed.stdout, global.stdout);
-    assert_eq!(malformed.stderr, b"unknown command `help`\n\n");
+    assert!(malformed.stdout.is_empty());
+    assert_eq!(
+        malformed.stderr,
+        b"help accepts exactly one operand; unexpected extra operand `extra`\n"
+    );
     let (embedded, embedded_dir) = invoke(&["fmt", "effectful.spx", "--help"]);
     assert_eq!(embedded.status.code(), Some(2));
     assert!(embedded.stdout.is_empty());

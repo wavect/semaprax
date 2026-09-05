@@ -48,7 +48,9 @@ graph projection or backend.
 ## Representations
 
 The registry compiler and unpublished full toolchain share one compiler library
-and `src/cli_driver.rs`. The standalone binary supplies no private-host hooks.
+and `src/cli_driver.rs`; `src/cli_driver/report_options.rs` owns the bounded
+option parsers for report and analysis commands while the root retains dispatch.
+The standalone binary supplies no private-host hooks.
 `crates/semaprax-toolchain` owns the `doctor` implementation and the held-parent
 staged publication behind its `new`; the compiler library owns the bounded
 standalone `new` route (`src/project/create.rs`), and both share one grammar and

@@ -24,6 +24,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten
   digit tables.
+- Malformed three-token help requests now identify the unexpected extra
+  operand instead of misreporting `help` as an unknown command. CLI report and
+  analysis option parsers also live in a bounded driver submodule, keeping the
+  shared dispatcher comfortably below its recorded module-size cap.
 - Build target errors now use input- and toolchain-specific catalogs; scoped
   help and the CLI guide document the Web-compatible `wasm` alias, `-o` /
   `--output`, target and destination defaults, and structured `build --json`

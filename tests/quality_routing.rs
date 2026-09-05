@@ -27,6 +27,10 @@ const BASE_CHANGED_GATES: &str = "gate\tdiff-check\ngate\tfmt-check\ngate\tcheck
 fn cli_and_editor_surfaces_route_changed_with_their_own_gates_in_fixed_order() {
     let repository = Repository::new();
     repository.write("src/cli/help.rs", "pub fn help() { /* changed */ }\n");
+    repository.write(
+        "src/cli_driver/report_options.rs",
+        "pub fn report_options() { /* changed */ }\n",
+    );
     repository.write("src/main.rs", "fn main() { println!(\"cli\"); }\n");
     let plan = repository.changed_plan(&[]).unwrap();
     assert!(plan.contains("effective\tchanged\n"));
@@ -34,6 +38,9 @@ fn cli_and_editor_surfaces_route_changed_with_their_own_gates_in_fixed_order() {
     assert!(
         plan.contains("path\tsrc/cli/help.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n")
     );
+    assert!(plan.contains(
+        "path\tsrc/cli_driver/report_options.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"
+    ));
     assert!(plan.contains("path\tsrc/main.rs\tcli-surface\tcli-harnesses,documentation,rustdoc\n"));
     assert!(plan.contains(&format!(
         "{BASE_CHANGED_GATES}gate\ttest-cli\nend\tquality-plan\n"
@@ -545,6 +552,7 @@ impl Repository {
         fs::create_dir(directory.join("docs")).unwrap();
         fs::create_dir(directory.join("src")).unwrap();
         fs::create_dir(directory.join("src/cli")).unwrap();
+        fs::create_dir(directory.join("src/cli_driver")).unwrap();
         fs::create_dir_all(directory.join("editors/vscode/test")).unwrap();
         fs::write(directory.join("README.md"), "baseline\n").unwrap();
         fs::write(directory.join("docs/staged.md"), "baseline\n").unwrap();

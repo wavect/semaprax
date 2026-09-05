@@ -1,0 +1,7 @@
+module https_client.tests;
+
+@id("https-client.tests.main")
+fn main() -> i64
+{
+    0
+}

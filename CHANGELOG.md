@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added frozen Project Manifest v13 with the exact `https-command-io.v1`
+  profile and `network.http` authority. Its authenticated `network-run` route
+  replays fixture v3, while Project v12 and all prior manifest bytes remain
+  unchanged.
+
 - Repaired the VS Code Extension Host inventory and widened its scenario. The
   host test asserted exactly 28 contributed commands while the manifest
   contributes 37, so a provisioned run failed before its workflow. The
@@ -56,7 +61,6 @@ format: `Unreleased` then release buckets, grouped by impact.
   validated against them; a killed child, a foreign status, an unparsed line, an
   error with status 0, or a verified record with status 1 is a check failure
   that retains the previously published diagnostics instead of clearing them.
-
 - Made the `Release gate` CI aggregate fail closed. It ran under
   `if: ${{ success() }}`, which skips the job whenever a blocker did not
   succeed, and GitHub scores a skipped check run as a satisfied required status
@@ -70,6 +74,7 @@ format: `Unreleased` then release buckets, grouped by impact.
   exact ruleset request. The ruleset is a proposal: no repository setting,
   ruleset, membership, credential or branch permission was changed, and no
   required check is in force.
+
 - Added `semaprax.network-fixture.v3` as an ordered, bounded HTTPS
   request/response replay carrier. V1 and v2 reject the new member, URL or
   response mismatches do not consume queue entries, and hosted `https_get`

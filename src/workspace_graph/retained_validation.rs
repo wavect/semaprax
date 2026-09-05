@@ -1340,6 +1340,13 @@ pub(super) fn permits_admitted(
                 .iter()
                 .map(String::as_str)
                 .eq(crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1))
+        || (profile == crate::project::ProjectProfile::HttpsCommandIoV1
+            && module.module == entry_module
+            && module
+                .permits
+                .iter()
+                .map(String::as_str)
+                .eq(crate::project::PROJECT_HTTPS_COMMAND_CAPABILITIES_V1))
 }
 
 /// Bind one retained declaration to its authenticated Phase-A fact. Both an

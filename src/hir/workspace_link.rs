@@ -456,6 +456,35 @@ pub(crate) fn link_network_entry_workspace(
     )
 }
 
+/// Assemble the Project-v13 HTTPS command closure. Network authority remains
+/// an invocation-owned provider capability rather than a linker grant.
+pub(crate) fn link_https_command_io_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    command: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        linked_functions,
+        WorkspaceIoProfile::HttpsCommand { command },
+    )
+}
+
+pub(crate) fn link_https_entry_workspace(
+    module: String,
+    entrypoint: DeclarationId,
+    linked_functions: Vec<LinkedScalarFunction>,
+) -> Result<ResolvedProgram, Diagnostic> {
+    link_useful_data_workspace_profile(
+        module,
+        entrypoint,
+        linked_functions,
+        WorkspaceIoProfile::HttpsEntry,
+    )
+}
+
 #[derive(Clone, Eq, PartialEq)]
 enum WorkspaceIoProfile {
     Pure,
@@ -464,6 +493,8 @@ enum WorkspaceIoProfile {
     LineCommand { command: DeclarationId },
     NetworkCommand { command: DeclarationId },
     NetworkEntry,
+    HttpsCommand { command: DeclarationId },
+    HttpsEntry,
 }
 
 fn link_useful_data_workspace_profile(
@@ -517,6 +548,11 @@ fn link_useful_data_workspace_profile(
             WorkspaceIoProfile::NetworkEntry => function.effects.iter().all(|effect| {
                 crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1.contains(&effect.as_str())
             }),
+            WorkspaceIoProfile::HttpsCommand { .. } | WorkspaceIoProfile::HttpsEntry => {
+                function.effects.iter().all(|effect| {
+                    crate::project::PROJECT_HTTPS_COMMAND_CAPABILITIES_V1.contains(&effect.as_str())
+                })
+            }
         };
         let return_admitted = useful_data_workspace_return_admitted(&function.return_type);
         if !effects_admitted
@@ -627,6 +663,12 @@ fn link_useful_data_workspace_profile(
                     .map(|effect| (*effect).to_owned())
                     .collect()
             }
+            WorkspaceIoProfile::HttpsCommand { .. } | WorkspaceIoProfile::HttpsEntry => {
+                crate::project::PROJECT_HTTPS_COMMAND_CAPABILITIES_V1
+                    .iter()
+                    .map(|effect| (*effect).to_owned())
+                    .collect()
+            }
         },
         entrypoint,
         declarations,
@@ -658,9 +700,17 @@ fn link_useful_data_workspace_profile(
                 crate::command_io_ops::CommandOperationProfile::NetworkV1,
             )?;
         }
+        WorkspaceIoProfile::HttpsCommand { command } => {
+            crate::command_io_ops::validate_operation_profile(
+                &linked,
+                command,
+                crate::command_io_ops::CommandOperationProfile::HttpV1,
+            )?;
+        }
         WorkspaceIoProfile::Pure
         | WorkspaceIoProfile::Stdout
-        | WorkspaceIoProfile::NetworkEntry => {}
+        | WorkspaceIoProfile::NetworkEntry
+        | WorkspaceIoProfile::HttpsEntry => {}
     }
     analyze_byte_data_capacity(&linked)?;
     rebuild_cleanup_metadata(&mut linked)?;

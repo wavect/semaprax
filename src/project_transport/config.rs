@@ -326,6 +326,7 @@ mod tests {
             ProjectProfile::LanguageCommandIoV1,
             ProjectProfile::LineCommandIoV1,
             ProjectProfile::NetworkCommandIoV1,
+            ProjectProfile::HttpsCommandIoV1,
         ] {
             assert!(!public.accepts_project_profile(profile));
         }

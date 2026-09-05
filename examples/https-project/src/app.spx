@@ -1,0 +1,18 @@
+module https_client.app;
+
+permit { network.http, process.args.read, process.stderr.write, process.stdin.read, process.stdout.write }
+
+@id("https-client.fetch")
+fn fetch() -> bool
+    uses { network.http, process.stdout.write }
+{
+    let url = [104u8, 116u8, 116u8, 112u8, 115u8, 58u8, 47u8, 47u8, 101u8, 120u8, 97u8, 109u8, 112u8, 108u8, 101u8, 46u8, 116u8, 101u8, 115u8, 116u8, 47u8, 100u8, 97u8, 116u8, 97u8];
+    let response = https_get(array_as_slice(url), 1024usize);
+    stdout_append(bytes_as_slice(response)) == 46usize
+}
+
+@id("https-client.main")
+fn main() -> i64
+{
+    0
+}

@@ -41,3 +41,11 @@ pub(super) fn line_command(program: &ResolvedProgram, command: &str) -> Result<(
 pub(super) fn network_command(program: &ResolvedProgram, command: &str) -> Result<(), Diagnostic> {
     crate::wasm::emit_resolved_language_network_io_v1(program, command).map(drop)
 }
+
+pub(super) fn https_command(program: &ResolvedProgram, command: &str) -> Result<(), Diagnostic> {
+    crate::command_io_ops::validate_operation_profile(
+        program,
+        &crate::hir::DeclarationId::new(command),
+        crate::command_io_ops::CommandOperationProfile::HttpV1,
+    )
+}

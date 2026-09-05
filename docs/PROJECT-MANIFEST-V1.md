@@ -358,3 +358,27 @@ cargo test --locked -p semaprax --test project manifest_v12:: -- --test-threads=
 This profile does not admit the later hosted-provider TLS/listen operations or
 the Rust structured-task runtime. Those APIs do not change Project v12, its
 npm/Web fixture-v1 boundary, or its native ABI.
+
+## Additive Project Manifest v13 HTTPS-command profile
+
+V13 preserves every v1-v12 canonical manifest and adds exactly
+`profile = "https-command-io.v1"`. It selects one `() -> bool` command,
+`input = "argv-utf8+stdin-bytes.v1"`, and the exact sorted capabilities
+`network.http`, `process.args.read`, `process.stderr.write`,
+`process.stdin.read`, and `process.stdout.write`. Raw connect/read/write,
+TLS-key, listen, and accept authority are deliberately absent.
+
+The linker validates the selected closure under HTTPS Client I/O v1 and its
+owned-byte capacity rules. `network-run --fixture` authenticates the project
+and replays `semaprax.network-fixture.v3`; the committed example is
+`examples/https-project`. Earlier Project and fixture versions retain their
+exact parsing and authority.
+
+Focused local evidence is:
+
+```sh
+cargo test --locked -p semaprax --test project manifest_v13:: -- --test-threads=1
+```
+
+Native executable, Core-Wasm, npm, and browser adapters remain separate
+promotion work and fail closed rather than using Project v12’s raw-socket ABI.

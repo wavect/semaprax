@@ -243,6 +243,7 @@ impl ProjectRevision {
                 ProjectProfile::OwnedUtf8ApiV1 => "v10",
                 ProjectProfile::NestedOwnedRecordApiV1 => "v11",
                 ProjectProfile::NetworkCommandIoV1 => "v12",
+                ProjectProfile::HttpsCommandIoV1 => "v13",
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",

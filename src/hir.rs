@@ -190,7 +190,8 @@ pub(crate) use validation::validate_core;
 #[cfg(test)]
 use validation::HirValidator;
 pub(crate) use workspace_link::{
-    copy_scalar_type, link_language_command_io_workspace, link_line_command_io_workspace,
+    copy_scalar_type, link_https_command_io_workspace, link_https_entry_workspace,
+    link_language_command_io_workspace, link_line_command_io_workspace,
     link_network_command_io_workspace, link_network_entry_workspace, link_owned_data_api_workspace,
     link_package_scalar_workspace, link_scalar_project_exports, link_scalar_project_workspace,
     link_useful_data_command_workspace, link_useful_data_workspace, link_useful_text_workspace,

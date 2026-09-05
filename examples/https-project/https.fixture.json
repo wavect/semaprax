@@ -1,0 +1,1 @@
+{"schema":"semaprax.network-fixture.v3","connections":[],"https":[{"url":"https://example.test/data","response":"HTTP/1.1 200 semaprax\r\ncontent-length: 2\r\n\r\nok"}]}

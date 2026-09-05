@@ -11,8 +11,9 @@ use crate::diagnostic::Diagnostic;
 
 use super::profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_INPUT_V1,
-    PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_LANGUAGE_COMMAND_INPUT_V1,
-    PROJECT_NETWORK_COMMAND_CAPABILITIES_V1, PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1,
+    PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_HTTPS_COMMAND_CAPABILITIES_V1,
+    PROJECT_LANGUAGE_COMMAND_INPUT_V1, PROJECT_NETWORK_COMMAND_CAPABILITIES_V1,
+    PROJECT_PROFILE_FLAT_OWNED_RECORD_API_V1, PROJECT_PROFILE_HTTPS_COMMAND_IO_V1,
     PROJECT_PROFILE_LANGUAGE_COMMAND_IO_V1, PROJECT_PROFILE_LINE_COMMAND_IO_V1,
     PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1, PROJECT_PROFILE_NETWORK_COMMAND_IO_V1,
     PROJECT_PROFILE_OWNED_DATA_API_V1, PROJECT_PROFILE_OWNED_UTF8_API_V1,
@@ -50,6 +51,8 @@ pub const PROJECT_SCHEMA_V10: &str = "semaprax.project.v10";
 pub const PROJECT_SCHEMA_V11: &str = "semaprax.project.v11";
 /// Additive Project Manifest v12 schema for bounded language network commands.
 pub const PROJECT_SCHEMA_V12: &str = "semaprax.project.v12";
+/// Additive Project Manifest v13 schema for bounded HTTPS commands.
+pub const PROJECT_SCHEMA_V13: &str = "semaprax.project.v13";
 pub const MAX_MANIFEST_BYTES: usize = 64 * 1024;
 pub const MAX_NAME_BYTES: usize = 64;
 pub const MAX_VERSION_BYTES: usize = 128;
@@ -61,7 +64,7 @@ pub const MAX_WEB_EXPORTS: usize = 32;
 pub const MAX_TOTAL_SOURCE_BYTES: usize = 16 * 1024 * 1024;
 
 /// One exact, closed Project manifest. `schema` is the frozen profile contract
-/// the manifest lowers to: a frozen `semaprax.project.v1`-`v12` layout names it
+/// the manifest lowers to: a frozen `semaprax.project.v1`-`v13` layout names it
 /// directly, and the extensible `semaprax.manifest.v1` table layout selects it
 /// through `[package] profile`. Every project route reads only the contract.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -85,7 +88,7 @@ pub struct ProjectManifest {
 }
 
 impl ProjectManifest {
-    /// Parse one canonical manifest: a frozen Project v1-v12 layout or the
+    /// Parse one canonical manifest: a frozen Project v1-v13 layout or the
     /// extensible Package Manifest v1 table layout.
     pub fn parse(source: &str) -> Result<Self, Vec<Diagnostic>> {
         if source.len() > MAX_MANIFEST_BYTES {
@@ -585,9 +588,57 @@ impl ProjectManifest {
                         parse_array_assignment(lines[10], "tests")?,
                     )
                 }
+                PROJECT_SCHEMA_V13 => {
+                    if lines.len() != 12 || lines.last() != Some(&"") {
+                        return Err(grammar(
+                            "Project v13 manifest must contain exactly eleven ordered assignments and one terminal LF",
+                        ));
+                    }
+                    let version = parse_string_assignment(lines[2], "version")?;
+                    if !valid_semver(&version) {
+                        return Err(grammar(
+                            "Project v13 version must be canonical Semantic Versioning text of at most 128 bytes",
+                        ));
+                    }
+                    if parse_string_assignment(lines[3], "profile")?
+                        != PROJECT_PROFILE_HTTPS_COMMAND_IO_V1
+                    {
+                        return Err(grammar("Project v13 profile is not https-command-io.v1"));
+                    }
+                    let command = parse_string_assignment(lines[7], "command")?;
+                    let input = parse_string_assignment(lines[8], "input")?;
+                    if input != PROJECT_LANGUAGE_COMMAND_INPUT_V1 {
+                        return Err(grammar(
+                            "Project v13 input is not argv-utf8+stdin-bytes.v1",
+                        ));
+                    }
+                    let capabilities = parse_array_assignment(lines[9], "capabilities")?;
+                    if !capabilities
+                        .iter()
+                        .map(String::as_str)
+                        .eq(PROJECT_HTTPS_COMMAND_CAPABILITIES_V1)
+                    {
+                        return Err(grammar(
+                            "Project v13 capabilities must be exactly [\"network.http\", \"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]",
+                        ));
+                    }
+                    (
+                        PROJECT_SCHEMA_V13,
+                        parse_string_assignment(lines[1], "name")?,
+                        Some(version),
+                        ProjectProfile::HttpsCommandIoV1,
+                        parse_string_assignment(lines[4], "entry")?,
+                        parse_array_assignment(lines[5], "sources")?,
+                        parse_array_assignment(lines[6], "web_exports")?,
+                        Some(command),
+                        Some(input),
+                        capabilities,
+                        parse_array_assignment(lines[10], "tests")?,
+                    )
+                }
                 _ => {
                     return Err(grammar(
-                        "Project manifest schema is neither semaprax.manifest.v1 nor an admitted semaprax.project.v1-v12 frozen schema",
+                        "Project manifest schema is neither semaprax.manifest.v1 nor an admitted semaprax.project.v1-v13 frozen schema",
                     ))
                 }
             }
@@ -606,6 +657,7 @@ impl ProjectManifest {
             PROJECT_SCHEMA_V10 => "Project v10",
             PROJECT_SCHEMA_V11 => "Project v11",
             PROJECT_SCHEMA_V12 => "Project v12",
+            PROJECT_SCHEMA_V13 => "Project v13",
             _ => unreachable!("schema was selected by the closed parser"),
         };
         if !valid_name(&name) {
@@ -767,6 +819,10 @@ impl ProjectManifest {
         self.schema == PROJECT_SCHEMA_V12
     }
 
+    pub fn is_v13(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V13
+    }
+
     pub fn entry(&self) -> &str {
         &self.entry
     }
@@ -791,7 +847,7 @@ impl ProjectManifest {
     /// `[dependencies]` row, kept in strict byte order. The rendered text is
     /// re-parsed before it is returned, so a rejected package identity or
     /// range surfaces as the manifest's own grammar diagnostic. A frozen
-    /// Project v1-v12 layout has no dependency table and is rejected, as is a
+    /// Project v1-v13 layout has no dependency table and is rejected, as is a
     /// dependency the manifest already declares.
     pub fn with_dependency(&self, name: &str, range: &str) -> Result<String, Vec<Diagnostic>> {
         if self.layout != ManifestLayout::Tables {
@@ -990,7 +1046,7 @@ impl ProjectManifest {
                 render_array(&self.web_exports),
                 self.test_module,
             )
-        } else {
+        } else if self.schema == PROJECT_SCHEMA_V12 {
             debug_assert_eq!(self.schema, PROJECT_SCHEMA_V12);
             format!(
                 "schema = \"{PROJECT_SCHEMA_V12}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ninput = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
@@ -1010,6 +1066,29 @@ impl ProjectManifest {
                 self.command_input
                     .as_deref()
                     .expect("Project v12 carries a command input profile"),
+                render_array(&self.capabilities),
+                self.test_module,
+            )
+        } else {
+            debug_assert_eq!(self.schema, PROJECT_SCHEMA_V13);
+            format!(
+                "schema = \"{PROJECT_SCHEMA_V13}\"\nname = \"{}\"\nversion = \"{}\"\nprofile = \"{}\"\nentry = \"{}\"\nsources = {}\nweb_exports = {}\ncommand = \"{}\"\ninput = \"{}\"\ncapabilities = {}\ntests = [\"{}\"]\n",
+                self.name,
+                self.package_version
+                    .as_deref()
+                    .expect("Project v13 carries a package version"),
+                self.profile
+                    .name()
+                    .expect("Project v13 carries a named profile"),
+                self.entry,
+                render_array(&self.sources),
+                render_array(&self.web_exports),
+                self.command
+                    .as_deref()
+                    .expect("Project v13 carries a command stable ID"),
+                self.command_input
+                    .as_deref()
+                    .expect("Project v13 carries a command input profile"),
                 render_array(&self.capabilities),
                 self.test_module,
             )

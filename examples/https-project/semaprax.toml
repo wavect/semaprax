@@ -1,0 +1,11 @@
+schema = "semaprax.project.v13"
+name = "https-client"
+version = "1.0.0"
+profile = "https-command-io.v1"
+entry = "https_client.app"
+sources = ["src/app.spx", "src/tests.spx"]
+web_exports = ["https-client.fetch"]
+command = "https-client.fetch"
+input = "argv-utf8+stdin-bytes.v1"
+capabilities = ["network.http", "process.args.read", "process.stderr.write", "process.stdin.read", "process.stdout.write"]
+tests = ["https_client.tests"]

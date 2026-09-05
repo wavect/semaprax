@@ -1384,6 +1384,9 @@ impl WorkspaceGraphBuild {
             crate::project::ProjectProfile::NetworkCommandIoV1 => {
                 hir::link_network_entry_workspace(entry_module.to_owned(), entrypoint, functions)
             }
+            crate::project::ProjectProfile::HttpsCommandIoV1 => {
+                hir::link_https_entry_workspace(entry_module.to_owned(), entrypoint, functions)
+            }
             crate::project::ProjectProfile::OwnedDataApiV1 => {
                 unreachable!("Project v8 uses the exact function-reachable linker")
             }
@@ -1577,6 +1580,20 @@ impl WorkspaceGraphBuild {
                     )]);
                 };
                 hir::link_network_command_io_workspace(
+                    base.module,
+                    base.entrypoint,
+                    hir::DeclarationId::new(command_id.clone()),
+                    functions,
+                )
+            }
+            crate::project::ProjectProfile::HttpsCommandIoV1 => {
+                let [command_id] = additional_roots else {
+                    return Err(vec![graph_error(
+                        "SPX-G172",
+                        "HTTPS Command I/O v1 must select exactly one command identity",
+                    )]);
+                };
+                hir::link_https_command_io_workspace(
                     base.module,
                     base.entrypoint,
                     hir::DeclarationId::new(command_id.clone()),
@@ -2231,6 +2248,7 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::LanguageCommandIoV1
                     | crate::project::ProjectProfile::LineCommandIoV1
                     | crate::project::ProjectProfile::NetworkCommandIoV1
+                    | crate::project::ProjectProfile::HttpsCommandIoV1
                     | crate::project::ProjectProfile::OwnedDataApiV1
                     | crate::project::ProjectProfile::FlatOwnedRecordApiV1
                     | crate::project::ProjectProfile::OwnedUtf8ApiV1
@@ -2254,7 +2272,8 @@ impl WorkspaceGraphBuild {
                     | crate::project::ProjectProfile::UsefulDataCommandV2
                     | crate::project::ProjectProfile::LanguageCommandIoV1
                     | crate::project::ProjectProfile::LineCommandIoV1
-                    | crate::project::ProjectProfile::NetworkCommandIoV1 => {
+                    | crate::project::ProjectProfile::NetworkCommandIoV1
+                    | crate::project::ProjectProfile::HttpsCommandIoV1 => {
                         hir::useful_data_workspace_return_admitted(&function.return_type)
                     }
                     crate::project::ProjectProfile::OwnedDataApiV1 => {
@@ -2290,6 +2309,11 @@ impl WorkspaceGraphBuild {
                     || (profile == crate::project::ProjectProfile::NetworkCommandIoV1
                         && function.effects.iter().all(|effect| {
                             crate::project::PROJECT_NETWORK_COMMAND_CAPABILITIES_V1
+                                .contains(&effect.as_str())
+                        }))
+                    || (profile == crate::project::ProjectProfile::HttpsCommandIoV1
+                        && function.effects.iter().all(|effect| {
+                            crate::project::PROJECT_HTTPS_COMMAND_CAPABILITIES_V1
                                 .contains(&effect.as_str())
                         }));
                 let signature_admitted = class_method
@@ -2327,6 +2351,9 @@ impl WorkspaceGraphBuild {
                         }
                         crate::project::ProjectProfile::NetworkCommandIoV1 => {
                             "Network Command I/O v1 linker"
+                        }
+                        crate::project::ProjectProfile::HttpsCommandIoV1 => {
+                            "HTTPS Command I/O v1 linker"
                         }
                         crate::project::ProjectProfile::OwnedDataApiV1 => {
                             "Owned Data API v1 linker"

@@ -188,7 +188,7 @@ that a target builds, runs, or is supported on any host.
 
 ## Evidence and nonclaims
 
-`tests/project.rs::package_manifest_v1` pins: the lowering of all eleven
+`tests/project.rs::package_manifest_v1` pins: the lowering of all thirteen
 profiles against their frozen equivalents, including `is_vN` and the
 per-profile command rules; the reserved and unknown table and key rejections;
 the first-differing-line canonical diagnostics; the dependency grammar and the

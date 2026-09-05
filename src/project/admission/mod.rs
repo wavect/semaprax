@@ -39,6 +39,7 @@ pub(super) enum PreparedProjectAdmission {
     LanguageCommandIoV1,
     LineCommandIoV1,
     NetworkCommandIoV1,
+    HttpsCommandIoV1,
     OwnedDataApiV1(Box<PublicApiDescriptor>),
     FlatOwnedRecordApiV1(Box<FlatOwnedRecordApiDescriptor>),
     OwnedUtf8ApiV1(Box<PublicApiDescriptor>),
@@ -56,6 +57,7 @@ impl PreparedProjectAdmission {
             Self::LanguageCommandIoV1 => ProjectProfile::LanguageCommandIoV1,
             Self::LineCommandIoV1 => ProjectProfile::LineCommandIoV1,
             Self::NetworkCommandIoV1 => ProjectProfile::NetworkCommandIoV1,
+            Self::HttpsCommandIoV1 => ProjectProfile::HttpsCommandIoV1,
             Self::OwnedDataApiV1(_descriptor) => ProjectProfile::OwnedDataApiV1,
             Self::FlatOwnedRecordApiV1(_descriptor) => ProjectProfile::FlatOwnedRecordApiV1,
             Self::OwnedUtf8ApiV1(_descriptor) => ProjectProfile::OwnedUtf8ApiV1,
@@ -157,6 +159,10 @@ pub(super) fn prepare(
         ProjectProfile::NetworkCommandIoV1 => {
             legacy::network_command(program, manifest.command().unwrap_or(""))?;
             Ok(PreparedProjectAdmission::NetworkCommandIoV1)
+        }
+        ProjectProfile::HttpsCommandIoV1 => {
+            legacy::https_command(program, manifest.command().unwrap_or(""))?;
+            Ok(PreparedProjectAdmission::HttpsCommandIoV1)
         }
         ProjectProfile::OwnedDataApiV1 => owned::prepare(program, manifest, subject)
             .map(Box::new)

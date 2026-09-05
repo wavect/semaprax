@@ -2,7 +2,7 @@
 //!
 //! Every admitted table manifest lowers onto the frozen profile contract the
 //! frozen `semaprax.project.vN` layouts name directly, so these cases pin the
-//! lowering for all eleven profiles, the closed table/key catalog, the exact
+//! lowering for all thirteen profiles, the closed table/key catalog, the exact
 //! canonical bytes, the dependency and target grammars, and the two project
 //! routes the layout gates: dependency-free builds and the declared target
 //! matrix. The end-to-end cases run the CLI over the committed examples with
@@ -15,8 +15,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use semaprax::project::{
     ManifestLayout, ProjectManifest, PACKAGE_MANIFEST_RESERVED_TABLES, PACKAGE_MANIFEST_SCHEMA,
     PACKAGE_RESERVED_KEYS, PROJECT_SCHEMA, PROJECT_SCHEMA_V10, PROJECT_SCHEMA_V11,
-    PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6,
-    PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
+    PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V13, PROJECT_SCHEMA_V2, PROJECT_SCHEMA_V3,
+    PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7, PROJECT_SCHEMA_V8,
+    PROJECT_SCHEMA_V9,
 };
 use semaprax::{package_lock_v3, package_report_v2};
 
@@ -101,6 +102,18 @@ const PROFILES: &[Profile] = &[
         frozen_schema: PROJECT_SCHEMA_V11,
         input: None,
         capabilities: None,
+    },
+    Profile {
+        name: Some("network-command-io.v1"),
+        frozen_schema: PROJECT_SCHEMA_V12,
+        input: Some("argv-utf8+stdin-bytes.v1"),
+        capabilities: Some("[\"network.connect\", \"network.read\", \"network.write\", \"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]"),
+    },
+    Profile {
+        name: Some("https-command-io.v1"),
+        frozen_schema: PROJECT_SCHEMA_V13,
+        input: Some("argv-utf8+stdin-bytes.v1"),
+        capabilities: Some("[\"network.http\", \"process.args.read\", \"process.stderr.write\", \"process.stdin.read\", \"process.stdout.write\"]"),
     },
 ];
 

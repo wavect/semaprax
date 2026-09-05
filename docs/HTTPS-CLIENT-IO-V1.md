@@ -35,6 +35,11 @@ accepted; URLs are exact-match HTTPS values and responses obey the 65,536-byte
 source result bound. A mismatched URL or undersized invocation bound fails
 without consuming the queued entry.
 
+Project Manifest v13 exposes this boundary as
+`profile = "https-command-io.v1"` with an exact `network.http` capability.
+The `network-run --fixture` CLI authenticates the selected project command and
+replays fixture v3 without opening a socket.
+
 Failures use the closed `semaprax.http.v1` status domain:
 
 | Code | Meaning |

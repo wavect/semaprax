@@ -18,20 +18,28 @@ pub(super) fn emit_status_runtime(output: &mut impl super::COutput) {
 pub(super) fn emit_status_runtime_with_borrowed_str(output: &mut impl super::COutput) {
     let runtime = STATUS_RUNTIME_C
         .replacen(
-            "    uint64_t trace_generation;\n};",
-            "    uint64_t trace_generation;\n    uint32_t borrowed_str_depth;\n};",
+            "    uint32_t call_depth;\n};",
+            "    uint32_t call_depth;\n    uint32_t borrowed_str_depth;\n};",
             1,
         )
         .replacen(
-            "        context->trace_generation == UINT64_C(0);",
-            "        context->trace_generation == UINT64_C(0) &&\n        context->borrowed_str_depth == UINT32_C(0);",
+            "        context->call_depth == UINT32_C(0);",
+            "        context->call_depth == UINT32_C(0) &&\n        context->borrowed_str_depth == UINT32_C(0);",
             1,
         )
         .replacen(
-            "    context->trace_generation = UINT64_C(0);\n    return true;",
-            "    context->trace_generation = UINT64_C(0);\n    context->borrowed_str_depth = UINT32_C(0);\n    return true;",
+            "    context->call_depth = UINT32_C(0);\n    return true;",
+            "    context->call_depth = UINT32_C(0);\n    context->borrowed_str_depth = UINT32_C(0);\n    return true;",
             1,
         );
+    // A context field added after the anchors would otherwise drop the
+    // extension silently and every borrowed-view function would fail to
+    // compile against the emitted struct.
+    assert_eq!(
+        runtime.matches("borrowed_str_depth").count(),
+        3,
+        "borrowed-str context extension anchors must match the status runtime"
+    );
     output.push_str(&runtime);
 }
 

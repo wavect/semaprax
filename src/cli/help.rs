@@ -854,6 +854,20 @@ fn guide_spec(id: CommandId) -> &'static CommandSpec {
 
 /// The guided global help for `semaprax`, `semaprax help`, `--help`, and `-h`.
 pub(crate) fn global(private: bool) -> String {
+    let out = render_global(private);
+    debug_assert!(
+        out.len() <= GUIDE_MAX_BYTES,
+        "guided help must stay one screen: {} bytes",
+        out.len()
+    );
+    out
+}
+
+/// Renders the guide without enforcing its budget. `global` adds the debug
+/// assertion; the unit test below measures this function instead, so the
+/// budget is checked — and reported in bytes — in every profile rather than
+/// only where `debug_assert!` is live.
+fn render_global(private: bool) -> String {
     let visible = |entry: &&GuideEntry| available(guide_spec(entry.id), private);
     let width = GUIDE
         .iter()
@@ -884,11 +898,6 @@ pub(crate) fn global(private: bool) -> String {
     }
     out.push('\n');
     out.push_str(GUIDE_FOOTER);
-    debug_assert!(
-        out.len() <= GUIDE_MAX_BYTES,
-        "guided help must stay one screen: {} bytes",
-        out.len()
-    );
     out
 }
 
@@ -1108,13 +1117,22 @@ mod tests {
             }
         }
         for private in [false, true] {
-            let help = global(private);
-            assert!(help.starts_with(BANNER));
+            // `render_global`, not `global`: the budget is a contract in every
+            // profile, and measuring the unasserted render keeps this test the
+            // failure that names the overage even where `debug_assert!` is
+            // compiled out.
+            let help = render_global(private);
             assert!(
                 help.len() <= GUIDE_MAX_BYTES,
-                "guided help is {} bytes for private={private}",
+                "guided help is {} bytes for private={private}, over the \
+                 one-screen budget of {GUIDE_MAX_BYTES}; trim the summaries \
+                 or group the inventory rather than raising the bound",
                 help.len()
             );
+            // Only once the budget holds, since `global` aborts on the overage
+            // wherever `debug_assert!` is live.
+            assert_eq!(help, global(private));
+            assert!(help.starts_with(BANNER));
             assert!(help.contains("\n  help all "));
             assert!(help.contains("\n  help language "));
             assert!(help.contains("semaprax help diagnostic <code>`\n"));

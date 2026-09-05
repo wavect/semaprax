@@ -100,7 +100,16 @@ fn invoke(arguments: &[&str]) -> (Output, PathBuf) {
 #[test]
 fn standalone_help_is_exact_capability_aware_and_inert() {
     let (empty, empty_dir) = invoke(&[]);
-    assert_eq!(empty.status.code(), Some(2));
+    // Bare `semaprax` is the first contact anyone has with the tool: it prints
+    // the guide and exits 2. Carry the child's stderr into the failure so an
+    // abort inside the guide's own one-screen assertion names itself instead
+    // of arriving as an unattributed 101.
+    assert_eq!(
+        empty.status.code(),
+        Some(2),
+        "bare `semaprax` must print guided help, not abort: {}",
+        String::from_utf8_lossy(&empty.stderr)
+    );
     assert!(empty.stderr.is_empty());
 
     for alias in ["help", "--help", "-h"] {

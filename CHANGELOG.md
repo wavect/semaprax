@@ -23,9 +23,16 @@ format: `Unreleased` then release buckets, grouped by impact.
   the interpreter, native C11, and Core-Wasm. Real cross-file Project linking,
   semantic-recipe replay, candidate rename/recovery, and ABI-delta replay retain
   the internal generic identity while frozen public descriptors stay closed.
-  Generic variants, classes, nested storage, public generic ABIs, and hosted
-  execution remain unchanged or unclaimed; the required Linux steps are
-  authored but have not yet produced hosted evidence.
+  Bounded acyclic concrete nesting now composes those records as
+  `Box<Pair<Bytes, bool>>`, `Pair<Box<Bytes>, i64>`, and a two-owned-leaf
+  instance. One global worklist authenticates depth, owned-leaf, and field-work
+  limits; recursive cleanup retains complete stable field paths; Native64 and
+  Wasm32 layouts independently replay complete concrete identities; and local
+  interpreter, native C11, and Core-Wasm evidence covers whole moves, exact
+  owner capacity, partial-prefix settlement, and repeated recovery. Generic
+  variants, classes, resources, general nested storage, public generic ABIs,
+  and hosted execution remain unchanged or unclaimed; the required Linux steps
+  are authored but have not yet produced hosted evidence.
 
 - Bounded native C11 name resolution by the same aggregate operation deadline
   as the rest of the operation. A numeric endpoint is answered under

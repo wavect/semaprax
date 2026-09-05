@@ -619,26 +619,6 @@ fn main() -> i64 { 0 }
         ),
         (
             r#"
-module test.generic_owned_nested_closed;
-record Box<T> { value: T, }
-record Outer<T> { value: T, }
-fn reject(value: own Outer<Box<Bytes>>) -> i64 { 0 }
-fn main() -> i64 { 0 }
-"#,
-            "SPX-T223",
-        ),
-        (
-            r#"
-module test.generic_owned_nested_storage_closed;
-record Box<T> { value: T, }
-record Outer { value: Box<Bytes>, }
-fn reject(value: own Outer) -> i64 { 0 }
-fn main() -> i64 { 0 }
-"#,
-            "SPX-T268",
-        ),
-        (
-            r#"
 module test.generic_owned_class_closed;
 class Box<T> { value: T, }
 fn reject(value: own Box<Bytes>) -> i64 { 0 }
@@ -670,6 +650,36 @@ fn main() -> i64 { 0 }
             errors.iter().any(|diagnostic| diagnostic.code == code),
             "missing {code} for closed generic owned shape: {errors:?}"
         );
+    }
+}
+
+#[test]
+fn bounded_nested_concrete_generic_storage_is_admitted() {
+    for source in [
+        r#"
+module test.generic_owned_nested;
+record Box<T> { value: T, }
+record Outer<T> { value: T, }
+fn consume(value: own Outer<Box<Bytes>>) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#,
+        r#"
+module test.generic_owned_nested_storage;
+record Box<T> { value: T, }
+record Outer { value: Box<Bytes>, }
+fn consume(value: own Outer) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#,
+    ] {
+        let errors = diagnostics(source);
+        assert!(
+            errors
+                .iter()
+                .all(|diagnostic| !diagnostic.severity.is_error()),
+            "bounded concrete nested generic storage is admitted: {errors:?}"
+        );
+        let parsed = parse(source, Path::new("nested-concrete-generic-storage-v1.spx")).unwrap();
+        hir::resolve(&parsed).expect("bounded concrete nested generic storage resolves");
     }
 }
 

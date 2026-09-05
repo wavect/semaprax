@@ -60,7 +60,7 @@ fn collect_record_paths(
     enum Frame {
         Record(ResolvedType, Vec<DeclarationId>, usize),
         Bytes(Vec<DeclarationId>),
-        Leave(DeclarationId),
+        Leave(String),
     }
     let mut pending = vec![Frame::Record(root.clone(), Vec::new(), 1)];
     let mut active = BTreeSet::new();
@@ -77,7 +77,8 @@ fn collect_record_paths(
                 }
                 let layout = layouts.layout(&ty)?;
                 layout.validate(program)?;
-                if !active.insert(layout.record.clone()) {
+                let identity = ty.identity_key();
+                if !active.insert(identity.clone()) {
                     return Err(backend_error(
                         "cyclic record reached borrowed aggregate byte paths",
                     ));
@@ -90,7 +91,7 @@ fn collect_record_paths(
                         "borrowed aggregate byte paths exceed the field limit",
                     ));
                 }
-                pending.push(Frame::Leave(layout.record.clone()));
+                pending.push(Frame::Leave(identity));
                 for field in layout.fields.iter().rev() {
                     let mut path = prefix.clone();
                     path.push(field.field.clone());
@@ -113,8 +114,8 @@ fn collect_record_paths(
                 }
                 output.push(path);
             }
-            Frame::Leave(record) => {
-                active.remove(&record);
+            Frame::Leave(identity) => {
+                active.remove(&identity);
             }
         }
     }
@@ -134,7 +135,7 @@ pub(super) fn emit_owned_record_shell(
         Record(String, String, ResolvedType, usize),
         Bytes(String),
         Scalar(String, String),
-        Leave(DeclarationId),
+        Leave(String),
     }
     let mut pending = vec![Frame::Record(
         destination.to_owned(),
@@ -157,7 +158,8 @@ pub(super) fn emit_owned_record_shell(
                 }
                 let layout = layouts.layout(&ty)?;
                 layout.validate(program)?;
-                if !active.insert(layout.record.clone()) {
+                let identity = ty.identity_key();
+                if !active.insert(identity.clone()) {
                     return Err(backend_error(
                         "cyclic record reached owned result publication",
                     ));
@@ -170,7 +172,7 @@ pub(super) fn emit_owned_record_shell(
                         "owned result publication exceeds its field limit",
                     ));
                 }
-                pending.push(Frame::Leave(layout.record.clone()));
+                pending.push(Frame::Leave(identity));
                 for field in layout.fields.iter().rev() {
                     if field.size == 0 {
                         continue;
@@ -215,8 +217,8 @@ pub(super) fn emit_owned_record_shell(
                 writeln!(output, "    {destination} = {source};")
                     .expect("writing to a string cannot fail");
             }
-            Frame::Leave(record) => {
-                active.remove(&record);
+            Frame::Leave(identity) => {
+                active.remove(&identity);
             }
         }
     }

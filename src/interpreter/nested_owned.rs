@@ -564,7 +564,7 @@ fn pattern_is_exact(
             fields: &'a [hir::ResolvedRecordMatchPatternField],
             depth: usize,
         },
-        Leave(hir::DeclarationId),
+        Leave(String),
     }
     let hir::ResolvedMatchPattern::Record {
         record,
@@ -592,8 +592,8 @@ fn pattern_is_exact(
                 fields,
                 depth,
             } => (ty, record, instance, fields, depth),
-            Frame::Leave(record) => {
-                active.remove(&record);
+            Frame::Leave(identity) => {
+                active.remove(&identity);
                 continue;
             }
         };
@@ -618,7 +618,7 @@ fn pattern_is_exact(
                 .is_none_or(|item| item.kind != hir::DeclarationKind::Record)
             || record != declaration
             || fields.len() != declared_fields.len()
-            || !active.insert(declaration.clone())
+            || !active.insert(ty.identity_key())
         {
             return false;
         }
@@ -626,7 +626,7 @@ fn pattern_is_exact(
             Some(total) if total <= crate::cleanup::MAX_CLEANUP_VISITED_FIELDS => total,
             _ => return false,
         };
-        pending.push(Frame::Leave(declaration.clone()));
+        pending.push(Frame::Leave(ty.identity_key()));
         let mut seen = BTreeSet::new();
         for field in fields.iter().rev() {
             let Some(declared) = declared_fields

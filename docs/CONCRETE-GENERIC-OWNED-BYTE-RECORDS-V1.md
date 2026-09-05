@@ -17,16 +17,26 @@ An admitted instance:
 
 - names an authored `record`, never a class, variant, or resource;
 - supplies exactly one concrete argument per declared type parameter;
-- uses only direct `Bytes` or Copy-scalar arguments: `i64`, `i32`, `u8`,
-  `usize`, `char`, `f32`, `f64`, or `bool`;
-- has, after exact owner-and-index substitution, at least one direct `Bytes`
-  field; and
-- has, after substitution, only direct `Bytes` or admitted Copy-scalar fields.
+- uses only direct `Bytes`, a Copy scalar (`i64`, `i32`, `u8`, `usize`,
+  `char`, `f32`, `f64`, or `bool`), or another fully concrete admitted record
+  as an argument;
+- has, after recursive exact owner-and-index substitution, at least one
+  transitive `Bytes` field; and
+- has, after substitution, only `Bytes`, admitted Copy-scalar, or admitted
+  concrete-record fields.
 
-The substituted instance is flat. Nested generic arguments or storage,
-`String`, arrays, slices, classes, variants, resources, generic functions,
-Project exports, FFI, packages, Components, and public aggregate ABIs remain
-closed. `Option<Bytes>` and the separately admitted
+The initial substituted instance is flat. The additive nested-storage profile
+also admits a fully concrete acyclic record tree such as
+`Box<Pair<Bytes, bool>>` or `Pair<Box<Bytes>, i64>`. Every reachable nominal
+node must be an authored record, every parameter is substituted by exact
+owner-and-index before examining descendants, and the final leaves remain only
+direct `Bytes` or the admitted Copy scalars. One global worklist enforces the
+existing nested-record bounds of 64 record levels, 256 owned leaves, and 4,096
+visited fields; recursive classifier calls may not reset any bound.
+
+Nonconcrete arguments, `String`, arrays, slices, classes, variants, resources,
+unbounded or cyclic nesting, Project exports, FFI, packages, Components, and
+public aggregate ABIs remain closed. `Option<Bytes>` and the separately admitted
 one-owned-side `Result` profiles keep their compiler-owned rules;
 `Result<Bytes, Bytes>` remains rejected.
 
@@ -72,9 +82,10 @@ This slice reuses the already-versioned identities it composes:
 - Graph v12 represents explicit concrete generic-record identity and exact
   ordered arguments; Graph v21 or the later selected additive graph represents
   explicit owned/borrowed matching without erasing that identity.
-- Cleanup Inventory v1 and CleanupPlan v5 represent the flat projected byte
-  leaves, construction state, transfers, child-region settlement, and
-  finalizers. This tranche adds no cleanup vocabulary or schema spelling.
+- Cleanup Inventory v1 and CleanupPlan v5 represent flat projected byte leaves;
+  bounded nested concrete storage selects the existing CleanupPlan v7 and Graph
+  v26 recursive field-path contracts. This tranche adds no cleanup vocabulary
+  or schema spelling.
 - Native64 and Wasm32 aggregate layouts substitute fields before computing
   offsets, sizes, alignments, digests, symbols, or carrier operations.
 
@@ -90,23 +101,30 @@ The local gate requires:
 
 - source verification plus resolved-HIR assertions for exact concrete type
   arguments, substituted match bindings, and byte/no-drop cleanup leaves;
+- exact nested concrete instances `Box<Pair<Bytes, bool>>` and
+  `Pair<Box<Bytes>, i64>`, with recursively substituted HIR/cleanup shapes,
+  one global exact/+1 depth bound, and record-only rejection of nonconcrete,
+  class, variant, resource, `String`, and cyclic arguments;
 - every direct Copy-scalar substitution beside `Bytes`, with exact Native64
   and Wasm32 layouts and distinct instance/layout identities;
-- stable rejection of non-Copy, nested generic, class, variant, and two-owned-
-  side `Result` shapes;
+- recursively substituted Native64 and Wasm32 nested layouts, with distinct
+  outer identities and rejection of forged child digests and carrier kinds;
+- stable rejection of nonconcrete or cyclic nesting, class, variant, resource,
+  non-Copy leaf, and two-owned-side `Result` shapes;
 - independent cleanup-plan replay plus rejection of type-argument, liveness,
   and authored-field-order substitutions;
 - reference-interpreter immutable-update success, partial-construction
   failure, and partial-update failure settlement;
 - separately optimized native C11 execution at `-O0` and `-O2`, with repeated
   entry and zero live allocations after success and failure; and
-- structurally valid Node/Core-Wasm execution under a one-live-owner capacity,
-  including repeated entry.
+- structurally valid Node/Core-Wasm execution under the exact required owner
+  capacity, including one-too-small rejection and repeated entry.
 
 Focused evidence is necessary but does not promote generic ownership broadly.
-Hosted execution, exact/+1 aggregate bounds, nested storage, generic-function
-composition, Project/public consumers, cross-platform ABI
-compatibility, and distribution remain separate completion work. The focused
+Hosted execution, the broader nested destructuring/update/loan corpus,
+generic-function composition beyond the flat relay, Project/public consumers,
+cross-platform ABI compatibility, and distribution remain separate completion
+work. The focused
 local source/HIR/layout and interpreter/native/Wasm gates exercise the complete
 Copy-scalar set; no hosted execution is claimed until the required Linux CI
 step records a real run.
@@ -138,7 +156,8 @@ A sound public generic-owned revision still requires all of the following:
 ## Nonclaims
 
 This contract does not define a stable C, Rust, WIT, Component, Project, or
-package representation. It does not admit generic variants, nested generic
-ownership, resources, inferred type arguments, constraints, specialization,
-mutable or escaping loans, concurrency, or production support. It is one
-bounded internal composition step toward general ownership and public ABIs.
+package representation. It does not admit generic variants, nonconcrete or
+cyclic generic storage, resources, inferred type arguments, constraints,
+specialization, mutable or escaping loans, concurrency, or production support.
+It is one bounded internal composition step toward general ownership and public
+ABIs.

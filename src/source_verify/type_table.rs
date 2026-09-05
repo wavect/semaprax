@@ -714,11 +714,6 @@ pub(super) fn classify_nested_owned_byte_record(
     types: &TypeTable<'_>,
     root: &Type,
 ) -> NestedOwnedRecordAdmission {
-    if matches!(root, Type::Named { arguments, .. } if !arguments.is_empty())
-        && !types.is_flat_owned_byte_record(root)
-    {
-        return NestedOwnedRecordAdmission::OutsideProfile;
-    }
     enum Frame<'a> {
         Type(Type, usize),
         Fields(
@@ -749,9 +744,6 @@ pub(super) fn classify_nested_owned_byte_record(
                 if depth > MAX_NESTED_OWNED_RECORD_DEPTH {
                     return NestedOwnedRecordAdmission::LimitExceeded;
                 }
-                if depth > 1 && !arguments.is_empty() {
-                    return NestedOwnedRecordAdmission::OutsideProfile;
-                }
                 let Some(declaration) = types.declaration(&name) else {
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 };
@@ -759,6 +751,7 @@ pub(super) fn classify_nested_owned_byte_record(
                     || arguments.iter().any(|argument| {
                         *argument != Type::Bytes
                             && !owned_byte_record_copy_field_is_admitted(argument)
+                            && !matches!(argument, Type::Named { .. })
                     })
                 {
                     return NestedOwnedRecordAdmission::OutsideProfile;

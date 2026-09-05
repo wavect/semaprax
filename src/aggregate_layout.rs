@@ -96,6 +96,13 @@ impl AggregateLayout {
         else {
             return Err(layout_error("record instance is not nominal"));
         };
+        let nested_generic_profile =
+            !arguments.is_empty() || contains_concrete_generic_record_descendant(program, instance);
+        if nested_generic_profile && !concrete_layout_instance_is_admitted(program, instance) {
+            return Err(layout_error(format!(
+                "record `{record}` has invalid concrete arguments"
+            )));
+        }
         let mut visiting = BTreeSet::new();
         let value = layout_nominal(program, target, record, arguments, &mut visiting)?;
         let ValueLayoutKind::Record { fields } = value.kind else {
@@ -373,22 +380,7 @@ fn layout_nominal(
         }
         ResolvedTypeDeclarationKind::Record { fields }
         | ResolvedTypeDeclarationKind::Class { fields, .. } => {
-            if arguments.len() != item.type_parameters.len()
-                || arguments.iter().any(|argument| {
-                    !matches!(
-                        argument,
-                        ResolvedType::I64
-                            | ResolvedType::I32
-                            | ResolvedType::Char
-                            | ResolvedType::U8
-                            | ResolvedType::Usize
-                            | ResolvedType::F32
-                            | ResolvedType::F64
-                            | ResolvedType::Bool
-                            | ResolvedType::Bytes
-                    )
-                })
-            {
+            if arguments.len() != item.type_parameters.len() {
                 return Err(layout_error(format!(
                     "record `{declaration}` has invalid concrete arguments"
                 )));
@@ -411,6 +403,174 @@ fn layout_nominal(
             "variant `{declaration}` requires the variant-layout profile"
         ))),
     }
+}
+
+const MAX_CONCRETE_ARGUMENT_RECORD_DEPTH: usize = 64;
+const MAX_CONCRETE_ARGUMENT_OWNED_LEAVES: usize = 256;
+const MAX_CONCRETE_ARGUMENT_FIELDS: usize = 4_096;
+
+/// Select complete-root authentication for a monomorphic wrapper that stores
+/// a concrete generic record. This traversal is only profile detection; it
+/// grants no admission. Exact record kind, substitution, cycle, and budget
+/// checks remain the responsibility of `concrete_layout_instance_is_admitted`.
+fn contains_concrete_generic_record_descendant(
+    program: &ResolvedProgram,
+    root: &ResolvedType,
+) -> bool {
+    let mut pending = vec![root.clone()];
+    let mut visited = BTreeSet::new();
+    while let Some(ty) = pending.pop() {
+        let ResolvedType::Nominal {
+            declaration,
+            arguments,
+        } = ty
+        else {
+            continue;
+        };
+        let identity = ResolvedType::Nominal {
+            declaration: declaration.clone(),
+            arguments: arguments.clone(),
+        }
+        .identity_key();
+        if !visited.insert(identity) {
+            continue;
+        }
+        let Ok(item) = unique_type(program, &declaration) else {
+            continue;
+        };
+        if !arguments.is_empty() && matches!(&item.kind, ResolvedTypeDeclarationKind::Record { .. })
+        {
+            return true;
+        }
+        let fields = match &item.kind {
+            ResolvedTypeDeclarationKind::Record { fields }
+            | ResolvedTypeDeclarationKind::Class { fields, .. } => fields,
+            ResolvedTypeDeclarationKind::Resource { .. }
+            | ResolvedTypeDeclarationKind::Variant { .. } => continue,
+        };
+        for field in fields.iter().rev() {
+            let Ok(field_ty) = crate::hir::substitute_type(&field.ty, &declaration, &arguments)
+            else {
+                continue;
+            };
+            pending.push(field_ty);
+        }
+    }
+    false
+}
+
+/// Independently authenticate one complete nested concrete generic instance
+/// before target layout. This intentionally does not reuse source/HIR ownership
+/// admission: target offsets and an apparently layout-compatible class or
+/// resource may never widen the record-only ownership profile. One worklist
+/// owns every root-and-descendant bound; recursive layout calls do not restart
+/// these counters.
+fn concrete_layout_instance_is_admitted(
+    program: &ResolvedProgram,
+    instance: &ResolvedType,
+) -> bool {
+    enum Frame<'a> {
+        Type(ResolvedType, usize),
+        Fields(
+            DeclarationId,
+            &'a [ResolvedFieldDeclaration],
+            Vec<ResolvedType>,
+            usize,
+            usize,
+        ),
+        Leave(String),
+    }
+
+    let mut pending = vec![Frame::Type(instance.clone(), 1)];
+    let mut active = BTreeSet::new();
+    let mut visited_fields = 0usize;
+    let mut owned_leaves = 0usize;
+
+    while let Some(frame) = pending.pop() {
+        match frame {
+            Frame::Type(ResolvedType::Bytes, _) => {
+                owned_leaves += 1;
+                if owned_leaves > MAX_CONCRETE_ARGUMENT_OWNED_LEAVES {
+                    return false;
+                }
+            }
+            Frame::Type(
+                ResolvedType::I64
+                | ResolvedType::I32
+                | ResolvedType::Char
+                | ResolvedType::U8
+                | ResolvedType::Usize
+                | ResolvedType::F32
+                | ResolvedType::F64
+                | ResolvedType::Bool,
+                _,
+            ) => {}
+            Frame::Type(
+                ResolvedType::Nominal {
+                    declaration,
+                    arguments,
+                },
+                depth,
+            ) => {
+                if depth > MAX_CONCRETE_ARGUMENT_RECORD_DEPTH {
+                    return false;
+                }
+                let Ok(item) = unique_type(program, &declaration) else {
+                    return false;
+                };
+                let ResolvedTypeDeclarationKind::Record { fields } = &item.kind else {
+                    return false;
+                };
+                if arguments.len() != item.type_parameters.len() {
+                    return false;
+                }
+                let identity = ResolvedType::Nominal {
+                    declaration: declaration.clone(),
+                    arguments: arguments.clone(),
+                }
+                .identity_key();
+                if !active.insert(identity.clone()) {
+                    return false;
+                }
+                pending.push(Frame::Leave(identity));
+                pending.push(Frame::Fields(declaration, fields, arguments, 0, depth));
+            }
+            Frame::Type(
+                ResolvedType::Unit
+                | ResolvedType::ArrayU8(_)
+                | ResolvedType::String
+                | ResolvedType::Str
+                | ResolvedType::SliceU8
+                | ResolvedType::TypeParameter { .. },
+                _,
+            ) => return false,
+            Frame::Fields(declaration, fields, arguments, index, depth) => {
+                let Some(field) = fields.get(index) else {
+                    continue;
+                };
+                visited_fields += 1;
+                if visited_fields > MAX_CONCRETE_ARGUMENT_FIELDS {
+                    return false;
+                }
+                pending.push(Frame::Fields(
+                    declaration.clone(),
+                    fields,
+                    arguments.clone(),
+                    index + 1,
+                    depth,
+                ));
+                let Ok(field_ty) = crate::hir::substitute_type(&field.ty, &declaration, &arguments)
+                else {
+                    return false;
+                };
+                pending.push(Frame::Type(field_ty, depth + 1));
+            }
+            Frame::Leave(identity) => {
+                active.remove(&identity);
+            }
+        }
+    }
+    true
 }
 
 fn layout_record(

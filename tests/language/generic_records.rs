@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use semaprax::cleanup::FieldLivenessShape;
 use semaprax::graph::{self, AgentContextFilter, AgentContextOptions};
 use semaprax::hir::{self, ResolvedExprKind, ResolvedType, ResolvedTypeDeclarationKind};
 use semaprax::{format, parse, verify};
@@ -85,6 +86,30 @@ fn nominal(id: &str, argument: ResolvedType) -> ResolvedType {
         declaration: hir::DeclarationId::new(id),
         arguments: vec![argument],
     }
+}
+
+fn owned_leaf_paths(shape: &FieldLivenessShape) -> Vec<Vec<String>> {
+    fn visit(shape: &FieldLivenessShape, path: &mut Vec<String>, result: &mut Vec<Vec<String>>) {
+        match shape {
+            FieldLivenessShape::NoDrop => {}
+            FieldLivenessShape::Leaf { .. } => result.push(path.clone()),
+            FieldLivenessShape::Record { fields, .. } => {
+                for field in fields {
+                    path.push(field.field.as_str().to_owned());
+                    visit(&field.shape, path, result);
+                    path.pop();
+                }
+            }
+            FieldLivenessShape::Variant { .. } => {
+                panic!("record cleanup path unexpectedly contains a variant")
+            }
+            _ => panic!("record cleanup path contains an unknown shape"),
+        }
+    }
+
+    let mut result = Vec::new();
+    visit(shape, &mut Vec::new(), &mut result);
+    result
 }
 
 #[test]
@@ -484,4 +509,231 @@ fn cleanup_replay_keeps_generic_copy_records_resource_free_and_canonical() {
         );
     }
     hir::validate(&resolved).unwrap();
+}
+
+#[test]
+fn nested_generic_owned_records_round_trip_and_retain_exact_hir_instances() {
+    let source = r#"
+module test.nested_generic_owned_records;
+
+@id("nested.box")
+record Box<T> { @id("nested.box.value") value: T, }
+
+@id("nested.pair")
+record Pair<T, U> {
+    @id("nested.pair.left") left: T,
+    @id("nested.pair.right") right: U,
+}
+
+@id("nested.consume-box")
+fn consume_box(value: own Box<Pair<Bytes, bool>>) -> i64 {
+    if value.value.right { 1 } else { 0 }
+}
+
+@id("nested.consume-pair")
+fn consume_pair(value: own Pair<Box<Bytes>, i64>) -> i64 { value.right }
+
+@id("nested.identity-multi")
+fn identity_multi(
+    value: own Pair<Pair<Box<Bytes>, Box<Bytes>>, i64>
+) -> Pair<Pair<Box<Bytes>, Box<Bytes>>, i64> { value }
+
+@id("app.main")
+fn main() -> i64 {
+    let first_input = [1u8];
+    let first = Box<Pair<Bytes, bool>> {
+        value: Pair<Bytes, bool> {
+            left: bytes_copy(array_as_slice(first_input)),
+            right: true,
+        },
+    };
+    let first_result = consume_box(first);
+    let second_input = [2u8];
+    let second = Pair<Box<Bytes>, i64> {
+        left: Box<Bytes> { value: bytes_copy(array_as_slice(second_input)) },
+        right: 41,
+    };
+    first_result + consume_pair(second)
+}
+"#;
+    let program = parse(source, Path::new("nested-generic-owned-records.spx")).unwrap();
+    assert!(verify::verify(&program).is_empty());
+    let canonical = format::canonical(&program);
+    assert!(canonical.contains("Box<Pair<Bytes, bool>>"));
+    assert!(canonical.contains("Pair<Box<Bytes>, i64>"));
+    let reparsed = parse(
+        &canonical,
+        Path::new("nested-generic-owned-records-canonical.spx"),
+    )
+    .unwrap();
+    assert!(verify::verify(&reparsed).is_empty());
+    assert_eq!(canonical, format::canonical(&reparsed));
+
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let boxed_pair = ResolvedType::Nominal {
+        declaration: hir::DeclarationId::new("nested.box"),
+        arguments: vec![ResolvedType::Nominal {
+            declaration: hir::DeclarationId::new("nested.pair"),
+            arguments: vec![ResolvedType::Bytes, ResolvedType::Bool],
+        }],
+    };
+    let pair_box = ResolvedType::Nominal {
+        declaration: hir::DeclarationId::new("nested.pair"),
+        arguments: vec![
+            ResolvedType::Nominal {
+                declaration: hir::DeclarationId::new("nested.box"),
+                arguments: vec![ResolvedType::Bytes],
+            },
+            ResolvedType::I64,
+        ],
+    };
+    assert_eq!(
+        resolved
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "nested.consume-box")
+            .unwrap()
+            .params[0]
+            .ty,
+        boxed_pair
+    );
+    assert_eq!(
+        resolved
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "nested.consume-pair")
+            .unwrap()
+            .params[0]
+            .ty,
+        pair_box
+    );
+    let multi_owner = ResolvedType::Nominal {
+        declaration: hir::DeclarationId::new("nested.pair"),
+        arguments: vec![
+            ResolvedType::Nominal {
+                declaration: hir::DeclarationId::new("nested.pair"),
+                arguments: vec![
+                    ResolvedType::Nominal {
+                        declaration: hir::DeclarationId::new("nested.box"),
+                        arguments: vec![ResolvedType::Bytes],
+                    },
+                    ResolvedType::Nominal {
+                        declaration: hir::DeclarationId::new("nested.box"),
+                        arguments: vec![ResolvedType::Bytes],
+                    },
+                ],
+            },
+            ResolvedType::I64,
+        ],
+    };
+    let identity_multi = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "nested.identity-multi")
+        .unwrap();
+    assert_eq!(identity_multi.params[0].ty, multi_owner);
+    assert_eq!(identity_multi.return_type, multi_owner);
+    let multi_facts = resolved
+        .declarations
+        .type_facts(&multi_owner)
+        .expect("multi-owner nested generic instance has exact type facts");
+    assert!(!multi_facts.copy);
+    assert!(multi_facts.needs_drop);
+    let consume_box = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "nested.consume-box")
+        .unwrap();
+    let boxed_pair_slot = consume_box
+        .cleanup
+        .slots
+        .iter()
+        .find(|slot| slot.ty == boxed_pair)
+        .expect("nested generic boxed pair owns one structural cleanup slot");
+    assert_eq!(
+        owned_leaf_paths(&boxed_pair_slot.shape),
+        [vec![
+            "nested.box.value".to_owned(),
+            "nested.pair.left".to_owned(),
+        ]]
+    );
+    let consume_pair = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "nested.consume-pair")
+        .unwrap();
+    let pair_box_slot = consume_pair
+        .cleanup
+        .slots
+        .iter()
+        .find(|slot| slot.ty == pair_box)
+        .expect("nested generic pair box owns one structural cleanup slot");
+    assert_eq!(
+        owned_leaf_paths(&pair_box_slot.shape),
+        [vec![
+            "nested.pair.left".to_owned(),
+            "nested.box.value".to_owned(),
+        ]]
+    );
+    let multi_slot = identity_multi
+        .cleanup
+        .slots
+        .iter()
+        .find(|slot| slot.ty == multi_owner)
+        .expect("multi-owner nested generic value has a structural cleanup slot");
+    assert_eq!(
+        owned_leaf_paths(&multi_slot.shape),
+        [
+            vec![
+                "nested.pair.left".to_owned(),
+                "nested.pair.left".to_owned(),
+                "nested.box.value".to_owned(),
+            ],
+            vec![
+                "nested.pair.left".to_owned(),
+                "nested.pair.right".to_owned(),
+                "nested.box.value".to_owned(),
+            ],
+        ]
+    );
+}
+
+#[test]
+fn nested_generic_owned_records_keep_nonconcrete_and_nonrecord_descendants_closed() {
+    let nonconcrete = r#"
+module test.nested_generic_nonconcrete;
+@id("nested.box") record Box<T> { @id("nested.box.value") value: T, }
+@id("nested.pair") record Pair<T, U> {
+    @id("nested.pair.left") left: T,
+    @id("nested.pair.right") right: U,
+}
+@id("nested.reject")
+fn reject<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { value }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    assert!(errors(nonconcrete).contains(&"SPX-T224"));
+
+    let resource = r#"
+module test.nested_generic_resource;
+@id("nested.token") resource Token { @id("nested.token.drop") drop trivial; }
+@id("nested.box") record Box<T> { @id("nested.box.value") value: T, }
+@id("nested.reject") fn reject(value: own Box<Token>) -> i64 { 0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    assert!(errors(resource).contains(&"SPX-T223"));
+
+    let variant = r#"
+module test.nested_generic_variant;
+@id("nested.maybe") variant Maybe<T> {
+    @id("nested.maybe.some") Some { @id("nested.maybe.some.value") value: T, },
+    @id("nested.maybe.none") None,
+}
+@id("nested.box") record Box<T> { @id("nested.box.value") value: T, }
+@id("nested.reject") fn reject(value: own Box<Maybe<Bytes>>) -> i64 { 0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let variant_errors = errors(variant);
+    assert!(variant_errors.contains(&"SPX-T223"));
+    assert!(variant_errors.contains(&"SPX-T268"));
 }

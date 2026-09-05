@@ -558,6 +558,13 @@ jobs:
           cargo test --locked -p semaprax --test project concrete_generic_project_prerequisites::cross_file_generic_imports_reject_nonrecord_and_nonflat_templates_with_stable_g172 -- --exact --nocapture
           cargo test --locked -p semaprax --test project flat_owned_record_api::frozen_v9_descriptor_rejects_an_admitted_concrete_generic_result -- --exact --nocapture
           cargo test --locked -p semaprax --test project nested_owned_record_api::frozen_v11_descriptor_rejects_an_admitted_concrete_generic_result -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_records::nested_generic_owned_records_round_trip_and_retain_exact_hir_instances -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_records::nested_generic_owned_records_keep_nonconcrete_and_nonrecord_descendants_closed -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data nested_generic_owned_record_frontend_hir::nested_concrete_generic_instances_substitute_before_hir_and_cleanup -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data nested_generic_owned_record_frontend_hir::hostile_nested_type_arguments_and_cleanup_carriers_fail_closed -- --exact --nocapture
+          cargo test --locked -p semaprax --lib aggregate_layout::tests::nested_concrete_generic_layouts_substitute_recursively_and_remain_distinct -- --exact --nocapture
+          cargo test --locked -p semaprax --lib aggregate_layout::tests::nested_concrete_generic_layout_admission_is_bounded_and_record_only -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data nested_generic_owned_record_runtime::nested_concrete_generic_storage_replays_and_executes_on_three_engines -- --exact --nocapture
       - name: Require native O0/O2 and Core-Wasm scalar status equivalence
         if: runner.os == 'Linux'
         env:

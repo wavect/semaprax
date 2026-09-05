@@ -23,6 +23,7 @@ use super::{
 
 mod compiler;
 mod expression;
+mod generic_record;
 mod http_io;
 mod nested_owned;
 mod network_io;
@@ -972,20 +973,9 @@ fn record_declaration_id<'a>(
         return Ok(None);
     }
     if arguments.len() != item.type_parameters.len()
-        || arguments.iter().any(|argument| {
-            !matches!(
-                argument,
-                ResolvedType::I64
-                    | ResolvedType::I32
-                    | ResolvedType::Char
-                    | ResolvedType::U8
-                    | ResolvedType::Usize
-                    | ResolvedType::F32
-                    | ResolvedType::F64
-                    | ResolvedType::Bool
-                    | ResolvedType::Bytes
-            )
-        })
+        || (!arguments.is_empty()
+            && (!matches!(item.kind, ResolvedTypeDeclarationKind::Record { .. })
+                || !generic_record::is_admitted(program, ty)?))
     {
         return Err(backend_error(format!(
             "native record representation requires admitted exact concrete arguments for `{}`",

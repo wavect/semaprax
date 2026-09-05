@@ -197,7 +197,7 @@ pub(super) fn check_declared_type(
             name: name.clone(),
             arguments: arguments.clone(),
         };
-        let admitted_owned_record = types.is_flat_owned_byte_record(&instance);
+        let admitted_owned_record = types.is_nested_owned_byte_record(&instance);
         let admitted_owned_record_template =
             types.is_flat_owned_byte_record_template(&instance, parameters);
         if arguments

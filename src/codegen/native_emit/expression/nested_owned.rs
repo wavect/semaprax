@@ -505,7 +505,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
     fn classify_owned_record(&self, root: &ResolvedType) -> Result<bool, Diagnostic> {
         enum Frame {
             Enter(ResolvedType, usize),
-            Leave(DeclarationId),
+            Leave(String),
         }
 
         let mut pending = vec![Frame::Enter(root.clone(), 1)];
@@ -549,7 +549,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         ));
                     }
                     let layout = self.record_layout(&ty)?;
-                    if !active.insert(layout.record.clone()) {
+                    let identity = ty.identity_key();
+                    if !active.insert(identity.clone()) {
                         return Err(backend_error(
                             "cyclic record reached nested owned native lowering",
                         ));
@@ -562,7 +563,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "nested owned native lowering exceeds its field limit",
                         ));
                     }
-                    pending.push(Frame::Leave(layout.record));
+                    pending.push(Frame::Leave(identity));
                     for field in layout.fields.into_iter().rev() {
                         pending.push(Frame::Enter(field.ty, depth + 1));
                     }
@@ -572,8 +573,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         "closed field kind reached nested owned native lowering",
                     ));
                 }
-                Frame::Leave(record) => {
-                    active.remove(&record);
+                Frame::Leave(identity) => {
+                    active.remove(&identity);
                 }
             }
         }

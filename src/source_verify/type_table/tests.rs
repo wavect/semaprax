@@ -336,6 +336,104 @@ fn owned_byte_aggregates_are_classified_flat_nested_or_outside_the_profile() {
 }
 
 #[test]
+fn nested_generic_owned_instances_share_one_bounded_worklist() {
+    let program = parsed(
+        r#"module test.nested_generic_classifier;
+@id("t.box") record Box<T> { @id("t.box.value") value: T, }
+@id("t.pair") record Pair<T, U> {
+    @id("t.pair.left") left: T,
+    @id("t.pair.right") right: U,
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+        "nested-generic-classifier.spx",
+    );
+    let types = TypeTable::new(&program);
+    let pair = generic("Pair", vec![Type::Bytes, Type::Bool]);
+    let boxed_pair = generic("Box", vec![pair]);
+    assert_eq!(
+        classify_nested_owned_byte_record(&types, &boxed_pair),
+        NestedOwnedRecordAdmission::Admitted
+    );
+    let pair_box = generic("Pair", vec![generic("Box", vec![Type::Bytes]), Type::I64]);
+    assert_eq!(
+        classify_nested_owned_byte_record(&types, &pair_box),
+        NestedOwnedRecordAdmission::Admitted
+    );
+
+    let mut at_depth = Type::Bytes;
+    for _ in 0..MAX_NESTED_OWNED_RECORD_DEPTH {
+        at_depth = generic("Box", vec![at_depth]);
+    }
+    assert_eq!(
+        classify_nested_owned_byte_record(&types, &at_depth),
+        NestedOwnedRecordAdmission::Admitted
+    );
+    let one_deeper = generic("Box", vec![at_depth]);
+    assert_eq!(
+        classify_nested_owned_byte_record(&types, &one_deeper),
+        NestedOwnedRecordAdmission::LimitExceeded
+    );
+}
+
+fn generic_nested_field_bound_source(inner_fields: usize) -> String {
+    let mut source = String::from(
+        "module test.nested_generic_field_bound;\n\n@id(\"t.box\") record Box<T> { @id(\"t.box.value\") value: T, }\n\n@id(\"t.wide\") record Wide {\n",
+    );
+    source.push_str("@id(\"t.wide.payload\") payload: Bytes,\n");
+    for index in 1..inner_fields {
+        source.push_str(&format!("@id(\"t.wide.f{index}\") f{index}: i64,\n"));
+    }
+    source.push_str("}\n@id(\"app.main\") fn main() -> i64 { 0 }\n");
+    source
+}
+
+#[test]
+fn nested_generic_owned_instances_charge_descendant_fields_globally() {
+    let at_limit = parsed(
+        &generic_nested_field_bound_source(MAX_NESTED_OWNED_RECORD_FIELDS - 1),
+        "nested-generic-field-limit.spx",
+    );
+    assert_eq!(
+        classify_nested_owned_byte_record(
+            &TypeTable::new(&at_limit),
+            &generic("Box", vec![named("Wide")]),
+        ),
+        NestedOwnedRecordAdmission::Admitted
+    );
+
+    let one_more = parsed(
+        &generic_nested_field_bound_source(MAX_NESTED_OWNED_RECORD_FIELDS),
+        "nested-generic-field-plus-one.spx",
+    );
+    assert_eq!(
+        classify_nested_owned_byte_record(
+            &TypeTable::new(&one_more),
+            &generic("Box", vec![named("Wide")]),
+        ),
+        NestedOwnedRecordAdmission::LimitExceeded
+    );
+}
+
+#[test]
+fn nested_generic_owned_instance_cycles_fail_closed() {
+    let program = parsed(
+        r#"module test.nested_generic_cycle;
+@id("t.loop") record Loop<T> { @id("t.loop.next") next: Loop<T>, }
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+        "nested-generic-cycle.spx",
+    );
+    assert_eq!(
+        classify_nested_owned_byte_record(
+            &TypeTable::new(&program),
+            &generic("Loop", vec![Type::Bytes]),
+        ),
+        NestedOwnedRecordAdmission::Recursive
+    );
+}
+
+#[test]
 fn a_self_recursive_record_is_reported_recursive_rather_than_traversed() {
     let program = parsed(
         r#"module test.type_table_recursive;

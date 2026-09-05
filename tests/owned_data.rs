@@ -45,6 +45,10 @@ mod concrete_generic_owned_record_update;
 mod generic_owned_function_runtime;
 #[path = "owned_data/interpreter.rs"]
 mod interpreter;
+#[path = "owned_data/nested_generic_owned_record_frontend_hir.rs"]
+mod nested_generic_owned_record_frontend_hir;
+#[path = "owned_data/nested_generic_owned_record_runtime.rs"]
+mod nested_generic_owned_record_runtime;
 #[path = "owned_data/nested_owned_record_frontend_hir.rs"]
 mod nested_owned_record_frontend_hir;
 #[path = "owned_data/nested_owned_record_runtime.rs"]

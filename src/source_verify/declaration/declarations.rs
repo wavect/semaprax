@@ -437,12 +437,17 @@ pub(super) fn check_declared_fields<'p>(
                                 types.declaration(name).map(|item| &item.kind),
                                 Some(TypeDeclarationKind::Record { .. } | TypeDeclarationKind::Class { .. })
                             )
-                ) {
+                ) && !(types.contains_owned_bytes(&field.ty)
+                    && matches!(
+                        classify_nested_owned_byte_record(types, &field.ty),
+                        NestedOwnedRecordAdmission::Admitted
+                    ))
+                {
                     diagnostics.push(error(
                         program,
                         "SPX-T223",
                         format!(
-                            "record field `{}.{}` cannot nest a generic record instance in this slice",
+                            "record field `{}.{}` has a generic instance outside bounded concrete owned-record storage",
                             declaration.name, field.name
                         ),
                         field.span,

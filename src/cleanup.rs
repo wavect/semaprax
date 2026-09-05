@@ -15,6 +15,8 @@ use crate::hir::{
     ResolvedTypeDeclarationKind, ValueId,
 };
 
+mod generic_record;
+
 #[cfg(test)]
 thread_local! {
     static INVENTORY_CAPACITY_HIGH_WATER: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
@@ -858,48 +860,11 @@ impl InventoryBuilder<'_> {
                                         ty.identity_key()
                                     )));
                                 }
-                                let mut field_shapes = Vec::with_capacity(fields.len());
-                                for field in fields {
-                                    let field_ty = crate::hir::substitute_type(
-                                        &field.ty,
-                                        declaration,
-                                        arguments,
-                                    )?;
-                                    let shape = if field_ty == ResolvedType::Bytes {
-                                        let flag_index =
-                                            u32::try_from(self.flags.len()).map_err(|_| {
-                                                cleanup_error("too many cleanup liveness flags")
-                                            })?;
-                                        let flag = LivenessFlagId(flag_index);
-                                        let lifecycle = DeclarationId::new(BYTES_DROP_LIFECYCLE_ID);
-                                        let mut leaf_projections = projections.clone();
-                                        leaf_projections.push(field.id.clone());
-                                        self.flags.push(CleanupFlag {
-                                            id: flag,
-                                            place: CleanupPlace {
-                                                storage,
-                                                projections: leaf_projections,
-                                            },
-                                            lifecycle: lifecycle.clone(),
-                                        });
-                                        FieldLivenessShape::Leaf { flag, lifecycle }
-                                    } else if self.needs_drop(&field_ty)? {
-                                        return Err(cleanup_error(
-                                            "generic owned-record field is outside the flat Bytes profile",
-                                        ));
-                                    } else {
-                                        FieldLivenessShape::NoDrop
-                                    };
-                                    field_shapes.push(FieldLiveness {
-                                        field: field.id.clone(),
-                                        field_index: field.index,
-                                        shape,
-                                    });
-                                }
-                                shapes.push(FieldLivenessShape::Record {
-                                    declaration: declaration.clone(),
-                                    fields: field_shapes,
-                                });
+                                shapes.push(self.shape_for_concrete_generic_record(
+                                    ty,
+                                    storage,
+                                    &projections,
+                                )?);
                                 continue;
                             }
                             frames.try_reserve(2).map_err(|_| {

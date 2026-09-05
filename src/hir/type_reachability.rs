@@ -330,11 +330,6 @@ fn classify_nested_owned_byte_record(
     declarations: &DeclarationIndex,
     root: &ResolvedType,
 ) -> NestedOwnedRecordAdmission {
-    if matches!(root, ResolvedType::Nominal { arguments, .. } if !arguments.is_empty())
-        && !is_flat_owned_byte_record(declarations, root)
-    {
-        return NestedOwnedRecordAdmission::OutsideProfile;
-    }
     enum Frame<'a> {
         Type(ResolvedType, usize),
         Fields(
@@ -373,15 +368,13 @@ fn classify_nested_owned_byte_record(
                 if depth > MAX_NESTED_OWNED_RECORD_DEPTH {
                     return NestedOwnedRecordAdmission::LimitExceeded;
                 }
-                if depth > 1 && !arguments.is_empty() {
-                    return NestedOwnedRecordAdmission::OutsideProfile;
-                }
                 if declarations
                     .type_parameters(&declaration)
                     .is_none_or(|parameters| parameters.len() != arguments.len())
                     || arguments.iter().any(|argument| {
                         *argument != ResolvedType::Bytes
                             && !nested_record_copy_scalar_is_admitted(argument)
+                            && !matches!(argument, ResolvedType::Nominal { .. })
                     })
                     || declarations
                         .declaration(&declaration)
@@ -583,7 +576,7 @@ pub(super) fn record_args_ok(
     arguments
         .iter()
         .all(|argument| matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
-        || is_flat_owned_byte_record(
+        || is_admitted_nested_owned_byte_record(
             declarations,
             &ResolvedType::Nominal {
                 declaration: declaration.clone(),
@@ -623,5 +616,71 @@ mod tests {
             arguments: vec![ResolvedType::Bytes, ResolvedType::U8],
         };
         assert!(!is_flat_owned_byte_record(&program.declarations, &instance));
+    }
+
+    #[test]
+    fn nested_generic_owned_record_classifier_rederives_instances_and_depth_bound() {
+        let source = crate::parse(
+            r#"module generic.nested_classifier;
+@id("generic.nested.box") record Box<T> {
+  @id("generic.nested.box.value") value: T,
+}
+@id("generic.nested.pair") record Pair<T, U> {
+  @id("generic.nested.pair.left") left: T,
+  @id("generic.nested.pair.right") right: U,
+}
+@id("generic.nested.main") fn main() -> i64 { 0 }
+"#,
+            std::path::Path::new("generic-nested-classifier.spx"),
+        )
+        .unwrap();
+        let program = crate::hir::resolve(&source).unwrap();
+        let box_id = DeclarationId::new("generic.nested.box");
+        let pair_id = DeclarationId::new("generic.nested.pair");
+        let boxed_pair = ResolvedType::Nominal {
+            declaration: box_id.clone(),
+            arguments: vec![ResolvedType::Nominal {
+                declaration: pair_id.clone(),
+                arguments: vec![ResolvedType::Bytes, ResolvedType::Bool],
+            }],
+        };
+        assert!(matches!(
+            classify_nested_owned_byte_record(&program.declarations, &boxed_pair),
+            NestedOwnedRecordAdmission::Admitted(_)
+        ));
+        let pair_box = ResolvedType::Nominal {
+            declaration: pair_id,
+            arguments: vec![
+                ResolvedType::Nominal {
+                    declaration: box_id.clone(),
+                    arguments: vec![ResolvedType::Bytes],
+                },
+                ResolvedType::I64,
+            ],
+        };
+        assert!(matches!(
+            classify_nested_owned_byte_record(&program.declarations, &pair_box),
+            NestedOwnedRecordAdmission::Admitted(_)
+        ));
+
+        let mut at_depth = ResolvedType::Bytes;
+        for _ in 0..MAX_NESTED_OWNED_RECORD_DEPTH {
+            at_depth = ResolvedType::Nominal {
+                declaration: box_id.clone(),
+                arguments: vec![at_depth],
+            };
+        }
+        assert!(matches!(
+            classify_nested_owned_byte_record(&program.declarations, &at_depth),
+            NestedOwnedRecordAdmission::Admitted(_)
+        ));
+        let one_deeper = ResolvedType::Nominal {
+            declaration: box_id,
+            arguments: vec![at_depth],
+        };
+        assert!(matches!(
+            classify_nested_owned_byte_record(&program.declarations, &one_deeper),
+            NestedOwnedRecordAdmission::LimitExceeded
+        ));
     }
 }

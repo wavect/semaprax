@@ -319,7 +319,7 @@ impl DeclarationIndex {
     fn compute_type_facts(
         &self,
         ty: &ResolvedType,
-        visiting: &mut BTreeSet<DeclarationId>,
+        visiting: &mut BTreeSet<String>,
         memo: &mut BTreeMap<String, TypeFacts>,
     ) -> Option<TypeFacts> {
         enum Frame {
@@ -349,7 +349,7 @@ impl DeclarationIndex {
             frames: &Vec<Frame>,
             results: &Vec<TypeFacts>,
             memo: &BTreeMap<String, TypeFacts>,
-            visiting: &BTreeSet<DeclarationId>,
+            visiting: &BTreeSet<String>,
         ) -> usize {
             type_facts_outer_baseline()
                 + frames.capacity() * std::mem::size_of::<Frame>()
@@ -367,9 +367,8 @@ impl DeclarationIndex {
                     .map(|(key, facts)| key.capacity() + facts.layout_key.capacity())
                     .sum::<usize>()
                 + visiting.len()
-                    * (std::mem::size_of::<DeclarationId>()
-                        + std::mem::size_of::<BTreeSet<DeclarationId>>())
-                + visiting.iter().map(|id| id.as_str().len()).sum::<usize>()
+                    * (std::mem::size_of::<String>() + std::mem::size_of::<BTreeSet<String>>())
+                + visiting.iter().map(String::capacity).sum::<usize>()
         }
 
         let mut frames = vec![Frame::Enter(ty.clone())];
@@ -471,7 +470,7 @@ impl DeclarationIndex {
                             && arguments.iter().any(|argument| {
                                 !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
                             }))
-                        || !visiting.insert(declaration.clone())
+                        || !visiting.insert(identity.clone())
                     {
                         return None;
                     }
@@ -533,7 +532,7 @@ impl DeclarationIndex {
                                 .map(|facts| facts.layout_key.capacity())
                                 .sum::<usize>(),
                     );
-                    visiting.remove(&declaration);
+                    visiting.remove(&identity);
                     let mut encoded = crate::bounded_output::CappedString::new();
                     match kind {
                         DeclarationKind::Record | DeclarationKind::Class => {

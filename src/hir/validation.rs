@@ -750,6 +750,10 @@ impl<'a> HirValidator<'a> {
                                     .declarations
                                     .declaration(field_declaration)
                                     .is_some_and(|item| item.kind == DeclarationKind::Record)
+                                && !super::type_reachability::is_admitted_nested_owned_byte_record(
+                                    &self.program.declarations,
+                                    &field.ty,
+                                )
                             {
                                 return Err(hir_error(format!(
                                     "field `{}` nests a generic record instance outside the admitted slice",
@@ -8661,10 +8665,16 @@ impl<'a> HirValidator<'a> {
                         &self.program.declarations,
                         ty,
                     );
+                    let admitted_nested_owned_record =
+                        super::type_reachability::is_admitted_nested_owned_byte_record(
+                            &self.program.declarations,
+                            ty,
+                        );
                     if !arguments.is_empty()
                         && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
                             || (!admitted_owned_byte_prelude_instance(declaration, arguments)
                                 && !admitted_owned_record
+                                && !admitted_nested_owned_record
                                 && (arguments.as_slice() != [ResolvedType::U8]
                                     || declaration.as_str() != crate::prelude::OPTION_ID)
                                 && arguments.iter().any(|argument| {

@@ -11,7 +11,7 @@ use super::{error, is_aggregate, layout, require_type, value_type, Emitter, Poin
 
 enum Frame {
     Enter(ResolvedType, usize),
-    Leave(DeclarationId),
+    Leave(String),
 }
 
 pub(super) fn record_contains_owned_bytes(
@@ -71,7 +71,8 @@ pub(super) fn record_contains_owned_bytes(
                 else {
                     unreachable!()
                 };
-                if !active.insert(declaration.clone()) {
+                let identity = ty.identity_key();
+                if !active.insert(identity.clone()) {
                     return Err(super::error(
                         "cyclic record reached nested owned Wasm lowering",
                     ));
@@ -88,7 +89,7 @@ pub(super) fn record_contains_owned_bytes(
                         "nested owned Wasm lowering exceeds its field limit",
                     ));
                 }
-                pending.push(Frame::Leave(declaration.clone()));
+                pending.push(Frame::Leave(identity));
                 for field in fields.iter().rev() {
                     pending.push(Frame::Enter(
                         crate::hir::substitute_type(&field.ty, declaration, arguments)?,
@@ -101,8 +102,8 @@ pub(super) fn record_contains_owned_bytes(
                     "closed field kind reached nested owned Wasm lowering",
                 ));
             }
-            Frame::Leave(declaration) => {
-                active.remove(&declaration);
+            Frame::Leave(identity) => {
+                active.remove(&identity);
             }
         }
     }
@@ -116,7 +117,11 @@ pub(super) fn record_is_nested_owned(
     if !record_contains_owned_bytes(program, root)? {
         return Ok(false);
     }
-    let ResolvedType::Nominal { declaration, .. } = root else {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = root
+    else {
         return Ok(false);
     };
     let fields = program
@@ -124,7 +129,8 @@ pub(super) fn record_is_nested_owned(
         .record_fields(declaration)
         .ok_or_else(|| super::error("nested update record inventory is absent"))?;
     for field in fields {
-        if record_contains_owned_bytes(program, &field.ty)? {
+        let field_ty = crate::hir::substitute_type(&field.ty, declaration, arguments)?;
+        if record_contains_owned_bytes(program, &field_ty)? {
             return Ok(true);
         }
     }

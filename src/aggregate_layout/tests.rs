@@ -55,12 +55,65 @@ record GenericPair<T, U> {
     right: U,
 }
 
+@id("generic-box.type")
+record GenericBox<T> {
+    @id("generic-box.value")
+    value: T,
+}
+
+@id("mono-wrapper.type")
+record MonoWrapper {
+    @id("mono-wrapper.value")
+    value: GenericBox<Bytes>,
+}
+
 @id("app.main")
 fn main() -> i64 { 0 }
 "#;
 
 fn program() -> hir::ResolvedProgram {
     hir::resolve(&parse(SOURCE, Path::new("aggregate-layout.spx")).unwrap()).unwrap()
+}
+
+fn replace_array_holder_fields(
+    program: &mut hir::ResolvedProgram,
+    field_count: usize,
+    bytes_fields: usize,
+) {
+    let holder = program
+        .types
+        .iter_mut()
+        .find(|item| item.id.as_str() == "array-holder.type")
+        .unwrap();
+    let ResolvedTypeDeclarationKind::Record { fields } = &mut holder.kind else {
+        unreachable!()
+    };
+    let prototype = fields[0].clone();
+    *fields = (0..field_count)
+        .map(|index| {
+            let mut field = prototype.clone();
+            field.id = DeclarationId::new(format!("array-holder.f{index}"));
+            field.index = u32::try_from(index).unwrap();
+            field.ty = if index < bytes_fields {
+                ResolvedType::Bytes
+            } else {
+                ResolvedType::Bool
+            };
+            field
+        })
+        .collect();
+}
+
+fn replace_mono_wrapper_field(program: &mut hir::ResolvedProgram, ty: ResolvedType) {
+    let wrapper = program
+        .types
+        .iter_mut()
+        .find(|item| item.id.as_str() == "mono-wrapper.type")
+        .unwrap();
+    let ResolvedTypeDeclarationKind::Record { fields } = &mut wrapper.kind else {
+        unreachable!()
+    };
+    fields[0].ty = ty;
 }
 
 #[test]
@@ -291,6 +344,192 @@ fn concrete_generic_owned_bytes_layout_substitutes_before_target_layout() {
             assert!(substituted.validate(&program).is_err());
         }
     }
+}
+
+#[test]
+fn nested_concrete_generic_layouts_substitute_recursively_and_remain_distinct() {
+    let program = program();
+    let pair_bytes_bool = ResolvedType::Nominal {
+        declaration: DeclarationId::new("generic-pair.type"),
+        arguments: vec![ResolvedType::Bytes, ResolvedType::Bool],
+    };
+    let box_pair = ResolvedType::Nominal {
+        declaration: DeclarationId::new("generic-box.type"),
+        arguments: vec![pair_bytes_bool],
+    };
+    let box_bytes = ResolvedType::Nominal {
+        declaration: DeclarationId::new("generic-box.type"),
+        arguments: vec![ResolvedType::Bytes],
+    };
+    let pair_box = ResolvedType::Nominal {
+        declaration: DeclarationId::new("generic-pair.type"),
+        arguments: vec![box_bytes, ResolvedType::I64],
+    };
+
+    for (target, expected_size) in [
+        (AggregateTarget::Native64, 24),
+        (AggregateTarget::Wasm32, 16),
+    ] {
+        let outer_box = AggregateLayout::for_type(&program, target, &box_pair)
+            .expect("Box<Pair<Bytes,bool>> layout");
+        assert_eq!((outer_box.size, outer_box.align), (expected_size, 8));
+        assert_eq!(outer_box.fields.len(), 1);
+        assert_eq!(
+            outer_box.fields[0].value_kind,
+            AggregateFieldValueKind::Aggregate
+        );
+        assert_eq!(outer_box.fields[0].offset, 0);
+        outer_box.validate(&program).unwrap();
+
+        let outer_pair = AggregateLayout::for_type(&program, target, &pair_box)
+            .expect("Pair<Box<Bytes>,i64> layout");
+        assert_eq!((outer_pair.size, outer_pair.align), (expected_size, 8));
+        assert_eq!(
+            outer_pair
+                .fields
+                .iter()
+                .map(|field| (field.value_kind, field.offset, field.size, field.align))
+                .collect::<Vec<_>>(),
+            [
+                (AggregateFieldValueKind::Aggregate, 0, expected_size - 8, 8),
+                (AggregateFieldValueKind::Copy, expected_size - 8, 8, 8),
+            ]
+        );
+        outer_pair.validate(&program).unwrap();
+        assert_ne!(outer_box.digest, outer_pair.digest);
+
+        let mut forged_child = outer_box;
+        forged_child.fields[0].nested_digest[0] ^= 1;
+        assert!(forged_child.validate(&program).is_err());
+
+        let mut forged_carrier = outer_pair;
+        forged_carrier.fields[0].value_kind = AggregateFieldValueKind::OwnedBytes;
+        assert!(forged_carrier.validate(&program).is_err());
+    }
+}
+
+#[test]
+fn nested_concrete_generic_layout_admission_is_bounded_and_record_only() {
+    let program = program();
+    let box_id = DeclarationId::new("generic-box.type");
+    let boxed = |argument| ResolvedType::Nominal {
+        declaration: box_id.clone(),
+        arguments: vec![argument],
+    };
+
+    let resource_argument = boxed(ResolvedType::Nominal {
+        declaration: DeclarationId::new("token.type"),
+        arguments: Vec::new(),
+    });
+    assert!(
+        AggregateLayout::for_type(&program, AggregateTarget::Native64, &resource_argument).is_err()
+    );
+
+    let mut at_limit = ResolvedType::Bytes;
+    for _ in 0..64 {
+        at_limit = boxed(at_limit);
+    }
+    AggregateLayout::for_type(&program, AggregateTarget::Wasm32, &at_limit)
+        .expect("64 record levels are admitted");
+    let plus_one = boxed(at_limit);
+    assert!(AggregateLayout::for_type(&program, AggregateTarget::Wasm32, &plus_one).is_err());
+
+    let nested_holder = boxed(ResolvedType::Nominal {
+        declaration: DeclarationId::new("array-holder.type"),
+        arguments: Vec::new(),
+    });
+    let mut leaf_limit = program.clone();
+    replace_array_holder_fields(&mut leaf_limit, 256, 256);
+    AggregateLayout::for_type(&leaf_limit, AggregateTarget::Wasm32, &nested_holder)
+        .expect("root plus descendant admits exactly 256 owned leaves");
+    let mut leaf_plus_one = program.clone();
+    replace_array_holder_fields(&mut leaf_plus_one, 257, 257);
+    assert!(
+        AggregateLayout::for_type(&leaf_plus_one, AggregateTarget::Wasm32, &nested_holder).is_err()
+    );
+
+    let mut field_limit = program.clone();
+    replace_array_holder_fields(&mut field_limit, 4_095, 1);
+    AggregateLayout::for_type(&field_limit, AggregateTarget::Wasm32, &nested_holder)
+        .expect("root plus descendant admits exactly 4096 visited fields");
+    let mut field_plus_one = program.clone();
+    replace_array_holder_fields(&mut field_plus_one, 4_096, 1);
+    assert!(
+        AggregateLayout::for_type(&field_plus_one, AggregateTarget::Wasm32, &nested_holder)
+            .is_err()
+    );
+
+    let mut cyclic = program.clone();
+    let holder = cyclic
+        .types
+        .iter_mut()
+        .find(|item| item.id.as_str() == "array-holder.type")
+        .unwrap();
+    let ResolvedTypeDeclarationKind::Record { fields } = &mut holder.kind else {
+        unreachable!()
+    };
+    fields[0].ty = ResolvedType::Nominal {
+        declaration: DeclarationId::new("array-holder.type"),
+        arguments: Vec::new(),
+    };
+    let cyclic_argument = boxed(ResolvedType::Nominal {
+        declaration: DeclarationId::new("array-holder.type"),
+        arguments: Vec::new(),
+    });
+    assert!(
+        AggregateLayout::for_type(&cyclic, AggregateTarget::Native64, &cyclic_argument).is_err()
+    );
+}
+
+#[test]
+fn monomorphic_wrapper_authenticates_one_complete_nested_generic_budget() {
+    let program = program();
+    let wrapper = ResolvedType::Nominal {
+        declaration: DeclarationId::new("mono-wrapper.type"),
+        arguments: Vec::new(),
+    };
+    let boxed = |argument| ResolvedType::Nominal {
+        declaration: DeclarationId::new("generic-box.type"),
+        arguments: vec![argument],
+    };
+
+    let mut exact_depth = ResolvedType::Bytes;
+    for _ in 0..63 {
+        exact_depth = boxed(exact_depth);
+    }
+    let mut depth_limit = program.clone();
+    replace_mono_wrapper_field(&mut depth_limit, exact_depth.clone());
+    AggregateLayout::for_type(&depth_limit, AggregateTarget::Wasm32, &wrapper)
+        .expect("monomorphic root plus generic descendants admits depth 64");
+    let mut depth_plus_one = program.clone();
+    replace_mono_wrapper_field(&mut depth_plus_one, boxed(exact_depth));
+    assert!(AggregateLayout::for_type(&depth_plus_one, AggregateTarget::Wasm32, &wrapper).is_err());
+
+    let nested_holder = boxed(ResolvedType::Nominal {
+        declaration: DeclarationId::new("array-holder.type"),
+        arguments: Vec::new(),
+    });
+    let mut leaf_limit = program.clone();
+    replace_array_holder_fields(&mut leaf_limit, 256, 256);
+    replace_mono_wrapper_field(&mut leaf_limit, nested_holder.clone());
+    AggregateLayout::for_type(&leaf_limit, AggregateTarget::Native64, &wrapper)
+        .expect("monomorphic root plus generic descendant admits 256 leaves");
+    let mut leaf_plus_one = program.clone();
+    replace_array_holder_fields(&mut leaf_plus_one, 257, 257);
+    replace_mono_wrapper_field(&mut leaf_plus_one, nested_holder.clone());
+    assert!(
+        AggregateLayout::for_type(&leaf_plus_one, AggregateTarget::Native64, &wrapper).is_err()
+    );
+
+    let mut field_limit = program.clone();
+    replace_array_holder_fields(&mut field_limit, 4_094, 1);
+    replace_mono_wrapper_field(&mut field_limit, nested_holder.clone());
+    AggregateLayout::for_type(&field_limit, AggregateTarget::Wasm32, &wrapper)
+        .expect("wrapper, generic box, and descendant admit 4096 total fields");
+    let mut field_plus_one = program;
+    replace_array_holder_fields(&mut field_plus_one, 4_095, 1);
+    replace_mono_wrapper_field(&mut field_plus_one, nested_holder);
+    assert!(AggregateLayout::for_type(&field_plus_one, AggregateTarget::Wasm32, &wrapper).is_err());
 }
 
 #[test]

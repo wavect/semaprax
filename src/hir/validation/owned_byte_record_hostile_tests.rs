@@ -181,6 +181,48 @@ fn validation_admits_nested_records_but_rejects_non_record_and_forbidden_leaves(
 }
 
 #[test]
+fn validation_rederives_nested_generic_record_admission_from_exact_arguments() {
+    let source = r#"
+module test.nested_generic_hir_hostile;
+@id("nested.box") record Box<T> { @id("nested.box.value") value: T, }
+@id("nested.pair") record Pair<T, U> {
+  @id("nested.pair.left") left: T,
+  @id("nested.pair.right") right: U,
+}
+@id("nested.marker") class Marker { @id("nested.marker.value") value: i64, }
+@id("nested.consume") fn consume(value: own Box<Pair<Bytes, bool>>) -> i64 { 0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = crate::parse(
+        source,
+        std::path::Path::new("nested-generic-hir-hostile.spx"),
+    )
+    .expect("fixture parses");
+    let mut program = crate::hir::resolve(&parsed).expect("nested generic fixture resolves");
+    crate::hir::validate(&program).expect("authentic nested generic HIR validates");
+
+    let consume = program
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "nested.consume")
+        .expect("consume function");
+    consume.params[0].ty = ResolvedType::Nominal {
+        declaration: DeclarationId::new("nested.box"),
+        arguments: vec![ResolvedType::Nominal {
+            declaration: DeclarationId::new("nested.pair"),
+            arguments: vec![
+                ResolvedType::Bytes,
+                ResolvedType::Nominal {
+                    declaration: DeclarationId::new("nested.marker"),
+                    arguments: Vec::new(),
+                },
+            ],
+        }],
+    };
+    assert_hir_rejects(&program, "unsupported generic arguments");
+}
+
+#[test]
 fn validation_rejects_a_projected_borrow_match_scrutinee() {
     let source = r#"
 module test.projected_owned_byte_borrow;

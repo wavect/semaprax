@@ -868,6 +868,10 @@ impl Resolver<'_> {
                                     &self.declarations,
                                     &instance,
                                 )
+                                && !crate::hir::type_reachability::is_admitted_nested_owned_byte_record(
+                                    &self.declarations,
+                                    &instance,
+                                )
                                 && !resolved.is_empty()
                                 && resolved.iter().any(|argument| {
                                     !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)

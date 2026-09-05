@@ -21,8 +21,8 @@ mod settlement;
 pub use derivation::derive_flat_owned_record_api_descriptor;
 pub use metadata::{render_flat_owned_record_metadata, replay_flat_owned_record_metadata};
 pub use projections::{
-    render_flat_owned_record_c_header, render_flat_owned_record_rust,
-    render_flat_owned_record_typescript,
+    render_flat_owned_record_c_header, render_flat_owned_record_cpp_header,
+    render_flat_owned_record_rust, render_flat_owned_record_typescript,
 };
 pub use settlement::FlatOwnedRecordSettlement;
 

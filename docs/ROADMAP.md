@@ -109,8 +109,9 @@ monomorphic result record with exactly one direct `Bytes` field and only direct
 layout-independent. Its descriptor-bound npm/Core-Wasm and
 native-provider/safe-Rust routes are now wired while preserving the v8 target
 routes. Their nonignored regressions ran in the v0.2.0 tag matrix; the
-generated packages are still unpublished, and explicit promotion remains
-outstanding.
+descriptor-derived safe C++17 value adapter now has local real-provider O0/O2
+evidence while keeping its carrier and byte handle private. The generated
+packages are still unpublished, and explicit promotion remains outstanding.
 
 The authority-neutral [Project Profile Admission
 v1](PROJECT-PROFILE-ADMISSION-V1.md) dispatcher is now authored as the sole

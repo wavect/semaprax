@@ -13,6 +13,14 @@ format: `Unreleased` then release buckets, grouped by impact.
   fixture-v3 output, one-shot invocation and tampered-Wasm rejection, and
   proves every browser request stays on the loopback harness origin.
 
+- Added a descriptor-derived safe C++17 adapter for Project-v9 flat owned
+  records. Its thread-bound noncopyable client preflights borrowed inputs,
+  authenticates private carrier values, copies and settles the sole byte
+  handle, closes the provider context, and only then returns a value-only C++
+  record. A real separately compiled C11 provider and C++17 consumer execute at
+  O0/O2. The C header now preserves its C11 static-array minimum while using
+  C++-legal syntax when included from C++.
+
 - Added invocation-owned HTTPS work to the bounded structured-task runtime.
   Providers now settle exactly once across success, HTTP failure,
   cancellation, panic, deadline expiry, and registration rejection; results

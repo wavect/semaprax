@@ -1,11 +1,12 @@
 use semaprax::hir;
 use semaprax::project::{
     derive_flat_owned_record_api_descriptor, render_flat_owned_record_c_header,
-    render_flat_owned_record_metadata, render_flat_owned_record_rust,
-    render_flat_owned_record_typescript, replay_flat_owned_record_api_descriptor,
-    replay_flat_owned_record_metadata, FlatOwnedRecordFieldType, FlatOwnedRecordSettlement,
-    ProjectManifest, ProjectProfile, PublicApiSubject, FLAT_OWNED_RECORD_API_SCHEMA,
-    FLAT_OWNED_RECORD_METADATA_SCHEMA, FLAT_OWNED_RECORD_PROJECT_SCHEMA,
+    render_flat_owned_record_cpp_header, render_flat_owned_record_metadata,
+    render_flat_owned_record_rust, render_flat_owned_record_typescript,
+    replay_flat_owned_record_api_descriptor, replay_flat_owned_record_metadata,
+    FlatOwnedRecordFieldType, FlatOwnedRecordSettlement, ProjectManifest, ProjectProfile,
+    PublicApiSubject, FLAT_OWNED_RECORD_API_SCHEMA, FLAT_OWNED_RECORD_METADATA_SCHEMA,
+    FLAT_OWNED_RECORD_PROJECT_SCHEMA,
 };
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -232,6 +233,7 @@ fn generated_mappings_are_safe_and_hide_the_carrier() {
     let typescript = render_flat_owned_record_typescript(&descriptor);
     let rust = render_flat_owned_record_rust(&descriptor);
     let c = render_flat_owned_record_c_header(&descriptor);
+    let cpp = render_flat_owned_record_cpp_header(&descriptor);
     let export = &descriptor.exports()[0];
     let record = export.record_host_name();
     let payload = export
@@ -268,14 +270,172 @@ fn generated_mappings_are_safe_and_hide_the_carrier() {
     assert!(c.starts_with("#ifndef SEMAPRAX_FLAT_OWNED_RECORD_V1_H\n"));
     assert!(c.contains("SPX_FLAT_RECORD_EXPORT_0_FIELD_COUNT UINT32_C(4)"));
     assert!(c.contains("SPX_FLAT_RECORD_EXPORT_0_FIELD_0_KIND SPX_FLAT_RECORD_OWNED_BYTES"));
-    assert!(c.contains("uint64_t[static 4]"));
+    assert!(c.contains("#define SPX_FLAT_RECORD_STATIC(N) static N"));
+    assert!(c.contains("uint64_t[SPX_FLAT_RECORD_STATIC(4)]"));
+    assert!(cpp.contains(&format!("struct {record} {{")));
+    assert!(cpp.contains(&format!("Bytes {payload};")));
+    assert!(cpp.contains(&format!("std::int64_t {kind};")));
+    assert!(cpp.contains(&format!("bool {valid};")));
+    assert!(cpp.contains("Client(const Client&)=delete"));
+    let public_record = cpp
+        .split_once(&format!("struct {record} {{"))
+        .unwrap()
+        .1
+        .split_once("};")
+        .unwrap()
+        .0;
+    assert!(!public_record.contains("handle"));
+    assert!(!public_record.contains("spx_owned_"));
     assert_eq!(c, render_flat_owned_record_c_header(&descriptor));
+    assert_eq!(cpp, render_flat_owned_record_cpp_header(&descriptor));
     for forbidden in ["handle", "pointer", "offset", "unsafe", "repr(C)"] {
         assert!(!typescript.contains(forbidden), "{forbidden}");
         if forbidden != "unsafe" {
             assert!(!rust.contains(forbidden), "{forbidden}");
         }
     }
+}
+
+#[test]
+fn generated_cpp17_adapter_returns_values_after_settling_the_actual_provider_owner() {
+    static SERIAL: AtomicU64 = AtomicU64::new(0);
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-flat-record-cpp-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&root).unwrap();
+    let program = resolve(SOURCE);
+    let selected = vec!["frame.info".to_owned()];
+    let descriptor =
+        derive_flat_owned_record_api_descriptor(&program, &selected, subject()).unwrap();
+    let bytes = descriptor.canonical_bytes();
+    let digest = descriptor.digest();
+    let provider = semaprax::codegen::emit_project_v9_native_flat_owned_record_provider(
+        &program,
+        &selected,
+        subject(),
+        &bytes,
+        &digest,
+    )
+    .unwrap();
+    let export = &descriptor.exports()[0];
+    let field = |stable_id: &str| {
+        export
+            .fields()
+            .iter()
+            .find(|field| field.stable_id().as_str() == stable_id)
+            .unwrap()
+            .host_name()
+    };
+    fs::write(
+        root.join("semaprax_flat_owned_record.h"),
+        render_flat_owned_record_c_header(&descriptor),
+    )
+    .unwrap();
+    fs::write(
+        root.join("semaprax_flat_owned_record.hpp"),
+        render_flat_owned_record_cpp_header(&descriptor),
+    )
+    .unwrap();
+    fs::write(root.join("provider.c"), provider.source()).unwrap();
+    fs::write(
+        root.join("consumer.cpp"),
+        format!(
+            r#"#include "semaprax_flat_owned_record.hpp"
+#include <cstdint>
+int main() {{
+    using namespace semaprax::flat_owned_record_v1;
+    const std::uint8_t input[]={{9,8,7}};
+    Client client;
+    auto value=client.{}(ByteView(input,sizeof(input)),true);
+    if(value.{}.size()!=sizeof(input))return 1;
+    for(std::size_t i=0;i<sizeof(input);++i)if(value.{}[i]!=input[i])return 2;
+    if(value.{}!=7||!value.{}||value.{}!=sizeof(input))return 3;
+    auto second=client.{}(ByteView(input,sizeof(input)),false);
+    if(second.{}||second.{}.size()!=sizeof(input))return 4;
+    return 0;
+}}
+"#,
+            export.rust_method_name(),
+            field("frame.info.payload"),
+            field("frame.info.payload"),
+            field("frame.info.kind"),
+            field("frame.info.valid"),
+            field("frame.info.size"),
+            export.rust_method_name(),
+            field("frame.info.valid"),
+            field("frame.info.payload"),
+        ),
+    )
+    .unwrap();
+    let clang = std::env::var_os("CLANG").unwrap_or_else(|| "clang".into());
+    let clangxx = std::env::var_os("CXX").unwrap_or_else(|| "clang++".into());
+    for optimization in ["-O0", "-O2"] {
+        let provider_object = format!("provider.c-{optimization}.o");
+        let output = Command::new(&clang)
+            .current_dir(&root)
+            .args([
+                "-std=c11",
+                optimization,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-c",
+                "provider.c",
+                "-o",
+                provider_object.as_str(),
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let consumer_object = format!("consumer.cpp-{optimization}.o");
+        let output = Command::new(&clangxx)
+            .current_dir(&root)
+            .args([
+                "-std=c++17",
+                optimization,
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                "-c",
+                "consumer.cpp",
+                "-o",
+                consumer_object.as_str(),
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let executable = format!("consumer-{optimization}");
+        let output = Command::new(&clangxx)
+            .current_dir(&root)
+            .args([
+                provider_object,
+                consumer_object,
+                "-o".to_owned(),
+                executable.clone(),
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert!(Command::new(root.join(executable))
+            .status()
+            .unwrap()
+            .success());
+    }
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

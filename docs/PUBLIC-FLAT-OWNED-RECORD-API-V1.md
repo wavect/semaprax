@@ -174,6 +174,15 @@ reaches safe application code. The low-level C11 integration header exposes
 only the opaque provider handle and its mandatory copy/drop operations; it
 does not confer pointer access or allocator adoption.
 
+The additive [C++ Adapter v1](PUBLIC-FLAT-OWNED-RECORD-CXX-ADAPTER-V1.md)
+derives a noncopyable, thread-bound C++17 client and value-only result structs
+from the same descriptor. It preflights borrowed inputs, keeps the carrier and
+opaque handle private, copies and settles the byte owner, closes the context,
+and only then publishes a `std::vector<std::uint8_t>` record member. The C
+header now spells its carrier extent through a conditional macro so C retains
+the `static N` minimum while C++ sees valid array syntax. This intentionally
+changes generated header bytes without changing the provider ABI.
+
 The authored input correction explicitly selects the same captured-intrinsic
 whole-tuple preflight as v8, before payload snapshots, scratch writes, or arena
 entry. The cumulative borrowed-input bound is 65,536 bytes; module input is

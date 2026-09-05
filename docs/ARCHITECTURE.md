@@ -1630,7 +1630,10 @@ agreement establish self-consistency, not build provenance. The
 `src/project/flat_owned_record.rs` is the authority-free additive Project-v9
 description layer. It authenticates the exact one-direct-`Bytes` flat record
 result shape from HIR, independently replays its versioned descriptor, and
-projects safe TypeScript/Rust types plus an opaque-handle settlement plan.
+projects safe TypeScript/Rust types, a low-level C boundary, a value-only C++17
+adapter, and an opaque-handle settlement plan. The C++ adapter owns its private
+provider context, copies and settles the sole byte handle, closes the context,
+and only then publishes a host-owned aggregate; it exposes no native layout.
 `src/project/npm/flat_owned_record.rs`, the aggregate-aware owned-data Wasm
 adapter, and the root native provider wire that descriptor to the additive npm
 and safe-Rust package routes. The lower unpublished package crate replays the

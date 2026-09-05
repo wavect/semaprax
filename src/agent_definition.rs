@@ -132,6 +132,14 @@ impl AgentDefinition {
         &self.digest
     }
 
+    /// Returns the stable type identity admitted for the Proposal role.
+    ///
+    /// Additive read-only accessor for the derived proposal grammar. It
+    /// changes no admitted byte and grants no authority.
+    pub fn proposal_type_id(&self) -> &str {
+        &self.types[3].stable_id
+    }
+
     /// Returns the byte-preserved canonical Agent Runtime Profile v1 projection.
     pub fn runtime_v1_profile(&self) -> &str {
         &self.runtime_v1_profile

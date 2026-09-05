@@ -13,6 +13,7 @@ pub mod abi_report;
 pub mod agent_definition;
 pub mod agent_economics;
 pub mod agent_harness;
+pub mod agent_proposal;
 pub mod agent_runtime;
 pub mod agent_transcript;
 pub mod agent_transport;

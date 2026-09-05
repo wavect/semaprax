@@ -320,6 +320,8 @@ mod agent_definition_v1;
 mod agent_inspect_cli;
 #[path = "agent_runtime_v1/agent_payment_harness_v1.rs"]
 mod agent_payment_harness_v1;
+#[path = "agent_runtime_v1/agent_proposal_schema_v1.rs"]
+mod agent_proposal_schema_v1;
 
 #[test]
 fn public_cancellation_retry_and_sink_limits_are_fail_closed() {

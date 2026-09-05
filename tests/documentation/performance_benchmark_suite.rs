@@ -48,7 +48,7 @@ fn comparable_absolute(path: &str) -> String {
         if let Some(path) = path.strip_prefix(r"\\?\UNC\") {
             return format!(r"\\{path}");
         }
-        return path.strip_prefix(r"\\?\").unwrap_or(path).to_owned();
+        path.strip_prefix(r"\\?\").unwrap_or(path).to_owned()
     }
     #[cfg(not(windows))]
     path.to_owned()

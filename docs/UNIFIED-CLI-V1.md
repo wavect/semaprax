@@ -1,4 +1,4 @@
-# Unified CLI v1: `verify` and `agent inspect`
+# Unified CLI v1: `verify`, `agent inspect`, `query`, and `package`
 
 Status: authored with local executable evidence; unpublished and unpromoted.
 The completion matrix and release evidence own product status.
@@ -96,10 +96,66 @@ runs nothing. `agent run`, `agent resume`, `agent replay`, and
 durable memory, resume, and replay, and the verb rejects them with a usage
 error naming the one admitted form.
 
+## `semaprax query`
+
+```sh
+semaprax query <file> [--kind <kind>[,<kind>]] [--name <text>] [--id <prefix>]
+                      [--effect <effect>] [--calls <stable-id>] [--called-by <stable-id>] [--json]
+```
+
+`query` selects declarations of one checked module from the documentation
+model of [Documentation Projection v1](DOC-PROJECTION-V1.md), so every match
+carries the identity, canonical signature, and facts `doc` renders, and the
+result names the same graph revision. Filters are a conjunction:
+
+| Filter | Holds when |
+| --- | --- |
+| `--kind` | the declaration's kind is one of the listed kinds: `record`, `variant`, `class`, `method`, `resource`, `interface`, `protocol`, `implementation`, `function` |
+| `--name` | the display name contains the text |
+| `--id` | the stable identity starts with the prefix |
+| `--effect` | the declaration's `uses` clause names the effect |
+| `--calls` | the declaration calls the named persistent callable |
+| `--called-by` | the named persistent callable calls the declaration |
+
+Call relations come from the persistent call index that `impact` and the
+graph use, so `--calls` is "semantic references" by stable identity, not a
+text search. Without `--json` the output is one tab-separated line per match:
+kind, identity, and the first non-`@id` line of the canonical signature.
+`--json` prints one `semaprax.query.v1` line with the module, revision, the
+filters as given, and every match's kind, identity, name, persistence,
+signature, effects, callees, and callers.
+
+The query fails closed rather than matching nothing: an unknown kind reports
+`SPX-V211` with the admitted list, and a `--calls`/`--called-by` identity that
+is not a declaration of the module reports `SPX-V212`. It documents one file,
+performs no writes, and follows no `use` lines into other modules.
+
+## `semaprax package`
+
+```sh
+semaprax package report <file> [--max-bytes N]
+semaprax package lock <subject.json>... [--max-bytes N]
+semaprax package resolve <subject.json>... --require <package>:<range> [--require ...] --target <native64|wasm32> [--allow-capability <capability>]... [--max-bytes N]
+```
+
+`package` is the 1.0 namespace over the offline package routes. Each
+subcommand is rewritten to its long-form command (`package-report`,
+`package-lock`, `package-resolve`) with the same operands and re-enters the
+dispatcher, so stdout, stderr, and status are the owning route's own; the
+grammar, bounds, and diagnostics of [Package Report v1](PACKAGE-REPORT-V1.md),
+[Offline Package Lock v1](OFFLINE-PACKAGE-LOCK-V1.md), and
+[Offline Package Resolver v1](OFFLINE-PACKAGE-RESOLVER-V1.md) are unchanged.
+The usage recovery hint printed after a rejected invocation names the verb
+as typed (`semaprax package --help`), which is the one line that differs from
+the long form. A missing or unknown subcommand exits with status two before
+any route runs.
+`add` and `fetch` are not admitted by this revision.
+
 ## Guided help
 
-The guided page lists `verify` under `Change by meaning` and `agent inspect`
-under a new `Agents` group. Both capability pages stay within the 2048-byte
+The guided page lists `verify` under `Change by meaning`, `query` under
+`Inspect meaning`, and `agent inspect` under a new `Agents` group; `package`
+appears in the exhaustive catalog only. Both capability pages stay within the 2048-byte
 bound of [Guided CLI Help v4](CLI-HELP-V4.md); the shapes and several summaries
 were shortened to make room, and the exhaustive catalog remains the grammar
 authority.
@@ -119,4 +175,12 @@ authority.
   definition, profile, and graph prints the receipt with the pinned digests; a
   tampered graph fails with `SPX-G503`; malformed grammars exit with status
   two.
-- Unit tests pin the closed grammars and the uniqueness of the route table.
+- `tests/projections/query_projection.rs` (projections harness): filters
+  select by kind, name, identity prefix, effect, callers, and callees on the
+  committed examples; the CLI prints the library's text and one-line JSON
+  naming the graph revision; unknown kinds and identities fail closed with
+  `SPX-V211`/`SPX-V212`; malformed grammars exit with status two.
+- `tests/offline_package/package_namespace.rs` (offline-package harness):
+  every `package` subcommand's stdout, stderr, and status equal its long
+  form's, and a missing or unknown subcommand exits with status two.
+- Unit tests pin the closed grammars, the route table, and the namespace map.

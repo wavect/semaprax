@@ -8,6 +8,13 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `semaprax query <file> [filters] [--json]`, a read-only declaration
+  search over the checked module's documentation model with `--kind`,
+  `--name`, `--id`, `--effect`, `--calls`, and `--called-by` filters from the
+  persistent call index; results name the graph revision and unknown kinds or
+  identities fail closed with `SPX-V211`/`SPX-V212`.
+- Added the `semaprax package report|lock|resolve` namespace, each subcommand
+  exactly its long-form offline package route.
 - Added `semaprax verify`, one verb for every independent evidence verifier:
   the capsule's `schema` selects the owning route (semantic patch evidence
   v1/v2, workspace patch evidence, semantic workspace change, structural

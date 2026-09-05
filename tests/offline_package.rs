@@ -17,6 +17,8 @@ mod linked_scalar_wasm_build;
 mod lock;
 #[path = "offline_package/multi_source_capsule.rs"]
 mod multi_source_capsule;
+#[path = "offline_package/package_namespace.rs"]
+mod package_namespace;
 #[path = "offline_package/ranges.rs"]
 mod ranges;
 #[path = "offline_package/release_packaging_unix.rs"]

@@ -30,7 +30,7 @@ static, source-owned guide:
 - the unchanged banner line, then `Usage: semaprax <command> [arguments]`;
 - six fixed groups in this order, each a heading ending in `:` followed by
   two-space-indented entries: `Write, check, and run` (`check`, `fmt`, `run`,
-  `test`, `build`), `Inspect meaning` (`graph`, `context`, `doc`), `Change by
+  `test`, `build`), `Inspect meaning` (`graph`, `context`, `doc`, `query`), `Change by
   meaning` (`patch`, `impact`, `review`, `verify`), `Agents` (`agent inspect`),
   `Start a project` (`new`, `project-scaffold`), and `Toolchain` (`doctor`,
   `version`, `help <command>`, `help all`, `help language`, `help library`);

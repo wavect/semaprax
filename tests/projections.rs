@@ -35,6 +35,8 @@ mod portable_indexed_byte_data;
 mod protocol_projection;
 #[path = "projections/public_api_descriptor.rs"]
 mod public_api_descriptor;
+#[path = "projections/query_projection.rs"]
+mod query_projection;
 #[path = "projections/region_report.rs"]
 mod region_report;
 #[path = "projections/simd_report.rs"]

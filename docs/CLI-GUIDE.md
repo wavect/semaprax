@@ -98,6 +98,17 @@ semaprax context examples/meaning.spx app.main --depth 1
 caller-owned file. Redirecting that output is the caller's publication action;
 the query itself does not modify the source.
 
+Search declarations by what they are, what they use, and what they call:
+
+```sh
+semaprax query examples/meaning.spx --kind function --effect clock.read
+semaprax query examples/meaning.spx --calls math.add --json
+```
+
+Each match is a declaration of the checked module with its identity and
+canonical header; `--calls <id>` lists the callers of a declaration and
+`--called-by <id>` its callees, from the same call index `impact` uses.
+
 Render the module's documentation from the same checked facts:
 
 ```sh

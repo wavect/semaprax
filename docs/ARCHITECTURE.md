@@ -1557,6 +1557,14 @@ harness proves that every documented identity of a graph-carried kind is a
 node of `semaprax graph` at the same revision. See
 [Documentation Projection v1](DOC-PROJECTION-V1.md).
 
+`src/query.rs` is the declaration query: it filters the documentation model of
+`src/doc.rs` by kind, name, identity prefix, and effect, and joins the
+persistent call index of `src/call_index.rs` for `--calls`/`--called-by`, so
+a query names exactly the identities `graph` and `doc` name at the same
+revision. `src/cli/query.rs` owns its closed grammar; `src/cli/package.rs`
+rewrites `package report|lock|resolve` to the long-form routes and re-enters
+the dispatcher. See [Unified CLI v1](UNIFIED-CLI-V1.md).
+
 `src/cli/verify.rs` is the schema-selected front over the independent
 verifiers: it reads a capsule's top-level `schema` once, selects the verifier
 admitted for that schema and operand count from a closed table, and hands the
@@ -1760,7 +1768,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Verification | `src/verify.rs`, `src/source_verify.rs`, `src/source_verify/` — `declaration/` owns the per-pass declaration checks, `iterative/` the frame machine, `oracle/` the test-only recursive cross-check, `hints.rs` the shared fix hints both verifiers attach to unknown-function, generic-argument, literal-suffix, and borrowed-view diagnostics, and `loans.rs`/`place.rs` the loan lifecycle |
 | HIR | `src/hir.rs`, `src/hir/` — `ids.rs`, `nodes.rs`, and `expr_nodes.rs` own the data model; `resolve_*.rs` own AST lowering; `validation.rs` owns core validation |
 | Cleanup and layouts | `src/cleanup.rs`, `src/cleanup_plan.rs`, `src/cleanup_plan/`, `src/aggregate_layout.rs`, `src/variant_layout.rs` |
-| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs` |
+| Graph and read-only analysis | `src/graph.rs`, `src/graph_cleanup.rs`, `src/call_index.rs`, `src/impact.rs`, `src/review.rs`, `src/doc.rs`, `src/query.rs` |
 | Semantic retention metadata | `src/semantic_retention.rs`, `src/semantic_retention/`, receipt adapter in `src/candidate_archive_store.rs` |
 | Retention metadata persistence | `src/semantic_retention_store.rs`, `src/semantic_retention_store/`, explicit adapter `src/cli/retention_metadata.rs` |
 | Retention registry cursor | `src/semantic_retention_registry.rs`, `src/semantic_retention_registry/` |

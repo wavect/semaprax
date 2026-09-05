@@ -432,6 +432,14 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             print!("{receipt}");
             Ok(())
         }
+        CommandId::Query => {
+            let options = cli::query::parse(&args[1..])?;
+            cli::query::run(options, |errors| report(errors, false))
+        }
+        CommandId::Package => {
+            let rewritten = cli::package::long_form(&args[1..])?;
+            run(rewritten, host)
+        }
         CommandId::Agent => {
             let command = cli::agent::parse(&args[1..])?;
             let output = cli::agent::run(&command).map_err(|errors| report(&errors, false))?;

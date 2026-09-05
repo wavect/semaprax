@@ -91,6 +91,7 @@ pub mod project_transport;
 pub mod properties;
 pub mod protocol_check;
 pub mod quality_route;
+pub mod query;
 pub mod region_report;
 pub mod repair;
 pub mod review;

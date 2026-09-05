@@ -1557,6 +1557,14 @@ harness proves that every documented identity of a graph-carried kind is a
 node of `semaprax graph` at the same revision. See
 [Documentation Projection v1](DOC-PROJECTION-V1.md).
 
+`src/cli/verify.rs` is the schema-selected front over the independent
+verifiers: it reads a capsule's top-level `schema` once, selects the verifier
+admitted for that schema and operand count from a closed table, and hands the
+unchanged paths to it; the receipt is the verifier's bytes and the front adds
+no verification or authority. `src/cli/agent.rs` owns the `agent` verb and
+admits only `inspect`, which prints `agent_definition`'s AgentGraph v1 or
+profile projection. See [Unified CLI v1](UNIFIED-CLI-V1.md).
+
 `src/package_lock.rs` is an authority-free additive offline graph layer above
 the Interface Package Report. It accepts only explicit already-owned subject
 envelopes, independently replays each exact report, rejects coordinate and

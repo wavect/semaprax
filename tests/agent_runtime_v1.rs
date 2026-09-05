@@ -316,6 +316,8 @@ fn public_agent_completes_one_tool_with_private_kat_parity_and_no_write() {
 
 #[path = "agent_runtime_v1/agent_definition_v1.rs"]
 mod agent_definition_v1;
+#[path = "agent_runtime_v1/agent_inspect_cli.rs"]
+mod agent_inspect_cli;
 #[path = "agent_runtime_v1/agent_payment_harness_v1.rs"]
 mod agent_payment_harness_v1;
 

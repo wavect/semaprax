@@ -1,3 +1,4 @@
+pub(crate) mod agent;
 pub(crate) mod build;
 pub(crate) mod candidate_archive;
 pub(crate) mod candidate_git;
@@ -19,5 +20,6 @@ pub(crate) mod project_runtime;
 pub(crate) mod resolve;
 pub(crate) mod retention_metadata;
 pub(crate) mod semantic_cache;
+pub(crate) mod verify;
 pub(crate) mod version;
 pub(crate) mod workspace_session;

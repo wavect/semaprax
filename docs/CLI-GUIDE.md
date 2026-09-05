@@ -112,6 +112,25 @@ above it, bound to the graph revision `graph` prints for the same file.
 [Documentation projection](DOC-PROJECTION-V1.md) owns the layout and the gate
 that keeps the page and the graph naming the same declarations.
 
+Replay any evidence capsule through one verb. The capsule's `schema` selects
+the verifier, and the receipt is the owning route's own bytes:
+
+```sh
+semaprax patch-evidence examples/meaning.spx change.spatch > evidence.json
+semaprax verify examples/meaning.spx change.spatch evidence.json
+semaprax verify semaprax.toml image.json
+```
+
+Compile an agent definition and read its graph without running anything:
+
+```sh
+semaprax agent inspect agent.json
+semaprax agent inspect agent.json --profile
+```
+
+[Unified CLI v1](UNIFIED-CLI-V1.md) lists the admitted capsule schemas and
+the fail-closed selection codes.
+
 ## Work on a project
 
 From a directory containing `semaprax.toml`, the manifest argument can be

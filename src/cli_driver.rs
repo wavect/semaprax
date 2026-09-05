@@ -425,6 +425,19 @@ fn run(args: Vec<String>, host: Option<&PrivateHost>) -> Result<(), u8> {
             let options = cli::doc::parse(&args[1..])?;
             cli::doc::run(options, |errors| report(errors, false))
         }
+        CommandId::Verify => {
+            let options = cli::verify::parse(&args[1..])?;
+            let receipt = cli::verify::run(&options, cli::project_image::verify)
+                .map_err(|errors| report(&errors, false))?;
+            print!("{receipt}");
+            Ok(())
+        }
+        CommandId::Agent => {
+            let command = cli::agent::parse(&args[1..])?;
+            let output = cli::agent::run(&command).map_err(|errors| report(&errors, false))?;
+            print!("{output}");
+            Ok(())
+        }
         CommandId::Context => {
             let path = required_path(&args, 1)?;
             let symbol = args.get(2).ok_or_else(|| {

@@ -50,3 +50,5 @@ mod retention_store;
 mod review;
 #[path = "semantic/target_evidence.rs"]
 mod target_evidence;
+#[path = "semantic/verify_front.rs"]
+mod verify_front;

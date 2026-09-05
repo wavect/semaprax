@@ -6,6 +6,8 @@ pub(crate) enum CommandId {
     Check,
     Graph,
     Doc,
+    Verify,
+    Agent,
     ProjectImage,
     ProjectImageStore,
     ProjectImageLoad,
@@ -129,6 +131,8 @@ static COMMANDS: &[CommandSpec] = &[
     CommandSpec { id: CommandId::Check, canonical: "check", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax check [<file>|<dir>|semaprax.toml|--manifest-path path] [--json]"] },
     CommandSpec { id: CommandId::Graph, canonical: "graph", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax graph <file>"] },
     CommandSpec { id: CommandId::Doc, canonical: "doc", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax doc <file> [--json]"] },
+    CommandSpec { id: CommandId::Verify, canonical: "verify", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax verify <file> <patch.spatch> <evidence.json>", "semaprax verify <root> <patch.wspatch>|<proposal.json> <evidence.json>", "semaprax verify <definition.json> <profile.json> <graph.json>", "semaprax verify <manifest> <image.json>"] },
+    CommandSpec { id: CommandId::Agent, canonical: "agent", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax agent inspect <definition.json> [--profile]"] },
     CommandSpec { id: CommandId::ProjectImage, canonical: "project-image", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-image <manifest>"] },
     CommandSpec { id: CommandId::ProjectImageStore, canonical: "project-image-store", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-image-store <manifest> <store-root>"] },
     CommandSpec { id: CommandId::ProjectImageLoad, canonical: "project-image-load", aliases: &[], availability: Availability::Public, global: true, usages: &["semaprax project-image-load <store-root> <receipt.json> <expected-image-digest>"] },
@@ -350,11 +354,11 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Test,
                 shape: "test [<dir>|semaprax.toml]",
-                summary: "Run the project's declared test modules",
+                summary: "Run the project's test modules",
             },
             GuideEntry {
                 id: CommandId::Build,
-                shape: "build <input> --target <target> -o <path>",
+                shape: "build <input> --target <target>",
                 summary: "Emit a native, web, wasm, or npm artifact",
             },
         ],
@@ -369,8 +373,8 @@ static GUIDE: &[GuideGroup] = &[
             },
             GuideEntry {
                 id: CommandId::Context,
-                shape: "context <file> <stable-id> [--depth N]",
-                summary: "Bounded facts about one declaration as JSON",
+                shape: "context <file> <stable-id>",
+                summary: "Bounded facts about one declaration",
             },
             GuideEntry {
                 id: CommandId::Doc,
@@ -397,7 +401,20 @@ static GUIDE: &[GuideGroup] = &[
                 shape: "review <file> <patch.spatch>",
                 summary: "Review a patch without writing",
             },
+            GuideEntry {
+                id: CommandId::Verify,
+                shape: "verify <subject> <change> <capsule>",
+                summary: "Replay an evidence capsule by its schema",
+            },
         ],
+    },
+    GuideGroup {
+        heading: "Agents",
+        entries: &[GuideEntry {
+            id: CommandId::Agent,
+            shape: "agent inspect <definition.json>",
+            summary: "Compile an agent definition to its graph",
+        }],
     },
     GuideGroup {
         heading: "Start a project",
@@ -405,7 +422,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::New,
                 shape: "new <destination>",
-                summary: "Create and verify a calculator or library project",
+                summary: "Create a calculator or library project",
             },
             GuideEntry {
                 id: CommandId::ProjectScaffold,
@@ -440,7 +457,7 @@ static GUIDE: &[GuideGroup] = &[
             GuideEntry {
                 id: CommandId::Help,
                 shape: "help language",
-                summary: "The language card: admitted shapes, diagnostics, fixes",
+                summary: "The language card: shapes, diagnostics, fixes",
             },
             GuideEntry {
                 id: CommandId::Help,
@@ -452,8 +469,8 @@ static GUIDE: &[GuideGroup] = &[
 ];
 
 const GUIDE_FOOTER: &str =
-    "Start with `semaprax check <file>`. Diagnostics carry stable SPX codes and, where the\n\
-compiler knows the fix, a `help:` line; `check <file> --json` emits one diagnostic per line.\n";
+    "Start with `semaprax check <file>`. Diagnostics carry stable SPX codes and a `help:` line\n\
+when the compiler knows the fix; `--json` emits one diagnostic per line.\n";
 
 fn guide_spec(id: CommandId) -> &'static CommandSpec {
     COMMANDS
@@ -565,6 +582,8 @@ mod tests {
         "check",
         "graph",
         "doc",
+        "verify",
+        "agent",
         "project-image",
         "project-image-store",
         "project-image-load",

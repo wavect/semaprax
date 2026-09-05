@@ -8,6 +8,17 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `semaprax verify`, one verb for every independent evidence verifier:
+  the capsule's `schema` selects the owning route (semantic patch evidence
+  v1/v2, workspace patch evidence, semantic workspace change, structural
+  change, and operations evidence, agent graph bundles, and project images)
+  and the receipt is that route's own bytes; unrecognized or unreadable
+  capsules fail closed with `SPX-V201`/`SPX-V202` before any verifier runs.
+- Added `semaprax agent inspect <definition.json> [--profile]`, which compiles
+  a canonical AgentDefinition v1 and prints its AgentGraph v1 or its Agent
+  Runtime Profile v1 projection; the other lifecycle verbs stay unadmitted.
+  The guided help gains an `Agents` group and lists `verify` under `Change by
+  meaning`, with shapes shortened to hold the 2048-byte bound.
 - Added `semaprax doc <file> [--json]`, the documentation projection of one
   checked module: a Markdown page or one `semaprax.doc.v1` document of every
   declaration's identity, canonical signature, ownership modes, effects,

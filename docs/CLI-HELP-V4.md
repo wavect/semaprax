@@ -28,12 +28,12 @@ empty invocation, zero for the three aliases. The page is rendered from one
 static, source-owned guide:
 
 - the unchanged banner line, then `Usage: semaprax <command> [arguments]`;
-- five fixed groups in this order, each a heading ending in `:` followed by
+- six fixed groups in this order, each a heading ending in `:` followed by
   two-space-indented entries: `Write, check, and run` (`check`, `fmt`, `run`,
   `test`, `build`), `Inspect meaning` (`graph`, `context`, `doc`), `Change by
-  meaning` (`patch`, `impact`, `review`), `Start a project` (`new`,
-  `project-scaffold`), and `Toolchain` (`doctor`, `version`, `help <command>`, `help all`,
-  `help language`, `help library`);
+  meaning` (`patch`, `impact`, `review`, `verify`), `Agents` (`agent inspect`),
+  `Start a project` (`new`, `project-scaffold`), and `Toolchain` (`doctor`,
+  `version`, `help <command>`, `help all`, `help language`, `help library`);
 - each entry is an abbreviated command shape, padded to one column, followed
   by a one-line purpose;
 - a two-line footer naming the first command to run and the `--json`

@@ -585,4 +585,133 @@ mod tests {
         assert_ne!(first, second);
         assert_eq!(first, domain_digest(SOURCE_DIGEST_DOMAIN, b"abc"));
     }
+
+    /// Module permits and function identities are both written in an order
+    /// that no canonical rule would choose, and one function's effects are
+    /// written out of order too, so every sort the renderer performs is
+    /// observable.
+    const DISORDERED: &str = r#"module test.capsorder;
+
+permit { process, network.read, filesystem.read }
+
+@id("cap.alpha")
+fn alpha(value: i64) -> i64 uses { network.read, filesystem.read } { value }
+
+@id("cap.Zed")
+fn zed(value: i64) -> i64 uses { process } { value }
+
+@id("cap.Beta")
+fn beta(value: i64) -> i64 { value }
+
+@id("app.main")
+fn main() -> i64 { beta(0) }
+"#;
+
+    fn write_temp(source: &str) -> std::path::PathBuf {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static COUNTER: AtomicUsize = AtomicUsize::new(0);
+        let path = std::env::temp_dir().join(format!(
+            "semaprax-capability-manifest-unit-{}-{}.spx",
+            std::process::id(),
+            COUNTER.fetch_add(1, Ordering::SeqCst)
+        ));
+        std::fs::write(&path, source).unwrap();
+        path
+    }
+
+    /// The manifest is a canonical inventory: module permits, function
+    /// entries, and each entry's effect set are all sorted by bytes, so
+    /// source order cannot reach the artifact and repeated generation is
+    /// byte-identical. Byte order puts `B` before `Z` before `a`, which no
+    /// case-insensitive sort produces.
+    #[test]
+    fn every_inventory_is_sorted_by_bytes_and_generation_is_byte_identical() {
+        let path = write_temp(DISORDERED);
+        let options = CapabilityManifestOptions::default();
+        let envelope = generate(&path, &options).expect("manifest generates");
+        assert_eq!(
+            generate(&path, &options).expect("manifest generates"),
+            envelope,
+            "repeated generation must be byte-identical"
+        );
+        verify_envelope(&envelope).expect("envelope replays");
+
+        let value: serde_json::Value = serde_json::from_str(&envelope).expect("valid JSON");
+        let payload = &value["payload"];
+        assert_eq!(
+            payload["module_permits"],
+            serde_json::json!(["filesystem.read", "network.read", "process"]),
+            "module permits are sorted, not left in declaration order"
+        );
+        let functions = payload["functions"].as_array().expect("functions");
+        assert_eq!(
+            functions
+                .iter()
+                .map(|entry| entry["stable_id"].as_str().expect("stable_id"))
+                .collect::<Vec<_>>(),
+            vec!["app.main", "cap.Beta", "cap.Zed", "cap.alpha"],
+            "function entries ascend by stable-id bytes: `app` < `cap.B` < \
+`cap.Z` < `cap.a`"
+        );
+        assert_eq!(
+            functions[3]["effects"],
+            serde_json::json!(["filesystem.read", "network.read"]),
+            "a function's own effect set is sorted, not left in declaration order"
+        );
+        assert_eq!(
+            functions[1]["effects"],
+            serde_json::json!([]),
+            "an effect-free function is still inventoried, with an empty set"
+        );
+        assert_eq!(
+            payload["module"]["functions_total"], 4,
+            "the manifest covers every function, not just the effectful ones"
+        );
+
+        let ambient = &payload["ambient_authority"];
+        assert_eq!(ambient["filesystem"], AMBIENT_DECLARED);
+        assert_eq!(ambient["network"], AMBIENT_DECLARED);
+        assert_eq!(ambient["process"], AMBIENT_DECLARED);
+        assert_eq!(
+            ambient["home"], AMBIENT_NONE,
+            "a domain nothing declares stays empty by default"
+        );
+        assert_eq!(ambient["secrets"], AMBIENT_NONE);
+        let _ = std::fs::remove_file(&path);
+    }
+
+    /// A module that declares no capability at all still produces a complete
+    /// manifest whose ambient section is explicitly empty on all five
+    /// domains. Silence must be rendered as an assertion of no authority, not
+    /// as an omitted section.
+    #[test]
+    fn a_module_declaring_no_capability_asserts_empty_ambient_authority() {
+        let path = write_temp("module test.capnone;\n\nfn main() -> i64 { 0 }\n");
+        let envelope =
+            generate(&path, &CapabilityManifestOptions::default()).expect("manifest generates");
+        verify_envelope(&envelope).expect("envelope replays");
+
+        let value: serde_json::Value = serde_json::from_str(&envelope).expect("valid JSON");
+        let payload = &value["payload"];
+        assert_eq!(payload["module_permits"], serde_json::json!([]));
+        assert_eq!(payload["imports"], serde_json::json!([]));
+        assert_eq!(payload["module"]["permits_total"], 0);
+        assert_eq!(payload["module"]["imports_total"], 0);
+        assert_eq!(
+            payload["module"]["functions_total"], 1,
+            "an automatic identity is still inventoried"
+        );
+        assert_eq!(
+            payload["ambient_authority"],
+            serde_json::json!({
+                "filesystem": AMBIENT_NONE,
+                "home": AMBIENT_NONE,
+                "network": AMBIENT_NONE,
+                "process": AMBIENT_NONE,
+                "secrets": AMBIENT_NONE,
+            }),
+            "all five domains are asserted empty rather than left out"
+        );
+        let _ = std::fs::remove_file(&path);
+    }
 }

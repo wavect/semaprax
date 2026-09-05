@@ -865,3 +865,6 @@ fn render_json(document: &Document) -> String {
     output.push_str("]}\n");
     output
 }
+
+#[cfg(test)]
+mod tests;

@@ -1328,3 +1328,6 @@ fn classify(base: &Value, candidate: &Value) -> Vec<Finding> {
 
     findings
 }
+
+#[cfg(test)]
+mod tests;

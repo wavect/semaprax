@@ -906,4 +906,148 @@ fn main() -> i64 { 0 }
             domain_digest(CANONICAL_SIGNATURE_DIGEST_DOMAIN, text.as_bytes())
         );
     }
+
+    /// Four selectable identities whose stable-id byte order (`B` < `Z` < `a`
+    /// < `e`) differs from their source order, from any case-insensitive
+    /// alphabetical order, and from the order the tests request them in.
+    const ORDERED: &str = r#"module test.abiorder;
+
+permit { clock.read }
+
+@id("abi.alpha")
+fn alpha(value: i64) -> i64 { value }
+
+@id("abi.Zed")
+fn zed(value: i32) -> i32 { value }
+
+@id("abi.Beta")
+fn beta(value: bool) -> bool { value }
+
+@id("abi.effectful")
+fn effectful(value: i64) -> i64 uses { clock.read } { value }
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+    fn payload(envelope: &str) -> serde_json::Value {
+        let value: serde_json::Value = serde_json::from_str(envelope).expect("valid JSON");
+        value["payload"].clone()
+    }
+
+    fn ids(entries: &serde_json::Value) -> Vec<String> {
+        entries
+            .as_array()
+            .expect("array")
+            .iter()
+            .map(|entry| entry["stable_id"].as_str().expect("stable_id").to_owned())
+            .collect()
+    }
+
+    /// The report is a canonical function of the selected *set*: both the
+    /// admitted `functions` list and the `exclusions` list are ordered by
+    /// stable-id bytes, so the caller's request order cannot move a byte, and
+    /// neither source order nor a case-insensitive sort can produce this
+    /// sequence.
+    #[test]
+    fn report_arrays_are_ordered_by_stable_id_bytes_not_request_or_source_order() {
+        let path = write_temp(ORDERED);
+        let requested = ["abi.effectful", "abi.alpha", "abi.Zed", "abi.Beta"];
+        let options = AbiReportOptions::new(
+            requested.iter().map(|token| (*token).to_owned()).collect(),
+            DEFAULT_MAX_BYTES,
+        )
+        .expect("options");
+        let envelope = generate(&path, &options).expect("report generates");
+
+        let reversed = AbiReportOptions::new(
+            requested
+                .iter()
+                .rev()
+                .map(|token| (*token).to_owned())
+                .collect(),
+            DEFAULT_MAX_BYTES,
+        )
+        .expect("options");
+        assert_eq!(
+            generate(&path, &reversed).expect("report generates"),
+            envelope,
+            "reversing the request order must not move a byte"
+        );
+        assert_eq!(
+            generate(&path, &options).expect("report generates"),
+            envelope,
+            "repeated generation must be byte-identical"
+        );
+
+        let payload = payload(&envelope);
+        assert_eq!(
+            ids(&payload["functions"]),
+            vec!["abi.Beta", "abi.Zed", "abi.alpha"],
+            "admitted functions ascend by stable-id bytes: `B` < `Z` < `a`"
+        );
+        assert_eq!(ids(&payload["exclusions"]), vec!["abi.effectful"]);
+        assert_eq!(payload["exclusions"][0]["reason"], REASON_DECLARED_EFFECTS);
+        assert_eq!(payload["selection"]["requested"], 4);
+        assert_eq!(payload["selection"]["admitted"], 3);
+        assert_eq!(payload["selection"]["excluded"], 1);
+        assert_eq!(
+            payload["selection"]["functions_total"], 5,
+            "the module total counts every function, selected or not"
+        );
+        assert!(
+            !envelope.contains("app.main"),
+            "an unselected function stays out of the report"
+        );
+        cleanup(&path);
+    }
+
+    /// A stable identity is arbitrary text, so it can carry characters that
+    /// are illegal in a C identifier or a JSON string. Both symbol forms are
+    /// the hex of the identity's UTF-8 bytes, so no identity can inject
+    /// anything into the emitted native symbol or the Wasm export, and the
+    /// identity itself still round-trips through the envelope unchanged.
+    #[test]
+    fn hostile_identities_cannot_escape_the_derived_symbols() {
+        let identity = "abi.qu\"o\\te-na\u{ef}ve";
+        let symbol = c_function_symbol(identity);
+        let export = raw_wasm_export(identity);
+        assert_eq!(
+            symbol,
+            format!("spx_decl_{}", export.trim_start_matches("spx_scalar_"))
+        );
+        assert!(
+            symbol
+                .trim_start_matches("spx_decl_")
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)),
+            "{symbol}"
+        );
+
+        let path = write_temp(
+            "module test.abiescape;\n\
+\n\
+@id(\"abi.qu\\\"o\\\\te-na\u{ef}ve\")\n\
+fn probe(value: i64) -> i64 { value }\n\
+\n\
+@id(\"app.main\")\n\
+fn main() -> i64 { 0 }\n",
+        );
+        let options =
+            AbiReportOptions::new(vec![identity.to_owned()], DEFAULT_MAX_BYTES).expect("options");
+        let envelope = generate(&path, &options).expect("report generates");
+        let payload = payload(&envelope);
+        assert_eq!(payload["functions"][0]["stable_id"], identity);
+        assert_eq!(payload["functions"][0]["native"]["symbol"], symbol);
+        assert_eq!(payload["functions"][0]["canonical"]["export"], export);
+        assert_eq!(
+            verify_envelope(&envelope)
+                .expect("envelope replays")
+                .functions[0]
+                .stable_id,
+            identity,
+            "independent replay recovers the identity byte-for-byte"
+        );
+        cleanup(&path);
+    }
 }

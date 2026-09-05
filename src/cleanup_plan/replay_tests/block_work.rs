@@ -197,6 +197,26 @@ fn wide_record_and_variant_constructor_census_covers_real_replay_work() {
 }
 
 #[test]
+fn cleanup_inert_lazy_boolean_decisions_do_not_enumerate_outcome_products() {
+    let mut condition = String::new();
+    for index in 0..64 {
+        if index != 0 {
+            condition.push_str(" && ");
+        }
+        write!(condition, "value != {index}").unwrap();
+    }
+    let source = format!(
+        "module test.lazy_work;\n@id(\"work.main\") fn main() -> i64 {{\nlet value = 3;\nif {condition} {{ 1 }} else {{ 0 }}\n}}\n"
+    );
+    let parsed = parse(&source, Path::new("lazy-work.spx")).unwrap();
+    assert!(crate::verify::verify(&parsed).is_empty());
+    let program = hir::resolve(&parsed).unwrap();
+    hir::validate(&program).unwrap();
+    assert!(!cleanup_plan_requires_path_replay(&program.functions[0]));
+    assert!(cleanup_inert_path_product_can_be_summarized(&program.functions[0]).unwrap());
+}
+
+#[test]
 fn valid_resource_bindings_and_block_results_include_transfer_work() {
     for (body, expected, transfers) in [("value", 16, 1), ("let moved = value; moved", 30, 2)] {
         let source = format!(

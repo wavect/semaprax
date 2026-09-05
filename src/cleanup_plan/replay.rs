@@ -411,9 +411,41 @@ fn validate_structure_with_budget(
     validate_exits(program, function, &storage, &leaves)?;
     validate_reference_coverage(function)?;
     validate_reachable_acyclic_cfg(function)?;
-    validate_path_states(program, function, &storage, &leaves, budget)?;
-    validate_typed_control_skeleton(program, function, budget)?;
+    if !cleanup_inert_path_product_can_be_summarized(function)? {
+        validate_path_states(program, function, &storage, &leaves, budget)?;
+        validate_typed_control_skeleton(program, function, budget)?;
+    }
     Ok(())
+}
+
+/// A decision-only CFG with no cleanup state has no path-dependent state to
+/// replay. Its edge expressions, reachability, regions, exits and result source
+/// are already checked structurally above, so enumerating every combination of
+/// lazy boolean outcomes would add no cleanup evidence.
+fn cleanup_plan_requires_path_replay(function: &ResolvedFunction) -> bool {
+    let plan = &function.cleanup_plan;
+    !plan.slots.is_empty()
+        || !plan.entry_state.live_owned_parameters.is_empty()
+        || !plan.entry_state.conditional_owned_parameters.is_empty()
+        || plan
+            .blocks
+            .iter()
+            .any(|block| !block.transitions.is_empty())
+        || plan
+            .exits
+            .iter()
+            .any(|exit| !exit.finalize_in_order.is_empty())
+}
+
+fn cleanup_inert_path_product_can_be_summarized(
+    function: &ResolvedFunction,
+) -> Result<bool, Diagnostic> {
+    if cleanup_plan_requires_path_replay(function) {
+        return Ok(false);
+    }
+    let cfg_paths = branch_sensitive_cfg_bounds(function)?.terminal_paths;
+    let semantic_paths = hir_terminal_path_bound(function)?;
+    Ok(cfg_paths > MAX_REPLAY_PATHS && semantic_paths > MAX_REPLAY_PATHS)
 }
 
 fn plan_structure_units(plan: &super::CleanupPlan) -> usize {
@@ -445,13 +477,19 @@ fn validate_replay_size_budget(function: &ResolvedFunction) -> Result<(), Diagno
         ));
     }
     let cfg = branch_sensitive_cfg_bounds(function)?;
+    let semantic_paths = hir_terminal_path_bound(function)?;
+    if !cleanup_plan_requires_path_replay(function)
+        && cfg.terminal_paths > MAX_REPLAY_PATHS
+        && semantic_paths > MAX_REPLAY_PATHS
+    {
+        return Ok(());
+    }
     if cfg.terminal_paths > MAX_REPLAY_PATHS {
         return Err(replay_error(
             function,
             "cleanup replay path bound exceeds the global path budget",
         ));
     }
-    let semantic_paths = hir_terminal_path_bound(function)?;
     if semantic_paths > MAX_REPLAY_PATHS {
         return Err(replay_error(
             function,

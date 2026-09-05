@@ -58,6 +58,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   scratch locals follow function parameters instead of aliasing parameters or
   user `let` bindings. Parameterized narrow-integer programs now validate and
   agree with the reference interpreter.
+- Cleanup replay now recognizes decision-only CFGs with no cleanup state and
+  validates them structurally without enumerating every lazy-boolean outcome,
+  so ordinary long `&&`/`||` chains no longer hit the path budget.
+
 - Source verification now skips lazy-branch snapshots for ordinary binary
   operators, tracks whether a scope has local borrows before liveness work,
   and indexes declared record fields once, removing quadratic rescans from

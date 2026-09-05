@@ -109,6 +109,37 @@ fn distant_names_get_the_declare_or_import_hint_instead_of_a_guess() {
 }
 
 #[test]
+fn bundled_standard_library_function_names_the_dependency_route() {
+    let diagnostic = only(
+        "module habit.std;\n@id(\"app.main\")\nfn main() -> i64\n{\n    abs(-3)\n}\n",
+        "SPX-T203",
+    );
+    assert_eq!(diagnostic.message, "unknown function `abs`");
+    assert!(help(&diagnostic).contains("`std.num`"), "{diagnostic}");
+    assert!(
+        help(&diagnostic).contains("[dependencies] std.num = \"^0.1.0\""),
+        "{diagnostic}"
+    );
+    assert!(help(&diagnostic).contains("help library"), "{diagnostic}");
+}
+
+#[test]
+fn immutable_parameter_names_the_mutable_copy_repair() {
+    let diagnostic = only(
+        "module habit.param_mut;\n@id(\"habit.bump\")\nfn bump(value: i64) -> i64\n{\n    value = value + 1;\n    value\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    bump(1)\n}\n",
+        "SPX-U101",
+    );
+    assert!(
+        help(&diagnostic).contains("parameters are immutable"),
+        "{diagnostic}"
+    );
+    assert!(
+        help(&diagnostic).contains("let mut value = value;"),
+        "{diagnostic}"
+    );
+}
+
+#[test]
 fn generic_call_without_type_arguments_shows_the_call_shape() {
     let diagnostic = only(
         "module habit.generic;\n@id(\"habit.id\")\nfn id<T>(v: T) -> T\n{\n    v\n}\n@id(\"app.main\")\nfn main() -> i64\n{\n    id(4)\n}\n",

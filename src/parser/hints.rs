@@ -29,8 +29,9 @@ const EXPRESSION_STATEMENT_HELP: &str = "a block is statements followed by exact
                                          or move it to the end of the block";
 const WHILE_BODY_HELP: &str = "end the `while` body with the bool that decides whether to loop \
                                again, usually the loop condition repeated";
-const BRANCH_HELP: &str = "`if` is an expression: end each branch with its value, for example the \
-                           binding the branch assigned";
+const BRANCH_HELP: &str = "`if` cannot stand as a statement: add an `else` branch, end both branches \
+                           with values, and bind or discard the result with `let _ = if … { …; value } \
+                           else { value };`";
 const FUNCTION_BODY_HELP: &str = "a function's value is its final expression; there is no `return`";
 const ELSE_IF_MESSAGE: &str = "`else if` is not admitted";
 const ELSE_IF_HELP: &str =

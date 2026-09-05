@@ -8,6 +8,10 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Improved newcomer diagnostics: statement-position `if` failures now name
+  the mandatory `else` and discard form, immutable parameters show the
+  mutable-copy repair, and unknown bundled standard-library functions name
+  their manifest dependency and offline catalog route.
 - Added reserved `string_from_i64` and `string_from_usize` operations with
   canonical decimal spelling across the interpreter, native C11, and Core
   Wasm lanes, allowing computed integers to be printed without handwritten

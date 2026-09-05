@@ -280,14 +280,25 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         }
                         None => {
                             if !mutable {
-                                self.diagnostics.push(error(
+                                let mut diagnostic = error(
                                     self.program,
                                     "SPX-U101",
                                     format!(
                                         "cannot assign to immutable binding `{name}`; declare it with `let mut`"
                                     ),
                                     *name_span,
-                                ));
+                                );
+                                if self
+                                    .current
+                                    .params
+                                    .iter()
+                                    .any(|parameter| parameter.name == *name)
+                                {
+                                    diagnostic = diagnostic.with_help(format!(
+                                        "parameters are immutable; copy `{name}` into a mutable local first: `let mut value = {name};`"
+                                    ));
+                                }
+                                self.diagnostics.push(diagnostic);
                             }
                             if let Some(actual) = &actual {
                                 if mutable && actual.ty != binding_ty {

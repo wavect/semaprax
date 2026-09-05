@@ -10,6 +10,7 @@
 //! diagnostics stay byte-identical.
 
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
 use super::diagnostics::error;
 use super::type_table::TypeTable;
@@ -42,6 +43,45 @@ const PRINT_HELP: &str = "there is no print routine; write bytes with `stdout_wr
                           under `permit { process.stdout.write }` and `uses { process.stdout.write }`, \
                           where `view` is `string_as_str(binding)` or a `borrow str` parameter";
 
+/// Compiler-bundled standard-library functions are discoverable without a
+/// checkout through `semaprax help library`. Keep this lookup bound to the
+/// same generated catalog rather than duplicating its growing function list.
+fn standard_library_package(name: &str) -> Option<&'static str> {
+    static FUNCTIONS: OnceLock<HashMap<String, Option<String>>> = OnceLock::new();
+    let functions = FUNCTIONS.get_or_init(|| {
+        let catalog: serde_json::Value =
+            serde_json::from_str(include_str!("../../std/catalog.json"))
+                .expect("the checked-in standard-library catalog is valid JSON");
+        let mut functions = HashMap::new();
+        for module in catalog["modules"]
+            .as_array()
+            .expect("the standard-library catalog has modules")
+        {
+            let package = module["module"]
+                .as_str()
+                .expect("a standard-library module has an identity");
+            for declaration in module["declarations"]
+                .as_array()
+                .expect("a standard-library module has declarations")
+            {
+                if declaration["kind"].as_str() != Some("function") {
+                    continue;
+                }
+                let function = declaration["name"]
+                    .as_str()
+                    .expect("a standard-library function has a name")
+                    .to_owned();
+                functions
+                    .entry(function)
+                    .and_modify(|selected| *selected = None)
+                    .or_insert_with(|| Some(package.to_owned()));
+            }
+        }
+        functions
+    });
+    functions.get(name).and_then(|package| package.as_deref())
+}
+
 /// `unknown function` with the nearest declared or compiler-owned name when one
 /// is unambiguous and close, or the output hint for print-family names.
 pub(super) fn unknown_function(
@@ -64,10 +104,17 @@ pub(super) fn unknown_function(
     }
     match nearest_function_name(name, functions) {
         Some(candidate) => diagnostic.with_help(format!("did you mean `{candidate}`?")),
-        None => diagnostic.with_help(format!(
-            "declare `{name}` in this module, or in a project import it directly after the \
-             `module` line: `use function @id(\"stable.id\") from other.module as {name};`"
-        )),
+        None => match standard_library_package(name) {
+            Some(package) => diagnostic.with_help(format!(
+                "`{name}` is available from `{package}`: add `[dependencies] {package} = \
+                 \"^0.1.0\"` to `semaprax.toml`, then import its stable identity directly \
+                 after the `module` line; run `semaprax help library` for the exact declaration"
+            )),
+            None => diagnostic.with_help(format!(
+                "declare `{name}` in this module, or in a project import it directly after the \
+                 `module` line: `use function @id(\"stable.id\") from other.module as {name};`"
+            )),
+        },
     }
 }
 

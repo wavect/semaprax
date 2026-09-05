@@ -146,7 +146,9 @@ fn main() -> i64
     );
     assert_eq!(diagnostic.code, "SPX-P203");
     assert!(
-        help(&diagnostic).contains("`if` is an expression"),
+        help(&diagnostic).contains("cannot stand as a statement")
+            && help(&diagnostic).contains("add an `else` branch")
+            && help(&diagnostic).contains("let _ = if"),
         "{diagnostic}"
     );
 }

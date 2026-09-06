@@ -64,3 +64,20 @@ pub(super) fn type_arguments(expression: &ResolvedExpr) -> Result<&[ResolvedType
         _ => Err(plan_error("cleanup call expression has inconsistent shape")),
     }
 }
+
+/// Whether some cleanup region already owns `storage`.
+///
+/// A storage belongs to the region that first introduced it. The loop-carried
+/// profile assigns an enclosing scope's binding from inside a bounded `while`
+/// body — `values = vec_push<T>(values, value)` — and the body is its own
+/// cleanup region. Re-homing the binding slot into that inner region would
+/// make the body's scope exit finalize a vector the enclosing scope still
+/// owns: the next iteration would read destroyed storage, and the plan would
+/// instead fail closed because one linearized body pass no longer preserves
+/// owned liveness.
+pub(super) fn storage_is_placed(
+    regions: &[crate::cleanup_plan::CleanupRegion],
+    storage: &StorageId,
+) -> bool {
+    regions.iter().any(|region| region.slots.contains(storage))
+}

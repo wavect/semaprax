@@ -49,5 +49,7 @@ mod network_io_native;
 mod network_io_wasm;
 #[path = "useful_data/project.rs"]
 mod project;
+#[path = "useful_data/vector_stats_project.rs"]
+mod vector_stats_project;
 #[path = "useful_data/wasm.rs"]
 mod wasm;

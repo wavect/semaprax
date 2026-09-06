@@ -1,0 +1,22 @@
+module vector_stats.app;
+use function @id("vector-stats.alert-total") from vector_stats.collect as alert_total;
+
+@id("vector-stats.reading-count")
+fn reading_count(shift: i64) -> i64
+    requires shift >= 0
+    ensures result >= 0
+{
+    shift % 13
+}
+
+@id("vector-stats.alert-threshold")
+fn alert_threshold() -> i64
+{
+    50
+}
+
+@id("vector-stats.app.main")
+fn main() -> i64
+{
+    if alert_total(reading_count(9), alert_threshold()) == 310 && alert_total(reading_count(13), alert_threshold()) == 0 { 0 } else { 1 }
+}

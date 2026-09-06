@@ -20,6 +20,26 @@ format: `Unreleased` then release buckets, grouped by impact.
   unchanged. Candidate ProgramRoot-v2 derivation and exact refresh remain
   unavailable pending candidate-safe Project Lock replay.
 
+- Corrected the cleanup-plan storage ownership rule so the Owned Bounded Vec
+  v1 loop-carried fill is reachable from source, and added
+  `examples/vector-stats-project`, the first example that accumulates a
+  **variable** number of scalar values and filters them. A storage now belongs
+  to the cleanup region that first introduced it. It was previously re-homed
+  into whichever region asked for it second, so `values = vec_push<T>(values,
+  value)` inside a bounded `while` moved the enclosing binding's slot into the
+  loop body's own region: the body's scope exit finalized the vector on every
+  iteration, one linearized body pass no longer preserved owned liveness, and
+  every such program fail-closed with `SPX-H006` even though source
+  verification, HIR validation and independent cleanup replay all admitted it.
+  The example initializes one `Vec<i64>` outside a bounded loop whose body
+  pushes a computed number of readings, then walks it back through `vec_len`
+  and `vec_get` summing only the readings over a threshold. Its gate drives the
+  accumulating function at seven element counts and three thresholds and runs
+  both the entry and the conformance module on the interpreter, native C11 at
+  `-O0` and `-O2`, and Core Wasm under Node against a one-generation host
+  arena; the owned-data harness carries the same shape as a focused language
+  regression.
+
 - Admitted a computed `usize` element index for the Owned Bounded Byte Buffer
   v1 `bytes_set` store, so a value can be written at an offset a scan
   discovers. The allocation capacity is still one literal at the

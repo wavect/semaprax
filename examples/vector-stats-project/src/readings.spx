@@ -1,0 +1,15 @@
+module vector_stats.readings;
+
+@id("vector-stats.reading-at")
+fn reading_at(index: i64) -> i64
+    requires index >= 0
+    ensures result >= 0
+{
+    (index * 37 + 11) % 100
+}
+
+@id("vector-stats.kept")
+fn kept(value: i64, threshold: i64) -> i64
+{
+    if value >= threshold { value } else { 0 }
+}

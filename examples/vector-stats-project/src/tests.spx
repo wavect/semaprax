@@ -1,0 +1,14 @@
+module vector_stats.tests;
+use function @id("vector-stats.alert-total") from vector_stats.collect as alert_total;
+use function @id("vector-stats.kept") from vector_stats.readings as kept;
+use function @id("vector-stats.reading-at") from vector_stats.readings as reading_at;
+
+@id("vector-stats.tests.main")
+fn main() -> i64
+{
+    let empty = alert_total(0, 50) == 0;
+    let grows = alert_total(3, 50) == 85 && alert_total(9, 50) == 310 && alert_total(12, 50) == 391;
+    let filters = alert_total(9, 0) == 431 && alert_total(9, 97) == 0;
+    let sampled = reading_at(0) == 11 && reading_at(8) == 7 && kept(96, 50) == 96 && kept(33, 50) == 0;
+    if empty && grows && filters && sampled { 0 } else { 1 }
+}

@@ -113,6 +113,51 @@ fn main() -> i64 {
 }
 "#;
 
+const LOOP_CARRIED: &str = r#"
+module test.owned_vec_loop_carried;
+
+@id("vec.reading-at")
+fn reading_at(index: i64) -> i64
+    requires index >= 0
+{
+    (index * 37 + 11) % 100
+}
+
+@id("vec.kept")
+fn kept(value: i64, threshold: i64) -> i64
+{
+    if value >= threshold { value } else { 0 }
+}
+
+@id("vec.alert-total")
+fn alert_total(count: i64, threshold: i64) -> i64
+    requires count >= 0 && count <= 12
+{
+    let mut readings = vec_with_capacity<i64>(12usize);
+    let mut index = 0;
+    while index < count {
+        readings = vec_push<i64>(readings, reading_at(index));
+        index = index + 1;
+        index < count
+    }
+    let length = vec_len<i64>(readings);
+    let mut position = 0usize;
+    let mut total = 0;
+    while position < length {
+        total = total + kept(vec_get<i64>(readings, position), threshold);
+        position = position + 1usize;
+        position < length
+    }
+    total
+}
+
+@id("vec.loop-carried")
+fn main() -> i64
+{
+    alert_total(9, 50)
+}
+"#;
+
 const NESTED_IF: &str = r#"
 module test.owned_vec_nested_if;
 @id("vec.nested-if")
@@ -555,5 +600,150 @@ WebAssembly.instantiate(module,{env}).then(({exports})=>{for(let i=0;i<3;i++){co
         "nested-if Core-Wasm: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// The loop-carried accumulate-and-filter shape, carried through every engine.
+///
+/// The loop-carried profile is the only shape in which a program can hold a
+/// *variable* number of scalar values, so this is the regression that proves
+/// the profile is more than a spec sentence. Before the cleanup-plan storage
+/// ownership rule was corrected, `values = vec_push<T>(values, value)` inside a
+/// bounded `while` re-homed the binding's slot into the loop body's own cleanup
+/// region: the body's scope exit finalized the vector every iteration, one
+/// linearized pass no longer preserved owned liveness, and the whole shape
+/// fail-closed with `SPX-H006`. `examples/vector-stats-project` is the same
+/// shape as a whole project.
+#[test]
+fn loop_carried_accumulate_and_filter_runs_on_every_engine() {
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-owned-vec-loop-carried-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let path = root.join("program.spx");
+    std::fs::write(&path, LOOP_CARRIED).unwrap();
+    let ast = parse(LOOP_CARRIED, &path).unwrap();
+
+    // The accumulated element count follows the argument rather than a fixed
+    // unrolled sequence: with the filter disabled these are the exact running
+    // prefix sums of `(index * 37 + 11) % 100`.
+    for (count, expected) in [
+        (0, 0),
+        (1, 11),
+        (2, 59),
+        (3, 144),
+        (4, 166),
+        (9, 431),
+        (12, 574),
+    ] {
+        let outcome = interpreter::interpret(
+            &path,
+            "vec.alert-total",
+            &[count.to_string(), "0".to_owned()],
+            &interpreter::InterpreterOptions::default(),
+        )
+        .unwrap();
+        assert!(
+            outcome
+                .envelope
+                .contains(&format!("\"value\":\"{expected}\"")),
+            "count {count} did not accumulate {expected}: {}",
+            outcome.envelope
+        );
+    }
+    // The filter is a real predicate over the accumulated values, not a
+    // constant: the same nine readings sum to 431, 310 and 0 under three
+    // thresholds.
+    for (threshold, expected) in [(0, 431), (50, 310), (97, 0)] {
+        let outcome = interpreter::interpret(
+            &path,
+            "vec.alert-total",
+            &["9".to_owned(), threshold.to_string()],
+            &interpreter::InterpreterOptions::default(),
+        )
+        .unwrap();
+        assert!(
+            outcome
+                .envelope
+                .contains(&format!("\"value\":\"{expected}\"")),
+            "threshold {threshold} did not filter to {expected}: {}",
+            outcome.envelope
+        );
+    }
+
+    let interpreted = interpreter::interpret(
+        &path,
+        "vec.loop-carried",
+        &[],
+        &interpreter::InterpreterOptions::default(),
+    )
+    .unwrap();
+    assert!(interpreted.envelope.contains("\"value\":\"310\""));
+
+    let generated = codegen::emit_c(&ast).unwrap();
+    let c_path = root.join("program.c");
+    std::fs::write(&c_path, &generated).unwrap();
+    assert!(Command::new("clang").arg("--version").output().is_ok());
+    for optimization in ["-O0", "-O2"] {
+        let binary = root.join(format!("program-{optimization}"));
+        let compiled = Command::new("clang")
+            .args(["-std=c11", "-Wall", "-Wextra", "-Werror", optimization])
+            .arg(&c_path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "{optimization}: {}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let output = Command::new(&binary).output().unwrap();
+        assert!(output.status.success(), "{optimization} native execution");
+        assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "310");
+    }
+
+    if Command::new("node").arg("--version").output().is_ok() {
+        let wasm_path = root.join("program.wasm");
+        std::fs::write(&wasm_path, wasm::emit_module(&ast).unwrap()).unwrap();
+        // One host arena that keeps exactly one live carrier per generation:
+        // a leaked or double-owned vector fails rather than passing quietly.
+        let script = r#"
+const fs=require('fs');
+const bytes=fs.readFileSync(process.argv[1]);
+let next=1n;
+const entries=new Map();
+const key=value=>{if(typeof value!=='bigint'||value===0n)throw Error('carrier');return value.toString()};
+const read=(value,tag)=>{const entry=entries.get(key(value));if(!entry||entry.tag!==tag)throw Error('stale-or-type');return entry};
+const alloc=(tag,capacity,values=[])=>{const token=next++;entries.set(key(token),{tag,capacity,values});return token};
+const env={
+  spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,
+  spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:a=>-a,
+  spx_contract_fail:code=>{throw Error(`unexpected-status:${code}`)},
+  spx_vec_with_capacity:(tag,capacity)=>{const n=Number(capacity);return Number.isSafeInteger(n)&&n>=0&&n<=8192?alloc(tag,n):0n},
+  spx_vec_push:(source,tag,bits)=>{const old=read(source,tag);if(old.values.length>=old.capacity)return 0n;const values=old.values.concat([bits]);entries.delete(key(source));return alloc(tag,old.capacity,values)},
+  spx_vec_len:(source,tag)=>BigInt(read(source,tag).values.length),
+  spx_vec_capacity:(source,tag)=>BigInt(read(source,tag).capacity),
+  spx_vec_get:(source,tag,index)=>{const entry=read(source,tag),n=Number(index);if(!Number.isSafeInteger(n)||n<0||n>=entry.values.length)throw Error('oob');return entry.values[n]},
+  spx_vec_drop:source=>{if(!entries.delete(key(source)))throw Error('double-drop')}
+};
+WebAssembly.instantiate(bytes,{env}).then(({instance})=>{
+  for(let i=0;i<4;i+=1){const value=instance.exports.semaprax_main();if(value!==310n||entries.size!==0)throw Error(`semantic-or-settlement:${value}:${entries.size}`)}
+}).catch(error=>{console.error(error);process.exit(2)});
+"#;
+        let output = Command::new("node")
+            .arg("-e")
+            .arg(script)
+            .arg(&wasm_path)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "Core-Wasm: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
     let _ = std::fs::remove_dir_all(root);
 }

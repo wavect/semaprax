@@ -1,0 +1,25 @@
+module vector_stats.collect;
+use function @id("vector-stats.kept") from vector_stats.readings as kept;
+use function @id("vector-stats.reading-at") from vector_stats.readings as reading_at;
+
+@id("vector-stats.alert-total")
+fn alert_total(count: i64, threshold: i64) -> i64
+    requires count >= 0 && count <= 12
+{
+    let mut readings = vec_with_capacity<i64>(12usize);
+    let mut index = 0;
+    while index < count {
+        readings = vec_push<i64>(readings, reading_at(index));
+        index = index + 1;
+        index < count
+    }
+    let length = vec_len<i64>(readings);
+    let mut position = 0usize;
+    let mut total = 0;
+    while position < length {
+        total = total + kept(vec_get<i64>(readings, position), threshold);
+        position = position + 1usize;
+        position < length
+    }
+    total
+}

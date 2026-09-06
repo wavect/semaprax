@@ -1,0 +1,13 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "vector-stats"
+version = "1.0.0"
+
+[modules]
+entry = "vector_stats.app"
+sources = ["src/app.spx", "src/collect.spx", "src/readings.spx", "src/tests.spx"]
+tests = ["vector_stats.tests"]
+
+[exports]
+web = ["vector-stats.alert-threshold", "vector-stats.reading-count"]

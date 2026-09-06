@@ -937,9 +937,8 @@ impl<'a> PlanBuilder<'a> {
                 "cleanup storage `{storage:?}` has no slot"
             )));
         }
-        let slots = &mut self.regions[region.0 as usize].slots;
-        if !slots.contains(storage) {
-            slots.push(storage.clone());
+        if !bounded_vec::storage_is_placed(&self.regions, storage) {
+            self.regions[region.0 as usize].slots.push(storage.clone());
         }
         Ok(())
     }

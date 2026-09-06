@@ -8,6 +8,46 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `agent_lifecycle`, the Agent Lifecycle v1 compiler and runner: it binds
+  an AgentDefinition's four deterministic operation identities - `initialize`,
+  `observe`, `authorize`, `reduce` - to actual verified `.spx` functions in the
+  same HIR ordinary execution uses, and executes one acyclic lifecycle over
+  them through `interpreter::retained_call`. Binding validates each stage's
+  parameter count, parameter ownership modes against the AgentGraph v1
+  relationships, declared effects, role types, the derived two-case
+  grant/refusal decision variant, and the acyclic and uniquely ordered stage
+  graph, and it rejects an unresolved identity, an incompatible signature, an
+  incorrect ownership mode, a declared effect on a deterministic stage, an
+  unadmitted proposal field representation, and an unadmitted decision shape
+  with an `SPX-G570` diagnostic naming the exact failing field - all before any
+  host work is reachable. The authorizing transition mints `Authorized`, an
+  opaque one-use value bound to the exact lifecycle policy digest, the
+  identity-keyed encoding of the state carrier, the exact proposal document
+  bytes, the grant case identity, and the seal the program itself constructed.
+  Its fields are private to one module, it derives nothing and has no public
+  constructor, it is consumed by move at the effect boundary, and the crate's
+  single mint site is reachable only from the function that runs the validated
+  authorize stage - which requires an `AuthorizeStage` only the stage binder
+  builds, requires the retained product to name that exact validated function,
+  and mints only on the validated grant case. A proposal, an observation and a
+  reduction therefore have no route to one. Spending an authorization
+  independently recomputes its binding from the state and proposal presented,
+  so a substituted state or proposal is `SPX-G571` before the injected read
+  operation is called. `propose` is a scripted offline document admitted only
+  through Proposal Schema v1, and `execute` is one explicitly injected
+  `AgentReadOperation` and nothing else. The six terminal conditions -
+  `completed`, `rejected`, `model_failed`, `effect_failed`, `cancelled`,
+  `budget_exhausted` - each produce a canonical
+  `semaprax.agent-lifecycle-evidence.v1` document carrying identities, outcomes
+  and cleanup-event counts but no payload bytes, byte-identical on replay.
+  Stage values stay inside the retained seam's closed vocabulary, so `string`
+  cannot cross a stage boundary and the Proposal role crosses as its exact
+  ordered scalar projection instead. The frozen AgentDefinition, AgentGraph and
+  Runtime v1 profile digests are re-asserted unchanged; `AgentDefinition` gains
+  two additive read-only accessors and no other change. Iterative `AgentStep`
+  execution, typed language effects beyond the injected read, durable
+  checkpoint/resume, and a CLI surface remain Missing.
+
 - Added `interpreter::retained_call`, the retained multi-argument call seam
   Reference Interpreter v1 was missing: `prepare_resolved_zero_arg_i64` is
   zero-argument and additionally requires `entry_id == program.entrypoint`, so

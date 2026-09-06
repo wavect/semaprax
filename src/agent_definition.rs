@@ -148,6 +148,31 @@ impl AgentDefinition {
         &self.types[2].stable_id
     }
 
+    /// Returns the stable type identity admitted for one of the six type
+    /// roles, named in the normative order `task`, `state`, `observation`,
+    /// `proposal`, `outcome`, `result`.
+    ///
+    /// This additive read-only accessor changes no admitted byte and grants
+    /// no authority.
+    pub fn type_id(&self, role: &str) -> Option<&str> {
+        self.types
+            .iter()
+            .find(|ty| ty.role == role)
+            .map(|ty| ty.stable_id.as_str())
+    }
+
+    /// Returns the stable operation identity and declared kind admitted for
+    /// one of the six operation roles.
+    ///
+    /// This additive read-only accessor changes no admitted byte and grants
+    /// no authority.
+    pub fn operation(&self, role: &str) -> Option<(&str, &str)> {
+        self.operations
+            .iter()
+            .find(|operation| operation.role == role)
+            .map(|operation| (operation.stable_id.as_str(), operation.kind))
+    }
+
     /// Returns the byte-preserved canonical Agent Runtime Profile v1 projection.
     pub fn runtime_v1_profile(&self) -> &str {
         &self.runtime_v1_profile

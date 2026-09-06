@@ -323,6 +323,8 @@ mod agent_definition_v1;
 mod agent_deployment_v1;
 #[path = "agent_runtime_v1/agent_inspect_cli.rs"]
 mod agent_inspect_cli;
+#[path = "agent_runtime_v1/agent_lifecycle_v1.rs"]
+mod agent_lifecycle_v1;
 #[path = "agent_runtime_v1/agent_payment_harness_v1.rs"]
 mod agent_payment_harness_v1;
 #[path = "agent_runtime_v1/agent_proposal_schema_v1.rs"]
@@ -551,9 +553,15 @@ fn external_consumer_surface_is_exact_and_opaque() {
     fs::write(
         root.join("src/main.rs"),
         r#"use semaprax::agent_runtime::{Agent,AgentHost,AgentRun,AgentProviderSink,AgentToolResultSink,parse_profile,replay_evidence,AgentRuntimeAuthority};
+use semaprax::agent_lifecycle::Authorized;
 fn clone<T: Clone>() {}
 fn debug<T: std::fmt::Debug>() {}
 fn reject_agent<H: AgentHost>() { clone::<Agent<H>>(); debug::<Agent<H>>(); }
+fn reject_authorized() {
+    let _ = Authorized { binding: String::new(), budget: 0, seal: Vec::new() };
+    clone::<Authorized>();
+    let _ = Authorized::default();
+}
 fn main() {
     clone::<AgentRun>(); debug::<AgentRun>();
     let _ = AgentRun { trace:String::new(), trace_digest:String::new(), evidence:String::new(), evidence_digest:String::new() };
@@ -580,6 +588,9 @@ struct NeverHost;
         "Clone",
         "Debug",
         "private",
+        // No consumer can construct, clone, or default an authorization: its
+        // fields are private, it derives nothing, and it has no constructor.
+        "Authorized",
     ] {
         assert!(stderr.contains(name), "missing `{name}` in:\n{stderr}");
     }

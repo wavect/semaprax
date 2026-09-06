@@ -4,9 +4,11 @@ Audience: compiler contributors, Agent Runtime contributors, provider-adapter
 authors, and semantic-workspace integrators.
 
 Status: bounded phase-1 compiler slice implemented locally, extended by the
-additive Agent Proposal Schema v1 grammar and decoder and by the additive
-AgentDefinition v2 / AgentDeployment v1 separation; long-term language,
-harness, effects, and durability goals remain proposed and unsupported.
+additive Agent Proposal Schema v1 grammar and decoder, the additive
+AgentDefinition v2 / AgentDeployment v1 separation, and the additive Agent
+Lifecycle v1 compiled stage binding and single acyclic execution; long-term
+language, harness, effects, and durability goals remain proposed and
+unsupported.
 
 ## Purpose
 
@@ -368,6 +370,190 @@ Runtime v2 is not wired to descriptive AgentGraph JSON here. The bound product
 is an independently checked binding, and execution still runs through the
 frozen Runtime v1 projection.
 
+## Agent Lifecycle v1
+
+The schema identity is `semaprax.agent-lifecycle.v1`. It is the additive
+compiler product that binds an AgentDefinition's four **deterministic**
+operation identities to actual verified functions in one checked module and
+executes one acyclic lifecycle over them. It changes no AgentDefinition,
+AgentGraph, Proposal Schema, or Runtime v1 byte.
+
+### Stage binding
+
+The compiler resolves each of `initialize`, `observe`, `authorize` and
+`reduce` to a `ResolvedFunction` in the same HIR ordinary execution uses, and
+validates, in this order and with the exact failing field named:
+
+| Checked | Rejected because |
+| --- | --- |
+| `<role>.unresolved` | the operation identity names no function, or its identity is not persistent |
+| `<role>.effects` | a deterministic stage declares an effect |
+| `<role>.arity` | the parameter count is not the one the stage graph requires |
+| `<role>.ownership` | a parameter's ownership mode contradicts the graph edge |
+| `<role>.type` | a parameter's type is not the bound role type |
+| `<role>.result` | the return type is not the bound role type |
+| `<role>.retained_call` | the interpreter's own admission rejects the function |
+| `task_type.*`, `outcome_type.*` | the role type is not an admitted `{ Bytes, i64 }` record |
+| `proposal_type.*` | the Proposal role is not a record of admitted exact scalars |
+| `authorize.decision.*` | the decision is not a two-case grant/refusal variant |
+| `stage_graph.acyclic`, `stage_graph.order` | the derived stage graph has a cycle, or no unique order |
+
+The admitted signatures are:
+
+```text
+initialize(own Task)                                 -> State
+observe(borrow State)                                -> Observation
+authorize(borrow State, <proposal projection>)       -> Decision
+reduce(own State, <proposal projection>, own Outcome)-> Result
+```
+
+The ownership modes are exactly the AgentGraph v1 relationships: `initialize`
+and `reduce` **consume** the carrier the graph says they consume, `observe`
+and `authorize` **borrow** the state. They are read from HIR, not from the
+document, so a source ownership change is a compile-time rejection rather than
+a backend accident.
+
+### Admitted stage vocabulary
+
+Stage arguments and results are exactly the retained interpreter seam's closed
+vocabulary: `bool`, `i32`, `i64`, `u8`, `usize`, owned `Bytes`, and bounded
+records and owned-byte variants over those leaves. **`string` is not admitted
+in a stage value**, because a `String` leaf would be a new owned cleanup leaf
+kind ahead of the shared cleanup machinery and the native and Wasm backends.
+
+That has one visible consequence. Proposal Schema v1 admits only records and
+variants, while a by-value nominal stage parameter must be a Copy `class`, so a
+Proposal carrier cannot cross the seam as a nominal value. The Proposal
+therefore crosses as its **exact ordered scalar projection**, keyed by the
+proposal type's own persistent field identities and validated against the
+`authorize` and `reduce` parameter lists. A `string` proposal field is
+rejected with `proposal_type.field.representation` rather than truncated.
+
+The `Decision` variant `authorize` returns is derived from the validated
+signature, not authored: exactly two cases, exactly one of which owns a
+`Bytes` seal alongside one `i64` budget — that case is the grant — and the
+other carries exactly one `i64` refusal code and owns nothing.
+
+### The opaque one-use authorization
+
+`Authorized` is the value the authorizing transition produces. It is not a
+boolean and it is not a hash a caller can hand back:
+
+- its fields are private to `src/agent_lifecycle/authorization.rs`, so no
+  struct literal can name them from anywhere else, in or out of the crate;
+- it derives nothing — no `Clone`, no `Copy`, no `Default`, no `From` — and it
+  has no public constructor;
+- the crate's single mint site is a private function in that module, called
+  from exactly one place: the function that runs the validated authorize
+  stage, which cannot be reached without an `AuthorizeStage` that only the
+  stage binder constructs, requires the retained product to name that exact
+  validated function, and mints only on the validated grant case of the
+  validated decision variant; and
+- it is consumed by move at the effect boundary, so one grant admits at most
+  one effect.
+
+Therefore `observe`, `reduce`, and model output have no route to one. A
+proposal remains data.
+
+Its binding is the domain-separated digest over the lifecycle digest, the
+canonical identity-keyed encoding of the state carrier, the exact proposal
+document bytes, the grant case identity, and the seal the program itself
+constructed. Reproducing that string grants nothing, because no API accepts one
+in place of an `Authorized`; and spending an authorization independently
+recomputes the binding from the state and proposal actually presented, so a
+substituted state or a substituted proposal fails closed with `SPX-G571`
+**before** the read operation is called.
+
+### Execution and terminal conditions
+
+One run is one acyclic pass. `propose` is a scripted, offline document
+admitted only through the derived Proposal Schema v1 decoder. `execute` is one
+explicitly injected `AgentReadOperation` and nothing else: the lifecycle opens
+no file, spawns no process, reads no environment variable, and contacts no
+network. Cancellation is observed at every stage boundary, and interpreter fuel
+is charged per stage.
+
+The Observation `observe` returns is computed and identity-checked, but this
+slice builds no model context from it: the proposal document is supplied by the
+caller, so semantic context construction remains a nonclaim.
+
+| Status | Reached when |
+| --- | --- |
+| `completed` | `reduce` published a Result |
+| `rejected` | the authorize stage refused, or a deterministic stage did not decide |
+| `model_failed` | the scripted proposal is outside the grammar or the projection |
+| `effect_failed` | the injected read operation failed or exceeded its byte bound |
+| `cancelled` | cancellation was observed at a stage boundary |
+| `budget_exhausted` | a stage exhausted its per-stage fuel or its call depth |
+
+The evidence document is `semaprax.agent-lifecycle-evidence.v1`: compact
+canonical UTF-8 JSON with one terminal LF carrying the status, the closed
+reason, one row per executed stage with its outcome, step count and cleanup-event
+count, and the authorization's minted/spent facts. It carries identities and
+counts only, never stage payload bytes, and the same inputs replay to the same
+bytes and the same digest.
+
+### Public Rust surface
+
+```rust
+let lifecycle = semaprax::agent_lifecycle::compile_agent_lifecycle(
+    module_source,
+    module_path,
+    definition_source,
+)?;
+semaprax::agent_lifecycle::verify_agent_lifecycle_bundle(
+    module_source,
+    module_path,
+    definition_source,
+    lifecycle.canonical_json(),
+)?;
+let run = lifecycle.run(&task, proposal_document, &mut read, budget, &cancellation)?;
+```
+
+`CompiledAgentLifecycle`, `LifecycleRun`, `StageRecord`, `Authorized` and
+`AuthorizedRequest` expose only immutable canonical documents, identities,
+digests and closed statuses. There is no CLI surface, and `AgentDefinition`
+gains two additive read-only `type_id`/`operation` accessors and no other
+change.
+
+### Executable gate
+
+The `agent_runtime_v1` harness's `agent_lifecycle_v1` module proves:
+
+- deterministic binding of the four deterministic identities to real verified
+  functions, with the published ownership modes read from HIR;
+- one acyclic pass to `completed`, with every stage settling its owned leaves
+  and one call to the injected read operation;
+- byte-identical evidence and evidence digest on replay, carrying no payload;
+- exact lifecycle-bundle replay and tamper rejection;
+- an authorization that differs for a different state, a different proposal and
+  a different policy, and that is unchanged by a pure display rename;
+- `rejected` on an authorize refusal, with the exact refusal code and zero host
+  calls; `model_failed` for a stale grammar digest, a cross-agent proposal, a
+  reordered document, an out-of-range integer and a missing terminal LF, each
+  with zero host calls; `effect_failed` for a failing read; `cancelled` before
+  `initialize`; and `budget_exhausted` at two distinct stages. Cancellation is
+  checked before all four of `initialize`, `observe`, `authorize` and
+  `execute`; only the pre-`initialize` boundary is deterministically reachable
+  from a whole-run caller and therefore only that one is executed, while the
+  other three are implemented and unexercised; and
+- seven stage-binding rejections — an unresolved identity, two incorrect
+  ownership modes, an incompatible result type, a declared effect on a
+  deterministic stage, an unadmitted proposal field representation, and a
+  decision variant that is not a two-case grant/refusal — each before any run.
+
+The crate-internal `agent_lifecycle::tests` module additionally proves the
+single mint site, the absence of `Clone`/`Default`, the acyclic and uniquely
+ordered stage graph with a cycle and an ambiguous graph both rejected, the five
+separated binding inputs, and the refusal to spend an authorization into a
+substituted state or a substituted proposal with the read operation never
+reached. The harness's external-consumer probe additionally proves that no
+consumer can construct, clone, or default an `Authorized`.
+
+The frozen AgentDefinition, AgentGraph and Runtime v1 profile known answers are
+re-asserted unchanged after a lifecycle compiles and runs over the same
+definition.
+
 ## Digests
 
 Digests are lowercase `sha256:` values over domain bytes followed by the exact
@@ -382,6 +568,9 @@ Proposal type:    "semaprax.agent-proposal-type.revision.v1\0"
 Definition v2:    "semaprax.agent-definition.digest.v2\0"
 Deployment:       "semaprax.agent-deployment.digest.v1\0"
 Bound deployment: "semaprax.agent-bound-deployment.digest.v1\0"
+Lifecycle:        "semaprax.agent-lifecycle.digest.v1\0"
+Lifecycle run:    "semaprax.agent-lifecycle-evidence.digest.v1\0"
+Authorization:    "semaprax.agent-lifecycle.authorization.v1\0"
 ```
 
 The proposal-type revision is taken over the exact bytes
@@ -475,6 +664,9 @@ transition execution.
 | `SPX-G555` | An AgentDeployment identity, list, or limit invariant failed. |
 | `SPX-G556` | The deployment is incompatible with its semantic definition. |
 | `SPX-G557` | Supplied bound-product bytes do not equal the independently rebound product. |
+| `SPX-G570` | A lifecycle stage identity, signature, ownership mode, effect, role type, decision shape, or stage-graph invariant failed. |
+| `SPX-G571` | A lifecycle invocation was refused before host work: an authorization was not bound to the state and proposal presented, or the injected read failed its bound. |
+| `SPX-G572` | Supplied lifecycle bytes do not equal the independently recompiled lifecycle. |
 
 Module compilation diagnostics reach the caller unchanged: a `.spx` module
 that does not verify fails with its own source diagnostics rather than an
@@ -597,21 +789,29 @@ This slice does not implement or claim:
 
 - execution, packaging, or publication of the additive generated clients;
 - proposal values beyond the closed monomorphic scalar record/variant subset;
-- compiled execution of `initialize`, `observe`, `authorize`, or `reduce`;
+- `string`, `char`, floating-point, borrowed, or generic stage values;
+- a nominal Proposal carrier crossing a stage boundary, rather than its exact
+  ordered scalar projection;
+- compiled execution of `propose` or of a language-level `execute` body: the
+  model is a scripted offline document and the effect is one explicitly
+  injected read operation;
+- iterative `AgentStep` `continue`/`complete`/`suspend`/`fail` execution, or
+  any lifecycle longer than one acyclic pass;
 - a Runtime v2 that consumes AgentGraph or the bound product directly;
 - target-feature implementation, backend admission, or provider transport;
 - typed mutation, testing, build, approval, or publication effects;
 - semantic context construction;
-- `Authorized<T>` minting or consumption;
 - checkpoint, resume, exact replay, re-execution, or reconciliation;
 - a CLI; or
 - the signature-change reference vertical slice.
 
 Agent Proposal Schema v1 closes the derived proposal grammar gate, the additive
-client bundle closes deterministic source generation and exact replay, and
+client bundle closes deterministic source generation and exact replay,
 AgentDefinition v2 with AgentDeployment v1 closes definition/deployment
-separation. Provisioned compilation and execution of those clients remain a
-separate gate. The Runtime v1 compatibility projection still carries its own
-authored action/tool schemas. Runtime v2 must not consume AgentGraph directly
-until opaque one-use authorization semantics have reviewed contract and
-executable rejection evidence.
+separation, and Agent Lifecycle v1 closes the compiled deterministic stage
+binding, the single acyclic execution, and the opaque one-use authorization
+value with its executable rejection evidence. Provisioned compilation and
+execution of the generated clients remain a separate gate. The Runtime v1
+compatibility projection still carries its own authored action/tool schemas.
+Durable checkpoint, resume and reconciliation, and Runtime v2's direct
+consumption of AgentGraph, remain separate gates on top of this one.

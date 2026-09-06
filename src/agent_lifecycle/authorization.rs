@@ -53,6 +53,15 @@ impl Authorized {
         &self.binding
     }
 
+    /// The budget the validated grant carried.
+    ///
+    /// Crate-internal and read-only: the durable journal records it as a fact
+    /// about one intent. It is never an input to minting, and no API accepts
+    /// it in place of an authorization.
+    pub(in crate::agent_lifecycle) const fn granted_budget(&self) -> i64 {
+        self.budget
+    }
+
     /// Spends the authorization. The value is moved, so it authorizes at most
     /// one effect.
     #[must_use]

@@ -11,7 +11,7 @@ use super::*;
 
 /// The `runtime_v1` compatibility material of the frozen fixture definition.
 /// The definition compiler supplies its own schema and nonclaims.
-const RUNTIME_V1: &str = concat!(
+pub(in crate::agent_lifecycle) const RUNTIME_V1: &str = concat!(
     "{\"models\":[{\"provider_id\":\"fake.local\",\"model_id\":\"fake-basic\",",
     "\"locality\":\"local\",\"quality_tier\":\"basic\",\"tokenizer_id\":\"fake.bytes-v1\",",
     "\"max_context_tokens\":4096,\"input_usd_microunits_per_million_tokens\":0,",
@@ -35,7 +35,7 @@ const RUNTIME_V1: &str = concat!(
     "\"max_evidence_bytes\":262144,\"max_builder_bytes\":1048576}}"
 );
 
-const DEFINITION: &str = concat!(
+pub(in crate::agent_lifecycle) const DEFINITION: &str = concat!(
     "{\"schema\":\"semaprax.agent-definition.v1\",\"agent_id\":\"fixture.agent\",",
     "\"types\":[",
     "{\"role\":\"task\",\"stable_id\":\"fixture.agent.type.task\"},",
@@ -54,7 +54,7 @@ const DEFINITION: &str = concat!(
     "\"runtime_v1\":RUNTIME}\n"
 );
 
-const MODULE: &str = r#"module fixture.agent.lifecycle;
+pub(in crate::agent_lifecycle) const MODULE: &str = r#"module fixture.agent.lifecycle;
 
 @id("fixture.agent.type.task")
 record Task {
@@ -164,7 +164,11 @@ fn lifecycle() -> CompiledAgentLifecycle {
     .expect("the unit fixture binds every stage")
 }
 
-fn proposal(compiled: &CompiledAgentLifecycle, budget: &str, sequence: &str) -> String {
+pub(in crate::agent_lifecycle) fn proposal(
+    compiled: &CompiledAgentLifecycle,
+    budget: &str,
+    sequence: &str,
+) -> String {
     format!(
         concat!(
             "{{\"schema\":\"semaprax.agent-proposal.v1\",\"agent_id\":\"fixture.agent\",",
@@ -319,6 +323,9 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     let authorization = include_str!("authorization.rs");
     let lifecycle = include_str!("../agent_lifecycle.rs");
     let stages = include_str!("stages.rs");
+    let durable = include_str!("durable.rs");
+    let checkpoint = include_str!("durable/checkpoint.rs");
+    let journal = include_str!("durable/journal.rs");
 
     // The struct literal that builds the value exists exactly once, and its
     // fields are private to the authorization module, so no other module can
@@ -326,6 +333,18 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
     assert_eq!(authorization.matches("\n    Authorized {").count(), 1);
     assert_eq!(lifecycle.matches("Authorized {").count(), 0);
     assert_eq!(stages.matches("Authorized {").count(), 0);
+    // The durable path adds no second route: it never names the struct, never
+    // names the mint, and reaches an authorization only by running the same
+    // validated authorizing transition once.
+    for (name, source) in [
+        ("durable.rs", durable),
+        ("durable/checkpoint.rs", checkpoint),
+        ("durable/journal.rs", journal),
+    ] {
+        assert_eq!(source.matches("Authorized {").count(), 0, "{name}");
+        assert_eq!(source.matches("mint(").count(), 0, "{name}");
+    }
+    assert_eq!(durable.matches("run_authorize_stage(").count(), 1);
     assert!(authorization.contains("pub struct Authorized {\n    binding: String,"));
 
     // The mint is private and is called exactly once, from the function that
@@ -363,6 +382,9 @@ fn the_authorization_value_has_exactly_one_mint_site_in_the_crate() {
             ("authorization.rs", authorization),
             ("agent_lifecycle.rs", lifecycle),
             ("stages.rs", stages),
+            ("durable.rs", durable),
+            ("durable/checkpoint.rs", checkpoint),
+            ("durable/journal.rs", journal),
         ] {
             assert!(!source.contains(forbidden), "{name} contains {forbidden}");
         }

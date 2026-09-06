@@ -13,7 +13,7 @@ use super::{profile, raw_sha, task};
 
 const DEPLOYMENT_ID: &str = "fixture.deployment.local";
 
-fn migrated() -> (String, String) {
+pub(super) fn migrated() -> (String, String) {
     migrate_agent_definition_v1(&definition(&profile()), DEPLOYMENT_ID).unwrap()
 }
 

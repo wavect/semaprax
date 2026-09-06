@@ -8,6 +8,48 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `agent_lifecycle::durable`, the Agent Checkpoint v1 revision-bound
+  durable slice over Agent Lifecycle v1. `bind_durable_agent` anchors one
+  checked module, one AgentDeployment v1 bound product and one caller-supplied
+  policy epoch, and every checkpoint generation binds nine recomputed facts -
+  the policy epoch, the semantic definition, deployment and bound-product
+  digests, the State role identity, the proposal-grammar digest, the lifecycle
+  digest, the exact module source digest and the caller's task digest - so
+  definition, deployment, source or state-schema drift and a revoked epoch each
+  reject a stale checkpoint by its own reason, re-running no stage and writing
+  no generation. A durable run splits the lifecycle at its single external
+  boundary: it commits an intent before crossing it and a settled observation
+  after it, so a crash between the two leaves delivery uncertain. An uncertain
+  operation is never retried automatically - it ends in a terminal `unknown`
+  state, or the host reconciles it with a settled observation or an
+  abandonment - and a read that reports failure is treated as uncertain too,
+  because a reported failure is not evidence of non-occurrence. Neither budget
+  ledger is refunded: the effect grant is consumed at the intent whatever the
+  operation's fate, and re-executing the deterministic prefix on a resume spends
+  interpreter fuel from the same remaining total.
+- A resumed run cannot forge an authorization. A checkpoint carries no
+  `Authorized`, no grant seal and no state carrier, only digests, and there is
+  no decoder from checkpoint bytes back to a retained value; a resume recomputes
+  the state from the caller's task and mints a fresh grant through the crate's
+  single mint site before comparing the derived operation identity against the
+  journal. Checkpoint bytes are self-verifying - closed key set, strictly
+  advancing journal ranks, recomputed chain link, program counter agreeing with
+  the journal, and exact canonical re-rendering - so a partially written
+  generation fails closed with `SPX-G573` rather than being adopted, and
+  atomicity itself stays the caller's `CheckpointStore` contract. Caller inputs
+  are retained as digests only; the settled observation is the sole retained
+  external datum, and `Retention::ObservationDigestOnly` redacts that too. The
+  checkpoint is deliberately unauthenticated and republishes that dependence in
+  its own nonclaims, alongside the standing provider-billing and
+  external-exactly-once nonclaims. The `agent_runtime_v1` harness gains
+  `agent_checkpoint_v1` covering crash injection at all five boundaries with
+  their recoveries and total boundary-crossing counts, the drift and
+  caller-input rejections, seven malformed-document rejections, the redaction
+  sentinels, and an atomic write-and-rename store against a contract-violating
+  torn one; the crate-internal gate additionally proves that an internally
+  consistent rechained journal forgery still mints nothing. No CLI surface was
+  added: `semaprax agent` still refuses `resume` and `reconcile`.
+
 - Added `agent_lifecycle`, the Agent Lifecycle v1 compiler and runner: it binds
   an AgentDefinition's four deterministic operation identities - `initialize`,
   `observe`, `authorize`, `reduce` - to actual verified `.spx` functions in the

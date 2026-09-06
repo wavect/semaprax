@@ -5,10 +5,11 @@ authors, and semantic-workspace integrators.
 
 Status: bounded phase-1 compiler slice implemented locally, extended by the
 additive Agent Proposal Schema v1 grammar and decoder, the additive
-AgentDefinition v2 / AgentDeployment v1 separation, and the additive Agent
-Lifecycle v1 compiled stage binding and single acyclic execution; long-term
-language, harness, effects, and durability goals remain proposed and
-unsupported.
+AgentDefinition v2 / AgentDeployment v1 separation, the additive Agent
+Lifecycle v1 compiled stage binding and single acyclic execution, and the
+additive Agent Checkpoint v1 revision-bound durable slice over that lifecycle's
+single external boundary; long-term language, harness, effects, and durability
+goals remain proposed and unsupported.
 
 ## Purpose
 
@@ -554,6 +555,199 @@ The frozen AgentDefinition, AgentGraph and Runtime v1 profile known answers are
 re-asserted unchanged after a lifecycle compiles and runs over the same
 definition.
 
+## Agent Checkpoint v1
+
+The schema identity is `semaprax.agent-checkpoint.v1`. It is the additive
+durable slice over Agent Lifecycle v1. It changes no AgentDefinition,
+AgentGraph, Runtime v1, Proposal Schema v1, deployment, or lifecycle byte, and
+it adds no CLI surface: `semaprax agent` still refuses `resume` and
+`reconcile`, and continues to, because a verb is only worth exposing once its
+durable path and every rejection case execute.
+
+A durable run is the Lifecycle v1 pass split at its single external boundary.
+The deterministic prefix — `initialize`, `observe`, the scripted offline
+proposal, `authorize` — is re-executable by construction, because the lifecycle
+compiler already rejects a declared effect on all four deterministic roles. The
+one registered read is not re-executable, so the run commits an **intent**
+before crossing the boundary and a **settled observation** after it.
+
+### What a checkpoint is bound to
+
+`bind_durable_agent` takes one checked module, one `BoundAgentDeployment`, and
+one caller-supplied policy epoch, and compiles the lifecycle from the bound
+product's own Runtime v1 definition projection. Every generation is bound to
+nine facts, each of which the live invocation recomputes for itself rather
+than reading out of the checkpoint:
+
+| Bound fact | Reported drift |
+| --- | --- |
+| the caller's policy/cancellation epoch | `policy_epoch_revoked` |
+| the source-owned semantic definition digest | `definition_drift` |
+| the deployment digest | `deployment_drift` |
+| the bound-product digest | `bound_deployment_drift` |
+| the State role's stable identity | `state_schema_drift` |
+| the derived proposal-grammar digest | `proposal_schema_drift` |
+| the compiled lifecycle digest | `lifecycle_drift` |
+| the exact module source digest | `source_drift` |
+| the caller's task digest | `task_drift` |
+
+A drifted checkpoint re-runs no stage and writes no generation. The state
+carrier and the proposal document are additionally bound by digest inside the
+journal, so a resume that supplies a different proposal fails with
+`proposal_digest_mismatch` before the boundary is approached.
+
+Beyond the binding, a generation carries the program counter (`prefix`,
+`intent`, `settled`, `abandoned`, `reduced`, `delivered`), both budget ledgers,
+the retention mode, and the hash-chained operation journal.
+
+### A resumed run cannot forge an authorization
+
+Nothing in a checkpoint is an input to minting one. A checkpoint carries no
+`Authorized`, no grant seal, and no state carrier — only digests. There is no
+decoder from checkpoint bytes back to a `RetainedValue`, so a resumed run
+cannot reconstruct the state a grant was made against. It recomputes that state
+by re-running `initialize` on a caller-supplied task and re-runs the validated
+authorizing transition through the crate's only mint site. Only then is the
+freshly derived operation identity compared against the journal's recorded one;
+a mismatch drops the grant unspent as `operation_identity_mismatch`.
+
+A forged, truncated, or reordered journal therefore has exactly two possible
+effects: the resume refuses, or the resume declines to perform an effect it
+would otherwise have performed. Neither direction produces authority.
+
+### Uncertainty, and what is never done automatically
+
+- **Crash before the intent is durable.** The boundary was never approached.
+  A resume performs it exactly once.
+- **Crash after the intent is durable.** Delivery is *uncertain*, whether or
+  not the read actually ran. A resume never retries. Without reconciliation it
+  ends in the terminal `unknown` state and leaves the generation reconcilable;
+  with `Reconciliation::Settled` it continues from the host's observation
+  without crossing the boundary; with `Reconciliation::Abandoned` it commits a
+  terminal abandonment.
+- **A read that reports failure** is treated as uncertain too. A reported
+  failure is not evidence of non-occurrence, so the journal stays at its
+  intent.
+- **Crash after the settlement is durable.** The resume completes from the
+  recorded observation and crosses the boundary zero times.
+- **Crash after the reduction, before delivery.** The resume recomputes the
+  deterministic reduction, requires its digest to equal the recorded one, and
+  delivers.
+- **A delivered or abandoned generation** is terminal: the resume re-runs no
+  stage at all.
+
+Cancellation is observed at every deterministic stage boundary and once more
+immediately before the intent is committed, and deliberately not after it:
+abandoning a run between its intent and its settlement would manufacture the
+uncertainty the intent exists to bound.
+
+### Budgets are never refunded
+
+Two ledgers carry forward in the checkpoint. The effect-grant ledger is
+consumed at the intent, before the boundary, and stays consumed whatever the
+operation's fate. The interpreter-fuel ledger covers the whole durable run, so
+re-executing the deterministic prefix on a resume spends from the same
+remaining total: a resumed run always ends with strictly less fuel than one
+that never crashed.
+
+### Retention and redaction
+
+Caller-supplied inputs are never retained. The task objective and the proposal
+document reach the checkpoint only as digests, at every generation and in every
+mode, and the caller supplies them again at resume. The only external datum a
+checkpoint may retain is the settled observation, and only under the explicit
+`Retention::ObservationBytes` mode. Under `Retention::ObservationDigestOnly`
+the observation is reduced to its digest too, and a resume then requires a host
+reconciliation whose bytes reproduce that digest — a mismatch is
+`reconciled_observation_digest_mismatch`, an absence is
+`redacted_observation_requires_reconciliation`.
+
+### Storage contract and atomicity
+
+Persistence is the caller's. `CheckpointStore` is a trait the compiler
+implements nowhere; the durable path opens no file, spawns no process, and
+contacts no network. Its declared contract is that a commit either replaces the
+whole stored generation or leaves the previous one intact — a filesystem store
+satisfies it by writing a sibling temporary and renaming it over the target.
+
+Recovery does not take that contract on trust. Checkpoint bytes are
+self-verifying: `AgentCheckpoint::decode` requires the document to reparse
+under a closed key set, the journal to decode with strictly advancing entry
+ranks, the recomputed chain link to equal the stored one, the stored program
+counter to agree with the journal's last entry, and the canonical re-rendering
+to equal the supplied bytes exactly. A partially written generation therefore
+fails closed with `SPX-G573` rather than being adopted.
+
+### Executable gate
+
+The `agent_runtime_v1` harness's `agent_checkpoint_v1` module proves:
+
+- one complete durable run: five generations, one per journal boundary, one
+  boundary crossing, and a final generation whose counter is `delivered` and
+  whose effect-grant ledger is exhausted;
+- the checkpoint's opacity — no authorization value, no seal, no state
+  carrier, no task or proposal payload in any generation;
+- crash injection at all five boundaries with the outcomes listed above, each
+  followed by the recovery a restarted process would perform, asserting the
+  total number of boundary crossings in every case;
+- abandonment as a terminal reconciliation, and a delivered generation that
+  performs nothing;
+- a reported effect failure that stays uncertain, and a store failure at the
+  intent that never reaches the boundary;
+- no budget refund on resume, and an exhausted effect grant that stays
+  exhausted;
+- the eight drift rejections and the two caller-input rejections above, each
+  re-running no stage and writing no generation;
+- torn, renumbered, truncated, transposed, counter-mutated, nonclaim-stripped
+  and key-extended documents, each rejected with `SPX-G573`;
+- the declared secret-retention policy, with sentinels in both the caller's
+  task and the external observation, and the three redacted-resume outcomes;
+- an atomic write-and-rename store completing a run, a contract-violating
+  store whose torn generation is refused by recovery while its last whole
+  generation still decodes and resumes to the uncertain path; and
+- the unchanged frozen AgentDefinition, AgentGraph and Runtime v1 profile
+  digests after a crashed-and-resumed durable run.
+
+The crate-internal `agent_lifecycle::durable::tests` module additionally proves
+what the public surface cannot: that an internally consistent forgery — a
+rewritten and correctly rechained journal that decodes exactly like a genuine
+checkpoint — still cannot mint an authorization, and that the journal chain is
+sensitive to truncation, reordering and single-field substitution. The
+crate-wide mint-site gate is extended over all three durable sources.
+
+### Public Rust surface
+
+```rust
+let agent = semaprax::agent_lifecycle::bind_durable_agent(
+    module_source,
+    module_path,
+    &bound_deployment,
+    policy_epoch,
+)?;
+let run = agent.start(
+    &task, proposal_document, &mut read, budget, retention,
+    &cancellation, &mut store, crash,
+)?;
+let stored = semaprax::agent_lifecycle::AgentCheckpoint::decode(&bytes)?;
+let resumed = agent.resume(
+    &stored, &task, proposal_document, &mut read, reconciliation,
+    &cancellation, &mut store,
+)?;
+```
+
+`AgentCheckpoint` has no public constructor and no `Clone`: it is produced by a
+durable run or reconstructed from bytes that reproduce it exactly.
+
+### Nonclaims
+
+A checkpoint is **not authenticated**. It carries no key material and no
+signature, so a party who can rewrite the caller's storage can also recompute
+the journal chain; checkpoint integrity is the caller's storage contract, and
+each generation republishes that dependence in its own nonclaim list. Provider
+billing and external exactly-once execution stay nonclaims unless the external
+system guarantees them independently. A settled observation is proof data about
+what a host reported, never permission to perform anything.
+
 ## Digests
 
 Digests are lowercase `sha256:` values over domain bytes followed by the exact
@@ -571,6 +765,15 @@ Bound deployment: "semaprax.agent-bound-deployment.digest.v1\0"
 Lifecycle:        "semaprax.agent-lifecycle.digest.v1\0"
 Lifecycle run:    "semaprax.agent-lifecycle-evidence.digest.v1\0"
 Authorization:    "semaprax.agent-lifecycle.authorization.v1\0"
+Checkpoint:       "semaprax.agent-checkpoint.digest.v1\0"
+Checkpoint run:   "semaprax.agent-checkpoint-evidence.digest.v1\0"
+Journal chain:    "semaprax.agent-checkpoint.journal.v1\0"
+Checkpoint state: "semaprax.agent-checkpoint.state.v1\0"
+Checkpoint prop.: "semaprax.agent-checkpoint.proposal.v1\0"
+Checkpoint result:"semaprax.agent-checkpoint.result.v1\0"
+Observation:      "semaprax.agent-checkpoint.observation.v1\0"
+Module source:    "semaprax.agent-checkpoint.source.v1\0"
+Task:             "semaprax.agent-checkpoint.task.v1\0"
 ```
 
 The proposal-type revision is taken over the exact bytes
@@ -667,6 +870,7 @@ transition execution.
 | `SPX-G570` | A lifecycle stage identity, signature, ownership mode, effect, role type, decision shape, or stage-graph invariant failed. |
 | `SPX-G571` | A lifecycle invocation was refused before host work: an authorization was not bound to the state and proposal presented, or the injected read failed its bound. |
 | `SPX-G572` | Supplied lifecycle bytes do not equal the independently recompiled lifecycle. |
+| `SPX-G573` | Supplied bytes are not one exact canonical checkpoint generation: they do not reparse under the closed key set, their journal does not decode with advancing ranks, their chain link does not recompute, their program counter disagrees with their journal, or their canonical re-rendering differs. |
 
 Module compilation diagnostics reach the caller unchanged: a `.spx` module
 that does not verify fails with its own source diagnostics rather than an
@@ -801,7 +1005,13 @@ This slice does not implement or claim:
 - target-feature implementation, backend admission, or provider transport;
 - typed mutation, testing, build, approval, or publication effects;
 - semantic context construction;
-- checkpoint, resume, exact replay, re-execution, or reconciliation;
+- durable checkpointing of anything beyond the single registered read
+  operation: no multi-effect journal, no concurrent or distributed run, and no
+  compiled `execute` body;
+- checkpoint authenticity, integrity, or tamper evidence independent of the
+  caller's storage contract, and no signing or key material to provide it;
+- external exactly-once execution, provider billing, or automatic retry of an
+  uncertain operation;
 - a CLI; or
 - the signature-change reference vertical slice.
 
@@ -810,7 +1020,9 @@ client bundle closes deterministic source generation and exact replay,
 AgentDefinition v2 with AgentDeployment v1 closes definition/deployment
 separation, and Agent Lifecycle v1 closes the compiled deterministic stage
 binding, the single acyclic execution, and the opaque one-use authorization
-value with its executable rejection evidence. Provisioned compilation and
+value with its executable rejection evidence. Agent Checkpoint v1 closes the
+revision-bound durable checkpoint, the crash boundaries of the single external
+operation, and the uncertainty reconciliation that replaces automatic retry. Provisioned compilation and
 execution of the generated clients remain a separate gate. The Runtime v1
 compatibility projection still carries its own authored action/tool schemas.
 Durable checkpoint, resume and reconciliation, and Runtime v2's direct

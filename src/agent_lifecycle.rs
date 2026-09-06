@@ -52,12 +52,18 @@ use crate::interpreter::retained_call::{
 };
 
 pub mod authorization;
+pub mod durable;
 mod stages;
 
 #[cfg(test)]
 mod tests;
 
 pub use authorization::{Authorized, AuthorizedRequest};
+pub use durable::{
+    bind_durable_agent, AgentCheckpoint, CheckpointBinding, CheckpointStore, CheckpointStoreError,
+    CrashPoint, DurableAgent, DurableBudget, DurableRun, DurableStatus, ProgramCounter,
+    Reconciliation, Retention, CHECKPOINT_SCHEMA, DURABLE_EVIDENCE_SCHEMA,
+};
 
 use stages::{BoundStage, PayloadShape, ScalarKind, StageBinding};
 

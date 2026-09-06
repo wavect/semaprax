@@ -13,14 +13,14 @@ use semaprax::agent_runtime::AgentCancellation;
 use super::agent_definition_v1::definition;
 use super::{profile, raw_sha};
 
-const MODULE_PATH: &str = "fixture-agent-lifecycle.spx";
+pub(super) const MODULE_PATH: &str = "fixture-agent-lifecycle.spx";
 
 /// One acyclic lifecycle over the six role types of the frozen fixture
 /// AgentDefinition. Every declaration carries an explicit stable identity, the
 /// four deterministic stages declare no effect, and every stage value lives
 /// inside the retained seam's closed vocabulary: scalars, owned `Bytes`, and
 /// bounded records and owned-byte variants over those.
-const MODULE: &str = r#"module fixture.agent.lifecycle;
+pub(super) const MODULE: &str = r#"module fixture.agent.lifecycle;
 
 @id("fixture.agent.type.task")
 record Task {
@@ -173,7 +173,7 @@ impl AgentReadOperation for Read {
     }
 }
 
-fn proposal(schema_digest: &str, budget: &str, urgent: bool, sequence: &str) -> String {
+pub(super) fn proposal(schema_digest: &str, budget: &str, urgent: bool, sequence: &str) -> String {
     format!(
         concat!(
             "{{\"schema\":\"semaprax.agent-proposal.v1\",\"agent_id\":\"fixture.agent\",",

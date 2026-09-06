@@ -1,18 +1,52 @@
 # Provisioned Linux offline doctor lifecycle gate v1
 
-Status: authored and **never executed**. No provisioned host exists, no run
-has ever been performed, and nothing in this document is evidence that the
-private Linux doctor boundary was demonstrated at runtime. It records what a
-maintainer must provision and what the gate would then observe.
+Status: **executed, and failed**. First run 2026-09-06 against `758388e2`
+([run 34040867346](https://github.com/wavect/semaprax/actions/runs/34040867346)),
+evidence bundle `c5be8289f0c22d40895c7065669266e93dc0720601f24cd436db9b2f0ee17de8`,
+selected failure `test harness exited 101`. Preconditions and settlement
+passed; the confinement boundary is **not** demonstrated. See
+[First execution](#first-execution).
 
 Audience: release engineers and security reviewers who can supply one
-disposable, trusted Linux x86-64 host.
+disposable, trusted Linux x86-64 host, or dispatch this gate against a
+GitHub-hosted runner.
 
 Owning contract: [Linux production offline doctor provisioner
 v1](DOCTOR-PRODUCTION-PROVISIONER-V1.md). This document adds the executable
 gate that contract's distribution and evidence section requires; it changes no
 admission rule, activates no ordinary CLI route, and promotes no completion
 row.
+
+## First execution
+
+**What the run does establish.** Zero precondition failures: all twelve
+required kernel features were observed present on `6.17.0-1022-azure x86_64`;
+the delegated scope reported `delegated: true, populated: 0, procs: []`; the
+signed release was unpacked outside the checkout at the checked-out commit
+under the `test-only` anchor with `production_signing_material_present: false`;
+the checkout was clean; every image was static ELF with `interpreter: None`.
+Settlement passed — the final cgroup still existed, `populated 0`, with no
+surviving members, so nothing leaked despite the failure.
+
+**What it does not establish.** The confinement boundary is *not*
+demonstrated. Of the collector suite, 3 fixtures passed and 10 failed. Nine
+share one signature — the collector exited 1 rather than 0 — and every one of
+them drives the real worker through tmpfs materialization, pivot, seccomp and
+`execve`. The launcher and collector plumbing works under real confinement;
+the worker's confined tool execution does not yield an ok check on this host.
+No root cause is claimed: the assertion fires on the exit code before the
+report bytes are compared, so the run's log does not name the failed check.
+The tenth failure is the carrier-ceiling consequence recorded below and is
+addressed by the re-derived ceiling.
+
+The platform-sys suite never ran: `execute()` breaks after the first failing
+suite so cleanup cannot displace the sticky selected failure. Its thirteen
+fixtures assert on reply-frame contents rather than an exit code, and are
+therefore the diagnostic that would name the worker's actual failure.
+
+Audience: release engineers and security reviewers who can supply one
+disposable, trusted Linux x86-64 host, or dispatch this gate against a
+GitHub-hosted runner.
 
 ## What is true today
 

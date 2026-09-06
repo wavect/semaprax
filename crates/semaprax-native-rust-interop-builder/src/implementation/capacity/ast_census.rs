@@ -33,9 +33,7 @@ pub(in crate::implementation) fn scan_ast_capacity<'a>(
                     crate::ast::ExprKind::MethodCall { args, .. } => args.len() + 1,
                     crate::ast::ExprKind::SuperMethod { args, .. } => args.len(),
                     crate::ast::ExprKind::Block { statements, .. } => {
-                        if statements.iter().any(|statement| {
-                            matches!(statement, crate::ast::Statement::While { .. })
-                        }) {
+                        if super::ast_walk::ast_block_is_complex(statements) {
                             statements
                                 .len()
                                 .checked_mul(2)
@@ -95,6 +93,14 @@ pub(in crate::implementation) fn scan_ast_capacity<'a>(
                                 crate::ast::Statement::Let { name, .. }
                                 | crate::ast::Statement::Assign { name, .. } => {
                                     Some((count.checked_add(1)?, bytes.checked_add(name.len())?))
+                                }
+                                // Bounded Vec traversal binds `item` over its
+                                // body exactly as a `let` binds its name, so
+                                // it is charged as one local binding of that
+                                // width. Charging it as nothing would let a
+                                // `for` binding escape the builder bound.
+                                crate::ast::Statement::For { item, .. } => {
+                                    Some((count.checked_add(1)?, bytes.checked_add(item.len())?))
                                 }
                                 crate::ast::Statement::Unsafe { .. }
                                 | crate::ast::Statement::While { .. } => Some((count, bytes)),

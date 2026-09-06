@@ -531,6 +531,10 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
                         replace_payload(condition, replacement)
                             || replace_payload(body, replacement)
                     }
+                    crate::ast::Statement::For { values, body, .. } => {
+                        replace_payload(values, replacement)
+                            || replace_payload(body, replacement)
+                    }
                 }) || replace_payload(tail, replacement)
             }
             ExprKind::If {

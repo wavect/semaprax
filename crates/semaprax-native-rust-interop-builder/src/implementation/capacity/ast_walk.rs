@@ -27,14 +27,24 @@ pub(super) fn ast_previous_child_path_index(cursor: usize) -> Option<usize> {
     (cursor & AST_CURSOR_INDEX_MASK).checked_sub(1)
 }
 
+/// A block whose statements each occupy two child-path slots.
+///
+/// The doubling encodes a statement that exposes two evaluated children, so
+/// the test is the child count itself rather than one named statement: `while`
+/// exposes its condition and body, and bounded `for` traversal exposes its
+/// source values and body. Naming only `while` here silently halved every
+/// index in a block whose only loop was a `for`.
+pub(super) fn ast_block_is_complex(statements: &[crate::ast::Statement]) -> bool {
+    statements
+        .iter()
+        .any(|statement| statement.child_count() > 1)
+}
+
 pub(super) fn ast_block_statement_index(
     statements: &[crate::ast::Statement],
     child_path_index: usize,
 ) -> usize {
-    if statements
-        .iter()
-        .any(|statement| matches!(statement, crate::ast::Statement::While { .. }))
-    {
+    if ast_block_is_complex(statements) {
         child_path_index / 2
     } else {
         child_path_index
@@ -117,11 +127,7 @@ pub(in crate::implementation) fn ast_child<'a>(
             advance(index.checked_add(1)?, index, child)
         }
         crate::ast::ExprKind::Block { statements, tail } => {
-            let has_while = complex
-                || (index == 0
-                    && statements
-                        .iter()
-                        .any(|statement| matches!(statement, crate::ast::Statement::While { .. })));
+            let has_while = complex || (index == 0 && ast_block_is_complex(statements));
             if has_while {
                 if !complex {
                     *cursor = AST_COMPLEX_CURSOR;
@@ -259,9 +265,7 @@ pub(super) fn ast_child_identity_path_increment(
             if child_index == 0 { ".left" } else { ".right" }.len()
         }
         crate::ast::ExprKind::Block { statements, .. } => {
-            let complex = statements
-                .iter()
-                .any(|statement| matches!(statement, crate::ast::Statement::While { .. }));
+            let complex = ast_block_is_complex(statements);
             let statement_index = if complex {
                 child_index / 2
             } else {
@@ -273,7 +277,9 @@ pub(super) fn ast_child_identity_path_increment(
                     complex && child_index % 2 == 1,
                 ) {
                     (crate::ast::Statement::While { .. }, false) => ".condition",
+                    (crate::ast::Statement::For { .. }, false) => ".values",
                     (crate::ast::Statement::While { .. }, true)
+                    | (crate::ast::Statement::For { .. }, true)
                     | (crate::ast::Statement::Unsafe { .. }, _) => ".body",
                     _ => ".value",
                 };

@@ -20,7 +20,7 @@
 //! resumed run cannot even reconstruct the state a grant was made against; it
 //! recomputes that state by re-running `initialize` on a caller-supplied task
 //! and re-running the validated authorizing transition through
-//! [`super::authorization::run_authorize_stage`], the crate's only mint site.
+//! `authorization::run_authorize_stage`, the crate's only mint site.
 //! The checkpoint's recorded operation identity is then compared against the
 //! identity the *live* grant derives. A forged, truncated or reordered journal
 //! therefore has exactly two possible effects: the resume refuses, or the

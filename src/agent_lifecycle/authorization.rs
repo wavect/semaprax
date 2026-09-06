@@ -4,10 +4,10 @@
 //! `Default`, and no `From`. Its fields are private to this module, so a
 //! struct literal cannot name them from anywhere else in the crate, let alone
 //! from a consumer. The only function that builds one is the private `mint`
-//! below, and the only call to `mint` is inside [`run_authorize_stage`].
+//! below, and the only call to `mint` is inside `run_authorize_stage`.
 //!
-//! [`run_authorize_stage`] cannot be reached without a
-//! [`stages::AuthorizeStage`], which only the lifecycle compiler's stage
+//! `run_authorize_stage` cannot be reached without an `AuthorizeStage`, which
+//! only the lifecycle compiler's stage
 //! binder constructs, and only after the authorize role has passed identity,
 //! signature, ownership, effect and decision-shape validation. It additionally
 //! requires the retained product it dispatches to name that exact validated

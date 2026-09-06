@@ -12,7 +12,7 @@
 //! they are not.
 //!
 //! This is additive. The frozen zero-argument entrypoint product
-//! ([`super::prepare_resolved_zero_arg_i64`]) keeps its exact admission rules,
+//! (`prepare_resolved_zero_arg_i64`) keeps its exact admission rules,
 //! its `entry_id == program.entrypoint` requirement, and its known answers;
 //! both products now share one owner for the retained dispatch index.
 //!
@@ -39,7 +39,7 @@
 //! # Ownership and cleanup
 //!
 //! Nothing here reimplements ownership. Admission runs the interpreter's own
-//! [`super::admitted_resolved_functions`] and [`super::scan_closure`], so an
+//! `admitted_resolved_functions` and `scan_closure`, so an
 //! ownership error is a compile-time diagnostic before any evaluation.
 //! Execution enters through `Evaluator::call_frame`, the same frame the frozen
 //! products use, so contracts, sticky failure selection, fuel, and call depth

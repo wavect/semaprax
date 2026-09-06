@@ -694,7 +694,7 @@ function activate(context) {
       if (epoch !== token.epoch || client !== token.client || image !== token.image || candidate !== token.candidate || stale) throw discardError('Source or candidate changed while the test task was pending; its result was discarded');
       if (outcome.status.state === 'cancelled') {
         status.text = 'SEMAPRAX: candidate tests cancelled';
-        await vscode.window.showInformationMessage('Candidate interpreter tests cancelled. No passing report or source authority was produced.');
+        void vscode.window.showInformationMessage('Candidate interpreter tests cancelled. No passing report or source authority was produced.');
         return outcome.status;
       }
       if (outcome.status.state === 'failed') {
@@ -706,7 +706,7 @@ function activate(context) {
       await vscode.window.showTextDocument(uri, { preview: true }); ensureEpoch(token.epoch);
       status.text = outcome.status.passed ? 'SEMAPRAX: candidate tests passed' : 'SEMAPRAX: candidate tests returned failure';
       const message = outcome.status.passed ? 'Candidate interpreter tests passed. External and target-runtime blind spots remain.' : 'Candidate interpreter tests completed with a failing result. Inspect the bounded report.';
-      await (outcome.status.passed ? vscode.window.showInformationMessage(message) : vscode.window.showWarningMessage(message));
+      void (outcome.status.passed ? vscode.window.showInformationMessage(message) : vscode.window.showWarningMessage(message));
       return outcome.status;
     },
     async cancelCandidateTests() {
@@ -787,7 +787,7 @@ function activate(context) {
       const report = await draftOperation(() => holes.fillSuggestions(summary)); ensureHoleToken(token);
       const scope = report.search_exhausted ? 'defined place/call search exhausted' : 'search stopped at its preview limit';
       if (!report.suggestions.length) {
-        await vscode.window.showInformationMessage(`No checked fill suggestions from ${report.considered} previews; ${scope}. This does not prove no valid fill exists. You can still create a Hole Fill Scratch.`);
+        void vscode.window.showInformationMessage(`No checked fill suggestions from ${report.considered} previews; ${scope}. This does not prove no valid fill exists. You can still create a Hole Fill Scratch.`);
         ensureHoleToken(token); return;
       }
       const choices = report.suggestions.map((row, index) => {

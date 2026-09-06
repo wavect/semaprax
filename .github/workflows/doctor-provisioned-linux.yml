@@ -146,8 +146,19 @@ jobs:
             --bin semaprax-doctor-provisioner
           cargo build --locked --release --target "$DOCTOR_RELEASE_TARGET" \
             -p semaprax-doctor-collector --bin semaprax-doctor-collector
-          images="$PWD/target/$DOCTOR_RELEASE_TARGET/release"
+          built="$PWD/target/$DOCTOR_RELEASE_TARGET/release"
+          # Cargo hard-links each binary from target/.../deps, so the artifact
+          # under release/ has link count 2 and semaprax-doctor-release rejects
+          # it: "input permissions or link count are unsafe". That check is the
+          # packager refusing an input another name can still reach, so give it
+          # a private single-link copy rather than relax the check.
+          images="$RUNNER_TEMP/images"
+          rm -rf "$images"
+          mkdir -p "$images"
           for image in launcher worker collector provisioner; do
+            cp "$built/semaprax-doctor-$image" "$images/semaprax-doctor-$image"
+            chmod 755 "$images/semaprax-doctor-$image"
+            test "$(stat -c '%h' "$images/semaprax-doctor-$image")" -eq 1
             file "$images/semaprax-doctor-$image"
           done
           echo "DOCTOR_IMAGES=$images" >> "$GITHUB_ENV"

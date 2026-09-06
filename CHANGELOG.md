@@ -8,6 +8,24 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Executed the VS Code Extension Host execution evidence v2 gate for the first
+  time, on exact subject `3fccd30b861d48c9d404eb2698fa2eff510569af` in a locally
+  provisioned Visual Studio Code 1.136.1 on Darwin arm64 with Node v24.3.0. The
+  97 standalone controller cases and the single Extension Host scenario passed,
+  producing bundle
+  `29660fc88dac4d3bd11098f7facfe1bd05fda23b378d519d9590f028a3fdc7dd`, whose
+  envelope and four artifacts are archived under `docs/evidence/`. The run found
+  two defects the mock-backed suites could not: `runCandidateTests` and
+  `suggestHoleFill` awaited non-modal notifications that resolve only when a
+  human dismisses the toast, hanging the command and holding the busy latch;
+  and the host assertion for a cleared diagnostic expected `undefined` from
+  `DiagnosticCollection.get`, which the real host never returns for an absent
+  URI. Those commands now fire the notices without awaiting, and absence is
+  observed through `has`. This is one local product on one platform; VSIX or
+  Marketplace packaging, manual UI, accessibility, minimum-version, remote,
+  hosted and cross-platform evidence remain open, and the run covers its exact
+  subject rather than any later head.
+
 - Admitted the exact internal Owned Bounded Byte Buffer v1 write-once profile
   on Core-Wasm. The frozen host-arena imports allocate a literal-bounded zeroed
   `Bytes` value and mutate the same opaque token at literal indices; focused

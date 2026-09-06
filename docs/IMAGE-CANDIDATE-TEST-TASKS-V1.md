@@ -100,6 +100,8 @@ the zero-step immediate cancellation boundary. The v5 harness authors direct and
 MCP start/cancel cases, sticky status, wrong lifecycle rejection, source
 immutability, and drift withholding. The editor Node harness covers validated
 status/result assembly, cancellation, and epoch invalidation. Focused compilation
-is recorded for the v5 integration harness; broad quality, real Extension Host,
-hosted/cross-platform, MCP conformance, and timing/economic measurements remain
-open. The completion-matrix row therefore remains Partial.
+is recorded for the v5 integration harness, and the editor's Run/Cancel path ran
+inside a real Extension Host for exact subject
+`3fccd30b861d48c9d404eb2698fa2eff510569af`; broad quality, hosted/cross-platform,
+MCP conformance, and timing/economic measurements remain open. The
+completion-matrix row therefore remains Partial.

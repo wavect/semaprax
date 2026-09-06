@@ -1,0 +1,109 @@
+[90m[main 2026-09-06T07:00:58.881Z][0m StorageMainService: creating application shared storage
+[90m[main 2026-09-06T07:00:58.994Z][0m [shared storage] Creating shared storage database at ':memory:' (wasCreated: true)
+[90m[main 2026-09-06T07:00:58.994Z][0m [shared storage] Initializing fallback application storage (path: in-memory)
+[90m[main 2026-09-06T07:00:59.044Z][0m [shared storage] Fallback application storage initialized with 3 items
+[90m[main 2026-09-06T07:00:59.044Z][0m update#setState disabled
+[90m[main 2026-09-06T07:00:59.044Z][0m update#ctor - updates are disabled by the environment
+[AgentHost:renderer] Acquiring MessagePort to agent host...
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey=undefined conversationKey=undefined modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+[90m[main 2026-09-06T07:00:59.835Z][0m AgentHostProcessManager: agent host started
+[AgentHost:renderer] MessagePort acquired, creating client...
+Started local extension host with pid 78161.
+Started initializing default profile extensions in extensions installation folder. file:///private/tmp/semaprax-vscode-host-n1eivymc/extensions
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/ZTJiZTgzZDgtZjc2NC00M2I4LTlkMTItYTNhN2I3OGJiYWJj" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+Completed initializing default profile extensions in extensions installation folder. file:///private/tmp/semaprax-vscode-host-n1eivymc/extensions
+[AccountPolicyGate] apply: state=inactive, reason=undefined, isRestricted=false
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/ZTJiZTgzZDgtZjc2NC00M2I4LTlkMTItYTNhN2I3OGJiYWJj" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+Loading development extension at /private/tmp/spx-fix-vscodehost/editors/vscode
+[91m[main 2026-09-06T07:01:00.141Z][0m [AgentHost:stderr] (node:78160) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `Code Helper --trace-deprecation ...` to show where the warning was created)
+
+Settings Sync: Account status changed from uninitialized to unavailable
+[AgentHost:renderer] Protocol connection established; clientId=8c1eb8ee-2c1c-4390-bddb-be70c9f3d958
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] Clearing authentication for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] Clearing authentication for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+[AgentHost] No token resolved for resource: https://api.github.com/repos
+Unknown channel: agentHostClientByokLm
+Unknown channel: agentHostClientProxy
+Unknown channel: agentHostClientProxy
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/ZTJiZTgzZDgtZjc2NC00M2I4LTlkMTItYTNhN2I3OGJiYWJj" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/ZTJiZTgzZDgtZjc2NC00M2I4LTlkMTItYTNhN2I3OGJiYWJj" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+[ChatModelSelection] event=no-model-at-toolbar-build surface="workbench" sessionKey="local" conversationKey="vscode-chat-session://local/ZTJiZTgzZDgtZjc2NC00M2I4LTlkMTItYTNhN2I3OGJiYWJj" modelTarget=undefined storageKey="chat.currentLanguageModel.panel" widgetViewKind="view"
+Unknown channel: agentHostClientProxy
+SEMAPRAX_VSCODE_HOST_RESULT={"schema":"semaprax.vscode-extension-host-result.v2","vscode_version":"1.136.1","app_name":"Visual Studio Code","extension_host_exec_path":"/private/tmp/spx-vscode/Visual Studio Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)","extension_version":"0.1.0","registered_commands":37,"image_revision":"sha256:89a5857fe19e42e9c82aa44cceb2e253793d0e803d87ffb8d5cd579f2e618bb5","candidate_revision":"sha256:a4c288db01f0f1d13a55c442a7f210303c89c1faabd00fba427e4fc5729273dd","source_sha256":"sha256:415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e","typed_intent":"rename_declaration","target":"calculator.add","verified_virtual_diff":true,"startup_test_grant":{"max_execution_bytes":65536,"max_report_bytes":262144,"max_steps":100000},"discovered_task_tools":["candidate/test-task-start","candidate/test-task-status","candidate/test-task-cancel","candidate/test-task-result"],"explicit_cooperative_cancellation":true,"cancellation":{"state":"cancelled","before_step":1,"steps_used":0,"report_released":false,"source_authority":false},"test_task_authority":{"network":false,"process":false,"publication":false,"source_write":false,"target_runtime":false},"pending_task_dirty_buffer_invalidated":true,"authority":{"source_write":false,"build":false,"commit":false,"publication":false},"dirty_buffer_invalidated":true,"source_bytes_unchanged":true}
+[90m[main 2026-09-06T07:01:03.337Z][0m Extension host with pid 78161 exited with code: 0, signal: unknown.

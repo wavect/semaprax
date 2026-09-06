@@ -1,8 +1,10 @@
 # Graph-operational VS Code host execution evidence v2
 
-Status: authored and unrun. The earlier v1 bundle remains the strongest
-executed local VS Code evidence until this complete v2 runner succeeds on one
-clean exact subject.
+Status: executed locally for exact subject
+`3fccd30b861d48c9d404eb2698fa2eff510569af`; the 97 standalone controller cases
+and the one real Extension Host scenario passed. The earlier v1 bundle is
+retained as historical evidence for its own exact subject, not restated as
+current.
 
 Audience: editor integrators, compiler contributors, and programme reviewers.
 
@@ -27,6 +29,16 @@ version. It creates fresh user-data, extension, policy, and calculator fixture
 directories, then builds the exact-subject `semaprax` binary locked and offline
 in a fresh target directory. Other extensions, updates, workspace-trust prompts,
 and GPU use are disabled.
+
+The reviewed invocation produced bundle
+`29660fc88dac4d3bd11098f7facfe1bd05fda23b378d519d9590f028a3fdc7dd`. Its
+[archived envelope](evidence/graph-operational-vscode-host/3fccd30b861d48c9d404eb2698fa2eff510569af/29660fc88dac4d3bd11098f7facfe1bd05fda23b378d519d9590f028a3fdc7dd/evidence.json)
+and four authenticated artifacts are evidence for that exact subject, not for
+any later record commit. The selected local product reported Visual Studio Code
+1.136.1 (`a44adf7f53e00964ab890f9f8758a334f1fc15bc`, arm64) on Darwin arm64,
+with Node v24.3.0, cargo 1.98.0, and rustc 1.98.0. That is one local
+provisioned product on one machine; it is not a vendor-signature,
+network-isolation, minimum-version, or cross-platform claim.
 
 The startup v7 policy selects candidate preparation and exactly these reference
 interpreter limits:
@@ -105,15 +117,18 @@ authenticated artifacts:
 - `vscode-host-observation.json`.
 
 The v2 observation shape is unchanged by the added steps: they either pass or
-abort the host before it prints its single result marker. The observation closes
-over the startup test limits, all-false editor authority,
-explicit cooperative cancellation, pending-task dirty-buffer invalidation,
-verified virtual diff, and unchanged source bytes. The runner refuses a dirty
+abort the host before it prints its single result marker. The executed run
+confirmed that assumption: the recorded observation carries exactly the v2 keys
+and no v3 shape was required. The observation closes over the startup test
+limits, all-false editor authority, explicit cooperative cancellation,
+pending-task dirty-buffer invalidation, verified virtual diff, and unchanged
+source bytes. The runner refuses a dirty
 subject, repository drift, tool drift, an unexpected command inventory, or a
 different observation shape.
 
-No v2 execution is claimed by this authored contract. A passing local run would
-still not prove VSIX or Marketplace packaging, manual UI or accessibility,
+This recorded execution is one local provisioned run of the exact subject above.
+It still does not prove VSIX or Marketplace packaging, manual UI or
+accessibility,
 minimum-version compatibility, remote/web hosts, hosted or cross-platform
 behavior, MCP Tasks conformance, network isolation, target-runtime behavior,
 source publication, full quality, task economics, or programme completion. The

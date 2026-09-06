@@ -1,6 +1,6 @@
 # VS Code saved-source adapter v1
 
-Status: focused local Extension Host evidence executed for exact subject `2888f84f123b7caa44aa6807388d98f851d4beaf`; an additive real-host candidate-task scenario is authored and unrun; extension remains experimental and unpublished.
+Status: focused local Extension Host evidence executed for exact subject `2888f84f123b7caa44aa6807388d98f851d4beaf`, and the additive real-host candidate-task, diagnostic-position and project-navigation scenario executed for exact subject `3fccd30b861d48c9d404eb2698fa2eff510569af`; extension remains experimental and unpublished.
 
 Audience: editor users, extension integrators and compiler contributors.
 
@@ -284,8 +284,9 @@ Real editor-host integration, accessibility and platform evidence, richer typed
 constructor UI, broader diagnostic workflows, durable candidate recovery and
 task-level measurements remain open. The additive candidate-test task controller
 now supplies explicit Run/Cancel commands through VS Code cancellable progress,
-but real Extension Host execution of that path remains open. This is an
-optional local adapter, not a marketplace release or full programme completion.
+and that path has executed in a real Extension Host for one exact subject on one
+local product. This is an optional local adapter, not a marketplace release or
+full programme completion.
 
 `editors/vscode/test/holes-suggestions.test.js` adds authored, unrun mock
 controller cases for summary binding, malformed or excessive proposals,
@@ -296,7 +297,7 @@ remain outstanding.
 
 ## Focused Extension Host evidence
 
-[VS Code Host Execution Evidence v1](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V1.md) owns a separate, exact-subject local scenario using a selected provisioned Visual Studio Code Extension Host and freshly built compiler. Its test-only seam is enabled only by `ExtensionMode.Test` and contributes no production command or authority. The exact local subject `2888f84f123b7caa44aa6807388d98f851d4beaf` passed the 50-case standalone controller selection plus the actual Extension Host/compiler typed-rename, verified-diff, and dirty-buffer invalidation scenario. [VS Code Host Execution Evidence v2](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V2.md) adds an authored, unrun exact scenario for startup-selected interpreter limits, real MCP task cancellation, and pending-task dirty-buffer invalidation. Packaging, manual UI, hosted/cross-platform, typed-hole and diagnostic-repair host execution remain open.
+[VS Code Host Execution Evidence v1](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V1.md) owns a separate, exact-subject local scenario using a selected provisioned Visual Studio Code Extension Host and freshly built compiler. Its test-only seam is enabled only by `ExtensionMode.Test` and contributes no production command or authority. The exact local subject `2888f84f123b7caa44aa6807388d98f851d4beaf` passed the 50-case standalone controller selection plus the actual Extension Host/compiler typed-rename, verified-diff, and dirty-buffer invalidation scenario. [VS Code Host Execution Evidence v2](GRAPH-OPERATIONAL-VSCODE-HOST-EXECUTION-EVIDENCE-V2.md) adds startup-selected interpreter limits, real MCP task cancellation, pending-task dirty-buffer invalidation, supplementary-character diagnostic ranges, diagnostic retention and clearing, and project-routed navigation; exact local subject `3fccd30b861d48c9d404eb2698fa2eff510569af` passed its 97-case standalone controller selection plus that Extension Host scenario in Visual Studio Code 1.136.1 on Darwin arm64. Packaging, manual UI, hosted/cross-platform, typed-hole and diagnostic-repair host execution remain open.
 
 ## Candidate test task control
 
@@ -315,7 +316,9 @@ or commit, or treat a passing reference report as target/runtime evidence. This
 is the explicit Semaprax lifecycle from
 [Candidate Test Tasks v1](IMAGE-CANDIDATE-TEST-TASKS-V1.md), not the optional MCP
 Tasks capability and not `notifications/cancelled`. The focused Node controller
-suite is local evidence. The v2 real Extension Host scenario now authors both
+suite is local evidence. The v2 real Extension Host scenario exercises both
 explicit cancellation and dirty-buffer invalidation against an actual compiler
-child, but it remains unrun. Manual UI, accessibility, hosted/cross-platform,
-and actual current-subject Extension Host cancellation evidence remain open.
+child, and executed for exact subject
+`3fccd30b861d48c9d404eb2698fa2eff510569af`. Manual UI, accessibility, and
+hosted/cross-platform evidence remain open, and a later head is not covered by
+that exact-subject run.

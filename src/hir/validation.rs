@@ -8,6 +8,7 @@ use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
 mod borrowed_str;
 mod box_intrinsic;
+mod generic_record_composition;
 mod generic_template;
 mod host_command;
 mod owned_buffer;
@@ -1217,7 +1218,7 @@ impl<'a> HirValidator<'a> {
         path: &str,
         aggregate_context: (bool, bool),
     ) -> Result<(), Diagnostic> {
-        let (allow_record_reconstruction, allow_aggregate_root) = aggregate_context;
+        let (_allow_record_reconstruction, allow_aggregate_root) = aggregate_context;
         if expression.id != ExpressionId::new(execution, path)
             || !self.expression_ids.insert(expression.id.clone())
             || !generic_template::expression_ownership_is_valid(self.program, template, expression)
@@ -1231,19 +1232,10 @@ impl<'a> HirValidator<'a> {
             self.validate_function_template_type(template, &expression.ty)?;
         }
         if generic_template::is_owned_record_expression(expression)
-            && !generic_template::has_exact_owned_record_relay(self.program, template)
+            && !generic_template::has_owned_record_composition(self.program, template)
         {
             return Err(hir_error(
                 "generic aggregate expression requires an exact owned-record relay template",
-            ));
-        }
-        if generic_template::is_owned_record_expression(expression)
-            && !allow_aggregate_root
-            && !(allow_record_reconstruction
-                && matches!(expression.kind, ResolvedExprKind::ConstructRecord { .. }))
-        {
-            return Err(hir_error(
-                "generic aggregate expression is nested outside an admitted root",
             ));
         }
         match &expression.kind {
@@ -1441,14 +1433,8 @@ impl<'a> HirValidator<'a> {
             ResolvedExprKind::ConstructRecord { .. }
             | ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
-            | ResolvedExprKind::Match { .. } => self.validate_template_owned_record_expression(
-                template,
-                execution,
-                expression,
-                values,
-                path,
-                allow_record_reconstruction,
-            )?,
+            | ResolvedExprKind::Match { .. } => self
+                .validate_composed_template_record(template, execution, expression, values, path)?,
             ResolvedExprKind::ConstructVariant { .. } | ResolvedExprKind::Try { .. } => self
                 .validate_template_result_expression(
                     template, execution, expression, values, path,

@@ -6297,7 +6297,7 @@ impl<'a> PlanBuilder<'a> {
         if arms.is_empty() {
             return Err(plan_error("copy-variant match has no arms"));
         }
-        if self.needs_drop(&arms[0].value.ty)? {
+        if *mode == ResolvedMatchMode::Value && self.needs_drop(&arms[0].value.ty)? {
             return Err(plan_error(
                 "droppable match result reached the copy-only cleanup slice",
             ));
@@ -6377,10 +6377,19 @@ impl<'a> PlanBuilder<'a> {
                 state,
                 arm_region.unwrap_or(region),
             )?;
-            if result.owned_source.is_some() {
-                return Err(plan_error(
-                    "droppable record match arm reached the copy-only cleanup slice",
-                ));
+            if let Some(source) = result.owned_source.take() {
+                let destination = self.expression_slot(expression, region)?.ok_or_else(|| {
+                    plan_error("owned record match result has no cleanup destination")
+                })?;
+                self.transfer(
+                    result.block,
+                    arm.value.id.clone(),
+                    source,
+                    destination.clone(),
+                    &mut result.state,
+                    true,
+                )?;
+                result.owned_source = Some(destination);
             }
             if let Some(arm_region) = arm_region {
                 (result.block, result.state) =

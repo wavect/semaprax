@@ -315,20 +315,20 @@ pub(super) fn generic_function_contains_nested_owned_record_slot(
         })
 }
 
-pub(super) fn generic_function_has_exact_nested_owned_record_relay(
+pub(super) fn generic_function_has_owned_record_composition(
     function: &Function,
     types: &TypeTable<'_>,
 ) -> bool {
-    let mut owned = function
+    let owned = function
         .params
         .iter()
-        .filter(|parameter| parameter.mode == ParamMode::Own || parameter.ty == Type::String);
-    let Some(parameter) = owned.next() else {
-        return false;
-    };
-    owned.next().is_none()
-        && parameter.ty == function.return_type
-        && generic_function_owned_record_slot(function, &parameter.ty, types)
+        .filter(|parameter| parameter.mode == ParamMode::Own || parameter.ty == Type::String)
+        .collect::<Vec<_>>();
+    !owned.is_empty()
+        && generic_function_owned_record_slot(function, &function.return_type, types)
+        && owned
+            .iter()
+            .all(|parameter| generic_function_owned_record_slot(function, &parameter.ty, types))
 }
 
 pub(super) fn generic_function_arguments_are_admitted(
@@ -349,7 +349,7 @@ pub(super) fn generic_function_arguments_are_admitted(
         .map(|parameter| parameter.name.as_str())
         .collect::<HashSet<_>>();
     let admitted_profile = if nested {
-        generic_function_has_exact_nested_owned_record_relay(function, types)
+        generic_function_has_owned_record_composition(function, types)
     } else {
         function.params.iter().any(|parameter| {
             parameter.mode == ParamMode::Own

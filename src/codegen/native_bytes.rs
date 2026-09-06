@@ -17,6 +17,7 @@ use super::native_emit::{c_case_symbol, c_field_symbol};
 
 mod nested_owned;
 mod owned_leaf;
+mod record_if;
 use owned_leaf::{emit_transfer, OwnedLeafKind};
 
 #[derive(Clone, Debug)]

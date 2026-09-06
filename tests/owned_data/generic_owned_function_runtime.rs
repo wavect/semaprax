@@ -16,6 +16,12 @@ mod mixed_result;
 #[path = "generic_owned_function_runtime/explicit_forwarding.rs"]
 mod explicit_forwarding;
 
+#[path = "generic_owned_function_runtime/nested_composition.rs"]
+mod nested_composition;
+
+#[path = "generic_owned_function_runtime/multi_owner.rs"]
+mod multi_owner;
+
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 const PREFIX: &str = r#"
@@ -557,11 +563,9 @@ fn run_wasm_source(parsed: &semaprax::ast::Program, baseline_source: &str, expec
             Path::new("generic-owned-function-runtime-wasm-baseline-v1.spx"),
         )
         .unwrap();
-        assert!(
-            verify::verify(&baseline)
-                .iter()
-                .all(|diagnostic| !diagnostic.severity.is_error())
-        );
+        assert!(verify::verify(&baseline)
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()));
         let baseline_root = root.with_extension("baseline");
         wasm::build_web(&baseline, &baseline_root).unwrap();
         let baseline_core = std::fs::read(baseline_root.join("app.wasm")).unwrap();
@@ -734,14 +738,12 @@ fn nested_generic_relay_substitution_and_hir_carriers_fail_closed() {
                 instance.function.cleanup_plan.slots.len(),
                 expected_plan_slots
             );
-            assert!(
-                instance
-                    .function
-                    .cleanup
-                    .flags
-                    .iter()
-                    .all(|flag| flag.place.projections == owned_path)
-            );
+            assert!(instance
+                .function
+                .cleanup
+                .flags
+                .iter()
+                .all(|flag| flag.place.projections == owned_path));
             for slot in &instance.function.cleanup_plan.slots {
                 assert_eq!(
                     leaf_paths(&slot.field_liveness_shape).as_slice(),

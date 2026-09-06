@@ -40,16 +40,14 @@ pub(super) fn match_result_is_admitted(
         return false;
     };
     *mode == hir::ResolvedMatchMode::Own
-        && function.return_type == expression.ty
-        && expression.ty == scrutinee.ty
         && expression.ty == arm.value.ty
         && expression.ownership == OwnershipMode::Own
         && scrutinee.ownership == OwnershipMode::Own
         && arm.value.ownership == OwnershipMode::Own
-        && instance == &expression.ty
-        && matches!(&expression.ty, ResolvedType::Nominal { declaration, .. }
+        && instance == &scrutinee.ty
+        && matches!(&scrutinee.ty, ResolvedType::Nominal { declaration, .. }
             if declaration == record)
-        && hir::is_flat_owned_byte_record(&program.declarations, &expression.ty)
+        && is_admitted(program, &expression.ty).unwrap_or(false)
 }
 
 impl<'a, O: COutput> CEmitter<'a, O> {
@@ -82,13 +80,24 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let destination = self.temporary(&expression.ty)?;
         self.initialize_record_carrier(&destination, &layout);
         self.zero_owned_record_bytes(&destination, &expression.ty)?;
-        for field in &layout.fields {
-            if field.size != 0 && !self.record_contains_owned_bytes(&field.ty)? {
+        // Copy scalar fields even when their enclosing record also owns Bytes.
+        // Cleanup-plan transitions alone publish the owned leaves.
+        let mut pending = vec![(destination.clone(), value.code.clone(), layout)];
+        while let Some((target, source, layout)) = pending.pop() {
+            for field in &layout.fields {
+                if field.size == 0 {
+                    continue;
+                }
                 let symbol = c_field_symbol(&field.field);
-                self.line(&format!(
-                    "{destination}.{symbol} = {}.{symbol};",
-                    value.code
-                ));
+                if !self.record_contains_owned_bytes(&field.ty)? {
+                    self.line(&format!("{target}.{symbol} = {source}.{symbol};"));
+                } else if field.ty != ResolvedType::Bytes {
+                    pending.push((
+                        format!("{target}.{symbol}"),
+                        format!("{source}.{symbol}"),
+                        self.record_layout(&field.ty)?.clone(),
+                    ));
+                }
             }
         }
         value.code = destination;

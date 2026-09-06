@@ -5,7 +5,7 @@ use crate::ast::{Expr, Function, MatchMode, MatchPattern, ParamMode, Program, Ty
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding, CheckedValue};
 use crate::source_verify::declared_type::{
-    check_record_pattern, generic_function_has_exact_nested_owned_record_relay,
+    check_record_pattern, generic_function_has_owned_record_composition,
 };
 use crate::source_verify::diagnostics::{
     error, reject_aggregate_match_result, reject_native_unit_value, source_identifier,
@@ -400,13 +400,12 @@ pub(super) fn oracle_match(
         }
         merge_moved(variables, &arm_variables, &outer_names);
         let generic_template = functions.get(current.name.as_str()).copied();
-        let generic_owned_result = generic_template.is_some_and(|function| {
-            generic_function_has_exact_nested_owned_record_relay(function, types)
-        });
+        let generic_owned_result = generic_template
+            .is_some_and(|function| generic_function_has_owned_record_composition(function, types));
         if result.as_ref().is_some_and(|value| {
             (!matches!(value.ty, Type::I64 | Type::Bool) || value.mode != ParamMode::Value)
                 && !(generic_owned_result
-                    && ((value.ty == current.return_type && value.mode == ParamMode::Own)
+                    && (((value.ty == current.return_type || types.is_nested_owned_byte_record(&value.ty)) && value.mode == ParamMode::Own)
                         || (value.mode == ParamMode::Value
                             && (crate::source_verify::type_table::owned_byte_record_copy_field_is_admitted(&value.ty)
                                 || matches!(&value.ty, Type::Named { name, arguments }

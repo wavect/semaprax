@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added structural nested generic record composition and multiple owning
+  parameters, with explicit reconstruction into different nominal result types.
+  Source and HIR validate substituted fields, recursive patterns and complete
+  ownership; nested update construction and replay select cleanup v9 after
+  concrete substitution. Native owning branches now emit their canonical join
+  and staged-call transfers. Focused all-eight-scalar runtime corpora pass on
+  interpreter, C11 O0/O2 and Core Wasm, including both branches, nested owner
+  replacement, contract and second-argument failure, repeated execution,
+  allocation settlement and no additional aggregate memory.copy.
+
 - Added explicit generic argument permutations, repetition and concrete
   substitutions with independent source/HIR proof, cycle rejection and the
   existing 256-instance closure bound. Additive Graph v35 binds symbolic

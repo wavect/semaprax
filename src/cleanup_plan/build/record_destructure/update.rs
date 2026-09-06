@@ -117,12 +117,9 @@ fn is_nested_owned_bytes(
         else {
             continue;
         };
-        // A generic instance or a cycle is outside the monomorphic acyclic
-        // profile, so the base is not a nested owned-Bytes record at all.
-        // Report that instead of failing the plan; the legacy flat path owns
-        // these shapes, exactly as the source-side classifier treats
-        // OutsideProfile and Recursive as not admitted.
-        if !arguments.is_empty() || ancestors.contains(&declaration) {
+        // Concrete generic fields use the same recursive update contract after
+        // exact substitution. Declaration cycles remain outside this profile.
+        if ancestors.contains(&declaration) {
             return Ok(false);
         }
         let Some(declared) = program.declarations.record_fields(&declaration) else {

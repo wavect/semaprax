@@ -196,7 +196,9 @@ pub(crate) use inspection::{
     validate_attached_identity_references, workspace_call_sites, workspace_expression_identity,
 };
 
-pub(crate) use type_reachability::{is_flat_owned_byte_record, reachable_authored_types};
+pub(crate) use type_reachability::{
+    is_admitted_nested_owned_byte_record, is_flat_owned_byte_record, reachable_authored_types,
+};
 pub(crate) use validation::resolved_type_contains_owned_bytes;
 pub(crate) use validation::validate_core;
 #[cfg(test)]
@@ -289,14 +291,21 @@ pub(crate) fn bounded_owned_record_template_for_function<'a>(
             .iter()
             .filter(|parameter| parameter.ownership == OwnershipMode::Own)
             .collect::<Vec<_>>();
-        let exact_relay = matches!(owned.as_slice(), [parameter]
-            if parameter.ty == template.return_type
-                && (type_reachability::is_flat_owned_byte_record_template(
-                    &program.declarations, &parameter.ty, &template.id,
-                    template.type_parameters.len())
-                    || type_reachability::is_nested_owned_byte_record_template(
-                        &program.declarations, &parameter.ty, &template.id,
-                        template.type_parameters.len())));
+        let exact_relay = !owned.is_empty()
+            && type_reachability::is_nested_owned_byte_record_template(
+                &program.declarations,
+                &template.return_type,
+                &template.id,
+                template.type_parameters.len(),
+            )
+            && owned.iter().all(|parameter| {
+                type_reachability::is_nested_owned_byte_record_template(
+                    &program.declarations,
+                    &parameter.ty,
+                    &template.id,
+                    template.type_parameters.len(),
+                )
+            });
         if !exact_relay || !(1..=2).contains(&template.type_parameters.len()) {
             continue;
         }

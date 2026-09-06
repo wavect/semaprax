@@ -530,7 +530,7 @@ fn classify_nested_owned_byte_record(
     }
 }
 
-pub(super) fn is_admitted_nested_owned_byte_record(
+pub(crate) fn is_admitted_nested_owned_byte_record(
     declarations: &DeclarationIndex,
     ty: &ResolvedType,
 ) -> bool {

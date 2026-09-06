@@ -148,14 +148,16 @@ impl Resolver<'_> {
                     function.type_parameters.len(),
                 )
             });
-        let exact_owned_relay = matches!(owned_parameters.as_slice(), [parameter]
-        if parameter == &return_type
-            && super::type_reachability::is_nested_owned_byte_record_template(
-                &self.declarations,
-                parameter,
-                &owner,
-                function.type_parameters.len(),
-            ));
+        let exact_owned_relay = !owned_parameters.is_empty()
+            && owned_return
+            && owned_parameters.iter().all(|parameter| {
+                super::type_reachability::is_nested_owned_byte_record_template(
+                    &self.declarations,
+                    parameter,
+                    &owner,
+                    function.type_parameters.len(),
+                )
+            });
         if arguments
             .iter()
             .all(|argument| matches!(argument, ResolvedType::I64 | ResolvedType::Bool))

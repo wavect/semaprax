@@ -37,16 +37,14 @@ pub(super) fn admits_owned_match_result(
         return false;
     };
     *mode == ResolvedMatchMode::Own
-        && function.return_type == expression.ty
-        && expression.ty == scrutinee.ty
         && expression.ty == arm.value.ty
         && expression.ownership == OwnershipMode::Own
         && scrutinee.ownership == OwnershipMode::Own
         && arm.value.ownership == OwnershipMode::Own
-        && instance == &expression.ty
-        && matches!(&expression.ty, ResolvedType::Nominal { declaration, .. }
+        && instance == &scrutinee.ty
+        && matches!(&scrutinee.ty, ResolvedType::Nominal { declaration, .. }
             if declaration == record)
-        && crate::hir::is_flat_owned_byte_record(&program.declarations, &expression.ty)
+        && crate::hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty)
 }
 
 pub(super) fn finish_owned_match_result(

@@ -1327,13 +1327,6 @@ permit { clock.read }
             "SPX-T226",
         ),
         (
-            r#"module test.direct_generic_call;
-@id("test.b") fn b<T>(value: T) -> T { value }
-@id("test.a") fn a<T>(value: T) -> T { let observed = b<i64>(0); if observed == 0 { value } else { value } }
-@id("app.main") fn main() -> i64 { 0 }"#,
-            "SPX-T225",
-        ),
-        (
             r#"module test.direct_recursion;
 @id("test.loop") fn loop<T>(value: T) -> T { let observed = loop<i64>(0); if observed == 0 { value } else { value } }
 @id("app.main") fn main() -> i64 { 0 }"#,
@@ -1348,6 +1341,18 @@ permit { clock.read }
     for (source, code) in cases {
         assert!(error_codes(source).contains(&code), "missing {code}");
     }
+}
+
+#[test]
+fn generic_function_explicit_constant_forwarding_is_admitted() {
+    let source = r#"module test.direct_generic_call;
+@id("test.b") fn b<T>(value: T) -> T { value }
+@id("test.a") fn a<T>(value: T) -> T { let observed = b<i64>(0); if observed == 0 { value } else { value } }
+@id("app.main") fn main() -> i64 { a<i64>(42) }"#;
+    let program = semaprax::check(source, "constant-forwarding.spx").unwrap();
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    assert_eq!(resolved.function_instances.len(), 2);
 }
 
 #[test]

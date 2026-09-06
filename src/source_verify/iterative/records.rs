@@ -110,7 +110,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     field.value.span,
                 ));
             }
-            if self.types.needs_drop(&declared.ty) && actual.mode == ParamMode::Own {
+            if self.types.needs_drop(&expected) && actual.mode == ParamMode::Own {
                 if self.allow_moves {
                     mark_value_sources_moved(
                         self.program,
@@ -127,7 +127,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         field.value.span,
                     ));
                 }
-            } else if self.types.needs_drop(&declared.ty)
+            } else if self.types.needs_drop(&expected)
                 && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
             {
                 self.diagnostics.push(error(

@@ -477,7 +477,7 @@ pub(super) fn check_expr(
                             field.value.span,
                         ));
                     }
-                    if types.needs_drop(&declared.ty) && actual.mode == ParamMode::Own {
+                    if types.needs_drop(&expected) && actual.mode == ParamMode::Own {
                         if allow_moves {
                             mark_value_sources_moved(
                                 program,
@@ -494,7 +494,7 @@ pub(super) fn check_expr(
                                 field.value.span,
                             ));
                         }
-                    } else if types.needs_drop(&declared.ty)
+                    } else if types.needs_drop(&expected)
                         && matches!(actual.mode, ParamMode::Borrow | ParamMode::Shared)
                     {
                         diagnostics.push(error(

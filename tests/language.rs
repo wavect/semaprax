@@ -117,3 +117,9 @@ mod generic_owned_result;
 
 #[path = "language/generic_explicit_forwarding.rs"]
 mod generic_explicit_forwarding;
+
+#[path = "language/generic_record_composition_next.rs"]
+mod generic_record_composition_next;
+
+#[path = "language/generic_multi_owner_next.rs"]
+mod generic_multi_owner_next;

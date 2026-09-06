@@ -10,7 +10,7 @@ use crate::source_verify::declared_type::{
     generic_function_arguments_are_forwarded, generic_function_contains_nested_owned_record_slot,
     generic_function_expression_is_direct_scalar,
     generic_function_expression_is_owned_record_composition,
-    generic_function_has_exact_nested_owned_record_relay, generic_function_owned_record_slot,
+    generic_function_has_owned_record_composition, generic_function_owned_record_slot,
     generic_function_signature_slot, owned_record_function_substitutions,
     scalar_function_substitutions, validation_specialize_function,
 };
@@ -359,7 +359,7 @@ pub(super) fn check_function_declarations<'p>(
             if generic_function_contains_nested_owned_record_slot(
                 function,
                 &TypeTable::new(program),
-            ) && !generic_function_has_exact_nested_owned_record_relay(
+            ) && !generic_function_has_owned_record_composition(
                 function,
                 &TypeTable::new(program),
             ) {

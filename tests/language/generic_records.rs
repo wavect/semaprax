@@ -700,7 +700,7 @@ fn main() -> i64 {
 }
 
 #[test]
-fn nested_generic_owned_records_keep_nonrelay_and_nonrecord_descendants_closed() {
+fn nested_generic_owned_records_admit_multiple_owners_but_keep_nonrecord_descendants_closed() {
     let nested_relay = r#"
 module test.nested_generic_relay;
 @id("nested.box") record Box<T> { @id("nested.box.value") value: T, }
@@ -717,7 +717,9 @@ fn reject<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { value }
         "fn reject<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { value }",
         "fn reject<T>(first: own Box<Pair<Bytes, T>>, second: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { first }",
     );
-    assert!(errors(&nonrelay).contains(&"SPX-T224"));
+    assert!(errors(&nonrelay).is_empty());
+    let checked = semaprax::check(&nonrelay, "nested-multiple-owners.spx").unwrap();
+    semaprax::hir::validate(&semaprax::hir::resolve(&checked).unwrap()).unwrap();
 
     let resource = r#"
 module test.nested_generic_resource;

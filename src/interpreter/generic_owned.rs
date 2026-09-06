@@ -26,14 +26,12 @@ pub(super) fn match_result_is_admitted(
         return false;
     };
     *mode == hir::ResolvedMatchMode::Own
-        && function.return_type == expression.ty
-        && expression.ty == scrutinee.ty
         && expression.ty == arm.value.ty
         && expression.ownership == OwnershipMode::Own
         && scrutinee.ownership == OwnershipMode::Own
         && arm.value.ownership == OwnershipMode::Own
-        && instance == &expression.ty
-        && matches!(&expression.ty, ResolvedType::Nominal { declaration, .. }
+        && instance == &scrutinee.ty
+        && matches!(&scrutinee.ty, ResolvedType::Nominal { declaration, .. }
             if declaration == record)
-        && hir::is_flat_owned_byte_record(&program.declarations, &expression.ty)
+        && crate::hir::is_admitted_nested_owned_byte_record(&program.declarations, &expression.ty)
 }

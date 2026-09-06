@@ -766,42 +766,71 @@ fn materialize_pattern(
         } => Ok(ResolvedMatchPattern::Record {
             record: record.clone(),
             instance: substitute_type(instance, &template.id, arguments)?,
-            fields: fields
-                .iter()
-                .enumerate()
-                .map(|(index, field)| {
-                    let field_path = format!("{path}.record.field.{index}");
-                    let pattern = match &field.pattern {
-                        ResolvedRecordMatchFieldPattern::Binding(binding) => {
-                            let id = ValueId::local(execution, &format!("{field_path}.binding"));
-                            values.insert(binding.id.clone(), id.clone());
-                            ResolvedRecordMatchFieldPattern::Binding(ResolvedBinding {
-                                id,
-                                name: binding.name.clone(),
-                                ownership: binding.ownership,
-                                ty: substitute_type(&binding.ty, &template.id, arguments)?,
-                                span: binding.span,
-                            })
-                        }
-                        ResolvedRecordMatchFieldPattern::Wildcard => {
-                            ResolvedRecordMatchFieldPattern::Wildcard
-                        }
-                        ResolvedRecordMatchFieldPattern::Record { .. } => {
-                            return Err(hir_error(
-                                "generic template nested record patterns are outside the slice",
-                            ));
-                        }
-                    };
-                    Ok(ResolvedRecordMatchPatternField {
-                        field: field.field.clone(),
-                        pattern,
-                    })
-                })
-                .collect::<Result<_, Diagnostic>>()?,
+            fields: materialize_record_pattern_fields(
+                template,
+                arguments,
+                execution,
+                fields,
+                values,
+                &format!("{path}.record"),
+            )?,
         }),
         ResolvedMatchPattern::Wildcard => Ok(ResolvedMatchPattern::Wildcard),
         _ => Err(hir_error(
             "generic template match pattern is outside the owned-record slice",
         )),
     }
+}
+
+fn materialize_record_pattern_fields(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+    execution: &FunctionExecutionId,
+    fields: &[ResolvedRecordMatchPatternField],
+    values: &mut BTreeMap<ValueId, ValueId>,
+    path: &str,
+) -> Result<Vec<ResolvedRecordMatchPatternField>, Diagnostic> {
+    fields
+        .iter()
+        .enumerate()
+        .map(|(index, field)| {
+            let field_path = format!("{path}.field.{index}");
+            let pattern = match &field.pattern {
+                ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                    let id = ValueId::local(execution, &format!("{field_path}.binding"));
+                    values.insert(binding.id.clone(), id.clone());
+                    ResolvedRecordMatchFieldPattern::Binding(ResolvedBinding {
+                        id,
+                        name: binding.name.clone(),
+                        ownership: binding.ownership,
+                        ty: substitute_type(&binding.ty, &template.id, arguments)?,
+                        span: binding.span,
+                    })
+                }
+                ResolvedRecordMatchFieldPattern::Wildcard => {
+                    ResolvedRecordMatchFieldPattern::Wildcard
+                }
+                ResolvedRecordMatchFieldPattern::Record {
+                    record,
+                    instance,
+                    fields,
+                } => ResolvedRecordMatchFieldPattern::Record {
+                    record: record.clone(),
+                    instance: substitute_type(instance, &template.id, arguments)?,
+                    fields: materialize_record_pattern_fields(
+                        template,
+                        arguments,
+                        execution,
+                        fields,
+                        values,
+                        &format!("{field_path}.record"),
+                    )?,
+                },
+            };
+            Ok(ResolvedRecordMatchPatternField {
+                field: field.field.clone(),
+                pattern,
+            })
+        })
+        .collect()
 }

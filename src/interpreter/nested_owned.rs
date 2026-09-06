@@ -57,8 +57,10 @@ pub(super) fn record_update_is_admitted(
         !arguments.is_empty() && hir::is_flat_owned_byte_record(declarations, result);
     if !generic_flat
         && !declared.iter().any(|field| {
-            matches!(&field.ty, ResolvedType::Nominal { .. })
-                && classify_record(declarations, &field.ty).is_some()
+            hir::substitute_type(&field.ty, record, arguments).is_ok_and(|ty| {
+                matches!(&ty, ResolvedType::Nominal { .. })
+                    && classify_record(declarations, &ty).is_some()
+            })
         })
     {
         return false;

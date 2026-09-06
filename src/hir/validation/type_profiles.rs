@@ -16,6 +16,9 @@ pub(super) fn template_ownership(
     match ty {
         ResolvedType::String => OwnershipMode::Own,
         ResolvedType::Str => OwnershipMode::Borrow,
+        ResolvedType::Bytes if template_has_owned_record_slot(program, template) => {
+            OwnershipMode::Own
+        }
         _ if super::super::generic_result::profile(template)
             && (super::super::generic_result::slot(
                 ty,
@@ -58,21 +61,26 @@ pub(super) fn template_has_owned_record_slot(
             template.type_parameters.len(),
         );
     }
-    let mut owned = template
+    let owned = template
         .params
         .iter()
-        .filter(|parameter| parameter.ownership == OwnershipMode::Own);
-    let Some(parameter) = owned.next() else {
-        return false;
-    };
-    owned.next().is_none()
-        && parameter.ty == template.return_type
+        .filter(|parameter| parameter.ownership == OwnershipMode::Own)
+        .collect::<Vec<_>>();
+    !owned.is_empty()
         && crate::hir::type_reachability::is_nested_owned_byte_record_template(
             &program.declarations,
-            &parameter.ty,
+            &template.return_type,
             &template.id,
             template.type_parameters.len(),
         )
+        && owned.iter().all(|parameter| {
+            crate::hir::type_reachability::is_nested_owned_byte_record_template(
+                &program.declarations,
+                &parameter.ty,
+                &template.id,
+                template.type_parameters.len(),
+            )
+        })
 }
 
 pub(super) fn template_contains_nested_owned_record_type(

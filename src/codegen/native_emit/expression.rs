@@ -1638,6 +1638,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
             self.line(&format!("{temporary} = {};", value.code));
         } else if self.record_contains_owned_bytes(&expr.ty)? {
+            let transitions = self
+                .bytes_plan
+                .ok_or_else(|| backend_error("owned record If has no cleanup plan"))?
+                .apply_record_if_branch(&expr.id, &branch.id)?;
+            for line in transitions.lines() {
+                self.line(line);
+            }
             self.zero_owned_record_bytes(temporary, &expr.ty)?;
             self.move_owned_record_fields(temporary, &value.code, &expr.ty)?;
         } else if matches!(expr.ty, ResolvedType::String) && self.owned_strings.is_some() {

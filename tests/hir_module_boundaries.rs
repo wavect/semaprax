@@ -7,6 +7,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/validation/box_intrinsic.rs"),
         include_str!("../src/hir/validation/borrowed_str.rs"),
         include_str!("../src/hir/validation/generic_template.rs"),
+        include_str!("../src/hir/validation/generic_record_composition.rs"),
         include_str!("../src/hir/validation/host_command.rs"),
         include_str!("../src/hir/validation/owned_buffer.rs"),
         include_str!("../src/hir/validation/owned_result_try.rs"),

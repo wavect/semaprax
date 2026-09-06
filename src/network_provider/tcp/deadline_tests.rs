@@ -253,6 +253,9 @@ fn a_peer_that_never_reads_bounds_a_partial_write_in_aggregate() {
         .connect("127.0.0.1", port)
         .expect("loopback connect");
     configured.recv().expect("configured peer");
+    socket2::SockRef::from(provider.stream_mut(connection).unwrap().socket())
+        .set_send_buffer_size(64 * 1024)
+        .expect("bound client send buffer");
     let payload = vec![0u8; 32 * 1024 * 1024];
     let started = Instant::now();
     assert_eq!(

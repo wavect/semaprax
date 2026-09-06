@@ -460,18 +460,25 @@ fn stable_nominal_fields_use_existing_local_bindings_without_import_synthesis() 
 }
 
 #[test]
-fn wire_data_types_do_not_bypass_variant_or_nested_generic_source_restrictions() {
+fn wire_data_types_follow_the_extended_copy_variant_and_nested_generic_source_profiles() {
     let fixture = Fixture::new();
     let disk = fixture.bytes();
     let base = fixture.candidate();
     let before = base.to_json().to_owned();
-    for ty in [
-        json!("i32"),
-        json!("u8"),
-        json!("usize"),
-        json!("string"),
-        nominal("data.existing", &[]),
-    ] {
+    for ty in [json!("i32"), json!("u8"), json!("usize")] {
+        let (candidate, _) = apply(
+            &base,
+            addition(variant(vec![field("data.added.some.value", "value", ty)])),
+        )
+        .expect("extended Copy scalar variant field must be admitted");
+        fact(
+            &candidate,
+            "data.added.some.value",
+            "case_field",
+            Some("data.added.some"),
+        );
+    }
+    for ty in [json!("string"), nominal("data.existing", &[])] {
         code(
             apply(
                 &base,

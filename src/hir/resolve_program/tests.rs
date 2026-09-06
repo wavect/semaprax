@@ -192,16 +192,16 @@ fn generic_type_arguments_are_limited_to_copy_scalars_and_the_owned_byte_prelude
         vec![crate::ast::Type::I64, crate::ast::Type::Bytes]
     ))
     .is_ok());
+    assert!(resolve(named(
+        "Result",
+        vec![crate::ast::Type::Bytes, crate::ast::Type::Bytes]
+    ))
+    .is_ok());
 
-    // Anything else, including a second owned carrier in the same instance,
-    // leaves the admitted profile.
+    // Anything else leaves the admitted profile.
     for rejected in [
         named("Option", vec![crate::ast::Type::Usize]),
         named("Option", vec![crate::ast::Type::String]),
-        named(
-            "Result",
-            vec![crate::ast::Type::Bytes, crate::ast::Type::Bytes],
-        ),
         // Arity is checked in the same place: `Option` takes exactly one.
         named("Option", Vec::new()),
         named("Option", vec![crate::ast::Type::I64, crate::ast::Type::I64]),

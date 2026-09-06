@@ -63,7 +63,7 @@ fn deterministic_v10_component_is_upstream_valid_and_all_roots_bound() {
     );
     assert_eq!(
         hex(first.generated_core_digest()),
-        "16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec"
+        "967b0c4aff16ad55042a1c856079e0b387558909fa857fcf3aabc9fc53f54283"
     );
     assert_eq!(
         hex(first.profile_digest()),
@@ -71,11 +71,11 @@ fn deterministic_v10_component_is_upstream_valid_and_all_roots_bound() {
     );
     assert_eq!(
         hex(Sha256::digest(first.bytes()).into()),
-        "f5770bdfdbc862ea39640b2c706c1d9ea171164c220d18366e25b3219443ad0d"
+        "741ff89e1ee67d1426ae12e576bc7c4187e065913baf5dea5507901bfa16f8db"
     );
     assert_eq!(
         hex(first.digest()),
-        "90ab80260c84abfe85d1edc666ab3750b81388e6e4cffd7ca21c301b9d0ee589"
+        "1cc90d12b135b79a64b14b04d5c1d9851767bcebfbc4311a2b0fe679c017897d"
     );
     let validated = validate_private_option_propagation_component_v10(
         first.bytes(),

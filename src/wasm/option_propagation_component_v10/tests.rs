@@ -112,7 +112,7 @@ fn deterministic_core_is_upstream_valid_and_v11_v3_bound() {
     );
     assert_eq!(
         hex(Sha256::digest(&first.bytes).into()),
-        "16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec"
+        "967b0c4aff16ad55042a1c856079e0b387558909fa857fcf3aabc9fc53f54283"
     );
     wasmparser::Validator::new_with_features(wasmparser::WasmFeatures::all())
         .validate_all(&first.bytes)

@@ -194,7 +194,7 @@ fn the_journal_chain_detects_truncation_reordering_and_substitution() {
     );
     // Truncation.
     assert_ne!(whole, journal::chain(&[prefix.clone(), intent.clone()]));
-    assert_ne!(whole, journal::chain(&[prefix.clone()]));
+    assert_ne!(whole, journal::chain(std::slice::from_ref(&prefix)));
     // Reordering, which also renumbers every entry it moves.
     assert_ne!(
         whole,

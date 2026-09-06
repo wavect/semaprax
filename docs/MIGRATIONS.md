@@ -1067,9 +1067,9 @@ The v4 known answers are:
 
 ```text
 source revision: sha256:4391bc27b5db547f2b162c2b5467c2b75797e8a5ef64e4ffe4abef15678c6254
-generated core:  54fa2822c51a71cebfd88d379b45c37ffd3d0f0b2893cb4f2966f9e2db6d5e5f
-component bytes: 3e7b9c2ddc8ca6fdfa801eb50ae3a21531fce44677345ddea68d20581c79b23b
-artifact DAG:    f5fa5ae3905d30c998f783e9b77867986813b0e8b4412fa4afa98e932eda4d40
+generated core:  25161bf5c5eec37c13b6733d30e272dadafe3ea3905e8e05099f3664e869e32d
+component bytes: adf85701ccd4d4f05c65742b6c8c65180f8be591dea58fbab8cc71db8f61bb78
+artifact DAG:    639f5ce95a5d7b81e84ac7f7d9976649aeb9451065eeb3716e5dbae1e1108885
 ```
 
 Any incompatible change to the exact source closure, selected signature,
@@ -1237,10 +1237,10 @@ prelude v1:           d37bad7e3911669bbf2c66b25c8b31d5c2e36eb181cc54fdc86c3a49a8
 Option<i64> layout:   79194fc88011ac060877e60293d0a4272429dd9e2d720674d0d54e804562deda
 Option<bool> layout:  dec126293ece7ec0e48d3d85ccdb494f7c7cfe4c3d4a9b1a61b50f6f862ff038
 CleanupPlan v3:       d07fa51fc6f192a43318140264fa0e5964933ed90bc065cc8c74708e258ff92f
-generated core:       16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec
+generated core:       967b0c4aff16ad55042a1c856079e0b387558909fa857fcf3aabc9fc53f54283
 profile:              f53a0c21638b5a360faa19ad4fdef68f6d861a5baffe39422847128686e82bef
-component bytes:      f5770bdfdbc862ea39640b2c706c1d9ea171164c220d18366e25b3219443ad0d
-artifact DAG:         90ab80260c84abfe85d1edc666ab3750b81388e6e4cffd7ca21c301b9d0ee589
+component bytes:      741ff89e1ee67d1426ae12e576bc7c4187e065913baf5dea5507901bfa16f8db
+artifact DAG:         1cc90d12b135b79a64b14b04d5c1d9851767bcebfbc4311a2b0fe679c017897d
 ```
 
 Independent validation rejects every byte mutation, truncation/trailing or

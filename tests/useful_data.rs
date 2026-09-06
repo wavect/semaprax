@@ -42,6 +42,7 @@ mod line_filter_project_v7;
 mod native;
 #[path = "useful_data/network_io_interpreter.rs"]
 mod network_io_interpreter;
+#[cfg(unix)]
 #[path = "useful_data/network_io_native.rs"]
 mod network_io_native;
 #[path = "useful_data/network_io_wasm.rs"]

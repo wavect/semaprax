@@ -178,9 +178,9 @@ The frozen local known answers are:
 
 ```text
 source revision: sha256:4391bc27b5db547f2b162c2b5467c2b75797e8a5ef64e4ffe4abef15678c6254
-generated core:  54fa2822c51a71cebfd88d379b45c37ffd3d0f0b2893cb4f2966f9e2db6d5e5f
-component bytes: 3e7b9c2ddc8ca6fdfa801eb50ae3a21531fce44677345ddea68d20581c79b23b
-artifact DAG:    f5fa5ae3905d30c998f783e9b77867986813b0e8b4412fa4afa98e932eda4d40
+generated core:  25161bf5c5eec37c13b6733d30e272dadafe3ea3905e8e05099f3664e869e32d
+component bytes: adf85701ccd4d4f05c65742b6c8c65180f8be591dea58fbab8cc71db8f61bb78
+artifact DAG:    639f5ce95a5d7b81e84ac7f7d9976649aeb9451065eeb3716e5dbae1e1108885
 ```
 
 An independent bounded parser verifies the exact core signatures, function

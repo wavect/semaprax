@@ -182,10 +182,10 @@ profile/raw/DAG KATs are
 `79194fc88011ac060877e60293d0a4272429dd9e2d720674d0d54e804562deda`,
 `dec126293ece7ec0e48d3d85ccdb494f7c7cfe4c3d4a9b1a61b50f6f862ff038`,
 `d07fa51fc6f192a43318140264fa0e5964933ed90bc065cc8c74708e258ff92f`,
-`16d1d34024e3fad920d8d00a61d7cb3bd010335ca382f23615b3b3da4143aaec`,
+`967b0c4aff16ad55042a1c856079e0b387558909fa857fcf3aabc9fc53f54283`,
 `f53a0c21638b5a360faa19ad4fdef68f6d861a5baffe39422847128686e82bef`,
-`f5770bdfdbc862ea39640b2c706c1d9ea171164c220d18366e25b3219443ad0d`,
-and `90ab80260c84abfe85d1edc666ab3750b81388e6e4cffd7ca21c301b9d0ee589`.
+`741ff89e1ee67d1426ae12e576bc7c4187e065913baf5dea5507901bfa16f8db`,
+and `1cc90d12b135b79a64b14b04d5c1d9851767bcebfbc4311a2b0fe679c017897d`.
 Typed and raw evidence covers `Some`/`None`, contracts, checked arithmetic,
 sticky failure, status-first/tag-last publication, full poison, invalid
 input/output tags and booleans, unknown status, repeated/fresh instances, and

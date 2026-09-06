@@ -291,8 +291,9 @@ fn retained_call_round_trips_owned_variant_arguments_and_results() {
             RetainedValue::Bytes(vec![5, 6, 7]),
         )],
     });
-    let evaluation = evaluate_retained_call(&program, &prepared, &[accepted.clone()], 10_000)
-        .expect("the owned variant round-trips");
+    let evaluation =
+        evaluate_retained_call(&program, &prepared, std::slice::from_ref(&accepted), 10_000)
+            .expect("the owned variant round-trips");
     assert_eq!(returned(evaluation.outcome), accepted);
     assert_eq!(
         evaluation.cleanup_events,
@@ -304,8 +305,9 @@ fn retained_call_round_trips_owned_variant_arguments_and_results() {
         case: DeclarationId::new("stage.outcome.rejected"),
         fields: vec![field("stage.outcome.rejected.code", RetainedValue::I64(-3))],
     });
-    let evaluation = evaluate_retained_call(&program, &prepared, &[rejected.clone()], 10_000)
-        .expect("the Copy case round-trips");
+    let evaluation =
+        evaluate_retained_call(&program, &prepared, std::slice::from_ref(&rejected), 10_000)
+            .expect("the Copy case round-trips");
     assert_eq!(returned(evaluation.outcome), rejected);
     // A case with no owned payload settles nothing.
     assert!(evaluation.cleanup_events.is_empty());

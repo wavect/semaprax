@@ -39,14 +39,14 @@ const fixtureSpecs = [
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:8576caa566cb7f0d265354927c5bc7b481146f05e616f76917f340b4af26f053",
     workspace_revision: "sha256:f0454397a2b339677bc49c9ccd8e8491917426202c6aba2475221879e02ae3f6",
-    project_graph_digest: "sha256:92dbd747c206def786979a298d9b6d81f13768dac93a9c6465c839c6be9f96d9",
+    project_graph_digest: "sha256:ce591f301fc756d5b45637dfbe4b2c9ba02e43daa5e882c17daac130f6e967a4",
   },
   {
     name: "project-renamed",
     schema: "semaprax.web-project.v1",
     project_revision: "sha256:afa7b35b6b057eaa1cbf89c68ccd1e19a8d988f4168049f70717f80c28218fb7",
     workspace_revision: "sha256:8fcf973950f10bf9393ff5597484333b178e5f93c5d2a1847f6ccc18d6185f71",
-    project_graph_digest: "sha256:822f5d61f8f6578341da4dad98ec59cac2a3447fa4cc5458cf8d4a2da1052bf2",
+    project_graph_digest: "sha256:6fa0e5aba53344128fcabe47e97e2fac00f8ecf66f2de8f772646835e64a47cd",
   },
 ];
 const expectedArtifacts = [

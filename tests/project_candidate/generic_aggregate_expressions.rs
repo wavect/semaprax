@@ -225,8 +225,8 @@ fn grammar<T>(result: Result<T, Vec<Diagnostic>>) {
 }
 
 #[test]
-fn generic_type_imports_remain_rejected_without_source_changes() {
-    for target in ["generic.box", "generic.duo", "generic.choice"] {
+fn generic_type_imports_follow_record_and_variant_linker_boundaries() {
+    for target in ["generic.box", "generic.duo"] {
         let fixture = Fixture::new();
         let path = fixture.0.join("src/bridge.spx");
         let source = std::fs::read_to_string(&path).unwrap().replacen(
@@ -239,14 +239,28 @@ fn generic_type_imports_remain_rejected_without_source_changes() {
         let program = semaprax::parse(&source, "src/bridge.spx").unwrap();
         std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
         let before = fixture.bytes();
-        let errors = with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(()))
-            .expect_err("generic cross-file imports must retain the linker boundary");
-        assert!(
-            errors.iter().any(|error| error.code == "SPX-G172"),
-            "{errors:?}"
-        );
+        with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(()))
+            .expect("admitted generic record import must validate");
         assert_eq!(fixture.bytes(), before);
     }
+
+    let fixture = Fixture::new();
+    let path = fixture.0.join("src/bridge.spx");
+    let source = std::fs::read_to_string(&path).unwrap().replacen(
+        "module generic.bridge;",
+        "module generic.bridge;\nuse type @id(\"generic.choice\") from generic.core as Imported;",
+        1,
+    );
+    let program = semaprax::parse(&source, "src/bridge.spx").unwrap();
+    std::fs::write(path, semaprax::format::canonical(&program)).unwrap();
+    let before = fixture.bytes();
+    let errors = with_authenticated_project(&fixture.0.join("semaprax.toml"), |_| Ok(()))
+        .expect_err("generic variant imports must retain the linker boundary");
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-G172"),
+        "{errors:?}"
+    );
+    assert_eq!(fixture.bytes(), before);
 }
 
 #[test]

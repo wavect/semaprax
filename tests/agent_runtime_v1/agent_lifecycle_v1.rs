@@ -414,7 +414,7 @@ fn refusal_stale_proposals_and_effect_failure_are_distinct_terminals() {
     // an out-of-range integer are model failures, all before any host work.
     let valid = proposal(&digest, "5", false, "1");
     for stale in [
-        proposal(&"sha256:".to_owned().repeat(1), "5", false, "1"),
+        proposal("sha256:", "5", false, "1"),
         valid.replacen("\"fixture.agent\"", "\"other.agent\"", 1),
         valid.replacen(
             "\"fixture.agent.type.proposal.budget\":\"5\",\"fixture.agent.type.proposal.urgent\":false",

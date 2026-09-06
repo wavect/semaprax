@@ -8,6 +8,15 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Restored the cross-platform CI gates after the owned algebra expansion by
+  refreshing the checked Core-Wasm, component, artifact-DAG, browser project
+  graph, and macOS provider symbol KATs; aligning Project admission regressions
+  with the newly supported generic and byte-bearing shapes; and keeping the
+  POSIX native network fixtures Unix-only. The TCP deadline regression now
+  constrains the client send buffer so it cannot spuriously complete before the
+  peer-side timeout is exercised, and newly enabled strict Clippy lints are
+  clean.
+
 - Executed the VS Code Extension Host execution evidence v2 gate for the first
   time, on exact subject `3fccd30b861d48c9d404eb2698fa2eff510569af` in a locally
   provisioned Visual Studio Code 1.136.1 on Darwin arm64 with Node v24.3.0. The

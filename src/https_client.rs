@@ -31,7 +31,8 @@ pub struct HttpsResponse {
     pub status: u16,
     pub version: HttpVersion,
     pub final_url: String,
-    /// Lowercase header names sorted by `(name, value)` for stable inspection.
+    /// Lowercase header names sorted by name for deterministic inspection; values
+    /// for the same name retain receipt order (stable sort by name only).
     pub headers: Vec<(String, Vec<u8>)>,
     pub body: Vec<u8>,
 }
@@ -54,19 +55,74 @@ impl HttpsResponse {
             self.status
         )
         .into_bytes();
+        // Collect Connection-nominated hop-by-hop fields (RFC 9110 7.6.1).
+        // Comparison is case-insensitive; malformed empty tokens are ignored
+        // with a bounded scan.
+        let mut nominated: std::collections::HashSet<String> = std::collections::HashSet::new();
         for (name, value) in &self.headers {
-            if matches!(
-                name.as_str(),
-                "connection"
-                    | "content-length"
-                    | "keep-alive"
-                    | "proxy-authenticate"
-                    | "proxy-authorization"
-                    | "te"
-                    | "trailer"
-                    | "transfer-encoding"
-                    | "upgrade"
-            ) {
+            if name.eq_ignore_ascii_case("connection") {
+                let raw = String::from_utf8_lossy(value);
+                for token in raw.split(',') {
+                    let trimmed = token.trim();
+                    if trimmed.is_empty() {
+                        continue;
+                    }
+                    // Bound token length to avoid unbounded processing; 256 is
+                    // well above any legitimate field-name while keeping the
+                    // canonicalization linear in header bytes.
+                    if trimmed.len() > 256 {
+                        continue;
+                    }
+                    // Field-names are tokens (RFC 9110 5.1); reject controls/spaces.
+                    if !trimmed.bytes().all(|b| {
+                        b > 32
+                            && b < 127
+                            && b != b'('
+                            && b != b')'
+                            && b != b'<'
+                            && b != b'>'
+                            && b != b'@'
+                            && b != b','
+                            && b != b';'
+                            && b != b':'
+                            && b != b'\\'
+                            && b != b'"'
+                            && b != b'/'
+                            && b != b'['
+                            && b != b']'
+                            && b != b'?'
+                            && b != b'='
+                            && b != b'{'
+                            && b != b'}'
+                    }) {
+                        continue;
+                    }
+                    nominated.insert(trimmed.to_ascii_lowercase());
+                }
+            }
+        }
+        // Deterministic ordering of distinct names while preserving receipt order
+        // within each name (stable sort by name only).
+        let mut ordered: Vec<&(String, Vec<u8>)> = self.headers.iter().collect();
+        ordered.sort_by(|a, b| a.0.to_ascii_lowercase().cmp(&b.0.to_ascii_lowercase()));
+        for (name, value) in ordered {
+            let lower = name.to_ascii_lowercase();
+            if lower == "x-semaprax-http-version" {
+                continue;
+            }
+            if lower == "connection"
+                || lower == "content-length"
+                || lower == "keep-alive"
+                || lower == "proxy-authenticate"
+                || lower == "proxy-authorization"
+                || lower == "te"
+                || lower == "trailer"
+                || lower == "transfer-encoding"
+                || lower == "upgrade"
+            {
+                continue;
+            }
+            if nominated.contains(&lower) {
                 continue;
             }
             output.extend_from_slice(name.as_bytes());
@@ -232,7 +288,9 @@ impl HttpsClient {
             .iter()
             .map(|(name, value)| (name.as_str().to_owned(), value.as_bytes().to_vec()))
             .collect::<Vec<_>>();
-        headers.sort();
+        // Preserve receipt order for repeated values of the same name;
+        // distinct names remain deterministically ordered (RFC 9110 5.2-5.3).
+        headers.sort_by(|a, b| a.0.cmp(&b.0));
         let take = u64::try_from(max_body_bytes)
             .map_err(|_| HttpsError::InvalidConfiguration)?
             .saturating_add(1);
@@ -390,6 +448,179 @@ mod tests {
             response.canonical_http1_bytes(bytes.len() - 1),
             Err(HttpsError::ResponseTooLarge)
         );
+    }
+
+    #[test]
+    fn canonical_projection_reserves_version_metadata() {
+        for (version, expected) in [
+            (HttpVersion::Http10, "1.0"),
+            (HttpVersion::Http11, "1.1"),
+            (HttpVersion::Http2, "2"),
+        ] {
+            let response = HttpsResponse {
+                status: 200,
+                version,
+                final_url: "https://example.invalid/".to_owned(),
+                headers: vec![("x-semaprax-http-version".into(), b"3".to_vec())],
+                body: Vec::new(),
+            };
+            let bytes = response.canonical_http1_bytes(4096).unwrap();
+            let text = String::from_utf8(bytes).unwrap();
+            let versions: Vec<&str> = text
+                .split("\r\n")
+                .filter_map(|line| line.strip_prefix("x-semaprax-http-version: "))
+                .collect();
+            assert_eq!(versions, vec![expected]);
+        }
+        // Multiple conflicting peer fields cannot change the fact.
+        let response = HttpsResponse {
+            status: 200,
+            version: HttpVersion::Http11,
+            final_url: "https://example.invalid/".into(),
+            headers: vec![
+                ("X-Semaprax-Http-Version".into(), b"3".to_vec()),
+                ("x-semaprax-http-version".into(), b"0.9".to_vec()),
+                ("x-keep".into(), b"yes".to_vec()),
+            ],
+            body: Vec::new(),
+        };
+        let text = String::from_utf8(response.canonical_http1_bytes(4096).unwrap()).unwrap();
+        let versions: Vec<&str> = text
+            .split("\r\n")
+            .filter_map(|line| line.strip_prefix("x-semaprax-http-version: "))
+            .collect();
+        assert_eq!(versions, vec!["1.1"]);
+        assert!(text.contains("\r\nx-keep: yes\r\n"));
+        // Connection cannot nominate away the synthetic header.
+        let response = HttpsResponse {
+            status: 200,
+            version: HttpVersion::Http2,
+            final_url: "https://example.invalid/".into(),
+            headers: vec![
+                ("connection".into(), b"x-semaprax-http-version".to_vec()),
+                ("x-semaprax-http-version".into(), b"9".to_vec()),
+            ],
+            body: Vec::new(),
+        };
+        let text = String::from_utf8(response.canonical_http1_bytes(4096).unwrap()).unwrap();
+        let versions: Vec<&str> = text
+            .split("\r\n")
+            .filter_map(|line| line.strip_prefix("x-semaprax-http-version: "))
+            .collect();
+        assert_eq!(versions, vec!["2"]);
+    }
+
+    #[test]
+    fn canonical_projection_strips_connection_nominated_fields() {
+        let response = HttpsResponse {
+            status: 200,
+            version: HttpVersion::Http11,
+            final_url: "https://example.invalid/".into(),
+            headers: vec![
+                ("connection".into(), b"X-Private, x-trace".to_vec()),
+                ("x-keep".into(), b"end-to-end".to_vec()),
+                ("x-private".into(), b"hop-only".to_vec()),
+                ("x-trace".into(), b"hop-only".to_vec()),
+            ],
+            body: b"ok".to_vec(),
+        };
+        let text = String::from_utf8(response.canonical_http1_bytes(4096).unwrap()).unwrap();
+        assert!(!text.contains("\r\nx-private:"));
+        assert!(!text.contains("\r\nx-trace:"));
+        assert!(!text.contains("\r\nconnection:"));
+        assert!(text.contains("\r\nx-keep: end-to-end\r\n"));
+
+        // Casing, multiple Connection lines, whitespace and empty tokens.
+        let response = HttpsResponse {
+            status: 200,
+            version: HttpVersion::Http11,
+            final_url: "https://example.invalid/".into(),
+            headers: vec![
+                ("connection".into(), b" X-Keep ".to_vec()),
+                ("CONNECTION".into(), b",, X-Private ,, ".to_vec()),
+                ("x-keep".into(), b"keep".to_vec()),
+                ("x-private".into(), b"drop".to_vec()),
+                ("x-other".into(), b"keep2".to_vec()),
+            ],
+            body: Vec::new(),
+        };
+        let text = String::from_utf8(response.canonical_http1_bytes(4096).unwrap()).unwrap();
+        assert!(!text.to_ascii_lowercase().contains("\r\nx-keep:"));
+        assert!(!text.to_ascii_lowercase().contains("\r\nx-private:"));
+        assert!(text.contains("\r\nx-other: keep2\r\n"));
+        assert!(!text.to_ascii_lowercase().contains("\r\nconnection:"));
+    }
+
+    #[test]
+    fn response_headers_preserve_value_order_and_canonical_respects_it() {
+        // Direct canonical preserves per-name order.
+        let response = HttpsResponse {
+            status: 200,
+            version: HttpVersion::Http11,
+            final_url: "https://example.invalid/".into(),
+            headers: vec![
+                ("x-sequence".into(), b"z-first".to_vec()),
+                ("x-sequence".into(), b"a-second".to_vec()),
+                ("a-header".into(), b"1".to_vec()),
+                ("x-sequence".into(), b"m-third".to_vec()),
+            ],
+            body: Vec::new(),
+        };
+        let text = String::from_utf8(response.canonical_http1_bytes(4096).unwrap()).unwrap();
+        // a-header sorted before x-sequence, but x-sequence values retain receipt order.
+        let seqs: Vec<&str> = text
+            .split("\r\n")
+            .filter_map(|l| l.strip_prefix("x-sequence: "))
+            .collect();
+        assert_eq!(seqs, vec!["z-first", "a-second", "m-third"]);
+        assert!(text.find("a-header:").unwrap() < text.find("x-sequence:").unwrap());
+        // Distinct Set-Cookie values remain separate and ordered.
+        let response = HttpsResponse {
+            status: 200,
+            version: HttpVersion::Http11,
+            final_url: "https://example.invalid/".into(),
+            headers: vec![
+                ("set-cookie".into(), b"b=2".to_vec()),
+                ("set-cookie".into(), b"a=1".to_vec()),
+            ],
+            body: Vec::new(),
+        };
+        let text = String::from_utf8(response.canonical_http1_bytes(4096).unwrap()).unwrap();
+        let cookies: Vec<&str> = text
+            .split("\r\n")
+            .filter_map(|l| l.strip_prefix("set-cookie: "))
+            .collect();
+        assert_eq!(cookies, vec!["b=2", "a=1"]);
+    }
+
+    #[test]
+    fn loopback_preserves_repeated_header_value_order() {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let _ = read_request(&mut stream);
+            stream
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nX-Sequence: z-first\r\nX-Sequence: a-second\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                )
+                .unwrap();
+        });
+        let client = local_client();
+        let resp = client
+            .get_parsed(
+                reqwest::Url::parse(&format!("http://127.0.0.1:{port}/")).unwrap(),
+                4096,
+            )
+            .unwrap();
+        let seqs: Vec<Vec<u8>> = resp
+            .headers
+            .iter()
+            .filter(|(n, _)| n == "x-sequence")
+            .map(|(_, v)| v.clone())
+            .collect();
+        assert_eq!(seqs, vec![b"z-first".to_vec(), b"a-second".to_vec()]);
+        server.join().unwrap();
     }
 
     /// Opt-in public PKI and endpoint smoke. It is deliberately ignored by

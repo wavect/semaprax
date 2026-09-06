@@ -170,19 +170,21 @@ pub(super) fn finish(
 }
 
 #[cfg(test)]
-#[allow(clippy::too_many_arguments)]
 pub(super) fn resolve_reference(
     resolver: &Resolver<'_>,
     function: &FunctionExecutionId,
-    id: ExpressionId,
-    name: &str,
-    type_arguments: &[Type],
-    args: &[Expr],
-    bindings: &BTreeMap<String, Binding>,
-    path: &str,
-    span: Span,
+    call: super::resolve_box_call::ReferenceCall<'_>,
     op: crate::vec_ops::VecOp,
 ) -> Result<ResolvedExpr, Diagnostic> {
+    let super::resolve_box_call::ReferenceCall {
+        id,
+        type_arguments,
+        args,
+        bindings,
+        path,
+        span,
+    } = call;
+    let name = op.name();
     if type_arguments.len() != 1 || args.len() != op.arity() {
         return Err(resolver.error(
             "SPX-H006",

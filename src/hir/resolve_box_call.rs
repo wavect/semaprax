@@ -10,6 +10,38 @@ pub(super) enum OwnedGenericCallSite {
     Vec(crate::vec_ops::VecOp),
     Box(crate::box_ops::BoxOp),
 }
+
+#[cfg(test)]
+pub(super) struct ReferenceCall<'a> {
+    pub(super) id: ExpressionId,
+    pub(super) type_arguments: &'a [Type],
+    pub(super) args: &'a [Expr],
+    pub(super) bindings: &'a BTreeMap<String, Binding>,
+    pub(super) path: &'a str,
+    pub(super) span: Span,
+}
+
+#[cfg(test)]
+impl<'a> ReferenceCall<'a> {
+    pub(super) fn new(
+        id: ExpressionId,
+        type_arguments: &'a [Type],
+        args: &'a [Expr],
+        bindings: &'a BTreeMap<String, Binding>,
+        path: &'a str,
+        span: Span,
+    ) -> Self {
+        Self {
+            id,
+            type_arguments,
+            args,
+            bindings,
+            path,
+            span,
+        }
+    }
+}
+
 impl OwnedGenericCallSite {
     pub(super) fn by_name(name: &str) -> Option<Self> {
         crate::vec_ops::by_name(name)
@@ -57,37 +89,13 @@ impl OwnedGenericCallSite {
         self,
         resolver: &Resolver<'_>,
         function: &FunctionExecutionId,
-        id: ExpressionId,
-        type_arguments: &[Type],
-        args: &[Expr],
-        bindings: &BTreeMap<String, Binding>,
-        path: &str,
-        span: Span,
+        call: ReferenceCall<'_>,
     ) -> Result<ResolvedExpr, Diagnostic> {
         match self {
-            Self::Vec(op) => super::resolve_vec_call::resolve_reference(
-                resolver,
-                function,
-                id,
-                op.name(),
-                type_arguments,
-                args,
-                bindings,
-                path,
-                span,
-                op,
-            ),
-            Self::Box(op) => resolve_reference(
-                resolver,
-                function,
-                id,
-                type_arguments,
-                args,
-                bindings,
-                path,
-                span,
-                op,
-            ),
+            Self::Vec(op) => {
+                super::resolve_vec_call::resolve_reference(resolver, function, call, op)
+            }
+            Self::Box(op) => resolve_reference(resolver, function, call, op),
         }
     }
 }
@@ -230,14 +238,17 @@ pub(super) fn finish(
 pub(super) fn resolve_reference(
     resolver: &Resolver<'_>,
     function: &FunctionExecutionId,
-    id: ExpressionId,
-    type_arguments: &[Type],
-    args: &[Expr],
-    bindings: &BTreeMap<String, Binding>,
-    path: &str,
-    span: Span,
+    call: ReferenceCall<'_>,
     op: crate::box_ops::BoxOp,
 ) -> Result<ResolvedExpr, Diagnostic> {
+    let ReferenceCall {
+        id,
+        type_arguments,
+        args,
+        bindings,
+        path,
+        span,
+    } = call;
     if type_arguments.len() != 1 || args.len() != 1 {
         return Err(resolver.error(
             "SPX-H006",

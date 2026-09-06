@@ -298,9 +298,7 @@ impl Resolver<'_> {
                     });
                 }
                 if let Some(site) = super::resolve_box_call::OwnedGenericCallSite::by_name(name) {
-                    return site.resolve_reference(
-                        self,
-                        function,
+                    let call = super::resolve_box_call::ReferenceCall::new(
                         id,
                         type_arguments,
                         args,
@@ -308,6 +306,7 @@ impl Resolver<'_> {
                         path,
                         expr.span,
                     );
+                    return site.resolve_reference(self, function, call);
                 }
                 if let Some(op) = crate::byte_ops::by_name(name) {
                     if !type_arguments.is_empty() || args.len() != op.arity() {

@@ -15,7 +15,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   frozen graph consumers and public ABI descriptors retain their prior
   contracts. The expanded Linux selector combines the eight-scalar flat and
   nested corpus, graph/schema hostility, expression composition and scalar
-  cross-package execution. Validation and hosted promotion remain pending.
+  cross-package execution. Focused graph and workspace replay checks pass;
+  hosted promotion remains pending. Semantic instance identities survive
+  comment-only edits while ProgramRoot still binds exact source. Preserved
+  existing workspace known answers and ownership/range diagnostics.
 
 - Added a source-native Agent-to-Lifecycle v1 bridge and executable generated
   Proposal-client evidence. One checked `.spx` Agent is selected by stable

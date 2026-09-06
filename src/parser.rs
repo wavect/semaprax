@@ -1430,7 +1430,9 @@ impl Parser {
         let start = self.keyword("for")?.span;
         let (item, item_span) = self.ident("loop item binding")?;
         self.keyword("in")?;
-        let values = self.expression_with_record_literals(0, false)?;
+        let values = self
+            .expression_with_record_literals(0, false)
+            .map_err(|diagnostic| self.range_for_hint(diagnostic))?;
         let body = self.block("`for` body")?;
         let span = start.merge(body.span);
         Ok(Statement::For {

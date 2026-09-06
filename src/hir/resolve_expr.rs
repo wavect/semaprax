@@ -548,7 +548,9 @@ impl Resolver<'_> {
                                 )
                             })?;
                         let template_record = matches!(function, FunctionExecutionId::Monomorphic(owner)
-                        if super::type_reachability::is_nested_owned_byte_record_template(
+                        if self.program.functions.iter().any(|candidate|
+                            candidate.stable_id == owner.as_str() && !candidate.type_parameters.is_empty())
+                        && super::type_reachability::is_nested_owned_byte_record_template(
                             &self.declarations,
                             &ResolvedType::Nominal { declaration: record.clone(), arguments: arguments.clone() },
                             owner,

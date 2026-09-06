@@ -385,3 +385,16 @@ fn indexing_syntax_points_at_byte_get() {
         "{diagnostic}"
     );
 }
+
+#[test]
+fn range_for_hint_preserves_vector_traversal_and_other_projection_errors() {
+    parse(
+        "module habit.vector;\n@id(\"app.main\") fn main() -> i64 { for item in values { item } 0 }\n",
+        Path::new("vector-for.spx"),
+    ).expect("ordinary for traversal still parses");
+    let diagnostic = rejection(
+        "module habit.projection;\n@id(\"app.main\") fn main() -> i64 { for item in values.3 { item } 0 }\n",
+    );
+    assert_eq!(diagnostic.code, "SPX-P105");
+    assert!(!diagnostic.message.contains("range"));
+}

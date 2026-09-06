@@ -20,6 +20,18 @@ impl SemanticProgram {
         revision: &ProjectRevision,
         mut payload: Value,
     ) -> Result<Self, Vec<Diagnostic>> {
+        // Exact source bytes belong to SourceProjection and ProgramRoot. The
+        // semantic instance key must not turn a comment-only edit into changed
+        // checked meaning. Bind every linked role to this canonical program
+        // subject before adding the graphs (there is no digest cycle).
+        let subject = canonical_json(json!({
+            "semantic_source": payload,
+            "manifest": revision.manifest().to_canonical_toml(),
+        }))?;
+        let defining_revision = framed_digest(
+            b"semaprax.generic-instance-program-revision.v1\0",
+            subject.as_bytes(),
+        );
         let mut closures = Vec::new();
         for (role, program) in [
             ("entry", revision.entry_program()),
@@ -30,14 +42,13 @@ impl SemanticProgram {
                 continue;
             }
             // The retained linked HIR is independently authenticated by the graph
-            // boundary. The defining revision is the exact Project, not a path,
-            // target layout, or discovery-order-dependent instance cache.
-            let graph = crate::graph::to_hir_json(program, revision.project_revision())
+            // boundary. Layout and discovery caches supply no identity facts.
+            let graph = crate::graph::to_hir_json(program, &defining_revision)
                 .map_err(|error| vec![error])?;
             closures.push(json!({
                 "role": role,
-                "defining_revision_kind": "project_revision",
-                "defining_revision": revision.project_revision(),
+                "defining_revision_kind": "normalized_project_semantics",
+                "defining_revision": defining_revision,
                 "graph": graph,
             }));
         }

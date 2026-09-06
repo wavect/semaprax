@@ -253,7 +253,7 @@ fn graph_v34_deep_admitted_instance_does_not_depend_on_json_parser_recursion() {
         .stack_size(32 * 1024 * 1024)
         .spawn(|| {
             let mut expression = "identity<i64>(42)".to_owned();
-            for _ in 0..45 {
+            for _ in 0..62 {
                 expression = format!("if true {{ {expression} }} else {{ 0 }}");
             }
             let program = checked(&format!(

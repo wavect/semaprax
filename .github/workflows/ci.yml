@@ -56,6 +56,7 @@ jobs:
           node --version
           cargo test --locked -p semaprax --test agent_context_v2 generic_instance_ownership_is_exact_filter_selected_and_budgeted -- --exact --nocapture
           cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::generic_instance_program_root_binds_checked_ownership_and_rejects_cross_pairs -- --exact --nocapture
+          cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::generic_instance_semantic_identity_ignores_comments_but_root_replay_binds_source -- --exact --nocapture
           cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_exact_eight_scalar_flat_and_nested_ownership_and_forwarding -- --exact --nocapture
           cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_replay_rejects_reminted_identity_ownership_paths_schema_and_closure -- --exact --nocapture
           cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_context_contains_exact_instance_facts_and_scalar_profiles -- --exact --nocapture

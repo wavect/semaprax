@@ -354,12 +354,18 @@ retain their schemas; this is checked internal meaning, not a generic ABI.
 The v2 payload retains the normalized source and prelude facts, and appends
 `generic_instance_closures` in fixed `entry`, `public_api`, `tests` role order,
 omitting roles without materialized instances. Each closure records its role,
-`defining_revision_kind: "project_revision"`, the retained exact Project
-revision, and the complete independently validated Graph v34 as an exact JSON string.
+`defining_revision_kind: "normalized_project_semantics"`, a canonical defining
+program revision, and the complete independently validated Graph v34 as an exact JSON string.
 Retaining those bytes avoids reinterpreting nested graph JSON through a second
 parser with a smaller recursion bound. The defining
-revision for these linked instances is the Project revision; standalone graphs
-use their canonical source revision. No path, layout or discovery cache
+revision for these linked instances is the length-framed digest with domain
+`semaprax.generic-instance-program-revision.v1\0` of canonical JSON containing
+`semantic_source` (the original semantic-program payload) and `manifest` (the
+canonical Project manifest string). It excludes projection-only comments;
+standalone graphs use their canonical source revision. Exact source association
+remains in the enclosing workspace SourceProjection and ProgramRoot, whose
+identities and replay reject a different raw-source pairing even when checked
+meaning is unchanged. No path, layout or discovery cache
 supplies identity authority.
 
 The node digest uses domain

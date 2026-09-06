@@ -63,6 +63,25 @@ impl Parser {
             .map_err(|diagnostic| diagnostic.with_help(MODULE_HELP))
     }
 
+    /// A range's second dot otherwise looks like a missing projected field.
+    /// Keep the established foreign-loop diagnostic without intercepting an
+    /// admitted vector traversal or unrelated expression errors.
+    pub(super) fn range_for_hint(&self, mut diagnostic: Diagnostic) -> Diagnostic {
+        if diagnostic.code == "SPX-P105"
+            && self
+                .cursor
+                .checked_sub(2)
+                .and_then(|index| self.tokens.get(index..self.cursor))
+                .is_some_and(|tokens| tokens.iter().all(|token| token.kind == TokenKind::Dot))
+        {
+            diagnostic.code = "SPX-P106";
+            diagnostic.message = "range `for` loops are not admitted; use `while`".to_owned();
+            diagnostic.with_help(LOOP_HELP)
+        } else {
+            diagnostic
+        }
+    }
+
     /// `return <expr>`, `for <name> …`, or `loop {` where a statement or the
     /// block's tail expression was expected. The word is an ordinary
     /// identifier to the lexer, so this fires only when the following token

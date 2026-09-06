@@ -27,7 +27,9 @@ impl Resolver<'_> {
         span: Span,
     ) -> Result<(), Diagnostic> {
         let template_owned = matches!(function, FunctionExecutionId::Monomorphic(owner)
-            if super::type_reachability::is_nested_owned_byte_record_template(
+            if self.program.functions.iter().any(|candidate|
+                candidate.stable_id == owner.as_str() && !candidate.type_parameters.is_empty())
+            && super::type_reachability::is_nested_owned_byte_record_template(
                 &self.declarations, &scrutinee.ty, owner,
                 self.program.functions.iter().find(|candidate| candidate.stable_id == owner.as_str())
                     .map_or(0, |candidate| candidate.type_parameters.len())));

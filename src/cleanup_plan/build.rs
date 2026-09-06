@@ -3049,6 +3049,13 @@ impl<'a> PlanBuilder<'a> {
                         if arms.is_empty() {
                             return Err(plan_error("copy-variant match has no arms"));
                         }
+                        if *mode == ResolvedMatchMode::Value
+                            && self.needs_drop(&arms[0].value.ty)?
+                        {
+                            return Err(plan_error(
+                                "droppable match result reached the copy-only cleanup slice",
+                            ));
+                        }
                         frames.push(Frame::MatchAfterScrutinee {
                             expression,
                             mode: *mode,

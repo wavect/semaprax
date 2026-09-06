@@ -28,7 +28,8 @@ fn assert_only_checked_value_cursor_budget_changed(graph: &str, previous_digest:
     // stayed frozen. The pinned digests were re-taken when imported functions
     // began charging their retained stub plus the peak transient provider
     // clone, which moved `used_builder_bytes` and therefore both graph
-    // digests; nothing else in the payload changed.
+    // digests; the answers were re-pinned again when the canonical prelude
+    // gained the standard collections module.
     let current = parsed["budget"]["used_builder_bytes"].as_u64().unwrap();
     let previous = current.checked_sub(3 * 257 * 24).unwrap();
     let field = format!("\"used_builder_bytes\":{current}");
@@ -106,8 +107,8 @@ fn browser_known_answers_match_authenticated_baseline_and_rename_graphs() {
                 assert_only_checked_value_cursor_budget_changed(
                     revision.semantic_graph(),
                     [
-                        "sha256:dcd274afc80f1517e4026edf9ca1dd48ded27b3ee4a108a0e4ca637de82ccd2d",
-                        "sha256:36efb3832d2273285513434bea4be0fc5b1952bfd916e09aa9928a1a19c82507",
+                        "sha256:ff212e430f1ef1d6591c859f21a209431cfaf9651b1a4a7f53b84f3bc61e1761",
+                        "sha256:92f03c0e12820d73312d86629a92afceb292558590cab5b0bdccec6e8960eee1",
                     ][index],
                 );
                 let actual = [

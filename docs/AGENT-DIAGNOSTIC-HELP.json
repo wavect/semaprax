@@ -87,7 +87,7 @@
       "code": "SPX-T001",
       "rows": [
         {
-          "fix": "`string`, `i64`/`i32`/`u8`/`usize`; spell exact internal `Vec<i64>` (or another admitted Copy scalar) and every `vec_*<T>` type argument explicitly",
+          "fix": "`string`, `i64`/`i32`/`u8`/`usize`; in a Project prefer the authenticated `std.collections` aliases, and always spell an admitted Copy scalar plus every wrapper or `vec_*<T>` type argument explicitly",
           "wrote": "`String`, `int`, or unsupported `Vec` inference/element types"
         }
       ]
@@ -212,7 +212,7 @@
       "code": "SPX-T281",
       "rows": [
         {
-          "fix": "`string`, `i64`/`i32`/`u8`/`usize`; spell exact internal `Vec<i64>` (or another admitted Copy scalar) and every `vec_*<T>` type argument explicitly",
+          "fix": "`string`, `i64`/`i32`/`u8`/`usize`; in a Project prefer the authenticated `std.collections` aliases, and always spell an admitted Copy scalar plus every wrapper or `vec_*<T>` type argument explicitly",
           "wrote": "`String`, `int`, or unsupported `Vec` inference/element types"
         }
       ]

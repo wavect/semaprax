@@ -70,6 +70,41 @@ jobs:
         id: probe
         run: bash .github/probe/doctor-hosted-runner-probe.sh
 
+      - name: Real distribution closure survey
+        # The two real-distribution fixtures need actual Clang, Node and Rust
+        # executables to run inside a pivoted read-only root. Measure the
+        # loader closures before deciding how a bundle can carry them. This
+        # measures; it packages nothing and proves nothing about confinement.
+        run: |
+          set -x
+          rustup toolchain list
+          rustup which rustc
+          rustup target list --installed
+          survey() {
+            label="$1"; path="$2"
+            echo "===== $label = $path ====="
+            [ -e "$path" ] || { echo "(absent)"; return 0; }
+            readlink -f "$path"
+            file -L "$path" || true
+            stat -Lc '%s bytes' "$path"
+            ldd "$path" 2>&1 || true
+            echo "--- closure ---"
+            ldd "$path" 2>/dev/null \
+              | awk '{for(i=1;i<=NF;i++) if ($i ~ /^\//) print $i}' \
+              | sort -u | xargs -r stat -Lc '%s %n' \
+              | awk '{t+=$1; print} END {print "TOTAL " t}'
+          }
+          survey clang "$(command -v clang || echo /nonexistent)"
+          survey node "$(command -v node || echo /nonexistent)"
+          survey rustc "$(rustup which rustc)"
+          echo "===== rustc sysroot ====="
+          du -sh "$(rustc --print sysroot)" || true
+          ls -l "$(rustc --print sysroot)"/lib/*.so 2>/dev/null || true
+          echo "===== host budget ====="
+          df -h /
+          nproc
+          free -g
+
       - name: Evidence documents
         if: ${{ always() }}
         run: |

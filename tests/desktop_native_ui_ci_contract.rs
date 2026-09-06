@@ -14,9 +14,10 @@ fn private_native_ui_is_platform_real_feature_gated_and_source_locked() {
     let lock = read(root, "platform-tests/desktop-native/toolchain.lock");
     let workflow = read(root, ".github/workflows/ci.yml");
     let diagnostics = format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
         read(root, "src/codegen.rs"),
-        read(root, "src/codegen/native_scalar_runtime.rs")
+        read(root, "src/codegen/native_scalar_runtime.rs"),
+        read(root, "src/codegen/native_vec.rs")
     );
 
     assert_contains_all(

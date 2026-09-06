@@ -166,3 +166,78 @@ use function @id("late.value") from late.provider as value;
     };
     assert_exact_builder_limit_error(&error, combined_minimum - 1);
 }
+
+fn identity_scale_workspace(
+    module_pad: usize,
+    functions: usize,
+    body: usize,
+) -> Vec<WorkspaceSource> {
+    let module = format!("scale{}", "e".repeat(module_pad));
+    let mut library = format!("\nmodule {module};\n");
+    for index in 0..functions {
+        library.push_str(&format!(
+            "@id(\"{module}.step{index:03}\")\nfn step{index:03}(seed: i64) -> i64 {{\n"
+        ));
+        for statement in 0..body {
+            library.push_str(&format!("let hold_{statement} = seed + {statement};\n"));
+        }
+        library.push_str(&format!("seed + {index}\n}}\n"));
+    }
+    let entry = format!(
+        "\nmodule {module}.entry;\nuse function @id(\"{module}.step000\") from {module} as step000;\n@id(\"{module}.entry.main\")\nfn main() -> i64 {{ step000(0) }}\n"
+    );
+    vec![
+        canonical_source("scale/library.spx", &library),
+        canonical_source("scale/entry.spx", &entry),
+    ]
+}
+
+/// Issue #83. The identity term charges every identity slot the longest
+/// identity in scope, so the copy factor decides how far a declaration's
+/// *name* can move the budget. At sixty-four copies a thirty-two byte module
+/// segment more than doubled the minimum builder limit of this fixture, which
+/// is why renaming `document` to `doc` bought `std.data.json.doc` about 960
+/// bytes of admitted source. Measured retained identity bytes are 0.87 to
+/// 1.11 per slot per identity byte, so naming must stay a minor term.
+#[test]
+fn identity_length_does_not_dominate_the_builder_pre_bound() {
+    let short = minimum_successful_builder_limit(&identity_scale_workspace(0, 24, 0));
+    let long = minimum_successful_builder_limit(&identity_scale_workspace(32, 24, 0));
+    assert!(short < long, "a longer identity must still cost something");
+    assert!(
+        long * 4 < short * 5,
+        "thirty-two identity bytes may not cost a quarter of the pre-bound \
+         again: short {short}, long {long}"
+    );
+}
+
+/// Issue #83. `std.data.json.doc` was admitted at 12,216 source bytes and
+/// refused at 12,292, so every further standard-library slice was blocked.
+/// Padding the six `std.data.json.*` packages until `SPX-G171` fires moved
+/// their admitted totals from 12.3-14.2 KB to 19.7-22.1 KB. This fixture is
+/// less identity-dense than a `std` package, so it is pinned at its own
+/// ceiling: twenty-one kilobytes must fit, where the previous factor stopped
+/// this shape at 19.4 KB.
+#[test]
+fn a_twenty_one_kilobyte_workspace_fits_the_production_builder_budget() {
+    let sources = identity_scale_workspace(0, 310, 0);
+    let bytes: usize = sources.iter().map(|source| source.source.len()).sum();
+    assert!(
+        bytes >= 21 * 1024,
+        "fixture must exceed twenty-one kilobytes, got {bytes}"
+    );
+    assert!(build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES).is_ok());
+}
+
+/// Issue #83. The pre-bound stays a refusal, not an advisory: a workspace the
+/// resolver cannot fit is still reported as `SPX-G171` before it is linked,
+/// and before any other workspace counter is exhausted.
+#[test]
+fn the_builder_pre_bound_still_refuses_an_oversized_workspace() {
+    let sources = identity_scale_workspace(0, 64, 128);
+    let error = match build_owned_with_builder_limit(sources, MAX_BUILDER_BYTES) {
+        Ok(_) => panic!("an oversized workspace must be refused"),
+        Err(error) => error,
+    };
+    assert_exact_builder_limit_error(&error, MAX_BUILDER_BYTES);
+}

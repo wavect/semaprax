@@ -106,12 +106,14 @@ const HIR_STRUCTURE_EXPANSION_FACTOR: usize =
 // sixteen copies for map/tree node bookkeeping; the string headers themselves
 // are structural bytes.
 const HIR_STRING_COPY_FACTOR: usize = 64;
-// A declaration identity at one resolved occurrence can be present in the
-// retained HIR, declaration/type/call indexes, validation sets, cleanup
-// inventory, cleanup-plan projections, and transient resolver maps. The
-// enumerated resolver paths use fewer than 48 copies; 64 also covers map keys
-// retained concurrently during exact replay.
-const HIR_IDENTITY_COPY_FACTOR: usize = 64;
+// A declaration identity at one resolved occurrence is retained by the HIR
+// node, the declaration, type and call indexes, the validation sets, the
+// cleanup inventory, the cleanup-plan projection, and the retained edge set:
+// eight structures, each able to hold it as a map key and as a value, which
+// also covers the transient resolver maps live beside them. The slot count
+// already enumerates the occurrences, so the earlier 64 billed every slot for
+// the whole resolver twice. Workspace Semantic Graph v1 records the evidence.
+const HIR_IDENTITY_COPY_FACTOR: usize = 16;
 const HIR_EXPR_FIXED_BUNDLE: usize = std::mem::size_of::<hir::ResolvedExpr>()
     + std::mem::size_of::<hir::ResolvedBinding>()
     + std::mem::size_of::<hir::ResolvedStatement>()

@@ -219,14 +219,24 @@ fn public_api_cli_kat_parity_and_opaque_getters() {
         // Re-pinned after the workspace pre-bound stopped charging an imported
         // function as a second copy of its provider; only `used_builder_bytes`
         // moved.
-        "sha256:863f8a704136586f57575dbae8dcb5bfa8c73a7bfa35b0fb44c9709da9ca6271"
+        // Issue #83 re-pin: this whole-document KAT embeds `used_builder_bytes`,
+        // which moved when the identity copy factor was re-derived from 64 to 16.
+        // Only that budget field changed; every other field of the rendered
+        // document is byte for byte identical, checked by rendering the same
+        // document under both factors and diffing it field by field.
+        "sha256:5ef1e3df806564459db6d83cf5d2a1d6bc4b0ff619c60e261b94dbff43d016c0"
     );
     assert_eq!(
         raw_sha(&evidence),
         // Re-pinned after the workspace pre-bound stopped charging an imported
         // function as a second copy of its provider; only `used_builder_bytes`
         // moved.
-        "sha256:2d6108e775d8fdc27f1ff77ec2c590f2a2789432603149a1ba1ba0e66415d5a8"
+        // Issue #83 re-pin: this whole-document KAT embeds `used_builder_bytes`,
+        // which moved when the identity copy factor was re-derived from 64 to 16.
+        // Only that budget field changed; every other field of the rendered
+        // document is byte for byte identical, checked by rendering the same
+        // document under both factors and diffing it field by field.
+        "sha256:040319536c6ee162e89ba360cb0eaa332948eccae2a7240d0afecdcde43c0b37"
     );
     for value in [
         artifacts.proposal_digest(),
@@ -457,7 +467,7 @@ fn verification_receipt_api_cli_kat_shared_lock_and_no_write() {
         raw_sha(&receipt),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:4cd3f410577f2ee88c731c94c90dbf0d12856b41978c4276eb5606ab6a1519b8"
+        "sha256:a8a399153d0e79d23d7b861775f7f6a8d30b7871c0e6df4c39b4134f170dc0ad" // #83: `used_builder_bytes` moved with the identity factor.
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -670,7 +680,7 @@ fn application_receipt_api_cli_kat_fixed_point_and_raw_no_write() {
         raw_sha(&receipt),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:613bf094da325d92793ac494827240150e44f3297ba8cdbc66ad8e3da2c29bef"
+        "sha256:824809d9a012faea307033f9da77854b5d720be700c3925a885e47d24e58022c" // #83: `used_builder_bytes` moved with the identity factor.
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

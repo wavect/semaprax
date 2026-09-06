@@ -112,11 +112,16 @@ fn literal_kats_wire_order_domains_and_reference_parity() {
         [
             // Re-pinned after type-fact cycle detection began retaining exact
             // concrete nominal identities; only `used_builder_bytes` moved.
-            "sha256:863f8a704136586f57575dbae8dcb5bfa8c73a7bfa35b0fb44c9709da9ca6271",
-            "sha256:6b446b09093f5aed42d9dd54665a520049a356e252059568d53374aa0b6cdd58",
-            "sha256:0b83edacafd4b524e3dfc6503624e2e00249e1f38be70f35efb207f537f8bfd1",
-            "sha256:e2e684e735fed23458c4341cbda8a778ce8c01aac6a3c1f4ed09fa02256761bf",
-            "sha256:2d6108e775d8fdc27f1ff77ec2c590f2a2789432603149a1ba1ba0e66415d5a8"
+            // Issue #83 re-pin: this whole-document KAT embeds `used_builder_bytes`,
+            // which moved when the identity copy factor was re-derived from 64 to 16.
+            // Only that budget field changed; every other field of the rendered
+            // document is byte for byte identical, checked by rendering the same
+            // document under both factors and diffing it field by field.
+            "sha256:5ef1e3df806564459db6d83cf5d2a1d6bc4b0ff619c60e261b94dbff43d016c0",
+            "sha256:765bd8e607704ae6970d30e82130f0898db3386a124fb9bc71c3751133f3ab9f",
+            "sha256:a8fea781794b5810dd344ca344f8f931fb73b2afa540a62db80831df69cd3c84",
+            "sha256:39a2827497c991324d32dd17d92a25080b2f56519175e58093328e32f67daa44",
+            "sha256:040319536c6ee162e89ba360cb0eaa332948eccae2a7240d0afecdcde43c0b37"
         ]
     );
 

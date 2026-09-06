@@ -550,10 +550,15 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         [
             // Re-pinned after type-fact cycle detection began retaining exact
             // concrete nominal identities; only `used_builder_bytes` moved.
-            "sha256:bcf227338366f36d0c5da7edb9258335b3e30bd0a54c70269aea93a4bba5e6b8",
-            "sha256:bd274f9e3605b994f98d80615563d92c459595d93cd47412eeeefb270098d408",
-            "sha256:a024f632960c7dc98e17f3f7a025a37d3606caef6d94f8d70a4df7f2d4548563",
-            "sha256:331ce176bed8fc6aa8e1a2b797acdbc28680316a9c552edec7f747bd4f36f981"
+            // Issue #83 re-pin: this whole-document KAT embeds `used_builder_bytes`,
+            // which moved when the identity copy factor was re-derived from 64 to 16.
+            // Only that budget field changed; every other field of the rendered
+            // document is byte for byte identical, checked by rendering the same
+            // document under both factors and diffing it field by field.
+            "sha256:c1c15f1c551f05040980670b4c6af5d80e159d43e4ca5335b56f0720a55828c2",
+            "sha256:28a89ea413d247770e8bdef5a6bf713391ff5c1772c09ee708bf01cce4af07d3",
+            "sha256:5de937c0062a12535a22aa2ad90b206c529f95d022d2453cdc1ab23362c76bde",
+            "sha256:46baaa677f77e75c57ff31e2f7df7fcd4dcc1d2870691e52fd790c1e143b1bee"
         ]
     );
     for artifact in &contexts {
@@ -612,8 +617,8 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         [
             // Re-pinned after type-fact cycle detection began retaining exact
             // concrete nominal identities; only `used_builder_bytes` moved.
-            "sha256:966c7dd6f747bce6413e45c1daf7b90dd61c3a2c3549ff22fb547338d4a5e710",
-            "sha256:eca83c34f1d85daec9f3931b930b3b83c2662ed4782ebc190a16c217daa51bf6",
+            "sha256:3ae26f5d1121c1866c37133c80cb2f79f5206e86c1a0fce6f69b09bc2a9040ee", // #83: `used_builder_bytes` moved with the identity factor.
+            "sha256:e6ee612d5db2609e229130adfe032bf23ed2d05c82b6d55d46c24d291f22a1b9",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -750,7 +755,7 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         document_sha(&review.json),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:505e0b78fcdbe07bd4c267df0a9e5a12072cc3105a7dc4d78920f49236dd07ad"
+        "sha256:61f5227d56bb6ec6057bb1410c6dac5907ade04d2800f5466d6a98333d769c0a" // #83: `used_builder_bytes` moved with the identity factor.
     );
     let direct_context = analysis
         .render_context(

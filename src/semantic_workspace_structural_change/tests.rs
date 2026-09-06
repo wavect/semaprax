@@ -1264,11 +1264,11 @@ fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() 
             raw_sha(artifacts.evidence()),
         ],
         [
-            "sha256:0f6efe543aba015c57605af3813c68ce21b7f713c272a603d3e37c643787b8c2",
-            "sha256:591a188353da9ede365e0d3201555dfd0cfda404ab4e21cf55dd6562c2b0df6d",
-            "sha256:eb74c7c76c24e64ca61c42e33ed5c4af32b12af548dd5548d8d8739a22a435fd",
-            "sha256:8b2e6d27de11a3a9422c19be5d31374b250876089e2e114da5bd12af15bd183d",
-            "sha256:6396811d0418a82db6159cb46d1c274b48d3a33f97db1a6559c1f656448cf8df",
+            "sha256:31368de039595d8963be4dfc03ea2b0595281ec314526ced81d8d6a2302437da", // #83: `used_builder_bytes` moved with the identity factor.
+            "sha256:d9f6f107100380d1c1e0cfec6f5c3fb13cad024d3a71e9f1263912d3d4f54748",
+            "sha256:4ba39749e516d9466844a9837610c6eccdf7081367324b469192cc9daaf4199f",
+            "sha256:b31b0ccf338b1c4580764e3c85692087346484e335919712fbb9aedb7f9e2a38",
+            "sha256:2b1628f586f9b662e8b861233b0cc7c89c5801dfd180a9a5c7ead5ec9e3c0c28",
         ]
     );
 
@@ -1315,7 +1315,7 @@ fn managed_generate_and_verify_are_exact_read_only_kats_under_one_shared_lock() 
     assert_eq!(value["budget"]["used_receipt_bytes"], receipt.len());
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:18f83d757c855caab3b8cc591a76eea38464d94450439c1325ff9f1e8a734494"
+        "sha256:7d4fb2050e25db64ffe3ed81ec33457498651875e908c71c0d9314b0d1d65b76" // #83: `used_builder_bytes` moved with the identity factor.
     );
     fixture.assert_exclusive_reacquire();
 }
@@ -1983,7 +1983,7 @@ fn structural_apply_publishes_exact_candidate_once_without_raw_writes() {
     assert_eq!(receipt_value["result"], "applied");
     assert_eq!(
         raw_sha(&receipt),
-        "sha256:34a106c08d475f4d326e6bb8fd49a269c4f4fcf1ab6871023f8752fab30fc03d"
+        "sha256:ee108b0f504ee4979bad983641a879853cf1e02008d4fcba4cf43e7571f9efec" // #83: `used_builder_bytes` moved with the identity factor.
     );
     assert_eq!(fixture.raw_inventory(), raw_before);
     assert_ne!(

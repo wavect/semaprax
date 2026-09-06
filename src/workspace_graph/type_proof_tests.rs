@@ -781,11 +781,14 @@ module graph.v14;
         // contents 64 times, and per-shape identity slots instead of 64
         // footprints and eight slots for every node, and an imported function
         // is now charged as the stub the projection retains instead of as a
-        // second copy of the provider's contract and body. Wire-order and
+        // second copy of the provider's contract and body, and issue #83
+        // re-derived the identity copy factor from 64 to 16. Only
+        // `used_builder_bytes` and the digest over it move; every other field
+        // of the rendered document is byte for byte identical. Wire-order and
         // independent replay below remain exact.
         assert_eq!(
             document_sha,
-            "sha256:55ad472c19bc632a30d277839c2b4e5c1918dd4e8c45a863e96705710feca1d9"
+            "sha256:0aea9dcd38bdd6d1eaeae2c90f625c119ddc555460852f2771c75c83461b6f79"
         );
         assert!(json.starts_with(
                 "{\"schema\":\"semaprax.workspace-semantic-graph.v1\",\"workspace_manifest_schema\":\"semaprax.workspace-semantic-manifest.v1\",\"workspace_revision\":\"sha256:workspace\",\"graph_digest\":\"sha256:"

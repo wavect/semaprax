@@ -385,7 +385,7 @@ fn authenticated_derivation_kat_binds_refs_budget_nonclaims_and_build_counts() {
     );
     assert_eq!(
         output.derivation_digest(),
-        "sha256:7ea8d96c77213e0267e05e2ed13c34f310a520e644e29ca4cc8fab4158066b60"
+        "sha256:1d6d5bc566146da016485e657fbc1849e36c22a4e0f0d9654028f7c68a303da7" // #83: `used_builder_bytes` moved with the identity factor.
     );
 }
 
@@ -1513,11 +1513,11 @@ fn operations_evidence_and_verification_are_exact_one_build_kats() {
         .starts_with("sha256:"));
     assert_eq!(
         raw_sha256(artifacts.workspace_change_evidence().as_bytes()),
-        "sha256:22423e5e9e20beac3687e962ba29109383057a42a0d5b0efc7d4e93be5ccf5e0"
+        "sha256:74f483438a6b2d1df18265e8116c7fe354d2684b785e1f3618959e14e21f71bc" // #83: `used_builder_bytes` moved with the identity factor.
     );
     assert_eq!(
         raw_sha256(artifacts.operations_evidence().as_bytes()),
-        "sha256:2bf14234ceb30d6eb34d2dbd8697b7377be776cca32c824e766cd0a824412771"
+        "sha256:eebd91970fbf9b5dae7c8868c2b9ceb8dae1643e1f4e2521e8ead4f987642998" // #83: `used_builder_bytes` moved with the identity factor.
     );
     assert_eq!(
         artifacts.operations_proposal_digest(),
@@ -1546,7 +1546,7 @@ fn operations_evidence_and_verification_are_exact_one_build_kats() {
     });
     assert_eq!(
         raw_sha256(receipt.as_bytes()),
-        "sha256:ab3c37935eb14aa44232b4a4518c8a190e2100d36adac4b0b2c3b5f8ccebbbd6"
+        "sha256:69088bfc65e594f330b3d3f767daab9e5dca841bc700341c611b895db96230bf" // #83: `used_builder_bytes` moved with the identity factor.
     );
     let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
     assert_eq!(
@@ -2236,7 +2236,7 @@ fn operations_apply_is_exact_stale_and_zero_write_before_replay() {
     let receipt = apply(&fixture.root, &fixture.proposal_path, &evidence_path).unwrap();
     assert_eq!(
         raw_sha256(receipt.as_bytes()),
-        "sha256:701775882f7ca2d9cfbcd312b2f1abf8215bb79b610735b912044ab58415f004"
+        "sha256:cf0929ec1ed17faac47bfd6cbad8423bfb8fc99020a5cf117c9e8f5b5c4b0743" // #83: `used_builder_bytes` moved with the identity factor.
     );
     let value: Value = serde_json::from_str(receipt.trim_end()).unwrap();
     assert_eq!(

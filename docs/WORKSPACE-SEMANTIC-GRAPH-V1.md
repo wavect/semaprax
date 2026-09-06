@@ -157,10 +157,36 @@ compile-time bundle assertions establish plus eight for map and tree
 bookkeeping; string-content bytes times 64, the at-most 48 retained copies of
 a source string plus bookkeeping; and, for every declaration identity slot a
 resolved expression of that shape can hold, the longest identity in scope
-times 64. A scalar expression holds three slots, a call or construction four,
+times 16. A scalar expression holds three slots, a call or construction four,
 a variant construction five, and `Try` eight. Before the split, every source
 byte and every expression were charged at the `Try` and string rates, and a
 4.9 KiB module of twenty scalar functions exhausted the budget.
+
+The pre-bound is a refusal that runs before linking; it is not the only
+enforcement. The pre-bound and the structures the core build actually retains
+are reserved against the same `builder_bytes` budget, and an overflow of
+either is `SPX-G171`, so a looser pre-bound refuses earlier and a tighter one
+refuses later, without either removing the retained-memory bound.
+
+The identity factor was re-derived from measurement. A declaration identity at
+one resolved occurrence is retained by the HIR node, the declaration, type and
+call indexes, the validation sets, the cleanup inventory, the cleanup-plan
+projection, and the retained edge set: eight structures, each able to hold it
+as a map key and as a value, which also covers the transient resolver maps
+live beside them. The previous factor of 64 additionally charged the copies
+that the identity-slot count already enumerates, so every slot was billed for
+the whole resolver twice. Measured with a counting global allocator around the
+core build, lengthening every identity in a package by one byte raises the
+heap that build retains by 0.87 to 1.11 bytes per identity slot — `std.test`
+460 bytes over 416 slots, `std.core` 1,378 over 1,385, `std.bytes` 2,080 over
+2,378, and `std.data.json.token` 2,409 over 2,755 — against 64 charged, so
+sixteen keeps a margin above measurement wider than the structural factor's.
+The structural and string factors were measured the same way and left alone:
+adding a function to `std.core` charges 24 structural bytes per structural
+source byte where the core build retains 3.8, and the string term is 1.2% to
+2.5% of the estimate on the `std.data.json.*` packages. The tracked
+`bounded_output` debit is not an under-count worth re-deriving against: it is
+66% to 79% of the retained heap the allocator measures on the same builds.
 
 An imported declaration is charged for what the synthetic projection retains,
 not for the provider's source. A function import becomes a stub: the rewritten
@@ -178,10 +204,11 @@ copy of that library — measured at 142,043 of the 226,999 raw pre-bound bytes
 of `std.data.json.tests`, expanded by 24, which is why two packages of about
 4.5 KiB could not be linked together. With that charge corrected, the budget
 is spent on the whole package - library, examples, and conformance modules
-plus any vendored `[dependencies]` source. Measured by padding the five JSON
-packages until `SPX-G171` fires, one package admits between 13.3 KB and
-15.9 KB of total source, varying with declaration and expression structure
-rather than byte count alone.
+plus any vendored `[dependencies]` source. Measured by padding the six JSON
+packages with trivial `i64` helpers until `SPX-G171` fires, one package admits
+between 19.7 KB and 22.1 KB of total source, varying with declaration and
+expression structure rather than byte count alone. The same measurement before
+the identity term was re-derived gave 12.3 KB to 14.2 KB.
 
 Output is written through a hard sink before allocation. Exactly 16,777,216
 bytes succeeds; one more reports `SPX-G171` for `output_bytes` with no partial

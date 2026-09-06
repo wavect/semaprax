@@ -48,6 +48,35 @@ format: `Unreleased` then release buckets, grouped by impact.
   execution, typed language effects beyond the injected read, durable
   checkpoint/resume, and a CLI surface remain Missing.
 
+- Re-derived the `SPX-G171` identity term. The builder pre-bound charged
+  every declaration identity slot the longest identity in scope times 64, a
+  factor whose enumeration of retained resolver structures overlapped the
+  occurrences the slot count already enumerates, so each slot was billed for
+  the whole resolver twice. Measured with a counting global allocator around
+  the core build, lengthening every identity in a package by one byte raises
+  the heap that build retains by 0.87 to 1.11 bytes per identity slot
+  (`std.test` 460 over 416 slots, `std.core` 1,378 over 1,385, `std.bytes`
+  2,080 over 2,378, `std.data.json.token` 2,409 over 2,755), so the factor is
+  now 16: eight retained structures, each able to hold the identity as a map
+  key and as a value. The structural factor stays 24 against a measured 3.8,
+  because the sixteen it is built from is a compile-time bundle assertion
+  rather than an estimate, and the string factor stays 64 because that term is
+  1.2% to 2.5% of the estimate. Padding the six `std.data.json.*` packages
+  until `SPX-G171` fires now admits 19.7 KB to 22.1 KB of total package source
+  where the same measurement gave 12.3 KB to 14.2 KB, so `std.data.json.doc`
+  has headroom again. Nothing about the retained-memory bound is relaxed: the
+  pre-bound and the structures the core build actually retains are reserved
+  against the same 16 MiB budget and either overflow is still `SPX-G171`.
+  Whole-document KATs that embed `used_builder_bytes` were re-pinned;
+  rendering the same workspace document under both factors and diffing it
+  field by field shows `used_builder_bytes` and the digest over it as the only
+  changes. Standard Library v1 also records two limits that were written down
+  nowhere: `match` is not admitted in a `while` body (`SPX-T252`) outside a
+  two-arm `Option` match on `byte_get`, and replay path counts multiply across
+  sequential statements while only summing across `match` arms, so packing
+  small tables into one function can trip `SPX-H006` where splitting them
+  does not.
+
 - Added `interpreter::retained_call`, the retained multi-argument call seam
   Reference Interpreter v1 was missing: `prepare_resolved_zero_arg_i64` is
   zero-argument and additionally requires `entry_id == program.entrypoint`, so

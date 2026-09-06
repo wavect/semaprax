@@ -191,10 +191,15 @@ These compiler bounds decide how large one package can be:
   copy of the library it exercises. The budget is charged against the whole
   package - library, examples, and conformance modules together with any
   vendored `[dependencies]` source - not against the library module alone.
-  Measured on the four JSON sibling packages by padding each library and its
-  conformance module until `SPX-G171` fires, the admitted total package source
-  is between 13.3 KB and 15.9 KB, varying with declaration and expression
-  structure rather than with byte count alone. A slice larger than that is
+  Measured on the six JSON sibling packages by padding each library with
+  trivial `i64` helpers until `SPX-G171` fires, the admitted total package
+  source is between 19.7 KB and 22.1 KB, varying with declaration and
+  expression structure rather than with byte count alone. The same measurement
+  before the identity term was re-derived gave 12.3 KB to 14.2 KB, which is
+  why `std.data.json.doc` shipped at 12,216 bytes with no headroom; the
+  re-derivation is recorded in
+  [Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md#limits-and-budget).
+  A slice larger than that is
   authored as sibling packages that a consumer links, which
   `standard_library::package_manifest_links_json_scanner_and_token_siblings`
   and `..._json_writer_siblings` exercise; taking a dependency on a sibling
@@ -207,6 +212,20 @@ These compiler bounds decide how large one package can be:
   chain is rejected; the fix is to split it, or to replace the chain with a
   `match` table, which contributes one path per arm rather than doubling. This
   is why a conformance module keeps each check in its own function.
+- Path counts *multiply* across sequential statements and only *sum* across
+  `match` arms. Two tables of eight arms each cost sixty-four paths in one
+  function body and sixteen in two, so packing several small tables into one
+  function can trip `SPX-H006` where splitting them apart does not. This is
+  the opposite of the usual intuition that fewer, larger functions are
+  cheaper, and it compounds with the per-function path doubling above.
+- `match` is not admitted in a `while` body (`SPX-T252`, `match expressions
+  are not yet admitted in while bodies`). The single exception is a two-arm
+  `Option::Some`/`Option::None` match, without guards, directly on a
+  `byte_get(...)` call. Every other table lookup inside a loop is authored as
+  a helper function the loop calls, which is also what the path budget above
+  wants: the helper's arms sum inside the helper instead of multiplying into
+  the loop body. `while` bodies also reject string literals, fixed-array
+  literals, and `?` with the same code.
 - The byte-data profile (`useful-data.v1`) admits contracts throughout its
   inventory since the data emitter and npm recipe learned to lower and record
   them; `std.bytes` is a Project v3 package on that profile. Its web exports

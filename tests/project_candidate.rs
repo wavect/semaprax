@@ -55,6 +55,8 @@ mod draft_merge;
 mod draft_rebase;
 #[path = "project_candidate/draft_recovery.rs"]
 mod draft_recovery;
+#[path = "project_candidate/exact_program_context_v2_refresh.rs"]
+mod exact_program_context_v2_refresh;
 #[path = "project_candidate/expression.rs"]
 mod expression;
 #[path = "project_candidate/expression_holes.rs"]

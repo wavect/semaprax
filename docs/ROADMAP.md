@@ -231,14 +231,16 @@ candidate-safe Project Lock replay: until that is available, candidate
 ProgramRoot-v2 derivation and exact service refresh must continue to fail
 closed rather than copy or weaken external facts.
 
-ProgramRoot v3 now separately associates ordered compiler-derived contract
-facts and the declared executable test inventory without relabeling either as
-proof, coverage, or execution. Exact Program Context v2 adds the versioned
-workspace/v3 selector through typed query, transaction, service, and history
-results while preserving every existing operation wire. The next step is
-candidate-safe replay of all external facts; until then candidate ProgramRoot
-v3 and exact service refresh remain closed rather than copying or discarding
-the appended facts.
+ProgramRoot v3 separately associates ordered compiler-derived contract facts
+and the declared executable test inventory without relabeling either as proof,
+coverage, or execution. Exact Program Context v2 now carries the versioned
+workspace/v3 selector through typed operations and admits a candidate-safe
+exact service refresh only after independent successor-context replay against
+the frontend-built Project. It preserves every existing operation, receipt,
+and history wire; successor facts are freshly supplied and replayed rather
+than implicitly copied from the current generation. Durable
+service state, transport exposure, execution, commit, and publication remain
+later lifecycle steps.
 
 Universal Semantic Transaction v2 now promotes exactly one additive operation:
 revision-scoped authored body `ReplaceExpression` for explicit monomorphic

@@ -110,6 +110,10 @@ cargo test --locked -p semaprax --test workspace program_root_v3::
 ```
 
 This is bounded association evidence only. The additive [Exact Program Context
-v2](EXACT-PROGRAM-CONTEXT-V2.md) now supplies a separate typed selection layer
-for this exact root without changing ProgramRoot-v3 bytes. Candidate-v3
-identity, exact service refresh, execution, and publication remain closed.
+v2](EXACT-PROGRAM-CONTEXT-V2.md) supplies a separate typed selection layer for
+this exact root without changing ProgramRoot-v3 bytes. Its candidate-safe
+refresh bridge independently replays a host-authenticated successor context
+against a separately compiler-admitted candidate Project; it neither derives
+ProgramRoot v3 from caller JSON nor implicitly copies current external facts
+forward. A changed successor fact selection is bound by the new root identity.
+Execution and publication remain closed.

@@ -790,6 +790,117 @@ impl SemanticWorkspaceService {
         Ok(receipt)
     }
 
+    /// Stage and atomically adopt one exact ProgramRoot-v3 generation.
+    ///
+    /// The active dual selectors are checked before cache, candidate, or
+    /// history work. The candidate context is then independently replayed
+    /// against the frontend-built revision; neither serialized context bytes
+    /// nor caller-owned sources become trusted retained state directly.
+    pub fn refresh_owned_sources_exact_v2(
+        &mut self,
+        manifest: &ProjectManifest,
+        sources: &[ProjectFrontendSource],
+        expected_old_workspace_revision: &str,
+        expected_old_program_root_v3_digest: &str,
+        candidate_context: Arc<ExactProgramContextV2>,
+    ) -> Result<SemanticWorkspaceServiceRefresh> {
+        let current_context = Arc::clone(self.active.exact_context_v2().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v3 context")
+        })?);
+        current_context.select(
+            expected_old_workspace_revision,
+            expected_old_program_root_v3_digest,
+        )?;
+
+        let mut history = self
+            .history
+            .lock()
+            .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?;
+        history.require_capacity()?;
+
+        let mut frontend = self.frontend.fork();
+        let build = frontend.build(manifest, sources)?;
+        let frontend_work = parse_value(build.to_json())?;
+        let candidate_revision = build.into_revision();
+        let candidate_context = ExactProgramContextV2::refresh_candidate(
+            &current_context,
+            &candidate_revision,
+            candidate_context,
+        )?;
+        let candidate = Arc::new(derive_generation(
+            Arc::clone(candidate_context.exact_program_context_v1().revision()),
+            None,
+            Some(Arc::clone(&candidate_context)),
+        )?);
+
+        let before = &self.active.revision;
+        let after = &candidate.revision;
+        let (changed, invalidated, manifest_changed, inventory_changed) =
+            invalidation(before, after);
+        let same_revision_facts = same_revision(before, after);
+        let same_context = candidate_context.context_v2_digest()
+            == current_context.context_v2_digest()
+            && candidate_context.to_json() == current_context.to_json();
+        let generation_reused = same_revision_facts && same_context;
+        if candidate_context.program_root_v3().program_root_v3_digest()
+            == current_context.program_root_v3().program_root_v3_digest()
+            && !generation_reused
+        {
+            return Err(stale(
+                "unchanged exact ProgramRoot v3 has different retained generation facts",
+            ));
+        }
+        let adopted = if generation_reused {
+            Arc::clone(&self.active)
+        } else {
+            candidate
+        };
+        let old_workspace_revision = self.active.workspace_revision().to_owned();
+        let workspace_revision = adopted.workspace_revision().to_owned();
+        let json = render(json!({
+            "authority": false,
+            "changed_sources": changed,
+            "frontend_work": frontend_work,
+            "generation_arc_reused": generation_reused,
+            "image_digest": adopted.image.image_digest(),
+            "invalidated_sources": invalidated,
+            "invalidation_basis": "changed_sources_and_union_of_old_new_reverse_module_imports",
+            "limits": {"max_receipt_bytes": MAX_SEMANTIC_WORKSPACE_SERVICE_RECEIPT_BYTES},
+            "manifest_changed": manifest_changed,
+            "nonclaims": [
+                "no_filesystem_freshness_or_publication_authority",
+                "not_function_level_incremental_verification",
+                "not_peak_heap_or_latency_accounting"
+            ],
+            "old_image_digest": self.active.image.image_digest(),
+            "old_project_revision": before.project_revision(),
+            "old_workspace_revision": old_workspace_revision,
+            "project_revision": adopted.revision.project_revision(),
+            "schema": SEMANTIC_WORKSPACE_SERVICE_REFRESH_SCHEMA,
+            "source_inventory_changed": inventory_changed,
+            "workspace_revision": workspace_revision,
+        }))?;
+        let receipt = SemanticWorkspaceServiceRefresh {
+            digest: hash(REFRESH_DOMAIN, json.as_bytes()),
+            json,
+            old_workspace_revision,
+            workspace_revision,
+            generation_reused,
+        };
+        let history_entry = history.refresh_entry(
+            before.project_revision(),
+            receipt.old_workspace_revision(),
+            adopted.revision.project_revision(),
+            receipt.workspace_revision(),
+            receipt.receipt_digest(),
+        )?;
+
+        self.active = adopted;
+        self.frontend = frontend;
+        history.append(history_entry);
+        Ok(receipt)
+    }
+
     /// Validate exact canonical transaction bytes against the selected active
     /// generation. Candidate evidence is returned without changing service state.
     pub fn validate_transaction(

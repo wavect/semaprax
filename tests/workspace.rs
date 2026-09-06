@@ -28,6 +28,8 @@ mod contracts_and_tests_facts;
 mod exact_program_context;
 #[path = "workspace/exact_program_context_v2.rs"]
 mod exact_program_context_v2;
+#[path = "workspace/exact_program_context_v2_refresh.rs"]
+mod exact_program_context_v2_refresh;
 #[path = "workspace/graph_phase_a_surface.rs"]
 mod graph_phase_a_surface;
 #[path = "workspace/interface_artifact_facts.rs"]

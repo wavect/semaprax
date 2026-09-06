@@ -703,9 +703,13 @@ ProgramRoot v3, then requires the enriched workspace and v3-root digests on
 every exact route. Query, transaction, service, and service-history adapters
 retain v3 (and where applicable v2) only on typed in-memory results; their v1
 wires remain unchanged. Exact transaction history still binds the authenticated
-default Project-derived base workspace. Exact generations cannot refresh, and
-no candidate-v3 identity exists. See [Exact Program Context
-v2](EXACT-PROGRAM-CONTEXT-V2.md).
+default Project-derived base workspace. Its candidate-refresh bridge
+independently replays current and host-authenticated successor contexts against
+a separately compiler-admitted candidate revision. The semantic service stages
+the candidate generation, cache, unchanged receipt, and history entry before
+one exact adoption; failure preserves all installed state. No external fact is
+copied from the current root, and no serialized root becomes trusted state.
+See [Exact Program Context v2](EXACT-PROGRAM-CONTEXT-V2.md).
 
 `src/project/semantic_transaction.rs` owns the bounded authority-free Universal
 Semantic Transaction v1 kernel. It binds an exact canonical workspace revision

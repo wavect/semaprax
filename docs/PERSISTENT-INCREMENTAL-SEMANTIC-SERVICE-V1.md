@@ -345,10 +345,26 @@ contract/test facts throughout.
 Exact transaction history still records the authenticated default
 Project-derived base workspace from the unchanged transaction artifacts. V3 is
 a selector association, not a replacement history subject. Replay appends
-nothing. Refresh rejects context-v1 and context-v2 generations alike; there is
-no candidate-v3 or exact v3 refresh/adoption route. Service work, refresh,
+nothing.
+
+`refresh_owned_sources_exact_v2` adds a candidate-safe refresh for a v2 exact
+context only. It checks the active workspace/v3 selectors before cache or
+history work, compiler-admits the complete caller-owned manifest/source set in
+a forked cache, and passes that independently built revision plus an already
+host-authenticated successor context through `ExactProgramContextV2::refresh_candidate`.
+The bridge independently replays current and candidate contexts and requires
+the candidate context's retained Project to equal the frontend-built Project
+exactly. Complete generation, image, indexes, unchanged refresh-v1 receipt, and
+history entry are staged before one generation/cache/history adoption.
+
+Failure leaves the prior generation `Arc`, cache, indexes, snapshots, and
+history unchanged. Successful history binds the old and new enriched workspace
+identities; old snapshots remain exact. A no-op may reuse the generation only
+when the Project and complete exact context match, never from root-digest
+equality alone. Context v1 remains non-refreshable. Service work, refresh,
 query/result, transaction/evidence, and history query/result schemas and bytes
-remain unchanged.
+remain unchanged, and the route grants no host acquisition, execution, commit,
+or publication authority.
 
 ## Additive Universal Semantic Transaction v2 routes
 

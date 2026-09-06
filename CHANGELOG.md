@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extended Exact Program Context v2 with candidate-safe ProgramRoot-v3 refresh.
+  A host-authenticated successor context is independently replayed against a
+  separately compiler-admitted candidate Project; successor external facts are
+  freshly supplied and replayed rather than implicitly copied from the current
+  generation. The persistent service selects the active
+  workspace/v3 root first, stages the complete candidate generation, cache,
+  indexes, unchanged refresh-v1 receipt, and history entry, then adopts them
+  together. Stale selectors, cross-paired facts, invalid source, or replay
+  failure preserve the active generation and history; old snapshots remain
+  exact. This adds no wire, filesystem acquisition, execution, commit, or
+  publication authority.
+
 ## 0.4.0 — 2026-09-06
 
 - Added Universal Semantic Transaction v2 for one exact, authority-free

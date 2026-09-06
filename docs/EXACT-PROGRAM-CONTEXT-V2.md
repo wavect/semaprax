@@ -1,8 +1,7 @@
 # Exact Program Context v2
 
-Status: additive SEG-02 ProgramRoot-v3 selection contract; focused local
-evidence passes. This is not ProgramRoot-v3 refresh, candidate identity,
-execution, or authority.
+Status: additive SEG-02 ProgramRoot-v3 selection and candidate-refresh
+contract; focused local evidence passes. This is not execution or authority.
 
 Audience: compiler contributors, semantic-service implementers, and reviewers
 of exact contract/test-fact selection.
@@ -63,13 +62,41 @@ Project-derived base workspace identity from the unchanged transaction
 artifacts. The enriched workspace and ProgramRoot v3 are selector associations,
 not replacements for that base. Replay remains read-only and appends no history.
 
+## Candidate-safe exact refresh
+
+`refresh_candidate` accepts the retained current context, a separately
+compiler-admitted candidate `ProjectRevision`, and a host-authenticated
+candidate context. It independently replays both complete typed contexts and
+requires the candidate context's retained Project manifest, source inventory,
+source bytes, revisions, workspace manifest, and graph to equal that separate
+candidate admission. The current context contributes no facts to the
+successor: fresh Project Lock association and interface/artifact facts must
+already have crossed their ordinary authenticated host boundaries when the
+candidate context was assembled.
+
+The persistent service's `refresh_owned_sources_exact_v2` first selects the
+active enriched workspace and ProgramRoot-v3 digest, then forks its frontend
+cache and admits the supplied manifest/source set. Only after
+`refresh_candidate`, complete generation/index derivation, the unchanged v1
+refresh receipt, and the next unchanged v1 history entry all succeed does it
+adopt the cache and exact generation together. A successful history entry
+binds the old and new enriched workspace identities and exact old/new Project
+revisions. Earlier snapshots remain immutable. Failed selectors, frontend
+admission, cross-paired candidate facts, replay, receipt, or history staging
+leave generation, cache, indexes, and history unchanged.
+
+An exact no-op refresh reuses the generation `Arc` only when both retained
+Project facts and the complete context-v2 identity/bytes match. Equality of a
+ProgramRoot-v3 digest alone is never trusted. The receipt remains schema
+`semaprax.semantic-workspace-service-refresh.v1` and contains no new v2/v3 or
+context field, preserving its established bytes for an equivalent operation.
+
 ## Closed boundaries and diagnostics
 
-An exact service generation cannot refresh: refresh still requires fresh
-external-fact replay and fails closed for both context versions. Transaction
-validation can construct the unchanged ordinary candidate artifacts, but there
-is no candidate ProgramRoot v3, candidate context v2, or v3 refresh/adoption
-route.
+The candidate bridge does not acquire source, lock, artifact, cache, commit, or
+publication authority. It accepts only already admitted typed objects. The
+ordinary ProgramRoot-v2 exact context remains non-refreshable; the new route is
+restricted to a complete context-v2/ProgramRoot-v3 successor.
 
 | Code | Meaning |
 | --- | --- |
@@ -87,7 +114,7 @@ execution, deployment, commit, or publication authority.
 
 ## Focused evidence
 
-The three-case focused Workspace module passes locally. It covers exact
+The original three-case focused Workspace module passes locally. It covers exact
 assembly/replay, retained descriptor identity, frozen context-v1 and
 ProgramRoot-v1/v2 bytes, selector-first failure,
 unknown-field rejection, self-consistent fact-digest remint rejection, and the
@@ -102,6 +129,9 @@ selectors winning before malformed operation bytes without appending history:
 cargo test --locked -p semaprax --test workspace exact_program_context_v2::
 ```
 
-This remains bounded in-memory association evidence. It does not establish
-candidate-v3 derivation, exact refresh, a new service wire, execution, or
-authority.
+The additive refresh module covers direct/service candidate parity, exact old
+and new selectors, stale and cross-paired facts, frontend failure rollback,
+immutable old snapshots, exact history identity, unchanged legacy roots and
+receipt schema, and no filesystem writes. This remains bounded in-memory
+association and refresh evidence. It establishes no new service wire,
+execution, source commit, or authority.

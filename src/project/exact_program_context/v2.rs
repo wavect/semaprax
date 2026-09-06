@@ -11,7 +11,9 @@ use sha2::{Digest, Sha256};
 use crate::diagnostic::Diagnostic;
 
 use super::ExactProgramContext;
-use crate::project::{ContractsAndTestsFacts, ProgramRoot, ProgramRootV2, ProgramRootV3};
+use crate::project::{
+    ContractsAndTestsFacts, ProgramRoot, ProgramRootV2, ProgramRootV3, ProjectRevision,
+};
 
 pub const EXACT_PROGRAM_CONTEXT_V2_SCHEMA: &str = "semaprax.exact-program-context.v2";
 pub const MAX_EXACT_PROGRAM_CONTEXT_V2_BYTES: usize = 96 * 1024;
@@ -56,6 +58,36 @@ impl ExactProgramContextV2 {
             .to_owned();
         let digest = v3.program_root_v3_digest().to_owned();
         Self::derive(context_v1, facts, v3, &workspace, &digest)
+    }
+
+    /// Admit a candidate exact generation only after independently replaying
+    /// both the retained current context and the caller-supplied candidate
+    /// context. The candidate context's Project must be byte-identical to the
+    /// separately admitted candidate revision. Its retained external facts are
+    /// freshly supplied and replayed, never implicitly copied from the current
+    /// generation. Their selection policy may change and is bound by the new
+    /// context identity.
+    ///
+    /// This operation retains no snapshot, path, lock, cache, or publication
+    /// authority. A host that needs fresh Project Lock association material
+    /// must assemble `candidate_context` through its ordinary authenticated
+    /// snapshot boundary before calling this method.
+    pub fn refresh_candidate(
+        current: &Arc<Self>,
+        candidate_revision: &Arc<ProjectRevision>,
+        candidate_context: Arc<Self>,
+    ) -> Result<Arc<Self>> {
+        replay_retained_context(current)?;
+        let replayed_candidate = replay_retained_context(&candidate_context)?;
+        if !same_project_revision(
+            candidate_revision,
+            replayed_candidate.exact_program_context_v1().revision(),
+        ) {
+            return Err(stale(
+                "candidate exact context does not match the separately admitted Project revision",
+            ));
+        }
+        Ok(Arc::new(replayed_candidate))
     }
 
     /// Construct v2 only after exact selector checks and independent replay of
@@ -227,6 +259,40 @@ impl ExactProgramContextV2 {
     pub fn to_json(&self) -> &str {
         &self.json
     }
+}
+
+fn replay_retained_context(context: &ExactProgramContextV2) -> Result<ExactProgramContextV2> {
+    ExactProgramContextV2::replay(
+        Arc::clone(context.exact_program_context_v1_arc()),
+        context.contracts_and_tests_facts().clone(),
+        context.program_root_v3().clone(),
+        context
+            .exact_program_context_v1()
+            .semantic_workspace()
+            .workspace_revision(),
+        context.program_root_v3().program_root_v3_digest(),
+        context.context_v2_digest(),
+        context.to_json().as_bytes(),
+    )
+}
+
+fn same_project_revision(left: &ProjectRevision, right: &ProjectRevision) -> bool {
+    left.project_revision() == right.project_revision()
+        && left.workspace_revision() == right.workspace_revision()
+        && left.manifest().to_canonical_toml() == right.manifest().to_canonical_toml()
+        && left.workspace_manifest() == right.workspace_manifest()
+        && left.semantic_graph() == right.semantic_graph()
+        && left.sources().len() == right.sources().len()
+        && left
+            .sources()
+            .iter()
+            .zip(right.sources())
+            .all(|(left, right)| {
+                left.path() == right.path()
+                    && left.source() == right.source()
+                    && left.source_revision() == right.source_revision()
+                    && left.source_digest() == right.source_digest()
+            })
 }
 
 fn replay_v1(context: &ExactProgramContext) -> Result<ExactProgramContext> {

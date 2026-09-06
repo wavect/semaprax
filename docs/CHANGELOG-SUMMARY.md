@@ -14,7 +14,8 @@ For complete chronological detail, including historical context and archived art
   ScalarV1 composition, two-sided owned results, and loop-carried owned byte
   buffers and vectors across interpreter, native C11, and Core Wasm evidence;
   Copy-scalar vectors also gain bounded immutable `for` traversal lowered to
-  the existing length/get/while HIR.
+  the existing length/get/while HIR, while compiler-owned bounded `Box<T>` and
+  the alloc-tier `std.mem` package add synchronous scalar ownership transfer.
 - ProgramRoot v3, Exact Program Context v2, contracts/test facts, universal
   semantic query and transaction operations, persistent service transports,
   and installed diagnostics/fix guidance deepen the agent-facing semantic

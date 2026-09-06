@@ -8,6 +8,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+## 0.4.0 — 2026-09-06
+
 - Added Universal Semantic Transaction v2 for one exact, authority-free
   `ReplaceExpression` over an authenticated revision-scoped body-expression
   identity, including explicit monomorphic `main`. Validation rebuilds the
@@ -32,8 +34,6 @@ format: `Unreleased` then release buckets, grouped by impact.
   hostile-carrier evidence passes; contract-failure cleanup, owned payloads,
   allocator interfaces, public generic ABI, regions, arenas, ARC/shared ownership,
   Iterator integration, hosted evidence, and production support remain open.
-
-## 0.4.0 — 2026-09-06
 
 - Specified Owned Bounded Vec For Traversal v1: the source form
   `for item in values { body }` accepts one simple immutable `Vec<T>` binding

@@ -141,6 +141,8 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
             "--version",
             version,
         ])
+        .env("PYTHONUTF8", "0")
+        .env("PYTHONIOENCODING", "utf-8")
         .current_dir(root)
         .output()
         .expect("release preparation checker must run");
@@ -155,6 +157,8 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
 
     let notes = Command::new("python3")
         .args(["scripts/release-notes.py", "--version", version])
+        .env("PYTHONUTF8", "0")
+        .env("PYTHONIOENCODING", "utf-8")
         .current_dir(root)
         .output()
         .expect("release notes renderer must run");
@@ -168,6 +172,8 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     for exact in [
         title.as_str(),
         "## Changes",
+        "Universal Semantic Transaction v2",
+        "Owned Bounded Box v1",
         "Owned Bounded Vec For Traversal v1",
         "Added `std.data.json.dec`",
         "These unsigned archives are not notarized",

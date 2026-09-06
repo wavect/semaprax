@@ -34,7 +34,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if not VERSION_RE.fullmatch(args.version):
         raise ValueError("--version must be canonical major.minor.patch")
-    section = changelog_section(args.changelog.read_text(), args.version)
+    section = changelog_section(
+        args.changelog.read_text(encoding="utf-8"), args.version
+    )
     print(f"SEMAPRAX v{args.version} is pre-alpha research software.\n")
     print("## Changes\n")
     print(section)

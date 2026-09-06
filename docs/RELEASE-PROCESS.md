@@ -115,6 +115,13 @@ fixtures in the same commit. An oversized-length fixture must derive
 can become admissible and then exercise a later malformed-input diagnostic
 instead of the intended fail-before-allocation path.
 
+Release automation must also select UTF-8 explicitly for every repository text
+read and write. Python's ambient encoding is still a legacy charmap on some
+Windows runners; relying on it makes valid UTF-8 documentation fail before the
+version or changelog checks execute. The cross-platform workflow regression
+disables Python UTF-8 mode while keeping captured process output UTF-8 so this
+boundary remains exercised.
+
 Use an annotated tag, matching the established repository convention, only
 after the release commit is on `main` and the remote head still resolves to
 that exact commit:

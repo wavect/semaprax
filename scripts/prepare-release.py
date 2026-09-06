@@ -49,7 +49,7 @@ def reject(message):
 
 
 def root_version():
-    text = (ROOT / "Cargo.toml").read_text()
+    text = (ROOT / "Cargo.toml").read_text(encoding="utf-8")
     match = re.search(r'^version = "([^"]+)"$', text, re.MULTILINE)
     if not match or not VERSION_RE.fullmatch(match.group(1)):
         reject("root Cargo package version is missing or noncanonical")
@@ -57,7 +57,7 @@ def root_version():
 
 
 def release_date():
-    text = (ROOT / "CITATION.cff").read_text()
+    text = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     match = re.search(r"^date-released: ([0-9-]+)$", text, re.MULTILINE)
     if not match or not DATE_RE.fullmatch(match.group(1)):
         reject("CITATION.cff release date is missing or noncanonical")
@@ -75,17 +75,19 @@ def verify(version):
         reject("requested version does not match root Cargo.toml")
     tag = f"v{version}"
     for relative in VERSION_FILES:
-        text = (ROOT / relative).read_text()
+        text = (ROOT / relative).read_text(encoding="utf-8")
         if version not in text and tag not in text:
             reject(f"{relative} does not carry {version}")
     date = release_date()
-    citation = (ROOT / "CITATION.cff").read_text()
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     if f'version: "{version}"' not in citation:
         reject("CITATION.cff version disagrees")
-    metadata = json.loads((ROOT / "codemeta.json").read_text())
+    metadata = json.loads((ROOT / "codemeta.json").read_text(encoding="utf-8"))
     if metadata.get("version") != version or metadata.get("dateModified") != date:
         reject("CodeMeta version/date disagrees with citation metadata")
-    if f"## {version} — {date}" not in (ROOT / "CHANGELOG.md").read_text():
+    if f"## {version} — {date}" not in (ROOT / "CHANGELOG.md").read_text(
+        encoding="utf-8"
+    ):
         reject("dated changelog release heading is missing")
     for manifest in LOCK_MANIFESTS:
         subprocess.run(
@@ -109,13 +111,13 @@ def write(version, date):
     old_tag, tag = f"v{old}", f"v{version}"
     updates = {}
     for relative in VERSION_FILES:
-        text = (ROOT / relative).read_text()
+        text = (ROOT / relative).read_text(encoding="utf-8")
         if old in text:
             text = replace_required(text, old, version, relative)
         if old_tag in text:
             text = replace_required(text, old_tag, tag, relative)
         updates[relative] = text
-    citation = (ROOT / "CITATION.cff").read_text()
+    citation = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     citation = replace_required(
         citation, f'version: "{old}"', f'version: "{version}"', "CITATION.cff"
     )
@@ -127,11 +129,11 @@ def write(version, date):
         flags=re.MULTILINE,
     )
     updates["CITATION.cff"] = citation
-    metadata = json.loads((ROOT / "codemeta.json").read_text())
+    metadata = json.loads((ROOT / "codemeta.json").read_text(encoding="utf-8"))
     metadata["version"] = version
     metadata["dateModified"] = date
     updates["codemeta.json"] = json.dumps(metadata, indent=2, ensure_ascii=False) + "\n"
-    changelog = (ROOT / "CHANGELOG.md").read_text()
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     marker = "## Unreleased\n"
     if marker not in changelog or f"## {version} —" in changelog:
         reject("changelog cannot accept the requested release heading")
@@ -139,7 +141,7 @@ def write(version, date):
         marker, f"{marker}\n## {version} — {date}\n", 1
     )
     for relative, text in updates.items():
-        (ROOT / relative).write_text(text)
+        (ROOT / relative).write_text(text, encoding="utf-8")
     for manifest in LOCK_MANIFESTS:
         subprocess.run(
             [

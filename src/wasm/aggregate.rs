@@ -5717,6 +5717,16 @@ impl Emitter<'_> {
             crate::byte_ops::ByteOp::Range => Err(error(
                 "byte range must lower from authenticated ByteRange HIR",
             )),
+            // Owned Bounded Byte Buffer v1 is not admitted on this backend.
+            // Owned bytes here are opaque host-arena tokens reached through the
+            // frozen `env` import set, and neither allocating a zeroed buffer
+            // nor storing one element into a transferred token has a host
+            // protocol. Rejecting the whole feature keeps the backend honest
+            // rather than lowering a partial buffer.
+            crate::byte_ops::ByteOp::Zeroed | crate::byte_ops::ByteOp::Set => Err(error(format!(
+                "`{}` is outside the WebAssembly owned-byte host arena protocol",
+                op.name()
+            ))),
         }
     }
 

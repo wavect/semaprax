@@ -338,6 +338,26 @@ fn main() -> i64
   parameters and to `str_as_bytes`.
 - Byte functions take `borrow Slice<u8>`. Get one from `str_as_bytes(view)`,
   `array_as_slice(array_binding)`, or `bytes_as_slice(bytes_binding)`.
+- An owned bounded byte buffer is one write-once expression: `bytes_zeroed`
+  allocates at a `usize` literal capacity and each `bytes_set` link takes the
+  previous link, a `usize` literal index below that capacity, and the byte.
+  Binding the result freezes it; read it with the ordinary borrowed operations.
+  A named binding cannot be re-opened (`SPX-T271`), an index at or above the
+  capacity is `SPX-T272`, and neither operation is admitted in a `while` body.
+  [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) owns the rule.
+
+```semaprax
+module app.buffer;
+
+@id("app.main")
+fn main() -> i64
+{
+    let buffer = bytes_set(bytes_set(bytes_zeroed(2usize), 0usize, 65u8), 1usize, 66u8);
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 2usize { 0 } else { 1 }
+}
+```
+
 - `stdout_write(slice)` needs both `permit { process.stdout.write }` and
   `uses { process.stdout.write }` and returns the `usize` byte count.
 - Single-file `run` evaluates `app.main` in the bounded reference interpreter;
@@ -378,6 +398,8 @@ fn main() -> i64
 | `byte_get` | `(v: borrow Slice<u8>, i: usize) -> Option<u8>` |
 | `byte_range` | `(v: borrow Slice<u8>, start: usize, end: usize) -> Slice<u8>` |
 | `bytes_copy` | `(v: borrow Slice<u8>) -> Bytes` |
+| `bytes_zeroed` | `(count: usize) -> Bytes` literal capacity |
+| `bytes_set` | `(b: own Bytes, i: usize, v: u8) -> Bytes` write-once chain |
 | `bytes_as_slice` | `(b: borrow Bytes) -> Slice<u8>` |
 | `array_as_slice` | `(a: borrow [u8; N]) -> Slice<u8>` |
 | `stdout_write`, `stderr_write` | `(v: borrow Slice<u8>) -> usize` |

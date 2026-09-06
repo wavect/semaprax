@@ -64,6 +64,7 @@ mod failure_detail;
 pub mod internal_strings;
 mod nested_owned;
 pub(crate) mod network;
+mod owned_buffer;
 mod prepared;
 mod resolved_case;
 pub mod retained_call;
@@ -4573,6 +4574,18 @@ impl Evaluator<'_> {
                                 bytes: Arc::from(value.bytes()),
                             }))
                         }
+                        (crate::byte_ops::ByteOp::Zeroed, [Value::Usize(capacity)]) => {
+                            owned_buffer::zeroed(
+                                *capacity,
+                                &mut self.next_byte_allocation,
+                                &mut self.allocated_byte_payload,
+                            )
+                            .map(Value::Bytes)
+                        }
+                        (
+                            crate::byte_ops::ByteOp::Set,
+                            [Value::Bytes(buffer), Value::Usize(index), Value::Uint8(byte)],
+                        ) => owned_buffer::set(buffer, *index, *byte).map(Value::Bytes),
                         (crate::byte_ops::ByteOp::Range, _) => Err(Flow::Guard(
                             "byte_range reached interpreter as an ordinary call",
                         )),

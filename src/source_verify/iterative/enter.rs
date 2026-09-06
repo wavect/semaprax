@@ -275,6 +275,16 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             None => diagnostic,
                         });
                     }
+                    if op.is_owned_buffer_chain() {
+                        self.diagnostics
+                            .extend(crate::source_verify::owned_buffer::check_call(
+                                self.program,
+                                expression,
+                                op,
+                                name,
+                                args,
+                            ));
+                    }
                     VerifierCallTarget::Byte(op)
                 } else if let Some(op) = crate::host_io_ops::by_name(name) {
                     let params = crate::host_io_ops::ast_params(op);

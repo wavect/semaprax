@@ -1047,6 +1047,17 @@ fn source_capacity_expr(
                                 conservative_payload_bytes:
                                     crate::byte_data_capacity::MAX_ARRAY_BYTES,
                             })
+                        } else if name == crate::byte_ops::ZEROED_NAME {
+                            // Owned Bounded Byte Buffer v1 joins the
+                            // established owned-byte allocation family, so the
+                            // site count, the payload sum, and the standing
+                            // rejection of an allocation reachable from a loop
+                            // all apply without a second accounting rule.
+                            Some(CapacityFlow::BytesCopy {
+                                site: path.clone(),
+                                conservative_payload_bytes:
+                                    super::owned_buffer::allocation_payload_bytes(args),
+                            })
                         } else if name == crate::host_io_ops::STDOUT_WRITE_NAME {
                             Some(CapacityFlow::StdoutWrite {
                                 site: path.clone(),

@@ -8,6 +8,7 @@ use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
 mod borrowed_str;
 mod host_command;
+mod owned_buffer;
 mod type_profiles;
 mod unsafe_scan;
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
@@ -3421,6 +3422,7 @@ impl<'a> HirValidator<'a> {
                                         args.len()
                                     )));
                                 }
+                                owned_buffer::require_admitted_chain(op, args)?;
                                 (crate::byte_ops::resolved_params(op), op.return_type())
                             } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
                                 if instance.is_some() || !type_arguments.is_empty() {
@@ -6433,6 +6435,7 @@ impl<'a> HirValidator<'a> {
                             args.len()
                         )));
                     }
+                    owned_buffer::require_admitted_chain(op, args)?;
                     (
                         crate::byte_ops::resolved_params(op),
                         op.return_type(),

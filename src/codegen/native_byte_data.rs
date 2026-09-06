@@ -116,6 +116,37 @@ static __attribute__((unused)) spx_bytes_v1 spx_bytes_copy(spx_slice_u8_v1 value
     return (spx_bytes_v1){ .ptr = payload, .len = value.len };
 }
 
+static __attribute__((unused)) spx_bytes_v1 spx_bytes_zeroed(uint64_t count) {
+    if (count > SPX_SLICE_U8_MAX_BYTES) {
+        spx_runtime_invariant_failure("owned byte buffer capacity exceeds the exact length bound");
+    }
+    if (count == UINT64_C(0)) {
+        return (spx_bytes_v1){ .ptr = NULL, .len = UINT64_C(0) };
+    }
+    uint8_t *payload = (uint8_t *)calloc((size_t)count, sizeof(uint8_t));
+    if (payload == NULL) {
+        spx_runtime_invariant_failure("owned byte buffer allocation failed");
+    }
+    return (spx_bytes_v1){ .ptr = payload, .len = count };
+}
+
+/* The buffer is transferred in and handed straight back: one fill mutates the
+   single live owner in place and never allocates. The caller's carrier is
+   emptied by the ordinary canonical cleanup-plan transfer, so the payload never
+   has a second owner. A resolved element index outside the capacity is a
+   compile-time impossibility, so reaching one here is a runtime invariant
+   failure rather than a silent truncation. */
+static __attribute__((unused)) spx_bytes_v1 spx_bytes_set(
+    spx_bytes_v1 buffer, uint64_t index, uint8_t value
+) {
+    spx_bytes_require_valid(buffer);
+    if (index >= buffer.len) {
+        spx_runtime_invariant_failure("owned byte buffer element index is outside its capacity");
+    }
+    buffer.ptr[(size_t)index] = value;
+    return buffer;
+}
+
 static __attribute__((unused)) spx_slice_u8_v1 spx_bytes_as_slice(
     const spx_bytes_v1 *value
 ) {

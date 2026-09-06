@@ -317,10 +317,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         }
         let return_type = op.return_type();
         self.require_type(result_type, &return_type, "byte operation result")?;
-        let temporary = if matches!(op, crate::byte_ops::ByteOp::Copy) {
+        let temporary = if op.return_type() == ResolvedType::Bytes {
             self.bytes_plan
                 .as_ref()
-                .ok_or_else(|| backend_error("bytes_copy has no canonical cleanup plan"))?
+                .ok_or_else(|| {
+                    backend_error(format!("`{}` has no canonical cleanup plan", op.id()))
+                })?
                 .value(&crate::cleanup_plan::StorageId::Temporary(
                     expression.clone(),
                 ))?
@@ -375,6 +377,18 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     arguments[0].code
                 ));
             }
+            crate::byte_ops::ByteOp::Zeroed => {
+                self.line(&format!(
+                    "{temporary} = spx_bytes_zeroed({});",
+                    arguments[0].code
+                ));
+            }
+            crate::byte_ops::ByteOp::Set => {
+                self.line(&format!(
+                    "{temporary} = spx_bytes_set({}, {}, {});",
+                    arguments[0].code, arguments[1].code, arguments[2].code
+                ));
+            }
             crate::byte_ops::ByteOp::Range => {
                 return Err(backend_error(
                     "byte_range reached native lowering as an ordinary call",
@@ -399,7 +413,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             if matches!(return_type, ResolvedType::Bytes) {
                 code = plan
                     .result_at(expression)
-                    .ok_or_else(|| backend_error("bytes_copy has no initialized result slot"))?
+                    .ok_or_else(|| {
+                        backend_error(format!("`{}` has no initialized result slot", op.id()))
+                    })?
                     .to_owned();
             }
         }
@@ -618,7 +634,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     crate::byte_ops::ByteOp::Len
                     | crate::byte_ops::ByteOp::Get
                     | crate::byte_ops::ByteOp::Range
-                    | crate::byte_ops::ByteOp::Copy => unreachable!(),
+                    | crate::byte_ops::ByteOp::Copy
+                    | crate::byte_ops::ByteOp::Zeroed
+                    | crate::byte_ops::ByteOp::Set => unreachable!(),
                 }
                 CValue {
                     code: temporary,

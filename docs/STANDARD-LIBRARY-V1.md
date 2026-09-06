@@ -33,7 +33,11 @@ declaration in a `std.*` module with an `@id`, types, ownership modes,
 effects, and contracts. The compiler-owned functions listed in the
 [agent quick reference](AGENT-QUICK-REFERENCE.md#compiler-owned-functions) are
 the current host surface; moving them behind `std.*` interfaces is an open
-gate of this document, not a completed step.
+gate of this document, not a completed step. That surface now includes the
+`bytes_zeroed`/`bytes_set` write-once owned buffer of
+[Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md), which executes
+on the interpreter and native C11 only; no `std.*` package wraps it, and no
+required module below is satisfied by it.
 
 Every public standard-library declaration must have:
 

@@ -40,18 +40,28 @@ env:
   # The exact release identity the packaged archive and the gate must agree on.
   DOCTOR_RELEASE_TAG: v0.3.5
   DOCTOR_RELEASE_TARGET: x86_64-unknown-linux-musl
-  DOCTOR_RELEASE_PROFILE: all
   DOCTOR_RELEASE_SELECTOR: real-distributions
   # An official LLVM release: one statically linked `clang`, so the carrier
   # holds a single copy of LLVM instead of Ubuntu's shared libLLVM plus
-  # libclang-cpp plus the libxml2/ICU chain. The 512 MiB carrier ceiling does
-  # not fit the latter beside a real Node and a real Rust.
+  # libclang-cpp plus the libxml2/ICU chain.
   DOCTOR_CLANG_RELEASE: 17.0.6
   DOCTOR_CLANG_ARCHIVE: clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04
   DOCTOR_CLANG_BINARY: clang-17
   # `render_rows` admits Node major >= 22 and Rust >= 1.88, and 1.88.0 is the
-  # smallest admitted real Rust distribution. The carrier needs the smallest.
+  # smallest admitted real Rust distribution.
   DOCTOR_RUST_DISTRIBUTION: 1.88.0
+  # MEASURED, NOT CHOSEN. A three-role carrier does not exist on this host: the
+  # loader closures of Node v22.23.2 and Rust 1.88.0 alone encode to 462424370
+  # bytes, 86% of the 512 MiB DOCTOR_OFFLINE_INPUT_MAX_BYTES ceiling, leaving
+  # 74446542 bytes for the whole Clang role. The smallest official LLVM release
+  # that still runs on Ubuntu 24.04 is 9.0.1, whose clang alone is 105915000
+  # bytes and whose carrier reaches 568339434. So the two real-distribution
+  # fixtures cannot be satisfied by any current real distribution set, and this
+  # run carries the largest real carrier that does fit. The gate therefore still
+  # FAILS, on exactly those two fixtures, and the other twenty-four lifecycle
+  # fixtures execute for the first time. Raising the ceiling is a contract change
+  # in offline_input.rs and its owning specifications, not a workflow setting.
+  DOCTOR_CARRIER_TARGET: native
 
 jobs:
   doctor-provisioned-linux:
@@ -188,14 +198,18 @@ jobs:
           set -euo pipefail
           carrier="$RUNNER_TEMP/carrier"
           mkdir -p "$carrier"
+          # Record what the contracted three-role carrier would cost, then build
+          # the largest one that the carrier format actually admits. The first
+          # measurement is expected to report an overrun; it is the evidence for
+          # why the second command carries fewer roles.
           python3 scripts/doctor-provisioned-linux-bundle.py \
             --selector "$DOCTOR_RELEASE_SELECTOR" \
             --clang "$DOCTOR_CLANG" --node "$DOCTOR_NODE" --rustc "$DOCTOR_RUSTC" \
-            --closure --plan
+            --closure --plan || echo "three real roles do not fit the carrier"
           python3 scripts/doctor-provisioned-linux-bundle.py \
             --selector "$DOCTOR_RELEASE_SELECTOR" \
-            --clang "$DOCTOR_CLANG" --node "$DOCTOR_NODE" --rustc "$DOCTOR_RUSTC" \
-            --closure --target "$DOCTOR_RELEASE_PROFILE" \
+            --clang "$DOCTOR_CLANG" \
+            --closure --target "$DOCTOR_CARRIER_TARGET" \
             --bundle "$carrier/bundle.bin" --request "$carrier/request.bin"
           chmod 600 "$carrier/bundle.bin" "$carrier/request.bin"
           echo "DOCTOR_BUNDLE=$carrier/bundle.bin" >> "$GITHUB_ENV"
@@ -211,7 +225,7 @@ jobs:
           archive="$(sh scripts/package-doctor-release.sh \
             "$DOCTOR_RELEASE_TOOL" /usr/bin/tar /usr/bin/gzip \
             "$DOCTOR_RELEASE_TAG" "$commit" "$DOCTOR_RELEASE_TARGET" \
-            "$DOCTOR_RELEASE_SELECTOR" "$DOCTOR_RELEASE_PROFILE" \
+            "$DOCTOR_RELEASE_SELECTOR" "$DOCTOR_CARRIER_TARGET" \
             "$DOCTOR_PUBLIC_KEY" "$DOCTOR_SIGNING_KEY" \
             "$DOCTOR_REQUEST" "$DOCTOR_BUNDLE" \
             "$DOCTOR_IMAGES/semaprax-doctor-launcher" \
@@ -232,7 +246,7 @@ jobs:
             --release-version "${DOCTOR_RELEASE_TAG#v}" \
             --release-commit "$commit" \
             --target-triple "$DOCTOR_RELEASE_TARGET" \
-            --architecture x86_64 --target "$DOCTOR_RELEASE_PROFILE" \
+            --architecture x86_64 --target "$DOCTOR_CARRIER_TARGET" \
             --selector "$DOCTOR_RELEASE_SELECTOR"
           ls -l "$root"
           {

@@ -209,7 +209,9 @@ fn assert_linked_vec(program: &hir::ResolvedProgram, function_id: &str, element:
     let mut calls = Vec::new();
     collect_calls(&function.body, &mut calls);
     assert!(calls.iter().any(|(callee, instance, arguments)| {
-        callee == "core.vec.with-capacity" && instance.is_none() && arguments == &[element.clone()]
+        callee == "core.vec.with-capacity"
+            && instance.is_none()
+            && arguments == std::slice::from_ref(&element)
     }));
     assert!(
         calls

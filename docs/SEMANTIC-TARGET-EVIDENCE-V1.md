@@ -154,7 +154,18 @@ public evidence-file input.
 
 ## KATs and executable evidence
 
-Current wasmparser 0.258.0 SHA-256 known answers are:
+The literal known answers live with the test that enforces them, in
+[`tests/semantic/target_evidence.rs`](../tests/semantic/target_evidence.rs)
+(`whole_report_sha_kats_cover_patch_v1_v2_v3`), which is the single source of truth. They are
+deliberately not duplicated here: this document previously carried a
+table labelled current whose v1 value had already been removed from that
+test, and duplicating digests in prose is what let it drift unnoticed
+twice. That test also carries a triage rule for deciding whether a
+future movement is a legitimate re-take or an accounting defect.
+
+The table below is retained as **historical** evidence bound to the
+wasmparser 0.258.0 dependency update named in this section, not as a
+description of the current head:
 
 | Patch schema | SHA-256 |
 | --- | --- |

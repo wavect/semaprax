@@ -403,17 +403,18 @@ pub(crate) fn diagnostic_entry(query: &str) -> Result<String, String> {
         .as_array()
         .expect("generated diagnostic-help JSON must contain entries");
     if query == "codes" {
-        let mut output = String::from("Diagnostic codes:\n");
-        for entry in entries {
-            writeln!(
-                output,
-                "  {}",
+        let mut output = String::from("Diagnostic codes:\n  ");
+        for (index, entry) in entries.iter().enumerate() {
+            if index > 0 {
+                output.push(' ');
+            }
+            output.push_str(
                 entry["code"]
                     .as_str()
-                    .expect("generated diagnostic-help entry must have a code")
-            )
-            .expect("writing to a string cannot fail");
+                    .expect("generated diagnostic-help entry must have a code"),
+            );
         }
+        output.push('\n');
         return Ok(output);
     }
 
@@ -1281,9 +1282,9 @@ mod tests {
         assert!(entries.len() >= 20);
 
         let codes = diagnostic_entry("codes").unwrap();
-        assert!(codes.starts_with("Diagnostic codes:\n  SPX-O101\n"));
-        assert!(codes.ends_with("  SPX-U101\n"));
-        assert_eq!(codes.lines().count(), entries.len() + 1);
+        assert!(codes.starts_with("Diagnostic codes:\n  SPX-O101 "));
+        assert!(codes.ends_with(" SPX-U101\n"));
+        assert_eq!(codes.lines().count(), 2);
         assert!(codes.len() <= 256, "{} bytes", codes.len());
         assert!(semaprax::agent_economics::lexical_tokens(&codes) <= 100);
 

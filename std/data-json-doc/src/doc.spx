@@ -1,0 +1,149 @@
+module std.data.json.doc;
+
+@id("std.data.json.doc.at_in")
+fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value: byte } => byte >= low && byte <= high, Option::None {} => false, }
+}
+
+@id("std.data.json.doc.skip_space")
+fn skip_space(input: borrow Slice<u8>, start: usize) -> usize
+    ensures result <= byte_len(input)
+{
+    let length = byte_len(input);
+    let mut index = if start > length { length } else { start };
+    let mut scanning = index < length;
+    while scanning {
+        let space = at_in(input, index, 32u8, 32u8) || at_in(input, index, 9u8, 10u8) || at_in(input, index, 13u8, 13u8);
+        index = if space { index + 1usize } else { index };
+        scanning = space && index < length;
+        scanning
+    }
+    index
+}
+
+@id("std.data.json.doc.string_end")
+fn string_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let mut index = start + 1usize;
+    let mut fault = start;
+    let mut bad = !at_in(input, start, 34u8, 34u8);
+    let mut running = !bad;
+    while running {
+        let closed = at_in(input, index, 34u8, 34u8);
+        let escape = at_in(input, index, 92u8, 92u8);
+        let plain = at_in(input, index, 32u8, 255u8);
+        let step = if closed { index } else { if escape { index + 2usize } else { if plain { index + 1usize } else { byte_len(input) + 1usize + index } } };
+        bad = step > byte_len(input);
+        fault = if bad { index } else { fault };
+        index = if closed || bad { index } else { step };
+        running = !closed && !bad;
+        running
+    }
+    if bad { byte_len(input) + 1usize + fault } else { index + 1usize }
+}
+
+@id("std.data.json.doc.digits_end")
+fn digits_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let mut index = start;
+    let mut scanning = at_in(input, index, 48u8, 57u8);
+    while scanning {
+        index = index + 1usize;
+        scanning = at_in(input, index, 48u8, 57u8);
+        scanning
+    }
+    if index == start { byte_len(input) + 1usize + start } else { index }
+}
+
+@id("std.data.json.doc.number_end")
+fn number_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let head = if at_in(input, start, 45u8, 45u8) { start + 1usize } else { start };
+    let integer = if at_in(input, head, 48u8, 48u8) { head + 1usize } else { if at_in(input, head, 49u8, 57u8) { digits_end(input, head) } else { byte_len(input) + 1usize + head } };
+    let fraction = if integer > byte_len(input) { integer } else { if at_in(input, integer, 46u8, 46u8) { digits_end(input, integer + 1usize) } else { integer } };
+    let signed = if at_in(input, fraction + 1usize, 43u8, 43u8) || at_in(input, fraction + 1usize, 45u8, 45u8) { 2usize } else { 1usize };
+    if fraction > byte_len(input) { fraction } else { if at_in(input, fraction, 101u8, 101u8) || at_in(input, fraction, 69u8, 69u8) { digits_end(input, fraction + signed) } else { fraction } }
+}
+
+@id("std.data.json.doc.literal_end")
+fn literal_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let yes = at_in(input, start, 116u8, 116u8) && at_in(input, start + 1usize, 114u8, 114u8) && at_in(input, start + 2usize, 117u8, 117u8) && at_in(input, start + 3usize, 101u8, 101u8);
+    let no = at_in(input, start, 102u8, 102u8) && at_in(input, start + 1usize, 97u8, 97u8) && at_in(input, start + 2usize, 108u8, 108u8) && at_in(input, start + 3usize, 115u8, 115u8) && at_in(input, start + 4usize, 101u8, 101u8);
+    let nothing = at_in(input, start, 110u8, 110u8) && at_in(input, start + 1usize, 117u8, 117u8) && at_in(input, start + 2usize, 108u8, 108u8) && at_in(input, start + 3usize, 108u8, 108u8);
+    if yes { start + 4usize } else { if no { start + 5usize } else { if nothing { start + 4usize } else { byte_len(input) + 1usize + start } } }
+}
+
+@id("std.data.json.doc.advance")
+fn advance(input: borrow Slice<u8>, index: usize, step: i64) -> usize
+{
+    let class = step / 16;
+    match step % 16 { 0 => byte_len(input) + 1usize + index, 1 => match class { 7 => string_end(input, index), 8 => number_end(input, index), 9 => literal_end(input, index), _ => byte_len(input) + 1usize + index, }, 8 => string_end(input, index), _ => index + 1usize, }
+}
+
+@id("std.data.json.doc.step_action")
+fn step_action(input: borrow Slice<u8>, index: usize, mode: i64, stack: i64) -> i64
+{
+    let class = match byte_get(input, index) { Option::Some { value: byte } => match byte { 123u8 => 1, 125u8 => 2, 91u8 => 3, 93u8 => 4, 44u8 => 5, 58u8 => 6, 34u8 => 7, 45u8 => 8, 48u8 => 8, 49u8 => 8, 50u8 => 8, 51u8 => 8, 52u8 => 8, 53u8 => 8, 54u8 => 8, 55u8 => 8, 56u8 => 8, 57u8 => 8, 116u8 => 9, 102u8 => 9, 110u8 => 9, _ => 0, }, Option::None {} => 0, };
+    let top = stack % 2;
+    let action = match mode { 0 => match class { 1 => 2, 3 => 3, 7 => 1, 8 => 1, 9 => 1, _ => 0, }, 1 => match class { 1 => 2, 3 => 3, 4 => 5, 7 => 1, 8 => 1, 9 => 1, _ => 0, }, 2 => match class { 7 => 8, _ => 0, }, 3 => match class { 2 => 4, 7 => 8, _ => 0, }, 4 => match class { 6 => 7, _ => 0, }, 5 => match class { 2 => match top { 1 => 4, _ => 0, }, 4 => match top { 0 => 5, _ => 0, }, 5 => 6, _ => 0, }, _ => 0, };
+    action + class * 16
+}
+
+@id("std.data.json.doc.next_state")
+fn next_state(action: i64, mode: i64, stack: i64) -> i64
+{
+    let top = stack % 2;
+    let selected = match action { 1 => 5, 2 => 3, 3 => 1, 4 => 5, 5 => 5, 6 => match top { 1 => 2, _ => 0, }, 7 => 0, 8 => 4, _ => mode, };
+    let lifted = match action { 2 => stack * 2 + 1, 3 => stack * 2, 4 => if stack > 1 { stack / 2 } else { stack }, 5 => if stack > 1 { stack / 2 } else { stack }, _ => stack, };
+    selected + lifted * 8
+}
+
+@id("std.data.json.doc.document_end")
+fn document_end(input: borrow Slice<u8>, start: usize, depth_limit: usize) -> usize
+{
+    let mut ceiling = 2;
+    let mut level = if depth_limit > 32usize { 32usize } else { depth_limit };
+    let mut sizing = level > 0usize;
+    while sizing {
+        ceiling = ceiling * 2;
+        level = level - 1usize;
+        sizing = level > 0usize;
+        sizing
+    }
+    let mut index = start;
+    let mut mode = 0;
+    let mut stack = 1;
+    let mut fault = start;
+    let mut bad = false;
+    let mut running = true;
+    while running {
+        let ws = skip_space(input, index);
+        let selected = step_action(input, ws, mode, stack);
+        let step = advance(input, ws, selected);
+        let state = next_state(selected % 16, mode, stack);
+        mode = state % 8;
+        stack = state / 8;
+        bad = step > byte_len(input) || stack >= ceiling;
+        fault = if bad { if step > byte_len(input) { step - byte_len(input) - 1usize } else { ws } } else { fault };
+        index = if bad { index } else { step };
+        running = !bad && (stack > 1 || mode != 5);
+        running
+    }
+    if bad { byte_len(input) + 1usize + fault } else { index }
+}
+
+@id("std.data.json.doc.whole_end")
+fn whole_end(input: borrow Slice<u8>, depth_limit: usize) -> usize
+{
+    let end = document_end(input, 0usize, depth_limit);
+    let tail = if end > byte_len(input) { end } else { skip_space(input, end) };
+    if tail > byte_len(input) { tail } else { if tail == byte_len(input) { tail } else { byte_len(input) + 1usize + tail } }
+}
+
+@id("std.data.json.doc.is_document")
+fn is_document(input: borrow Slice<u8>) -> bool
+{
+    whole_end(input, 32usize) == byte_len(input)
+}

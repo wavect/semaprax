@@ -389,6 +389,83 @@ fn literal_byte(kind: i64, index: i64) -> i64
     ensures result >= -1 && result <= 255
 ```
 
+## `std.data.json.doc`
+
+Package `std/data-json-doc`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.doc = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.json.doc.at_in`
+
+```semaprax
+fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool
+```
+
+### `std.data.json.doc.skip_space`
+
+```semaprax
+fn skip_space(input: borrow Slice<u8>, start: usize) -> usize
+    ensures result <= byte_len(input)
+```
+
+### `std.data.json.doc.string_end`
+
+```semaprax
+fn string_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.doc.digits_end`
+
+```semaprax
+fn digits_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.doc.number_end`
+
+```semaprax
+fn number_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.doc.literal_end`
+
+```semaprax
+fn literal_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.doc.advance`
+
+```semaprax
+fn advance(input: borrow Slice<u8>, index: usize, step: i64) -> usize
+```
+
+### `std.data.json.doc.step_action`
+
+```semaprax
+fn step_action(input: borrow Slice<u8>, index: usize, mode: i64, stack: i64) -> i64
+```
+
+### `std.data.json.doc.next_state`
+
+```semaprax
+fn next_state(action: i64, mode: i64, stack: i64) -> i64
+```
+
+### `std.data.json.doc.document_end`
+
+```semaprax
+fn document_end(input: borrow Slice<u8>, start: usize, depth_limit: usize) -> usize
+```
+
+### `std.data.json.doc.whole_end`
+
+```semaprax
+fn whole_end(input: borrow Slice<u8>, depth_limit: usize) -> usize
+```
+
+### `std.data.json.doc.is_document`
+
+```semaprax
+fn is_document(input: borrow Slice<u8>) -> bool
+```
+
 ## `std.data.json.token`
 
 Package `std/data-json-token`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.token = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

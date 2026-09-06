@@ -1,0 +1,72 @@
+module std.data.json.doc.tests;
+use function @id("std.data.json.doc.advance") from std.data.json.doc as advance;
+use function @id("std.data.json.doc.at_in") from std.data.json.doc as at_in;
+use function @id("std.data.json.doc.digits_end") from std.data.json.doc as digits_end;
+use function @id("std.data.json.doc.document_end") from std.data.json.doc as document_end;
+use function @id("std.data.json.doc.is_document") from std.data.json.doc as is_document;
+use function @id("std.data.json.doc.literal_end") from std.data.json.doc as literal_end;
+use function @id("std.data.json.doc.next_state") from std.data.json.doc as next_state;
+use function @id("std.data.json.doc.number_end") from std.data.json.doc as number_end;
+use function @id("std.data.json.doc.skip_space") from std.data.json.doc as skip_space;
+use function @id("std.data.json.doc.step_action") from std.data.json.doc as step_action;
+use function @id("std.data.json.doc.string_end") from std.data.json.doc as string_end;
+use function @id("std.data.json.doc.whole_end") from std.data.json.doc as whole_end;
+
+@id("std.data.json.doc.tests.tokens")
+fn tokens() -> bool
+{
+    let number = [45u8, 49u8, 50u8, 46u8, 53u8, 101u8, 43u8, 51u8];
+    let literal = [102u8, 97u8, 108u8, 115u8, 101u8];
+    let quoted = [34u8, 97u8, 92u8, 110u8, 98u8, 34u8];
+    let digits = array_as_slice(number);
+    let word = array_as_slice(literal);
+    let text = array_as_slice(quoted);
+    at_in(digits, 0usize, 45u8, 45u8) && skip_space(text, 0usize) == 0usize && digits_end(digits, 1usize) == 3usize && digits_end(digits, 3usize) > byte_len(digits) && number_end(digits, 0usize) == 8usize && number_end(word, 0usize) > byte_len(word) && literal_end(word, 0usize) == 5usize && literal_end(word, 1usize) > byte_len(word) && string_end(text, 0usize) == 6usize && string_end(text, 1usize) > byte_len(text)
+}
+
+@id("std.data.json.doc.tests.machine")
+fn machine() -> bool
+{
+    let sample = [123u8, 125u8, 91u8, 93u8, 44u8, 58u8, 34u8, 45u8, 116u8, 120u8];
+    let literal = [102u8, 97u8, 108u8, 115u8, 101u8];
+    let marks = array_as_slice(sample);
+    let word = array_as_slice(literal);
+    step_action(marks, 0usize, 0, 1) == 18 && step_action(marks, 1usize, 5, 3) == 36 && step_action(marks, 1usize, 5, 6) == 32 && step_action(marks, 9usize, 0, 1) == 0 && next_state(2, 0, 1) == 27 && next_state(6, 5, 3) == 26 && advance(word, 0usize, 145) == 5usize && advance(marks, 0usize, 18) == 1usize
+}
+
+@id("std.data.json.doc.tests.docs")
+fn docs() -> bool
+{
+    let nested = [123u8, 34u8, 97u8, 34u8, 58u8, 91u8, 49u8, 44u8, 123u8, 34u8, 98u8, 34u8, 58u8, 110u8, 117u8, 108u8, 108u8, 125u8, 93u8, 44u8, 34u8, 99u8, 34u8, 58u8, 116u8, 114u8, 117u8, 101u8, 125u8];
+    let blank = [32u8, 91u8, 32u8, 93u8, 32u8];
+    let view = array_as_slice(nested);
+    let spaced = array_as_slice(blank);
+    document_end(view, 0usize, 32usize) == 29usize && whole_end(view, 32usize) == 29usize && is_document(view) && is_document(spaced) && whole_end(spaced, 1usize) == 5usize && document_end(view, 0usize, 1usize) - byte_len(view) - 1usize == 5usize
+}
+
+@id("std.data.json.doc.tests.bad")
+fn bad() -> bool
+{
+    let trailing = [123u8, 125u8, 32u8, 120u8];
+    let mismatched = [91u8, 49u8, 125u8];
+    let dangling = [91u8, 49u8, 44u8, 93u8];
+    let unclosed = [123u8, 34u8, 97u8, 34u8, 58u8];
+    let leading = [91u8, 48u8, 49u8, 93u8];
+    let extra = array_as_slice(trailing);
+    let crossed = array_as_slice(mismatched);
+    let comma = array_as_slice(dangling);
+    let cut = array_as_slice(unclosed);
+    let zeros = array_as_slice(leading);
+    !is_document(extra) && whole_end(extra, 32usize) - byte_len(extra) - 1usize == 3usize && !is_document(crossed) && document_end(crossed, 0usize, 32usize) - byte_len(crossed) - 1usize == 2usize && !is_document(comma) && document_end(comma, 0usize, 32usize) - byte_len(comma) - 1usize == 3usize && !is_document(cut) && document_end(cut, 0usize, 32usize) - byte_len(cut) - 1usize == 5usize && !is_document(zeros)
+}
+
+@id("std.data.json.doc.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if tokens() { 0 } else { 1 };
+    failed = failed + if machine() { 0 } else { 2 };
+    failed = failed + if docs() { 0 } else { 4 };
+    failed = failed + if bad() { 0 } else { 8 };
+    failed
+}

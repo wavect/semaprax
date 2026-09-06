@@ -7,6 +7,7 @@
     {"directory": "data-csv", "module": "std.data.csv", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json", "module": "std.data.json", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json-digits", "module": "std.data.json.digits", "tier": "core", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
+    {"directory": "data-json-doc", "module": "std.data.json.doc", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json-token", "module": "std.data.json.token", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json-utf8", "module": "std.data.json.utf8", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},
     {"directory": "data-json-write", "module": "std.data.json.write", "tier": "portable", "targets": ["interpreter", "native-c11", "core-wasm"], "status": "partial"},

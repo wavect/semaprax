@@ -38,6 +38,26 @@ format: `Unreleased` then release buckets, grouped by impact.
   retained dispatch index. `string` fields, admitted by the proposal schema but
   by no interpreter record or variant classifier, remain Missing here.
 
+- Added `std.data.json.doc`, the structural document layer of the bounded JSON
+  slice: the object and array grammar driven by six modes over a base-2
+  container stack held in one `i64`, an explicit `depth_limit` clamped to 32
+  open containers and rejected at the offset of the container that exceeds it,
+  a closer that does not match the innermost container rejected at its own
+  offset, and trailing-byte rejection that reports the first trailing
+  non-whitespace byte. `document_end` scans one value, `whole_end` requires
+  only whitespace after it, and `is_document` is the whole-input form; the
+  RFC 8259 number grammar, the exact `true`/`false`/`null` words, and string
+  framing that rejects raw `0x00`-`0x1F` and an unterminated string are scanned
+  in the same pass, allocation-free, returning only scalars in the family's
+  end-offset/rejection encoding. Escape-character and surrogate validity stay
+  with `std.data.json`, raw UTF-8 with `std.data.json.utf8`, and duplicate keys
+  are accepted rather than rejected - all three stated in
+  [Bounded JSON Scanner v1](docs/BOUNDED-JSON-SCANNER-V1.md) rather than left to
+  inference, because the `SPX-G171` pre-bound admits 12,216 B of this package's
+  source and rejects 12,292 B. The package deliberately depends on nothing: a
+  `[dependencies]` edge on `std.data.json` alone puts it over that bound, since
+  vendored dependency source is charged in full against the consumer.
+
 - Extended the bounded JSON slice from one package to five sibling packages,
   because the Workspace Semantic Graph pre-bound is charged against a whole
   package - library, examples, and conformance modules - and no single library

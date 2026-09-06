@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-data-json-doc"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.data.json.doc.examples"
+sources = ["src/doc.spx", "src/examples.spx", "src/tests.spx"]
+tests = ["std.data.json.doc.tests"]
+
+[exports]
+web = ["std.data.json.doc.is_document"]

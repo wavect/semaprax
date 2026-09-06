@@ -995,6 +995,52 @@ fn package_manifest_links_json_writer_siblings() {
     let _ = std::fs::remove_dir_all(scratch);
 }
 
+/// The structural document layer is its own sibling: a consumer links only
+/// `std.data.json.doc` and validates a whole JSON document, including the
+/// nesting-depth bound, mismatched closers, and trailing bytes.
+#[test]
+fn package_manifest_links_the_json_document_layer() {
+    let scratch = temporary("manifest-json-document");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-document-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.valid\"]\n\n[dependencies]\nstd.data.json.doc = \"=0.1.0\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\nuse function @id(\"std.data.json.doc.is_document\") from std.data.json.doc as is_document;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    let empty = [123u8, 125u8];\n    if is_document(array_as_slice(empty)) { 0 } else { 1 }\n}\n",
+    )
+    .unwrap();
+    let mut app = String::from("module consumer.app;\n");
+    for name in ["document_end", "is_document", "whole_end"] {
+        app.push_str(&format!(
+            "use function @id(\"std.data.json.doc.{name}\") from std.data.json.doc as {name};\n"
+        ));
+    }
+    app.push_str("\n@id(\"consumer.valid\")\nfn valid(view: borrow Slice<u8>) -> bool\n{\n    is_document(view)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let object = [123u8, 34u8, 97u8, 34u8, 58u8, 91u8, 49u8, 93u8, 125u8];\n    let trailing = [123u8, 125u8, 32u8, 120u8];\n    let crossed = [91u8, 49u8, 125u8];\n    let view = array_as_slice(object);\n    let extra = array_as_slice(trailing);\n    let mismatched = array_as_slice(crossed);\n    let accepted = valid(view) && document_end(view, 0usize, 32usize) == 9usize && whole_end(view, 32usize) == byte_len(view);\n    let rejected = !valid(extra) && whole_end(extra, 32usize) - byte_len(extra) - 1usize == 3usize && !valid(mismatched) && document_end(mismatched, 0usize, 32usize) - byte_len(mismatched) - 1usize == 2usize;\n    let bounded = document_end(view, 0usize, 1usize) - byte_len(view) - 1usize == 5usize;\n    if accepted && rejected && bounded { 0 } else { 1 }\n}\n");
+    std::fs::write(scratch.join("src/app.spx"), app).unwrap();
+
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        let options = project::ProjectExecutionOptions::default();
+        assert_eq!(
+            snapshot.execute_entry(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert_eq!(
+            snapshot.execute_test(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.json.doc/0.1.0/doc.spx"));
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
 #[test]
 fn package_manifest_links_borrowed_text_from_std_text() {
     let scratch = temporary("manifest-text-dependency");

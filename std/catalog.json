@@ -760,6 +760,166 @@
           "effects": [],
           "ensures": 0,
           "head": [
+            "fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool"
+          ],
+          "id": "std.data.json.doc.at_in",
+          "kind": "function",
+          "name": "at_in",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn skip_space(input: borrow Slice<u8>, start: usize) -> usize",
+            "    ensures result <= byte_len(input)"
+          ],
+          "id": "std.data.json.doc.skip_space",
+          "kind": "function",
+          "name": "skip_space",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn string_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.doc.string_end",
+          "kind": "function",
+          "name": "string_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn digits_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.doc.digits_end",
+          "kind": "function",
+          "name": "digits_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn number_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.doc.number_end",
+          "kind": "function",
+          "name": "number_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn literal_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.doc.literal_end",
+          "kind": "function",
+          "name": "literal_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn advance(input: borrow Slice<u8>, index: usize, step: i64) -> usize"
+          ],
+          "id": "std.data.json.doc.advance",
+          "kind": "function",
+          "name": "advance",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn step_action(input: borrow Slice<u8>, index: usize, mode: i64, stack: i64) -> i64"
+          ],
+          "id": "std.data.json.doc.step_action",
+          "kind": "function",
+          "name": "step_action",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn next_state(action: i64, mode: i64, stack: i64) -> i64"
+          ],
+          "id": "std.data.json.doc.next_state",
+          "kind": "function",
+          "name": "next_state",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn document_end(input: borrow Slice<u8>, start: usize, depth_limit: usize) -> usize"
+          ],
+          "id": "std.data.json.doc.document_end",
+          "kind": "function",
+          "name": "document_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn whole_end(input: borrow Slice<u8>, depth_limit: usize) -> usize"
+          ],
+          "id": "std.data.json.doc.whole_end",
+          "kind": "function",
+          "name": "whole_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_document(input: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.doc.is_document",
+          "kind": "function",
+          "name": "is_document",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.data.json.doc = \"^0.1.0\"",
+      "module": "std.data.json.doc",
+      "package": "std/data-json-doc",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
             "fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool"
           ],
           "id": "std.data.json.token.at_is",

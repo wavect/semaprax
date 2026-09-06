@@ -2,7 +2,7 @@
 
 Audience: language users, tool authors, and standard-library contributors.
 
-Status: partially implemented, across five sibling packages that share one
+Status: partially implemented, across six sibling packages that share one
 result encoding. Each is pure, allocation-free, and operates on a borrowed
 byte view or Copy scalars:
 
@@ -13,12 +13,13 @@ byte view or Copy scalars:
 | `std.data.json.utf8` | **UTF-8 validation** of raw bytes, rejecting malformed, overlong, surrogate, and out-of-range sequences |
 | `std.data.json.write` | Deterministic **string encoding**: the exact length and each byte of the quoted JSON encoding of a byte view |
 | `std.data.json.digits` | Deterministic **number and literal encoding**: the exact decimal bytes of any `i64` and the literal words |
+| `std.data.json.doc` | **Structural documents**: the object and array grammar, a bounded nesting depth, and trailing-byte rejection over a whole document |
 
-Structural document validation, decoded string output, an owned document tree,
-and an output buffer are Missing.
+Decoded string output, an owned document tree, an output buffer, and a
+duplicate-key rule are Missing.
 
 This document owns the result encoding and rejection policy shared by all
-five. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns their status rows and
+six. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns their status rows and
 the admission limits that shape them.
 
 ## Why a scanner and not a document
@@ -48,11 +49,14 @@ Locating functions return `usize`. Let `n` be `byte_len(input)`.
 | `r <= n` | success; `r` is the exclusive end offset |
 | `r > n` | rejection; the first offending byte is at `r - n - 1` |
 
-`failure(input, offset)` builds the rejection value, `is_failure(input, r)`
-tests it, and `failure_offset(input, r, fallback)` decodes it, returning
+`std.data.json.failure(input, offset)` builds the rejection value,
+`is_failure(input, r)` tests it, and `failure_offset(input, r, fallback)`
+decodes it, returning
 `fallback` for a success value so that it is total. The encoding is exact and
 allocation-free, and lets one scan carry both the answer and the diagnostic
-offset. A rejection offset equal to `n` means the input ended early, so a
+offset. Every package here produces and consumes exactly these values;
+`std.data.json` is the one that exports the three helpers, and a package that
+does not depend on it writes the same arithmetic inline. A rejection offset equal to `n` means the input ended early, so a
 truncated string is never reported as a complete one.
 
 ## Lexical rules
@@ -125,6 +129,67 @@ malformed continuations, overlong encodings, the surrogate range
 lift that to the shared offset encoding, and `is_utf8` is `utf8_end` reaching
 exactly `byte_len(input)`.
 
+## Structural documents
+
+`std.data.json.doc` is the only package here that reads a *document* rather
+than a token. It is still allocation-free and still returns only scalars: the
+container stack is a single `i64` used as a base-2 stack with a sentinel bit,
+so an object push is `stack * 2 + 1`, an array push is `stack * 2`, a pop is
+`stack / 2`, and `stack == 1` is the top level. Nesting is therefore bounded by
+an explicit counted limit rather than by a call stack; the language admits no
+recursion here and none is used.
+
+`document_end(input, start, depth_limit)` scans exactly one JSON value,
+skipping leading whitespace, and returns the offset one past it.
+`whole_end(input, depth_limit)` additionally requires that only JSON whitespace
+follows, so a **trailing byte is rejected at its own offset**.
+`is_document(input)` is `whole_end` with the maximum depth, reaching exactly
+`byte_len(input)`.
+
+- **Depth is explicit and bounded.** `depth_limit` counts open containers; a
+  container opened beyond it is rejected at the offset of its `{` or `[`. The
+  parameter is clamped to **32**, which is the depth `is_document` uses, so no
+  caller can ask for an unbounded scan.
+- **Grammar.** Six modes drive the scan: a value is required, a value or the
+  closing `]`, a key, a key or the closing `}`, the `:`, and then `,` or the
+  matching closer. A closer that does not match the innermost container is
+  rejected at its own offset, as is a `,` that is not followed by a member.
+- **Tokens.** `number_end` is the RFC 8259 number grammar, so `01`, `1.`, and
+  `1e` are rejected; `literal_end` accepts only the exact words `true`,
+  `false`, and `null`; `string_end` frames a string, rejecting raw `0x00`-`0x1F`
+  and an unterminated string at end of input.
+- **State machine as data.** `step_action(input, index, mode, stack)` returns
+  `action + class * 16`, `next_state(action, mode, stack)` returns
+  `mode + stack * 8`, and `advance(input, index, step)` turns a packed action
+  into the next offset. They are exported so a caller can drive the same
+  machine over its own buffer.
+
+### What the document layer delegates
+
+The layer owns *structure*. Two token-level rules stay with their owning
+sibling and are **not** re-checked here, because the workspace-graph pre-bound
+described below does not admit both in one package:
+
+- **Escape characters.** `std.data.json.doc.string_end` treats a `\` and the
+  byte after it as two bytes. That finds the correct end of every string,
+  including `\uXXXX`, but it does not check that the escape is one of the
+  admitted forms or that surrogates pair. `std.data.json.escape_kind`,
+  `escape_end`, and `is_string` own that rule.
+- **UTF-8.** Raw bytes are not decoded. `std.data.json.utf8.is_utf8` owns that
+  rule, and applies to the whole document as one byte range.
+
+A caller that needs full RFC 8259 conformance composes the three:
+`is_document(view) && is_utf8(view)`, plus `is_string` over each string span.
+
+### Duplicate keys
+
+Not implemented, and the policy is stated so a program cannot infer one:
+`std.data.json.doc` **accepts** an object whose members repeat a name and
+scans every member, because it builds no map and discards nothing. It cannot
+reject one either: with no growable collection it cannot retain the earlier
+keys of the enclosing object, and the pre-bound below does not admit the second
+pass that would compare them. A duplicate-key rule needs a further sibling.
+
 ## Writing
 
 The writer is *pull-based*: it computes the exact output length and then the
@@ -149,10 +214,8 @@ through unchanged. `usize_len` and `usize_byte` render a count exactly.
 
 These are absent, not merely undocumented. A program must not infer them:
 
-- **Structural validation.** There is no object, array, nesting-depth,
-  trailing-byte, or duplicate-key rule, and therefore no notion of a complete
-  JSON document. Nothing here validates that a sequence of tokens is a
-  well-formed value.
+- **Duplicate keys.** `std.data.json.doc` validates structure, not member
+  uniqueness; see above.
 - **Floating-point numbers.** `i64_or` refuses a fraction or exponent rather
   than converting it, and nothing renders an `f64`.
 - **Decoded strings.** Escapes are validated and measured, never expanded;
@@ -163,8 +226,8 @@ These are absent, not merely undocumented. A program must not infer them:
 
 ## The limit that shapes this package
 
-The scanner is smaller than the surrounding design because of a compiler
-bound, not a library choice. The Workspace Semantic Graph pre-bound described
+The scanner and the document layer are smaller than the surrounding design
+because of a compiler bound, not a library choice. The Workspace Semantic Graph pre-bound described
 in [Workspace Semantic Graph v1](WORKSPACE-SEMANTIC-GRAPH-V1.md#limits-and-budget)
 charges an upper estimate of resolver memory for the whole link closure, and
 [Standard Library v1](STANDARD-LIBRARY-V1.md) requires every library function
@@ -172,7 +235,14 @@ to be imported by the package's conformance module, which charges each
 function's tree a second time. The budget is charged against the whole package — library,
 examples, and conformance modules together — so no single module can hold this
 slice. Measured by padding each of these packages until `SPX-G171` fires, the
-admitted total package source is between 13.3 KB and 15.9 KB.
+admitted total package source is between 13.3 KB and 15.9 KB for the token
+packages. The bound is not a byte count: it is charged against declarations,
+expression structure, and the length of the longest stable identity in the
+package, so a package with many small declarations and dense expressions is
+admitted at far less source. `std.data.json.doc` was measured at **12,216 B
+admitted and 12,292 B rejected** — its own declarations cost roughly twice per
+byte what the token packages' do, which is why its helper set is merged down to
+twelve functions and its module segment is `doc` rather than `document`.
 
 The scope is therefore authored as sibling packages a consumer links, which
 became viable when the pre-bound stopped charging an imported function as a
@@ -180,5 +250,15 @@ second complete copy of its provider. Each package restates the two- or
 three-line byte-inspection helpers it needs rather than depending on a
 sibling, because a `[dependencies]` edge spends the whole dependency source
 against the consumer's budget while the helper costs a few hundred bytes.
-Structural document validation still needs either a further split or that
-bound raised.
+Two consequences of that measurement shape `std.data.json.doc`:
+
+- **It depends on nothing.** A `[dependencies]` edge on `std.data.json` alone
+  (4,769 B) or on `std.data.json` and `std.data.json.token` together (9,333 B)
+  puts the document layer over the bound even though its own source is only
+  8.5 KB, because the vendored dependency source is charged in full against the
+  consumer. Restating the few byte probes it needs costs a few hundred bytes.
+- **It delegates escape and UTF-8 validity.** Restating those rules costs about
+  1.2 KB, which the bound does not admit beside the structural machine.
+
+Decoded strings, an output buffer, an owned document tree, and a duplicate-key
+rule still need either a further split or that bound raised.

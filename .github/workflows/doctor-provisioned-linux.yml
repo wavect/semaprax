@@ -50,18 +50,11 @@ env:
   # `render_rows` admits Node major >= 22 and Rust >= 1.88, and 1.88.0 is the
   # smallest admitted real Rust distribution.
   DOCTOR_RUST_DISTRIBUTION: 1.88.0
-  # MEASURED, NOT CHOSEN. A three-role carrier does not exist on this host: the
-  # loader closures of Node v22.23.2 and Rust 1.88.0 alone encode to 462424370
-  # bytes, 86% of the 512 MiB DOCTOR_OFFLINE_INPUT_MAX_BYTES ceiling, leaving
-  # 74446542 bytes for the whole Clang role. The smallest official LLVM release
-  # that still runs on Ubuntu 24.04 is 9.0.1, whose clang alone is 105915000
-  # bytes and whose carrier reaches 568339434. So the two real-distribution
-  # fixtures cannot be satisfied by any current real distribution set, and this
-  # run carries the largest real carrier that does fit. The gate therefore still
-  # FAILS, on exactly those two fixtures, and the other twenty-four lifecycle
-  # fixtures execute for the first time. Raising the ceiling is a contract change
-  # in offline_input.rs and its owning specifications, not a workflow setting.
-  DOCTOR_CARRIER_TARGET: native
+  # All three roles. The measured clang-17 three-role carrier is 652142493
+  # bytes: over the previous 536870912-byte ceiling, and inside the re-derived
+  # 1073741824-byte one. That derivation, and the cgroup memory limit it moves
+  # with, are recorded in docs/DOCTOR-SEALED-INPUT-V1.md.
+  DOCTOR_CARRIER_TARGET: all
 
 jobs:
   doctor-provisioned-linux:
@@ -146,18 +139,21 @@ jobs:
             --bin semaprax-doctor-provisioner
           cargo build --locked --release --target "$DOCTOR_RELEASE_TARGET" \
             -p semaprax-doctor-collector --bin semaprax-doctor-collector
+          # Cargo uplifts each binary out of `deps/` as a HARD LINK, so the copy
+          # in the target root has link count 2. `semaprax-doctor-release`
+          # refuses such an input -- `check_permissions` requires nlink == 1,
+          # because a second name for a file is a second way to replace it
+          # between admission and read. That check guards the signed release, so
+          # the images are copied to private single-link files instead of it
+          # being relaxed. `cp` creates a new inode; the link count is asserted.
           built="$PWD/target/$DOCTOR_RELEASE_TARGET/release"
-          # Cargo hard-links each binary from target/.../deps, so the artifact
-          # under release/ has link count 2 and semaprax-doctor-release rejects
-          # it: "input permissions or link count are unsafe". That check is the
-          # packager refusing an input another name can still reach, so give it
-          # a private single-link copy rather than relax the check.
           images="$RUNNER_TEMP/images"
           rm -rf "$images"
-          mkdir -p "$images"
+          mkdir -m 700 -p "$images"
           for image in launcher worker collector provisioner; do
             cp "$built/semaprax-doctor-$image" "$images/semaprax-doctor-$image"
             chmod 755 "$images/semaprax-doctor-$image"
+            stat -c '%n mode=%a links=%h' "$images/semaprax-doctor-$image"
             test "$(stat -c '%h' "$images/semaprax-doctor-$image")" -eq 1
             file "$images/semaprax-doctor-$image"
           done
@@ -176,11 +172,51 @@ jobs:
           chmod 755 "$dist/clang/bin/clang"
           rustup toolchain install "$DOCTOR_RUST_DISTRIBUTION" \
             --profile minimal --no-self-update
-          rustc="$(rustup which --toolchain "$DOCTOR_RUST_DISTRIBUTION" rustc)"
-          node="$(command -v node)"
+          # `semaprax-doctor-release` refuses an input with `nlink != 1` or any
+          # of setuid/setgid/group-write/other-write, so a signed release can
+          # never be built from a file another user can alter or alias. The
+          # shared system paths do not satisfy that: rustup hard-links `rustc`
+          # into every toolchain that shares a version, and `/usr/local/bin`
+          # is not private to this job. Copy each distribution into a private
+          # 0700 staging directory, which gives a fresh inode with link count
+          # 1, then assert the property rather than assume the copy conferred
+          # it. Fixing the inputs is the correct response; relaxing the check
+          # would defeat the guarantee the gate exists to demonstrate.
+          mkdir -p "$dist/node/bin" "$dist/rust/bin"
+          chmod 700 "$dist" "$dist/clang" "$dist/clang/bin" \
+            "$dist/node" "$dist/node/bin" "$dist/rust" "$dist/rust/bin"
+          cp --no-preserve=links,mode "$(command -v node)" "$dist/node/bin/node"
+          rustc_src="$(rustup which --toolchain "$DOCTOR_RUST_DISTRIBUTION" rustc)"
+          cp --no-preserve=links,mode "$rustc_src" "$dist/rust/bin/rustc"
+          # `rustc` resolves its driver through RPATH `$ORIGIN/../lib`, so the
+          # binary alone cannot start. Carry the toolchain's own lib directory
+          # beside it, preserving that relative layout.
+          cp -R --no-preserve=links,mode \
+            "$(dirname "$rustc_src")/../lib" "$dist/rust/lib"
+          chmod 755 "$dist/node/bin/node" "$dist/rust/bin/rustc"
+          for staged in "$dist/clang/bin/clang" "$dist/node/bin/node" \
+            "$dist/rust/bin/rustc"; do
+            links="$(stat -c %h "$staged")"
+            mode="$(stat -c %a "$staged")"
+            if [ "$links" != "1" ]; then
+              echo "staged $staged has link count $links, expected 1" >&2
+              exit 1
+            fi
+            case "$mode" in
+            755) ;;
+            *) echo "staged $staged has mode $mode, expected 755" >&2; exit 1 ;;
+            esac
+            # A copy that cannot start is worse than one the release tool
+            # rejects: it would fail much later, inside confinement, looking
+            # like a confinement defect. Prove each staged tool runs here.
+            "$staged" --version >/dev/null || {
+              echo "staged $staged does not execute" >&2
+              exit 1
+            }
+          done
           echo "DOCTOR_CLANG=$dist/clang/bin/clang" >> "$GITHUB_ENV"
-          echo "DOCTOR_NODE=$node" >> "$GITHUB_ENV"
-          echo "DOCTOR_RUSTC=$rustc" >> "$GITHUB_ENV"
+          echo "DOCTOR_NODE=$dist/node/bin/node" >> "$GITHUB_ENV"
+          echo "DOCTOR_RUSTC=$dist/rust/bin/rustc" >> "$GITHUB_ENV"
 
       - name: Record the independent expected details
         # The fixture must not manufacture its own oracle from the confined
@@ -209,20 +245,22 @@ jobs:
           set -euo pipefail
           carrier="$RUNNER_TEMP/carrier"
           mkdir -p "$carrier"
-          # Record what the contracted three-role carrier would cost, then build
-          # the largest one that the carrier format actually admits. The first
-          # measurement is expected to report an overrun; it is the evidence for
-          # why the second command carries fewer roles.
+          # Print the measured inventory and its total against the ceiling first,
+          # so every run records the carrier cost the ceiling was derived from,
+          # then assemble that same three-role carrier.
           python3 scripts/doctor-provisioned-linux-bundle.py \
             --selector "$DOCTOR_RELEASE_SELECTOR" \
             --clang "$DOCTOR_CLANG" --node "$DOCTOR_NODE" --rustc "$DOCTOR_RUSTC" \
-            --closure --plan || echo "three real roles do not fit the carrier"
+            --closure --plan
           python3 scripts/doctor-provisioned-linux-bundle.py \
             --selector "$DOCTOR_RELEASE_SELECTOR" \
-            --clang "$DOCTOR_CLANG" \
+            --clang "$DOCTOR_CLANG" --node "$DOCTOR_NODE" --rustc "$DOCTOR_RUSTC" \
             --closure --target "$DOCTOR_CARRIER_TARGET" \
             --bundle "$carrier/bundle.bin" --request "$carrier/request.bin"
           chmod 600 "$carrier/bundle.bin" "$carrier/request.bin"
+          # The same input-safety preconditions the packager applies, recorded
+          # for every input it will read, so a rejection names the offender.
+          stat -c '%n mode=%a links=%h' "$carrier/bundle.bin" "$carrier/request.bin"
           echo "DOCTOR_BUNDLE=$carrier/bundle.bin" >> "$GITHUB_ENV"
           echo "DOCTOR_REQUEST=$carrier/request.bin" >> "$GITHUB_ENV"
 

@@ -347,9 +347,10 @@ ABIs prematurely.
 - extend aggregate, `Option`, `Result`, and matching beyond the exact
   [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md) profiles,
   retaining the locally exercised flat [Concrete Generic Owned-Byte Records
-  v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) composition while completing
-  nested generic storage, authored generic variants, broader non-Copy
-  propagation, hosted evidence, and public ABIs;
+  v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) composition and its exact
+  cross-file Project execution behind the unchanged scalar-only v8 boundary
+  while completing nested generic storage, authored generic variants, broader
+  non-Copy propagation, hosted evidence, and a distinct public generic ABI/v14;
 - complete mutation and generic interactions across interpreter, native, and
   Wasm lanes.
 

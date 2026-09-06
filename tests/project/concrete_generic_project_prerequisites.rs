@@ -1,4 +1,6 @@
-use std::path::PathBuf;
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -54,6 +56,65 @@ impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
     }
+}
+
+struct RuntimeDirectory(PathBuf);
+
+impl RuntimeDirectory {
+    fn new(label: &str) -> Self {
+        let path = std::env::temp_dir().join(format!(
+            "spx-concrete-generic-project-{label}-{}-{}",
+            std::process::id(),
+            SERIAL.fetch_add(1, Ordering::Relaxed)
+        ));
+        std::fs::create_dir(&path).unwrap();
+        Self(path.canonicalize().unwrap())
+    }
+}
+
+impl Drop for RuntimeDirectory {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+fn package_artifacts(build: &ProjectNpmBuild) -> BTreeMap<String, Vec<u8>> {
+    let envelope: Value = serde_json::from_str(build.envelope()).unwrap();
+    envelope["artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            let hex = row["hex"].as_str().unwrap();
+            let bytes = (0..hex.len())
+                .step_by(2)
+                .map(|index| u8::from_str_radix(&hex[index..index + 2], 16).unwrap())
+                .collect();
+            (row["path"].as_str().unwrap().to_owned(), bytes)
+        })
+        .collect()
+}
+
+fn compile_and_run_c(source: &str, directory: &Path, label: &str, optimization: &str) {
+    let c = directory.join(format!("{label}.c"));
+    let executable = directory.join(format!("{label}-{}", &optimization[1..]));
+    std::fs::write(&c, source).unwrap();
+    let output = Command::new("clang")
+        .args(["-std=c11", optimization, "-Wall", "-Wextra", "-Werror"])
+        .arg(&c)
+        .arg("-o")
+        .arg(&executable)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let output = Command::new(executable).output().unwrap();
+    assert!(output.status.success());
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "1");
+    assert!(output.stderr.is_empty());
 }
 
 fn concrete_pair() -> ResolvedType {
@@ -150,6 +211,81 @@ fn cross_file_generic_owned_identity_replays_without_widening_the_public_abi() {
     .unwrap();
     assert_eq!(restored.candidate_digest(), candidate.candidate_digest());
     assert_concrete_identity(restored.revision());
+}
+
+#[test]
+fn cross_file_generic_owned_record_executes_through_project_products() {
+    let fixture = Fixture::new();
+    let native = RuntimeDirectory::new("native");
+    let npm = RuntimeDirectory::new("npm");
+    with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        for _ in 0..3 {
+            let entry = snapshot.execute_entry(&Default::default())?;
+            assert_eq!(
+                entry.outcome(),
+                &semaprax::project::ProjectExecutionOutcome::Returned(1)
+            );
+            let tests = snapshot.execute_test(&Default::default())?;
+            assert_eq!(
+                tests.outcome(),
+                &semaprax::project::ProjectExecutionOutcome::Returned(0)
+            );
+        }
+
+        let generated =
+            semaprax::codegen::emit_hir_c(snapshot.entry_program()).map_err(|error| vec![error])?;
+        for optimization in ["-O0", "-O2"] {
+            compile_and_run_c(&generated, &native.0, "entry", optimization);
+        }
+
+        let build = snapshot.build_npm_inline(MAX_PROJECT_NPM_BUILD_BYTES)?;
+        build.verify().map_err(|error| vec![error])?;
+        for (path, bytes) in package_artifacts(&build) {
+            std::fs::write(npm.0.join(path), bytes).unwrap();
+        }
+        std::fs::write(
+            npm.0.join("project-generic-owned.mjs"),
+            r#"import fs from 'node:fs';
+import instantiate from './semaprax.bindings.js';
+const wasm = new Uint8Array(fs.readFileSync(new URL('./app.wasm', import.meta.url)));
+const api = await instantiate(wasm);
+const evaluate = api.functions['generic.product.evaluate'];
+for (let i = 0; i < 4; i += 1) {
+  if (evaluate(new Uint8Array()) !== 0n) throw Error('empty generic record result');
+  if (evaluate(new Uint8Array([1, 2, 3])) !== 1n) throw Error('owned generic record result');
+}
+console.log('project-generic-owned-ok');
+"#,
+        )
+        .unwrap();
+        let output = Command::new("node")
+            .arg("project-generic-owned.mjs")
+            .current_dir(&npm.0)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "stdout={} stderr={}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            String::from_utf8_lossy(&output.stdout).trim(),
+            "project-generic-owned-ok"
+        );
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[test]
+fn cross_file_generic_owned_product_is_selected_by_the_required_linux_gate() {
+    let workflow = include_str!("../../.github/workflows/ci.yml");
+    assert!(workflow.contains("SEMAPRAX_REQUIRE_GENERIC_OWNED_BACKENDS: \"1\""));
+    assert!(workflow.contains(
+        "cargo test --locked -p semaprax --test project concrete_generic_project_prerequisites::cross_file_generic_owned_record_executes_through_project_products -- --exact --nocapture"
+    ));
 }
 
 #[test]

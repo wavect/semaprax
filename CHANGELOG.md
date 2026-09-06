@@ -8,6 +8,14 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added one exact cross-file Project product gate for an internal concrete
+  generic owned record. The retained Project keeps `Pair<Bytes, bool>` inside
+  its linked closure while its frozen v8 descriptor remains scalar-only; the
+  gate repeatedly executes Project entry and test functions, generated native
+  C11 at `-O0`/`-O2`, and an external Node consumer calling the generated
+  npm/Core-Wasm scalar API for empty and nonempty inputs. This does not expose
+  a generic record, widen v8/v9/v11, or add a public generic ABI or Project v14.
+
 - Added `agent_lifecycle::durable`, the Agent Checkpoint v1 revision-bound
   durable slice over Agent Lifecycle v1. `bind_durable_agent` anchors one
   checked module, one AgentDeployment v1 bound product and one caller-supplied

@@ -35,9 +35,11 @@ existing nested-record bounds of 64 record levels, 256 owned leaves, and 4,096
 visited fields; recursive classifier calls may not reset any bound.
 
 Nonconcrete arguments, `String`, arrays, slices, classes, variants, resources,
-unbounded or cyclic nesting, Project exports, FFI, packages, Components, and
-public aggregate ABIs remain closed. `Option<Bytes>` and the separately admitted
-one-owned-side `Result` profiles keep their compiler-owned rules;
+unbounded or cyclic nesting, direct Project exports of generic records, FFI,
+Components, and public aggregate ABIs remain closed. One exact cross-file
+Project may execute an internal concrete generic record behind its unchanged
+scalar-only Project-v8 descriptor and package boundary. `Option<Bytes>` and the
+separately admitted one-owned-side `Result` profiles keep their compiler-owned rules;
 The record profile does not authorize prelude carriers; the exact
 `Result<Bytes, Bytes>` instance is admitted separately by
 [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md).
@@ -120,13 +122,17 @@ The local gate requires:
 - separately optimized native C11 execution at `-O0` and `-O2`, with repeated
   entry and zero live allocations after success and failure; and
 - structurally valid Node/Core-Wasm execution under the exact required owner
-  capacity, including one-too-small rejection and repeated entry.
+  capacity, including one-too-small rejection and repeated entry; and
+- one cross-file Project-v8 scalar closure retaining `Pair<Bytes, bool>` only
+  internally, with repeated Project interpreter entry and test execution,
+  generated native C11 execution at `-O0`/`-O2`, and repeated calls from an
+  external Node consumer through the generated npm/Core-Wasm scalar API.
 
 Focused evidence is necessary but does not promote generic ownership broadly.
 Hosted execution, the broader nested destructuring/update/loan corpus,
-generic-function composition beyond the flat relay, Project/public consumers,
-cross-platform ABI compatibility, and distribution remain separate completion
-work. The focused
+generic-function composition beyond the flat relay, direct generic-record
+Project/public consumers, cross-platform ABI compatibility, and distribution
+remain separate completion work. The focused
 local source/HIR/layout and interpreter/native/Wasm gates exercise the complete
 Copy-scalar set; no hosted execution is claimed until the required Linux CI
 step records a real run.
@@ -141,6 +147,12 @@ Wasm gates. A frozen Project v8 scalar public export may call through that
 internal closure, but its descriptor exposes only the already-admitted scalar
 signature. Project v9 and v11 descriptors continue to reject a selected
 generic result and no existing descriptor, carrier, or package schema widens.
+The focused Project product gate executes this exact internal closure through
+repeated retained-Project interpreter entry and tests, generated native C11 at
+`-O0`/`-O2`, and a generated npm/Core-Wasm package called by an external Node
+consumer. Every observable parameter and result remains scalar or the existing
+borrowed byte-slice input; neither the descriptor nor the consumer sees the
+generic record identity, fields, layout, or owner.
 
 A sound public generic-owned revision still requires all of the following:
 
@@ -157,9 +169,11 @@ A sound public generic-owned revision still requires all of the following:
 
 ## Nonclaims
 
-This contract does not define a stable C, Rust, WIT, Component, Project, or
-package representation. It does not admit generic variants, nonconcrete or
-cyclic generic storage, resources, inferred type arguments, constraints,
+This contract does not define a stable generic C, Rust, WIT, Component,
+Project, or package representation. In particular, it does not add Project
+v14 or widen the frozen Project-v8/v9/v11 descriptors. It does not admit
+generic variants, nonconcrete or cyclic generic storage, resources, inferred
+type arguments, constraints,
 specialization, mutable or escaping loans, concurrency, or production support.
 It is one bounded internal composition step toward general ownership and public
 ABIs.

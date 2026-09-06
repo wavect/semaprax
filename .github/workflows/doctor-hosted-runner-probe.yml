@@ -105,6 +105,45 @@ jobs:
           nproc
           free -g
 
+      - name: Real distribution byte budget
+        # The wire format caps one bundle at 512 MiB and the loader resolves
+        # every DT_NEEDED inside the pivoted root, so the bundle must carry the
+        # whole closure. Measure whether three real distributions fit.
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/budget"
+          mkdir -p "$work"
+          closure() {
+            path="$1"
+            printf '%s\n' "$(readlink -f "$path")"
+            ldd "$path" 2>/dev/null \
+              | awk '{for(i=1;i<=NF;i++) if ($i ~ /^\//) print $i}'
+          }
+          {
+            closure /usr/bin/clang
+            closure /usr/local/bin/node
+            closure "$(rustup which rustc)"
+          } | sort -u > "$work/files"
+          wc -l < "$work/files"
+          total=$(xargs -a "$work/files" stat -Lc '%s' | awk '{t+=$1} END {print t}')
+          echo "UNSTRIPPED TOTAL BYTES: $total  (limit 536870912)"
+          mkdir -p "$work/stripped"
+          i=0
+          while read -r f; do
+            i=$((i+1))
+            cp -L "$f" "$work/stripped/$i.bin"
+            strip --strip-unneeded "$work/stripped/$i.bin" 2>/dev/null || true
+          done < "$work/files"
+          stotal=$(du -bc "$work/stripped" | tail -1 | awk '{print $1}')
+          echo "STRIPPED TOTAL BYTES:   $stotal  (limit 536870912)"
+          echo "--- per file, unstripped vs stripped ---"
+          i=0
+          while read -r f; do
+            i=$((i+1))
+            printf '%12s %12s %s\n' \
+              "$(stat -Lc '%s' "$f")" "$(stat -c '%s' "$work/stripped/$i.bin")" "$f"
+          done < "$work/files"
+
       - name: Evidence documents
         if: ${{ always() }}
         run: |

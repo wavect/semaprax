@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::Path;
-#[cfg(unix)]
 use std::process::Command;
 
 fn read(path: &str) -> String {
@@ -102,6 +101,8 @@ fn publication_waits_for_all_artifacts_and_owns_the_only_write_authority() {
         "merge-multiple: true",
         "sha256sum \"${archives[@]}\"",
         "gh release create \"$GITHUB_REF_NAME\"",
+        "python3 scripts/release-notes.py --version \"$version\"",
+        "--notes-file \"$RUNNER_TEMP/release-notes.md\"",
         "--verify-tag",
         "--prerelease",
     ] {
@@ -127,6 +128,53 @@ fn publication_waits_for_all_artifacts_and_owns_the_only_write_authority() {
             "publisher must fail closed: {forbidden}"
         );
     }
+}
+
+#[test]
+fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_bucket() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let version = env!("CARGO_PKG_VERSION");
+    let check = Command::new("python3")
+        .args([
+            "scripts/prepare-release.py",
+            "--check",
+            "--version",
+            version,
+        ])
+        .current_dir(root)
+        .output()
+        .expect("release preparation checker must run");
+    assert!(
+        check.status.success(),
+        "release preparation checker failed: {}",
+        String::from_utf8_lossy(&check.stderr)
+    );
+    let check = String::from_utf8(check.stdout).expect("checker output must be UTF-8");
+    assert!(check.starts_with(&format!("release surfaces agree on v{version} (")));
+    assert!(check.ends_with(")\n"));
+
+    let notes = Command::new("python3")
+        .args(["scripts/release-notes.py", "--version", version])
+        .current_dir(root)
+        .output()
+        .expect("release notes renderer must run");
+    assert!(
+        notes.status.success(),
+        "release notes renderer failed: {}",
+        String::from_utf8_lossy(&notes.stderr)
+    );
+    let notes = String::from_utf8(notes.stdout).expect("release notes must be UTF-8");
+    let title = format!("SEMAPRAX v{version} is pre-alpha research software.");
+    for exact in [
+        title.as_str(),
+        "## Changes",
+        "Added `std.data.json.dec`",
+        "These unsigned archives are not notarized",
+        "SHA-256 checksums are integrity facts, not signatures.",
+    ] {
+        assert!(notes.contains(exact), "release notes lost: {exact}");
+    }
+    assert!(!notes.contains("## 0.3.5"));
 }
 
 #[test]

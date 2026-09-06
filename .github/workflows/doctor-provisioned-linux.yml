@@ -38,7 +38,7 @@ env:
   CARGO_INCREMENTAL: "0"
   CARGO_TERM_COLOR: never
   # The exact release identity the packaged archive and the gate must agree on.
-  DOCTOR_RELEASE_TAG: v0.3.5
+  DOCTOR_RELEASE_TAG: v0.4.0
   DOCTOR_RELEASE_TARGET: x86_64-unknown-linux-musl
   DOCTOR_RELEASE_SELECTOR: real-distributions
   # An official LLVM release: one statically linked `clang`, so the carrier

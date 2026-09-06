@@ -4,14 +4,14 @@
   "@id": "https://wavect.io/semaprax/#software",
   "name": "Semaprax",
   "alternateName": "SEMAPRAX",
-  "description": "Semaprax is an experimental agent-native systems programming language built around a stable semantic program graph. Its v0.2 prototype lets coding agents query typed meaning, submit revision-bound semantic patches, and lower a verified subset to native executables and browser/Wasm packages.",
-  "version": "0.3.0",
+  "description": "Semaprax is an experimental agent-native systems programming language built around a stable semantic program graph. Its v0.4 prerelease lets coding agents query typed meaning, submit revision-bound semantic changes, and lower a verified subset to native executables and browser/Wasm packages.",
+  "version": "0.4.0",
   "developmentStatus": "https://www.repostatus.org/#wip",
   "license": "https://spdx.org/licenses/Apache-2.0",
   "url": "https://wavect.io/semaprax/",
   "codeRepository": "https://github.com/wavect/semaprax",
   "issueTracker": "https://github.com/wavect/semaprax/issues",
-  "dateModified": "2026-08-11",
+  "dateModified": "2026-09-06",
   "creator": {
     "@type": "Organization",
     "@id": "https://wavect.io/#organization",
@@ -22,7 +22,7 @@
     "Rust",
     "Semaprax"
   ],
-  "runtimePlatform": "Rust 1.85 or newer",
+  "runtimePlatform": "Rust 1.88 or newer",
   "keywords": [
     "agent-native programming language",
     "systems programming",

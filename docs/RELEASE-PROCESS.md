@@ -29,9 +29,9 @@ The admitted release hosts and target archives are:
 
 | Hosted runner | Exercised target | Archive |
 | --- | --- | --- |
-| Ubuntu 24.04 | `x86_64-unknown-linux-gnu` | `semaprax-v0.2.0-x86_64-unknown-linux-gnu.tar.gz` |
-| macOS 15 | `aarch64-apple-darwin` | `semaprax-v0.2.0-aarch64-apple-darwin.tar.gz` |
-| Windows 2025 | `x86_64-pc-windows-msvc` | `semaprax-v0.2.0-x86_64-pc-windows-msvc.zip` |
+| Ubuntu 24.04 | `x86_64-unknown-linux-gnu` | `semaprax-v0.4.0-x86_64-unknown-linux-gnu.tar.gz` |
+| macOS 15 | `aarch64-apple-darwin` | `semaprax-v0.4.0-aarch64-apple-darwin.tar.gz` |
+| Windows 2025 | `x86_64-pc-windows-msvc` | `semaprax-v0.4.0-x86_64-pc-windows-msvc.zip` |
 
 Each archive contains `semaprax`, `semapraxd`, `LICENSE`, `README.md`, a fixed
 smoke program, and the deterministic `semaprax.release-artifact.v1` manifest.
@@ -45,6 +45,75 @@ publish any private library crate or promote its platform support.
 The platform script unpacks its completed archive and uses the unpacked
 `semaprax` binary to run `--version`, `version --json`, `check`, and `run`
 before the archive can be uploaded.
+
+## Pre-tag release checklist
+
+A package-version release is a repository-wide consistency change, not only a
+root-manifest edit. Before committing the release, update and verify all of the
+following surfaces together:
+
+The mechanical portion is automated and intentionally excludes historical
+evidence, frozen protocol identities, the human-written release record, and
+release-note curation:
+
+```sh
+python3 scripts/prepare-release.py --write --version 0.4.0 --date 2026-09-06
+python3 scripts/prepare-release.py --check --version 0.4.0
+```
+
+The write mode requires a clean worktree, updates the declared current-version
+surfaces, and regenerates every repository-owned lockfile offline. Check mode
+also runs locked Cargo metadata against the root, example, and platform-test
+manifests. Review its diff and complete the human-owned items below.
+
+1. Set the root `Cargo.toml` package version and the unpublished
+   `semaprax-toolchain` package version to the release version.
+2. Update every exact path-dependency requirement in workspace-private crates
+   and isolated `platform-tests/*` manifests. Regenerate the root, example, and
+   platform-test lockfiles so each local `semaprax` or `semaprax-toolchain`
+   package row agrees with its manifest.
+3. Update executable version contracts: CLI text and JSON fixtures, daemon and
+   agent transport assertions, doctor report fixtures, external-consumer
+   manifest assertions, and the provisioned doctor release tag.
+4. Cut the accumulated `Unreleased` changelog entries under a dated release
+   heading. Update the README badge and release links, installation archive
+   names and example output, documentation landing page, changelog summary,
+   citation metadata, and CodeMeta version, date, description, and Rust floor.
+5. Search the repository for both the old bare version and old `v` tag. Review
+   each survivor rather than replacing it mechanically: evidence logs,
+   historical release records, dependency test vectors, crate dependency
+   versions, and versioned WIT/schema identifiers are not package-release
+   numbers. In particular, `semaprax:private@0.3.0` is a frozen WIT identity and
+   does not follow the CLI package version.
+6. Run the version, doctor, documentation, manifest/lockfile, package, and
+   release-packaging contracts plus the repository's full quality profile. The
+   tag must name the exact tested release commit, not a later documentation or
+   lockfile repair.
+
+Before tagging, inspect GitHub Actions at the job level. A `Release gate`
+failure after a newer `main` push can be a synthetic consequence of cancelled
+matrix jobs; it is not evidence that an executed test failed. Conversely, a
+job whose overall conclusion is `cancelled` may have reached real test
+failures before its timeout, so retain and inspect its log. The Windows
+`integration-0` shard includes the large Project harness: on the v0.4.0
+candidate that harness ran 337 passing tests locally in about fifteen minutes,
+while the Windows shard also spent substantial time compiling and running
+other targets. Its 60-minute job budget and `--nocapture` diagnostics are
+therefore release-safety controls, not permission to skip, weaken, or hide a
+test.
+
+Use an annotated tag, matching the established repository convention, only
+after the release commit is on `main` and the remote head still resolves to
+that exact commit:
+
+```sh
+git tag -a v0.4.0 -m v0.4.0 <exact-release-commit>
+git push origin v0.4.0
+```
+
+If another contributor advances `main` before the tag is created, rebase the
+release commit, rerun the affected gates, and resolve the new exact commit.
+Never move or recreate a published release tag to absorb later work.
 
 ## Build-output selection
 
@@ -202,20 +271,37 @@ published archives recorded above. Its local acceptance results must not be
 relabeled as evidence from the tag commit; changes to either require separate
 evidence.
 
+## 0.4.0 release record
+
+The `v0.4.0` release commit updates the package, toolchain, private consumer,
+platform-test, lockfile, CLI, doctor, agent-transport, installation, citation,
+and repository metadata surfaces as one version-consistent change. The
+annotated tag starts the ordinary tag workflow; only that exact tag run may
+produce and publish the three v0.4.0 archives and `SHA256SUMS`. Until the run's
+Release gate, archive jobs, and publication job all succeed, this section is a
+release-candidate record rather than hosted artifact evidence. Asset sizes,
+digests, and job links must be added later from the completed tag run and must
+not be predicted from a local build.
+
 ## Publication boundary
 
 Artifact matrix jobs retain read-only repository authority. The final
 `publish-release` job alone receives `contents: write`, and only after both
 `release-gate` and every artifact-matrix child succeed. It authenticates the
 exact three-archive inventory, writes one `SHA256SUMS`, and publishes a GitHub
-prerelease because v0.2 remains pre-alpha.
+prerelease because SEMAPRAX remains pre-alpha. The publisher derives the body
+with `scripts/release-notes.py`: it selects only the tagged version's dated
+`CHANGELOG.md` section, stopping at the next release heading, and surrounds it
+with the release nonclaims. A missing, duplicate, or empty section fails the
+publication instead of silently creating incomplete notes.
 
 ## Nonclaims
 
 The archives are unsigned and are not notarized. No cross-host reproducible build is claimed.
 The deterministic manifest does not make the enclosing archive byte-reproducible.
 SHA-256 checksums are integrity facts, not signatures, provenance, or publisher authentication.
-Publication completes only the v0.2.0 tagged-artifact milestone recorded as
-WP-04. Other than that bounded release record, publication does not promote any completion-matrix row
+The historical v0.2.0 publication completed only the tagged-artifact milestone
+recorded as WP-04. A later publication is likewise only its bounded release
+record: it does not promote any completion-matrix row
 or establish production readiness, a stable language ABI, a stable public
 protocol, or safety-critical suitability.

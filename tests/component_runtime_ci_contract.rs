@@ -25,7 +25,7 @@ fn standalone_runner_is_pinned_private_and_outside_the_root_workspace() {
         "license = \"Apache-2.0\"",
         "[workspace]",
         "resolver = \"2\"",
-        "semaprax = { version = \"=0.3.5\", path = \"../..\", default-features = false, features = [\"unstable-wit-component-harness\"] }",
+        "semaprax = { version = \"=0.4.0\", path = \"../..\", default-features = false, features = [\"unstable-wit-component-harness\"] }",
         "sha2 = { version = \"=0.11.0\", default-features = false }",
         "wasmtime = { version = \"=47.0.4\", default-features = false, features = [\"component-model\", \"cranelift\", \"runtime\", \"std\"] }",
         "unsafe_code = \"forbid\"",

@@ -1345,12 +1345,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
-          SEMAPRAX v0.2 is pre-alpha research software.
-
-          These unsigned archives are not notarized and make no cross-host reproducible-build claim.
-          SHA-256 checksums are integrity facts, not signatures.
-          NOTES
+          version=$(sed -n 's/^version = "\([^"]*\)"$/\1/p' Cargo.toml)
+          test -n "$version"
+          test "$GITHUB_REF_NAME" = "v$version"
+          python3 scripts/release-notes.py --version "$version" > "$RUNNER_TEMP/release-notes.md"
+          test -s "$RUNNER_TEMP/release-notes.md"
           gh release create "$GITHUB_REF_NAME" \
             dist/semaprax-* dist/SHA256SUMS \
             --verify-tag \

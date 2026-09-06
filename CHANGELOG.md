@@ -8,6 +8,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+## 0.4.0 — 2026-09-06
+
 - Added bounded acyclic generic-to-generic forwarding between already-admitted
   templates. A direct call must pass the callee exactly the caller-owned type-
   parameter vector in declaration order; each concrete caller instance derives

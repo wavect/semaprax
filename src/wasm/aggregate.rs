@@ -39,10 +39,13 @@ use super::{
     Signature, F32, F64, I32, I64, SCALAR_IMPORT_COUNT,
 };
 
+mod box_ops;
+
 const BYTE_IMPORT_COUNT: u32 = 4;
 const OWNED_BUFFER_IMPORT_COUNT: u32 = 2;
 const VEC_IMPORT_COUNT: u32 = 6;
 const EXTENDED_VEC_IMPORT_COUNT: u32 = 3;
+const BOX_IMPORT_COUNT: u32 = 4;
 const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
 const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
 const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
@@ -60,6 +63,20 @@ fn vec_import_base(program: &ResolvedProgram) -> u32 {
         }
         + if program_uses_owned_buffer(program) {
             OWNED_BUFFER_IMPORT_COUNT
+        } else {
+            0
+        }
+}
+
+fn box_import_base(program: &ResolvedProgram) -> u32 {
+    vec_import_base(program)
+        + if super::program_uses_vec(program) {
+            VEC_IMPORT_COUNT
+        } else {
+            0
+        }
+        + if super::vec_ops::program_uses_extended_vec(program) {
+            EXTENDED_VEC_IMPORT_COUNT
         } else {
             0
         }
@@ -122,6 +139,7 @@ pub(super) const STATUS_VEC_PUSH_FULL: i32 = 13;
 pub(super) const STATUS_VEC_GET_OUT_OF_BOUNDS: i32 = 14;
 pub(super) const STATUS_VEC_ALLOCATION_FAILURE: i32 = 15;
 pub(super) const STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS: i32 = 16;
+pub(super) const STATUS_BOX_ALLOCATION_FAILURE: i32 = 17;
 pub(super) const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
 
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -357,6 +375,7 @@ impl FunctionPlan {
                 &mut |place, flag, lifecycle| {
                     if lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
                         && lifecycle.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::cleanup::BOX_DROP_LIFECYCLE_ID
                     {
                         return Err(error("Bytes CleanupPlan leaf has the wrong lifecycle"));
                     }
@@ -1064,7 +1083,9 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
 }
 
 fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
-    if crate::cleanup::is_owned_bounded_vec_type(ty) {
+    if crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::cleanup::is_owned_bounded_box_type(ty)
+    {
         return Ok(false);
     }
     Ok(matches!(ty, ResolvedType::ArrayU8(_))
@@ -1116,6 +1137,7 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::SliceU8 | ResolvedType::Str => Ok(I64),
         ResolvedType::Bytes => Ok(I64),
         ty if crate::cleanup::is_owned_bounded_vec_type(ty) => Ok(I64),
+        ty if crate::cleanup::is_owned_bounded_box_type(ty) => Ok(I64),
         ResolvedType::String => Ok(I64),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
@@ -1160,6 +1182,7 @@ fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
         ResolvedType::SliceU8 | ResolvedType::Str => Ok((8, 8)),
         ResolvedType::Bytes => Ok((8, 8)),
         ty if crate::cleanup::is_owned_bounded_vec_type(ty) => Ok((8, 8)),
+        ty if crate::cleanup::is_owned_bounded_box_type(ty) => Ok((8, 8)),
         ResolvedType::String => Ok((8, 8)),
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
@@ -2075,6 +2098,7 @@ fn emit_profile_with_scalar_exports(
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
     let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
+    let uses_box = super::program_uses_box(program);
     if program
         .types
         .iter()
@@ -2226,6 +2250,36 @@ fn emit_profile_with_scalar_exports(
             &mut type_indexes,
         )
     });
+    let box_new = uses_box.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let box_read = uses_box.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let box_drop = uses_box.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64],
+                results: Vec::new(),
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
 
     let executable_functions = executable_functions(program);
     let public_global_count = if host_output { 5_u32 } else { 1_u32 };
@@ -2295,6 +2349,7 @@ fn emit_profile_with_scalar_exports(
                     } else {
                         0
                     }
+                    + if uses_box { BOX_IMPORT_COUNT } else { 0 }
                     + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
@@ -2325,7 +2380,8 @@ fn emit_profile_with_scalar_exports(
                 EXTENDED_VEC_IMPORT_COUNT
             } else {
                 0
-            },
+            }
+            + if uses_box { BOX_IMPORT_COUNT } else { 0 },
     );
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
@@ -2369,6 +2425,12 @@ fn emit_profile_with_scalar_exports(
             function_import(&mut imports, "env", "spx_vec_set", vec_set.unwrap());
             function_import(&mut imports, "env", "spx_vec_clear", vec_read.unwrap());
         }
+    }
+    if uses_box {
+        function_import(&mut imports, "env", "spx_box_new", box_new.unwrap());
+        function_import(&mut imports, "env", "spx_box_get", box_read.unwrap());
+        function_import(&mut imports, "env", "spx_box_into_inner", box_read.unwrap());
+        function_import(&mut imports, "env", "spx_box_drop", box_drop.unwrap());
     }
     section(&mut module, 2, imports);
 
@@ -2476,6 +2538,7 @@ fn emit_profile_with_scalar_exports(
                 0
             })
         })
+        .and_then(|value| value.checked_add(if uses_box { BOX_IMPORT_COUNT } else { 0 }))
         .ok_or_else(|| error("aggregate wrapper import count overflows u32"))?
         .checked_add(
             u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
@@ -3125,7 +3188,10 @@ impl Emitter<'_> {
     ) -> Result<(), Diagnostic> {
         for action in actions {
             let vec_leaf = action.lifecycle_id.as_str() == crate::cleanup::VEC_DROP_LIFECYCLE_ID;
-            if action.lifecycle_id.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID && !vec_leaf
+            let box_leaf = action.lifecycle_id.as_str() == crate::cleanup::BOX_DROP_LIFECYCLE_ID;
+            if action.lifecycle_id.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
+                && !vec_leaf
+                && !box_leaf
             {
                 return Err(error(
                     "byte-data WebAssembly cleanup requires compiler-owned Bytes leaves",
@@ -3136,6 +3202,12 @@ impl Emitter<'_> {
                 if !crate::cleanup::is_owned_bounded_vec_type(value_type(&value)) {
                     return Err(error(
                         "Vec CleanupPlan finalizer type disagrees with lifecycle",
+                    ));
+                }
+            } else if box_leaf {
+                if !crate::cleanup::is_owned_bounded_box_type(value_type(&value)) {
+                    return Err(error(
+                        "Box CleanupPlan finalizer type disagrees with lifecycle",
                     ));
                 }
             } else {
@@ -3160,6 +3232,8 @@ impl Emitter<'_> {
                 self.output,
                 if vec_leaf {
                     vec_import_base(self.program) + 5
+                } else if box_leaf {
+                    box_import_base(self.program) + 3
                 } else {
                     BYTE_DROP_IMPORT
                 },
@@ -3185,6 +3259,7 @@ impl Emitter<'_> {
                 if let ResolvedStatement::Let { binding, .. } = statement {
                     if binding.ty == ResolvedType::Bytes
                         || crate::cleanup::is_owned_bounded_vec_type(&binding.ty)
+                        || crate::cleanup::is_owned_bounded_box_type(&binding.ty)
                     {
                         anchors.push(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
                     }
@@ -3198,6 +3273,7 @@ impl Emitter<'_> {
                 if let Some(value) = value.filter(|value| {
                     value.ty == ResolvedType::Bytes
                         || crate::cleanup::is_owned_bounded_vec_type(&value.ty)
+                        || crate::cleanup::is_owned_bounded_box_type(&value.ty)
                 }) {
                     anchors.push(crate::cleanup_plan::StorageId::Temporary(value.id.clone()));
                 }
@@ -3472,6 +3548,7 @@ impl Emitter<'_> {
             value_type(value),
             ResolvedType::Bytes | ResolvedType::String
         ) && !crate::cleanup::is_owned_bounded_vec_type(value_type(value))
+            && !crate::cleanup::is_owned_bounded_box_type(value_type(value))
         {
             return Err(error(
                 "owned scalar poison requires an exact Bytes, String, or bounded Vec carrier",
@@ -3797,6 +3874,7 @@ impl Emitter<'_> {
                     {
                         if *value_type(value) != ResolvedType::Bytes
                             && !crate::cleanup::is_owned_bounded_vec_type(value_type(value))
+                            && !crate::cleanup::is_owned_bounded_box_type(value_type(value))
                         {
                             return Err(error(
                                 "owned call epoch requires an exact Bytes or bounded Vec carrier",
@@ -5942,6 +6020,9 @@ impl Emitter<'_> {
             if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                 return self.emit_vec_op(expr, op, type_arguments, args);
             }
+            if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
+                return self.emit_box_op(expr, op, type_arguments, args);
+            }
             if crate::host_io_ops::by_id(callee.as_str()).is_some() {
                 if self.host_output.is_none() {
                     return Err(error(
@@ -6011,17 +6092,21 @@ impl Emitter<'_> {
                 && parameter.ty == ResolvedType::Bytes;
             let borrowed_vec = parameter.ownership == crate::hir::OwnershipMode::Borrow
                 && crate::cleanup::is_owned_bounded_vec_type(&parameter.ty);
+            let borrowed_box = parameter.ownership == crate::hir::OwnershipMode::Borrow
+                && crate::cleanup::is_owned_bounded_box_type(&parameter.ty);
             let borrowed_aggregate = parameter.ownership == crate::hir::OwnershipMode::Borrow
                 && is_aggregate(self.program, &parameter.ty)?;
-            let value = if borrowed_bytes || borrowed_vec || borrowed_aggregate {
+            let value = if borrowed_bytes || borrowed_vec || borrowed_box || borrowed_aggregate {
                 let ResolvedExprKind::Place(place) = &argument.kind else {
-                    return Err(error(if borrowed_bytes || borrowed_vec {
+                    return Err(error(if borrowed_bytes || borrowed_vec || borrowed_box {
                         "borrowed direct owner call argument is not an exact place"
                     } else {
                         "borrowed aggregate call argument is not an exact place"
                     }));
                 };
-                if (borrowed_vec || borrowed_aggregate) && !place.projections.is_empty() {
+                if (borrowed_vec || borrowed_box || borrowed_aggregate)
+                    && !place.projections.is_empty()
+                {
                     return Err(error(
                         "borrowed aggregate call projections are outside flat v1",
                     ));
@@ -8066,6 +8151,7 @@ impl Emitter<'_> {
                 scalar_wasm_type(ty)?;
                 if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
                     || crate::cleanup::is_owned_bounded_vec_type(ty)
+                    || crate::cleanup::is_owned_bounded_box_type(ty)
                 {
                     self.clear_scalar(source)?;
                 }
@@ -8076,6 +8162,7 @@ impl Emitter<'_> {
                 self.store_scalar(ty);
                 if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
                     || crate::cleanup::is_owned_bounded_vec_type(ty)
+                    || crate::cleanup::is_owned_bounded_box_type(ty)
                 {
                     self.clear_scalar(source)?;
                 }
@@ -8301,6 +8388,9 @@ impl Emitter<'_> {
             ty if crate::cleanup::is_owned_bounded_vec_type(ty) => {
                 self.output.extend([0x29, 0x03, 0x00])
             }
+            ty if crate::cleanup::is_owned_bounded_box_type(ty) => {
+                self.output.extend([0x29, 0x03, 0x00])
+            }
             _ => unreachable!("validated scalar load"),
         }
     }
@@ -8319,6 +8409,9 @@ impl Emitter<'_> {
                 self.output.extend([0x36, 0x02, 0x00])
             }
             ty if crate::cleanup::is_owned_bounded_vec_type(ty) => {
+                self.output.extend([0x37, 0x03, 0x00])
+            }
+            ty if crate::cleanup::is_owned_bounded_box_type(ty) => {
                 self.output.extend([0x37, 0x03, 0x00])
             }
             _ => unreachable!("validated scalar store"),

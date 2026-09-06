@@ -29,6 +29,7 @@ pub(super) fn build_owned(
     mut sources: Vec<SemanticWorkspaceSource>,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
     super::std_collections::authenticate_no_export_package(manifest, &sources)?;
+    super::std_mem::authenticate_no_export_package(manifest, &sources)?;
     super::standard_dependencies::extend_sources(manifest, &mut sources)?;
     sources.sort_by(|left, right| left.path.cmp(&right.path));
     let paths = sources
@@ -46,6 +47,7 @@ pub(super) fn build_owned_with_frontend(
     frontend: &mut super::incremental::FrontendPass,
 ) -> Result<BuiltProject, Vec<Diagnostic>> {
     super::std_collections::authenticate_no_export_package(manifest, &sources)?;
+    super::std_mem::authenticate_no_export_package(manifest, &sources)?;
     super::standard_dependencies::extend_sources(manifest, &mut sources)?;
     sources.sort_by(|left, right| left.path.cmp(&right.path));
     let paths = sources

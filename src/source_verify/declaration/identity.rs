@@ -18,6 +18,14 @@ pub(super) fn check_type_identities<'p>(
     diagnostics: &mut Vec<Diagnostic>,
 ) {
     for declaration in &program.types {
+        if declaration.name == "Box" && crate::prelude::program_uses_box(program) {
+            diagnostics.push(error(
+                program,
+                "SPX-S113",
+                format!("type name `Box` collides with compiler prelude `{}` selected by box intrinsic use", crate::prelude::SCHEMA_V4),
+                declaration.name_span,
+            ));
+        }
         if crate::prelude::is_reserved_type_name(&declaration.name) {
             diagnostics.push(error(
                 program,
@@ -562,6 +570,7 @@ pub(super) fn check_interface_identities<'p>(
             if crate::host_io_ops::by_name(&import.name).is_some()
                 || crate::command_io_ops::by_name(&import.name).is_some()
                 || crate::vec_ops::by_name(&import.name).is_some()
+                || crate::box_ops::by_name(&import.name).is_some()
             {
                 diagnostics.push(error(
                     program,

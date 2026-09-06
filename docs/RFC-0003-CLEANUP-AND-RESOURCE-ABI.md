@@ -628,6 +628,14 @@ cleanup, and status identities; they introduce no wrapper-owned resource or ABI.
 This is not permission for general owned assignment, owned elements, iterators,
 or a public generic resource ABI.
 
+[Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md) applies the same rule to one
+compiler-owned allocation leaf. `box_new<T>` initializes one non-Copy owner,
+`box_get<T>` borrows it synchronously, `box_into_inner<T>` consumes it and
+publishes only the Copy payload, and lexical cleanup settles an unextracted
+owner exactly once. The authenticated `std.mem` aliases preserve those
+identities and add no allocator authority, region/arena meaning, shared
+ownership, owned payload, or public generic ABI.
+
 ## Rejected shortcuts
 
 - Treating all resources as `void *` or `i32` without a destruction contract.

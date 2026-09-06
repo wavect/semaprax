@@ -62,6 +62,9 @@ impl NativeBytesPlan {
                         crate::cleanup::VEC_DROP_LIFECYCLE_ID if place.projections.is_empty() => {
                             OwnedLeafKind::Vec
                         }
+                        crate::cleanup::BOX_DROP_LIFECYCLE_ID if place.projections.is_empty() => {
+                            OwnedLeafKind::Box
+                        }
                         _ => {
                             // This bridge owns only compiler-owned Bytes leaves.
                             // Authenticated user-resource lifecycles remain under

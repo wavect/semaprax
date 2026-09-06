@@ -64,10 +64,10 @@ pub(super) enum Frame<'expr> {
         op: crate::byte_ops::ByteOp,
         argument_count: usize,
     },
-    FinishVecOp {
+    FinishOwnedGenericOp {
         span: Span,
         path: String,
-        op: crate::vec_ops::VecOp,
+        op: super::resolve_box_call::OwnedGenericCallSite,
         element: ResolvedType,
         argument_count: usize,
     },
@@ -405,7 +405,7 @@ pub(super) fn frame_owned_capacity(
         | Frame::FinishStringOp { path, .. }
         | Frame::FinishStrOp { path, .. }
         | Frame::FinishByteOp { path, .. }
-        | Frame::FinishVecOp { path, .. }
+        | Frame::FinishOwnedGenericOp { path, .. }
         | Frame::FinishHostIoOp { path, .. }
         | Frame::FinishHostCommandOp { path, .. }
         | Frame::ChildNext { path, .. }

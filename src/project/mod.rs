@@ -57,6 +57,7 @@ mod semantic_transaction_composition;
 mod source_hint;
 mod standard_dependencies;
 mod std_collections;
+mod std_mem;
 mod target_cache;
 #[cfg(test)]
 mod tests;

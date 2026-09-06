@@ -407,6 +407,14 @@ impl<'a> TypeTable<'a> {
                         {
                             return true;
                         }
+                        if name == "Box"
+                            && arguments.len() == 1
+                            && self.declaration(&name).is_some_and(|declaration| {
+                                declaration.stable_id == crate::prelude::BOX_ID
+                            })
+                        {
+                            return true;
+                        }
                         let Some(declaration) = self.declaration(&name) else {
                             continue;
                         };

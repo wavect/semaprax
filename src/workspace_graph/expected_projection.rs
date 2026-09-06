@@ -77,6 +77,7 @@ pub(super) fn synthetic_builder_bytes(
                 .find(|provider| provider.module == target.module)
                 .is_some_and(|provider| {
                     crate::vec_ops::source_wrapper(provider, function).is_some()
+                        || crate::box_ops::source_wrapper(provider, function).is_some()
                 })
             {
                 ast_function_cost(function, &mut runtime)?;
@@ -942,6 +943,7 @@ pub(super) fn synthetic_program(
             .find(|provider| provider.module == target.module)
             .is_some_and(|provider| {
                 crate::vec_ops::source_wrapper(provider, target_function).is_some()
+                    || crate::box_ops::source_wrapper(provider, target_function).is_some()
             })
         {
             synthetic.functions.push(function);

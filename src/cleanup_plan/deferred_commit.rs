@@ -45,6 +45,26 @@ pub(super) fn is_infallible_vec_operation(op: Option<crate::vec_ops::VecOp>) -> 
     )
 }
 
+pub(super) fn is_infallible_box_operation(callee: &DeclarationId) -> bool {
+    matches!(
+        crate::box_ops::by_id(callee.as_str()),
+        Some(crate::box_ops::BoxOp::Get | crate::box_ops::BoxOp::IntoInner)
+    )
+}
+
+pub(super) fn expression_is_infallible_compiler_operation(
+    expression: &crate::hir::ResolvedExpr,
+) -> bool {
+    matches!(
+        &expression.kind,
+        crate::hir::ResolvedExprKind::Call { callee, instance: None, .. }
+            if crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
+                || crate::host_io_ops::by_id(callee.as_str()).is_some()
+                || is_infallible_vec_operation(crate::vec_ops::by_id(callee.as_str()))
+                || is_infallible_box_operation(callee)
+    )
+}
+
 fn is_fallible_byte_operation(callee: &DeclarationId) -> bool {
     crate::byte_ops::by_id(callee.as_str()).is_some_and(crate::byte_ops::ByteOp::is_fallible)
 }

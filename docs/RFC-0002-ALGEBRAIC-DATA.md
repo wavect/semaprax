@@ -44,6 +44,12 @@ immutable update, parameters/results, ordered multi-parameter substitution,
 failure order, poison, and repeated entry. Graph v12 is program-wide and takes
 precedence over v11 Option and v10 legacy output; older outputs remain
 byte-compatible when no generic record is declared.
+This authored `record Box<T>` spelling remains inline nominal storage. The
+separately selected compiler-owned `core.box` from
+[Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md) is a distinct non-Copy logical
+allocation admitted only through its three explicit intrinsics over eight Copy
+scalars. Prelude v4 selection prevents the two meanings from being mixed while
+leaving authored-Box programs that use no compiler Box intrinsic unchanged.
 The bounded record-pattern slice adds irrefutable recursive destructuring for
 resource-free Copy records. A record match has exactly one arm whose top-level
 pattern is either `_` or the exact record constructor; constructor fields are

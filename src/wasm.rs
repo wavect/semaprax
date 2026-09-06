@@ -48,6 +48,8 @@ mod source_result_component_v4;
 mod text_exports;
 mod vec_ops;
 pub(crate) use vec_ops::program_uses_vec;
+mod box_ops;
+pub(crate) use box_ops::program_uses_box;
 
 pub use owned_data_public::{
     emit_resolved_module_with_flat_owned_record_exports,
@@ -992,6 +994,7 @@ fn emit_resolved_module_internal(
         || !concrete_variants.is_empty()
         || program_uses_byte_data(program)
         || program_uses_vec(program)
+        || program_uses_box(program)
     {
         if has_public_profile {
             if !scalar_exports.is_empty()

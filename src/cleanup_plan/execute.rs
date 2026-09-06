@@ -1171,6 +1171,12 @@ impl<'a> Executor<'a> {
                                 | crate::vec_ops::VecOp::Clear
                         )
                     )
+                    || crate::box_ops::by_id(callee.as_str()).is_some_and(|op| {
+                        matches!(
+                            op,
+                            crate::box_ops::BoxOp::Get | crate::box_ops::BoxOp::IntoInner
+                        )
+                    })
                 {
                     return Ok(callee.clone());
                 }

@@ -65,6 +65,7 @@ Audience: all documentation readers.
 - [Owned Bounded Byte Buffer](OWNED-BOUNDED-BYTE-BUFFER-V1.md)
 - [Owned Bounded Vec](OWNED-BOUNDED-VEC-V1.md)
 - [Owned Bounded Vec For Traversal](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md)
+- [Owned Bounded Box](OWNED-BOUNDED-BOX-V1.md)
 - [Bounded JSON scanner](BOUNDED-JSON-SCANNER-V1.md)
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
 - [Concrete Generic Owned-Byte Records](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md)

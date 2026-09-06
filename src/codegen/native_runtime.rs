@@ -17,14 +17,16 @@ pub(super) fn emit_status_runtime_for_profile(
     output: &mut impl super::COutput,
     borrowed_str: bool,
     vec_authority: bool,
+    box_authority: bool,
 ) {
-    emit_status_runtime_profile(output, borrowed_str, vec_authority);
+    emit_status_runtime_profile(output, borrowed_str, vec_authority, box_authority);
 }
 
 fn emit_status_runtime_profile(
     output: &mut impl super::COutput,
     borrowed_str: bool,
     vec_authority: bool,
+    box_authority: bool,
 ) {
     let mut runtime = STATUS_RUNTIME_C.to_owned();
     if borrowed_str {
@@ -76,6 +78,31 @@ fn emit_status_runtime_profile(
             );
         assert_eq!(runtime.matches("vec_next_generation").count(), 3);
         assert_eq!(runtime.matches("SPX_VEC_AUTHORITY_CAPACITY").count(), 2);
+    }
+    if box_authority {
+        runtime = runtime
+            .replacen(
+                "struct spx_context {",
+                "#define SPX_BOX_AUTHORITY_CAPACITY UINT32_C(4096)\nstruct spx_box_authority_entry {\n    uint64_t *ptr;\n    uint64_t generation;\n    uint32_t type_tag;\n    bool live;\n};\nstatic inline bool spx_box_authority_is_canonical_zero(\n    const struct spx_box_authority_entry entries[SPX_BOX_AUTHORITY_CAPACITY]\n) {\n    for (uint32_t index = UINT32_C(0); index < SPX_BOX_AUTHORITY_CAPACITY; ++index) {\n        if (entries[index].ptr != NULL || entries[index].generation != UINT64_C(0)\n            || entries[index].type_tag != UINT32_C(0) || entries[index].live) return false;\n    }\n    return true;\n}\n\nstruct spx_context {",
+                1,
+            )
+            .replacen(
+                "    uint32_t call_depth;",
+                "    uint32_t call_depth;\n    uint64_t box_next_generation;\n    struct spx_box_authority_entry box_authority[SPX_BOX_AUTHORITY_CAPACITY];",
+                1,
+            )
+            .replacen(
+                "        context->call_depth == UINT32_C(0)",
+                "        context->call_depth == UINT32_C(0) &&\n        context->box_next_generation == UINT64_C(0) &&\n        spx_box_authority_is_canonical_zero(context->box_authority)",
+                1,
+            )
+            .replacen(
+                "    context->call_depth = UINT32_C(0);",
+                "    context->call_depth = UINT32_C(0);\n    context->box_next_generation = UINT64_C(1);\n    memset(context->box_authority, 0, sizeof(context->box_authority));",
+                1,
+            );
+        assert_eq!(runtime.matches("box_next_generation").count(), 3);
+        assert_eq!(runtime.matches("SPX_BOX_AUTHORITY_CAPACITY").count(), 4);
     }
     output.push_str(&runtime);
 }

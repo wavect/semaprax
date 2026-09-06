@@ -1175,6 +1175,28 @@ fn content_length(response: borrow Slice<u8>) -> i64
     ensures result >= -1
 ```
 
+## `std.mem`
+
+Package `std/mem`, tier `alloc`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.mem = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.mem.box.new`
+
+```semaprax
+fn new<T>(value: T) -> Box<T>
+```
+
+### `std.mem.box.get`
+
+```semaprax
+fn get<T>(value: borrow Box<T>) -> T
+```
+
+### `std.mem.box.into-inner`
+
+```semaprax
+fn into_inner<T>(value: own Box<T>) -> T
+```
+
 ## `std.net`
 
 Package `std/net`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.net = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

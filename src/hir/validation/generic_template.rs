@@ -24,6 +24,28 @@ pub(super) fn authenticate_vec_wrapper(
     }
 }
 
+pub(super) fn authenticate_box_wrapper(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+) -> Result<Option<crate::box_ops::BoxOp>, Diagnostic> {
+    let candidate = crate::box_ops::wrapper_by_id(template.id.as_str()).is_some()
+        || (program.module == crate::box_ops::MODULE
+            && crate::box_ops::ALL
+                .into_iter()
+                .any(|op| crate::box_ops::wrapper_name(op) == template.name));
+    match (
+        candidate,
+        crate::box_ops::hir_wrapper_in_program(program, template),
+    ) {
+        (false, _) => Ok(None),
+        (true, Some(op)) => Ok(Some(op)),
+        (true, None) => Err(hir_error(format!(
+            "generic template `{}` is not an authenticated std.mem box wrapper",
+            template.id
+        ))),
+    }
+}
+
 pub(super) fn vec_wrapper_substitutions() -> Vec<Vec<ResolvedType>> {
     [
         ResolvedType::I64,
@@ -57,7 +79,8 @@ pub(super) fn validate_type(
             &template.id,
             template.type_parameters.len(),
         )
-        || crate::vec_ops::template_type_is_admitted(template, ty);
+        || crate::vec_ops::template_type_is_admitted(template, ty)
+        || crate::box_ops::template_type_is_admitted(template, ty);
     admitted.then_some(()).ok_or_else(|| {
         hir_error(format!(
             "generic template `{}` has an invalid direct-scalar signature slot",

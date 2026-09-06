@@ -16,6 +16,7 @@ use super::{
     variant_declaration_id, CBinding, CEmitter, COutput, CValue,
 };
 
+mod box_ops;
 mod host_command;
 mod nested_owned;
 mod owned_values;
@@ -840,6 +841,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                         return self.emit_vec_op(expr, op, type_arguments, args);
                     }
+                    if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
+                        return self.emit_box_op(expr, op, type_arguments, args);
+                    }
                     if crate::host_io_ops::by_id(callee.as_str()).is_some() {
                         if !self.output_profile.supports_stdout_transcript() {
                             return Err(backend_error(
@@ -1015,7 +1019,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     "owned call argument was not staged in its canonical epoch",
                                 ));
                             }
-                            if is_vec {
+                            if crate::cleanup::is_owned_bounded_box_type(expected) {
+                                format!("spx_box_move(spx_ctx, &{value})")
+                            } else if is_vec {
                                 format!("spx_vec_move(spx_ctx, &{value})")
                             } else {
                                 format!("spx_bytes_move(&{value})")

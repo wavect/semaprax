@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use semaprax::hir::{self, ResolvedExprKind, ResolvedStatement};
+use semaprax::ast::BinaryOp;
+use semaprax::hir::{self, ResolvedExprKind, ResolvedStatement, ResolvedType};
 use semaprax::{format, graph, parse, verify};
 
 const SOURCE: &str = r#"
@@ -32,39 +33,171 @@ fn vec_for_preserves_source_and_lowers_all_copy_scalars() {
     assert_eq!(format::canonical(&parsed(&canonical)), canonical);
 
     let resolved = hir::resolve(&program).unwrap();
-    for function in resolved
-        .functions
-        .iter()
-        .filter(|function| function.name.starts_with("walk_"))
-    {
+    for (name, element) in [
+        ("walk_i64", ResolvedType::I64),
+        ("walk_i32", ResolvedType::I32),
+        ("walk_u8", ResolvedType::U8),
+        ("walk_usize", ResolvedType::Usize),
+        ("walk_char", ResolvedType::Char),
+        ("walk_f32", ResolvedType::F32),
+        ("walk_f64", ResolvedType::F64),
+        ("walk_bool", ResolvedType::Bool),
+    ] {
+        let function = resolved
+            .functions
+            .iter()
+            .find(|function| function.name == name)
+            .unwrap();
         let ResolvedExprKind::Block { statements, .. } = &function.body.kind else {
             panic!("function block")
         };
-        let ResolvedStatement::Let { value, .. } = &statements[3] else {
+        assert_eq!(statements.len(), 4);
+        let ResolvedStatement::Let {
+            binding: wrapper,
+            mutable: false,
+            value,
+            ..
+        } = &statements[3]
+        else {
             panic!("lowered wrapper")
         };
-        let ResolvedExprKind::Block { statements, .. } = &value.kind else {
+        assert_eq!(wrapper.name, "#for");
+        assert_eq!(wrapper.ty, ResolvedType::Usize);
+        let ResolvedExprKind::Block {
+            statements,
+            tail: wrapper_tail,
+        } = &value.kind
+        else {
             panic!("lowered block")
         };
-        assert!(
-            matches!(&statements[0], ResolvedStatement::Let { value, .. }
-            if matches!(&value.kind, ResolvedExprKind::Call { callee, .. } if callee.as_str() == "core.vec.len"))
-        );
-        assert!(matches!(
-            &statements[1],
-            ResolvedStatement::Let { mutable: true, .. }
-        ));
-        let ResolvedStatement::While { body, .. } = &statements[2] else {
+        assert_eq!(statements.len(), 3);
+        assert!(matches!(wrapper_tail.kind, ResolvedExprKind::Usize(0)));
+        let ResolvedStatement::Let {
+            binding: length,
+            mutable: false,
+            value: length_value,
+            ..
+        } = &statements[0]
+        else {
+            panic!("length snapshot")
+        };
+        assert_eq!(length.name, "#for-length");
+        let ResolvedExprKind::Call {
+            callee,
+            type_arguments: length_arguments,
+            instance: None,
+            args: length_args,
+        } = &length_value.kind
+        else {
+            panic!("length call")
+        };
+        assert_eq!(callee.as_str(), "core.vec.len");
+        assert_eq!(length_arguments, std::slice::from_ref(&element));
+        assert_eq!(length_args.len(), 1);
+        let ResolvedExprKind::Place(source_place) = &length_args[0].kind else {
+            panic!("length source")
+        };
+        assert!(source_place.projections.is_empty());
+
+        let ResolvedStatement::Let {
+            binding: index,
+            mutable: true,
+            value: index_value,
+            ..
+        } = &statements[1]
+        else {
+            panic!("index initializer")
+        };
+        assert_eq!(index.name, "#for-index");
+        assert_eq!(index.ty, ResolvedType::Usize);
+        assert!(matches!(index_value.kind, ResolvedExprKind::Usize(0)));
+
+        let ResolvedStatement::While {
+            condition, body, ..
+        } = &statements[2]
+        else {
             panic!("lowered while")
         };
-        let ResolvedExprKind::Block { statements, .. } = &body.kind else {
+        let ResolvedExprKind::Binary {
+            op: BinaryOp::Lt,
+            left,
+            right,
+        } = &condition.kind
+        else {
+            panic!("index bound")
+        };
+        assert!(matches!(&left.kind, ResolvedExprKind::Place(place)
+            if place.root == index.id && place.projections.is_empty()));
+        assert!(matches!(&right.kind, ResolvedExprKind::Place(place)
+            if place.root == length.id && place.projections.is_empty()));
+
+        let ResolvedExprKind::Block {
+            statements,
+            tail: body_tail,
+        } = &body.kind
+        else {
             panic!("while body")
         };
-        assert!(
-            matches!(&statements[0], ResolvedStatement::Let { value, .. }
-            if matches!(&value.kind, ResolvedExprKind::Call { callee, .. } if callee.as_str() == "core.vec.get"))
-        );
-        assert!(matches!(&statements[2], ResolvedStatement::Assign { .. }));
+        assert_eq!(statements.len(), 3);
+        assert!(matches!(body_tail.kind, ResolvedExprKind::Usize(0)));
+        let ResolvedStatement::Let {
+            binding: item,
+            mutable: false,
+            value: item_value,
+            ..
+        } = &statements[0]
+        else {
+            panic!("item binding")
+        };
+        assert_eq!(item.name, "item");
+        assert_eq!(item.ty, element);
+        let ResolvedExprKind::Call {
+            callee,
+            type_arguments: get_arguments,
+            instance: None,
+            args: get_args,
+        } = &item_value.kind
+        else {
+            panic!("item get")
+        };
+        assert_eq!(callee.as_str(), "core.vec.get");
+        assert_eq!(get_arguments, &[element]);
+        assert_eq!(get_args.len(), 2);
+        assert!(matches!(&get_args[0].kind, ResolvedExprKind::Place(place)
+            if place.root == source_place.root && place.projections.is_empty()));
+        assert!(matches!(&get_args[1].kind, ResolvedExprKind::Place(place)
+            if place.root == index.id && place.projections.is_empty()));
+
+        let ResolvedStatement::Let {
+            binding: authored,
+            mutable: false,
+            ..
+        } = &statements[1]
+        else {
+            panic!("discarded authored body")
+        };
+        assert_eq!(authored.name, "#for-body");
+        let ResolvedStatement::Assign {
+            binding: incremented,
+            field: None,
+            value: increment,
+            ..
+        } = &statements[2]
+        else {
+            panic!("index increment")
+        };
+        assert_eq!(incremented.id, index.id);
+        let ResolvedExprKind::Binary {
+            op: BinaryOp::Add,
+            left,
+            right,
+        } = &increment.kind
+        else {
+            panic!("index increment value")
+        };
+        assert!(matches!(&left.kind, ResolvedExprKind::Place(place)
+            if place.root == index.id && place.projections.is_empty()));
+        assert!(matches!(right.kind, ResolvedExprKind::Usize(1)));
     }
     let rendered = graph::to_json(&program).unwrap();
     assert!(rendered.contains("core.vec.len"));

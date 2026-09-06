@@ -156,8 +156,17 @@ fn link_scalar_workspace_impl(
                     found
                 })
         });
-    let (mut declarations, mut compiler_types) = if uses_vec {
-        workspace_compiler_prelude_for_vec(true)?
+    let uses_box = functions
+        .iter()
+        .chain(
+            parts
+                .iter()
+                .flat_map(|parts| &parts.function_instances)
+                .map(|instance| &instance.function),
+        )
+        .any(resolved_function_uses_box);
+    let (mut declarations, mut compiler_types) = if uses_vec || uses_box {
+        workspace_compiler_prelude_for(uses_vec, uses_box)?
     } else {
         (DeclarationIndex::default(), Vec::new())
     };
@@ -406,7 +415,16 @@ pub(crate) fn link_owned_data_api_workspace(
                 .map(|instance| &instance.function),
         )
         .any(resolved_function_uses_vec);
-    let (mut declarations, mut types) = workspace_compiler_prelude_for_vec(uses_vec)?;
+    let uses_box = functions
+        .iter()
+        .chain(
+            parts
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(resolved_function_uses_box);
+    let (mut declarations, mut types) = workspace_compiler_prelude_for(uses_vec, uses_box)?;
     declarations.extend_linked_owned_data(
         &parts.types,
         &parts.interfaces,
@@ -451,6 +469,22 @@ fn resolved_function_uses_vec(function: &ResolvedFunction) -> bool {
                 found |= instance.is_none()
                     && arguments.len() == 1
                     && crate::vec_ops::by_id(callee.as_str()).is_some();
+            });
+            found
+        })
+}
+fn resolved_function_uses_box(function: &ResolvedFunction) -> bool {
+    function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+        .any(|expression| {
+            let mut found = false;
+            visit_resolved_calls(expression, &mut |callee, instance, arguments| {
+                found |= instance.is_none()
+                    && arguments.len() == 1
+                    && crate::box_ops::by_id(callee.as_str()).is_some()
             });
             found
         })
@@ -893,6 +927,33 @@ fn compiler_prelude_declarations_for_vec(
     Ok(declarations)
 }
 
+fn compiler_prelude_declarations_for(
+    include_vec: bool,
+    include_box: bool,
+) -> Result<DeclarationIndex, Diagnostic> {
+    // The Box-bearing v4 prelude is additive over the Vec-bearing predecessor.
+    let mut declarations = compiler_prelude_declarations_for_vec(include_vec || include_box)?;
+    if include_box {
+        let id = DeclarationId::new(crate::prelude::BOX_ID);
+        declarations.insert_top_level(
+            "Box".to_owned(),
+            id.clone(),
+            DeclarationKind::Record,
+            IdentityOrigin::CompilerOwned,
+        );
+        declarations.type_parameters.insert(
+            id.clone(),
+            vec![ResolvedTypeParameterDeclaration {
+                name: "T".to_owned(),
+                index: 0,
+                span: Span::default(),
+            }],
+        );
+        declarations.record_fields.insert(id, Vec::new());
+    }
+    Ok(declarations)
+}
+
 fn workspace_compiler_prelude(
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
     workspace_compiler_prelude_for_vec(false)
@@ -901,10 +962,19 @@ fn workspace_compiler_prelude(
 fn workspace_compiler_prelude_for_vec(
     include_vec: bool,
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
-    let declarations = compiler_prelude_declarations_for_vec(include_vec)?;
+    workspace_compiler_prelude_for(include_vec, false)
+}
+
+fn workspace_compiler_prelude_for(
+    include_vec: bool,
+    include_box: bool,
+) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    let declarations = compiler_prelude_declarations_for(include_vec, include_box)?;
     let prelude_program = workspace_linker_prelude_program();
-    let compiler_declarations = if include_vec {
+    let compiler_declarations = if include_box {
         crate::prelude::declarations()
+    } else if include_vec {
+        &crate::prelude::declarations()[..3]
     } else {
         crate::prelude::declarations_for_program(&prelude_program)
     };

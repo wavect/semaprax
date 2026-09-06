@@ -10,6 +10,9 @@ pub(super) fn template_ownership(
     if let Some(ownership) = crate::vec_ops::template_ownership(template, ty) {
         return ownership;
     }
+    if let Some(ownership) = crate::box_ops::template_ownership(template, ty) {
+        return ownership;
+    }
     match ty {
         ResolvedType::String => OwnershipMode::Own,
         ResolvedType::Str => OwnershipMode::Borrow,
@@ -101,6 +104,9 @@ pub(super) fn generic_instance_arguments_are_admitted(
         .find(|template| &template.id == template_id)
     {
         if crate::vec_ops::hir_arguments_are_admitted(program, template, arguments) {
+            return true;
+        }
+        if crate::box_ops::hir_arguments_are_admitted(program, template, arguments) {
             return true;
         }
     }

@@ -24,6 +24,7 @@ pub(crate) mod aggregate_layout;
 pub mod arc_zones;
 pub mod ast;
 pub(crate) mod bounded_output;
+pub(crate) mod box_ops;
 pub(crate) mod byte_data_capacity;
 pub(crate) mod byte_ops;
 pub mod c_header;

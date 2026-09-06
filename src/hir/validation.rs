@@ -7,6 +7,7 @@ use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
 mod borrowed_str;
+mod box_intrinsic;
 mod generic_template;
 mod host_command;
 mod owned_buffer;
@@ -106,7 +107,7 @@ impl<'a> HirValidator<'a> {
 
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
-        vec_intrinsic::reject_reserved_identities(program)?;
+        box_intrinsic::reject_reserved_identities(program)?;
         generic_template::validate_call_graph(program)?;
         for declaration in program.declarations.declarations() {
             if crate::host_io_ops::by_id(declaration.id.as_str()).is_some()
@@ -408,8 +409,8 @@ impl<'a> HirValidator<'a> {
         }
         let mut template_ids = BTreeSet::new();
         for template in &self.program.function_templates {
-            let transparent_vec_wrapper =
-                generic_template::authenticate_vec_wrapper(self.program, template)?;
+            let transparent_owned_wrapper =
+                box_intrinsic::authenticate_owned_wrapper(self.program, template)?;
             if !template_ids.insert(template.id.clone())
                 || self.functions.contains_key(&template.id)
             {
@@ -480,7 +481,7 @@ impl<'a> HirValidator<'a> {
                     template.id
                 )));
             }
-            let substitutions = if transparent_vec_wrapper.is_some() {
+            let substitutions = if transparent_owned_wrapper {
                 generic_template::vec_wrapper_substitutions()
             } else if template_has_owned_record_slot(self.program, template) {
                 resolved_owned_record_substitutions(template.type_parameters.len())
@@ -1943,7 +1944,7 @@ impl<'a> HirValidator<'a> {
                 && (crate::string_ops::by_id(callee.as_str()).is_some()
                     || crate::str_ops::by_id(callee.as_str()).is_some()
                     || crate::byte_ops::by_id(callee.as_str()).is_some()
-                    || crate::vec_ops::by_id(callee.as_str()).is_some()
+                    || box_intrinsic::is_intrinsic_id(&callee)
                     || crate::host_io_ops::by_id(callee.as_str()).is_some())
             {
                 // String operations carry no authored declaration and their
@@ -3338,14 +3339,14 @@ impl<'a> HirValidator<'a> {
                             instance,
                             args,
                         } => {
-                            let vec_intrinsic = vec_intrinsic::is_call(callee, instance);
+                            let owned_generic_intrinsic = box_intrinsic::is_call(callee, instance);
                             match instance {
-                                None if !type_arguments.is_empty() && !vec_intrinsic => return Err(hir_error("monomorphic resolved call carries generic type arguments")),
+                                None if !type_arguments.is_empty() && !owned_generic_intrinsic => return Err(hir_error("monomorphic resolved call carries generic type arguments")),
                                 Some(actual) if FunctionInstanceId::derive(callee, type_arguments) != *actual => return Err(hir_error("resolved call instance disagrees with its template and arguments")),
                                 Some(_) if type_arguments.is_empty() => return Err(hir_error("generic resolved call has no concrete type arguments")),
                                 None | Some(_) => {}
                             }
-                            if !vec_intrinsic
+                            if !owned_generic_intrinsic
                                 && !generic_instance_arguments_are_admitted(
                                     self.program,
                                     callee,
@@ -3357,7 +3358,7 @@ impl<'a> HirValidator<'a> {
                                 ));
                             }
                             let (params, return_type) = if let Some(signature) =
-                                vec_intrinsic::signature(callee, type_arguments, instance, args)?
+                                box_intrinsic::signature(callee, type_arguments, instance, args)?
                             {
                                 signature
                             } else if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
@@ -6350,9 +6351,9 @@ impl<'a> HirValidator<'a> {
                 instance,
                 args,
             } => {
-                let vec_intrinsic = vec_intrinsic::is_call(callee, instance);
+                let owned_generic_intrinsic = box_intrinsic::is_call(callee, instance);
                 match instance {
-                    None if !type_arguments.is_empty() && !vec_intrinsic => {
+                    None if !type_arguments.is_empty() && !owned_generic_intrinsic => {
                         return Err(hir_error(
                             "monomorphic resolved call carries generic type arguments",
                         ));
@@ -6371,7 +6372,7 @@ impl<'a> HirValidator<'a> {
                     }
                     None | Some(_) => {}
                 }
-                if !vec_intrinsic
+                if !owned_generic_intrinsic
                     && !generic_instance_arguments_are_admitted(
                         self.program,
                         callee,
@@ -6399,7 +6400,7 @@ impl<'a> HirValidator<'a> {
                     .then(|| crate::host_io_ops::by_id(callee.as_str()))
                     .flatten();
                 let (params, return_type, target_effects) = if let Some((params, return_type)) =
-                    vec_intrinsic::signature(callee, type_arguments, instance, args)?
+                    box_intrinsic::signature(callee, type_arguments, instance, args)?
                 {
                     (params, return_type, Vec::new())
                 } else if let Some(op) = string_intrinsic {
@@ -8679,14 +8680,14 @@ impl<'a> HirValidator<'a> {
                             &self.program.declarations,
                             ty,
                         );
-                    let admitted_vec = vec_intrinsic::is_type(declaration, arguments);
+                    let admitted_owned_generic = box_intrinsic::is_type(declaration, arguments);
                     if !arguments.is_empty()
                         && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
                             || (!admitted_owned_byte_prelude_instance(declaration, arguments)
                                 && !admitted_owned_record
                                 && !admitted_nested_owned_record
                                 && !admitted_owned_variant
-                                && !admitted_vec
+                                && !admitted_owned_generic
                                 && (arguments.as_slice() != [ResolvedType::U8]
                                     || declaration.as_str() != crate::prelude::OPTION_ID)
                                 && arguments.iter().any(|argument| {

@@ -433,8 +433,17 @@ fn main() -> i64
 | `args_len` | `() -> usize` |
 | `arg_utf8` | `(i: usize) -> borrow str` |
 | `stdin_read` | `() -> own Bytes` |
+| `box_new<T>` | `(value: T) -> Box<T>` for an explicit admitted Copy scalar |
+| `box_get<T>` | `(value: borrow Box<T>) -> T` synchronous Copy access |
+| `box_into_inner<T>` | `(value: own Box<T>) -> T` consuming extraction |
 
 These names are reserved; declaring your own `string_len` is `SPX-S113`.
+
+Compiler-owned `Box<T>` is a distinct uniquely owned allocation selected only
+by the three Box operations. An authored `record Box<T>` without those
+operations remains an ordinary inline record. The bounded Box profile has no
+owned payload, public generic ABI, region, arena, or shared-ownership surface;
+see [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md).
 
 To print a computed integer from one file, render it, borrow the resulting
 string, and write its bytes:

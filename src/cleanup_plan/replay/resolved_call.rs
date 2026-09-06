@@ -43,6 +43,15 @@ pub(super) fn resolved_call_params(
             };
             return Ok(crate::vec_ops::resolved_params(op, element));
         }
+        if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
+            let [element] = type_arguments else {
+                return Err(replay_error(
+                    function,
+                    "cleanup bounded Box call has incorrect type arity",
+                ));
+            };
+            return Ok(crate::box_ops::resolved_params(op, element));
+        }
     }
     let target = program
         .resolve_call_target(callee, instance)

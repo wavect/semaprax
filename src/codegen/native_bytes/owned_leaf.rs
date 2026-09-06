@@ -6,6 +6,7 @@ use super::ByteSlot;
 pub(super) enum OwnedLeafKind {
     Bytes,
     Vec,
+    Box,
 }
 
 impl OwnedLeafKind {
@@ -13,6 +14,7 @@ impl OwnedLeafKind {
         match self {
             Self::Bytes => "spx_bytes_v1",
             Self::Vec => "spx_vec_v1",
+            Self::Box => "spx_box_v1",
         }
     }
 
@@ -20,6 +22,7 @@ impl OwnedLeafKind {
         match self {
             Self::Bytes => format!("spx_bytes_move(&{source})"),
             Self::Vec => format!("spx_vec_move(spx_ctx, &{source})"),
+            Self::Box => format!("spx_box_move(spx_ctx, &{source})"),
         }
     }
 
@@ -27,6 +30,7 @@ impl OwnedLeafKind {
         match self {
             Self::Bytes => format!("spx_bytes_drop(&{value})"),
             Self::Vec => format!("spx_vec_drop(spx_ctx, &{value})"),
+            Self::Box => format!("spx_box_drop(spx_ctx, &{value})"),
         }
     }
 }

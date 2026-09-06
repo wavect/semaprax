@@ -191,6 +191,8 @@ mod signature_nominal_rebase;
 mod signature_owned_values;
 #[path = "project/standard_library.rs"]
 mod standard_library;
+#[path = "project/std_mem.rs"]
+mod std_mem;
 #[path = "project/v10_recipe_consumer.rs"]
 mod v10_recipe_consumer;
 #[path = "project/v1_ci_contract.rs"]

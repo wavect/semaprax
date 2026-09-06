@@ -61,6 +61,8 @@ mod nested_owned_record_frontend_hir;
 mod nested_owned_record_runtime;
 #[path = "owned_data/nested_owned_record_update_frontend_hir.rs"]
 mod nested_owned_record_update_frontend_hir;
+#[path = "owned_data/owned_bounded_box_runtime.rs"]
+mod owned_bounded_box_runtime;
 #[path = "owned_data/owned_bounded_vec_runtime.rs"]
 mod owned_bounded_vec_runtime;
 #[path = "owned_data/projected_bytes_borrowed_call_native.rs"]

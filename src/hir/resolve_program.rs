@@ -66,6 +66,11 @@ impl Resolver<'_> {
         {
             return Ok(true);
         }
+        if crate::box_ops::source_wrapper(self.program, function).is_some()
+            && matches!(arguments, [argument] if crate::box_ops::resolved_element_is_admitted(argument))
+        {
+            return Ok(true);
+        }
         if arguments.len() != function.type_parameters.len() {
             return Ok(false);
         }
@@ -565,6 +570,7 @@ impl Resolver<'_> {
         function: &crate::ast::Function,
     ) -> Result<ResolvedFunctionTemplate, Diagnostic> {
         let transparent_vec_wrapper = crate::vec_ops::source_wrapper(self.program, function);
+        let transparent_box_wrapper = crate::box_ops::source_wrapper(self.program, function);
         let function_id = DeclarationId::new(function.stable_id.clone());
         let function_scope = FunctionExecutionId::Monomorphic(function_id.clone());
         let type_parameters = function
@@ -595,6 +601,8 @@ impl Resolver<'_> {
                 let id = ValueId::parameter(&function_scope, index);
                 let ownership = if let Some(op) = transparent_vec_wrapper {
                     op.param_ownership(index)
+                } else if let Some(op) = transparent_box_wrapper {
+                    op.param_ownership()
                 } else if ty == ResolvedType::String
                     || super::type_reachability::is_nested_owned_byte_record_template(
                         &self.declarations,
@@ -649,6 +657,7 @@ impl Resolver<'_> {
                 id: result_id.clone(),
                 ty: return_type.clone(),
                 ownership: if (transparent_vec_wrapper.is_some() && return_type.is_uniquely_owned())
+                    || (transparent_box_wrapper == Some(crate::box_ops::BoxOp::New))
                     || return_type == ResolvedType::String
                     || super::type_reachability::is_nested_owned_byte_record_template(
                         &self.declarations,
@@ -963,8 +972,12 @@ impl Resolver<'_> {
                         let admitted_vec = declaration.as_str() == crate::prelude::VEC_ID
                             && matches!(resolved.as_slice(), [argument]
                                 if crate::vec_ops::resolved_element_is_admitted(argument));
+                        let admitted_box = declaration.as_str() == crate::prelude::BOX_ID
+                            && matches!(resolved.as_slice(), [argument]
+                                if crate::box_ops::resolved_element_is_admitted(argument));
                         if resolved.len() != parameters.len()
                             || (!admitted_vec
+                                && !admitted_box
                                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
                                 && !crate::hir::type_reachability::is_flat_owned_byte_record(
                                     &self.declarations,
@@ -1054,12 +1067,21 @@ impl Resolver<'_> {
             && declaration.as_str() == crate::prelude::VEC_ID
             && matches!(resolved.as_slice(), [argument]
                 if crate::vec_ops::resolved_element_is_admitted(argument));
+        let transparent_box = crate::box_ops::source_wrapper(self.program, function).is_some()
+            && declaration.as_str() == crate::prelude::BOX_ID
+            && matches!(resolved.as_slice(),[ResolvedType::TypeParameter{owner:parameter_owner,index:0}] if parameter_owner==&owner);
+        let specialized_box_wrapper = crate::box_ops::wrapper_by_id(function.stable_id.as_str())
+            .is_some()
+            && declaration.as_str() == crate::prelude::BOX_ID
+            && matches!(resolved.as_slice(),[argument] if crate::box_ops::resolved_element_is_admitted(argument));
         if self
             .declarations
             .type_parameters(&declaration)
             .is_none_or(|parameters| parameters.len() != resolved.len())
             || (!transparent_vec
                 && !specialized_vec_wrapper
+                && !transparent_box
+                && !specialized_box_wrapper
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
                 && !super::type_reachability::is_flat_owned_byte_record(
                     &self.declarations,

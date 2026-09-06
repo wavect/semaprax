@@ -129,21 +129,12 @@ functions still cannot stand in for these authenticated aliases.
   source, bundled dependency entry, closed package metadata, focused local
   Project/package selectors, and byte-exact generated catalogs. This promotes
   only that exact package slice locally; the broader collection and
-  hosted-support nonclaims below keep the module Partial.
-- repeated interpreter, native C11 O0/O2, and Core-Wasm execution for empty,
-  full, push/get/len/capacity, loop-carried growth, and exact failures, with no
-  shallow owner copy and exact/+1 allocator evidence; and
+  hosted-support nonclaims below keep the module Partial; and
 - the committed `examples/vector-stats-project` accumulate-and-filter example
   project, whose entry and conformance modules both return `0` on those same
   three engines and whose accumulating function is driven at seven element
   counts and three thresholds, so the loop-carried profile is exercised from
   committed source rather than from a hand-built plan.
-
-The `std.collections` manifest, scalar-result example, eight-scalar conformance
-source, bundled dependency entry, closed package metadata, focused local
-Project/package selectors, and byte-exact generated catalogs are present. This
-promotes only that exact package slice locally; the broader collection and
-hosted-support nonclaims below keep the module Partial.
 
 ## Nonclaims
 
@@ -151,5 +142,6 @@ There is no `pop`, insertion, removal, implicit or amortized growth, shrink,
 owned element, general iterator, iterator object, closure adapter, escaping borrow, mutable reference,
 public Project/FFI/WIT/Component representation, hosted promotion, or production
 support. `std.iter` remains blocked on its independent interface,
-associated-type, closure, and lifetime contracts. `std.mem` is not created by
-this tranche.
+associated-type, closure, and lifetime contracts. The separately versioned
+[Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md) owns the later, narrow
+`std.mem` allocation slice; Vec traversal does not imply it.

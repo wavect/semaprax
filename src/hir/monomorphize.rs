@@ -369,11 +369,15 @@ pub(super) fn materialize_template_expr(
                 == crate::vec_ops::by_id(callee.as_str())
                 && instance.is_none()
                 && type_arguments.len() == 1;
+            let transparent_box_call = crate::box_ops::hir_wrapper(template)
+                == crate::box_ops::by_id(callee.as_str())
+                && instance.is_none()
+                && type_arguments.len() == 1;
             let forwarded_generic_call = instance.as_ref().is_some_and(|instance| {
                 !type_arguments.is_empty()
                     && FunctionInstanceId::derive(callee, type_arguments) == *instance
             });
-            if (!transparent_vec_call && !forwarded_generic_call)
+            if (!transparent_vec_call && !transparent_box_call && !forwarded_generic_call)
                 && (instance.is_some() || !type_arguments.is_empty())
             {
                 return Err(hir_error(

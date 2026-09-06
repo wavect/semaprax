@@ -79,6 +79,17 @@ pub(super) fn check_function_declarations<'p>(
                 function.name_span,
             ));
         }
+        if crate::box_ops::by_name(&function.name).is_some() {
+            diagnostics.push(error(
+                program,
+                "SPX-S113",
+                format!(
+                    "function name `{}` is reserved by the compiler-owned box operations",
+                    function.name
+                ),
+                function.name_span,
+            ));
+        }
         if crate::host_io_ops::by_name(&function.name).is_some() {
             diagnostics.push(error(
                 program,
@@ -183,6 +194,35 @@ pub(super) fn check_function_declarations<'p>(
             ));
             continue;
         }
+        if crate::box_ops::wrapper_by_id(&function.stable_id).is_some()
+            && !crate::box_ops::source_module_is_authenticated(program)
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T286",
+                format!(
+                    "box wrapper identity `{}` is reserved for module `{}`",
+                    function.stable_id,
+                    crate::box_ops::MODULE
+                ),
+                function.span,
+            ));
+            continue;
+        }
+        if crate::box_ops::wrapper_by_id(&function.stable_id).is_some()
+            && crate::box_ops::source_wrapper(program, function).is_none()
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T286",
+                format!(
+                    "`{}.{}` must be one exact transparent compiler-owned box wrapper",
+                    program.module, function.name
+                ),
+                function.span,
+            ));
+            continue;
+        }
         if crate::vec_ops::wrapper_by_id(&function.stable_id).is_some()
             && crate::vec_ops::source_wrapper(program, function).is_none()
         {
@@ -199,6 +239,7 @@ pub(super) fn check_function_declarations<'p>(
         }
         if !function.type_parameters.is_empty() {
             let transparent_vec_wrapper = crate::vec_ops::source_wrapper(program, function);
+            let transparent_box_wrapper = crate::box_ops::source_wrapper(program, function);
             if crate::vec_ops::is_source_candidate(program, function)
                 && transparent_vec_wrapper.is_none()
             {
@@ -214,6 +255,23 @@ pub(super) fn check_function_declarations<'p>(
                 continue;
             }
             if transparent_vec_wrapper.is_some() {
+                continue;
+            }
+            if crate::box_ops::is_source_candidate(program, function)
+                && transparent_box_wrapper.is_none()
+            {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T286",
+                    format!(
+                        "`{}.{}` must be one exact transparent compiler-owned box wrapper",
+                        program.module, function.name
+                    ),
+                    function.span,
+                ));
+                continue;
+            }
+            if transparent_box_wrapper.is_some() {
                 continue;
             }
             if !(1..=2).contains(&function.type_parameters.len()) {
@@ -449,30 +507,33 @@ pub(super) fn check_function_bodies<'p>(
                 .len()
                 == template.type_parameters.len();
         let transparent_vec_wrapper = crate::vec_ops::source_wrapper(program, template);
-        let specializations =
-            if template.type_parameters.is_empty() || transparent_vec_wrapper.is_some() {
-                vec![template.clone()]
-            } else if generic_parameter_list_is_valid {
-                // These clones exist only to validate every admitted direct-scalar
-                // substitution. Executable HIR instances are discovered separately
-                // from reachable explicit calls and never originate here.
-                let owned_record = template
-                    .params
-                    .iter()
-                    .any(|param| generic_function_owned_record_slot(template, &param.ty, types))
-                    || generic_function_owned_record_slot(template, &template.return_type, types);
-                let substitutions = if owned_record {
-                    owned_record_function_substitutions(template.type_parameters.len())
-                } else {
-                    scalar_function_substitutions(template.type_parameters.len())
-                };
-                substitutions
-                    .iter()
-                    .filter_map(|arguments| validation_specialize_function(template, arguments))
-                    .collect()
+        let transparent_box_wrapper = crate::box_ops::source_wrapper(program, template);
+        let specializations = if template.type_parameters.is_empty()
+            || transparent_vec_wrapper.is_some()
+            || transparent_box_wrapper.is_some()
+        {
+            vec![template.clone()]
+        } else if generic_parameter_list_is_valid {
+            // These clones exist only to validate every admitted direct-scalar
+            // substitution. Executable HIR instances are discovered separately
+            // from reachable explicit calls and never originate here.
+            let owned_record = template
+                .params
+                .iter()
+                .any(|param| generic_function_owned_record_slot(template, &param.ty, types))
+                || generic_function_owned_record_slot(template, &template.return_type, types);
+            let substitutions = if owned_record {
+                owned_record_function_substitutions(template.type_parameters.len())
             } else {
-                Vec::new()
+                scalar_function_substitutions(template.type_parameters.len())
             };
+            substitutions
+                .iter()
+                .filter_map(|arguments| validation_specialize_function(template, arguments))
+                .collect()
+        } else {
+            Vec::new()
+        };
         let mut specialized_diagnostics = HashSet::new();
         for function in &specializations {
             let specialized_diagnostic_start = diagnostics.len();
@@ -508,7 +569,7 @@ pub(super) fn check_function_bodies<'p>(
                         param.span,
                     ));
                 }
-                if transparent_vec_wrapper.is_none() {
+                if transparent_vec_wrapper.is_none() && transparent_box_wrapper.is_none() {
                     check_ownership_mode(program, function, param, types, diagnostics);
                 }
                 // By-value `string` parameters carry unique ownership. Bytes

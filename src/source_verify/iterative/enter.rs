@@ -283,6 +283,44 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             implicit_unique_ownership: false,
                         }
                     }))
+                } else if let Some(op) = crate::box_ops::by_name(name) {
+                    let element = type_arguments.first();
+                    if type_arguments.len() != 1
+                        || element.is_none_or(|ty| {
+                            !crate::box_ops::ast_element_is_admitted(ty)
+                                && !crate::box_ops::source_parameter_is_admitted(
+                                    self.program,
+                                    self.current,
+                                    op,
+                                    ty,
+                                )
+                        })
+                    {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T285",
+                            format!("box operation `{name}` requires one explicit Copy-scalar type argument"),
+                            expression.span,
+                        ));
+                    }
+                    if args.len() != 1 {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T285",
+                            format!(
+                                "box operation `{name}` expects 1 argument, received {}",
+                                args.len()
+                            ),
+                            expression.span,
+                        ));
+                    }
+                    VerifierCallTarget::Ordinary(element.map(|element| {
+                        VerifierFunctionSignature::Specialized {
+                            params: crate::box_ops::ast_params(op, element),
+                            return_type: op.ast_return_type(element),
+                            implicit_unique_ownership: false,
+                        }
+                    }))
                 } else if let Some(op) = crate::byte_ops::by_name(name) {
                     if !type_arguments.is_empty() {
                         self.diagnostics.push(error(
@@ -422,6 +460,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 target,
                                 type_arguments,
                             )
+                            && !crate::box_ops::source_arguments_are_admitted(self.program, target, type_arguments)
                         {
                             self.diagnostics.push(error(
                                 self.program,

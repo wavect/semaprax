@@ -1,6 +1,7 @@
 mod native_adapter_abi;
 #[cfg(test)]
 pub(crate) mod native_aggregate;
+mod native_box;
 mod native_byte_data;
 mod native_bytes;
 mod native_callable_abi;

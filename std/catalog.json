@@ -2341,6 +2341,57 @@
           "effects": [],
           "ensures": 0,
           "head": [
+            "fn new<T>(value: T) -> Box<T>"
+          ],
+          "id": "std.mem.box.new",
+          "kind": "function",
+          "name": "new",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn get<T>(value: borrow Box<T>) -> T"
+          ],
+          "id": "std.mem.box.get",
+          "kind": "function",
+          "name": "get",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn into_inner<T>(value: own Box<T>) -> T"
+          ],
+          "id": "std.mem.box.into-inner",
+          "kind": "function",
+          "name": "into_inner",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.mem = \"^0.1.0\"",
+      "module": "std.mem",
+      "package": "std/mem",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "alloc"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
             "fn port_is_valid(port: usize) -> bool"
           ],
           "id": "std.net.port_is_valid",

@@ -4355,11 +4355,13 @@ fn build_resolved_core(
                 .and_then(|cache| cache.resolve_functions(&program.path, &synthetic));
             let (resolved, function_costs, reused_functions) =
                 crate::vec_ops::with_authenticated_linked_source(|| {
-                    if let Some(selective) = selective {
-                        selective.map(|resolved| resolved.into_parts())
-                    } else {
-                        hir::resolve(&synthetic).map(|resolved| (resolved, BTreeMap::new(), 0))
-                    }
+                    crate::box_ops::with_authenticated_linked_source(|| {
+                        if let Some(selective) = selective {
+                            selective.map(|resolved| resolved.into_parts())
+                        } else {
+                            hir::resolve(&synthetic).map(|resolved| (resolved, BTreeMap::new(), 0))
+                        }
+                    })
                 })?;
             let resolver_bytes = before.saturating_sub(
                 crate::bounded_output::active_remaining()
@@ -5457,7 +5459,11 @@ fn validate_imported_function(
         .iter()
         .find(|program| program.module == target.module)
         .is_some_and(|program| crate::vec_ops::source_wrapper(program, function).is_some());
-    if transparent_vec_wrapper {
+    let transparent_box_wrapper = programs
+        .iter()
+        .find(|program| program.module == target.module)
+        .is_some_and(|program| crate::box_ops::source_wrapper(program, function).is_some());
+    if transparent_vec_wrapper || transparent_box_wrapper {
         return Ok(());
     }
     let byte_parameter = package::admitted_byte_parameter;
@@ -6079,7 +6085,28 @@ fn validate_stub_signatures(
                             && stub.effects == authority.effects)
                             .then_some(())
                     };
-                    if !monomorphic_matches && transparent_vec_wrapper_matches().is_none() {
+                    let transparent_box_wrapper_matches = || {
+                        let stub = caller_hir
+                            .function_templates
+                            .iter()
+                            .find(|item| item.id == id)?;
+                        let authority = target_hir
+                            .function_templates
+                            .iter()
+                            .find(|item| item.id == id)?;
+                        let operation = crate::box_ops::hir_wrapper_in_program(caller_hir, stub)?;
+                        (crate::box_ops::hir_wrapper_in_program(target_hir, authority)
+                            == Some(operation)
+                            && stub.type_parameters == authority.type_parameters
+                            && stub.params == authority.params
+                            && stub.return_type == authority.return_type
+                            && stub.effects == authority.effects)
+                            .then_some(())
+                    };
+                    if !monomorphic_matches
+                        && transparent_vec_wrapper_matches().is_none()
+                        && transparent_box_wrapper_matches().is_none()
+                    {
                         return Err(vec![graph_error(
                             "SPX-G173",
                             "workspace function signature stub disagrees with authored HIR authority",
@@ -6122,7 +6149,8 @@ fn reconstruct_workspace_declaration_facts(
 ) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
     let expected = expected_declaration_facts(programs)?;
     let uses_vec = prelude_binding::uses_vec(programs);
-    let expected_compiler = prelude_binding::expected_declaration_facts(uses_vec)?;
+    let uses_box = prelude_binding::uses_box(programs);
+    let expected_compiler = prelude_binding::expected_declaration_facts_for(uses_vec, uses_box)?;
     let mut actual = BTreeMap::new();
     for (module, resolved) in modules {
         let source = programs
@@ -6130,8 +6158,10 @@ fn reconstruct_workspace_declaration_facts(
             .find(|program| program.module == *module)
             .expect("resolved workspace module belongs to authenticated source");
         let imports_vec_wrapper = owned_generics::program_imports_vec_wrapper(source, programs);
-        let expected_module_compiler = prelude_binding::expected_declaration_facts(
+        let imports_box_wrapper = owned_generics::program_imports_box_wrapper(source, programs);
+        let expected_module_compiler = prelude_binding::expected_declaration_facts_for(
             prelude::program_uses_vec(source) || imports_vec_wrapper,
+            prelude::program_uses_box(source) || imports_box_wrapper,
         )?;
         let direct_targets = source
             .module_uses

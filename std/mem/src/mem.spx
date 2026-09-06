@@ -1,0 +1,19 @@
+module std.mem;
+
+@id("std.mem.box.new")
+fn new<T>(value: T) -> Box<T>
+{
+    box_new<T>(value)
+}
+
+@id("std.mem.box.get")
+fn get<T>(value: borrow Box<T>) -> T
+{
+    box_get<T>(value)
+}
+
+@id("std.mem.box.into-inner")
+fn into_inner<T>(value: own Box<T>) -> T
+{
+    box_into_inner<T>(value)
+}

@@ -64,12 +64,14 @@ mod failure_detail;
 pub mod internal_strings;
 mod nested_owned;
 pub(crate) mod network;
+mod owned_box;
 mod owned_buffer;
 mod owned_try;
 mod owned_vec;
 mod prepared;
 mod resolved_case;
 pub mod retained_call;
+mod scalar_profile;
 
 pub use failure_detail::{ContractArgument, ContractFailureDetail};
 pub(crate) use resolved_case::evaluate_resolved_zero_arg_i64_function;
@@ -81,6 +83,7 @@ use api_admission::{
     validate_public_api_borrowed_input_bound,
 };
 use expression_children::child_expressions;
+use scalar_profile::{is_admitted_resolved_scalar, pattern_value_matches};
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
@@ -2560,6 +2563,7 @@ fn scan_closure(
                     || crate::str_ops::by_id(callee.as_str()).is_some()
                     || crate::byte_ops::by_id(callee.as_str()).is_some()
                     || crate::vec_ops::by_id(callee.as_str()).is_some()
+                    || crate::box_ops::by_id(callee.as_str()).is_some()
                     || crate::host_io_ops::by_id(callee.as_str()).is_some();
                 let execution = instance
                     .as_ref()
@@ -2759,7 +2763,10 @@ fn admitted_resolved_functions_with_profile(
             program
                 .function_instances
                 .iter()
-                .filter(|instance| owned_vec::instance_is_admitted(program, instance))
+                .filter(|instance| {
+                    owned_vec::instance_is_admitted(program, instance)
+                        || owned_box::instance_is_admitted(program, instance)
+                })
                 .map(|instance| (instance.id.as_str(), &instance.function)),
         );
     }
@@ -3031,6 +3038,7 @@ pub(crate) fn evaluate_resolved_language_command(
         budget: max_steps,
         next_byte_allocation: 0,
         allocated_byte_payload: 0,
+        box_live_allocations: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         utf8_materialization_budget: Utf8MaterializationBudget::UnlimitedLegacy,
         stdout_transcript: Some(Vec::new()),
         stderr_transcript: Some(Vec::new()),
@@ -3081,34 +3089,6 @@ pub(crate) fn evaluate_resolved_language_command(
     ))
 }
 
-fn is_admitted_resolved_scalar(ty: &ResolvedType) -> bool {
-    matches!(
-        ty,
-        ResolvedType::I64
-            | ResolvedType::I32
-            | ResolvedType::U8
-            | ResolvedType::Usize
-            | ResolvedType::F32
-            | ResolvedType::F64
-            | ResolvedType::Char
-            | ResolvedType::Bool
-    )
-}
-
-/// Refutable Match v1: exact equality between the staged scrutinee value and
-/// a literal pattern of the same type.
-fn pattern_value_matches(staged: &Value, value: crate::hir::PatternValue) -> bool {
-    match (staged, value) {
-        (Value::Int(actual), crate::hir::PatternValue::Int(expected)) => *actual == expected,
-        (Value::Int32(actual), crate::hir::PatternValue::Int32(expected)) => *actual == expected,
-        (Value::Uint8(actual), crate::hir::PatternValue::Uint8(expected)) => *actual == expected,
-        (Value::Usize(actual), crate::hir::PatternValue::Usize(expected)) => *actual == expected,
-        (Value::Char(actual), crate::hir::PatternValue::Char(expected)) => *actual == expected,
-        (Value::Bool(actual), crate::hir::PatternValue::Bool(expected)) => *actual == expected,
-        _ => false,
-    }
-}
-
 fn reject_scan(expression: &ResolvedExpr, reason: &'static str) -> Vec<Diagnostic> {
     vec![selection_error(
         reason,
@@ -3129,6 +3109,7 @@ enum Value {
     ArrayU8(Arc<[u8]>),
     Bytes(OwnedBytesValue),
     Vec(Arc<owned_vec::OwnedVecValue>),
+    Box(Arc<owned_box::OwnedBoxValue>),
     String(String),
     BorrowedStr(BorrowedStrValue),
     BorrowedSlice(BorrowedSliceValue),
@@ -3507,6 +3488,7 @@ struct Evaluator<'a> {
     budget: usize,
     next_byte_allocation: u32,
     allocated_byte_payload: u64,
+    box_live_allocations: Arc<std::sync::atomic::AtomicUsize>,
     utf8_materialization_budget: Utf8MaterializationBudget,
     stdout_transcript: Option<Vec<u8>>,
     stderr_transcript: Option<Vec<u8>>,
@@ -3564,6 +3546,7 @@ fn evaluate_resolved_entry_with_utf8_budget<'a>(
         budget,
         next_byte_allocation: 0,
         allocated_byte_payload: 0,
+        box_live_allocations: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
         utf8_materialization_budget,
         stdout_transcript: host_stdout.then(Vec::new),
         stderr_transcript: None,
@@ -3602,6 +3585,7 @@ impl Evaluator<'_> {
             budget,
             next_byte_allocation: 0,
             allocated_byte_payload: 0,
+            box_live_allocations: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             utf8_materialization_budget: Utf8MaterializationBudget::UnlimitedLegacy,
             stdout_transcript: None,
             stderr_transcript: None,
@@ -3683,6 +3667,7 @@ impl Evaluator<'_> {
             Value::ArrayU8(value) => Value::ArrayU8(Arc::clone(value)),
             Value::Bytes(value) => Value::Bytes(value.clone()),
             Value::Vec(value) => Value::Vec(Arc::clone(value)),
+            Value::Box(value) => Value::Box(Arc::clone(value)),
             Value::String(value) => Value::String(self.materialize_utf8_copy(value)?),
             Value::BorrowedStr(value) => Value::BorrowedStr(value.clone()),
             Value::BorrowedSlice(value) => Value::BorrowedSlice(value.clone()),
@@ -4430,7 +4415,11 @@ impl Evaluator<'_> {
                 args,
             } => {
                 let vec_intrinsic = owned_vec::is_intrinsic_call(callee, instance, type_arguments);
-                if !vec_intrinsic && instance.is_some() != !type_arguments.is_empty() {
+                let box_intrinsic = owned_box::is_intrinsic_call(callee, instance, type_arguments);
+                if !vec_intrinsic
+                    && !box_intrinsic
+                    && instance.is_some() != !type_arguments.is_empty()
+                {
                     return Err(Flow::Guard("generic call identity is incomplete"));
                 }
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
@@ -4630,6 +4619,9 @@ impl Evaluator<'_> {
                 }
                 if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
                     return self.evaluate_vec_op(op, type_arguments, args, environment, depth);
+                }
+                if let Some(op) = crate::box_ops::by_id(callee.as_str()) {
+                    return self.evaluate_box_op(op, type_arguments, args, environment, depth);
                 }
                 if crate::host_io_ops::by_id(callee.as_str()).is_some() {
                     self.charge()?;
@@ -6093,6 +6085,7 @@ mod tests {
                 budget: 10_000,
                 next_byte_allocation: 0,
                 allocated_byte_payload: 0,
+                box_live_allocations: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
                 utf8_materialization_budget: Utf8MaterializationBudget::UnlimitedLegacy,
                 stdout_transcript: None,
                 stderr_transcript: None,
@@ -6177,6 +6170,7 @@ fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
                 budget: 10_000,
                 next_byte_allocation: 0,
                 allocated_byte_payload: 0,
+                box_live_allocations: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
                 utf8_materialization_budget: Utf8MaterializationBudget::UnlimitedLegacy,
                 stdout_transcript: None,
                 stderr_transcript: None,

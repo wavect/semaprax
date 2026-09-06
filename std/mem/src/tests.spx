@@ -1,0 +1,83 @@
+module std.mem.tests;
+use function @id("std.mem.box.get") from std.mem as get;
+use function @id("std.mem.box.into-inner") from std.mem as into_inner;
+use function @id("std.mem.box.new") from std.mem as new;
+
+@id("std.mem.tests.i64")
+fn check_i64() -> bool
+{
+    let boxed = new<i64>(-7);
+    let seen = get<i64>(boxed);
+    seen == -7 && into_inner<i64>(boxed) == -7
+}
+
+@id("std.mem.tests.i32")
+fn check_i32() -> bool
+{
+    let boxed = new<i32>(-7i32);
+    let seen = get<i32>(boxed);
+    seen == -7i32 && into_inner<i32>(boxed) == -7i32
+}
+
+@id("std.mem.tests.u8")
+fn check_u8() -> bool
+{
+    let boxed = new<u8>(255u8);
+    let seen = get<u8>(boxed);
+    seen == 255u8 && into_inner<u8>(boxed) == 255u8
+}
+
+@id("std.mem.tests.usize")
+fn check_usize() -> bool
+{
+    let boxed = new<usize>(42usize);
+    let seen = get<usize>(boxed);
+    seen == 42usize && into_inner<usize>(boxed) == 42usize
+}
+
+@id("std.mem.tests.char")
+fn check_char() -> bool
+{
+    let boxed = new<char>('\u{1f600}');
+    let seen = get<char>(boxed);
+    seen == '\u{1f600}' && into_inner<char>(boxed) == '\u{1f600}'
+}
+
+@id("std.mem.tests.f32")
+fn check_f32() -> bool
+{
+    let boxed = new<f32>(1.25f32);
+    let seen = get<f32>(boxed);
+    seen == 1.25f32 && into_inner<f32>(boxed) == 1.25f32
+}
+
+@id("std.mem.tests.f64")
+fn check_f64() -> bool
+{
+    let boxed = new<f64>(-2.5);
+    let seen = get<f64>(boxed);
+    seen == -2.5 && into_inner<f64>(boxed) == -2.5
+}
+
+@id("std.mem.tests.bool")
+fn check_bool() -> bool
+{
+    let boxed = new<bool>(true);
+    let seen = get<bool>(boxed);
+    seen && into_inner<bool>(boxed)
+}
+
+@id("std.mem.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if check_i64() { 0 } else { 1 };
+    failed = failed + if check_i32() { 0 } else { 2 };
+    failed = failed + if check_u8() { 0 } else { 4 };
+    failed = failed + if check_usize() { 0 } else { 8 };
+    failed = failed + if check_char() { 0 } else { 16 };
+    failed = failed + if check_f32() { 0 } else { 32 };
+    failed = failed + if check_f64() { 0 } else { 64 };
+    failed = failed + if check_bool() { 0 } else { 128 };
+    failed
+}

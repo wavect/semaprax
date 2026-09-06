@@ -82,6 +82,52 @@ pub(super) fn uses_vec(program: &ResolvedProgram) -> bool {
         })
 }
 
+pub(super) fn uses_box(program: &ResolvedProgram) -> bool {
+    fn type_uses_box(ty: &ResolvedType) -> bool {
+        matches!(ty, ResolvedType::Nominal { declaration, .. } if declaration.as_str() == prelude::BOX_ID)
+            || matches!(ty, ResolvedType::Nominal { arguments, .. } if arguments.iter().any(type_uses_box))
+    }
+    fn function_uses_box(function: &crate::hir::ResolvedFunction) -> bool {
+        type_uses_box(&function.return_type)
+            || function.params.iter().any(|p| type_uses_box(&p.ty))
+            || {
+                let mut found = false;
+                for expression in function
+                    .requires
+                    .iter()
+                    .chain(std::iter::once(&function.body))
+                    .chain(&function.ensures)
+                {
+                    hir::visit_resolved_calls(expression, &mut |callee, _, _| {
+                        found |= crate::box_ops::by_id(callee.as_str()).is_some()
+                    });
+                }
+                found
+            }
+    }
+    program.functions.iter().any(function_uses_box)
+        || program.function_templates.iter().any(|t| {
+            type_uses_box(&t.return_type) || t.params.iter().any(|p| type_uses_box(&p.ty)) || {
+                let mut found = false;
+                for expression in t
+                    .requires
+                    .iter()
+                    .chain(std::iter::once(&t.body))
+                    .chain(&t.ensures)
+                {
+                    hir::visit_resolved_calls(expression, &mut |callee, _, _| {
+                        found |= crate::box_ops::by_id(callee.as_str()).is_some()
+                    });
+                }
+                found
+            }
+        })
+        || program
+            .function_instances
+            .iter()
+            .any(|i| function_uses_box(&i.function))
+}
+
 fn uses_vec_v3(program: &ResolvedProgram) -> bool {
     fn is_v3_id(id: &crate::hir::DeclarationId) -> bool {
         crate::vec_ops::by_id(id.as_str()).is_some_and(|op| {
@@ -123,7 +169,9 @@ fn uses_vec_v3(program: &ResolvedProgram) -> bool {
 }
 
 pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
-    if uses_vec_v3(program) {
+    if uses_box(program) {
+        prelude::SCHEMA_V4
+    } else if uses_vec_v3(program) {
         prelude::SCHEMA_V3
     } else if uses_vec(program) {
         prelude::SCHEMA_V2
@@ -133,11 +181,47 @@ pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
 }
 
 pub(super) fn digest(program: &ResolvedProgram) -> String {
-    if uses_vec_v3(program) {
+    if uses_box(program) {
+        prelude::digest_text_v4()
+    } else if uses_vec_v3(program) {
         prelude::digest_text_v3()
     } else if uses_vec(program) {
         prelude::digest_text_v2()
     } else {
         prelude::digest_text_v1()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn box_calls_in_contracts_select_v4_without_body_or_type_reachability() {
+        let mut boxed = crate::hir::resolve(
+            &crate::parse(
+                "module test.box_contract; @id(\"app.main\") fn main()->i64{box_into_inner<i64>(box_new<i64>(1))}",
+                Path::new("box-contract.spx"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let scalar = crate::hir::resolve(
+            &crate::parse(
+                "module test.scalar_contract; @id(\"app.main\") fn main()->i64{0}",
+                Path::new("scalar-contract.spx"),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let box_call = boxed.functions[0].body.clone();
+        boxed.functions[0].body = scalar.functions[0].body.clone();
+        boxed.functions[0].requires = vec![box_call.clone()];
+        assert_eq!(schema(&boxed), prelude::SCHEMA_V4);
+
+        boxed.functions[0].requires.clear();
+        boxed.functions[0].ensures = vec![box_call];
+        assert_eq!(schema(&boxed), prelude::SCHEMA_V4);
     }
 }

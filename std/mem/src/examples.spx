@@ -1,0 +1,13 @@
+module std.mem.examples;
+use function @id("std.mem.box.get") from std.mem as get;
+use function @id("std.mem.box.into-inner") from std.mem as into_inner;
+use function @id("std.mem.box.new") from std.mem as new;
+
+@id("std.mem.examples.main")
+fn main() -> i64
+{
+    let value = new<i64>(42);
+    let seen = get<i64>(value);
+    let extracted = into_inner<i64>(value);
+    if seen == 42 && extracted == 42 { 0 } else { 1 }
+}

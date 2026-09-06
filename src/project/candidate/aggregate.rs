@@ -861,16 +861,24 @@ fn selected_vec_prelude(revision: &ProjectRevision) -> Option<(&'static str, Str
     let mut selected: Option<(&'static str, String)> = None;
     for source in revision.sources() {
         let candidate = crate::prelude::selected_for_source(source.source());
-        if candidate.0 == crate::prelude::SCHEMA_V3
-            || (candidate.0 == crate::prelude::SCHEMA_V2
-                && !selected
-                    .as_ref()
-                    .is_some_and(|current| current.0 == crate::prelude::SCHEMA_V3))
-        {
-            selected = Some((candidate.0, candidate.2));
-        }
+        retain_newest_vec_prelude(&mut selected, candidate);
     }
     selected
+}
+
+fn retain_newest_vec_prelude(
+    selected: &mut Option<(&'static str, String)>,
+    candidate: (&'static str, Vec<u8>, String),
+) {
+    let rank = |schema| match schema {
+        crate::prelude::SCHEMA_V2 => 1,
+        crate::prelude::SCHEMA_V3 => 2,
+        crate::prelude::SCHEMA_V4 => 3,
+        _ => 0,
+    };
+    if rank(candidate.0) > selected.as_ref().map_or(0, |current| rank(current.0)) {
+        *selected = Some((candidate.0, candidate.2));
+    }
 }
 
 fn selector(id: &str) -> Result<()> {
@@ -880,4 +888,27 @@ fn selector(id: &str) -> Result<()> {
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mixed_vec_box_source_retains_prelude_v4_over_v2_and_v3() {
+        let mut selected = None;
+        for source in [
+            "module test.vec; fn main()->Vec<i64>{vec_with_capacity<i64>(1usize)}",
+            "module test.mixed; fn main()->i64{let mut v=vec_with_capacity<i64>(0usize);v=vec_clear<i64>(v);box_into_inner<i64>(box_new<i64>(1))}",
+            "module test.vec.old; fn main()->Vec<i64>{vec_with_capacity<i64>(1usize)}",
+        ] {
+            retain_newest_vec_prelude(
+                &mut selected,
+                crate::prelude::selected_for_source(source),
+            );
+        }
+        let selected = selected.expect("mixed Vec and Box source selects a Vec prelude");
+        assert_eq!(selected.0, crate::prelude::SCHEMA_V4);
+        assert_eq!(selected.1, crate::prelude::digest_text_v4());
+    }
 }

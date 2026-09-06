@@ -18,6 +18,7 @@ use crate::ast::{
 pub(crate) const SCHEMA_V1: &str = "semaprax.prelude.v1";
 pub(crate) const SCHEMA_V2: &str = "semaprax.prelude.v2";
 pub(crate) const SCHEMA_V3: &str = "semaprax.prelude.v3";
+pub(crate) const SCHEMA_V4: &str = "semaprax.prelude.v4";
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -30,17 +31,20 @@ pub(crate) const RESULT_OK_VALUE_ID: &str = "core.result.ok.value";
 pub(crate) const RESULT_ERR_ID: &str = "core.result.err";
 pub(crate) const RESULT_ERR_ERROR_ID: &str = "core.result.err.error";
 pub(crate) const VEC_ID: &str = "core.vec";
+pub(crate) const BOX_ID: &str = "core.box";
 
 pub(crate) fn declarations() -> &'static [TypeDeclaration] {
     static DECLARATIONS: OnceLock<Vec<TypeDeclaration>> = OnceLock::new();
-    DECLARATIONS.get_or_init(|| vec![option(), result(), owned_vec()])
+    DECLARATIONS.get_or_init(|| vec![option(), result(), owned_vec(), owned_box()])
 }
 
 pub(crate) fn declarations_for_program(
     program: &crate::ast::Program,
 ) -> &'static [TypeDeclaration] {
-    if program_uses_vec(program) {
+    if program_uses_box(program) {
         declarations()
+    } else if program_uses_vec(program) {
+        &declarations()[..3]
     } else {
         &declarations()[..2]
     }
@@ -63,6 +67,7 @@ pub(crate) fn is_compiler_owned_id(id: &str) -> bool {
             | RESULT_ERR_ID
             | RESULT_ERR_ERROR_ID
             | VEC_ID
+            | BOX_ID
     )
 }
 
@@ -94,8 +99,23 @@ pub(crate) fn all_type_ids_v2() -> [&'static str; 10] {
         VEC_ID,
     ]
 }
+pub(crate) fn all_type_ids_v4() -> [&'static str; 11] {
+    [
+        OPTION_ID,
+        OPTION_NONE_ID,
+        OPTION_SOME_ID,
+        OPTION_SOME_VALUE_ID,
+        RESULT_ID,
+        RESULT_OK_ID,
+        RESULT_OK_VALUE_ID,
+        RESULT_ERR_ID,
+        RESULT_ERR_ERROR_ID,
+        VEC_ID,
+        BOX_ID,
+    ]
+}
 
-pub(crate) fn all_reserved_ids() -> [&'static str; 18] {
+pub(crate) fn all_reserved_ids() -> [&'static str; 22] {
     [
         OPTION_ID,
         OPTION_NONE_ID,
@@ -115,6 +135,10 @@ pub(crate) fn all_reserved_ids() -> [&'static str; 18] {
         crate::vec_ops::RESERVE_EXACT_ID,
         crate::vec_ops::SET_ID,
         crate::vec_ops::CLEAR_ID,
+        BOX_ID,
+        crate::box_ops::NEW_ID,
+        crate::box_ops::GET_ID,
+        crate::box_ops::INTO_INNER_ID,
     ]
 }
 
@@ -127,14 +151,19 @@ pub(crate) fn contract_bytes_v1() -> Vec<u8> {
 }
 
 pub(crate) fn contract_bytes_v2() -> Vec<u8> {
-    let mut output = contract_bytes_for(SCHEMA_V2, declarations());
+    let mut output = contract_bytes_for(SCHEMA_V2, &declarations()[..3]);
     write_vec_contract(&mut output);
     output
 }
 
 pub(crate) fn contract_bytes_v3() -> Vec<u8> {
-    let mut output = contract_bytes_for(SCHEMA_V3, declarations());
+    let mut output = contract_bytes_for(SCHEMA_V3, &declarations()[..3]);
     write_vec_contract(&mut output);
+    write_vec_v3_contract(&mut output);
+    output
+}
+
+fn write_vec_v3_contract(output: &mut Vec<u8>) {
     let mut contract = String::new();
     write!(
         contract,
@@ -151,6 +180,15 @@ pub(crate) fn contract_bytes_v3() -> Vec<u8> {
         crate::vec_ops::GET_OUT_OF_BOUNDS_CODE,
     )
     .expect("writing to String cannot fail");
+    output.extend_from_slice(contract.as_bytes());
+}
+
+pub(crate) fn contract_bytes_v4() -> Vec<u8> {
+    let mut output = contract_bytes_for(SCHEMA_V4, declarations());
+    write_vec_contract(&mut output);
+    write_vec_v3_contract(&mut output);
+    let mut contract = String::new();
+    write!(contract, "operation {} {} <T>(value:T)->own:Box<T>\noperation {} {} <T>(borrow:Box<T>)->value:T\noperation {} {} <T>(own:Box<T>)->value:T\nelements i64,i32,u8,usize,char,f32,f64,bool\nlimit max_live_allocations {}\nstatus {} allocation_failure:{}\n", crate::box_ops::NEW_ID, crate::box_ops::NEW_NAME, crate::box_ops::GET_ID, crate::box_ops::GET_NAME, crate::box_ops::INTO_INNER_ID, crate::box_ops::INTO_INNER_NAME, crate::box_ops::MAX_LIVE_ALLOCATIONS, crate::box_ops::STATUS_DOMAIN, crate::box_ops::ALLOCATION_FAILURE_CODE).expect("writing to String cannot fail");
     output.extend_from_slice(contract.as_bytes());
     output
 }
@@ -251,6 +289,9 @@ pub(crate) fn digest_v2() -> [u8; 32] {
 pub(crate) fn digest_v3() -> [u8; 32] {
     Sha256::digest(contract_bytes_v3()).into()
 }
+pub(crate) fn digest_v4() -> [u8; 32] {
+    Sha256::digest(contract_bytes_v4()).into()
+}
 
 pub(crate) fn digest_text_v1() -> String {
     let digest = digest_v1();
@@ -280,6 +321,36 @@ pub(crate) fn digest_text_v3() -> String {
         write!(output, "{byte:02x}").expect("writing to String cannot fail");
     }
     output
+}
+pub(crate) fn digest_text_v4() -> String {
+    let digest = digest_v4();
+    let mut output = String::with_capacity("sha256:".len() + digest.len() * 2);
+    output.push_str("sha256:");
+    for byte in digest {
+        write!(output, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    output
+}
+
+pub(crate) fn program_uses_box(program: &crate::ast::Program) -> bool {
+    fn function_uses_box(function: &crate::ast::Function) -> bool {
+        crate::box_ops::wrapper_by_id(&function.stable_id).is_some()
+            || function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+                .any(|expression| {
+                    let mut found = false;
+                    expression.visit_calls(&mut |name, _| {
+                        found |= crate::box_ops::by_name(name).is_some()
+                    });
+                    found
+                })
+    }
+    program.module_uses.iter().any(|module_use| module_use.kind == ModuleUseKind::Function && module_use.target_module == crate::box_ops::MODULE && crate::box_ops::wrapper_by_id(&module_use.persistent_id).is_some())
+        || program.functions.iter().any(function_uses_box)
+        || program.types.iter().any(|declaration| matches!(&declaration.kind, TypeDeclarationKind::Class { methods, .. } if methods.iter().any(function_uses_box)))
 }
 
 fn vec_v3_op(op: crate::vec_ops::VecOp) -> bool {
@@ -393,7 +464,9 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if program_uses_vec_v3(program) {
+    if program_uses_box(program) {
+        (SCHEMA_V4, contract_bytes_v4(), digest_text_v4())
+    } else if program_uses_vec_v3(program) {
         (SCHEMA_V3, contract_bytes_v3(), digest_text_v3())
     } else if program_uses_vec(program) {
         (SCHEMA_V2, contract_bytes_v2(), digest_text_v2())
@@ -506,6 +579,19 @@ fn owned_vec() -> TypeDeclaration {
     }
 }
 
+fn owned_box() -> TypeDeclaration {
+    TypeDeclaration {
+        stable_id: BOX_ID.to_owned(),
+        explicit_id: true,
+        name: "Box".to_owned(),
+        name_span: Span::default(),
+        type_parameters: vec![parameter("T")],
+        kind: TypeDeclarationKind::Record { fields: Vec::new() },
+        extends: None,
+        span: Span::default(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -582,5 +668,32 @@ mod tests {
             .0,
             SCHEMA_V2
         );
+    }
+
+    #[test]
+    fn box_selects_exact_additive_v4_without_reinterpreting_authored_box() {
+        let contract = String::from_utf8(contract_bytes_v4()).unwrap();
+        assert!(contract.starts_with("semaprax.prelude.v4\n"));
+        for fact in [
+            "record core.box Box<T>",
+            "operation core.box.new box_new <T>(value:T)->own:Box<T>",
+            "operation core.box.get box_get <T>(borrow:Box<T>)->value:T",
+            "operation core.box.into-inner box_into_inner <T>(own:Box<T>)->value:T",
+            "limit max_live_allocations 4096",
+            "status semaprax.box.v1 allocation_failure:1",
+            "operation core.vec.clear vec_clear",
+            "rule successful_owner_mutation generation=next",
+        ] {
+            assert!(contract.contains(fact), "missing {fact}");
+        }
+        assert_eq!(
+            digest_text_v4(),
+            "sha256:04d6c7bcff11395cfe72c429f6cf1b076f766fdbabba423edbb02e1692d1fd89"
+        );
+        assert_eq!(selected_for_source("module test.box;@id(\"app.main\") fn main()->i64{box_into_inner<i64>(box_new<i64>(1))}").0,SCHEMA_V4);
+        assert_eq!(selected_for_source("module test.mixed;@id(\"app.main\") fn main()->i64{let mut v=vec_with_capacity<i64>(0usize);v=vec_clear<i64>(v);box_into_inner<i64>(box_new<i64>(1))}").0,SCHEMA_V4);
+        assert_eq!(selected_for_source("module test.imported;use function @id(\"std.mem.box.new\") from std.mem as new;@id(\"app.main\") fn main()->i64{let value=new<i64>(1);0}").0,SCHEMA_V4);
+        assert_eq!(selected_for_source("module test.spoof;use function @id(\"std.mem.box.new\") from user.mem as new;@id(\"app.main\") fn main()->i64{let value=new<i64>(1);0}").0,SCHEMA_V1);
+        assert_eq!(selected_for_source("module test.legacy;@id(\"legacy.box\") record Box<T>{@id(\"legacy.box.value\") value:T,}@id(\"app.main\") fn main()->i64{0}").0,SCHEMA_V1);
     }
 }

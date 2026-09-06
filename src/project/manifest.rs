@@ -700,12 +700,27 @@ impl ProjectManifest {
             && command.is_none()
             && command_input.is_none()
             && capabilities.is_empty();
+        let std_mem_no_export_shape = schema == PROJECT_SCHEMA_V8
+            && name == "std-mem"
+            && package_version.as_deref() == Some("0.1.0")
+            && profile == ProjectProfile::OwnedDataApiV1
+            && entry == "std.mem.examples"
+            && sources == ["src/examples.spx", "src/mem.spx", "src/tests.spx"]
+            && tests == ["std.mem.tests"]
+            && command.is_none()
+            && command_input.is_none()
+            && capabilities.is_empty();
         if std_collections_no_export_shape && !web_exports.is_empty() {
             return Err(grammar(
                 "the exact std.collections Project v8 package requires an empty web_exports list",
             ));
         }
-        if web_exports.is_empty() && !std_collections_no_export_shape {
+        if std_mem_no_export_shape && !web_exports.is_empty() {
+            return Err(grammar(
+                "the exact std.mem Project v8 package requires an empty web_exports list",
+            ));
+        }
+        if web_exports.is_empty() && !std_collections_no_export_shape && !std_mem_no_export_shape {
             return Err(grammar(format!(
                 "{version_label} requires 1..=32 explicit web export identities"
             )));
@@ -858,6 +873,20 @@ impl ProjectManifest {
             && self.sources == ["src/collections.spx", "src/examples.spx", "src/tests.spx"]
             && self.web_exports.is_empty()
             && self.test_module == "std.collections.tests"
+            && self.command.is_none()
+            && self.command_input.is_none()
+            && self.capabilities.is_empty()
+    }
+
+    pub(crate) fn is_no_export_std_mem(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V8
+            && self.name == "std-mem"
+            && self.package_version.as_deref() == Some("0.1.0")
+            && self.profile == ProjectProfile::OwnedDataApiV1
+            && self.entry == "std.mem.examples"
+            && self.sources == ["src/examples.spx", "src/mem.spx", "src/tests.spx"]
+            && self.web_exports.is_empty()
+            && self.test_module == "std.mem.tests"
             && self.command.is_none()
             && self.command_input.is_none()
             && self.capabilities.is_empty()

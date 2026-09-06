@@ -1,7 +1,7 @@
 # Standard Library v1
 
-- Status: versioned reference; 24 packages are executable under `std/`: nine
-  `core`, twelve `portable`, two `alloc`, and one `test`. Every package remains
+- Status: versioned reference; 25 packages are present under `std/`: nine
+  `core`, twelve `portable`, three `alloc`, and one `test`. Every package remains
   Partial until its complete required scope and promotion evidence exist; every
   other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
@@ -52,6 +52,13 @@ The separately specified
 is resolver syntax over the existing length/get/while vocabulary. It adds no
 `std.collections` declaration and does not advance the Missing `std.iter`
 package.
+The separately bounded compiler-owned `Box<T>` allocation is exposed by the
+alloc-tier `std.mem` package through exactly three authenticated aliases:
+`new`, `get`, and `into_inner`, instantiated explicitly for the same eight Copy
+scalars. Its scalar-result example and conformance package export no public
+descriptor. This advances only the Box slice; regions, arenas, shared immutable
+values, allocator interfaces, owned payloads, and public generic ABI remain
+absent.
 
 Every public standard-library declaration must have:
 
@@ -147,7 +154,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.core` | Option, Result, ordering, equality, ranges, conversion, and core traits/interfaces | Partial: `i64` ordering as `-1`/`0`/`1`, extrema, clamping, range membership, `bool` conversions and connectives; `Option` and `Result` remain compiler-owned |
 | `std.num` | Checked, wrapping, saturating, and conversion operations | Partial: sign, absolute value, parity, Euclidean division and remainder, greatest common divisor, checked power, integer square root, digit count, power-of-two test, and floor logarithms in base 2 and 10 in `std.num`; overflow predicates and wrapping and saturating addition, subtraction, negation, absolute value, and multiplication in `std.num.overflow`; checked arithmetic is the language default; wrapping multiplication is Missing |
 | `std.iter` | Iterators, adapters, folds, collection, and ranges | Missing; bounded `for` traversal over one immutable `Vec<T>` binding is resolver syntax, not an iterator interface; interfaces, associated types, closures, and lifetime contracts remain required |
-| `std.mem` | Ownership helpers, regions, arenas, boxes, shared immutable values | Missing |
+| `std.mem` | Ownership helpers, regions, arenas, boxes, shared immutable values | Partial: authenticated transparent wrappers for compiler-owned `Box<T>` `new`, synchronous `get`, and consuming `into_inner` over exactly eight Copy scalars, with explicit conformance and no public exports; regions, arenas, shared immutable values, allocator interfaces, owned payloads, and broader ownership helpers remain Missing |
 | `std.collections` | Vector, deque, map, set, heap, and fixed-capacity collections | Partial: authenticated transparent wrappers for `with_capacity`, `push`, `reserve_exact`, `set`, `clear`, `len`, `capacity`, and `get` over exactly the eight Owned Bounded Vec v1 Copy scalars have focused local Project/package evidence, explicit conformance instantiations, generated catalogs, and no public exports; `push`, `reserve_exact`, `set`, and `clear` consume and return the one owner, while every broader collection operation remains Missing |
 | `std.bytes` | Buffers, spans, readers, writers, endian operations, and encoding | Partial: byte-to-integer conversion, guarded indexing, first-index search, counting, ASCII classification, slice equality, prefix and suffix tests, and little- and big-endian 16- and 32-bit reads over `borrow Slice<u8>`; buffers, writers, and encodings are Missing |
 | `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Partial: borrowed byte length, emptiness, exact equality, prefix, and substring search; iteration, split, trim, and normalization are Missing |

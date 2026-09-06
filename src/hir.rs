@@ -93,6 +93,7 @@ mod private_capacity_contract_tests;
 #[cfg(test)]
 mod projected_byte_field_provenance_tests;
 mod record_evolution;
+mod resolve_box_call;
 mod resolve_class;
 mod resolve_expr;
 mod resolve_expr_frame;

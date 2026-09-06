@@ -459,6 +459,21 @@ impl DeclarationIndex {
                         results.push(facts);
                         continue;
                     }
+                    if declaration.as_str() == crate::prelude::BOX_ID
+                        && arguments.len() == 1
+                        && crate::box_ops::resolved_element_is_admitted(&arguments[0])
+                    {
+                        let facts = TypeFacts {
+                            copy: false,
+                            contains_resource: false,
+                            sized: true,
+                            needs_drop: true,
+                            layout_key: format!("box:{}", arguments[0].identity_key()),
+                        };
+                        memo.insert(identity, facts.clone());
+                        results.push(facts);
+                        continue;
+                    }
                     if item.kind == DeclarationKind::Resource && arguments.is_empty() {
                         let facts = TypeFacts {
                             copy: false,

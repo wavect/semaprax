@@ -49,6 +49,28 @@ pub(super) fn program_imports_vec_wrapper(program: &Program, programs: &[Program
         .iter()
         .any(|module_use| imported_vec_wrapper(programs, module_use).is_some())
 }
+pub(super) fn program_imports_box_wrapper(program: &Program, programs: &[Program]) -> bool {
+    program
+        .module_uses
+        .iter()
+        .any(|module_use| imported_box_wrapper(programs, module_use).is_some())
+}
+fn imported_box_wrapper(
+    programs: &[Program],
+    module_use: &crate::ast::ModuleUse,
+) -> Option<crate::box_ops::BoxOp> {
+    if module_use.kind != crate::ast::ModuleUseKind::Function {
+        return None;
+    }
+    let provider = programs
+        .iter()
+        .find(|provider| provider.module == module_use.target_module)?;
+    let function = provider
+        .functions
+        .iter()
+        .find(|function| function.stable_id == module_use.persistent_id)?;
+    crate::box_ops::source_wrapper(provider, function)
+}
 
 fn imported_vec_wrapper(
     programs: &[Program],
@@ -89,7 +111,8 @@ pub(super) fn retain_module_instances(
                 .is_some_and(|owner| owner.module == program.module)
                 || program.module_uses.iter().any(|module_use| {
                     module_use.persistent_id == item.template.as_str()
-                        && imported_vec_wrapper(programs, module_use).is_some()
+                        && (imported_vec_wrapper(programs, module_use).is_some()
+                            || imported_box_wrapper(programs, module_use).is_some())
                 })
         },
     )?;
@@ -128,27 +151,33 @@ pub(super) fn attach_imported_vec_instances(
     if retained.is_empty() {
         return Ok(());
     }
-    let provider = modules
-        .iter_mut()
-        .find(|module| module.module == crate::vec_ops::MODULE)
-        .ok_or_else(|| {
-            vec![graph_error(
-                "SPX-G173",
-                "imported vector wrapper instances have no authenticated provider module",
-            )]
-        })?;
-    if retained.values().any(|instance| {
-        !provider
+    for instance in retained.into_values() {
+        let module = if crate::box_ops::wrapper_by_id(instance.template.as_str()).is_some() {
+            crate::box_ops::MODULE
+        } else {
+            crate::vec_ops::MODULE
+        };
+        let provider = modules
+            .iter_mut()
+            .find(|candidate| candidate.module == module)
+            .ok_or_else(|| {
+                vec![graph_error(
+                    "SPX-G173",
+                    "imported wrapper instances have no authenticated provider module",
+                )]
+            })?;
+        if !provider
             .function_templates
             .iter()
             .any(|template| template.id == instance.template)
-    }) {
-        return Err(vec![graph_error(
-            "SPX-G173",
-            "imported vector wrapper instance has no authenticated provider template",
-        )]);
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "imported wrapper instance has no authenticated provider template",
+            )]);
+        }
+        provider.function_instances.push(instance);
     }
-    provider.function_instances.extend(retained.into_values());
     Ok(())
 }
 
@@ -530,6 +559,7 @@ pub(super) fn close_owned_data_closure(
                 && crate::str_ops::by_id(callee.as_str()).is_none()
                 && crate::byte_ops::by_id(callee.as_str()).is_none()
                 && crate::vec_ops::by_id(callee.as_str()).is_none()
+                && crate::box_ops::by_id(callee.as_str()).is_none()
                 && crate::host_io_ops::by_id(callee.as_str()).is_none()
                 && crate::command_io_ops::by_id(callee.as_str()).is_none()
             {

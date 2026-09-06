@@ -40,8 +40,8 @@ pub(super) enum PreparedProjectAdmission {
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
-    /// The authenticated no-export `std.collections` package retains its
-    /// internal owned Vec closure without constructing a public descriptor.
+    /// An authenticated no-export alloc-tier standard package retains its
+    /// internal owned closure without constructing a public descriptor.
     OwnedDataNoExports,
     OwnedDataApiV1(Box<PublicApiDescriptor>),
     FlatOwnedRecordApiV1(Box<FlatOwnedRecordApiDescriptor>),
@@ -167,7 +167,9 @@ pub(super) fn prepare(
             legacy::https_command(program, manifest.command().unwrap_or(""))?;
             Ok(PreparedProjectAdmission::HttpsCommandIoV1)
         }
-        ProjectProfile::OwnedDataApiV1 if manifest.is_no_export_std_collections() => {
+        ProjectProfile::OwnedDataApiV1
+            if manifest.is_no_export_std_collections() || manifest.is_no_export_std_mem() =>
+        {
             Ok(PreparedProjectAdmission::OwnedDataNoExports)
         }
         ProjectProfile::OwnedDataApiV1 => owned::prepare(program, manifest, subject)

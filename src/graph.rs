@@ -3863,6 +3863,9 @@ fn graph_json(
     if !prelude_binding::uses_vec(program) {
         selected_types.remove(&DeclarationId::new(crate::prelude::VEC_ID));
     }
+    if !prelude_binding::uses_box(program) {
+        selected_types.remove(&DeclarationId::new(crate::prelude::BOX_ID));
+    }
     let mut selected_interfaces = match view {
         GraphView::Module => program
             .interfaces

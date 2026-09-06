@@ -11,6 +11,40 @@ pub(super) fn emit_runtime(
     }
 }
 
+pub(super) fn program_uses_vec(program: &crate::hir::ResolvedProgram) -> bool {
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(|function| {
+            crate::cleanup::is_owned_bounded_vec_type(&function.return_type)
+                || function
+                    .params
+                    .iter()
+                    .any(|param| crate::cleanup::is_owned_bounded_vec_type(&param.ty))
+                || std::iter::once(&function.body)
+                    .chain(function.requires.iter())
+                    .chain(function.ensures.iter())
+                    .any(|root| {
+                        let mut found = false;
+                        crate::hir::visit_resolved_calls(
+                            root,
+                            &mut |callee, instance, arguments| {
+                                found |= instance.is_none()
+                                    && arguments.len() == 1
+                                    && crate::vec_ops::by_id(callee.as_str()).is_some();
+                            },
+                        );
+                        found
+                    })
+        })
+}
+
 fn program_uses_extended_ops(program: &crate::hir::ResolvedProgram) -> bool {
     program
         .functions

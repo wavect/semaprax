@@ -273,15 +273,18 @@ impl Resolver<'_> {
                                 path,
                                 segment: "arg",
                             });
-                        } else if let Some(op) = crate::vec_ops::by_name(name) {
-                            super::resolve_vec_call::schedule(
+                        } else if let Some(site) =
+                            super::resolve_box_call::OwnedGenericCallSite::by_name(name)
+                        {
+                            site.schedule(
                                 self,
                                 function,
                                 &mut frames,
                                 type_arguments,
                                 args,
                                 bindings,
-                                super::resolve_vec_call::VecCallSite::new(path, expr.span, op),
+                                path,
+                                expr.span,
                             )?;
                         } else if let Some(op) = crate::byte_ops::by_name(name) {
                             if !type_arguments.is_empty() || args.len() != op.arity() {
@@ -774,9 +777,8 @@ impl Resolver<'_> {
                                 path: path.clone(),
                             });
                         }
-                        // The inherited receiver is the enclosing method's
-                        // own `self` parameter. It is created here as the
-                        // upcast source; the finish frame wraps it under the
+                        // The inherited receiver is the enclosing method's own `self`
+                        // parameter; the finish frame wraps this upcast source under the
                         // canonical `.arg.0` argument identity.
                         let owner_ty = ResolvedType::Nominal {
                             declaration: owner.clone(),
@@ -1034,7 +1036,7 @@ impl Resolver<'_> {
                         span,
                     });
                 }
-                Frame::FinishVecOp {
+                Frame::FinishOwnedGenericOp {
                     span,
                     path,
                     op,
@@ -1042,7 +1044,7 @@ impl Resolver<'_> {
                     argument_count,
                 } => {
                     let args = take_results(&mut results, argument_count);
-                    results.push(super::resolve_vec_call::finish(
+                    results.push(super::resolve_box_call::finish_owned(
                         self, function, &path, span, op, element, args,
                     )?);
                 }
@@ -1960,9 +1962,7 @@ impl Resolver<'_> {
                     bindings,
                 } => {
                     let scrutinee = results.pop().expect("match scrutinee retained");
-                    // Refutable Match v1: Copy-scalar scrutinees take the
-                    // literal/guard decision chain; every aggregate or
-                    // non-scalar type keeps the exact pre-feature surface.
+                    // Copy scalars take the refutable-match decision chain; other types keep the prior surface.
                     if matches!(
                         scrutinee.ty,
                         ResolvedType::I64

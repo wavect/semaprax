@@ -1844,10 +1844,15 @@ fn collect_expression_statuses(
                 {
                     continue;
                 }
+                if instance.is_none() && super::deferred_commit::is_infallible_box_operation(callee)
+                {
+                    continue;
+                }
                 if instance.is_none()
                     && (crate::string_ops::by_id(callee.as_str()).is_some()
                         || crate::str_ops::by_id(callee.as_str()).is_some()
                         || crate::vec_ops::by_id(callee.as_str()).is_some()
+                        || crate::box_ops::by_id(callee.as_str()).is_some()
                         || crate::byte_ops::by_id(callee.as_str()).is_some())
                 {
                     // String and bounded Vec operations and the one fallible
@@ -3594,6 +3599,10 @@ fn expression_skeleton(
                             .is_none()
                             .then(|| crate::vec_ops::by_id(callee.as_str()))
                             .flatten();
+                        let box_intrinsic = instance
+                            .is_none()
+                            .then(|| crate::box_ops::by_id(callee.as_str()))
+                            .flatten();
                         let params = if let Some(op) = string_intrinsic {
                             crate::string_ops::resolved_params(op)
                         } else if let Some(op) = str_intrinsic {
@@ -3610,6 +3619,14 @@ fn expression_skeleton(
                                 ));
                             };
                             crate::vec_ops::resolved_params(op, element)
+                        } else if let Some(op) = box_intrinsic {
+                            let [element] = type_arguments.as_slice() else {
+                                return Err(replay_error(
+                                    function,
+                                    "bounded Box skeleton call has incorrect type arity",
+                                ));
+                            };
+                            crate::box_ops::resolved_params(op, element)
                         } else {
                             let target = program
                                 .resolve_call_target(callee, instance.as_ref())
@@ -5977,18 +5994,8 @@ fn finish_call_states(
     states: Vec<CallSkeletonState>,
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-    let infallible_compiler_operation = matches!(
-        &expression.kind,
-        ResolvedExprKind::Call {
-            callee,
-            instance: None,
-            ..
-        } if crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
-            || crate::host_io_ops::by_id(callee.as_str()).is_some()
-            || super::deferred_commit::is_infallible_vec_operation(
-                crate::vec_ops::by_id(callee.as_str()),
-            )
-    );
+    let infallible_compiler_operation =
+        super::deferred_commit::expression_is_infallible_compiler_operation(expression);
     // `vec_push` and the one fallible byte operation both check their bound
     // before the owner transfer commits, so their status observation precedes
     // the call-commit and a failed call leaves the owner in its call-argument

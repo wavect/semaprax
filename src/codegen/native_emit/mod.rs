@@ -11,9 +11,9 @@ use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write as _;
 
 use super::{
-    backend_error, c_i32, c_i64, native_byte_data, native_bytes, native_command, native_command_io,
-    native_host_output, native_resource, native_runtime, native_vec, resource_lowering_gate,
-    COutput, NATIVE_SCALAR_RUNTIME_C,
+    backend_error, c_i32, c_i64, native_box, native_byte_data, native_bytes, native_command,
+    native_command_io, native_host_output, native_resource, native_runtime, native_vec,
+    resource_lowering_gate, COutput, NATIVE_SCALAR_RUNTIME_C,
 };
 #[cfg(test)]
 use super::{
@@ -350,7 +350,8 @@ fn emit_native_prelude_inner(
     native_runtime::emit_status_runtime_for_profile(
         output,
         needs_borrowed_str || program_uses_byte_data(program) || strings.provider_carriers,
-        program_uses_vec(program),
+        native_vec::program_uses_vec(program),
+        native_box::program_uses_box(program),
     );
     output.push_str(&resource_abi.declarations);
     output.push_str("#include <stdio.h>\n\n");
@@ -417,34 +418,12 @@ fn emit_native_prelude_inner(
     if program_uses_byte_data(program) || strings.provider_carriers {
         native_byte_data::emit_runtime(output);
     }
-    if program_uses_vec(program) {
+    if native_vec::program_uses_vec(program) {
         native_vec::emit_runtime(output, program);
     }
-}
-
-fn program_uses_vec(program: &ResolvedProgram) -> bool {
-    program.functions.iter().any(|function| {
-        crate::cleanup::is_owned_bounded_vec_type(&function.return_type)
-            || function
-                .params
-                .iter()
-                .any(|param| crate::cleanup::is_owned_bounded_vec_type(&param.ty))
-            || std::iter::once(&function.body)
-                .chain(function.requires.iter())
-                .chain(function.ensures.iter())
-                .any(|root| {
-                    let mut pending = vec![root];
-                    while let Some(expression) = pending.pop() {
-                        if crate::cleanup::is_owned_bounded_vec_type(&expression.ty)
-                            || matches!(&expression.kind, ResolvedExprKind::Call { callee, .. } if crate::vec_ops::by_id(callee.as_str()).is_some())
-                        {
-                            return true;
-                        }
-                        pending.extend(resolved_expr_children(expression));
-                    }
-                    false
-                })
-    })
+    if native_box::program_uses_box(program) {
+        native_box::emit_runtime(output);
+    }
 }
 
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
@@ -958,6 +937,8 @@ fn c_value_type(
 ) -> Result<String, Diagnostic> {
     if crate::cleanup::is_owned_bounded_vec_type(ty) {
         Ok("spx_vec_v1".to_owned())
+    } else if crate::cleanup::is_owned_bounded_box_type(ty) {
+        Ok("spx_box_v1".to_owned())
     } else if matches!(ty, ResolvedType::ArrayU8(0)) {
         // ISO C11 has no zero-sized value type. Ordinary internal calls use
         // one byte as a non-semantic ABI carrier while all actual array
@@ -975,7 +956,9 @@ fn c_value_type(
 }
 
 fn is_direct_plan_owned(ty: &ResolvedType) -> bool {
-    matches!(ty, ResolvedType::Bytes) || crate::cleanup::is_owned_bounded_vec_type(ty)
+    matches!(ty, ResolvedType::Bytes)
+        || crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::cleanup::is_owned_bounded_box_type(ty)
 }
 
 fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
@@ -995,7 +978,9 @@ fn record_declaration_id<'a>(
     else {
         return Ok(None);
     };
-    if crate::cleanup::is_owned_bounded_vec_type(ty) {
+    if crate::cleanup::is_owned_bounded_vec_type(ty)
+        || crate::cleanup::is_owned_bounded_box_type(ty)
+    {
         return Ok(None);
     }
     let item = program
@@ -2064,6 +2049,8 @@ fn emit_function(
             .provisional()?;
         let move_call = if matches!(function.return_type, ResolvedType::Bytes) {
             format!("spx_bytes_move(&{value})")
+        } else if crate::cleanup::is_owned_bounded_box_type(&function.return_type) {
+            format!("spx_box_move(spx_ctx, &{value})")
         } else {
             format!("spx_vec_move(spx_ctx, &{value})")
         };

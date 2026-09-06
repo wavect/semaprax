@@ -568,6 +568,15 @@ iterator abstraction, adds nothing to the package catalog or public ABI, and
 does not advance `std.iter`; iterator interfaces, associated types, adapters,
 closures, consuming traversal, and lifetime inference remain later outcomes.
 
+The separately bounded `std.mem` Box tranche now has locally exercised package,
+catalog, interpreter, native C11, and Core-Wasm evidence: three authenticated
+no-export aliases for compiler-owned `new`, synchronous `get`, and consuming
+`into_inner`, explicitly instantiated over the eight Copy scalars. This
+establishes one unique allocation/extraction path without
+claiming owned payloads, allocator interfaces, public generic ABI, regions,
+arenas, shared ownership, or Iterator integration. Those broader `std.mem`
+outcomes remain sequenced after exact hosted Box evidence.
+
 - build beyond the exact ScalarV1 internal flat generic-owned body profile and
   its no-argument `i64` dependency fixture, whose cross-package and public
   signatures stay scalar, so records,

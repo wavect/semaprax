@@ -111,10 +111,10 @@ pub(super) fn schedule<'expr>(
             span,
         ));
     }
-    frames.push(Frame::FinishVecOp {
+    frames.push(Frame::FinishOwnedGenericOp {
         span,
         path: path.clone(),
-        op,
+        op: super::resolve_box_call::OwnedGenericCallSite::Vec(op),
         element,
         argument_count: args.len(),
     });

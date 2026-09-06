@@ -297,18 +297,16 @@ impl Resolver<'_> {
                         span: expr.span,
                     });
                 }
-                if let Some(op) = crate::vec_ops::by_name(name) {
-                    return super::resolve_vec_call::resolve_reference(
+                if let Some(site) = super::resolve_box_call::OwnedGenericCallSite::by_name(name) {
+                    return site.resolve_reference(
                         self,
                         function,
                         id,
-                        name,
                         type_arguments,
                         args,
                         bindings,
                         path,
                         expr.span,
-                        op,
                     );
                 }
                 if let Some(op) = crate::byte_ops::by_name(name) {

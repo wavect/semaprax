@@ -8,6 +8,19 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the product/package contract for Owned Bounded Box v1 and the
+  alloc-tier `std.mem` package. Compiler-owned `Box<T>` is limited to the eight
+  explicit Copy scalars with `new`, synchronous `get`, consuming `into_inner`,
+  one unique non-Copy owner, a 4,096-live-allocation bound, and sticky
+  allocation refusal. Additive prelude v4 is Box-selected while v1-v3 and
+  authored inline `record Box<T>` programs remain frozen. `std.mem` contains
+  exactly three authenticated aliases, explicit 3-by-8 conformance,
+  scalar-only example/test results, and no public exports. Focused local
+  package, catalog, interpreter, native C11, Core-Wasm, cleanup-replay, and
+  hostile-carrier evidence passes; contract-failure cleanup, owned payloads,
+  allocator interfaces, public generic ABI, regions, arenas, ARC/shared ownership,
+  Iterator integration, hosted evidence, and production support remain open.
+
 ## 0.4.0 — 2026-09-06
 
 - Specified Owned Bounded Vec For Traversal v1: the source form

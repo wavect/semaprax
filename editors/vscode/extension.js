@@ -71,8 +71,23 @@ function activateChecks(context, testMode) {
     const records = checks.toDiagnosticRecords(outcome.diagnostics, subject, path.dirname(subject), savedIndex);
     // Byte offsets belong to the source the compiler read. A file the editor
     // has since changed would receive stale positions, so the run is reported
-    // as failed and the previous diagnostics are retained instead.
-    const changed = [...new Set(records.map(record => record.path))].filter(file => !unchangedSince(file, versions)).sort();
+    // as failed and the previous diagnostics are retained instead. Clearing is
+    // also publication, so the subject and previously owned paths participate
+    // even when the new result is empty.
+    const stalenessCandidates = new Set(records.map(record => record.path));
+    stalenessCandidates.add(subject);
+    for (const file of ledger.owned.get(subject) || []) stalenessCandidates.add(file);
+    // For a project subject, any open project member edited during the check
+    // must also prevent a stale clear; otherwise a member absent from the new
+    // empty list would lose its previous diagnostics.
+    const isProjectSubject = path.basename(subject) === checks.MANIFEST;
+    if (isProjectSubject) {
+      const root = path.dirname(subject);
+      for (const file of versions.keys()) {
+        if (file === subject || file.startsWith(root + path.sep)) stalenessCandidates.add(file);
+      }
+    }
+    const changed = [...stalenessCandidates].filter(file => !unchangedSince(file, versions)).sort();
     if (changed.length) {
       const reason = `${path.basename(changed[0])} changed while the check ran; its positions were not published`;
       output.appendLine(`${subject}: ${reason}`);

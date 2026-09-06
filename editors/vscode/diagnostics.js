@@ -178,7 +178,10 @@ class DiagnosticLedger {
 
 // Run one bounded `check <subject> --json`. `spawnFn` is Node's spawn or a
 // test double; the child is killed when it exceeds the byte or time budget and
-// the result says so instead of returning partial output as truth.
+// the result says so instead of returning partial output as truth. Cancellation
+// retains ownership until the child is observed to exit, escalating from
+// SIGTERM to SIGKILL under a bounded policy, and cleanup cannot replace the
+// selected timeout/overflow status.
 function runCheck(spawnFn, compiler, subject, options = {}) {
   const maxBytes = options.maxBytes ?? MAX_OUTPUT_BYTES, timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
   return new Promise(resolve => {
@@ -186,21 +189,31 @@ function runCheck(spawnFn, compiler, subject, options = {}) {
     const child = spawnFn(compiler, ['check', subject, '--json'], {
       shell: false, windowsHide: true, cwd: path.dirname(subject), stdio: ['ignore', 'pipe', 'pipe']
     });
+    let killTimer = null;
+    const clearKillEscalation = () => { if (killTimer !== null) { clearTimeout(killTimer); killTimer = null; } };
+    const escalateKill = () => {
+      try { child.kill('SIGKILL'); } catch {}
+    };
+    const requestKill = () => {
+      try { child.kill(); } catch {}
+      if (killTimer === null) killTimer = setTimeout(escalateKill, 2000);
+    };
     const finish = result => {
       if (settled) return;
-      settled = true; clearTimeout(timer);
+      settled = true; clearTimeout(timer); clearKillEscalation();
       resolve({ stdout: Buffer.concat(stdout).toString('utf8'), stderr: Buffer.concat(stderr).toString('utf8'), ...result });
     };
-    const timer = setTimeout(() => { timedOut = true; child.kill(); finish({ code: null, timedOut, truncated }); }, timeoutMs);
+    const timer = setTimeout(() => { timedOut = true; requestKill(); }, timeoutMs);
     const collect = sink => chunk => {
+      if (truncated || timedOut) return;
       bytes += chunk.length;
-      if (bytes > maxBytes) { truncated = true; child.kill(); finish({ code: null, timedOut, truncated }); return; }
+      if (bytes > maxBytes) { truncated = true; requestKill(); return; }
       sink.push(chunk);
     };
     child.stdout.on('data', collect(stdout));
     child.stderr.on('data', collect(stderr));
     child.on('error', error => finish({ code: null, timedOut, truncated, error: String(error.message || error) }));
-    child.on('close', code => finish({ code, timedOut, truncated }));
+    child.on('close', code => finish({ code: timedOut || truncated ? null : code, timedOut, truncated }));
     if (typeof options.onChild === 'function') options.onChild(child);
   });
 }

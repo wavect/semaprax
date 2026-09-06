@@ -29,7 +29,7 @@ to the physical paths a usrmerge or SONAME symlink hides behind them.
         --closure \\
         --bundle /out/bundle.bin --request /out/request.bin
 
-`--plan` prints the inventory, per-file sizes and the total against the 512 MiB
+`--plan` prints the inventory, per-file sizes and the total against the 1 GiB
 carrier ceiling without writing anything.
 """
 
@@ -50,7 +50,7 @@ ABSENT = 0xFFFFFFFF
 # Mirrors DOCTOR_OFFLINE_INPUT_MAX_BYTES and the wire decoder's bounds. These
 # are the contract's limits, restated so this packager refuses early with a
 # useful message instead of emitting bytes the validator will reject.
-MAX_BYTES = 512 * 1024 * 1024
+MAX_BYTES = 1024 * 1024 * 1024
 MAX_FILES = 4096
 MAX_PATH_BYTES = 1024
 MAX_TOTAL_PATH_BYTES = 1024 * 1024

@@ -5,7 +5,12 @@ use ed25519_dalek::{Signature, VerifyingKey};
 
 pub const ARTIFACT_COUNT: usize = 5;
 pub const MAX_CAPSULE_BYTES: usize = 341;
-pub const MAX_ARTIFACT_BYTES: u64 = 512 * 1024 * 1024;
+// Held equal to `DOCTOR_OFFLINE_INPUT_MAX_BYTES`: the request and bundle
+// artifacts this bounds are the same sealed carriers the sealed-input ceiling
+// bounds, and the smaller of the two is always the effective limit for the
+// whole signed provisioning path. `length` is a fixed-width `u64`, so the
+// capsule stays exactly `MAX_CAPSULE_BYTES` regardless of this value.
+pub const MAX_ARTIFACT_BYTES: u64 = 1024 * 1024 * 1024;
 
 const MAGIC: &[u8; 8] = b"SPXDPC1\0";
 const VERSION: u8 = 1;

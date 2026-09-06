@@ -64,7 +64,7 @@ Before creating pipes or a child, the launcher checks the fixed descriptor and
 standard-pipe inventory and child-reaping policy. It uses existing sealed-input
 acquisition and worker request/bundle validators to require exact native
 architecture, length, digest, selector and requested roles. Both images then
-pass seal-first acquisition with the existing 512 MiB ceiling per image,
+pass seal-first acquisition with the existing 1 GiB ceiling per image,
 `F_SEAL_EXEC`, an execute permission bit, no set-user-ID/set-group-ID mode, and
 the shared minimum native ELF validator. Scripts and malformed or foreign ELF
 headers reject. The large bundle snapshot is dropped before sequential image

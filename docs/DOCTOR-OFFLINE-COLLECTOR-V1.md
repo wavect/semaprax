@@ -197,8 +197,9 @@ requires the full context above, plus an absolute immutable current-head
 `SEMAPRAX_DOCTOR_LAUNCHER` path. The trusted provisioner also supplies:
 
 - `SEMAPRAX_DOCTOR_REAL_BUNDLE`: an absolute, quiescent regular file containing
-  the admitted bundle, nonempty and no larger than 512 MiB; the harness bounds
-  the read and the production bundle parser validates its closed inventory.
+  the admitted bundle, nonempty and no larger than the sealed-input ceiling;
+  the harness bounds the read and the production bundle parser validates its
+  closed inventory.
 - `SEMAPRAX_DOCTOR_REAL_SELECTOR`: the bundle's exact admitted selector.
 - `SEMAPRAX_DOCTOR_EXPECTED_CLANG_DETAIL`,
   `SEMAPRAX_DOCTOR_EXPECTED_NODE_DETAIL`, and

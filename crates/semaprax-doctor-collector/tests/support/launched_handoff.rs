@@ -3,7 +3,7 @@
 //! Rejection observations alone do not prove absence of child or tool effects.
 use super::{fixture, launch, observe, report};
 use semaprax_native_rust_interop_platform_sys::{
-    create_doctor_offline_executable, create_doctor_offline_input,
+    create_doctor_offline_executable, create_doctor_offline_input, DOCTOR_OFFLINE_INPUT_MAX_BYTES,
 };
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -11,7 +11,7 @@ use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
 
-const IMAGE_LIMIT: usize = 512 * 1024 * 1024;
+const IMAGE_LIMIT: usize = DOCTOR_OFFLINE_INPUT_MAX_BYTES;
 const IMMUTABLE: i32 =
     libc::F_SEAL_WRITE | libc::F_SEAL_GROW | libc::F_SEAL_SHRINK | libc::F_SEAL_SEAL;
 

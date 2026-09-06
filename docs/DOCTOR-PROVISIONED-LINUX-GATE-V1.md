@@ -40,7 +40,8 @@ source-layout coverage, and no runtime confinement evidence.
 
 `scripts/doctor-provisioned-linux-gate.py` is the whole gate.
 `.github/workflows/doctor-provisioned-linux.yml` is one dispatch-only job that
-invokes it on a dedicated self-hosted runner.
+invokes it on a GitHub-hosted ephemeral `ubuntu-24.04` runner, provisioning that
+runner in-job so nothing survives the VM.
 
 The workflow is deliberately outside `ci.yml`. Issue #61 scopes the run to a
 disposable trusted environment and does not authorize a privileged workflow
@@ -241,8 +242,10 @@ reports the execution failure as its verdict.
    checkout.
 3. Acquire dependencies once with `cargo fetch --locked`; both suites then run
    `--locked --offline`, so the gate performs no build-time network access.
-4. Register the host as a self-hosted runner labelled `self-hosted`, `linux`,
-   `x64`, `semaprax-doctor-provisioned`.
+4. Or let `.github/workflows/doctor-provisioned-linux.yml` do all of the above
+   in-job on a GitHub-hosted ephemeral `ubuntu-24.04` runner, which is what the
+   recorded runs use. A self-hosted runner is not required, and a runner label
+   is not attestation in either case.
 5. Dispatch `.github/workflows/doctor-provisioned-linux.yml`, or run
    `python3 scripts/doctor-provisioned-linux-gate.py --evidence <path>` under
    the wrapper directly.

@@ -69,6 +69,12 @@ fn execute(lifetime: &mut Lifetime) -> Result<SettledDoctorObservation, ()> {
         path.push_str(file.path());
         paths.push((role, tool, path));
     }
+    // Every retained fact above is an owned copy, so the whole-carrier snapshot
+    // is dead here. Releasing it before the blocking collect keeps the
+    // collector's residency off the concurrently running worker's, exactly as
+    // the launcher and provisioner already release theirs before creating a
+    // child; without it the confined scope carries three whole carriers at once.
+    drop(bundle);
     let reply = capture::collect(lifetime)?;
     let rows = wire::validate_reply(&request, &reply).map_err(|_| ())?;
     if rows.len() != paths.len() {

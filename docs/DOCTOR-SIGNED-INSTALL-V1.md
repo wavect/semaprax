@@ -56,8 +56,11 @@ fail closed. Recovery never deletes an unauthenticated entry.
 - generations: caller-selected 1 through 32;
 - at most one inert generation stage and one ACTIVE stage;
 - release inventory: the existing exact nine files;
-- each member: at most 512 MiB, with the existing narrower manifest/capsule
-  limits retained by release replay.
+- each member: at most 1 GiB, held equal to the
+  [sealed-input carrier ceiling](DOCTOR-SEALED-INPUT-V1.md#carrier-ceiling-derivation)
+  because the inventory carries the doctor's own bundle and request carriers,
+  with the existing narrower manifest/capsule limits retained by release
+  replay.
 
 ## Nonclaims and promotion stop
 

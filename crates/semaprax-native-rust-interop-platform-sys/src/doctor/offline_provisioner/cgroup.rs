@@ -10,7 +10,16 @@ pub(super) fn configure() -> Result<(), ()> {
     require_empty()?;
     require_exact(c"cgroup.type", b"domain\n")?;
     set_and_require(c"pids.max", b"64\n", b"64\n")?;
-    set_and_require(c"memory.max", b"2147483648\n", b"2147483648\n")?;
+    // Four times DOCTOR_OFFLINE_INPUT_MAX_BYTES, the ratio this pair has always
+    // had, now derived rather than coincidental. A carrier of N bytes costs 2N
+    // of unswappable residency in this scope: the worker's heap snapshot, which
+    // `offline_root::Plan` borrows and so outlives materialization, plus the
+    // page-rounded tmpfs root written out of it. The remaining 2N covers page
+    // rounding, the bounded reply and output buffers, and the resident tool.
+    // `memory.swap.max` is 0 and `memory.oom.group` is 1 below, so an overshoot
+    // kills the whole scope rather than refusing cleanly; the ceiling and this
+    // limit must therefore move together.
+    set_and_require(c"memory.max", b"4294967296\n", b"4294967296\n")?;
     set_and_require(c"memory.swap.max", b"0\n", b"0\n")?;
     set_and_require(c"memory.oom.group", b"1\n", b"1\n")?;
     set_and_require(c"cpu.max", b"100000 100000\n", b"100000 100000\n")?;
@@ -174,7 +183,7 @@ mod tests {
             "pids.max",
             "64\\n",
             "memory.max",
-            "2147483648\\n",
+            "4294967296\\n",
             "memory.swap.max",
             "memory.oom.group",
             "cpu.max",

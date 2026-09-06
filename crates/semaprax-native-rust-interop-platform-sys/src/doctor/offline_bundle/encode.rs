@@ -24,7 +24,7 @@ pub struct DoctorOfflineBundleRoles {
 /// Both named architectures can be serialized on any host; this does not admit
 /// that host for execution or bypass subsequent sealed-input acquisition.
 ///
-/// The caller may lower, never raise, the 512 MiB encoded-byte ceiling. Basic
+/// The caller may lower, never raise, the 1 GiB encoded-byte ceiling. Basic
 /// scalar/storage bounds are checked before reserving the output. The existing
 /// complete validator then checks the emitted bytes, including paths, roles,
 /// minimum ELF and interpreter structure. Malformed input may therefore incur

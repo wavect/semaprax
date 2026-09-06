@@ -259,7 +259,7 @@ fn provisioner_source_tripwires(sources: &Sources) -> Result<(), String> {
         "signed capsule admission",
         &[
             "const MAX_CAPSULE_BYTES: usize = 341;",
-            "const MAX_ARTIFACT_BYTES: u64 = 512 * 1024 * 1024;",
+            "const MAX_ARTIFACT_BYTES: u64 = 1024 * 1024 * 1024;",
             "key.verify_strict(body, &Signature::from_bytes(&signature_bytes))",
             "if roles != expected_roles",
             ".any(|artifact| artifact.length == 0 || artifact.length > MAX_ARTIFACT_BYTES)",

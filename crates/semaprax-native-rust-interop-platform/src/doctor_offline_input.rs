@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn sealed_input_surface_keeps_the_quarantine_limit_and_borrowed_file_contract() {
-        assert_eq!(DOCTOR_OFFLINE_INPUT_MAX_BYTES, 536_870_912);
+        assert_eq!(DOCTOR_OFFLINE_INPUT_MAX_BYTES, 1_073_741_824);
         let _: fn(&File, usize) -> Result<DoctorOfflineInput, DoctorOfflineInputError> =
             DoctorOfflineInput::acquire;
         let _: fn(&DoctorOfflineInput) -> &[u8] = DoctorOfflineInput::bytes;

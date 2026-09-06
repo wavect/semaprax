@@ -23,6 +23,49 @@ format: `Unreleased` then release buckets, grouped by impact.
   This adds no inference, constraints, construction, projection, variants,
   resources, effects, package signature, or public generic ABI.
 
+- Re-derived the offline doctor carrier ceiling from measured distributions.
+  `DOCTOR_OFFLINE_INPUT_MAX_BYTES` was 536,870,912 bytes, and on a hosted
+  `ubuntu-24.04` runner the loader closures of Node v22.23.2 and Rust 1.88.0
+  alone encode to 462,424,370 of them, 86% of the ceiling, leaving 74,446,542
+  bytes for a whole Clang role. No official LLVM release that runs on 24.04 is
+  that small: clang 9.0.1 reaches a 568,339,434-byte carrier, 14.0.0 reaches
+  618,411,514 and 17.0.6 reaches 652,142,493, and Ubuntu's own clang-18 closure
+  is about 713,000,000. Since `render_rows` admits only Node 22 or newer and
+  Rust 1.88 or newer, the two non-Clang roles cannot shrink, so the two
+  real-distribution lifecycle fixtures could not be satisfied by any current
+  real distribution set. The ceiling is now 1,073,741,824 bytes: 1.65 times the
+  measured clang-17 three-role carrier, 1.51 times Ubuntu's clang-18 closure,
+  and still 6.25% of a hosted runner's 16 GB. It stays a hard bound and remains
+  a resource bound rather than an authority boundary, since seals, digests, the
+  release signature, the ELF contract and the closed inventory decide admission
+  and none of them depend on size. The delegated cgroup-v2 scope's `memory.max`
+  moves with it, from 2 GiB to 4 GiB, and is now derived rather than
+  coincidental: an admitted carrier of N bytes costs 2N of unswappable
+  residency inside that scope -- the worker's whole-carrier snapshot, which the
+  root plan borrows and so cannot release before the tool children run, plus
+  the page-rounded tmpfs root written out of it -- while `memory.swap.max` is 0
+  and `memory.oom.group` is 1, so an overshoot kills the whole scope instead of
+  refusing cleanly. The signed capsule's `MAX_ARTIFACT_BYTES`, the release
+  directory's `MAX_ARTIFACT_BYTES` and the signed store's `MAX_FILE_BYTES` are
+  held equal to the new ceiling because they bound the same bundle and request
+  bytes and the smallest of them is always the effective limit. The derivation
+  is recorded beside the constant and in Doctor Sealed Input v1.
+
+- Fixed the offline doctor collector retaining its whole-carrier snapshot
+  across the blocking collect. Every fact the collector keeps is already an
+  owned copy by that point, and the launcher and provisioner both release
+  theirs before creating a child, so the omission left three whole carriers
+  resident in the confined scope at once instead of two.
+
+- Fixed the provisioned Linux doctor gate failing before any lifecycle fixture
+  ran, with `input permissions or link count are unsafe`. Cargo uplifts each
+  binary out of `deps/` as a hard link, so the artifact in the target root has
+  link count 2, and `semaprax-doctor-release` refuses an input a second name
+  can still reach. The workflow now copies the four images to private
+  single-link files and asserts the link count; the packager's check is
+  unchanged. The gate also carries all three real roles again, which the
+  re-derived ceiling admits.
+
 - Added `std.data.json.dec`, the seventh JSON sibling package, which expands
   JSON string escapes. All eight simple escapes, `\uXXXX`, and surrogate pairs
   decode to their exact UTF-8 bytes; a lone or unpaired surrogate, an unknown

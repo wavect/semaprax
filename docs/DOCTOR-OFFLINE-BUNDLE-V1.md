@@ -36,7 +36,7 @@ optional `clang`, `node` and `rustc` indices into that same entry slice. The
 encoder does not sort entries, infer roles, follow paths, discover dependencies,
 or repair invalid input. The existing exact basename and interpreter rules apply.
 
-The caller may lower but never widen the 512 MiB carrier ceiling. A zero
+The caller may lower but never widen the 1 GiB carrier ceiling. A zero
 `max_bytes` is `Invalid`; a value above the ceiling is `Limit`, before examining
 input records. File count, selector/path lengths, cumulative path bytes and
 every header/record/content contribution are bounded before reserving the output.
@@ -74,7 +74,7 @@ There is no arbitrary-byte constructor that skips sealed-input acquisition.
 All multibyte integers are unsigned little-endian. There is no compression,
 padding, footer, checksum field, alternative encoding, or trailing data. The
 input's complete length, including framing, is bounded by the sealed-input
-512 MiB ceiling. The fixed header is exactly 28 bytes:
+1 GiB ceiling and [its derivation](DOCTOR-SEALED-INPUT-V1.md#carrier-ceiling-derivation). The fixed header is exactly 28 bytes:
 
 | Offset | Bytes | Meaning |
 | --- | --- | --- |
@@ -192,7 +192,7 @@ Preparation regressions compare complete encoded carriers against independent
 literal framing for both architecture tags and all role masks. They cover exact
 caller-lowered bounds, malformed inventory, ordering and interpreter rejection.
 Near-ceiling length-only arithmetic cases do not establish successful physical
-allocation of a 512 MiB carrier. Request regressions acquire real sealed inputs,
+allocation of a whole-ceiling carrier. Request regressions acquire real sealed inputs,
 derive every target/mask combination, preserve source offsets and seals, retain
 bindings after the original file is dropped, and reject missing roles or zero
 nonces. Same-length payload, path and selector changes exercise exact-byte

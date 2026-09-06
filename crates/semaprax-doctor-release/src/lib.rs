@@ -36,7 +36,10 @@ pub const LAUNCHER_FILE: &str = "semaprax-doctor-launcher";
 pub const WORKER_FILE: &str = "semaprax-doctor-worker";
 pub const COLLECTOR_FILE: &str = "semaprax-doctor-collector";
 pub const PROVISIONER_FILE: &str = "semaprax-doctor-provisioner";
-const MAX_ARTIFACT_BYTES: u64 = 512 * 1024 * 1024;
+// Held equal to `DOCTOR_OFFLINE_INPUT_MAX_BYTES`. `BUNDLE_FILE` and
+// `REQUEST_FILE` are the doctor's own sealed carriers, so a lower cap here
+// would silently make a bundle the doctor admits unshippable.
+const MAX_ARTIFACT_BYTES: u64 = 1024 * 1024 * 1024;
 const MAX_KEY_BYTES: u64 = 65;
 const MAX_MANIFEST_BYTES: u64 = 32 * 1024;
 

@@ -123,9 +123,13 @@ inherited descriptors before use. Ordinary CLI admission remains unavailable.
 ## Admission and ordering
 
 1. Reject a zero caller limit with `Invalid`; reject a caller limit above the
-   immutable 536,870,912-byte (512 MiB) ceiling with `Limit`, before any syscall.
+   immutable 1,073,741,824-byte (1 GiB) ceiling with `Limit`, before any syscall.
    Callers may lower this ceiling, not widen it. The ceiling is a resource bound,
    not a promise that every Clang/Node/Rust distribution fits into one carrier.
+   It is not an authority boundary: seals, digests, the release signature, the
+   ELF contract and the closed inventory decide admission, and none of them
+   depend on size. [Its derivation](#carrier-ceiling-derivation) records the
+   measurements it comes from and the bounds it must stay coherent with.
 2. Only native 64-bit little-endian Linux x86-64/AArch64 is admitted. Other hosts
    return `Unsupported` without querying the supplied file.
 3. Borrow the still-owned file descriptor for the entire acquisition. Perform
@@ -152,6 +156,51 @@ reject as `Io`. Unsupported hosts do
 not try another path. No input bytes are allocated or read before the storage
 and size checks. This bounds application allocations and syscall counts, not
 hard real-time latency of the kernel or allocator.
+
+## Carrier ceiling derivation
+
+The 1,073,741,824-byte ceiling is measured, not chosen. On a GitHub-hosted
+`ubuntu-24.04` runner, encoding the full loader closures the pivoted worker root
+requires (`scripts/doctor-provisioned-linux-bundle.py --closure`) gives:
+
+| carrier | encoded bytes |
+| --- | ---: |
+| node v22.23.2 + rustc 1.88.0, no Clang | 462,424,370 |
+| + clang 9.0.1, the smallest official LLVM that runs on 24.04 | 568,339,434 |
+| + clang 17.0.6 | 652,142,493 |
+| Ubuntu's own clang-18 closure | ~713,000,000 |
+
+`render_rows` admits only Node major 22 or newer and Rust 1.88 or newer, so the
+two non-Clang roles cannot shrink. Under the previous 536,870,912-byte ceiling
+those two closures alone took 86% of it, leaving 74,446,542 bytes for a whole
+Clang role that no official LLVM release fits, so no current real distribution
+set could satisfy the two real-distribution lifecycle fixtures the
+[production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md) requires.
+
+1,073,741,824 is 1.65 times the measured clang-17 three-role carrier and 1.51
+times Ubuntu's clang-18 closure, so a Clang role may grow by half again before
+the ceiling binds. It remains a hard bound: 6.25% of a hosted runner's 16 GB.
+
+The ceiling is not independent of the confined scope it feeds. A carrier of N
+bytes costs 2N of unswappable residency inside the delegated cgroup-v2 scope the
+provisioner installs: the worker's whole-carrier heap snapshot, which the root
+plan borrows and therefore cannot release before the tool children run, plus the
+page-rounded tmpfs root written out of it. That scope sets `memory.swap.max` to
+0 and `memory.oom.group` to 1, so an overshoot kills the whole scope instead of
+refusing cleanly. Its `memory.max` is therefore held at four times this ceiling:
+2N of carrier residency and 2N covering page rounding, the bounded reply and
+output buffers, and the resident tool. Raising one without the other makes the
+cgroup the real ceiling, and a scope-wide OOM is an unsettled failure rather
+than a `Limit`.
+
+Three further bounds cover the same bundle and request bytes on their own paths
+and are held equal to this ceiling, because the smallest of them is always the
+effective limit: the signed capsule's `MAX_ARTIFACT_BYTES`
+([production provisioner](DOCTOR-PRODUCTION-PROVISIONER-V1.md#signed-release-capsule)),
+the release directory's `MAX_ARTIFACT_BYTES`, and the signed store's per-member
+cap ([signed install](DOCTOR-SIGNED-INSTALL-V1.md)). Capsule artifact lengths
+are fixed-width `u64` and the bundle's own record lengths are `u64` over `usize`
+offsets, so neither value is near an encoding limit at either size.
 
 ## Why the ordering matters
 

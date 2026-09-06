@@ -1,6 +1,7 @@
 //! Physical, opt-in worker fixtures. The driver is the trusted provisioner,
 //! outside the worker's offline guarantee; it creates no namespace itself.
 use super::{wire, ProbeError};
+use crate::DOCTOR_OFFLINE_INPUT_MAX_BYTES;
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -389,10 +390,10 @@ fn provisioned_real_clang_node_rust_distributions() {
     let mut bundle = Vec::new();
     File::open(path)
         .unwrap()
-        .take(512 * 1024 * 1024 + 1)
+        .take(DOCTOR_OFFLINE_INPUT_MAX_BYTES as u64 + 1)
         .read_to_end(&mut bundle)
         .unwrap();
-    assert!(!bundle.is_empty() && bundle.len() <= 512 * 1024 * 1024);
+    assert!(!bundle.is_empty() && bundle.len() <= DOCTOR_OFFLINE_INPUT_MAX_BYTES);
     let request = request(&bundle, 3, &selector);
     let (status, output, errors) = run(&request, &bundle);
     assert!(status.success());

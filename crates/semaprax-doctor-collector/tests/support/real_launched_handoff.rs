@@ -5,11 +5,12 @@
 use super::{launch, launched_handoff, report};
 use semaprax_native_rust_interop_platform_sys::{
     create_doctor_offline_input, DoctorOfflineBundle, DoctorOfflineInput, DoctorOfflineTarget,
+    DOCTOR_OFFLINE_INPUT_MAX_BYTES,
 };
 use std::fs::File;
 use std::io::Read;
 
-const BUNDLE_LIMIT: usize = 512 * 1024 * 1024;
+const BUNDLE_LIMIT: usize = DOCTOR_OFFLINE_INPUT_MAX_BYTES;
 const DETAIL_LIMIT: usize = 8192;
 
 fn expected_detail(variable: &str) -> String {

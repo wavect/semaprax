@@ -22,7 +22,9 @@ const GENERATION_PREFIX: &str = "generation-";
 const STAGE_PREFIX: &str = ".stage-";
 const MAX_PATH_BYTES: usize = 4096;
 const MAX_PATH_DEPTH: usize = 64;
-const MAX_FILE_BYTES: usize = 512 * 1024 * 1024;
+// Held equal to `DOCTOR_OFFLINE_INPUT_MAX_BYTES`; the inventory below carries
+// the doctor's own bundle and request carriers.
+const MAX_FILE_BYTES: usize = 1024 * 1024 * 1024;
 const INVENTORY: [&str; 9] = [
     BUNDLE_FILE,
     COLLECTOR_FILE,

@@ -12,7 +12,9 @@ use std::io::{Seek, SeekFrom, Write};
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::os::unix::fs::{FileExt, MetadataExt};
 
-const HARD_LIMIT: usize = 512 * 1024 * 1024;
+// Restated, not imported: this pins the ceiling's value independently of the
+// definition these fixtures exercise.
+const HARD_LIMIT: usize = 1024 * 1024 * 1024;
 const REQUIRED: libc::c_int = 1 | 2 | 4 | 8;
 
 fn memfd(bytes: &[u8], seals: libc::c_int) -> File {

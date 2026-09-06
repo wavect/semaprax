@@ -65,7 +65,10 @@ signature. Its bounded body binds:
 
 - native OS and architecture;
 - the exact profile selector, doctor target, and required role mask;
-- exact lengths and SHA-256 digests for the request and bundle;
+- exact lengths and SHA-256 digests for the request and bundle, each bounded by
+  a per-artifact cap held equal to the
+  [sealed-input carrier ceiling](DOCTOR-SEALED-INPUT-V1.md#carrier-ceiling-derivation),
+  since the smaller of the two is always the effective limit for this path;
 - exact lengths and SHA-256 digests for launcher, worker, and collector images;
 - the fixed capsule schema and no extensible or ignored trailing fields.
 
@@ -94,7 +97,13 @@ object is returned.
 ## Namespace and cgroup provisioning
 
 The supervisor remains outside the tool cgroup and retains its pidfd and cgroup
-directory for the complete invocation. It creates one child with fresh user,
+directory for the complete invocation. Only the cloned child and its descendants
+are members, by direct placement; the supervisor's own admission-time carrier
+snapshot is released before the clone and is never charged to the scope. Inside
+the scope, the launcher likewise releases its snapshot before its image
+snapshots and before creating the worker, and the collector releases its own
+before the blocking collect, so at most the worker's retained snapshot and the
+tmpfs root it writes are resident at once. It creates one child with fresh user,
 mount, network, IPC, and UTS namespaces, a private descriptor table, and direct
 placement into the admitted cgroup. Network, IPC, hostname, and mount-propagation
 identities are private. Before executing the held launcher, the child overmounts
@@ -111,7 +120,12 @@ executing an inspected tool.
 Before releasing the child setup barrier, the supervisor uses the authenticated
 procfs root and pinned child identity to install exact one-ID UID/GID maps and a
 denied setgroups policy. It installs and rereads fixed cgroup-v2 limits for
-process count, memory, and CPU. Required controllers and `cgroup.kill` support
+process count, memory, and CPU. The memory limit is four times the
+[sealed-input carrier ceiling](DOCTOR-SEALED-INPUT-V1.md#carrier-ceiling-derivation)
+and is derived from it, not chosen independently: an admitted carrier of N bytes
+costs 2N of unswappable residency inside this scope, and swap is denied while
+`memory.oom.group` is set, so an overshoot kills the whole scope instead of
+refusing cleanly. The two limits move together; neither may be raised alone. Required controllers and `cgroup.kill` support
 must already be delegated; a missing kernel feature or permission rejects. The
 provisioner never modifies host-wide policy or searches for another cgroup.
 

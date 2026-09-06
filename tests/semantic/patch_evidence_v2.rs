@@ -483,6 +483,20 @@ fn v2_cli_arity_and_output_are_exact() {
     assert_eq!(arity.status.code(), Some(2));
 }
 
+/// Capsule and receipt known answers over the exact artifact bytes.
+///
+/// A capsule binds the Target Evidence report by digest, so these answers move
+/// whenever that report moves — including when only its two backend target
+/// rows move. Triage exactly as
+/// `target_evidence::whole_report_sha_kats_cover_patch_v1_v2_v3` documents:
+/// diff the reports field by field first, re-pin only when semantic identity
+/// (`base_revision`, `candidate_revision`, `source.digest`, `patch.digest`,
+/// `graphs.*`) is byte-identical, and fix the computation instead when it is
+/// not.
+///
+/// Re-take history: `c69b09ed` (zeroed generated C temporaries) and
+/// `ca1b21af` (emitted C 23638 -> 26671 bytes, Wasm core 193 -> 194 bytes;
+/// identity unchanged — issues #80 and #81).
 #[test]
 fn capsule_and_receipt_sha_kats_cover_patch_v1_v2_v3() {
     let fixtures = [

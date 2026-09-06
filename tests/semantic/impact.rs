@@ -199,6 +199,14 @@ fn rename_preview_is_canonical_read_only_and_digest_bound_to_exact_patch_bytes()
     .unwrap();
     assert_ne!(changed["patch"]["digest"], first_digest);
     assert_eq!(changed["operations"], parsed["operations"]);
+    // `d860a135` raised `graph::MIN_AGENT_CONTEXT_BYTES` from 1024 to 2048 so
+    // the smallest admitted budget still leaves room for the canonical Context
+    // v1/v2 envelope, which made the former `new(1, 1024, 256)` fail options
+    // construction rather than reach preview. Keeping the budget at the new
+    // floor is not enough on its own: this three-declaration fixture previews
+    // in 1165 bytes and fits inside 2048, so the fail-closed output bound would
+    // silently stop being exercised. Grow the subject instead of the budget, so
+    // `SPX-G109` still trips at the smallest budget the API admits.
     let mut envelope_source = source.to_owned();
     for index in 0..12 {
         envelope_source.push_str(&format!(

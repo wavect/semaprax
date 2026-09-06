@@ -442,6 +442,38 @@ fn graph_v10_through_v14_target_projections_are_admitted() {
     }
 }
 
+/// Whole-report known answers over the exact API report bytes.
+///
+/// The report carries both semantic identity (`base_revision`,
+/// `candidate_revision`, `source.digest`, `patch.digest`, `graphs.*.digest`,
+/// `graphs.*.bytes`) and the two backend target rows (`targets[*]` digests and
+/// bytes, plus the matching `budget.used_*_native_c11_bytes` and
+/// `budget.used_*_wasm_core_bytes`). A single SHA over the whole document
+/// cannot say which of those moved, so triage a failure before re-pinning:
+///
+/// * Only the target rows moved: the emitted native C11 translation unit or
+///   the Wasm core module changed. Identity is intact, the report is correct,
+///   and a re-take is the right response. Name the backend change that moved
+///   it in the commit message.
+/// * Any identity field moved: graph identity or graph accounting changed.
+///   Do **not** re-pin. Fix the computation, exactly as `ca1b21af` did for the
+///   workspace graph pre-bound when an empty agent carrier entered
+///   `used_builder_bytes` (issue #80).
+///
+/// Diff the two reports field by field — `semaprax target-evidence <file>
+/// <patch.spatch>` prints one — rather than comparing whole-document SHAs.
+///
+/// Re-take history, so the next reader does not have to reconstruct it:
+///
+/// * `c69b09ed` re-took these when zeroing the generated C temporaries moved
+///   the emitted translation unit.
+/// * `ca1b21af` re-took them again. Only the backend rows moved: the emitted
+///   C grew 23638 -> 26671 bytes (`772a645d` native call-depth exhaustion
+///   status, `17dc2c06` contract-failure argument detail), and the Wasm core
+///   module grew 193 -> 194 bytes because `31931919` gave the
+///   `env.spx_contract_fail` host import an `i32` status-code parameter.
+///   Every identity field was byte-identical across that window, so the
+///   re-take was correct; `ca1b21af` simply did not say so (issue #81).
 #[test]
 fn whole_report_sha_kats_cover_patch_v1_v2_v3() {
     let reports = [

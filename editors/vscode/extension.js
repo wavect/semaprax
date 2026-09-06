@@ -165,24 +165,69 @@ function activateChecks(context, testMode) {
   // for and the `SourceIndex` of the exact saved bytes each match's byte
   // offsets belong to. A document the editor changed while the compiler ran is
   // refused rather than mapped against offsets that no longer describe it.
+  // Destination files are also snapshotted before the query and validated
+  // after, so a saved-source location is never revealed in a dirty or changed
+  // destination buffer.
   async function queryDeclarations(binary, doc, filters) {
     const subject = navigationSubject(doc), version = doc.version;
+    const snapshotVersions = new Map(vscode.workspace.textDocuments
+      .filter(d => d.uri.scheme === 'file')
+      .map(d => [d.uri.fsPath, d.version]));
     const stdout = await runNavigation(binary, navigation.queryArguments(subject.subject, filters), subject.subject);
     const parsed = subject.project ? navigation.parseProjectQueryResult(stdout, subject.root) : navigation.parseQueryResult(stdout);
     if (!parsed) throw new Error(`The compiler returned an unexpected ${subject.project ? 'project ' : ''}query result`);
     if (doc.isDirty || doc.version !== version) throw new Error('The document changed while the compiler ran; save it and repeat the command');
+    // Validate that any destination that was open at query start is still at
+    // the same saved snapshot; a dirty or version-changed destination would
+    // receive stale byte offsets.
+    if (parsed.matches) {
+      for (const match of parsed.matches) {
+        const file = match.file || subject.file;
+        const open = openDocument(file);
+        if (!open) continue;
+        const snap = snapshotVersions.get(file);
+        if (snap !== undefined && (open.isDirty || open.version !== snap)) {
+          throw new Error(`The destination ${path.basename(file)} changed while the compiler ran; save it and repeat the command`);
+        }
+        if (open.isDirty) throw new Error(`The destination ${path.basename(file)} has unsaved changes; save it and repeat the command`);
+      }
+    }
     const indexes = new Map();
     const sources = match => {
       const file = match.file || subject.file;
       if (!indexes.has(file)) indexes.set(file, savedIndex(file));
       return indexes.get(file);
     };
-    return { ...parsed, subject, sources };
+    // Carry the snapshot for a second guard after the quick-pick await.
+    return { ...parsed, subject, sources, snapshotVersions };
   }
   // Reveal one match in the authenticated file it was found in, which for a
-  // project query is not necessarily the active one.
-  async function reveal(file, range) {
+  // project query is not necessarily the active one. The destination's saved
+  // snapshot is revalidated after any user-await boundary and before mapping
+  // byte offsets.
+  async function reveal(file, range, snapshotVersions = null) {
+    if (snapshotVersions) {
+      const open = openDocument(file);
+      if (open) {
+        const snap = snapshotVersions.get(file);
+        if (snap !== undefined && (open.isDirty || open.version !== snap)) {
+          throw new Error(`The destination ${path.basename(file)} changed while the command was pending; save it and repeat the command`);
+        }
+        if (open.isDirty) throw new Error(`The destination ${path.basename(file)} has unsaved changes; save it and repeat the command`);
+      }
+    } else {
+      const open = openDocument(file);
+      if (open && open.isDirty) throw new Error(`The destination ${path.basename(file)} has unsaved changes; save it and repeat the command`);
+    }
     const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+    // Re-check after opening, as the document may have become dirty between the
+    // pick and the open.
+    const opened = openDocument(file);
+    if (opened && opened.isDirty) throw new Error(`The destination ${path.basename(file)} has unsaved changes; save it and repeat the command`);
+    if (snapshotVersions && opened) {
+      const snap = snapshotVersions.get(file);
+      if (snap !== undefined && opened.version !== snap) throw new Error(`The destination ${path.basename(file)} changed while the command was pending; save it and repeat the command`);
+    }
     const editor = await vscode.window.showTextDocument(doc);
     const target = new vscode.Range(range.startLine, range.startColumn, range.endLine, range.endColumn);
     editor.selection = new vscode.Selection(target.start, target.end);
@@ -195,7 +240,7 @@ function activateChecks(context, testMode) {
     const items = navigation.declarationItems(result, result.sources);
     if (!items.length) { void vscode.window.showInformationMessage(`SEMAPRAX: the ${result.subject.project ? 'project' : 'module'} declares nothing`); return; }
     const chosen = await pick(items, { placeHolder: 'Declaration (name · kind · stable identity)', matchOnDescription: true, matchOnDetail: true });
-    if (chosen) await reveal(chosen.file || doc.uri.fsPath, chosen.range);
+    if (chosen) await reveal(chosen.file || doc.uri.fsPath, chosen.range, result.snapshotVersions);
     return items;
   }
   async function showReferences(pick) {
@@ -211,7 +256,7 @@ function activateChecks(context, testMode) {
     const items = navigation.referenceItems(callers, target.id, callers.sources);
     if (!items.length) { void vscode.window.showInformationMessage(`SEMAPRAX: nothing in this ${scope} calls ${target.id}`); return items; }
     const chosen = await pick(items, { placeHolder: `Callers of ${target.id}`, matchOnDescription: true });
-    if (chosen) await reveal(chosen.file || doc.uri.fsPath, chosen.range);
+    if (chosen) await reveal(chosen.file || doc.uri.fsPath, chosen.range, callers.snapshotVersions);
     return items;
   }
   async function showDocumentation() {

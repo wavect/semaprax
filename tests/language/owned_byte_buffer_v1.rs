@@ -17,6 +17,7 @@
 use std::path::Path;
 use std::process::Command;
 
+use semaprax::cleanup_plan::{CleanupTransition, StorageId};
 use semaprax::hir::{self, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedStatement};
 use semaprax::{codegen, format, graph, parse, verify, wasm};
 
@@ -78,6 +79,14 @@ fn main_function(program: &hir::ResolvedProgram) -> &ResolvedFunction {
     program
         .functions
         .iter()
+        .find(|function| function.id.as_str() == "buffer.main")
+        .unwrap()
+}
+
+fn main_function_mut(program: &mut hir::ResolvedProgram) -> &mut ResolvedFunction {
+    program
+        .functions
+        .iter_mut()
         .find(|function| function.id.as_str() == "buffer.main")
         .unwrap()
 }
@@ -273,16 +282,138 @@ fn allocating_a_buffer_inside_a_loop_stays_rejected() {
 }
 
 #[test]
-fn the_webassembly_backend_rejects_the_owned_bounded_buffer_precisely() {
-    let program = parse(BUFFER, "owned-byte-buffer-wasm.spx").unwrap();
-    let rejection = wasm::emit_module(&program).unwrap_err();
-    assert_eq!(rejection.code, "SPX-W110");
-    assert!(
-        rejection.message.contains("bytes_zeroed")
-            && rejection.message.contains("host arena protocol"),
-        "the rejection must name the operation and the reason: {}",
-        rejection.message
+fn cleanup_plan_authenticates_each_write_once_owner_transfer() {
+    let program = parse(BUFFER, "owned-byte-buffer-cleanup.spx").unwrap();
+    let baseline = hir::resolve(&program).unwrap();
+    hir::validate(&baseline).unwrap();
+    let plan = &main_function(&baseline).cleanup_plan;
+
+    let owned_commits = plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .filter_map(|transition| match transition {
+            CleanupTransition::CallCommit { call, arguments } if !arguments.is_empty() => {
+                Some((call, arguments))
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        owned_commits.len(),
+        3,
+        "one owned commit per bytes_set link"
     );
+    for (call, arguments) in owned_commits {
+        assert_eq!(arguments.len(), 1);
+        let transfer = &arguments[0];
+        assert_eq!(transfer.parameter_index, 0);
+        let StorageId::CallArgument {
+            call: staged_call,
+            parameter_index,
+            ..
+        } = &transfer.source.storage
+        else {
+            panic!("owned buffer commit did not use authenticated call-argument storage")
+        };
+        assert_eq!(staged_call, call);
+        assert_eq!(*parameter_index, 0);
+        assert!(transfer.source.projections.is_empty());
+        assert_eq!(
+            plan.blocks
+                .iter()
+                .flat_map(|block| &block.transitions)
+                .filter(|transition| matches!(transition,
+                    CleanupTransition::Transfer { destination, .. }
+                        if destination == &transfer.source))
+                .count(),
+            1,
+            "each bytes_set call argument receives exactly one owner transfer"
+        );
+    }
+    assert!(plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .all(|transition| !matches!(
+            transition,
+            CleanupTransition::TransferVariant { .. }
+                | CleanupTransition::AuthenticateVariantCase { .. }
+                | CleanupTransition::StageCopyResult { .. }
+        )));
+
+    let mut wrong_commit = baseline.clone();
+    let transition = main_function_mut(&mut wrong_commit)
+        .cleanup_plan
+        .blocks
+        .iter_mut()
+        .flat_map(|block| &mut block.transitions)
+        .find(|transition| {
+            matches!(transition,
+                CleanupTransition::CallCommit { arguments, .. } if !arguments.is_empty())
+        })
+        .unwrap();
+    let CleanupTransition::CallCommit { arguments, .. } = transition else {
+        unreachable!()
+    };
+    arguments[0].parameter_index = 1;
+    assert_eq!(hir::validate(&wrong_commit).unwrap_err().code, "SPX-H006");
+
+    let mut missing_transfer = baseline.clone();
+    let committed_source = main_function(&missing_transfer)
+        .cleanup_plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .find_map(|transition| match transition {
+            CleanupTransition::CallCommit { arguments, .. } if !arguments.is_empty() => {
+                Some(arguments[0].source.clone())
+            }
+            _ => None,
+        })
+        .unwrap();
+    let transitions = &mut main_function_mut(&mut missing_transfer)
+        .cleanup_plan
+        .blocks
+        .iter_mut()
+        .find(|block| {
+            block.transitions.iter().any(|transition| {
+                matches!(transition,
+                    CleanupTransition::Transfer { destination, .. }
+                        if destination == &committed_source)
+            })
+        })
+        .unwrap()
+        .transitions;
+    let index = transitions
+        .iter()
+        .position(|transition| {
+            matches!(transition,
+                CleanupTransition::Transfer { destination, .. }
+                    if destination == &committed_source)
+        })
+        .unwrap();
+    transitions.remove(index);
+    assert_eq!(
+        hir::validate(&missing_transfer).unwrap_err().code,
+        "SPX-H006"
+    );
+}
+
+#[test]
+fn core_webassembly_emits_deterministically_while_the_public_adapter_stays_closed() {
+    let program = parse(BUFFER, "owned-byte-buffer-wasm.spx").unwrap();
+    let emitted = wasm::emit_module(&program).unwrap();
+    assert_eq!(emitted, wasm::emit_module(&program).unwrap());
+    assert!(
+        emitted.starts_with(b"\0asm"),
+        "the internal Core-Wasm route emits a valid Wasm container"
+    );
+
+    let rejection =
+        wasm::emit_module_with_byte_exports(&program, &["buffer.main".to_owned()]).unwrap_err();
+    assert_eq!(rejection.code, "SPX-W115", "{}", rejection.message);
+    assert!(rejection.message.contains("internal-only"));
 }
 
 #[test]
@@ -322,6 +453,34 @@ fn hostile_hir_cannot_forge_a_buffer_capacity_or_element_index() {
         unreachable!();
     };
     args[0].kind = ResolvedExprKind::Usize(65_537);
+    assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+
+    // A nonliteral capacity cannot be smuggled through resolved HIR.
+    let mut hostile = baseline.clone();
+    let chain = fill_chain(&mut hostile);
+    let allocation = innermost_allocation(chain);
+    let ResolvedExprKind::Call { args, .. } = &mut allocation.kind else {
+        unreachable!();
+    };
+    let literal = args[0].clone();
+    args[0].kind = ResolvedExprKind::Binary {
+        op: semaprax::ast::BinaryOp::Add,
+        left: Box::new(literal.clone()),
+        right: Box::new(literal),
+    };
+    assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+
+    // A nested link cannot be relabeled as another byte operation even when
+    // the outer owner transfer still looks like a write-once chain.
+    let mut hostile = baseline.clone();
+    let chain = fill_chain(&mut hostile);
+    let ResolvedExprKind::Call { args, .. } = &mut chain.kind else {
+        unreachable!();
+    };
+    let ResolvedExprKind::Call { callee, .. } = &mut args[0].kind else {
+        unreachable!();
+    };
+    *callee = hir::DeclarationId::new("core.bytes.copy");
     assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
 }
 

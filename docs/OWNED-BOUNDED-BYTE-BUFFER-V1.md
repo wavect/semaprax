@@ -6,9 +6,11 @@ Status: partially implemented with local internal compiler evidence. The
 allocate-fill-freeze-read cycle, the compile-time capacity and element-index
 rules, the canonical CleanupPlan settlement, the semantic graph projection, and
 execution on the reference interpreter and the native C11 backend at O0/O2 have
-focused local evidence. The WebAssembly backend rejects the feature with an
-exact diagnostic. A growable vector, elements wider than one byte, a public FFI
-layout, and a `std.*` interface are all open and are not claimed here.
+focused local evidence. The internal Core-Wasm backend executes the same exact
+profile through bounded host-arena imports with focused local Node evidence. A
+growable vector, elements wider than one byte, a public FFI or Project layout,
+a hosted or browser support claim, and a `std.*` interface are all open and are
+not claimed here.
 
 Owned Bounded Byte Buffer v1 is the first owned bounded collection in the
 language. It adds two compiler-owned operations to
@@ -26,9 +28,10 @@ growable vector is designed:
 - `src/byte_data_capacity.rs` rejects an owned byte allocation reachable from a
   `while` condition or body, and `MAX_BYTES_COPY_SITES` counts *static* sites,
   not loop iterations.
-- The WebAssembly backend cannot allocate at all. `FIXED_MEMORY_PAGES` has
-  `min == max`, no `memory.grow` is emitted anywhere, and owned bytes there are
-  opaque host-arena tokens reached through a frozen `env` import set.
+- Core-Wasm linear memory cannot grow. `FIXED_MEMORY_PAGES` has `min == max`,
+  and the exact owned buffer profile instead uses opaque host-arena tokens
+  reached through the frozen `env.spx_bytes_zeroed` and `env.spx_bytes_set`
+  imports. This is not a general allocator or mutable collection ABI.
 
 This tranche therefore fixes the capacity at the allocation site and writes
 every element at a literal index, which needs neither loop-reachable allocation
@@ -123,9 +126,13 @@ transaction that never passed through source cannot forge a buffer with an
 unknown capacity, an out-of-range element index, or a second owner; every such
 forgery is `SPX-H006`.
 
-The native runtime additionally refuses an out-of-range store as a runtime
-invariant failure. That path is unreachable from an admitted program and exists
-only so a defect can never become a silent truncation.
+The native and Core-Wasm host runtimes additionally refuse an out-of-range
+store as a runtime invariant failure. Core-Wasm also authenticates the opaque
+carrier and the exact `usize`/`u8` import arguments before mutating the same
+arena entry. Those paths are unreachable from admitted source and exist only so
+a compiler or host defect can never become silent truncation or new authority.
+The public byte-export adapter rejects any program using this internal-only
+profile with `SPX-W115`; the host imports do not widen a public descriptor.
 
 ## Target support
 
@@ -133,20 +140,19 @@ only so a defect can never become a silent truncation.
 | --- | --- |
 | Reference interpreter | Executes the full cycle. |
 | Native C11 (O0 and O2) | Executes the full cycle through `spx_bytes_zeroed` and `spx_bytes_set`. |
-| WebAssembly | Rejected with `SPX-W110`, naming the operation and the missing host-arena protocol. |
+| Internal Core-Wasm | Executes the exact cycle through frozen host-arena imports. Focused local Node evidence covers three in-place writes and reads, repeated success and contract-failure re-entry at one live arena entry, deterministic valid modules, and absence of `memory.copy` and `memory.grow`. |
+| Public Wasm byte adapter | Rejected with `SPX-W115`; no descriptor or public owned-buffer ABI is admitted. |
 
-The WebAssembly rejection is deliberate. Admitting the feature there needs new
-`env` host imports and a host protocol for allocating and mutating an arena
-token; lowering a partial buffer instead would break the equal-behavior
-invariant.
+This is local internal target evidence, not hosted, browser, cross-platform, or
+production support. Interpreter and native behavior remain covered by their
+existing focused gates.
 
 ## Open gates
 
-- Decide the WebAssembly allocation story (`memory.grow` versus a host-arena
-  protocol) and then admit the feature on that backend.
 - Element types wider than one byte, which need either an `Option<i64>`
   compiler-owned return or a stride-aware read family.
-- A loop-driven fill, which needs the two blockers above resolved.
+- A loop-driven fill or capacity growth. Neither the exact host-arena protocol
+  nor fixed Core-Wasm linear memory admits either behavior.
 - A public FFI or project-boundary layout. The single admitted owned parameter
   shape crossing a project boundary is unchanged by this document.
 - A `std.*` interface, once the compiler-owned host surface moves behind one.

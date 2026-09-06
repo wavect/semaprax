@@ -16,6 +16,7 @@ use crate::parse;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
+mod owned_buffer;
 mod owned_result_hostile;
 
 #[test]

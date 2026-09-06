@@ -582,6 +582,15 @@ jobs:
           cargo test --locked -p semaprax --test project retained_owned_api::frozen_v8_descriptor_rejects_internal_result_bytes_bytes -- --exact --nocapture
           cargo test --locked -p semaprax --test owned_data compiler_owned_two_owned_result_runtime::compiler_owned_two_owned_result_executes_on_all_internal_engines -- --exact --nocapture
           cargo test --locked -p semaprax --lib wasm::aggregate::tests::owned_result_hostile::raw_two_owned_result_rejects_invalid_tag_before_payload_authority -- --exact --nocapture
+      - name: Require internal Core-Wasm owned bounded-buffer authority and re-entry
+        if: runner.os == 'Linux'
+        run: |
+          node --version
+          cargo test --locked -p semaprax --test language owned_byte_buffer_v1::cleanup_plan_authenticates_each_write_once_owner_transfer -- --exact --nocapture
+          cargo test --locked -p semaprax --test language owned_byte_buffer_v1::hostile_hir_cannot_forge_a_buffer_capacity_or_element_index -- --exact --nocapture
+          cargo test --locked -p semaprax --test language owned_byte_buffer_v1::core_webassembly_emits_deterministically_while_the_public_adapter_stays_closed -- --exact --nocapture
+          cargo test --locked -p semaprax --lib wasm::aggregate::tests::owned_buffer::owned_buffer_host_boundary_rejects_forged_inputs_without_poisoning_reentry -- --exact --nocapture
+          cargo test --locked -p semaprax --lib wasm::aggregate::tests::owned_buffer::owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy -- --exact --nocapture
       - name: Require native O0/O2 and Core-Wasm scalar status equivalence
         if: runner.os == 'Linux'
         env:

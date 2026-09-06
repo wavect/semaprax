@@ -341,6 +341,11 @@ ABIs prematurely.
   escape analysis, variants and public borrowed ABIs remain later work;
 - make cleanup plans cover general control flow, nested aggregates, calls, and
   FFI with independently replayed exactly-once behavior;
+- build beyond the locally executable internal
+  [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) only after
+  specifying loop-driven fill or growth and wider element meaning; its exact
+  interpreter/native/Core-Wasm write-once evidence does not create a public
+  Project/FFI layout, `std.*` surface, or hosted/browser support claim;
 - integrate regions/arenas and opt-in shared immutable ARC only after their
   proof models have executable language and runtime counterparts;
 - define restricted raw-memory operations and an auditable `unsafe` policy;

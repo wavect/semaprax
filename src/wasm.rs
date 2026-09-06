@@ -868,6 +868,12 @@ pub fn emit_resolved_module_with_byte_exports(
     program: &ResolvedProgram,
     export_ids: &[String],
 ) -> Result<Vec<u8>, Diagnostic> {
+    if aggregate::program_uses_owned_buffer(program) {
+        return Err(Diagnostic::io(
+            "SPX-W115",
+            "Owned Bounded Byte Buffer v1 is internal-only and has no public WebAssembly adapter",
+        ));
+    }
     let plans = data_exports::prepare(program, export_ids)?;
     aggregate::emit_byte_exports(program, &plans)
 }
@@ -5001,6 +5007,22 @@ function createByteDataRuntime(options = {}) {
   };
   const byteImports = Object.freeze({
     spx_bytes_copy: carrier => allocate(read(decode(carrier))),
+    spx_bytes_zeroed: count => {
+      if (typeof count !== "bigint" || count < 0n || count > 65536n) {
+        throw new Error("SEMAPRAX owned byte buffer capacity invariant");
+      }
+      return allocate(new Uint8Array(Number(count)));
+    },
+    spx_bytes_set: (carrier, index, value) => {
+      const decoded = decode(carrier);
+      const bytes = resolve(decoded);
+      if (typeof index !== "bigint" || index < 0n || index >= BigInt(bytes.byteLength)
+          || !Number.isInteger(value) || value < 0 || value > 255) {
+        throw new Error("SEMAPRAX owned byte buffer element invariant");
+      }
+      bytes[Number(index)] = value;
+      return BigInt.asIntN(64, decoded.carrier);
+    },
     spx_bytes_get: (carrier, index) => {
       const bytes = read(decode(carrier));
       const unsigned = BigInt.asUintN(64, index);

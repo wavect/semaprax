@@ -8,6 +8,17 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Admitted the exact internal Owned Bounded Byte Buffer v1 write-once profile
+  on Core-Wasm. The frozen host-arena imports allocate a literal-bounded zeroed
+  `Bytes` value and mutate the same opaque token at literal indices; focused
+  local Node evidence covers deterministic valid modules, three writes and
+  reads, repeated success and contract-failure settlement/re-entry at one live
+  arena entry, and absence of `memory.copy` and `memory.grow`. Source/HIR and
+  cleanup hostiles preserve exact capacity, callee, transfer and call-commit
+  authority. The public byte adapter remains rejected with `SPX-W115`; this
+  adds no loops, growth, wider elements, Project/public ABI, `std.*`, browser,
+  hosted, or cross-platform support.
+
 - Added one exact cross-file Project product gate for an internal concrete
   generic owned record. The retained Project keeps `Pair<Bytes, bool>` inside
   its linked closure while its frozen v8 descriptor remains scalar-only; the

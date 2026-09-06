@@ -40,10 +40,13 @@ use super::{
 };
 
 const BYTE_IMPORT_COUNT: u32 = 4;
+const OWNED_BUFFER_IMPORT_COUNT: u32 = 2;
 const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
 const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
 const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
 const BYTE_AS_SLICE_IMPORT: u32 = SCALAR_IMPORT_COUNT + 3;
+const BYTE_ZEROED_IMPORT: u32 = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT;
+const BYTE_SET_IMPORT: u32 = BYTE_ZEROED_IMPORT + 1;
 const OWNED_UTF8_LITERAL_BASE: u32 = 196_608;
 
 #[derive(Default)]
@@ -1363,6 +1366,12 @@ fn emit_byte_exports_profile(
     command_io: Option<&super::command_io::CommandPlan>,
     owned_plans: &[super::owned_data_exports::OwnedDataExportPlan],
 ) -> Result<Vec<u8>, Diagnostic> {
+    if program_uses_owned_buffer(program) {
+        return Err(Diagnostic::io(
+            "SPX-W115",
+            "Owned Bounded Byte Buffer v1 is internal-only and has no public WebAssembly adapter",
+        ));
+    }
     let executable_functions = executable_functions(program);
     let has_owned_utf8 = owned_plans
         .iter()
@@ -1969,12 +1978,32 @@ fn program_uses_byte_range(program: &ResolvedProgram) -> bool {
         })
 }
 
+pub(super) fn program_uses_owned_buffer(program: &ResolvedProgram) -> bool {
+    executable_functions(program).iter().any(|(function, _)| {
+        function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+            .any(|expression| {
+                let mut found = false;
+                crate::hir::visit_resolved_calls(expression, &mut |callee, instance, _| {
+                    found |= instance.is_none()
+                        && crate::byte_ops::by_id(callee.as_str())
+                            .is_some_and(crate::byte_ops::ByteOp::is_owned_buffer_chain);
+                });
+                found
+            })
+    })
+}
+
 fn emit_profile(
     program: &ResolvedProgram,
     test_exports: bool,
     host_output: bool,
 ) -> Result<Vec<u8>, Diagnostic> {
     let uses_byte_data = super::program_uses_byte_data(program);
+    let uses_owned_buffer = program_uses_owned_buffer(program);
     if program
         .types
         .iter()
@@ -2056,6 +2085,16 @@ fn emit_profile(
             &mut type_indexes,
         )
     });
+    let byte_set = uses_owned_buffer.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I64, I32],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
 
     let executable_functions = executable_functions(program);
     let public_global_count = if host_output { 5_u32 } else { 1_u32 };
@@ -2101,6 +2140,11 @@ fn emit_profile(
                 execution.clone(),
                 SCALAR_IMPORT_COUNT
                     + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
+                    + if uses_owned_buffer {
+                        OWNED_BUFFER_IMPORT_COUNT
+                    } else {
+                        0
+                    }
                     + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
@@ -2119,7 +2163,13 @@ fn emit_profile(
     let mut imports = Vec::new();
     write_u32(
         &mut imports,
-        SCALAR_IMPORT_COUNT + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 },
+        SCALAR_IMPORT_COUNT
+            + if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 }
+            + if uses_owned_buffer {
+                OWNED_BUFFER_IMPORT_COUNT
+            } else {
+                0
+            },
     );
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
@@ -2136,6 +2186,10 @@ fn emit_profile(
             "spx_bytes_as_slice",
             byte_unary.unwrap(),
         );
+    }
+    if uses_owned_buffer {
+        function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary.unwrap());
+        function_import(&mut imports, "env", "spx_bytes_set", byte_set.unwrap());
     }
     section(&mut module, 2, imports);
 
@@ -2218,6 +2272,13 @@ fn emit_profile(
     exports.push(0x00);
     let wrapper_index = SCALAR_IMPORT_COUNT
         .checked_add(if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 })
+        .and_then(|value| {
+            value.checked_add(if uses_owned_buffer {
+                OWNED_BUFFER_IMPORT_COUNT
+            } else {
+                0
+            })
+        })
         .ok_or_else(|| error("aggregate wrapper import count overflows u32"))?
         .checked_add(
             u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
@@ -5854,7 +5915,9 @@ impl Emitter<'_> {
             values.push(value);
         }
         self.apply_call_commit(&expr.id)?;
-        self.validate_byte_slice(&values[0]);
+        if op != crate::byte_ops::ByteOp::Zeroed {
+            self.validate_byte_slice(&values[0]);
+        }
         require_type(&expr.ty, &op.return_type(), "byte operation result")?;
         match op {
             crate::byte_ops::ByteOp::Len => {
@@ -5952,16 +6015,32 @@ impl Emitter<'_> {
             crate::byte_ops::ByteOp::Range => Err(error(
                 "byte range must lower from authenticated ByteRange HIR",
             )),
-            // Owned Bounded Byte Buffer v1 is not admitted on this backend.
-            // Owned bytes here are opaque host-arena tokens reached through the
-            // frozen `env` import set, and neither allocating a zeroed buffer
-            // nor storing one element into a transferred token has a host
-            // protocol. Rejecting the whole feature keeps the backend honest
-            // rather than lowering a partial buffer.
-            crate::byte_ops::ByteOp::Zeroed | crate::byte_ops::ByteOp::Set => Err(error(format!(
-                "`{}` is outside the WebAssembly owned-byte host arena protocol",
-                op.name()
-            ))),
+            crate::byte_ops::ByteOp::Zeroed => {
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&values[0]);
+                self.output.push(0x10);
+                write_u32(self.output, BYTE_ZEROED_IMPORT);
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Bytes,
+                })
+            }
+            crate::byte_ops::ByteOp::Set => {
+                let local = self.plan.expr_scalar(expr)?;
+                self.get_scalar(&values[0]);
+                self.get_scalar(&values[1]);
+                self.get_scalar(&values[2]);
+                self.output.push(0x10);
+                write_u32(self.output, BYTE_SET_IMPORT);
+                self.output.push(0x21);
+                write_u32(self.output, local);
+                Ok(Value::Scalar {
+                    local,
+                    ty: ResolvedType::Bytes,
+                })
+            }
         }
     }
 

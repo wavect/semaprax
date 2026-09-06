@@ -279,6 +279,19 @@ Core-Wasm consume that same authenticated plan locally. Mixed/general/nested
 owned propagation, generic-function carriers, Project/public aggregate ABIs,
 hosted promotion, and general resource variants remain outside this boundary.
 
+[Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) is one exact
+internal write-once collection profile: a literal-bounded `bytes_zeroed`
+allocation followed by at most 256 nested literal-index `bytes_set` owner
+transfers, then an immutable binding. Source and HIR independently authenticate
+the chain, and CleanupPlan transfers one owner through every call commit so only
+the frozen binding is finalized. The interpreter, native O0/O2, and internal
+Core-Wasm execute that same profile locally. Core-Wasm uses the frozen
+`env.spx_bytes_zeroed`/`env.spx_bytes_set` host-arena protocol, mutates the same
+opaque token, emits neither `memory.copy` nor `memory.grow`, and settles before
+re-entry. The public byte adapter rejects the profile with `SPX-W115`; loops,
+growth, wider elements, Project/public layouts, `std.*`, browser/hosted and
+cross-platform support remain outside this boundary.
+
 `src/loan_plan.rs` owns the additive plan schema, builder, and replay;
 `src/graph_loan.rs` owns its Graph projection. The
 [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md) is a bounded, target-neutral proof

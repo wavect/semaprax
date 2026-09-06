@@ -867,6 +867,7 @@ transition execution.
 | `SPX-G555` | An AgentDeployment identity, list, or limit invariant failed. |
 | `SPX-G556` | The deployment is incompatible with its semantic definition. |
 | `SPX-G557` | Supplied bound-product bytes do not equal the independently rebound product. |
+| `SPX-G578` | The generated Proposal-to-Runtime-v1 compiled pair, exact profile association, or complete rendered final-action bound failed. |
 | `SPX-G570` | A lifecycle stage identity, signature, ownership mode, effect, role type, decision shape, or stage-graph invariant failed. |
 | `SPX-G571` | A lifecycle invocation was refused before host work: an authorization was not bound to the state and proposal presented, or the injected read failed its bound. |
 | `SPX-G572` | Supplied lifecycle bytes do not equal the independently recompiled lifecycle. |
@@ -987,11 +988,36 @@ of that earlier document. Generation and replay perform no filesystem,
 network, provider, tool, process, compilation, execution, packaging, or
 publication operation.
 
+## Generated Proposal to Runtime v1 compatibility
+
+`compile_agent_proposal_runtime_v1_compatibility` derives one immutable
+`AgentProposalRuntimeV1Compatibility` from the same checked Proposal role and
+exact Runtime v1 profile. Any record or variant admitted by Proposal Schema v1
+uses the same bridge; it defines no second compatibility shape.
+
+`decode_and_render` delegates untrusted bytes to the unchanged Proposal Schema
+v1 decoder, then preserves that complete canonical Proposal document,
+including its terminal LF, as the escaped message of one canonical frozen
+Runtime v1 final action returned as `AgentRuntimeV1ActionBytes`. Cases and
+fields are never translated into Runtime actions or arguments. The complete
+escaped action is bounded before it is exposed. `SPX-G578` reports only a
+cross-paired compiled product, profile, or rendered-action-bound failure;
+`SPX-G550` and `SPX-G551` remain the owners of Proposal document and value
+rejection.
+
+There is no new serialized adapter schema or digest. Compilation and rendering
+reach no host and change no AgentDefinition, AgentGraph, Runtime Profile, Task,
+Action, Trace, Evidence, or Proposal Schema v1 byte. The exact contract and
+focused gate live in [Agent Proposal to Runtime v1 Compatibility
+v1](AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md).
+
 ## Nonclaims and next gates
 
 This slice does not implement or claim:
 
 - execution, packaging, or publication of the additive generated clients;
+- direct provider Proposal input or semantic Proposal case/field translation
+  into Runtime actions, tool selections, or argument schemas;
 - proposal values beyond the closed monomorphic scalar record/variant subset;
 - `string`, `char`, floating-point, borrowed, or generic stage values;
 - a nominal Proposal carrier crossing a stage boundary, rather than its exact
@@ -1024,6 +1050,10 @@ value with its executable rejection evidence. Agent Checkpoint v1 closes the
 revision-bound durable checkpoint, the crash boundaries of the single external
 operation, and the uncertainty reconciliation that replaces automatic retry. Provisioned compilation and
 execution of the generated clients remain a separate gate. The Runtime v1
-compatibility projection still carries its own authored action/tool schemas.
+compatibility projection remains frozen; the additive generated adapter now
+replaces only the fixture's manual final-message wrapper without changing that
+grammar. Direct provider Proposal input, generated Runtime tool-action/schema
+integration, general Proposal shapes, and direct Runtime consumption of
+AgentGraph remain absent.
 Durable checkpoint, resume and reconciliation, and Runtime v2's direct
 consumption of AgentGraph, remain separate gates on top of this one.

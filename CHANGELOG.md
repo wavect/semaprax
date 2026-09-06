@@ -27,6 +27,18 @@ format: `Unreleased` then release buckets, grouped by impact.
   engines before the owner transfer commits. Capacity growth stays out of
   scope: the allocation capacity is still a literal.
 
+- Added the bounded AGENT-04 generated Proposal-to-Runtime v1 compatibility
+  adapter. One exact checked Proposal record or Copy-scalar variant now passes
+  the existing decoder before its complete canonical bytes, including the
+  terminal LF, become the escaped message of the frozen Runtime v1 final
+  action. The adapter performs no case or field translation, reaches no host,
+  and cannot select a Runtime tool; `SPX-G578` rejects cross-pair and complete
+  escaped-action-bound failures while Proposal `SPX-G550`/`SPX-G551` remain
+  unchanged. AgentDefinition, AgentGraph, Proposal Schema, and every Runtime v1
+  schema, API, digest and known answer remain frozen. Direct provider Proposal
+  input, Runtime tool-action/schema generation, broader Proposal, public ABI,
+  and Runtime v2 support remain open.
+
 - Added authority-free Exact Program Context v2, which independently replays
   exact context v1, Contracts and Tests Facts v1, and ProgramRoot v3 before
   requiring the enriched workspace and v3-root selectors across typed query,

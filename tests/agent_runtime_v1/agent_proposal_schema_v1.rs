@@ -3,9 +3,9 @@
 
 use semaprax::agent_definition::compile_agent_definition;
 use semaprax::agent_proposal::{
-    compile_agent_proposal_schema, verify_agent_proposal_client_bundle,
-    verify_agent_proposal_schema_bundle, ProposalValue, AGENT_PROPOSAL_CLIENT_BUNDLE_SCHEMA,
-    MAX_AGENT_PROPOSAL_CLIENT_SOURCE_BYTES,
+    compile_agent_proposal_runtime_v1_compatibility, compile_agent_proposal_schema,
+    verify_agent_proposal_client_bundle, verify_agent_proposal_schema_bundle, ProposalValue,
+    AGENT_PROPOSAL_CLIENT_BUNDLE_SCHEMA, MAX_AGENT_PROPOSAL_CLIENT_SOURCE_BYTES,
 };
 use semaprax::agent_runtime::AgentRunStatus;
 use semaprax::agent_transcript;
@@ -749,6 +749,7 @@ fn unadmitted_proposal_types_reject_with_explicit_diagnostics() {
 fn an_offline_scripted_provider_uses_the_grammar_and_replays_its_evidence() {
     let profile = profile();
     let definition_source = definition(&profile);
+    let compiled_definition = compile_agent_definition(&definition_source).unwrap();
     let compiled = compile_record();
     let proposal = record_proposal(
         compiled.schema().digest(),
@@ -761,10 +762,13 @@ fn an_offline_scripted_provider_uses_the_grammar_and_replays_its_evidence() {
         "{{\"schema\":\"semaprax.agent-runtime-task.v1\",\"nonce\":\"{}\",\"objective\":\"Return one proposal.\",\"context\":[{{\"label\":\"schema\",\"provenance\":\"caller_untrusted\",\"content\":\"derived\"}}]}}\n",
         "1".repeat(64)
     );
-    let action = format!(
-        "{{\"schema\":\"semaprax.agent-runtime-action.v1\",\"kind\":\"final\",\"message\":{}}}\n",
-        serde_json::to_string(&proposal).unwrap()
-    );
+    let adapter =
+        compile_agent_proposal_runtime_v1_compatibility(&compiled, &compiled_definition).unwrap();
+    let action = adapter
+        .decode_and_render(&proposal)
+        .unwrap()
+        .canonical_json()
+        .to_owned();
     let transcript = format!(
         "{{\"schema\":\"semaprax.agent-runtime-transcript.v1\",\"policy_epoch\":7,\"provider\":[{{\"disposition\":\"succeeded\",\"response\":{}}}],\"tools\":[]}}\n",
         serde_json::to_string(&action).unwrap()
@@ -824,6 +828,7 @@ fn the_proposal_surface_mints_no_authorization_and_reaches_no_host() {
         include_str!("../../src/agent_proposal/shape.rs"),
         include_str!("../../src/agent_proposal/decode.rs"),
         include_str!("../../src/agent_proposal/clients.rs"),
+        include_str!("../../src/agent_proposal/runtime_v1.rs"),
     ] {
         for forbidden in [
             "AgentRuntimeAuthority",

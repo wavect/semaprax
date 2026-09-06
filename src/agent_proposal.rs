@@ -25,6 +25,7 @@ use crate::diagnostic::{quote_json, Diagnostic};
 
 mod clients;
 pub(crate) mod decode;
+mod runtime_v1;
 pub(crate) mod shape;
 
 pub use clients::{
@@ -33,6 +34,10 @@ pub use clients::{
     MAX_AGENT_PROPOSAL_CLIENT_MANIFEST_BYTES, MAX_AGENT_PROPOSAL_CLIENT_SOURCE_BYTES,
 };
 pub use decode::{DecodedField, DecodedProposal, ProposalValue};
+pub use runtime_v1::{
+    compile_agent_proposal_runtime_v1_compatibility, AgentProposalRuntimeV1Compatibility,
+    AgentRuntimeV1ActionBytes, AgentRuntimeV1ActionKind,
+};
 
 use shape::Shape;
 

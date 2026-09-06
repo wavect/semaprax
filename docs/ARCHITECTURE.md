@@ -1896,6 +1896,19 @@ evidence byte for byte on replay. It owns no transport, process, filesystem,
 network, or credential authority, and it neither persists nor resumes a run.
 See [Unified CLI v1](UNIFIED-CLI-V1.md).
 
+`src/agent_proposal/runtime_v1.rs` owns the authority-free generated bridge
+from one exact compiler-derived Proposal Schema v1 shape to the frozen Runtime
+v1 final-action grammar. `compile_agent_proposal_runtime_v1_compatibility`
+cross-binds an already compiled Proposal schema and AgentDefinition;
+`AgentProposalRuntimeV1Compatibility::decode_and_render` delegates untrusted
+Proposal admission to the existing decoder before producing bounded canonical
+`AgentRuntimeV1ActionBytes`. The exact canonical Proposal document becomes the
+final message without case or field translation. The bridge neither parses a
+competing proposal grammar nor selects a Runtime tool or invokes a host.
+Runtime Profile, Task, Action, Trace, and Evidence v1 remain byte-frozen. See
+[Agent Proposal to Runtime v1
+Compatibility v1](AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md).
+
 The public `context` dispatcher resolves a Project directory or manifest before
 standalone source verification. Project inputs authenticate and retain one
 `ProjectRevision`, then render `semaprax.project-semantic-context.v1` through

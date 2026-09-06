@@ -165,6 +165,19 @@ The “Evidence owner” column points to the document that defines the stronges
 current bounded slice. It is not a claim that the linked slice completes the
 row.
 
+The Agent-native semantic-program row also includes the bounded additive
+[Proposal-to-Runtime v1 compatibility
+bridge](AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md). It maps one exact
+Proposal record or Copy-scalar variant, byte-for-byte including its terminal
+LF, into the message of the frozen Runtime v1 final action. Proposal decoding
+precedes bounded canonical rendering; compilation and rendering perform no
+semantic field/case translation, reach no host or tool, and grant no authority.
+The row remains **Partial**: direct provider Proposal input, generated Runtime
+tool-action/schema integration, broader Proposal values, generated-client
+execution, iterative typed lifecycle execution, live-provider evidence, public
+ABI, and Runtime v2 consumption remain absent, while every Runtime v1 wire and
+known answer stays frozen.
+
 ### Semantic foundation
 
 | Requirement | Status | Evidence owner | Complete when |

@@ -94,7 +94,7 @@ impl AgentHost for FakeHost {
     }
 }
 
-fn fixture_profile() -> String {
+pub(super) fn fixture_profile() -> String {
     let field = |name: &str| SchemaField {
         name: name.to_owned(),
         kind: ScalarKind::String,

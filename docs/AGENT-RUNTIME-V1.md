@@ -24,6 +24,15 @@ provider SDK, local process, environment, home-directory credential lookup,
 filesystem mutation, durable memory, wallet, payment, signing, or asset
 authority exists. Cancellation is cooperative, not forced preemption.
 
+The additive generated [Proposal-to-Runtime compatibility
+adapter](AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md) lives outside this
+runtime. It validates one exact derived Proposal before rendering bytes in the
+existing final-message action grammar. The complete Proposal document remains
+message data; no case or field selects a Runtime action or tool. The adapter
+neither changes this runtime's schemas, public API, digest domains,
+diagnostics, known answers, or authorization checks nor invokes a host while
+compiling or rendering.
+
 ## Canonical documents
 
 The private tranche implements the frozen schemas:
@@ -71,6 +80,11 @@ inventory; 240-byte identities and JSON escaping; and cumulative builder
 limits. CI is configured to run the fake-host corpus on Ubuntu, macOS, and
 Windows. Public Agent Runtime v1 is hosted GREEN at 8cf29aff8d1be3ccf74c36bc8c837f0c666ca067 (run 31591039261, 12/12 jobs, private and public deterministic fake-host gates on Ubuntu, macOS, and Windows). There is no live-
 provider or provider-quality claim.
+
+The generated Proposal compatibility gate is likewise local and bounded. Its
+successful final-message rendering is not direct provider Proposal input and
+is not evidence of tool-action/schema generation, tool authorization,
+invocation, provider quality, live transport, or a Runtime v2 surface.
 
 ## Public C1 surface
 

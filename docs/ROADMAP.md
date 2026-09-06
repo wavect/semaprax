@@ -186,6 +186,16 @@ The [typed clients and schema bundle](IMAGE-AGENT-DISCOVERY-V5.md) still need
 executed cross-language checks and completion of explicitly opaque payload
 references; outer parameter typing is not complete semantic-report validation.
 
+The bounded AGENT-04 [Proposal-to-Runtime v1 compatibility
+adapter](AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md) closes only the manual
+fixture wrapper from an exact decoded Proposal record or Copy-scalar variant
+to the frozen Runtime v1 final message. Runtime v1 remains frozen, and no
+Proposal case or field becomes a Runtime action or tool selection. Next Agent
+outcomes remain direct provider Proposal input, generated tool-action/schema
+integration, broader Proposal shapes, provisioned generated-client execution,
+iterative typed lifecycle execution, and an independently versioned Runtime v2
+that consumes semantic Agent facts directly.
+
 For source publication, preserve the supported two-session workflow: review and
 export first, then use a new independently host-approved commit session to restore
 and publish the exact candidate. No request or later approval may relax the

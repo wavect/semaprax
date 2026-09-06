@@ -329,6 +329,8 @@ mod agent_inspect_cli;
 mod agent_lifecycle_v1;
 #[path = "agent_runtime_v1/agent_payment_harness_v1.rs"]
 mod agent_payment_harness_v1;
+#[path = "agent_runtime_v1/agent_proposal_runtime_v1_compatibility.rs"]
+mod agent_proposal_runtime_v1_compatibility;
 #[path = "agent_runtime_v1/agent_proposal_schema_v1.rs"]
 mod agent_proposal_schema_v1;
 #[path = "agent_runtime_v1/source_agent_lowering.rs"]
@@ -610,6 +612,7 @@ struct NeverHost;
 
     let public_source = include_str!("../src/agent_runtime.rs");
     let private_source = include_str!("../src/agent_runtime/private.rs");
+    let compatibility_source = include_str!("../src/agent_runtime/compatibility.rs");
     for forbidden in [
         "std::net::",
         "TcpStream",
@@ -626,6 +629,10 @@ struct NeverHost;
         assert!(
             !private_source.contains(forbidden),
             "private source contains {forbidden}"
+        );
+        assert!(
+            !compatibility_source.contains(forbidden),
+            "compatibility source contains {forbidden}"
         );
     }
     fs::remove_dir_all(root).unwrap();

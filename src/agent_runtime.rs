@@ -1118,7 +1118,16 @@ fn render_effective_limits(limits: EffectiveLimits) -> String {
 // Parsing, routing, execution, trace rendering, replay, and evidence rendering
 // are split into sibling implementation files to keep each authority boundary
 // reviewable.
+mod compatibility;
 mod private;
+
+pub(crate) type RuntimeV1CompatibilityProfile = compatibility::RuntimeV1CompatibilityProfile;
+
+pub(crate) fn proposal_compatibility_profile(
+    profile_source: &str,
+) -> Result<RuntimeV1CompatibilityProfile, Diagnostic> {
+    compatibility::proposal_compatibility_profile(profile_source)
+}
 
 #[cfg(test)]
 pub(crate) use private::completed_run_for_economic_test;

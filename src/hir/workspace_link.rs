@@ -769,8 +769,8 @@ pub(crate) fn owned_data_api_workspace_return_admitted(ty: &ResolvedType) -> boo
         )
 }
 
-pub(crate) fn compiler_prelude_declarations() -> Result<DeclarationIndex, Diagnostic> {
-    let prelude_only = Program {
+fn workspace_linker_prelude_program() -> Program {
+    Program {
         path: "<workspace-linker>".to_owned(),
         module: "compiler.prelude".to_owned(),
         module_uses: Vec::new(),
@@ -781,33 +781,46 @@ pub(crate) fn compiler_prelude_declarations() -> Result<DeclarationIndex, Diagno
         implementations: Vec::new(),
         agents: Vec::new(),
         functions: Vec::new(),
-    };
-    DeclarationIndex::from_verified(&prelude_only)
+    }
+}
+
+pub(crate) fn compiler_prelude_declarations() -> Result<DeclarationIndex, Diagnostic> {
+    DeclarationIndex::from_verified(&workspace_linker_prelude_program())
 }
 
 fn workspace_compiler_prelude(
 ) -> Result<(DeclarationIndex, Vec<ResolvedTypeDeclaration>), Diagnostic> {
+    let prelude_program = workspace_linker_prelude_program();
     let declarations = compiler_prelude_declarations()?;
-    let compiler_types = crate::prelude::declarations()
+    let compiler_types = crate::prelude::declarations_for_program(&prelude_program)
         .iter()
         .map(|declaration| {
             let id = DeclarationId::new(declaration.stable_id.clone());
-            let TypeDeclarationKind::Variant { .. } = &declaration.kind else {
-                return Err(link_error(
-                    "workspace linker prelude contains an unsupported type kind",
-                ));
+            let kind = match &declaration.kind {
+                TypeDeclarationKind::Variant { .. } => ResolvedTypeDeclarationKind::Variant {
+                    cases: declarations
+                        .variant_cases(&id)
+                        .ok_or_else(|| link_error("workspace prelude variant cases are absent"))?
+                        .to_vec(),
+                },
+                TypeDeclarationKind::Record { .. } => ResolvedTypeDeclarationKind::Record {
+                    fields: declarations
+                        .record_fields(&id)
+                        .ok_or_else(|| link_error("workspace prelude record fields are absent"))?
+                        .to_vec(),
+                },
+                _ => {
+                    return Err(link_error(
+                        "workspace linker prelude contains an unsupported type kind",
+                    ));
+                }
             };
             Ok(ResolvedTypeDeclaration {
                 type_parameters: declarations
                     .type_parameters(&id)
                     .ok_or_else(|| link_error("workspace prelude type parameters are absent"))?
                     .to_vec(),
-                kind: ResolvedTypeDeclarationKind::Variant {
-                    cases: declarations
-                        .variant_cases(&id)
-                        .ok_or_else(|| link_error("workspace prelude variant cases are absent"))?
-                        .to_vec(),
-                },
+                kind,
                 id,
                 name: declaration.name.clone(),
                 span: declaration.span,

@@ -48,6 +48,18 @@ form rather than printing its lowering. Existing source, HIR, Graph, cleanup,
 prelude, backend, package, and ABI bytes remain unchanged when the form is not
 used.
 
+The desugaring adds no identity, but the *paths* it assigns are load-bearing.
+A `for` at `s{index}` becomes `s{index}.value`: `.s0` binds the length, `.s1`
+the index, `.s2` is the `while`, and the authored body is resolved at
+`.value.s2.body.s1.value` behind the item binding at `.value.s2.body.s0`. The
+workspace graph reconstructs call and type edges from source independently of
+the resolved program, so it names those same paths; a change to the shape in
+`hir::resolve_for::lower` must be made together with
+`workspace_graph::visit_ast_call_sites` and
+`expected_projection::collect_expression_type_edges`. That reconstruction
+fails closed, so changing one alone refuses every workspace project containing
+a `for` with `SPX-G173` rather than admitting a wrong edge.
+
 ## Focused local evidence
 
 The current worktree passes:

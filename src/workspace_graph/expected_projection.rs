@@ -1689,14 +1689,16 @@ fn collect_expression_type_edges(
                     let Some(child) = statement.child(child_index) else {
                         continue;
                     };
-                    let segment = if matches!(statement, crate::ast::Statement::While { .. }) {
-                        if child_index == 0 {
-                            "condition"
-                        } else {
-                            "body"
-                        }
-                    } else {
-                        "value"
+                    // Bounded `for` traversal is lowered, so its authored
+                    // children keep the paths `hir::resolve_for::lower` gives
+                    // them rather than `.values` and `.body`.
+                    // `visit_ast_call_sites` names the same two.
+                    let segment = match (statement, child_index) {
+                        (crate::ast::Statement::While { .. }, 0) => "condition",
+                        (crate::ast::Statement::While { .. }, _) => "body",
+                        (crate::ast::Statement::For { .. }, 0) => "value.s0.value.arg.0",
+                        (crate::ast::Statement::For { .. }, _) => "value.s2.body.s1.value",
+                        _ => "value",
                     };
                     collect_expression_type_edges(
                         program,

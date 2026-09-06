@@ -5894,17 +5894,30 @@ fn visit_ast_call_sites(
                         )?;
                     }
                     crate::ast::Statement::For { values, body, .. } => {
+                        // Bounded `for` traversal is lowered, so its authored
+                        // children do not sit at `.values` and `.body`.
+                        // `hir::resolve_for::lower` desugars the statement at
+                        // `s{index}` into `s{index}.value`: `.s0` binds the
+                        // length, `.s1` the index, `.s2` is the `while`, and
+                        // the authored body is resolved at
+                        // `.value.s2.body.s1.value` behind the item binding at
+                        // `.value.s2.body.s0`. The source is admitted only as
+                        // an immutable binding (`SPX-T284`), so it reaches the
+                        // lowering as the place argument of the `vec_len`
+                        // call. Naming the authored paths is what keeps this
+                        // reconstruction independent of the HIR while still
+                        // describing the same program.
                         visit_ast_call_sites(
                             values,
                             &crate::bounded_output::budgeted_format(format_args!(
-                                "{path}.s{index}.values"
+                                "{path}.s{index}.value.s0.value.arg.0"
                             )),
                             visit,
                         )?;
                         visit_ast_call_sites(
                             body,
                             &crate::bounded_output::budgeted_format(format_args!(
-                                "{path}.s{index}.body"
+                                "{path}.s{index}.value.s2.body.s1.value"
                             )),
                             visit,
                         )?;

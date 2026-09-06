@@ -2259,3 +2259,53 @@ fn long_nominal_and_child_id_repetition_is_rejected_by_builder_preflight() {
     };
     assert!(is_named_limit(&error, "builder_bytes"));
 }
+/// Issue #86. Bounded `for` traversal is lowered, so a call in its authored
+/// body does not live at `{block}.s{i}.body`: `hir::resolve_for::lower` puts it
+/// under `{block}.s{i}.value.s2.body.s1.value`. While the independent AST-side
+/// reconstruction named `.body`, every such call reconstructed at a path the
+/// HIR does not have, and any workspace project containing a `for` whose body
+/// called an imported function was refused with `SPX-G173`.
+#[test]
+fn bounded_for_traversal_reconstructs_call_edges_through_its_lowered_body() {
+    let app = canonical_source(
+        "app/main.spx",
+        "\nmodule app.main;\n\n@id(\"app.main\")\nfn main() -> i64 { 0 }\n",
+    );
+    let test = canonical_source(
+        "test/main.spx",
+        "\nmodule test.main;\n\n@id(\"test.main\")\nfn main() -> i64 { 0 }\n",
+    );
+    let kept = canonical_source(
+        "lib/kept.spx",
+        "\nmodule lib.kept;\n\n@id(\"lib.kept\")\nfn kept(value: i64) -> i64 { if value > 0 { 1 } else { 0 } }\n",
+    );
+    let totals = canonical_source(
+        "lib/totals.spx",
+        r#"
+module lib.totals;
+use function @id("lib.kept") from lib.kept as kept;
+
+@id("lib.total")
+fn total() -> i64 {
+    let mut staged = vec_with_capacity<i64>(4usize);
+    staged = vec_push<i64>(staged, 3);
+    let values = staged;
+    let mut sum = 0;
+    for item in values {
+        sum = sum + kept(item);
+        sum
+    }
+    sum
+}
+"#,
+    );
+    let build = build_owned(vec![app, test, kept, totals]).unwrap();
+    build
+        .validate_entire_project_workspace(
+            "app.main",
+            "test.main",
+            crate::project::ProjectProfile::UsefulDataV1,
+            false,
+        )
+        .unwrap();
+}

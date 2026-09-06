@@ -14,6 +14,11 @@
 set -o nounset
 set -o pipefail
 
+# This probe must not dirty the checkout it is measuring: importing the gate
+# module in section 2 would otherwise leave scripts/__pycache__ behind and the
+# gate would correctly refuse to bind exact source bytes.
+export PYTHONDONTWRITEBYTECODE=1
+
 REPO="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 GATE="${REPO}/scripts/doctor-provisioned-linux-gate.py"
 RESULTS=()

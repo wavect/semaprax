@@ -239,8 +239,10 @@ done
 # refusal still reports the images in the order they were found.
 sorted_images() { printf '%s\n' "$1" | LC_ALL=C sort -u; }
 actual_executable_images=$(otool -L "$executable" | sed -n '2,$s/^[[:space:]]*\([^[:space:]]*\).*/\1/p')
-expected_executable_images='/usr/lib/libiconv.2.dylib
-/usr/lib/libSystem.B.dylib'
+expected_executable_images='/usr/lib/libSystem.B.dylib
+/System/Library/Frameworks/Security.framework/Versions/A/Security
+/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
+/usr/lib/libiconv.2.dylib'
 if [ "$(sorted_images "$actual_executable_images")" != "$(sorted_images "$expected_executable_images")" ]; then
   echo "private desktop executable dependency allowlist changed" >&2
   printf '%s\n' "$actual_executable_images" >&2

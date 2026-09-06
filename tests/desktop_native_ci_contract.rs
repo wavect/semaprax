@@ -159,7 +159,7 @@ fn macos_source_lock_rejects_hostile_gate_removal() {
         source.replace("otool -D", "otool -L"),
         source.replace("otool -L", "otool -l"),
         source.replace(
-            "expected_executable_images='/usr/lib/libiconv.2.dylib\n/usr/lib/libSystem.B.dylib'",
+            "expected_executable_images='/usr/lib/libSystem.B.dylib\n/System/Library/Frameworks/Security.framework/Versions/A/Security\n/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation\n/usr/lib/libiconv.2.dylib'",
             "expected_executable_images='/usr/lib/foreign.dylib'",
         ),
         source.replace(
@@ -410,7 +410,7 @@ fn macos_contract(source: &str) -> Result<(), String> {
             "LC_RPATH|@loader_path|@executable_path|/private/|/Users/|/Volumes/|target/",
             "otool -L",
             "actual_executable_images",
-            "expected_executable_images='/usr/lib/libiconv.2.dylib\n/usr/lib/libSystem.B.dylib'",
+            "expected_executable_images='/usr/lib/libSystem.B.dylib\n/System/Library/Frameworks/Security.framework/Versions/A/Security\n/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation\n/usr/lib/libiconv.2.dylib'",
             "sorted_images() { printf '%s\\n' \"$1\" | LC_ALL=C sort -u; }",
             "if [ \"$(sorted_images \"$actual_executable_images\")\" != \"$(sorted_images \"$expected_executable_images\")\" ]; then",
             "if [ \"$(sorted_images \"$actual_provider_images\")\" != \"$(sorted_images \"$expected_provider_images\")\" ]; then",

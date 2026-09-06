@@ -39,48 +39,14 @@ pub(crate) fn render(
     let total_events = evaluated.events.len();
     let mut events = Vec::new();
     let mut rendered_event_bytes = 0usize;
-    for event in &evaluated.events {
-        let rendered = render_evaluated_event(events.len(), event, origins)?;
-        let candidate_event_bytes = rendered_event_bytes
-            .checked_add(rendered.len())
-            .and_then(|value| value.checked_add(usize::from(!events.is_empty())))
-            .ok_or_else(|| vec![trace_error("trace event byte accounting overflowed")])?;
-        let candidate_count = events.len() + 1;
-        let candidate_dropped = evaluated
-            .dropped_events
-            .checked_add(total_events - candidate_count)
-            .ok_or_else(|| vec![trace_error("trace truncation accounting overflowed")])?;
-        let subject = RenderSubject {
-            project_schema: revision.manifest().schema(),
-            project: revision.manifest().name(),
-            project_revision: revision.project_revision(),
-            workspace_revision: revision.workspace_revision(),
-            project_graph_digest: revision.semantic_graph_digest(),
-            role,
-            module,
-            stable_id,
-            options,
-            steps_used: evaluated.steps_used,
-            outcome: &outcome,
-            events: &[],
-            dropped_events: candidate_dropped,
-        };
-        if !payload_fits(
-            &subject,
-            candidate_count,
-            candidate_event_bytes,
-            options.max_trace_bytes,
-        )? {
-            break;
-        }
-        rendered_event_bytes = candidate_event_bytes;
-        events.push(owned_event(events.len(), event, origins)?);
-    }
-    let dropped = evaluated
-        .dropped_events
-        .checked_add(total_events - events.len())
-        .ok_or_else(|| vec![trace_error("trace truncation accounting overflowed")])?;
-    let subject = RenderSubject {
+    // The payload prefix reads only loop-invariant subject fields: it does not
+    // read `events` or `dropped_events`. Rendering it once, rather than once
+    // per candidate event, is byte-identical and removes the dominant cost of
+    // admitting an event. Each event's rendered bytes are kept too, so the
+    // final payload reuses them instead of rendering every event a second
+    // time; `render_event` over `owned_event` is the same format over the same
+    // fields as `render_evaluated_event`, so the bytes are the same either way.
+    let invariant = RenderSubject {
         project_schema: revision.manifest().schema(),
         project: revision.manifest().name(),
         project_revision: revision.project_revision(),
@@ -92,10 +58,44 @@ pub(crate) fn render(
         options,
         steps_used: evaluated.steps_used,
         outcome: &outcome,
-        events: &events,
-        dropped_events: dropped,
+        events: &[],
+        dropped_events: 0,
     };
-    let payload = render_payload(&subject);
+    let prefix = render_payload_prefix(&invariant);
+    let mut rendered_events: Vec<String> = Vec::new();
+    for event in &evaluated.events {
+        let rendered = render_evaluated_event(events.len(), event, origins)?;
+        let candidate_event_bytes = rendered_event_bytes
+            .checked_add(rendered.len())
+            .and_then(|value| value.checked_add(usize::from(!events.is_empty())))
+            .ok_or_else(|| vec![trace_error("trace event byte accounting overflowed")])?;
+        let candidate_count = events.len() + 1;
+        let candidate_dropped = evaluated
+            .dropped_events
+            .checked_add(total_events - candidate_count)
+            .ok_or_else(|| vec![trace_error("trace truncation accounting overflowed")])?;
+        if !payload_fits(
+            prefix.len(),
+            candidate_count,
+            candidate_dropped,
+            candidate_event_bytes,
+            options.max_trace_bytes,
+        )? {
+            break;
+        }
+        rendered_event_bytes = candidate_event_bytes;
+        events.push(owned_event(events.len(), event, origins)?);
+        rendered_events.push(rendered);
+    }
+    let dropped = evaluated
+        .dropped_events
+        .checked_add(total_events - events.len())
+        .ok_or_else(|| vec![trace_error("trace truncation accounting overflowed")])?;
+    let payload = render_payload_parts(
+        &prefix,
+        &rendered_events.join(","),
+        &render_payload_suffix(events.len(), dropped),
+    );
     let digest = domain_digest(PAYLOAD_DIGEST_DOMAIN, payload.as_bytes());
     let envelope = render_envelope(&payload, &digest);
     if envelope.len() > options.max_trace_bytes {
@@ -200,18 +200,23 @@ pub(super) struct RenderSubject<'a> {
 }
 
 pub(super) fn render_payload(subject: &RenderSubject<'_>) -> String {
-    let prefix = render_payload_prefix(subject);
-    let suffix = render_payload_suffix(subject.events.len(), subject.dropped_events);
-    let event_bytes = subject
-        .events
-        .iter()
-        .map(render_event)
-        .collect::<Vec<_>>()
-        .join(",");
+    render_payload_parts(
+        &render_payload_prefix(subject),
+        &subject
+            .events
+            .iter()
+            .map(render_event)
+            .collect::<Vec<_>>()
+            .join(","),
+        &render_payload_suffix(subject.events.len(), subject.dropped_events),
+    )
+}
+
+fn render_payload_parts(prefix: &str, event_bytes: &str, suffix: &str) -> String {
     let mut payload = String::with_capacity(prefix.len() + event_bytes.len() + suffix.len());
-    payload.push_str(&prefix);
-    payload.push_str(&event_bytes);
-    payload.push_str(&suffix);
+    payload.push_str(prefix);
+    payload.push_str(event_bytes);
+    payload.push_str(suffix);
     payload
 }
 
@@ -249,15 +254,14 @@ fn render_payload_suffix(recorded_events: usize, dropped_events: usize) -> Strin
 }
 
 fn payload_fits(
-    subject: &RenderSubject<'_>,
+    prefix_bytes: usize,
     recorded_events: usize,
+    dropped_events: usize,
     rendered_event_bytes: usize,
     max_trace_bytes: usize,
 ) -> Result<bool, Vec<Diagnostic>> {
-    let prefix = render_payload_prefix(subject);
-    let suffix = render_payload_suffix(recorded_events, subject.dropped_events);
-    let payload_bytes = prefix
-        .len()
+    let suffix = render_payload_suffix(recorded_events, dropped_events);
+    let payload_bytes = prefix_bytes
         .checked_add(rendered_event_bytes)
         .and_then(|value| value.checked_add(suffix.len()))
         .ok_or_else(|| vec![trace_error("trace payload byte accounting overflowed")])?;

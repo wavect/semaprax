@@ -144,6 +144,44 @@ jobs:
               "$(stat -Lc '%s' "$f")" "$(stat -c '%s' "$work/stripped/$i.bin")" "$f"
           done < "$work/files"
 
+      - name: Candidate real distributions that fit the 512 MiB ceiling
+        run: |
+          set -uo pipefail
+          measure() {
+            label="$1"; shift
+            tmp="$RUNNER_TEMP/m.$$"
+            rm -rf "$tmp"; mkdir -p "$tmp"
+            for p in "$@"; do
+              [ -e "$p" ] || { echo "$label: MISSING $p"; return 0; }
+              { readlink -f "$p"; ldd "$p" 2>/dev/null \
+                | awk '{for(i=1;i<=NF;i++) if ($i ~ /^\//) print $i}'; }
+            done | sort -u > "$tmp/files"
+            n=0; tot=0
+            while read -r f; do
+              n=$((n+1))
+              cp -L "$f" "$tmp/$n.bin" 2>/dev/null || continue
+              strip --strip-unneeded "$tmp/$n.bin" 2>/dev/null || true
+              tot=$((tot + $(stat -c '%s' "$tmp/$n.bin")))
+            done < "$tmp/files"
+            echo "$label: files=$n stripped_bytes=$tot"
+            rm -rf "$tmp"
+          }
+          sudo apt-get update -qq
+          for v in 14 15 16 17 18; do
+            sudo apt-get install -y -qq "clang-$v" >/dev/null 2>&1 \
+              && measure "clang-$v" "/usr/lib/llvm-$v/bin/clang" \
+              || echo "clang-$v: unavailable"
+          done
+          measure "node-runner" /usr/local/bin/node
+          for v in 1.98.0 1.90.0 1.85.0 1.80.1 1.75.0 1.70.0; do
+            rustup toolchain install "$v" --profile minimal -q >/dev/null 2>&1 || {
+              echo "rust-$v: unavailable"; continue; }
+            rbin="$(rustup which --toolchain "$v" rustc)"
+            measure "rust-$v" "$rbin"
+            rustup toolchain uninstall "$v" -q >/dev/null 2>&1 || true
+          done
+          echo "limit=536870912"
+
       - name: Evidence documents
         if: ${{ always() }}
         run: |

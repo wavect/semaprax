@@ -221,6 +221,7 @@ impl SemanticWorkspaceServiceHistory {
             workspace_revision: workspace_revision.to_owned(),
             project_revision: project_revision.to_owned(),
             entries: Arc::from(self.entries.clone()),
+            program_root_v2: None,
         })
     }
 }
@@ -358,6 +359,7 @@ pub struct SemanticWorkspaceServiceHistorySnapshot {
     workspace_revision: String,
     project_revision: String,
     entries: Arc<[SemanticWorkspaceServiceHistoryEntry]>,
+    program_root_v2: Option<super::ProgramRootV2>,
 }
 
 impl SemanticWorkspaceServiceHistorySnapshot {
@@ -375,6 +377,14 @@ impl SemanticWorkspaceServiceHistorySnapshot {
 
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
+    }
+
+    pub fn program_root_v2(&self) -> Option<&super::ProgramRootV2> {
+        self.program_root_v2.as_ref()
+    }
+
+    pub(super) fn retain_program_root_v2(&mut self, root: super::ProgramRootV2) {
+        self.program_root_v2 = Some(root);
     }
 
     pub fn query(
@@ -429,6 +439,7 @@ impl SemanticWorkspaceServiceHistorySnapshot {
             next_offset,
             history_length: self.entries.len(),
             json,
+            program_root_v2: self.program_root_v2.clone(),
         })
     }
 }
@@ -442,6 +453,7 @@ pub struct SemanticWorkspaceServiceHistoryResult {
     next_offset: Option<usize>,
     history_length: usize,
     json: String,
+    program_root_v2: Option<super::ProgramRootV2>,
 }
 
 impl SemanticWorkspaceServiceHistoryResult {
@@ -475,6 +487,10 @@ impl SemanticWorkspaceServiceHistoryResult {
 
     pub fn to_json(&self) -> &str {
         &self.json
+    }
+
+    pub fn program_root_v2(&self) -> Option<&super::ProgramRootV2> {
+        self.program_root_v2.as_ref()
     }
 }
 

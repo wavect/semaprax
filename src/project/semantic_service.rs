@@ -414,6 +414,38 @@ impl SemanticWorkspaceService {
             .query(&query)
     }
 
+    /// Capture history only after selecting the retained exact ProgramRoot v2.
+    /// The snapshot's canonical v1 history bytes remain unchanged.
+    pub fn history_snapshot_exact(
+        &self,
+        expected_workspace_revision: &str,
+        expected_program_root_v2_digest: &str,
+    ) -> Result<SemanticWorkspaceServiceHistorySnapshot> {
+        let context = self.active.exact_context().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v2 context")
+        })?;
+        let root = context
+            .select(expected_workspace_revision, expected_program_root_v2_digest)?
+            .clone();
+        let mut snapshot = self.history_snapshot(expected_workspace_revision)?;
+        snapshot.retain_program_root_v2(root);
+        Ok(snapshot)
+    }
+
+    /// Query the unchanged v1 history wire projection while retaining the
+    /// exact ProgramRoot v2 selection in the typed result.
+    pub fn history_query_exact(
+        &self,
+        query_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v2_digest: &str,
+    ) -> Result<SemanticWorkspaceServiceHistoryResult> {
+        let snapshot = self
+            .history_snapshot_exact(expected_workspace_revision, expected_program_root_v2_digest)?;
+        let query = SemanticWorkspaceServiceHistoryQuery::from_json(query_bytes)?;
+        snapshot.query(&query)
+    }
+
     /// Execute one exact canonical query against the active immutable generation.
     pub fn query(&self, query_bytes: &[u8]) -> Result<SemanticQueryResult> {
         let query = SemanticQuery::from_json(query_bytes)?;
@@ -443,13 +475,36 @@ impl SemanticWorkspaceService {
         expected_workspace_revision: &str,
         expected_program_root_v2_digest: &str,
     ) -> Result<SemanticQueryResult> {
+        let snapshot =
+            self.snapshot_exact(expected_workspace_revision, expected_program_root_v2_digest)?;
         let query = SemanticQuery::from_json(query_bytes)?;
-        self.snapshot_exact(expected_workspace_revision, expected_program_root_v2_digest)?
-            .query_exact(
-                &query,
-                expected_workspace_revision,
-                expected_program_root_v2_digest,
-            )
+        snapshot.query_exact(
+            &query,
+            expected_workspace_revision,
+            expected_program_root_v2_digest,
+        )
+    }
+
+    /// Replay unchanged Universal Semantic Query v1 bytes while selecting the
+    /// active generation's exact ProgramRoot v2 context.
+    pub fn replay_query_exact(
+        &self,
+        query_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v2_digest: &str,
+        expected_result_digest: &str,
+        result_bytes: &[u8],
+    ) -> Result<SemanticQueryResult> {
+        let snapshot =
+            self.snapshot_exact(expected_workspace_revision, expected_program_root_v2_digest)?;
+        SemanticQuery::replay_exact(
+            &snapshot,
+            query_bytes,
+            expected_workspace_revision,
+            expected_program_root_v2_digest,
+            expected_result_digest,
+            result_bytes,
+        )
     }
 
     /// Admit and execute one exact canonical retained-index query against the
@@ -619,15 +674,15 @@ impl SemanticWorkspaceService {
         expected_workspace_revision: &str,
         expected_program_root_v2_digest: &str,
     ) -> Result<SemanticTransactionArtifacts> {
+        let context = self.active.exact_context().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v2 context")
+        })?;
+        context.select(expected_workspace_revision, expected_program_root_v2_digest)?;
         let mut history = self
             .history
             .lock()
             .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?;
         history.require_capacity()?;
-        let context = self.active.exact_context().ok_or_else(|| {
-            invalid("semantic workspace service has no retained exact ProgramRoot v2 context")
-        })?;
-        context.select(expected_workspace_revision, expected_program_root_v2_digest)?;
         let transaction = SemanticTransaction::from_json(transaction_bytes)?;
         let artifacts = transaction.validate_exact(
             Arc::clone(context),
@@ -636,7 +691,7 @@ impl SemanticWorkspaceService {
         )?;
         let history_entry = history.transaction_entry(
             self.active.revision.project_revision(),
-            self.active.workspace_revision(),
+            artifacts.base_program_root().workspace_revision(),
             artifacts.candidate().revision().project_revision(),
             artifacts.candidate_program_root().workspace_revision(),
             transaction.digest(),
@@ -644,6 +699,27 @@ impl SemanticWorkspaceService {
         )?;
         history.append(history_entry);
         Ok(artifacts)
+    }
+
+    /// Replay frozen v1 transaction evidence against the exact retained root.
+    /// Replay is read-only and therefore appends no service history entry.
+    pub fn replay_transaction_exact(
+        &self,
+        transaction_bytes: &[u8],
+        evidence_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v2_digest: &str,
+    ) -> Result<SemanticTransactionArtifacts> {
+        let context = self.active.exact_context().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v2 context")
+        })?;
+        SemanticTransaction::replay_exact(
+            Arc::clone(context),
+            expected_workspace_revision,
+            expected_program_root_v2_digest,
+            transaction_bytes,
+            evidence_bytes,
+        )
     }
 }
 

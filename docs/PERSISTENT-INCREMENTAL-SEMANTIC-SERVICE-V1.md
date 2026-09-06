@@ -42,6 +42,8 @@ pub struct SemanticWorkspaceServiceRefresh { /* opaque */ }
 
 `SemanticWorkspaceService::open` accepts an already admitted
 `Arc<ProjectRevision>` and creates a checked-module semantic cache.
+`open_exact` instead accepts an already-replayed `ExactProgramContext` and
+retains its `ProgramRootV2` atomically with the generation.
 `open_with_semantic_cache` instead accepts an opaque
 `ProjectFrontendCache` that must already be in semantic-cache mode. A cache
 restored from disk must have been authenticated by the separate explicit host
@@ -90,6 +92,10 @@ core also executes its five canonical revision-bound operations through
 `SemanticWorkspaceSnapshot::query` or exact request bytes through
 `SemanticWorkspaceService::query`. Those entry points retain this snapshot and
 authority boundary. They are library calls, not a service wire route.
+For an exact-context generation, `query_exact` and `replay_query_exact` require
+both the enriched workspace revision and ProgramRoot-v2 digest. They return the
+unchanged Universal Semantic Query v1 result bytes while retaining the selected
+v2 root only in the typed in-memory result.
 The one-shot workflow CLI invokes these library calls but does not retain
 service state after the command.
 
@@ -170,6 +176,14 @@ snapshots support exact revision-bound canonical queries in pages of at most
 64 entries. Ordering means mutex-serialized observed-call order, not a promise
 of deterministic scheduling between concurrent callers, and the history is
 neither durable nor authority-bearing.
+
+For exact transaction validation, the history entry's base Project/workspace
+pair is the authenticated default Project-derived base owned by the exact
+context. The enriched workspace and `ProgramRootV2` remain a separate selector
+association and are retained only on an exact history snapshot/result. Exact
+history selection and replay require both identities and preserve the frozen v1
+history query/result bytes. They do not rewrite a history entry to substitute
+the enriched workspace identity for its authenticated default base.
 
 ## Source Agent visibility
 
@@ -309,3 +323,10 @@ identity remains in memory; existing service receipts and query/transaction
 wire bytes are unchanged. `refresh_owned_sources` rejects an exact generation:
 candidate-safe Project Lock replay is not yet available, so the service cannot
 silently copy, discard, or weaken its extension facts.
+
+`replay_query_exact`, exact transaction replay, and exact history
+snapshot/query/replay reuse that same dual selector and retain the selected
+`ProgramRootV2` only on typed results. Exact transaction history continues to
+bind the context's authenticated default Project/workspace base identity.
+Universal Query v1, Semantic Transaction v1, service-history v1, receipt, and
+legacy ProgramRoot bytes remain unchanged.

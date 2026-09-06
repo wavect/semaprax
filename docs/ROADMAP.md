@@ -214,6 +214,13 @@ general package-consumer relationships and measured task-level cost improvements
 remain open. No compiler, test, client snippet, benchmark or hosted gate was run
 for this v5 batch; the full programme stays Partial.
 
+The additive ProgramRoot-v2 exact context now remains selected through
+authority-free query and transaction replay and bounded service-history reads
+without changing the frozen v1 wires. The next SEG-02 lifecycle step is still
+candidate-safe Project Lock replay: until that is available, candidate
+ProgramRoot-v2 derivation and exact service refresh must continue to fail
+closed rather than copy or weaken external facts.
+
 Actual source-exact parse/format reuse, expression holes, owning-Bytes parameter
 mapping and typed diagnostic repair history now have authored implementations.
 Separate canonical Git publication now has bounded Linux/macOS bare SHA1/SHA256

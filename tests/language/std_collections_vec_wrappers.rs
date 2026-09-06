@@ -163,7 +163,7 @@ module test.vec_reserve;
     values
 }
 "#;
-    assert!(errors(&oversized).contains(&"SPX-T282"));
+    assert!(errors(oversized).contains(&"SPX-T282"));
     let intrinsic_inference = WRAPPERS.replace(
         "vec_reserve_exact<T>(values, additional)",
         "vec_reserve_exact(values, additional)",

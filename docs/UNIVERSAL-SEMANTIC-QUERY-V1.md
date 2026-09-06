@@ -54,9 +54,11 @@ pub struct SemanticQueryResult { /* opaque */ }
 
 `SemanticQuery` provides typed constructors named after all seven operations,
 `from_json`, `to_json`, `query_digest`, `expected_workspace_revision`,
-`execute`, and `replay`. `SemanticQueryResult` exposes `to_json`,
+`execute`, `replay`, and the additive in-memory `execute_exact` and
+`replay_exact` selectors. `SemanticQueryResult` exposes `to_json`,
 `result_digest`, `query_digest`, `payload`, `payload_digest`, and
-`workspace_revision`.
+`workspace_revision`; an exact result additionally exposes its retained
+`ProgramRootV2` through a Rust accessor without serializing it.
 
 `SemanticWorkspaceSnapshot::query` accepts a typed `SemanticQuery`.
 `SemanticWorkspaceService::query` accepts exact canonical query bytes and
@@ -107,6 +109,13 @@ semaprax.semantic-query.declaration-consumers.payload.digest.v1\0
 wires, verifies the caller's result digest, freshly executes against the
 selected immutable snapshot, and exact-compares the complete result bytes and
 digest. Malformed, reminted, cross-revision, or stale material fails closed.
+
+`SemanticQuery::replay_exact` first requires an exact-context snapshot and both
+its enriched workspace revision and ProgramRoot-v2 digest, then performs that
+same fresh v1 replay. The returned typed result retains the selected
+`ProgramRootV2`; query and result schemas, bytes, and digests remain exactly
+the frozen v1 values. Neither a valid v1 result nor one selector alone can be
+used to infer or recover the v2 association.
 
 ## Operations
 
@@ -284,5 +293,8 @@ CARGO_TARGET_DIR=target/universal-semantic-query-v1 \
 `execute_exact` requires an exact-context snapshot plus matching enriched
 workspace and ProgramRoot-v2 selectors. The in-memory result exposes that v2
 root; its v1 JSON, payload, and digest remain byte-identical to ordinary
-execution. No v1 replay request may infer or select a v2 context by workspace
-revision alone.
+execution. `replay_exact`, including the service-owned adapter, applies the
+same dual selection before freshly replaying and exact-comparing the unchanged
+v1 query/result pair. No v1 replay request may infer or select a v2 context by
+workspace revision alone; malformed, stale, reminted, or cross-paired
+selectors fail closed.

@@ -181,6 +181,14 @@ revision, re-runs candidate validation and all artifacts, and exact-compares
 the complete evidence bytes. A self-consistently edited or cross-paired capsule
 does not pass.
 
+The additive `replay_exact` entry point first selects an `ExactProgramContext`
+with both the enriched workspace revision and ProgramRoot-v2 digest, then runs
+that unchanged v1 replay over the context's authenticated Project revision.
+The returned typed artifacts retain the selected base `ProgramRootV2` in
+memory only. Transaction, impact, review, result, and evidence schemas, bytes,
+and digests remain unchanged; stale, reminted, or cross-paired selectors fail
+closed before they can label v1 evidence with a v2 root.
+
 ## Compatibility and nonclaims
 
 The kernel is additive. Existing Project, workspace, Semantic Workspace Image
@@ -237,3 +245,5 @@ base ProgramRoot v2 in memory only. Candidate ProgramRoot v2 is deliberately
 absent: Project Lock v1 verification still requires a held snapshot, so an
 in-memory candidate cannot yet freshly replay every external fact. Existing
 transaction, result, review, impact, and evidence bytes remain unchanged.
+`replay_exact` applies the same dual selection before independently replaying
+those frozen v1 bytes and retaining the same authenticated base root.

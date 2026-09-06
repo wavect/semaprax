@@ -32,6 +32,11 @@ enriched v1 root, and invokes exact ProgramRoot-v2 replay.
 `assemble` performs the same checks after deriving ProgramRoot v2 internally.
 `select` always requires both the exact enriched workspace revision and exact
 ProgramRoot-v2 digest. Neither selector alone identifies a context generation.
+The same dual selection is reused by the additive exact query replay,
+transaction replay, service-query replay, and service-history selectors. These
+routes retain the selected `ProgramRootV2` only on their typed in-memory result;
+they do not widen a frozen v1 query, transaction, evidence, history-query, or
+history-result document.
 
 The compact canonical context document binds the Project and legacy workspace
 revisions, both v1 root digests, interface/artifact fact digest, dependency-lock
@@ -58,5 +63,8 @@ dual-selector hostile cases, empty AgentDefinitions rejection, private lock-byte
 absence, and byte preservation for the default canonical workspace and
 ProgramRoot v1. The case passes locally and additionally exercises identical
 ProgramRoot-v2 selection through service generation, exact snapshot, universal
-query, universal transaction base, and structural-diff base while preserving
-the existing query, transaction, and diff bytes.
+query execution and replay, universal transaction validation and replay,
+service-history snapshot/query/replay, and structural-diff base while
+preserving the existing v1 query, transaction, evidence, history, and diff
+bytes. Every exact selector fails closed when either the enriched workspace or
+ProgramRoot-v2 identity is stale, reminted, or cross-paired.

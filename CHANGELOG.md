@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extended the additive Exact Program Context v1 lifecycle through exact query
+  replay, transaction replay, and persistent-service history selection. Every
+  exact route requires both the enriched workspace revision and ProgramRoot-v2
+  digest, retains the selected `ProgramRootV2` only on typed in-memory results,
+  and fails closed on stale, reminted, cross-paired, or mutated inputs. Exact
+  transaction history records the authenticated default Project-derived base
+  workspace identity; read-only replay appends no entry. Universal Semantic
+  Query v1, Universal Semantic Transaction v1, service-history v1, receipt,
+  ProgramRoot v1/v2, canonical-workspace v1, and other legacy wire bytes remain
+  unchanged. Candidate ProgramRoot-v2 derivation and exact refresh remain
+  unavailable pending candidate-safe Project Lock replay.
+
 - Admitted a computed `usize` element index for the Owned Bounded Byte Buffer
   v1 `bytes_set` store, so a value can be written at an offset a scan
   discovers. The allocation capacity is still one literal at the

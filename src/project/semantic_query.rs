@@ -673,6 +673,42 @@ impl SemanticQuery {
         }
         Ok(result)
     }
+
+    /// Replay the unchanged v1 query/result wires while retaining the exact
+    /// ProgramRoot v2 selected by both context identities.
+    pub fn replay_exact(
+        snapshot: &SemanticWorkspaceSnapshot,
+        query_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v2_digest: &str,
+        expected_result_digest: &str,
+        result_bytes: &[u8],
+    ) -> Result<SemanticQueryResult> {
+        snapshot
+            .exact_context()
+            .ok_or_else(|| invalid("semantic query snapshot has no exact ProgramRoot v2 context"))?
+            .select(expected_workspace_revision, expected_program_root_v2_digest)?;
+        let query = Self::from_json(query_bytes)?;
+        if result_bytes.len() > MAX_SEMANTIC_QUERY_RESULT_BYTES {
+            return Err(capacity("semantic query result exceeds its byte limit"));
+        }
+        validate_result_wire(result_bytes)?;
+        validate_digest(expected_result_digest)?;
+        if hash(RESULT_DOMAIN, result_bytes) != expected_result_digest {
+            return Err(stale("semantic query result digest is stale"));
+        }
+        let result = query.execute_exact(
+            snapshot,
+            expected_workspace_revision,
+            expected_program_root_v2_digest,
+        )?;
+        if result.result_digest() != expected_result_digest
+            || result.to_json().as_bytes() != result_bytes
+        {
+            return Err(stale("semantic query result failed exact replay"));
+        }
+        Ok(result)
+    }
 }
 
 /// One canonical result retaining the exact inner legacy payload bytes.

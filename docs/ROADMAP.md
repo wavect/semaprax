@@ -392,19 +392,22 @@ ABIs prematurely.
   cross-file Project execution behind the unchanged scalar-only v8 boundary
   plus the bounded acyclic one-owner-identical-return authored-record relay.
   Its focused local corpus exercises `Box<Pair<Bytes,T>>` and
-  `Pair<Box<Bytes>,T>` over all eight explicit Copy scalars. Next record hosted
-  evidence for those additive selectors. ScalarV1 exact reachable bodies may
-  now compose the flat generic-owned record internally, independent of
-  provenance, while callable and public signatures stay value-scalar. One exact
+  `Pair<Box<Bytes>,T>` over all eight explicit Copy scalars. A dedicated named
+  Linux step now carries exact nested-relay and identity-forwarding selectors;
+  next execute it on a pushed revision and record that hosted result. ScalarV1
+  exact reachable bodies may now compose the flat generic-owned record
+  internally, independent of provenance, while callable and public signatures
+  stay value-scalar. One exact
   Subject-v3 dependency provides local, unhosted cross-package evidence through
   `fn() -> i64`; the slice changes no package or Wasm schema. Direct acyclic
   identity forwarding between already-admitted generic templates now derives a
   transitive concrete-instance closure of at most 256 entries locally without widening bodies,
   signatures, effects, packages, or public ABIs. Graph v14 remains unchanged;
   direct-scalar forwarding retains CleanupPlan v2, flat-owned forwarding v5,
-  and nested-owned forwarding v7. Continue with general expression composition,
-  authored generic variants, broader non-Copy propagation, and a distinct
-  public generic ABI;
+  and nested-owned forwarding v7. The step is CI wiring rather than hosted
+  evidence until that run succeeds. Continue with general expression
+  composition, authored generic variants, broader non-Copy propagation, and a
+  distinct public generic ABI;
 - complete mutation and generic interactions across interpreter, native, and
   Wasm lanes.
 

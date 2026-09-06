@@ -5,8 +5,10 @@ maintainers.
 
 Status: locally exercised internal implementation tranche. The pre-nested-relay
 generic-owned corpus is hosted green in [CI run 34031917437, Ubuntu job
-101482963175](https://github.com/wavect/semaprax/actions/runs/34031917437/job/101482963175);
-the additive nested-relay selectors remain local until their own pushed run.
+101482963175](https://github.com/wavect/semaprax/actions/runs/34031917437/job/101482963175).
+The additive nested-relay and identity-forwarding selectors pass locally and
+are wired into one named Linux CI step, but that step remains unhosted until a
+pushed run records its result.
 
 ## Purpose and boundary
 
@@ -163,6 +165,11 @@ The local gate requires:
   explicit Copy-scalar substitutions, plus `bool`/`i64` representative success
   and requires/ensures/staged-call failure settlement on the interpreter,
   native C11 `-O0`/`-O2`, and Core-Wasm; and
+- one three-template `Box<Pair<Bytes, T>>` forwarding chain over all eight Copy
+  scalars, with exact instance IDs, nested parameter/result types, CleanupPlan-v7
+  leaf paths, hostile instance/signature/inventory/liveness/call-argument replay,
+  source permutation/duplication/omission and direct/indirect-cycle rejection,
+  and an exact 256-instance closure plus first-over-bound rejection; and
 - one exact ScalarV1 Project dependency whose authenticated Subject-v3 source
   exercises a three-template identity-forwarding chain over
   flat `Pair<Bytes, bool>` with CleanupPlan v5 while exactly one no-argument
@@ -178,8 +185,9 @@ distribution remain separate completion work. The focused
 local source/HIR/layout and interpreter/native/Wasm gates exercise the complete
 Copy-scalar set. The earlier corpus has the hosted run identified above; that
 result predates and does not promote the additive nested relay, whose required
-Linux CI step has not yet recorded its own real run. The generic-forwarding
-addition likewise remains local and unhosted.
+named Linux CI step has not yet recorded its own real run. The
+generic-forwarding addition is part of that same authored but unrun step and
+likewise remains local and unhosted.
 
 ## Project integration prerequisite
 

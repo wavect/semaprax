@@ -74,6 +74,17 @@ format: `Unreleased` then release buckets, grouped by impact.
   This adds no inference, constraints, construction, projection, variants,
   resources, effects, package signature, or public generic ABI.
 
+- Added a dedicated Linux CI step for the additive nested generic-owned relay
+  and identity-forwarding tranche. It names the exact source/HIR boundary,
+  transitive-instance hostility, all-engine settlement, and scalar-only Project
+  dependency selectors, and removes their duplicate invocations from the
+  adjacent generic-owned step. New locally passing hostility regressions cover
+  all eight Copy scalars through a three-template nested relay, forged HIR
+  carrier and cleanup vectors, source vector changes and cycles, and the exact
+  256/+1 instance-closure bound. The workflow YAML is locally validated but has
+  no pushed hosted result yet; the older run 34031917437 continues to evidence
+  only the pre-nested-relay corpus.
+
 - Re-derived the offline doctor carrier ceiling from measured distributions.
   `DOCTOR_OFFLINE_INPUT_MAX_BYTES` was 536,870,912 bytes, and on a hosted
   `ubuntu-24.04` runner the loader closures of Node v22.23.2 and Rust 1.88.0

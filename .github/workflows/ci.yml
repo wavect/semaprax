@@ -538,6 +538,25 @@ jobs:
         run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - name: Require nested generic-owned relay and forwarding on every internal backend
+        if: runner.os == 'Linux'
+        env:
+          SEMAPRAX_REQUIRE_GENERIC_OWNED_BACKENDS: "1"
+        run: |
+          clang --version
+          node --version
+          cargo test --locked -p semaprax --test language generic_functions::nested_owning_generic_relays_preserve_exact_instances_for_every_copy_scalar -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_functions::generic_forwarding_closes_over_transitive_instances_in_authored_fifo_order -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_functions::generic_forwarding_rejects_nonidentity_arguments_and_cycles_stably -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_functions::nested_owning_generic_relay_source_and_hir_boundaries_fail_closed -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_functions::nested_owning_generic_relay_uses_the_existing_global_depth_bound -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_functions::nested_owning_generic_relay_uses_the_existing_global_owned_leaf_bound -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::generic_owned_function_instances_settle_and_reenter_on_three_engines -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::nested_generic_relay_substitution_and_hir_carriers_fail_closed -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::generic_forwarding_rejects_vector_changes_and_template_cycles -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::generic_forwarding_instance_closure_bound_is_exact -- --exact --nocapture
+          cargo test --locked -p semaprax --test project generic_owned_dependency_runtime::dependency_internal_generic_owned_record_executes_without_public_generic_abi -- --exact --nocapture
+          cargo test --locked -p semaprax --test project generic_owned_dependency_runtime::generic_owned_dependency_subject_tamper_is_rejected_before_callback -- --exact --nocapture
       - name: Require concrete generic owned-record Copy-scalar and hostile-plan evidence
         if: runner.os == 'Linux'
         env:
@@ -552,14 +571,10 @@ jobs:
           cargo test --locked -p semaprax --test owned_data nested_owned_record_runtime::concrete_generic_owned_records_execute_and_settle_on_all_three_backends -- --exact --nocapture
           cargo test --locked -p semaprax --test language generic_functions::explicit_generic_function_relays_one_admitted_owned_record_instance -- --exact --nocapture
           cargo test --locked -p semaprax --test language generic_functions::direct_scalar_generics_and_owned_relay_template_hostility_keep_stable_diagnostics -- --exact --nocapture
-          cargo test --locked -p semaprax --test language generic_functions::nested_owning_generic -- --nocapture
-          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::generic_owned_function_instances_settle_and_reenter_on_three_engines -- --exact --nocapture
           cargo test --locked -p semaprax --lib interpreter::prepared::tests::repeated_preparation_indexes_and_dispatches_exact_generic_function_instance -- --exact --nocapture
           cargo test --locked -p semaprax --test project concrete_generic_project_prerequisites::cross_file_generic_owned_identity_replays_without_widening_the_public_abi -- --exact --nocapture
           cargo test --locked -p semaprax --test project concrete_generic_project_prerequisites::cross_file_generic_owned_record_executes_through_project_products -- --exact --nocapture
           cargo test --locked -p semaprax --test project concrete_generic_project_prerequisites::cross_file_generic_imports_reject_nonrecord_and_nonflat_templates_with_stable_g172 -- --exact --nocapture
-          cargo test --locked -p semaprax --test project generic_owned_dependency_runtime::dependency_internal_generic_owned_record_executes_without_public_generic_abi -- --exact --nocapture
-          cargo test --locked -p semaprax --test project generic_owned_dependency_runtime::generic_owned_dependency_subject_tamper_is_rejected_before_callback -- --exact --nocapture
           cargo test --locked -p semaprax --test project owned_bounded_vec_dependencies::internal_vec_crosses_project_and_authenticated_dependency_boundaries -- --exact --nocapture
           cargo test --locked -p semaprax --test project owned_bounded_vec_dependencies::vec_reaching_public_adapter_and_dependency_tamper_fail_before_execution -- --exact --nocapture
           cargo test --locked -p semaprax --test project flat_owned_record_api::frozen_v9_descriptor_rejects_an_admitted_concrete_generic_result -- --exact --nocapture

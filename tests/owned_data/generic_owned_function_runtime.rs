@@ -587,3 +587,321 @@ for(let i=0;i<4;i+=1){{{expectation}}}
         String::from_utf8_lossy(&output.stderr)
     );
 }
+
+fn generic_relay_matrix_source() -> String {
+    let mut source = String::from(
+        r#"module test.generic_owned_function_hostile;
+@id("hostile.pair") record Pair<T, U> {
+  @id("hostile.pair.payload") payload: T,
+  @id("hostile.pair.marker") marker: U,
+}
+@id("hostile.box") record Box<T> {
+  @id("hostile.box.value") value: T,
+}
+@id("hostile.leaf")
+fn leaf<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { value }
+@id("hostile.middle")
+fn middle<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { leaf<T>(value) }
+@id("hostile.outer")
+fn outer<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { middle<T>(value) }
+"#,
+    );
+    for scalar in ["i64", "i32", "u8", "usize", "char", "f32", "f64", "bool"] {
+        source.push_str(&format!(
+            "@id(\"hostile.invoke.{scalar}\") fn invoke_{scalar}(value: own Box<Pair<Bytes, {scalar}>>) -> Box<Pair<Bytes, {scalar}>> {{ outer<{scalar}>(value) }}\n"
+        ));
+    }
+    source.push_str("@id(\"app.main\") fn main() -> i64 { 0 }\n");
+    source
+}
+
+fn checked_relay_matrix() -> hir::ResolvedProgram {
+    let source = generic_relay_matrix_source();
+    let parsed = parse(
+        &source,
+        Path::new("generic-owned-function-hostile-matrix-v1.spx"),
+    )
+    .expect("relay matrix parses");
+    let diagnostics = verify::verify(&parsed);
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
+        "relay matrix verifies: {diagnostics:?}"
+    );
+    hir::resolve(&parsed).expect("relay matrix resolves and replays")
+}
+
+#[test]
+fn nested_generic_relay_substitution_and_hir_carriers_fail_closed() {
+    fn leaf_paths(shape: &semaprax::cleanup::FieldLivenessShape) -> Vec<Vec<DeclarationId>> {
+        fn visit(
+            shape: &semaprax::cleanup::FieldLivenessShape,
+            path: &mut Vec<DeclarationId>,
+            paths: &mut Vec<Vec<DeclarationId>>,
+        ) {
+            match shape {
+                semaprax::cleanup::FieldLivenessShape::NoDrop => {}
+                semaprax::cleanup::FieldLivenessShape::Leaf { .. } => {
+                    paths.push(path.clone());
+                }
+                semaprax::cleanup::FieldLivenessShape::Record { fields, .. } => {
+                    for field in fields {
+                        path.push(field.field.clone());
+                        visit(&field.shape, path, paths);
+                        path.pop();
+                    }
+                }
+                semaprax::cleanup::FieldLivenessShape::Variant { .. } => {
+                    panic!("nested relay cleanup shape must remain a record")
+                }
+                _ => panic!("nested relay cleanup shape widened unexpectedly"),
+            }
+        }
+
+        let mut paths = Vec::new();
+        visit(shape, &mut Vec::new(), &mut paths);
+        paths
+    }
+
+    let program = checked_relay_matrix();
+    let scalars = [
+        ResolvedType::I64,
+        ResolvedType::I32,
+        ResolvedType::U8,
+        ResolvedType::Usize,
+        ResolvedType::Char,
+        ResolvedType::F32,
+        ResolvedType::F64,
+        ResolvedType::Bool,
+    ];
+    let owned_path = vec![
+        DeclarationId::new("hostile.box.value"),
+        DeclarationId::new("hostile.pair.payload"),
+    ];
+    for template in ["hostile.outer", "hostile.middle", "hostile.leaf"] {
+        for scalar in &scalars {
+            let instance = program
+                .function_instances
+                .iter()
+                .find(|instance| {
+                    instance.template.as_str() == template
+                        && instance.type_arguments == [scalar.clone()]
+                })
+                .unwrap_or_else(|| panic!("missing {template}<{scalar:?}>"));
+            let pair = nominal("hostile.pair", vec![ResolvedType::Bytes, scalar.clone()]);
+            let aggregate = nominal("hostile.box", vec![pair]);
+            assert_eq!(
+                instance.id,
+                hir::FunctionInstanceId::derive(&instance.template, std::slice::from_ref(scalar),)
+            );
+            assert_eq!(instance.function.params[0].ty, aggregate);
+            assert_eq!(instance.function.return_type, aggregate);
+            assert_eq!(
+                instance.function.cleanup_plan.schema,
+                "semaprax.cleanup-plan.v7"
+            );
+            let (expected_inventory_flags, expected_plan_slots) = if template == "hostile.leaf" {
+                (3, 3)
+            } else {
+                (4, 5)
+            };
+            assert_eq!(
+                instance.function.cleanup.flags.len(),
+                expected_inventory_flags
+            );
+            assert_eq!(
+                instance.function.cleanup_plan.slots.len(),
+                expected_plan_slots
+            );
+            assert!(instance
+                .function
+                .cleanup
+                .flags
+                .iter()
+                .all(|flag| flag.place.projections == owned_path));
+            for slot in &instance.function.cleanup_plan.slots {
+                assert_eq!(
+                    leaf_paths(&slot.field_liveness_shape).as_slice(),
+                    std::slice::from_ref(&owned_path)
+                );
+            }
+        }
+    }
+
+    let bool_outer = |program: &hir::ResolvedProgram| {
+        program
+            .function_instances
+            .iter()
+            .position(|instance| {
+                instance.template.as_str() == "hostile.outer"
+                    && instance.type_arguments == [ResolvedType::Bool]
+            })
+            .expect("bool outer instance")
+    };
+
+    let mut wrong_identity = program.clone();
+    let index = bool_outer(&wrong_identity);
+    wrong_identity.function_instances[index].type_arguments[0] = ResolvedType::I64;
+    assert_eq!(hir::validate(&wrong_identity).unwrap_err().code, "SPX-H006");
+
+    let mut wrong_signature = program.clone();
+    let index = bool_outer(&wrong_signature);
+    wrong_signature.function_instances[index].function.params[0].ty = nominal(
+        "hostile.box",
+        vec![nominal(
+            "hostile.pair",
+            vec![ResolvedType::Bytes, ResolvedType::I64],
+        )],
+    );
+    assert_eq!(
+        hir::validate(&wrong_signature).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut wrong_inventory = program.clone();
+    let index = bool_outer(&wrong_inventory);
+    wrong_inventory.function_instances[index]
+        .function
+        .cleanup
+        .flags[0]
+        .place
+        .projections
+        .reverse();
+    assert_eq!(
+        hir::validate(&wrong_inventory).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut wrong_plan = program.clone();
+    let index = bool_outer(&wrong_plan);
+    wrong_plan.function_instances[index]
+        .function
+        .cleanup_plan
+        .slots[0]
+        .field_liveness_shape = semaprax::cleanup::FieldLivenessShape::NoDrop;
+    assert_eq!(hir::validate(&wrong_plan).unwrap_err().code, "SPX-H006");
+
+    let mut wrong_forwarded_call = program.clone();
+    let index = bool_outer(&wrong_forwarded_call);
+    let body = &mut wrong_forwarded_call.function_instances[index].function.body;
+    let call = match &mut body.kind {
+        hir::ResolvedExprKind::Block { statements, tail } if statements.is_empty() => tail,
+        _ => body,
+    };
+    let hir::ResolvedExprKind::Call { type_arguments, .. } = &mut call.kind else {
+        panic!("outer body must be a forwarded call")
+    };
+    type_arguments[0] = ResolvedType::I64;
+    assert_eq!(
+        hir::validate(&wrong_forwarded_call).unwrap_err().code,
+        "SPX-H006"
+    );
+}
+
+fn verification_error_codes(source: &str) -> Vec<&'static str> {
+    let parsed = parse(source, Path::new("generic-owned-forwarding-hostile-v1.spx"))
+        .expect("hostile forwarding source parses");
+    verify::verify(&parsed)
+        .into_iter()
+        .filter(|diagnostic| diagnostic.severity.is_error())
+        .map(|diagnostic| diagnostic.code)
+        .collect()
+}
+
+#[test]
+fn generic_forwarding_rejects_vector_changes_and_template_cycles() {
+    let prelude = r#"module test.generic_owned_forwarding_hostile;
+record Pair<T, U> { payload: T, marker: U, }
+fn leaf<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
+"#;
+    let admitted = format!(
+        "{prelude}fn forward<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ leaf<T, U>(value) }}\nfn main() -> i64 {{ 0 }}\n"
+    );
+    assert!(verification_error_codes(&admitted).is_empty());
+    for body in ["leaf<U, T>(value)", "leaf<T, T>(value)", "leaf<T>(value)"] {
+        let source = format!(
+            "{prelude}fn hostile<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ {body} }}\nfn main() -> i64 {{ 0 }}\n"
+        );
+        let codes = verification_error_codes(&source);
+        assert!(codes.contains(&"SPX-T225"), "{body}: {codes:?}");
+    }
+
+    let direct = r#"module test.generic_owned_forwarding_direct_cycle;
+record Pair<T, U> { payload: T, marker: U, }
+fn cycle<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { cycle<T>(value) }
+fn main() -> i64 { 0 }
+"#;
+    assert_eq!(verification_error_codes(direct), ["SPX-T226"]);
+
+    let indirect = r#"module test.generic_owned_forwarding_indirect_cycle;
+record Pair<T, U> { payload: T, marker: U, }
+fn left<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { right<T>(value) }
+fn right<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { left<T>(value) }
+fn main() -> i64 { 0 }
+"#;
+    let codes = verification_error_codes(indirect);
+    assert_eq!(codes, ["SPX-T226", "SPX-T226"]);
+}
+
+fn forwarding_chain_source(count: usize) -> String {
+    let mut source = String::from(
+        "module test.generic_owned_forwarding_bound;\nrecord Pair<T, U> { payload: T, marker: U, }\n",
+    );
+    for index in 0..count {
+        let body = if index + 1 == count {
+            String::from("value")
+        } else {
+            format!("relay_{}<T>(value)", index + 1)
+        };
+        source.push_str(&format!(
+            "fn relay_{index}<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ {body} }}\n"
+        ));
+    }
+    source.push_str(
+        "fn invoke(value: own Pair<Bytes, bool>) -> Pair<Bytes, bool> { relay_0<bool>(value) }\nfn main() -> i64 { 0 }\n",
+    );
+    source
+}
+
+#[test]
+fn generic_forwarding_instance_closure_bound_is_exact() {
+    let at_limit = forwarding_chain_source(256);
+    let parsed = parse(
+        &at_limit,
+        Path::new("generic-owned-forwarding-limit-v1.spx"),
+    )
+    .expect("at-limit forwarding source parses");
+    let diagnostics = verify::verify(&parsed);
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
+        "at-limit forwarding source verifies: {diagnostics:?}"
+    );
+    let program = hir::resolve(&parsed).expect("256 forwarding instances are admitted");
+    assert_eq!(program.function_instances.len(), 256);
+    hir::validate(&program).expect("at-limit forwarding closure replays");
+
+    let over_limit = forwarding_chain_source(257);
+    let parsed = parse(
+        &over_limit,
+        Path::new("generic-owned-forwarding-over-limit-v1.spx"),
+    )
+    .expect("over-limit forwarding source parses");
+    let diagnostics = verify::verify(&parsed);
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
+        "over-limit rejection belongs to HIR closure discovery: {diagnostics:?}"
+    );
+    let errors = hir::resolve(&parsed).unwrap_err();
+    assert!(
+        errors.iter().any(|error| {
+            error.code == "SPX-H006"
+                && error.message == "generic function instance closure exceeds 256 entries"
+        }),
+        "{errors:?}"
+    );
+}

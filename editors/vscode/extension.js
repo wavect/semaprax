@@ -313,6 +313,12 @@ function activateChecks(context, testMode) {
     // project-wide semantic change, so it belongs to the saved-source session's
     // replay-checked typed intent, not to this route.
     if (navigationSubject(doc).project) throw new Error('This file belongs to a SEMAPRAX project. Rename it through the saved-source session: SEMAPRAX: Start Saved-Source Session, Select Stable Target ID, then New Typed Intent Scratch with a rename_declaration intent.');
+    const entryVersion = doc.version, entryPath = doc.uri.fsPath;
+    const revalidateBeforePatch = () => {
+      const current = openDocument(entryPath);
+      if (!current) throw new Error('The document was closed while the rename was pending; repeat the command');
+      if (current.isDirty || current.version !== entryVersion) throw new Error('The document changed while the rename was pending; save it and repeat the command');
+    };
     const result = await queryDeclarations(binary, doc, {});
     const items = navigation.declarationItems(result, result.sources).filter(item => item.kind === 'function' || item.kind === 'method');
     if (!items.length) { void vscode.window.showInformationMessage('SEMAPRAX: the module declares no callable to rename'); return; }
@@ -330,6 +336,7 @@ function activateChecks(context, testMode) {
         { label: 'Cancel', description: 'Leave the source unchanged', apply: false }
       ], { placeHolder: 'Impact of the rename' });
       if (!apply || !apply.apply) return impact;
+      revalidateBeforePatch();
       const applied = await runNavigation(binary, navigation.patchArguments(doc.uri.fsPath, patchPath), doc.uri.fsPath);
       void vscode.window.showInformationMessage(`SEMAPRAX: ${applied.trim()}`);
       return { ...impact, applied: applied.trim() };

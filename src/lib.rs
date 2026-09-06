@@ -137,6 +137,7 @@ pub mod trace_path_certificate;
 mod trace_path_certificate;
 pub mod ui_schema;
 pub(crate) mod variant_layout;
+pub(crate) mod vec_ops;
 pub mod verify;
 pub mod wasm;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]

@@ -15,6 +15,7 @@ mod generic_type_import;
 mod operation_sidecar;
 mod owned_generics;
 mod package;
+mod prelude_binding;
 mod project_render;
 mod retained_validation;
 use crate::ast::{
@@ -4295,13 +4296,14 @@ fn build_owned_inner(
         } else {
             (None, None, 0, 0)
         };
+    let shared_prelude_ids = prelude_binding::ids(&programs);
     let build = WorkspaceGraphBuild {
         hir: ValidatedWorkspaceHir {
             modules,
             module_paths,
             dependency_depths,
             declarations: declaration_facts,
-            shared_prelude_ids: prelude::all_ids().into_iter().collect(),
+            shared_prelude_ids,
         },
         edges: expected_edges,
         usage: WorkspaceGraphWorkUsage {
@@ -5423,6 +5425,7 @@ fn validate_uses(
                     !function_aliases.insert(module_use.alias.as_str())
                         || local_functions.contains(module_use.alias.as_str())
                         || module_use.alias == "main"
+                        || crate::vec_ops::by_name(&module_use.alias).is_some()
                 }
                 ModuleUseKind::Type => {
                     !type_aliases.insert(module_use.alias.as_str())
@@ -6134,7 +6137,8 @@ fn reconstruct_workspace_declaration_facts(
     programs: &[Program],
 ) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
     let expected = expected_declaration_facts(programs)?;
-    let expected_compiler = expected_compiler_declaration_facts()?;
+    let uses_vec = prelude_binding::uses_vec(programs);
+    let expected_compiler = prelude_binding::expected_declaration_facts(uses_vec)?;
     let mut actual = BTreeMap::new();
     for (module, resolved) in modules {
         let source = programs
@@ -6243,6 +6247,9 @@ fn reconstruct_workspace_declaration_facts(
                 )]);
             }
         }
+        if !uses_vec {
+            compiler.remove(prelude::VEC_ID);
+        }
         if compiler != expected_compiler {
             return Err(vec![graph_error(
                 "SPX-G173",
@@ -6267,7 +6274,7 @@ fn reconstruct_workspace_declaration_facts(
         .keys()
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
-    let expected_compiler_ids = prelude::all_ids().into_iter().collect::<BTreeSet<_>>();
+    let expected_compiler_ids = prelude_binding::ids(programs);
     if compiler_ids != expected_compiler_ids {
         return Err(vec![graph_error(
             "SPX-G173",
@@ -6407,57 +6414,6 @@ fn expected_declaration_facts(
                 identity_origin(function.explicit_id),
                 None,
             )?;
-        }
-    }
-    Ok(facts)
-}
-
-fn expected_compiler_declaration_facts(
-) -> Result<BTreeMap<String, WorkspaceDeclarationFact>, Vec<Diagnostic>> {
-    let mut facts = BTreeMap::new();
-    for declaration in prelude::declarations() {
-        let kind = match &declaration.kind {
-            TypeDeclarationKind::Record { .. } => hir::DeclarationKind::Record,
-            TypeDeclarationKind::Class { .. } => hir::DeclarationKind::Class,
-            TypeDeclarationKind::Variant { .. } => hir::DeclarationKind::Variant,
-            TypeDeclarationKind::Resource { .. } => {
-                return Err(vec![graph_error(
-                    "SPX-G173",
-                    "compiler prelude unexpectedly declares a resource authority",
-                )]);
-            }
-        };
-        insert_expected_compiler_declaration(&mut facts, &declaration.stable_id, kind, None)?;
-        match &declaration.kind {
-            TypeDeclarationKind::Record { fields } | TypeDeclarationKind::Class { fields, .. } => {
-                for field in fields {
-                    insert_expected_compiler_declaration(
-                        &mut facts,
-                        &field.stable_id,
-                        hir::DeclarationKind::Field,
-                        Some(&declaration.stable_id),
-                    )?;
-                }
-            }
-            TypeDeclarationKind::Variant { cases } => {
-                for case in cases {
-                    insert_expected_compiler_declaration(
-                        &mut facts,
-                        &case.stable_id,
-                        hir::DeclarationKind::VariantCase,
-                        Some(&declaration.stable_id),
-                    )?;
-                    for field in &case.fields {
-                        insert_expected_compiler_declaration(
-                            &mut facts,
-                            &field.stable_id,
-                            hir::DeclarationKind::CaseField,
-                            Some(&case.stable_id),
-                        )?;
-                    }
-                }
-            }
-            TypeDeclarationKind::Resource { .. } => unreachable!("resource rejected above"),
         }
     }
     Ok(facts)

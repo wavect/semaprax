@@ -45,6 +45,7 @@ mod native_settlement_derivation;
 mod native_trace;
 mod native_trace_runtime;
 mod native_value;
+mod native_vec;
 
 use std::collections::HashMap;
 use std::path::Path;

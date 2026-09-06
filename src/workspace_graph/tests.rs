@@ -1664,7 +1664,7 @@ fn independent_prelude_map_detects_kind_and_owner_substitutions() {
         .filter(|(_, fact)| fact.origin == hir::IdentityOrigin::CompilerOwned)
         .map(|(id, fact)| (id.clone(), fact.clone()))
         .collect::<BTreeMap<_, _>>();
-    let expected = expected_compiler_declaration_facts().unwrap();
+    let expected = prelude_binding::expected_declaration_facts(false).unwrap();
     assert_eq!(actual, expected);
 
     let root_id = expected

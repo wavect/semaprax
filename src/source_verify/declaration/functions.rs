@@ -66,6 +66,17 @@ pub(super) fn check_function_declarations<'p>(
                 function.name_span,
             ));
         }
+        if crate::vec_ops::by_name(&function.name).is_some() {
+            diagnostics.push(error(
+                program,
+                "SPX-S113",
+                format!(
+                    "function name `{}` is reserved by the compiler-owned vector operations",
+                    function.name
+                ),
+                function.name_span,
+            ));
+        }
         if crate::host_io_ops::by_name(&function.name).is_some() {
             diagnostics.push(error(
                 program,

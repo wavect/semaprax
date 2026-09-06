@@ -229,6 +229,50 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         return_type: op.ast_return_type(),
                         implicit_unique_ownership: false,
                     }))
+                } else if let Some(op) = crate::vec_ops::by_name(name) {
+                    let element = type_arguments.first();
+                    if type_arguments.len() != 1
+                        || element.is_none_or(|ty| !crate::vec_ops::ast_element_is_admitted(ty))
+                    {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T281",
+                            format!("vector operation `{name}` requires one explicit Copy-scalar type argument"),
+                            expression.span,
+                        ));
+                    }
+                    if args.len() != op.arity() {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T281",
+                            format!(
+                                "vector operation `{name}` expects {} arguments, received {}",
+                                op.arity(),
+                                args.len()
+                            ),
+                            expression.span,
+                        ));
+                    }
+                    if op == crate::vec_ops::VecOp::WithCapacity
+                        && matches!(args.first().map(|arg| &arg.kind), Some(ExprKind::Usize(value)) if *value > crate::vec_ops::MAX_CAPACITY)
+                    {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T282",
+                            format!(
+                                "`{name}` literal capacity must be no greater than {}",
+                                crate::vec_ops::MAX_CAPACITY
+                            ),
+                            expression.span,
+                        ));
+                    }
+                    VerifierCallTarget::Ordinary(element.map(|element| {
+                        VerifierFunctionSignature::Specialized {
+                            params: crate::vec_ops::ast_params(op, element),
+                            return_type: op.ast_return_type(element),
+                            implicit_unique_ownership: false,
+                        }
+                    }))
                 } else if let Some(op) = crate::byte_ops::by_name(name) {
                     if !type_arguments.is_empty() {
                         self.diagnostics.push(error(

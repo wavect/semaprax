@@ -220,10 +220,13 @@ pub(crate) fn classify<'a>(
     let mut slot_positions = BTreeMap::new();
     let mut leaf_positions = BTreeMap::new();
     let bytes_lifecycle = DeclarationId::new(crate::cleanup::BYTES_DROP_LIFECYCLE_ID);
+    let vec_lifecycle = DeclarationId::new(crate::cleanup::VEC_DROP_LIFECYCLE_ID);
 
     for slot in &plan.slots {
         let expected_lifecycle = if matches!(slot.ty, ResolvedType::Bytes) {
             &bytes_lifecycle
+        } else if crate::cleanup::is_owned_bounded_vec_type(&slot.ty) {
+            &vec_lifecycle
         } else {
             direct_resource_lifecycle(program, function, &slot.ty, "cleanup slot")?
         };
@@ -256,6 +259,13 @@ pub(crate) fn classify<'a>(
                 return Err(unsupported(
                     function,
                     "compiler-owned Bytes slot has a noncanonical lifecycle",
+                ));
+            }
+        } else if crate::cleanup::is_owned_bounded_vec_type(&slot.ty) {
+            if lifecycle.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID {
+                return Err(unsupported(
+                    function,
+                    "compiler-owned Vec slot has a noncanonical lifecycle",
                 ));
             }
         } else {

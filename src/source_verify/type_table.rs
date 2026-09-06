@@ -72,7 +72,7 @@ impl<'a> TypeTable<'a> {
         let declarations: HashMap<&'a str, &'a TypeDeclaration> = program
             .types
             .iter()
-            .chain(crate::prelude::declarations())
+            .chain(crate::prelude::declarations_for_program(program))
             .map(|declaration| (declaration.name.as_str(), declaration))
             .collect();
         let mut merged_class_fields = HashMap::new();
@@ -399,6 +399,12 @@ impl<'a> TypeTable<'a> {
                 Frame::Enter(ty) => match ty {
                     Type::String | Type::Bytes => return true,
                     Type::Named { name, arguments } => {
+                        if name == "Vec"
+                            && arguments.len() == 1
+                            && crate::vec_ops::ast_element_is_admitted(&arguments[0])
+                        {
+                            return true;
+                        }
                         let Some(declaration) = self.declaration(&name) else {
                             continue;
                         };

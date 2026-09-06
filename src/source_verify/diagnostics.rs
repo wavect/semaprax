@@ -185,7 +185,16 @@ pub(super) fn reject_reserved_host_id(
     span: Span,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    if crate::host_io_ops::by_id(stable_id).is_some()
+    if crate::vec_ops::by_id(stable_id).is_some() {
+        diagnostics.push(error(
+            program,
+            "SPX-S113",
+            format!(
+                "authored {kind} uses stable ID `{stable_id}`, which is reserved by the compiler-owned vector operations"
+            ),
+            span,
+        ));
+    } else if crate::host_io_ops::by_id(stable_id).is_some()
         || crate::command_io_ops::by_id(stable_id).is_some()
     {
         diagnostics.push(error(

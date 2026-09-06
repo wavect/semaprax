@@ -217,12 +217,26 @@ impl Resolver<'_> {
                     name,
                     ..
                 } => {
-                    if !type_arguments.is_empty() {
+                    let vec_operation = crate::vec_ops::by_name(name);
+                    if !type_arguments.is_empty() && vec_operation.is_none() {
                         return Err(self.error(
                             "SPX-T252",
                             "generic calls are not yet admitted in while bodies",
                             expression.span,
                         ));
+                    }
+                    if let Some(operation) = vec_operation {
+                        if operation == crate::vec_ops::VecOp::WithCapacity
+                            || type_arguments.len() != 1
+                            || !crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
+                            || args.len() != operation.arity()
+                        {
+                            return Err(self.error(
+                                "SPX-T283",
+                                "only exact typed Vec push/read operations are admitted in while bodies",
+                                expression.span,
+                            ));
+                        }
                     }
                     if let Some(operation) = crate::byte_ops::by_name(name) {
                         if !matches!(

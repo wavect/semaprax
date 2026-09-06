@@ -41,6 +41,7 @@ use super::{
 
 const BYTE_IMPORT_COUNT: u32 = 4;
 const OWNED_BUFFER_IMPORT_COUNT: u32 = 2;
+const VEC_IMPORT_COUNT: u32 = 6;
 const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
 const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
 const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
@@ -48,6 +49,20 @@ const BYTE_AS_SLICE_IMPORT: u32 = SCALAR_IMPORT_COUNT + 3;
 const BYTE_ZEROED_IMPORT: u32 = SCALAR_IMPORT_COUNT + BYTE_IMPORT_COUNT;
 const BYTE_SET_IMPORT: u32 = BYTE_ZEROED_IMPORT + 1;
 const OWNED_UTF8_LITERAL_BASE: u32 = 196_608;
+
+fn vec_import_base(program: &ResolvedProgram) -> u32 {
+    SCALAR_IMPORT_COUNT
+        + if super::program_uses_byte_data(program) {
+            BYTE_IMPORT_COUNT
+        } else {
+            0
+        }
+        + if program_uses_owned_buffer(program) {
+            OWNED_BUFFER_IMPORT_COUNT
+        } else {
+            0
+        }
+}
 
 #[derive(Default)]
 struct OwnedUtf8Literals {
@@ -102,6 +117,9 @@ pub(super) const STATUS_REQUIRES_FALSE: i32 = 9;
 pub(super) const STATUS_ENSURES_FALSE: i32 = 10;
 pub(super) const STATUS_BYTE_RANGE_START_AFTER_END: i32 = 11;
 pub(super) const STATUS_BYTE_RANGE_END_OUT_OF_BOUNDS: i32 = 12;
+pub(super) const STATUS_VEC_PUSH_FULL: i32 = 13;
+pub(super) const STATUS_VEC_GET_OUT_OF_BOUNDS: i32 = 14;
+pub(super) const STATUS_VEC_ALLOCATION_FAILURE: i32 = 15;
 pub(super) const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
 
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -335,7 +353,9 @@ impl FunctionPlan {
                 &slot.field_liveness_shape,
                 &mut Vec::new(),
                 &mut |place, flag, lifecycle| {
-                    if lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
+                    if lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID
+                        && lifecycle.as_str() != crate::cleanup::VEC_DROP_LIFECYCLE_ID
+                    {
                         return Err(error("Bytes CleanupPlan leaf has the wrong lifecycle"));
                     }
                     let local = add_local(I32)?;
@@ -1042,6 +1062,9 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
 }
 
 fn is_aggregate(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
+    if crate::cleanup::is_owned_bounded_vec_type(ty) {
+        return Ok(false);
+    }
     Ok(matches!(ty, ResolvedType::ArrayU8(_))
         || is_record(program, ty)?
         || is_variant(program, ty)?)
@@ -1090,6 +1113,7 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
         ResolvedType::Usize => Ok(I64),
         ResolvedType::SliceU8 | ResolvedType::Str => Ok(I64),
         ResolvedType::Bytes => Ok(I64),
+        ty if crate::cleanup::is_owned_bounded_vec_type(ty) => Ok(I64),
         ResolvedType::String => Ok(I64),
         ResolvedType::F32 => Ok(F32),
         ResolvedType::F64 => Ok(F64),
@@ -1098,6 +1122,29 @@ fn scalar_wasm_type(ty: &ResolvedType) -> Result<u8, Diagnostic> {
             "non-scalar type `{}` reached scalar aggregate lowering",
             ty.identity_key()
         ))),
+    }
+}
+
+fn vec_element_tag(ty: &ResolvedType) -> Result<i32, Diagnostic> {
+    match ty {
+        ResolvedType::I64 => Ok(1),
+        ResolvedType::I32 => Ok(2),
+        ResolvedType::U8 => Ok(3),
+        ResolvedType::Usize => Ok(4),
+        ResolvedType::Char => Ok(5),
+        ResolvedType::F32 => Ok(6),
+        ResolvedType::F64 => Ok(7),
+        ResolvedType::Bool => Ok(8),
+        _ => Err(error(
+            "Vec element type is outside the admitted scalar profile",
+        )),
+    }
+}
+
+fn scalar_local(value: &Value) -> Result<u32, Diagnostic> {
+    match value {
+        Value::Scalar { local, .. } => Ok(*local),
+        _ => Err(error("Vec operation requires an exact scalar local")),
     }
 }
 
@@ -1110,6 +1157,7 @@ fn scalar_size_align(ty: &ResolvedType) -> Result<(u32, u32), Diagnostic> {
         ResolvedType::Usize => Ok((8, 8)),
         ResolvedType::SliceU8 | ResolvedType::Str => Ok((8, 8)),
         ResolvedType::Bytes => Ok((8, 8)),
+        ty if crate::cleanup::is_owned_bounded_vec_type(ty) => Ok((8, 8)),
         ResolvedType::String => Ok((8, 8)),
         ResolvedType::F32 => Ok((4, 4)),
         ResolvedType::F64 => Ok((8, 8)),
@@ -2004,6 +2052,7 @@ fn emit_profile(
 ) -> Result<Vec<u8>, Diagnostic> {
     let uses_byte_data = super::program_uses_byte_data(program);
     let uses_owned_buffer = program_uses_owned_buffer(program);
+    let uses_vec = super::program_uses_vec(program);
     if program
         .types
         .iter()
@@ -2095,6 +2144,56 @@ fn emit_profile(
             &mut type_indexes,
         )
     });
+    let vec_alloc = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I32, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_push = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_read = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_get = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
+    let vec_drop = uses_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64],
+                results: Vec::new(),
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
 
     let executable_functions = executable_functions(program);
     let public_global_count = if host_output { 5_u32 } else { 1_u32 };
@@ -2145,6 +2244,7 @@ fn emit_profile(
                     } else {
                         0
                     }
+                    + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
                     + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
@@ -2169,7 +2269,8 @@ fn emit_profile(
                 OWNED_BUFFER_IMPORT_COUNT
             } else {
                 0
-            },
+            }
+            + if uses_vec { VEC_IMPORT_COUNT } else { 0 },
     );
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
@@ -2190,6 +2291,19 @@ fn emit_profile(
     if uses_owned_buffer {
         function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary.unwrap());
         function_import(&mut imports, "env", "spx_bytes_set", byte_set.unwrap());
+    }
+    if uses_vec {
+        function_import(
+            &mut imports,
+            "env",
+            "spx_vec_with_capacity",
+            vec_alloc.unwrap(),
+        );
+        function_import(&mut imports, "env", "spx_vec_push", vec_push.unwrap());
+        function_import(&mut imports, "env", "spx_vec_len", vec_read.unwrap());
+        function_import(&mut imports, "env", "spx_vec_capacity", vec_read.unwrap());
+        function_import(&mut imports, "env", "spx_vec_get", vec_get.unwrap());
+        function_import(&mut imports, "env", "spx_vec_drop", vec_drop.unwrap());
     }
     section(&mut module, 2, imports);
 
@@ -2279,6 +2393,7 @@ fn emit_profile(
                 0
             })
         })
+        .and_then(|value| value.checked_add(if uses_vec { VEC_IMPORT_COUNT } else { 0 }))
         .ok_or_else(|| error("aggregate wrapper import count overflows u32"))?
         .checked_add(
             u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
@@ -2896,17 +3011,27 @@ impl Emitter<'_> {
         actions: &[crate::cleanup_plan::FinalizeAction],
     ) -> Result<(), Diagnostic> {
         for action in actions {
-            if action.lifecycle_id.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
+            let vec_leaf = action.lifecycle_id.as_str() == crate::cleanup::VEC_DROP_LIFECYCLE_ID;
+            if action.lifecycle_id.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID && !vec_leaf
+            {
                 return Err(error(
                     "byte-data WebAssembly cleanup requires compiler-owned Bytes leaves",
                 ));
             }
             let value = self.cleanup_value_at(&action.source)?;
-            require_type(
-                value_type(&value),
-                &ResolvedType::Bytes,
-                "CleanupPlan finalizer",
-            )?;
+            if vec_leaf {
+                if !crate::cleanup::is_owned_bounded_vec_type(value_type(&value)) {
+                    return Err(error(
+                        "Vec CleanupPlan finalizer type disagrees with lifecycle",
+                    ));
+                }
+            } else {
+                require_type(
+                    value_type(&value),
+                    &ResolvedType::Bytes,
+                    "CleanupPlan finalizer",
+                )?;
+            }
             let flag = self
                 .plan
                 .cleanup_flags
@@ -2918,7 +3043,14 @@ impl Emitter<'_> {
             self.output.extend([0x04, 0x40]);
             self.get_scalar(&value);
             self.output.push(0x10);
-            write_u32(self.output, BYTE_DROP_IMPORT);
+            write_u32(
+                self.output,
+                if vec_leaf {
+                    vec_import_base(self.program) + 5
+                } else {
+                    BYTE_DROP_IMPORT
+                },
+            );
             // Poison the moved/dropped carrier locally. Any backend mistake
             // that reads it later reaches the host's malformed-token trap.
             self.clear_scalar(&value)?;
@@ -2938,7 +3070,9 @@ impl Emitter<'_> {
             .flat_map(|statement| {
                 let mut anchors = Vec::with_capacity(2);
                 if let ResolvedStatement::Let { binding, .. } = statement {
-                    if binding.ty == ResolvedType::Bytes {
+                    if binding.ty == ResolvedType::Bytes
+                        || crate::cleanup::is_owned_bounded_vec_type(&binding.ty)
+                    {
                         anchors.push(crate::cleanup_plan::StorageId::Value(binding.id.clone()));
                     }
                 }
@@ -2948,7 +3082,10 @@ impl Emitter<'_> {
                     ResolvedStatement::Unsafe { body, .. } => Some(body.as_ref()),
                     ResolvedStatement::While { .. } => None,
                 };
-                if let Some(value) = value.filter(|value| value.ty == ResolvedType::Bytes) {
+                if let Some(value) = value.filter(|value| {
+                    value.ty == ResolvedType::Bytes
+                        || crate::cleanup::is_owned_bounded_vec_type(&value.ty)
+                }) {
                     anchors.push(crate::cleanup_plan::StorageId::Temporary(value.id.clone()));
                 }
                 anchors
@@ -3221,9 +3358,10 @@ impl Emitter<'_> {
         if !matches!(
             value_type(value),
             ResolvedType::Bytes | ResolvedType::String
-        ) {
+        ) && !crate::cleanup::is_owned_bounded_vec_type(value_type(value))
+        {
             return Err(error(
-                "owned scalar poison requires an exact Bytes or String carrier",
+                "owned scalar poison requires an exact Bytes, String, or bounded Vec carrier",
             ));
         }
         match value {
@@ -3544,7 +3682,13 @@ impl Emitter<'_> {
                         .get(&destination.storage)
                         .copied()
                     {
-                        require_type(value_type(value), &ResolvedType::Bytes, "owned call epoch")?;
+                        if *value_type(value) != ResolvedType::Bytes
+                            && !crate::cleanup::is_owned_bounded_vec_type(value_type(value))
+                        {
+                            return Err(error(
+                                "owned call epoch requires an exact Bytes or bounded Vec carrier",
+                            ));
+                        }
                         self.get_scalar(value);
                         self.output.push(0x21);
                         write_u32(self.output, local);
@@ -5673,6 +5817,7 @@ impl Emitter<'_> {
         expr: &ResolvedExpr,
         callee: &DeclarationId,
         instance: Option<&crate::hir::FunctionInstanceId>,
+        type_arguments: &[ResolvedType],
         args: &[ResolvedExpr],
     ) -> Result<Value, Diagnostic> {
         if self.standalone_strings && instance.is_none() {
@@ -5681,6 +5826,9 @@ impl Emitter<'_> {
             }
         }
         if instance.is_none() {
+            if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
+                return self.emit_vec_op(expr, op, type_arguments, args);
+            }
             if crate::host_io_ops::by_id(callee.as_str()).is_some() {
                 if self.host_output.is_none() {
                     return Err(error(
@@ -5897,6 +6045,224 @@ impl Emitter<'_> {
             }
         }
         Ok(result)
+    }
+
+    fn emit_vec_op(
+        &mut self,
+        expr: &ResolvedExpr,
+        op: crate::vec_ops::VecOp,
+        type_arguments: &[ResolvedType],
+        args: &[ResolvedExpr],
+    ) -> Result<Value, Diagnostic> {
+        let [element] = type_arguments else {
+            return Err(error("Vec operation requires one exact type argument"));
+        };
+        if !crate::vec_ops::resolved_element_is_admitted(element) || args.len() != op.arity() {
+            return Err(error(
+                "Vec operation disagrees with its admitted scalar profile",
+            ));
+        }
+        for (index, argument) in args.iter().enumerate() {
+            if !op.accepts_resolved(index, &argument.ty, element) {
+                return Err(error(
+                    "Vec operation argument type disagrees with resolved HIR",
+                ));
+            }
+        }
+        require_type(
+            &expr.ty,
+            &op.resolved_return_type(element),
+            "Vec operation result",
+        )?;
+        let tag = vec_element_tag(element)?;
+        let base = vec_import_base(self.program);
+        match op {
+            crate::vec_ops::VecOp::WithCapacity => {
+                let capacity = self.emit_expr(&args[0])?;
+                self.require_scalar(&capacity, &ResolvedType::Usize, "Vec capacity")?;
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.get_scalar(&capacity);
+                self.output.push(0x10);
+                write_u32(self.output, base);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50); // i64.eqz
+                self.emit_vec_failure_if(expr, STATUS_VEC_ALLOCATION_FAILURE)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Push => {
+                let source_value = self.emit_expr(&args[0])?;
+                let element_value = self.emit_expr(&args[1])?;
+                self.require_scalar(
+                    &source_value,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec push owner",
+                )?;
+                self.require_scalar(&element_value, element, "Vec push element")?;
+                let source_epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index: 0,
+                    value_expression: args[0].id.clone(),
+                };
+                let source = Value::Scalar {
+                    local: self
+                        .plan
+                        .cleanup_call_argument_carriers
+                        .get(&source_epoch)
+                        .copied()
+                        .ok_or_else(|| {
+                            error("Vec push has no authenticated call-argument carrier")
+                        })?,
+                    ty: crate::vec_ops::resolved_vec(element.clone()),
+                };
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.emit_vec_element_bits(&element_value, element)?;
+                self.output.push(0x10);
+                write_u32(self.output, base + 1);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50); // i64.eqz
+                self.emit_vec_failure_if(expr, STATUS_VEC_PUSH_FULL)?;
+                self.apply_call_commit(&expr.id)?;
+                self.clear_scalar(&source)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity => {
+                let source = self.emit_vec_borrow_place(&args[0], element)?;
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: ResolvedType::Usize,
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.output.push(0x10);
+                write_u32(
+                    self.output,
+                    base + if op == crate::vec_ops::VecOp::Len {
+                        2
+                    } else {
+                        3
+                    },
+                );
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Get => {
+                let source = self.emit_vec_borrow_place(&args[0], element)?;
+                let index = self.emit_expr(&args[1])?;
+                self.require_scalar(&index, &ResolvedType::Usize, "Vec get index")?;
+                self.get_scalar(&index);
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.output.push(0x10);
+                write_u32(self.output, base + 2);
+                self.output.push(0x5a); // i64.ge_u
+                self.emit_vec_failure_if(expr, STATUS_VEC_GET_OUT_OF_BOUNDS)?;
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: element.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.get_scalar(&index);
+                self.output.push(0x10);
+                write_u32(self.output, base + 4);
+                self.store_vec_element_bits(&result, element)?;
+                Ok(result)
+            }
+        }
+    }
+
+    fn emit_vec_borrow_place(
+        &self,
+        argument: &ResolvedExpr,
+        element: &ResolvedType,
+    ) -> Result<Value, Diagnostic> {
+        let ResolvedExprKind::Place(place) = &argument.kind else {
+            return Err(error("borrowed Vec argument is not an exact place"));
+        };
+        if !place.projections.is_empty() {
+            return Err(error("borrowed Vec projections are outside bounded Vec v1"));
+        }
+        let value = self.place_value(place)?;
+        require_type(
+            value_type(&value),
+            &crate::vec_ops::resolved_vec(element.clone()),
+            "borrowed Vec carrier",
+        )?;
+        Ok(value)
+    }
+
+    fn emit_vec_failure_if(
+        &mut self,
+        expression: &ResolvedExpr,
+        status: i32,
+    ) -> Result<(), Diagnostic> {
+        let saved = self.failure_expression.replace(expression.id.clone());
+        self.fail_if(status)?;
+        self.failure_expression = saved;
+        Ok(())
+    }
+
+    fn emit_vec_element_bits(
+        &mut self,
+        value: &Value,
+        ty: &ResolvedType,
+    ) -> Result<(), Diagnostic> {
+        self.get_scalar(value);
+        match ty {
+            ResolvedType::I64 | ResolvedType::Usize => {}
+            ResolvedType::F64 => self.output.push(0xbd), // i64.reinterpret_f64
+            ResolvedType::F32 => self.output.extend([0xbc, 0xad]),
+            ResolvedType::I32 => self.output.push(0xac), // i64.extend_i32_s
+            ResolvedType::U8 | ResolvedType::Char | ResolvedType::Bool => self.output.push(0xad),
+            _ => {
+                return Err(error(
+                    "Vec element type is outside the admitted scalar profile",
+                ))
+            }
+        }
+        Ok(())
+    }
+
+    fn store_vec_element_bits(
+        &mut self,
+        destination: &Value,
+        ty: &ResolvedType,
+    ) -> Result<(), Diagnostic> {
+        match ty {
+            ResolvedType::I64 | ResolvedType::Usize => {}
+            ResolvedType::F64 => self.output.push(0xbf), // f64.reinterpret_i64
+            ResolvedType::F32 => self.output.extend([0xa7, 0xbe]),
+            ResolvedType::I32 | ResolvedType::U8 | ResolvedType::Char | ResolvedType::Bool => {
+                self.output.push(0xa7)
+            }
+            _ => {
+                return Err(error(
+                    "Vec element type is outside the admitted scalar profile",
+                ))
+            }
+        }
+        self.output.push(0x21);
+        write_u32(self.output, scalar_local(destination)?);
+        Ok(())
     }
 
     fn emit_byte_op(
@@ -7413,7 +7779,9 @@ impl Emitter<'_> {
                 self.output.push(0x21);
                 write_u32(self.output, *local);
                 scalar_wasm_type(ty)?;
-                if matches!(ty, ResolvedType::Bytes | ResolvedType::String) {
+                if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::cleanup::is_owned_bounded_vec_type(ty)
+                {
                     self.clear_scalar(source)?;
                 }
             }
@@ -7421,7 +7789,9 @@ impl Emitter<'_> {
                 self.emit_pointer(*pointer);
                 self.get_scalar(source);
                 self.store_scalar(ty);
-                if matches!(ty, ResolvedType::Bytes | ResolvedType::String) {
+                if matches!(ty, ResolvedType::Bytes | ResolvedType::String)
+                    || crate::cleanup::is_owned_bounded_vec_type(ty)
+                {
                     self.clear_scalar(source)?;
                 }
             }

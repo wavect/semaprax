@@ -12,6 +12,7 @@ mod owned_buffer;
 mod owned_result_try;
 mod type_profiles;
 mod unsafe_scan;
+mod vec_intrinsic;
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
 use type_profiles::{
     generic_instance_arguments_are_admitted, resolved_type_is_flat_owned_byte_variant,
@@ -95,6 +96,7 @@ impl<'a> HirValidator<'a> {
 
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
+        vec_intrinsic::reject_reserved_identities(program)?;
         for declaration in program.declarations.declarations() {
             if crate::host_io_ops::by_id(declaration.id.as_str()).is_some()
                 || crate::command_io_ops::by_id(declaration.id.as_str()).is_some()
@@ -1620,8 +1622,30 @@ impl<'a> HirValidator<'a> {
                     type_arguments,
                     args,
                 } => {
-                    if instance.is_some() || !type_arguments.is_empty() {
+                    let vec_operation = instance
+                        .is_none()
+                        .then(|| crate::vec_ops::by_id(callee.as_str()))
+                        .flatten();
+                    if instance.is_some() || (!type_arguments.is_empty() && vec_operation.is_none())
+                    {
                         return Err(hir_error("while loops cannot contain generic calls"));
+                    }
+                    if let Some(operation) = vec_operation {
+                        if operation == crate::vec_ops::VecOp::WithCapacity
+                            || type_arguments.len() != 1
+                            || !crate::vec_ops::resolved_element_is_admitted(&type_arguments[0])
+                            || args.len() != operation.arity()
+                            || args.iter().enumerate().any(|(index, argument)| {
+                                !operation.accepts_resolved(index, &argument.ty, &type_arguments[0])
+                            })
+                            || expression.ty != operation.resolved_return_type(&type_arguments[0])
+                        {
+                            return Err(hir_error(
+                                "while loop vector operation is outside Owned Bounded Vec v1",
+                            ));
+                        }
+                        pending.extend(args[1..].iter().rev().map(Item::Expression));
+                        continue;
                     }
                     if let Some(operation) = crate::byte_ops::by_id(callee.as_str()) {
                         if !matches!(
@@ -1971,6 +1995,7 @@ impl<'a> HirValidator<'a> {
                 && (crate::string_ops::by_id(callee.as_str()).is_some()
                     || crate::str_ops::by_id(callee.as_str()).is_some()
                     || crate::byte_ops::by_id(callee.as_str()).is_some()
+                    || crate::vec_ops::by_id(callee.as_str()).is_some()
                     || crate::host_io_ops::by_id(callee.as_str()).is_some())
             {
                 // String operations carry no authored declaration and their
@@ -3357,24 +3382,29 @@ impl<'a> HirValidator<'a> {
                             instance,
                             args,
                         } => {
+                            let vec_intrinsic = vec_intrinsic::is_call(callee, instance);
                             match instance {
-                                None if !type_arguments.is_empty() => return Err(hir_error("monomorphic resolved call carries generic type arguments")),
+                                None if !type_arguments.is_empty() && !vec_intrinsic => return Err(hir_error("monomorphic resolved call carries generic type arguments")),
                                 Some(actual) if FunctionInstanceId::derive(callee, type_arguments) != *actual => return Err(hir_error("resolved call instance disagrees with its template and arguments")),
                                 Some(_) if type_arguments.is_empty() => return Err(hir_error("generic resolved call has no concrete type arguments")),
                                 None | Some(_) => {}
                             }
-                            if !generic_instance_arguments_are_admitted(
-                                self.program,
-                                callee,
-                                type_arguments,
-                            ) {
+                            if !vec_intrinsic
+                                && !generic_instance_arguments_are_admitted(
+                                    self.program,
+                                    callee,
+                                    type_arguments,
+                                )
+                            {
                                 return Err(hir_error(
                                     "resolved call has a generic type argument outside the direct-scalar or owned-record relay profile",
                                 ));
                             }
-                            let (params, return_type) = if let Some(op) =
-                                crate::string_ops::by_id(callee.as_str())
+                            let (params, return_type) = if let Some(signature) =
+                                vec_intrinsic::signature(callee, type_arguments, instance, args)?
                             {
+                                signature
+                            } else if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                                 // Compiler-owned string operations carry
                                 // their reserved identity instead of an
                                 // authored declaration; their synthetic
@@ -4652,8 +4682,9 @@ impl<'a> HirValidator<'a> {
                         }
                         None => {
                             self.require_type(&target.ty, &assigned.ty, "assignment")?;
-                            if target.ownership != OwnershipMode::Value
-                                || !crate::hir::is_scalar_resolved_type(&target.ty)
+                            if (target.ownership != OwnershipMode::Value
+                                || !crate::hir::is_scalar_resolved_type(&target.ty))
+                                && !crate::vec_ops::is_same_owner_push_hir(assigned, &binding.id)
                             {
                                 return Err(hir_error(
                                     "explicit mutation v1 supports only scalar Copy values",
@@ -6339,8 +6370,9 @@ impl<'a> HirValidator<'a> {
                 instance,
                 args,
             } => {
+                let vec_intrinsic = vec_intrinsic::is_call(callee, instance);
                 match instance {
-                    None if !type_arguments.is_empty() => {
+                    None if !type_arguments.is_empty() && !vec_intrinsic => {
                         return Err(hir_error(
                             "monomorphic resolved call carries generic type arguments",
                         ));
@@ -6359,7 +6391,13 @@ impl<'a> HirValidator<'a> {
                     }
                     None | Some(_) => {}
                 }
-                if !generic_instance_arguments_are_admitted(self.program, callee, type_arguments) {
+                if !vec_intrinsic
+                    && !generic_instance_arguments_are_admitted(
+                        self.program,
+                        callee,
+                        type_arguments,
+                    )
+                {
                     return Err(hir_error(
                         "resolved call has a generic type argument outside the direct-scalar or owned-record relay profile",
                     ));
@@ -6380,7 +6418,11 @@ impl<'a> HirValidator<'a> {
                     .is_none()
                     .then(|| crate::host_io_ops::by_id(callee.as_str()))
                     .flatten();
-                let (params, return_type, target_effects) = if let Some(op) = string_intrinsic {
+                let (params, return_type, target_effects) = if let Some((params, return_type)) =
+                    vec_intrinsic::signature(callee, type_arguments, instance, args)?
+                {
+                    (params, return_type, Vec::new())
+                } else if let Some(op) = string_intrinsic {
                     // String operations carry their reserved identity instead
                     // of an authored declaration.
                     if args.len() != op.arity() {
@@ -6862,8 +6904,12 @@ impl<'a> HirValidator<'a> {
                                 }
                                 None => {
                                     self.require_type(&target.ty, &assigned.ty, "assignment")?;
-                                    if target.ownership != OwnershipMode::Value
-                                        || !crate::hir::is_scalar_resolved_type(&target.ty)
+                                    if (target.ownership != OwnershipMode::Value
+                                        || !crate::hir::is_scalar_resolved_type(&target.ty))
+                                        && !crate::vec_ops::is_same_owner_push_hir(
+                                            assigned,
+                                            &binding.id,
+                                        )
                                     {
                                         return Err(hir_error(
                                             "explicit mutation v1 supports only scalar Copy values",
@@ -8641,12 +8687,14 @@ impl<'a> HirValidator<'a> {
                             &self.program.declarations,
                             ty,
                         );
+                    let admitted_vec = vec_intrinsic::is_type(declaration, arguments);
                     if !arguments.is_empty()
                         && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
                             || (!admitted_owned_byte_prelude_instance(declaration, arguments)
                                 && !admitted_owned_record
                                 && !admitted_nested_owned_record
                                 && !admitted_owned_variant
+                                && !admitted_vec
                                 && (arguments.as_slice() != [ResolvedType::U8]
                                     || declaration.as_str() != crate::prelude::OPTION_ID)
                                 && arguments.iter().any(|argument| {

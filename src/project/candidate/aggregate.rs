@@ -788,8 +788,12 @@ fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
         value["path"] = Value::Null;
         value["module"] = Value::Null;
         value["identity_origin"] = json!("compiler_owned");
-        value["compiler_prelude"] =
-            json!({"schema":crate::prelude::SCHEMA_V1,"digest":crate::prelude::digest_text_v1()});
+        let vec_prelude = subject.target == crate::prelude::VEC_ID;
+        value["compiler_prelude"] = if vec_prelude {
+            json!({"schema":crate::prelude::SCHEMA_V2,"digest":crate::prelude::digest_text_v2()})
+        } else {
+            json!({"schema":crate::prelude::SCHEMA_V1,"digest":crate::prelude::digest_text_v1()})
+        };
     }
     if let Some(binding) = binding {
         value["binding"] = json!(binding);

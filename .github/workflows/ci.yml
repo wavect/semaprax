@@ -591,6 +591,12 @@ jobs:
           cargo test --locked -p semaprax --test language owned_byte_buffer_v1::core_webassembly_emits_deterministically_while_the_public_adapter_stays_closed -- --exact --nocapture
           cargo test --locked -p semaprax --lib wasm::aggregate::tests::owned_buffer::owned_buffer_host_boundary_rejects_forged_inputs_without_poisoning_reentry -- --exact --nocapture
           cargo test --locked -p semaprax --lib wasm::aggregate::tests::owned_buffer::owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy -- --exact --nocapture
+      - name: Require Owned Bounded Vec identity and backend settlement
+        if: runner.os == 'Linux'
+        run: |
+          node --version
+          cargo test --locked -p semaprax --test language owned_bounded_vec_v1:: -- --nocapture
+          cargo test --locked -p semaprax --test owned_data owned_bounded_vec_runtime:: -- --nocapture
       - name: Require native O0/O2 and Core-Wasm scalar status equivalence
         if: runner.os == 'Linux'
         env:

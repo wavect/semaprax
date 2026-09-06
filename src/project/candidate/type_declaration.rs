@@ -144,7 +144,7 @@ pub(super) fn apply(
     let id = declaration::stable_id(text(value, "id")?)?;
     let name = declaration::identifier(text(value, "name")?)?;
     let program = &programs[owner];
-    if matches!(name, "main" | "Option" | "Result")
+    if matches!(name, "main" | "Option" | "Result" | "Vec")
         || program.functions.iter().any(|entry| entry.name == name)
         || program.types.iter().any(|entry| entry.name == name)
         || program.interfaces.iter().any(|entry| entry.name == name)
@@ -161,7 +161,11 @@ pub(super) fn apply(
             ids.insert(imported.persistent_id.clone());
         }
     }
-    ids.extend(crate::prelude::all_ids().iter().map(|id| (*id).to_owned()));
+    ids.extend(
+        crate::prelude::all_reserved_ids()
+            .iter()
+            .map(|id| (*id).to_owned()),
+    );
     // Retained graph identities also cover compiler/interface declarations
     // that must not become available merely because source has no local name.
     let graph: Value = serde_json::from_str(revision.semantic_graph())

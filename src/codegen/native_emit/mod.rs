@@ -12,8 +12,8 @@ use std::fmt::Write as _;
 
 use super::{
     backend_error, c_i32, c_i64, native_byte_data, native_bytes, native_command, native_command_io,
-    native_host_output, native_resource, native_runtime, resource_lowering_gate, COutput,
-    NATIVE_SCALAR_RUNTIME_C,
+    native_host_output, native_resource, native_runtime, native_vec, resource_lowering_gate,
+    COutput, NATIVE_SCALAR_RUNTIME_C,
 };
 #[cfg(test)]
 use super::{
@@ -347,11 +347,11 @@ fn emit_native_prelude_inner(
 ) {
     let needs_borrowed_str =
         command_carriers || program_uses_borrowed_str(program, strings.include_instances);
-    if needs_borrowed_str || program_uses_byte_data(program) || strings.provider_carriers {
-        native_runtime::emit_status_runtime_with_borrowed_str(output);
-    } else {
-        native_runtime::emit_status_runtime(output);
-    }
+    native_runtime::emit_status_runtime_for_profile(
+        output,
+        needs_borrowed_str || program_uses_byte_data(program) || strings.provider_carriers,
+        program_uses_vec(program),
+    );
     output.push_str(&resource_abi.declarations);
     output.push_str("#include <stdio.h>\n\n");
     if omit_public_failure {
@@ -417,6 +417,34 @@ fn emit_native_prelude_inner(
     if program_uses_byte_data(program) || strings.provider_carriers {
         native_byte_data::emit_runtime(output);
     }
+    if program_uses_vec(program) {
+        native_vec::emit_runtime(output);
+    }
+}
+
+fn program_uses_vec(program: &ResolvedProgram) -> bool {
+    program.functions.iter().any(|function| {
+        crate::cleanup::is_owned_bounded_vec_type(&function.return_type)
+            || function
+                .params
+                .iter()
+                .any(|param| crate::cleanup::is_owned_bounded_vec_type(&param.ty))
+            || std::iter::once(&function.body)
+                .chain(function.requires.iter())
+                .chain(function.ensures.iter())
+                .any(|root| {
+                    let mut pending = vec![root];
+                    while let Some(expression) = pending.pop() {
+                        if crate::cleanup::is_owned_bounded_vec_type(&expression.ty)
+                            || matches!(&expression.kind, ResolvedExprKind::Call { callee, .. } if crate::vec_ops::by_id(callee.as_str()).is_some())
+                        {
+                            return true;
+                        }
+                        pending.extend(resolved_expr_children(expression));
+                    }
+                    false
+                })
+    })
 }
 
 fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
@@ -928,7 +956,9 @@ fn c_value_type(
     resource_abi: &native_resource::NativeResourceAbi,
     ty: &ResolvedType,
 ) -> Result<String, Diagnostic> {
-    if matches!(ty, ResolvedType::ArrayU8(0)) {
+    if crate::cleanup::is_owned_bounded_vec_type(ty) {
+        Ok("spx_vec_v1".to_owned())
+    } else if matches!(ty, ResolvedType::ArrayU8(0)) {
         // ISO C11 has no zero-sized value type. Ordinary internal calls use
         // one byte as a non-semantic ABI carrier while all actual array
         // storage and element access remain erased.
@@ -942,6 +972,10 @@ fn c_value_type(
     } else {
         resource_abi.c_type(program, ty).map(str::to_owned)
     }
+}
+
+fn is_direct_plan_owned(ty: &ResolvedType) -> bool {
+    matches!(ty, ResolvedType::Bytes) || crate::cleanup::is_owned_bounded_vec_type(ty)
 }
 
 fn is_aggregate_type(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diagnostic> {
@@ -961,6 +995,9 @@ fn record_declaration_id<'a>(
     else {
         return Ok(None);
     };
+    if crate::cleanup::is_owned_bounded_vec_type(ty) {
+        return Ok(None);
+    }
     let item = program
         .types
         .iter()
@@ -1057,7 +1094,7 @@ pub(super) fn emit_function_prototypes(
         .expect("writing to a string cannot fail");
         for param in &function.params {
             let ty = c_value_type(program, resource_abi, &param.ty)?;
-            if matches!(param.ty, ResolvedType::Bytes)
+            if is_direct_plan_owned(&param.ty)
                 && param.ownership == crate::hir::OwnershipMode::Borrow
             {
                 write!(output, ", const {ty} *").expect("writing to a string cannot fail");
@@ -1666,9 +1703,7 @@ fn emit_function(
     .expect("writing to a string cannot fail");
     for (index, param) in function.params.iter().enumerate() {
         let ty = c_value_type(program, resource_abi, &param.ty)?;
-        if matches!(param.ty, ResolvedType::Bytes)
-            && param.ownership == crate::hir::OwnershipMode::Borrow
-        {
+        if is_direct_plan_owned(&param.ty) && param.ownership == crate::hir::OwnershipMode::Borrow {
             write!(output, ", const {ty} *spx_param_{index}")
                 .expect("writing to a string cannot fail");
         } else if is_aggregate_type(program, &param.ty)? {
@@ -1715,7 +1750,7 @@ fn emit_function(
             emission.output_profile == NativeOutputProfile::OwnedDataProvider,
         ));
         for (index, parameter) in function.params.iter().enumerate() {
-            if matches!(parameter.ty, ResolvedType::Bytes)
+            if is_direct_plan_owned(&parameter.ty)
                 && parameter.ownership == crate::hir::OwnershipMode::Own
             {
                 output.push_str(&plan.initialize_parameter(
@@ -1887,7 +1922,7 @@ fn emit_function(
     ));
     // An owned-Bytes result moves field by field, and a contract-failure lane
     // leaves even that unreached, so the slot can go unnamed in valid C.
-    if matches!(function.return_type, ResolvedType::Bytes)
+    if is_direct_plan_owned(&function.return_type)
         || emitter.record_contains_owned_bytes(&function.return_type)?
     {
         emitter.line("(void)spx_result;");
@@ -1919,7 +1954,7 @@ fn emit_function(
         emitter.string_move("spx_result", &body.code);
     } else if emitter.record_contains_owned_bytes(&body.ty)? {
         emitter.move_owned_record_fields("spx_result", &body.code, &body.ty)?;
-    } else if !matches!(body.ty, ResolvedType::Bytes) {
+    } else if !is_direct_plan_owned(&body.ty) {
         emitter.line(&format!("spx_result = {};", body.code));
     }
     if has_try {
@@ -1949,7 +1984,7 @@ fn emit_function(
     emitter.variables.insert(
         function.result_id.clone(),
         CBinding {
-            name: if matches!(function.return_type, ResolvedType::Bytes) {
+            name: if is_direct_plan_owned(&function.return_type) {
                 bytes_plan
                     .as_ref()
                     .ok_or_else(|| backend_error("owned Bytes result has no cleanup plan"))?
@@ -2019,13 +2054,18 @@ fn emit_function(
         output.push_str("    if (spx_status == SPX_STATUS_SUCCESS && !spx_result_staged) spx_runtime_invariant_failure(\"unstaged function result\");\n");
     }
     output.push_str("    if (spx_status != SPX_STATUS_SUCCESS) return spx_status;\n");
-    if matches!(function.return_type, ResolvedType::Bytes) {
+    if is_direct_plan_owned(&function.return_type) {
         let (value, flag) = bytes_plan
             .as_ref()
             .ok_or_else(|| backend_error("owned Bytes result has no cleanup plan"))?
             .provisional()?;
+        let move_call = if matches!(function.return_type, ResolvedType::Bytes) {
+            format!("spx_bytes_move(&{value})")
+        } else {
+            format!("spx_vec_move(spx_ctx, &{value})")
+        };
         output.push_str(&format!(
-            "    if (!{flag}) spx_runtime_invariant_failure(\"dead Bytes provisional result\");\n    *spx_result_out = spx_bytes_move(&{value});\n    {flag} = false;\n"
+            "    if (!{flag}) spx_runtime_invariant_failure(\"dead owned provisional result\");\n    *spx_result_out = {move_call};\n    {flag} = false;\n"
         ));
     } else if is_aggregate_type(program, &function.return_type)?
         && bytes_plan.as_ref().is_some_and(|plan| {

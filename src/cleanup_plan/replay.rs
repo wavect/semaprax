@@ -43,8 +43,10 @@ use path_summary::{cleanup_plan_requires_path_replay, STATUS_ONLY_PATH_SUMMARY_T
 mod nested_shape;
 mod path_join;
 mod record_destructure;
+mod resolved_call;
 use nested_shape::expected_shape_for_type;
 use path_join::validate_path_states;
+use resolved_call::resolved_call_params;
 
 const MAX_REPLAY_PATHS: usize = 65_536;
 // Independent fail-closed work cap. Valid admitted shapes are preflighted
@@ -187,6 +189,7 @@ struct CallFact {
     callee: DeclarationId,
     instance: Option<FunctionInstanceId>,
     arguments: Vec<ExpressionId>,
+    type_arguments: Vec<ResolvedType>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -1645,11 +1648,16 @@ fn collect_supplemental_slots(
                     callee,
                     instance,
                     args,
-                    ..
+                    type_arguments,
                 } = &expression.kind
                 {
-                    let params =
-                        resolved_call_params(program, function, callee, instance.as_ref())?;
+                    let params = resolved_call_params(
+                        program,
+                        function,
+                        callee,
+                        instance.as_ref(),
+                        type_arguments,
+                    )?;
                     if params.len() != args.len() {
                         return Err(replay_error(
                             function,
@@ -1683,12 +1691,18 @@ fn collect_supplemental_slots(
                     callee,
                     instance,
                     args,
-                    ..
+                    type_arguments,
                 } = &expression.kind
                 else {
                     unreachable!("call-argument continuation retains a call");
                 };
-                let params = resolved_call_params(program, function, callee, instance.as_ref())?;
+                let params = resolved_call_params(
+                    program,
+                    function,
+                    callee,
+                    instance.as_ref(),
+                    type_arguments,
+                )?;
                 let argument = &args[index];
                 let parameter = &params[index];
                 if parameter.ownership == OwnershipMode::Own
@@ -1722,43 +1736,6 @@ fn type_needs_drop(
 ) -> Result<bool, Diagnostic> {
     crate::cleanup::type_needs_resource_cleanup(program, ty)
         .map_err(|message| replay_error(function, message))
-}
-
-/// Resolve one call's parameters for replay: compiler-owned string operations
-/// carry their reserved identity instead of an authored declaration and use
-/// their synthetic parameters.
-fn resolved_call_params(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
-    callee: &DeclarationId,
-    instance: Option<&crate::hir::FunctionInstanceId>,
-) -> Result<Vec<crate::hir::ResolvedParam>, Diagnostic> {
-    if instance.is_none() {
-        if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
-            return Ok(crate::string_ops::resolved_params(op));
-        }
-        if let Some(op) = crate::str_ops::by_id(callee.as_str()) {
-            return Ok(crate::str_ops::resolved_params(op));
-        }
-        if let Some(op) = crate::byte_ops::by_id(callee.as_str()) {
-            return Ok(crate::byte_ops::resolved_params(op));
-        }
-        if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
-            return Ok(crate::host_io_ops::resolved_params(op));
-        }
-        if let Some(op) = crate::command_io_ops::by_id(callee.as_str()) {
-            return Ok(crate::command_io_ops::resolved_params(op));
-        }
-    }
-    let target = program
-        .resolve_call_target(callee, instance)
-        .ok_or_else(|| {
-            replay_error(
-                function,
-                format!("cleanup call has unknown callee `{callee}`"),
-            )
-        })?;
-    Ok(target.params.clone())
 }
 
 fn validate_required_status_sources(
@@ -1859,8 +1836,17 @@ fn collect_expression_statuses(
                     continue;
                 }
                 if instance.is_none()
+                    && matches!(
+                        crate::vec_ops::by_id(callee.as_str()),
+                        Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity)
+                    )
+                {
+                    continue;
+                }
+                if instance.is_none()
                     && (crate::string_ops::by_id(callee.as_str()).is_some()
-                        || crate::str_ops::by_id(callee.as_str()).is_some())
+                        || crate::str_ops::by_id(callee.as_str()).is_some()
+                        || crate::vec_ops::by_id(callee.as_str()).is_some())
                 {
                     // String operations project like ordinary propagated calls.
                 } else if program
@@ -2541,6 +2527,7 @@ fn validate_blocks_and_edges(
                         function,
                         &fact.callee,
                         fact.instance.as_ref(),
+                        &fact.type_arguments,
                     )
                     .map_err(|_| {
                         replay_error(
@@ -3582,7 +3569,7 @@ fn expression_skeleton(
                         callee,
                         instance,
                         args,
-                        ..
+                        type_arguments,
                     } => {
                         let string_intrinsic = instance
                             .is_none()
@@ -3600,6 +3587,10 @@ fn expression_skeleton(
                             .is_none()
                             .then(|| crate::host_io_ops::by_id(callee.as_str()))
                             .flatten();
+                        let vec_intrinsic = instance
+                            .is_none()
+                            .then(|| crate::vec_ops::by_id(callee.as_str()))
+                            .flatten();
                         let params = if let Some(op) = string_intrinsic {
                             crate::string_ops::resolved_params(op)
                         } else if let Some(op) = str_intrinsic {
@@ -3608,6 +3599,14 @@ fn expression_skeleton(
                             crate::byte_ops::resolved_params(op)
                         } else if let Some(op) = host_io_intrinsic {
                             crate::host_io_ops::resolved_params(op)
+                        } else if let Some(op) = vec_intrinsic {
+                            let [element] = type_arguments.as_slice() else {
+                                return Err(replay_error(
+                                    function,
+                                    "bounded Vec skeleton call has incorrect type arity",
+                                ));
+                            };
+                            crate::vec_ops::resolved_params(op, element)
                         } else {
                             let target = program
                                 .resolve_call_target(callee, instance.as_ref())
@@ -5983,6 +5982,18 @@ fn finish_call_states(
             ..
         } if crate::byte_ops::by_id(callee.as_str()).is_some()
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
+            || matches!(
+                crate::vec_ops::by_id(callee.as_str()),
+                Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity)
+            )
+    );
+    let deferred_vec_push = matches!(
+        &expression.kind,
+        ResolvedExprKind::Call {
+            callee,
+            instance: None,
+            ..
+        } if crate::vec_ops::by_id(callee.as_str()) == Some(crate::vec_ops::VecOp::Push)
     );
     let infallible_compiler_operation = infallible_compiler_operation
         || matches!(
@@ -6003,15 +6014,17 @@ fn finish_call_states(
             work.push_expr_path(&mut results, path, "short-circuited call path")?;
             continue;
         }
-        let call = work.clone_owned(&expression.id, "call-commit identity clone")?;
-        work.push_observation(
-            &mut path,
-            SkeletonObservation::CallCommit {
-                call,
-                arguments: commits,
-            },
-            "call-commit observation",
-        )?;
+        if !deferred_vec_push {
+            let call = work.clone_owned(&expression.id, "call-commit identity clone")?;
+            work.push_observation(
+                &mut path,
+                SkeletonObservation::CallCommit {
+                    call,
+                    arguments: commits.clone(),
+                },
+                "call-commit observation",
+            )?;
+        }
         if infallible_compiler_operation {
             if expression.ownership == OwnershipMode::Own
                 && type_needs_drop(program, function, &expression.ty)?
@@ -6058,6 +6071,17 @@ fn finish_call_states(
             },
             "call success observation",
         )?;
+        if deferred_vec_push {
+            let call = work.clone_owned(&expression.id, "call-commit identity clone")?;
+            work.push_observation(
+                &mut path,
+                SkeletonObservation::CallCommit {
+                    call,
+                    arguments: commits,
+                },
+                "bounded Vec success call-commit observation",
+            )?;
+        }
         if expression.ownership == OwnershipMode::Own
             && type_needs_drop(program, function, &expression.ty)?
         {
@@ -7944,11 +7968,12 @@ fn collect_expression_facts(
                     callee,
                     instance,
                     args,
-                    ..
+                    type_arguments,
                 } => Some(CallFact {
                     callee: callee.clone(),
                     instance: instance.clone(),
                     arguments: args.iter().map(|argument| argument.id.clone()).collect(),
+                    type_arguments: type_arguments.clone(),
                 }),
                 ResolvedExprKind::HostCommandCall(call) => Some(CallFact {
                     callee: DeclarationId::new(crate::command_io_ops::id(call.operation)),
@@ -7958,6 +7983,7 @@ fn collect_expression_facts(
                         .iter()
                         .map(|argument| argument.id.clone())
                         .collect(),
+                    type_arguments: Vec::new(),
                 }),
                 ResolvedExprKind::ByteRange {
                     operation,
@@ -7971,6 +7997,7 @@ fn collect_expression_facts(
                         .into_iter()
                         .map(|argument| argument.id.clone())
                         .collect(),
+                    type_arguments: Vec::new(),
                 }),
                 _ => None,
             };

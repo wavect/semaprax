@@ -12,13 +12,14 @@ use crate::variant_layout::VariantLayout;
 
 use super::{
     backend_error, c_case_symbol, c_field_symbol, c_i32, c_i64, c_pattern_literal, c_string,
-    c_value_type, is_aggregate_type, record_declaration_id, variant_declaration_id, CBinding,
-    CEmitter, COutput, CValue,
+    c_value_type, is_aggregate_type, is_direct_plan_owned, record_declaration_id,
+    variant_declaration_id, CBinding, CEmitter, COutput, CValue,
 };
 
 mod host_command;
 mod nested_owned;
 mod owned_values;
+mod vec_ops;
 
 #[derive(Clone)]
 struct RecordMatchBindingMode<'a> {
@@ -796,9 +797,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 callee,
                 instance,
                 args,
-                ..
+                type_arguments,
             } => {
                 if instance.is_none() {
+                    if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
+                        return self.emit_vec_op(expr, op, type_arguments, args);
+                    }
                     if crate::host_io_ops::by_id(callee.as_str()).is_some() {
                         if !self.output_profile.supports_stdout_transcript() {
                             return Err(backend_error(
@@ -1139,7 +1143,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                         ResolvedStatement::Let { binding, value, .. } => {
                             let value = self.emit_expr(value)?;
                             self.require_type(&value.ty, &binding.ty, "local binding")?;
-                            let local = if matches!(binding.ty, ResolvedType::Bytes) {
+                            let local = if is_direct_plan_owned(&binding.ty) {
                                 let plan = self.bytes_plan.ok_or_else(|| {
                                     backend_error(
                                         "owned Bytes binding has no canonical cleanup plan",
@@ -1258,6 +1262,23 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                             "string assignment has no admitted native lowering",
                                         ));
                                     }
+                                    if crate::cleanup::is_owned_bounded_vec_type(&binding.ty) {
+                                        let plan = self.bytes_plan.ok_or_else(|| {
+                                            backend_error(
+                                                "owned Vec assignment has no cleanup plan",
+                                            )
+                                        })?;
+                                        let storage = crate::cleanup_plan::StorageId::Value(
+                                            binding.id.clone(),
+                                        );
+                                        let expected = plan.value(&storage)?;
+                                        if value.code != expected {
+                                            for line in plan.transfer_to(&storage)?.lines() {
+                                                self.line(line);
+                                            }
+                                        }
+                                        continue;
+                                    }
                                     if matches!(binding.ty, ResolvedType::Bytes) {
                                         return Err(backend_error(
                                             "owned Bytes assignment is outside the immutable data profile",
@@ -1337,7 +1358,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 for name in introduced_strings {
                     self.string_drop(&name);
                 }
-                if matches!(tail.ty, ResolvedType::Bytes) {
+                if is_direct_plan_owned(&tail.ty) {
                     let plan = self.bytes_plan.ok_or_else(|| {
                         backend_error("owned Bytes block has no canonical cleanup plan")
                     })?;
@@ -1362,7 +1383,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             if let ResolvedStatement::Let { binding, .. } = statement {
                                 let storage =
                                     crate::cleanup_plan::StorageId::Value(binding.id.clone());
-                                if binding.ty == ResolvedType::Bytes
+                                if is_direct_plan_owned(&binding.ty)
                                     || plan.has_projected_leaves(&storage)
                                 {
                                     anchors.push(storage);
@@ -1377,7 +1398,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             if let Some(value) = value {
                                 let storage =
                                     crate::cleanup_plan::StorageId::Temporary(value.id.clone());
-                                if value.ty == ResolvedType::Bytes
+                                if is_direct_plan_owned(&value.ty)
                                     || plan.has_projected_leaves(&storage)
                                 {
                                     anchors.push(storage);
@@ -1423,7 +1444,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         let mut value = self.emit_expr(current)?;
         while let Some(block) = blocks.pop() {
             self.require_type(&value.ty, &block.ty, "block result")?;
-            if matches!(value.ty, ResolvedType::Bytes) {
+            if is_direct_plan_owned(&value.ty) {
                 let plan = self.bytes_plan.ok_or_else(|| {
                     backend_error("owned Bytes block has no canonical cleanup plan")
                 })?;

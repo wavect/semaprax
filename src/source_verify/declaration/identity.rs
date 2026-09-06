@@ -25,7 +25,11 @@ pub(super) fn check_type_identities<'p>(
                 format!(
                     "type name `{}` is reserved by compiler prelude `{}`",
                     declaration.name,
-                    crate::prelude::SCHEMA_V1
+                    if declaration.name == "Vec" {
+                        crate::prelude::SCHEMA_V2
+                    } else {
+                        crate::prelude::SCHEMA_V1
+                    }
                 ),
                 declaration.name_span,
             ));
@@ -557,12 +561,13 @@ pub(super) fn check_interface_identities<'p>(
             }
             if crate::host_io_ops::by_name(&import.name).is_some()
                 || crate::command_io_ops::by_name(&import.name).is_some()
+                || crate::vec_ops::by_name(&import.name).is_some()
             {
                 diagnostics.push(error(
                     program,
                     "SPX-S113",
                     format!(
-                        "import `{}.{}` aliases a compiler-owned host I/O operation",
+                        "import `{}.{}` aliases a compiler-owned operation",
                         interface.name, import.name
                     ),
                     import.name_span,

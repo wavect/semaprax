@@ -10,7 +10,7 @@ use std::path::Path;
 fn private_capacity_prelude_identity_contract_matches_root_prelude() {
     assert_eq!(
         crate::private_capacity_contract::PRELUDE_CAPACITY_IDENTITIES,
-        crate::prelude::all_ids()
+        crate::prelude::all_type_ids_v2()
     );
 }
 

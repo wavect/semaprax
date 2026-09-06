@@ -81,6 +81,14 @@ fn derive(
                     });
                     continue;
                 }
+                if crate::cleanup::is_owned_bounded_vec_type(&ty) {
+                    charge_leaf(function, budget)?;
+                    shapes.push(FieldLivenessShape::Leaf {
+                        flag: next_flag_id(function, next_flag)?,
+                        lifecycle: DeclarationId::new(crate::cleanup::VEC_DROP_LIFECYCLE_ID),
+                    });
+                    continue;
+                }
                 let ResolvedType::Nominal {
                     declaration,
                     arguments,

@@ -280,6 +280,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             }
                         }
                         None => {
+                            let owned_vec_reopen =
+                                crate::vec_ops::is_same_owner_push_source(value, name, &binding_ty);
                             if !mutable {
                                 let mut diagnostic = error(
                                     self.program,
@@ -316,6 +318,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 if mutable
                                     && (actual.mode != ParamMode::Value
                                         || !is_scalar_source_type(&actual.ty))
+                                    && !owned_vec_reopen
                                 {
                                     self.diagnostics.push(error(
                                         self.program,
@@ -323,6 +326,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                         "explicit mutation v1 supports only scalar Copy values",
                                         value.span,
                                     ));
+                                }
+                            }
+                            if mutable && owned_vec_reopen {
+                                if let Some(binding) =
+                                    self.scopes[block_scope].bindings.get_mut(name.as_str())
+                                {
+                                    binding.availability = Availability::Available;
+                                    binding.moved_places.clear();
+                                    binding.definitely_partial.clear();
                                 }
                             }
                         }

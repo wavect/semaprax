@@ -596,7 +596,7 @@ Other first-attempt diagnostics and their fixes:
 | `s.len()` on a `string` | `SPX-T203` | `string_len(s)`; no type but a `class` has methods |
 | `str_as_bytes(text)` when `text: string` | `SPX-T263` | Borrow first with `str_as_bytes(string_as_str(text))` |
 | `string_as_str("literal")` | `SPX-T266` | Bind the literal, then pass that binding to `string_as_str` |
-| `String`, `int`, `Vec` as types | `SPX-T001` | `string`, `i64`/`i32`/`u8`/`usize`, `[u8; N]`/`Bytes`/`Slice<u8>` |
+| `String`, `int`, or unsupported `Vec` inference/element types | `SPX-T001`/`SPX-T281` | `string`, `i64`/`i32`/`u8`/`usize`; spell exact internal `Vec<i64>` (or another admitted Copy scalar) and every `vec_*<T>` type argument explicitly |
 
 ## Projects
 

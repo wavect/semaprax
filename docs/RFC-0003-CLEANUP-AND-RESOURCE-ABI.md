@@ -620,6 +620,12 @@ Each phase is incomplete until its executable evidence passes. An RFC, type defi
 
 At every phase, source-verifier and hostile-HIR replay diagnostics must agree, failed imports and failed postconditions must not initialize caller result storage, automatic finalizers must remain infallible and non-trapping, explicit close failure must obey its declared consumption contract, and native/Wasm normalized event traces must match. The rows in the [completion matrix](COMPLETION-MATRIX.md) remain Partial or Missing until their complete gates pass.
 
+[Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md) applies this rule to one
+compiler-owned collection leaf: push transfers and reopens exactly one owner,
+Copy elements introduce no child finalizers, and reads borrow synchronously.
+This is not permission for general owned assignment, owned elements, iterators,
+or a public generic resource ABI.
+
 ## Rejected shortcuts
 
 - Treating all resources as `void *` or `i32` without a destruction contract.

@@ -209,10 +209,19 @@ impl SemanticWorkspaceRevision {
                 }))
             })
             .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?;
+        let prelude_contract = if revision
+            .sources()
+            .iter()
+            .any(|source| crate::prelude::source_uses_vec(source.source()))
+        {
+            crate::prelude::contract_bytes_v2()
+        } else {
+            crate::prelude::contract_bytes_v1()
+        };
         let semantic_program = SemanticProgram::new(json!({
             "entry_module": revision.manifest().entry(),
             "normalized_sources": normalized_sources,
-            "prelude_digest": framed_digest(PRELUDE_DOMAIN, &crate::prelude::contract_bytes_v1()),
+            "prelude_digest": framed_digest(PRELUDE_DOMAIN, &prelude_contract),
         }))?;
 
         let indexes = revision.semantic.image_indexes();

@@ -451,7 +451,7 @@ fn mapping(path: &str) -> (&'static str, &'static str, bool) {
     if path.starts_with("editors/") {
         return ("editor-adapter", "editor-tests,documentation", true);
     }
-    if path == "src/graph.rs" {
+    if path == "src/graph.rs" || path.starts_with("src/graph/") {
         return ("broad-compiler-or-graph-dispatch", "full-workspace", false);
     }
     ("unmapped-or-wide", "full-workspace", false)

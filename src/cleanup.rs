@@ -163,6 +163,20 @@ pub(crate) const MAX_CLEANUP_VISITED_FIELDS: usize = 4_096;
 /// This identity is derived from the primitive type by both the inventory and
 /// CleanupPlan replay. It is never supplied by source or backend metadata.
 pub const BYTES_DROP_LIFECYCLE_ID: &str = "core.bytes.drop";
+/// Canonical compiler-owned lifecycle for one uniquely owned bounded `Vec<T>`
+/// carrier. The element profile is authenticated by the HIR type rather than
+/// supplied by source or backend metadata.
+pub const VEC_DROP_LIFECYCLE_ID: &str = "core.vec.drop";
+
+pub(crate) fn is_owned_bounded_vec_type(ty: &ResolvedType) -> bool {
+    matches!(
+        ty,
+        ResolvedType::Nominal { declaration, arguments }
+            if declaration.as_str() == crate::prelude::VEC_ID
+                && arguments.len() == 1
+                && crate::vec_ops::resolved_element_is_admitted(&arguments[0])
+    )
+}
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct CleanupStorageId(pub u32);
@@ -463,6 +477,12 @@ pub(crate) fn type_needs_resource_cleanup(
                 declaration,
                 arguments,
             } => {
+                if declaration.as_str() == crate::prelude::VEC_ID
+                    && arguments.len() == 1
+                    && crate::vec_ops::resolved_element_is_admitted(&arguments[0])
+                {
+                    return Ok(true);
+                }
                 let item = program
                     .types
                     .iter()
@@ -795,6 +815,22 @@ impl InventoryBuilder<'_> {
                             .map_err(|_| cleanup_error("too many cleanup liveness flags"))?;
                         let flag = LivenessFlagId(flag_index);
                         let lifecycle = DeclarationId::new(BYTES_DROP_LIFECYCLE_ID);
+                        self.flags.push(CleanupFlag {
+                            id: flag,
+                            place: CleanupPlace {
+                                storage,
+                                projections: projections.clone(),
+                            },
+                            lifecycle: lifecycle.clone(),
+                        });
+                        shapes.push(FieldLivenessShape::Leaf { flag, lifecycle });
+                        continue;
+                    }
+                    if is_owned_bounded_vec_type(ty) {
+                        let flag_index = u32::try_from(self.flags.len())
+                            .map_err(|_| cleanup_error("too many cleanup liveness flags"))?;
+                        let flag = LivenessFlagId(flag_index);
+                        let lifecycle = DeclarationId::new(VEC_DROP_LIFECYCLE_ID);
                         self.flags.push(CleanupFlag {
                             id: flag,
                             place: CleanupPlace {

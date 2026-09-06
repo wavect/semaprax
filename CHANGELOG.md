@@ -26,6 +26,15 @@ format: `Unreleased` then release buckets, grouped by impact.
   hosted and cross-platform evidence remain open, and the run covers its exact
   subject rather than any later head.
 
+- Added internal Owned Bounded Vec v1 across source, HIR, Graph, cleanup-plan
+  replay, the interpreter, native C11, and Core Wasm. `Vec<T>` and five explicit
+  generic intrinsics admit exactly the eight Copy scalars, any `usize` capacity
+  expression with a hard runtime maximum of 8192 and sticky code 3 on dynamic
+  overflow/allocation failure, consuming push, borrowed length/capacity/get,
+  exact same-owner reopening, and deterministic settlement on all three engines.
+  Owned/aggregate elements, inference, `std.collections`, iterators,
+  public generic ABI, hosted support, and broader collections remain closed.
+
 - Admitted the exact internal Owned Bounded Byte Buffer v1 write-once profile
   on Core-Wasm. The frozen host-arena imports allocate a literal-bounded zeroed
   `Bytes` value and mutate the same opaque token at literal indices; focused

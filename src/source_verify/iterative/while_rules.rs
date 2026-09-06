@@ -187,7 +187,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     name,
                     ..
                 } => {
-                    if !type_arguments.is_empty() {
+                    let vec_operation = crate::vec_ops::by_name(name);
+                    if !type_arguments.is_empty() && vec_operation.is_none() {
                         self.diagnostics.push(error(
                             self.program,
                             "SPX-T252",
@@ -196,6 +197,22 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         ));
                         results.push(Err(()));
                         continue;
+                    }
+                    if let Some(operation) = vec_operation {
+                        if operation == crate::vec_ops::VecOp::WithCapacity
+                            || type_arguments.len() != 1
+                            || !crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
+                            || args.len() != operation.arity()
+                        {
+                            self.diagnostics.push(error(
+                                self.program,
+                                "SPX-T283",
+                                "only exact typed Vec push/read operations are admitted in while bodies",
+                                expression.span,
+                            ));
+                            results.push(Err(()));
+                            continue;
+                        }
                     }
                     if crate::command_io_ops::by_name(name).is_some_and(|operation| {
                         !crate::command_io_ops::admitted_in_while(operation)

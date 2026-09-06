@@ -444,6 +444,21 @@ impl DeclarationIndex {
                         return None;
                     };
                     let item = self.declaration(&declaration)?;
+                    if declaration.as_str() == crate::prelude::VEC_ID
+                        && arguments.len() == 1
+                        && crate::vec_ops::resolved_element_is_admitted(&arguments[0])
+                    {
+                        let facts = TypeFacts {
+                            copy: false,
+                            contains_resource: false,
+                            sized: true,
+                            needs_drop: true,
+                            layout_key: format!("vec:{}", arguments[0].identity_key()),
+                        };
+                        memo.insert(identity, facts.clone());
+                        results.push(facts);
+                        continue;
+                    }
                     if item.kind == DeclarationKind::Resource && arguments.is_empty() {
                         let facts = TypeFacts {
                             copy: false,
@@ -722,7 +737,11 @@ impl DeclarationIndex {
 
     pub(super) fn from_verified(program: &Program) -> Result<Self, Diagnostic> {
         let mut index = Self::default();
-        for declaration in program.types.iter().chain(crate::prelude::declarations()) {
+        for declaration in program
+            .types
+            .iter()
+            .chain(crate::prelude::declarations_for_program(program))
+        {
             let kind = match declaration.kind {
                 TypeDeclarationKind::Resource { .. } => DeclarationKind::Resource,
                 TypeDeclarationKind::Record { .. } => DeclarationKind::Record,
@@ -790,7 +809,11 @@ impl DeclarationIndex {
                 );
             }
         }
-        for declaration in program.types.iter().chain(crate::prelude::declarations()) {
+        for declaration in program
+            .types
+            .iter()
+            .chain(crate::prelude::declarations_for_program(program))
+        {
             let TypeDeclarationKind::Resource { lifecycles } = &declaration.kind else {
                 continue;
             };
@@ -855,7 +878,11 @@ impl DeclarationIndex {
             )
             .at_path(&program.path));
         }
-        for declaration in program.types.iter().chain(crate::prelude::declarations()) {
+        for declaration in program
+            .types
+            .iter()
+            .chain(crate::prelude::declarations_for_program(program))
+        {
             let (TypeDeclarationKind::Record { fields }
             | TypeDeclarationKind::Class { fields, .. }) = &declaration.kind
             else {
@@ -983,7 +1010,11 @@ impl DeclarationIndex {
                     .insert(DeclarationId::new(method.stable_id.clone()), Vec::new());
             }
         }
-        for declaration in program.types.iter().chain(crate::prelude::declarations()) {
+        for declaration in program
+            .types
+            .iter()
+            .chain(crate::prelude::declarations_for_program(program))
+        {
             let TypeDeclarationKind::Variant { cases } = &declaration.kind else {
                 continue;
             };

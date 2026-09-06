@@ -59,7 +59,7 @@ pub(crate) fn verify(program: &Program) -> Vec<Diagnostic> {
         return diagnostics;
     }
     let mut functions = HashMap::new();
-    let mut ids = crate::prelude::all_ids()
+    let mut ids = crate::prelude::all_reserved_ids()
         .into_iter()
         .collect::<HashSet<_>>();
     let mut type_names = HashSet::new();

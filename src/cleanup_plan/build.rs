@@ -25,6 +25,7 @@ use super::{
     CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4,
 };
 
+mod bounded_vec;
 #[cfg(test)]
 mod hostile_tests;
 mod owned_try;
@@ -1000,6 +1001,9 @@ impl<'a> PlanBuilder<'a> {
                 },
             );
             return Ok(FieldLivenessShape::Leaf { flag, lifecycle });
+        }
+        if let Some(shape) = self.bounded_vec_shape(ty, storage, projections)? {
+            return Ok(shape);
         }
         let ResolvedType::Nominal {
             declaration,
@@ -2962,7 +2966,7 @@ impl<'a> PlanBuilder<'a> {
                         callee,
                         instance,
                         args,
-                        ..
+                        type_arguments,
                     } => {
                         let params = if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                             // Compiler-owned string operations carry their
@@ -3018,6 +3022,14 @@ impl<'a> PlanBuilder<'a> {
                                 )));
                             }
                             crate::host_io_ops::resolved_params(op)
+                        } else if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
+                            bounded_vec::resolved_params(
+                                op,
+                                instance.is_some(),
+                                args.len(),
+                                type_arguments,
+                                &expression.id,
+                            )?
                         } else {
                             let target = self
                                 .program
@@ -3652,18 +3664,25 @@ impl<'a> PlanBuilder<'a> {
                 } => {
                     if index == args.len() {
                         let mut state = flow.state;
-                        for commit in &commits {
-                            self.consume_place(&commit.source, &mut state, &expression.id)?;
+                        let (vec_op, defer_commit) = bounded_vec::call_behavior(callee);
+                        if !defer_commit {
+                            for commit in &commits {
+                                self.consume_place(&commit.source, &mut state, &expression.id)?;
+                            }
+                            self.push_transition(
+                                flow.block,
+                                CleanupTransition::CallCommit {
+                                    call: expression.id.clone(),
+                                    arguments: commits.clone(),
+                                },
+                            );
                         }
-                        self.push_transition(
-                            flow.block,
-                            CleanupTransition::CallCommit {
-                                call: expression.id.clone(),
-                                arguments: commits,
-                            },
-                        );
                         if crate::byte_ops::by_id(callee.as_str()).is_some()
                             || crate::host_io_ops::by_id(callee.as_str()).is_some()
+                            || matches!(
+                                vec_op,
+                                Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity)
+                            )
                         {
                             let destination = self.expression_slot(expression, active_region)?;
                             if let Some(destination) = destination.clone() {
@@ -3693,6 +3712,22 @@ impl<'a> PlanBuilder<'a> {
                         )?;
                         let (success, mut success_state) =
                             self.split_status(flow.block, state, active_region, source)?;
+                        if defer_commit {
+                            for commit in &commits {
+                                self.consume_place(
+                                    &commit.source,
+                                    &mut success_state,
+                                    &expression.id,
+                                )?;
+                            }
+                            self.push_transition(
+                                success,
+                                CleanupTransition::CallCommit {
+                                    call: expression.id.clone(),
+                                    arguments: commits,
+                                },
+                            );
+                        }
                         let destination = self.expression_slot(expression, active_region)?;
                         if let Some(destination) = destination.clone() {
                             self.initialize_owned_result(
@@ -5173,6 +5208,7 @@ impl<'a> PlanBuilder<'a> {
         flow: (BlockId, FlowState, CleanupRegionId),
     ) -> Result<EvalResult, Diagnostic> {
         let (block, state, region) = flow;
+        let type_arguments = bounded_vec::type_arguments(expression)?;
         let params = if instance.is_none() {
             if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
                 crate::string_ops::resolved_params(op)
@@ -5184,6 +5220,13 @@ impl<'a> PlanBuilder<'a> {
                 crate::host_io_ops::resolved_params(op)
             } else if let Some(op) = crate::command_io_ops::by_id(callee.as_str()) {
                 crate::command_io_ops::resolved_params(op)
+            } else if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
+                let [element] = type_arguments else {
+                    return Err(plan_error(
+                        "cleanup bounded Vec call has incorrect type arity",
+                    ));
+                };
+                crate::vec_ops::resolved_params(op, element)
             } else {
                 let target = self
                     .program
@@ -5240,19 +5283,26 @@ impl<'a> PlanBuilder<'a> {
         // This is the only caller-to-callee ownership boundary.  The
         // transition contains every and only owned parameter epoch in signature
         // order; once emitted, even a nonzero call status cannot restore them.
-        for commit in &commits {
-            self.consume_place(&commit.source, &mut current_state, &expression.id)?;
+        let (vec_op, defer_commit) = bounded_vec::call_behavior(callee);
+        if !defer_commit {
+            for commit in &commits {
+                self.consume_place(&commit.source, &mut current_state, &expression.id)?;
+            }
+            self.push_transition(
+                current,
+                CleanupTransition::CallCommit {
+                    call: expression.id.clone(),
+                    arguments: commits.clone(),
+                },
+            );
         }
-        self.push_transition(
-            current,
-            CleanupTransition::CallCommit {
-                call: expression.id.clone(),
-                arguments: commits,
-            },
-        );
 
         if crate::byte_ops::by_id(callee.as_str()).is_some()
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
+            || matches!(
+                vec_op,
+                Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity)
+            )
             || crate::command_io_ops::by_id(callee.as_str()).is_some_and(|op| {
                 crate::command_io_ops::failure(op)
                     == crate::command_io_ops::CommandIoFailure::Infallible
@@ -5281,6 +5331,18 @@ impl<'a> PlanBuilder<'a> {
         )?;
         let (success, mut success_state) =
             self.split_status(current, current_state, region, source)?;
+        if defer_commit {
+            for commit in &commits {
+                self.consume_place(&commit.source, &mut success_state, &expression.id)?;
+            }
+            self.push_transition(
+                success,
+                CleanupTransition::CallCommit {
+                    call: expression.id.clone(),
+                    arguments: commits,
+                },
+            );
+        }
         let destination = self.expression_slot(expression, region)?;
         if let Some(destination) = destination.clone() {
             // Caller result/out storage remains uninitialized until the

@@ -16,6 +16,8 @@ use crate::variant_layout::VariantLayout;
 use super::native_emit::{c_case_symbol, c_field_symbol};
 
 mod nested_owned;
+mod owned_leaf;
+use owned_leaf::{emit_transfer, OwnedLeafKind};
 
 #[derive(Clone, Debug)]
 pub(super) struct NativeBytesPlan {
@@ -34,6 +36,7 @@ struct ByteSlot {
     place: CleanupPlace,
     value: String,
     flag: String,
+    kind: OwnedLeafKind,
 }
 
 impl NativeBytesPlan {
@@ -54,12 +57,18 @@ impl NativeBytesPlan {
                 &slot.field_liveness_shape,
                 &mut Vec::new(),
                 &mut |place, flag, lifecycle| {
-                    if lifecycle.as_str() != crate::cleanup::BYTES_DROP_LIFECYCLE_ID {
-                        // This bridge owns only compiler-owned Bytes leaves.
-                        // Authenticated user-resource lifecycles remain under
-                        // the separate native resource cleanup classifier.
-                        return Ok(());
-                    }
+                    let kind = match lifecycle.as_str() {
+                        crate::cleanup::BYTES_DROP_LIFECYCLE_ID => OwnedLeafKind::Bytes,
+                        crate::cleanup::VEC_DROP_LIFECYCLE_ID if place.projections.is_empty() => {
+                            OwnedLeafKind::Vec
+                        }
+                        _ => {
+                            // This bridge owns only compiler-owned Bytes leaves.
+                            // Authenticated user-resource lifecycles remain under
+                            // the separate native resource cleanup classifier.
+                            return Ok(());
+                        }
+                    };
                     let value = if place.projections.is_empty() {
                         format!("spx_bytes_slot_{}", slot.id.0)
                     } else {
@@ -69,6 +78,7 @@ impl NativeBytesPlan {
                         place: place.clone(),
                         value,
                         flag: format!("spx_bytes_live_{}", flag.0),
+                        kind,
                     };
                     if slots.insert(place.clone(), byte_slot.clone()).is_some()
                         || by_flag.insert(flag, byte_slot).is_some()
@@ -309,8 +319,10 @@ impl NativeBytesPlan {
                 ""
             };
             output.push_str(&format!(
-                "    spx_bytes_v1 {}{} = {{0}};\n",
-                slot.value, maybe_unused
+                "    {} {}{} = {{0}};\n",
+                slot.kind.c_type(),
+                slot.value,
+                maybe_unused
             ));
             output.push_str(&format!(
                 "    bool {}{} = {};\n",
@@ -615,14 +627,17 @@ impl NativeBytesPlan {
             .slots
             .get(destination)
             .ok_or_else(|| error("Bytes transfer destination is not indexed"))?;
+        if source.kind != destination.kind {
+            return Err(error("owned plan transfer changes carrier kind"));
+        }
         Ok(format!(
-            "if (!{} || {}) spx_runtime_invariant_failure(\"Bytes plan transfer liveness {} to {}\");\n{} = spx_bytes_move(&{});\n{} = false;\n{} = true;\n",
+            "if (!{} || {}) spx_runtime_invariant_failure(\"owned plan transfer liveness {} to {}\");\n{} = {};\n{} = false;\n{} = true;\n",
             source.flag,
             destination.flag,
             source.value,
             destination.value,
             destination.value,
-            source.value,
+            source.kind.move_call(&source.value),
             source.flag,
             destination.flag
         ))
@@ -1050,8 +1065,9 @@ impl NativeBytesPlan {
                 slot.flag.clone()
             };
             output.push_str(&format!(
-                "    if ({guard}) {{ {} = false; spx_bytes_drop(&{}); }}\n",
-                slot.flag, slot.value
+                "    if ({guard}) {{ {} = false; {}; }}\n",
+                slot.flag,
+                slot.kind.drop_call(&slot.value),
             ));
         }
         output
@@ -1266,20 +1282,6 @@ fn propagate_variant_cases(
     }
 }
 
-fn emit_transfer(source: &ByteSlot, destination: &ByteSlot, context: &str) -> String {
-    format!(
-        "if (!{} || {}) spx_runtime_invariant_failure(\"Bytes {context} liveness {} to {}\");\n{} = spx_bytes_move(&{});\n{} = false;\n{} = true;\n",
-        source.flag,
-        destination.flag,
-        source.value,
-        destination.value,
-        destination.value,
-        source.value,
-        source.flag,
-        destination.flag
-    )
-}
-
 fn place_contains(prefix: &CleanupPlace, leaf: &CleanupPlace) -> bool {
     prefix.storage == leaf.storage && leaf.projections.starts_with(&prefix.projections)
 }
@@ -1389,6 +1391,7 @@ mod tests {
             },
             value: format!("value_{name}"),
             flag: format!("flag_{name}"),
+            kind: OwnedLeafKind::Bytes,
         }
     }
 
@@ -1444,6 +1447,7 @@ mod tests {
                         place: place.clone(),
                         value: format!("{prefix}_{index}"),
                         flag: format!("{prefix}_live_{index}"),
+                        kind: OwnedLeafKind::Bytes,
                     },
                 );
                 leaves.push(place);

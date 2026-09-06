@@ -19,6 +19,16 @@ fn profiles_are_deterministic_and_broad_dispatch_files_force_full() {
     assert!(plan.contains("path\tsrc/graph.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"));
     assert!(plan.contains("gate\ttest-workspace\n"));
     assert!(!plan.contains("gate\ttest-cli\n"));
+
+    repository.write(
+        "src/graph/prelude_binding.rs",
+        "pub fn select_prelude() { /* changed */ }\n",
+    );
+    let plan = repository.changed_plan(&[]).unwrap();
+    assert!(plan.contains("effective\tfull\n"));
+    assert!(plan.contains(
+        "path\tsrc/graph/prelude_binding.rs\tbroad-compiler-or-graph-dispatch\tfull-workspace\n"
+    ));
 }
 
 const BASE_CHANGED_GATES: &str = "gate\tdiff-check\ngate\tfmt-check\ngate\tcheck-workspace\ngate\ttest-advisory\ngate\tclippy-package\ngate\ttest-agent-context\ngate\trustdoc-package\n";
@@ -595,7 +605,9 @@ impl Repository {
     }
 
     fn write(&self, path: &str, contents: &str) {
-        fs::write(self.directory.join(path), contents).unwrap();
+        let path = self.directory.join(path);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(path, contents).unwrap();
     }
 
     fn git(&self, arguments: &[&str]) {

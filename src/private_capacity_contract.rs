@@ -3,7 +3,7 @@
 //! This file is path-included by the unpublished builder so the opaque HIR
 //! declaration-index allowance cannot drift from the root-side proof.
 
-pub(crate) const PRELUDE_CAPACITY_IDENTITIES: [&str; 9] = [
+pub(crate) const PRELUDE_CAPACITY_IDENTITIES: [&str; 10] = [
     "core.option",
     "core.option.none",
     "core.option.some",
@@ -13,6 +13,7 @@ pub(crate) const PRELUDE_CAPACITY_IDENTITIES: [&str; 9] = [
     "core.result.ok.value",
     "core.result.err",
     "core.result.err.error",
+    "core.vec",
 ];
 
 pub(crate) fn declaration_index_upper(

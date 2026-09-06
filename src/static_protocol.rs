@@ -114,7 +114,7 @@ pub fn validate(program: &Program) -> Result<(), Diagnostic> {
     }
     crate::protocol_check::validate_program(program)?;
     let mut ids = BTreeSet::new();
-    for id in crate::prelude::all_ids() {
+    for id in crate::prelude::all_reserved_ids() {
         ids.insert(id.to_owned());
     }
     let mut insert = |id: &str| -> Result<(), Diagnostic> {
@@ -353,7 +353,7 @@ pub(crate) fn validate_workspace(programs: &[Program]) -> Result<(), Diagnostic>
             "static protocol workspace exceeds its module bound",
         ));
     }
-    let mut ids = crate::prelude::all_ids()
+    let mut ids = crate::prelude::all_reserved_ids()
         .into_iter()
         .collect::<BTreeSet<_>>();
     let mut count = ids.len();
@@ -598,7 +598,7 @@ fn workspace_type_key(
         .iter()
         .filter(|item| item.kind == ModuleUseKind::Type && item.alias == *name)
         .collect::<Vec<_>>();
-    let prelude = crate::prelude::declarations()
+    let prelude = crate::prelude::declarations_for_program(program)
         .iter()
         .find(|item| item.name == *name)
         .map(|item| item.stable_id.as_str());

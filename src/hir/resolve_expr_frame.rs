@@ -64,6 +64,13 @@ pub(super) enum Frame<'expr> {
         op: crate::byte_ops::ByteOp,
         argument_count: usize,
     },
+    FinishVecOp {
+        span: Span,
+        path: String,
+        op: crate::vec_ops::VecOp,
+        element: ResolvedType,
+        argument_count: usize,
+    },
     FinishHostIoOp {
         span: Span,
         path: String,
@@ -387,6 +394,7 @@ pub(super) fn frame_owned_capacity(
         | Frame::FinishStringOp { path, .. }
         | Frame::FinishStrOp { path, .. }
         | Frame::FinishByteOp { path, .. }
+        | Frame::FinishVecOp { path, .. }
         | Frame::FinishHostIoOp { path, .. }
         | Frame::FinishHostCommandOp { path, .. }
         | Frame::ChildNext { path, .. }

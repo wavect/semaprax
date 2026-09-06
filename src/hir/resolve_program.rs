@@ -91,7 +91,7 @@ impl Resolver<'_> {
             .program
             .types
             .iter()
-            .chain(crate::prelude::declarations())
+            .chain(crate::prelude::declarations_for_program(self.program))
             .map(|declaration| {
                 let id = DeclarationId::new(declaration.stable_id.clone());
                 let kind = match &declaration.kind {

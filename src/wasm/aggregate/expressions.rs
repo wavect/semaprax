@@ -19,9 +19,9 @@ impl Emitter<'_> {
             ResolvedExprKind::Call {
                 callee,
                 instance,
+                type_arguments,
                 args,
-                ..
-            } => self.emit_call(expr, callee, instance.as_ref(), args),
+            } => self.emit_call(expr, callee, instance.as_ref(), type_arguments, args),
             ResolvedExprKind::Match {
                 mode: crate::hir::ResolvedMatchMode::Value,
                 scrutinee,

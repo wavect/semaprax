@@ -13,10 +13,22 @@ pub(super) fn emit_status_runtime(output: &mut impl super::COutput) {
     output.push_str(STATUS_RUNTIME_C);
 }
 
-/// Emit the additive borrowed-text context extension. The ordinary emitter is
-/// intentionally byte-frozen for every pre-text native projection.
-pub(super) fn emit_status_runtime_with_borrowed_str(output: &mut impl super::COutput) {
-    let runtime = STATUS_RUNTIME_C
+pub(super) fn emit_status_runtime_for_profile(
+    output: &mut impl super::COutput,
+    borrowed_str: bool,
+    vec_authority: bool,
+) {
+    emit_status_runtime_profile(output, borrowed_str, vec_authority);
+}
+
+fn emit_status_runtime_profile(
+    output: &mut impl super::COutput,
+    borrowed_str: bool,
+    vec_authority: bool,
+) {
+    let mut runtime = STATUS_RUNTIME_C.to_owned();
+    if borrowed_str {
+        runtime = runtime
         .replacen(
             "    uint32_t call_depth;\n};",
             "    uint32_t call_depth;\n    uint32_t borrowed_str_depth;\n};",
@@ -32,14 +44,39 @@ pub(super) fn emit_status_runtime_with_borrowed_str(output: &mut impl super::COu
             "    context->call_depth = UINT32_C(0);\n    context->borrowed_str_depth = UINT32_C(0);\n    return true;",
             1,
         );
+    }
     // A context field added after the anchors would otherwise drop the
     // extension silently and every borrowed-view function would fail to
     // compile against the emitted struct.
     assert_eq!(
         runtime.matches("borrowed_str_depth").count(),
-        3,
-        "borrowed-str context extension anchors must match the status runtime"
+        if borrowed_str { 3 } else { 0 }
     );
+    if vec_authority {
+        runtime = runtime
+            .replacen(
+                "struct spx_context {",
+                "#define SPX_VEC_AUTHORITY_CAPACITY UINT32_C(64)\nstruct spx_vec_authority_entry {\n    void *ptr;\n    uint64_t len;\n    uint64_t capacity;\n    uint64_t generation;\n    uint32_t type_tag;\n    bool live;\n};\n\nstruct spx_context {",
+                1,
+            )
+            .replacen(
+                "    uint32_t call_depth;",
+                "    uint32_t call_depth;\n    uint64_t vec_next_generation;\n    struct spx_vec_authority_entry vec_authority[SPX_VEC_AUTHORITY_CAPACITY];",
+                1,
+            )
+            .replacen(
+                "        context->call_depth == UINT32_C(0)",
+                "        context->call_depth == UINT32_C(0) &&\n        context->vec_next_generation == UINT64_C(0)",
+                1,
+            )
+            .replacen(
+                "    context->call_depth = UINT32_C(0);",
+                "    context->call_depth = UINT32_C(0);\n    context->vec_next_generation = UINT64_C(1);\n    memset(context->vec_authority, 0, sizeof(context->vec_authority));",
+                1,
+            );
+        assert_eq!(runtime.matches("vec_next_generation").count(), 3);
+        assert_eq!(runtime.matches("SPX_VEC_AUTHORITY_CAPACITY").count(), 2);
+    }
     output.push_str(&runtime);
 }
 

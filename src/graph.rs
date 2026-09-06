@@ -6,8 +6,6 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::Write;
 
-use sha2::{Digest, Sha256};
-
 use crate::ast::{BinaryOp, Program, UnaryOp};
 use crate::bounded_output::BudgetedJoin as _;
 use crate::call_index::PersistentCallIndex;
@@ -20,8 +18,6 @@ use crate::hir::{
     ResolvedResourceDropKind, ResolvedStatement, ResolvedType, ResolvedTypeDeclarationKind,
     TypeFacts, ValueId,
 };
-use crate::prelude;
-
 macro_rules! format {
     ($($argument:tt)*) => {
         crate::bounded_output::budgeted_format(format_args!($($argument)*))
@@ -32,6 +28,8 @@ macro_rules! format {
 mod native_import;
 #[path = "graph/nested_owned.rs"]
 mod nested_owned;
+#[path = "graph/prelude_binding.rs"]
+mod prelude_binding;
 
 use nested_owned::{
     graph_schema_includes_loans, graph_schema_includes_modern_composite_facts,
@@ -53,19 +51,7 @@ pub fn revision(program: &Program) -> String {
 }
 
 pub(crate) fn revision_from_canonical_source(source: &str) -> String {
-    let prelude_contract = prelude::contract_bytes_v1();
-    let mut hasher = Sha256::new();
-    hasher.update(b"semaprax.graph-revision.v2\0");
-    hasher.update((source.len() as u64).to_le_bytes());
-    hasher.update(source.as_bytes());
-    hasher.update((prelude::SCHEMA_V1.len() as u64).to_le_bytes());
-    hasher.update(prelude::SCHEMA_V1.as_bytes());
-    hasher.update((prelude_contract.len() as u64).to_le_bytes());
-    hasher.update(&prelude_contract);
-    format!(
-        "sha256:{:x}",
-        crate::digest_hex::LowerHex(hasher.finalize())
-    )
+    prelude_binding::revision_from_source(source)
 }
 
 /// Resolve and serialize a parsed program as `semaprax.graph.v10`, as v11 when
@@ -3136,8 +3122,8 @@ fn render_agent_context(
             "{{\"schema\":\"semaprax.agent-context.v1\",\"source_graph_schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"resume_contract\":{{\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":\"frontier.resume.min_bytes\"}},\"frontier\":[{}],\"facts\":[{}]}}",
             quote_json(source_identity.schema),
             quote_json(source_identity.revision),
-            quote_json(prelude::SCHEMA_V1),
-            quote_json(&prelude::digest_text_v1()),
+            quote_json(prelude_binding::schema(program)),
+            quote_json(&prelude_binding::digest(program)),
             quote_json(&program.module),
             quote_json(root.as_str()),
             options.depth,
@@ -3354,8 +3340,8 @@ fn render_agent_context_v2(
             "{{\"schema\":\"semaprax.agent-context.v2\",\"source_graph_schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"module\":{},\"root\":{},\"query\":{{\"direction\":{},\"depth\":{},\"max_bytes\":{},\"max_nodes\":{},\"filters\":[{}]}},\"filter_support\":{{\"included\":[{}],\"unavailable\":[{}]}},\"budget\":{{\"used_bytes\":{},\"used_nodes\":{},\"max_depth_used\":{}}},\"truncation\":{{\"truncated\":{},\"reasons\":[{}],\"omitted_known_nodes\":{},\"deferred_known_nodes\":{},\"omitted_fact_bytes\":{},\"unavailable_filter_count\":{}}},\"reference_closure\":{{\"referenced_unselected_nodes\":{}}},\"resume_contract\":{{\"direction\":\"query.direction\",\"depth\":\"query.depth\",\"max_nodes\":\"query.max_nodes\",\"filters\":\"query.filters\",\"max_bytes\":{{\"traversal\":\"frontier.resume.min_bytes\",\"reference\":\"reference_frontier.resume.min_bytes\"}}}},\"frontier\":[{}],\"reference_frontier\":[{}],\"facts\":[{}]}}",
             quote_json(source_identity.schema),
             quote_json(source_identity.revision),
-            quote_json(prelude::SCHEMA_V1),
-            quote_json(&prelude::digest_text_v1()),
+            quote_json(prelude_binding::schema(program)),
+            quote_json(&prelude_binding::digest(program)),
             quote_json(&program.module),
             quote_json(root.as_str()),
             quote_json(options.direction().name()),
@@ -3874,6 +3860,9 @@ fn graph_json(
     view: &GraphView<'_>,
 ) -> Result<String, Diagnostic> {
     let mut selected_types = selected_types.clone();
+    if !prelude_binding::uses_vec(program) {
+        selected_types.remove(&DeclarationId::new(crate::prelude::VEC_ID));
+    }
     let mut selected_interfaces = match view {
         GraphView::Module => program
             .interfaces
@@ -3933,8 +3922,8 @@ fn graph_json(
         "{{\"schema\":{},\"revision\":{},\"prelude\":{{\"schema\":{},\"digest\":{}}},\"view\":{},\"identity\":{{\"declarations\":\"explicit-persistent-or-automatic-unstable\",\"values\":\"revision-scoped-structural\",\"expressions\":\"revision-scoped-structural\",\"match_arms\":\"revision-scoped-structural\",\"patterns\":\"revision-scoped-structural\",\"type_parameters\":\"owner-and-index-stable\"}}{},\"module\":{},\"permits\":{},\"entrypoint\":{},\"type_facts\":[{}],\"nodes\":[",
         quote_json(schema),
         quote_json(source_revision),
-        quote_json(prelude::SCHEMA_V1),
-        quote_json(&prelude::digest_text_v1()),
+        quote_json(prelude_binding::schema(program)),
+        quote_json(&prelude_binding::digest(program)),
         view_json(view),
         portable_indexed_byte_data_json(schema, program)?,
         quote_json(&program.module),

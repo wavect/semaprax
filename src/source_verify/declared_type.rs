@@ -201,6 +201,11 @@ pub(super) fn check_declared_type(
         let admitted_owned_record_template =
             types.is_flat_owned_byte_record_template(&instance, parameters);
         let admitted_owned_variant = types.is_flat_owned_byte_variant(&instance);
+        let admitted_vec = name == "Vec"
+            && arguments.len() == 1
+            && (crate::vec_ops::ast_element_is_admitted(&arguments[0])
+                || matches!(&arguments[0], Type::Named { name, arguments }
+                    if arguments.is_empty() && parameters.contains(name.as_str())));
         if arguments
             .iter()
             .any(|argument| matches!(argument, Type::ArrayU8(_)))
@@ -224,6 +229,7 @@ pub(super) fn check_declared_type(
             && !admitted_owned_record
             && !admitted_owned_record_template
             && !admitted_owned_variant
+            && !admitted_vec
             && (!matches!(
                 declaration.kind,
                 TypeDeclarationKind::Record { .. }

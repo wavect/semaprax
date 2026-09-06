@@ -46,6 +46,8 @@ mod scalar_exports;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod source_result_component_v4;
 mod text_exports;
+mod vec_ops;
+pub(crate) use vec_ops::program_uses_vec;
 
 pub use owned_data_public::{
     emit_resolved_module_with_flat_owned_record_exports,
@@ -986,7 +988,11 @@ fn emit_resolved_module_internal(
             .declaration(&declaration.id)
             .is_some_and(|item| item.identity_origin == IdentityOrigin::CompilerOwned)
     });
-    if has_authored_aggregate || !concrete_variants.is_empty() || program_uses_byte_data(program) {
+    if has_authored_aggregate
+        || !concrete_variants.is_empty()
+        || program_uses_byte_data(program)
+        || program_uses_vec(program)
+    {
         if has_public_profile {
             return Err(Diagnostic::io(
                 "SPX-W115",

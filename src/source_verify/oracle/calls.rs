@@ -30,6 +30,99 @@ pub(super) fn oracle_call(
     allow_moves: bool,
     diagnostics: &mut Vec<Diagnostic>,
 ) -> Option<CheckedValue> {
+    if let Some(op) = crate::vec_ops::by_name(name) {
+        let element = type_arguments.first();
+        if type_arguments.len() != 1
+            || element.is_none_or(|ty| !crate::vec_ops::ast_element_is_admitted(ty))
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T281",
+                format!(
+                    "vector operation `{name}` requires one explicit Copy-scalar type argument"
+                ),
+                expr.span,
+            ));
+        }
+        if args.len() != op.arity() {
+            diagnostics.push(error(
+                program,
+                "SPX-T281",
+                format!(
+                    "vector operation `{name}` expects {} arguments, received {}",
+                    op.arity(),
+                    args.len()
+                ),
+                expr.span,
+            ));
+        }
+        if op == crate::vec_ops::VecOp::WithCapacity
+            && matches!(args.first().map(|arg| &arg.kind), Some(crate::ast::ExprKind::Usize(value)) if *value > crate::vec_ops::MAX_CAPACITY)
+        {
+            diagnostics.push(error(
+                program,
+                "SPX-T282",
+                format!(
+                    "`{name}` literal capacity must be no greater than {}",
+                    crate::vec_ops::MAX_CAPACITY
+                ),
+                expr.span,
+            ));
+        }
+        let params = element
+            .map(|element| crate::vec_ops::ast_params(op, element))
+            .unwrap_or_default();
+        for (index, arg) in args.iter().enumerate() {
+            let actual = check_expr(
+                program,
+                current,
+                arg,
+                variables,
+                functions,
+                types,
+                result_type,
+                allow_moves,
+                diagnostics,
+            );
+            let Some(param) = params.get(index) else {
+                continue;
+            };
+            if let Some(actual) = actual.as_ref().filter(|actual| actual.ty != param.ty) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T205",
+                    format!(
+                        "argument `{}` to `{name}` expects {}, received {}",
+                        param.name, param.ty, actual.ty
+                    ),
+                    arg.span,
+                ));
+            }
+            check_argument_ownership(
+                program,
+                current,
+                name,
+                arg,
+                param,
+                actual.as_ref(),
+                variables,
+                types,
+                allow_moves,
+                false,
+                false,
+                diagnostics,
+            );
+        }
+        return element.map(|element| {
+            CheckedValue::returned(
+                op.ast_return_type(element),
+                matches!(
+                    op,
+                    crate::vec_ops::VecOp::WithCapacity | crate::vec_ops::VecOp::Push
+                ),
+            )
+        });
+    }
     let native_import = program
         .interfaces
         .iter()

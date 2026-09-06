@@ -279,6 +279,16 @@ impl Resolver<'_> {
                                 path,
                                 segment: "arg",
                             });
+                        } else if let Some(op) = crate::vec_ops::by_name(name) {
+                            super::resolve_vec_call::schedule(
+                                self,
+                                &mut frames,
+                                type_arguments,
+                                args,
+                                bindings,
+                                (path, expr.span),
+                                op,
+                            )?;
                         } else if let Some(op) = crate::byte_ops::by_name(name) {
                             if !type_arguments.is_empty() || args.len() != op.arity() {
                                 return Err(self.error(
@@ -1033,6 +1043,18 @@ impl Resolver<'_> {
                         span,
                     });
                 }
+                Frame::FinishVecOp {
+                    span,
+                    path,
+                    op,
+                    element,
+                    argument_count,
+                } => {
+                    let args = take_results(&mut results, argument_count);
+                    results.push(super::resolve_vec_call::finish(
+                        self, function, &path, span, op, element, args,
+                    )?);
+                }
                 Frame::FinishHostIoOp {
                     span,
                     path,
@@ -1518,26 +1540,9 @@ impl Resolver<'_> {
                             }
                         }
                         None => {
-                            if value.ty != target.ty {
-                                return Err(self.error(
-                                    "SPX-U102",
-                                    format!(
-                                        "assigned value type `{}` does not exactly match binding type `{}`",
-                                        value.ty.identity_key(),
-                                        target.ty.identity_key()
-                                    ),
-                                    value.span,
-                                ));
-                            }
-                            if value.ownership != OwnershipMode::Value
-                                || !is_scalar_resolved_type(&value.ty)
-                            {
-                                return Err(self.error(
-                                    "SPX-U105",
-                                    "explicit mutation v1 supports only scalar Copy values",
-                                    value.span,
-                                ));
-                            }
+                            super::resolve_vec_call::validate_whole_assignment(
+                                self, &target, &value,
+                            )?;
                         }
                     }
                     let Statement::Assign {

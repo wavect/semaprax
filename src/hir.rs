@@ -101,6 +101,7 @@ mod resolve_expr_reference;
 mod resolve_pattern;
 mod resolve_program;
 mod resolve_statement;
+mod resolve_vec_call;
 mod type_reachability;
 pub(crate) use type_reachability::is_admitted_concrete_owned_byte_variant;
 mod validation;

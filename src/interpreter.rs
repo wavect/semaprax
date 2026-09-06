@@ -66,6 +66,7 @@ mod nested_owned;
 pub(crate) mod network;
 mod owned_buffer;
 mod owned_try;
+mod owned_vec;
 mod prepared;
 mod resolved_case;
 pub mod retained_call;
@@ -2558,6 +2559,7 @@ fn scan_closure(
                 let intrinsic = crate::string_ops::by_id(callee.as_str()).is_some()
                     || crate::str_ops::by_id(callee.as_str()).is_some()
                     || crate::byte_ops::by_id(callee.as_str()).is_some()
+                    || crate::vec_ops::by_id(callee.as_str()).is_some()
                     || crate::host_io_ops::by_id(callee.as_str()).is_some();
                 let execution = instance
                     .as_ref()
@@ -3128,6 +3130,7 @@ enum Value {
     Bool(bool),
     ArrayU8(Arc<[u8]>),
     Bytes(OwnedBytesValue),
+    Vec(Arc<owned_vec::OwnedVecValue>),
     String(String),
     BorrowedStr(BorrowedStrValue),
     BorrowedSlice(BorrowedSliceValue),
@@ -3681,6 +3684,7 @@ impl Evaluator<'_> {
             Value::Bool(value) => Value::Bool(*value),
             Value::ArrayU8(value) => Value::ArrayU8(Arc::clone(value)),
             Value::Bytes(value) => Value::Bytes(value.clone()),
+            Value::Vec(value) => Value::Vec(Arc::clone(value)),
             Value::String(value) => Value::String(self.materialize_utf8_copy(value)?),
             Value::BorrowedStr(value) => Value::BorrowedStr(value.clone()),
             Value::BorrowedSlice(value) => Value::BorrowedSlice(value.clone()),
@@ -4427,7 +4431,8 @@ impl Evaluator<'_> {
                 type_arguments,
                 args,
             } => {
-                if instance.is_some() != !type_arguments.is_empty() {
+                let vec_intrinsic = owned_vec::is_intrinsic_call(callee, instance, type_arguments);
+                if !vec_intrinsic && instance.is_some() != !type_arguments.is_empty() {
                     return Err(Flow::Guard("generic call identity is incomplete"));
                 }
                 if let Some(op) = crate::string_ops::by_id(callee.as_str()) {
@@ -4624,6 +4629,9 @@ impl Evaluator<'_> {
                         )),
                         _ => Err(Flow::Guard("ill-typed borrowed byte operation operand")),
                     };
+                }
+                if let Some(op) = crate::vec_ops::by_id(callee.as_str()) {
+                    return self.evaluate_vec_op(op, type_arguments, args, environment, depth);
                 }
                 if crate::host_io_ops::by_id(callee.as_str()).is_some() {
                     self.charge()?;

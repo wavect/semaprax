@@ -1,11 +1,13 @@
 # Provisioned Linux offline doctor lifecycle gate v1
 
-Status: **executed, and failed**. First run 2026-09-06 against `758388e2`
-([run 34040867346](https://github.com/wavect/semaprax/actions/runs/34040867346)),
-evidence bundle `c5be8289f0c22d40895c7065669266e93dc0720601f24cd436db9b2f0ee17de8`,
-selected failure `test harness exited 101`. Preconditions and settlement
-passed; the confinement boundary is **not** demonstrated. See
-[First execution](#first-execution).
+Status: **executed, and failed**, three times, most recently 2026-09-06
+against `0f7f7639`
+([run 34043466045](https://github.com/wavect/semaprax/actions/runs/34043466045)),
+selected failure `test harness exited 101`. Preconditions and settlement pass
+every time. One defect explains every failing fixture: **every tool check
+reports that the confined child terminated unsuccessfully**, for a
+hand-assembled fixture image and a real clang alike. See
+[Executions](#executions).
 
 Audience: release engineers and security reviewers who can supply one
 disposable, trusted Linux x86-64 host, or dispatch this gate against a
@@ -17,41 +19,77 @@ gate that contract's distribution and evidence section requires; it changes no
 admission rule, activates no ordinary CLI route, and promotes no completion
 row.
 
-## First execution
+## Executions
 
-**What the run does establish.** Zero precondition failures: all twelve
-required kernel features were observed present on `6.17.0-1022-azure x86_64`;
-the delegated scope reported `delegated: true, populated: 0, procs: []`; the
-signed release was unpacked outside the checkout at the checked-out commit
-under the `test-only` anchor with `production_signing_material_present: false`;
-the checkout was clean; every image was static ELF with `interpreter: None`.
+Three runs, all `failed`, all on a GitHub-hosted `ubuntu-24.04` runner:
+[34040867346](https://github.com/wavect/semaprax/actions/runs/34040867346) at
+`758388e2` (evidence bundle
+`c5be8289f0c22d40895c7065669266e93dc0720601f24cd436db9b2f0ee17de8`),
+[34041757908](https://github.com/wavect/semaprax/actions/runs/34041757908) at
+`7b5dfd65`, and
+[34043466045](https://github.com/wavect/semaprax/actions/runs/34043466045) at
+`0f7f7639`. Each selected `test harness exited 101`; the collector suite ran
+3 passed, 10 failed every time.
+
+**What the runs establish.** Zero precondition failures: all twelve required
+kernel features observed present on `6.17.0-1022-azure x86_64`; the delegated
+scope reported `delegated: true, populated: 0, procs: []`; the signed release
+was unpacked outside the checkout at the checked-out commit under the
+`test-only` anchor with `production_signing_material_present: false`; the
+checkout was clean; every image was static ELF with `interpreter: None`.
 Settlement passed — the final cgroup still existed, `populated 0`, with no
 surviving members, so nothing leaked despite the failure.
 
-**What it does not establish.** The confinement boundary is *not*
-demonstrated. Of the collector suite, 3 fixtures passed and 10 failed. Nine
-share one signature — the collector exited 1 rather than 0 — and every one of
-them drives the real worker through tmpfs materialization, pivot, seccomp and
-`execve`. The launcher and collector plumbing works under real confinement;
-the worker's confined tool execution does not yield an ok check on this host.
-No root cause is claimed: the assertion fires on the exit code before the
-report bytes are compared, so the run's log does not name the failed check.
-The tenth failure is the carrier-ceiling consequence recorded below and is
-addressed by the re-derived ceiling.
+The third run adds more, because `Observation::describe` now carries the
+collector's own output into the status assertion instead of discarding it. The
+confined worker **materializes into tmpfs, pivots, applies seccomp, reaches
+`execve`, and emits a well-formed canonical report** — correct schema and
+target, five of six checks `ok`, and an empty `stderr` — which the collector
+delivers to the fixture. Exit 1 is the correct response to the sixth check.
 
-The platform-sys suite never ran: `execute()` breaks after the first failing
-suite so cleanup cannot displace the sticky selected failure. Its thirteen
-fixtures assert on reply-frame contents rather than an exit code, and are
-therefore the diagnostic that would name the worker's actual failure.
+**The one defect.** Every tool check reports `offline tool terminated
+unsuccessfully`: `clang` in every failing fixture, and `node` and `rust` as
+well wherever all three roles are exercised. Nine fixtures run the
+`collector-fixture` profile's sentinel image and one runs
+`real-distributions`; both fail identically, so this is not a defect in any
+one image.
 
-Audience: release engineers and security reviewers who can supply one
-disposable, trusted Linux x86-64 host, or dispatch this gate against a
-GitHub-hosted runner.
+The detail renders `DoctorProbeError::Exit`, which is *any* nonzero child
+status, so the run does not say which of two causes it is: the tool itself
+exited nonzero — for the fixture image, exit 7, taken iff
+`write(1, payload, len) != len` — or the worker's own child setup rejected
+something and never reached the tool, since `fail_stop` is `_exit(126)` and
+`child.rs::enter` reaches it on a failed `dup2`, `materialize`, `chroot`,
+`close_range`, `guard.install`, or `execve`, among others. The report carries
+no exit code, which is correct for a report and is why it cannot distinguish
+them.
+
+The second is the better explanation: the fixture image is a hand-assembled
+ELF whose whole program is one `write` and one `exit_group`, and the other is
+a full clang, so two programs with almost nothing in common failing
+identically points at a shared cause *before* `execve` rather than at each
+image. The decisive datum is the child's exit status — 126 for `fail_stop`,
+7 for the fixture's short write, anything else for the real tool — and the
+`platform-sys-lib` suite is where it is observable.
+
+**What is still not established.** The confinement boundary's *properties*.
+Its mechanics execute, but every fixture that would demonstrate a property —
+including the negative ones, such as rejecting image defects, digest drift, a
+missing loader, or a non-child pidfd — fails on this defect before reaching
+its own assertion. The carrier ceiling recorded below was a real defect, fixed
+in `7b5dfd65`; it was never why a fixture failed.
+
+The platform-sys suite has never run: `execute()` breaks after the first
+failing suite so cleanup cannot displace the sticky selected failure. That no
+longer blocks diagnosis — the collector suite now names the failure itself.
 
 ## What is true today
 
 The private Linux doctor boundary has substantial implementation and
-source-layout coverage, and no runtime confinement evidence.
+source-layout coverage. It now also has runtime evidence that its mechanics
+execute on a real host — see [Executions](#executions) — but none that its
+confinement *properties* hold, because every fixture that would demonstrate
+one fails first on the tool-execution defect recorded there.
 
 - `tests/doctor_production_provisioner_v1.rs` reads the provisioner's source
   text: it pins the fixed descriptor inventory, the capsule parser, the clone

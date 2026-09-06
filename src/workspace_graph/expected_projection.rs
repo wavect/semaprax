@@ -445,15 +445,20 @@ fn ast_expr_cost(expression: &Expr, cost: &mut StructuralCost) -> Result<(), Vec
         ExprKind::Block { statements, tail } => {
             for statement in statements {
                 cost.value(statement)?;
-                // Only `let` and assignment statements name a binding; unsafe
-                // boundaries charge their verbatim audit summary instead and
-                // while statements carry no binding at all.
-                match statement.audit() {
-                    Some(audit) => cost.string(audit)?,
-                    None if matches!(statement, crate::ast::Statement::While { .. }) => {
-                        cost.string("")?
-                    }
-                    None => cost.string(statement.name())?,
+                // Charge the string every statement actually carries. Unsafe
+                // boundaries carry their verbatim audit summary, `while`
+                // carries no binding at all, bounded `for` traversal carries
+                // its item binding, and `let`/assignment carry their name.
+                // Matching the statement exhaustively keeps a later variant a
+                // compile error here rather than a panic at check time:
+                // `Statement::name` panics for every statement that is not a
+                // `let` or an assignment.
+                match statement {
+                    crate::ast::Statement::Unsafe { audit, .. } => cost.string(audit)?,
+                    crate::ast::Statement::While { .. } => cost.string("")?,
+                    crate::ast::Statement::For { item, .. } => cost.string(item)?,
+                    crate::ast::Statement::Let { name, .. }
+                    | crate::ast::Statement::Assign { name, .. } => cost.string(name)?,
                 }
                 for index in 0..statement.child_count() {
                     if let Some(child) = statement.child(index) {

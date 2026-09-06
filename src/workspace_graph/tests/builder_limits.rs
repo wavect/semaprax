@@ -241,3 +241,44 @@ fn the_builder_pre_bound_still_refuses_an_oversized_workspace() {
     };
     assert_exact_builder_limit_error(&error, MAX_BUILDER_BYTES);
 }
+
+fn traversal_source(binder: &str, item: &str) -> WorkspaceSource {
+    let body = if binder == "for" {
+        format!("for {item} in values {{\nsum = sum + 1;\nsum\n}}\n")
+    } else {
+        format!("let {item} = values;\n")
+    };
+    canonical_source(
+        "stub/traverse.spx",
+        &format!(
+            "\nmodule stub.traverse;\n\
+             @id(\"stub.traverse.total\") fn total(seed: i64) -> i64 {{\n\
+             let values = seed;\n\
+             let mut sum = 0;\n\
+             {body}\
+             sum\n}}\n"
+        ),
+    )
+}
+
+/// Issue #86. A bounded `for` names its item binding, so the pre-bound must
+/// charge that name exactly as it charges a `let` of the same name. Before
+/// this, the AST-side cost walk special-cased only `while` and reached
+/// `Statement::name`, which panics for every statement that is not a `let` or
+/// an assignment: a workspace project containing a `for` could not be checked
+/// at all. Comparing the two *deltas* pins the charge without freezing how
+/// many times a string is counted.
+#[test]
+fn a_for_item_binding_is_charged_exactly_like_a_let_binding() {
+    let widened = |binder| {
+        let short = stub_charge_prebound(&[traversal_source(binder, "i")], "stub.traverse");
+        let long = stub_charge_prebound(
+            &[traversal_source(binder, "collected_reading_item")],
+            "stub.traverse",
+        );
+        long - short
+    };
+    let charged = widened("for");
+    assert!(charged > 0, "a for item binding must be charged");
+    assert_eq!(charged, widened("let"));
+}

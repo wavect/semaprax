@@ -730,6 +730,7 @@ pub(super) fn classify_nested_owned_byte_record(
     let mut active = HashSet::new();
     let mut owned_leaves = 0usize;
     let mut visited_fields = 0usize;
+    let mut saw_generic_instance = false;
 
     while let Some(frame) = frames.pop() {
         match frame {
@@ -747,6 +748,7 @@ pub(super) fn classify_nested_owned_byte_record(
                 let Some(declaration) = types.declaration(&name) else {
                     return NestedOwnedRecordAdmission::OutsideProfile;
                 };
+                saw_generic_instance |= !arguments.is_empty();
                 if arguments.len() != declaration.type_parameters.len()
                     || arguments.iter().any(|argument| {
                         *argument != Type::Bytes
@@ -812,7 +814,9 @@ pub(super) fn classify_nested_owned_byte_record(
         }
     }
 
-    if owned_leaves == 0 {
+    if owned_leaves == 0 && saw_generic_instance {
+        NestedOwnedRecordAdmission::OutsideProfile
+    } else if owned_leaves == 0 {
         NestedOwnedRecordAdmission::NoOwnedBytes
     } else {
         NestedOwnedRecordAdmission::Admitted

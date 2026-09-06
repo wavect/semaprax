@@ -348,6 +348,7 @@ fn classify_nested_owned_byte_record(
     let mut path = Vec::new();
     let mut byte_paths = Vec::new();
     let mut visited_fields = 0usize;
+    let mut saw_generic_instance = false;
 
     while let Some(frame) = frames.pop() {
         match frame {
@@ -368,6 +369,7 @@ fn classify_nested_owned_byte_record(
                 if depth > MAX_NESTED_OWNED_RECORD_DEPTH {
                     return NestedOwnedRecordAdmission::LimitExceeded;
                 }
+                saw_generic_instance |= !arguments.is_empty();
                 if declarations
                     .type_parameters(&declaration)
                     .is_none_or(|parameters| parameters.len() != arguments.len())
@@ -447,7 +449,9 @@ fn classify_nested_owned_byte_record(
         }
     }
 
-    if byte_paths.is_empty() {
+    if byte_paths.is_empty() && saw_generic_instance {
+        NestedOwnedRecordAdmission::OutsideProfile
+    } else if byte_paths.is_empty() {
         NestedOwnedRecordAdmission::NoOwnedBytes
     } else {
         NestedOwnedRecordAdmission::Admitted(NestedOwnedRecordFacts {
@@ -661,6 +665,14 @@ mod tests {
         assert!(matches!(
             classify_nested_owned_byte_record(&program.declarations, &pair_box),
             NestedOwnedRecordAdmission::Admitted(_)
+        ));
+        let scalar_box = ResolvedType::Nominal {
+            declaration: box_id.clone(),
+            arguments: vec![ResolvedType::I64],
+        };
+        assert!(matches!(
+            classify_nested_owned_byte_record(&program.declarations, &scalar_box),
+            NestedOwnedRecordAdmission::OutsideProfile
         ));
 
         let mut at_depth = ResolvedType::Bytes;

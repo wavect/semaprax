@@ -110,14 +110,13 @@ fn literal_kats_wire_order_domains_and_reference_parity() {
             raw_sha(artifacts.evidence()),
         ],
         [
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:583fab8baa0e96c54cad42cbbe6e70e23946ca0f2144d21b9bb0c0c11eda6fc4",
-            "sha256:dbbd8029620d56a251397bcc4721daf98fbb29064ddf986b5be941e6e5f7b402",
-            "sha256:a7d6ada0b3e3f02600daeb076c74bdc0fb922e0a973eaacbf6c1aaf0952eaab9",
-            "sha256:204c77a0a90bc91a68dd96fc35551b88076b6e2a96e8ae8209ab422d2a4ed701",
-            "sha256:81d4fec5db76bddd094dbfdf47069b8dfbc57708ab85183742c1316e5b5f82f5"
+            // Re-pinned after type-fact cycle detection began retaining exact
+            // concrete nominal identities; only `used_builder_bytes` moved.
+            "sha256:863f8a704136586f57575dbae8dcb5bfa8c73a7bfa35b0fb44c9709da9ca6271",
+            "sha256:6b446b09093f5aed42d9dd54665a520049a356e252059568d53374aa0b6cdd58",
+            "sha256:0b83edacafd4b524e3dfc6503624e2e00249e1f38be70f35efb207f537f8bfd1",
+            "sha256:e2e684e735fed23458c4341cbda8a778ce8c01aac6a3c1f4ed09fa02256761bf",
+            "sha256:2d6108e775d8fdc27f1ff77ec2c590f2a2789432603149a1ba1ba0e66415d5a8"
         ]
     );
 

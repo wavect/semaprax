@@ -548,13 +548,12 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             .each_ref()
             .map(|artifact| document_sha(&artifact.json)),
         [
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:8ee8786c5d96d4bb96db42b1cfa88d00c5e05b85a3b192eb31a6548edf3536c7",
-            "sha256:da38052e3265c270d35c6b1ab6ba6e6022e05712c0cba63a561828bc0b337719",
-            "sha256:9112e69e39fe7b2f2bb2ea670a26e8845ce9a709a21fb41b670b505cbd60c507",
-            "sha256:11018a47d5e7a87b620bbecd5cb29c118b843d422220dd6054ee601f3fb68462"
+            // Re-pinned after type-fact cycle detection began retaining exact
+            // concrete nominal identities; only `used_builder_bytes` moved.
+            "sha256:bcf227338366f36d0c5da7edb9258335b3e30bd0a54c70269aea93a4bba5e6b8",
+            "sha256:bd274f9e3605b994f98d80615563d92c459595d93cd47412eeeefb270098d408",
+            "sha256:a024f632960c7dc98e17f3f7a025a37d3606caef6d94f8d70a4df7f2d4548563",
+            "sha256:331ce176bed8fc6aa8e1a2b797acdbc28680316a9c552edec7f747bd4f36f981"
         ]
     );
     for artifact in &contexts {
@@ -611,11 +610,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             .each_ref()
             .map(|artifact| document_sha(&artifact.json)),
         [
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:fad159b0318a68640632054d2c256da5016ac5b583f749a03b334276f784e37e",
-            "sha256:8cf38d2d6260acfef6dfd90fb6e8884d9ca9219cac3f3c73ef7d7dc5ed5bfb50",
+            // Re-pinned after type-fact cycle detection began retaining exact
+            // concrete nominal identities; only `used_builder_bytes` moved.
+            "sha256:966c7dd6f747bce6413e45c1daf7b90dd61c3a2c3549ff22fb547338d4a5e710",
+            "sha256:eca83c34f1d85daec9f3931b930b3b83c2662ed4782ebc190a16c217daa51bf6",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -750,10 +748,9 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
     let review = analysis.render_review(declaration_target.clone()).unwrap();
     assert_eq!(
         document_sha(&review.json),
-        // Re-pinned after the workspace pre-bound stopped charging an imported
-        // function as a second copy of its provider; only `used_builder_bytes`
-        // moved.
-        "sha256:b28c71855c450718d5da916a8716ff2d614d766999b418b10f1fa7eed2896457"
+        // Re-pinned after type-fact cycle detection began retaining exact
+        // concrete nominal identities; only `used_builder_bytes` moved.
+        "sha256:505e0b78fcdbe07bd4c267df0a9e5a12072cc3105a7dc4d78920f49236dd07ad"
     );
     let direct_context = analysis
         .render_context(

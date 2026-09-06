@@ -201,8 +201,9 @@ different retained Project or ProgramRoot.
 Cleanup schema selection runs from validated HIR before target lowering. Direct
 scalar instances and whole-owner flat relays select CleanupPlan v2; explicit
 flat record matching selects v5; bounded nested owned-byte relays select v7.
-Selection is operation-sensitive: a flat layout alone does not imply v5. The canonical profile classifier
-is invoked independently by plan construction/replay and graph derivation.
+Selection is operation-sensitive: a flat layout alone does not imply v5.
+Plan construction selects its schema independently; HIR replay and graph
+derivation recompute the profile from HIR and compare the selected schema.
 Graph derivation rejects disagreement with the retained plan. Interpreter,
 native, and Wasm continue through ordinary HIR and cleanup validation; a
 backend cannot repair or substitute the selected profile.

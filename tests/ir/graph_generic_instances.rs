@@ -435,3 +435,67 @@ fn graph_v34_composes_nested_relay_with_checked_local_byte_loans() {
     assert_eq!(context["source_graph_schema"], "semaprax.graph.v34");
     graph::verify_json(&program, &bytes).unwrap();
 }
+
+#[test]
+fn graph_v34_type_facts_include_concrete_instance_bodies_and_template_contexts() {
+    let program = checked(
+        r#"module test.generic_body_type_facts;
+@id("g.measure") fn measure<T>(value: T) -> i64 {
+    let text = string_from_char('\0');
+    string_len_chars(text)
+}
+@id("app.main") fn main() -> i64 { measure<i64>(42) }
+"#,
+    );
+    let legacy: Value = serde_json::from_str(&graph::to_legacy_json(&program).unwrap()).unwrap();
+    assert!(!legacy["type_facts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|fact| fact["id"] == "string"));
+    for bytes in [
+        graph::to_json(&program).unwrap(),
+        graph::context_json(&program, "g.measure", 0)
+            .unwrap()
+            .unwrap(),
+    ] {
+        let value: Value = serde_json::from_str(&bytes).unwrap();
+        assert_eq!(value["schema"], "semaprax.graph.v34");
+        let string = value["type_facts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|fact| fact["id"] == "string")
+            .expect("concrete body String has checked facts");
+        assert_eq!(string["facts"]["copy"], false);
+        assert_eq!(string["facts"]["needs_drop"], true);
+        assert_eq!(string["facts"]["layout_key"], "owned:string");
+    }
+    let legacy_context: Value = serde_json::from_str(
+        &graph::legacy_context_json(&program, "g.measure", 0)
+            .unwrap()
+            .unwrap(),
+    )
+    .unwrap();
+    assert!(!legacy_context["type_facts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|fact| fact["id"] == "string"));
+
+    let program = checked(&source(&["bool"], &["Box<Pair<Bytes, T>>"]));
+    let context = graph::context_json(&program, "g.outer.0", 0)
+        .unwrap()
+        .unwrap();
+    let value: Value = serde_json::from_str(&context).unwrap();
+    let parameter_type =
+        &value["generic_instance_ownership"][0]["parameters"][0]["substituted_type"];
+    let fact = value["type_facts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|fact| &fact["id"] == parameter_type)
+        .expect("template slice has concrete owner type facts");
+    assert_eq!(fact["facts"]["copy"], false);
+    assert_eq!(fact["facts"]["needs_drop"], true);
+}

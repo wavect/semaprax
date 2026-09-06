@@ -3926,7 +3926,7 @@ fn render_graph_json(
         quote_json(&program.module),
         string_array(&program.permits),
         quote_json(program.entrypoint.as_str()),
-        type_facts_array(program, selected_functions, &selected_types)?
+        generic_instances::type_facts_json(program, selected_functions, &selected_types, concrete_ownership)?
     )
     .expect("writing to a string cannot fail");
 
@@ -5493,67 +5493,7 @@ fn type_facts_array(
     selected_functions: &BTreeSet<DeclarationId>,
     selected_types: &BTreeSet<DeclarationId>,
 ) -> Result<String, Diagnostic> {
-    let mut types = BTreeMap::new();
-    for declaration in &program.types {
-        if !selected_types.contains(&declaration.id) {
-            continue;
-        }
-        if declaration.type_parameters.is_empty() {
-            collect_type(
-                &ResolvedType::Nominal {
-                    declaration: declaration.id.clone(),
-                    arguments: Vec::new(),
-                },
-                &mut types,
-            );
-        }
-        if declaration.type_parameters.is_empty() {
-            if let ResolvedTypeDeclarationKind::Record { fields }
-            | ResolvedTypeDeclarationKind::Class { fields, .. } = &declaration.kind
-            {
-                for field in fields {
-                    collect_type(&field.ty, &mut types);
-                }
-            }
-        }
-        if declaration.type_parameters.is_empty() {
-            if let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind {
-                for case in cases {
-                    for field in &case.fields {
-                        collect_type(&field.ty, &mut types);
-                    }
-                }
-            }
-        }
-    }
-    for function in &program.functions {
-        if !selected_functions.contains(&function.id) {
-            continue;
-        }
-        for param in &function.params {
-            collect_type(&param.ty, &mut types);
-        }
-        collect_type(&function.return_type, &mut types);
-        for expression in &function.requires {
-            collect_expr_types(expression, &mut types);
-        }
-        collect_expr_types(&function.body, &mut types);
-        for expression in &function.ensures {
-            collect_expr_types(expression, &mut types);
-        }
-    }
-    types
-        .values()
-        .map(|ty| {
-            Ok(format!(
-                "{{\"id\":{},\"type\":{},\"facts\":{}}}",
-                quote_json(&ty.identity_key()),
-                type_json(ty),
-                facts_json(program, ty)?
-            ))
-        })
-        .collect::<Result<Vec<_>, Diagnostic>>()
-        .map(|items| items.budgeted_join(","))
+    generic_instances::type_facts_json(program, selected_functions, selected_types, false)
 }
 
 fn collect_expr_types(expression: &ResolvedExpr, types: &mut BTreeMap<String, ResolvedType>) {

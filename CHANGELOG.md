@@ -8,6 +8,11 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Completed Graph-v34 type facts for concrete generic instance signatures and
+  bodies, including template-only context selection. Frozen legacy graph
+  collection remains unchanged. Added focused hosted compatibility selectors
+  for existing Component byte known answers and closed public mappings.
+
 - Added Graph v34 concrete generic-instance ownership, revision-bound semantic
   identities, forwarding facts and exact source replay, with independently
   selected cleanup schemas preserving existing CleanupPlan bytes. An additive

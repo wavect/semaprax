@@ -335,3 +335,92 @@ pub(super) fn instance_json(
         crate::graph_loan::loan_plan_json(&function.loan_plan)
     ))
 }
+
+pub(super) fn type_facts_json(
+    program: &ResolvedProgram,
+    selected_functions: &BTreeSet<DeclarationId>,
+    selected_types: &BTreeSet<DeclarationId>,
+    include_instances: bool,
+) -> Result<String, Diagnostic> {
+    let mut types = BTreeMap::new();
+    for declaration in &program.types {
+        if !selected_types.contains(&declaration.id) {
+            continue;
+        }
+        if declaration.type_parameters.is_empty() {
+            collect_type(
+                &ResolvedType::Nominal {
+                    declaration: declaration.id.clone(),
+                    arguments: Vec::new(),
+                },
+                &mut types,
+            );
+        }
+        if declaration.type_parameters.is_empty() {
+            if let ResolvedTypeDeclarationKind::Record { fields }
+            | ResolvedTypeDeclarationKind::Class { fields, .. } = &declaration.kind
+            {
+                for field in fields {
+                    collect_type(&field.ty, &mut types);
+                }
+            }
+        }
+        if declaration.type_parameters.is_empty() {
+            if let ResolvedTypeDeclarationKind::Variant { cases } = &declaration.kind {
+                for case in cases {
+                    for field in &case.fields {
+                        collect_type(&field.ty, &mut types);
+                    }
+                }
+            }
+        }
+    }
+    for function in &program.functions {
+        if !selected_functions.contains(&function.id) {
+            continue;
+        }
+        for param in &function.params {
+            collect_type(&param.ty, &mut types);
+        }
+        collect_type(&function.return_type, &mut types);
+        for expression in &function.requires {
+            collect_expr_types(expression, &mut types);
+        }
+        collect_expr_types(&function.body, &mut types);
+        for expression in &function.ensures {
+            collect_expr_types(expression, &mut types);
+        }
+    }
+    if include_instances {
+        for instance in &program.function_instances {
+            if !selected_functions.contains(&instance.template) {
+                continue;
+            }
+            let function = &instance.function;
+            for parameter in &function.params {
+                collect_type(&parameter.ty, &mut types);
+            }
+            collect_type(&function.return_type, &mut types);
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+            {
+                collect_expr_types(expression, &mut types);
+            }
+        }
+    }
+    types
+        .values()
+        .map(|ty| {
+            Ok(format!(
+                "{{\"id\":{},\"type\":{},\"facts\":{}}}",
+                quote_json(&ty.identity_key()),
+                type_json(ty),
+                facts_json(program, ty)?
+            ))
+        })
+        .collect::<Result<Vec<_>, Diagnostic>>()
+        .map(|items| items.budgeted_join(","))
+}

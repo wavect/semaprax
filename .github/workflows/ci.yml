@@ -60,6 +60,7 @@ jobs:
           cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_exact_eight_scalar_flat_and_nested_ownership_and_forwarding -- --exact --nocapture
           cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_replay_rejects_reminted_identity_ownership_paths_schema_and_closure -- --exact --nocapture
           cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_context_contains_exact_instance_facts_and_scalar_profiles -- --exact --nocapture
+          cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_type_facts_include_concrete_instance_bodies_and_template_contexts -- --exact --nocapture
           cargo test --locked -p semaprax --lib cleanup_plan::replay::schema_tests::generic_instance_schema_selection_freezes_operation_sensitive_v2_v5_v7 -- --exact --nocapture
           cargo test --locked -p semaprax --lib cleanup_plan::replay::schema_tests::generic_instance_schema_substitution_rejects_before_semantic_execution -- --exact --nocapture
           cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::matrix::all_copy_scalars_flat_and_both_nested_forwarding_settle_on_three_engines -- --exact --nocapture
@@ -75,6 +76,21 @@ jobs:
           cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_flat_expression_composition_selects_v5_and_preserves_modes -- --exact --nocapture
           cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_two_parameter_forwarding_rejects_map_and_callee_permutation -- --exact --nocapture
           cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_composes_nested_relay_with_checked_local_byte_loans -- --exact --nocapture
+
+      - name: Check frozen Component bytes and closed public mappings
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Literal pre-v34 known answers bind the core, WIT and Component bytes.
+          cargo test --locked -p semaprax --lib wasm::generic_function_component_v9::tests::deterministic_core_is_upstream_valid_and_graph_v14_bound -- --exact --nocapture
+          cargo test --locked -p semaprax --lib wit_component::generic_function_v9::tests::deterministic_v9_component_is_upstream_valid_and_kat_bound -- --exact --nocapture
+          # These are admission/replay/mapping checks, not historical-byte KATs.
+          cargo test --locked -p semaprax --test project retained_owned_api::frozen_v8_descriptor_method_does_not_widen_to_the_new_profiles -- --exact --nocapture
+          cargo test --locked -p semaprax --test project flat_owned_record_api::frozen_v9_descriptor_rejects_an_admitted_concrete_generic_result -- --exact --nocapture
+          cargo test --locked -p semaprax --test project nested_owned_record_api::frozen_v11_descriptor_rejects_an_admitted_concrete_generic_result -- --exact --nocapture
+          cargo test --locked -p semaprax --test project flat_owned_record_api::generated_mappings_are_safe_and_hide_the_carrier -- --exact --nocapture
+          cargo test --locked -p semaprax --test project cxx_owned_data_package::package_is_exact_replayed_bounded_and_v8_only -- --exact --nocapture
+          cargo test --locked -p semaprax --lib package_build::tests::generation_is_exact_and_independently_replayable -- --exact --nocapture
 
   supply-chain:
     name: Dependency policy

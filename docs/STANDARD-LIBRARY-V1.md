@@ -36,8 +36,11 @@ the current host surface; moving them behind `std.*` interfaces is an open
 gate of this document, not a completed step. That surface now includes the
 `bytes_zeroed`/`bytes_set` write-once owned buffer of
 [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md), which executes
-on the interpreter and native C11 only; no `std.*` package wraps it, and no
-required module below is satisfied by it.
+on the interpreter, native C11, and internal Core Wasm through the
+`env.spx_bytes_zeroed`/`env.spx_bytes_set` host-arena imports. The public Wasm
+byte-export adapter still rejects it with `SPX-W115`, so it carries no public
+ABI; no `std.*` package wraps it, and no required module below is satisfied by
+it.
 
 Every public standard-library declaration must have:
 

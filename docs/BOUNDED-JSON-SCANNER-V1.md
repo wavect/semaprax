@@ -215,12 +215,13 @@ returns only scalars.
 
 The owned bounded byte buffer of
 [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) is *not* a
-usable key record here, for three independent reasons: the WebAssembly backend
-rejects `bytes_zeroed` and `bytes_set` with `SPX-W110` while this package must
-execute on Core Wasm, `bytes_set` admits only a `usize` **literal** index
-(`SPX-T272`) while a key record is written at offsets a scan discovers, and
-neither operation is admitted in a `while` body at all (`SPX-T252`,
-`SPX-T267`).
+usable key record here, for two independent reasons: `bytes_set` admits only a
+`usize` **literal** index (`SPX-T272`) while a key record is written at offsets
+a scan discovers, and neither operation is admitted in a `while` body at all
+(`SPX-T252`, `SPX-T267`). Core Wasm is no longer one of those reasons: both
+operations now execute there through the `env.spx_bytes_zeroed` and
+`env.spx_bytes_set` host-arena imports, so a future key record would have to
+clear only the two limits above.
 
 ## Writing
 

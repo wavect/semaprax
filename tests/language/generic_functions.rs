@@ -1331,7 +1331,7 @@ permit { clock.read }
 @id("test.b") fn b<T>(value: T) -> T { value }
 @id("test.a") fn a<T>(value: T) -> T { let observed = b<i64>(0); if observed == 0 { value } else { value } }
 @id("app.main") fn main() -> i64 { 0 }"#,
-            "SPX-T226",
+            "SPX-T225",
         ),
         (
             r#"module test.direct_recursion;

@@ -144,6 +144,36 @@ jobs:
               "$(stat -Lc '%s' "$f")" "$(stat -c '%s' "$work/stripped/$i.bin")" "$f"
           done < "$work/files"
 
+      - name: Exact encoded bundle size for candidate real distributions
+        run: |
+          set -euo pipefail
+          dist="$RUNNER_TEMP/distributions"
+          rustup toolchain install 1.88.0 --profile minimal --no-self-update
+          rustc="$(rustup which --toolchain 1.88.0 rustc)"
+          for spec in \
+            "17.0.6:clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04:clang-17" \
+            "16.0.4:clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04:clang-16" \
+            "15.0.6:clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04:clang-15"; do
+            ver="${spec%%:*}"; rest="${spec#*:}"
+            name="${rest%%:*}"; exe="${rest##*:}"
+            rm -rf "$dist"; mkdir -p "$dist/clang/bin"
+            url="https://github.com/llvm/llvm-project/releases/download/llvmorg-$ver/$name.tar.xz"
+            curl -fsSL "$url" | tar -xJ -C "$dist/clang/bin" --strip-components=2 \
+              --wildcards "*/bin/$exe" || { echo "llvm-$ver: unavailable"; continue; }
+            mv "$dist/clang/bin/$exe" "$dist/clang/bin/clang"
+            chmod 755 "$dist/clang/bin/clang"
+            echo "===== llvm-$ver ====="
+            ldd "$dist/clang/bin/clang" || true
+            "$dist/clang/bin/clang" --version | head -1 \
+              || { echo "llvm-$ver: cannot run here"; continue; }
+            python3 scripts/doctor-provisioned-linux-bundle.py \
+              --selector real-distributions \
+              --clang "$dist/clang/bin/clang" \
+              --node "$(command -v node)" \
+              --rustc "$rustc" \
+              --closure --plan || echo "llvm-$ver: bundle refused"
+          done
+
       - name: Candidate real distributions that fit the 512 MiB ceiling
         run: |
           set -uo pipefail

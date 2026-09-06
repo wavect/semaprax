@@ -402,6 +402,166 @@ fn string_end(input: borrow Slice<u8>, start: usize) -> usize
 fn is_string(input: borrow Slice<u8>) -> bool
 ```
 
+## `std.data.json.dec`
+
+Package `std/data-json-dec`, tier `alloc`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.data.json.dec = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.json.dec.at_is`
+
+```semaprax
+fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+```
+
+### `std.data.json.dec.at_in`
+
+```semaprax
+fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool
+```
+
+### `std.data.json.dec.failure`
+
+```semaprax
+fn failure(input: borrow Slice<u8>, offset: usize) -> usize
+    ensures result > byte_len(input)
+```
+
+### `std.data.json.dec.is_failure`
+
+```semaprax
+fn is_failure(input: borrow Slice<u8>, scan: usize) -> bool
+```
+
+### `std.data.json.dec.hex_at`
+
+```semaprax
+fn hex_at(input: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 15
+```
+
+### `std.data.json.dec.code_unit`
+
+```semaprax
+fn code_unit(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1 && result <= 65535
+```
+
+### `std.data.json.dec.escape_kind`
+
+```semaprax
+fn escape_kind(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= 0 && result <= 3
+```
+
+### `std.data.json.dec.escape_end`
+
+```semaprax
+fn escape_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.dec.string_end`
+
+```semaprax
+fn string_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.dec.token_end`
+
+```semaprax
+fn token_end(input: borrow Slice<u8>, index: usize) -> usize
+```
+
+### `std.data.json.dec.simple_scalar`
+
+```semaprax
+fn simple_scalar(byte: u8) -> i64
+    ensures result >= -1 && result <= 92
+```
+
+### `std.data.json.dec.byte_code`
+
+```semaprax
+fn byte_code(byte: u8) -> i64
+    ensures result >= 0 && result <= 255
+```
+
+### `std.data.json.dec.code_byte`
+
+```semaprax
+fn code_byte(value: i64) -> u8
+```
+
+### `std.data.json.dec.scalar_at`
+
+```semaprax
+fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1 && result <= 1114111
+```
+
+### `std.data.json.dec.utf8_len`
+
+```semaprax
+fn utf8_len(scalar: i64) -> usize
+    ensures result <= 4usize
+```
+
+### `std.data.json.dec.utf8_at`
+
+```semaprax
+fn utf8_at(scalar: i64, index: usize) -> i64
+    ensures result >= -1 && result <= 255
+```
+
+### `std.data.json.dec.emit_len`
+
+```semaprax
+fn emit_len(input: borrow Slice<u8>, index: usize) -> usize
+    ensures result <= 4usize
+```
+
+### `std.data.json.dec.emit_at`
+
+```semaprax
+fn emit_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
+    ensures result >= -1 && result <= 255
+```
+
+### `std.data.json.dec.decoded_len`
+
+```semaprax
+fn decoded_len(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.dec.decoded_size`
+
+```semaprax
+fn decoded_size(input: borrow Slice<u8>) -> usize
+```
+
+### `std.data.json.dec.capacity`
+
+```semaprax
+fn capacity() -> usize
+    ensures result == 256usize
+```
+
+### `std.data.json.dec.prefix_eq`
+
+```semaprax
+fn prefix_eq(left: borrow Slice<u8>, right: borrow Slice<u8>, length: usize) -> bool
+```
+
+### `std.data.json.dec.slice_eq`
+
+```semaprax
+fn slice_eq(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+```
+
+### `std.data.json.dec.decoded_eq`
+
+```semaprax
+fn decoded_eq(input: borrow Slice<u8>, start: usize, expect: borrow Slice<u8>) -> bool
+```
+
 ## `std.data.json.digits`
 
 Package `std/data-json-digits`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.data.json.digits = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

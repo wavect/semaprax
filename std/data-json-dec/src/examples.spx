@@ -1,0 +1,11 @@
+module std.data.json.dec.examples;
+use function @id("std.data.json.dec.decoded_len") from std.data.json.dec as decoded_len;
+use function @id("std.data.json.dec.decoded_size") from std.data.json.dec as decoded_size;
+
+@id("std.data.json.dec.examples.main")
+fn main() -> i64
+{
+    let raw = [34u8, 97u8, 92u8, 110u8, 98u8, 34u8];
+    let source = array_as_slice(raw);
+    if decoded_size(source) == 3usize && decoded_len(source, 0usize) == 3usize { 0 } else { 1 }
+}

@@ -54,6 +54,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.data.json.dec",
+        path: "dependencies/std.data.json.dec/0.1.0/dec.spx",
+        source: include_str!("../../std/data-json-dec/src/dec.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.data.json.digits",
         path: "dependencies/std.data.json.digits/0.1.0/digits.spx",
         source: include_str!("../../std/data-json-digits/src/digits.spx"),

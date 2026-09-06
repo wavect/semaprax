@@ -789,6 +789,321 @@
         {
           "description": [],
           "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool"
+          ],
+          "id": "std.data.json.dec.at_is",
+          "kind": "function",
+          "name": "at_is",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool"
+          ],
+          "id": "std.data.json.dec.at_in",
+          "kind": "function",
+          "name": "at_in",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn failure(input: borrow Slice<u8>, offset: usize) -> usize",
+            "    ensures result > byte_len(input)"
+          ],
+          "id": "std.data.json.dec.failure",
+          "kind": "function",
+          "name": "failure",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_failure(input: borrow Slice<u8>, scan: usize) -> bool"
+          ],
+          "id": "std.data.json.dec.is_failure",
+          "kind": "function",
+          "name": "is_failure",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn hex_at(input: borrow Slice<u8>, index: usize) -> i64",
+            "    ensures result >= -1 && result <= 15"
+          ],
+          "id": "std.data.json.dec.hex_at",
+          "kind": "function",
+          "name": "hex_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn code_unit(input: borrow Slice<u8>, start: usize) -> i64",
+            "    ensures result >= -1 && result <= 65535"
+          ],
+          "id": "std.data.json.dec.code_unit",
+          "kind": "function",
+          "name": "code_unit",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn escape_kind(input: borrow Slice<u8>, start: usize) -> i64",
+            "    ensures result >= 0 && result <= 3"
+          ],
+          "id": "std.data.json.dec.escape_kind",
+          "kind": "function",
+          "name": "escape_kind",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn escape_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.dec.escape_end",
+          "kind": "function",
+          "name": "escape_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn string_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.dec.string_end",
+          "kind": "function",
+          "name": "string_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn token_end(input: borrow Slice<u8>, index: usize) -> usize"
+          ],
+          "id": "std.data.json.dec.token_end",
+          "kind": "function",
+          "name": "token_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn simple_scalar(byte: u8) -> i64",
+            "    ensures result >= -1 && result <= 92"
+          ],
+          "id": "std.data.json.dec.simple_scalar",
+          "kind": "function",
+          "name": "simple_scalar",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn byte_code(byte: u8) -> i64",
+            "    ensures result >= 0 && result <= 255"
+          ],
+          "id": "std.data.json.dec.byte_code",
+          "kind": "function",
+          "name": "byte_code",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn code_byte(value: i64) -> u8"
+          ],
+          "id": "std.data.json.dec.code_byte",
+          "kind": "function",
+          "name": "code_byte",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64",
+            "    ensures result >= -1 && result <= 1114111"
+          ],
+          "id": "std.data.json.dec.scalar_at",
+          "kind": "function",
+          "name": "scalar_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn utf8_len(scalar: i64) -> usize",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.data.json.dec.utf8_len",
+          "kind": "function",
+          "name": "utf8_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn utf8_at(scalar: i64, index: usize) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.data.json.dec.utf8_at",
+          "kind": "function",
+          "name": "utf8_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn emit_len(input: borrow Slice<u8>, index: usize) -> usize",
+            "    ensures result <= 4usize"
+          ],
+          "id": "std.data.json.dec.emit_len",
+          "kind": "function",
+          "name": "emit_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn emit_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.data.json.dec.emit_at",
+          "kind": "function",
+          "name": "emit_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn decoded_len(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.dec.decoded_len",
+          "kind": "function",
+          "name": "decoded_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn decoded_size(input: borrow Slice<u8>) -> usize"
+          ],
+          "id": "std.data.json.dec.decoded_size",
+          "kind": "function",
+          "name": "decoded_size",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn capacity() -> usize",
+            "    ensures result == 256usize"
+          ],
+          "id": "std.data.json.dec.capacity",
+          "kind": "function",
+          "name": "capacity",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn prefix_eq(left: borrow Slice<u8>, right: borrow Slice<u8>, length: usize) -> bool"
+          ],
+          "id": "std.data.json.dec.prefix_eq",
+          "kind": "function",
+          "name": "prefix_eq",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn slice_eq(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.dec.slice_eq",
+          "kind": "function",
+          "name": "slice_eq",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn decoded_eq(input: borrow Slice<u8>, start: usize, expect: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.dec.decoded_eq",
+          "kind": "function",
+          "name": "decoded_eq",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.data.json.dec = \"^0.1.0\"",
+      "module": "std.data.json.dec",
+      "package": "std/data-json-dec",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "alloc"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
           "ensures": 1,
           "head": [
             "fn i64_len(value: i64) -> i64",

@@ -2,9 +2,10 @@
 
 Audience: language users, tool authors, and standard-library contributors.
 
-Status: partially implemented, across six sibling packages that share one
-result encoding. Each is pure, allocation-free, and operates on a borrowed
-byte view or Copy scalars:
+Status: partially implemented, across seven sibling packages that share one
+result encoding. Six are pure, allocation-free, and operate on a borrowed byte
+view or Copy scalars; `std.data.json.dec` additionally fills one owned bounded
+byte buffer of fixed capacity inside a single function:
 
 | Package | Admitted scope |
 | --- | --- |
@@ -14,12 +15,12 @@ byte view or Copy scalars:
 | `std.data.json.write` | Deterministic **string encoding**: the exact length and each byte of the quoted JSON encoding of a byte view |
 | `std.data.json.digits` | Deterministic **number and literal encoding**: the exact decimal bytes of any `i64` and the literal words |
 | `std.data.json.doc` | **Structural documents**: the object and array grammar, a bounded nesting depth, trailing-byte rejection over a whole document, and a duplicate-key rule over byte-identical member names |
+| `std.data.json.dec` | **Decoded strings**: the exact decoded length of a JSON string, the decoded bytes of each token, and a buffer-backed comparison of the decoded bytes against a caller-supplied slice |
 
-Decoded string output, an owned document tree, and an output buffer are
-Missing.
+A caller-provided output buffer and an owned document tree are Missing.
 
 This document owns the result encoding and rejection policy shared by all
-six. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns their status rows and
+seven. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns their status rows and
 the admission limits that shape them.
 
 ## Why a scanner and not a document
@@ -215,15 +216,75 @@ returns only scalars.
 
 The owned bounded byte buffer of
 [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) is *not* a
-usable key record here, but for one remaining reason rather than three: neither
-operation is admitted in a `while` condition or body at all (`SPX-T252`,
-`SPX-T267`), and a key record is filled by a scan. Two earlier reasons no
-longer hold. Core Wasm executes both operations through the
-`env.spx_bytes_zeroed` and `env.spx_bytes_set` host-arena imports. And
-`bytes_set` now admits any `usize` index expression, so an offset a scan
-discovers can be written; an index outside the buffer is the run-time
-`semaprax.byte-buffer.v1` failure rather than a rejection. A future key record
-therefore has to clear only the loop limit.
+usable key record here, but no longer for a language reason. All three earlier
+obstacles are gone: Core Wasm executes both operations through the
+`env.spx_bytes_zeroed` and `env.spx_bytes_set` host-arena imports; `bytes_set`
+admits any `usize` index expression, so an offset a scan discovers can be
+written; and the same-owner replacement `buffer = bytes_set(buffer, index,
+value)` is admitted inside a bounded `while`, with the allocation staying
+outside it. `std.data.json.dec` fills exactly such a buffer from a scan. What
+stands in the way here is the package budget and `SPX-W115`: `std.data.json.doc`
+sits about 1.1 KB under `SPX-G171`, and it carries public web exports, whose
+build admits no owned byte buffer anywhere in the program.
+
+## Decoding
+
+`std.data.json.dec` expands escapes. It is the only package in this family
+that allocates, and it allocates exactly one buffer, inside one function.
+
+`decoded_len(input, start)` is the exact number of bytes the JSON string
+beginning at `start` produces once its escapes are expanded, in this document's
+result encoding: at most `byte_len(input)` is a length, and a larger value is a
+rejection at `result - byte_len(input) - 1`. `decoded_size(input)` is the
+whole-input form and additionally rejects any byte after the closing quote.
+Decoded output is never longer than the span it came from, so a length and a
+rejection can never be confused.
+
+Expansion is exact and total for every escape RFC 8259 admits:
+
+- the eight simple escapes `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`,
+  `\t` produce one byte each;
+- `\uXXXX` for a non-surrogate scalar produces its 1-, 2-, or 3-byte UTF-8
+  encoding;
+- a high surrogate immediately followed by `\u` and a low surrogate produces
+  the combined scalar's 4-byte UTF-8 encoding;
+- every other byte in the string passes through unchanged, including raw
+  UTF-8 continuation bytes.
+
+A lone high surrogate, an unpaired low surrogate, an unknown escape letter, a
+raw `0x00`-`0x1F`, and an unterminated string are each rejected at the offset
+of the backslash or byte that opened them - the same offsets
+`std.data.json.escape_end` and `string_end` report.
+
+Two surfaces read the decoded bytes.
+
+The **pull surface** needs no buffer and no capacity. `token_end(input, index)`
+is the end of the token at `index`, `emit_len(input, index)` is how many bytes
+that token decodes to, and `emit_at(input, index, offset)` is the `offset`-th
+of them, or `-1`. A caller walks a string with those three and streams the
+decoded bytes anywhere, at any length, exactly as the writer's `width_at` and
+`encoded_at` are streamed.
+
+The **buffer surface** is `decoded_eq(input, start, expect)`, which answers
+whether the decoded string equals a caller-supplied byte view. It allocates
+`bytes_zeroed(256usize)` once, outside one bounded `while`, and fills it with
+the same-owner replacement `out = bytes_set(out, write, value)` where the write
+cursor advances independently of the read cursor - an escape consumes two to
+twelve input bytes and emits one to four. The capacity is a `usize` literal at
+the allocation site (`SPX-T271`) and cannot be a parameter, so 256 bytes is a
+fixed maximum rather than a property of the input: `decoded_eq` returns `false`
+for any string whose decoded form is longer, and `decoded_len` is how a caller
+distinguishes that from an ordinary mismatch. `prefix_eq` and `slice_eq`
+compare two byte views and are the only part of this package a public web
+build can reach.
+
+The buffer is deliberately confined. A `Bytes` value is not admitted across a
+module boundary (`SPX-G172`), so the decoded bytes cannot be returned; and the
+public web build of a program containing the buffer is rejected with
+`SPX-W115`, so `decoded_eq` must not be reachable from a package's entry
+module. `std.data.json.dec` reaches it from its conformance module, and
+`standard_library::package_manifest_links_the_json_decoder` shows a consumer
+doing the same.
 
 ## Writing
 
@@ -273,10 +334,22 @@ These are absent, not merely undocumented. A program must not infer them:
   see above.
 - **Floating-point numbers.** `i64_or` refuses a fraction or exponent rather
   than converting it, and nothing renders an `f64`.
-- **Decoded strings.** Escapes are validated and measured, never expanded;
-  expansion needs an output buffer with an explicit capacity.
-- **An output buffer**, pretty-printing, and any owned document
-  representation. The writer reports bytes; it does not store them.
+- **A caller-provided output buffer.** `bytes_zeroed`'s capacity must be a
+  `usize` literal at the allocation site (`SPX-T271`), so a decoder picks a
+  fixed maximum rather than sizing from its input, and a `Bytes` value cannot
+  cross a module boundary (`SPX-G172`), so the decoded bytes never reach the
+  caller as a value. `std.data.json.dec` decodes into a private 256-byte
+  buffer and answers a question about it; a string whose decoded form exceeds
+  256 bytes is not compared, and `decoded_len` is how a caller finds that out
+  before asking.
+- **Decoded byte access by output index.** `decoded_at(input, start, offset)`
+  was written and measured at **18,283 B against an 18,480 B admitted /
+  18,653 B rejected package bound** and cut; `token_end`, `emit_len`, and
+  `emit_at` are the token-level pull surface a caller streams instead.
+- **Decoded duplicate-key comparison.** `decoded_same(input, first, second)`
+  was written and cut for the same bound.
+- **Pretty-printing** and any owned document representation. The writer
+  reports bytes; it does not store them.
 - **A composed reader/writer round trip** over a whole document.
 
 ## The limit that shapes this package

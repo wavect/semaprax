@@ -653,6 +653,15 @@ fn examples_and_conformance_return_zero_on_interpreter_native_and_wasm() {
                 return Ok(());
             }
             let wasm = snapshot.test_wasm_module()?;
+            // The decoded-string package is the one standard-library package
+            // whose conformance fills an owned bounded byte buffer, so it alone
+            // reaches the host-arena protocol and must balance a one-entry arena.
+            let arena = package.module == "std.data.json.dec";
+            for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
+                let present = wasm.windows(name.len()).any(|w| w == name.as_bytes());
+                assert_eq!(present, arena, "{}: `{name}` import", package.directory);
+            }
+            let live_entry_bound = if arena { 1 } else { 4096 };
             let wasm_path = scratch.join(format!("{}-tests.wasm", package.directory));
             std::fs::write(&wasm_path, wasm).unwrap();
             let script = scratch.join(format!("{}-tests.mjs", package.directory));
@@ -666,13 +675,15 @@ const checked = (operation) => (a, b) => {{ const value = operation(a, b); if (v
 const entries = new Map(); let next = 1; let linked;
 const decode = carrier => {{ const word = BigInt.asUintN(64, carrier), length = Number(word & 0xffffffffn), root = Number((word >> 32n) & 0xffffffffn); return {{ word, length, root, tagged: (root & 0x80000000) !== 0, token: root & 0x7fffffff }}; }};
 const read = decoded => {{ if (decoded.tagged) {{ const value = entries.get(decoded.token); if (!(value instanceof Uint8Array) || value.length !== decoded.length) throw new Error("stale byte token"); return value; }} const memory = new Uint8Array((linked.instance.exports.__spx_byte_memory ?? linked.instance.exports.memory).buffer); if (decoded.root > memory.length - decoded.length) throw new Error("byte range"); return memory.slice(decoded.root, decoded.root + decoded.length); }};
-const allocate = bytes => {{ const token = next++, owned = new Uint8Array(bytes); entries.set(token, owned); return BigInt.asIntN(64, ((0x80000000n | BigInt(token)) << 32n) | BigInt(owned.length)); }};
+const allocate = bytes => {{ if (entries.size >= {}) throw new Error("owned Bytes live entry limit exceeded"); const token = next++, owned = new Uint8Array(bytes); entries.set(token, owned); return BigInt.asIntN(64, ((0x80000000n | BigInt(token)) << 32n) | BigInt(owned.length)); }};
 const imports = {{env:{{spx_add:checked((a,b)=>a+b),spx_sub:checked((a,b)=>a-b),spx_mul:checked((a,b)=>a*b),spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:(a)=>-a,spx_contract_fail:()=>{{throw new Error();}},
-spx_bytes_copy:c=>allocate(read(decode(c))),spx_bytes_get:(c,i)=>{{ const b = read(decode(c)), u = BigInt.asUintN(64, i); return u >= BigInt(b.length) ? -1 : b[Number(u)]; }},spx_bytes_drop:c=>{{ const d = decode(c); read(d); entries.delete(d.token); }},spx_bytes_as_slice:c=>{{ const d = decode(c); read(d); return BigInt.asIntN(64, d.word); }}}}}};
+spx_bytes_copy:c=>allocate(read(decode(c))),spx_bytes_get:(c,i)=>{{ const b = read(decode(c)), u = BigInt.asUintN(64, i); return u >= BigInt(b.length) ? -1 : b[Number(u)]; }},spx_bytes_drop:c=>{{ const d = decode(c); read(d); entries.delete(d.token); }},spx_bytes_as_slice:c=>{{ const d = decode(c); read(d); return BigInt.asIntN(64, d.word); }},spx_bytes_zeroed:count=>{{ if (typeof count !== "bigint" || count < 0n || count > 65536n) throw new Error("owned byte buffer capacity invariant"); return allocate(new Uint8Array(Number(count))); }},spx_bytes_set:(c,i,v)=>{{ const d = decode(c), b = read(d); if (typeof i !== "bigint" || i < 0n || i >= BigInt(b.length) || !Number.isInteger(v) || v < 0 || v > 255) throw new Error("owned byte buffer element invariant"); b[Number(i)] = v; return BigInt.asIntN(64, d.word); }}}}}};
 linked = await WebAssembly.instantiate(bytes, imports);
-assert.equal(linked.instance.exports.semaprax_main(), 0n);
+// Re-entry observes an owned buffer that outlived one call as a live entry.
+for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_main(), 0n); assert.equal(entries.size, 0); }}
 "#,
-                    wasm_path.file_name().unwrap().to_string_lossy()
+                    wasm_path.file_name().unwrap().to_string_lossy(),
+                    live_entry_bound
                 ),
             )
             .unwrap();
@@ -1212,6 +1223,35 @@ fn package_manifest_links_the_json_document_layer() {
         assert!(snapshot
             .workspace_manifest()
             .contains("dependencies/std.data.json.doc/0.1.0/doc.spx"));
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+/// The decoded-string layer is consumable as a bundled dependency. `SPX-W115`
+/// keeps the owned buffer out of the consumer's entry program, so the
+/// buffer-backed comparison runs from its conformance module instead.
+#[test]
+fn package_manifest_links_the_json_decoder() {
+    let scratch = temporary("manifest-json-decoder");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    for (name, text) in [
+        ("semaprax.toml", "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-decoder-consumer\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.matches\"]\n\n[dependencies]\nstd.data.json.dec = \"=0.1.0\"\n"),
+        ("src/app.spx", "module consumer.app;\nuse function @id(\"std.data.json.dec.decoded_len\") from std.data.json.dec as decoded_len;\nuse function @id(\"std.data.json.dec.decoded_size\") from std.data.json.dec as decoded_size;\nuse function @id(\"std.data.json.dec.emit_at\") from std.data.json.dec as emit_at;\nuse function @id(\"std.data.json.dec.slice_eq\") from std.data.json.dec as slice_eq;\n\n@id(\"consumer.matches\")\nfn matches(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool\n{\n    slice_eq(left, right)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let raw = [34u8, 97u8, 92u8, 110u8, 98u8, 34u8];\n    let source = array_as_slice(raw);\n    let lone = [34u8, 92u8, 117u8, 68u8, 56u8, 51u8, 68u8, 34u8];\n    let broken = array_as_slice(lone);\n    let sized = decoded_size(source) == 3usize && decoded_len(source, 0usize) == 3usize;\n    let streamed = emit_at(source, 1usize, 0usize) == 97 && emit_at(source, 2usize, 0usize) == 10;\n    let rejected = decoded_size(broken) - byte_len(broken) - 1usize == 1usize;\n    if sized && streamed && rejected { 0 } else { 1 }\n}\n"),
+        ("src/tests.spx", "module consumer.tests;\nuse function @id(\"std.data.json.dec.decoded_eq\") from std.data.json.dec as decoded_eq;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    let raw = [34u8, 92u8, 117u8, 68u8, 56u8, 51u8, 68u8, 92u8, 117u8, 68u8, 69u8, 48u8, 48u8, 34u8];\n    let source = array_as_slice(raw);\n    let want = [240u8, 159u8, 152u8, 128u8];\n    let expected = array_as_slice(want);\n    if decoded_eq(source, 0usize, expected) { 0 } else { 1 }\n}\n"),
+    ] {
+        std::fs::write(scratch.join(name), text).unwrap();
+    }
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        let options = project::ProjectExecutionOptions::default();
+        let zero = &project::ProjectExecutionOutcome::Returned(0);
+        assert_eq!(snapshot.execute_entry(&options)?.outcome(), zero);
+        assert_eq!(snapshot.execute_test(&options)?.outcome(), zero);
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.json.dec/0.1.0/dec.spx"));
         Ok(())
     })
     .unwrap();

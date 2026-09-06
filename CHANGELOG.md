@@ -8,6 +8,30 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `std.data.json.dec`, the seventh JSON sibling package, which expands
+  JSON string escapes. All eight simple escapes, `\uXXXX`, and surrogate pairs
+  decode to their exact UTF-8 bytes; a lone or unpaired surrogate, an unknown
+  escape letter, a raw control byte, and an unterminated string are rejected at
+  the offset of the backslash or byte that opened them, in the family's
+  `usize` result encoding. `decoded_len`/`decoded_size` size the output,
+  `token_end`/`emit_len`/`emit_at` stream the decoded bytes with no allocation,
+  and `decoded_eq` fills one owned bounded byte buffer of a fixed 256-byte
+  capacity through the loop-carried same-owner replacement and compares it to a
+  caller-supplied view. The conformance module runs on the interpreter, clang
+  C11 `-O0`/`-O2`, and Core Wasm, where the standard-library closure now
+  supplies the `env.spx_bytes_zeroed`/`env.spx_bytes_set` host-arena imports and
+  asserts that the package's module reaches them, that the arena holds at most
+  one live entry, and that it is empty after each of four re-entries. Three
+  admission facts were measured rather than assumed and are recorded in the
+  specifications: `owned-data-api.v1` is the only project profile that admits
+  both a borrowed byte view and the buffer, the buffer must stay out of the
+  entry program because a public web build containing it is `SPX-W115`, and a
+  `Bytes` value does not cross a module boundary (`SPX-G172`), so a
+  caller-provided output buffer is not expressible. The package is committed at
+  17,620 B against a measured 18,480 B admitted / 18,653 B first `SPX-G171`;
+  `decoded_at` and `decoded_same` were written, measured over that bound, and
+  cut.
+
 - Extended the bounded concrete generic owned-record relay from its flat
   carrier to any acyclic authored-record template tree within the existing
   64-level, 256-owned-leaf, and 4,096-field work limits. Each template has one

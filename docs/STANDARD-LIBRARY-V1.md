@@ -157,7 +157,8 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.net` | Addresses, DNS, TCP, UDP, and explicit target support | Partial: pure helpers and the v1 TCP client operations now have a hosted-only bind/accept extension; native/Wasm service ABI, structured addresses, DNS policy, and UDP are Missing |
 | `std.tls` | Vetted provider-backed TLS interface and certificate policy | Partial: the explicit Rust host supports authenticated outbound TLS 1.2/1.3 and server-side TLS with caller-installed certificate/key policy; source-level server TLS and native-C11/Wasm lanes are Missing |
 | `std.http` | HTTP request/response types, client and server interfaces, streaming, and limits | Partial: allocation-free HTTP/1.x parsing helpers remain portable; hosted source, Core Wasm, and the Project v13 npm/Web lane can call bounded `https_get`, and `examples/https-project` reads a typed status code and body length out of a borrowed view of its canonical bytes; the explicit Rust host exposes the typed HTTP/1.1/2 response, redirects, pooling, and body limits. The Project v13 `https-command-io.v1` profile emits a libcurl-backed native C11 executable with embedded roots. A `[dependencies]` import of this package under the frozen Project v13 manifest, an owned typed response record, a server parser, HTTP/3, and the browser-Fetch adapter are Missing |
-| `std.data.json` | Typed and value-based JSON parsing and encoding | Partial, and split across six sibling packages because one library module large enough to hold the whole slice exceeds the `SPX-G171` pre-bound. `std.data.json` is the allocation-free JSON string-token scanner over `borrow Slice<u8>`: whitespace skipping, escape classification, `\uXXXX` decoding, strict surrogate-pair and control-byte rules, and the byte offset of the first rejection carried in the same `usize` result. Decoded strings and an owned document tree are Missing. [Bounded JSON Scanner v1](BOUNDED-JSON-SCANNER-V1.md) owns the result encoding and policy shared by all six |
+| `std.data.json` | Typed and value-based JSON parsing and encoding | Partial, and split across seven sibling packages because one library module large enough to hold the whole slice exceeds the `SPX-G171` pre-bound. `std.data.json` is the allocation-free JSON string-token scanner over `borrow Slice<u8>`: whitespace skipping, escape classification, `\uXXXX` decoding, strict surrogate-pair and control-byte rules, and the byte offset of the first rejection carried in the same `usize` result. Escape *expansion* is `std.data.json.dec`; an owned document tree is Missing. [Bounded JSON Scanner v1](BOUNDED-JSON-SCANNER-V1.md) owns the result encoding and policy shared by all seven |
+| `std.data.json.dec` | Decoded JSON strings | Partial: escape expansion. `decoded_len` is the exact decoded UTF-8 byte length of one JSON string, `decoded_size` the whole-input form, and `emit_len`/`emit_at` with `token_end` are the pull-based per-token surface a caller streams without any buffer. `decoded_eq` is the buffer-backed form: it fills one owned bounded byte buffer of a fixed 256-byte capacity through the loop-carried same-owner replacement and compares the decoded bytes to a caller-supplied slice. All eight simple escapes, `\uXXXX`, and surrogate pairs expand; a lone or unpaired surrogate, a control byte, and an unterminated string are rejected at the offset of the backslash or byte that opened them, in the family's result encoding. The buffer capacity is a `usize` literal at the allocation site (`SPX-T271`) and so cannot be a parameter, and a `Bytes` value cannot cross a module boundary (`SPX-G172`), so the decoded bytes are materialized and consumed inside one library function rather than handed to the caller. A caller-provided output buffer, a per-output-index `decoded_at`, decoded duplicate-key comparison, and strings longer than 256 decoded bytes are Missing |
 | `std.data.json.doc` | Structural JSON documents | Partial: the object and array grammar over a base-2 container stack in one `i64`, an explicit `depth_limit` clamped to 32 open containers, the RFC 8259 number grammar, exact `true`/`false`/`null`, string framing that rejects raw `0x00`-`0x1F` and an unterminated string, a mismatched closer rejected at its own offset, and trailing-byte rejection with the offset of the first trailing non-whitespace byte. a duplicate-key rule over byte-identical member names as `is_unique`/`unique_end`, leaving `is_document` accepting a repeated name. Escape-character and surrogate validity stay with `std.data.json`, raw UTF-8 with `std.data.json.utf8`, and duplicate detection over decoded names is Missing |
 | `std.data.json.token` | JSON number and literal tokens | Partial: the complete RFC 8259 number grammar as separate integer, fraction, and exponent scanners, `true`/`false`/`null` recognition, and exact `i64` decoding that rejects overflow and any token carrying a fraction or exponent rather than rounding it. Shares the scanner's `usize` end-offset/rejection encoding. Floating-point decoding and arbitrary-precision numbers are Missing |
 | `std.data.json.utf8` | UTF-8 validation of raw JSON bytes | Partial: sequence-width classification, scalar decoding, and whole-input validation that rejects invalid lead bytes, missing or malformed continuations, overlong encodings, raw surrogates, and scalars above `U+10FFFF`, reporting the first offending byte through the scanner's rejection encoding |
@@ -208,7 +209,7 @@ These compiler bounds decide how large one package can be:
   copy of the library it exercises. The budget is charged against the whole
   package - library, examples, and conformance modules together with any
   vendored `[dependencies]` source - not against the library module alone.
-  Measured on the six JSON sibling packages by padding each library with
+  Measured on the seven JSON sibling packages by padding each library with
   trivial `i64` helpers until `SPX-G171` fires, the admitted total package
   source is between 19.7 KB and 22.1 KB, varying with declaration and
   expression structure rather than with byte count alone. The same measurement
@@ -222,6 +223,22 @@ These compiler bounds decide how large one package can be:
   and `..._json_writer_siblings` exercise; taking a dependency on a sibling
   spends that package's whole source against the budget, so a package that can
   restate a three-line helper locally stays cheaper standing alone.
+- The owned bounded byte buffer of
+  [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) is admitted
+  in a package only under the Project v8 `owned-data-api.v1` profile, and only
+  while it stays out of the *entry* program. `useful-data.v1` and the scalar
+  Package Manifest v1 profile both require at least one web export, and the
+  public web build of a program that contains the buffer is rejected with
+  `SPX-W115` - the buffer is internal-only and has no public WebAssembly
+  adapter. The scalar profile also refuses `borrow Slice<u8>` parameters
+  (`SPX-G174`), so `owned-data-api.v1` is the only profile that admits both a
+  borrowed byte view and the buffer. `std.data.json.dec` therefore reaches the
+  buffer from its conformance module and from consumers' conformance modules,
+  and keeps its examples module on the allocation-free surface.
+- `byte_range` over an owned buffer's view lowers to the Core Wasm byte-range
+  *descriptor* carrier, which the standard-library conformance closure does not
+  implement; a library function that must compare a prefix takes an explicit
+  length instead.
 - The cleanup-plan replay path budget (`SPX-H006`) admits at most 65,536
   terminal paths in one function. Lazy `&&` and `||` operands and `if`
   branches each double that count, so a function holds about sixteen

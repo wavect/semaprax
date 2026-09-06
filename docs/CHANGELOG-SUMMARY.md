@@ -12,7 +12,9 @@ For complete chronological detail, including historical context and archived art
 
 - Generic owned records and variants now cover bounded nested relay, internal
   ScalarV1 composition, two-sided owned results, and loop-carried owned byte
-  buffers and vectors across interpreter, native C11, and Core Wasm evidence.
+  buffers and vectors across interpreter, native C11, and Core Wasm evidence;
+  Copy-scalar vectors also gain bounded immutable `for` traversal lowered to
+  the existing length/get/while HIR.
 - ProgramRoot v3, Exact Program Context v2, contracts/test facts, universal
   semantic query and transaction operations, persistent service transports,
   and installed diagnostics/fix guidance deepen the agent-facing semantic

@@ -102,6 +102,13 @@ other targets. Its 60-minute job budget and `--nocapture` diagnostics are
 therefore release-safety controls, not permission to skip, weaken, or hide a
 test.
 
+A late syntax or AST addition must compile every workspace-private all-target
+consumer before release. Audit exhaustive statement matches and bounded
+walkers explicitly: adding a catch-all can make compilation succeed while
+still omitting multi-child traversal or introduced bindings from capacity
+accounting. Compiler matrix shards are the final check for host-private
+consumers, not the first place this audit should happen.
+
 Use an annotated tag, matching the established repository convention, only
 after the release commit is on `main` and the remote head still resolves to
 that exact commit:
@@ -112,7 +119,10 @@ git push origin v0.4.0
 ```
 
 If another contributor advances `main` before the tag is created, rebase the
-release commit, rerun the affected gates, and resolve the new exact commit.
+release commit, rerun the affected gates, and resolve the new exact commit. If
+that newer head contains user-visible or gate behavior, move its changelog
+entry into the release bucket before retesting; entries left under
+`Unreleased` are intentionally omitted by `scripts/release-notes.py`.
 Never move or recreate a published release tag to absorb later work.
 
 ## Build-output selection

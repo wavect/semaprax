@@ -8,6 +8,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+## 0.4.0 — 2026-09-06
+
 - Specified Owned Bounded Vec For Traversal v1: the source form
   `for item in values { body }` accepts one simple immutable `Vec<T>` binding
   over the existing eight Copy scalars, snapshots its length once, visits
@@ -21,8 +23,6 @@ format: `Unreleased` then release buckets, grouped by impact.
   support: objects, `next`,
   adapters, closures, associated types, lifetime inference, consuming
   traversal, owned elements, and `std.iter` remain open.
-
-## 0.4.0 — 2026-09-06
 
 - Added bounded acyclic generic-to-generic forwarding between already-admitted
   templates. A direct call must pass the callee exactly the caller-owned type-

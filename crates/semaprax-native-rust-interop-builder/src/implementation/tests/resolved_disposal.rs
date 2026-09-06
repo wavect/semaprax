@@ -176,6 +176,33 @@ fn main() -> i64 {
 }
 
 #[test]
+fn ast_capacity_traverses_for_children_and_counts_its_item_binding() {
+    let program = crate::parse(
+        r#"module capacity.for_statement;
+@id("app.main") fn main() -> i64 {
+    let values = 0;
+    for item in values { item }
+    0
+}
+"#,
+        Path::new("capacity-for-statement.spx"),
+    )
+    .unwrap();
+    let mut scan = [None; MAX_SEMANTIC_EXPRESSION_DEPTH + 1];
+    let stats = scan_ast_capacity(
+        std::iter::once(&program.functions[0].body),
+        &program,
+        false,
+        &mut scan,
+    )
+    .unwrap();
+    assert_eq!(stats.nodes, 6);
+    assert_eq!(stats.max_indexed_children, 5);
+    assert_eq!(stats.local_bindings, 2);
+    assert_eq!(stats.binding_name_bytes, "values".len() + "item".len());
+}
+
+#[test]
 fn resolved_owner_disposes_exact_depth_guard_without_growth() {
     fn first_guard_arm(program: &mut Program) -> &mut crate::ast::MatchArm {
         let crate::ast::ExprKind::Block { tail, .. } = &mut program.functions[0].body.kind else {
@@ -527,12 +554,13 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
                     }
                     crate::ast::Statement::While {
                         condition, body, ..
+                    }
+                    | crate::ast::Statement::For {
+                        values: condition,
+                        body,
+                        ..
                     } => {
                         replace_payload(condition, replacement)
-                            || replace_payload(body, replacement)
-                    }
-                    crate::ast::Statement::For { values, body, .. } => {
-                        replace_payload(values, replacement)
                             || replace_payload(body, replacement)
                     }
                 }) || replace_payload(tail, replacement)

@@ -168,6 +168,7 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     for exact in [
         title.as_str(),
         "## Changes",
+        "Owned Bounded Vec For Traversal v1",
         "Added `std.data.json.dec`",
         "These unsigned archives are not notarized",
         "SHA-256 checksums are integrity facts, not signatures.",

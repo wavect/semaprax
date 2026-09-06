@@ -66,6 +66,7 @@ mod nested_owned;
 pub(crate) mod network;
 mod prepared;
 mod resolved_case;
+pub mod retained_call;
 
 pub use failure_detail::{ContractArgument, ContractFailureDetail};
 pub(crate) use resolved_case::evaluate_resolved_zero_arg_i64_function;

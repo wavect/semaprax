@@ -8,6 +8,36 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added `interpreter::retained_call`, the retained multi-argument call seam
+  Reference Interpreter v1 was missing: `prepare_resolved_zero_arg_i64` is
+  zero-argument and additionally requires `entry_id == program.entrypoint`, so
+  it can run only `main`; `interpret` re-reads and re-verifies source on every
+  call; `ArgumentValue` is scalar-only; and `evaluate_resolved_owned_data` is
+  restricted to a borrowed `Slice<u8>` entry with bytes-shaped results.
+  `prepare_retained_call` admits ONE explicitly identified function - the
+  entrypoint or any other - through the interpreter's own admitted-function map
+  and closure scan, restricts its signature to a closed value vocabulary, and
+  retains the authority-free dispatch index; `evaluate_retained_call` then
+  invokes that product repeatedly, reading no source, re-resolving nothing, and
+  re-running neither `hir::validate` nor the closure scan, re-checking only
+  that the retained vector positions still name the same identities and that
+  the admitted signature is unchanged. Arguments and results are the
+  monomorphic scalar record/variant subset of Agent Proposal Schema v1 the
+  interpreter actually executes: `bool`, `i32`, `i64`, `u8`, `usize`, owned
+  `Bytes`, and bounded acyclic records, classes, and owned-byte variants over
+  exactly those leaves; `string`, `char`, `f32`, `f64`, borrowed carriers, and
+  generic shapes fail closed with a located `SPX-F102` diagnostic in the
+  existing closed reason vocabulary rather than widening the cleanup shape the
+  shared machinery and the native and Wasm backends own. Execution enters
+  through the same evaluator call frame, a staged owned `Bytes` argument is
+  charged against the same verified byte-data capacity a `bytes_copy` consumes,
+  a Copy carrier is harvested by reference while an owned one must be uniquely
+  held, and result leaves settle in declared field order without being sorted
+  or repaired. The frozen zero-argument entrypoint product keeps its exact
+  admission and known answers; both products now share one owner for the
+  retained dispatch index. `string` fields, admitted by the proposal schema but
+  by no interpreter record or variant classifier, remain Missing here.
+
 - Extended the bounded JSON slice from one package to five sibling packages,
   because the Workspace Semantic Graph pre-bound is charged against a whole
   package - library, examples, and conformance modules - and no single library

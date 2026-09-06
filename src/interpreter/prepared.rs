@@ -143,11 +143,40 @@ pub(crate) fn prepare_resolved_zero_arg_i64(
     }
     let admitted = admitted_resolved_functions(program);
     let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let index = index_closure(program, entry_id, &closure)?;
+    Ok(PreparedResolvedI64 {
+        entry_id: entry_id.to_owned(),
+        entry_index,
+        function_indices: index.function_indices,
+        origin_nodes: index.origin_nodes,
+        index_bytes: index.index_bytes,
+    })
+}
+
+/// One retained authority-free dispatch index over an admitted closure.
+pub(super) struct PreparedClosureIndex {
+    pub(super) function_indices: BTreeMap<String, PreparedFunctionIndex>,
+    pub(super) origin_nodes: usize,
+    pub(super) index_bytes: usize,
+}
+
+/// Retain the exact vector positions and node/byte accounting of one already
+/// admitted closure.
+///
+/// This is the single owner of the retained dispatch index. Both the frozen
+/// zero-argument entrypoint product and the retained multi-argument call seam
+/// consume it, so neither can drift into its own bounds or duplicate-identity
+/// rules.
+pub(super) fn index_closure(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    closure: &BTreeSet<String>,
+) -> Result<PreparedClosureIndex, Vec<Diagnostic>> {
     let mut function_indices = BTreeMap::new();
     let mut index_bytes = entry_id.len();
     let mut origin_nodes = 0usize;
     let mut expression_ids = BTreeSet::new();
-    for id in &closure {
+    for id in closure {
         let function_index = program
             .functions
             .iter()
@@ -209,9 +238,7 @@ pub(crate) fn prepare_resolved_zero_arg_i64(
             expressions.extend(child_expressions(expression));
         }
     }
-    Ok(PreparedResolvedI64 {
-        entry_id: entry_id.to_owned(),
-        entry_index,
+    Ok(PreparedClosureIndex {
         function_indices,
         origin_nodes,
         index_bytes,
@@ -232,6 +259,31 @@ impl PreparedCancellation<'_> {
     }
 }
 
+/// Confirm a retained dispatch index still names the exact same functions in
+/// the supplied program. It compares identities at retained vector positions
+/// only; it re-resolves and re-verifies nothing.
+pub(super) fn index_matches_program(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    entry_index: usize,
+    function_indices: &BTreeMap<String, PreparedFunctionIndex>,
+) -> bool {
+    program
+        .functions
+        .get(entry_index)
+        .is_some_and(|entry| entry.id.as_str() == entry_id)
+        && function_indices.iter().all(|(id, index)| match index {
+            PreparedFunctionIndex::Function(index) => program
+                .functions
+                .get(*index)
+                .is_some_and(|function| function.id.as_str() == id.as_str()),
+            PreparedFunctionIndex::FunctionInstance(index) => program
+                .function_instances
+                .get(*index)
+                .is_some_and(|instance| instance.id.as_str() == id.as_str()),
+        })
+}
+
 /// Execute one previously admitted closure without rebuilding its function
 /// map or rescanning HIR. Callers choose the worker/thread boundary.
 pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
@@ -247,23 +299,12 @@ pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
         ))]);
     }
     if program.entrypoint.as_str() != prepared.entry_id
-        || program
-            .functions
-            .get(prepared.entry_index)
-            .is_none_or(|entry| entry.id.as_str() != prepared.entry_id)
-        || prepared
-            .function_indices
-            .iter()
-            .any(|(id, index)| match index {
-                PreparedFunctionIndex::Function(index) => program
-                    .functions
-                    .get(*index)
-                    .is_none_or(|function| function.id.as_str() != id.as_str()),
-                PreparedFunctionIndex::FunctionInstance(index) => program
-                    .function_instances
-                    .get(*index)
-                    .is_none_or(|instance| instance.id.as_str() != id.as_str()),
-            })
+        || !index_matches_program(
+            program,
+            &prepared.entry_id,
+            prepared.entry_index,
+            &prepared.function_indices,
+        )
     {
         return Err(vec![guard_error(
             "prepared closure no longer matches its resolved program",

@@ -28,6 +28,8 @@ const MEANING_PATH: &str = "examples/meaning.spx";
 
 #[path = "interpreter_v1/copy_records.rs"]
 mod copy_records;
+#[path = "interpreter_v1/retained_call.rs"]
+mod retained_call;
 #[path = "interpreter_v1/verification_and_cli.rs"]
 mod verification_and_cli;
 

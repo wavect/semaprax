@@ -79,8 +79,28 @@ fi
 aa=/proc/sys/kernel/apparmor_restrict_unprivileged_userns
 record PASS "apparmor_restrict_unprivileged_userns observed" "$([ -r "$aa" ] && cat "$aa" || echo 'knob absent')"
 check "unshare(1) is installed" "$(command -v unshare 2>/dev/null)" command -v unshare
-check "unprivileged user namespace can be created" "unshare --user --map-root-user true succeeded" \
-	unshare --user --map-root-user true
+echo '--- unshare as shipped ---'
+unshare --user --map-root-user true
+echo "unshare --user --map-root-user exit: $?"
+if unshare --user --map-root-user true >/dev/null 2>&1; then
+	record PASS "unprivileged user namespace can be created as shipped" "no host provisioning needed"
+else
+	record FAIL "unprivileged user namespace can be created as shipped" \
+		"refused on the stock image; see the unshare error above"
+	# Ubuntu 24.04 ships kernel.apparmor_restrict_unprivileged_userns=1.
+	# Clearing it is HOST PROVISIONING, not a relaxation of any gate
+	# precondition: the gate still requires, and independently re-observes,
+	# working unprivileged user namespaces. A disposable trusted host is
+	# expected to be provisioned; this records whether a hosted one can be.
+	sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+	if unshare --user --map-root-user true >/dev/null 2>&1; then
+		record PASS "unprivileged user namespace after provisioning the host" \
+			"works once kernel.apparmor_restrict_unprivileged_userns=0"
+	else
+		record FAIL "unprivileged user namespace after provisioning the host" \
+			"still refused with kernel.apparmor_restrict_unprivileged_userns=0"
+	fi
+fi
 check "full wrapper namespace set can be created" "unshare --user --map-root-user --mount --net --ipc --uts succeeded" \
 	unshare --user --map-root-user --mount --net --ipc --uts true
 

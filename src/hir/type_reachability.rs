@@ -331,9 +331,10 @@ pub(super) fn nested_record_copy_scalar_is_admitted(ty: &ResolvedType) -> bool {
 /// profile admits exactly one authored case carrying owned bytes. The additive
 /// two-branch profile admits only the structural `Either<Bytes, Bytes>` shape:
 /// exactly two parameters, two direct `Bytes` arguments, and two cases that
-/// both carry owned bytes. This deliberately excludes the compiler prelude
-/// (including `Result<Bytes, Bytes>`), broader multi-case generic sums, nested
-/// carriers, resources, and nonconcrete arguments.
+/// both carry owned bytes. Compiler-prelude identities use their separate exact
+/// admission predicate; this authored predicate deliberately excludes them,
+/// broader multi-case generic sums, nested carriers, resources, and
+/// nonconcrete arguments.
 pub(crate) fn is_admitted_concrete_owned_byte_variant(
     declarations: &DeclarationIndex,
     ty: &ResolvedType,

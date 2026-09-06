@@ -267,8 +267,10 @@ stable case and field identity; CleanupPlan v6 authenticates conditional entry,
 selected-case transfer, and exact case liveness; Graph v22 projects those
 facts. Interpreter, native, and Wasm lower only the active case field-by-field.
 Invalid owned tags or tag/liveness disagreement fail-stop before payload
-authority, cleanup, or result publication. Nested/generic owned variants,
-non-Copy propagation, and public aggregate ABIs remain outside this boundary.
+authority, cleanup, or result publication. Exact authored generic one-owned and
+two-owned profiles plus compiler-owned `Result<Bytes, Bytes>` reuse this
+conditional path. General nested/resource variants, non-Copy `?` propagation,
+and public aggregate ABIs remain outside this boundary.
 
 `src/loan_plan.rs` owns the additive plan schema, builder, and replay;
 `src/graph_loan.rs` owns its Graph projection. The

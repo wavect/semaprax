@@ -16,6 +16,8 @@ use crate::parse;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
+mod owned_result_hostile;
+
 #[test]
 fn raw_two_owned_generic_variant_rejects_invalid_tag_before_payload_authority() {
     if Command::new("node").arg("--version").output().is_err() {

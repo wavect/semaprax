@@ -635,14 +635,6 @@ fn main() -> i64 { 0 }
 "#,
             "SPX-T268",
         ),
-        (
-            r#"
-module test.generic_owned_result_closed;
-fn reject(value: own Result<Bytes, Bytes>) -> i64 { 0 }
-fn main() -> i64 { 0 }
-"#,
-            "SPX-T268",
-        ),
     ];
     for (source, code) in cases {
         let errors = diagnostics(source);

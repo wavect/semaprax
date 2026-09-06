@@ -80,7 +80,7 @@ fn authored_and_exact_prelude_owned_byte_variants_resolve_with_exact_binding_mod
 }
 
 #[test]
-fn nested_generic_and_two_owned_result_profiles_remain_closed() {
+fn nested_and_uninstantiated_generic_profiles_remain_closed() {
     let nested = r#"
 module invalid.nested;
 record Boxed { bytes: Bytes, }
@@ -95,13 +95,6 @@ variant Bad<T> { Value { payload: Bytes, marker: T, }, }
 fn main() -> i64 { 0 }
 "#;
     assert!(diagnostic_codes(generic).contains(&"SPX-T268"));
-
-    let two_owned = r#"
-module invalid.result;
-fn bad(value: own Result<Bytes, Bytes>) -> i64 { 0 }
-fn main() -> i64 { 0 }
-"#;
-    assert!(diagnostic_codes(two_owned).contains(&"SPX-T268"));
 }
 
 #[test]

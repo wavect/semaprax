@@ -882,6 +882,7 @@ pub(super) fn owned_byte_prelude_instance_is_admitted(name: &str, arguments: &[T
         ("Option", [Type::Bytes])
             | ("Result", [Type::Bytes, Type::I64 | Type::Bool])
             | ("Result", [Type::I64 | Type::Bool, Type::Bytes])
+            | ("Result", [Type::Bytes, Type::Bytes])
     )
 }
 

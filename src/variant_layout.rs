@@ -108,21 +108,11 @@ impl VariantLayout {
         };
         let compiler_byte_option = variant.as_str() == crate::prelude::OPTION_ID
             && arguments.as_slice() == [ResolvedType::U8];
-        let compiler_owned_byte_algebra = matches!(
-            (variant.as_str(), arguments.as_slice()),
-            (crate::prelude::OPTION_ID, [ResolvedType::Bytes])
-                | (
-                    crate::prelude::RESULT_ID,
-                    [ResolvedType::Bytes, ResolvedType::I64 | ResolvedType::Bool],
-                )
-                | (
-                    crate::prelude::RESULT_ID,
-                    [ResolvedType::I64 | ResolvedType::Bool, ResolvedType::Bytes],
-                )
-        );
+        let compiler_owned_byte_algebra =
+            crate::hir::admitted_owned_byte_prelude_instance(variant, arguments);
         let authored_generic_owned =
             crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, instance);
-        if authored_generic_owned
+        if (compiler_owned_byte_algebra || authored_generic_owned)
             && (program.declarations.type_parameters(variant)
                 != Some(declaration.type_parameters.as_slice())
                 || program.declarations.variant_cases(variant) != Some(cases.as_slice()))

@@ -577,6 +577,10 @@ jobs:
           cargo test --locked -p semaprax --test language generic_variants::independent_hir_validation_rejects_two_owned_generic_variant_identity_drift -- --exact --nocapture
           cargo test --locked -p semaprax --test owned_data generic_two_owned_variant_runtime::authored_two_owned_branch_variant_replays_and_executes_on_all_engines -- --exact --nocapture
           cargo test --locked -p semaprax --lib wasm::aggregate::tests::raw_two_owned_generic_variant_rejects_invalid_tag_before_payload_authority -- --exact --nocapture
+          cargo test --locked -p semaprax --test language owned_result_variants:: -- --nocapture
+          cargo test --locked -p semaprax --test project retained_owned_api::frozen_v8_descriptor_rejects_internal_result_bytes_bytes -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data compiler_owned_two_owned_result_runtime::compiler_owned_two_owned_result_executes_on_all_internal_engines -- --exact --nocapture
+          cargo test --locked -p semaprax --lib wasm::aggregate::tests::owned_result_hostile::raw_two_owned_result_rejects_invalid_tag_before_payload_authority -- --exact --nocapture
       - name: Require native O0/O2 and Core-Wasm scalar status equivalence
         if: runner.os == 'Linux'
         env:

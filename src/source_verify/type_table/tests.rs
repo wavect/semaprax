@@ -547,18 +547,18 @@ fn the_owned_byte_prelude_carriers_are_an_exact_closed_list() {
         ("Result", vec![Type::Bytes, Type::Bool]),
         ("Result", vec![Type::I64, Type::Bytes]),
         ("Result", vec![Type::Bool, Type::Bytes]),
+        ("Result", vec![Type::Bytes, Type::Bytes]),
     ] {
         assert!(
             owned_byte_prelude_instance_is_admitted(admitted.0, &admitted.1),
             "{admitted:?}"
         );
     }
-    // Two owned carriers in one instance, a non-prelude name, and the ordinary
-    // copy instances are all outside the exception.
+    // A non-prelude name and unsupported argument vectors remain outside the
+    // exact compiler-owned exception.
     for rejected in [
         ("Option", vec![Type::I64]),
         ("Option", vec![Type::Bytes, Type::Bytes]),
-        ("Result", vec![Type::Bytes, Type::Bytes]),
         ("Result", vec![Type::Bytes, Type::Usize]),
         ("Cell", vec![Type::Bytes]),
     ] {

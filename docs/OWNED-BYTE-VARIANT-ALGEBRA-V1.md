@@ -10,10 +10,11 @@ Owned Byte Variant Algebra v1 admits the first non-Copy sum execution path.
 It admits flat monomorphic authored variants with at least one direct `Bytes`
 field, a bounded concrete authored-generic extension with one owned case, an
 additive exact two-owned-case authored shape, and the compiler-owned `Option<Bytes>`,
-`Result<Bytes, i64|bool>`, and `Result<i64|bool, Bytes>` instances. It does not
-create a public aggregate ABI or admit compiler-owned `Result<Bytes, Bytes>`,
-broader multi-case generic instances, nesting, postfix `?`, components, Project
-exports, callable interfaces, or native Rust interoperability.
+`Result<Bytes, i64|bool>`, `Result<i64|bool, Bytes>`, and exact
+`Result<Bytes, Bytes>` instances. It does not create a public aggregate ABI or
+admit broader multi-case generic instances, nesting, owned postfix `?`,
+components, Project exports, callable interfaces, or native Rust
+interoperability.
 
 ## Closed admission
 
@@ -31,6 +32,11 @@ An admitted authored variant:
   exactly two parameters, the exact argument vector `[Bytes, Bytes]`, exactly
   two cases, and owned fields in both cases. It remains an explicitly identified
   authored variant and does not reinterpret the compiler-owned `Result`.
+
+The compiler-owned two-sided profile admits only the authenticated prelude
+identity `Result<Bytes, Bytes>` with its exact `Ok.value` and `Err.error`
+members. Source cannot redeclare or approximate that authority. Unsupported
+prelude arguments remain closed, and postfix `?` remains Copy-only.
 
 Explicit owned and borrowed matching is exhaustive, guard-free, and lists
 every case with its exact declared field inventory:
@@ -123,6 +129,9 @@ authored two-owned profile additionally covers both live branches, dynamic
 parameter/result/call transfer, branch-specific authentication and finalizers,
 partial construction and owned-arm failure on each branch, forged carrier/case
 rejection, exact statuses, tight capacity, and repeated recovery on all three
-engines. Compiler-owned `Result<Bytes, Bytes>` and broader multi-case shapes
-remain closed. Evidence in this tranche is local only; it does not claim hosted
-promotion or a public ABI widening.
+engines. The exact compiler-owned `Result<Bytes, Bytes>` profile separately
+covers the same two active branches, dynamic forwarding, staged-call and arm
+failure settlement, hostile conditional-plan mutations, invalid native tags,
+tag-last publication, and shallow-copy rejection. Broader multi-case shapes and
+owned `?` propagation remain closed. Evidence in this tranche is local only;
+it does not claim hosted promotion or a public ABI widening.

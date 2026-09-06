@@ -38,7 +38,9 @@ Nonconcrete arguments, `String`, arrays, slices, classes, variants, resources,
 unbounded or cyclic nesting, Project exports, FFI, packages, Components, and
 public aggregate ABIs remain closed. `Option<Bytes>` and the separately admitted
 one-owned-side `Result` profiles keep their compiler-owned rules;
-`Result<Bytes, Bytes>` remains rejected.
+The record profile does not authorize prelude carriers; the exact
+`Result<Bytes, Bytes>` instance is admitted separately by
+[Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md).
 
 Closed generic-argument shapes retain the existing `SPX-T223` or `SPX-T268`
 diagnostics. Source verification and hostile-HIR validation independently

@@ -902,7 +902,6 @@ variant Either<L, R> {
     for (module, ty, expected) in [
         ("string_leaf", "Either<Bytes, String>", "SPX-T268"),
         ("nested_variant", "Either<Bytes, Option<i64>>", "SPX-T268"),
-        ("compiler_result", "Result<Bytes, Bytes>", "SPX-T268"),
     ] {
         let source = format!(
             "module test.{module};\n{declaration}\n@id(\"test.bad\") fn bad(value: own {ty}) -> i64 {{ 0 }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}"

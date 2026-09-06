@@ -90,3 +90,28 @@ fn frozen_v8_descriptor_method_does_not_widen_to_the_new_profiles() {
     })
     .unwrap();
 }
+
+#[test]
+fn frozen_v8_descriptor_rejects_internal_result_bytes_bytes() {
+    let fixture = fixture(
+        "result_bytes_bytes",
+        "schema = \"semaprax.project.v8\"\nname = \"result-bytes-bytes\"\nversion = \"1.0.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"result_bytes_bytes.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\nweb_exports = [\"result_bytes_bytes.make\"]\ntests = [\"result_bytes_bytes.tests\"]\n",
+        r#"module result_bytes_bytes.app;
+
+@id("result_bytes_bytes.make")
+fn make(input: borrow Slice<u8>) -> Result<Bytes, Bytes> {
+    Result<Bytes, Bytes>::Ok { value: bytes_copy(input) }
+}
+
+@id("result_bytes_bytes.app.main")
+fn main() -> i64 { 0 }
+"#,
+    );
+    let errors = with_authenticated_project(&manifest(&fixture.0), |_snapshot| Ok(())).unwrap_err();
+    assert_eq!(errors.len(), 1, "{errors:#?}");
+    assert_eq!(errors[0].code, "SPX-J113");
+    assert_eq!(
+        errors[0].message,
+        "selected public API export `result_bytes_bytes.make` has an unsupported result"
+    );
+}

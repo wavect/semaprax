@@ -170,14 +170,9 @@ fn fixed_arrays_and_unadmitted_byte_carriers_are_t268_and_stop_further_reports()
         declared_type_codes(&named("Option", vec![Type::ArrayU8(4)]), &[]),
         ["SPX-T268"]
     );
-    // `Result<Bytes, Bytes>` is outside the owned-byte prelude list. T268 is
-    // reported once and the copy-scalar check is skipped, so the author sees
-    // the byte rule rather than two competing repairs.
-    assert_eq!(
-        declared_type_codes(&named("Result", vec![Type::Bytes, Type::Bytes]), &[]),
-        ["SPX-T268"]
-    );
-    // The admitted owned-byte carriers stay silent.
+    // The admitted owned-byte carriers stay silent, including the exact
+    // compiler-owned two-branch Result profile.
+    assert!(declared_type_codes(&named("Result", vec![Type::Bytes, Type::Bytes]), &[]).is_empty());
     assert!(declared_type_codes(&named("Option", vec![Type::Bytes]), &[]).is_empty());
     assert!(declared_type_codes(&named("Result", vec![Type::Bytes, Type::I64]), &[]).is_empty());
     assert!(declared_type_codes(&named("Result", vec![Type::Bool, Type::Bytes]), &[]).is_empty());

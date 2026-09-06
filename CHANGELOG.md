@@ -63,9 +63,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   recovery, zero native leaks, and rejection of shallow native/Wasm copies. A
   partial-construction fix now stores each completed Wasm field before
   evaluating the next initializer and still publishes the tag last. Hostile
-  index/type layout drift is rejected. Two-owned-case instances including
-  `Result<Bytes, Bytes>`, nested/resource variants, public ABIs, and hosted
-  promotion remain closed or unclaimed.
+  index/type layout drift is rejected. The compiler-owned two-sided `Result`
+  is handled by a separate exact profile; nested/resource variants, public
+  ABIs, and hosted promotion remain closed or unclaimed.
 
 - Proved an exact authored two-owned-branch generic variant shape with two
   parameters, `[Bytes, Bytes]` arguments, and two owned cases. Existing
@@ -76,8 +76,20 @@ format: `Unreleased` then release buckets, grouped by impact.
   settlement, repeated recovery, tight capacity, zero native leaks, invalid
   carriers/tags, and native/Wasm shallow-copy rejection. Hostile replay changes
   inactive liveness, case authentication, and guarded finalizers in both
-  directions. Compiler-owned `Result<Bytes, Bytes>`, broader multi-case generic
-  sums, Project/public ABIs, and hosted promotion remain closed or unclaimed.
+  directions. Compiler-owned `Result<Bytes, Bytes>` is admitted separately
+  below; broader multi-case generic sums, Project/public ABIs, and hosted
+  promotion remain closed or unclaimed.
+
+- Admitted the exact compiler-owned `Result<Bytes, Bytes>` instance for
+  ordinary internal construction, explicit own/borrow matching, parameters,
+  results, and calls. Its authenticated prelude identities reuse the proven
+  conditional two-branch cleanup machinery. Focused local interpreter, native
+  C11 `-O0`/`-O2`, and Core-Wasm evidence covers both active branches,
+  dynamic forwarding, staged-call and arm-failure settlement, capacity-one
+  execution, hostile cleanup-plan mutation, invalid tags, tag-last result
+  publication, and native/Wasm shallow-copy rejection. Postfix `?` remains
+  explicitly closed because its current residual staging protocol is Copy-only;
+  Project/public ABIs and hosted promotion remain unclaimed.
 
 - Bounded native C11 name resolution by the same aggregate operation deadline
   as the rest of the operation. A numeric endpoint is answered under
@@ -412,8 +424,10 @@ format: `Unreleased` then release buckets, grouped by impact.
   Native64 C11, and Wasm32 lowering. Focused local evidence covers borrow then
   own, repeated success, and failure after owner creation across interpreter,
   C11 `-O0`/`-O2`, and Node/Core-Wasm; stable diagnostics keep nested generic,
-  class, variant, non-Copy, and `Result<Bytes, Bytes>` shapes closed. This does
-  not expose a Project, C, Rust, WIT, Component, or package ABI.
+  class, variant, and non-Copy record shapes closed. This record slice does not
+  authorize prelude carriers; exact `Result<Bytes, Bytes>` support was added
+  later under the owned-variant contract. It does not expose a Project, C,
+  Rust, WIT, Component, or package ABI.
 - Named the exact `Option<Bytes>` and `Result<Bytes, i64>` tags in the public
   Project-v8 C11 header. A separately compiled C consumer now executes all four
   cases at O0/O2, proves inactive cases grant no handle authority, and copies,

@@ -323,6 +323,10 @@ fn direct_owned_bytes_payload_uses_target_carrier_and_remains_non_copy() {
             crate::prelude::RESULT_ID,
             vec![ResolvedType::I64, ResolvedType::Bytes],
         ),
+        nominal(
+            crate::prelude::RESULT_ID,
+            vec![ResolvedType::Bytes, ResolvedType::Bytes],
+        ),
     ] {
         for (target, expected) in [
             (VariantTarget::Native64, (8, 16, 24, 8)),
@@ -343,9 +347,17 @@ fn direct_owned_bytes_payload_uses_target_carrier_and_remains_non_copy() {
                 .cases
                 .iter()
                 .flat_map(|case| &case.fields)
-                .find(|field| field.ty == ResolvedType::Bytes)
-                .expect("one direct owned-byte payload");
-            assert_eq!(owned.value_kind, VariantFieldValueKind::OwnedBytes);
+                .filter(|field| field.ty == ResolvedType::Bytes)
+                .collect::<Vec<_>>();
+            let expected_owned = usize::from(matches!(
+                &algebra,
+                ResolvedType::Nominal { arguments, .. }
+                    if arguments.as_slice() == [ResolvedType::Bytes, ResolvedType::Bytes]
+            )) + 1;
+            assert_eq!(owned.len(), expected_owned);
+            assert!(owned
+                .iter()
+                .all(|field| field.value_kind == VariantFieldValueKind::OwnedBytes));
             layout.validate(&program).unwrap();
         }
     }
@@ -407,9 +419,21 @@ fn direct_owned_bytes_payload_uses_target_carrier_and_remains_non_copy() {
         "either.generic",
         vec![ResolvedType::Bytes, ResolvedType::Bytes],
     );
-    assert!(
-        VariantLayout::for_type(&two_owned_program, VariantTarget::Native64, &two_owned,).is_err()
+    let two_owned_layout =
+        VariantLayout::for_type(&two_owned_program, VariantTarget::Native64, &two_owned)
+            .expect("authored exact two-owned-case layout");
+    assert_eq!(
+        two_owned_layout
+            .cases
+            .iter()
+            .map(|case| case.fields[0].value_kind)
+            .collect::<Vec<_>>(),
+        [
+            VariantFieldValueKind::OwnedBytes,
+            VariantFieldValueKind::OwnedBytes
+        ]
     );
+    two_owned_layout.validate(&two_owned_program).unwrap();
 
     let one_owned = nominal(
         "either.generic",
@@ -493,4 +517,37 @@ fn hostile_layout_and_declaration_mutations_are_rejected_independently() {
     assert!(
         VariantLayout::for_variant(&noncanonical_tag, VariantTarget::Wasm32, &variant).is_err()
     );
+}
+
+#[test]
+fn compiler_owned_two_owned_result_rejects_retained_declaration_drift() {
+    let mut program = hir::resolve(
+        &parse(
+            "module test.hostile_result_layout; @id(\"app.main\") fn main() -> i64 { 42 }",
+            Path::new("hostile-result-layout.spx"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let instance = nominal(
+        crate::prelude::RESULT_ID,
+        vec![ResolvedType::Bytes, ResolvedType::Bytes],
+    );
+    VariantLayout::for_type(&program, VariantTarget::Native64, &instance)
+        .expect("canonical Result<Bytes,Bytes> layout")
+        .validate(&program)
+        .unwrap();
+
+    let result = program
+        .types
+        .iter_mut()
+        .find(|declaration| declaration.id.as_str() == crate::prelude::RESULT_ID)
+        .unwrap();
+    let ResolvedTypeDeclarationKind::Variant { cases } = &mut result.kind else {
+        unreachable!()
+    };
+    cases[1].fields[0].ty = ResolvedType::I64;
+
+    assert!(VariantLayout::for_type(&program, VariantTarget::Native64, &instance).is_err());
+    assert_eq!(hir::validate(&program).unwrap_err().code, "SPX-H006");
 }

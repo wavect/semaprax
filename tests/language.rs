@@ -57,6 +57,8 @@ mod match_mode_graph_v21;
 mod match_modes_syntax;
 #[path = "language/option_try_semantics.rs"]
 mod option_try_semantics;
+#[path = "language/owned_result_variants.rs"]
+mod owned_result_variants;
 #[path = "language/ownership.rs"]
 mod ownership;
 #[path = "language/ownership_control_flow.rs"]

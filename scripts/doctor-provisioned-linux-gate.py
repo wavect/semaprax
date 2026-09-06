@@ -953,13 +953,25 @@ def execute(root, probe, evidence_path):
     suites = []
     if not settlement.failed():
         for suite in SUITES:
+            # Every admitted suite runs, including after one has failed.
+            # Failure selection stays sticky: `Settlement.selected` is the
+            # first recorded reason and nothing here reorders the list, so a
+            # later suite's failures are appended exactly as the cleanup and
+            # settlement findings below are appended, and can no more displace
+            # the selected status than those can. The verdict is identical
+            # either way.
+            #
+            # Stopping early discarded the only suite that can name a worker
+            # failure. The collector fixtures assert on a report's exit code,
+            # so a confined child that exits nonzero fails them before the
+            # report bytes are compared; the platform-sys fixtures assert on
+            # reply-frame contents and distinguish `fail_stop`'s 126 from the
+            # fixture image's 7 from a real tool's status. Runs 34040867346,
+            # 34041757908 and 34043466045 each failed without naming a cause
+            # because this loop ended before that suite.
             observed = run_suite(root, suite)
             suites.append(observed)
             settlement.record(f"execute:{suite['id']}", observed["failures"])
-            if observed["failures"]:
-                # Failure selection is sticky. Later suites are not run, and
-                # cleanup below cannot replace this selected status.
-                break
 
     # Cleanup and settlement observation run whether or not execution failed;
     # their findings are appended, never promoted over the first failure.

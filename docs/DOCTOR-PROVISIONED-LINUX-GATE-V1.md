@@ -79,9 +79,16 @@ missing loader, or a non-child pidfd — fails on this defect before reaching
 its own assertion. The carrier ceiling recorded below was a real defect, fixed
 in `7b5dfd65`; it was never why a fixture failed.
 
-The platform-sys suite has never run: `execute()` breaks after the first
-failing suite so cleanup cannot displace the sticky selected failure. That no
-longer blocks diagnosis — the collector suite now names the failure itself.
+The platform-sys suite did not run in any of the three: `execute()` broke
+after the first failing suite. It no longer does. Every admitted suite now
+runs, and failure selection stays sticky for the reason it always did —
+`Settlement.selected` is the first recorded reason and nothing reorders the
+list, so a later suite's failures are appended exactly as the cleanup and
+settlement findings are, and the verdict is identical either way. That matters
+because the two suites fail differently: the collector fixtures assert on a
+report's exit code and so stop before the report bytes are compared, while the
+platform-sys fixtures assert on reply-frame contents and can separate
+`fail_stop`'s 126 from the fixture image's 7 from a real tool's status.
 
 ## What is true today
 

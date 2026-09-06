@@ -166,19 +166,35 @@ jobs:
             echo "$label: files=$n stripped_bytes=$tot"
             rm -rf "$tmp"
           }
-          sudo apt-get update -qq
-          for v in 14 15 16 17 18; do
-            sudo apt-get install -y -qq "clang-$v" >/dev/null 2>&1 \
-              && measure "clang-$v" "/usr/lib/llvm-$v/bin/clang" \
-              || echo "clang-$v: unavailable"
-          done
-          measure "node-runner" /usr/local/bin/node
-          for v in 1.98.0 1.90.0 1.85.0 1.80.1 1.75.0 1.70.0; do
-            rustup toolchain install "$v" --profile minimal -q >/dev/null 2>&1 || {
-              echo "rust-$v: unavailable"; continue; }
+          node --version; measure "node-runner" /usr/local/bin/node
+          for v in 1.88.0 1.98.0; do
+            rustup toolchain install "$v" --profile minimal --no-self-update \
+              >/dev/null 2>&1 || { echo "rust-$v: install failed"; continue; }
             rbin="$(rustup which --toolchain "$v" rustc)"
+            "$rbin" --version
             measure "rust-$v" "$rbin"
-            rustup toolchain uninstall "$v" -q >/dev/null 2>&1 || true
+          done
+          # Official LLVM release tarballs link LLVM statically into clang, so
+          # the closure carries one copy of LLVM and no libxml2/ICU chain.
+          cd "$RUNNER_TEMP"
+          for spec in \
+            "18.1.8:clang+llvm-18.1.8-x86_64-linux-gnu-ubuntu-18.04" \
+            "17.0.6:clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04" \
+            "14.0.0:clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04"; do
+            ver="${spec%%:*}"; name="${spec#*:}"
+            url="https://github.com/llvm/llvm-project/releases/download/llvmorg-$ver/$name.tar.xz"
+            rm -rf "llvm-$ver"; mkdir -p "llvm-$ver"
+            curl -fsSL "$url" \
+              | tar -xJ -C "llvm-$ver" --strip-components=2 \
+                  --wildcards "*/bin/clang-*" 2>/dev/null \
+              || { echo "llvm-$ver: download or extract failed"; continue; }
+            bin="$(find "llvm-$ver" -maxdepth 1 -type f -name 'clang-*' | head -1)"
+            [ -n "$bin" ] || { echo "llvm-$ver: no clang binary"; continue; }
+            chmod +x "$bin"
+            ls -l "$bin"; ldd "$bin" || true
+            "$bin" --version || echo "llvm-$ver: cannot run on this host"
+            measure "llvm-$ver-official-clang" "$bin"
+            rm -rf "llvm-$ver"
           done
           echo "limit=536870912"
 

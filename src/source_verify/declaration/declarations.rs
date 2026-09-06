@@ -489,7 +489,7 @@ pub(super) fn check_declared_fields<'p>(
                                 && types.declaration(name).is_none()
                     );
                     if !owned_byte_variant
-                        && !matches!(field.ty, Type::I64 | Type::Bool)
+                        && !owned_byte_record_copy_field_is_admitted(&field.ty)
                         && !is_parameter
                         && !is_unknown_parameter
                     {
@@ -497,7 +497,7 @@ pub(super) fn check_declared_fields<'p>(
                             program,
                             "SPX-T215",
                             format!(
-                                "case field `{}::{}.{}` must have direct `i64`, `bool`, or an in-scope variant type parameter in Copy Variants v1",
+                                "case field `{}::{}.{}` must have a direct admitted Copy scalar or an in-scope variant type parameter in Copy Variants v1",
                                 declaration.name, case.name, field.name
                             ),
                             field.span,

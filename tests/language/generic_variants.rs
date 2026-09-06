@@ -630,8 +630,268 @@ fn consume_right(value: own Either<{scalar_name}, Bytes>) -> i64 {{
     }
 }
 
+const TWO_OWNED_GENERIC_VARIANT_SOURCE: &str = r#"
+module test.two_owned_generic_variant;
+@id("test.two.either")
+variant Either<L, R> {
+    @id("test.two.either.left") Left {
+        @id("test.two.either.left.value") value: L,
+        @id("test.two.either.left.marker") marker: i64,
+    },
+    @id("test.two.either.right") Right {
+        @id("test.two.either.right.value") value: R,
+        @id("test.two.either.right.marker") marker: i64,
+    },
+}
+@id("test.two.consume")
+fn consume(value: own Either<Bytes, Bytes>) -> i64 {
+    let borrowed = match borrow value {
+        Either::Left { value: payload, marker } => if byte_len(bytes_as_slice(payload)) == 0usize { 0 } else { 1 },
+        Either::Right { value: payload, marker } => if byte_len(bytes_as_slice(payload)) == 0usize { 0 } else { 1 },
+    };
+    match own value {
+        Either::Left { value: payload, marker } => marker,
+        Either::Right { value: payload, marker } => marker,
+    }
+}
+@id("test.two.make-left")
+fn make_left(input: borrow Slice<u8>) -> Either<Bytes, Bytes> {
+    Either<Bytes, Bytes>::Left { value: bytes_copy(input), marker: 1 }
+}
+@id("test.two.make-right")
+fn make_right(input: borrow Slice<u8>) -> Either<Bytes, Bytes> {
+    Either<Bytes, Bytes>::Right { value: bytes_copy(input), marker: 2 }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+
 #[test]
-fn concrete_owned_generic_variant_profile_rejects_two_owned_and_closed_shapes() {
+fn exact_two_owned_generic_variant_resolves_construction_and_match_bindings() {
+    let parsed = parse(
+        TWO_OWNED_GENERIC_VARIANT_SOURCE,
+        Path::new("two-owned-generic-variant.spx"),
+    )
+    .unwrap();
+    let diagnostics = verify::verify(&parsed);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    let canonical = format::canonical(&parsed);
+    let reparsed = parse(
+        &canonical,
+        Path::new("two-owned-generic-variant-canonical.spx"),
+    )
+    .unwrap();
+    assert!(verify::verify(&reparsed).is_empty());
+    assert_eq!(canonical, format::canonical(&reparsed));
+
+    let resolved = hir::resolve(&parsed).unwrap();
+    hir::validate(&resolved).unwrap();
+    let either = resolved
+        .types
+        .iter()
+        .find(|declaration| declaration.id.as_str() == "test.two.either")
+        .unwrap();
+    let instance = ResolvedType::Nominal {
+        declaration: either.id.clone(),
+        arguments: vec![ResolvedType::Bytes, ResolvedType::Bytes],
+    };
+    let consume = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "test.two.consume")
+        .unwrap();
+    assert_eq!(consume.params[0].ty, instance);
+    let ResolvedExprKind::Block { statements, tail } = &consume.body.kind else {
+        panic!("two-owned consumer must retain its block");
+    };
+    let semaprax::hir::ResolvedStatement::Let {
+        value: borrowed, ..
+    } = &statements[0]
+    else {
+        panic!("two-owned consumer must retain its borrowed match");
+    };
+    for (expression, expected_mode, expected_ownership) in [
+        (
+            borrowed,
+            semaprax::hir::ResolvedMatchMode::Borrow,
+            semaprax::hir::OwnershipMode::Borrow,
+        ),
+        (
+            tail.as_ref(),
+            semaprax::hir::ResolvedMatchMode::Own,
+            semaprax::hir::OwnershipMode::Own,
+        ),
+    ] {
+        let ResolvedExprKind::Match { mode, arms, .. } = &expression.kind else {
+            panic!("two-owned consumer must retain both matches");
+        };
+        assert_eq!(*mode, expected_mode);
+        for (arm, expected_case, expected_field) in [
+            (
+                &arms[0],
+                "test.two.either.left",
+                "test.two.either.left.value",
+            ),
+            (
+                &arms[1],
+                "test.two.either.right",
+                "test.two.either.right.value",
+            ),
+        ] {
+            let ResolvedMatchPattern::Variant { case, fields, .. } = &arm.pattern else {
+                panic!("two-owned arm must retain its variant pattern");
+            };
+            assert_eq!(case.as_str(), expected_case);
+            assert_eq!(fields[0].field.as_str(), expected_field);
+            assert_eq!(fields[0].binding.ty, ResolvedType::Bytes);
+            assert_eq!(fields[0].binding.ownership, expected_ownership);
+            assert_eq!(fields[1].binding.ty, ResolvedType::I64);
+            assert_eq!(
+                fields[1].binding.ownership,
+                semaprax::hir::OwnershipMode::Value
+            );
+        }
+    }
+
+    for (function_id, expected_case, expected_field) in [
+        (
+            "test.two.make-left",
+            "test.two.either.left",
+            "test.two.either.left.value",
+        ),
+        (
+            "test.two.make-right",
+            "test.two.either.right",
+            "test.two.either.right.value",
+        ),
+    ] {
+        let function = resolved
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == function_id)
+            .unwrap();
+        assert_eq!(function.return_type, instance);
+        let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("two-owned constructor must retain its block");
+        };
+        let ResolvedExprKind::ConstructVariant { case, fields, .. } = &tail.kind else {
+            panic!("two-owned constructor must retain its variant construction");
+        };
+        assert_eq!(tail.ty, instance);
+        assert_eq!(case.as_str(), expected_case);
+        assert_eq!(fields[0].field.as_str(), expected_field);
+        assert_eq!(fields[0].value.ty, ResolvedType::Bytes);
+    }
+}
+
+#[test]
+fn owned_generic_variant_templates_admit_every_direct_copy_scalar_field() {
+    for (scalar_name, scalar_type) in [
+        ("i64", ResolvedType::I64),
+        ("i32", ResolvedType::I32),
+        ("u8", ResolvedType::U8),
+        ("usize", ResolvedType::Usize),
+        ("char", ResolvedType::Char),
+        ("f32", ResolvedType::F32),
+        ("f64", ResolvedType::F64),
+        ("bool", ResolvedType::Bool),
+    ] {
+        let source = format!(
+            r#"module test.owned_generic_variant_direct_{scalar_name};
+@id("test.direct.either")
+variant Either<L, R> {{
+    @id("test.direct.either.left") Left {{
+        @id("test.direct.either.left.value") value: L,
+        @id("test.direct.either.left.marker") marker: {scalar_name},
+    }},
+    @id("test.direct.either.right") Right {{
+        @id("test.direct.either.right.value") value: R,
+        @id("test.direct.either.right.marker") marker: {scalar_name},
+    }},
+}}
+@id("test.direct.consume")
+fn consume(value: own Either<Bytes, Bytes>) -> i64 {{
+    match own value {{
+        Either::Left {{ value: payload, marker }} => 0,
+        Either::Right {{ value: payload, marker }} => 0,
+    }}
+}}
+@id("app.main") fn main() -> i64 {{ 0 }}
+"#
+        );
+        let parsed = parse(
+            &source,
+            Path::new("owned-generic-variant-direct-copy-scalars.spx"),
+        )
+        .unwrap();
+        let diagnostics = verify::verify(&parsed);
+        assert!(diagnostics.is_empty(), "{scalar_name}: {diagnostics:#?}");
+        let resolved = hir::resolve(&parsed).unwrap();
+        hir::validate(&resolved).unwrap();
+        let either = resolved
+            .types
+            .iter()
+            .find(|declaration| declaration.id.as_str() == "test.direct.either")
+            .unwrap();
+        let ResolvedTypeDeclarationKind::Variant { cases } = &either.kind else {
+            unreachable!();
+        };
+        assert_eq!(cases[0].fields[1].ty, scalar_type);
+        assert_eq!(cases[1].fields[1].ty, scalar_type);
+
+        let consume = resolved
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "test.direct.consume")
+            .unwrap();
+        let ResolvedExprKind::Block { tail, .. } = &consume.body.kind else {
+            unreachable!();
+        };
+        let ResolvedExprKind::Match { arms, .. } = &tail.kind else {
+            unreachable!();
+        };
+        for (arm, expected_field) in [
+            (&arms[0], "test.direct.either.left.marker"),
+            (&arms[1], "test.direct.either.right.marker"),
+        ] {
+            let ResolvedMatchPattern::Variant { fields, .. } = &arm.pattern else {
+                unreachable!();
+            };
+            assert_eq!(fields[1].field.as_str(), expected_field);
+            assert_eq!(fields[1].binding.ty, scalar_type);
+            assert_eq!(
+                fields[1].binding.ownership,
+                semaprax::hir::OwnershipMode::Value
+            );
+        }
+    }
+
+    for (module, closed_field, expected) in [
+        ("string", "String", "SPX-T220"),
+        ("nested", "Option<i64>", "SPX-T215"),
+        ("slice", "Slice<u8>", "SPX-T215"),
+    ] {
+        let source = format!(
+            r#"module test.owned_generic_variant_direct_closed_{module};
+@id("test.closed.either") variant Either<L, R> {{
+    @id("test.closed.either.left") Left {{
+        @id("test.closed.either.left.value") value: L,
+        @id("test.closed.either.left.marker") marker: {closed_field},
+    }},
+    @id("test.closed.either.right") Right {{
+        @id("test.closed.either.right.value") value: R,
+    }},
+}}
+@id("test.closed.consume") fn consume(value: own Either<Bytes, Bytes>) -> i64 {{ 0 }}
+@id("app.main") fn main() -> i64 {{ 0 }}
+"#
+        );
+        let codes = error_codes(&source);
+        assert!(codes.contains(&expected), "{module}: {codes:?}");
+    }
+}
+
+#[test]
+fn concrete_owned_generic_variant_profile_rejects_broader_two_owned_and_closed_shapes() {
     let declaration = r#"
 @id("test.either")
 variant Either<L, R> {
@@ -640,9 +900,9 @@ variant Either<L, R> {
 }
 "#;
     for (module, ty, expected) in [
-        ("two_owned", "Either<Bytes, Bytes>", "SPX-T268"),
         ("string_leaf", "Either<Bytes, String>", "SPX-T268"),
         ("nested_variant", "Either<Bytes, Option<i64>>", "SPX-T268"),
+        ("compiler_result", "Result<Bytes, Bytes>", "SPX-T268"),
     ] {
         let source = format!(
             "module test.{module};\n{declaration}\n@id(\"test.bad\") fn bad(value: own {ty}) -> i64 {{ 0 }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}"
@@ -667,6 +927,109 @@ module test.generic_class_owned_variant;
 @id("app.main") fn main() -> i64 { 0 }
 "#;
     assert!(error_codes(class).contains(&"SPX-T268"));
+
+    let duplicated_owned_case = r#"
+module test.duplicated_owned_case;
+@id("test.duplicated") variant Duplicated<L, R> {
+    @id("test.duplicated.first") First { @id("test.duplicated.first.value") value: L, },
+    @id("test.duplicated.second") Second { @id("test.duplicated.second.value") value: L, },
+}
+@id("test.bad") fn bad(value: own Duplicated<Bytes, i64>) -> i64 { 0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    assert!(error_codes(duplicated_owned_case).contains(&"SPX-T268"));
+
+    let three_owned_cases = r#"
+module test.three_owned_cases;
+@id("test.three") variant Three<L, R> {
+    @id("test.three.first") First { @id("test.three.first.value") value: L, },
+    @id("test.three.second") Second { @id("test.three.second.value") value: R, },
+    @id("test.three.third") Third { @id("test.three.third.value") value: L, },
+}
+@id("test.bad") fn bad(value: own Three<Bytes, Bytes>) -> i64 { 0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    assert!(error_codes(three_owned_cases).contains(&"SPX-T268"));
+
+    let implicit_identity = r#"
+module test.implicit_two_owned;
+variant Either<L, R> {
+    Left { value: L, },
+    Right { value: R, },
+}
+fn bad(value: own Either<Bytes, Bytes>) -> i64 { 0 }
+fn main() -> i64 { 0 }
+"#;
+    assert!(error_codes(implicit_identity).contains(&"SPX-T268"));
+}
+
+#[test]
+fn independent_hir_validation_rejects_two_owned_generic_variant_identity_drift() {
+    let parsed = parse(
+        TWO_OWNED_GENERIC_VARIANT_SOURCE,
+        Path::new("two-owned-generic-variant-hir-hostile.spx"),
+    )
+    .unwrap();
+
+    let mut wrong_parameter_index = hir::resolve(&parsed).unwrap();
+    let either = wrong_parameter_index
+        .types
+        .iter_mut()
+        .find(|declaration| declaration.id.as_str() == "test.two.either")
+        .unwrap();
+    let ResolvedTypeDeclarationKind::Variant { cases } = &mut either.kind else {
+        unreachable!();
+    };
+    let ResolvedType::TypeParameter { index, .. } = &mut cases[1].fields[0].ty else {
+        unreachable!();
+    };
+    *index = 0;
+    assert_eq!(
+        hir::validate(&wrong_parameter_index).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut wrong_substituted_binding = hir::resolve(&parsed).unwrap();
+    let consume = wrong_substituted_binding
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "test.two.consume")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &mut consume.body.kind else {
+        unreachable!();
+    };
+    let ResolvedExprKind::Match { arms, .. } = &mut tail.kind else {
+        unreachable!();
+    };
+    let ResolvedMatchPattern::Variant { fields, .. } = &mut arms[1].pattern else {
+        unreachable!();
+    };
+    fields[0].binding.ty = ResolvedType::I64;
+    assert_eq!(
+        hir::validate(&wrong_substituted_binding).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut wrong_case_field_identity = hir::resolve(&parsed).unwrap();
+    let consume = wrong_case_field_identity
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "test.two.consume")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &mut consume.body.kind else {
+        unreachable!();
+    };
+    let ResolvedExprKind::Match { arms, .. } = &mut tail.kind else {
+        unreachable!();
+    };
+    let ResolvedMatchPattern::Variant { fields, .. } = &mut arms[1].pattern else {
+        unreachable!();
+    };
+    fields[0].field = semaprax::hir::DeclarationId::new("test.two.either.left.value");
+    assert_eq!(
+        hir::validate(&wrong_case_field_identity).unwrap_err().code,
+        "SPX-H006"
+    );
 }
 
 #[test]

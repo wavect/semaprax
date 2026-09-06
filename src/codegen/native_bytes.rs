@@ -844,11 +844,11 @@ impl NativeBytesPlan {
         }
         Ok(output)
     }
-
     pub(super) fn materialize_variant_carrier(
         &self,
         storage: &StorageId,
         carrier: &str,
+        discriminant: &str,
         layout: &VariantLayout,
     ) -> Result<String, Diagnostic> {
         let leaves = self
@@ -856,7 +856,7 @@ impl NativeBytesPlan {
             .get(storage)
             .ok_or_else(|| error("owned variant carrier storage has no Bytes leaves"))?;
         let mut output = format!(
-            "if (({carrier}).spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned variant carrier tag\");\n",
+            "if (({discriminant}).spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned variant carrier tag\");\n",
             layout.cases.len()
         );
         for case in &layout.cases {
@@ -874,7 +874,7 @@ impl NativeBytesPlan {
                 }
                 let slot = &self.slots[place];
                 output.push_str(&format!(
-                    "if (({carrier}).spx_tag == UINT32_C({})) {{\n    if (!{}) spx_runtime_invariant_failure(\"dead active owned variant field\");\n    ({carrier}).spx_payload.{}.{} = spx_bytes_move(&{});\n    {} = false;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant field is live\");\n",
+                    "if (({discriminant}).spx_tag == UINT32_C({})) {{\n    if (!{}) spx_runtime_invariant_failure(\"dead active owned variant field\");\n    ({carrier}).spx_payload.{}.{} = spx_bytes_move(&{});\n    {} = false;\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant field is live\");\n",
                     case.tag,
                     slot.flag,
                     c_case_symbol(case_id),

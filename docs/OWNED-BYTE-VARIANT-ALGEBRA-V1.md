@@ -8,12 +8,12 @@ Status: local implementation tranche; hosted promotion is not claimed.
 
 Owned Byte Variant Algebra v1 admits the first non-Copy sum execution path.
 It admits flat monomorphic authored variants with at least one direct `Bytes`
-field, a bounded concrete authored-generic extension with exactly one owned
-case, and the exact compiler-owned `Option<Bytes>`,
+field, a bounded concrete authored-generic extension with one owned case, an
+additive exact two-owned-case authored shape, and the compiler-owned `Option<Bytes>`,
 `Result<Bytes, i64|bool>`, and `Result<i64|bool, Bytes>` instances. It does not
-create a public aggregate ABI or admit two-owned-case generic instances,
-nesting, postfix `?`, components, Project exports, callable interfaces, or
-native Rust interoperability.
+create a public aggregate ABI or admit compiler-owned `Result<Bytes, Bytes>`,
+broader multi-case generic instances, nesting, postfix `?`, components, Project
+exports, callable interfaces, or native Rust interoperability.
 
 ## Closed admission
 
@@ -23,11 +23,14 @@ An admitted authored variant:
   every parameter of an explicitly identified authored variant;
 - contains at least one direct `Bytes` field;
 - contains only direct `Bytes` or already admitted Copy-scalar fields; and
-- contains no nested record or variant, resource, array, slice, string,
-  unresolved generic field, or `Bytes` field on both sides of a generic
-  instance. A concrete authored-generic instance has exactly one case with one
-  or more substituted `Bytes` fields; monomorphic authored variants retain
-  their existing multi-case behavior.
+- contains no nested record or variant, resource, array, slice, string, or
+  unresolved generic field. In the one-owned generic profile, a concrete
+  instance has exactly one case with one or more substituted `Bytes` fields and
+  no `Bytes` field in another case; monomorphic authored variants retain their
+  existing multi-case behavior. The additive two-owned profile instead requires
+  exactly two parameters, the exact argument vector `[Bytes, Bytes]`, exactly
+  two cases, and owned fields in both cases. It remains an explicitly identified
+  authored variant and does not reinterpret the compiler-owned `Result`.
 
 Explicit owned and borrowed matching is exhaustive, guard-free, and lists
 every case with its exact declared field inventory:
@@ -115,7 +118,11 @@ carriers, payload-free conditional cases, exact-once cleanup, and failure
 settlement. The concrete authored-generic extension additionally covers both
 argument positions, exact owner/index substitution, opposite live-case vectors,
 partial construction, failure inside an owned arm, exact semantic status,
-native and Wasm shallow-copy rejection, and repeated recovery. Two-owned-case
-instances including `Result<Bytes, Bytes>` remain closed. Evidence in this
-tranche is local only; it does not claim hosted promotion or a public ABI
-widening.
+native and Wasm shallow-copy rejection, and repeated recovery. The exact
+authored two-owned profile additionally covers both live branches, dynamic
+parameter/result/call transfer, branch-specific authentication and finalizers,
+partial construction and owned-arm failure on each branch, forged carrier/case
+rejection, exact statuses, tight capacity, and repeated recovery on all three
+engines. Compiler-owned `Result<Bytes, Bytes>` and broader multi-case shapes
+remain closed. Evidence in this tranche is local only; it does not claim hosted
+promotion or a public ABI widening.

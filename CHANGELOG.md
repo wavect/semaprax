@@ -47,6 +47,18 @@ format: `Unreleased` then release buckets, grouped by impact.
   `Result<Bytes, Bytes>`, nested/resource variants, public ABIs, and hosted
   promotion remain closed or unclaimed.
 
+- Proved an exact authored two-owned-branch generic variant shape with two
+  parameters, `[Bytes, Bytes]` arguments, and two owned cases. Existing
+  conditional cleanup represents both case-qualified owners without a schema
+  change. Local interpreter, C11 `-O0`/`-O2`, and Core-Wasm evidence covers
+  both constructors, borrow/own matching, dynamic parameter/result/call
+  transfer, branch-specific partial construction and arm failure, precondition
+  settlement, repeated recovery, tight capacity, zero native leaks, invalid
+  carriers/tags, and native/Wasm shallow-copy rejection. Hostile replay changes
+  inactive liveness, case authentication, and guarded finalizers in both
+  directions. Compiler-owned `Result<Bytes, Bytes>`, broader multi-case generic
+  sums, Project/public ABIs, and hosted promotion remain closed or unclaimed.
+
 - Bounded native C11 name resolution by the same aggregate operation deadline
   as the rest of the operation. A numeric endpoint is answered under
   `AI_NUMERICHOST` with no name service, no budget and no worker; a name is

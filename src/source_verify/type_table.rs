@@ -587,8 +587,10 @@ impl<'a> TypeTable<'a> {
     /// Exact non-Copy variant profile admitted by Owned Byte Variant Algebra
     /// v1 plus its bounded concrete authored-generic extension. An authored
     /// generic instance must substitute to direct Copy scalars and exactly one
-    /// case containing one or more direct `Bytes` fields. Compiler-owned
-    /// prelude identities retain their separate closed admission.
+    /// case containing one or more direct `Bytes` fields. The additive exact
+    /// two-branch shape has two parameters, two direct `Bytes` arguments, and
+    /// two cases that both contain owned bytes. Compiler-owned prelude
+    /// identities retain their separate closed admission.
     pub(super) fn is_flat_owned_byte_variant(&self, ty: &Type) -> bool {
         let Type::Named { name, arguments } = ty else {
             return false;
@@ -614,7 +616,8 @@ impl<'a> TypeTable<'a> {
                     field.ty == Type::Bytes || owned_byte_record_copy_field_is_admitted(&field.ty)
                 });
         }
-        if arguments.len() != declaration.type_parameters.len()
+        if !declaration.explicit_id
+            || arguments.len() != declaration.type_parameters.len()
             || arguments.iter().any(|argument| {
                 *argument != Type::Bytes && !owned_byte_record_copy_field_is_admitted(argument)
             })
@@ -638,6 +641,10 @@ impl<'a> TypeTable<'a> {
             owned_cases += usize::from(case_owns_bytes);
         }
         owned_cases == 1
+            || (owned_cases == 2
+                && declaration.type_parameters.len() == 2
+                && arguments.as_slice() == [Type::Bytes, Type::Bytes]
+                && cases.len() == 2)
     }
 
     pub(super) fn is_opaque_resource(&self, ty: &Type) -> bool {

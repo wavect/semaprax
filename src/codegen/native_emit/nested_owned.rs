@@ -241,11 +241,9 @@ pub(super) fn emit_owned_variant_shell(
     .expect("writing to a string cannot fail");
     writeln!(
         output,
-        "    memset(&({destination}), 0, sizeof({destination}));"
+        "    memset((uint8_t *)&({destination}) + sizeof(({destination}).spx_tag), 0, sizeof({destination}) - sizeof(({destination}).spx_tag));"
     )
     .expect("writing to a string cannot fail");
-    writeln!(output, "    ({destination}).spx_tag = ({source}).spx_tag;")
-        .expect("writing to a string cannot fail");
     for case in &layout.cases {
         writeln!(
             output,

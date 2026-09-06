@@ -327,10 +327,13 @@ pub(super) fn nested_record_copy_scalar_is_admitted(ty: &ResolvedType) -> bool {
 /// Exact concrete authored-generic extension of Owned Byte Variant Algebra v1.
 ///
 /// The declaration identity must be explicit, every argument and substituted
-/// payload must be a direct `Bytes` or admitted Copy scalar, and exactly one
-/// authored case may carry owned bytes. This deliberately excludes the
-/// compiler prelude (including `Result<Bytes, Bytes>`), nested carriers,
-/// resources, and nonconcrete arguments.
+/// payload must be a direct `Bytes` or admitted Copy scalar. The initial
+/// profile admits exactly one authored case carrying owned bytes. The additive
+/// two-branch profile admits only the structural `Either<Bytes, Bytes>` shape:
+/// exactly two parameters, two direct `Bytes` arguments, and two cases that
+/// both carry owned bytes. This deliberately excludes the compiler prelude
+/// (including `Result<Bytes, Bytes>`), broader multi-case generic sums, nested
+/// carriers, resources, and nonconcrete arguments.
 pub(crate) fn is_admitted_concrete_owned_byte_variant(
     declarations: &DeclarationIndex,
     ty: &ResolvedType,
@@ -381,6 +384,10 @@ pub(crate) fn is_admitted_concrete_owned_byte_variant(
         owned_cases += usize::from(case_owns_bytes);
     }
     owned_cases == 1
+        || (owned_cases == 2
+            && parameters.len() == 2
+            && arguments.as_slice() == [ResolvedType::Bytes, ResolvedType::Bytes]
+            && cases.len() == 2)
 }
 
 /// Re-derive the nested record profile only from the declaration index. This

@@ -893,15 +893,10 @@ impl<'a> HirValidator<'a> {
                             || usize::try_from(field.index) != Ok(field_position)
                             || field.index != indexed_field.index
                             || field.ty != indexed_field.ty
-                            || !(matches!(
-                                field.ty,
-                                ResolvedType::I64
-                                    | ResolvedType::I32
-                                    | ResolvedType::Bool
-                                    | ResolvedType::TypeParameter { .. }
-                            ) || (owned_byte_variant
-                                && (field.ty == ResolvedType::Bytes
-                                    || super::type_reachability::nested_record_copy_scalar_is_admitted(&field.ty))))
+                            || !(super::type_reachability::nested_record_copy_scalar_is_admitted(
+                                &field.ty,
+                            ) || matches!(field.ty, ResolvedType::TypeParameter { .. })
+                                || (owned_byte_variant && field.ty == ResolvedType::Bytes))
                         {
                             return Err(hir_error(format!(
                                 "field {field_position} of case `{}` is invalid or disagrees with its declaration index",
@@ -925,18 +920,23 @@ impl<'a> HirValidator<'a> {
                                 )));
                             }
                         }
-                        if owned_byte_variant {
+                        if owned_byte_variant
+                            || super::type_reachability::nested_record_copy_scalar_is_admitted(
+                                &field.ty,
+                            )
+                        {
                             continue;
                         }
                         match &field.ty {
-                            ResolvedType::I64 | ResolvedType::Bool => {}
-                            ResolvedType::I32
+                            ResolvedType::I64
+                            | ResolvedType::I32
                             | ResolvedType::Char
                             | ResolvedType::U8
                             | ResolvedType::Usize
-                            | ResolvedType::ArrayU8(_)
                             | ResolvedType::F32
                             | ResolvedType::F64
+                            | ResolvedType::Bool
+                            | ResolvedType::ArrayU8(_)
                             | ResolvedType::String
                             | ResolvedType::Bytes
                             | ResolvedType::Str

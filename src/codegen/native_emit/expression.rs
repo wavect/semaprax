@@ -973,7 +973,12 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             let storage = plan.call_argument_storage(&expr.id, parameter_index)?;
                             let materialize = if plan.has_variant_leaves(&storage) {
                                 let layout = self.variant_layout(expected)?;
-                                plan.materialize_variant_carrier(&storage, &argument.code, &layout)?
+                                plan.materialize_variant_carrier(
+                                    &storage,
+                                    &argument.code,
+                                    &argument.code,
+                                    &layout,
+                                )?
                             } else {
                                 plan.materialize_record_carrier(&storage, &argument.code)?
                             };

@@ -45,6 +45,8 @@ mod concrete_generic_owned_record_update;
 mod generic_owned_function_runtime;
 #[path = "owned_data/generic_owned_variant_runtime.rs"]
 mod generic_owned_variant_runtime;
+#[path = "owned_data/generic_two_owned_variant_runtime.rs"]
+mod generic_two_owned_variant_runtime;
 #[path = "owned_data/interpreter.rs"]
 mod interpreter;
 #[path = "owned_data/nested_generic_owned_record_frontend_hir.rs"]

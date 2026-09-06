@@ -6071,6 +6071,90 @@ mod tests {
     }
 
     #[test]
+    fn two_owned_generic_variant_runtime_rejects_hostile_carrier_and_case() {
+        let program = resolved(
+            r#"module test.two_owned_generic_variant_hostile;
+@id("hostile.either") variant Either<T, U> {
+  @id("hostile.either.left") Left {
+    @id("hostile.either.left.value") value: T,
+  },
+  @id("hostile.either.right") Right {
+    @id("hostile.either.right.value") value: U,
+  },
+}
+@id("hostile.inspect")
+fn inspect(value: borrow Either<Bytes, Bytes>) -> i64 {
+  match borrow value {
+    Either::Left { value: left_payload } =>
+      if byte_len(bytes_as_slice(left_payload)) == 0usize { 1 } else { 2 },
+    Either::Right { value: right_payload } =>
+      if byte_len(bytes_as_slice(right_payload)) == 0usize { 3 } else { 4 },
+  }
+}
+@id("app.main") fn main() -> i64 { 42 }
+"#,
+        );
+        let inspect = program
+            .functions
+            .iter()
+            .find(|function| function.id.as_str() == "hostile.inspect")
+            .unwrap();
+        let parameter = &inspect.params[0];
+        let ResolvedType::Nominal { declaration, .. } = &parameter.ty else {
+            panic!("hostile fixture parameter must be nominal")
+        };
+        let admitted = admitted_resolved_functions(&program);
+        for (ty, case) in [
+            (
+                parameter.ty.clone(),
+                hir::DeclarationId::new("hostile.unknown-case"),
+            ),
+            (
+                ResolvedType::Nominal {
+                    declaration: declaration.clone(),
+                    arguments: vec![ResolvedType::Bytes, ResolvedType::I64],
+                },
+                hir::DeclarationId::new("hostile.either.left"),
+            ),
+        ] {
+            let mut evaluator = Evaluator {
+                admitted: FunctionLookup::Borrowed(&admitted),
+                declarations: &program.declarations,
+                steps: 0,
+                budget: 10_000,
+                next_byte_allocation: 0,
+                allocated_byte_payload: 0,
+                utf8_materialization_budget: Utf8MaterializationBudget::UnlimitedLegacy,
+                stdout_transcript: None,
+                stderr_transcript: None,
+                command_input: None,
+                cancellation: PreparedCancellation::Never,
+                trace_limit: 0,
+                trace_events: Vec::new(),
+                dropped_trace_events: 0,
+                current_function: None,
+                trace_identities: BTreeMap::new(),
+                trace_phase: ResolvedTracePhase::Body,
+                failure_detail: None,
+            };
+            let outcome = evaluator.call_frame(
+                inspect,
+                vec![(
+                    parameter.id.clone(),
+                    Value::Variant(Arc::new(OwnedVariantValue {
+                        ty,
+                        variant: declaration.clone(),
+                        case,
+                        fields: BTreeMap::new(),
+                    })),
+                )],
+                0,
+            );
+            assert!(matches!(outcome, Err(Flow::Guard(_))));
+        }
+    }
+
+    #[test]
     fn options_reject_out_of_bounds_values() {
         assert!(InterpreterOptions::new(512, DEFAULT_MAX_STEPS).is_err());
         assert!(

@@ -2033,6 +2033,7 @@ fn emit_function(
             plan.materialize_variant_carrier(
                 &crate::cleanup_plan::StorageId::ProvisionalResult,
                 "(*spx_result_out)",
+                "spx_result",
                 layout,
             )?
         } else {
@@ -2053,6 +2054,9 @@ fn emit_function(
                 .map(|line| format!("    {line}\n"))
                 .collect::<String>(),
         );
+        if variant_declaration_id(program, &function.return_type)?.is_some() {
+            output.push_str("    (*spx_result_out).spx_tag = spx_result.spx_tag;\n");
+        }
     } else {
         if string_cells.is_some() && matches!(function.return_type, ResolvedType::String) {
             output.push_str("    if (!spx_result_live) spx_runtime_invariant_failure(\"dead String result\");\n");

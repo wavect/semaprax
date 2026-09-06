@@ -109,6 +109,7 @@ Audience: all documentation readers.
 - [Exact Program Context v2](EXACT-PROGRAM-CONTEXT-V2.md)
 - [Explicit AgentDefinition Association v1](EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md)
 - [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md)
+- [Universal Semantic Transaction v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md)
 - [Universal Semantic Transaction Composition v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md)
 - [Universal Semantic Query v1](UNIVERSAL-SEMANTIC-QUERY-V1.md)
 - [Persistent Incremental Semantic Workspace Service v1](PERSISTENT-INCREMENTAL-SEMANTIC-SERVICE-V1.md)

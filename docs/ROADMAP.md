@@ -240,6 +240,14 @@ candidate-safe replay of all external facts; until then candidate ProgramRoot
 v3 and exact service refresh remain closed rather than copying or discarding
 the appended facts.
 
+Universal Semantic Transaction v2 now promotes exactly one additive operation:
+revision-scoped authored body `ReplaceExpression` for explicit monomorphic
+source functions, including `main`. Core, persistent-service ordinary and exact
+ProgramRoot-v2/v3 routes, and the one-shot `change preview` adapter remain
+authority-free and preserve v1 bytes. Contract or implicit-node replacement,
+generic/synthetic/imported targets, comments/trivia-preserving editing,
+multi-operation composition, commit, and publication remain later work.
+
 Actual source-exact parse/format reuse, expression holes, owning-Bytes parameter
 mapping and typed diagnostic repair history now have authored implementations.
 Separate canonical Git publication now has bounded Linux/macOS bare SHA1/SHA256

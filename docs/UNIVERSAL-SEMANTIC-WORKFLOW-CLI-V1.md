@@ -62,10 +62,16 @@ The first change form is:
 semaprax change preview <project> rename-display-name <stable-id> <new-name> [--revision <digest>] [--evidence]
 semaprax change preview <project> add-contract <stable-id> <requires|ensures> <predicate-json> [--revision <digest>] [--evidence]
 semaprax change preview <project> add-declaration <anchor-stable-id> <declaration-json> [--revision <digest>] [--evidence]
+semaprax change preview <project> replace-expression <stable-id> <expression-id> <replacement-json> [--revision <digest>] [--evidence|--structural-diff]
 ```
 
-It admits only the operations already owned by Universal Semantic Transaction
-v1. The rename adapter reads the selected function's current display name from
+The first three forms admit only operations owned by Universal Semantic
+Transaction v1. The additive `replace-expression` form is owned by [Universal
+Semantic Transaction v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md); it accepts an
+explicit monomorphic source function, including `main`, requires an actual
+replaceable body-expression identity from the selected revision, derives the
+exact old source slice itself, and uses the existing closed typed expression
+constructor grammar. The rename adapter reads the selected function's current display name from
 the same authenticated Project generation. The contract adapter reads its
 complete ordered `requires`/`ensures` predicate-source inventory and uses it as
 the exact old-contract precondition. `predicate-json` must be one JSON value in
@@ -96,7 +102,7 @@ whether the operation succeeds. The process-local `SemanticWorkspaceService`
 is built only from the retained immutable `ProjectRevision`.
 
 Queries execute one canonical `SemanticQuery` against that service. Change
-preview constructs one canonical `SemanticTransaction`, then delegates to the
+preview constructs one canonical v1 or v2 semantic transaction, then delegates to the
 service's non-mutating transaction validation. No caller JSON is decoded as
 HIR, no serialized graph becomes trusted state, and no result is emitted after
 an undetected held-input drift.
@@ -115,7 +121,8 @@ precedence are preserved:
 
 - Universal Semantic Query v1 uses `SPX-G531`, `SPX-G532`, and `SPX-G533`;
 - Universal Semantic Transaction v1 uses `SPX-G525`, `SPX-G526`, and
-  `SPX-G527`; and
+  `SPX-G527`;
+- Universal Semantic Transaction v2 preserves those diagnostic classes; and
 - Project authentication, parsing, verification, image, context, and impact
   failures retain their owning diagnostics.
 

@@ -349,3 +349,15 @@ nothing. Refresh rejects context-v1 and context-v2 generations alike; there is
 no candidate-v3 or exact v3 refresh/adoption route. Service work, refresh,
 query/result, transaction/evidence, and history query/result schemas and bytes
 remain unchanged.
+
+## Additive Universal Semantic Transaction v2 routes
+
+`validate_transaction_v2` and `replay_transaction_v2` accept the separately
+versioned, one-operation `ReplaceExpression` wire without changing the v1
+methods or artifacts. The exact `validate_transaction_v2_exact`/replay pair
+selects the retained workspace and ProgramRoot-v2 digest; the corresponding
+`*_exact_v2` pair selects the retained workspace and ProgramRoot-v3 digest.
+Every exact selector runs before transaction parsing, capacity accounting, or
+history access. Successful validation records the ordinary bounded transaction
+history fact; replay and selector failure record nothing. All routes are
+read-only and provide no commit, refresh, filesystem, or publication authority.

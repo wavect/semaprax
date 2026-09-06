@@ -145,5 +145,7 @@ mod type_declarations;
 mod universal_semantic_transaction;
 #[path = "project_candidate/universal_semantic_transaction_composition.rs"]
 mod universal_semantic_transaction_composition;
+#[path = "project_candidate/universal_semantic_transaction_v2.rs"]
+mod universal_semantic_transaction_v2;
 #[path = "project_candidate/variant_case.rs"]
 mod variant_case;

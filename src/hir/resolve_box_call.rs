@@ -52,6 +52,7 @@ impl OwnedGenericCallSite {
         }
     }
     #[cfg(test)]
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn resolve_reference(
         self,
         resolver: &Resolver<'_>,
@@ -225,6 +226,7 @@ pub(super) fn finish(
 }
 
 #[cfg(test)]
+#[allow(clippy::too_many_arguments)]
 pub(super) fn resolve_reference(
     resolver: &Resolver<'_>,
     function: &FunctionExecutionId,

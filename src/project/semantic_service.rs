@@ -21,7 +21,8 @@ use super::{
     ExactProgramContextV2, ProgramRoot, ProgramRootV2, ProgramRootV3, ProjectFrontendCache,
     ProjectFrontendSource, ProjectManifest, ProjectRevision, ProjectSemanticImage, SemanticQuery,
     SemanticQueryResult, SemanticServiceIndexQuery, SemanticServiceIndexResult,
-    SemanticTransaction, SemanticTransactionArtifacts, SemanticWorkspaceRevision,
+    SemanticTransaction, SemanticTransactionArtifacts, SemanticTransactionArtifactsV2,
+    SemanticTransactionV2, SemanticWorkspaceRevision,
 };
 
 mod history;
@@ -818,6 +819,166 @@ impl SemanticWorkspaceService {
         )?;
         history.append(history_entry);
         Ok(artifacts)
+    }
+
+    /// Validate one additive v2 transaction against the active immutable
+    /// generation. The candidate and evidence remain read-only; only the
+    /// bounded in-memory service history records the validation.
+    pub fn validate_transaction_v2(
+        &self,
+        transaction_bytes: &[u8],
+    ) -> Result<SemanticTransactionArtifactsV2> {
+        let mut history = self
+            .history
+            .lock()
+            .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?;
+        history.require_capacity()?;
+        let transaction = SemanticTransactionV2::parse(transaction_bytes)?;
+        if transaction.expected_workspace_revision() != self.active.workspace_revision() {
+            return Err(stale(
+                "semantic workspace service v2 transaction revision is stale",
+            ));
+        }
+        let artifacts =
+            super::validate_semantic_transaction_v2(&self.active.revision, &transaction)?;
+        let history_entry = history.transaction_entry(
+            self.active.revision.project_revision(),
+            self.active.workspace_revision(),
+            artifacts.candidate().revision().project_revision(),
+            artifacts.candidate_program_root().workspace_revision(),
+            transaction.digest(),
+            artifacts.result_digest(),
+        )?;
+        history.append(history_entry);
+        Ok(artifacts)
+    }
+
+    /// Replay frozen v2 transaction evidence against the active generation.
+    /// Replay is read-only and therefore appends no service history entry.
+    pub fn replay_transaction_v2(
+        &self,
+        transaction_bytes: &[u8],
+        evidence_bytes: &[u8],
+    ) -> Result<SemanticTransactionArtifactsV2> {
+        SemanticTransactionV2::replay(
+            Arc::clone(&self.active.revision),
+            transaction_bytes,
+            evidence_bytes,
+        )
+    }
+
+    /// Validate one additive v2 transaction against an exact retained
+    /// ProgramRoot v2 selection. Selection precedes parsing and history work.
+    pub fn validate_transaction_v2_exact(
+        &self,
+        transaction_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v2_digest: &str,
+    ) -> Result<SemanticTransactionArtifactsV2> {
+        let context = self.active.exact_context().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v2 context")
+        })?;
+        context.select(expected_workspace_revision, expected_program_root_v2_digest)?;
+        let mut history = self
+            .history
+            .lock()
+            .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?;
+        history.require_capacity()?;
+        let transaction = SemanticTransactionV2::parse(transaction_bytes)?;
+        let artifacts = transaction.validate_exact(
+            Arc::clone(context),
+            expected_workspace_revision,
+            expected_program_root_v2_digest,
+        )?;
+        let history_entry = history.transaction_entry(
+            self.active.revision.project_revision(),
+            artifacts.base_program_root().workspace_revision(),
+            artifacts.candidate().revision().project_revision(),
+            artifacts.candidate_program_root().workspace_revision(),
+            transaction.digest(),
+            artifacts.result_digest(),
+        )?;
+        history.append(history_entry);
+        Ok(artifacts)
+    }
+
+    /// Replay frozen v2 evidence against an exact retained ProgramRoot v2.
+    /// Selection precedes parsing and replay appends no service history entry.
+    pub fn replay_transaction_v2_exact(
+        &self,
+        transaction_bytes: &[u8],
+        evidence_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v2_digest: &str,
+    ) -> Result<SemanticTransactionArtifactsV2> {
+        let context = self.active.exact_context().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v2 context")
+        })?;
+        context.select(expected_workspace_revision, expected_program_root_v2_digest)?;
+        SemanticTransactionV2::replay_exact(
+            Arc::clone(context),
+            expected_workspace_revision,
+            expected_program_root_v2_digest,
+            transaction_bytes,
+            evidence_bytes,
+        )
+    }
+
+    /// Validate one additive v2 transaction against an exact retained
+    /// ProgramRoot v3 selection. Selection precedes parsing and history work.
+    pub fn validate_transaction_v2_exact_v2(
+        &self,
+        transaction_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticTransactionArtifactsV2> {
+        let context = self.active.exact_context_v2().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v3 context")
+        })?;
+        context.select(expected_workspace_revision, expected_program_root_v3_digest)?;
+        let mut history = self
+            .history
+            .lock()
+            .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?;
+        history.require_capacity()?;
+        let transaction = SemanticTransactionV2::parse(transaction_bytes)?;
+        let artifacts = transaction.validate_exact_v2(
+            Arc::clone(context),
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
+        )?;
+        let history_entry = history.transaction_entry(
+            self.active.revision.project_revision(),
+            artifacts.base_program_root().workspace_revision(),
+            artifacts.candidate().revision().project_revision(),
+            artifacts.candidate_program_root().workspace_revision(),
+            transaction.digest(),
+            artifacts.result_digest(),
+        )?;
+        history.append(history_entry);
+        Ok(artifacts)
+    }
+
+    /// Replay frozen v2 evidence against an exact retained ProgramRoot v3.
+    /// Selection precedes parsing and replay appends no service history entry.
+    pub fn replay_transaction_v2_exact_v2(
+        &self,
+        transaction_bytes: &[u8],
+        evidence_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticTransactionArtifactsV2> {
+        let context = self.active.exact_context_v2().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v3 context")
+        })?;
+        context.select(expected_workspace_revision, expected_program_root_v3_digest)?;
+        SemanticTransactionV2::replay_exact_v2(
+            Arc::clone(context),
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
+            transaction_bytes,
+            evidence_bytes,
+        )
     }
 
     pub fn validate_transaction_exact(

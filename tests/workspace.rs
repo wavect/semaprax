@@ -74,5 +74,7 @@ mod unified_review_cli;
 mod universal_semantic_composition_cli;
 #[path = "workspace/universal_semantic_query.rs"]
 mod universal_semantic_query;
+#[path = "workspace/universal_semantic_transaction_v2_cli.rs"]
+mod universal_semantic_transaction_v2_cli;
 #[path = "workspace/universal_semantic_workflow_cli.rs"]
 mod universal_semantic_workflow_cli;

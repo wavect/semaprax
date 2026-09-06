@@ -64,6 +64,12 @@ mod type_rename;
 mod variant_case;
 mod wire;
 
+/// Reuse the candidate wire's iterative caller-value bounds before another
+/// Project subsystem clones or serializes a typed intention value.
+pub(super) fn validate_transaction_value(value: &Value) -> Result<(), Vec<Diagnostic>> {
+    wire::validate_value(value)
+}
+
 pub use abi_delta::{
     MAX_PROJECT_CANDIDATE_ABI_DELTA_BYTES, PROJECT_CANDIDATE_ABI_DELTA_SCHEMA,
     PROJECT_CANDIDATE_ABI_DELTA_VERIFICATION_SCHEMA,

@@ -8,6 +8,18 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added Universal Semantic Transaction v2 for one exact, authority-free
+  `ReplaceExpression` over an authenticated revision-scoped body-expression
+  identity, including explicit monomorphic `main`. Validation rebuilds the
+  complete Project Candidate, preserves exact source bytes outside the selected
+  span, and emits deterministic separately versioned result/evidence. The
+  persistent service adds ordinary and ProgramRoot-v2/v3 validation/replay,
+  with exact selection before parsing/history and no replay history append;
+  `change preview ... replace-expression` returns exact core output or the
+  Candidate structural diff without writes. V1 transaction and CLI bytes are
+  unchanged; contract/implicit/generic/synthetic/imported editing, composition,
+  commit, publication, and authority remain unavailable.
+
 - Added the product/package contract for Owned Bounded Box v1 and the
   alloc-tier `std.mem` package. Compiler-owned `Box<T>` is limited to the eight
   explicit Copy scalars with `new`, synchronous `get`, consuming `into_inner`,

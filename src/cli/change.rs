@@ -4,10 +4,11 @@ use std::path::PathBuf;
 
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
-    self, SemanticQuery, SemanticTransaction, SemanticTransactionAddContract,
+    self, ProjectCandidate, SemanticQuery, SemanticTransaction, SemanticTransactionAddContract,
     SemanticTransactionAddDeclaration, SemanticTransactionMergeOrder,
-    SemanticTransactionRenameDisplayName, SemanticWorkspaceService,
-    SemanticWorkspaceStructuralDiff, SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
+    SemanticTransactionRenameDisplayName, SemanticTransactionReplaceExpression,
+    SemanticTransactionV2, SemanticWorkspaceService, SemanticWorkspaceStructuralDiff,
+    SEMANTIC_QUERY_AVAILABLE_OPERATIONS_SCHEMA,
 };
 
 use super::project::{is_project_manifest, resolve_positional};
@@ -38,6 +39,11 @@ enum PreviewOperation {
     AddDeclaration {
         target: String,
         declaration: serde_json::Value,
+    },
+    ReplaceExpression {
+        target: String,
+        expression_id: String,
+        replacement: serde_json::Value,
     },
 }
 
@@ -73,7 +79,7 @@ enum MergeOrder {
     RightThenLeft,
 }
 
-const PREVIEW_USAGE: &str = "change requires preview <project> <rename-display-name <stable-id> <new-name>|add-contract <stable-id> <requires|ensures> <predicate-json>|add-declaration <anchor-stable-id> <declaration-json>> [--revision digest] [--evidence|--structural-diff]";
+const PREVIEW_USAGE: &str = "change requires preview <project> <rename-display-name <stable-id> <new-name>|replace-expression <stable-id> <expression-id> <replacement-json>|add-contract <stable-id> <requires|ensures> <predicate-json>|add-declaration <anchor-stable-id> <declaration-json>> [--revision digest] [--evidence|--structural-diff]";
 const REBASE_USAGE: &str = "change rebase requires <base-project> rename-display-name <stable-id> <new-name> --onto <onto-project> [--revision digest] [--onto-revision digest]";
 const MERGE_USAGE: &str = "change merge requires <project> rename-display-name <left-id> <left-new-name> --with rename-display-name <right-id> <right-new-name> [--revision digest] --order <left-then-right|right-then-left>";
 
@@ -133,6 +139,21 @@ fn parse_preview(args: &[String]) -> Result<ChangePreview, u8> {
                     declaration,
                 },
                 5,
+            )
+        }
+        Some("replace-expression") => {
+            let replacement =
+                serde_json::from_str(&required(args, 5, preview_usage)?).map_err(|_| {
+                    eprintln!("change preview replace-expression replacement must be valid JSON");
+                    2
+                })?;
+            (
+                PreviewOperation::ReplaceExpression {
+                    target: required(args, 3, preview_usage)?,
+                    expression_id: required(args, 4, preview_usage)?,
+                    replacement,
+                },
+                6,
             )
         }
         _ => return Err(preview_usage()),
@@ -342,6 +363,31 @@ fn run_preview(options: ChangePreview) -> Result<String, Vec<Diagnostic>> {
                 target,
                 declaration,
             } => add_declaration_transaction(&service, &expected, &target, declaration)?,
+            PreviewOperation::ReplaceExpression {
+                target,
+                expression_id,
+                replacement,
+            } => {
+                let transaction = replace_expression_transaction(
+                    &service,
+                    &expected,
+                    &target,
+                    &expression_id,
+                    replacement,
+                )?;
+                let artifacts =
+                    service.validate_transaction_v2(transaction.to_json().as_bytes())?;
+                return match options.output {
+                    PreviewOutput::Result => Ok(artifacts.result().to_owned()),
+                    PreviewOutput::Evidence => Ok(artifacts.evidence().to_owned()),
+                    PreviewOutput::StructuralDiff => Ok(SemanticWorkspaceStructuralDiff::derive(
+                        artifacts.candidate(),
+                        artifacts.candidate().candidate_digest(),
+                    )?
+                    .to_json()
+                    .to_owned()),
+                };
+            }
         };
         let artifacts = service.validate_transaction(transaction.to_json().as_bytes())?;
         match options.output {
@@ -355,6 +401,98 @@ fn run_preview(options: ChangePreview) -> Result<String, Vec<Diagnostic>> {
             .to_owned()),
         }
     })
+}
+
+fn replace_expression_transaction(
+    service: &SemanticWorkspaceService,
+    expected: &str,
+    target: &str,
+    expression_id: &str,
+    replacement: serde_json::Value,
+) -> Result<SemanticTransactionV2, Vec<Diagnostic>> {
+    if expected != service.active_generation().workspace_revision() {
+        return Err(vec![Diagnostic::io(
+            "SPX-G527",
+            "ReplaceExpression requested workspace revision is stale",
+        )]);
+    }
+    let revision = service.active_generation().revision();
+    let candidate = ProjectCandidate::open(revision.clone(), revision.project_revision())?;
+    let catalog: serde_json::Value = serde_json::from_str(&candidate.expression_catalog(target)?)
+        .map_err(|_| {
+        vec![Diagnostic::io(
+            "SPX-G525",
+            "ReplaceExpression catalog is not valid JSON",
+        )]
+    })?;
+    let entry = catalog["expressions"]
+        .as_array()
+        .and_then(|entries| {
+            entries
+                .iter()
+                .find(|entry| entry["expression_id"].as_str() == Some(expression_id))
+        })
+        .ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G527",
+                "ReplaceExpression identity is stale or unavailable",
+            )]
+        })?;
+    if entry["replaceable"] != serde_json::Value::Bool(true) {
+        return Err(vec![Diagnostic::io(
+            "SPX-G525",
+            "ReplaceExpression selection is not replaceable",
+        )]);
+    }
+    let path = catalog["source"]["path"].as_str().ok_or_else(|| {
+        vec![Diagnostic::io(
+            "SPX-G525",
+            "ReplaceExpression source path is missing",
+        )]
+    })?;
+    let start = entry["source_span"]["start"]
+        .as_u64()
+        .and_then(|value| usize::try_from(value).ok())
+        .ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G525",
+                "ReplaceExpression source span is invalid",
+            )]
+        })?;
+    let end = entry["source_span"]["end"]
+        .as_u64()
+        .and_then(|value| usize::try_from(value).ok())
+        .ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G525",
+                "ReplaceExpression source span is invalid",
+            )]
+        })?;
+    let source = revision
+        .sources()
+        .iter()
+        .find(|source| source.path() == path)
+        .ok_or_else(|| {
+            vec![Diagnostic::io(
+                "SPX-G527",
+                "ReplaceExpression source is stale",
+            )]
+        })?;
+    let expected_old_expression = source.source().get(start..end).ok_or_else(|| {
+        vec![Diagnostic::io(
+            "SPX-G527",
+            "ReplaceExpression source span is stale",
+        )]
+    })?;
+    SemanticTransactionV2::replace_expression(
+        expected,
+        SemanticTransactionReplaceExpression::new(
+            target,
+            expression_id,
+            expected_old_expression,
+            replacement,
+        ),
+    )
 }
 
 fn run_rebase(options: ChangeRebase) -> Result<String, Vec<Diagnostic>> {

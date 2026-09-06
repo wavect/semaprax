@@ -719,6 +719,14 @@ reused candidate formatter from introducing other trivia changes. It has no
 filesystem or publication authority. See [Universal Semantic Transaction
 v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md).
 
+`src/project/semantic_transaction_v2.rs` owns the additive Universal Semantic
+Transaction v2 `ReplaceExpression` kernel. It selects an actual revision-scoped
+HIR expression identity, authenticates its exact old source slice, delegates
+the typed rewrite and complete Project rebuild to `ProjectCandidate`, and
+independently proves source preservation outside the selected expression. Its
+versioned artifacts and replay are authority-free and leave every v1 byte
+unchanged. See [Universal Semantic Transaction v2](UNIVERSAL-SEMANTIC-TRANSACTION-V2.md).
+
 `src/project/semantic_transaction_composition.rs` owns Universal Semantic
 Transaction Composition v1. It derives an exact four-component/nine-node
 structural diff from a validated Candidate, rebases one RenameDisplayName
@@ -759,7 +767,7 @@ generation/cache compare-and-swap; stale or failed work leaves the complete old
 generation installed. Revision-bound snapshots delegate bounded symbol,
 context, impact, and Universal Semantic Query v1 operations to the retained
 immutable image and Project. Transaction validation delegates to Universal
-Semantic Transaction v1 and returns its
+Semantic Transaction v1 or the additive v2 ReplaceExpression kernel and returns
 authority-free artifacts without adopting the candidate or changing current
 state. The core opens no path, owns no disk store, and exposes no wire, CLI,
 MCP, LSP, editor, watcher, build, execution, commit, or publication route. See
@@ -799,9 +807,11 @@ Workspace Service MCP v1](PERSISTENT-SEMANTIC-SERVICE-MCP-V1.md).
 Semantic Workflow CLI v1 adapter. The Project-only `query` subcommands construct
 one of the five canonical Universal Semantic Query operations and print its
 exact result. `change preview rename-display-name` derives the current display
-name from the same retained generation, constructs the existing one-operation
-Universal Semantic Transaction, and prints its exact result or evidence. Both
-routes run wholly within one `with_authenticated_project` lifetime, including
+name from the same retained generation. The additive `replace-expression` form
+selects a replaceable expression from that exact revision's authenticated
+catalogue and derives its old source slice before constructing Universal
+Semantic Transaction v2. Each route prints its exact core result or evidence.
+Query and change routes run wholly within one `with_authenticated_project` lifetime, including
 the final held-input recheck. They create no parallel schemas or semantic
 implementation, do not retain the process-local service, and own no source,
 cache, commit, managed-Workspace, transport, MCP, LSP, or publication authority.

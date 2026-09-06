@@ -233,10 +233,17 @@ fn a_peer_that_never_reads_bounds_a_partial_write_in_aggregate() {
     let listener = TcpListener::bind(("127.0.0.1", 0)).expect("loopback bind");
     let port = listener.local_addr().expect("local address").port();
     // The peer accepts and then never reads a byte, so the socket buffers fill
-    // and `send` makes progress one chunk at a time and then stalls.
+    // and `send` makes progress one chunk at a time and then stalls. Constrain
+    // the receive buffer explicitly: Windows loopback can otherwise absorb the
+    // entire admitted payload before the aggregate deadline starts to matter.
     let (release, held) = mpsc::channel::<()>();
+    let (ready, configured) = mpsc::channel::<()>();
     let peer = std::thread::spawn(move || {
         let (stream, _) = listener.accept().expect("accept");
+        socket2::SockRef::from(&stream)
+            .set_recv_buffer_size(64 * 1024)
+            .expect("bound peer receive buffer");
+        ready.send(()).expect("report configured peer");
         let _ = held.recv();
         drop(stream);
     });
@@ -245,6 +252,7 @@ fn a_peer_that_never_reads_bounds_a_partial_write_in_aggregate() {
     let connection = provider
         .connect("127.0.0.1", port)
         .expect("loopback connect");
+    configured.recv().expect("configured peer");
     let payload = vec![0u8; 32 * 1024 * 1024];
     let started = Instant::now();
     assert_eq!(

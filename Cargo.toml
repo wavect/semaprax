@@ -45,6 +45,7 @@ wasmparser = { version = "=0.258.0", default-features = false, features = ["comp
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
+socket2 = "=0.6.5"
 
 [[bench]]
 name = "compiler"

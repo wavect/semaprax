@@ -566,7 +566,7 @@ fn cross_module_template_import_is_an_existing_admission_error_not_a_navigation_
 }
 
 #[test]
-fn generic_to_generic_relay_is_rejected_before_inventing_concrete_caller_evidence() {
+fn non_forwarding_generic_relay_is_rejected_before_inventing_concrete_caller_evidence() {
     let fixture = Fixture::new();
     let core = std::fs::read_to_string(fixture.0.join("src/core.spx")).unwrap()
         + r#"
@@ -575,14 +575,15 @@ fn generic_to_generic_relay_is_rejected_before_inventing_concrete_caller_evidenc
 "#;
     fixture.write("src/core.spx", &core);
     let disk = fixture.bytes();
-    // Generic Functions v1 explicitly forbids this edge. The navigation
-    // collector's defensive concrete-caller branch does not admit new source
-    // or justify claiming that this relay has a retained executable instance.
+    // Generic forwarding admits only the caller's own type-parameter vector in
+    // declaration order. A concrete i64 substitution inside relay<T> remains
+    // closed, and navigation cannot invent a retained executable instance from
+    // the rejected source.
     code(
         with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
             ProjectSemanticImage::derive(snapshot.retain_revision(), snapshot.project_revision())
         }),
-        "SPX-T226",
+        "SPX-T225",
     );
     assert_eq!(fixture.bytes(), disk);
 }

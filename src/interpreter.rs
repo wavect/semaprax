@@ -2759,9 +2759,7 @@ fn admitted_resolved_functions_with_profile(
             program
                 .function_instances
                 .iter()
-                .filter(|instance| {
-                    resolved_signature_is_admitted(&instance.function, &program.declarations)
-                })
+                .filter(|instance| owned_vec::instance_is_admitted(program, instance))
                 .map(|instance| (instance.id.as_str(), &instance.function)),
         );
     }

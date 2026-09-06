@@ -598,7 +598,7 @@ Other first-attempt diagnostics and their fixes:
 | `s.len()` on a `string` | `SPX-T203` | `string_len(s)`; no type but a `class` has methods |
 | `str_as_bytes(text)` when `text: string` | `SPX-T263` | Borrow first with `str_as_bytes(string_as_str(text))` |
 | `string_as_str("literal")` | `SPX-T266` | Bind the literal, then pass that binding to `string_as_str` |
-| `String`, `int`, or unsupported `Vec` inference/element types | `SPX-T001`/`SPX-T281` | `string`, `i64`/`i32`/`u8`/`usize`; spell exact internal `Vec<i64>` (or another admitted Copy scalar) and every `vec_*<T>` type argument explicitly |
+| `String`, `int`, or unsupported `Vec` inference/element types | `SPX-T001`/`SPX-T281` | `string`, `i64`/`i32`/`u8`/`usize`; in a Project prefer the authenticated `std.collections` aliases, and always spell an admitted Copy scalar plus every wrapper or `vec_*<T>` type argument explicitly |
 
 ## Projects
 
@@ -657,6 +657,11 @@ by `semaprax help library`, lists every `std.*` function with its contract,
 required project profile, and exact `[dependencies]` route. Add the dependency
 to the table manifest and import the function by its `@id` as above; an
 installed compiler supplies the bundled package without a repository checkout.
+The bounded Vec slice uses package profile `owned-data-api.v1` and dependency
+`std.collections = "^0.1.0"`; import one of the five
+`std.collections.vec.*` identities and instantiate its single Copy-scalar type
+argument explicitly. It is internal Project composition only: the package has
+no public exports or stable generic ABI.
 For one API, prefer
 `semaprax help library <module|name|stable-id>`: the exact lookup prints only
 the matched stable identity, dependency row, required profile, signature,

@@ -160,9 +160,11 @@ pub(super) fn substitute_source_function_type(
 }
 
 pub(super) fn specialize_source_function(
+    program: &crate::ast::Program,
     function: &crate::ast::Function,
     arguments: &[Type],
 ) -> Option<crate::ast::Function> {
+    let transparent_vec_wrapper = crate::vec_ops::source_wrapper(program, function);
     let mut specialized = function.clone();
     specialized.type_parameters.clear();
     for param in &mut specialized.params {
@@ -170,6 +172,15 @@ pub(super) fn specialize_source_function(
     }
     specialized.return_type =
         substitute_source_function_type(function, arguments, &function.return_type)?;
+    if transparent_vec_wrapper.is_some() {
+        let crate::ast::ExprKind::Block { tail, .. } = &mut specialized.body.kind else {
+            return None;
+        };
+        let crate::ast::ExprKind::Call { type_arguments, .. } = &mut tail.kind else {
+            return None;
+        };
+        *type_arguments = arguments.to_vec();
+    }
     Some(specialized)
 }
 
@@ -379,14 +390,21 @@ pub(super) fn materialize_template_expr(
             instance,
             args,
         } => {
-            if instance.is_some() || !type_arguments.is_empty() {
+            let transparent_vec_call = crate::vec_ops::hir_wrapper(template)
+                == crate::vec_ops::by_id(callee.as_str())
+                && instance.is_none()
+                && type_arguments.len() == 1;
+            if instance.is_some() || (!type_arguments.is_empty() && !transparent_vec_call) {
                 return Err(hir_error(
                     "generic templates cannot call generic function instances",
                 ));
             }
             ResolvedExprKind::Call {
                 callee: callee.clone(),
-                type_arguments: Vec::new(),
+                type_arguments: type_arguments
+                    .iter()
+                    .map(|argument| substitute_type(argument, &template.id, arguments))
+                    .collect::<Result<_, _>>()?,
                 instance: None,
                 args: args
                     .iter()

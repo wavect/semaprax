@@ -72,6 +72,18 @@ pub(super) fn synthetic_builder_bytes(
             // bytes: no node of it ever becomes HIR.
             transient_import_clone =
                 transient_import_clone.max(ast_function_contract_cost(function)?.total);
+            if programs
+                .iter()
+                .find(|provider| provider.module == target.module)
+                .is_some_and(|provider| {
+                    crate::vec_ops::source_wrapper(provider, function).is_some()
+                })
+            {
+                ast_function_cost(function, &mut runtime)?;
+                identity_slots =
+                    checked_builder_sum(identity_slots, ast_function_identity_slots(function)?)?;
+                continue;
+            }
             identity_slots = checked_builder_sum(
                 identity_slots,
                 ast_type_identity_slots(&function.return_type)?,
@@ -920,6 +932,16 @@ pub(super) fn synthetic_program(
         let target_function = target.function.expect("validated function target");
         let mut function = target_function.clone();
         function.name = crate::bounded_output::budgeted_clone(&module_use.alias);
+        if programs
+            .iter()
+            .find(|provider| provider.module == target.module)
+            .is_some_and(|provider| {
+                crate::vec_ops::source_wrapper(provider, target_function).is_some()
+            })
+        {
+            synthetic.functions.push(function);
+            continue;
+        }
         for param in &mut function.params {
             rewrite_type(&mut param.ty, target.module, program, programs)?;
         }

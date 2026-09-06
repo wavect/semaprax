@@ -174,6 +174,49 @@ fn real_two_package_capsule_generates_and_independently_replays() {
 }
 
 #[test]
+fn frozen_v2_rejects_internal_vec_runtime_imports() {
+    let mut fixture = fixture(41);
+    let source = r#"module lib.math;
+
+@id("lib.math.answer")
+fn answer() -> i64
+{
+    let mut values = vec_with_capacity<i64>(2usize);
+    values = vec_push<i64>(values, 20);
+    values = vec_push<i64>(values, 21);
+    vec_get<i64>(values, 0usize) + vec_get<i64>(values, 1usize)
+}
+"#;
+    let parsed = semaprax::parse(source, "linked-package-internal-vec.spx").unwrap();
+    let canonical = semaprax::format::canonical(&parsed);
+    fixture
+        .sources
+        .iter_mut()
+        .find(|source| source.package == PROVIDER)
+        .expect("provider source")
+        .source = canonical;
+    fixture.capsule = package_source_capsule::generate(
+        &fixture.sources,
+        &fixture.resolution,
+        &fixture.input,
+        &ResolutionOptions::default(),
+        &fixture.capsule_options,
+    )
+    .expect("Vec remains private behind the authenticated scalar package interface");
+    let errors = package_build_v2::generate(
+        &fixture.capsule,
+        &fixture.sources,
+        &fixture.resolution,
+        &fixture.input,
+        &ResolutionOptions::default(),
+        &fixture.capsule_options,
+        &fixture.build_options,
+    )
+    .expect_err("frozen Build v2 must not gain Vec runtime imports");
+    assert_eq!(errors[0].code, "SPX-PB604");
+}
+
+#[test]
 fn capsule_source_and_resolver_cross_pairs_fail_closed() {
     let first = fixture(41);
     let second = fixture(42);

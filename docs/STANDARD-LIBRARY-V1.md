@@ -1,8 +1,9 @@
 # Standard Library v1
 
-- Status: versioned reference; eight `core`-tier packages, eight
-  `portable`-tier packages, and one `test`-tier package under `std/` are
-  executable; every other module in the required set is Missing.
+- Status: versioned reference; 23 packages are executable under `std/`: nine
+  `core`, twelve `portable`, one `alloc`, and one `test`. Every package remains
+  Partial until its complete required scope and promotion evidence exist; every
+  other module in the required set is Missing.
 - Audience: standard-library authors, compiler contributors, and agents
   choosing between a compiler-owned function and a library declaration.
 
@@ -40,7 +41,10 @@ on the interpreter, native C11, and internal Core Wasm through the
 `env.spx_bytes_zeroed`/`env.spx_bytes_set` host-arena imports. The public Wasm
 byte-export adapter still rejects it with `SPX-W115`, so it carries no public
 ABI; no `std.*` package wraps it, and no required module below is satisfied by
-it.
+it. The exact compiler-owned `Vec<T>` profile is different: the alloc-tier
+`std.collections` package authenticates five transparent aliases over its five
+intrinsics for the eight admitted Copy scalars. Those aliases add no public ABI,
+iterator, owned-element, or broader collection support.
 
 Every public standard-library declaration must have:
 
@@ -50,7 +54,9 @@ Every public standard-library declaration must have:
 3. effects, declared with `uses` and granted by the module's `permit`; the
    `core` tier declares none;
 4. contracts: `requires` and `ensures` lines that state the admitted inputs
-   and the guaranteed result;
+   and the guaranteed result; an authenticated transparent intrinsic alias
+   instead inherits the intrinsic's exact preconditions and status identity
+   and must not replace them with a second authored contract;
 5. examples: the package's examples module imports and exercises it;
 6. conformance tests: the package's tests module imports it and checks it,
    and the suite passes on every target the package lists;
@@ -62,10 +68,16 @@ Every public standard-library declaration must have:
 
 The gate enforces 1, 3, 5, 6, 7, and 8 today. Contracts (4) are required by
 this document and reviewed; a declaration without one is a review finding, not
-yet a gate failure. Records, variants, and generic declarations are admitted
-by the language but not yet by the cross-file Project route, so the current
-slice holds functions over `i64`, `bool`, `u8`, `usize`, `borrow Slice<u8>`,
-and `borrow str` only. The Useful Text public export profile remains
+yet a gate failure. The exact `std.collections` transparent aliases are the
+contract-authoring exception described above, not contract-free new behavior.
+Records, variants, and ordinary generic declarations are
+admitted by the language but not yet by the general cross-file Project route.
+The one bounded exception is the authenticated `std.collections`
+transparent-wrapper profile: each wrapper forwards its single explicit
+Copy-scalar type argument to the matching compiler-owned Vec intrinsic without
+changing that intrinsic's HIR or status identity. The remaining slice holds
+functions over `i64`, `bool`, `u8`, `usize`, `borrow Slice<u8>`, and `borrow
+str` only. The Useful Text public export profile remains
 contract-free, so `std.text` cannot yet satisfy the reviewed contract
 requirement even though its bounded conformance package is executable.
 
@@ -129,7 +141,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.num` | Checked, wrapping, saturating, and conversion operations | Partial: sign, absolute value, parity, Euclidean division and remainder, greatest common divisor, checked power, integer square root, digit count, power-of-two test, and floor logarithms in base 2 and 10 in `std.num`; overflow predicates and wrapping and saturating addition, subtraction, negation, absolute value, and multiplication in `std.num.overflow`; checked arithmetic is the language default; wrapping multiplication is Missing |
 | `std.iter` | Iterators, adapters, folds, collection, and ranges | Missing; needs interfaces and closures |
 | `std.mem` | Ownership helpers, regions, arenas, boxes, shared immutable values | Missing |
-| `std.collections` | Vector, deque, map, set, heap, and fixed-capacity collections | Missing; needs the `alloc` tier and an authenticated transparent generic-intrinsic wrapper profile |
+| `std.collections` | Vector, deque, map, set, heap, and fixed-capacity collections | Partial: authenticated transparent wrappers for `with_capacity`, consuming `push`, and borrowed `len`, `capacity`, and `get` over exactly the eight Owned Bounded Vec v1 Copy scalars have focused local Project/package evidence, explicit conformance instantiations, generated catalogs, and no public exports; every broader collection operation remains Missing |
 | `std.bytes` | Buffers, spans, readers, writers, endian operations, and encoding | Partial: byte-to-integer conversion, guarded indexing, first-index search, counting, ASCII classification, slice equality, prefix and suffix tests, and little- and big-endian 16- and 32-bit reads over `borrow Slice<u8>`; buffers, writers, and encodings are Missing |
 | `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Partial: borrowed byte length, emptiness, exact equality, prefix, and substring search; iteration, split, trim, and normalization are Missing |
 | `std.format` | Type-safe formatting without runtime format-string ambiguity | Missing |

@@ -592,10 +592,15 @@ impl NativeBytesPlan {
         })
     }
 
-    pub(super) fn transfer_to(&self, storage: &StorageId) -> Result<String, Diagnostic> {
+    pub(super) fn transfer_to(
+        &self,
+        storage: &StorageId,
+        at: &ExpressionId,
+    ) -> Result<String, Diagnostic> {
         let mut matches = self
             .transitions
-            .values()
+            .get(at)
+            .into_iter()
             .flatten()
             .filter_map(|transition| {
                 let CleanupTransition::Transfer {
@@ -769,7 +774,7 @@ impl NativeBytesPlan {
         &self,
         call: &ExpressionId,
         parameter_index: u32,
-    ) -> Result<(&str, &str), Diagnostic> {
+    ) -> Result<(&str, &str, bool), Diagnostic> {
         self.slots
             .iter()
             .find_map(|(place, slot)| match &place.storage {
@@ -777,9 +782,11 @@ impl NativeBytesPlan {
                     call: owner,
                     parameter_index: candidate,
                     ..
-                } if owner == call && *candidate == parameter_index => {
-                    Some((slot.value.as_str(), slot.flag.as_str()))
-                }
+                } if owner == call && *candidate == parameter_index => Some((
+                    slot.value.as_str(),
+                    slot.flag.as_str(),
+                    slot.kind == OwnedLeafKind::Vec,
+                )),
                 _ => None,
             })
             .ok_or_else(|| error("owned Bytes call argument has no canonical epoch"))

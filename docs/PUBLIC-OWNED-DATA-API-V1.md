@@ -61,8 +61,17 @@ tests = ["frame_payload.tests"]
 The existing canonical name, Semantic Versioning, module, source-path,
 stable-ID, and ordering rules apply unchanged. `sources` contains 2–16
 strictly sorted unique paths. `web_exports` contains 1–32 strictly sorted
-unique stable IDs. There are no `command`, `input`, or `capabilities` fields.
-Unknown, missing, extra, duplicated, or reordered assignments reject.
+unique stable IDs. One authenticated standard-package exception uses the same
+eight-assignment layout with an empty list: name `std-collections`, version
+`0.1.0`, entry `std.collections.examples`, exact sources
+`src/collections.spx`, `src/examples.spx`, and `src/tests.spx`, and test module
+`std.collections.tests`. Its library source must contain exactly the five
+authenticated transparent wrappers owned by
+[Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md), yielding an empty public API
+descriptor. A lookalike name, profile, inventory, module, wrapper, or nonempty
+export list rejects with `SPX-J100`; all other Project v8 manifests retain the
+1–32 rule. There are no `command`, `input`, or `capabilities` fields. Unknown,
+missing, extra, duplicated, or reordered assignments reject.
 
 Project v8 enters the existing closed `ProjectProfile` dispatch as one distinct
 variant. Schema or profile text is never converted into loose feature flags
@@ -74,7 +83,8 @@ Admission is derived from validated, linked HIR. Source-shaped declarations,
 generated metadata, target artifacts, or caller assertions are not semantic
 authority.
 
-Every selected export must satisfy all of the following:
+Every selected export must satisfy all of the following (the authenticated
+no-export `std.collections` package selects none):
 
 - it is a source-authored function with an explicit persistent `@id` equal to
   the selected `web_exports` identity;

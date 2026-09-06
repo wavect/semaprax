@@ -623,6 +623,8 @@ At every phase, source-verifier and hostile-HIR replay diagnostics must agree, f
 [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md) applies this rule to one
 compiler-owned collection leaf: push transfers and reopens exactly one owner,
 Copy elements introduce no child finalizers, and reads borrow synchronously.
+The five authenticated `std.collections` aliases preserve the intrinsic owner,
+cleanup, and status identities; they introduce no wrapper-owned resource or ABI.
 This is not permission for general owned assignment, owned elements, iterators,
 or a public generic resource ABI.
 

@@ -40,6 +40,9 @@ pub(super) enum PreparedProjectAdmission {
     LineCommandIoV1,
     NetworkCommandIoV1,
     HttpsCommandIoV1,
+    /// The authenticated no-export `std.collections` package retains its
+    /// internal owned Vec closure without constructing a public descriptor.
+    OwnedDataNoExports,
     OwnedDataApiV1(Box<PublicApiDescriptor>),
     FlatOwnedRecordApiV1(Box<FlatOwnedRecordApiDescriptor>),
     OwnedUtf8ApiV1(Box<PublicApiDescriptor>),
@@ -58,7 +61,7 @@ impl PreparedProjectAdmission {
             Self::LineCommandIoV1 => ProjectProfile::LineCommandIoV1,
             Self::NetworkCommandIoV1 => ProjectProfile::NetworkCommandIoV1,
             Self::HttpsCommandIoV1 => ProjectProfile::HttpsCommandIoV1,
-            Self::OwnedDataApiV1(_descriptor) => ProjectProfile::OwnedDataApiV1,
+            Self::OwnedDataNoExports | Self::OwnedDataApiV1(_) => ProjectProfile::OwnedDataApiV1,
             Self::FlatOwnedRecordApiV1(_descriptor) => ProjectProfile::FlatOwnedRecordApiV1,
             Self::OwnedUtf8ApiV1(_descriptor) => ProjectProfile::OwnedUtf8ApiV1,
             Self::NestedOwnedRecordApiV1(_descriptor) => ProjectProfile::NestedOwnedRecordApiV1,
@@ -163,6 +166,9 @@ pub(super) fn prepare(
         ProjectProfile::HttpsCommandIoV1 => {
             legacy::https_command(program, manifest.command().unwrap_or(""))?;
             Ok(PreparedProjectAdmission::HttpsCommandIoV1)
+        }
+        ProjectProfile::OwnedDataApiV1 if manifest.is_no_export_std_collections() => {
+            Ok(PreparedProjectAdmission::OwnedDataNoExports)
         }
         ProjectProfile::OwnedDataApiV1 => owned::prepare(program, manifest, subject)
             .map(Box::new)

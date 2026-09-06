@@ -65,8 +65,12 @@ format: `Unreleased` then release buckets, grouped by impact.
   expression with a hard runtime maximum of 8192 and sticky code 3 on dynamic
   overflow/allocation failure, consuming push, borrowed length/capacity/get,
   exact same-owner reopening, and deterministic settlement on all three engines.
-  Owned/aggregate elements, inference, `std.collections`, iterators,
-  public generic ABI, hosted support, and broader collections remain closed.
+  The alloc-tier `std.collections` package now authors the exact five
+  authenticated aliases, an explicit eight-scalar conformance module, bundled
+  dependency metadata, generated catalogs, focused local Project/package
+  evidence, and no public exports. Owned/aggregate elements, inference,
+  iterators, public generic ABI, hosted support, and broader collections remain
+  closed.
 
 - Admitted the exact internal Owned Bounded Byte Buffer v1 write-once profile
   on Core-Wasm. The frozen host-arena imports allocate a literal-bounded zeroed

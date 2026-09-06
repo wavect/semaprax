@@ -1,0 +1,15 @@
+module std.collections.examples;
+use function @id("std.collections.vec.capacity") from std.collections as capacity;
+use function @id("std.collections.vec.get") from std.collections as get;
+use function @id("std.collections.vec.len") from std.collections as len;
+use function @id("std.collections.vec.push") from std.collections as push;
+use function @id("std.collections.vec.with-capacity") from std.collections as with_capacity;
+
+@id("std.collections.examples.main")
+fn main() -> i64
+{
+    let mut values = with_capacity<i64>(3usize);
+    values = push<i64>(values, 11);
+    values = push<i64>(values, 31);
+    if len<i64>(values) == 2usize && capacity<i64>(values) == 3usize && get<i64>(values, 0usize) + get<i64>(values, 1usize) == 42 { 0 } else { 1 }
+}

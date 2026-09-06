@@ -1,5 +1,5 @@
 use crate::diagnostic::Diagnostic;
-use crate::hir::{self, ExpressionId, ResolvedExpr, ResolvedExprKind, ResolvedType};
+use crate::hir::{self, ExpressionId, ResolvedExpr, ResolvedExprKind};
 
 use super::{backend_error, variant_declaration_id, CEmitter, COutput, CValue};
 
@@ -34,25 +34,25 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         ownership: hir::OwnershipMode,
         mut value: CValue,
     ) -> Result<CValue, Diagnostic> {
-        if !matches!(value.ty, ResolvedType::Bytes) {
+        if !super::is_direct_plan_owned(&value.ty) {
             return Ok(value);
         }
         if ownership == hir::OwnershipMode::Borrow {
             if !matches!(argument.kind, ResolvedExprKind::Place(_)) {
                 return Err(backend_error(
-                    "borrowed Bytes call argument is not one authenticated place",
+                    "borrowed owned call argument is not one authenticated place",
                 ));
             }
             return Ok(value);
         }
         if ownership != hir::OwnershipMode::Own {
             return Err(backend_error(
-                "Bytes call argument lacks validated ownership classification",
+                "owned call argument lacks validated ownership classification",
             ));
         }
         let plan = self
             .bytes_plan
-            .ok_or_else(|| backend_error("owned Bytes call has no canonical cleanup plan"))?;
+            .ok_or_else(|| backend_error("owned call has no canonical cleanup plan"))?;
         let index = u32::try_from(index)
             .map_err(|_| backend_error("native call has too many parameters"))?;
         let storage = plan.call_argument_storage(&call.id, index)?;

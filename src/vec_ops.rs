@@ -6,6 +6,9 @@ use crate::hir::{
     ValueId,
 };
 
+mod wrappers;
+pub(crate) use wrappers::*;
+
 pub(crate) const WITH_CAPACITY_NAME: &str = "vec_with_capacity";
 pub(crate) const PUSH_NAME: &str = "vec_push";
 pub(crate) const LEN_NAME: &str = "vec_len";
@@ -197,7 +200,12 @@ pub(crate) fn resolved_params(op: VecOp, element: &ResolvedType) -> Vec<Resolved
         .collect()
 }
 
-pub(crate) fn is_same_owner_push_source(value: &Expr, name: &str, ty: &Type) -> bool {
+pub(crate) fn is_same_owner_push_source(
+    program: &crate::ast::Program,
+    value: &Expr,
+    name: &str,
+    ty: &Type,
+) -> bool {
     let ExprKind::Call {
         name: callee,
         type_arguments,
@@ -206,20 +214,77 @@ pub(crate) fn is_same_owner_push_source(value: &Expr, name: &str, ty: &Type) -> 
     else {
         return false;
     };
-    by_name(callee) == Some(VecOp::Push)
+    let exact_push = by_name(callee) == Some(VecOp::Push)
+        || program
+            .functions
+            .iter()
+            .find(|function| function.name == *callee)
+            .is_some_and(|function| source_wrapper(program, function) == Some(VecOp::Push));
+    exact_push
         && type_arguments.len() == 1
         && args.len() == 2
         && ast_vec(type_arguments[0].clone()) == *ty
         && matches!(&args[0].kind, ExprKind::Var(source) if source == name)
 }
 
-pub(crate) fn is_same_owner_push_hir(value: &ResolvedExpr, owner: &ValueId) -> bool {
-    matches!(
-        &value.kind,
-        ResolvedExprKind::Call { callee, type_arguments, instance: None, args }
-            if by_id(callee.as_str()) == Some(VecOp::Push)
-                && type_arguments.len() == 1
-                && args.len() == 2
-                && matches!(&args[0].kind, ResolvedExprKind::Place(place) if &place.root == owner && place.projections.is_empty())
-    )
+pub(crate) fn is_same_owner_push_hir(
+    program: &crate::hir::ResolvedProgram,
+    value: &ResolvedExpr,
+    owner: &ValueId,
+) -> bool {
+    let ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        instance,
+        args,
+    } = &value.kind
+    else {
+        return false;
+    };
+    let exact_push = (instance.is_none() && by_id(callee.as_str()) == Some(VecOp::Push))
+        || instance.as_ref().is_some_and(|instance| {
+            crate::hir::FunctionInstanceId::derive(callee, type_arguments) == *instance
+                && program
+                    .function_templates
+                    .iter()
+                    .find(|template| template.id == *callee)
+                    .is_some_and(|template| {
+                        hir_wrapper_in_program(program, template) == Some(VecOp::Push)
+                    })
+        });
+    exact_push
+        && matches!(type_arguments.as_slice(), [argument] if resolved_element_is_admitted(argument))
+        && args.len() == 2
+        && matches!(&args[0].kind, ResolvedExprKind::Place(place)
+            if &place.root == owner && place.projections.is_empty())
+}
+
+pub(crate) fn is_same_owner_push_hir_source(
+    program: &crate::ast::Program,
+    value: &ResolvedExpr,
+    owner: &ValueId,
+) -> bool {
+    let ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        instance,
+        args,
+    } = &value.kind
+    else {
+        return false;
+    };
+    let exact_push = (instance.is_none() && by_id(callee.as_str()) == Some(VecOp::Push))
+        || instance.as_ref().is_some_and(|instance| {
+            crate::hir::FunctionInstanceId::derive(callee, type_arguments) == *instance
+                && program
+                    .functions
+                    .iter()
+                    .find(|function| function.stable_id == callee.as_str())
+                    .is_some_and(|function| source_wrapper(program, function) == Some(VecOp::Push))
+        });
+    exact_push
+        && matches!(type_arguments.as_slice(), [argument] if resolved_element_is_admitted(argument))
+        && args.len() == 2
+        && matches!(&args[0].kind, ResolvedExprKind::Place(place)
+            if &place.root == owner && place.projections.is_empty())
 }

@@ -232,7 +232,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 } else if let Some(op) = crate::vec_ops::by_name(name) {
                     let element = type_arguments.first();
                     if type_arguments.len() != 1
-                        || element.is_none_or(|ty| !crate::vec_ops::ast_element_is_admitted(ty))
+                        || element.is_none_or(|ty| {
+                            !crate::vec_ops::ast_element_is_admitted(ty)
+                                && !crate::vec_ops::source_parameter_is_admitted(
+                                    self.program,
+                                    self.current,
+                                    op,
+                                    ty,
+                                )
+                        })
                     {
                         self.diagnostics.push(error(
                             self.program,
@@ -405,7 +413,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             ).with_help(hints::generic_call_help(name)));
                             return None;
                         }
-                        if !generic_function_arguments_are_admitted(target, type_arguments, self.types) {
+                        if !generic_function_arguments_are_admitted(target, type_arguments, self.types)
+                            && !crate::vec_ops::source_arguments_are_admitted(
+                                self.program,
+                                target,
+                                type_arguments,
+                            )
+                        {
                             self.diagnostics.push(error(
                                 self.program,
                                 "SPX-T225",

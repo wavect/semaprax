@@ -87,6 +87,8 @@ mod schema_scalar_widen;
 mod signed_minimum_literals;
 #[path = "language/stable_id_nul.rs"]
 mod stable_id_nul;
+#[path = "language/std_collections_vec_wrappers.rs"]
+mod std_collections_vec_wrappers;
 #[path = "language/string_numeric_text.rs"]
 mod string_numeric_text;
 #[path = "language/string_ops_v1.rs"]

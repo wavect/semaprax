@@ -125,6 +125,8 @@ mod nested_owned_record_native;
 mod nested_owned_record_npm;
 #[path = "project/new_cli.rs"]
 mod new_cli;
+#[path = "project/owned_bounded_vec_dependencies.rs"]
+mod owned_bounded_vec_dependencies;
 #[path = "project/owned_bytes_npm.rs"]
 mod owned_bytes_npm;
 #[path = "project/owned_failure_fsm.rs"]

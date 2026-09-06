@@ -7,6 +7,7 @@ use super::*;
 use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 
 mod borrowed_str;
+mod generic_template;
 mod host_command;
 mod owned_buffer;
 mod owned_result_try;
@@ -395,6 +396,8 @@ impl<'a> HirValidator<'a> {
         }
         let mut template_ids = BTreeSet::new();
         for template in &self.program.function_templates {
+            let transparent_vec_wrapper =
+                generic_template::authenticate_vec_wrapper(self.program, template)?;
             if !template_ids.insert(template.id.clone())
                 || self.functions.contains_key(&template.id)
             {
@@ -457,7 +460,9 @@ impl<'a> HirValidator<'a> {
                 )));
             }
             self.validate_template_expressions(template, &execution)?;
-            let substitutions = if template_has_owned_record_slot(self.program, template) {
+            let substitutions = if transparent_vec_wrapper.is_some() {
+                generic_template::vec_wrapper_substitutions()
+            } else if template_has_owned_record_slot(self.program, template) {
                 resolved_owned_record_substitutions(template.type_parameters.len())
             } else {
                 resolved_scalar_substitutions(template.type_parameters.len())
@@ -1169,46 +1174,7 @@ impl<'a> HirValidator<'a> {
         template: &ResolvedFunctionTemplate,
         ty: &ResolvedType,
     ) -> Result<(), Diagnostic> {
-        match ty {
-            ResolvedType::I64 | ResolvedType::Bool | ResolvedType::String => Ok(()),
-            ResolvedType::I32
-            | ResolvedType::Char
-            | ResolvedType::U8
-            | ResolvedType::Usize
-            | ResolvedType::ArrayU8(_)
-            | ResolvedType::F32
-            | ResolvedType::F64
-            | ResolvedType::Bytes
-            | ResolvedType::Str
-            | ResolvedType::SliceU8 => Err(hir_error(format!(
-                "generic template `{}` has an invalid direct-scalar signature slot",
-                template.id
-            ))),
-            ResolvedType::TypeParameter { owner, index }
-                if owner == &template.id
-                    && usize::try_from(*index)
-                        .ok()
-                        .is_some_and(|index| index < template.type_parameters.len()) =>
-            {
-                Ok(())
-            }
-            ResolvedType::Nominal { .. }
-                if super::type_reachability::is_flat_owned_byte_record_template(
-                    &self.program.declarations,
-                    ty,
-                    &template.id,
-                    template.type_parameters.len(),
-                ) =>
-            {
-                Ok(())
-            }
-            ResolvedType::Unit
-            | ResolvedType::TypeParameter { .. }
-            | ResolvedType::Nominal { .. } => Err(hir_error(format!(
-                "generic template `{}` has an invalid direct-scalar signature slot",
-                template.id
-            ))),
-        }
+        generic_template::validate_type(self.program, template, ty)
     }
 
     fn validate_template_expressions(
@@ -1302,9 +1268,17 @@ impl<'a> HirValidator<'a> {
                 instance,
                 args,
             } => {
+                let transparent_vec_call = generic_template::is_vec_wrapper_call(
+                    self.program,
+                    template,
+                    callee,
+                    type_arguments,
+                    instance,
+                );
                 if instance.is_some()
-                    || !type_arguments.is_empty()
-                    || (crate::string_ops::by_id(callee.as_str()).is_none()
+                    || (!type_arguments.is_empty() && !transparent_vec_call)
+                    || (!transparent_vec_call
+                        && crate::string_ops::by_id(callee.as_str()).is_none()
                         && crate::str_ops::by_id(callee.as_str()).is_none()
                         && self
                             .program
@@ -4684,7 +4658,11 @@ impl<'a> HirValidator<'a> {
                             self.require_type(&target.ty, &assigned.ty, "assignment")?;
                             if (target.ownership != OwnershipMode::Value
                                 || !crate::hir::is_scalar_resolved_type(&target.ty))
-                                && !crate::vec_ops::is_same_owner_push_hir(assigned, &binding.id)
+                                && !crate::vec_ops::is_same_owner_push_hir(
+                                    self.program,
+                                    assigned,
+                                    &binding.id,
+                                )
                             {
                                 return Err(hir_error(
                                     "explicit mutation v1 supports only scalar Copy values",
@@ -6907,6 +6885,7 @@ impl<'a> HirValidator<'a> {
                                     if (target.ownership != OwnershipMode::Value
                                         || !crate::hir::is_scalar_resolved_type(&target.ty))
                                         && !crate::vec_ops::is_same_owner_push_hir(
+                                            self.program,
                                             assigned,
                                             &binding.id,
                                         )

@@ -515,9 +515,15 @@ fn validate_effect_and_capability_edges_against_calls(
                     "retained workspace template effects are not canonical",
                 )]);
             }
-            if caller_effects
-                .insert((module.module.as_str(), template.id.as_str()), effects)
+            if target_functions
+                .insert(template.id.as_str(), module)
                 .is_some()
+                || target_effects
+                    .insert(template.id.as_str(), template.effects.as_slice())
+                    .is_some()
+                || caller_effects
+                    .insert((module.module.as_str(), template.id.as_str()), effects)
+                    .is_some()
             {
                 return Err(vec![graph_error(
                     "SPX-G173",

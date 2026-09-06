@@ -57,10 +57,22 @@ rejected.
 
 ## Standard-library surface
 
-The alloc-tier `std.collections` package remains closed. Its future generic
-wrappers must preserve the intrinsic identity in HIR and Graph and forward only
-their own exact type parameter. That requires an authenticated transparent
-wrapper profile; ordinary authored generic functions cannot stand in for it.
+The alloc-tier `std.collections` package authors exactly five authenticated
+transparent aliases:
+
+| Stable identity | Intrinsic |
+| --- | --- |
+| `std.collections.vec.with-capacity` | `core.vec.with-capacity` |
+| `std.collections.vec.push` | `core.vec.push` |
+| `std.collections.vec.len` | `core.vec.len` |
+| `std.collections.vec.capacity` | `core.vec.capacity` |
+| `std.collections.vec.get` | `core.vec.get` |
+
+Each wrapper forwards only its own explicitly supplied type parameter and
+preserves the intrinsic operation and status identity in HIR and Graph. The
+package conformance source instantiates all five aliases for every admitted
+Copy scalar. The package exports no public ABI; ordinary authored generic
+functions still cannot stand in for these authenticated aliases.
 
 ## Current gate and promotion evidence
 
@@ -76,9 +88,11 @@ wrapper profile; ordinary authored generic functions cannot stand in for it.
 - repeated interpreter, native C11 O0/O2, and Core-Wasm execution for empty,
   full, push/get/len/capacity, loop-carried growth, and exact failures, with no
   shallow owner copy and exact/+1 allocator evidence; and
-Promotion beyond this internal profile additionally requires the ordinary
-`std.collections` manifest, example, conformance test, generated catalogs, and
-Project check/test/run gates on all three listed targets.
+The `std.collections` manifest, scalar-result example, eight-scalar conformance
+source, bundled dependency entry, closed package metadata, focused local
+Project/package selectors, and byte-exact generated catalogs are present. This
+promotes only that exact package slice locally; the broader collection and
+hosted-support nonclaims below keep the module Partial.
 
 ## Nonclaims
 

@@ -13,6 +13,41 @@ use super::nodes::{is_scalar_resolved_type, OwnershipMode, ResolvedBinding, Reso
 use super::resolve_expr_frame::Frame;
 use super::{Binding, Resolver};
 
+pub(super) struct VecCallSite {
+    pub(super) path: String,
+    pub(super) span: Span,
+    pub(super) op: crate::vec_ops::VecOp,
+}
+
+impl VecCallSite {
+    pub(super) fn new(path: String, span: Span, op: crate::vec_ops::VecOp) -> Self {
+        Self { path, span, op }
+    }
+}
+
+fn resolve_element(
+    resolver: &Resolver<'_>,
+    function: &FunctionExecutionId,
+    op: crate::vec_ops::VecOp,
+    ty: &Type,
+    span: Span,
+) -> Result<ResolvedType, Diagnostic> {
+    if let FunctionExecutionId::Monomorphic(owner) = function {
+        if let Some(candidate) = resolver
+            .program
+            .functions
+            .iter()
+            .find(|candidate| candidate.stable_id == owner.as_str())
+            .filter(|candidate| {
+                crate::vec_ops::source_wrapper(resolver.program, candidate) == Some(op)
+            })
+        {
+            return resolver.resolve_function_type(candidate, ty, span);
+        }
+    }
+    resolver.resolve_type(ty, span)
+}
+
 pub(super) fn validate_whole_assignment(
     resolver: &Resolver<'_>,
     target: &ResolvedBinding,
@@ -30,7 +65,7 @@ pub(super) fn validate_whole_assignment(
         ));
     }
     if (value.ownership != OwnershipMode::Value || !is_scalar_resolved_type(&value.ty))
-        && !crate::vec_ops::is_same_owner_push_hir(value, &target.id)
+        && !crate::vec_ops::is_same_owner_push_hir_source(resolver.program, value, &target.id)
     {
         return Err(resolver.error(
             "SPX-U105",
@@ -43,14 +78,14 @@ pub(super) fn validate_whole_assignment(
 
 pub(super) fn schedule<'expr>(
     resolver: &Resolver<'_>,
+    function: &FunctionExecutionId,
     frames: &mut Vec<Frame<'expr>>,
     type_arguments: &[Type],
     args: &'expr [Expr],
     bindings: Rc<BTreeMap<String, Binding>>,
-    site: (String, Span),
-    op: crate::vec_ops::VecOp,
+    site: VecCallSite,
 ) -> Result<(), Diagnostic> {
-    let (path, span) = site;
+    let VecCallSite { path, span, op } = site;
     if type_arguments.len() != 1 || args.len() != op.arity() {
         return Err(resolver.error(
             "SPX-H006",
@@ -58,8 +93,10 @@ pub(super) fn schedule<'expr>(
             span,
         ));
     }
-    let element = resolver.resolve_type(&type_arguments[0], span)?;
-    if !crate::vec_ops::resolved_element_is_admitted(&element) {
+    let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
+    if !crate::vec_ops::resolved_element_is_admitted(&element)
+        && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
+    {
         return Err(resolver.error(
             "SPX-H006",
             format!(
@@ -108,14 +145,10 @@ pub(super) fn finish(
         }
     }
     let ty = op.resolved_return_type(&element);
-    let ownership = resolver.expression_ownership(
-        &ty,
-        match op {
-            crate::vec_ops::VecOp::WithCapacity | crate::vec_ops::VecOp::Push => OwnershipMode::Own,
-            _ => OwnershipMode::Value,
-        },
-        span,
-    )?;
+    let ownership = match op {
+        crate::vec_ops::VecOp::WithCapacity | crate::vec_ops::VecOp::Push => OwnershipMode::Own,
+        _ => OwnershipMode::Value,
+    };
     Ok(ResolvedExpr {
         id: ExpressionId::new(function, path),
         ty,
@@ -151,8 +184,10 @@ pub(super) fn resolve_reference(
             span,
         ));
     }
-    let element = resolver.resolve_type(&type_arguments[0], span)?;
-    if !crate::vec_ops::resolved_element_is_admitted(&element) {
+    let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
+    if !crate::vec_ops::resolved_element_is_admitted(&element)
+        && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
+    {
         return Err(resolver.error(
             "SPX-H006",
             format!("vector operation `{name}` has an inadmissible element type"),

@@ -508,13 +508,19 @@ versioned ecosystem surface.
 [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract and the
 required module set; nine `core`-tier packages (`std.bytes`, `std.core`,
 `std.data.json.digits`, `std.encoding`, `std.num`, `std.num.overflow`,
-`std.random`, `std.text`, and `std.time`), eleven `portable`-tier packages
+`std.random`, `std.text`, and `std.time`), twelve `portable`-tier packages
 (`std.async`, `std.data.csv`, `std.data.json`, `std.data.json.token`,
-`std.data.json.utf8`, `std.data.json.write`, `std.data.toml`, `std.http`,
-`std.net`, `std.path`, and `std.url`), and one `test`-tier package
+`std.data.json.doc`, `std.data.json.utf8`, `std.data.json.write`,
+`std.data.toml`, `std.http`, `std.net`, `std.path`, and `std.url`), and one
+`test`-tier package
 (`std.test`) pass their
 conformance suites
 on the interpreter, native C11, and Core Wasm lanes.
+
+The first `alloc`-tier package, `std.collections`, now has a locally exercised
+exact five-alias Owned Bounded Vec v1 surface, example, explicit
+eight-Copy-scalar conformance, bundled dependency entry, generated catalogs,
+and no public exports. Iterators and broader collections remain later outcomes.
 
 - widen the Project route so records, variants, generics, strings, and bytes
   cross package boundaries, then move `Option`, `Result`, ordering, text, and

@@ -11,9 +11,121 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::diagnostic::Diagnostic;
-use crate::hir;
+use crate::{ast::Program, hir};
 
-use super::{graph_error, WorkspaceDeclarationFact, WorkspaceResolvedModule};
+use super::{
+    graph_error, retained_loan_plan_bytes, AuthoredDeclaration, WorkspaceDeclarationFact,
+    WorkspaceResolvedModule, GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
+};
+
+pub(super) fn program_imports_vec_wrapper(program: &Program, programs: &[Program]) -> bool {
+    program
+        .module_uses
+        .iter()
+        .any(|module_use| imported_vec_wrapper(programs, module_use).is_some())
+}
+
+fn imported_vec_wrapper(
+    programs: &[Program],
+    module_use: &crate::ast::ModuleUse,
+) -> Option<crate::vec_ops::VecOp> {
+    if module_use.kind != crate::ast::ModuleUseKind::Function {
+        return None;
+    }
+    let provider = programs
+        .iter()
+        .find(|provider| provider.module == module_use.target_module)?;
+    let function = provider
+        .functions
+        .iter()
+        .find(|function| function.stable_id == module_use.persistent_id)?;
+    crate::vec_ops::source_wrapper(provider, function)
+}
+
+pub(super) fn retain_module_instances(
+    program: &Program,
+    programs: &[Program],
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    instances: Vec<hir::ResolvedFunctionInstance>,
+) -> Result<
+    (
+        Vec<hir::ResolvedFunctionInstance>,
+        Vec<hir::ResolvedFunctionInstance>,
+    ),
+    Vec<Diagnostic>,
+> {
+    let retained = super::filter_owned_vec_accounted(
+        instances,
+        GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
+        |item| retained_loan_plan_bytes(&item.function.loan_plan),
+        |item| {
+            authored
+                .get(item.template.as_str())
+                .is_some_and(|owner| owner.module == program.module)
+                || program.module_uses.iter().any(|module_use| {
+                    module_use.persistent_id == item.template.as_str()
+                        && imported_vec_wrapper(programs, module_use).is_some()
+                })
+        },
+    )?;
+    Ok(retained.into_iter().partition(|item| {
+        authored
+            .get(item.template.as_str())
+            .is_some_and(|owner| owner.module == program.module)
+    }))
+}
+
+pub(super) fn merge_imported_vec_instances(
+    retained: &mut BTreeMap<hir::FunctionInstanceId, hir::ResolvedFunctionInstance>,
+    imported: Vec<hir::ResolvedFunctionInstance>,
+) -> Result<(), Vec<Diagnostic>> {
+    for instance in imported {
+        match retained.entry(instance.id.clone()) {
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                entry.insert(instance);
+            }
+            std::collections::btree_map::Entry::Occupied(entry) if entry.get() == &instance => {}
+            std::collections::btree_map::Entry::Occupied(_) => {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    "imported vector wrapper instance meaning is not canonical",
+                )]);
+            }
+        }
+    }
+    Ok(())
+}
+
+pub(super) fn attach_imported_vec_instances(
+    modules: &mut [WorkspaceResolvedModule],
+    retained: BTreeMap<hir::FunctionInstanceId, hir::ResolvedFunctionInstance>,
+) -> Result<(), Vec<Diagnostic>> {
+    if retained.is_empty() {
+        return Ok(());
+    }
+    let provider = modules
+        .iter_mut()
+        .find(|module| module.module == crate::vec_ops::MODULE)
+        .ok_or_else(|| {
+            vec![graph_error(
+                "SPX-G173",
+                "imported vector wrapper instances have no authenticated provider module",
+            )]
+        })?;
+    if retained.values().any(|instance| {
+        !provider
+            .function_templates
+            .iter()
+            .any(|template| template.id == instance.template)
+    }) {
+        return Err(vec![graph_error(
+            "SPX-G173",
+            "imported vector wrapper instance has no authenticated provider template",
+        )]);
+    }
+    provider.function_instances.extend(retained.into_values());
+    Ok(())
+}
 
 /// The authenticated generic inventory of one Phase-A workspace build.
 pub(super) struct OwnedGenericInventory {
@@ -276,6 +388,7 @@ pub(super) fn close_owned_data_closure(
             if crate::string_ops::by_id(callee.as_str()).is_none()
                 && crate::str_ops::by_id(callee.as_str()).is_none()
                 && crate::byte_ops::by_id(callee.as_str()).is_none()
+                && crate::vec_ops::by_id(callee.as_str()).is_none()
                 && crate::host_io_ops::by_id(callee.as_str()).is_none()
                 && crate::command_io_ops::by_id(callee.as_str()).is_none()
             {

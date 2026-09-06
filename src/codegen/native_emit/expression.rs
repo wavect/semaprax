@@ -391,7 +391,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 let plan = self.bytes_plan.ok_or_else(|| {
                     backend_error("owned byte store has no canonical cleanup plan")
                 })?;
-                let (buffer, buffer_live) = plan.call_argument(expression, 0)?;
+                let (buffer, buffer_live, _) = plan.call_argument(expression, 0)?;
                 if arguments[0].code != buffer {
                     return Err(backend_error(
                         "owned byte store argument was not staged in its canonical epoch",
@@ -980,27 +980,32 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     self.line(&format!("char *{alias} = {};", argument.code));
                     string_arguments.push(argument.code);
                     alias
-                } else if matches!(expected, ResolvedType::Bytes) {
+                } else if is_direct_plan_owned(expected) {
                     match target.param_ownerships[index] {
                         hir::OwnershipMode::Own => {
                             let plan = self.bytes_plan.ok_or_else(|| {
-                                backend_error("owned Bytes call has no canonical cleanup plan")
+                                backend_error("owned call has no canonical cleanup plan")
                             })?;
                             let parameter_index = u32::try_from(index).map_err(|_| {
                                 backend_error("native call has too many parameters")
                             })?;
-                            let (value, _) = plan.call_argument(&expr.id, parameter_index)?;
+                            let (value, _, is_vec) =
+                                plan.call_argument(&expr.id, parameter_index)?;
                             if argument.code != value {
                                 return Err(backend_error(
-                                    "owned Bytes call argument was not staged in its canonical epoch",
+                                    "owned call argument was not staged in its canonical epoch",
                                 ));
                             }
-                            format!("spx_bytes_move(&{value})")
+                            if is_vec {
+                                format!("spx_vec_move(spx_ctx, &{value})")
+                            } else {
+                                format!("spx_bytes_move(&{value})")
+                            }
                         }
                         hir::OwnershipMode::Borrow => format!("&({})", argument.code),
                         _ => {
                             return Err(backend_error(
-                                "Bytes call argument lacks validated ownership classification",
+                                "owned call argument lacks validated ownership classification",
                             ));
                         }
                     }
@@ -1077,7 +1082,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
         }
         self.require_type(&expr.ty, &target.return_type, "call result")?;
-        let temporary = if matches!(target.return_type, ResolvedType::Bytes) {
+        let temporary = if is_direct_plan_owned(&target.return_type) {
             self.bytes_plan
                 .ok_or_else(|| backend_error("owned Bytes call result has no cleanup plan"))?
                 .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
@@ -1102,10 +1107,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         ));
         if let Some(plan) = self.bytes_plan {
             for (index, expected) in target.params.iter().enumerate() {
-                if matches!(expected, ResolvedType::Bytes)
+                if is_direct_plan_owned(expected)
                     && target.param_ownerships[index] == hir::OwnershipMode::Own
                 {
-                    let (_, flag) = plan.call_argument(
+                    let (_, flag, _) = plan.call_argument(
                         &expr.id,
                         u32::try_from(index)
                             .map_err(|_| backend_error("native call has too many parameters"))?,
@@ -1138,7 +1143,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             }
         }
         let result = CValue {
-            code: if matches!(target.return_type, ResolvedType::Bytes) {
+            code: if is_direct_plan_owned(&target.return_type) {
                 self.bytes_plan
                     .and_then(|plan| plan.result_at(&expr.id))
                     .ok_or_else(|| backend_error("owned call has no canonical result transfer"))?
@@ -1159,6 +1164,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 for statement in statements {
                     match statement {
                         ResolvedStatement::Let { binding, value, .. } => {
+                            let value_id = value.id.clone();
                             let value = self.emit_expr(value)?;
                             self.require_type(&value.ty, &binding.ty, "local binding")?;
                             let local = if is_direct_plan_owned(&binding.ty) {
@@ -1171,7 +1177,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                     crate::cleanup_plan::StorageId::Value(binding.id.clone());
                                 let expected = plan.value(&storage)?.to_owned();
                                 if value.code != expected {
-                                    let transitions = plan.transfer_to(&storage)?;
+                                    let transitions = plan.transfer_to(&storage, &value_id)?;
                                     for line in transitions.lines() {
                                         self.line(line);
                                     }
@@ -1235,6 +1241,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             // store is a plain C11 assignment into the local
                             // or, for Field Mutation v1, into its one direct
                             // scalar field.
+                            let value_id = assigned.id.clone();
                             let value = self.emit_expr(assigned)?;
                             match field {
                                 Some(field_id) => {
@@ -1291,7 +1298,9 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                         );
                                         let expected = plan.value(&storage)?;
                                         if value.code != expected {
-                                            for line in plan.transfer_to(&storage)?.lines() {
+                                            for line in
+                                                plan.transfer_to(&storage, &value_id)?.lines()
+                                            {
                                                 self.line(line);
                                             }
                                         }

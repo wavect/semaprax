@@ -284,6 +284,81 @@
         {
           "description": [],
           "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn with_capacity<T>(capacity: usize) -> Vec<T>"
+          ],
+          "id": "std.collections.vec.with-capacity",
+          "kind": "function",
+          "name": "with_capacity",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn push<T>(values: own Vec<T>, value: T) -> Vec<T>"
+          ],
+          "id": "std.collections.vec.push",
+          "kind": "function",
+          "name": "push",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn len<T>(values: borrow Vec<T>) -> usize"
+          ],
+          "id": "std.collections.vec.len",
+          "kind": "function",
+          "name": "len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn capacity<T>(values: borrow Vec<T>) -> usize"
+          ],
+          "id": "std.collections.vec.capacity",
+          "kind": "function",
+          "name": "capacity",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn get<T>(values: borrow Vec<T>, index: usize) -> T"
+          ],
+          "id": "std.collections.vec.get",
+          "kind": "function",
+          "name": "get",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.collections = \"^0.1.0\"",
+      "module": "std.collections",
+      "package": "std/collections",
+      "required_profile": "owned-data-api.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "alloc"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
           "ensures": 1,
           "head": [
             "fn ordering_less() -> i64",

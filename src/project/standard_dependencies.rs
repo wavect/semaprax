@@ -30,6 +30,12 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.collections",
+        path: "dependencies/std.collections/0.1.0/collections.spx",
+        source: include_str!("../../std/collections/src/collections.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.core",
         path: "dependencies/std.core/0.1.0/core.spx",
         source: include_str!("../../std/core/src/core.spx"),

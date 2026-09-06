@@ -267,6 +267,14 @@ use monomorphize::{
     materialize_function_template, resolved_owned_record_substitutions,
     resolved_scalar_substitutions, same_function_meaning,
 };
+
+pub(crate) fn is_exact_materialized_function_instance(
+    template: &ResolvedFunctionTemplate,
+    instance: &ResolvedFunctionInstance,
+) -> bool {
+    materialize_function_template(template, &instance.type_arguments)
+        .is_ok_and(|expected| same_function_meaning(&expected, &instance.function))
+}
 pub(crate) use nodes::{
     admitted_owned_byte_prelude_instance, is_scalar_resolved_type, LinkedDeclarationFact,
     LinkedOwnedDataParts, LinkedScalarFunction,

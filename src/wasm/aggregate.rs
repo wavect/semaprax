@@ -5897,17 +5897,19 @@ impl Emitter<'_> {
         for (index, (argument, parameter)) in args.iter().zip(&target.params).enumerate() {
             let borrowed_bytes = parameter.ownership == crate::hir::OwnershipMode::Borrow
                 && parameter.ty == ResolvedType::Bytes;
+            let borrowed_vec = parameter.ownership == crate::hir::OwnershipMode::Borrow
+                && crate::cleanup::is_owned_bounded_vec_type(&parameter.ty);
             let borrowed_aggregate = parameter.ownership == crate::hir::OwnershipMode::Borrow
                 && is_aggregate(self.program, &parameter.ty)?;
-            let value = if borrowed_bytes || borrowed_aggregate {
+            let value = if borrowed_bytes || borrowed_vec || borrowed_aggregate {
                 let ResolvedExprKind::Place(place) = &argument.kind else {
-                    return Err(error(if borrowed_bytes {
-                        "borrowed Bytes call argument is not an exact place"
+                    return Err(error(if borrowed_bytes || borrowed_vec {
+                        "borrowed direct owner call argument is not an exact place"
                     } else {
                         "borrowed aggregate call argument is not an exact place"
                     }));
                 };
-                if borrowed_aggregate && !place.projections.is_empty() {
+                if (borrowed_vec || borrowed_aggregate) && !place.projections.is_empty() {
                     return Err(error(
                         "borrowed aggregate call projections are outside flat v1",
                     ));
@@ -8052,6 +8054,9 @@ impl Emitter<'_> {
             ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
                 self.output.extend([0x28, 0x02, 0x00])
             }
+            ty if crate::cleanup::is_owned_bounded_vec_type(ty) => {
+                self.output.extend([0x29, 0x03, 0x00])
+            }
             _ => unreachable!("validated scalar load"),
         }
     }
@@ -8068,6 +8073,9 @@ impl Emitter<'_> {
             ResolvedType::F32 => self.output.extend([0x38, 0x02, 0x00]),
             ResolvedType::Bool | ResolvedType::Char | ResolvedType::I32 | ResolvedType::U8 => {
                 self.output.extend([0x36, 0x02, 0x00])
+            }
+            ty if crate::cleanup::is_owned_bounded_vec_type(ty) => {
+                self.output.extend([0x37, 0x03, 0x00])
             }
             _ => unreachable!("validated scalar store"),
         }

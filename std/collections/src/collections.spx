@@ -1,0 +1,31 @@
+module std.collections;
+
+@id("std.collections.vec.with-capacity")
+fn with_capacity<T>(capacity: usize) -> Vec<T>
+{
+    vec_with_capacity<T>(capacity)
+}
+
+@id("std.collections.vec.push")
+fn push<T>(values: own Vec<T>, value: T) -> Vec<T>
+{
+    vec_push<T>(values, value)
+}
+
+@id("std.collections.vec.len")
+fn len<T>(values: borrow Vec<T>) -> usize
+{
+    vec_len<T>(values)
+}
+
+@id("std.collections.vec.capacity")
+fn capacity<T>(values: borrow Vec<T>) -> usize
+{
+    vec_capacity<T>(values)
+}
+
+@id("std.collections.vec.get")
+fn get<T>(values: borrow Vec<T>, index: usize) -> T
+{
+    vec_get<T>(values, index)
+}

@@ -140,6 +140,11 @@ archives.
 | `network-command-io.v1` | `semaprax.project.v12` | [Bounded Language Network I/O v1](BOUNDED-LANGUAGE-NETWORK-IO-V1.md) |
 | `https-command-io.v1` | `semaprax.project.v13` | [HTTPS Client I/O v1](HTTPS-CLIENT-IO-V1.md) |
 
+The table layout retains its nonempty `[exports]` requirement. The exact
+no-export `std.collections` exception owned by Public Owned Data API v1 uses
+the frozen eight-line Project v8 layout so no general table-manifest or public
+API surface is widened.
+
 The profile-specific rules the frozen layouts encode by position apply
 unchanged: the six command profiles require `[command]` and the exact
 `[capabilities] required` list of their contract, `useful-data-command.v2`

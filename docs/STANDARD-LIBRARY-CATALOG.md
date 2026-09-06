@@ -151,6 +151,40 @@ fn read_u32_be(view: borrow Slice<u8>, offset: usize) -> i64
     ensures result >= 0 && result <= 4294967295
 ```
 
+## `std.collections`
+
+Package `std/collections`, tier `alloc`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.collections = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.collections.vec.with-capacity`
+
+```semaprax
+fn with_capacity<T>(capacity: usize) -> Vec<T>
+```
+
+### `std.collections.vec.push`
+
+```semaprax
+fn push<T>(values: own Vec<T>, value: T) -> Vec<T>
+```
+
+### `std.collections.vec.len`
+
+```semaprax
+fn len<T>(values: borrow Vec<T>) -> usize
+```
+
+### `std.collections.vec.capacity`
+
+```semaprax
+fn capacity<T>(values: borrow Vec<T>) -> usize
+```
+
+### `std.collections.vec.get`
+
+```semaprax
+fn get<T>(values: borrow Vec<T>, index: usize) -> T
+```
+
 ## `std.core`
 
 Package `std/core`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.core = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

@@ -7,6 +7,28 @@ use crate::hir::{FunctionInstanceId, ResolvedExpr, ResolvedExprKind, ResolvedTyp
 
 use super::{Environment, Evaluator, Flow, Value};
 
+pub(super) fn instance_is_admitted(
+    program: &crate::hir::ResolvedProgram,
+    instance: &crate::hir::ResolvedFunctionInstance,
+) -> bool {
+    super::resolved_signature_is_admitted(&instance.function, &program.declarations)
+        || (instance.id == FunctionInstanceId::derive(&instance.template, &instance.type_arguments)
+            && instance.function.id == instance.template
+            && program
+                .function_templates
+                .iter()
+                .find(|template| template.id == instance.template)
+                .is_some_and(|template| {
+                    crate::vec_ops::hir_wrapper_in_program(program, template).is_some()
+                        && crate::vec_ops::hir_arguments_are_admitted(
+                            program,
+                            template,
+                            &instance.type_arguments,
+                        )
+                        && crate::hir::is_exact_materialized_function_instance(template, instance)
+                }))
+}
+
 #[derive(Debug, PartialEq)]
 pub(super) struct OwnedVecValue {
     pub(super) element: ResolvedType,

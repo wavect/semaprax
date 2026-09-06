@@ -1794,7 +1794,10 @@ fn emit_function(
                     ));
                 }
             }
-        } else if is_aggregate_type(program, &param.ty)? {
+        } else if is_aggregate_type(program, &param.ty)?
+            || (is_direct_plan_owned(&param.ty)
+                && param.ownership == crate::hir::OwnershipMode::Borrow)
+        {
             format!("(*spx_param_{index})")
         } else {
             format!("spx_param_{index}")

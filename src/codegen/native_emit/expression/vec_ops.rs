@@ -75,7 +75,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 for line in plan.apply_at(&args[0].id)?.lines() {
                     self.line(line);
                 }
-                let (source, source_flag) = plan.call_argument(&expr.id, 0)?;
+                let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
                 let source = source.to_owned();
                 let source_flag = source_flag.to_owned();
                 let destination = plan

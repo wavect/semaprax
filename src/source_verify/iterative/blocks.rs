@@ -280,8 +280,12 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             }
                         }
                         None => {
-                            let owned_vec_reopen =
-                                crate::vec_ops::is_same_owner_push_source(value, name, &binding_ty);
+                            let owned_vec_reopen = crate::vec_ops::is_same_owner_push_source(
+                                self.program,
+                                value,
+                                name,
+                                &binding_ty,
+                            );
                             if !mutable {
                                 let mut diagnostic = error(
                                     self.program,

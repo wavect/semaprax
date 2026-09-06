@@ -690,14 +690,28 @@ impl ProjectManifest {
                 )));
             }
         }
-        if !(1..=MAX_WEB_EXPORTS).contains(&web_exports.len()) {
-            return Err(if web_exports.len() > MAX_WEB_EXPORTS {
-                capacity("web_exports", MAX_WEB_EXPORTS)
-            } else {
-                grammar(format!(
-                    "{version_label} requires 1..=32 explicit web export identities"
-                ))
-            });
+        let std_collections_no_export_shape = schema == PROJECT_SCHEMA_V8
+            && name == "std-collections"
+            && package_version.as_deref() == Some("0.1.0")
+            && profile == ProjectProfile::OwnedDataApiV1
+            && entry == "std.collections.examples"
+            && sources == ["src/collections.spx", "src/examples.spx", "src/tests.spx"]
+            && tests == ["std.collections.tests"]
+            && command.is_none()
+            && command_input.is_none()
+            && capabilities.is_empty();
+        if std_collections_no_export_shape && !web_exports.is_empty() {
+            return Err(grammar(
+                "the exact std.collections Project v8 package requires an empty web_exports list",
+            ));
+        }
+        if web_exports.is_empty() && !std_collections_no_export_shape {
+            return Err(grammar(format!(
+                "{version_label} requires 1..=32 explicit web export identities"
+            )));
+        }
+        if web_exports.len() > MAX_WEB_EXPORTS {
+            return Err(capacity("web_exports", MAX_WEB_EXPORTS));
         }
         require_strict_order(&web_exports, "web export identities")?;
         if web_exports.iter().any(|id| !valid_stable_id(id)) {
@@ -833,6 +847,20 @@ impl ProjectManifest {
 
     pub fn web_exports(&self) -> &[String] {
         &self.web_exports
+    }
+
+    pub(crate) fn is_no_export_std_collections(&self) -> bool {
+        self.schema == PROJECT_SCHEMA_V8
+            && self.name == "std-collections"
+            && self.package_version.as_deref() == Some("0.1.0")
+            && self.profile == ProjectProfile::OwnedDataApiV1
+            && self.entry == "std.collections.examples"
+            && self.sources == ["src/collections.spx", "src/examples.spx", "src/tests.spx"]
+            && self.web_exports.is_empty()
+            && self.test_module == "std.collections.tests"
+            && self.command.is_none()
+            && self.command_input.is_none()
+            && self.capabilities.is_empty()
     }
 
     pub fn command(&self) -> Option<&str> {

@@ -14,7 +14,9 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use semaprax::{codegen, format, parse, project, verify};
+use semaprax::{codegen, format, parse, project, verify, wasm};
+
+use super::owned_bounded_vec_dependencies::{compile_and_run_c, run_internal_wasm};
 
 const PACKAGES: &str = "std/packages.json";
 const AGENT_CATALOG: &str = "std/catalog.json";
@@ -226,7 +228,7 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
             );
             assert!(
                 function.effects.is_empty(),
-                "{}: `{}` declares effects, which the core tier forbids",
+                "{}: `{}` declares effects, but this package is listed on all three effect-free targets",
                 library.path.display(),
                 function.name
             );
@@ -256,6 +258,161 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
             "{}: the core-tier slice admits functions only",
             library.path.display()
         );
+    }
+}
+
+#[test]
+fn collections_is_the_exact_alloc_tier_transparent_vec_surface() {
+    let package = packages()
+        .into_iter()
+        .find(|package| package.module == "std.collections")
+        .expect("std.collections package metadata");
+    assert_eq!(package.directory, "collections");
+    assert_eq!(package.tier, "alloc");
+    assert_eq!(package.status, "partial");
+    assert_eq!(package.targets, ["interpreter", "native-c11", "core-wasm"]);
+
+    let (library, entry, tests) = package_sources(&package);
+    assert_eq!(entry, "std.collections.examples");
+    assert_eq!(tests, "std.collections.tests");
+    assert_eq!(library.program.functions.len(), 5);
+    let identities = library
+        .program
+        .functions
+        .iter()
+        .map(|function| function.stable_id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        identities,
+        [
+            "std.collections.vec.with-capacity",
+            "std.collections.vec.push",
+            "std.collections.vec.len",
+            "std.collections.vec.capacity",
+            "std.collections.vec.get",
+        ]
+    );
+    assert!(library
+        .program
+        .functions
+        .iter()
+        .all(|function| function.explicit_id
+            && function.type_parameters.len() == 1
+            && function.effects.is_empty()));
+
+    let package_root = root().join("std/collections");
+    let manifest = std::fs::read_to_string(package_root.join("semaprax.toml")).unwrap();
+    assert!(manifest.contains("schema = \"semaprax.project.v8\""));
+    assert!(manifest.contains("profile = \"owned-data-api.v1\""));
+    assert!(manifest.contains("web_exports = []"));
+    let conformance = std::fs::read_to_string(package_root.join("src/tests.spx")).unwrap();
+    for scalar in ["i64", "i32", "u8", "usize", "char", "f32", "f64", "bool"] {
+        for operation in ["with_capacity", "push", "len", "capacity", "get"] {
+            assert!(
+                conformance.contains(&format!("{operation}<{scalar}>")),
+                "std.collections conformance does not instantiate {operation}<{scalar}>"
+            );
+        }
+    }
+}
+
+#[test]
+fn collections_project_check_test_run_without_public_exports() {
+    let manifest = root().join("std/collections/semaprax.toml");
+    let scratch = temporary("collections-lanes");
+    project::with_authenticated_project(&manifest, |snapshot| {
+        snapshot.check()?;
+        let options = project::ProjectExecutionOptions::default();
+        assert_eq!(
+            snapshot.execute_entry(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert_eq!(
+            snapshot.execute_test(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        // The historical accessor retains the internal entry-plus-export
+        // closure even when there are no exports; it is not itself a public
+        // descriptor or target. Pin that internal anchor, then prove below
+        // that no public descriptor exists for this package.
+        assert_eq!(
+            snapshot.public_api_program().entrypoint.as_str(),
+            "std.collections.examples.main"
+        );
+        let descriptor = snapshot
+            .public_api_descriptor()
+            .expect_err("a no-export package has no public API descriptor");
+        assert!(descriptor
+            .iter()
+            .any(|diagnostic| diagnostic.code == "SPX-J105"));
+        run_collections_backend_conformance(snapshot, &scratch)?;
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+fn run_collections_backend_conformance(
+    snapshot: &project::ProjectRevision,
+    scratch: &Path,
+) -> Result<(), Vec<semaprax::diagnostic::Diagnostic>> {
+    for program in [snapshot.entry_program(), snapshot.test_program()] {
+        let c = codegen::emit_hir_c(program).map_err(|error| vec![error])?;
+        assert!(!c.contains("memcpy(result, source"));
+        for optimization in ["-O0", "-O2"] {
+            compile_and_run_c(&c, scratch, optimization, "0");
+        }
+        let core = wasm::emit_resolved_module(program).map_err(|error| vec![error])?;
+        run_internal_wasm(&core, scratch, 0);
+    }
+    Ok(())
+}
+
+#[test]
+fn collections_no_export_manifest_rejects_unauthenticated_package_sources() {
+    let source_root = root().join("std/collections");
+    for (source, needle, replacement) in [
+        (
+            "collections.spx",
+            "std.collections.vec.get",
+            "std.collections.vec.get-lookalike",
+        ),
+        (
+            "examples.spx",
+            "std.collections.examples.main",
+            "std.collections.examples.lookalike",
+        ),
+        (
+            "tests.spx",
+            "std.collections.tests.main",
+            "std.collections.tests.lookalike",
+        ),
+    ] {
+        let scratch = temporary(&format!("collections-hostile-{source}"));
+        std::fs::create_dir_all(scratch.join("src")).unwrap();
+        std::fs::copy(
+            source_root.join("semaprax.toml"),
+            scratch.join("semaprax.toml"),
+        )
+        .unwrap();
+        for candidate in ["collections.spx", "examples.spx", "tests.spx"] {
+            let mut contents =
+                std::fs::read_to_string(source_root.join("src").join(candidate)).unwrap();
+            if candidate == source {
+                contents = contents.replacen(needle, replacement, 1);
+            }
+            std::fs::write(scratch.join("src").join(candidate), contents).unwrap();
+        }
+        let errors =
+            project::with_authenticated_project(&scratch.join("semaprax.toml"), |_| Ok(()))
+                .unwrap_err();
+        assert!(errors.iter().any(|diagnostic| {
+            diagnostic.code == "SPX-J100"
+                && diagnostic
+                    .message
+                    .contains("authenticated wrapper, example, and conformance sources")
+        }));
+        let _ = std::fs::remove_dir_all(scratch);
     }
 }
 
@@ -458,6 +615,10 @@ fn examples_and_conformance_return_zero_on_interpreter_native_and_wasm() {
                 "{}: conformance failed on the interpreter",
                 package.directory
             );
+            if package.module == "std.collections" {
+                run_collections_backend_conformance(snapshot, &scratch)?;
+                return Ok(());
+            }
             for (role, program) in [
                 ("examples", snapshot.entry_program()),
                 ("tests", snapshot.test_program()),

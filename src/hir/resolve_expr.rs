@@ -282,12 +282,12 @@ impl Resolver<'_> {
                         } else if let Some(op) = crate::vec_ops::by_name(name) {
                             super::resolve_vec_call::schedule(
                                 self,
+                                function,
                                 &mut frames,
                                 type_arguments,
                                 args,
                                 bindings,
-                                (path, expr.span),
-                                op,
+                                super::resolve_vec_call::VecCallSite::new(path, expr.span, op),
                             )?;
                         } else if let Some(op) = crate::byte_ops::by_name(name) {
                             if !type_arguments.is_empty() || args.len() != op.arity() {

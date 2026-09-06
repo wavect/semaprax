@@ -4417,11 +4417,14 @@ fn build_resolved_core(
             let selective = frontend
                 .as_deref()
                 .and_then(|cache| cache.resolve_functions(&program.path, &synthetic));
-            let (resolved, function_costs, reused_functions) = if let Some(selective) = selective {
-                selective?.into_parts()
-            } else {
-                (hir::resolve(&synthetic)?, BTreeMap::new(), 0)
-            };
+            let (resolved, function_costs, reused_functions) =
+                crate::vec_ops::with_authenticated_linked_source(|| {
+                    if let Some(selective) = selective {
+                        selective.map(|resolved| resolved.into_parts())
+                    } else {
+                        hir::resolve(&synthetic).map(|resolved| (resolved, BTreeMap::new(), 0))
+                    }
+                })?;
             let resolver_bytes = before.saturating_sub(
                 crate::bounded_output::active_remaining()
                     .expect("resolved core has a builder budget"),
@@ -4465,6 +4468,7 @@ fn build_resolved_core(
             .ok_or_else(|| vec![limit_error("builder_bytes", active_builder_limit())])?,
     )?;
     let mut modules = Vec::with_capacity(synthetic_modules.len());
+    let mut imported_vec_instances = BTreeMap::new();
     for (module, resolved) in synthetic_modules {
         let program = programs_by_module
             .get(module.as_str())
@@ -4489,15 +4493,15 @@ fn build_resolved_core(
                 .get(item.id.as_str())
                 .is_some_and(|owner| owner.module == program.module)
         })?;
-        let function_instances = filter_owned_vec_accounted(
+        let (function_instances, imported_instances) = owned_generics::retain_module_instances(
+            program,
+            programs,
+            authored,
             resolved.function_instances,
-            GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
-            |item| retained_loan_plan_bytes(&item.function.loan_plan),
-            |item| {
-                authored
-                    .get(item.template.as_str())
-                    .is_some_and(|owner| owner.module == program.module)
-            },
+        )?;
+        owned_generics::merge_imported_vec_instances(
+            &mut imported_vec_instances,
+            imported_instances,
         )?;
         let signature_types = retained_signature_type_facts(&functions, &resolved.declarations)?;
         let agents = filter_owned_vec(resolved.agents, |_| true)?;
@@ -4514,6 +4518,7 @@ fn build_resolved_core(
             signature_types,
         });
     }
+    owned_generics::attach_imported_vec_instances(&mut modules, imported_vec_instances)?;
     validate_retained_facts(programs, &modules, &expected_edges)?;
     validate_retained_declaration_shapes(&modules, &declarations)?;
     let owned_module_paths = module_paths
@@ -5512,6 +5517,13 @@ fn validate_imported_function(
     programs: &[Program],
 ) -> Result<(), Vec<Diagnostic>> {
     let function = target.function.expect("function target carries a function");
+    let transparent_vec_wrapper = programs
+        .iter()
+        .find(|program| program.module == target.module)
+        .is_some_and(|program| crate::vec_ops::source_wrapper(program, function).is_some());
+    if transparent_vec_wrapper {
+        return Ok(());
+    }
     let byte_parameter = package::admitted_byte_parameter;
     let has_byte_parameter = function.params.iter().any(byte_parameter);
     let scalar_return = matches!(
@@ -6091,11 +6103,31 @@ fn validate_stub_signatures(
                 ModuleUseKind::Function => {
                     let stub = caller_hir.functions.iter().find(|item| item.id == id);
                     let authority = target_hir.functions.iter().find(|item| item.id == id);
-                    if !stub.zip(authority).is_some_and(|(stub, authority)| {
-                        stub.params == authority.params
+                    let monomorphic_matches =
+                        stub.zip(authority).is_some_and(|(stub, authority)| {
+                            stub.params == authority.params
+                                && stub.return_type == authority.return_type
+                                && stub.effects == authority.effects
+                        });
+                    let transparent_vec_wrapper_matches = || {
+                        let stub = caller_hir
+                            .function_templates
+                            .iter()
+                            .find(|item| item.id == id)?;
+                        let authority = target_hir
+                            .function_templates
+                            .iter()
+                            .find(|item| item.id == id)?;
+                        let operation = crate::vec_ops::hir_wrapper_in_program(caller_hir, stub)?;
+                        (crate::vec_ops::hir_wrapper_in_program(target_hir, authority)
+                            == Some(operation)
+                            && stub.type_parameters == authority.type_parameters
+                            && stub.params == authority.params
                             && stub.return_type == authority.return_type
-                            && stub.effects == authority.effects
-                    }) {
+                            && stub.effects == authority.effects)
+                            .then_some(())
+                    };
+                    if !monomorphic_matches && transparent_vec_wrapper_matches().is_none() {
                         return Err(vec![graph_error(
                             "SPX-G173",
                             "workspace function signature stub disagrees with authored HIR authority",
@@ -6145,6 +6177,10 @@ fn reconstruct_workspace_declaration_facts(
             .iter()
             .find(|program| program.module == *module)
             .expect("resolved workspace module belongs to authenticated source");
+        let imports_vec_wrapper = owned_generics::program_imports_vec_wrapper(source, programs);
+        let expected_module_compiler = prelude_binding::expected_declaration_facts(
+            prelude::program_uses_vec(source) || imports_vec_wrapper,
+        )?;
         let direct_targets = source
             .module_uses
             .iter()
@@ -6247,10 +6283,7 @@ fn reconstruct_workspace_declaration_facts(
                 )]);
             }
         }
-        if !uses_vec {
-            compiler.remove(prelude::VEC_ID);
-        }
-        if compiler != expected_compiler {
+        if compiler != expected_module_compiler {
             return Err(vec![graph_error(
                 "SPX-G173",
                 "compiler-owned prelude declaration facts disagree with the independent prelude map",

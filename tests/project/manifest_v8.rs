@@ -3,6 +3,29 @@ use semaprax::project::{
 };
 
 const MANIFEST: &str = "schema = \"semaprax.project.v8\"\nname = \"frame-payload\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"frame_payload.app\"\nsources = [\"src/app.spx\", \"src/core.spx\", \"src/tests.spx\"]\nweb_exports = [\"frame.payload\", \"frame.payload-maybe\", \"frame.payload-result\"]\ntests = [\"frame_payload.tests\"]\n";
+const COLLECTIONS_MANIFEST: &str = "schema = \"semaprax.project.v8\"\nname = \"std-collections\"\nversion = \"0.1.0\"\nprofile = \"owned-data-api.v1\"\nentry = \"std.collections.examples\"\nsources = [\"src/collections.spx\", \"src/examples.spx\", \"src/tests.spx\"]\nweb_exports = []\ntests = [\"std.collections.tests\"]\n";
+
+#[test]
+fn v8_admits_only_the_exact_no_export_std_collections_manifest() {
+    let manifest = ProjectManifest::parse(COLLECTIONS_MANIFEST).unwrap();
+    assert!(manifest.web_exports().is_empty());
+    for hostile in [
+        COLLECTIONS_MANIFEST.replace("std-collections", "std-collection"),
+        COLLECTIONS_MANIFEST.replace("owned-data-api.v1", "useful-data.v1"),
+        COLLECTIONS_MANIFEST.replace(
+            "web_exports = []",
+            "web_exports = [\"std.collections.vec.len\"]",
+        ),
+    ] {
+        let errors = ProjectManifest::parse(&hostile).unwrap_err();
+        assert!(
+            errors
+                .iter()
+                .any(|diagnostic| diagnostic.code == "SPX-J100"),
+            "hostile no-export lookalike did not retain SPX-J100: {errors:?}"
+        );
+    }
+}
 
 #[test]
 fn canonical_v8_manifest_is_exact_and_closed() {

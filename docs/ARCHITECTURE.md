@@ -1589,6 +1589,10 @@ derives and independently replays the sole semantic API descriptor from the
 authenticated linked-HIR subject. Authentic cross-replay regressions distinguish
 its retained-signature checks from digest rejection; equal descriptors alone
 do not prove function-body equivalence or source provenance.
+`src/project/std_collections.rs` authenticates the sole empty-descriptor Project
+v8 exception: the frozen `std.collections` manifest and exact five transparent
+Owned Bounded Vec wrappers. Lookalike manifests and sources fail before build;
+ordinary Project v8 and table manifests retain their nonempty export rules.
 `src/project/cxx_owned_data.rs` and its bounded renderer compose that same
 replayed descriptor with the existing native provider into an authority-free,
 pathless C11/C++17 package. The C++ wrapper owns one thread-bound invocation

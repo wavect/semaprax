@@ -32,6 +32,11 @@ impl Resolver<'_> {
         function: &crate::ast::Function,
         arguments: &[ResolvedType],
     ) -> Result<bool, Diagnostic> {
+        if crate::vec_ops::source_wrapper(self.program, function).is_some()
+            && matches!(arguments, [argument] if crate::vec_ops::resolved_element_is_admitted(argument))
+        {
+            return Ok(true);
+        }
         if arguments
             .iter()
             .all(|argument| matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
@@ -475,6 +480,7 @@ impl Resolver<'_> {
         &self,
         function: &crate::ast::Function,
     ) -> Result<ResolvedFunctionTemplate, Diagnostic> {
+        let transparent_vec_wrapper = crate::vec_ops::source_wrapper(self.program, function);
         let function_id = DeclarationId::new(function.stable_id.clone());
         let function_scope = FunctionExecutionId::Monomorphic(function_id.clone());
         let type_parameters = function
@@ -503,13 +509,16 @@ impl Resolver<'_> {
             .map(|(index, param)| {
                 let ty = self.resolve_function_type(function, &param.ty, param.span)?;
                 let id = ValueId::parameter(&function_scope, index);
-                let ownership = if ty == ResolvedType::String
+                let ownership = if let Some(op) = transparent_vec_wrapper {
+                    op.param_ownership(index)
+                } else if ty == ResolvedType::String
                     || super::type_reachability::is_flat_owned_byte_record_template(
                         &self.declarations,
                         &ty,
                         &function_id,
                         function.type_parameters.len(),
-                    ) {
+                    )
+                {
                     OwnershipMode::Own
                 } else {
                     OwnershipMode::Value
@@ -555,7 +564,8 @@ impl Resolver<'_> {
             Binding {
                 id: result_id.clone(),
                 ty: return_type.clone(),
-                ownership: if return_type == ResolvedType::String
+                ownership: if (transparent_vec_wrapper.is_some() && return_type.is_uniquely_owned())
+                    || return_type == ResolvedType::String
                     || super::type_reachability::is_flat_owned_byte_record_template(
                         &self.declarations,
                         &return_type,
@@ -639,8 +649,8 @@ impl Resolver<'_> {
             if !seen.insert(id.clone()) {
                 continue;
             }
-            let specialized =
-                specialize_source_function(template, &source_arguments).ok_or_else(|| {
+            let specialized = specialize_source_function(self.program, template, &source_arguments)
+                .ok_or_else(|| {
                     self.error(
                         "SPX-H006",
                         format!("generic function `{}` specialization failed", template.name),
@@ -862,8 +872,12 @@ impl Resolver<'_> {
                             declaration: declaration.clone(),
                             arguments: resolved.clone(),
                         };
+                        let admitted_vec = declaration.as_str() == crate::prelude::VEC_ID
+                            && matches!(resolved.as_slice(), [argument]
+                                if crate::vec_ops::resolved_element_is_admitted(argument));
                         if resolved.len() != parameters.len()
-                            || (!admitted_owned_byte_prelude_instance(&declaration, &resolved)
+                            || (!admitted_vec
+                                && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
                                 && !crate::hir::type_reachability::is_flat_owned_byte_record(
                                     &self.declarations,
                                     &instance,
@@ -942,11 +956,23 @@ impl Resolver<'_> {
             arguments: resolved.clone(),
         };
         let owner = DeclarationId::new(function.stable_id.clone());
+        let transparent_vec = crate::vec_ops::source_wrapper(self.program, function).is_some()
+            && declaration.as_str() == crate::prelude::VEC_ID
+            && matches!(resolved.as_slice(),
+                [ResolvedType::TypeParameter { owner: parameter_owner, index: 0 }]
+                    if parameter_owner == &owner);
+        let specialized_vec_wrapper = crate::vec_ops::wrapper_by_id(function.stable_id.as_str())
+            .is_some()
+            && declaration.as_str() == crate::prelude::VEC_ID
+            && matches!(resolved.as_slice(), [argument]
+                if crate::vec_ops::resolved_element_is_admitted(argument));
         if self
             .declarations
             .type_parameters(&declaration)
             .is_none_or(|parameters| parameters.len() != resolved.len())
-            || (!admitted_owned_byte_prelude_instance(&declaration, &resolved)
+            || (!transparent_vec
+                && !specialized_vec_wrapper
+                && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
                 && !super::type_reachability::is_flat_owned_byte_record(
                     &self.declarations,
                     &instance,

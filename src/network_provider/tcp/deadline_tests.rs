@@ -260,8 +260,15 @@ fn a_peer_that_never_reads_bounds_a_partial_write_in_aggregate() {
         .connect("127.0.0.1", port)
         .expect("loopback connect");
     configured.recv().expect("configured peer");
+    // Windows' loopback fast path can accept the whole payload despite a
+    // small positive SO_SNDBUF. Zero disables its client-side send buffering;
+    // Unix retains the portable positive bound.
+    #[cfg(windows)]
+    let send_buffer_size = 0;
+    #[cfg(not(windows))]
+    let send_buffer_size = 64 * 1024;
     socket2::SockRef::from(provider.stream_mut(connection).unwrap().socket())
-        .set_send_buffer_size(64 * 1024)
+        .set_send_buffer_size(send_buffer_size)
         .expect("bound client send buffer");
     let payload = vec![0u8; 32 * 1024 * 1024];
     let started = Instant::now();

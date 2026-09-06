@@ -127,7 +127,11 @@ async function run() {
     const verified = await api.checks.check(probe, compiler);
     assert.equal(verified.failure, undefined);
     assert.deepEqual(verified.records, []);
-    assert.equal(api.checks.collection.get(vscode.Uri.file(probe)), undefined);
+    // `DiagnosticCollection.get` is declared `Diagnostic[] | undefined`, but the
+    // real host returns a frozen `[]` for a URI it holds no entry for. Absence
+    // is therefore only observable through `has`, which is the entry predicate.
+    assert.equal(api.checks.collection.has(vscode.Uri.file(probe)), false, 'the entry is removed, not emptied');
+    assert.deepEqual(api.checks.collection.get(vscode.Uri.file(probe)), []);
 
     // The project route: an importing module has no standalone meaning, so
     // `app.spx` resolves its declarations, callers and lenses through the

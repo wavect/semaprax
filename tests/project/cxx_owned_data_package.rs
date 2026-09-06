@@ -207,13 +207,13 @@ fn generated_provider_and_c11_consumer_compile_link_and_settle_owned_bytes() {
 #include <stdint.h>
 #include <string.h>
 
-union aligned_context {{ max_align_t alignment; uint8_t bytes[UINT64_C(1) << 20]; }};
+union aligned_context {{ max_align_t alignment; _Alignas(64) uint8_t bytes[UINT64_C(1) << 20]; }};
 
 int main(void) {{
     union aligned_context storage;
     uint64_t size = spx_owned_data_context_size_v1();
     uint64_t align = spx_owned_data_context_align_v1();
-    if (size == 0 || size > sizeof(storage.bytes) || align == 0 || align > _Alignof(max_align_t)) return 1;
+    if (size == 0 || size > sizeof(storage.bytes) || align == 0 || align > _Alignof(union aligned_context)) return 1;
     if (spx_owned_data_context_init_v1(storage.bytes, size) != SPX_OWNED_DATA_SUCCESS) return 2;
     spx_context_v1 *context = (spx_context_v1 *)storage.bytes;
     const uint8_t text[] = {{ 'f', 'o', 'u', 'r' }};
@@ -328,7 +328,7 @@ fn generated_c11_boundary_exposes_and_executes_owned_variant_tags() {
 #include <stdint.h>
 #include <string.h>
 
-union aligned_context {{ max_align_t alignment; uint8_t bytes[UINT64_C(1) << 20]; }};
+union aligned_context {{ max_align_t alignment; _Alignas(64) uint8_t bytes[UINT64_C(1) << 20]; }};
 
 static int settle(spx_context_v1 *context, spx_owned_bytes_handle_v1 handle) {{
     uint64_t length = UINT64_MAX;

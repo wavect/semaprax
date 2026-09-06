@@ -92,6 +92,7 @@ def main(argv=None):
     parser.add_argument("--shard", choices=SHARDS)
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--exclude-package", action="append", default=[])
+    parser.add_argument("--nocapture", action="store_true")
     parser.add_argument("--label", default="MSRV")
     args = parser.parse_args(argv)
     if args.shard is None and not args.plan_only:
@@ -108,8 +109,9 @@ def main(argv=None):
     shard = next(shard for shard in selected_plan["shards"] if shard["name"] == args.shard)
     print(f"{args.label} {args.shard}: {len(shard['targets'])} workspace targets", flush=True)
     # One Cargo invocation; preserve its first failure and exact exit status.
+    command = shard["command"] + (["--", "--nocapture"] if args.nocapture else [])
     return subprocess.run(
-        shard["command"], cwd=ROOT, env=cargo_env, check=False
+        command, cwd=ROOT, env=cargo_env, check=False
     ).returncode
 
 

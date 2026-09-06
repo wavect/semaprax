@@ -496,11 +496,11 @@ fn generated_c11_header_links_the_flat_record_provider_and_settles_its_owner() {
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
-union aligned_context {{ max_align_t alignment; uint8_t bytes[UINT64_C(1) << 20]; }};
+union aligned_context {{ max_align_t alignment; _Alignas(64) uint8_t bytes[UINT64_C(1) << 20]; }};
 int main(void) {{
     union aligned_context storage;
     uint64_t size=spx_owned_data_context_size_v1(),align=spx_owned_data_context_align_v1();
-    if(!size||size>sizeof(storage.bytes)||!align||align>_Alignof(max_align_t))return 1;
+    if(!size||size>sizeof(storage.bytes)||!align||align>_Alignof(union aligned_context))return 1;
     if(spx_owned_data_context_init_v1(storage.bytes,size)!=SPX_OWNED_DATA_SUCCESS)return 2;
     spx_context_v1*context=(spx_context_v1*)storage.bytes;
     const uint8_t input[]={{9,8,7}};

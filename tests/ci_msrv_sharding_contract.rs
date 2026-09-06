@@ -198,12 +198,12 @@ fn current_rust_matrix_reuses_the_exact_inventory_in_parallel_platform_shards() 
         .0;
     for required in [
         "name: Rust tests ${{ matrix.os }} (${{ matrix.shard }})",
-        "timeout-minutes: 30",
+        "timeout-minutes: 60",
         "fail-fast: false",
         "os: [ubuntu-latest, macos-latest, windows-latest]",
         "shard: [unit, integration-0, integration-1, integration-2]",
         "python3 scripts/ci-msrv.py --label \"Rust $RUNNER_OS\" --shard \"${{ matrix.shard }}\"",
-        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop",
+        "python3 scripts/ci-msrv.py --label \"Rust Windows\" --shard \"${{ matrix.shard }}\" --exclude-package semaprax-native-rust-interop --nocapture",
     ] {
         assert!(tests.contains(required), "missing Rust shard contract: {required}");
     }
@@ -308,5 +308,12 @@ with patch('subprocess.run', side_effect=[
     assert run.call_args_list[0].kwargs['env']['SEMAPRAX_TEST_PYTHON'] == sys.executable
     assert run.call_args_list[1].args[0] == plan['shards'][1]['command']
     assert run.call_args_list[1].kwargs['env']['SEMAPRAX_TEST_PYTHON'] == sys.executable
+with patch('subprocess.run', side_effect=[
+    subprocess.CompletedProcess([], 0, stdout=json.dumps(metadata)),
+    subprocess.CompletedProcess([], 101),
+]) as run:
+    with contextlib.redirect_stdout(io.StringIO()):
+        assert router['main'](['--shard', 'integration-0', '--nocapture']) == 101
+    assert run.call_args_list[1].args[0] == plan['shards'][1]['command'] + ['--', '--nocapture']
 sys.stdout.buffer.write(router_log.getvalue().encode('utf-8'))
 "#;

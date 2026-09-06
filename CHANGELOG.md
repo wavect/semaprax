@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added authority-free Exact Program Context v2, which independently replays
+  exact context v1, Contracts and Tests Facts v1, and ProgramRoot v3 before
+  requiring the enriched workspace and v3-root selectors across typed query,
+  transaction, service, and history paths. The same appended facts descriptor
+  is retained in memory; query/result, transaction/evidence, history, service
+  receipt, exact-context-v1, and ProgramRoot wires remain unchanged. Exact
+  transaction history keeps the authenticated default base workspace identity,
+  selector and replay failures append nothing, and exact service refresh plus
+  candidate ProgramRoot v3 remain unavailable.
+
 - Added the authority-free Contracts and Tests Facts v1 association and
   ProgramRoot v3. The standalone fact bundle binds one admitted Project,
   semantic Graph, and legacy workspace revision to stable-ID-sorted function
@@ -19,8 +29,8 @@ format: `Unreleased` then release buckets, grouped by impact.
   schema/digest/byte-count descriptor. Canonical Semantic Workspace v1 and
   ProgramRoot v1/v2 identities and bytes remain unchanged. This is inventory
   and association only: contract proof, coverage, test execution, runtime
-  roots, authority, and ProgramRoot-v3 exact-context/service selection remain
-  absent.
+  roots and authority remain absent; the separate Exact Program Context v2
+  entry above records the later typed selector integration.
 
 - Extended the additive Exact Program Context v1 lifecycle through exact query
   replay, transaction replay, and persistent-service history selection. Every

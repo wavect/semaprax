@@ -6,7 +6,7 @@
 
 use std::sync::Arc;
 
-use super::super::ExactProgramContext;
+use super::super::{ExactProgramContext, ExactProgramContextV2};
 use super::{
     capacity, stale, SemanticTransaction, SemanticTransactionArtifacts,
     MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES,
@@ -51,6 +51,51 @@ impl SemanticTransaction {
             context,
             expected_workspace_revision,
             expected_program_root_v2_digest,
+        )?;
+        if artifacts.evidence.as_bytes() != evidence_bytes {
+            return Err(stale("semantic transaction evidence failed exact replay"));
+        }
+        Ok(artifacts)
+    }
+
+    /// Select an exact ProgramRoot v3 base, then run the unchanged v1
+    /// transaction validation. Only the typed result retains the selected v3.
+    pub fn validate_exact_v2(
+        &self,
+        context: Arc<ExactProgramContextV2>,
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticTransactionArtifacts, Vec<Diagnostic>> {
+        let program_root_v3 = context
+            .select(expected_workspace_revision, expected_program_root_v3_digest)?
+            .clone();
+        let mut artifacts =
+            self.validate(Arc::clone(context.exact_program_context_v1().revision()))?;
+        artifacts.base_program_root_v2 = Some(context.program_root_v2().clone());
+        artifacts.base_program_root_v3 = Some(program_root_v3);
+        Ok(artifacts)
+    }
+
+    /// Replay frozen v1 transaction evidence only after selecting the exact
+    /// ProgramRoot v3 base. Replay remains read-only.
+    pub fn replay_exact_v2(
+        context: Arc<ExactProgramContextV2>,
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+        transaction_bytes: &[u8],
+        evidence_bytes: &[u8],
+    ) -> Result<SemanticTransactionArtifacts, Vec<Diagnostic>> {
+        context.select(expected_workspace_revision, expected_program_root_v3_digest)?;
+        if evidence_bytes.len() > MAX_SEMANTIC_TRANSACTION_ARTIFACT_BYTES {
+            return Err(capacity(
+                "semantic transaction evidence exceeds its byte limit",
+            ));
+        }
+        let transaction = Self::from_json(transaction_bytes)?;
+        let artifacts = transaction.validate_exact_v2(
+            context,
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
         )?;
         if artifacts.evidence.as_bytes() != evidence_bytes {
             return Err(stale("semantic transaction evidence failed exact replay"));

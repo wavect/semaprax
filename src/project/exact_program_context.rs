@@ -16,6 +16,11 @@ use super::{
     ProgramRootV2, ProjectRevision, SemanticWorkspaceRevision,
 };
 
+mod v2;
+pub use v2::{
+    ExactProgramContextV2, EXACT_PROGRAM_CONTEXT_V2_SCHEMA, MAX_EXACT_PROGRAM_CONTEXT_V2_BYTES,
+};
+
 pub const EXACT_PROGRAM_CONTEXT_SCHEMA: &str = "semaprax.exact-program-context.v1";
 pub const MAX_EXACT_PROGRAM_CONTEXT_BYTES: usize = 64 * 1024;
 

@@ -68,3 +68,8 @@ service-history snapshot/query/replay, and structural-diff base while
 preserving the existing v1 query, transaction, evidence, history, and diff
 bytes. Every exact selector fails closed when either the enriched workspace or
 ProgramRoot-v2 identity is stale, reminted, or cross-paired.
+
+The additive [Exact Program Context v2](EXACT-PROGRAM-CONTEXT-V2.md) retains
+and freshly replays this complete context before associating ProgramRoot v3 and
+its contract/test facts. It changes neither this schema and digest nor the
+existing v1 exact selectors.

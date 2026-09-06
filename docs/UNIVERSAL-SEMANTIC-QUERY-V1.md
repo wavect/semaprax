@@ -298,3 +298,10 @@ same dual selection before freshly replaying and exact-comparing the unchanged
 v1 query/result pair. No v1 replay request may infer or select a v2 context by
 workspace revision alone; malformed, stale, reminted, or cross-paired
 selectors fail closed.
+
+`execute_exact_v2` and `replay_exact_v2` are additive typed entry points over
+[Exact Program Context v2](EXACT-PROGRAM-CONTEXT-V2.md). They require the
+enriched workspace and ProgramRoot-v3 selectors before query parsing or
+execution, retain the exact ProgramRoot v2 and v3 only on the in-memory result,
+and serialize the same query/result v1 bytes and digests. They do not add an
+operation or a ProgramRoot field to either frozen wire.

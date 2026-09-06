@@ -277,7 +277,9 @@ pub use cxx_owned_data::{
     MAX_CXX_OWNED_DATA_PACKAGE_BYTES, PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
 };
 pub use exact_program_context::{
-    ExactProgramContext, EXACT_PROGRAM_CONTEXT_SCHEMA, MAX_EXACT_PROGRAM_CONTEXT_BYTES,
+    ExactProgramContext, ExactProgramContextV2, EXACT_PROGRAM_CONTEXT_SCHEMA,
+    EXACT_PROGRAM_CONTEXT_V2_SCHEMA, MAX_EXACT_PROGRAM_CONTEXT_BYTES,
+    MAX_EXACT_PROGRAM_CONTEXT_V2_BYTES,
 };
 pub use execution::{
     verify_execution_envelope, ProjectContractArgument, ProjectContractFailure, ProjectExecution,

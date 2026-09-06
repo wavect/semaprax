@@ -104,6 +104,7 @@ Audience: all documentation readers.
 - [Contracts and Tests Facts v1](CONTRACTS-AND-TESTS-FACTS-V1.md)
 - [ProgramRoot v3](PROGRAM-ROOT-V3.md)
 - [Exact Program Context v1](EXACT-PROGRAM-CONTEXT-V1.md)
+- [Exact Program Context v2](EXACT-PROGRAM-CONTEXT-V2.md)
 - [Explicit AgentDefinition Association v1](EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md)
 - [Universal Semantic Transaction v1](UNIVERSAL-SEMANTIC-TRANSACTION-V1.md)
 - [Universal Semantic Transaction Composition v1](UNIVERSAL-SEMANTIC-TRANSACTION-COMPOSITION-V1.md)

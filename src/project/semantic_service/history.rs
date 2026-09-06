@@ -5,6 +5,7 @@ use std::sync::Arc;
 use serde_json::{json, Value};
 
 use super::{capacity, hash, invalid, parse_value, stale, validate_digest, Result};
+use crate::project::ProgramRootV3;
 
 pub const SEMANTIC_WORKSPACE_SERVICE_HISTORY_ENTRY_SCHEMA: &str =
     "semaprax.semantic-workspace-service-history-entry.v1";
@@ -222,6 +223,7 @@ impl SemanticWorkspaceServiceHistory {
             project_revision: project_revision.to_owned(),
             entries: Arc::from(self.entries.clone()),
             program_root_v2: None,
+            program_root_v3: None,
         })
     }
 }
@@ -360,6 +362,7 @@ pub struct SemanticWorkspaceServiceHistorySnapshot {
     project_revision: String,
     entries: Arc<[SemanticWorkspaceServiceHistoryEntry]>,
     program_root_v2: Option<super::ProgramRootV2>,
+    program_root_v3: Option<ProgramRootV3>,
 }
 
 impl SemanticWorkspaceServiceHistorySnapshot {
@@ -385,6 +388,14 @@ impl SemanticWorkspaceServiceHistorySnapshot {
 
     pub(super) fn retain_program_root_v2(&mut self, root: super::ProgramRootV2) {
         self.program_root_v2 = Some(root);
+    }
+
+    pub fn program_root_v3(&self) -> Option<&ProgramRootV3> {
+        self.program_root_v3.as_ref()
+    }
+
+    pub(super) fn retain_program_root_v3(&mut self, root: ProgramRootV3) {
+        self.program_root_v3 = Some(root);
     }
 
     pub fn query(
@@ -440,6 +451,7 @@ impl SemanticWorkspaceServiceHistorySnapshot {
             history_length: self.entries.len(),
             json,
             program_root_v2: self.program_root_v2.clone(),
+            program_root_v3: self.program_root_v3.clone(),
         })
     }
 }
@@ -454,6 +466,7 @@ pub struct SemanticWorkspaceServiceHistoryResult {
     history_length: usize,
     json: String,
     program_root_v2: Option<super::ProgramRootV2>,
+    program_root_v3: Option<ProgramRootV3>,
 }
 
 impl SemanticWorkspaceServiceHistoryResult {
@@ -491,6 +504,10 @@ impl SemanticWorkspaceServiceHistoryResult {
 
     pub fn program_root_v2(&self) -> Option<&super::ProgramRootV2> {
         self.program_root_v2.as_ref()
+    }
+
+    pub fn program_root_v3(&self) -> Option<&ProgramRootV3> {
+        self.program_root_v3.as_ref()
     }
 }
 

@@ -247,3 +247,11 @@ in-memory candidate cannot yet freshly replay every external fact. Existing
 transaction, result, review, impact, and evidence bytes remain unchanged.
 `replay_exact` applies the same dual selection before independently replaying
 those frozen v1 bytes and retaining the same authenticated base root.
+
+The additive `validate_exact_v2` and `replay_exact_v2` entry points first select
+the enriched workspace and ProgramRoot v3 through [Exact Program Context
+v2](EXACT-PROGRAM-CONTEXT-V2.md), then run the same unchanged v1 validation or
+replay. Typed artifacts retain the selected base ProgramRoot v3. Transaction,
+impact, review, result, and evidence bytes remain identical. The candidate
+continues to have only its ordinary ProgramRoot v1; no candidate ProgramRoot v3
+or context-v2 identity is derived.

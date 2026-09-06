@@ -776,6 +776,7 @@ impl SemanticTransaction {
             result_digest,
             evidence,
             base_program_root_v2: None,
+            base_program_root_v3: None,
         })
     }
 
@@ -812,6 +813,7 @@ pub struct SemanticTransactionArtifacts {
     result_digest: String,
     evidence: String,
     base_program_root_v2: Option<super::ProgramRootV2>,
+    base_program_root_v3: Option<super::ProgramRootV3>,
 }
 
 impl SemanticTransactionArtifacts {
@@ -829,6 +831,9 @@ impl SemanticTransactionArtifacts {
     /// unavailable until its external facts can be freshly replayed.
     pub fn base_program_root_v2(&self) -> Option<&super::ProgramRootV2> {
         self.base_program_root_v2.as_ref()
+    }
+    pub fn base_program_root_v3(&self) -> Option<&super::ProgramRootV3> {
+        self.base_program_root_v3.as_ref()
     }
     pub fn impact(&self) -> &str {
         &self.impact

@@ -620,6 +620,7 @@ impl SemanticQuery {
             workspace_revision: self.expected_workspace_revision.clone(),
             program_root: generation.program_root().clone(),
             program_root_v2: None,
+            program_root_v3: None,
         })
     }
 
@@ -645,6 +646,31 @@ impl SemanticQuery {
         }
         let mut result = self.execute(snapshot)?;
         result.program_root_v2 = Some(program_root_v2);
+        Ok(result)
+    }
+
+    /// Execute only after the retained exact-context v2 matches the enriched
+    /// workspace and ProgramRoot v3 selectors. Frozen result bytes are unchanged.
+    pub fn execute_exact_v2(
+        &self,
+        snapshot: &SemanticWorkspaceSnapshot,
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticQueryResult> {
+        let context = snapshot.exact_context_v2().ok_or_else(|| {
+            invalid("semantic query snapshot has no retained exact ProgramRoot v3 context")
+        })?;
+        let program_root_v3 = context
+            .select(expected_workspace_revision, expected_program_root_v3_digest)?
+            .clone();
+        if self.expected_workspace_revision() != expected_workspace_revision {
+            return Err(stale(
+                "semantic query exact workspace selector disagrees with its query",
+            ));
+        }
+        let mut result = self.execute(snapshot)?;
+        result.program_root_v2 = Some(context.program_root_v2().clone());
+        result.program_root_v3 = Some(program_root_v3);
         Ok(result)
     }
 
@@ -709,6 +735,42 @@ impl SemanticQuery {
         }
         Ok(result)
     }
+
+    /// Replay unchanged query/result v1 wires after exact ProgramRoot v3
+    /// selection. The selected v3 is retained only in the typed result.
+    pub fn replay_exact_v2(
+        snapshot: &SemanticWorkspaceSnapshot,
+        query_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+        expected_result_digest: &str,
+        result_bytes: &[u8],
+    ) -> Result<SemanticQueryResult> {
+        snapshot
+            .exact_context_v2()
+            .ok_or_else(|| invalid("semantic query snapshot has no exact ProgramRoot v3 context"))?
+            .select(expected_workspace_revision, expected_program_root_v3_digest)?;
+        let query = Self::from_json(query_bytes)?;
+        if result_bytes.len() > MAX_SEMANTIC_QUERY_RESULT_BYTES {
+            return Err(capacity("semantic query result exceeds its byte limit"));
+        }
+        validate_result_wire(result_bytes)?;
+        validate_digest(expected_result_digest)?;
+        if hash(RESULT_DOMAIN, result_bytes) != expected_result_digest {
+            return Err(stale("semantic query result digest is stale"));
+        }
+        let result = query.execute_exact_v2(
+            snapshot,
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
+        )?;
+        if result.result_digest() != expected_result_digest
+            || result.to_json().as_bytes() != result_bytes
+        {
+            return Err(stale("semantic query result failed exact replay"));
+        }
+        Ok(result)
+    }
 }
 
 /// One canonical result retaining the exact inner legacy payload bytes.
@@ -721,6 +783,7 @@ pub struct SemanticQueryResult {
     workspace_revision: String,
     program_root: super::ProgramRoot,
     program_root_v2: Option<super::ProgramRootV2>,
+    program_root_v3: Option<super::ProgramRootV3>,
 }
 
 impl SemanticQueryResult {
@@ -747,6 +810,9 @@ impl SemanticQueryResult {
     }
     pub fn program_root_v2(&self) -> Option<&super::ProgramRootV2> {
         self.program_root_v2.as_ref()
+    }
+    pub fn program_root_v3(&self) -> Option<&super::ProgramRootV3> {
+        self.program_root_v3.as_ref()
     }
 }
 

@@ -109,5 +109,7 @@ Canonical Semantic Workspace Revision v1 and ProgramRoot v1/v2 bytes:
 cargo test --locked -p semaprax --test workspace program_root_v3::
 ```
 
-This is bounded association evidence only. It does not create ProgramRoot-v3
-exact-context, query, transaction, service, execution, or publication support.
+This is bounded association evidence only. The additive [Exact Program Context
+v2](EXACT-PROGRAM-CONTEXT-V2.md) now supplies a separate typed selection layer
+for this exact root without changing ProgramRoot-v3 bytes. Candidate-v3
+identity, exact service refresh, execution, and publication remain closed.

@@ -18,10 +18,10 @@ use crate::workspace_analysis::{
 use super::semantic_service_indexes::SemanticServiceIndexes;
 use super::{
     AgentDefinitions, AgentDefinitionsQuery, AgentDefinitionsQueryResult, ExactProgramContext,
-    ProgramRoot, ProgramRootV2, ProjectFrontendCache, ProjectFrontendSource, ProjectManifest,
-    ProjectRevision, ProjectSemanticImage, SemanticQuery, SemanticQueryResult,
-    SemanticServiceIndexQuery, SemanticServiceIndexResult, SemanticTransaction,
-    SemanticTransactionArtifacts, SemanticWorkspaceRevision,
+    ExactProgramContextV2, ProgramRoot, ProgramRootV2, ProgramRootV3, ProjectFrontendCache,
+    ProjectFrontendSource, ProjectManifest, ProjectRevision, ProjectSemanticImage, SemanticQuery,
+    SemanticQueryResult, SemanticServiceIndexQuery, SemanticServiceIndexResult,
+    SemanticTransaction, SemanticTransactionArtifacts, SemanticWorkspaceRevision,
 };
 
 mod history;
@@ -58,6 +58,7 @@ pub struct SemanticWorkspaceGeneration {
     image: Arc<ProjectSemanticImage>,
     indexes: SemanticServiceIndexes,
     exact_context: Option<Arc<ExactProgramContext>>,
+    exact_context_v2: Option<Arc<ExactProgramContextV2>>,
 }
 
 impl SemanticWorkspaceGeneration {
@@ -95,13 +96,26 @@ impl SemanticWorkspaceGeneration {
 
     /// The additive exact ProgramRoot v2 selection retained by this generation.
     pub fn exact_context(&self) -> Option<&Arc<ExactProgramContext>> {
-        self.exact_context.as_ref()
+        self.exact_context.as_ref().or_else(|| {
+            self.exact_context_v2
+                .as_deref()
+                .map(ExactProgramContextV2::exact_program_context_v1_arc)
+        })
     }
 
     pub fn program_root_v2(&self) -> Option<&ProgramRootV2> {
-        self.exact_context
+        self.exact_context()
+            .map(|context| context.program_root_v2())
+    }
+
+    pub fn exact_context_v2(&self) -> Option<&Arc<ExactProgramContextV2>> {
+        self.exact_context_v2.as_ref()
+    }
+
+    pub fn program_root_v3(&self) -> Option<&ProgramRootV3> {
+        self.exact_context_v2
             .as_deref()
-            .map(ExactProgramContext::program_root_v2)
+            .map(ExactProgramContextV2::program_root_v3)
     }
 
     pub fn image(&self) -> &Arc<ProjectSemanticImage> {
@@ -121,6 +135,7 @@ impl SemanticWorkspaceGeneration {
 #[derive(Clone)]
 pub struct SemanticWorkspaceSnapshot {
     generation: Arc<SemanticWorkspaceGeneration>,
+    exact_context_v2: Option<Arc<ExactProgramContextV2>>,
 }
 
 impl SemanticWorkspaceSnapshot {
@@ -162,6 +177,16 @@ impl SemanticWorkspaceSnapshot {
 
     pub fn program_root_v2(&self) -> Option<&ProgramRootV2> {
         self.generation.program_root_v2()
+    }
+
+    pub fn exact_context_v2(&self) -> Option<&ExactProgramContextV2> {
+        self.exact_context_v2.as_deref()
+    }
+
+    pub fn program_root_v3(&self) -> Option<&ProgramRootV3> {
+        self.exact_context_v2
+            .as_deref()
+            .map(ExactProgramContextV2::program_root_v3)
     }
 
     pub fn symbol(&self, id: &str) -> Result<String> {
@@ -219,6 +244,19 @@ impl SemanticWorkspaceSnapshot {
             self,
             expected_workspace_revision,
             expected_program_root_v2_digest,
+        )
+    }
+
+    pub fn query_exact_v2(
+        &self,
+        query: &SemanticQuery,
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticQueryResult> {
+        query.execute_exact_v2(
+            self,
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
         )
     }
 
@@ -303,13 +341,20 @@ impl SemanticWorkspaceService {
         )
     }
 
+    pub fn open_exact_v2(context: Arc<ExactProgramContextV2>) -> Result<Self> {
+        Self::open_with_semantic_cache_exact_v2(
+            context,
+            ProjectFrontendCache::new_with_semantic_cache(),
+        )
+    }
+
     /// Open with compiler-created cache state. A persistent cache must already
     /// have been authenticated by the explicit host adapter that supplied it.
     pub fn open_with_semantic_cache(
         revision: Arc<ProjectRevision>,
         frontend: ProjectFrontendCache,
     ) -> Result<Self> {
-        Self::open_generation_with_semantic_cache(revision, frontend, None)
+        Self::open_generation_with_semantic_cache(revision, frontend, None, None)
     }
 
     pub fn open_with_semantic_cache_exact(
@@ -320,6 +365,19 @@ impl SemanticWorkspaceService {
             Arc::clone(context.revision()),
             frontend,
             Some(context),
+            None,
+        )
+    }
+
+    pub fn open_with_semantic_cache_exact_v2(
+        context: Arc<ExactProgramContextV2>,
+        frontend: ProjectFrontendCache,
+    ) -> Result<Self> {
+        Self::open_generation_with_semantic_cache(
+            Arc::clone(context.exact_program_context_v1().revision()),
+            frontend,
+            None,
+            Some(context),
         )
     }
 
@@ -327,6 +385,7 @@ impl SemanticWorkspaceService {
         revision: Arc<ProjectRevision>,
         mut frontend: ProjectFrontendCache,
         exact_context: Option<Arc<ExactProgramContext>>,
+        exact_context_v2: Option<Arc<ExactProgramContextV2>>,
     ) -> Result<Self> {
         if !frontend.is_semantic_cache_enabled() {
             return Err(invalid(
@@ -342,7 +401,11 @@ impl SemanticWorkspaceService {
             ));
         }
         let frontend_work = parse_value(build.to_json())?;
-        let active = Arc::new(derive_generation(revision, exact_context)?);
+        let active = Arc::new(derive_generation(
+            revision,
+            exact_context,
+            exact_context_v2,
+        )?);
         let json = render(json!({
             "authority": false,
             "frontend_work": frontend_work,
@@ -446,11 +509,45 @@ impl SemanticWorkspaceService {
         snapshot.query(&query)
     }
 
+    /// Capture history after selecting the active ProgramRoot v3. Frozen v1
+    /// history bytes are unchanged; both predecessor roots remain typed-only.
+    pub fn history_snapshot_exact_v2(
+        &self,
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticWorkspaceServiceHistorySnapshot> {
+        let context = self.active.exact_context_v2().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v3 context")
+        })?;
+        let root_v3 = context
+            .select(expected_workspace_revision, expected_program_root_v3_digest)?
+            .clone();
+        let mut snapshot = self.history_snapshot(expected_workspace_revision)?;
+        snapshot.retain_program_root_v2(context.program_root_v2().clone());
+        snapshot.retain_program_root_v3(root_v3);
+        Ok(snapshot)
+    }
+
+    pub fn history_query_exact_v2(
+        &self,
+        query_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticWorkspaceServiceHistoryResult> {
+        let snapshot = self.history_snapshot_exact_v2(
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
+        )?;
+        let query = SemanticWorkspaceServiceHistoryQuery::from_json(query_bytes)?;
+        snapshot.query(&query)
+    }
+
     /// Execute one exact canonical query against the active immutable generation.
     pub fn query(&self, query_bytes: &[u8]) -> Result<SemanticQueryResult> {
         let query = SemanticQuery::from_json(query_bytes)?;
         let snapshot = SemanticWorkspaceSnapshot {
             generation: Arc::clone(&self.active),
+            exact_context_v2: None,
         };
         query.execute(&snapshot)
     }
@@ -463,6 +560,7 @@ impl SemanticWorkspaceService {
     ) -> Result<AgentDefinitionsQueryResult> {
         let snapshot = SemanticWorkspaceSnapshot {
             generation: Arc::clone(&self.active),
+            exact_context_v2: None,
         };
         query.execute(&snapshot)
     }
@@ -507,12 +605,49 @@ impl SemanticWorkspaceService {
         )
     }
 
+    pub fn query_exact_v2(
+        &self,
+        query_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticQueryResult> {
+        let snapshot =
+            self.snapshot_exact_v2(expected_workspace_revision, expected_program_root_v3_digest)?;
+        let query = SemanticQuery::from_json(query_bytes)?;
+        snapshot.query_exact_v2(
+            &query,
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
+        )
+    }
+
+    pub fn replay_query_exact_v2(
+        &self,
+        query_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+        expected_result_digest: &str,
+        result_bytes: &[u8],
+    ) -> Result<SemanticQueryResult> {
+        let snapshot =
+            self.snapshot_exact_v2(expected_workspace_revision, expected_program_root_v3_digest)?;
+        SemanticQuery::replay_exact_v2(
+            &snapshot,
+            query_bytes,
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
+            expected_result_digest,
+            result_bytes,
+        )
+    }
+
     /// Admit and execute one exact canonical retained-index query against the
     /// active generation. This reads no filesystem state and grants no authority.
     pub fn index_query(&self, query_bytes: &[u8]) -> Result<SemanticServiceIndexResult> {
         let query = SemanticServiceIndexQuery::from_json(query_bytes)?;
         let snapshot = SemanticWorkspaceSnapshot {
             generation: Arc::clone(&self.active),
+            exact_context_v2: None,
         };
         query.execute(&snapshot)
     }
@@ -526,6 +661,7 @@ impl SemanticWorkspaceService {
         }
         Ok(SemanticWorkspaceSnapshot {
             generation: Arc::clone(&self.active),
+            exact_context_v2: None,
         })
     }
 
@@ -540,6 +676,22 @@ impl SemanticWorkspaceService {
         context.select(expected_workspace_revision, expected_program_root_v2_digest)?;
         Ok(SemanticWorkspaceSnapshot {
             generation: Arc::clone(&self.active),
+            exact_context_v2: None,
+        })
+    }
+
+    pub fn snapshot_exact_v2(
+        &self,
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticWorkspaceSnapshot> {
+        let context = self.active.exact_context_v2().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v3 context")
+        })?;
+        context.select(expected_workspace_revision, expected_program_root_v3_digest)?;
+        Ok(SemanticWorkspaceSnapshot {
+            generation: Arc::clone(&self.active),
+            exact_context_v2: Some(Arc::clone(context)),
         })
     }
 
@@ -551,9 +703,9 @@ impl SemanticWorkspaceService {
         sources: &[ProjectFrontendSource],
         expected_old_workspace_revision: &str,
     ) -> Result<SemanticWorkspaceServiceRefresh> {
-        if self.active.exact_context().is_some() {
+        if self.active.exact_context().is_some() || self.active.exact_context_v2().is_some() {
             return Err(invalid(
-                "exact ProgramRoot v2 refresh requires fresh extension replay and is unavailable",
+                "exact ProgramRoot refresh requires fresh extension replay and is unavailable",
             ));
         }
         validate_digest(expected_old_workspace_revision)?;
@@ -572,7 +724,7 @@ impl SemanticWorkspaceService {
         let build = frontend.build(manifest, sources)?;
         let frontend_work = parse_value(build.to_json())?;
         let candidate_revision = build.into_revision();
-        let candidate = Arc::new(derive_generation(candidate_revision, None)?);
+        let candidate = Arc::new(derive_generation(candidate_revision, None, None)?);
 
         let before = &self.active.revision;
         let after = &candidate.revision;
@@ -721,13 +873,77 @@ impl SemanticWorkspaceService {
             evidence_bytes,
         )
     }
+
+    pub fn validate_transaction_exact_v2(
+        &self,
+        transaction_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticTransactionArtifacts> {
+        let context = self.active.exact_context_v2().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v3 context")
+        })?;
+        context.select(expected_workspace_revision, expected_program_root_v3_digest)?;
+        let mut history = self
+            .history
+            .lock()
+            .map_err(|_| invalid("semantic workspace service history lock is poisoned"))?;
+        history.require_capacity()?;
+        let transaction = SemanticTransaction::from_json(transaction_bytes)?;
+        let artifacts = transaction.validate_exact_v2(
+            Arc::clone(context),
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
+        )?;
+        let history_entry = history.transaction_entry(
+            self.active.revision.project_revision(),
+            artifacts.base_program_root().workspace_revision(),
+            artifacts.candidate().revision().project_revision(),
+            artifacts.candidate_program_root().workspace_revision(),
+            transaction.digest(),
+            artifacts.result_digest(),
+        )?;
+        history.append(history_entry);
+        Ok(artifacts)
+    }
+
+    /// Replay is read-only and never appends a history entry.
+    pub fn replay_transaction_exact_v2(
+        &self,
+        transaction_bytes: &[u8],
+        evidence_bytes: &[u8],
+        expected_workspace_revision: &str,
+        expected_program_root_v3_digest: &str,
+    ) -> Result<SemanticTransactionArtifacts> {
+        let context = self.active.exact_context_v2().ok_or_else(|| {
+            invalid("semantic workspace service has no retained exact ProgramRoot v3 context")
+        })?;
+        SemanticTransaction::replay_exact_v2(
+            Arc::clone(context),
+            expected_workspace_revision,
+            expected_program_root_v3_digest,
+            transaction_bytes,
+            evidence_bytes,
+        )
+    }
 }
 
 fn derive_generation(
     revision: Arc<ProjectRevision>,
     exact_context: Option<Arc<ExactProgramContext>>,
+    exact_context_v2: Option<Arc<ExactProgramContextV2>>,
 ) -> Result<SemanticWorkspaceGeneration> {
-    let (canonical, program_root) = match exact_context.as_deref() {
+    if exact_context.is_some() && exact_context_v2.is_some() {
+        return Err(invalid(
+            "semantic workspace generation cannot retain two exact contexts",
+        ));
+    }
+    let selected_v1 = exact_context.as_deref().or_else(|| {
+        exact_context_v2
+            .as_deref()
+            .map(ExactProgramContextV2::exact_program_context_v1)
+    });
+    let (canonical, program_root) = match selected_v1 {
         Some(context) => (
             context.semantic_workspace().clone(),
             context.semantic_workspace_root().clone(),
@@ -750,6 +966,7 @@ fn derive_generation(
         image,
         indexes,
         exact_context,
+        exact_context_v2,
     })
 }
 

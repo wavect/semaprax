@@ -664,6 +664,16 @@ Semantic Workspace Revision v1 or ProgramRoot v1/v2 bytes. See [Contracts and
 Tests Facts v1](CONTRACTS-AND-TESTS-FACTS-V1.md) and [ProgramRoot
 v3](PROGRAM-ROOT-V3.md).
 
+`src/project/exact_program_context/v2.rs` owns the additive ProgramRoot-v3
+selector. It independently replays exact context v1, contract/test facts, and
+ProgramRoot v3, then requires the enriched workspace and v3-root digests on
+every exact route. Query, transaction, service, and service-history adapters
+retain v3 (and where applicable v2) only on typed in-memory results; their v1
+wires remain unchanged. Exact transaction history still binds the authenticated
+default Project-derived base workspace. Exact generations cannot refresh, and
+no candidate-v3 identity exists. See [Exact Program Context
+v2](EXACT-PROGRAM-CONTEXT-V2.md).
+
 `src/project/semantic_transaction.rs` owns the bounded authority-free Universal
 Semantic Transaction v1 kernel. It binds an exact canonical workspace revision
 and admits a closed one-operation algebra containing a typed display rename and
@@ -2116,6 +2126,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Canonical Project-derived semantic workspace revision | `src/project/canonical_workspace_revision.rs` |
 | Segmented source-owned ProgramRoot | `src/project/program_root.rs`, `src/project/program_root/v2.rs`, `src/project/program_root/v3.rs` |
+| Exact ProgramRoot selection contexts | `src/project/exact_program_context.rs`, `src/project/exact_program_context/v2.rs` |
 | Contract association and declared-test facts | `src/project/contracts_and_tests_facts.rs` |
 | Source Agent interaction contract facts | `src/project/agent_contract_facts.rs` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |

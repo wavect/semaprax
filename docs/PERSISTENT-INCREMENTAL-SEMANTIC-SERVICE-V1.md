@@ -330,3 +330,22 @@ snapshot/query/replay reuse that same dual selector and retain the selected
 bind the context's authenticated default Project/workspace base identity.
 Universal Query v1, Semantic Transaction v1, service-history v1, receipt, and
 legacy ProgramRoot bytes remain unchanged.
+
+## Additive exact ProgramRoot v3 context
+
+`open_exact_v2` atomically retains one independently replayed [Exact Program
+Context v2](EXACT-PROGRAM-CONTEXT-V2.md). Its snapshot/query/replay,
+transaction/replay, and history snapshot/query entry points require the exact
+enriched workspace plus ProgramRoot-v3 digest before parsing the unchanged v1
+operation wire. Query results retain ProgramRoot v2 and v3; transaction
+artifacts retain the selected base v3; history snapshots/results retain both
+roots. The same appended v3 descriptor continues to bind the retained
+contract/test facts throughout.
+
+Exact transaction history still records the authenticated default
+Project-derived base workspace from the unchanged transaction artifacts. V3 is
+a selector association, not a replacement history subject. Replay appends
+nothing. Refresh rejects context-v1 and context-v2 generations alike; there is
+no candidate-v3 or exact v3 refresh/adoption route. Service work, refresh,
+query/result, transaction/evidence, and history query/result schemas and bytes
+remain unchanged.

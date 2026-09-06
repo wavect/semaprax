@@ -367,7 +367,7 @@ fn foreign_type_names_point_at_the_admitted_types() {
         ("int", "`i64` (the literal default)"),
         ("double", "`f64` and `f32`"),
         ("boolean", "spelled `bool`"),
-        ("Vec", "no general collection type"),
+        ("List", "no general collection type"),
     ];
     for (name, expected_help) in cases {
         let diagnostic = only(

@@ -130,7 +130,8 @@ fn authenticate_empty_root() -> bool {
         .and_then(|block| block.checked_mul(filesystem.f_blocks));
     if root.st_dev != cwd.st_dev
         || root.st_ino != cwd.st_ino
-        || filesystem.f_type != libc::TMPFS_MAGIC
+        // glibc declares f_type signed and musl unsigned; same kernel value.
+        || filesystem.f_type as u64 != libc::TMPFS_MAGIC as u64
         || !matches!(capacity, Some(1..=65_536))
         // Linux ST_RDONLY | ST_NOSUID | ST_NODEV | ST_NOEXEC.
         || filesystem.f_flags & 15 != 15

@@ -116,7 +116,9 @@ pub(super) fn snapshot(
     } else {
         filesystem
     };
-    if filesystem.f_type != libc::TMPFS_MAGIC {
+    // glibc declares statfs.f_type signed and musl unsigned; the kernel field
+    // is the same 64-bit value, so compare its bits, not the libc signedness.
+    if filesystem.f_type as u64 != libc::TMPFS_MAGIC as u64 {
         return Err(Error::Invalid);
     }
 

@@ -150,10 +150,16 @@ jobs:
           dist="$RUNNER_TEMP/distributions"
           rustup toolchain install 1.88.0 --profile minimal --no-self-update
           rustc="$(rustup which --toolchain 1.88.0 rustc)"
+          echo "===== base: node + rustc only (no clang role) ====="
+          python3 scripts/doctor-provisioned-linux-bundle.py \
+            --selector real-distributions \
+            --node "$(command -v node)" --rustc "$rustc" --closure --plan
           for spec in \
-            "17.0.6:clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04:clang-17" \
-            "16.0.4:clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04:clang-16" \
-            "15.0.6:clang+llvm-15.0.6-x86_64-linux-gnu-ubuntu-18.04:clang-15"; do
+            "14.0.0:clang+llvm-14.0.0-x86_64-linux-gnu-ubuntu-18.04:clang-14" \
+            "13.0.1:clang+llvm-13.0.1-x86_64-linux-gnu-ubuntu-18.04:clang-13" \
+            "12.0.1:clang+llvm-12.0.1-x86_64-linux-gnu-ubuntu-16.04:clang-12" \
+            "11.1.0:clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-16.04:clang-11" \
+            "9.0.1:clang+llvm-9.0.1-x86_64-linux-gnu-ubuntu-16.04:clang-9"; do
             ver="${spec%%:*}"; rest="${spec#*:}"
             name="${rest%%:*}"; exe="${rest##*:}"
             rm -rf "$dist"; mkdir -p "$dist/clang/bin"
@@ -162,16 +168,15 @@ jobs:
               --wildcards "*/bin/$exe" || { echo "llvm-$ver: unavailable"; continue; }
             mv "$dist/clang/bin/$exe" "$dist/clang/bin/clang"
             chmod 755 "$dist/clang/bin/clang"
-            echo "===== llvm-$ver ====="
-            ldd "$dist/clang/bin/clang" || true
+            echo "===== llvm-$ver ($(stat -c '%s' "$dist/clang/bin/clang") bytes) ====="
+            ldd "$dist/clang/bin/clang" 2>&1 | grep -E "not found" || true
             "$dist/clang/bin/clang" --version | head -1 \
               || { echo "llvm-$ver: cannot run here"; continue; }
             python3 scripts/doctor-provisioned-linux-bundle.py \
               --selector real-distributions \
               --clang "$dist/clang/bin/clang" \
-              --node "$(command -v node)" \
-              --rustc "$rustc" \
-              --closure --plan || echo "llvm-$ver: bundle refused"
+              --node "$(command -v node)" --rustc "$rustc" \
+              --closure --plan | tail -5 || echo "llvm-$ver: bundle refused"
           done
 
       - name: Candidate real distributions that fit the 512 MiB ceiling

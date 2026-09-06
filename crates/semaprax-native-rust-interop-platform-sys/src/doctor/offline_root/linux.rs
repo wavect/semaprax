@@ -154,7 +154,8 @@ fn populate(
     let fs = unsafe { fs.assume_init() };
     #[cfg(test)]
     let fs = corrupt_metadata(fs, control.as_deref(), false);
-    if fs.f_type != libc::TMPFS_MAGIC
+    // glibc declares f_type signed and musl unsigned; same kernel value.
+    if fs.f_type as u64 != libc::TMPFS_MAGIC as u64
         || fs.f_bsize != plan.page_size() as _
         || fs.f_blocks != plan.block_count() as u64
         || fs.f_files != plan.inode_count() as u64
@@ -252,7 +253,8 @@ fn populate(
     let fs = unsafe { fs.assume_init() };
     #[cfg(test)]
     let fs = corrupt_metadata(fs, control.as_deref(), true);
-    if fs.f_type != libc::TMPFS_MAGIC
+    // glibc declares f_type signed and musl unsigned; same kernel value.
+    if fs.f_type as u64 != libc::TMPFS_MAGIC as u64
         || fs.f_bsize != plan.page_size() as _
         || fs.f_blocks != plan.block_count() as u64
         || fs.f_files != plan.inode_count() as u64

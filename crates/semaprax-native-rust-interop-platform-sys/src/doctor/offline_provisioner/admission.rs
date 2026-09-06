@@ -25,8 +25,8 @@ pub(super) fn validate() -> Result<(), ()> {
         }
     }
     require_wait_policy()?;
-    require_directory_fs(CGROUP_FD, libc::CGROUP2_SUPER_MAGIC as libc::c_long)?;
-    require_directory_fs(PROC_FD, libc::PROC_SUPER_MAGIC as libc::c_long)?;
+    require_directory_fs(CGROUP_FD, libc::CGROUP2_SUPER_MAGIC as u64)?;
+    require_directory_fs(PROC_FD, libc::PROC_SUPER_MAGIC as u64)?;
     require_anonymous_pipe(0, libc::O_RDONLY)?;
     require_anonymous_pipe(1, libc::O_WRONLY)?;
     require_anonymous_pipe(2, libc::O_WRONLY)?;
@@ -150,7 +150,9 @@ fn require_wait_policy() -> Result<(), ()> {
     }
 }
 
-fn require_directory_fs(fd: i32, magic: libc::c_long) -> Result<(), ()> {
+// The magic is taken as u64 because glibc declares statfs.f_type signed and
+// musl unsigned; the kernel field is the same 64-bit value on both.
+fn require_directory_fs(fd: i32, magic: u64) -> Result<(), ()> {
     let mut stat = std::mem::MaybeUninit::<libc::stat>::zeroed();
     let mut filesystem = std::mem::MaybeUninit::<libc::statfs>::zeroed();
     if unsafe { libc::fstat(fd, stat.as_mut_ptr()) } != 0
@@ -160,7 +162,7 @@ fn require_directory_fs(fd: i32, magic: libc::c_long) -> Result<(), ()> {
     }
     let stat = unsafe { stat.assume_init() };
     let filesystem = unsafe { filesystem.assume_init() };
-    if stat.st_mode & libc::S_IFMT != libc::S_IFDIR || filesystem.f_type != magic {
+    if stat.st_mode & libc::S_IFMT != libc::S_IFDIR || filesystem.f_type as u64 != magic {
         Err(())
     } else {
         Ok(())

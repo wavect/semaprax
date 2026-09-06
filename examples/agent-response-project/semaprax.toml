@@ -1,0 +1,17 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "agent-response"
+version = "1.0.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "agent.app"
+sources = ["src/app.spx", "src/report.spx", "src/scan.spx", "src/tests.spx", "src/verdict.spx"]
+tests = ["agent.tests"]
+
+[exports]
+web = ["agent.report.members", "agent.verdict.accepts"]
+
+[dependencies]
+std.data.json.doc = "=0.1.0"

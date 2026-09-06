@@ -1,0 +1,21 @@
+module agent.tests;
+use function @id("agent.report.members") from agent.report as members;
+use function @id("agent.report.report_byte") from agent.report as report_byte;
+use function @id("agent.report.report_len") from agent.report as report_len;
+use function @id("agent.scan.member") from agent.scan as member;
+use function @id("agent.verdict.accepts") from agent.verdict as accepts;
+
+@id("agent.tests.main")
+fn main() -> i64
+{
+    let good = [123u8, 34u8, 115u8, 116u8, 97u8, 116u8, 117u8, 115u8, 34u8, 58u8, 34u8, 111u8, 107u8, 34u8, 44u8, 34u8, 97u8, 110u8, 115u8, 119u8, 101u8, 114u8, 34u8, 58u8, 34u8, 52u8, 50u8, 34u8, 125u8];
+    let torn = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 125u8];
+    let name = [116u8, 111u8, 111u8, 108u8];
+    let response = array_as_slice(good);
+    let broken = array_as_slice(torn);
+    let tool = array_as_slice(name);
+    let scanned = member(response, tool) > byte_len(response) && members(response) == 2;
+    let rendered = report_len(response) == 17 && report_len(broken) == 18;
+    let framed = report_byte(response, 0) == 123 && report_byte(response, 11) == 58 && report_byte(response, 12) == 116 && report_byte(response, 15) == 101 && report_byte(response, 16) == 125 && report_byte(response, 17) == -1;
+    if accepts(response) && !accepts(broken) && scanned && rendered && framed { 0 } else { 1 }
+}

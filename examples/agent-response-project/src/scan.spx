@@ -1,0 +1,50 @@
+module agent.scan;
+use function @id("std.data.json.doc.at_in") from std.data.json.doc as at_in;
+use function @id("std.data.json.doc.next_key") from std.data.json.doc as next_key;
+use function @id("std.data.json.doc.skip_space") from std.data.json.doc as skip_space;
+use function @id("std.data.json.doc.string_end") from std.data.json.doc as string_end;
+
+@id("agent.scan.byte_same")
+fn byte_same(left: borrow Slice<u8>, left_index: usize, right: borrow Slice<u8>, right_index: usize) -> bool
+{
+    match byte_get(right, right_index) { Option::Some { value: byte } => at_in(left, left_index, byte, byte), Option::None {} => false, }
+}
+
+@id("agent.scan.token_is")
+fn token_is(response: borrow Slice<u8>, token: usize, name: borrow Slice<u8>) -> bool
+{
+    let end = string_end(response, token);
+    let mut offset = 0usize;
+    let mut same = end <= byte_len(response) && end == token + byte_len(name) + 2usize;
+    let mut running = same && offset < byte_len(name);
+    while running {
+        same = byte_same(response, token + 1usize + offset, name, offset);
+        offset = offset + 1usize;
+        running = same && offset < byte_len(name);
+        running
+    }
+    same
+}
+
+@id("agent.scan.first_key")
+fn first_key(response: borrow Slice<u8>) -> usize
+{
+    let open = skip_space(response, 0usize);
+    let first = skip_space(response, open + 1usize);
+    if at_in(response, open, 123u8, 123u8) && at_in(response, first, 34u8, 34u8) { first } else { byte_len(response) + 1usize + open }
+}
+
+@id("agent.scan.member")
+fn member(response: borrow Slice<u8>, name: borrow Slice<u8>) -> usize
+{
+    let mut here = first_key(response);
+    let mut found = here <= byte_len(response) && token_is(response, here, name);
+    let mut running = !found && here < byte_len(response);
+    while running {
+        here = next_key(response, here, 32usize);
+        found = here < byte_len(response) && token_is(response, here, name);
+        running = !found && here < byte_len(response);
+        running
+    }
+    if found { skip_space(response, skip_space(response, string_end(response, here)) + 1usize) } else { byte_len(response) + 1usize + 0usize }
+}

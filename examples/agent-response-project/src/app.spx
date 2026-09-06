@@ -1,0 +1,15 @@
+module agent.app;
+use function @id("agent.report.members") from agent.report as members;
+use function @id("agent.report.report_byte") from agent.report as report_byte;
+use function @id("agent.report.report_len") from agent.report as report_len;
+use function @id("agent.verdict.accepts") from agent.verdict as accepts;
+
+@id("agent.app.main")
+fn main() -> i64
+{
+    let good = [123u8, 34u8, 115u8, 116u8, 97u8, 116u8, 117u8, 115u8, 34u8, 58u8, 34u8, 111u8, 107u8, 34u8, 44u8, 34u8, 97u8, 110u8, 115u8, 119u8, 101u8, 114u8, 34u8, 58u8, 34u8, 52u8, 50u8, 34u8, 125u8];
+    let repeated = [123u8, 34u8, 115u8, 116u8, 97u8, 116u8, 117u8, 115u8, 34u8, 58u8, 34u8, 111u8, 107u8, 34u8, 44u8, 34u8, 115u8, 116u8, 97u8, 116u8, 117u8, 115u8, 34u8, 58u8, 34u8, 111u8, 107u8, 34u8, 125u8];
+    let response = array_as_slice(good);
+    let duplicated = array_as_slice(repeated);
+    if accepts(response) && !accepts(duplicated) && members(response) == 2 && report_len(response) == 17 && report_byte(response, 12) == 116 && report_len(duplicated) == 18 && report_byte(duplicated, 12) == 102 { 0 } else { 1 }
+}

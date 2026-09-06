@@ -1,0 +1,53 @@
+module agent.report;
+use function @id("agent.scan.first_key") from agent.scan as first_key;
+use function @id("agent.verdict.accepts") from agent.verdict as accepts;
+use function @id("std.data.json.doc.next_key") from std.data.json.doc as next_key;
+
+@id("agent.report.members")
+fn members(response: borrow Slice<u8>) -> i64
+{
+    let mut here = first_key(response);
+    let mut count = if here < byte_len(response) { 1 } else { 0 };
+    let mut running = here < byte_len(response);
+    while running {
+        here = next_key(response, here, 32usize);
+        count = if here < byte_len(response) && count < 99 { count + 1 } else { count };
+        running = here < byte_len(response);
+        running
+    }
+    count
+}
+
+@id("agent.report.prefix_byte")
+fn prefix_byte(index: i64) -> i64
+{
+    match index { 0 => 123, 1 => 34, 2 => 97, 3 => 99, 4 => 99, 5 => 101, 6 => 112, 7 => 116, 8 => 101, 9 => 100, 10 => 34, 11 => 58, _ => -1, }
+}
+
+@id("agent.report.word_byte")
+fn word_byte(accepted: bool, index: i64) -> i64
+{
+    let yes = match index { 0 => 116, 1 => 114, 2 => 117, 3 => 101, _ => -1, };
+    let no = match index { 0 => 102, 1 => 97, 2 => 108, 3 => 115, 4 => 101, _ => -1, };
+    if accepted { yes } else { no }
+}
+
+@id("agent.report.word_len")
+fn word_len(accepted: bool) -> i64
+{
+    if accepted { 4 } else { 5 }
+}
+
+@id("agent.report.report_len")
+fn report_len(response: borrow Slice<u8>) -> i64
+{
+    13 + word_len(accepts(response))
+}
+
+@id("agent.report.report_byte")
+fn report_byte(response: borrow Slice<u8>, index: i64) -> i64
+{
+    let accepted = accepts(response);
+    let close = 12 + word_len(accepted);
+    if index < 12 { prefix_byte(index) } else { if index < close { word_byte(accepted, index - 12) } else { if index == close { 125 } else { -1 } } }
+}

@@ -1,0 +1,21 @@
+module agent.verdict;
+use function @id("agent.scan.member") from agent.scan as member;
+use function @id("agent.scan.token_is") from agent.scan as token_is;
+use function @id("std.data.json.doc.is_document") from std.data.json.doc as is_document;
+use function @id("std.data.json.doc.is_unique") from std.data.json.doc as is_unique;
+
+@id("agent.verdict.shaped")
+fn shaped(response: borrow Slice<u8>) -> bool
+{
+    let status = [115u8, 116u8, 97u8, 116u8, 117u8, 115u8];
+    let settled = [111u8, 107u8];
+    let answer = [97u8, 110u8, 115u8, 119u8, 101u8, 114u8];
+    let state = member(response, array_as_slice(status));
+    state <= byte_len(response) && member(response, array_as_slice(answer)) <= byte_len(response) && token_is(response, state, array_as_slice(settled))
+}
+
+@id("agent.verdict.accepts")
+fn accepts(response: borrow Slice<u8>) -> bool
+{
+    is_document(response) && is_unique(response) && shaped(response)
+}

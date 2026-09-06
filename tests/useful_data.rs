@@ -12,6 +12,8 @@
 //! `mod` in a test crate root resolves against `tests/`, so each module names
 //! its file explicitly.
 
+#[path = "useful_data/agent_response_project.rs"]
+mod agent_response_project;
 #[path = "useful_data/aggregate_contract_failure_lanes.rs"]
 mod aggregate_contract_failure_lanes;
 #[path = "useful_data/arrays_bytes_frontend.rs"]

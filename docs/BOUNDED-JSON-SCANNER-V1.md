@@ -242,6 +242,25 @@ through unchanged. `usize_len` and `usize_byte` render a count exactly.
 `-9223372036854775808` renders as its exact twenty bytes. `literal_len` and
 `literal_byte` give the bytes of `true`, `false`, and `null`.
 
+## Consuming the slice
+
+`examples/agent-response-project` is the worked consumer: a four-module
+Package Manifest v1 project under `useful-data.v1` whose only dependency is
+`std.data.json.doc`. It validates an agent-style response - one whole document
+with a bounded depth, no trailing bytes, and no repeated member name in any
+object - finds its top-level members by walking `next_key` and comparing name
+spans, and renders a pull-based structured verdict. It has no allocation, no
+network, and no filesystem authority, and
+`tests/useful_data.rs::agent_response_project` executes it on the interpreter,
+on native C11 at `-O0` and `-O2`, and on Core Wasm under Node.
+
+Its shape is governed by the same pre-bound as the packages. A consumer that
+vendors the 10.3 KB document layer keeps about 8.8 KB of its own source, and a
+consumer of two JSON packages keeps about 5.8 KB, so that project restates a
+two-digit decimal helper locally instead of taking a second dependency on
+`std.data.json.digits`. The directory's own README records the exact
+measurement.
+
 ## What is not implemented
 
 These are absent, not merely undocumented. A program must not infer them:

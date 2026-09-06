@@ -2,17 +2,19 @@
 //!
 //! One buffer is one write-once chain expression: `bytes_zeroed` allocates a
 //! zeroed buffer at a literal capacity and each `bytes_set` transfers that same
-//! owner in, stores one byte at a literal index below the capacity, and hands
-//! the owner back. Nothing in the chain is nameable, so a partially filled
-//! buffer has no second owner, no borrowed view, and no observable intermediate
-//! state; binding the chain's result freezes it, after which only the
-//! established borrowed reads apply.
+//! owner in, stores one byte at an admitted `usize` index, and hands the owner
+//! back. Nothing in the chain is nameable, so a partially filled buffer has no
+//! second owner, no borrowed view, and no observable intermediate state;
+//! binding the chain's result freezes it, after which only the established
+//! borrowed reads apply.
 //!
-//! Capacity exhaustion, an out-of-range element index, a dynamic capacity, and
-//! a second owner are therefore compile-time diagnostics on both projections.
-//! The reference interpreter and the native C backend execute the feature; the
-//! WebAssembly backend rejects it precisely because its owned bytes are opaque
-//! host-arena tokens reached through a frozen import set.
+//! Capacity exhaustion, a literal index outside the capacity, any index into an
+//! empty buffer, a dynamic capacity, and a second owner are compile-time
+//! diagnostics on both projections. A *computed* index is admitted and checked
+//! at run time: the bound is tested before the owner transfer commits, so an
+//! out-of-range store writes nothing, selects the single
+//! `semaprax.byte-buffer.v1` failure, and leaves the buffer in its canonical
+//! call-argument slot for the one destruction path that exit already owns.
 
 use std::path::Path;
 use std::process::Command;
@@ -44,6 +46,54 @@ fn main() -> i64
         Option::None {} => 0i32,
     };
     if byte_len(view) == 3usize && first == 65u8 && last == 67u8 && past_end == 0i32 { 7 } else { 1 }
+}
+"#;
+
+/// A computed element index. Both offsets come from a call the compiler cannot
+/// fold, which is the shape a scan-discovered offset takes. The buffer stays
+/// one write-once chain and the capacity stays a literal at the allocation
+/// site; only the index is dynamic.
+const COMPUTED: &str = r#"
+module test.owned_byte_buffer_computed;
+
+@id("buffer.offset")
+fn offset(base: usize) -> usize { base + 1usize }
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let buffer = bytes_set(bytes_set(bytes_zeroed(3usize), offset(0usize), 66u8), offset(1usize), 67u8);
+    let view = bytes_as_slice(buffer);
+    let first = match byte_get(view, 0usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 1u8,
+    };
+    let second = match byte_get(view, 1usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let third = match byte_get(view, 2usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    if byte_len(view) == 3usize && first == 0u8 && second == 66u8 && third == 67u8 { 7 } else { 1 }
+}
+"#;
+
+/// The same chain with one computed index one past the capacity. Nothing about
+/// the program is statically wrong, so the bound is a run-time check.
+const COMPUTED_OUT_OF_RANGE: &str = r#"
+module test.owned_byte_buffer_computed_past_end;
+
+@id("buffer.offset")
+fn offset(base: usize) -> usize { base + 1usize }
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let buffer = bytes_set(bytes_set(bytes_zeroed(3usize), offset(0usize), 66u8), offset(2usize), 67u8);
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 3usize { 7 } else { 1 }
 }
 "#;
 
@@ -126,19 +176,26 @@ fn write_once_buffer_fills_freezes_and_reads_with_one_owner_and_one_drop() {
     let resolved = hir::resolve(&program).unwrap();
     hir::validate(&resolved).unwrap();
 
-    // Exactly one destruction path. The allocation temporary, each call
-    // argument, each intermediate result, and the frozen local are all
-    // separate cleanup slots, but only the frozen local is ever finalized:
-    // every earlier slot is transferred into the next chain link.
+    // Exactly one destruction path on every exit. The allocation temporary,
+    // each call argument, each intermediate result, and the frozen local are
+    // all separate cleanup slots, but each exit finalizes exactly one of them:
+    // the success exit finalizes the frozen local because every earlier slot
+    // was transferred into the next chain link, and each `bytes_set` bound
+    // failure exit finalizes the call-argument slot the store never consumed.
     let plan = &main_function(&resolved).cleanup_plan;
-    let finalizers = plan
-        .exits
-        .iter()
-        .flat_map(|exit| &exit.finalize_in_order)
-        .count();
+    for exit in &plan.exits {
+        assert!(
+            exit.finalize_in_order.len() <= 1,
+            "no exit of a filled buffer destroys more than one owner"
+        );
+    }
     assert_eq!(
-        finalizers, 1,
-        "a filled buffer has exactly one destruction path"
+        plan.exits
+            .iter()
+            .filter(|exit| !exit.finalize_in_order.is_empty())
+            .count(),
+        4,
+        "one success exit and one element-bound failure exit per bytes_set link"
     );
     assert!(
         plan.slots.len() > 1,
@@ -229,12 +286,21 @@ fn capacity_and_element_index_failures_are_compile_time_diagnostics() {
         ),
         "SPX-T272",
     );
-    // An index that is not a literal is not an index at a known position.
+    // No index can ever name an element of an empty buffer, computed or not.
     assert_rejected(
         &program_source(
-            "    let where = 1usize;\n    let buffer = bytes_set(bytes_zeroed(2usize), where, 1u8);\n    let view = bytes_as_slice(buffer);\n    if byte_len(view) == 2usize { 0 } else { 1 }",
+            "    let where = 0usize;\n    let buffer = bytes_set(bytes_zeroed(0usize), where, 1u8);\n    let view = bytes_as_slice(buffer);\n    if byte_len(view) == 0usize { 0 } else { 1 }",
         ),
         "SPX-T272",
+    );
+    // A computed index into a nonempty buffer is admitted: the bound is a
+    // run-time check with one normalized failure, not a rejection.
+    assert!(
+        error_codes(&program_source(
+            "    let where = 1usize;\n    let buffer = bytes_set(bytes_zeroed(2usize), where, 1u8);\n    let view = bytes_as_slice(buffer);\n    if byte_len(view) == 2usize { 0 } else { 1 }",
+        ))
+        .is_empty(),
+        "a computed usize element index is admitted source"
     );
     // A capacity that is not known at the allocation site.
     assert_rejected(
@@ -431,18 +497,17 @@ fn hostile_hir_cannot_forge_a_buffer_capacity_or_element_index() {
     args[1].kind = ResolvedExprKind::Usize(3);
     assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
 
-    // An element index that is not a literal at all.
+    // A computed element index is admitted through resolved HIR alone; that is
+    // proved on real resolved HIR by
+    // `a_computed_element_index_is_admitted_and_stores_in_range_on_every_backend`.
+    // An element index that is not a `usize` expression at all stays refused.
     let mut hostile = baseline.clone();
     let chain = fill_chain(&mut hostile);
     let ResolvedExprKind::Call { args, .. } = &mut chain.kind else {
         unreachable!();
     };
-    let forged = args[1].clone();
-    args[1].kind = ResolvedExprKind::Binary {
-        op: semaprax::ast::BinaryOp::Add,
-        left: Box::new(forged.clone()),
-        right: Box::new(forged),
-    };
+    args[1].kind = ResolvedExprKind::Int(1);
+    args[1].ty = hir::ResolvedType::I64;
     assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
 
     // A capacity above the admitted owned byte payload extent.
@@ -513,4 +578,125 @@ fn interpret(source: &str, label: &str) -> String {
         interpreter::interpret(&path, "buffer.main", &[], &InterpreterOptions::default()).unwrap();
     let _ = std::fs::remove_file(Path::new(&path));
     interpretation.envelope
+}
+
+#[test]
+fn a_computed_element_index_is_admitted_and_stores_in_range_on_every_backend() {
+    let program = parse(COMPUTED, "owned-byte-buffer-computed.spx").unwrap();
+    assert!(
+        verify::verify(&program).is_empty(),
+        "a computed usize element index is admitted source"
+    );
+    let canonical = format::canonical(&program);
+    assert_eq!(
+        format::canonical(&parse(&canonical, "owned-byte-buffer-computed-canonical.spx").unwrap()),
+        canonical,
+        "the computed-index chain round-trips through the canonical formatter"
+    );
+
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+
+    // The bound is a selected operation failure, not a backend accident: each
+    // store owns one status source, and every exit still finalizes exactly one
+    // slot, so a failed store has the same single destruction path.
+    let plan = &main_function(&resolved).cleanup_plan;
+    assert_eq!(
+        plan.status_sources
+            .iter()
+            .filter(|source| matches!(
+                &source.producer,
+                semaprax::cleanup_plan::StatusProducer::PropagatedCall { callee }
+                    if callee.as_str() == "core.bytes.set"))
+            .count(),
+        2,
+        "each bytes_set link carries its own element-bound status source"
+    );
+    for exit in &plan.exits {
+        assert!(exit.finalize_in_order.len() <= 1);
+    }
+
+    let interpreted = interpret(COMPUTED, "computed-interp");
+    assert!(
+        interpreted.contains("\"kind\":\"returned\"") && interpreted.contains("\"value\":\"7\""),
+        "the reference interpreter stores at the computed offsets: {interpreted}"
+    );
+
+    let generated = codegen::emit_c(&program).unwrap();
+    assert_eq!(generated, codegen::emit_c(&program).unwrap());
+    assert_eq!(
+        generated.matches("spx_bytes_set_check_v1(spx_ctx,").count(),
+        2,
+        "the native backend checks the bound once per store"
+    );
+    assert!(generated.contains("semaprax.byte-buffer.v1"));
+
+    // Core-Wasm emits the same check in generated code rather than relying on
+    // the host import, and stays deterministic.
+    let emitted = wasm::emit_module(&program).unwrap();
+    assert_eq!(emitted, wasm::emit_module(&program).unwrap());
+    assert!(emitted.starts_with(b"\0asm"));
+
+    if !command_available("clang") {
+        return;
+    }
+    let native = std::env::temp_dir().join(format!(
+        "semaprax-owned-byte-buffer-computed-{}.native{}",
+        std::process::id(),
+        std::env::consts::EXE_SUFFIX
+    ));
+    codegen::build(&program, &native).unwrap();
+    let output = Command::new(&native).output().unwrap();
+    let _ = std::fs::remove_file(&native);
+    assert!(output.status.success(), "native computed-index run failed");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "7",
+        "the native backend agrees with the reference interpreter"
+    );
+}
+
+#[test]
+fn an_out_of_range_computed_index_selects_the_same_failure_on_every_backend() {
+    let program = parse(COMPUTED_OUT_OF_RANGE, "owned-byte-buffer-past-end.spx").unwrap();
+    assert!(
+        verify::verify(&program).is_empty(),
+        "an index the compiler cannot bound is admitted source"
+    );
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+
+    // Reference interpreter: the exact normalized status, and no partial write.
+    let interpreted = interpret(COMPUTED_OUT_OF_RANGE, "past-end-interp");
+    let parsed: serde_json::Value = serde_json::from_str(&interpreted).unwrap();
+    let outcome = &parsed["payload"]["outcome"];
+    assert_eq!(outcome["kind"], "failed", "{interpreted}");
+    assert_eq!(outcome["status"]["domain_id"], "semaprax.byte-buffer.v1");
+    assert_eq!(outcome["status"]["code"], 1);
+    assert_eq!(outcome["status"]["class"], "adapter");
+
+    if !command_available("clang") {
+        return;
+    }
+    // Native C11: the identical domain and code, nothing on stdout, and the
+    // buffer released by the exit the plan already owns.
+    let native = std::env::temp_dir().join(format!(
+        "semaprax-owned-byte-buffer-past-end-{}.native{}",
+        std::process::id(),
+        std::env::consts::EXE_SUFFIX
+    ));
+    codegen::build(&program, &native).unwrap();
+    let output = Command::new(&native).output().unwrap();
+    let _ = std::fs::remove_file(&native);
+    assert_eq!(
+        output.status.code(),
+        Some(73),
+        "the native run did not select an operation failure"
+    );
+    assert!(output.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).trim(),
+        "SEMAPRAX operation failure: semaprax.byte-buffer.v1/1",
+        "the native backend selects the reference interpreter's exact status"
+    );
 }

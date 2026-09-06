@@ -335,12 +335,13 @@ status-carrying form. Keeping those profiles distinct preserves the frozen
 legacy Project-v3 byte KAT without weakening typed status publication.
 
 The ordinary Web wrapper reserves internal status values 11 and 12 for the
-two byte-range outcomes before dispatch through its existing failure import;
-they are not public byte-range codes. Generated JavaScript maps them back to
-`semaprax.byte-range.v1` codes 1 (`start > end`) and 2 (`end > length`). Its
-exported `semanticStatus(error)` returns the same frozen
-`semaprax.status.v1` triple used by scalar exports. This lane encoding prevents
-byte-range codes 1 and 2 from colliding with arithmetic statuses without adding
+two byte-range outcomes, and 16 for the owned bounded byte buffer's element
+bound, before dispatch through its existing failure import; they are not public
+codes. Generated JavaScript maps them back to `semaprax.byte-range.v1` codes 1
+(`start > end`) and 2 (`end > length`), and `semaprax.byte-buffer.v1` code 1
+(`index_out_of_bounds`). Its exported `semanticStatus(error)` returns the same
+frozen `semaprax.status.v1` triple used by scalar exports. This lane encoding
+prevents those codes from colliding with arithmetic statuses without adding
 ambient authority or changing the Core-Wasm import inventory.
 
 The JavaScript facade accepts exactly an ordinary, attached, fixed-length

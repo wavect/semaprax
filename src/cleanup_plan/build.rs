@@ -3664,7 +3664,7 @@ impl<'a> PlanBuilder<'a> {
                 } => {
                     if index == args.len() {
                         let mut state = flow.state;
-                        let (vec_op, defer_commit) = bounded_vec::call_behavior(callee);
+                        let (vec_op, defer_commit) = super::deferred_commit::call_behavior(callee);
                         if !defer_commit {
                             for commit in &commits {
                                 self.consume_place(&commit.source, &mut state, &expression.id)?;
@@ -3677,7 +3677,7 @@ impl<'a> PlanBuilder<'a> {
                                 },
                             );
                         }
-                        if crate::byte_ops::by_id(callee.as_str()).is_some()
+                        if super::deferred_commit::is_total_byte_operation(callee)
                             || crate::host_io_ops::by_id(callee.as_str()).is_some()
                             || matches!(
                                 vec_op,
@@ -5283,7 +5283,7 @@ impl<'a> PlanBuilder<'a> {
         // This is the only caller-to-callee ownership boundary.  The
         // transition contains every and only owned parameter epoch in signature
         // order; once emitted, even a nonzero call status cannot restore them.
-        let (vec_op, defer_commit) = bounded_vec::call_behavior(callee);
+        let (vec_op, defer_commit) = super::deferred_commit::call_behavior(callee);
         if !defer_commit {
             for commit in &commits {
                 self.consume_place(&commit.source, &mut current_state, &expression.id)?;
@@ -5297,7 +5297,7 @@ impl<'a> PlanBuilder<'a> {
             );
         }
 
-        if crate::byte_ops::by_id(callee.as_str()).is_some()
+        if super::deferred_commit::is_total_byte_operation(callee)
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
             || matches!(
                 vec_op,

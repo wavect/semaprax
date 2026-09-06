@@ -9,7 +9,22 @@
 
 use std::sync::Arc;
 
+use crate::conformance::{NormalizedStatus, Retryability, StatusClass};
+
 use super::{Flow, OwnedBytesValue};
+
+/// The single Owned Bounded Byte Buffer v1 runtime failure. A computed
+/// `bytes_set` index at or above the transferred buffer's length selects this
+/// status before the store, so the buffer is never partially written.
+fn normalize_byte_buffer(code: u32) -> NormalizedStatus {
+    NormalizedStatus::try_new(
+        crate::byte_ops::SET_STATUS_DOMAIN,
+        code,
+        StatusClass::Adapter,
+        Retryability::Known(false),
+    )
+    .expect("compiler-owned owned byte buffer status table is valid")
+}
 
 /// Charge one allocation site and return the zeroed buffer it allocates.
 pub(super) fn zeroed(
@@ -46,17 +61,21 @@ pub(super) fn zeroed(
     })
 }
 
-/// Store one byte into the transferred owner and hand that owner back. A
-/// resolved index outside the buffer is an authenticated impossibility, so
-/// reaching one is a bounded guard failure rather than a silent truncation.
+/// Store one byte into the transferred owner and hand that owner back.
+///
+/// The element index is any admitted `usize` expression, so the bound is
+/// checked here rather than assumed. An index at or above the transferred
+/// buffer's length selects the single `semaprax.byte-buffer.v1` failure before
+/// any byte is written, which is the same predicate and the same normalized
+/// status the native and Core-Wasm backends select.
 pub(super) fn set(buffer: &OwnedBytesValue, index: u64, byte: u8) -> Result<OwnedBytesValue, Flow> {
     let Some(slot) = usize::try_from(index)
         .ok()
         .filter(|slot| *slot < buffer.bytes.len())
     else {
-        return Err(Flow::Guard(
-            "owned byte buffer element index is outside its capacity",
-        ));
+        return Err(Flow::Failure(normalize_byte_buffer(
+            crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+        )));
     };
     let mut filled = buffer.bytes.to_vec();
     filled[slot] = byte;

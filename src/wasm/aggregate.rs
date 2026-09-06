@@ -120,6 +120,7 @@ pub(super) const STATUS_BYTE_RANGE_END_OUT_OF_BOUNDS: i32 = 12;
 pub(super) const STATUS_VEC_PUSH_FULL: i32 = 13;
 pub(super) const STATUS_VEC_GET_OUT_OF_BOUNDS: i32 = 14;
 pub(super) const STATUS_VEC_ALLOCATION_FAILURE: i32 = 15;
+pub(super) const STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS: i32 = 16;
 pub(super) const STATUS_INTERNAL_INVALID_TAG: i32 = -1;
 
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
@@ -6280,6 +6281,14 @@ impl Emitter<'_> {
             require_type(value_type(&value), expected, "byte operation argument")?;
             values.push(value);
         }
+        if op == crate::byte_ops::ByteOp::Set {
+            // The element bound is checked in generated code before the owner
+            // transfer commits, so a failed store runs the canonical failure
+            // cleanup with the buffer still in its call-argument slot. The
+            // host import keeps its own independent gate, which admitted
+            // programs can no longer reach.
+            self.emit_owned_buffer_index_failure(&expr.id, &values[0], &values[1])?;
+        }
         self.apply_call_commit(&expr.id)?;
         if op != crate::byte_ops::ByteOp::Zeroed {
             self.validate_byte_slice(&values[0]);
@@ -6744,6 +6753,36 @@ impl Emitter<'_> {
             local,
             ty: ResolvedType::SliceU8,
         })
+    }
+
+    /// Select the single owned-buffer failure when the computed element index
+    /// is at or above the transferred buffer's length. The carrier's low word
+    /// is its byte length, which is the same predicate the reference
+    /// interpreter and the native backend apply.
+    fn emit_owned_buffer_index_failure(
+        &mut self,
+        expression: &ExpressionId,
+        buffer: &Value,
+        index: &Value,
+    ) -> Result<(), Diagnostic> {
+        self.get_scalar(index);
+        self.get_scalar(buffer);
+        self.output.extend([0xa7, 0xad, 0x5a]); // index >= carrier length
+        self.output.extend([0x04, 0x40, 0x41]);
+        write_i64(
+            self.output,
+            i64::from(STATUS_BYTE_BUFFER_INDEX_OUT_OF_BOUNDS),
+        );
+        self.output.push(0x21);
+        write_u32(self.output, self.plan.status);
+        self.emit_failure_cleanup(expression, StatusLane::OperationFailure)?;
+        self.output.push(0x0c);
+        write_u32(
+            self.output,
+            self.control_depth + self.status_exit_extra_depth,
+        );
+        self.output.push(0x0b);
+        Ok(())
     }
 
     fn emit_byte_range_failure_if(

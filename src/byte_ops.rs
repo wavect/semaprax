@@ -21,6 +21,14 @@ pub(crate) const RANGE_ID: &str = "core.bytes.range";
 pub(crate) const RANGE_STATUS_DOMAIN: &str = "semaprax.byte-range.v1";
 pub(crate) const RANGE_START_AFTER_END_CODE: u32 = 1;
 pub(crate) const RANGE_END_OUT_OF_BOUNDS_CODE: u32 = 2;
+/// Owned Bounded Byte Buffer v1 runtime failure domain. `bytes_set` admits a
+/// computed `usize` index, so an index at or above the buffer's length is a
+/// selected operation failure rather than a backend accident. The domain is
+/// separate from `semaprax.byte-range.v1` because it belongs to the owned
+/// buffer family rather than to borrowed sub-view construction.
+pub(crate) const SET_STATUS_DOMAIN: &str = "semaprax.byte-buffer.v1";
+/// The single admitted `semaprax.byte-buffer.v1` code.
+pub(crate) const SET_INDEX_OUT_OF_BOUNDS_CODE: u32 = 1;
 pub(crate) const COPY_NAME: &str = "bytes_copy";
 pub(crate) const COPY_ID: &str = "core.bytes.copy";
 pub(crate) const BYTES_AS_SLICE_NAME: &str = "bytes_as_slice";
@@ -211,6 +219,16 @@ impl ByteOp {
     /// `true` for the Owned Bounded Byte Buffer v1 write-once chain links.
     pub(crate) const fn is_owned_buffer_chain(self) -> bool {
         matches!(self, Self::Zeroed | Self::Set)
+    }
+
+    /// `true` for the one byte operation that can select a runtime failure.
+    ///
+    /// `bytes_set` admits a computed element index, so the store is checked
+    /// against the transferred buffer's length before the owner is committed.
+    /// Every other operation in this family is total after HIR admission, and
+    /// physical allocation failure stays invariant fail-stop.
+    pub(crate) const fn is_fallible(self) -> bool {
+        matches!(self, Self::Set)
     }
 
     /// Source parameter names in left-to-right order. They label diagnostics

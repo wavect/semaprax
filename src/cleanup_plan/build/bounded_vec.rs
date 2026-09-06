@@ -64,9 +64,3 @@ pub(super) fn type_arguments(expression: &ResolvedExpr) -> Result<&[ResolvedType
         _ => Err(plan_error("cleanup call expression has inconsistent shape")),
     }
 }
-
-pub(super) fn call_behavior(callee: &DeclarationId) -> (Option<crate::vec_ops::VecOp>, bool) {
-    let op = crate::vec_ops::by_id(callee.as_str());
-    let deferred = op == Some(crate::vec_ops::VecOp::Push);
-    (op, deferred)
-}

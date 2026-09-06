@@ -215,13 +215,15 @@ returns only scalars.
 
 The owned bounded byte buffer of
 [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) is *not* a
-usable key record here, for two independent reasons: `bytes_set` admits only a
-`usize` **literal** index (`SPX-T272`) while a key record is written at offsets
-a scan discovers, and neither operation is admitted in a `while` body at all
-(`SPX-T252`, `SPX-T267`). Core Wasm is no longer one of those reasons: both
-operations now execute there through the `env.spx_bytes_zeroed` and
-`env.spx_bytes_set` host-arena imports, so a future key record would have to
-clear only the two limits above.
+usable key record here, but for one remaining reason rather than three: neither
+operation is admitted in a `while` condition or body at all (`SPX-T252`,
+`SPX-T267`), and a key record is filled by a scan. Two earlier reasons no
+longer hold. Core Wasm executes both operations through the
+`env.spx_bytes_zeroed` and `env.spx_bytes_set` host-arena imports. And
+`bytes_set` now admits any `usize` index expression, so an offset a scan
+discovers can be written; an index outside the buffer is the run-time
+`semaprax.byte-buffer.v1` failure rather than a rejection. A future key record
+therefore has to clear only the loop limit.
 
 ## Writing
 

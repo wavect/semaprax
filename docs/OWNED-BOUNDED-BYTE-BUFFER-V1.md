@@ -3,10 +3,10 @@
 Audience: language users, tool authors, and compiler contributors.
 
 Status: partially implemented with local internal compiler evidence. The
-allocate-fill-freeze-read cycle, the compile-time capacity and element-index
-rules, the canonical CleanupPlan settlement, the semantic graph projection, and
-execution on the reference interpreter and the native C11 backend at O0/O2 have
-focused local evidence. The internal Core-Wasm backend executes the same exact
+allocate-fill-freeze-read cycle, the compile-time capacity rule, the
+compile-time and run-time element-index rules, the canonical CleanupPlan
+settlement, the semantic graph projection, and execution on the reference
+interpreter and the native C11 backend at O0/O2 have focused local evidence. The internal Core-Wasm backend executes the same exact
 profile through bounded host-arena imports with focused local Node evidence. A
 growable vector, elements wider than one byte, a public FFI or Project layout,
 a hosted or browser support claim, and a `std.*` interface are all open and are
@@ -33,9 +33,10 @@ growable vector is designed:
   reached through the frozen `env.spx_bytes_zeroed` and `env.spx_bytes_set`
   imports. This is not a general allocator or mutable collection ABI.
 
-This tranche therefore fixes the capacity at the allocation site and writes
-every element at a literal index, which needs neither loop-reachable allocation
-nor growth.
+This tranche therefore fixes the capacity at the allocation site, which needs
+neither loop-reachable allocation nor growth. The *element index* is not fixed:
+it is any admitted `usize` expression, so an offset a scan discovers can be
+written. Only the allocation is static.
 
 ## Ownership and borrowing model
 
@@ -53,15 +54,22 @@ checkable.
    nameable, a borrowed view cannot exist during the fill. After the freeze,
    moving the owner while a lexical view is live remains the established
    `SPX-T265` rejection.
-5. **Atomic failure.** Capacity exhaustion, an out-of-range element index, a
-   capacity that is not known at the allocation site, and a capacity above the
-   admitted owned byte payload extent are all compile-time diagnostics. No
-   partially constructed buffer is ever produced, so there is nothing to unwind.
+5. **Atomic failure.** A capacity that is not known at the allocation site, a
+   capacity above the admitted owned byte payload extent, a literal element
+   index at or above the capacity, and any index into an empty buffer are
+   compile-time diagnostics. A *computed* element index outside the buffer is
+   the one run-time failure. It is selected before the owner transfer commits
+   and before any byte is written, so no partially filled buffer is ever
+   produced or observable, and the buffer is destroyed by the canonical
+   CleanupPlan exit that the failed store never consumed.
 6. **Exactly one destruction path.** The allocation temporary, each call
    argument, and each intermediate result are separate canonical CleanupPlan
-   slots, but every one of them is *transferred* into the next chain link. The
-   frozen binding is the only slot any exit finalizes, through the existing
-   `core.bytes.drop` lifecycle.
+   slots, but on the success path every one of them is *transferred* into the
+   next chain link, and the frozen binding is the only slot the success exit
+   finalizes. Each `bytes_set` additionally owns one element-bound failure
+   exit, which finalizes exactly the call-argument slot that store did not
+   consume. No exit ever destroys more than one owner, and every destruction
+   goes through the existing `core.bytes.drop` lifecycle.
 
 ## Source contract
 
@@ -96,8 +104,10 @@ The admission rules are:
 - `bytes_set`'s `buffer` operand is syntactically the enclosing chain's
   previous `bytes_zeroed` or `bytes_set` call (`SPX-T271`). A named binding is
   a frozen buffer and can never be re-opened.
-- `bytes_set`'s `index` operand is a `usize` literal strictly below the chain's
-  capacity (`SPX-T272`).
+- `bytes_set`'s `index` operand is any `usize` expression. A *literal* index at
+  or above the chain's capacity is `SPX-T272`, and so is any index into a
+  zero-capacity buffer, because neither can ever name an element. Every other
+  index is admitted and checked at run time; see [Element bound](#element-bound).
 - A chain holds at most `256` `bytes_set` links.
 - Neither operation is admitted in a `while` condition or body. The byte-family
   rule reports `SPX-T252` and the owned byte allocation rule reports
@@ -107,6 +117,43 @@ Reading a frozen buffer uses the existing operations unchanged: `bytes_as_slice`
 for the borrowed view, `byte_len` for the length, `byte_get` for the checked
 `Option<u8>` lookup, and `byte_range` for a sub-view. Deterministic iteration is
 the existing Indexed Byte Loop v2 shape over the frozen buffer's view.
+
+## Element bound
+
+An index the compiler cannot bound is checked on every backend, with one
+normalized status and one selection rule.
+
+| Field | Value |
+| --- | --- |
+| Domain | `semaprax.byte-buffer.v1` |
+| Code | `1` (`index_out_of_bounds`) |
+| Class | `adapter` |
+| Retryable | `false` |
+
+The rule is the same three sentences on every route:
+
+1. The operands are evaluated left to right: buffer, index, value.
+2. The store fails when `index >= length`, where `length` is the buffer that
+   was staged as the operand. Capacity is a literal at the allocation site, so
+   the transferred buffer's length and the chain capacity are the same number.
+3. The failure is selected **before** the owner transfer commits, so the store
+   writes nothing and the buffer stays in its canonical call-argument slot for
+   that exit's single finalizer.
+
+Because failure precedes the commit, no backend invents a destruction of its
+own; the canonical CleanupPlan owns it, and the `bytes_set` call carries an
+ordinary `PropagatedCall` status source that independent replay re-derives.
+
+| Route | Where the bound is enforced |
+| --- | --- |
+| Reference interpreter | `src/interpreter/owned_buffer.rs` compares the index against the transferred owner's length and returns the normalized status. |
+| Native C11 | `spx_bytes_set_check_v1` records the adapter status; generated code branches to the epilogue before calling `spx_bytes_set`. |
+| Internal Core-Wasm | Generated code compares the index against the carrier's byte length and selects internal status value `16`, which the ordinary Web wrapper maps back to `semaprax.byte-buffer.v1` code `1`. |
+
+The Core-Wasm host import keeps its own independent gate on the carrier, index,
+and value. Admitted programs can no longer reach it, because generated code
+fails first; it remains so that a compiler or host defect cannot become a silent
+truncation or a store into an unauthenticated arena entry.
 
 ## Capacity
 
@@ -127,10 +174,12 @@ unknown capacity, an out-of-range element index, or a second owner; every such
 forgery is `SPX-H006`.
 
 The native and Core-Wasm host runtimes additionally refuse an out-of-range
-store as a runtime invariant failure. Core-Wasm also authenticates the opaque
-carrier and the exact `usize`/`u8` import arguments before mutating the same
-arena entry. Those paths are unreachable from admitted source and exist only so
-a compiler or host defect can never become silent truncation or new authority.
+store, as a runtime invariant failure and a host rejection respectively.
+Core-Wasm also authenticates the opaque carrier and the exact `usize`/`u8`
+import arguments before mutating the same arena entry. Those paths are
+unreachable from admitted source, which selects the element-bound failure
+first, and exist only so a compiler or host defect can never become silent
+truncation or new authority.
 The public byte-export adapter rejects any program using this internal-only
 profile with `SPX-W115`; the host imports do not widen a public descriptor.
 
@@ -140,7 +189,7 @@ profile with `SPX-W115`; the host imports do not widen a public descriptor.
 | --- | --- |
 | Reference interpreter | Executes the full cycle. |
 | Native C11 (O0 and O2) | Executes the full cycle through `spx_bytes_zeroed` and `spx_bytes_set`. |
-| Internal Core-Wasm | Executes the exact cycle through frozen host-arena imports. Focused local Node evidence covers three in-place writes and reads, repeated success and contract-failure re-entry at one live arena entry, deterministic valid modules, and absence of `memory.copy` and `memory.grow`. |
+| Internal Core-Wasm | Executes the exact cycle through frozen host-arena imports. Focused local Node evidence covers three in-place writes and reads, computed in-range offsets, a computed out-of-range offset selecting `semaprax.byte-buffer.v1` code 1, repeated success, element-bound-failure and contract-failure re-entry at one live arena entry, deterministic valid modules, and absence of `memory.copy` and `memory.grow`. |
 | Public Wasm byte adapter | Rejected with `SPX-W115`; no descriptor or public owned-buffer ABI is admitted. |
 
 This is local internal target evidence, not hosted, browser, cross-platform, or
@@ -151,6 +200,9 @@ existing focused gates.
 
 - Element types wider than one byte, which need either an `Option<i64>`
   compiler-owned return or a stride-aware read family.
+- A computed *capacity*. `SPX-T271` still requires a literal at the allocation
+  site, because the target-neutral owned byte capacity analysis and the
+  Core-Wasm arena both size from it.
 - A loop-driven fill or capacity growth. Neither the exact host-arena protocol
   nor fixed Core-Wasm linear memory admits either behavior.
 - A public FFI or project-boundary layout. The single admitted owned parameter

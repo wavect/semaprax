@@ -160,6 +160,59 @@ for(let round=0;round<4;++round){carrier=zeroed(1n);if(set(carrier,0n,round)!==c
     );
 }
 
+/// A computed element index. The offsets come from a call the compiler cannot
+/// fold, so the bound is a run-time check in generated code rather than a
+/// compile-time fact.
+const COMPUTED: &str = r#"
+module test.wasm_owned_buffer_computed;
+
+@id("buffer.offset")
+fn offset(base: usize) -> usize { base + 1usize }
+
+@id("buffer.run")
+fn run() -> i64 {
+    let buffer = bytes_set(bytes_set(bytes_zeroed(3usize), offset(0usize), 66u8), offset(1usize), 67u8);
+    let view = bytes_as_slice(buffer);
+    let first = match byte_get(view, 0usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 1u8,
+    };
+    let second = match byte_get(view, 1usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let third = match byte_get(view, 2usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    if byte_len(view) == 3usize && first == 0u8 && second == 66u8 && third == 67u8 { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
+/// The same chain with one computed index one past the capacity. Generated
+/// code selects the failure before the owner transfer commits, so the arena
+/// entry is released by the canonical cleanup and a one-entry arena still
+/// balances across repeated invocations.
+const COMPUTED_OUT_OF_RANGE: &str = r#"
+module test.wasm_owned_buffer_past_end;
+
+@id("buffer.offset")
+fn offset(base: usize) -> usize { base + 1usize }
+
+@id("buffer.run")
+fn run() -> i64 {
+    let buffer = bytes_set(bytes_set(bytes_zeroed(3usize), offset(0usize), 66u8), offset(2usize), 67u8);
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 3usize { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
 const FAILURE: &str = r#"
 module test.wasm_owned_buffer_failure;
 
@@ -183,7 +236,20 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
         return;
     }
 
-    for (label, source, succeeds) in [("success", SUCCESS, true), ("failure", FAILURE, false)] {
+    const CONTRACT_FAILURE: &str = "let failed=false;try{instance.exports.semaprax_main();}catch(error){const status=semanticStatus(error);if(status===null||status.domain_id!=='semaprax.contract.v1'||status.code!==1||error.message!=='SEMAPRAX contract failure')throw error;failed=true;}if(!failed)throw Error('missing owned buffer failure');";
+    // Generated code, not the host import, selects the element-bound failure.
+    // Repeating it against a one-entry arena proves the failed store released
+    // the buffer exactly once through the canonical cleanup plan.
+    const BOUND_FAILURE: &str = "let failed=false;try{instance.exports.semaprax_main();}catch(error){const status=semanticStatus(error);if(status===null||status.domain_id!=='semaprax.byte-buffer.v1'||status.code!==1)throw error;failed=true;}if(!failed)throw Error('missing owned buffer element-bound failure');";
+    const RETURNS_SEVEN: &str =
+        "if(instance.exports.semaprax_main()!==7n)throw Error('wrong owned buffer value');";
+
+    for (label, source, expectation) in [
+        ("success", SUCCESS, RETURNS_SEVEN),
+        ("computed", COMPUTED, RETURNS_SEVEN),
+        ("computed-past-end", COMPUTED_OUT_OF_RANGE, BOUND_FAILURE),
+        ("failure", FAILURE, CONTRACT_FAILURE),
+    ] {
         let parsed = parse(source, Path::new("wasm-owned-buffer-v1.spx")).unwrap();
         let resolved = hir::resolve(&parsed).unwrap();
         hir::validate(&resolved).unwrap();
@@ -236,11 +302,6 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
             .replace("__SEMAPRAX_WASM_SHA256__", &digest);
         std::fs::write(fixture.0.join("runtime.mjs"), runtime).unwrap();
         std::fs::write(fixture.0.join("app.wasm"), bytes).unwrap();
-        let expectation = if succeeds {
-            "if(instance.exports.semaprax_main()!==7n)throw Error('wrong owned buffer value');"
-        } else {
-            "let failed=false;try{instance.exports.semaprax_main();}catch(error){const status=semanticStatus(error);if(status===null||status.domain_id!=='semaprax.contract.v1'||status.code!==1||error.message!=='SEMAPRAX contract failure')throw error;failed=true;}if(!failed)throw Error('missing owned buffer failure');"
-        };
         std::fs::write(
             fixture.0.join("probe.mjs"),
             format!(

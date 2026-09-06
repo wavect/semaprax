@@ -26,6 +26,7 @@ for (const [selector,domain_id,code] of [
   [10,'semaprax.contract.v1',2],
   [11,'semaprax.byte-range.v1',1],
   [12,'semaprax.byte-range.v1',2],
+  [16,'semaprax.byte-buffer.v1',1],
 ]) {
   let actual=null;
   try { imports.env.spx_contract_fail(selector); } catch (error) { actual=semanticStatus(error); }

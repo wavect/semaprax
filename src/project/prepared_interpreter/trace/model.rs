@@ -117,6 +117,18 @@ pub(crate) fn parse_status(value: &serde_json::Value) -> Result<NormalizedStatus
             2 => Ok(runtime_status::normalize_contract(ContractPhase::Ensures)),
             _ => Err(verification_error("unknown contract status code")),
         },
+        (crate::byte_ops::SET_STATUS_DOMAIN, "adapter") => {
+            if code != u64::from(crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE) {
+                return Err(verification_error("unknown owned byte buffer status code"));
+            }
+            NormalizedStatus::try_new(
+                crate::byte_ops::SET_STATUS_DOMAIN,
+                crate::byte_ops::SET_INDEX_OUT_OF_BOUNDS_CODE,
+                StatusClass::Adapter,
+                Retryability::Known(false),
+            )
+            .map_err(|_| verification_error("owned byte buffer status is not canonical"))
+        }
         (crate::byte_ops::RANGE_STATUS_DOMAIN, "adapter") => {
             let code = match code {
                 1 => crate::byte_ops::RANGE_START_AFTER_END_CODE,

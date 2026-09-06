@@ -7,14 +7,16 @@
 //! ```
 //!
 //! The capacity is a `usize` literal at the single `bytes_zeroed` allocation
-//! site, every `bytes_set` index is a `usize` literal strictly below it, and a
-//! `bytes_set` buffer operand is syntactically the previous link. Nothing in
-//! the chain is nameable, so a partially filled buffer has no observable
-//! state, no second owner, and no borrowed view; binding the chain's result is
-//! the freeze, after which only the borrowed reads apply.
+//! site and a `bytes_set` buffer operand is syntactically the previous link.
+//! Nothing in the chain is nameable, so a partially filled buffer has no
+//! observable state, no second owner, and no borrowed view; binding the
+//! chain's result is the freeze, after which only the borrowed reads apply.
 //!
-//! Capacity exhaustion and an out-of-range element index are therefore
-//! compile-time diagnostics rather than backend accidents.
+//! A `bytes_set` element index is any `usize` expression. A literal index at
+//! or above the capacity, and any index into an empty buffer, remain
+//! compile-time diagnostics; a computed index is checked against the buffer
+//! at run time, before the owner transfer commits, and selects the single
+//! `semaprax.byte-buffer.v1` failure identically on every backend.
 
 use crate::ast::{Expr, ExprKind, Program};
 use crate::byte_ops::{self, ByteOp};
@@ -73,6 +75,12 @@ pub(super) fn check_call(
                 );
                 return diagnostics;
             };
+            // A computed `usize` index is admitted: the store is checked
+            // against the buffer at run time on every backend, and selects the
+            // one `semaprax.byte-buffer.v1` failure before the owner commits.
+            // A literal that is already outside the capacity, and every index
+            // into an empty buffer, stay compile-time diagnostics, because
+            // neither can ever name an element.
             match byte_ops::owned_buffer_set_index(args) {
                 Some(index) if index < capacity => {}
                 Some(index) => diagnostics.push(
@@ -84,15 +92,16 @@ pub(super) fn check_call(
                     )
                     .with_help("index an element below the allocated capacity"),
                 ),
-                None => diagnostics.push(
+                None if capacity == 0 => diagnostics.push(
                     error(
                         program,
                         "SPX-T272",
-                        format!("`{name}` requires one usize literal element index"),
+                        format!("`{name}` cannot index any element of an empty buffer"),
                         args[1].span,
                     )
-                    .with_help("write the index as a usize literal, for example `0usize`"),
+                    .with_help("allocate the buffer with a capacity above zero"),
                 ),
+                None => {}
             }
         }
         ByteOp::Len

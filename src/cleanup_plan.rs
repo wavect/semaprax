@@ -6,6 +6,7 @@
 //! deterministic.  This module deliberately does not enable resource lowering.
 
 mod build;
+mod deferred_commit;
 mod execute;
 mod replay;
 mod validate;

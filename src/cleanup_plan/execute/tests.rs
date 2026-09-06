@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::conformance::TraceEventKind;
+use crate::conformance::{Retryability, StatusClass, TraceEventKind};
 use crate::{hir, parse};
 
 use super::*;

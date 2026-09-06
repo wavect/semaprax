@@ -340,10 +340,12 @@ fn main() -> i64
   `array_as_slice(array_binding)`, or `bytes_as_slice(bytes_binding)`.
 - An owned bounded byte buffer is one write-once expression: `bytes_zeroed`
   allocates at a `usize` literal capacity and each `bytes_set` link takes the
-  previous link, a `usize` literal index below that capacity, and the byte.
-  Binding the result freezes it; read it with the ordinary borrowed operations.
-  A named binding cannot be re-opened (`SPX-T271`), an index at or above the
-  capacity is `SPX-T272`, and neither operation is admitted in a `while` body.
+  previous link, any `usize` index expression, and the byte. Binding the result
+  freezes it; read it with the ordinary borrowed operations. A named binding
+  cannot be re-opened (`SPX-T271`), a literal index at or above the capacity is
+  `SPX-T272`, a computed index outside the buffer fails at run time with
+  `semaprax.byte-buffer.v1` code 1 before anything is written, and neither
+  operation is admitted in a `while` body.
   [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) owns the rule.
 
 ```semaprax

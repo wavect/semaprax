@@ -3,8 +3,9 @@
 //! The source verifier admits one write-once chain expression; this trust
 //! boundary re-derives the same fact from resolved HIR alone, so a graph,
 //! patch, or transaction that never passed through source text cannot forge a
-//! buffer whose capacity is unknown, whose element index is out of range, or
-//! whose operand is a second owner of an already-frozen buffer.
+//! buffer whose capacity is unknown, whose element index can never name an
+//! element, or whose operand is a second owner of an already-frozen buffer. A
+//! computed index is admitted on both projections and checked at run time.
 
 use super::*;
 
@@ -21,17 +22,25 @@ pub(super) fn require_admitted_chain(
         }
         crate::byte_ops::ByteOp::Set => {
             let capacity = chain_capacity(args)?;
-            let ResolvedExprKind::Usize(index) = &args[1].kind else {
+            if args[1].ty != crate::hir::ResolvedType::Usize {
                 return Err(hir_error(
-                    "owned byte buffer element index must be one usize literal",
+                    "owned byte buffer element index is not a usize expression",
                 ));
-            };
-            if *index >= capacity {
-                return Err(hir_error(format!(
-                    "owned byte buffer element index {index} is outside the capacity {capacity}"
-                )));
             }
-            Ok(())
+            // A computed index is admitted and checked at run time against the
+            // transferred buffer. An index that can never name an element is
+            // still refused here, so a graph or patch route cannot smuggle in
+            // a store the source verifier would reject.
+            match &args[1].kind {
+                ResolvedExprKind::Usize(index) if *index >= capacity => Err(hir_error(format!(
+                    "owned byte buffer element index {index} is outside the capacity {capacity}"
+                ))),
+                ResolvedExprKind::Usize(_) => Ok(()),
+                _ if capacity == 0 => Err(hir_error(
+                    "owned byte buffer element index cannot name an element of an empty buffer",
+                )),
+                _ => Ok(()),
+            }
         }
         _ => Ok(()),
     }

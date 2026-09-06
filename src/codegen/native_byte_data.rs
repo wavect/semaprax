@@ -130,12 +130,38 @@ static __attribute__((unused)) spx_bytes_v1 spx_bytes_zeroed(uint64_t count) {
     return (spx_bytes_v1){ .ptr = payload, .len = count };
 }
 
+/* The element index is any admitted `usize` expression, so the bound is
+   checked before the owner transfer commits. A failed store selects the single
+   `semaprax.byte-buffer.v1` failure and writes nothing; the buffer is still
+   held by its canonical cleanup-plan call-argument slot, which frees it on the
+   epilogue exactly once. */
+static __attribute__((unused)) spx_status_token spx_bytes_set_check_v1(
+    struct spx_context *spx_ctx, spx_bytes_v1 buffer, uint64_t index
+) {
+    spx_bytes_require_valid(buffer);
+    if (index < buffer.len) {
+        return SPX_STATUS_SUCCESS;
+    }
+    spx_status_token token = SPX_STATUS_SUCCESS;
+    if (!spx_status_record_adapter(
+        spx_ctx,
+        "semaprax.byte-buffer.v1",
+        UINT32_C(1),
+        SPX_STATUS_CLASS_ADAPTER,
+        SPX_RETRYABILITY_FALSE,
+        &token
+    )) {
+        spx_runtime_invariant_failure("owned byte buffer status could not be recorded");
+    }
+    return token;
+}
+
 /* The buffer is transferred in and handed straight back: one fill mutates the
    single live owner in place and never allocates. The caller's carrier is
    emptied by the ordinary canonical cleanup-plan transfer, so the payload never
-   has a second owner. A resolved element index outside the capacity is a
-   compile-time impossibility, so reaching one here is a runtime invariant
-   failure rather than a silent truncation. */
+   has a second owner. `spx_bytes_set_check_v1` has already selected a failure
+   for an out-of-range index, so reaching one here is a compiler defect and is
+   a runtime invariant failure rather than a silent truncation. */
 static __attribute__((unused)) spx_bytes_v1 spx_bytes_set(
     spx_bytes_v1 buffer, uint64_t index, uint8_t value
 ) {

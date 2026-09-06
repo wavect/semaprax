@@ -385,6 +385,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 ));
             }
             crate::byte_ops::ByteOp::Set => {
+                // The bound is checked before the canonical owner transfer
+                // commits, so a failed store leaves the buffer in its live
+                // call-argument slot and the epilogue destroys it exactly once.
+                self.line(&format!(
+                    "spx_status = spx_bytes_set_check_v1(spx_ctx, {}, {});",
+                    arguments[0].code, arguments[1].code
+                ));
+                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                 self.line(&format!(
                     "{temporary} = spx_bytes_set({}, {}, {});",
                     arguments[0].code, arguments[1].code, arguments[2].code

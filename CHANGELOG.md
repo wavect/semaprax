@@ -8,6 +8,30 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Admitted a computed `usize` element index for the Owned Bounded Byte Buffer
+  v1 `bytes_set` store, so a value can be written at an offset a scan
+  discovers. The allocation capacity is still one literal at the
+  `bytes_zeroed` site (`SPX-T271`), and a literal index at or above that
+  capacity, or any index into an empty buffer, stays `SPX-T272`; only what the
+  compiler cannot decide moved to run time. `bytes_set` therefore became the
+  first fallible compiler-owned byte operation: it carries an ordinary
+  `PropagatedCall` status source whose failure is selected **before** the owner
+  transfer commits, so an out-of-range store writes nothing, is not a backend
+  accident, and leaves the buffer in the canonical call-argument slot that the
+  exit's single `core.bytes.drop` finalizer already owns. Independent replay
+  re-derives the same ordering. The reference interpreter, native C11 through
+  the new `spx_bytes_set_check_v1`, and internal Core-Wasm through a generated
+  comparison against the carrier's byte length all select the identical
+  `semaprax.byte-buffer.v1` code 1 adapter status; the Web wrapper reserves
+  internal value 16 for it. The deferred-owner-commit decision the bounded Vec
+  lane introduced for `vec_push` now lives in one `cleanup_plan::deferred_commit`
+  module that both operations share. The Core-Wasm host import keeps its own gate, now
+  unreachable from admitted source. Local focused evidence covers a computed
+  in-range fill and a computed out-of-range store on all three engines,
+  including a one-entry Core-Wasm arena that still balances across four failing
+  invocations. Elements wider than one byte, a loop-driven fill, a computed
+  capacity, and a public FFI layout stay open and unclaimed.
+
 - Restored the cross-platform CI gates after the owned algebra expansion by
   refreshing the checked Core-Wasm, component, artifact-DAG, browser project
   graph, and macOS provider symbol KATs; aligning Project admission regressions

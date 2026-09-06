@@ -12,8 +12,8 @@ use std::fmt;
 
 use crate::cleanup::{FieldLivenessShape, LivenessFlagId};
 use crate::conformance::{
-    ConformanceTrace, ImportSite, InvocationPath, NormalizedStatus, OperationOutcome, Retryability,
-    StatusClass, TraceEvent, TraceEventKind, TraceOutcome, TraceResult,
+    ConformanceTrace, ImportSite, InvocationPath, NormalizedStatus, OperationOutcome, TraceEvent,
+    TraceEventKind, TraceOutcome, TraceResult,
 };
 use crate::hir::{
     self, DeclarationId, ExpressionId, IdentityOrigin, ResolvedFunction, ResolvedProgram,
@@ -1161,7 +1161,7 @@ impl<'a> Executor<'a> {
                 ..
             } = &expression.kind
             {
-                if crate::byte_ops::by_id(callee.as_str()).is_some()
+                if crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
                     || crate::host_io_ops::by_id(callee.as_str()).is_some()
                 {
                     return Ok(callee.clone());
@@ -1771,48 +1771,6 @@ impl<'a> Executor<'a> {
     }
 }
 
-fn validate_propagated_status(
-    callee: &DeclarationId,
-    status: &NormalizedStatus,
-) -> Result<(), CleanupExecutionError> {
-    if callee.as_str() == crate::byte_ops::RANGE_ID {
-        if status.domain_id() != crate::byte_ops::RANGE_STATUS_DOMAIN
-            || ![
-                crate::byte_ops::RANGE_START_AFTER_END_CODE,
-                crate::byte_ops::RANGE_END_OUT_OF_BOUNDS_CODE,
-            ]
-            .contains(&status.code())
-            || status.class() != StatusClass::Adapter
-            || status.retryability() != Retryability::Known(false)
-        {
-            return Err(invariant(
-                "byte range supplied a status outside its exact normalized failure domain",
-            ));
-        }
-        return Ok(());
-    }
-    let Some(operation) = crate::command_io_ops::by_id(callee.as_str()) else {
-        // Authored and other target-neutral calls retain their existing
-        // normalized-status contract.
-        return Ok(());
-    };
-    let metadata = crate::command_io_ops::status_metadata(operation).ok_or_else(|| {
-        invariant(format!(
-            "infallible command operation `{callee}` supplied a propagated status"
-        ))
-    })?;
-    if status.domain_id() != metadata.domain
-        || !metadata.codes.contains(&status.code())
-        || status.class() != StatusClass::Adapter
-        || status.retryability() != Retryability::Known(false)
-    {
-        return Err(invariant(format!(
-            "command operation `{callee}` supplied a status outside its exact normalized failure domain"
-        )));
-    }
-    Ok(())
-}
-
 fn preflight_finalizer_bindings(
     program: &ResolvedProgram,
     function: &ResolvedFunction,
@@ -1933,6 +1891,10 @@ fn collect_leaves(
 fn invariant(detail: impl Into<String>) -> CleanupExecutionError {
     CleanupExecutionError::HarnessInvariant(detail.into())
 }
+
+mod propagated_status;
+
+use propagated_status::validate_propagated_status;
 
 #[cfg(test)]
 #[path = "execute/tests.rs"]

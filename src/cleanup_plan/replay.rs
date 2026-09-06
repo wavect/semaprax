@@ -1827,12 +1827,14 @@ fn collect_expression_statuses(
                 callee, instance, ..
             } => {
                 if instance.is_none()
-                    && (crate::byte_ops::by_id(callee.as_str()).is_some()
+                    && (crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
                         || crate::host_io_ops::by_id(callee.as_str()).is_some())
                 {
-                    // Byte-data operations are total after HIR admission.
-                    // Physical allocation failure is invariant fail-stop, not
-                    // a recoverable operation status.
+                    // Byte-data operations are total after HIR admission, with
+                    // the single exception of `bytes_set`, whose computed
+                    // element index is checked at run time. Physical allocation
+                    // failure stays invariant fail-stop, not a recoverable
+                    // operation status.
                     continue;
                 }
                 if instance.is_none()
@@ -1846,9 +1848,11 @@ fn collect_expression_statuses(
                 if instance.is_none()
                     && (crate::string_ops::by_id(callee.as_str()).is_some()
                         || crate::str_ops::by_id(callee.as_str()).is_some()
-                        || crate::vec_ops::by_id(callee.as_str()).is_some())
+                        || crate::vec_ops::by_id(callee.as_str()).is_some()
+                        || crate::byte_ops::by_id(callee.as_str()).is_some())
                 {
-                    // String operations project like ordinary propagated calls.
+                    // String and bounded Vec operations and the one fallible
+                    // byte operation project like ordinary propagated calls.
                 } else if program
                     .resolve_call_target(callee, instance.as_ref())
                     .is_none()
@@ -5980,20 +5984,26 @@ fn finish_call_states(
             callee,
             instance: None,
             ..
-        } if crate::byte_ops::by_id(callee.as_str()).is_some()
+        } if crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
             || matches!(
                 crate::vec_ops::by_id(callee.as_str()),
                 Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity)
             )
     );
-    let deferred_vec_push = matches!(
+    // `vec_push` and the one fallible byte operation both check their bound
+    // before the owner transfer commits, so their status observation precedes
+    // the call-commit and a failed call leaves the owner in its call-argument
+    // slot for the ordinary region cleanup.
+    let defer_commit = matches!(
         &expression.kind,
         ResolvedExprKind::Call {
             callee,
             instance: None,
             ..
         } if crate::vec_ops::by_id(callee.as_str()) == Some(crate::vec_ops::VecOp::Push)
+            || crate::byte_ops::by_id(callee.as_str())
+                .is_some_and(crate::byte_ops::ByteOp::is_fallible)
     );
     let infallible_compiler_operation = infallible_compiler_operation
         || matches!(
@@ -6014,7 +6024,7 @@ fn finish_call_states(
             work.push_expr_path(&mut results, path, "short-circuited call path")?;
             continue;
         }
-        if !deferred_vec_push {
+        if !defer_commit {
             let call = work.clone_owned(&expression.id, "call-commit identity clone")?;
             work.push_observation(
                 &mut path,
@@ -6071,7 +6081,7 @@ fn finish_call_states(
             },
             "call success observation",
         )?;
-        if deferred_vec_push {
+        if defer_commit {
             let call = work.clone_owned(&expression.id, "call-commit identity clone")?;
             work.push_observation(
                 &mut path,
@@ -6079,7 +6089,7 @@ fn finish_call_states(
                     call,
                     arguments: commits,
                 },
-                "bounded Vec success call-commit observation",
+                "deferred success call-commit observation",
             )?;
         }
         if expression.ownership == OwnershipMode::Own

@@ -5075,6 +5075,7 @@ export const imports = {
       if (code === 10) throw new SpxSemanticFailure("semaprax.contract.v1", 2, "SEMAPRAX contract failure");
       if (code === 11) throw new SpxSemanticFailure("semaprax.byte-range.v1", 1, "SEMAPRAX byte range failure");
       if (code === 12) throw new SpxSemanticFailure("semaprax.byte-range.v1", 2, "SEMAPRAX byte range failure");
+      if (code === 16) throw new SpxSemanticFailure("semaprax.byte-buffer.v1", 1, "SEMAPRAX owned byte buffer failure");
       throw new SpxSemanticFailure("semaprax.contract.v1", code, "SEMAPRAX contract failure");
     },
   },

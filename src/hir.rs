@@ -616,3 +616,5 @@ mod iterative_validator_tests;
 #[cfg(test)]
 #[path = "hir/record_tests.rs"]
 mod record_tests;
+
+pub(crate) mod generic_result;

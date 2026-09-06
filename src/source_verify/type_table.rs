@@ -847,7 +847,7 @@ pub(super) fn classify_nested_owned_byte_record(
                 _,
             ) => unreachable!("admitted scalar handled above"),
             Frame::Type(Type::ArrayU8(_) | Type::String | Type::Str | Type::SliceU8, _) => {
-                return NestedOwnedRecordAdmission::OutsideProfile
+                return NestedOwnedRecordAdmission::OutsideProfile;
             }
             Frame::Fields(declaration, fields, arguments, index, depth) => {
                 let Some(field) = fields.get(index) else {
@@ -904,7 +904,20 @@ pub(super) fn owned_byte_prelude_instance_is_admitted(name: &str, arguments: &[T
     matches!(
         (name, arguments),
         ("Option", [Type::Bytes])
-            | ("Result", [Type::Bytes, Type::I64 | Type::Bool])
+            | (
+                "Result",
+                [
+                    Type::Bytes,
+                    Type::I64
+                        | Type::I32
+                        | Type::Char
+                        | Type::U8
+                        | Type::Usize
+                        | Type::F32
+                        | Type::F64
+                        | Type::Bool
+                ]
+            )
             | ("Result", [Type::I64 | Type::Bool, Type::Bytes])
             | ("Result", [Type::Bytes, Type::Bytes])
     )

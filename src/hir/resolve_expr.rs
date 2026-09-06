@@ -1886,7 +1886,9 @@ impl Resolver<'_> {
                     if index == fields.len() {
                         let arguments = type_arguments
                             .iter()
-                            .map(|argument| self.resolve_type(argument, span))
+                            .map(|argument| {
+                                self.resolve_call_type_argument(function, argument, span)
+                            })
                             .collect::<Result<Vec<_>, _>>()?;
                         let ty = ResolvedType::Nominal {
                             declaration: variant.clone(),
@@ -2513,25 +2515,7 @@ impl Resolver<'_> {
                             span,
                         ));
                     };
-                    let target = self
-                        .program
-                        .functions
-                        .iter()
-                        .find(|candidate| {
-                            matches!(
-                                function,
-                                FunctionExecutionId::Monomorphic(declaration)
-                                    if candidate.stable_id == declaration.as_str()
-                            )
-                        })
-                        .ok_or_else(|| {
-                            self.error(
-                                "SPX-H006",
-                                format!("resolved `?` has unknown enclosing function `{function}`"),
-                                span,
-                            )
-                        })?;
-                    let residual_type = self.resolve_type(&target.return_type, target.span)?;
+                    let residual_type = self.resolve_try_result_type(function, span)?;
                     let (kind, ty, ownership) = match (declaration.as_str(), arguments.as_slice()) {
                         (crate::prelude::RESULT_ID, [ok_type, _error_type]) => {
                             super::owned_result_try::resolve_result(operand, residual_type, ok_type)

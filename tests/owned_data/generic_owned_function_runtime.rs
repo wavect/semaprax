@@ -8,6 +8,8 @@ use semaprax::{codegen, parse, verify, wasm};
 
 #[path = "generic_owned_function_runtime/matrix.rs"]
 mod matrix;
+#[path = "generic_owned_function_runtime/mixed_result.rs"]
+mod mixed_result;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 

@@ -2349,6 +2349,8 @@ impl WorkspaceGraphBuild {
                     &natives,
                 );
                 let signature_admitted = class_method
+                    || (profile == crate::project::ProjectProfile::ScalarV1
+                        && hir::generic_result::concrete_signature(function))
                     || (admitted_return && function.params.iter().all(admitted_parameter));
                 if !signature_admitted {
                     return Err(vec![Diagnostic::error(

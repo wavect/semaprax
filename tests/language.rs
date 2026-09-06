@@ -111,3 +111,6 @@ mod verifier_hints;
 mod wasm_scalar_export_widen;
 #[path = "language/while_loops.rs"]
 mod while_loops;
+
+#[path = "language/generic_owned_result.rs"]
+mod generic_owned_result;

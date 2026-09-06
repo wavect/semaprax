@@ -656,6 +656,55 @@ pub(super) fn materialize_template_expr(
                 arms: materialized,
             }
         }
+        ResolvedExprKind::ConstructVariant {
+            variant,
+            case,
+            fields,
+        } if super::generic_result::profile(template) => ResolvedExprKind::ConstructVariant {
+            variant: variant.clone(),
+            case: case.clone(),
+            fields: fields
+                .iter()
+                .enumerate()
+                .map(|(index, field)| {
+                    Ok(ResolvedFieldInitializer {
+                        field: field.field.clone(),
+                        value: materialize_template_expr(
+                            template,
+                            arguments,
+                            execution,
+                            &field.value,
+                            values,
+                            &format!("{path}.field.{index}.value"),
+                        )?,
+                    })
+                })
+                .collect::<Result<Vec<_>, Diagnostic>>()?,
+        },
+        ResolvedExprKind::Try {
+            operand,
+            result,
+            ok_case,
+            ok_field,
+            err_case,
+            err_field,
+            residual_type,
+        } if super::generic_result::profile(template) => ResolvedExprKind::Try {
+            operand: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                operand,
+                values,
+                &format!("{path}.operand"),
+            )?),
+            result: result.clone(),
+            ok_case: ok_case.clone(),
+            ok_field: ok_field.clone(),
+            err_case: err_case.clone(),
+            err_field: err_field.clone(),
+            residual_type: substitute_type(residual_type, &template.id, arguments)?,
+        },
         ResolvedExprKind::ConstructVariant { .. }
         | ResolvedExprKind::Try { .. }
         | ResolvedExprKind::TryOption { .. }

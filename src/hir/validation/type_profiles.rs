@@ -16,6 +16,15 @@ pub(super) fn template_ownership(
     match ty {
         ResolvedType::String => OwnershipMode::Own,
         ResolvedType::Str => OwnershipMode::Borrow,
+        _ if super::super::generic_result::profile(template)
+            && (super::super::generic_result::slot(
+                ty,
+                &template.id,
+                template.type_parameters.len(),
+            ) || *ty == ResolvedType::Bytes) =>
+        {
+            OwnershipMode::Own
+        }
         _ if crate::hir::type_reachability::is_nested_owned_byte_record_template(
             &program.declarations,
             ty,
@@ -117,6 +126,9 @@ pub(super) fn generic_instance_arguments_are_admitted(
     else {
         return false;
     };
+    if super::super::generic_result::profile(template) {
+        return super::super::generic_result::arguments(arguments);
+    }
     let nested = template_contains_nested_owned_record_type(program, template);
     (arguments
         .iter()

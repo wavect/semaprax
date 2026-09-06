@@ -10,7 +10,10 @@ pub(super) fn expression_owns_exact_operand(expression: &ResolvedExpr) -> bool {
                 declaration,
                 arguments,
             } if declaration.as_str() == crate::prelude::RESULT_ID
-                && arguments.as_slice() == [ResolvedType::Bytes, ResolvedType::Bytes]
+                && matches!(arguments.as_slice(), [ResolvedType::Bytes,
+                    ResolvedType::Bytes | ResolvedType::I64 | ResolvedType::I32 | ResolvedType::U8
+                    | ResolvedType::Usize | ResolvedType::Char | ResolvedType::F32
+                    | ResolvedType::F64 | ResolvedType::Bool])
         )
 }
 
@@ -55,8 +58,21 @@ pub(super) fn validate_shape<'a>(
             "resolved `?` operand or residual is not nominal Result",
         ));
     };
-    let exact_owned = operand_arguments.as_slice() == [ResolvedType::Bytes, ResolvedType::Bytes]
-        && residual_arguments.as_slice() == [ResolvedType::Bytes, ResolvedType::Bytes];
+    let exact_owned = matches!(
+        operand_arguments.as_slice(),
+        [
+            ResolvedType::Bytes,
+            ResolvedType::Bytes
+                | ResolvedType::I64
+                | ResolvedType::I32
+                | ResolvedType::U8
+                | ResolvedType::Usize
+                | ResolvedType::Char
+                | ResolvedType::F32
+                | ResolvedType::F64
+                | ResolvedType::Bool
+        ]
+    ) && operand.ty == *residual_type;
     if operand_result != result
         || residual_result != result
         || operand_arguments.len() != 2

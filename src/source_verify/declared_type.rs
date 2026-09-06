@@ -201,6 +201,8 @@ pub(super) fn check_declared_type(
         let admitted_owned_record_template =
             types.is_nested_owned_byte_record_template(&instance, parameters);
         let admitted_owned_variant = types.is_flat_owned_byte_variant(&instance);
+        let admitted_result_template = name == "Result"
+            && matches!(arguments.as_slice(), [Type::Bytes, Type::Named { name, arguments }] if arguments.is_empty() && parameters.len() == 1 && parameters.contains(name.as_str()));
         let admitted_vec = name == "Vec"
             && arguments.len() == 1
             && (crate::vec_ops::ast_element_is_admitted(&arguments[0])
@@ -217,7 +219,8 @@ pub(super) fn check_declared_type(
                 && !owned_byte_prelude_instance_is_admitted(name, arguments)
                 && !admitted_owned_record
                 && !admitted_owned_record_template
-                && !admitted_owned_variant)
+                && !admitted_owned_variant
+                && !admitted_result_template)
         {
             diagnostics.push(error(
                 program,
@@ -233,6 +236,7 @@ pub(super) fn check_declared_type(
             && !admitted_owned_record
             && !admitted_owned_record_template
             && !admitted_owned_variant
+            && !admitted_result_template
             && !admitted_vec
             && !admitted_box
             && (!matches!(
@@ -332,6 +336,9 @@ pub(super) fn generic_function_arguments_are_admitted(
     arguments: &[Type],
     types: &TypeTable<'_>,
 ) -> bool {
+    if generic_result::profile(function) {
+        return generic_result::arguments(arguments);
+    }
     let nested = generic_function_contains_nested_owned_record_slot(function, types);
     if arguments.iter().all(direct_function_type_argument) && !nested {
         return true;
@@ -1112,3 +1119,5 @@ pub(super) fn check_record_pattern(
 mod generic_composition;
 #[cfg(test)]
 mod tests;
+
+pub(super) mod generic_result;

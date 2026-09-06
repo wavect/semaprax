@@ -4,6 +4,7 @@
 use crate::ast::{Function, ImportDeclaration, InterfaceDeclaration, ParamMode, Program, Type};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding};
+use crate::source_verify::declared_type::generic_result;
 use crate::source_verify::declared_type::{
     check_declared_type, check_ownership_mode, function_reaches, function_reaches_any,
     generic_function_arguments_are_forwarded, generic_function_contains_nested_owned_record_slot,
@@ -313,6 +314,7 @@ pub(super) fn check_function_declarations<'p>(
                     function.span,
                 ));
             }
+            let owned_result = generic_result::profile(function);
             for param in &function.params {
                 let owned_record = generic_function_owned_record_slot(
                     function,
@@ -321,7 +323,9 @@ pub(super) fn check_function_declarations<'p>(
                 );
                 if !((param.mode == ParamMode::Value
                     && generic_function_signature_slot(&param.ty, &parameter_names))
-                    || (param.mode == ParamMode::Own && owned_record))
+                    || (param.mode == ParamMode::Own
+                        && (owned_record
+                            || (owned_result && generic_result::slot(function, &param.ty)))))
                 {
                     diagnostics.push(error(
                         program,
@@ -334,7 +338,8 @@ pub(super) fn check_function_declarations<'p>(
                     ));
                 }
             }
-            if !generic_function_signature_slot(&function.return_type, &parameter_names)
+            if !owned_result
+                && !generic_function_signature_slot(&function.return_type, &parameter_names)
                 && !generic_function_owned_record_slot(
                     function,
                     &function.return_type,
@@ -374,7 +379,8 @@ pub(super) fn check_function_declarations<'p>(
                 .iter()
                 .chain(&function.ensures)
                 .any(|expression| !generic_function_expression_is_direct_scalar(expression));
-            let invalid_body = !generic_function_expression_is_direct_scalar(&function.body)
+            let invalid_body = !generic_result::body(function, &function.body)
+                && !generic_function_expression_is_direct_scalar(&function.body)
                 && !generic_function_expression_is_owned_record_composition(
                     function,
                     &types,
@@ -529,7 +535,9 @@ pub(super) fn check_function_bodies<'p>(
                 .iter()
                 .any(|param| generic_function_owned_record_slot(template, &param.ty, types))
                 || generic_function_owned_record_slot(template, &template.return_type, types);
-            let substitutions = if owned_record {
+            let substitutions = if generic_result::profile(template) {
+                generic_result::substitutions()
+            } else if owned_record {
                 owned_record_function_substitutions(template.type_parameters.len())
             } else {
                 scalar_function_substitutions(template.type_parameters.len())

@@ -12,6 +12,7 @@ mod generic_template;
 mod host_command;
 mod owned_buffer;
 mod owned_result_try;
+mod proof_return;
 mod type_profiles;
 mod unsafe_scan;
 mod vec_intrinsic;
@@ -46,6 +47,7 @@ pub(super) struct HirValidator<'a> {
     buffer_reopen_sites: BTreeSet<ExpressionId>,
     borrowed_str_aliases: BTreeMap<ValueId, Place>,
     proof_generic_calls: bool,
+    proof_return: Option<(FunctionInstanceId, ResolvedType)>,
     canonical_loan_ids: BTreeMap<(ExpressionId, LoanCause), LoanId>,
     canonical_loan_liveness: BTreeMap<(ExpressionId, LoanPointPhase, LoanId), Place>,
 }
@@ -89,20 +91,6 @@ impl<'a> HirValidator<'a> {
             .canonical_loan_ids
             .get(&(expression.clone(), cause.clone()))
             .copied())
-    }
-
-    fn execution_function(&self, id: &FunctionExecutionId) -> Option<&ResolvedFunction> {
-        match id {
-            FunctionExecutionId::Monomorphic(declaration) => {
-                self.functions.get(declaration).copied()
-            }
-            FunctionExecutionId::Generic(instance) => self
-                .program
-                .function_instances
-                .iter()
-                .find(|candidate| candidate.id == *instance)
-                .map(|candidate| &candidate.function),
-        }
     }
 
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
@@ -222,6 +210,7 @@ impl<'a> HirValidator<'a> {
             buffer_reopen_sites: BTreeSet::new(),
             borrowed_str_aliases: BTreeMap::new(),
             proof_generic_calls: false,
+            proof_return: None,
             canonical_loan_ids,
             canonical_loan_liveness,
         })
@@ -481,18 +470,17 @@ impl<'a> HirValidator<'a> {
                     template.id
                 )));
             }
-            let substitutions = if transparent_owned_wrapper {
-                generic_template::vec_wrapper_substitutions()
-            } else if template_has_owned_record_slot(self.program, template) {
-                resolved_owned_record_substitutions(template.type_parameters.len())
-            } else {
-                resolved_scalar_substitutions(template.type_parameters.len())
-            };
+            let substitutions =
+                generic_template::substitutions(self.program, template, transparent_owned_wrapper);
             for arguments in substitutions {
                 let materialized = materialize_function_template(template, &arguments)?;
                 let saved_expression_ids = self.expression_ids.clone();
                 let saved_value_ids = self.value_ids.clone();
                 self.proof_generic_calls = true;
+                self.proof_return = Some((
+                    FunctionInstanceId::derive(&template.id, &arguments),
+                    materialized.return_type.clone(),
+                ));
                 let validation = self.validate_function(
                     &materialized,
                     &FunctionExecutionId::Generic(FunctionInstanceId::derive(
@@ -501,6 +489,7 @@ impl<'a> HirValidator<'a> {
                     )),
                 );
                 self.proof_generic_calls = false;
+                self.proof_return = None;
                 validation?;
                 self.expression_ids = saved_expression_ids;
                 self.value_ids = saved_value_ids;
@@ -1460,10 +1449,11 @@ impl<'a> HirValidator<'a> {
                 path,
                 allow_record_reconstruction,
             )?,
-            ResolvedExprKind::ConstructVariant { .. }
-            | ResolvedExprKind::Try { .. }
-            | ResolvedExprKind::TryOption { .. }
-            | ResolvedExprKind::Upcast { .. } => {
+            ResolvedExprKind::ConstructVariant { .. } | ResolvedExprKind::Try { .. } => self
+                .validate_template_result_expression(
+                    template, execution, expression, values, path,
+                )?,
+            ResolvedExprKind::TryOption { .. } | ResolvedExprKind::Upcast { .. } => {
                 return Err(hir_error(
                     "generic template expression is outside the direct-scalar slice",
                 ));
@@ -6043,8 +6033,7 @@ impl<'a> HirValidator<'a> {
                 ));
             }
             let enclosing = self
-                .execution_function(function)
-                .map(|candidate| &candidate.return_type)
+                .execution_return_type(function)
                 .ok_or_else(|| hir_error("resolved Option `?` has no enclosing function"))?;
             self.require_type(residual_type, enclosing, "Option `?` residual")?;
             self.require_type(
@@ -6097,8 +6086,7 @@ impl<'a> HirValidator<'a> {
                 residual_type,
             )?;
             let enclosing = self
-                .execution_function(function)
-                .map(|candidate| &candidate.return_type)
+                .execution_return_type(function)
                 .ok_or_else(|| hir_error("resolved `?` has no enclosing function"))?;
             self.require_type(residual_type, enclosing, "`?` residual")?;
             self.require_type(
@@ -7833,8 +7821,7 @@ impl<'a> HirValidator<'a> {
                     residual_type,
                 )?;
                 let enclosing_return = self
-                    .execution_function(function)
-                    .map(|candidate| &candidate.return_type)
+                    .execution_return_type(function)
                     .ok_or_else(|| hir_error("resolved `?` has no enclosing function"))?;
                 self.require_type(residual_type, enclosing_return, "`?` residual")?;
                 self.require_type(
@@ -7935,8 +7922,7 @@ impl<'a> HirValidator<'a> {
                     ));
                 }
                 let enclosing_return = self
-                    .execution_function(function)
-                    .map(|candidate| &candidate.return_type)
+                    .execution_return_type(function)
                     .ok_or_else(|| hir_error("resolved Option `?` has no enclosing function"))?;
                 self.require_type(residual_type, enclosing_return, "Option `?` residual")?;
                 self.require_type(

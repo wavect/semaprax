@@ -97,7 +97,9 @@ pub(super) fn graph_json(
     selected_types: &BTreeSet<DeclarationId>,
     view: &GraphView<'_>,
 ) -> Result<String, Diagnostic> {
-    if program.function_instances.is_empty() {
+    if program.function_instances.is_empty()
+        && !nested_owned::requires_generic_result_schema(program)
+    {
         return legacy_graph_json(
             program,
             source_revision,

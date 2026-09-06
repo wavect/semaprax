@@ -92,6 +92,18 @@ jobs:
           cargo test --locked -p semaprax --test project cxx_owned_data_package::package_is_exact_replayed_bounded_and_v8_only -- --exact --nocapture
           cargo test --locked -p semaprax --lib package_build::tests::generation_is_exact_and_independently_replayable -- --exact --nocapture
 
+
+      - name: GEN-06 all-scalar owned Result propagation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --locked -p semaprax --test language generic_owned_result
+          cargo test --locked -p semaprax --test language owned_result_variants::mixed_owned_result_postfix_try_uses_exact_residual_profile -- --exact
+          cargo test --locked -p semaprax --test ir graph_generic_results
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::mixed_result
+          cargo test --locked -p semaprax --lib cleanup_plan::replay::mixed_result_tests::mixed_result_residual_replay_keeps_empty_error_cases_and_rejects_missing_transfer -- --exact
+          cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::generic_result_program_root_replays_checked_variant_closures -- --exact
+
   supply-chain:
     name: Dependency policy
     runs-on: ubuntu-latest

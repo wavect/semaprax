@@ -297,3 +297,107 @@ fn generic_instance_semantic_identity_ignores_comments_but_root_replay_binds_sou
     )
     .is_err());
 }
+
+#[test]
+fn generic_result_program_root_replays_checked_variant_closures() {
+    for error in [
+        "i64", "i32", "u8", "usize", "char", "f32", "f64", "bool", "Bytes",
+    ] {
+        let fixture = Fixture::owned_vec(&format!("generic-result-{error}"), false);
+        let text = format!(
+            r#"
+module fixture.app;
+@id("fixture.propagate") fn propagate<E>(value: own Result<Bytes, E>) -> Result<Bytes, E> {{
+    let payload = value?;
+    Result<Bytes, E>::Ok {{ value: payload }}
+}}
+@id("fixture.consume") fn consume(value: own Result<Bytes, {error}>) -> i64 {{
+    match own value {{
+        Result::Ok {{ value: payload }} => 0,
+        Result::Err {{ error: error }} => 1,
+    }}
+}}
+@id("fixture.main") fn main() -> i64 {{
+    let input = [1u8];
+    consume(propagate<{error}>(Result<Bytes, {error}>::Ok {{ value: bytes_copy(array_as_slice(input)) }}))
+}}
+@id("fixture.public") fn published() -> i64 {{ 0 }}
+"#
+        );
+        let path = fixture.0.join("src/app.spx");
+        let parsed = semaprax::parse(&text, &path).unwrap();
+        std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+        let revision = fixture.revision();
+        let workspace = revision.canonical_workspace_revision().unwrap();
+        assert_eq!(
+            workspace.semantic_program().schema(),
+            SemanticProgram::SCHEMA_V2
+        );
+        let node: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+        let closures = node["payload"]["generic_instance_closures"]
+            .as_array()
+            .unwrap();
+        assert!(!closures.is_empty());
+        for closure in closures {
+            let graph: Value = serde_json::from_str(closure["graph"].as_str().unwrap()).unwrap();
+            assert_eq!(graph["schema"], "semaprax.graph.v34");
+            let instances = graph["generic_instance_ownership"].as_array().unwrap();
+            assert_eq!(instances.len(), 1);
+            assert_eq!(
+                instances[0]["cleanup_plan_schema"],
+                "semaprax.cleanup-plan.v6"
+            );
+            assert!(instances[0]["result"]["concrete_record_identity"].is_null());
+            assert_eq!(
+                instances[0]["source_revision"],
+                closure["defining_revision"]
+            );
+        }
+        let root = workspace.program_root().unwrap();
+        assert_eq!(
+            ProgramRoot::replay(
+                &workspace,
+                root.program_root_digest(),
+                root.to_json().as_bytes()
+            )
+            .unwrap(),
+            root
+        );
+        assert_eq!(
+            SemanticWorkspaceRevision::replay(
+                &revision,
+                workspace.workspace_revision(),
+                workspace.to_json().as_bytes()
+            )
+            .unwrap(),
+            workspace
+        );
+        let mut forged: Value = serde_json::from_str(root.to_json()).unwrap();
+        let semantic = forged["segments"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|segment| segment["kind"] == "semantic_program")
+            .unwrap();
+        semantic["node_digest"] = json!("0".repeat(64));
+        assert!(ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            canonical(forged).as_bytes()
+        )
+        .is_err());
+        let manifest = std::fs::read_to_string(fixture.manifest()).unwrap();
+        std::fs::write(
+            fixture.manifest(),
+            manifest.replace("fixture.public", "fixture.consume"),
+        )
+        .unwrap();
+        assert!(
+            with_authenticated_project(&fixture.manifest(), |snapshot| Ok(
+                snapshot.retain_revision()
+            ))
+            .is_err(),
+            "private owned Result admission must not widen the scalar public ABI"
+        );
+    }
+}

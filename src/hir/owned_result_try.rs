@@ -9,7 +9,11 @@ pub(super) fn is_exact_owned_instance(operand: &ResolvedType, residual: &Resolve
             declaration,
             arguments,
         } if declaration.as_str() == crate::prelude::RESULT_ID
-            && arguments.as_slice() == [ResolvedType::Bytes, ResolvedType::Bytes]
+            && matches!(arguments.as_slice(), [ResolvedType::Bytes,
+                ResolvedType::Bytes | ResolvedType::I64 | ResolvedType::I32 | ResolvedType::U8
+                    | ResolvedType::Usize | ResolvedType::Char | ResolvedType::F32
+                    | ResolvedType::F64 | ResolvedType::Bool
+                    | ResolvedType::TypeParameter { .. }])
             && operand == residual
     )
 }

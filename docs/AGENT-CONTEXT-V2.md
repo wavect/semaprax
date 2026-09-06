@@ -141,6 +141,12 @@ The earlier local v2 and legacy-v1 gates were 8/8 and 8/8. The full hosted matri
 in [run 31397881268, including Ubuntu job
 93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
 
+Within `generic_instance_ownership`, `body_reference` and
+`contracts.execution_id` identify concrete function-instance nodes in the full
+Graph v34 derived from the same exact `source_revision`. The bounded template
+context does not embed those concrete bodies or contracts. Resolve those
+references in the full graph; they are not local context-node references.
+
 The new generic-instance ownership and authenticated local-loan composition
 selectors are included in the independent GEN-05B Linux job. Its successful
 exact-commit hosted result is recorded in the

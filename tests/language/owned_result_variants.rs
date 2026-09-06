@@ -221,7 +221,7 @@ fn independent_hir_rejects_result_identity_argument_and_member_tampering() {
 }
 
 #[test]
-fn mixed_owned_result_postfix_try_stays_closed() {
+fn mixed_owned_result_postfix_try_uses_exact_residual_profile() {
     let source = r#"
 module test.owned_result_try_closed;
 @id("test.owned-result.try")
@@ -231,7 +231,19 @@ fn propagate(value: own Result<Bytes, i64>) -> Result<Bytes, i64> {
 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
-    assert_eq!(error_codes(source), ["SPX-T218", "SPX-T218"]);
+    let parsed = semaprax::check(source, "mixed-owned-result-try.spx").unwrap();
+    let resolved = hir::resolve(&parsed).unwrap();
+    hir::validate(&resolved).unwrap();
+    let function = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "test.owned-result.try")
+        .unwrap();
+    assert_eq!(function.cleanup_plan.schema, "semaprax.cleanup-plan.v6");
+    let mismatched = source
+        .replace("-> Result<Bytes, i64>", "-> Result<Bytes, bool>")
+        .replace("Result<Bytes, i64>::Ok", "Result<Bytes, bool>::Ok");
+    assert!(error_codes(&mismatched).contains(&"SPX-T219"));
 }
 
 #[test]

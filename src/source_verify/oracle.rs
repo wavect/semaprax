@@ -706,14 +706,7 @@ pub(super) fn check_expr(
                     expr.span,
                 ));
             }
-            let exact_owned_result = ordinary_result_arguments(&operand_value.ty)
-                .zip(ordinary_result_arguments(&current.return_type))
-                .is_some_and(|((ok, error), (residual_ok, residual_error))| {
-                    ok == &Type::Bytes
-                        && error == &Type::Bytes
-                        && residual_ok == &Type::Bytes
-                        && residual_error == &Type::Bytes
-                });
+            let exact_owned_result = crate::source_verify::declared_type::generic_result::concrete_try(&operand_value.ty, &current.return_type);
             if exact_owned_result && allow_moves {
                 mark_value_sources_moved(program, operand, variables, types, diagnostics);
             }
@@ -755,9 +748,7 @@ pub(super) fn check_expr(
                         expr.span,
                     ));
                 }
-                let exact_owned = exact_owned_result
-                    && residual_ok_ty == &Type::Bytes
-                    && residual_error_ty == &Type::Bytes;
+                let exact_owned = exact_owned_result && residual_ok_ty == &Type::Bytes;
                 if !exact_owned
                     && (!matches!(ok, Type::I64 | Type::Bool)
                         || !matches!(error_ty, Type::I64 | Type::Bool)

@@ -38,6 +38,7 @@ Additional required references:
 | Standard-library packages under `std/`, their catalogs, tiers, and gates | [Standard Library v1](STANDARD-LIBRARY-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
 | Owned bounded-vector operations or source `for` traversal | [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md), [Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md), [While Loops v1](WHILE-LOOPS-V1.md) |
 | Compiler-owned Box allocation or authenticated `std.mem` wrappers | [Owned Bounded Box v1](OWNED-BOUNDED-BOX-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [Standard Library v1](STANDARD-LIBRARY-V1.md) |
+| Generic owned Result propagation | [Generic Owned Result v1](GENERIC-OWNED-RESULT-V1.md), [Owned Byte Variant Algebra v1](OWNED-BYTE-VARIANT-ALGEBRA-V1.md), [Concrete Generic Owned-Byte Records v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) |
 | Cleanup, resource ownership, callable settlement | [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md), [RFC 0004](RFC-0004-NATIVE-CALL-SETTLEMENT.md) |
 | Immutable borrowing, loan provenance, or path-sensitive loan edges | [Shared Loan Plan v1](SHARED-LOAN-PLAN-V1.md), [Projected Owned-Byte Field Shared Borrow v1](PROJECTED-OWNED-BYTE-FIELD-BORROW-V1.md), [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
 | Single-file semantic changes | [Patch v2](SEMANTIC-PATCH-V2.md), [Impact](SEMANTIC-IMPACT-V1.md), [Review](SEMANTIC-REVIEW-V1.md), and the relevant evidence version |

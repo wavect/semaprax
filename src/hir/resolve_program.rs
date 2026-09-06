@@ -55,6 +55,16 @@ impl Resolver<'_> {
         Ok((ty, ownership))
     }
 
+    pub(super) fn resolve_try_result_type(
+        &self,
+        function: &FunctionExecutionId,
+        span: Span,
+    ) -> Result<ResolvedType, Diagnostic> {
+        let target = self.program.functions.iter().find(|candidate| matches!(function, FunctionExecutionId::Monomorphic(declaration) if candidate.stable_id == declaration.as_str()))
+            .ok_or_else(|| self.error("SPX-H006", format!("resolved `?` has unknown enclosing function `{function}`"), span))?;
+        self.resolve_function_type(target, &target.return_type, target.span)
+    }
+
     pub(super) fn generic_function_arguments_are_admitted(
         &self,
         caller: &FunctionExecutionId,
@@ -92,6 +102,15 @@ impl Resolver<'_> {
             });
         if forwarded {
             return Ok(true);
+        }
+        let result_type =
+            self.resolve_function_type(function, &function.return_type, function.span)?;
+        if super::generic_result::slot(
+            &result_type,
+            &DeclarationId::new(function.stable_id.clone()),
+            function.type_parameters.len(),
+        ) {
+            return Ok(super::generic_result::arguments(arguments));
         }
         if arguments.iter().any(|argument| {
             !super::type_reachability::nested_record_copy_scalar_is_admitted(argument)
@@ -603,7 +622,11 @@ impl Resolver<'_> {
                     op.param_ownership(index)
                 } else if let Some(op) = transparent_box_wrapper {
                     op.param_ownership()
-                } else if ty == ResolvedType::String
+                } else if super::generic_result::slot(
+                    &ty,
+                    &function_id,
+                    function.type_parameters.len(),
+                ) || ty == ResolvedType::String
                     || super::type_reachability::is_nested_owned_byte_record_template(
                         &self.declarations,
                         &ty,
@@ -658,6 +681,11 @@ impl Resolver<'_> {
                 ty: return_type.clone(),
                 ownership: if (transparent_vec_wrapper.is_some() && return_type.is_uniquely_owned())
                     || (transparent_box_wrapper == Some(crate::box_ops::BoxOp::New))
+                    || super::generic_result::slot(
+                        &return_type,
+                        &function_id,
+                        function.type_parameters.len(),
+                    )
                     || return_type == ResolvedType::String
                     || super::type_reachability::is_nested_owned_byte_record_template(
                         &self.declarations,
@@ -978,7 +1006,8 @@ impl Resolver<'_> {
                         if resolved.len() != parameters.len()
                             || (!admitted_vec
                                 && !admitted_box
-                                && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
+
+                && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
                                 && !crate::hir::type_reachability::is_flat_owned_byte_record(
                                     &self.declarations,
                                     &instance,
@@ -1101,6 +1130,7 @@ impl Resolver<'_> {
                 && !specialized_vec_wrapper
                 && !transparent_box
                 && !specialized_box_wrapper
+                && !super::generic_result::slot(&instance, &owner, function.type_parameters.len())
                 && !admitted_owned_byte_prelude_instance(&declaration, &resolved)
                 && !super::type_reachability::is_flat_owned_byte_record(
                     &self.declarations,

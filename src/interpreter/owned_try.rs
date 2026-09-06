@@ -1,4 +1,4 @@
-//! Closed interpreter lowering for exact owned `Result<Bytes, Bytes>` postfix `?`.
+//! Closed interpreter lowering for owned `Result<Bytes, E>` postfix `?`.
 
 use super::*;
 
@@ -70,8 +70,22 @@ impl Evaluator<'_> {
         if result.as_str() != crate::prelude::RESULT_ID
             || source_result != result
             || target_result != result
-            || source_arguments.as_slice() != [ResolvedType::Bytes, ResolvedType::Bytes]
-            || target_arguments.as_slice() != [ResolvedType::Bytes, ResolvedType::Bytes]
+            || !matches!(
+                source_arguments.as_slice(),
+                [
+                    ResolvedType::Bytes,
+                    ResolvedType::Bytes
+                        | ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::U8
+                        | ResolvedType::Usize
+                        | ResolvedType::Char
+                        | ResolvedType::F32
+                        | ResolvedType::F64
+                        | ResolvedType::Bool
+                ]
+            )
+            || source_arguments != target_arguments
             || expression.ty != ResolvedType::Bytes
             || ok_case.as_str() != crate::prelude::RESULT_OK_ID
             || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
@@ -109,9 +123,26 @@ impl Evaluator<'_> {
         let payload = carrier.fields.remove(selected_field).ok_or(Flow::Guard(
             "owned postfix `?` carrier omits its selected payload",
         ))?;
-        if !matches!(payload, Value::Bytes(_)) || !carrier.fields.is_empty() {
+        let payload_type = if carrier.case == *ok_case {
+            &source_arguments[0]
+        } else {
+            &source_arguments[1]
+        };
+        let payload_matches = matches!(
+            (payload_type, &payload),
+            (ResolvedType::Bytes, Value::Bytes(_))
+                | (ResolvedType::I64, Value::Int(_))
+                | (ResolvedType::Bool, Value::Bool(_))
+                | (ResolvedType::I32, Value::Int32(_))
+                | (ResolvedType::U8, Value::Uint8(_))
+                | (ResolvedType::Usize, Value::Usize(_))
+                | (ResolvedType::Char, Value::Char(_))
+                | (ResolvedType::F32, Value::Float32(_))
+                | (ResolvedType::F64, Value::Float64(_))
+        );
+        if !payload_matches || !carrier.fields.is_empty() {
             return Err(Flow::Guard(
-                "owned postfix `?` selected payload is not exact owned Bytes",
+                "owned postfix `?` selected payload does not match its authenticated case type",
             ));
         }
         if carrier.case == *ok_case {

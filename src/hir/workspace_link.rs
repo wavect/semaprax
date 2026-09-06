@@ -96,6 +96,7 @@ fn link_scalar_workspace_impl(
             .iter()
             .all(|effect| import_effects.contains(effect))
             || (!is_owned_method
+                && !(parts.is_some() && generic_result::concrete_signature(function))
                 && (function
                     .params
                     .iter()
@@ -165,7 +166,12 @@ fn link_scalar_workspace_impl(
                 .map(|instance| &instance.function),
         )
         .any(resolved_function_uses_box);
-    let (mut declarations, mut compiler_types) = if uses_vec || uses_box {
+    let uses_owned_result = functions.iter().any(generic_result::concrete_signature)
+        || parts
+            .iter()
+            .flat_map(|parts| &parts.function_templates)
+            .any(generic_result::profile);
+    let (mut declarations, mut compiler_types) = if uses_vec || uses_box || uses_owned_result {
         workspace_compiler_prelude_for(uses_vec, uses_box)?
     } else {
         (DeclarationIndex::default(), Vec::new())
@@ -212,7 +218,7 @@ fn link_scalar_workspace_impl(
             )
         },
     );
-    if uses_vec {
+    if uses_vec || uses_owned_result {
         compiler_types.extend(types);
         types = compiler_types;
     }

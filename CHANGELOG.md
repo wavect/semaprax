@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added generic `Result<Bytes, E>` relay, explicit forwarding and postfix `?`
+  for every Copy error scalar plus `Bytes`. Independent HIR proofs validate
+  unused substitutions without requiring a discovered call instance. Existing
+  conditional cleanup handles empty scalar-error ownership paths; native
+  residual return now preserves those scalar values before publishing the tag.
+  Graph v34 and ProgramRoot bind concrete variant and residual facts across
+  private function boundaries. Focused local runtime evidence covers 45
+  success/failure profiles on interpreter, C O0/O2 and Core-Wasm; public generic
+  descriptors remain closed. This begins GEN-06, not the end of the full goal.
+
 - Completed Graph-v34 type facts for concrete generic instance signatures and
   bodies, including template-only context selection. Frozen legacy graph
   collection remains unchanged. Added focused hosted compatibility selectors

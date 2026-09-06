@@ -34,6 +34,8 @@ use path_summary::{
 #[cfg(test)]
 use path_summary::{cleanup_plan_requires_path_replay, STATUS_ONLY_PATH_SUMMARY_THRESHOLD};
 
+#[cfg(test)]
+mod mixed_result_tests;
 mod nested_shape;
 mod path_join;
 mod record_destructure;
@@ -4693,8 +4695,21 @@ fn authenticated_try_stage_source(
     }
     let source_arguments = replay_result_arguments(function, &operand.ty, result)?;
     let target_arguments = replay_result_arguments(function, residual_type, result)?;
-    let exact_owned = source_arguments == [ResolvedType::Bytes, ResolvedType::Bytes]
-        && target_arguments == [ResolvedType::Bytes, ResolvedType::Bytes];
+    let exact_owned = matches!(
+        source_arguments,
+        [
+            ResolvedType::Bytes,
+            ResolvedType::Bytes
+                | ResolvedType::I64
+                | ResolvedType::I32
+                | ResolvedType::U8
+                | ResolvedType::Usize
+                | ResolvedType::Char
+                | ResolvedType::F32
+                | ResolvedType::F64
+                | ResolvedType::Bool
+        ]
+    ) && source_arguments == target_arguments;
     if source_arguments.len() != 2
         || target_arguments.len() != 2
         || (!exact_owned

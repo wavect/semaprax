@@ -4,6 +4,11 @@ Audience: language users, tool authors, and compiler contributors.
 
 Status: local implementation tranche; hosted promotion is not claimed.
 
+The additive [Generic Owned Result v1](GENERIC-OWNED-RESULT-V1.md) tranche is
+being implemented separately. It extends exact residual propagation to
+`Result<Bytes, E>` and explicit generic functions; the frozen profile below
+continues to define its earlier admitted shapes and bytes.
+
 ## Purpose
 
 Owned Byte Variant Algebra v1 admits the first non-Copy sum execution path.

@@ -887,10 +887,14 @@ pub(super) fn validate_type(
     template: &ResolvedFunctionTemplate,
     ty: &ResolvedType,
 ) -> Result<(), Diagnostic> {
-    let admitted = matches!(
-        ty,
-        ResolvedType::I64 | ResolvedType::Bool | ResolvedType::String
-    ) || matches!(ty, ResolvedType::TypeParameter { owner, index }
+    let admitted = (super::super::generic_result::profile(template)
+        && (super::super::generic_result::slot(ty, &template.id, template.type_parameters.len())
+            || *ty == ResolvedType::Bytes))
+        || matches!(
+            ty,
+            ResolvedType::I64 | ResolvedType::Bool | ResolvedType::String
+        )
+        || matches!(ty, ResolvedType::TypeParameter { owner, index }
             if owner == &template.id && usize::try_from(*index).ok()
                 .is_some_and(|index| index < template.type_parameters.len()))
         || super::super::type_reachability::is_nested_owned_byte_record_template(
@@ -1105,4 +1109,104 @@ pub(super) fn proof_signature(
         substitute_type(&template.return_type, &template.id, arguments)?,
         template.effects.clone(),
     ))
+}
+
+pub(super) fn substitutions(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+    transparent_owned_wrapper: bool,
+) -> Vec<Vec<ResolvedType>> {
+    if super::super::generic_result::profile(template) {
+        super::super::generic_result::substitutions()
+    } else if transparent_owned_wrapper {
+        vec_wrapper_substitutions()
+    } else if template_has_owned_record_slot(program, template) {
+        resolved_owned_record_substitutions(template.type_parameters.len())
+    } else {
+        resolved_scalar_substitutions(template.type_parameters.len())
+    }
+}
+
+impl HirValidator<'_> {
+    pub(super) fn validate_template_result_expression(
+        &mut self,
+        template: &ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        expression: &ResolvedExpr,
+        values: &mut BTreeMap<ValueId, ResolvedType>,
+        path: &str,
+    ) -> Result<(), Diagnostic> {
+        if !super::super::generic_result::profile(template) || !path.starts_with("body") {
+            return Err(hir_error(
+                "generic Result expression requires its exact owning relay body",
+            ));
+        }
+        match &expression.kind {
+            ResolvedExprKind::ConstructVariant {
+                variant,
+                case,
+                fields,
+            } => {
+                let [field] = fields.as_slice() else {
+                    return Err(hir_error(
+                        "generic Result reconstruction requires one Ok payload",
+                    ));
+                };
+                if variant.as_str() != crate::prelude::RESULT_ID
+                    || case.as_str() != crate::prelude::RESULT_OK_ID
+                    || field.field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
+                    || expression.ty != template.return_type
+                    || expression.ownership != OwnershipMode::Own
+                    || field.value.ty != ResolvedType::Bytes
+                    || field.value.ownership != OwnershipMode::Own
+                {
+                    return Err(hir_error(
+                        "generic Result reconstruction differs from its owning signature",
+                    ));
+                }
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    &field.value,
+                    values,
+                    &format!("{path}.field.0.value"),
+                )
+            }
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            } => {
+                if result.as_str() != crate::prelude::RESULT_ID
+                    || ok_case.as_str() != crate::prelude::RESULT_OK_ID
+                    || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
+                    || err_case.as_str() != crate::prelude::RESULT_ERR_ID
+                    || err_field.as_str() != crate::prelude::RESULT_ERR_ERROR_ID
+                    || *residual_type != template.return_type
+                    || operand.ty != *residual_type
+                    || operand.ownership != OwnershipMode::Own
+                    || expression.ty != ResolvedType::Bytes
+                    || expression.ownership != OwnershipMode::Own
+                {
+                    return Err(hir_error(
+                        "generic Result propagation differs from its exact owning residual",
+                    ));
+                }
+                self.validate_template_expr(
+                    template,
+                    execution,
+                    operand,
+                    values,
+                    &format!("{path}.operand"),
+                )
+            }
+            _ => Err(hir_error(
+                "generic Result helper received unsupported expression",
+            )),
+        }
+    }
 }

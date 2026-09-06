@@ -2,12 +2,14 @@
 fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
     let validation = concat!(
         include_str!("../src/hir/validation.rs"),
+        include_str!("../src/hir/generic_result.rs"),
         include_str!("../src/hir/validation/box_intrinsic.rs"),
         include_str!("../src/hir/validation/borrowed_str.rs"),
         include_str!("../src/hir/validation/generic_template.rs"),
         include_str!("../src/hir/validation/host_command.rs"),
         include_str!("../src/hir/validation/owned_buffer.rs"),
         include_str!("../src/hir/validation/owned_result_try.rs"),
+        include_str!("../src/hir/validation/proof_return.rs"),
         include_str!("../src/hir/validation/type_profiles.rs"),
         include_str!("../src/hir/validation/unsafe_scan.rs"),
         include_str!("../src/hir/validation/vec_intrinsic.rs"),

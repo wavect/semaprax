@@ -1191,10 +1191,17 @@ impl Resolver<'_> {
                     declaration: variant.clone(),
                     arguments: type_arguments
                         .iter()
-                        .map(|argument| self.resolve_type(argument, expr.span))
+                        .map(|argument| {
+                            self.resolve_call_type_argument(function, argument, expr.span)
+                        })
                         .collect::<Result<Vec<_>, _>>()?,
                 };
-                let ownership = self.expression_ownership(&ty, OwnershipMode::Own, expr.span)?;
+                let ownership = self.function_expression_ownership(
+                    function,
+                    &ty,
+                    OwnershipMode::Own,
+                    expr.span,
+                )?;
                 (
                     ResolvedExprKind::ConstructVariant {
                         variant,
@@ -1658,25 +1665,7 @@ impl Resolver<'_> {
                         expr.span,
                     ));
                 };
-                let target = self
-                    .program
-                    .functions
-                    .iter()
-                    .find(|candidate| {
-                        matches!(
-                            function,
-                            FunctionExecutionId::Monomorphic(declaration)
-                                if candidate.stable_id == declaration.as_str()
-                        )
-                    })
-                    .ok_or_else(|| {
-                        self.error(
-                            "SPX-H006",
-                            format!("resolved `?` has unknown enclosing function `{function}`"),
-                            expr.span,
-                        )
-                    })?;
-                let residual_type = self.resolve_type(&target.return_type, target.span)?;
+                let residual_type = self.resolve_try_result_type(function, expr.span)?;
                 match (declaration.as_str(), arguments.as_slice()) {
                     (crate::prelude::RESULT_ID, [ok_type, _error_type]) => {
                         super::owned_result_try::resolve_result(operand, residual_type, ok_type)

@@ -2239,7 +2239,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     &residual_err.1.ty,
                     "copy-result Err payload",
                 )?;
-
                 let owned_bytes = expr.ownership == hir::OwnershipMode::Own
                     && expr.ty == ResolvedType::Bytes
                     && operand.ty == *residual_type
@@ -2255,7 +2254,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                 arguments,
                             )
                     );
-
                 let operand_value = self.emit_expr(operand)?;
                 self.require_type(&operand_value.ty, &operand.ty, "copy-result operand")?;
                 if owned_bytes {
@@ -2290,6 +2288,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     for line in view.lines() {
                         self.line(line);
                     }
+                    if crate::hir::is_scalar_resolved_type(&operand_err.1.ty) {
+                        self.line(&format!(
+                            "spx_result.spx_payload.{}.{} = {operand_stage}.spx_payload.{}.{};",
+                            c_case_symbol(err_case),
+                            c_field_symbol(err_field),
+                            c_case_symbol(err_case),
+                            c_field_symbol(err_field),
+                        ));
+                    }
                     self.line(&format!(
                         "spx_result.spx_tag = UINT32_C({});",
                         residual_err.0.tag
@@ -2308,9 +2315,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     }
                     // The success lane continues through every ordinary transfer
                     // anchored at the Try expression (projected extraction, then
-                    // any enclosing binding/block destinations). Dynamic residual
-                    // TransferVariant transitions are deliberately ignored by
-                    // apply_at and run only on the Err lane above.
+                    // any enclosing binding/block destinations).
+                    // Dynamic TransferVariant runs only on the Err lane above.
                     let transitions = plan.apply_at(&expr.id)?;
                     for line in transitions.lines() {
                         self.line(line);

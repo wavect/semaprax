@@ -13,6 +13,53 @@ SEMAPRAX follows risk rather than feature count. Stable semantic identity,
 sound ownership, replayable change authority, and honest target boundaries take
 priority over broad syntax or generated artifact volume.
 
+## Unified semantic program implementation sequence
+
+The active implementation objective spans this entire sequence. Closing the
+GEN-05 internal graph tranche does not complete it. Canonical source,
+ProgramRoot, semantic graph, source Agent, Proposal grammar, deployment,
+executable harness, checkpoint, semantic transaction, target artifact and
+evidence must become authenticated projections of one checked program.
+Completion claims remain owned by the completion matrix and exact evidence.
+
+1. **GEN-05B/C — semantic closure and hosted internal corpus.** Retain exact
+   concrete generic identities, ordered substitutions, ownership and call
+   facts, independently selected cleanup, ProgramRoot association and hostile
+   replay. Preserve old graph/cleanup bytes and public descriptors. Complete
+   the exact Linux evidence for flat composition and scalar dependencies;
+   distinguish historical-byte evidence from current replay determinism.
+2. **GEN-06 — internal generic semantics.** Implement owned `Result` propagation
+   and `?`, nested expression-result composition, explicit non-identity type
+   forwarding, ownership-equivalent result reconstruction, two-owner
+   parameters/results, generic variants, and generic bounded `Box`/`Vec` use.
+   Add constraints and inference only after the explicit forms work. The
+   [Generic Owned Result](GENERIC-OWNED-RESULT-V1.md) tranche begins this work;
+   its initial substitutions are not the whole milestone.
+3. **AGENT-06 — compiled iterative lifecycle.** Implement `AgentStep::continue`,
+   typed suspend/fail, multiple typed effects, effect-specific authorization,
+   checkpoints around every registered effect, state migration between
+   ProgramRoot revisions, direct Runtime-v2 consumption and hosted
+   cross-platform generated Proposal clients. Reuse source Agent declarations,
+   deployment separation and the existing first checkpoint.
+4. **SEG-04 — static and runtime roots.** Connect ProgramRoot, DeploymentRoot,
+   InstanceRoot, EvidenceRoot and ExecutionRevision without introducing a
+   competing static graph. Generic ownership and cleanup must be shared by
+   semantic service, query, Agent context and runtime projections.
+5. **LANG-07 — collections.** Generalize owned payloads, iterators, closures,
+   map/filter/fold, public package use, regions/arenas and target-neutral
+   collection descriptors. Verify cleanup under contract and allocation
+   failures and promote the existing bounded collection foundation.
+6. **STD-08 — Everyday profile.** Deliver composable Reader/Writer, typed Path,
+   `std.fs`, `std.data.json`, `std.format`, structured `std.log`, `std.env`,
+   `std.process`, richer `std.test` and `std.agent` on that substrate.
+7. **ABI-09 — separate public generic programme.** After internal ownership
+   closure, define a versioned target-neutral type grammar, ordered template
+   identities, semantic compatibility and candidate ABI-delta evidence.
+   Generate Rust, TypeScript/Wasm, C and C++ consumers; verify hostile metadata
+   replay, allocation/failure settlement and cross-platform hosted execution.
+   Make the support/publication decision explicitly. Internal generic
+   admission alone never widens a public ABI.
+
 ## Current priority: post-v0.2 promotion boundaries
 
 The `v0.2.0` prerelease is published from exact commit

@@ -179,7 +179,7 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     function_templates: &[crate::hir::ResolvedFunctionTemplate],
     function_instances: &[crate::hir::ResolvedFunctionInstance],
 ) -> Result<&'static str, Diagnostic> {
-    select_schema(
+    let schema = select_schema(
         None,
         functions
             .iter()
@@ -192,15 +192,32 @@ pub(crate) fn graph_schema_from_parts_and_instances(
             function_templates,
         )?,
         false,
+    )?;
+    Ok(
+        if function_templates
+            .iter()
+            .any(crate::hir::generic_result::profile)
+        {
+            "semaprax.graph.v34"
+        } else {
+            schema
+        },
     )
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
-    if program.function_instances.is_empty() {
+    if program.function_instances.is_empty() && !requires_generic_result_schema(program) {
         return legacy_graph_schema(program);
     }
     generic_payload_schema(program)?;
     Ok("semaprax.graph.v34")
+}
+
+pub(super) fn requires_generic_result_schema(program: &ResolvedProgram) -> bool {
+    program
+        .function_templates
+        .iter()
+        .any(crate::hir::generic_result::profile)
 }
 
 /// The additive generic graph can compose authenticated ordinary local loans
@@ -209,7 +226,10 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Di
 pub(super) fn generic_payload_schema(
     program: &ResolvedProgram,
 ) -> Result<&'static str, Diagnostic> {
-    program_schema(program, !program.function_instances.is_empty())
+    program_schema(
+        program,
+        !program.function_instances.is_empty() || requires_generic_result_schema(program),
+    )
 }
 
 pub(crate) fn legacy_graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
@@ -220,7 +240,7 @@ fn program_schema(
     program: &ResolvedProgram,
     generic_composition: bool,
 ) -> Result<&'static str, Diagnostic> {
-    select_schema(
+    let schema = select_schema(
         Some(program),
         program
             .functions
@@ -234,7 +254,16 @@ fn program_schema(
             &program.function_templates,
         )?,
         generic_composition,
-    )
+    )?;
+    if requires_generic_result_schema(program) {
+        if !generic_composition {
+            return Err(composition_error(
+                "generic owned Result templates require additive Graph v34",
+            ));
+        }
+        return Ok("semaprax.graph.v34");
+    }
+    Ok(schema)
 }
 
 pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool {

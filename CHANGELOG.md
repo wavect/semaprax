@@ -8,6 +8,25 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Admitted the loop-carried owned byte buffer fill. `bytes_set` gains one
+  same-owner replacement shape, `buffer = bytes_set(buffer, index, value)`,
+  whose assignment target and buffer operand are the same `let mut` binding:
+  the call moves the single owner out and the assignment publishes the returned
+  owner back, so exactly one generation is live at every point. It is the only
+  `bytes_set` a bounded `while` body admits, so a loop can fill a buffer it did
+  not allocate; `bytes_zeroed` stays outside the loop and is still rejected
+  there by both the byte-family rule (`SPX-T252`) and the owned byte allocation
+  rule (`SPX-T267`). Every other named buffer operand remains `SPX-T271`, a
+  borrowed view live across the replacement remains `SPX-T265`, and independent
+  HIR validation re-derives the same fact so hostile HIR that swaps two
+  replacements' targets fails closed with `SPX-H006`. The fill and a store one
+  element past the capacity execute on the reference interpreter, native C11,
+  and Core Wasm under Node against a one-entry owned-byte arena across four
+  re-entries with no linear-memory copy or growth, and the out-of-range store
+  selects the identical `semaprax.byte-buffer.v1` code 1 status on all three
+  engines before the owner transfer commits. Capacity growth stays out of
+  scope: the allocation capacity is still a literal.
+
 - Added authority-free Exact Program Context v2, which independently replays
   exact context v1, Contracts and Tests Facts v1, and ProgramRoot v3 before
   requiring the enriched workspace and v3-root selectors across typed query,

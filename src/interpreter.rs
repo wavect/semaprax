@@ -4700,7 +4700,7 @@ impl Evaluator<'_> {
             ResolvedExprKind::Block { statements, tail } => {
                 let base = environment.len();
                 let mut interrupted = None;
-                for statement in statements {
+                'statements: for statement in statements {
                     match statement {
                         ResolvedStatement::Let { binding, value, .. } => {
                             match self.evaluate(value, environment, depth) {
@@ -4760,18 +4760,18 @@ impl Evaluator<'_> {
                             loop {
                                 if let Err(flow) = self.charge() {
                                     interrupted = Some(flow);
-                                    break;
+                                    break 'statements;
                                 }
                                 let flag = match self.evaluate(condition, environment, depth) {
                                     Ok(Value::Bool(flag)) => flag,
                                     Ok(_) => {
                                         interrupted =
                                             Some(Flow::Guard("non-boolean while condition"));
-                                        break;
+                                        break 'statements;
                                     }
                                     Err(flow) => {
                                         interrupted = Some(flow);
-                                        break;
+                                        break 'statements;
                                     }
                                 };
                                 if !flag {
@@ -4779,7 +4779,7 @@ impl Evaluator<'_> {
                                 }
                                 if let Err(flow) = self.evaluate(body, environment, depth) {
                                     interrupted = Some(flow);
-                                    break;
+                                    break 'statements;
                                 }
                             }
                         }

@@ -81,6 +81,13 @@ struct IterativeVerifier<'a, 'p> {
     scopes: Vec<VerifierScope>,
     frames: Vec<VerifierFrame<'p>>,
     values: Vec<Option<CheckedValue>>,
+    /// Byte spans of the `bytes_set` calls this function admits as a
+    /// same-owner re-open, `buffer = bytes_set(buffer, index, value)`. Every
+    /// other `bytes_set` buffer operand must still be the enclosing write-once
+    /// chain's previous link. Statement scheduling records a site before the
+    /// right-hand side is entered, so the call's own admission rule reads it in
+    /// the ordinary order.
+    buffer_reopen_sites: std::collections::BTreeSet<(usize, usize)>,
 }
 
 /// Declared in the module root, rather than beside the frame loop, because the
@@ -118,6 +125,24 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }],
             frames: Vec::new(),
             values: Vec::new(),
+            buffer_reopen_sites: std::collections::BTreeSet::new(),
+        }
+    }
+
+    /// Record one admitted same-owner byte-buffer re-open before its
+    /// right-hand side is entered.
+    fn note_owned_buffer_reopen(&mut self, statement: &Statement) {
+        if let Statement::Assign {
+            name,
+            field: None,
+            value,
+            ..
+        } = statement
+        {
+            if crate::byte_ops::is_same_owner_set_shape(value, name) {
+                self.buffer_reopen_sites
+                    .insert((value.span.start, value.span.end));
+            }
         }
     }
 }

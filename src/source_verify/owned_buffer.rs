@@ -12,6 +12,13 @@
 //! observable state, no second owner, and no borrowed view; binding the
 //! chain's result is the freeze, after which only the borrowed reads apply.
 //!
+//! One shape re-opens a frozen buffer: the same-owner replacement
+//! `buffer = bytes_set(buffer, index, value)`. The call moves the single owner
+//! out of the binding and the assignment publishes the returned owner back
+//! into it, so exactly one generation is live at every point. Inside one
+//! bounded `while` that is the loop-carried fill. The allocation stays
+//! outside the loop.
+//!
 //! A `bytes_set` element index is any `usize` expression. A literal index at
 //! or above the capacity, and any index into an empty buffer, remain
 //! compile-time diagnostics; a computed index is checked against the buffer
@@ -32,6 +39,7 @@ pub(super) fn check_call(
     op: ByteOp,
     name: &str,
     args: &[Expr],
+    reopen: bool,
 ) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
     if args.len() != op.arity() {
@@ -57,6 +65,15 @@ pub(super) fn check_call(
             }
         }
         ByteOp::Set => {
+            // Same-owner re-open: this exact call is the right-hand side of
+            // `buffer = bytes_set(buffer, index, value)`, so its buffer operand
+            // is that binding. The capacity is not a literal at this call site,
+            // so the established run-time element bound is the only index rule
+            // that can apply; it is selected before the owner transfer commits
+            // and is exact on every backend.
+            if reopen && byte_ops::owned_buffer_operand_is_binding(&args[0]) {
+                return diagnostics;
+            }
             let Some(capacity) = byte_ops::owned_buffer_chain_capacity(&args[0]) else {
                 diagnostics.push(
                     error(

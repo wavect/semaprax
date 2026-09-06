@@ -21,9 +21,10 @@ kind, no graph schema version, and no new mutation syntax.
 
 ## What this deliberately is not
 
-`push` in a loop is not buildable today, and this document does not pretend
-otherwise. Two independent rules block it, and both must be decided before a
-growable vector is designed:
+Capacity *growth* in a loop is not buildable today, and this document does not
+pretend otherwise. A loop-carried *fill* of an already allocated buffer is
+admitted; see [Source contract](#source-contract). Two independent rules block
+growth, and both must be decided before a growable byte vector is designed:
 
 - `src/byte_data_capacity.rs` rejects an owned byte allocation reachable from a
   `while` condition or body, and `MAX_BYTES_COPY_SITES` counts *static* sites,
@@ -36,7 +37,7 @@ growable vector is designed:
 This tranche therefore fixes the capacity at the allocation site, which needs
 neither loop-reachable allocation nor growth. The *element index* is not fixed:
 it is any admitted `usize` expression, so an offset a scan discovers can be
-written. Only the allocation is static.
+written, including from inside a bounded `while`. Only the allocation is static.
 
 ## Ownership and borrowing model
 
@@ -103,15 +104,25 @@ The admission rules are:
   is what the target-neutral capacity analysis and both backends require.
 - `bytes_set`'s `buffer` operand is syntactically the enclosing chain's
   previous `bytes_zeroed` or `bytes_set` call (`SPX-T271`). A named binding is
-  a frozen buffer and can never be re-opened.
+  a frozen buffer, with exactly one exception: the *same-owner replacement*
+  `buffer = bytes_set(buffer, index, value)`, whose assignment target and whose
+  `buffer` operand are the same `let mut` binding. The call moves the single
+  owner out of the binding and the assignment publishes the returned owner back
+  into it, so exactly one generation is live at every point and the buffer is
+  never nameable half-filled. Any other named binding in the operand — a second
+  owner, or a `let` that does not republish the operand — stays `SPX-T271`, and
+  a borrowed view that is live across the replacement is `SPX-T265`.
 - `bytes_set`'s `index` operand is any `usize` expression. A *literal* index at
   or above the chain's capacity is `SPX-T272`, and so is any index into a
   zero-capacity buffer, because neither can ever name an element. Every other
   index is admitted and checked at run time; see [Element bound](#element-bound).
 - A chain holds at most `256` `bytes_set` links.
-- Neither operation is admitted in a `while` condition or body. The byte-family
-  rule reports `SPX-T252` and the owned byte allocation rule reports
-  `SPX-T267`.
+- `bytes_zeroed` is not admitted in a `while` condition or body: the allocation
+  stays outside the loop. The byte-family rule reports `SPX-T252` and the owned
+  byte allocation rule reports `SPX-T267` independently. `bytes_set` *is*
+  admitted there, but only through the same-owner replacement above — the
+  loop-carried fill. A `bytes_set` in a `while` that is not that assignment's
+  right-hand side is still `SPX-T252` or `SPX-T271`.
 
 Reading a frozen buffer uses the existing operations unchanged: `bytes_as_slice`
 for the borrowed view, `byte_len` for the length, `byte_get` for the checked
@@ -203,8 +214,9 @@ existing focused gates.
 - A computed *capacity*. `SPX-T271` still requires a literal at the allocation
   site, because the target-neutral owned byte capacity analysis and the
   Core-Wasm arena both size from it.
-- A loop-driven fill or capacity growth. Neither the exact host-arena protocol
-  nor fixed Core-Wasm linear memory admits either behavior.
+- Capacity growth. Neither the exact host-arena protocol nor fixed Core-Wasm
+  linear memory admits it. A loop-driven *fill* at a fixed capacity is admitted
+  and is no longer an open gate.
 - A public FFI or project-boundary layout. The single admitted owned parameter
   shape crossing a project boundary is unchanged by this document.
 - A `std.*` interface, once the compiler-owned host surface moves behind one.

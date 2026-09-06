@@ -343,10 +343,15 @@ fn main() -> i64
   previous link, any `usize` index expression, and the byte. Binding the result
   freezes it; read it with the ordinary borrowed operations. A named binding
   cannot be re-opened (`SPX-T271`), a literal index at or above the capacity is
-  `SPX-T272`, a computed index outside the buffer fails at run time with
-  `semaprax.byte-buffer.v1` code 1 before anything is written, and neither
-  operation is admitted in a `while` body.
+  `SPX-T272`, and a computed index outside the buffer fails at run time with
+  `semaprax.byte-buffer.v1` code 1 before anything is written.
   [Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) owns the rule.
+- One shape re-opens a frozen buffer: the same-owner replacement
+  `buffer = bytes_set(buffer, index, value)`, where the assignment target and
+  the `buffer` operand are the same `let mut` binding. That is also the only
+  `bytes_set` a bounded `while` body admits, so a loop fills a buffer the loop
+  did not allocate. `bytes_zeroed` stays outside the loop (`SPX-T267`), and a
+  borrowed view may not be live across the replacement (`SPX-T265`).
 
 ```semaprax
 module app.buffer;
@@ -357,6 +362,26 @@ fn main() -> i64
     let buffer = bytes_set(bytes_set(bytes_zeroed(2usize), 0usize, 65u8), 1usize, 66u8);
     let view = bytes_as_slice(buffer);
     if byte_len(view) == 2usize { 0 } else { 1 }
+}
+```
+
+```semaprax
+module app.buffer_loop;
+
+@id("app.main")
+fn main() -> i64
+{
+    let mut buffer = bytes_zeroed(3usize);
+    let mut index = 0usize;
+    let mut value = 65u8;
+    while index < 3usize {
+        buffer = bytes_set(buffer, index, value);
+        index = index + 1usize;
+        value = value + 1u8;
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 3usize { 0 } else { 1 }
 }
 ```
 

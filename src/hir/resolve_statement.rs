@@ -239,17 +239,11 @@ impl Resolver<'_> {
                         }
                     }
                     if let Some(operation) = crate::byte_ops::by_name(name) {
-                        if !matches!(
-                            operation,
-                            crate::byte_ops::ByteOp::Len
-                                | crate::byte_ops::ByteOp::Get
-                                | crate::byte_ops::ByteOp::Range
-                        ) || args.len() != operation.arity()
-                        {
+                        if !operation.admitted_in_while() || args.len() != operation.arity() {
                             return Err(self.error(
                                 "SPX-T252",
                                 format!(
-                                    "byte operation `{name}` is not admitted in while bodies; only exact byte_len and byte_get reads qualify"
+                                    "byte operation `{name}` is not admitted in while bodies; only exact byte_len, byte_get and byte_range reads and the loop-carried bytes_set fill qualify"
                                 ),
                                 expression.span,
                             ));

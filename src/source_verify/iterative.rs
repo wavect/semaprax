@@ -117,6 +117,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             );
             return;
         }
+        self.note_owned_buffer_reopen(next_statement);
         self.frames.push(VerifierFrame::ResumeBlockStatement {
             expression,
             statements,

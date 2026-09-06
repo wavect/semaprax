@@ -280,13 +280,22 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             }
                         }
                         None => {
-                            let owned_vec_reopen =
-                                crate::vec_ops::is_same_owner_reassignment_source(
-                                    self.program,
-                                    value,
-                                    name,
-                                    &binding_ty,
-                                );
+                            // Same-owner replacement: a `Vec<T>` reopen such as
+                            // `values = vec_push(values, v)` and the byte-buffer
+                            // `buffer = bytes_set(buffer, index, value)` are the
+                            // admitted owned reopen shapes. The right-hand side
+                            // evaluates before publication, so exactly one
+                            // generation of the owner is ever live.
+                            let owned_reopen = crate::vec_ops::is_same_owner_reassignment_source(
+                                self.program,
+                                value,
+                                name,
+                                &binding_ty,
+                            ) || crate::byte_ops::is_same_owner_set_source(
+                                value,
+                                name,
+                                &binding_ty,
+                            );
                             if !mutable {
                                 let mut diagnostic = error(
                                     self.program,
@@ -323,7 +332,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 if mutable
                                     && (actual.mode != ParamMode::Value
                                         || !is_scalar_source_type(&actual.ty))
-                                    && !owned_vec_reopen
+                                    && !owned_reopen
                                 {
                                     self.diagnostics.push(error(
                                         self.program,
@@ -333,7 +342,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                     ));
                                 }
                             }
-                            if mutable && owned_vec_reopen {
+                            if mutable && owned_reopen {
                                 if let Some(binding) =
                                     self.scopes[block_scope].bindings.get_mut(name.as_str())
                                 {

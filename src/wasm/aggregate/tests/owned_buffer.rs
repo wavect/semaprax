@@ -213,6 +213,122 @@ fn run() -> i64 {
 fn main() -> i64 { run() }
 "#;
 
+/// The loop-carried fill: the buffer is allocated once outside one bounded
+/// `while` and the body republishes that same binding from
+/// `bytes_set(binding, index, value)`. Every iteration mutates the one arena
+/// entry in place and hands back the same carrier, so a one-entry arena stays
+/// balanced across repeated invocations.
+const LOOP_FILL: &str = r#"
+module test.wasm_owned_buffer_loop;
+
+@id("buffer.run")
+fn run() -> i64 {
+    let mut buffer = bytes_zeroed(3usize);
+    let mut index = 0usize;
+    let mut value = 65u8;
+    while index < 3usize {
+        buffer = bytes_set(buffer, index, value);
+        index = index + 1usize;
+        value = value + 1u8;
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    let first = match byte_get(view, 0usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let last = match byte_get(view, 2usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    if byte_len(view) == 3usize && first == 65u8 && last == 67u8 { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
+/// The same loop run one iteration past the capacity. The store that leaves the
+/// buffer selects the element-bound failure before the owner transfer commits,
+/// so the arena entry is released exactly once by the canonical cleanup and a
+/// one-entry arena still balances on every repeat.
+const LOOP_PAST_END: &str = r#"
+module test.wasm_owned_buffer_loop_past_end;
+
+@id("buffer.run")
+fn run() -> i64 {
+    let mut buffer = bytes_zeroed(3usize);
+    let mut index = 0usize;
+    while index < 4usize {
+        buffer = bytes_set(buffer, index, 65u8);
+        index = index + 1usize;
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 3usize { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { run() }
+"#;
+
+/// Issue #63's decoded-string output buffer. The write cursor advances
+/// independently of the read cursor, so the element index is a computed `usize`
+/// that is not the loop counter, and the one arena entry is mutated in place on
+/// every iteration. The escaped input `a\nb` is produced by a pure function of
+/// the read offset rather than an array literal, so this case keeps asserting
+/// that the *buffer* lowering neither copies nor grows linear memory.
+const DECODED_STRING_BUFFER: &str = r#"
+module test.wasm_owned_buffer_decode;
+
+@id("buffer.source")
+fn source(offset: usize) -> u8 {
+    if offset == 0usize { 97u8 }
+    else { if offset == 1usize { 92u8 }
+    else { if offset == 2usize { 110u8 } else { 98u8 } } }
+}
+
+@id("buffer.decode")
+fn decode() -> i64 {
+    let mut out = bytes_zeroed(8usize);
+    let mut read = 0usize;
+    let mut write = 0usize;
+    while read < 4usize {
+        let raw = source(read);
+        if raw == 92u8 {
+            let next = source(read + 1usize);
+            let decoded = if next == 110u8 { 10u8 } else { next };
+            out = bytes_set(out, write, decoded);
+            read = read + 2usize;
+            write = write + 1usize;
+            0
+        } else {
+            out = bytes_set(out, write, raw);
+            read = read + 1usize;
+            write = write + 1usize;
+            0
+        }
+    }
+    let view = bytes_as_slice(out);
+    let first = match byte_get(view, 0usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let second = match byte_get(view, 1usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let third = match byte_get(view, 2usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    if byte_len(view) == 8usize && write == 3usize && first == 97u8 && second == 10u8 && third == 98u8 { 7 } else { 1 }
+}
+
+@id("app.main")
+fn main() -> i64 { decode() }
+"#;
+
 const FAILURE: &str = r#"
 module test.wasm_owned_buffer_failure;
 
@@ -248,6 +364,9 @@ fn owned_bounded_byte_buffer_executes_and_reenters_without_memory_copy() {
         ("success", SUCCESS, RETURNS_SEVEN),
         ("computed", COMPUTED, RETURNS_SEVEN),
         ("computed-past-end", COMPUTED_OUT_OF_RANGE, BOUND_FAILURE),
+        ("loop-fill", LOOP_FILL, RETURNS_SEVEN),
+        ("loop-past-end", LOOP_PAST_END, BOUND_FAILURE),
+        ("decoded-string", DECODED_STRING_BUFFER, RETURNS_SEVEN),
         ("failure", FAILURE, CONTRACT_FAILURE),
     ] {
         let parsed = parse(source, Path::new("wasm-owned-buffer-v1.spx")).unwrap();

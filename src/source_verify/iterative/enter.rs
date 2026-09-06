@@ -329,6 +329,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         });
                     }
                     if op.is_owned_buffer_chain() {
+                        let reopen = self
+                            .buffer_reopen_sites
+                            .contains(&(expression.span.start, expression.span.end));
                         self.diagnostics
                             .extend(crate::source_verify::owned_buffer::check_call(
                                 self.program,
@@ -336,6 +339,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 op,
                                 name,
                                 args,
+                                reopen,
                             ));
                     }
                     VerifierCallTarget::Byte(op)
@@ -615,6 +619,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             body,
                         );
                     } else {
+                        self.note_owned_buffer_reopen(first_statement);
                         self.frames.push(VerifierFrame::ResumeBlockStatement {
                             expression,
                             statements,

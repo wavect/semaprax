@@ -70,6 +70,7 @@ pub(super) fn validate_whole_assignment(
             value,
             &target.id,
         )
+        && !crate::byte_ops::is_same_owner_set_hir(value, &target.id)
     {
         return Err(resolver.error(
             "SPX-U105",

@@ -97,6 +97,122 @@ fn main() -> i64
 }
 "#;
 
+/// Owned Bounded Byte Buffer v1 loop-carried fill. The buffer is allocated once
+/// outside one bounded `while`; the body assigns that same binding exactly once
+/// from `bytes_set(binding, index, value)`, so exactly one generation of the one
+/// owner is live at every point and no borrow crosses the assignment.
+const LOOP_FILL: &str = r#"
+module test.owned_byte_buffer_loop;
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let mut buffer = bytes_zeroed(3usize);
+    let mut index = 0usize;
+    let mut value = 65u8;
+    while index < 3usize {
+        buffer = bytes_set(buffer, index, value);
+        index = index + 1usize;
+        value = value + 1u8;
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    let first = match byte_get(view, 0usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let last = match byte_get(view, 2usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    if byte_len(view) == 3usize && first == 65u8 && last == 67u8 { 7 } else { 1 }
+}
+"#;
+
+/// The same loop run one iteration past the capacity. The store that leaves the
+/// buffer selects the one `semaprax.byte-buffer.v1` failure before the owner
+/// transfer commits, so the buffer stays in its canonical call-argument slot for
+/// the single destruction path that exit already owns.
+/// Issue #63's decoded-string output buffer, reduced to the language shape it
+/// needs: a JSON string body with backslash escapes is decoded into an output
+/// buffer allocated once outside one bounded `while`. The read cursor and the
+/// write cursor advance at different rates, so the `bytes_set` element index is
+/// a computed `usize` the compiler cannot fold to a literal, and it is not the
+/// loop counter. `a\nb` decodes to `a`, LF, `b`.
+const DECODED_STRING_BUFFER: &str = r#"
+module test.owned_byte_buffer_decode;
+
+@id("buffer.decode")
+fn decode(input: borrow Slice<u8>) -> i64
+{
+    let mut out = bytes_zeroed(8usize);
+    let mut read = 0usize;
+    let mut write = 0usize;
+    while read < byte_len(input) {
+        let raw = match byte_get(input, read) {
+            Option::Some { value: byte } => byte,
+            Option::None {} => 0u8,
+        };
+        if raw == 92u8 {
+            let next = match byte_get(input, read + 1usize) {
+                Option::Some { value: byte } => byte,
+                Option::None {} => 0u8,
+            };
+            let decoded = if next == 110u8 { 10u8 } else { next };
+            out = bytes_set(out, write, decoded);
+            read = read + 2usize;
+            write = write + 1usize;
+            0
+        } else {
+            out = bytes_set(out, write, raw);
+            read = read + 1usize;
+            write = write + 1usize;
+            0
+        }
+    }
+    let view = bytes_as_slice(out);
+    let first = match byte_get(view, 0usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let second = match byte_get(view, 1usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    let third = match byte_get(view, 2usize) {
+        Option::Some { value: byte } => byte,
+        Option::None {} => 0u8,
+    };
+    if byte_len(view) == 8usize && write == 3usize && first == 97u8 && second == 10u8 && third == 98u8 { 7 } else { 1 }
+}
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let raw = [97u8, 92u8, 110u8, 98u8];
+    let source = array_as_slice(raw);
+    decode(source)
+}
+"#;
+
+const LOOP_PAST_END: &str = r#"
+module test.owned_byte_buffer_loop_past_end;
+
+@id("buffer.main")
+fn main() -> i64
+{
+    let mut buffer = bytes_zeroed(3usize);
+    let mut index = 0usize;
+    while index < 4usize {
+        buffer = bytes_set(buffer, index, 65u8);
+        index = index + 1usize;
+        0
+    }
+    let view = bytes_as_slice(buffer);
+    if byte_len(view) == 3usize { 7 } else { 1 }
+}
+"#;
+
 fn error_codes(source: &str) -> Vec<&'static str> {
     let program = parse(source, "owned-byte-buffer-invalid.spx").unwrap();
     verify::verify(&program)
@@ -348,6 +464,242 @@ fn allocating_a_buffer_inside_a_loop_stays_rejected() {
 }
 
 #[test]
+fn a_loop_carried_fill_is_admitted_with_one_owner_and_one_destruction_path() {
+    let program = parse(LOOP_FILL, "owned-byte-buffer-loop.spx").unwrap();
+    assert!(
+        verify::verify(&program).is_empty(),
+        "the loop-carried fill is admitted source: {:?}",
+        error_codes(LOOP_FILL)
+    );
+    let canonical = format::canonical(&program);
+    assert_eq!(
+        format::canonical(&parse(&canonical, "owned-byte-buffer-loop-canonical.spx").unwrap()),
+        canonical,
+        "the loop-carried fill round-trips through the canonical formatter"
+    );
+
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let plan = &main_function(&resolved).cleanup_plan;
+
+    // One allocation temporary, one binding, one fill result, one staged call
+    // argument. The loop reuses that single argument epoch on every iteration
+    // rather than adding a slot per iteration.
+    assert_eq!(
+        plan.slots
+            .iter()
+            .filter(|slot| matches!(slot.storage, StorageId::CallArgument { .. }))
+            .count(),
+        1,
+        "the loop-carried fill stages one canonical argument epoch"
+    );
+    // The binding is republished by exactly one transfer, and the buffer is
+    // staged out of it by exactly one transfer.
+    let binding = plan
+        .slots
+        .iter()
+        .find(|slot| matches!(slot.storage, StorageId::Value(_)))
+        .map(|slot| slot.storage.clone())
+        .expect("the loop-carried buffer binding owns a cleanup slot");
+    let (into_binding, out_of_binding) = plan
+        .blocks
+        .iter()
+        .flat_map(|block| &block.transitions)
+        .filter_map(|transition| match transition {
+            CleanupTransition::Transfer {
+                source,
+                destination,
+                ..
+            } => Some((source, destination)),
+            _ => None,
+        })
+        .fold((0usize, 0usize), |(into, out), (source, destination)| {
+            (
+                into + usize::from(destination.storage == binding),
+                out + usize::from(source.storage == binding),
+            )
+        });
+    assert_eq!(into_binding, 2, "allocation and one republication");
+    assert_eq!(out_of_binding, 1, "one staged transfer out of the binding");
+    // No exit ever destroys more than one owner.
+    for exit in &plan.exits {
+        assert!(exit.finalize_in_order.len() <= 1);
+    }
+
+    let interpreted = interpret(LOOP_FILL, "loop-interp");
+    assert!(
+        interpreted.contains("\"kind\":\"returned\"") && interpreted.contains("\"value\":\"7\""),
+        "the reference interpreter fills the buffer inside the loop: {interpreted}"
+    );
+
+    let generated = codegen::emit_c(&program).unwrap();
+    assert_eq!(generated, codegen::emit_c(&program).unwrap());
+    assert_eq!(
+        generated.matches("spx_bytes_set_check_v1(spx_ctx,").count(),
+        1,
+        "one loop-carried store emits one bound check"
+    );
+
+    let emitted = wasm::emit_module(&program).unwrap();
+    assert_eq!(emitted, wasm::emit_module(&program).unwrap());
+    assert!(emitted.starts_with(b"\0asm"));
+
+    if !command_available("clang") {
+        return;
+    }
+    let native = std::env::temp_dir().join(format!(
+        "semaprax-owned-byte-buffer-loop-{}.native{}",
+        std::process::id(),
+        std::env::consts::EXE_SUFFIX
+    ));
+    codegen::build(&program, &native).unwrap();
+    let output = Command::new(&native).output().unwrap();
+    let _ = std::fs::remove_file(&native);
+    assert!(
+        output.status.success(),
+        "native loop-carried fill run failed"
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "7",
+        "the native backend agrees with the reference interpreter"
+    );
+}
+
+#[test]
+fn a_decoded_string_output_buffer_fills_at_an_independent_write_cursor() {
+    // Issue #63's output-buffer shape: the write index is neither a literal nor
+    // the loop counter, and the buffer outlives every iteration.
+    let program = parse(DECODED_STRING_BUFFER, "owned-byte-buffer-decode.spx").unwrap();
+    assert!(
+        verify::verify(&program).is_empty(),
+        "the decoded-string output buffer is admitted source: {:?}",
+        error_codes(DECODED_STRING_BUFFER)
+    );
+    let canonical = format::canonical(&program);
+    assert_eq!(
+        format::canonical(&parse(&canonical, "owned-byte-buffer-decode-canonical.spx").unwrap()),
+        canonical,
+        "the decoder round-trips through the canonical formatter"
+    );
+
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+
+    let interpreted = interpret(DECODED_STRING_BUFFER, "decode-interp");
+    assert!(
+        interpreted.contains("\"kind\":\"returned\"") && interpreted.contains("\"value\":\"7\""),
+        "the reference interpreter decodes into the loop-filled buffer: {interpreted}"
+    );
+
+    let generated = codegen::emit_c(&program).unwrap();
+    assert_eq!(generated, codegen::emit_c(&program).unwrap());
+    let emitted = wasm::emit_module(&program).unwrap();
+    assert_eq!(emitted, wasm::emit_module(&program).unwrap());
+
+    if !command_available("clang") {
+        return;
+    }
+    let native = std::env::temp_dir().join(format!(
+        "semaprax-owned-byte-buffer-decode-{}.native{}",
+        std::process::id(),
+        std::env::consts::EXE_SUFFIX
+    ));
+    codegen::build(&program, &native).unwrap();
+    let output = Command::new(&native).output().unwrap();
+    let _ = std::fs::remove_file(&native);
+    assert!(output.status.success(), "native decoder run failed");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "7",
+        "the native backend agrees with the reference interpreter"
+    );
+}
+
+#[test]
+fn a_loop_carried_store_outside_the_capacity_selects_one_failure_everywhere() {
+    let program = parse(LOOP_PAST_END, "owned-byte-buffer-loop-past-end.spx").unwrap();
+    assert!(
+        verify::verify(&program).is_empty(),
+        "an index the compiler cannot bound is admitted inside the loop too"
+    );
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+
+    let interpreted = interpret(LOOP_PAST_END, "loop-past-end-interp");
+    let parsed: serde_json::Value = serde_json::from_str(&interpreted).unwrap();
+    let outcome = &parsed["payload"]["outcome"];
+    assert_eq!(outcome["kind"], "failed", "{interpreted}");
+    assert_eq!(outcome["status"]["domain_id"], "semaprax.byte-buffer.v1");
+    assert_eq!(outcome["status"]["code"], 1);
+    assert_eq!(outcome["status"]["class"], "adapter");
+
+    if !command_available("clang") {
+        return;
+    }
+    let native = std::env::temp_dir().join(format!(
+        "semaprax-owned-byte-buffer-loop-past-end-{}.native{}",
+        std::process::id(),
+        std::env::consts::EXE_SUFFIX
+    ));
+    codegen::build(&program, &native).unwrap();
+    let output = Command::new(&native).output().unwrap();
+    let _ = std::fs::remove_file(&native);
+    assert_eq!(
+        output.status.code(),
+        Some(73),
+        "the native loop run did not select an operation failure"
+    );
+    assert!(output.stdout.is_empty());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stderr).trim(),
+        "SEMAPRAX operation failure: semaprax.byte-buffer.v1/1",
+        "the native backend selects the reference interpreter's exact status"
+    );
+}
+
+#[test]
+fn only_the_same_owner_replacement_re_opens_a_frozen_buffer() {
+    // A different owner, and a plain owned assignment, stay rejected.
+    assert_rejected(
+        &program_source(
+            "    let mut buffer = bytes_zeroed(2usize);\n    let other = bytes_zeroed(2usize);\n    buffer = other;\n    0",
+        ),
+        "SPX-U105",
+    );
+    // A different owner is not a re-open; the buffer operand must still be the
+    // enclosing write-once chain's previous link.
+    assert_rejected(
+        &program_source(
+            "    let mut buffer = bytes_zeroed(2usize);\n    let other = bytes_zeroed(2usize);\n    buffer = bytes_set(other, 0usize, 1u8);\n    0",
+        ),
+        "SPX-T271",
+    );
+    // A `let` is not a re-open either: a named binding stays frozen everywhere
+    // except the one assignment that republishes it.
+    assert_rejected(
+        &program_source(
+            "    let first = bytes_zeroed(2usize);\n    let second = bytes_set(first, 0usize, 1u8);\n    let view = bytes_as_slice(second);\n    if byte_len(view) == 2usize { 0 } else { 1 }",
+        ),
+        "SPX-T271",
+    );
+    // A borrow may not cross the replacement.
+    assert_rejected(
+        &program_source(
+            "    let mut buffer = bytes_zeroed(2usize);\n    let view = bytes_as_slice(buffer);\n    buffer = bytes_set(buffer, 0usize, 1u8);\n    if byte_len(view) == 2usize { 0 } else { 1 }",
+        ),
+        "SPX-T265",
+    );
+    // The allocation may not move into the loop with the fill.
+    assert_rejected(
+        &program_source(
+            "    let mut buffer = bytes_zeroed(2usize);\n    let mut index = 0usize;\n    while index < 2usize {\n        buffer = bytes_set(bytes_zeroed(2usize), index, 1u8);\n        index = index + 1usize;\n        0\n    }\n    0",
+        ),
+        "SPX-T252",
+    );
+}
+
+#[test]
 fn cleanup_plan_authenticates_each_write_once_owner_transfer() {
     let program = parse(BUFFER, "owned-byte-buffer-cleanup.spx").unwrap();
     let baseline = hir::resolve(&program).unwrap();
@@ -547,6 +899,38 @@ fn hostile_hir_cannot_forge_a_buffer_capacity_or_element_index() {
     };
     *callee = hir::DeclarationId::new("core.bytes.copy");
     assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+
+    // A `bytes_set` whose buffer operand is a named binding is admitted only as
+    // the right-hand side of the assignment that republishes that same binding.
+    // Swapping two such assignments' targets leaves two calls that each name a
+    // second owner of an already frozen buffer.
+    let paired = "module test.owned_byte_buffer_pair;\n\n@id(\"buffer.main\")\nfn main() -> i64\n{\n    let mut first = bytes_zeroed(2usize);\n    let mut second = bytes_zeroed(2usize);\n    first = bytes_set(first, 0usize, 1u8);\n    second = bytes_set(second, 0usize, 2u8);\n    let view = bytes_as_slice(first);\n    let other = bytes_as_slice(second);\n    if byte_len(view) == 2usize && byte_len(other) == 2usize { 0 } else { 1 }\n}\n";
+    let paired_program = parse(paired, "owned-byte-buffer-pair.spx").unwrap();
+    assert!(
+        verify::verify(&paired_program).is_empty(),
+        "two independent same-owner replacements are admitted source"
+    );
+    let mut swapped = hir::resolve(&paired_program).unwrap();
+    hir::validate(&swapped).unwrap();
+    let ResolvedExprKind::Block { statements, .. } = &mut main_function_mut(&mut swapped).body.kind
+    else {
+        unreachable!();
+    };
+    let (head, rest) = statements.split_at_mut(3);
+    let ResolvedStatement::Assign { binding: left, .. } = &mut head[2] else {
+        unreachable!("the third statement is the first replacement");
+    };
+    let ResolvedStatement::Assign { binding: right, .. } = &mut rest[0] else {
+        unreachable!("the fourth statement is the second replacement");
+    };
+    std::mem::swap(left, right);
+    let error = hir::validate(&swapped).unwrap_err();
+    assert_eq!(error.code, "SPX-H006");
+    assert!(
+        error.message.contains("previous link"),
+        "a forged re-open must fail the write-once chain rule: {}",
+        error.message
+    );
 }
 
 /// Walk to the `bytes_zeroed` call at the base of one fill chain.

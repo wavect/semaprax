@@ -35,6 +35,13 @@ pub(super) struct HirValidator<'a> {
     expression_ids: BTreeSet<ExpressionId>,
     value_ids: BTreeSet<ValueId>,
     byte_slice_aliases: BTreeMap<ValueId, Place>,
+    /// Expression identities of the `bytes_set` calls that are the right-hand
+    /// side of a same-owner re-open, `buffer = bytes_set(buffer, index,
+    /// value)`. Block statement scheduling records one before its right-hand
+    /// side is validated, exactly as source verification does, so hostile HIR
+    /// cannot present a `bytes_set` whose buffer operand is a second owner of
+    /// an already frozen buffer.
+    buffer_reopen_sites: BTreeSet<ExpressionId>,
     borrowed_str_aliases: BTreeMap<ValueId, Place>,
     canonical_loan_ids: BTreeMap<(ExpressionId, LoanCause), LoanId>,
     canonical_loan_liveness: BTreeMap<(ExpressionId, LoanPointPhase, LoanId), Place>,
@@ -208,6 +215,7 @@ impl<'a> HirValidator<'a> {
             expression_ids: BTreeSet::new(),
             value_ids: BTreeSet::new(),
             byte_slice_aliases: BTreeMap::new(),
+            buffer_reopen_sites: BTreeSet::new(),
             borrowed_str_aliases: BTreeMap::new(),
             canonical_loan_ids,
             canonical_loan_liveness,
@@ -1622,40 +1630,9 @@ impl<'a> HirValidator<'a> {
                         continue;
                     }
                     if let Some(operation) = crate::byte_ops::by_id(callee.as_str()) {
-                        if !matches!(
-                            operation,
-                            crate::byte_ops::ByteOp::Len | crate::byte_ops::ByteOp::Get
-                        ) || args.len() != operation.arity()
-                            || args.iter().enumerate().any(|(index, argument)| {
-                                !operation.accepts_resolved(index, &argument.ty)
-                            })
-                            || expression.ty != operation.return_type()
-                            || expression.ownership != OwnershipMode::Value
-                        {
-                            return Err(hir_error(format!(
-                            "while loop byte operation `{callee}` is outside the read-only indexed profile"
-                        )));
-                        }
-                        let slice = &args[0];
-                        let ResolvedExprKind::Place(place) = &slice.kind else {
-                            return Err(hir_error(
-                            "while loop indexed byte reads require an existing byte-slice alias",
-                        ));
-                        };
-                        if slice.ty != ResolvedType::SliceU8
-                            || slice.ownership != OwnershipMode::Borrow
-                            || !place.projections.is_empty()
-                            || (!self.byte_slice_aliases.contains_key(&place.root)
-                                && self
-                                    .program
-                                    .declarations
-                                    .byte_slice_provenance(&place.root)
-                                    .is_none())
-                        {
-                            return Err(hir_error(
-                                "while loop indexed byte read lacks authenticated slice provenance",
-                            ));
-                        }
+                        owned_buffer::require_admitted_while_operation(
+                            self, expression, callee, operation, args,
+                        )?;
                         pending.extend(args[1..].iter().rev().map(Item::Expression));
                         continue;
                     }
@@ -3427,7 +3404,11 @@ impl<'a> HirValidator<'a> {
                                         args.len()
                                     )));
                                 }
-                                owned_buffer::require_admitted_chain(op, args)?;
+                                owned_buffer::require_admitted_chain(
+                                    op,
+                                    args,
+                                    self.buffer_reopen_sites.contains(&expression.id),
+                                )?;
                                 (crate::byte_ops::resolved_params(op), op.return_type())
                             } else if let Some(op) = crate::host_io_ops::by_id(callee.as_str()) {
                                 if instance.is_some() || !type_arguments.is_empty() {
@@ -4273,6 +4254,9 @@ impl<'a> HirValidator<'a> {
                                 });
                             }
                             ResolvedStatement::Assign { binding, value, .. } => {
+                                if crate::byte_ops::is_same_owner_set_hir(value, &binding.id) {
+                                    self.buffer_reopen_sites.insert(value.id.clone());
+                                }
                                 // The target must be a previously declared
                                 // mutable scalar binding in this block's scope.
                                 if !scope.contains_key(&binding.id) {
@@ -4663,6 +4647,7 @@ impl<'a> HirValidator<'a> {
                                     assigned,
                                     &binding.id,
                                 )
+                                && !crate::byte_ops::is_same_owner_set_hir(assigned, &binding.id)
                             {
                                 return Err(hir_error(
                                     "explicit mutation v1 supports only scalar Copy values",
@@ -6439,7 +6424,11 @@ impl<'a> HirValidator<'a> {
                             args.len()
                         )));
                     }
-                    owned_buffer::require_admitted_chain(op, args)?;
+                    owned_buffer::require_admitted_chain(
+                        op,
+                        args,
+                        self.buffer_reopen_sites.contains(&expression.id),
+                    )?;
                     (
                         crate::byte_ops::resolved_params(op),
                         op.return_type(),
@@ -6837,6 +6826,9 @@ impl<'a> HirValidator<'a> {
                             value: assigned,
                             ..
                         } => {
+                            if crate::byte_ops::is_same_owner_set_hir(assigned, &binding.id) {
+                                self.buffer_reopen_sites.insert(assigned.id.clone());
+                            }
                             let statement_path = format!("{path}.s{index}");
                             self.validate_expr_recursive_reference(
                                 function,
@@ -6886,6 +6878,10 @@ impl<'a> HirValidator<'a> {
                                         || !crate::hir::is_scalar_resolved_type(&target.ty))
                                         && !crate::vec_ops::is_same_owner_reassignment_hir(
                                             self.program,
+                                            assigned,
+                                            &binding.id,
+                                        )
+                                        && !crate::byte_ops::is_same_owner_set_hir(
                                             assigned,
                                             &binding.id,
                                         )

@@ -28,7 +28,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
 
     pub(super) fn stage_bytes_call_argument(
         &mut self,
-        call: &ResolvedExpr,
+        call: &ExpressionId,
         index: usize,
         argument: &ResolvedExpr,
         ownership: hir::OwnershipMode,
@@ -55,7 +55,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             .ok_or_else(|| backend_error("owned call has no canonical cleanup plan"))?;
         let index = u32::try_from(index)
             .map_err(|_| backend_error("native call has too many parameters"))?;
-        let storage = plan.call_argument_storage(&call.id, index)?;
+        let storage = plan.call_argument_storage(call, index)?;
         // Producers can already have transferred into this exact epoch. The
         // plan authenticates both that case and the one remaining transfer;
         // replaying every transition at the argument would initialize twice.
@@ -70,7 +70,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         for line in transitions.lines() {
             self.line(line);
         }
-        value.code = plan.call_argument(&call.id, index)?.0.to_owned();
+        value.code = plan.call_argument(call, index)?.0.to_owned();
         Ok(value)
     }
 }

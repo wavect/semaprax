@@ -221,6 +221,16 @@ impl ByteOp {
         matches!(self, Self::Zeroed | Self::Set)
     }
 
+    /// `true` for a byte operation one bounded `while` condition or body
+    /// admits: the exact read-only views plus the loop-carried `bytes_set`
+    /// fill. `bytes_zeroed` is deliberately absent. The allocation stays
+    /// outside the loop, which is what the target-neutral owned byte capacity
+    /// analysis and the fixed Core-Wasm arena require; the owned byte
+    /// allocation rule rejects it independently with `SPX-T267`.
+    pub(crate) const fn admitted_in_while(self) -> bool {
+        matches!(self, Self::Len | Self::Get | Self::Range | Self::Set)
+    }
+
     /// `true` for the one byte operation that can select a runtime failure.
     ///
     /// `bytes_set` admits a computed element index, so the store is checked
@@ -413,4 +423,56 @@ pub(crate) fn owned_buffer_set_index(args: &[Expr]) -> Option<u64> {
         Some(ExprKind::Usize(index)) => Some(*index),
         _ => None,
     }
+}
+
+/// Owned Bounded Byte Buffer v1 same-owner re-open: the buffer operand of a
+/// `bytes_set` may be one whole named binding the call moves, instead of the
+/// enclosing chain's previous link, when that call is the right-hand side of
+/// the assignment that republishes the same binding.
+pub(crate) fn owned_buffer_operand_is_binding(operand: &Expr) -> bool {
+    matches!(operand.kind, ExprKind::Var(_))
+}
+
+/// The same-owner replacement `buffer = bytes_set(buffer, index, value)`: the
+/// one assignment shape that re-opens an owned byte buffer binding for its next
+/// generation. The right-hand side evaluates before publication, so no second
+/// owner and no partially filled buffer is ever nameable.
+pub(crate) fn is_same_owner_set_source(value: &Expr, name: &str, ty: &Type) -> bool {
+    *ty == Type::Bytes && is_same_owner_set_shape(value, name)
+}
+
+/// The syntactic half of [`is_same_owner_set_source`], without the binding
+/// type. The source verifier registers the admitted re-open call sites while
+/// scheduling an assignment statement, before the binding's checked type is
+/// known; the ordinary assignment rules reject every other type.
+pub(crate) fn is_same_owner_set_shape(value: &Expr, name: &str) -> bool {
+    let ExprKind::Call {
+        name: callee,
+        type_arguments,
+        args,
+    } = &value.kind
+    else {
+        return false;
+    };
+    by_name(callee) == Some(ByteOp::Set)
+        && type_arguments.is_empty()
+        && args.len() == ByteOp::Set.arity()
+        && matches!(&args[0].kind, ExprKind::Var(source) if source == name)
+}
+
+/// Resolved-HIR twin of [`is_same_owner_set_source`]. Hostile HIR that never
+/// passed through source text must re-derive the identical fact.
+pub(crate) fn is_same_owner_set_hir(value: &crate::hir::ResolvedExpr, owner: &ValueId) -> bool {
+    matches!(
+        &value.kind,
+        crate::hir::ResolvedExprKind::Call { callee, type_arguments, instance: None, args }
+            if by_id(callee.as_str()) == Some(ByteOp::Set)
+                && type_arguments.is_empty()
+                && args.len() == ByteOp::Set.arity()
+                && matches!(
+                    &args[0].kind,
+                    crate::hir::ResolvedExprKind::Place(place)
+                        if &place.root == owner && place.projections.is_empty()
+                )
+    )
 }

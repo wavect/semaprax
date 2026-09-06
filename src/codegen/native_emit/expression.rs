@@ -316,6 +316,21 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             self.require_type(&value.ty, expected, "byte operation argument")?;
             arguments.push(value);
         }
+        // `bytes_set` stages its owned buffer in the canonical call-argument
+        // epoch. A write-once chain link has already transferred into that
+        // exact slot; a loop-carried fill names the binding instead, and the
+        // plan owns the one remaining transfer out of it.
+        if op == crate::byte_ops::ByteOp::Set {
+            let staged = arguments.remove(0);
+            let staged = self.stage_bytes_call_argument(
+                expression,
+                0,
+                &args[0],
+                hir::OwnershipMode::Own,
+                staged,
+            )?;
+            arguments.insert(0, staged);
+        }
         let return_type = op.return_type();
         self.require_type(result_type, &return_type, "byte operation result")?;
         let temporary = if op.return_type() == ResolvedType::Bytes {
@@ -406,6 +421,10 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     "{temporary} = spx_bytes_set(spx_bytes_move(&{buffer}), {}, {});",
                     arguments[1].code, arguments[2].code
                 ));
+                // The store committed: the staged argument epoch no longer
+                // owns the buffer, exactly as an ordinary owned call argument
+                // stops owning it at its commit boundary. A loop-carried fill
+                // reuses this one slot on every iteration.
                 self.line(&format!("{buffer_live} = false;"));
             }
             crate::byte_ops::ByteOp::Range => {
@@ -938,7 +957,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             let mut values = Vec::with_capacity(call.args.len());
             if let Some(first) = value.take() {
                 values.push(self.stage_bytes_call_argument(
-                    call.expr,
+                    &call.expr.id,
                     0,
                     &call.args[0],
                     call.target.param_ownerships[0],
@@ -948,7 +967,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             for (index, argument) in call.args.iter().enumerate().skip(values.len()) {
                 let value = self.emit_expr(argument)?;
                 values.push(self.stage_bytes_call_argument(
-                    call.expr,
+                    &call.expr.id,
                     index,
                     argument,
                     call.target.param_ownerships[index],
@@ -1287,10 +1306,17 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                             "string assignment has no admitted native lowering",
                                         ));
                                     }
-                                    if crate::cleanup::is_owned_bounded_vec_type(&binding.ty) {
+                                    // Same-owner replacement: the canonical
+                                    // cleanup plan already carries the one
+                                    // transfer that publishes the next
+                                    // generation, for `vec_push` and for the
+                                    // loop-carried `bytes_set` fill alike.
+                                    if crate::cleanup::is_owned_bounded_vec_type(&binding.ty)
+                                        || matches!(binding.ty, ResolvedType::Bytes)
+                                    {
                                         let plan = self.bytes_plan.ok_or_else(|| {
                                             backend_error(
-                                                "owned Vec assignment has no cleanup plan",
+                                                "owned same-owner assignment has no cleanup plan",
                                             )
                                         })?;
                                         let storage = crate::cleanup_plan::StorageId::Value(
@@ -1305,11 +1331,6 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                                             }
                                         }
                                         continue;
-                                    }
-                                    if matches!(binding.ty, ResolvedType::Bytes) {
-                                        return Err(backend_error(
-                                            "owned Bytes assignment is outside the immutable data profile",
-                                        ));
                                     }
                                     let target =
                                         self.variables.get(&binding.id).ok_or_else(|| {

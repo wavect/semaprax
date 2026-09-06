@@ -733,7 +733,77 @@ module test.nested_generic_variant;
 @id("nested.reject") fn reject(value: own Box<Maybe<Bytes>>) -> i64 { 0 }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
+    // Concrete Generic Owned Byte Records v1 keeps variants outside the nested
+    // record profile, so the record carrier is what closes this shape and it
+    // reports `SPX-T223`. The descendant no longer reports separately: Owned
+    // Byte Variant Algebra v1 admits `Maybe<Bytes>` on its own, so silence on
+    // the descendant here is an admission, not a gap. The closure assertion is
+    // therefore on the carrier, matching the same shape in
+    // `owned_data::nested_generic_owned_record_frontend_hir`.
     let variant_errors = errors(variant);
-    assert!(variant_errors.contains(&"SPX-T223"));
-    assert!(variant_errors.contains(&"SPX-T268"));
+    assert!(
+        variant_errors.contains(&"SPX-T223"),
+        "owned generic record with a variant descendant must stay closed: {variant_errors:?}"
+    );
+
+    // Pins the reason the descendant is silent above. If this standalone
+    // admission ever regresses, the carrier is no longer the only reporter and
+    // the assertion above must be revisited rather than relaxed.
+    let admitted_variant = r#"
+module test.nested_generic_variant_standalone;
+@id("nested.maybe") variant Maybe<T> {
+    @id("nested.maybe.some") Some { @id("nested.maybe.some.value") value: T, },
+    @id("nested.maybe.none") None,
+}
+@id("nested.take") fn take(value: own Maybe<Bytes>) -> i64 { 0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let admitted_variant_errors = errors(admitted_variant);
+    assert!(
+        admitted_variant_errors.is_empty(),
+        "standalone concrete generic owned variant must stay admitted: \
+         {admitted_variant_errors:?}"
+    );
+
+    // A descendant that is itself outside the variant profile — here because it
+    // carries no persistent `@id` identity — still reports `SPX-T268` under the
+    // same carrier, so descendant closure keeps its own coverage.
+    let closed_variant_descendant = r#"
+module test.nested_generic_variant_implicit;
+variant Maybe<T> {
+    Some { value: T, },
+    None,
+}
+@id("nested.box") record Box<T> { @id("nested.box.value") value: T, }
+@id("nested.reject") fn reject(value: own Box<Maybe<Bytes>>) -> i64 { 0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let closed_descendant_errors = errors(closed_variant_descendant);
+    assert!(
+        closed_descendant_errors.contains(&"SPX-T223"),
+        "{closed_descendant_errors:?}"
+    );
+    assert!(
+        closed_descendant_errors.contains(&"SPX-T268"),
+        "non-admitted variant descendant must still report: {closed_descendant_errors:?}"
+    );
+
+    // An admitted owned variant stored as a declared record field stays closed
+    // at the declaration, so the variant admission does not reach nested record
+    // storage by another route.
+    let variant_record_field = r#"
+module test.nested_generic_variant_field;
+@id("nested.maybe") variant Maybe<T> {
+    @id("nested.maybe.some") Some { @id("nested.maybe.some.value") value: T, },
+    @id("nested.maybe.none") None,
+}
+@id("nested.holder") record Holder { @id("nested.holder.inner") inner: Maybe<Bytes>, }
+@id("nested.reject") fn reject(value: own Holder) -> i64 { 0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let field_errors = errors(variant_record_field);
+    assert!(
+        field_errors.contains(&"SPX-T268"),
+        "owned variant field in a record must stay closed: {field_errors:?}"
+    );
 }

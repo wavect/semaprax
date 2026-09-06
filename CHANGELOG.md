@@ -1493,6 +1493,19 @@ format: `Unreleased` then release buckets, grouped by impact.
   unchanged, and the iterative verifier and the test-only oracle share the
   helpers in `src/source_verify/hints.rs`; `tests/language/verifier_hints.rs`
   pins each case and the no-hint baselines.
+- Fixed the stale descendant expectation in
+  `tests/language/generic_records.rs`. Admitting concrete generic owned
+  variants made `Maybe<Bytes>` a legal standalone owned value, so the
+  descendant of `own Box<Maybe<Bytes>>` stopped reporting `SPX-T268` on its
+  own. The shape itself stayed closed throughout - the record carrier reports
+  `SPX-T223` in source verification and resolved-HIR classification returns
+  `OutsideProfile`, matching the identical case already pinned in
+  `tests/owned_data/nested_generic_owned_record_frontend_hir.rs` - so no
+  admission changed. The test now asserts carrier closure, pins the standalone
+  variant admission that explains the descendant's silence, and adds two
+  descendant cases that must still report `SPX-T268`: a variant without a
+  persistent `@id` under the same carrier, and an admitted owned variant stored
+  as a declared record field.
 
 ## 0.3.5 — 2026-09-04
 

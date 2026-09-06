@@ -388,15 +388,25 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 // The bound is checked before the canonical owner transfer
                 // commits, so a failed store leaves the buffer in its live
                 // call-argument slot and the epilogue destroys it exactly once.
+                let plan = self.bytes_plan.ok_or_else(|| {
+                    backend_error("owned byte store has no canonical cleanup plan")
+                })?;
+                let (buffer, buffer_live) = plan.call_argument(expression, 0)?;
+                if arguments[0].code != buffer {
+                    return Err(backend_error(
+                        "owned byte store argument was not staged in its canonical epoch",
+                    ));
+                }
                 self.line(&format!(
                     "spx_status = spx_bytes_set_check_v1(spx_ctx, {}, {});",
-                    arguments[0].code, arguments[1].code
+                    buffer, arguments[1].code
                 ));
                 self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
                 self.line(&format!(
-                    "{temporary} = spx_bytes_set({}, {}, {});",
-                    arguments[0].code, arguments[1].code, arguments[2].code
+                    "{temporary} = spx_bytes_set(spx_bytes_move(&{buffer}), {}, {});",
+                    arguments[1].code, arguments[2].code
                 ));
+                self.line(&format!("{buffer_live} = false;"));
             }
             crate::byte_ops::ByteOp::Range => {
                 return Err(backend_error(

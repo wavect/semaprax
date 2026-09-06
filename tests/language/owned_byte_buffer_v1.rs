@@ -629,6 +629,13 @@ fn a_computed_element_index_is_admitted_and_stores_in_range_on_every_backend() {
         2,
         "the native backend checks the bound once per store"
     );
+    assert_eq!(
+        generated
+            .matches("spx_bytes_set(spx_bytes_move(&spx_bytes_slot_")
+            .count(),
+        2,
+        "each successful checked store commits its one staged owner"
+    );
     assert!(generated.contains("semaprax.byte-buffer.v1"));
 
     // Core-Wasm emits the same check in generated code rather than relying on

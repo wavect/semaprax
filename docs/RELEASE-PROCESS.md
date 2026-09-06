@@ -122,6 +122,12 @@ version or changelog checks execute. The cross-platform workflow regression
 disables Python UTF-8 mode while keeping captured process output UTF-8 so this
 boundary remains exercised.
 
+Exact CLI help ledgers preserve historical pins by removing each intentional
+additive usage line before comparing the older byte length and digest. A new
+command or operation must therefore add its exact line to that restoration
+inventory; changing an old known-answer merely to accept the larger current
+help page would discard the historical compatibility witness.
+
 Use an annotated tag, matching the established repository convention, only
 after the release commit is on `main` and the remote head still resolves to
 that exact commit:

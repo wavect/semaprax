@@ -231,6 +231,13 @@ fn a_wait_never_outlasts_the_operation_deadline() {
 #[test]
 fn a_peer_that_never_reads_bounds_a_partial_write_in_aggregate() {
     let listener = TcpListener::bind(("127.0.0.1", 0)).expect("loopback bind");
+    // Bound the listener before the handshake so Windows advertises the small
+    // receive window to the client. Applying SO_RCVBUF only to the accepted
+    // socket is too late for its loopback window negotiation and can let the
+    // entire admitted payload enter the kernel before the deadline.
+    socket2::SockRef::from(&listener)
+        .set_recv_buffer_size(64 * 1024)
+        .expect("bound listener receive buffer");
     let port = listener.local_addr().expect("local address").port();
     // The peer accepts and then never reads a byte, so the socket buffers fill
     // and `send` makes progress one chunk at a time and then stalls. Constrain

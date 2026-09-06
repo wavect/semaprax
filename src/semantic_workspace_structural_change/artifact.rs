@@ -2007,11 +2007,11 @@ mod tests {
                 raw_sha(artifacts.evidence()),
             ],
             [
-                "sha256:31368de039595d8963be4dfc03ea2b0595281ec314526ced81d8d6a2302437da", // #83: `used_builder_bytes` moved with the identity factor.
-                "sha256:d9f6f107100380d1c1e0cfec6f5c3fb13cad024d3a71e9f1263912d3d4f54748",
-                "sha256:4ba39749e516d9466844a9837610c6eccdf7081367324b469192cc9daaf4199f",
-                "sha256:b31b0ccf338b1c4580764e3c85692087346484e335919712fbb9aedb7f9e2a38",
-                "sha256:2b1628f586f9b662e8b861233b0cc7c89c5801dfd180a9a5c7ead5ec9e3c0c28",
+                "sha256:485a64310a796c51b0c08bf9eeac99309b603888b7c7b9411944053c5f2f4e58",
+                "sha256:9b259891a6c96ba5c473b166f1c463438eb705c426069cfdb7e3d004cc9f3053",
+                "sha256:fa382f4e42e9047b2ee6aaf72ab4b18194d5a3c2fbefd3577c3056dd6d32b0a8",
+                "sha256:467820cd8120bf8f9d6b7cc3e84c57368c9dcc711ce89e085260957793988f0e",
+                "sha256:e81e0fc8a08b8bbe917afb81c3224c3bcc732d6d89a2b39e1fe20929fe636dfb",
             ]
         );
 

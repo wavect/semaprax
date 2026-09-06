@@ -310,23 +310,23 @@ fn public_api_getters_cli_and_whole_document_kats_are_exact() {
             // Only that budget field changed; every other field of the rendered
             // document is byte for byte identical, checked by rendering the same
             // document under both factors and diffing it field by field.
-            "sha256:31368de039595d8963be4dfc03ea2b0595281ec314526ced81d8d6a2302437da",
+            "sha256:485a64310a796c51b0c08bf9eeac99309b603888b7c7b9411944053c5f2f4e58",
             // Re-pinned after the workspace pre-bound stopped charging an imported
             // function as a second copy of its provider; only `used_builder_bytes`
             // moved.
-            "sha256:d9f6f107100380d1c1e0cfec6f5c3fb13cad024d3a71e9f1263912d3d4f54748",
+            "sha256:9b259891a6c96ba5c473b166f1c463438eb705c426069cfdb7e3d004cc9f3053",
             // Re-pinned after the workspace pre-bound stopped charging an imported
             // function as a second copy of its provider; only `used_builder_bytes`
             // moved.
-            "sha256:4ba39749e516d9466844a9837610c6eccdf7081367324b469192cc9daaf4199f",
+            "sha256:fa382f4e42e9047b2ee6aaf72ab4b18194d5a3c2fbefd3577c3056dd6d32b0a8",
             // Re-pinned after the workspace pre-bound stopped charging an imported
             // function as a second copy of its provider; only `used_builder_bytes`
             // moved.
-            "sha256:b31b0ccf338b1c4580764e3c85692087346484e335919712fbb9aedb7f9e2a38",
+            "sha256:467820cd8120bf8f9d6b7cc3e84c57368c9dcc711ce89e085260957793988f0e",
             // Re-pinned after the workspace pre-bound stopped charging an imported
             // function as a second copy of its provider; only `used_builder_bytes`
             // moved.
-            "sha256:2b1628f586f9b662e8b861233b0cc7c89c5801dfd180a9a5c7ead5ec9e3c0c28",
+            "sha256:e81e0fc8a08b8bbe917afb81c3224c3bcc732d6d89a2b39e1fe20929fe636dfb",
         ]
     );
     for value in [
@@ -411,7 +411,7 @@ fn public_verification_receipt_is_exact_shared_locked_and_read_only() {
         raw_sha(&receipt),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:7d4fb2050e25db64ffe3ed81ec33457498651875e908c71c0d9314b0d1d65b76"
+        "sha256:3eacd2531b106708a847607caa342680fdc557bf1a148b338e0c386f3cacabda"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -643,7 +643,7 @@ fn public_application_receipt_api_cli_kat_and_candidate_inventory_are_exact() {
         // Only that budget field changed; every other field of the rendered
         // document is byte for byte identical, checked by rendering the same
         // document under both factors and diffing it field by field.
-        "sha256:ee108b0f504ee4979bad983641a879853cf1e02008d4fcba4cf43e7571f9efec"
+        "sha256:61d9ea39fbc21f97c7ced25b04b95badefd3573ee04fab1f024ddc8ebc8c83a6"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

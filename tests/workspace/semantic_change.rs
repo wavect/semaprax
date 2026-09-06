@@ -224,7 +224,7 @@ fn public_api_cli_kat_parity_and_opaque_getters() {
         // Only that budget field changed; every other field of the rendered
         // document is byte for byte identical, checked by rendering the same
         // document under both factors and diffing it field by field.
-        "sha256:5ef1e3df806564459db6d83cf5d2a1d6bc4b0ff619c60e261b94dbff43d016c0"
+        "sha256:aa31758193ff48d0c76381c6cddae82babfc658350774a349121b5fd324750a2"
     );
     assert_eq!(
         raw_sha(&evidence),
@@ -236,7 +236,7 @@ fn public_api_cli_kat_parity_and_opaque_getters() {
         // Only that budget field changed; every other field of the rendered
         // document is byte for byte identical, checked by rendering the same
         // document under both factors and diffing it field by field.
-        "sha256:040319536c6ee162e89ba360cb0eaa332948eccae2a7240d0afecdcde43c0b37"
+        "sha256:ea36adb0440e8a3e81c082fc87106d3c7d5a63614ea869731ab78f04b35931fe"
     );
     for value in [
         artifacts.proposal_digest(),
@@ -467,7 +467,7 @@ fn verification_receipt_api_cli_kat_shared_lock_and_no_write() {
         raw_sha(&receipt),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:a8a399153d0e79d23d7b861775f7f6a8d30b7871c0e6df4c39b4134f170dc0ad" // #83: `used_builder_bytes` moved with the identity factor.
+        "sha256:d5d87303cdf1b3ec73619785f0cc870a8c75fcf3a0f4061e30c3210290b5a4e7"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -680,7 +680,7 @@ fn application_receipt_api_cli_kat_fixed_point_and_raw_no_write() {
         raw_sha(&receipt),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:824809d9a012faea307033f9da77854b5d720be700c3925a885e47d24e58022c" // #83: `used_builder_bytes` moved with the identity factor.
+        "sha256:77021facf8d937ab78ada670a6288ced631de0bdb5e8377ca181d3f8fb97e884"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

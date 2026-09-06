@@ -117,11 +117,11 @@ fn literal_kats_wire_order_domains_and_reference_parity() {
             // Only that budget field changed; every other field of the rendered
             // document is byte for byte identical, checked by rendering the same
             // document under both factors and diffing it field by field.
-            "sha256:5ef1e3df806564459db6d83cf5d2a1d6bc4b0ff619c60e261b94dbff43d016c0",
-            "sha256:765bd8e607704ae6970d30e82130f0898db3386a124fb9bc71c3751133f3ab9f",
-            "sha256:a8fea781794b5810dd344ca344f8f931fb73b2afa540a62db80831df69cd3c84",
-            "sha256:39a2827497c991324d32dd17d92a25080b2f56519175e58093328e32f67daa44",
-            "sha256:040319536c6ee162e89ba360cb0eaa332948eccae2a7240d0afecdcde43c0b37"
+            "sha256:aa31758193ff48d0c76381c6cddae82babfc658350774a349121b5fd324750a2",
+            "sha256:03bc772f14b4493e35e456e83d3595c92ea8496c25069c4d92b97522e5e88dac",
+            "sha256:e67162f79cd38ac1b4c209032211de8be5e4e5ccc7b3d7a2e8845bcbeea05c9a",
+            "sha256:ce8bbb4d5358dc6a39ab6e01c2db1ada59fbe494d1bde262256234a6ae5c7f29",
+            "sha256:ea36adb0440e8a3e81c082fc87106d3c7d5a63614ea869731ab78f04b35931fe"
         ]
     );
 

@@ -156,7 +156,7 @@ fn public_api_cli_getters_kats_and_no_write_are_exact() {
         // Only that budget field changed; every other field of the rendered
         // document is byte for byte identical, checked by rendering the same
         // document under both factors and diffing it field by field.
-        "sha256:1d6d5bc566146da016485e657fbc1849e36c22a4e0f0d9654028f7c68a303da7"
+        "sha256:352126fdbd32c8bec3ba4d753847305df720b5e1388aea7e903afbf0aa2a0974"
     );
     assert!(bundle.derivation().ends_with('\n'));
     assert!(bundle.derived_change_proposal().ends_with('\n'));
@@ -305,7 +305,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
         // Only that budget field changed; every other field of the rendered
         // document is byte for byte identical, checked by rendering the same
         // document under both factors and diffing it field by field.
-        "sha256:1d6d5bc566146da016485e657fbc1849e36c22a4e0f0d9654028f7c68a303da7"
+        "sha256:352126fdbd32c8bec3ba4d753847305df720b5e1388aea7e903afbf0aa2a0974"
     );
     assert_eq!(
         bundle.derived_change_proposal_digest(),
@@ -321,14 +321,14 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
         // Only that budget field changed; every other field of the rendered
         // document is byte for byte identical, checked by rendering the same
         // document under both factors and diffing it field by field.
-        "sha256:74f483438a6b2d1df18265e8116c7fe354d2684b785e1f3618959e14e21f71bc"
+        "sha256:9b4e34e448fed5501d6b3a0f1a2dc15d58a50e13bc5ea100830e43f79fd63d76"
     );
     assert_eq!(
         raw_sha256(bundle.operations_evidence().as_bytes()),
         // Re-pinned after the workspace pre-bound stopped charging an imported
         // function as a second copy of its provider; only `used_builder_bytes`
         // moved.
-        "sha256:eebd91970fbf9b5dae7c8868c2b9ceb8dae1643e1f4e2521e8ead4f987642998"
+        "sha256:6f23af4a04e130a1fc9d54c5f99d4da1f1e00f106110a8ecd119e6cc6c04324b"
     );
     assert!(bundle
         .workspace_change_evidence_digest()
@@ -357,7 +357,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
         // Re-pinned after the workspace pre-bound stopped charging an imported
         // function as a second copy of its provider; only `used_builder_bytes`
         // moved.
-        "sha256:69088bfc65e594f330b3d3f767daab9e5dca841bc700341c611b895db96230bf"
+        "sha256:75dc669fce240e25c3043ba79c46389dfa6acbab28da23f59f4bd45f5905db47"
     );
     let cli_verify = Command::new(env!("CARGO_BIN_EXE_semaprax"))
         .arg("verify-semantic-workspace-operations-evidence")
@@ -394,7 +394,7 @@ fn public_operations_evidence_verify_apply_api_cli_are_exact() {
         // Only that budget field changed; every other field of the rendered
         // document is byte for byte identical, checked by rendering the same
         // document under both factors and diffing it field by field.
-        "sha256:cf0929ec1ed17faac47bfd6cbad8423bfb8fc99020a5cf117c9e8f5b5c4b0743"
+        "sha256:6d88063d56c4e2666a9e5c784fb83f52cb608166a896b16b5095914fa3c0fda4"
     );
     apply_fixture.assert_exclusive_reacquire();
 

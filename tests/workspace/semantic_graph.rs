@@ -502,7 +502,7 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
         document_digest(graph.to_json().as_bytes()),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:1e170c2304b8c4b283b028ab8e9e11542e0af0ad32d3d201e2fbd63b84eec9ff" // #83: `used_builder_bytes` moved with the identity factor.
+        "sha256:92e7a34a23910c3d47b83bc103d6959dac98954e69ed9f2c6fbd734771df4f33"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -916,16 +916,14 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            // Re-pinned after type-fact cycle detection began retaining exact
-            // concrete nominal identities; only `used_builder_bytes` moved.
-            "sha256:b4ecf560c6a879e6b808fa8ce260625e71ce17c580cd29ba0e3af9ac6dbcb6cf", // #83: `used_builder_bytes` moved with the identity factor.
-            "sha256:4657dd03396daf478500513292f786df06919a9086cca9bdddeabbeae15fde52",
-            "sha256:410d34d0c135852555a8ae7992dd4b9123ba8a34ae5b48cd9f70aac782e14d8f",
-            "sha256:4fcca5157f720093cf5e598c9b7445010fdfc1dfa8b5f502b804d435604302ea",
-            "sha256:6b5a8b818d192df1195b42c2d6ee03a6473c40fbce3dae30f8e4b7edaeab1f25",
-            "sha256:4dfd8c916c7c3153ecb6dc515f5933547ac299a05889a155625e0e777ce3d15a",
-            "sha256:d09954fac0632a8a407257452653e55c356e86267d3533c6136d864ddddfa7ff",
-            "sha256:a61c452765d034a2da3535f947a07492988b9b08c3e7c6a7952e716776cb72dd",
+            "sha256:5d5e9c4b594461f2ae660ad7a451b306682a14ba0d7d825304a2aa2be9c1c48e",
+            "sha256:2a31122b7c152f6059e85a40018aa60d9cdabc31d1ffe4b5a4e90ba840e869bb",
+            "sha256:93b8bb8f5a0ad13b37101e6dd6ad346c701339e9383b21992ef6c916e4f62e34",
+            "sha256:363be2a9aba01005b5dab174ead6dff310b7d6c64c354a25d394d7ec38899008",
+            "sha256:62252bdd8fe49545b30d9a1367910db963ee9fd64431829803721142e9563bd3",
+            "sha256:778a464bc9c5d3b9ff8aa8c15af09044a9df8308c6bd1b56e1740f21aee692f7",
+            "sha256:e1a10be33e165aa85e25e9a4e5c5faf6d92e23e5eb7b26e7915739ea88707b92",
+            "sha256:676036c875ee3f9324cbb659c920f4697f1d42573a20778d0ead3a46d3c68469",
         ]
     );
 

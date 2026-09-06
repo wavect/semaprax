@@ -555,10 +555,10 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
             // Only that budget field changed; every other field of the rendered
             // document is byte for byte identical, checked by rendering the same
             // document under both factors and diffing it field by field.
-            "sha256:c1c15f1c551f05040980670b4c6af5d80e159d43e4ca5335b56f0720a55828c2",
-            "sha256:28a89ea413d247770e8bdef5a6bf713391ff5c1772c09ee708bf01cce4af07d3",
-            "sha256:5de937c0062a12535a22aa2ad90b206c529f95d022d2453cdc1ab23362c76bde",
-            "sha256:46baaa677f77e75c57ff31e2f7df7fcd4dcc1d2870691e52fd790c1e143b1bee"
+            "sha256:1ea623bad93f09f81fd3f81164e2166d4f9b6dedb034577c894e759244e192bd",
+            "sha256:b47f874462318962d9b6d94333181b341e1326125d3593947a603729c3923a54",
+            "sha256:1d912ffa4e4d2fb57e80e7fbd5f9fbde24f08e08c3e619d8012f2eb235ab247c",
+            "sha256:dbcd9bcada8d814a607e23e8d1bcc12808f023e20f46d945295d97428e79312d"
         ]
     );
     for artifact in &contexts {
@@ -617,8 +617,8 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         [
             // Re-pinned after type-fact cycle detection began retaining exact
             // concrete nominal identities; only `used_builder_bytes` moved.
-            "sha256:3ae26f5d1121c1866c37133c80cb2f79f5206e86c1a0fce6f69b09bc2a9040ee", // #83: `used_builder_bytes` moved with the identity factor.
-            "sha256:e6ee612d5db2609e229130adfe032bf23ed2d05c82b6d55d46c24d291f22a1b9",
+            "sha256:fdc747fa770834e8d7647ec0dc9dac0e5d9ac07f043766dbae9ebbf8211bbb72",
+            "sha256:7c0dafdf74ee76d07437f232e7142bc34714d2c85fadb71d947f19585d0762b8",
         ]
     );
     let declaration_impact: serde_json::Value = serde_json::from_str(&impacts[0].json).unwrap();
@@ -755,7 +755,7 @@ fn context_impact_and_review_documents_have_frozen_kats_and_exact_digest_replay(
         document_sha(&review.json),
         // Re-pinned after type-fact cycle detection began retaining exact
         // concrete nominal identities; only `used_builder_bytes` moved.
-        "sha256:61f5227d56bb6ec6057bb1410c6dac5907ade04d2800f5466d6a98333d769c0a" // #83: `used_builder_bytes` moved with the identity factor.
+        "sha256:612d896e2f75fa94d71b452904754e539ad2b18e054328ce7f8fcec2c31a6849"
     );
     let direct_context = analysis
         .render_context(

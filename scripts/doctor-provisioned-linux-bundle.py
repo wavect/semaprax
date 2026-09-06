@@ -215,7 +215,12 @@ def collect(arguments) -> dict[str, str]:
     return inventory, roles
 
 
-def build(inventory: dict[str, str], roles: dict[str, str], selector: str) -> bytes:
+def build(
+    inventory: dict[str, str],
+    roles: dict[str, str],
+    selector: str,
+    measure_only: bool = False,
+) -> bytes:
     if not valid_selector(selector):
         raise Rejected(f"selector {selector!r} is not canonical")
     paths = sorted(inventory, key=lambda path: path.encode("utf-8"))
@@ -277,7 +282,7 @@ def build(inventory: dict[str, str], roles: dict[str, str], selector: str) -> by
         out += struct.pack("<Q", len(content))
         out += encoded_path
         out += content
-    if len(out) > MAX_BYTES:
+    if len(out) > MAX_BYTES and not measure_only:
         raise Rejected(
             f"the encoded bundle is {len(out)} bytes, over the "
             f"{MAX_BYTES}-byte carrier ceiling; the inventory does not fit"
@@ -329,14 +334,20 @@ def main(argv):
     arguments = parser.parse_args(argv)
 
     inventory, roles = collect(arguments)
-    encoded = build(inventory, roles, arguments.selector)
+    # `--plan` measures; it never writes. An inventory that overruns the carrier
+    # ceiling is exactly the answer a provisioner is asking for, so measuring
+    # reports the overrun instead of refusing before it can print the numbers.
+    # Emission still refuses: only `--plan` tolerates an oversized inventory.
+    encoded = build(inventory, roles, arguments.selector, arguments.plan)
     if arguments.plan:
         for path in sorted(inventory, key=lambda path: path.encode("utf-8")):
             print(f"{os.path.getsize(inventory[path]):>12} /{path}")
-        print(f"{len(encoded):>12} TOTAL (ceiling {MAX_BYTES})")
+        over = len(encoded) - MAX_BYTES
+        verdict = f"OVER BY {over}" if over > 0 else f"{-over} to spare"
+        print(f"{len(encoded):>12} TOTAL (ceiling {MAX_BYTES}: {verdict})")
         for name, path in sorted(roles.items()):
             print(f"role {name}: /{path}")
-        return 0
+        return 1 if over > 0 else 0
     if not arguments.bundle:
         parser.error("--bundle is required unless --plan is given")
     with open(arguments.bundle, "wb") as handle:

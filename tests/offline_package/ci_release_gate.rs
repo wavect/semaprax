@@ -3,6 +3,7 @@ use std::path::Path;
 use std::process::Command;
 
 const RELEASE_BLOCKERS: &[&str] = &[
+    "gen05b-generic-instance-closure",
     "supply-chain",
     "component-runtime-v3",
     "wasm-scalar-exports-browser-v1",
@@ -244,39 +245,39 @@ verdict = gate['failures']
 SHA = 'a' * 40
 OTHER = 'b' * 40
 
-green = {f'job-{index}': {'result': 'success'} for index in range(16)}
-assert verdict(green, 16, SHA, SHA) == []
+green = {f'job-{index}': {'result': 'success'} for index in range(17)}
+assert verdict(green, 17, SHA, SHA) == []
 
 # A blocker that failed, was skipped, or was cancelled is never success. GitHub
 # reports the last two on an aggregate that used `if: success()`.
 for result in ('failure', 'skipped', 'cancelled', None, '', 'Success'):
     broken = dict(green, **{'job-7': {'result': result}})
-    assert verdict(broken, 16, SHA, SHA) == [
+    assert verdict(broken, 17, SHA, SHA) == [
         f"upstream job 'job-7' result is {result!r}, not 'success'"
-    ], (result, verdict(broken, 16, SHA, SHA))
+    ], (result, verdict(broken, 17, SHA, SHA))
 malformed = dict(green, **{'job-7': 'success'})
-assert verdict(malformed, 16, SHA, SHA) == [
+assert verdict(malformed, 17, SHA, SHA) == [
     "upstream job 'job-7' result is None, not 'success'"
 ]
 
 # A missing shard: green, but fewer jobs than the gate aggregates.
 missing = dict(green)
 del missing['job-3']
-assert any('expected at least 16' in reason for reason in verdict(missing, 16, SHA, SHA))
+assert any('expected at least 17' in reason for reason in verdict(missing, 17, SHA, SHA))
 # An emptied `needs:` must not pass vacuously.
-assert any('expected at least 16' in reason for reason in verdict({}, 16, SHA, SHA))
+assert any('expected at least 17' in reason for reason in verdict({}, 17, SHA, SHA))
 assert any('at least one job' in reason for reason in verdict(green, 0, SHA, SHA))
 
 # Results belonging to another commit.
-assert verdict(green, 16, SHA, OTHER) == [
+assert verdict(green, 17, SHA, OTHER) == [
     f'gate ran on checked-out commit {OTHER}, not the reported commit {SHA}'
 ]
 for bad in ('HEAD', '', SHA.upper(), SHA[:39]):
-    assert any('hexadecimal commit' in reason for reason in verdict(green, 16, bad, SHA))
-assert any('JSON object' in reason for reason in verdict([], 16, SHA, SHA))
+    assert any('hexadecimal commit' in reason for reason in verdict(green, 17, bad, SHA))
+assert any('JSON object' in reason for reason in verdict([], 17, SHA, SHA))
 
 # main() reads the context from the environment and never from argv.
-arguments = ['--min-jobs', '16', '--sha', SHA, '--head-sha', SHA]
+arguments = ['--min-jobs', '17', '--sha', SHA, '--head-sha', SHA]
 log = io.StringIO()
 with contextlib.redirect_stderr(log):
     assert gate['main'](arguments, {}) == 1
@@ -289,7 +290,7 @@ assert "result is 'Success', not 'success'" in log.getvalue()
 passed = io.StringIO()
 with contextlib.redirect_stdout(passed):
     assert gate['main'](arguments, {'SEMAPRAX_CI_NEEDS': json.dumps(green)}) == 0
-assert passed.getvalue() == f'release gate: 16 upstream jobs succeeded at {SHA}\n'
+assert passed.getvalue() == f'release gate: 17 upstream jobs succeeded at {SHA}\n'
 print('gate verdicts checked')
 "#;
 

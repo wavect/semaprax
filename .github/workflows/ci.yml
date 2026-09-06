@@ -1332,6 +1332,7 @@ jobs:
     # the step below; see docs/CI-REQUIRED-CHECKS-V1.md.
     if: ${{ always() }}
     needs:
+      - gen05b-generic-instance-closure
       - supply-chain
       - component-runtime-v3
       - wasm-scalar-exports-browser-v1
@@ -1362,7 +1363,7 @@ jobs:
           SEMAPRAX_CI_NEEDS: ${{ toJSON(needs) }}
         run: |
           python3 scripts/ci-required-checks.py \
-            --min-jobs 16 \
+            --min-jobs 17 \
             --sha "${{ github.sha }}" \
             --head-sha "$(git rev-parse HEAD)"
 

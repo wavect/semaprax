@@ -146,6 +146,13 @@ The v1 node payloads are closed:
 | `TargetProfiles` | manifest `contract` and `profile`, `targets` matrix or the existing native64/wasm32 default, and `web_exports` identities |
 | `ProjectionMetadata` | `compiler_package`, `compiler_version`, `compatibility`, `legacy_project_revision`, `legacy_workspace_revision`, and `project_graph_digest` |
 
+The v1 `ContractsAndTests` payload is a frozen compatibility shorthand. Its
+`contract_fingerprints` value is the complete `SemanticProgram` digest; it is
+not an inventory of individual clauses, declared test identities, coverage,
+proof, or execution. The additive [Contracts and Tests Facts
+v1](CONTRACTS-AND-TESTS-FACTS-V1.md) derives the first bounded typed association
+without changing this node, the semantic component, or any v1 bytes.
+
 The empty `AgentDefinitions` inventory is an honest compatibility marker, not
 evidence that Project declarations already derive language-native agents. The
 additive [Explicit AgentDefinition Association v1](EXPLICIT-AGENT-DEFINITION-ASSOCIATION-V1.md)
@@ -265,6 +272,11 @@ exact object through independently digested node descriptors and a small root
 manifest. It derives from this revision without changing this schema, any node
 bytes, the four component digests, or `workspace_revision`; it is not a
 replacement or competing source/program representation.
+
+[ProgramRoot v3](PROGRAM-ROOT-V3.md) appends a descriptor for the richer
+contract/test fact object after the complete ProgramRoot-v2 segment inventory.
+It does not replace or reinterpret this revision's frozen `ContractsAndTests`
+node.
 
 The fixed compatibility identifier describes only this derivation/replay
 contract. It is not a compiler binary fingerprint and does not promise forward

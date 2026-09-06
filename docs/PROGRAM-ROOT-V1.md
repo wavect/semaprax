@@ -161,3 +161,8 @@ identity, and canonical workspace bytes before and after derivation.
 The ProgramRoot, explicit AgentDefinition association, persistent service,
 transaction, and composition filters pass together as a 33-case local focused
 gate. Strict all-target clippy also passes.
+
+The additive [ProgramRoot v3](PROGRAM-ROOT-V3.md) retains this complete root
+family through ProgramRoot v2 and appends an independently replayable contract/
+declared-test fact descriptor. It does not change or reinterpret any v1 segment
+or relationship byte.

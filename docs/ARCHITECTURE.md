@@ -651,6 +651,19 @@ additive in-memory exact entry points; their existing serialized contracts stay
 unchanged. Exact refresh and candidate-v2 identity fail closed until Project
 Lock replay has a candidate-safe authenticated input owner.
 
+`src/project/contracts_and_tests_facts.rs` derives a separate bounded
+contract-association and declared-test inventory from the admitted Project's
+retained HIR. Stable-ID-sorted function and function-template rows carry
+ordered `requires`/`ensures` expression facts; the test inventory contains only
+the declared test `main` and executable named tests selected by the ordinary
+Project rule. The object explicitly claims neither contract proof nor coverage
+nor test execution. `src/project/program_root/v3.rs` freshly derives ProgramRoot
+v2, retains its eleven descriptors and three unbound relationships exactly,
+and appends a descriptor for this fact bundle. Neither layer changes Canonical
+Semantic Workspace Revision v1 or ProgramRoot v1/v2 bytes. See [Contracts and
+Tests Facts v1](CONTRACTS-AND-TESTS-FACTS-V1.md) and [ProgramRoot
+v3](PROGRAM-ROOT-V3.md).
+
 `src/project/semantic_transaction.rs` owns the bounded authority-free Universal
 Semantic Transaction v1 kernel. It binds an exact canonical workspace revision
 and admits a closed one-operation algebra containing a typed display rename and
@@ -2102,7 +2115,8 @@ a supported language, CLI, ABI, or runtime surface.
 | Single-file transactions | `src/patch.rs`, `src/patch/`, `src/patch_evidence.rs`, `src/repair.rs` |
 | Managed workspace | `src/workspace.rs`, `src/workspace_*`, `src/semantic_workspace*` |
 | Canonical Project-derived semantic workspace revision | `src/project/canonical_workspace_revision.rs` |
-| Segmented source-owned ProgramRoot | `src/project/program_root.rs` |
+| Segmented source-owned ProgramRoot | `src/project/program_root.rs`, `src/project/program_root/v2.rs`, `src/project/program_root/v3.rs` |
+| Contract association and declared-test facts | `src/project/contracts_and_tests_facts.rs` |
 | Source Agent interaction contract facts | `src/project/agent_contract_facts.rs` |
 | Project, public descriptor, and daemon | `src/project/`, `src/project/public_api.rs`, `src/project_transport/`, `src/bin/semapraxd.rs` |
 | Project v8 promotion observation replay | `src/project/v8_promotion.rs` |

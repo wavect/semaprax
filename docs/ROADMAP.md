@@ -221,6 +221,13 @@ candidate-safe Project Lock replay: until that is available, candidate
 ProgramRoot-v2 derivation and exact service refresh must continue to fail
 closed rather than copy or weaken external facts.
 
+ProgramRoot v3 now separately associates ordered compiler-derived contract
+facts and the declared executable test inventory without relabeling either as
+proof, coverage, or execution. Its next integration step is a versioned exact
+context/selector successor; do not widen ProgramRoot v2 or the canonical
+workspace v1 node, and do not route v3 into query, transaction, or service
+claims until those selectors independently replay the appended facts.
+
 Actual source-exact parse/format reuse, expression holes, owning-Bytes parameter
 mapping and typed diagnostic repair history now have authored implementations.
 Separate canonical Git publication now has bounded Linux/macOS bare SHA1/SHA256

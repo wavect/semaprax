@@ -16,12 +16,16 @@ use super::{
 
 mod dependency_lock;
 mod v2;
+mod v3;
 pub use dependency_lock::{
     ProgramRootDependencyLockAssociation, MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES,
     PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_SCHEMA,
 };
 pub use v2::{
     ProgramRootV2, MAX_PROGRAM_ROOT_V2_BYTES, PROGRAM_ROOT_V2_COMPATIBILITY, PROGRAM_ROOT_V2_SCHEMA,
+};
+pub use v3::{
+    ProgramRootV3, MAX_PROGRAM_ROOT_V3_BYTES, PROGRAM_ROOT_V3_COMPATIBILITY, PROGRAM_ROOT_V3_SCHEMA,
 };
 
 pub const PROGRAM_ROOT_SCHEMA: &str = "semaprax.program-root.v1";

@@ -8,6 +8,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added the authority-free Contracts and Tests Facts v1 association and
+  ProgramRoot v3. The standalone fact bundle binds one admitted Project,
+  semantic Graph, and legacy workspace revision to stable-ID-sorted function
+  and function-template rows with ordered checked `requires`/`ensures` facts,
+  plus only the declared test `main` and ordinary executable named tests. Its
+  closed document explicitly denies coverage, execution, result, and source
+  authority claims. ProgramRoot v3 freshly retains all eleven ProgramRoot-v2
+  descriptors and three unbound relationships, then appends only the fact
+  schema/digest/byte-count descriptor. Canonical Semantic Workspace v1 and
+  ProgramRoot v1/v2 identities and bytes remain unchanged. This is inventory
+  and association only: contract proof, coverage, test execution, runtime
+  roots, authority, and ProgramRoot-v3 exact-context/service selection remain
+  absent.
+
 - Extended the additive Exact Program Context v1 lifecycle through exact query
   replay, transaction replay, and persistent-service history selection. Every
   exact route requires both the enriched workspace revision and ProgramRoot-v2

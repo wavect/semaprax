@@ -81,6 +81,11 @@ commit authority. Interface/artifact and lock entries are exact fact
 descriptors, not embedded payloads. Unbound runtime-root placeholders are not
 evidence that any DeploymentRoot, InstanceRoot, or EvidenceRoot exists.
 
+The additive [ProgramRoot v3](PROGRAM-ROOT-V3.md) freshly derives this exact v2
+root, retains its first eleven segment descriptors and all relationships
+byte-for-byte, and appends one descriptor for [Contracts and Tests Facts
+v1](CONTRACTS-AND-TESTS-FACTS-V1.md). V2 itself remains closed and unchanged.
+
 The two focused Workspace-harness cases pass locally, covering exact replay,
 segment preservation/order, cross-Project binding, empty-Agent rejection,
 reminted reordering, and an attempted root self-cycle.

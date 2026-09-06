@@ -12,6 +12,7 @@ mod authority;
 mod build;
 mod candidate;
 mod canonical_workspace_revision;
+mod contracts_and_tests_facts;
 mod create;
 mod cxx_owned_data;
 mod exact_program_context;
@@ -265,6 +266,12 @@ pub use canonical_workspace_revision::{
     MAX_SEMANTIC_WORKSPACE_AGENT_DEFINITION_INPUT_BYTES, MAX_SEMANTIC_WORKSPACE_REVISION_BYTES,
     SEMANTIC_WORKSPACE_REVISION_COMPATIBILITY, SEMANTIC_WORKSPACE_REVISION_SCHEMA,
 };
+pub use contracts_and_tests_facts::{
+    ContractSourceFact, ContractsAndTestsFacts, DeclaredFunctionContractFacts, DeclaredTestFact,
+    CONTRACTS_AND_TESTS_FACTS_SCHEMA, MAX_CONTRACTS_AND_TESTS_FACTS_BYTES,
+    MAX_CONTRACT_SOURCE_FACT_BYTES, MAX_DECLARED_CONTRACT_CLAUSES, MAX_DECLARED_CONTRACT_FUNCTIONS,
+    MAX_DECLARED_TESTS,
+};
 pub use cxx_owned_data::{
     render_owned_data_c_header, replay_cxx_owned_data_package, CxxOwnedDataPackage,
     MAX_CXX_OWNED_DATA_PACKAGE_BYTES, PROJECT_CXX_OWNED_DATA_PACKAGE_SCHEMA,
@@ -375,11 +382,13 @@ pub use prepared_interpreter::{
 };
 pub use program_root::{
     ProgramRoot, ProgramRootDependencyLockAssociation, ProgramRootRelationship, ProgramRootSegment,
-    ProgramRootV2, MAX_PROGRAM_ROOT_BYTES, MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES,
-    MAX_PROGRAM_ROOT_RELATIONSHIP_BYTES, MAX_PROGRAM_ROOT_SEGMENT_BYTES, MAX_PROGRAM_ROOT_V2_BYTES,
+    ProgramRootV2, ProgramRootV3, MAX_PROGRAM_ROOT_BYTES,
+    MAX_PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_BYTES, MAX_PROGRAM_ROOT_RELATIONSHIP_BYTES,
+    MAX_PROGRAM_ROOT_SEGMENT_BYTES, MAX_PROGRAM_ROOT_V2_BYTES, MAX_PROGRAM_ROOT_V3_BYTES,
     PROGRAM_ROOT_COMPATIBILITY, PROGRAM_ROOT_DEPENDENCY_LOCK_ASSOCIATION_SCHEMA,
     PROGRAM_ROOT_RELATIONSHIP_SCHEMA, PROGRAM_ROOT_SCHEMA, PROGRAM_ROOT_SEGMENT_SCHEMA,
-    PROGRAM_ROOT_V2_COMPATIBILITY, PROGRAM_ROOT_V2_SCHEMA,
+    PROGRAM_ROOT_V2_COMPATIBILITY, PROGRAM_ROOT_V2_SCHEMA, PROGRAM_ROOT_V3_COMPATIBILITY,
+    PROGRAM_ROOT_V3_SCHEMA,
 };
 pub use project_lock::{
     classify_lock_change, render_project_lock, verify_project_lock, LockCompatibility,

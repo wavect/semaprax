@@ -33,7 +33,7 @@ const NONCLAIMS: [&str; 6] = [
     "runtime_root_relationships_are_unbound_acyclic_placeholders",
     "no_filesystem_network_execution_deployment_publication_or_commit_authority",
 ];
-const SEGMENT_KINDS: [&str; 11] = [
+pub(super) const SEGMENT_KINDS: [&str; 11] = [
     "source_projection",
     "semantic_program",
     "stable_identity_index",
@@ -383,7 +383,7 @@ fn validate_wire_shape(value: &Value) -> Result<()> {
     Ok(())
 }
 
-fn validate_segments(value: &Value) -> Result<()> {
+pub(super) fn validate_segments(value: &Value) -> Result<()> {
     let segments = value
         .as_array()
         .ok_or_else(|| invalid("ProgramRoot v2 segments are invalid"))?;
@@ -431,7 +431,7 @@ fn validate_segments(value: &Value) -> Result<()> {
     Ok(())
 }
 
-fn validate_relationships(value: &Value) -> Result<()> {
+pub(super) fn validate_relationships(value: &Value) -> Result<()> {
     let relationships = value
         .as_array()
         .ok_or_else(|| invalid("ProgramRoot v2 relationships are invalid"))?;

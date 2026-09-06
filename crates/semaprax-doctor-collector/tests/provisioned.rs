@@ -42,7 +42,12 @@ use observe::{run, Observation};
 use std::time::{Duration, Instant};
 
 fn healthy(observation: Observation) {
-    assert_eq!(observation.status.code(), Some(0));
+    assert_eq!(
+        observation.status.code(),
+        Some(0),
+        "{}",
+        observation.describe()
+    );
     assert!(observation.stderr.is_empty(), "{:?}", observation.stderr);
     // Exact canonical bytes and row order. Either explicitly provisioned build
     // profile is valid; do not infer it from this independently built test crate.

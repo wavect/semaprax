@@ -49,7 +49,12 @@ pub(super) fn require_for_selector(
     tools: &[(&str, &str, &str)],
     status: i32,
 ) {
-    assert_eq!(observation.status.code(), Some(status));
+    assert_eq!(
+        observation.status.code(),
+        Some(status),
+        "{}",
+        observation.describe()
+    );
     assert!(observation.stderr.is_empty(), "{:?}", observation.stderr);
     assert!(
         observation.stdout == expected_for_selector(selector, target, tools, "debug")

@@ -11,6 +11,24 @@ pub struct Observation {
     pub stderr: Vec<u8>,
 }
 
+impl Observation {
+    /// Everything the collector said, for an assertion message.
+    ///
+    /// A status assertion that fires before the report bytes are compared
+    /// otherwise discards the only description of why the confined worker
+    /// refused, which is the evidence a provisioned-host run exists to
+    /// produce. This narrows no assertion; it carries the observation into
+    /// the failure text.
+    pub fn describe(&self) -> String {
+        format!(
+            "status {:?}; stderr {:?}; stdout {:?}",
+            self.status,
+            String::from_utf8_lossy(&self.stderr),
+            String::from_utf8_lossy(&self.stdout),
+        )
+    }
+}
+
 pub(super) struct OwnedCollector(pub Child);
 
 impl Drop for OwnedCollector {

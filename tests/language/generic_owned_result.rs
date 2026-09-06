@@ -80,3 +80,42 @@ fn generic_owned_result_closed_arguments_and_signature_reject_stably() {
         );
     }
 }
+
+#[test]
+fn generic_copy_success_result_materializes_eight_scalars_and_rejects_bytes() {
+    let prefix = PREFIX.replace("Result<Bytes, E>", "Result<E, Bytes>");
+    let mut source = prefix.clone();
+    for ty in ["i64", "i32", "char", "u8", "usize", "f32", "f64", "bool"] {
+        source.push_str(&format!("@id(\"result.invoke.{ty}\") fn invoke_{ty}(value: own Result<{ty}, Bytes>) -> Result<{ty}, Bytes> {{ forward<{ty}>(value) }}\n"));
+    }
+    source.push_str("@id(\"app.main\") fn main() -> i64 { 0 }\n");
+    let parsed = semaprax::check(&source, "copy-success-result.spx").unwrap();
+    let canonical = format::canonical(&parsed);
+    let reparsed = semaprax::check(&canonical, "copy-success-result.spx").unwrap();
+    assert_eq!(canonical, format::canonical(&reparsed));
+    let program = hir::resolve(&reparsed).unwrap();
+    hir::validate(&program).unwrap();
+    assert_eq!(program.function_instances.len(), 24);
+    for instance in &program.function_instances {
+        assert_eq!(
+            instance.function.params[0].ownership,
+            hir::OwnershipMode::Own
+        );
+        assert_eq!(
+            instance.function.params[0].ty,
+            instance.function.return_type
+        );
+        assert_eq!(
+            instance.function.cleanup_plan.schema,
+            "semaprax.cleanup-plan.v6"
+        );
+    }
+    let rejected = format!(
+        "{prefix}\n@id(\"result.invalid\") fn invalid(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes> {{ forward<Bytes>(value) }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}\n"
+    );
+    let parsed = parse(&rejected, Path::new("copy-success-bytes-rejected.spx")).unwrap();
+    assert!(verify::verify(&parsed).iter().any(|d| d.code == "SPX-T225"));
+    let mut hostile = program.clone();
+    hostile.function_instances[0].type_arguments = vec![hir::ResolvedType::Bytes];
+    assert_eq!(hir::validate(&hostile).unwrap_err().code, "SPX-H006");
+}

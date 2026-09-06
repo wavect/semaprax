@@ -94,12 +94,8 @@ impl Resolver<'_> {
             .iter()
             .find(|candidate| candidate.stable_id == caller_id.as_str())
             .map_or(0, |candidate| candidate.type_parameters.len());
-        let forwarded = caller_parameter_count != 0
-            && caller_parameter_count == arguments.len()
-            && arguments.iter().enumerate().all(|(index, argument)| {
-                matches!(argument, ResolvedType::TypeParameter { owner, index: actual }
-                    if owner == caller_id && usize::try_from(*actual).ok() == Some(index))
-            });
+        let forwarded =
+            super::generic_mapping::arguments(caller_id, caller_parameter_count, arguments);
         if forwarded {
             return Ok(true);
         }
@@ -110,7 +106,7 @@ impl Resolver<'_> {
             &DeclarationId::new(function.stable_id.clone()),
             function.type_parameters.len(),
         ) {
-            return Ok(super::generic_result::arguments(arguments));
+            return Ok(super::generic_result::arguments(&result_type, arguments));
         }
         if arguments.iter().any(|argument| {
             !super::type_reachability::nested_record_copy_scalar_is_admitted(argument)

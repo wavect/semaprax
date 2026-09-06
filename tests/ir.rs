@@ -45,3 +45,6 @@ mod hir_variants;
 mod hir_wasm;
 #[path = "ir/verifier_parity.rs"]
 mod verifier_parity;
+
+#[path = "ir/graph_generic_mapping.rs"]
+mod graph_generic_mapping;

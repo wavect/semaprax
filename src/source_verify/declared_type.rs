@@ -202,7 +202,7 @@ pub(super) fn check_declared_type(
             types.is_nested_owned_byte_record_template(&instance, parameters);
         let admitted_owned_variant = types.is_flat_owned_byte_variant(&instance);
         let admitted_result_template = name == "Result"
-            && matches!(arguments.as_slice(), [Type::Bytes, Type::Named { name, arguments }] if arguments.is_empty() && parameters.len() == 1 && parameters.contains(name.as_str()));
+            && matches!(arguments.as_slice(), [Type::Bytes, Type::Named { name, arguments }] | [Type::Named { name, arguments }, Type::Bytes] if arguments.is_empty() && parameters.len() == 1 && parameters.contains(name.as_str()));
         let admitted_vec = name == "Vec"
             && arguments.len() == 1
             && (crate::vec_ops::ast_element_is_admitted(&arguments[0])
@@ -337,7 +337,7 @@ pub(super) fn generic_function_arguments_are_admitted(
     types: &TypeTable<'_>,
 ) -> bool {
     if generic_result::profile(function) {
-        return generic_result::arguments(arguments);
+        return generic_result::arguments(function, arguments);
     }
     let nested = generic_function_contains_nested_owned_record_slot(function, types);
     if arguments.iter().all(direct_function_type_argument) && !nested {
@@ -391,14 +391,25 @@ pub(super) fn generic_function_arguments_are_forwarded(
 ) -> bool {
     !caller.type_parameters.is_empty()
         && arguments.len() == callee.type_parameters.len()
-        && arguments.len() == caller.type_parameters.len()
-        && arguments
-            .iter()
-            .zip(&caller.type_parameters)
-            .all(|(argument, parameter)| {
-                matches!(argument, Type::Named { name, arguments }
-                    if arguments.is_empty() && name == &parameter.name)
-            })
+        && arguments.iter().all(|argument| match argument {
+            Type::Named { name, arguments } => {
+                arguments.is_empty()
+                    && caller
+                        .type_parameters
+                        .iter()
+                        .any(|parameter| &parameter.name == name)
+            }
+            Type::I64
+            | Type::I32
+            | Type::Char
+            | Type::U8
+            | Type::Usize
+            | Type::F32
+            | Type::F64
+            | Type::Bool
+            | Type::Bytes => true,
+            _ => false,
+        })
 }
 
 pub(super) fn substitute_function_type(

@@ -114,3 +114,6 @@ mod while_loops;
 
 #[path = "language/generic_owned_result.rs"]
 mod generic_owned_result;
+
+#[path = "language/generic_explicit_forwarding.rs"]
+mod generic_explicit_forwarding;

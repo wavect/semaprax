@@ -2,19 +2,17 @@
 
 use super::*;
 
+fn owns_carrier(ty: &ResolvedType) -> bool {
+    matches!(ty, ResolvedType::Nominal { declaration, arguments }
+        if declaration.as_str() == crate::prelude::RESULT_ID
+            && matches!(arguments.as_slice(), [ok, error]
+                if (*ok == ResolvedType::Bytes || *error == ResolvedType::Bytes)
+                    && (*ok == ResolvedType::Bytes || crate::hir::is_scalar_resolved_type(ok))
+                    && (*error == ResolvedType::Bytes || crate::hir::is_scalar_resolved_type(error))))
+}
+
 pub(super) fn expression_owns_exact_operand(expression: &ResolvedExpr) -> bool {
-    expression.ownership == OwnershipMode::Own
-        && matches!(
-            &expression.ty,
-            ResolvedType::Nominal {
-                declaration,
-                arguments,
-            } if declaration.as_str() == crate::prelude::RESULT_ID
-                && matches!(arguments.as_slice(), [ResolvedType::Bytes,
-                    ResolvedType::Bytes | ResolvedType::I64 | ResolvedType::I32 | ResolvedType::U8
-                    | ResolvedType::Usize | ResolvedType::Char | ResolvedType::F32
-                    | ResolvedType::F64 | ResolvedType::Bool])
-        )
+    expression.ownership == OwnershipMode::Own && owns_carrier(&expression.ty)
 }
 
 pub(super) struct ValidatedResultTry<'a> {
@@ -58,21 +56,7 @@ pub(super) fn validate_shape<'a>(
             "resolved `?` operand or residual is not nominal Result",
         ));
     };
-    let exact_owned = matches!(
-        operand_arguments.as_slice(),
-        [
-            ResolvedType::Bytes,
-            ResolvedType::Bytes
-                | ResolvedType::I64
-                | ResolvedType::I32
-                | ResolvedType::U8
-                | ResolvedType::Usize
-                | ResolvedType::Char
-                | ResolvedType::F32
-                | ResolvedType::F64
-                | ResolvedType::Bool
-        ]
-    ) && operand.ty == *residual_type;
+    let exact_owned = owns_carrier(&operand.ty) && operand.ty == *residual_type;
     if operand_result != result
         || residual_result != result
         || operand_arguments.len() != 2
@@ -87,7 +71,7 @@ pub(super) fn validate_shape<'a>(
             "resolved `?` has invalid concrete Result instances",
         ));
     }
-    let expected_ownership = if exact_owned {
+    let expected_ownership = if exact_owned && operand_arguments[0] == ResolvedType::Bytes {
         OwnershipMode::Own
     } else {
         OwnershipMode::Value

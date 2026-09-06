@@ -98,8 +98,13 @@ jobs:
         run: |
           set -euo pipefail
           cargo test --locked -p semaprax --test language generic_owned_result
+          cargo test --locked -p semaprax --test language generic_explicit_forwarding
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::explicit_forwarding
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::copy_success_result
           cargo test --locked -p semaprax --test language owned_result_variants::mixed_owned_result_postfix_try_uses_exact_residual_profile -- --exact
           cargo test --locked -p semaprax --test ir graph_generic_results
+          cargo test --locked -p semaprax --test ir graph_generic_mapping
+          cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::explicit_forwarding_program_root_binds_v35_symbolic_mapping -- --exact
           cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::mixed_result
           cargo test --locked -p semaprax --lib cleanup_plan::replay::mixed_result_tests::mixed_result_residual_replay_keeps_empty_error_cases_and_rejects_missing_transfer -- --exact
           cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::generic_result_program_root_replays_checked_variant_closures -- --exact

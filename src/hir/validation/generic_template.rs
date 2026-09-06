@@ -815,7 +815,7 @@ impl HirValidator<'_> {
             _ => {
                 return Err(hir_error(
                     "generic owned-record expression kind is inconsistent",
-                ))
+                ));
             }
         }
         Ok(())
@@ -940,11 +940,11 @@ pub(super) fn is_forwarded_call(
         .find(|target| target.id == *callee)
         .is_some_and(|target| {
             target.type_parameters.len() == type_arguments.len()
-                && template.type_parameters.len() == type_arguments.len()
-                && type_arguments.iter().enumerate().all(|(index, argument)| {
-                    matches!(argument, ResolvedType::TypeParameter { owner, index: actual }
-                        if owner == &template.id && usize::try_from(*actual).ok() == Some(index))
-                })
+                && crate::hir::generic_mapping::arguments(
+                    &template.id,
+                    template.type_parameters.len(),
+                    type_arguments,
+                )
                 && instance.as_ref().is_some_and(|instance| {
                     FunctionInstanceId::derive(callee, type_arguments) == *instance
                 })
@@ -1117,7 +1117,7 @@ pub(super) fn substitutions(
     transparent_owned_wrapper: bool,
 ) -> Vec<Vec<ResolvedType>> {
     if super::super::generic_result::profile(template) {
-        super::super::generic_result::substitutions()
+        super::super::generic_result::substitutions(&template.return_type)
     } else if transparent_owned_wrapper {
         vec_wrapper_substitutions()
     } else if template_has_owned_record_slot(program, template) {
@@ -1141,6 +1141,11 @@ impl HirValidator<'_> {
                 "generic Result expression requires its exact owning relay body",
             ));
         }
+        let ResolvedType::Nominal { arguments, .. } = &template.return_type else {
+            unreachable!()
+        };
+        let success = &arguments[0];
+        let success_ownership = template_ownership(self.program, template, success);
         match &expression.kind {
             ResolvedExprKind::ConstructVariant {
                 variant,
@@ -1157,8 +1162,8 @@ impl HirValidator<'_> {
                     || field.field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
                     || expression.ty != template.return_type
                     || expression.ownership != OwnershipMode::Own
-                    || field.value.ty != ResolvedType::Bytes
-                    || field.value.ownership != OwnershipMode::Own
+                    || &field.value.ty != success
+                    || field.value.ownership != success_ownership
                 {
                     return Err(hir_error(
                         "generic Result reconstruction differs from its owning signature",
@@ -1189,8 +1194,8 @@ impl HirValidator<'_> {
                     || *residual_type != template.return_type
                     || operand.ty != *residual_type
                     || operand.ownership != OwnershipMode::Own
-                    || expression.ty != ResolvedType::Bytes
-                    || expression.ownership != OwnershipMode::Own
+                    || &expression.ty != success
+                    || expression.ownership != success_ownership
                 {
                     return Err(hir_error(
                         "generic Result propagation differs from its exact owning residual",

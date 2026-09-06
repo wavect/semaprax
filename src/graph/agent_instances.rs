@@ -56,6 +56,16 @@ fn append_instances(
     {
         return Ok(base);
     }
+    if generic_mapping::requires_v35(&program.function_templates) {
+        let facts = generic_mapping::template_facts(program, &BTreeSet::from([template.clone()]))?;
+        base.pop();
+        write!(
+            base,
+            ",\"generic_template_forwarding\":{}}}",
+            serde_json::to_string(&facts).expect("JSON values serialize")
+        )
+        .expect("string write");
+    }
     let mut instances = program
         .function_instances
         .iter()

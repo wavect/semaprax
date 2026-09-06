@@ -35,6 +35,8 @@ use path_summary::{
 use path_summary::{cleanup_plan_requires_path_replay, STATUS_ONLY_PATH_SUMMARY_THRESHOLD};
 
 #[cfg(test)]
+mod copy_success_result_tests;
+#[cfg(test)]
 mod mixed_result_tests;
 mod nested_shape;
 mod path_join;
@@ -4709,7 +4711,10 @@ fn authenticated_try_stage_source(
                 | ResolvedType::F64
                 | ResolvedType::Bool
         ]
-    ) && source_arguments == target_arguments;
+    ) && source_arguments == target_arguments
+        || matches!(source_arguments, [success, ResolvedType::Bytes]
+                if crate::hir::is_scalar_resolved_type(success))
+            && source_arguments == target_arguments;
     if source_arguments.len() != 2
         || target_arguments.len() != 2
         || (!exact_owned
@@ -4743,7 +4748,12 @@ fn authenticated_try_stage_source(
         }
     }
     if exact_owned {
-        if expression.ownership != OwnershipMode::Own || operand.ty != *residual_type {
+        let expected_ownership = if expression.ty == ResolvedType::Bytes {
+            OwnershipMode::Own
+        } else {
+            OwnershipMode::Value
+        };
+        if expression.ownership != expected_ownership || operand.ty != *residual_type {
             return Err(replay_error(
                 function,
                 "owned postfix `?` has inconsistent ownership or instance identity",
@@ -5712,7 +5722,7 @@ fn finish_try_paths(
             },
             "try success observation",
         )?;
-        if source.is_none() {
+        if source.is_none() && expression.ownership == OwnershipMode::Own {
             let mut payload = success.owned_source.take().ok_or_else(|| {
                 replay_error(function, "owned postfix `?` success has no cleanup source")
             })?;
@@ -5737,6 +5747,8 @@ fn finish_try_paths(
                 "owned try success transfer",
             )?;
             success.owned_source = Some(destination);
+        } else if source.is_none() {
+            success.owned_source = None;
         }
         work.push_expr_path(&mut paths, success, "try success path")?;
 

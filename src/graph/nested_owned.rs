@@ -194,7 +194,9 @@ pub(crate) fn graph_schema_from_parts_and_instances(
         false,
     )?;
     Ok(
-        if function_templates
+        if super::generic_mapping::requires_v35(function_templates) {
+            "semaprax.graph.v35"
+        } else if function_templates
             .iter()
             .any(crate::hir::generic_result::profile)
         {
@@ -206,11 +208,20 @@ pub(crate) fn graph_schema_from_parts_and_instances(
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
-    if program.function_instances.is_empty() && !requires_generic_result_schema(program) {
+    if program.function_instances.is_empty()
+        && !requires_generic_result_schema(program)
+        && !super::generic_mapping::requires_v35(&program.function_templates)
+    {
         return legacy_graph_schema(program);
     }
     generic_payload_schema(program)?;
-    Ok("semaprax.graph.v34")
+    Ok(
+        if super::generic_mapping::requires_v35(&program.function_templates) {
+            "semaprax.graph.v35"
+        } else {
+            "semaprax.graph.v34"
+        },
+    )
 }
 
 pub(super) fn requires_generic_result_schema(program: &ResolvedProgram) -> bool {
@@ -228,7 +239,9 @@ pub(super) fn generic_payload_schema(
 ) -> Result<&'static str, Diagnostic> {
     program_schema(
         program,
-        !program.function_instances.is_empty() || requires_generic_result_schema(program),
+        !program.function_instances.is_empty()
+            || requires_generic_result_schema(program)
+            || super::generic_mapping::requires_v35(&program.function_templates),
     )
 }
 
@@ -255,6 +268,14 @@ fn program_schema(
         )?,
         generic_composition,
     )?;
+    if super::generic_mapping::requires_v35(&program.function_templates) {
+        if !generic_composition {
+            return Err(composition_error(
+                "explicit generic forwarding requires Graph v35",
+            ));
+        }
+        return Ok("semaprax.graph.v35");
+    }
     if requires_generic_result_schema(program) {
         if !generic_composition {
             return Err(composition_error(
@@ -282,6 +303,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v32"
             | "semaprax.graph.v33"
             | "semaprax.graph.v34"
+            | "semaprax.graph.v35"
     )
 }
 
@@ -296,6 +318,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v32"
             | "semaprax.graph.v33"
             | "semaprax.graph.v34"
+            | "semaprax.graph.v35"
     )
 }
 
@@ -308,6 +331,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v31"
             | "semaprax.graph.v33"
             | "semaprax.graph.v34"
+            | "semaprax.graph.v35"
     )
 }
 

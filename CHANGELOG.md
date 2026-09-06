@@ -8,6 +8,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added explicit generic argument permutations, repetition and concrete
+  substitutions with independent source/HIR proof, cycle rejection and the
+  existing 256-instance closure bound. Additive Graph v35 binds symbolic
+  caller-parameter/concrete mappings by authenticated expression paths;
+  identity-only programs retain v34 bytes. ProgramRoot and bounded context
+  expose the same mappings. Focused source, hostile graph, workspace replay
+  and interpreter/native O0/O2/Core-Wasm checks pass.
+
+- Extended generic Result propagation to `Result<T, Bytes>` for all eight Copy
+  success types. Cleanup consumes the conditional owner without inventing a
+  success cleanup slot; interpreter, native and Wasm preserve scalar Ok values
+  and owned Err settlement. Forty focused cross-engine success/failure profiles
+  pass, with forged empty-case flags and missing residual transitions rejected.
+
 - Added generic `Result<Bytes, E>` relay, explicit forwarding and postfix `?`
   for every Copy error scalar plus `Bytes`. Independent HIR proofs validate
   unused substitutions without requiring a discovered call instance. Existing

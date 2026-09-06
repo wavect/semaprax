@@ -21,8 +21,15 @@ pub(super) fn scan_is_admitted(
     else {
         return false;
     };
-    expression.ownership == hir::OwnershipMode::Own
-        && expression.ty == ResolvedType::Bytes
+    operand.ownership == hir::OwnershipMode::Own
+        && matches!(&operand.ty, ResolvedType::Nominal { arguments, .. }
+            if arguments.first() == Some(&expression.ty))
+        && expression.ownership
+            == if expression.ty == ResolvedType::Bytes {
+                hir::OwnershipMode::Own
+            } else {
+                hir::OwnershipMode::Value
+            }
         && operand.ty == *residual_type
         && is_admitted_owned_byte_variant(declarations, &operand.ty)
         && result.as_str() == crate::prelude::RESULT_ID
@@ -70,23 +77,9 @@ impl Evaluator<'_> {
         if result.as_str() != crate::prelude::RESULT_ID
             || source_result != result
             || target_result != result
-            || !matches!(
-                source_arguments.as_slice(),
-                [
-                    ResolvedType::Bytes,
-                    ResolvedType::Bytes
-                        | ResolvedType::I64
-                        | ResolvedType::I32
-                        | ResolvedType::U8
-                        | ResolvedType::Usize
-                        | ResolvedType::Char
-                        | ResolvedType::F32
-                        | ResolvedType::F64
-                        | ResolvedType::Bool
-                ]
-            )
+            || !hir::admitted_owned_byte_prelude_instance(source_result, source_arguments)
             || source_arguments != target_arguments
-            || expression.ty != ResolvedType::Bytes
+            || source_arguments.first() != Some(&expression.ty)
             || ok_case.as_str() != crate::prelude::RESULT_OK_ID
             || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
             || err_case.as_str() != crate::prelude::RESULT_ERR_ID

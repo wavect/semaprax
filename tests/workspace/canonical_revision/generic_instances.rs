@@ -401,3 +401,74 @@ module fixture.app;
         );
     }
 }
+
+#[test]
+fn explicit_forwarding_program_root_binds_v35_symbolic_mapping() {
+    let fixture = Fixture::owned_vec("explicit-forwarding-root", false);
+    let text = r#"module fixture.app;
+@id("fixture.first") fn first<A,B>(left:A,right:B)->A {left}
+@id("fixture.swap") fn swap<A,B>(left:A,right:B)->B {first<B,A>(right,left)}
+@id("fixture.main") fn main()->i64 {swap<i64,i64>(1,2)}
+@id("fixture.public") fn published()->i64 {0}
+"#;
+    let path = fixture.0.join("src/app.spx");
+    let parsed = semaprax::parse(text, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    assert_eq!(
+        workspace.semantic_program().schema(),
+        SemanticProgram::SCHEMA_V2
+    );
+    let node: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    let closures = node["payload"]["generic_instance_closures"]
+        .as_array()
+        .unwrap();
+    assert!(!closures.is_empty());
+    for closure in closures {
+        let graph: Value = serde_json::from_str(closure["graph"].as_str().unwrap()).unwrap();
+        assert_eq!(graph["schema"], "semaprax.graph.v35");
+        assert_eq!(
+            graph["generic_template_forwarding"][0]["forwarded_argument_mapping"][0]["source"]
+                ["index"],
+            1
+        );
+        assert_eq!(graph["revision"], closure["defining_revision"]);
+    }
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+    assert_eq!(
+        SemanticWorkspaceRevision::replay(
+            &revision,
+            workspace.workspace_revision(),
+            workspace.to_json().as_bytes()
+        )
+        .unwrap(),
+        workspace
+    );
+    let canonical = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, format!("// retained projection\n{canonical}")).unwrap();
+    let commented = fixture.revision().canonical_workspace_revision().unwrap();
+    assert_eq!(
+        workspace.semantic_program().digest(),
+        commented.semantic_program().digest()
+    );
+    assert_ne!(
+        workspace.workspace_revision(),
+        commented.workspace_revision()
+    );
+    assert!(ProgramRoot::replay(
+        &commented,
+        root.program_root_digest(),
+        root.to_json().as_bytes()
+    )
+    .is_err());
+}

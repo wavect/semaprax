@@ -6,10 +6,15 @@ use semaprax::hir::{self, DeclarationId, ResolvedType};
 use semaprax::interpreter::{self, InterpreterOptions};
 use semaprax::{codegen, parse, verify, wasm};
 
+#[path = "generic_owned_function_runtime/copy_success_result.rs"]
+mod copy_success_result;
 #[path = "generic_owned_function_runtime/matrix.rs"]
 mod matrix;
 #[path = "generic_owned_function_runtime/mixed_result.rs"]
 mod mixed_result;
+
+#[path = "generic_owned_function_runtime/explicit_forwarding.rs"]
+mod explicit_forwarding;
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
@@ -434,9 +439,9 @@ fn run_native(parsed: &semaprax::ast::Program, expected: Expected) {
         )
         .replace("free(value->ptr);", "spx_test_free(value->ptr);");
     let condition = match expected {
-        Expected::Value(value) => format!(
-            "status != SPX_STATUS_SUCCESS || result != INT64_C({value})"
-        ),
+        Expected::Value(value) => {
+            format!("status != SPX_STATUS_SUCCESS || result != INT64_C({value})")
+        }
         Expected::Failure(domain, code, _) => format!(
             "status == SPX_STATUS_SUCCESS || result != INT64_C(0x2525252525252525) || spx_status_resolve(&context, status) == NULL || strcmp(spx_status_resolve(&context, status)->domain_id, \"{domain}\") != 0 || spx_status_resolve(&context, status)->code != UINT32_C({code})"
         ),
@@ -552,9 +557,11 @@ fn run_wasm_source(parsed: &semaprax::ast::Program, baseline_source: &str, expec
             Path::new("generic-owned-function-runtime-wasm-baseline-v1.spx"),
         )
         .unwrap();
-        assert!(verify::verify(&baseline)
-            .iter()
-            .all(|diagnostic| !diagnostic.severity.is_error()));
+        assert!(
+            verify::verify(&baseline)
+                .iter()
+                .all(|diagnostic| !diagnostic.severity.is_error())
+        );
         let baseline_root = root.with_extension("baseline");
         wasm::build_web(&baseline, &baseline_root).unwrap();
         let baseline_core = std::fs::read(baseline_root.join("app.wasm")).unwrap();
@@ -568,9 +575,9 @@ fn run_wasm_source(parsed: &semaprax::ast::Program, baseline_source: &str, expec
     }
     std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
     let expectation = match expected {
-        Expected::Value(value) => format!(
-            "if(instance.exports.semaprax_main()!=={value}n)throw Error('wrong value');"
-        ),
+        Expected::Value(value) => {
+            format!("if(instance.exports.semaprax_main()!=={value}n)throw Error('wrong value');")
+        }
         Expected::Failure(domain, code, message) => format!(
             "let failed=false;try{{instance.exports.semaprax_main();}}catch(error){{const status=semanticStatus(error);if(status===null||status.domain_id!=='{domain}'||status.code!=={code}||error.message!=={message:?})throw error;failed=true;}}if(!failed)throw Error('missing failure');"
         ),
@@ -727,12 +734,14 @@ fn nested_generic_relay_substitution_and_hir_carriers_fail_closed() {
                 instance.function.cleanup_plan.slots.len(),
                 expected_plan_slots
             );
-            assert!(instance
-                .function
-                .cleanup
-                .flags
-                .iter()
-                .all(|flag| flag.place.projections == owned_path));
+            assert!(
+                instance
+                    .function
+                    .cleanup
+                    .flags
+                    .iter()
+                    .all(|flag| flag.place.projections == owned_path)
+            );
             for slot in &instance.function.cleanup_plan.slots {
                 assert_eq!(
                     leaf_paths(&slot.field_liveness_shape).as_slice(),

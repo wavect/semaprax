@@ -531,7 +531,7 @@ fn entry(value: own Box<Pair<Bytes, bool>>, allowed: bool) -> Box<Pair<Bytes, bo
 }
 
 #[test]
-fn generic_forwarding_rejects_nonidentity_arguments_and_cycles_stably() {
+fn generic_forwarding_rejects_incompatible_nonidentity_returns_and_cycles_stably() {
     let direct_scalar = r#"
 module test.direct_scalar_forward;
 @id("scalar.inner") fn inner<T>(value: T) -> T { value }
@@ -603,7 +603,7 @@ module test.bad_concrete_forward;
 @id("bad.outer") fn outer<T>(value: T) -> T { inner<bool>(true) }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
-    assert!(error_codes(concrete).contains(&"SPX-T225"));
+    assert!(error_codes(concrete).contains(&"SPX-T103"));
 
     let permutation = r#"
 module test.bad_permuted_forward;
@@ -611,7 +611,7 @@ module test.bad_permuted_forward;
 @id("bad.outer") fn outer<T, U>(left: T, right: U) -> T { inner<U, T>(right, left) }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
-    assert!(error_codes(permutation).contains(&"SPX-T225"));
+    assert!(error_codes(permutation).contains(&"SPX-T103"));
 
     let cycle = r#"
 module test.bad_forward_cycle;

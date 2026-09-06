@@ -3,23 +3,28 @@
 use super::{DeclarationId, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedType};
 
 pub(super) fn is_exact_owned_instance(operand: &ResolvedType, residual: &ResolvedType) -> bool {
-    matches!(
-        operand,
-        ResolvedType::Nominal {
-            declaration,
-            arguments,
-        } if declaration.as_str() == crate::prelude::RESULT_ID
-            && matches!(arguments.as_slice(), [ResolvedType::Bytes,
-                ResolvedType::Bytes | ResolvedType::I64 | ResolvedType::I32 | ResolvedType::U8
-                    | ResolvedType::Usize | ResolvedType::Char | ResolvedType::F32
-                    | ResolvedType::F64 | ResolvedType::Bool
-                    | ResolvedType::TypeParameter { .. }])
-            && operand == residual
-    )
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = operand
+    else {
+        return false;
+    };
+    let payload = |ty: &ResolvedType| {
+        *ty == ResolvedType::Bytes
+            || crate::hir::is_scalar_resolved_type(ty)
+            || matches!(ty, ResolvedType::TypeParameter { .. })
+    };
+    declaration.as_str() == crate::prelude::RESULT_ID
+        && operand == residual
+        && matches!(arguments.as_slice(), [ok, error]
+            if (*ok == ResolvedType::Bytes || *error == ResolvedType::Bytes) && payload(ok) && payload(error))
 }
 
 pub(super) fn ownership_for(operand: &ResolvedType, residual: &ResolvedType) -> OwnershipMode {
-    if is_exact_owned_instance(operand, residual) {
+    if is_exact_owned_instance(operand, residual)
+        && matches!(operand, ResolvedType::Nominal { arguments, .. } if arguments[0] == ResolvedType::Bytes)
+    {
         OwnershipMode::Own
     } else {
         OwnershipMode::Value

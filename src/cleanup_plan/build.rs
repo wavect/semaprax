@@ -5605,9 +5605,7 @@ impl<'a> PlanBuilder<'a> {
         evaluated: EvalResult,
         region: CleanupRegionId,
     ) -> Result<EvalResult, Diagnostic> {
-        let exact_owned = expression.ownership == OwnershipMode::Own
-            && expression.ty == ResolvedType::Bytes
-            && operand.ty == *residual_type;
+        let exact_owned = self.needs_drop(&operand.ty)? && operand.ty == *residual_type;
         if exact_owned {
             return self.finish_owned_try(
                 expression, operand, result, ok_case, ok_field, evaluated, region,

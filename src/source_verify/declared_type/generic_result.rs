@@ -7,7 +7,7 @@ pub(in crate::source_verify) fn slot(function: &Function, ty: &Type) -> bool {
         return false;
     };
     matches!(ty, Type::Named { name, arguments }
-        if name == "Result" && matches!(arguments.as_slice(), [Type::Bytes, Type::Named { name, arguments }]
+        if name == "Result" && matches!(arguments.as_slice(), [Type::Bytes, Type::Named { name, arguments }] | [Type::Named { name, arguments }, Type::Bytes]
             if arguments.is_empty() && name == &parameter.name))
 }
 
@@ -25,7 +25,10 @@ pub(in crate::source_verify) fn profile(function: &Function) -> bool {
         })
 }
 
-pub(in crate::source_verify) fn arguments(arguments: &[Type]) -> bool {
+pub(in crate::source_verify) fn arguments(function: &Function, arguments: &[Type]) -> bool {
+    if copy_success(function) && arguments == [Type::Bytes] {
+        return false;
+    }
     matches!(
         arguments,
         [Type::I64
@@ -71,16 +74,21 @@ pub(in crate::source_verify) fn body(function: &Function, expression: &Expr) -> 
     }
 }
 
-pub(in crate::source_verify) fn substitutions() -> Vec<Vec<Type>> {
+pub(in crate::source_verify) fn copy_success(function: &Function) -> bool {
+    matches!(&function.return_type, Type::Named { arguments, .. } if arguments.first().is_some_and(|ty| *ty != Type::Bytes))
+}
+
+pub(in crate::source_verify) fn substitutions(function: &Function) -> Vec<Vec<Type>> {
     let mut substitutions = owned_record_function_substitutions(1);
-    substitutions.push(vec![Type::Bytes]);
+    if !copy_success(function) {
+        substitutions.push(vec![Type::Bytes]);
+    }
     substitutions
 }
 
 pub(in crate::source_verify) fn concrete_try(operand: &Type, result: &Type) -> bool {
     operand == result
-        && matches!(
-            ordinary_result_arguments(operand),
-            Some((Type::Bytes, error)) if arguments(std::slice::from_ref(error))
-        )
+        && matches!(ordinary_result_arguments(operand), Some((ok, error))
+        if (*ok == Type::Bytes || *error == Type::Bytes)
+            && owned_byte_prelude_instance_is_admitted("Result", &[ok.clone(), error.clone()]))
 }

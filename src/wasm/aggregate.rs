@@ -3102,8 +3102,7 @@ impl Emitter<'_> {
                 result,
                 residual_type,
                 ..
-            } if expr.ownership == crate::hir::OwnershipMode::Own
-                && expr.ty == ResolvedType::Bytes
+            } if operand.ownership == crate::hir::OwnershipMode::Own
                 && operand.ty == *residual_type
                 && result.as_str() == crate::prelude::RESULT_ID
                 && matches!(
@@ -4774,8 +4773,7 @@ impl Emitter<'_> {
                     "copy-result Err payload",
                 )?;
 
-                let owned_bytes = expr.ownership == crate::hir::OwnershipMode::Own
-                    && expr.ty == ResolvedType::Bytes
+                let owned_bytes = operand.ownership == crate::hir::OwnershipMode::Own
                     && operand.ty == *residual_type
                     && result.as_str() == crate::prelude::RESULT_ID
                     && matches!(
@@ -4867,7 +4865,9 @@ impl Emitter<'_> {
                     };
                     self.apply_owned_try_success_transitions(&expr.id, ok_case)?;
                     self.copy_value(&destination, &source, "owned Result Ok extraction")?;
-                    self.materialize_owned_try_call_arguments(&expr.id, &destination)?;
+                    if expr.ownership == crate::hir::OwnershipMode::Own {
+                        self.materialize_owned_try_call_arguments(&expr.id, &destination)?;
+                    }
                     return Ok(destination);
                 }
 

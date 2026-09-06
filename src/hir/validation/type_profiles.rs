@@ -127,7 +127,7 @@ pub(super) fn generic_instance_arguments_are_admitted(
         return false;
     };
     if super::super::generic_result::profile(template) {
-        return super::super::generic_result::arguments(arguments);
+        return super::super::generic_result::arguments(&template.return_type, arguments);
     }
     let nested = template_contains_nested_owned_record_type(program, template);
     (arguments

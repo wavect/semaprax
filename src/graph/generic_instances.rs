@@ -99,6 +99,7 @@ pub(super) fn graph_json(
 ) -> Result<String, Diagnostic> {
     if program.function_instances.is_empty()
         && !nested_owned::requires_generic_result_schema(program)
+        && !generic_mapping::requires_v35(&program.function_templates)
     {
         return legacy_graph_json(
             program,
@@ -117,7 +118,11 @@ pub(super) fn graph_json(
         view,
         true,
     )?;
-    graph = graph.replacen(&quote_json(base), &quote_json("semaprax.graph.v34"), 1);
+    graph = graph.replacen(
+        &quote_json(base),
+        &quote_json(nested_owned::graph_schema(program)?),
+        1,
+    );
     let mut instances = program
         .function_instances
         .iter()
@@ -130,6 +135,19 @@ pub(super) fn graph_json(
         .map(|i| instance_json(program, source_revision, i))
         .collect::<Result<Vec<_>, _>>()?
         .budgeted_join(",");
+    if generic_mapping::requires_v35(&program.function_templates) {
+        graph.pop();
+        write!(
+            graph,
+            ",\"generic_template_forwarding\":{}}}",
+            serde_json::to_string(&generic_mapping::template_facts(
+                program,
+                selected_functions
+            )?)
+            .expect("JSON values serialize")
+        )
+        .expect("string write");
+    }
     graph.pop();
     Ok(format!(
         "{},\"base_schema\":{},\"generic_instance_ownership\":[{}]}}",
@@ -277,7 +295,15 @@ pub(super) fn instance_json(
     metadata.pop();
     let inventory = format!("{},\"slots\":[{}]}}", metadata, inventory);
     let plan = crate::graph_cleanup::cleanup_plan_json(&function.cleanup_plan);
+    let mappings = if generic_mapping::requires_v35(&program.function_templates) {
+        Some(generic_mapping::instance_mappings(
+            program, template, instance,
+        )?)
+    } else {
+        None
+    };
     let mut calls = Vec::new();
+    let mut mapping_error = None;
     for expression in function
         .requires
         .iter()
@@ -287,17 +313,37 @@ pub(super) fn instance_json(
         visit_expr_call_instances(
             expression,
             &mut |expression, callee, args, callee_instance| {
-                let mapping = template
-                    .type_parameters
-                    .iter()
-                    .enumerate()
-                    .map(|(index, _)| {
-                        json!({
-                            "caller_owner":template.id.as_str(),"caller_index":index,
-                            "callee_owner":callee.as_str(),"callee_index":index,
-                        })
+                if mappings
+                    .as_ref()
+                    .is_some_and(|m| !m.contains_key(expression.id.as_str()))
+                {
+                    mapping_error = Some(Diagnostic::io(
+                        "SPX-G411",
+                        "missing structural forwarding association",
+                    ));
+                    return;
+                }
+                let mapping = mappings
+                    .as_ref()
+                    .map(|mappings| {
+                        mappings
+                            .get(expression.id.as_str())
+                            .cloned()
+                            .expect("validated structural call mapping")
                     })
-                    .collect::<Vec<_>>();
+                    .unwrap_or_else(|| {
+                        template
+                            .type_parameters
+                            .iter()
+                            .enumerate()
+                            .map(|(index, _)| {
+                                json!({
+                                    "caller_owner":template.id.as_str(),"caller_index":index,
+                                    "callee_owner":callee.as_str(),"callee_index":index,
+                                })
+                            })
+                            .collect::<Vec<_>>()
+                    });
                 let target = program
                     .function_instances
                     .iter()
@@ -310,6 +356,9 @@ pub(super) fn instance_json(
             }));
             },
         );
+    }
+    if let Some(error) = mapping_error {
+        return Err(error);
     }
     let facts = json!({
         "template":instance.template.as_str(),"concrete_instance":semantic_id,

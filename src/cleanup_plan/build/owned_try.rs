@@ -81,19 +81,24 @@ impl PlanBuilder<'_> {
             ok_case,
             &mut success_state,
         )?;
-        let success_destination = self
-            .expression_slot(expression, region)?
-            .ok_or_else(|| plan_error("owned postfix `?` has no success cleanup slot"))?;
-        self.transfer(
-            success,
-            expression.id.clone(),
-            source
-                .projected(ok_case.clone())
-                .projected(ok_field.clone()),
-            success_destination.clone(),
-            &mut success_state,
-            false,
-        )?;
+        let success_destination = if self.needs_drop(&expression.ty)? {
+            let destination = self
+                .expression_slot(expression, region)?
+                .ok_or_else(|| plan_error("owned postfix `?` has no success cleanup slot"))?;
+            self.transfer(
+                success,
+                expression.id.clone(),
+                source
+                    .projected(ok_case.clone())
+                    .projected(ok_field.clone()),
+                destination.clone(),
+                &mut success_state,
+                false,
+            )?;
+            Some(destination)
+        } else {
+            None
+        };
 
         let mut residual_state = evaluated.state;
         self.transfer(
@@ -112,7 +117,7 @@ impl PlanBuilder<'_> {
         Ok(EvalResult {
             block: success,
             state: success_state,
-            owned_source: Some(success_destination),
+            owned_source: success_destination,
         })
     }
 }
@@ -168,7 +173,10 @@ impl PlanBuilder<'_> {
                     | ResolvedType::F64
                     | ResolvedType::Bool
             ]
-        ) && source_arguments == target_arguments;
+        ) && source_arguments == target_arguments
+            || matches!(source_arguments, [success, ResolvedType::Bytes]
+                if crate::hir::is_scalar_resolved_type(success))
+                && source_arguments == target_arguments;
         if source_arguments.len() != 2
             || target_arguments.len() != 2
             || (!exact_owned

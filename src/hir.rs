@@ -618,3 +618,5 @@ mod iterative_validator_tests;
 mod record_tests;
 
 pub(crate) mod generic_result;
+
+pub(crate) mod generic_mapping;

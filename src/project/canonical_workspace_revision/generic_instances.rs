@@ -38,7 +38,9 @@ impl SemanticProgram {
             ("public_api", revision.public_api_program()),
             ("tests", revision.test_program()),
         ] {
-            if program.function_instances.is_empty() {
+            if program.function_instances.is_empty()
+                && !crate::graph::requires_v35(&program.function_templates)
+            {
                 continue;
             }
             // The retained linked HIR is independently authenticated by the graph

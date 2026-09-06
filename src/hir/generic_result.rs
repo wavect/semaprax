@@ -5,7 +5,7 @@ pub(crate) fn slot(ty: &ResolvedType, owner: &DeclarationId, count: usize) -> bo
     count == 1
         && matches!(ty, ResolvedType::Nominal { declaration, arguments }
         if declaration.as_str() == crate::prelude::RESULT_ID
-            && matches!(arguments.as_slice(), [ResolvedType::Bytes, ResolvedType::TypeParameter { owner: parameter_owner, index: 0 }] if parameter_owner == owner))
+            && matches!(arguments.as_slice(), [ResolvedType::Bytes, ResolvedType::TypeParameter { owner: parameter_owner, index: 0 }] | [ResolvedType::TypeParameter { owner: parameter_owner, index: 0 }, ResolvedType::Bytes] if parameter_owner == owner))
 }
 
 pub(crate) fn profile(template: &ResolvedFunctionTemplate) -> bool {
@@ -26,11 +26,18 @@ pub(crate) fn profile(template: &ResolvedFunctionTemplate) -> bool {
         })
 }
 
-pub(crate) fn arguments(arguments: &[ResolvedType]) -> bool {
+pub(crate) fn arguments(result: &ResolvedType, arguments: &[ResolvedType]) -> bool {
+    if copy_success(result) && arguments == [ResolvedType::Bytes] {
+        return false;
+    }
     matches!(arguments, [ty] if *ty == ResolvedType::Bytes || super::type_reachability::nested_record_copy_scalar_is_admitted(ty))
 }
 
-pub(crate) fn substitutions() -> Vec<Vec<ResolvedType>> {
+pub(crate) fn copy_success(result: &ResolvedType) -> bool {
+    matches!(result, ResolvedType::Nominal { arguments, .. } if arguments.first().is_some_and(|ty| *ty != ResolvedType::Bytes))
+}
+
+pub(crate) fn substitutions(result: &ResolvedType) -> Vec<Vec<ResolvedType>> {
     [
         ResolvedType::I64,
         ResolvedType::I32,
@@ -43,6 +50,7 @@ pub(crate) fn substitutions() -> Vec<Vec<ResolvedType>> {
         ResolvedType::Bytes,
     ]
     .into_iter()
+    .filter(|ty| !copy_success(result) || *ty != ResolvedType::Bytes)
     .map(|ty| vec![ty])
     .collect()
 }
@@ -53,7 +61,7 @@ pub(crate) fn concrete_signature(function: &super::ResolvedFunction) -> bool {
         matches!(ty,
         ResolvedType::Nominal { declaration, arguments }
         if declaration.as_str() == crate::prelude::RESULT_ID
-            && matches!(arguments.as_slice(), [ResolvedType::Bytes, error]
+            && matches!(arguments.as_slice(), [ResolvedType::Bytes, error] | [error, ResolvedType::Bytes]
                 if *error == ResolvedType::Bytes || super::type_reachability::nested_record_copy_scalar_is_admitted(error)))
     };
     let contains_carrier = carrier(&function.return_type)

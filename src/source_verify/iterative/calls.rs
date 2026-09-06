@@ -466,7 +466,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             ));
         }
         if let Some((ok, error_ty)) = ordinary_result_arguments(&operand_value.ty) {
-            let Some((residual_ok_ty, residual_error_ty)) =
+            let Some((_residual_ok_ty, residual_error_ty)) =
                 ordinary_result_arguments(&self.current.return_type)
             else {
                 self.diagnostics.push(error(
@@ -489,7 +489,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     expression.span,
                 ));
             }
-            let exact_owned = exact_owned_result && residual_ok_ty == &Type::Bytes;
+            let exact_owned = exact_owned_result;
             if !exact_owned
                 && (!matches!(ok, Type::I64 | Type::Bool)
                     || !matches!(error_ty, Type::I64 | Type::Bool)

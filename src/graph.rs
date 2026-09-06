@@ -26,9 +26,11 @@ macro_rules! format {
 
 mod agent_instances;
 mod generic_instances;
+mod generic_mapping;
 pub(crate) use generic_instances::to_legacy_hir_json;
 use generic_instances::{graph_json, legacy_graph_json};
 pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
+pub(crate) use generic_mapping::requires_v35;
 
 #[path = "graph/native_import.rs"]
 mod native_import;
@@ -1253,7 +1255,7 @@ pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
-    if schema == "semaprax.graph.v34" {
+    if matches!(schema, "semaprax.graph.v34" | "semaprax.graph.v35") {
         return Err(Diagnostic::io(
             "SPX-G410",
             "Graph v34 is outside frozen evidence admission",

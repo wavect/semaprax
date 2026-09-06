@@ -427,7 +427,7 @@ pub(super) fn check_generic_function_cycles<'p>(
                             program,
                             "SPX-T225",
                             format!(
-                                "generic function `{}` must forward its type parameters in order when calling generic function `{callee}`",
+                                "generic function `{}` must supply admitted explicit type-argument mappings when calling generic function `{callee}`",
                                 function.name
                             ),
                             span,
@@ -536,7 +536,7 @@ pub(super) fn check_function_bodies<'p>(
                 .any(|param| generic_function_owned_record_slot(template, &param.ty, types))
                 || generic_function_owned_record_slot(template, &template.return_type, types);
             let substitutions = if generic_result::profile(template) {
-                generic_result::substitutions()
+                generic_result::substitutions(template)
             } else if owned_record {
                 owned_record_function_substitutions(template.type_parameters.len())
             } else {

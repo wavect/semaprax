@@ -393,8 +393,10 @@ generics and public ABI surfaces remain closed.
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup
 meaning. `src/graph/generic_instances.rs` owns additive Graph v34 instance
-ownership and exact source replay; frozen versioned consumers explicitly use
-the legacy projection. `src/cleanup_plan/replay/schema.rs` independently selects
+ownership and exact source replay; `src/graph/generic_mapping.rs` owns Graph v35
+symbolic forwarding projected through authenticated template-to-instance
+expression paths. Identity-only mappings retain Graph v34 bytes. Frozen
+versioned consumers explicitly use the legacy projection. `src/cleanup_plan/replay/schema.rs` independently selects
 the cleanup schema from HIR with a freshly rebuilt inventory. The builder and
 replay must agree before any execution. The canonical workspace's
 `canonical_workspace_revision/generic_instances.rs` embeds the linked closures

@@ -318,7 +318,17 @@ pub(crate) fn admitted_owned_byte_prelude_instance(
             )
             | (
                 crate::prelude::RESULT_ID,
-                [ResolvedType::I64 | ResolvedType::Bool, ResolvedType::Bytes]
+                [
+                    ResolvedType::I64
+                        | ResolvedType::I32
+                        | ResolvedType::U8
+                        | ResolvedType::Usize
+                        | ResolvedType::Char
+                        | ResolvedType::F32
+                        | ResolvedType::F64
+                        | ResolvedType::Bool,
+                    ResolvedType::Bytes
+                ]
             )
             | (
                 crate::prelude::RESULT_ID,

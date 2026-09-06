@@ -326,3 +326,408 @@ fn malformed_generic_lists_have_the_stable_parser_diagnostic() {
         );
     }
 }
+
+const OWNED_GENERIC_VARIANT_SOURCE: &str = r#"
+module test.owned_generic_variants;
+
+@id("test.either")
+variant Either<L, R> {
+    @id("test.either.left")
+    Left {
+        @id("test.either.left.value")
+        value: L,
+    },
+    @id("test.either.right")
+    Right {
+        @id("test.either.right.value")
+        value: R,
+    },
+}
+
+@id("test.inspect_left")
+fn inspect_left(value: own Either<Bytes, i64>) -> i64 {
+    let borrowed = match borrow value {
+        Either::Left { value: payload } => {
+            let length = byte_len(bytes_as_slice(payload));
+            if length == 0usize { 0 } else { 1 }
+        },
+        Either::Right { value: marker } => marker,
+    };
+    match own value {
+        Either::Left { value: payload } => {
+            let length = byte_len(bytes_as_slice(payload));
+            if length == 0usize { borrowed } else { borrowed }
+        },
+        Either::Right { value: marker } => marker,
+    }
+}
+
+@id("test.inspect_right")
+fn inspect_right(value: own Either<i64, Bytes>) -> i64 {
+    match own value {
+        Either::Left { value: marker } => marker,
+        Either::Right { value: payload } => {
+            let length = byte_len(bytes_as_slice(payload));
+            if length == 0usize { 0 } else { 1 }
+        },
+    }
+}
+
+@id("test.make_left")
+fn make_left(input: borrow Slice<u8>) -> Either<Bytes, i64> {
+    Either<Bytes, i64>::Left { value: bytes_copy(input) }
+}
+
+@id("test.make_right")
+fn make_right(input: borrow Slice<u8>) -> Either<i64, Bytes> {
+    Either<i64, Bytes>::Right { value: bytes_copy(input) }
+}
+
+@id("app.main")
+fn main() -> i64 { 0 }
+"#;
+
+#[test]
+fn concrete_owned_generic_variants_resolve_exact_instances_and_match_bindings() {
+    let parsed = parse(
+        OWNED_GENERIC_VARIANT_SOURCE,
+        Path::new("owned-generic-variants.spx"),
+    )
+    .unwrap();
+    let diagnostics = verify::verify(&parsed);
+    assert!(diagnostics.is_empty(), "{diagnostics:#?}");
+    let canonical = format::canonical(&parsed);
+    let reparsed = parse(
+        &canonical,
+        Path::new("owned-generic-variants-canonical.spx"),
+    )
+    .unwrap();
+    assert!(verify::verify(&reparsed).is_empty());
+    assert_eq!(canonical, format::canonical(&reparsed));
+
+    let resolved = hir::resolve(&parsed).unwrap();
+    hir::validate(&resolved).unwrap();
+    let either = resolved
+        .types
+        .iter()
+        .find(|declaration| declaration.id.as_str() == "test.either")
+        .unwrap();
+    let left_instance = ResolvedType::Nominal {
+        declaration: either.id.clone(),
+        arguments: vec![ResolvedType::Bytes, ResolvedType::I64],
+    };
+    let right_instance = ResolvedType::Nominal {
+        declaration: either.id.clone(),
+        arguments: vec![ResolvedType::I64, ResolvedType::Bytes],
+    };
+    let inspect_left = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "test.inspect_left")
+        .unwrap();
+    assert_eq!(inspect_left.params[0].ty, left_instance);
+    let ResolvedExprKind::Block { statements, tail } = &inspect_left.body.kind else {
+        panic!("inspect_left must retain its block");
+    };
+    let semaprax::hir::ResolvedStatement::Let {
+        value: borrowed, ..
+    } = &statements[0]
+    else {
+        panic!("first statement must retain borrowed match");
+    };
+    let ResolvedExprKind::Match { arms, .. } = &borrowed.kind else {
+        panic!("borrowed initializer must resolve as a match");
+    };
+    let ResolvedMatchPattern::Variant { fields, .. } = &arms[0].pattern else {
+        panic!("left borrowed arm must retain a variant pattern");
+    };
+    assert_eq!(fields[0].binding.ty, ResolvedType::Bytes);
+    assert_eq!(
+        fields[0].binding.ownership,
+        semaprax::hir::OwnershipMode::Borrow
+    );
+    let ResolvedExprKind::Match { arms, .. } = &tail.kind else {
+        panic!("tail must resolve as an owning match");
+    };
+    let ResolvedMatchPattern::Variant { fields, .. } = &arms[0].pattern else {
+        panic!("left owning arm must retain a variant pattern");
+    };
+    assert_eq!(fields[0].binding.ty, ResolvedType::Bytes);
+    assert_eq!(
+        fields[0].binding.ownership,
+        semaprax::hir::OwnershipMode::Own
+    );
+
+    let inspect_right = resolved
+        .functions
+        .iter()
+        .find(|function| function.id.as_str() == "test.inspect_right")
+        .unwrap();
+    assert_eq!(inspect_right.params[0].ty, right_instance);
+    let ResolvedExprKind::Block { tail, .. } = &inspect_right.body.kind else {
+        panic!("inspect_right must retain its block");
+    };
+    let ResolvedExprKind::Match { arms, .. } = &tail.kind else {
+        panic!("inspect_right tail must resolve as a match");
+    };
+    let ResolvedMatchPattern::Variant { fields, .. } = &arms[1].pattern else {
+        panic!("right owning arm must retain a variant pattern");
+    };
+    assert_eq!(fields[0].binding.ty, ResolvedType::Bytes);
+    assert_eq!(
+        fields[0].binding.ownership,
+        semaprax::hir::OwnershipMode::Own
+    );
+
+    for (function, expected) in [
+        ("test.make_left", left_instance),
+        ("test.make_right", right_instance),
+    ] {
+        let function = resolved
+            .functions
+            .iter()
+            .find(|candidate| candidate.id.as_str() == function)
+            .unwrap();
+        assert_eq!(function.return_type, expected);
+        let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+            panic!("constructor function must retain its block");
+        };
+        let ResolvedExprKind::ConstructVariant { fields, .. } = &tail.kind else {
+            panic!("constructor function must retain a variant construction");
+        };
+        assert_eq!(fields[0].value.ty, ResolvedType::Bytes);
+    }
+}
+
+#[test]
+fn concrete_owned_generic_variants_admit_every_copy_scalar_in_both_positions() {
+    for (scalar_name, scalar_type) in [
+        ("i64", ResolvedType::I64),
+        ("i32", ResolvedType::I32),
+        ("u8", ResolvedType::U8),
+        ("usize", ResolvedType::Usize),
+        ("char", ResolvedType::Char),
+        ("f32", ResolvedType::F32),
+        ("f64", ResolvedType::F64),
+        ("bool", ResolvedType::Bool),
+    ] {
+        let source = format!(
+            r#"module test.owned_generic_variant_{scalar_name};
+@id("test.scalar.either")
+variant Either<L, R> {{
+  @id("test.scalar.either.left") Left {{
+    @id("test.scalar.either.left.value") value: L,
+  }},
+  @id("test.scalar.either.right") Right {{
+    @id("test.scalar.either.right.value") value: R,
+  }},
+}}
+@id("test.scalar.consume-left")
+fn consume_left(value: own Either<Bytes, {scalar_name}>) -> i64 {{
+  match own value {{
+    Either::Left {{ value: payload }} => 0,
+    Either::Right {{ value: scalar }} => 0,
+  }}
+}}
+@id("test.scalar.consume-right")
+fn consume_right(value: own Either<{scalar_name}, Bytes>) -> i64 {{
+  match own value {{
+    Either::Left {{ value: scalar }} => 0,
+    Either::Right {{ value: payload }} => 0,
+  }}
+}}
+@id("app.main") fn main() -> i64 {{ 0 }}
+"#
+        );
+        let parsed = parse(&source, Path::new("owned-generic-variant-copy-scalars.spx")).unwrap();
+        let diagnostics = verify::verify(&parsed);
+        assert!(diagnostics.is_empty(), "{scalar_name}: {diagnostics:#?}");
+        let resolved = hir::resolve(&parsed).unwrap();
+        hir::validate(&resolved).unwrap();
+        let either = resolved
+            .types
+            .iter()
+            .find(|declaration| declaration.id.as_str() == "test.scalar.either")
+            .unwrap();
+
+        for (function_id, arguments, owned_arm, scalar_arm) in [
+            (
+                "test.scalar.consume-left",
+                vec![ResolvedType::Bytes, scalar_type.clone()],
+                0usize,
+                1usize,
+            ),
+            (
+                "test.scalar.consume-right",
+                vec![scalar_type.clone(), ResolvedType::Bytes],
+                1usize,
+                0usize,
+            ),
+        ] {
+            let function = resolved
+                .functions
+                .iter()
+                .find(|function| function.id.as_str() == function_id)
+                .unwrap();
+            assert_eq!(
+                function.params[0].ty,
+                ResolvedType::Nominal {
+                    declaration: either.id.clone(),
+                    arguments,
+                },
+                "{scalar_name}: {function_id} parameter"
+            );
+            let ResolvedExprKind::Block { tail, .. } = &function.body.kind else {
+                panic!("{scalar_name}: {function_id} must retain its block");
+            };
+            let ResolvedExprKind::Match { mode, arms, .. } = &tail.kind else {
+                panic!("{scalar_name}: {function_id} must retain its match");
+            };
+            assert_eq!(*mode, semaprax::hir::ResolvedMatchMode::Own);
+
+            for (arm_index, expected_case, expected_field, expected_ty, expected_ownership) in [
+                (
+                    owned_arm,
+                    if owned_arm == 0 {
+                        "test.scalar.either.left"
+                    } else {
+                        "test.scalar.either.right"
+                    },
+                    if owned_arm == 0 {
+                        "test.scalar.either.left.value"
+                    } else {
+                        "test.scalar.either.right.value"
+                    },
+                    ResolvedType::Bytes,
+                    semaprax::hir::OwnershipMode::Own,
+                ),
+                (
+                    scalar_arm,
+                    if scalar_arm == 0 {
+                        "test.scalar.either.left"
+                    } else {
+                        "test.scalar.either.right"
+                    },
+                    if scalar_arm == 0 {
+                        "test.scalar.either.left.value"
+                    } else {
+                        "test.scalar.either.right.value"
+                    },
+                    scalar_type.clone(),
+                    semaprax::hir::OwnershipMode::Value,
+                ),
+            ] {
+                let ResolvedMatchPattern::Variant { case, fields, .. } = &arms[arm_index].pattern
+                else {
+                    panic!("{scalar_name}: {function_id} arm must retain a variant pattern");
+                };
+                assert_eq!(case.as_str(), expected_case);
+                assert_eq!(fields[0].field.as_str(), expected_field);
+                assert_eq!(fields[0].binding.ty, expected_ty);
+                assert_eq!(fields[0].binding.ownership, expected_ownership);
+            }
+        }
+    }
+}
+
+#[test]
+fn concrete_owned_generic_variant_profile_rejects_two_owned_and_closed_shapes() {
+    let declaration = r#"
+@id("test.either")
+variant Either<L, R> {
+    @id("test.either.left") Left { @id("test.either.left.value") value: L, },
+    @id("test.either.right") Right { @id("test.either.right.value") value: R, },
+}
+"#;
+    for (module, ty, expected) in [
+        ("two_owned", "Either<Bytes, Bytes>", "SPX-T268"),
+        ("string_leaf", "Either<Bytes, String>", "SPX-T268"),
+        ("nested_variant", "Either<Bytes, Option<i64>>", "SPX-T268"),
+    ] {
+        let source = format!(
+            "module test.{module};\n{declaration}\n@id(\"test.bad\") fn bad(value: own {ty}) -> i64 {{ 0 }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}"
+        );
+        assert!(error_codes(&source).contains(&expected), "{module}");
+    }
+
+    let nonconcrete = format!(
+        "module test.nonconcrete;\n{declaration}\n@id(\"test.bad\") fn bad<T>(value: own Either<Bytes, T>) -> i64 {{ 0 }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}"
+    );
+    assert!(error_codes(&nonconcrete).contains(&"SPX-T268"));
+
+    let nested = format!(
+        "module test.nested_owned_variant;\n{declaration}\n@id(\"test.outer\") variant Outer<T> {{ @id(\"test.outer.value\") Value {{ @id(\"test.outer.value.value\") value: T, }}, }}\n@id(\"test.bad\") fn bad(value: own Outer<Either<Bytes, i64>>) -> i64 {{ 0 }}\n@id(\"app.main\") fn main() -> i64 {{ 0 }}"
+    );
+    assert!(error_codes(&nested).contains(&"SPX-T223"));
+
+    let class = r#"
+module test.generic_class_owned_variant;
+@id("test.box") class Box<T> { @id("test.box.value") value: T, }
+@id("test.bad") fn bad(value: own Box<Bytes>) -> i64 { 0 }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    assert!(error_codes(class).contains(&"SPX-T268"));
+}
+
+#[test]
+fn independent_hir_validation_rejects_owned_generic_variant_substitution_drift() {
+    let parsed = parse(
+        OWNED_GENERIC_VARIANT_SOURCE,
+        Path::new("owned-generic-variant-hir-hostile.spx"),
+    )
+    .unwrap();
+
+    let mut wrong_parameter_index = hir::resolve(&parsed).unwrap();
+    let either = wrong_parameter_index
+        .types
+        .iter_mut()
+        .find(|declaration| declaration.id.as_str() == "test.either")
+        .unwrap();
+    let ResolvedTypeDeclarationKind::Variant { cases } = &mut either.kind else {
+        unreachable!();
+    };
+    let ResolvedType::TypeParameter { index, .. } = &mut cases[0].fields[0].ty else {
+        unreachable!();
+    };
+    *index = 1;
+    assert_eq!(
+        hir::validate(&wrong_parameter_index).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut two_owned_arguments = hir::resolve(&parsed).unwrap();
+    let function = two_owned_arguments
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "test.inspect_left")
+        .unwrap();
+    let ResolvedType::Nominal { arguments, .. } = &mut function.params[0].ty else {
+        unreachable!();
+    };
+    arguments[1] = ResolvedType::Bytes;
+    assert_eq!(
+        hir::validate(&two_owned_arguments).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut wrong_owned_binding = hir::resolve(&parsed).unwrap();
+    let function = wrong_owned_binding
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "test.inspect_right")
+        .unwrap();
+    let ResolvedExprKind::Block { tail, .. } = &mut function.body.kind else {
+        unreachable!();
+    };
+    let ResolvedExprKind::Match { arms, .. } = &mut tail.kind else {
+        unreachable!();
+    };
+    let ResolvedMatchPattern::Variant { fields, .. } = &mut arms[1].pattern else {
+        unreachable!();
+    };
+    fields[0].binding.ty = ResolvedType::I64;
+    assert_eq!(
+        hir::validate(&wrong_owned_binding).unwrap_err().code,
+        "SPX-H006"
+    );
+}

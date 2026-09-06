@@ -324,6 +324,65 @@ pub(super) fn nested_record_copy_scalar_is_admitted(ty: &ResolvedType) -> bool {
     )
 }
 
+/// Exact concrete authored-generic extension of Owned Byte Variant Algebra v1.
+///
+/// The declaration identity must be explicit, every argument and substituted
+/// payload must be a direct `Bytes` or admitted Copy scalar, and exactly one
+/// authored case may carry owned bytes. This deliberately excludes the
+/// compiler prelude (including `Result<Bytes, Bytes>`), nested carriers,
+/// resources, and nonconcrete arguments.
+pub(crate) fn is_admitted_concrete_owned_byte_variant(
+    declarations: &DeclarationIndex,
+    ty: &ResolvedType,
+) -> bool {
+    let ResolvedType::Nominal {
+        declaration,
+        arguments,
+    } = ty
+    else {
+        return false;
+    };
+    let Some(item) = declarations.declaration(declaration) else {
+        return false;
+    };
+    if item.kind != DeclarationKind::Variant || item.identity_origin != IdentityOrigin::Explicit {
+        return false;
+    }
+    let Some(parameters) = declarations.type_parameters(declaration) else {
+        return false;
+    };
+    if arguments.len() != parameters.len()
+        || arguments.iter().any(|argument| {
+            *argument != ResolvedType::Bytes && !nested_record_copy_scalar_is_admitted(argument)
+        })
+    {
+        return false;
+    }
+    let Some(cases) = declarations.variant_cases(declaration) else {
+        return false;
+    };
+    let mut owned_cases = 0usize;
+    for case in cases {
+        let Some(fields) = declarations.case_fields(&case.id) else {
+            return false;
+        };
+        let mut case_owns_bytes = false;
+        for field in fields {
+            let Ok(field) = super::monomorphize::substitute_type(&field.ty, declaration, arguments)
+            else {
+                return false;
+            };
+            if field == ResolvedType::Bytes {
+                case_owns_bytes = true;
+            } else if !nested_record_copy_scalar_is_admitted(&field) {
+                return false;
+            }
+        }
+        owned_cases += usize::from(case_owns_bytes);
+    }
+    owned_cases == 1
+}
+
 /// Re-derive the nested record profile only from the declaration index. This
 /// deliberately does not reuse source admission or cached `TypeFacts`.
 fn classify_nested_owned_byte_record(

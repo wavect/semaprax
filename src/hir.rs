@@ -101,6 +101,7 @@ mod resolve_pattern;
 mod resolve_program;
 mod resolve_statement;
 mod type_reachability;
+pub(crate) use type_reachability::is_admitted_concrete_owned_byte_variant;
 mod validation;
 mod workspace_link;
 pub use agent_nodes::{

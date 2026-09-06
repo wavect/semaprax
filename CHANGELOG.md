@@ -34,6 +34,19 @@ format: `Unreleased` then release buckets, grouped by impact.
   and hosted execution remain unchanged or unclaimed; the required Linux steps
   are authored but have not yet produced hosted evidence.
 
+- Added a bounded authored generic owned-variant path for exact
+  `Either<Bytes, i64>` and `Either<i64, Bytes>`-equivalent instances. Source,
+  HIR, conditional cleanup, layout, interpreter, native C11, and Core-Wasm
+  retain owner/index substitution and one authenticated owned case. Local
+  evidence covers opposite live-case vectors, inactive cases, borrow then own,
+  partial construction, owned-arm failure, exact semantic status, repeated
+  recovery, zero native leaks, and rejection of shallow native/Wasm copies. A
+  partial-construction fix now stores each completed Wasm field before
+  evaluating the next initializer and still publishes the tag last. Hostile
+  index/type layout drift is rejected. Two-owned-case instances including
+  `Result<Bytes, Bytes>`, nested/resource variants, public ABIs, and hosted
+  promotion remain closed or unclaimed.
+
 - Bounded native C11 name resolution by the same aggregate operation deadline
   as the rest of the operation. A numeric endpoint is answered under
   `AI_NUMERICHOST` with no name service, no budget and no worker; a name is

@@ -585,9 +585,10 @@ impl<'a> TypeTable<'a> {
     }
 
     /// Exact non-Copy variant profile admitted by Owned Byte Variant Algebra
-    /// v1. Authored variants are monomorphic and flat. The only generic
-    /// carriers are the compiler-owned prelude identities, whose source names
-    /// are reserved and authenticated again in resolved HIR.
+    /// v1 plus its bounded concrete authored-generic extension. An authored
+    /// generic instance must substitute to direct Copy scalars and exactly one
+    /// case containing one or more direct `Bytes` fields. Compiler-owned
+    /// prelude identities retain their separate closed admission.
     pub(super) fn is_flat_owned_byte_variant(&self, ty: &Type) -> bool {
         let Type::Named { name, arguments } = ty else {
             return false;
@@ -595,17 +596,48 @@ impl<'a> TypeTable<'a> {
         if owned_byte_prelude_instance_is_admitted(name, arguments) {
             return true;
         }
-        if !arguments.is_empty() {
+        if matches!(name.as_str(), "Option" | "Result") {
             return false;
         }
-        matches!(
-            self.declaration(name).map(|declaration| &declaration.kind),
-            Some(TypeDeclarationKind::Variant { cases })
-                if cases.iter().flat_map(|case| &case.fields).any(|field| field.ty == Type::Bytes)
-                    && cases.iter().flat_map(|case| &case.fields).all(|field|
-                        field.ty == Type::Bytes
-                            || owned_byte_record_copy_field_is_admitted(&field.ty))
-        )
+        let Some(declaration) = self.declaration(name) else {
+            return false;
+        };
+        let TypeDeclarationKind::Variant { cases } = &declaration.kind else {
+            return false;
+        };
+        if arguments.is_empty() && declaration.type_parameters.is_empty() {
+            return cases
+                .iter()
+                .flat_map(|case| &case.fields)
+                .any(|field| field.ty == Type::Bytes)
+                && cases.iter().flat_map(|case| &case.fields).all(|field| {
+                    field.ty == Type::Bytes || owned_byte_record_copy_field_is_admitted(&field.ty)
+                });
+        }
+        if arguments.len() != declaration.type_parameters.len()
+            || arguments.iter().any(|argument| {
+                *argument != Type::Bytes && !owned_byte_record_copy_field_is_admitted(argument)
+            })
+        {
+            return false;
+        }
+        let mut owned_cases = 0usize;
+        for case in cases {
+            let mut case_owns_bytes = false;
+            for field in &case.fields {
+                let Some(field) = Self::substitute_variant_type(declaration, arguments, &field.ty)
+                else {
+                    return false;
+                };
+                if field == Type::Bytes {
+                    case_owns_bytes = true;
+                } else if !owned_byte_record_copy_field_is_admitted(&field) {
+                    return false;
+                }
+            }
+            owned_cases += usize::from(case_owns_bytes);
+        }
+        owned_cases == 1
     }
 
     pub(super) fn is_opaque_resource(&self, ty: &Type) -> bool {

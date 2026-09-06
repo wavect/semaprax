@@ -872,6 +872,10 @@ impl Resolver<'_> {
                                     &self.declarations,
                                     &instance,
                                 )
+                                && !crate::hir::type_reachability::is_admitted_concrete_owned_byte_variant(
+                                    &self.declarations,
+                                    &instance,
+                                )
                                 && !resolved.is_empty()
                                 && resolved.iter().any(|argument| {
                                     !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
@@ -952,6 +956,10 @@ impl Resolver<'_> {
                     &instance,
                     &owner,
                     function.type_parameters.len(),
+                )
+                && !super::type_reachability::is_admitted_concrete_owned_byte_variant(
+                    &self.declarations,
+                    &instance,
                 )
                 && !resolved.is_empty()
                 && resolved

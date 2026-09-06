@@ -120,9 +120,21 @@ impl VariantLayout {
                     [ResolvedType::I64 | ResolvedType::Bool, ResolvedType::Bytes],
                 )
         );
+        let authored_generic_owned =
+            crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, instance);
+        if authored_generic_owned
+            && (program.declarations.type_parameters(variant)
+                != Some(declaration.type_parameters.as_slice())
+                || program.declarations.variant_cases(variant) != Some(cases.as_slice()))
+        {
+            return Err(layout_error(format!(
+                "variant `{variant}` declaration disagrees with its authenticated index"
+            )));
+        }
         if arguments.len() != declaration.type_parameters.len()
             || (!compiler_byte_option
                 && !compiler_owned_byte_algebra
+                && !authored_generic_owned
                 && arguments
                     .iter()
                     .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)))

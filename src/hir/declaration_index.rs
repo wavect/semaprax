@@ -432,6 +432,10 @@ impl DeclarationIndex {
                         });
                         continue;
                     }
+                    let authored_owned_byte_variant =
+                        super::type_reachability::is_admitted_concrete_owned_byte_variant(
+                            self, &ty,
+                        );
                     let ResolvedType::Nominal {
                         declaration,
                         arguments,
@@ -462,7 +466,8 @@ impl DeclarationIndex {
                     let compiler_byte_option = declaration.as_str() == crate::prelude::OPTION_ID
                         && arguments.as_slice() == [ResolvedType::U8];
                     let owned_byte_variant =
-                        admitted_owned_byte_prelude_instance(&declaration, &arguments);
+                        admitted_owned_byte_prelude_instance(&declaration, &arguments)
+                            || authored_owned_byte_variant;
                     if arguments.len() != parameters.len()
                         || (!compiler_byte_option
                             && !owned_byte_variant

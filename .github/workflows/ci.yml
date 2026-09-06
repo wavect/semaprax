@@ -565,6 +565,13 @@ jobs:
           cargo test --locked -p semaprax --lib aggregate_layout::tests::nested_concrete_generic_layouts_substitute_recursively_and_remain_distinct -- --exact --nocapture
           cargo test --locked -p semaprax --lib aggregate_layout::tests::nested_concrete_generic_layout_admission_is_bounded_and_record_only -- --exact --nocapture
           cargo test --locked -p semaprax --test owned_data nested_generic_owned_record_runtime::nested_concrete_generic_storage_replays_and_executes_on_three_engines -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_variants::concrete_owned_generic_variants_resolve_exact_instances_and_match_bindings -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_variants::concrete_owned_generic_variants_admit_every_copy_scalar_in_both_positions -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_variants::concrete_owned_generic_variant_profile_rejects_two_owned_and_closed_shapes -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_variants::independent_hir_validation_rejects_owned_generic_variant_substitution_drift -- --exact --nocapture
+          cargo test --locked -p semaprax --lib variant_layout::tests::hostile_layout_and_declaration_mutations_are_rejected_independently -- --exact --nocapture
+          cargo test --locked -p semaprax --lib variant_layout::tests::direct_owned_bytes_payload_uses_target_carrier_and_remains_non_copy -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_variant_runtime::concrete_generic_owned_variant_cases_replay_and_execute_on_three_engines -- --exact --nocapture
       - name: Require native O0/O2 and Core-Wasm scalar status equivalence
         if: runner.os == 'Linux'
         env:

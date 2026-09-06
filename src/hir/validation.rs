@@ -8670,11 +8670,17 @@ impl<'a> HirValidator<'a> {
                             &self.program.declarations,
                             ty,
                         );
+                    let admitted_owned_variant =
+                        super::type_reachability::is_admitted_concrete_owned_byte_variant(
+                            &self.program.declarations,
+                            ty,
+                        );
                     if !arguments.is_empty()
                         && (!matches!(kind, DeclarationKind::Record | DeclarationKind::Variant)
                             || (!admitted_owned_byte_prelude_instance(declaration, arguments)
                                 && !admitted_owned_record
                                 && !admitted_nested_owned_record
+                                && !admitted_owned_variant
                                 && (arguments.as_slice() != [ResolvedType::U8]
                                     || declaration.as_str() != crate::prelude::OPTION_ID)
                                 && arguments.iter().any(|argument| {

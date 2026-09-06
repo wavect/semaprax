@@ -200,13 +200,15 @@ pub(super) fn check_declared_type(
         let admitted_owned_record = types.is_nested_owned_byte_record(&instance);
         let admitted_owned_record_template =
             types.is_flat_owned_byte_record_template(&instance, parameters);
+        let admitted_owned_variant = types.is_flat_owned_byte_variant(&instance);
         if arguments
             .iter()
             .any(|argument| matches!(argument, Type::ArrayU8(_)))
             || (arguments.contains(&Type::Bytes)
                 && !owned_byte_prelude_instance_is_admitted(name, arguments)
                 && !admitted_owned_record
-                && !admitted_owned_record_template)
+                && !admitted_owned_record_template
+                && !admitted_owned_variant)
         {
             diagnostics.push(error(
                 program,
@@ -221,6 +223,7 @@ pub(super) fn check_declared_type(
             && !owned_byte_prelude_instance_is_admitted(name, arguments)
             && !admitted_owned_record
             && !admitted_owned_record_template
+            && !admitted_owned_variant
             && (!matches!(
                 declaration.kind,
                 TypeDeclarationKind::Record { .. }

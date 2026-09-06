@@ -327,20 +327,24 @@ pub(super) fn resolver_admits_flat_owned_byte_variant(
     if admitted_owned_byte_prelude_instance(declaration, arguments) {
         return true;
     }
-    if !arguments.is_empty() {
-        return false;
+    if arguments.is_empty()
+        && declarations
+            .type_parameters(declaration)
+            .is_some_and(|parameters| parameters.is_empty())
+    {
+        return declarations
+            .variant_cases(declaration)
+            .is_some_and(|cases| {
+                cases
+                    .iter()
+                    .flat_map(|case| &case.fields)
+                    .any(|field| field.ty == ResolvedType::Bytes)
+                    && cases.iter().flat_map(|case| &case.fields).all(|field| {
+                        field.ty == ResolvedType::Bytes || is_scalar_resolved_type(&field.ty)
+                    })
+            });
     }
-    declarations
-        .variant_cases(declaration)
-        .is_some_and(|cases| {
-            cases
-                .iter()
-                .flat_map(|case| &case.fields)
-                .any(|field| field.ty == ResolvedType::Bytes)
-                && cases.iter().flat_map(|case| &case.fields).all(|field| {
-                    field.ty == ResolvedType::Bytes || is_scalar_resolved_type(&field.ty)
-                })
-        })
+    super::type_reachability::is_admitted_concrete_owned_byte_variant(declarations, ty)
 }
 
 impl From<ParamMode> for OwnershipMode {

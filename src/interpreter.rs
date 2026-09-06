@@ -2176,9 +2176,9 @@ use nested_owned::{
     record_update_is_admitted, take_owned_place, update_owned_record,
 };
 
-/// Exact non-Copy sum profile admitted by Owned Byte Variant Algebra v1.
-/// Authored variants must be flat and monomorphic; generic admission is
-/// restricted to the exact compiler-owned prelude instances.
+/// Exact non-Copy sum profile admitted by Owned Byte Variant Algebra v1 plus
+/// the bounded concrete authored generic extension. Backend selection consumes
+/// the shared HIR classifier so it cannot reinterpret generic ownership.
 fn is_admitted_owned_byte_variant(declarations: &hir::DeclarationIndex, ty: &ResolvedType) -> bool {
     let ResolvedType::Nominal {
         declaration,
@@ -2193,25 +2193,26 @@ fn is_admitted_owned_byte_variant(declarations: &hir::DeclarationIndex, ty: &Res
     if item.kind != hir::DeclarationKind::Variant {
         return false;
     }
-    let compiler_owned = item.identity_origin == hir::IdentityOrigin::CompilerOwned
-        && hir::admitted_owned_byte_prelude_instance(declaration, arguments);
-    if compiler_owned {
+    if (item.identity_origin == hir::IdentityOrigin::CompilerOwned
+        && hir::admitted_owned_byte_prelude_instance(declaration, arguments))
+        || hir::is_admitted_concrete_owned_byte_variant(declarations, ty)
+    {
         return true;
     }
     if !arguments.is_empty() {
         return false;
     }
-    let Some(cases) = declarations.variant_cases(declaration) else {
-        return false;
-    };
-    cases
-        .iter()
-        .flat_map(|case| &case.fields)
-        .any(|field| field.ty == ResolvedType::Bytes)
-        && cases
-            .iter()
-            .flat_map(|case| &case.fields)
-            .all(|field| field.ty == ResolvedType::Bytes || is_admitted_resolved_scalar(&field.ty))
+    declarations
+        .variant_cases(declaration)
+        .is_some_and(|cases| {
+            cases
+                .iter()
+                .flat_map(|case| &case.fields)
+                .any(|field| field.ty == ResolvedType::Bytes)
+                && cases.iter().flat_map(|case| &case.fields).all(|field| {
+                    field.ty == ResolvedType::Bytes || is_admitted_resolved_scalar(&field.ty)
+                })
+        })
 }
 
 fn concrete_variant_case_fields(

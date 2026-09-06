@@ -155,16 +155,19 @@ pub(super) fn resolved_type_is_flat_owned_byte_variant(
     if admitted_owned_byte_prelude_instance(declaration, arguments) {
         return true;
     }
-    if !arguments.is_empty() {
-        return false;
+    if arguments.is_empty() {
+        return program.types.iter().any(|item| {
+            item.id == *declaration
+                && item.type_parameters.is_empty()
+                && matches!(&item.kind, ResolvedTypeDeclarationKind::Variant { cases }
+                    if cases.iter().flat_map(|case| &case.fields).any(|field| field.ty == ResolvedType::Bytes)
+                        && cases.iter().flat_map(|case| &case.fields).all(|field|
+                            field.ty == ResolvedType::Bytes
+                                || crate::hir::type_reachability::nested_record_copy_scalar_is_admitted(&field.ty)))
+        });
     }
-    program.types.iter().any(|item| {
-        item.id == *declaration
-            && item.type_parameters.is_empty()
-            && matches!(&item.kind, ResolvedTypeDeclarationKind::Variant { cases }
-                if cases.iter().flat_map(|case| &case.fields).any(|field| field.ty == ResolvedType::Bytes)
-                    && cases.iter().flat_map(|case| &case.fields).all(|field|
-                        field.ty == ResolvedType::Bytes
-                            || crate::hir::type_reachability::nested_record_copy_scalar_is_admitted(&field.ty)))
-    })
+    crate::hir::type_reachability::is_admitted_concrete_owned_byte_variant(
+        &program.declarations,
+        ty,
+    )
 }

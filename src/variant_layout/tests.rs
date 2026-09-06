@@ -359,12 +359,82 @@ fn direct_owned_bytes_payload_uses_target_carrier_and_remains_non_copy() {
     )
     .unwrap();
     let source_generic_bytes = nominal("choice.generic", vec![ResolvedType::Bytes]);
+    for (target, expected) in [
+        (VariantTarget::Native64, (8, 16, 24, 8)),
+        (VariantTarget::Wasm32, (8, 8, 16, 8)),
+    ] {
+        let layout = VariantLayout::for_type(&generic_program, target, &source_generic_bytes)
+            .expect("authored one-owned-case generic variant layout");
+        assert_eq!(
+            (
+                layout.payload_offset,
+                layout.payload_size,
+                layout.size,
+                layout.align,
+            ),
+            expected
+        );
+        let payload = layout
+            .case(&DeclarationId::new("choice.generic.value"))
+            .unwrap()
+            .fields
+            .first()
+            .unwrap();
+        assert_eq!(payload.ty, ResolvedType::Bytes);
+        assert_eq!(payload.value_kind, VariantFieldValueKind::OwnedBytes);
+        layout.validate(&generic_program).unwrap();
+    }
+
+    let two_owned_program = hir::resolve(
+        &parse(
+            r#"module test.generic_two_owned_variant_layout;
+@id("either.generic") variant Either<T, U> {
+  @id("either.generic.left") Left {
+    @id("either.generic.left.value") value: T,
+  },
+  @id("either.generic.right") Right {
+    @id("either.generic.right.value") value: U,
+  },
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#,
+            Path::new("generic-two-owned-byte-layout-rejection.spx"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let two_owned = nominal(
+        "either.generic",
+        vec![ResolvedType::Bytes, ResolvedType::Bytes],
+    );
+    assert!(
+        VariantLayout::for_type(&two_owned_program, VariantTarget::Native64, &two_owned,).is_err()
+    );
+
+    let one_owned = nominal(
+        "either.generic",
+        vec![ResolvedType::Bytes, ResolvedType::I64],
+    );
+    let canonical =
+        VariantLayout::for_type(&two_owned_program, VariantTarget::Native64, &one_owned)
+            .expect("one-owned-case layout before hostile mutation");
+    let mut forged_second_owned_case = two_owned_program.clone();
+    let declaration = forged_second_owned_case
+        .types
+        .iter_mut()
+        .find(|declaration| declaration.id.as_str() == "either.generic")
+        .unwrap();
+    let ResolvedTypeDeclarationKind::Variant { cases } = &mut declaration.kind else {
+        unreachable!();
+    };
+    cases[1].fields[0].ty = ResolvedType::Bytes;
     assert!(VariantLayout::for_type(
-        &generic_program,
+        &forged_second_owned_case,
         VariantTarget::Native64,
-        &source_generic_bytes,
+        &one_owned,
     )
     .is_err());
+    assert!(canonical.validate(&forged_second_owned_case).is_err());
 }
 
 #[test]

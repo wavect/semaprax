@@ -7,22 +7,27 @@ Status: local implementation tranche; hosted promotion is not claimed.
 ## Purpose
 
 Owned Byte Variant Algebra v1 admits the first non-Copy sum execution path.
-It is deliberately limited to flat monomorphic authored variants with at least
-one direct `Bytes` field and to the exact compiler-owned `Option<Bytes>`,
+It admits flat monomorphic authored variants with at least one direct `Bytes`
+field, a bounded concrete authored-generic extension with exactly one owned
+case, and the exact compiler-owned `Option<Bytes>`,
 `Result<Bytes, i64|bool>`, and `Result<i64|bool, Bytes>` instances. It does not
-create a public aggregate ABI or widen generic authored variants, nesting,
-postfix `?`, components, Project exports, callable interfaces, or native Rust
-interoperability.
+create a public aggregate ABI or admit two-owned-case generic instances,
+nesting, postfix `?`, components, Project exports, callable interfaces, or
+native Rust interoperability.
 
 ## Closed admission
 
 An admitted authored variant:
 
-- is monomorphic;
+- is monomorphic, or supplies one exact direct `Bytes`/Copy-scalar argument for
+  every parameter of an explicitly identified authored variant;
 - contains at least one direct `Bytes` field;
 - contains only direct `Bytes` or already admitted Copy-scalar fields; and
 - contains no nested record or variant, resource, array, slice, string,
-  generic field, or `Bytes` field on both sides of a generic `Result`.
+  unresolved generic field, or `Bytes` field on both sides of a generic
+  instance. A concrete authored-generic instance has exactly one case with one
+  or more substituted `Bytes` fields; monomorphic authored variants retain
+  their existing multi-case behavior.
 
 Explicit owned and borrowed matching is exhaustive, guard-free, and lists
 every case with its exact declared field inventory:
@@ -107,5 +112,10 @@ and `-O2`, and Node/Core-Wasm execution under tight owned-token capacity.
 Evidence covers authored and compiler-owned cases, borrow followed by own,
 dynamic parameters/results/calls, repeated entry, inactive cases, invalid
 carriers, payload-free conditional cases, exact-once cleanup, and failure
-settlement. Evidence in this tranche is local only; it does not claim hosted
-promotion or a public ABI widening.
+settlement. The concrete authored-generic extension additionally covers both
+argument positions, exact owner/index substitution, opposite live-case vectors,
+partial construction, failure inside an owned arm, exact semantic status,
+native and Wasm shallow-copy rejection, and repeated recovery. Two-owned-case
+instances including `Result<Bytes, Bytes>` remain closed. Evidence in this
+tranche is local only; it does not claim hosted promotion or a public ABI
+widening.

@@ -1006,6 +1006,7 @@ fn variant_declaration_id<'a>(
     }
     if arguments.len() != item.type_parameters.len()
         || (!crate::hir::admitted_owned_byte_prelude_instance(declaration, arguments)
+            && !crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, ty)
             && arguments.iter().any(|argument| {
                 !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
                     && !(declaration.as_str() == crate::prelude::OPTION_ID

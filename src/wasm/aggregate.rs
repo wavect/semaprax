@@ -1023,6 +1023,7 @@ fn is_variant(program: &ResolvedProgram, ty: &ResolvedType) -> Result<bool, Diag
     }
     if arguments.len() != item.type_parameters.len()
         || (!crate::hir::admitted_owned_byte_prelude_instance(declaration, arguments)
+            && !crate::hir::is_admitted_concrete_owned_byte_variant(&program.declarations, ty)
             && arguments.iter().any(|argument| {
                 !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)
                     && !(declaration.as_str() == crate::prelude::OPTION_ID
@@ -3994,7 +3995,22 @@ impl Emitter<'_> {
                     .case(case)
                     .cloned()
                     .ok_or_else(|| error(format!("variant `{variant}` has no case `{case}`")))?;
-                let mut values = Vec::with_capacity(fields.len());
+                let destination = Value::Aggregate {
+                    pointer: self.plan.expr_pointer(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                let Value::Aggregate { pointer, .. } = &destination else {
+                    unreachable!();
+                };
+                // Initialize the private carrier before the first field is
+                // evaluated. Owned field transitions become live as each
+                // initializer completes, so a later failing initializer must
+                // find the exact token in destination storage. The semantic
+                // tag is still published only after every field succeeds.
+                self.emit_pointer(*pointer);
+                self.output.extend([0x41, 0x00, 0x41]);
+                write_i64(self.output, i64::from(layout.size));
+                self.output.extend([0xfc, 0x0b, 0x00]);
                 for initializer in fields {
                     let field =
                         case_layout
@@ -4008,21 +4024,7 @@ impl Emitter<'_> {
                             })?;
                     let value = self.emit_expr(&initializer.value)?;
                     require_type(value_type(&value), &field.ty, "variant field initializer")?;
-                    values.push((field, value));
-                }
-                let destination = Value::Aggregate {
-                    pointer: self.plan.expr_pointer(expr)?,
-                    ty: expr.ty.clone(),
-                };
-                let Value::Aggregate { pointer, .. } = &destination else {
-                    unreachable!();
-                };
-                self.emit_pointer(*pointer);
-                self.output.extend([0x41, 0x00, 0x41]);
-                write_i64(self.output, i64::from(layout.size));
-                self.output.extend([0xfc, 0x0b, 0x00]);
-                for (field, value) in values {
-                    let destination = value_at(
+                    let field_destination = value_at(
                         Pointer {
                             local: pointer.local,
                             offset: pointer
@@ -4034,7 +4036,7 @@ impl Emitter<'_> {
                         field.ty,
                         self.program,
                     )?;
-                    self.copy_value(&destination, &value, "variant field initializer")?;
+                    self.copy_value(&field_destination, &value, "variant field initializer")?;
                 }
                 self.emit_pointer(*pointer);
                 self.output.push(0x41);

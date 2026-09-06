@@ -257,9 +257,10 @@ fn owned_bounded_vec_failures_are_sticky_and_settle_before_reentry() {
                 for _ in 0..4 {
                     let output = Command::new(&binary).output().unwrap();
                     assert_eq!(output.status.code(), Some(73), "{name}/{optimization}");
+                    let newline = if cfg!(windows) { "\r\n" } else { "\n" };
                     assert_eq!(
                         String::from_utf8_lossy(&output.stderr),
-                        format!("SEMAPRAX operation failure: semaprax.vec.v1/{code}\n")
+                        format!("SEMAPRAX operation failure: semaprax.vec.v1/{code}{newline}")
                     );
                 }
             }

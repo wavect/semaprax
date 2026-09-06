@@ -149,6 +149,18 @@ Do not widen the existing literal/direct-call admission to make a fixture pass.
 
 ## Graph-operational development foundation
 
+Source-native Agent compilation now reaches the existing bounded Lifecycle v1
+without a separately supplied AgentDefinition: one checked `.spx` Agent is
+selected by stable identity, lowered through the frozen v1 compiler, and
+replayed against both lifecycle bytes and semantic source revision. Generated
+Proposal record and variant clients also have an authored provisioned Linux
+gate that strict-compiles and executes TypeScript, Python, and offline Rust,
+then re-admits every emitted document through the canonical decoder. Next run
+that combined gate on a pushed revision, then extend the lifecycle beyond one
+acyclic pass and its single injected read; do not infer compiled model/effect
+roles, Runtime v2, packaging, public ABI, provider transport, or cross-platform
+support from this bridge.
+
 Source-backed [candidate archives](PROJECT-CANDIDATE-ARCHIVE-V1.md) and their
 explicit [immutable store](CANDIDATE-ARCHIVE-STORE-V1.md) now author recovery
 without the original raw checkout. Execute source/capsule remint rejection,
@@ -192,9 +204,10 @@ fixture wrapper from an exact decoded Proposal record or Copy-scalar variant
 to the frozen Runtime v1 final message. Runtime v1 remains frozen, and no
 Proposal case or field becomes a Runtime action or tool selection. Next Agent
 outcomes remain direct provider Proposal input, generated tool-action/schema
-integration, broader Proposal shapes, provisioned generated-client execution,
-iterative typed lifecycle execution, and an independently versioned Runtime v2
-that consumes semantic Agent facts directly.
+integration, broader Proposal shapes, hosted/cross-platform generated-client
+execution, iterative typed lifecycle execution beyond the source-selected
+one-pass bridge, and an independently versioned Runtime v2 that consumes
+semantic Agent facts directly.
 
 For source publication, preserve the supported two-session workflow: review and
 export first, then use a new independently host-approved commit session to restore
@@ -393,8 +406,8 @@ ABIs prematurely.
   plus the bounded acyclic one-owner-identical-return authored-record relay.
   Its focused local corpus exercises `Box<Pair<Bytes,T>>` and
   `Pair<Box<Bytes>,T>` over all eight explicit Copy scalars. A dedicated named
-  Linux step now carries exact nested-relay and identity-forwarding selectors;
-  next execute it on a pushed revision and record that hosted result. ScalarV1
+  Linux step now carries exact nested-relay and identity-forwarding selectors
+  and is hosted green in CI run 34048713967, Ubuntu job 101528399406. ScalarV1
   exact reachable bodies may now compose the flat generic-owned record
   internally, independent of provenance, while callable and public signatures
   stay value-scalar. One exact
@@ -404,8 +417,7 @@ ABIs prematurely.
   transitive concrete-instance closure of at most 256 entries locally without widening bodies,
   signatures, effects, packages, or public ABIs. Graph v14 remains unchanged;
   direct-scalar forwarding retains CleanupPlan v2, flat-owned forwarding v5,
-  and nested-owned forwarding v7. The step is CI wiring rather than hosted
-  evidence until that run succeeds. Continue with general expression
+  and nested-owned forwarding v7. Continue with general expression
   composition, authored generic variants, broader non-Copy propagation, and a
   distinct public generic ABI;
 - complete mutation and generic interactions across interpreter, native, and

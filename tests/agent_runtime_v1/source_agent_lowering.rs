@@ -16,7 +16,7 @@ use semaprax::project::{
 
 use super::{agent_definition_v1::definition, profile};
 
-fn runtime_v1(profile: &str) -> String {
+pub(super) fn runtime_v1(profile: &str) -> String {
     let profile = profile.strip_suffix('\n').unwrap();
     let members = profile
         .strip_prefix(

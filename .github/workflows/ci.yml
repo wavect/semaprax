@@ -538,6 +538,30 @@ jobs:
         run: cargo fetch --locked --manifest-path examples/owned-data-rust/Cargo.toml
       - run: cargo fmt --all --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - name: Execute source Agent lifecycle and generated Proposal clients
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --prefix platform-tests/wasm-scalar-browser-v1
+          tsc_path="$(pwd)/platform-tests/wasm-scalar-browser-v1/node_modules/.bin/tsc"
+          node_path="$(command -v node)"
+          python_path="$(command -v python3)"
+          cargo_path="$(command -v cargo)"
+          test -x "$tsc_path"
+          test -x "$node_path"
+          test -x "$python_path"
+          test -x "$cargo_path"
+          cargo test --locked --offline -p semaprax --test agent_runtime_v1 \
+            source_agent_lifecycle:: -- --nocapture
+          SEMAPRAX_REQUIRE_AGENT_PROPOSAL_CLIENTS=1 \
+          SEMAPRAX_TEST_TSC="$tsc_path" \
+          SEMAPRAX_TEST_NODE="$node_path" \
+          SEMAPRAX_TEST_PYTHON="$python_path" \
+          SEMAPRAX_TEST_CARGO="$cargo_path" \
+            cargo test --locked --offline -p semaprax --test agent_runtime_v1 \
+              agent_proposal_client_execution::generated_proposal_clients_compile_execute_and_round_trip \
+              -- --exact --nocapture
       - name: Require nested generic-owned relay and forwarding on every internal backend
         if: runner.os == 'Linux'
         env:

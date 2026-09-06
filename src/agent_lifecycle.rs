@@ -53,6 +53,7 @@ use crate::interpreter::retained_call::{
 
 pub mod authorization;
 pub mod durable;
+mod source;
 mod stages;
 
 #[cfg(test)]
@@ -64,6 +65,7 @@ pub use durable::{
     CrashPoint, DurableAgent, DurableBudget, DurableRun, DurableStatus, ProgramCounter,
     Reconciliation, Retention, CHECKPOINT_SCHEMA, DURABLE_EVIDENCE_SCHEMA,
 };
+pub use source::{compile_source_agent_lifecycle, verify_source_agent_lifecycle_bundle};
 
 use stages::{BoundStage, PayloadShape, ScalarKind, StageBinding};
 
@@ -340,6 +342,7 @@ impl LifecycleRun {
 pub struct CompiledAgentLifecycle {
     agent_id: String,
     definition_digest: String,
+    source_revision: String,
     program: hir::ResolvedProgram,
     proposal: CompiledAgentProposalSchema,
     binding: StageBinding,
@@ -356,6 +359,14 @@ impl CompiledAgentLifecycle {
     #[must_use]
     pub fn definition_digest(&self) -> &str {
         &self.definition_digest
+    }
+
+    /// The semantic revision of the exact checked module whose stage bodies
+    /// this lifecycle retains. It is an in-memory replay precondition and does
+    /// not change the frozen lifecycle document.
+    #[must_use]
+    pub fn source_revision(&self) -> &str {
+        &self.source_revision
     }
 
     /// The canonical compiled lifecycle document, including its terminal LF.
@@ -437,6 +448,7 @@ pub fn compile_agent_lifecycle(
     let definition_digest = definition.digest().to_owned();
 
     let program = crate::check(module_source, module_path)?;
+    let source_revision = crate::graph::revision(&program);
     let program = hir::resolve(&program)?;
     let proposal = compile_agent_proposal_schema(module_source, module_path, definition_source)?;
     let binding = stages::bind(&program, &type_ids, &operation_ids)?;
@@ -453,6 +465,7 @@ pub fn compile_agent_lifecycle(
     Ok(CompiledAgentLifecycle {
         agent_id,
         definition_digest,
+        source_revision,
         program,
         proposal,
         binding,

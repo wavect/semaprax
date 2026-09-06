@@ -6,9 +6,9 @@ maintainers.
 Status: locally exercised internal implementation tranche. The pre-nested-relay
 generic-owned corpus is hosted green in [CI run 34031917437, Ubuntu job
 101482963175](https://github.com/wavect/semaprax/actions/runs/34031917437/job/101482963175).
-The additive nested-relay and identity-forwarding selectors pass locally and
-are wired into one named Linux CI step, but that step remains unhosted until a
-pushed run records its result.
+The additive nested-relay and identity-forwarding selectors are hosted green
+in [CI run 34048713967, Ubuntu job
+101528399406](https://github.com/wavect/semaprax/actions/runs/34048713967/job/101528399406).
 
 ## Purpose and boundary
 
@@ -183,11 +183,10 @@ generic-function composition beyond the exact bounded one-owner relay, direct
 generic-record Project/public consumers, cross-platform ABI compatibility, and
 distribution remain separate completion work. The focused
 local source/HIR/layout and interpreter/native/Wasm gates exercise the complete
-Copy-scalar set. The earlier corpus has the hosted run identified above; that
-result predates and does not promote the additive nested relay, whose required
-named Linux CI step has not yet recorded its own real run. The
-generic-forwarding addition is part of that same authored but unrun step and
-likewise remains local and unhosted.
+Copy-scalar set. The earlier corpus has the first hosted run identified above;
+the additive nested relay and generic-forwarding selectors have the later
+hosted Ubuntu result identified in the status. That focused evidence does not
+promote broader generic ownership, public ABI, or cross-platform support.
 
 ## Project integration prerequisite
 

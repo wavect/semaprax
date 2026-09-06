@@ -1,8 +1,8 @@
 # Language-native Agent lowering v1
 
-Status: locally exercised bounded AGENT-03 semantic-lowering and Project
-integration tranche. Agent role execution and installed-product promotion
-remain separate gates.
+Status: locally exercised bounded AGENT-03 semantic-lowering, Project
+integration, and source-selected Agent Lifecycle v1 bridge. Hosted promotion
+and broader Agent execution remain separate gates.
 
 Audience: compiler contributors, semantic-workspace integrators, and reviewers.
 
@@ -37,7 +37,12 @@ is retained through resolver, workspace linking, and the private HIR cache. It
 carries the display/stable Agent identity, all typed role/kind identities, and
 the exact Runtime-v1 carrier. Compatibility definition/graph digests remain in
 the Project-owned compiled products. The HIR node deliberately carries no
-executable role body until that separately specified lowering exists.
+copied executable role body. The additive `compile_source_agent_lifecycle`
+bridge instead selects one checked Agent by stable identity, lowers that exact
+declaration through the frozen AgentDefinition-v1 compiler, and lets Agent
+Lifecycle v1 resolve its four deterministic role identities against the same
+immutable source module and ordinary HIR. Callers therefore cannot pair source
+roles with a separately mutable definition document.
 Project-wide validation also rejects an Agent declaration identity that
 collides with an ordinary declaration identity already retained by the exact
 Project graph. Type-role and operation-role identities are bindings and may
@@ -59,14 +64,22 @@ reports role, kind, capacity, identity, or Project-association invariants.
 Existing `SPX-G501` through `SPX-G504` remain authoritative for the final
 AgentDefinition/Profile/Graph compatibility admission and replay.
 
-Lowering is pure. It invokes no provider or tool, reads no path or environment,
-executes no Agent role, mints no `Authorized<T>`, and grants no filesystem,
-network, process, deployment, approval, signing, commit, or publication
-authority. Runtime execution and durable Agent instances remain outside this
-tranche.
+Lowering and bridge compilation are pure. They invoke no provider or tool,
+read no path or environment, execute no Agent role, mint no `Authorized<T>`,
+and grant no filesystem, network, process, deployment, approval, signing,
+commit, or publication authority. A caller may execute the resulting existing
+Lifecycle v1 value only by explicitly supplying its ordinary task, proposal,
+budget, cancellation, and injected read operation.
 
 The focused `agent_runtime_v1::source_agent_lowering` tests bind the existing
 fixture's exact definition and graph known-answer digests and byte-identical
 Runtime Profile, prove display-name independence and canonical Project ordering,
 and reject missing/duplicate roles, wrong operation kinds, local identity
 collisions, and cross-module collisions. The three focused cases pass locally.
+
+The additive `agent_runtime_v1::source_agent_lifecycle` gate proves exact
+source-Agent selection, byte parity with the existing lifecycle compiler, one
+successful acyclic pass, refusal and injected-effect failure, and stable
+missing-Agent or incompatible-role rejection. Lifecycle replay additionally binds
+the checked module's semantic revision, so a role-body change fails closed even
+when the frozen Lifecycle v1 document intentionally remains byte-identical.

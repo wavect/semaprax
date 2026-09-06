@@ -8,6 +8,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added a source-native Agent-to-Lifecycle v1 bridge and executable generated
+  Proposal-client evidence. One checked `.spx` Agent is selected by stable
+  identity, lowered through the frozen AgentDefinition-v1 compiler, and bound
+  to the existing one-pass lifecycle; replay now requires both exact lifecycle
+  bytes and the semantic source revision, so role-body drift fails closed.
+  Focused regressions cover completion, refusal, injected-effect failure,
+  missing-Agent/incompatible-role cases, stale source, and fail-first oversized or
+  malformed replay selectors. A named Linux step also materializes generated
+  record and variant clients in isolated temporary projects, strict-compiles
+  TypeScript 5.8.3, byte-compiles Python, builds Rust offline with a private
+  target, executes all three, and submits their exact integer/UTF-8/case output
+  through the canonical decoder. This changes no frozen Agent or Runtime wire
+  and adds no provider, tool, filesystem, publication, or ambient authority.
+
 - Extended Exact Program Context v2 with candidate-safe ProgramRoot-v3 refresh.
   A host-authenticated successor context is independently replayed against a
   separately compiler-admitted candidate Project; successor external facts are
@@ -66,7 +80,7 @@ format: `Unreleased` then release buckets, grouped by impact.
   parameter vector in declaration order; each concrete caller instance derives
   the deterministic transitive callee-instance closure, bounded at 256 entries. The existing
   direct-scalar and one-owner-identical-result relay profiles, Graph v14, and
-  CleanupPlan v2/v5/v7 remain the limits. Focused local, unhosted evidence covers
+  CleanupPlan v2/v5/v7 remain the limits. Focused evidence covers
   chained source/HIR identities in authored FIFO order,
   interpreter/native C11 `-O0`/`-O2`/Core-Wasm settlement, concrete
   non-identity/permutation/cycle rejection, and missing/reordered/forged HIR
@@ -81,9 +95,9 @@ format: `Unreleased` then release buckets, grouped by impact.
   adjacent generic-owned step. New locally passing hostility regressions cover
   all eight Copy scalars through a three-template nested relay, forged HIR
   carrier and cleanup vectors, source vector changes and cycles, and the exact
-  256/+1 instance-closure bound. The workflow YAML is locally validated but has
-  no pushed hosted result yet; the older run 34031917437 continues to evidence
-  only the pre-nested-relay corpus.
+  256/+1 instance-closure bound. The named step is hosted green in CI run
+  34048713967, Ubuntu job 101528399406; the older run 34031917437 remains the
+  evidence for the pre-nested-relay corpus.
 
 - Re-derived the offline doctor carrier ceiling from measured distributions.
   `DOCTOR_OFFLINE_INPUT_MAX_BYTES` was 536,870,912 bytes, and on a hosted

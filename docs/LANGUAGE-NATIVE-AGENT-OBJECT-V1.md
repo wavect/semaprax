@@ -511,6 +511,28 @@ semaprax::agent_lifecycle::verify_agent_lifecycle_bundle(
 let run = lifecycle.run(&task, proposal_document, &mut read, budget, &cancellation)?;
 ```
 
+For a language-native declaration, the additive source bridge removes the
+separately supplied definition document:
+
+```rust
+let lifecycle = semaprax::agent_lifecycle::compile_source_agent_lifecycle(
+    module_source,
+    module_path,
+    agent_id,
+)?;
+semaprax::agent_lifecycle::verify_source_agent_lifecycle_bundle(
+    module_source,
+    module_path,
+    agent_id,
+    lifecycle.source_revision(),
+    lifecycle.canonical_json(),
+)?;
+```
+
+It independently reuses the ordinary source, AgentDefinition, Proposal, and
+Lifecycle trust boundaries. The semantic source revision is retained only in
+memory and does not revise the frozen Lifecycle v1 document.
+
 `CompiledAgentLifecycle`, `LifecycleRun`, `StageRecord`, `Authorized` and
 `AuthorizedRequest` expose only immutable canonical documents, identities,
 digests and closed statuses. There is no CLI surface, and `AgentDefinition`
@@ -550,6 +572,12 @@ separated binding inputs, and the refusal to spend an authorization into a
 substituted state or a substituted proposal with the read operation never
 reached. The harness's external-consumer probe additionally proves that no
 consumer can construct, clone, or default an `Authorized`.
+
+The adjacent `source_agent_lifecycle` module additionally proves source Agent
+selection and lifecycle parity, completion/refusal/effect-failure execution,
+source-revision drift, stable missing-Agent/incompatible-role failures, and
+fail-first rejection of oversized lifecycle bytes or malformed revision
+selectors.
 
 The frozen AgentDefinition, AgentGraph and Runtime v1 profile known answers are
 re-asserted unchanged after a lifecycle compiles and runs over the same
@@ -988,6 +1016,18 @@ of that earlier document. Generation and replay perform no filesystem,
 network, provider, tool, process, compilation, execution, packaging, or
 publication operation.
 
+An additive provisioned Linux gate now materializes the generated record and
+variant clients in isolated temporary projects, strict-compiles TypeScript
+5.8.3, byte-compiles Python, builds Rust with an offline generated lock and a
+private Cargo target, executes all three, and submits every emitted document to
+the canonical Rust decoder. It covers exact integer extrema, a 4096-byte
+multibyte UTF-8 value, both stable variant discriminants, text rejection in all
+three clients, and integer/case rejection in TypeScript and Python; Rust's
+bounded integer types and closed enum make those two hostile values
+unconstructable. This is execution evidence for the generated
+artifacts; generation and replay themselves remain authority-free and do not
+spawn these tools.
+
 ## Generated Proposal to Runtime v1 compatibility
 
 `compile_agent_proposal_runtime_v1_compatibility` derives one immutable
@@ -1015,7 +1055,9 @@ v1](AGENT-PROPOSAL-RUNTIME-V1-COMPATIBILITY-V1.md).
 
 This slice does not implement or claim:
 
-- execution, packaging, or publication of the additive generated clients;
+- packaging or publication of the additive generated clients; their authored
+  provisioned Linux execution gate is not hosted evidence until it passes on a
+  pushed revision;
 - direct provider Proposal input or semantic Proposal case/field translation
   into Runtime actions, tool selections, or argument schemas;
 - proposal values beyond the closed monomorphic scalar record/variant subset;
@@ -1042,14 +1084,16 @@ This slice does not implement or claim:
 - the signature-change reference vertical slice.
 
 Agent Proposal Schema v1 closes the derived proposal grammar gate, the additive
-client bundle closes deterministic source generation and exact replay,
-AgentDefinition v2 with AgentDeployment v1 closes definition/deployment
+client bundle closes deterministic source generation and exact replay, and its
+provisioned execution gate closes local compiler/runner interoperability once
+selected. AgentDefinition v2 with AgentDeployment v1 closes definition/deployment
 separation, and Agent Lifecycle v1 closes the compiled deterministic stage
 binding, the single acyclic execution, and the opaque one-use authorization
 value with its executable rejection evidence. Agent Checkpoint v1 closes the
 revision-bound durable checkpoint, the crash boundaries of the single external
-operation, and the uncertainty reconciliation that replaces automatic retry. Provisioned compilation and
-execution of the generated clients remain a separate gate. The Runtime v1
+operation, and the uncertainty reconciliation that replaces automatic retry.
+Hosted and cross-platform execution of the generated clients remain separate
+gates. The Runtime v1
 compatibility projection remains frozen; the additive generated adapter now
 replaces only the fixture's manual final-message wrapper without changing that
 grammar. Direct provider Proposal input, generated Runtime tool-action/schema

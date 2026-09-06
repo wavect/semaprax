@@ -329,10 +329,14 @@ mod agent_inspect_cli;
 mod agent_lifecycle_v1;
 #[path = "agent_runtime_v1/agent_payment_harness_v1.rs"]
 mod agent_payment_harness_v1;
+#[path = "agent_runtime_v1/agent_proposal_client_execution.rs"]
+mod agent_proposal_client_execution;
 #[path = "agent_runtime_v1/agent_proposal_runtime_v1_compatibility.rs"]
 mod agent_proposal_runtime_v1_compatibility;
 #[path = "agent_runtime_v1/agent_proposal_schema_v1.rs"]
 mod agent_proposal_schema_v1;
+#[path = "agent_runtime_v1/source_agent_lifecycle.rs"]
+mod source_agent_lifecycle;
 #[path = "agent_runtime_v1/source_agent_lowering.rs"]
 mod source_agent_lowering;
 

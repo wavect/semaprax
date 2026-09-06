@@ -411,15 +411,22 @@ ABIs prematurely.
   exact reachable bodies may now compose the flat generic-owned record
   internally, independent of provenance, while callable and public signatures
   stay value-scalar. One exact
-  Subject-v3 dependency provides local, unhosted cross-package evidence through
+  Subject-v3 dependency provides cross-package evidence through
   `fn() -> i64`; the slice changes no package or Wasm schema. Direct acyclic
   identity forwarding between already-admitted generic templates now derives a
   transitive concrete-instance closure of at most 256 entries locally without widening bodies,
-  signatures, effects, packages, or public ABIs. Finish additive Graph v34 instance ownership and independent cleanup-schema replay,
-  then host the complete existing internal corpus before broader ownership or ABI work.
-  Frozen Graph v14 consumers retain their bytes;
-  direct-scalar forwarding retains CleanupPlan v2, flat-owned forwarding v5,
-  and nested-owned forwarding v7. The completed local flat expression tranche
+  signatures, effects, packages, or public ABIs. Additive Graph v34 instance
+  ownership, independent cleanup-schema replay, bounded Agent Context v2
+  queries, and SemanticProgram-v2/ProgramRoot binding are implemented. The
+  bounded GEN-05B/GEN-05C tranche is complete: the independent
+  `GEN-05B generic instance semantic closure` Linux job passed on implementation
+  commit `c27d06f0cf74749804237a43cc71c248b319cfe0` in
+  [run 34058787739, job 101555489228](https://github.com/wavect/semaprax/actions/runs/34058787739/job/101555489228).
+  The [owning evidence status](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md)
+  records the exact scope; broader generic semantics and public ABI remain
+  separate milestones. Frozen Graph v14 consumers retain their bytes.
+  Direct-scalar and pure flat whole-owner relays retain CleanupPlan v2;
+  explicit flat record matching selects v5, and nested-owned relays select v7. The completed local flat expression tranche
   composes one owner into the identical result over all eight Copy scalars via
   projection, top-level immutable update, a borrow match returning a bound
   Copy field, and an own match reconstructing the same owner. Its focused gate

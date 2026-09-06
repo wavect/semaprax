@@ -3,12 +3,26 @@
 Audience: language, HIR, cleanup, interpreter, native, Wasm, and evidence
 maintainers.
 
-Status: locally exercised internal implementation tranche. The pre-nested-relay
+Status: bounded GEN-05B/GEN-05C internal tranche hosted on Linux. The pre-nested-relay
 generic-owned corpus is hosted green in [CI run 34031917437, Ubuntu job
 101482963175](https://github.com/wavect/semaprax/actions/runs/34031917437/job/101482963175).
 The additive nested-relay and identity-forwarding selectors are hosted green
 in [CI run 34048713967, Ubuntu job
 101528399406](https://github.com/wavect/semaprax/actions/runs/34048713967/job/101528399406).
+
+GEN-05B/GEN-05C hosted evidence: **passed** for implementation commit
+`c27d06f0cf74749804237a43cc71c248b319cfe0`. The independent Linux job
+`GEN-05B generic instance semantic closure` passed in
+[CI run 34058787739, job 101555489228](https://github.com/wavect/semaprax/actions/runs/34058787739/job/101555489228).
+Its selected scope is Graph-v34/schema replay, all eight Copy scalars through
+flat and both nested forwarding shapes, flat expression composition, exact
+ScalarV1 dependency execution, bounded Agent Context v2 ownership facts, and
+SemanticProgram-v2/ProgramRoot replay including comment-only source separation.
+This completes the selected GEN-05B graph/schema closure and GEN-05C hosted
+internal corpus. Evidence is for the implementation commit above; the
+subsequent documentation-only commit records that result, not a new test run.
+It does not establish full-CI passage, broader ownership support, cross-platform
+support, or a public generic ABI.
 
 ## Purpose and boundary
 
@@ -157,8 +171,15 @@ and establish no ABI promise.
 For each concrete instance, Graph v34 retains both its existing execution
 identity and a revision-bound semantic identity derived from the template's
 persistent declaration ID, complete ordered concrete argument vector, and
-checked source revision. Arguments remain indexed by their template owner and
-parameter index. Display names, discovery order, target offsets, and backend
+defining revision. Standalone graphs use the canonical source revision.
+ProgramRoot's linked closures instead use `normalized_project_semantics`: the
+length-framed digest of canonical JSON containing the original semantic-program
+payload and canonical manifest, under
+`semaprax.generic-instance-program-revision.v1\0`. Comment-only source changes
+therefore preserve their semantic instance keys. Exact raw ProjectRevision and
+source association remain in SourceProjection, ProjectionMetadata and the
+ProgramRoot, whose cross-pair replay still rejects a different source revision.
+Arguments remain indexed by their template owner and parameter index. Display names, discovery order, target offsets, and backend
 symbols do not select an instance. The instance array has deterministic identity
 presentation order; cleanup inventory and plan vectors retain their own
 contracted order unchanged.
@@ -170,8 +191,9 @@ body and contracts through its execution identity, and includes effects, loan
 relationships, generic call edges and their
 owner/index forwarding maps, exact concrete callee vectors and identities,
 cleanup inventory and plan digests, and the complete selected cleanup plan.
-The enclosing semantic-program association records the checked source revision;
-it is not an independently minted runtime root or publication authority.
+The graph's `source_revision` and enclosing semantic-program association record
+that defining revision; they are not independently minted runtime roots or
+publication authority.
 ProgramRoot binds the exact Graph-v34 bytes in the semantic-program node's
 additive v2 contract; its replay rejects a graph paired with a
 different retained Project or ProgramRoot.
@@ -257,7 +279,9 @@ The local gate requires:
   plus public-selection and dependency-tamper rejection.
 
 Focused evidence is necessary but does not promote generic ownership broadly.
-Hosted execution, the broader nested destructuring/update/loan corpus,
+The selected GEN-05B/GEN-05C hosted result passed on the exact implementation
+commit recorded above.
+The broader nested destructuring/update/loan corpus,
 generic-function composition beyond the exact bounded one-owner relay and its
 flat expression-composition profile, direct
 generic-record Project/public consumers, cross-platform ABI compatibility, and
@@ -295,7 +319,8 @@ only one no-argument `i64` function. Exact Report-v2 and Subject-v3 replay,
 coordinate/target resolution and held-source authentication happen before
 ordinary linking. This adds no `use type` edge, generic package signature,
 public descriptor field, or new package/report/Wasm schema. Focused evidence
-for this additive path is local and unhosted.
+for this additive path includes the successful dedicated GEN-05B/GEN-05C
+Linux job on the exact implementation commit recorded above.
 
 A sound public generic-owned revision still requires all of the following:
 

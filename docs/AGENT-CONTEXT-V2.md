@@ -141,6 +141,12 @@ The earlier local v2 and legacy-v1 gates were 8/8 and 8/8. The full hosted matri
 in [run 31397881268, including Ubuntu job
 93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
 
+The new generic-instance ownership and authenticated local-loan composition
+selectors are included in the independent GEN-05B Linux job. Its successful
+exact-commit hosted result is recorded in the
+[owning evidence status](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md); it does not
+replace the earlier full Agent Context evidence or promote unrelated queries.
+
 The executable gates cover deterministic JSON parsing, global per-depth order,
 minimum-depth cycle handling, generic-template callers, direction-bound
 traversal and reference replay, byte/node/depth truncation, permanent

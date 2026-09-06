@@ -382,4 +382,10 @@ authority.
 
 The focused local selector is
 `canonical_revision::generic_instances::generic_instance_program_root_binds_checked_ownership_and_rejects_cross_pairs`
-in the `workspace` harness. Hosted passage must be recorded separately.
+in the `workspace` harness. The companion
+`canonical_revision::generic_instances::generic_instance_semantic_identity_ignores_comments_but_root_replay_binds_source`
+selector proves unchanged semantic and instance identities for comment-only
+edits while exact source and root replay remain distinct. Both are selected by
+the independent GEN-05B Linux job; its successful exact-commit hosted result is
+recorded in the [owning evidence status](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md).
+This targeted result does not promote the complete canonical-workspace surface.

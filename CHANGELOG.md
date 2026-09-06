@@ -13,10 +13,16 @@ format: `Unreleased` then release buckets, grouped by impact.
   selected cleanup schemas preserving existing CleanupPlan bytes. An additive
   SemanticProgram v2 node binds linked generic closures into ProgramRoot;
   frozen graph consumers and public ABI descriptors retain their prior
-  contracts. The expanded Linux selector combines the eight-scalar flat and
+  contracts. The independent `GEN-05B generic instance semantic closure` Linux
+  job combines the eight-scalar flat and
   nested corpus, graph/schema hostility, expression composition and scalar
   cross-package execution. Focused graph and workspace replay checks pass;
-  hosted promotion remains pending. Semantic instance identities survive
+  the bounded GEN-05B/GEN-05C Linux tranche passed for implementation commit
+  `c27d06f0cf74749804237a43cc71c248b319cfe0` in
+  [CI run 34058787739, job 101555489228](https://github.com/wavect/semaprax/actions/runs/34058787739/job/101555489228).
+  This documentation-only successor records that implementation result and
+  does not claim a new test run, full-CI passage, or a public generic ABI.
+  Semantic instance identities survive
   comment-only edits while ProgramRoot still binds exact source. Preserved
   existing workspace known answers and ownership/range diagnostics.
 

@@ -174,8 +174,11 @@ local evidence authenticates an exact dependency whose no-argument `i64` functio
 internally constructs, relays and settles the bounded generic record, then
 executes the scalar Project through the interpreter, native C11 `-O0`/`-O2`,
 Core-Wasm and the unchanged scalar Web build. Public-selection escape and
-dependency-subject tamper reject before execution. This evidence is local and
-unhosted.
+dependency-subject tamper reject before execution. This exact fixture is
+selected by the independent `GEN-05B generic instance semantic closure` Linux
+job. Its successful exact-commit hosted result is recorded in the
+[owning evidence status](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md); it does not
+promote the broader dependency, publication, or public generic ABI surfaces.
 
 This version does not acquire packages, contact a registry, establish trusted
 publisher provenance, solve license policy, vendor a Cargo closure, or promote

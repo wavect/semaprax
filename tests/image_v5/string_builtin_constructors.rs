@@ -152,22 +152,40 @@ fn call(session: &mut VNextSession, method: &str, mut params: Value) -> Value {
     let request = json!({"jsonrpc":"2.0","id":1,"method":method,"params":params}).to_string();
     serde_json::from_slice(&session.handle_frame(request.as_bytes()).unwrap()).unwrap()
 }
+fn row_for<'a>(rows: &'a [Value], target: &str) -> &'a Value {
+    rows.iter()
+        .find(|row| row["target"] == target)
+        .unwrap_or_else(|| panic!("the builtin catalogue publishes {target}"))
+}
 fn payload(response: Value) -> Value {
     assert!(response.get("error").is_none(), "{response}");
     response["result"]["payload"].clone()
 }
 fn metadata(catalog: &Value) {
     let rows = catalog["builtin_calls"].as_array().unwrap();
-    // Eight byte operations and nine String-producing or String operations.
-    assert_eq!(rows.len(), 17);
-    assert!(rows[..8]
+    // Ten byte operations, including the Owned Bounded Byte Buffer v1 pair,
+    // and nine String-producing or String operations.
+    assert_eq!(rows.len(), 19);
+    assert!(rows[..10]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_byte_operations"));
-    assert!(rows[8..]
+    assert!(rows[10..]
         .iter()
         .all(|row| row["evidence_owner"] == "compiler_string_operations"));
+    // The owned buffer pair publishes its exact arity and the transfer that
+    // makes one filled buffer have a single owner.
+    let zeroed = row_for(rows, "core.bytes.zeroed");
+    assert_eq!(zeroed["name"], "bytes_zeroed");
+    assert_eq!(zeroed["arity"], 1);
+    assert_eq!(zeroed["parameters"][0]["ownership"], "value");
+    let set = row_for(rows, "core.bytes.set");
+    assert_eq!(set["name"], "bytes_set");
+    assert_eq!(set["arity"], 3);
+    assert_eq!(set["parameters"][0]["ownership"], "own");
+    assert_eq!(set["parameters"][1]["ownership"], "value");
+    assert_eq!(set["parameters"][2]["ownership"], "value");
     for (index, (id, name, arity, ty, ownership, result)) in OPERATIONS.into_iter().enumerate() {
-        let row = &rows[index + 8];
+        let row = &rows[index + 10];
         assert_eq!(row.as_object().unwrap().len(), 9);
         assert_eq!(row["target"], id);
         assert_eq!(row["name"], name);
@@ -268,7 +286,7 @@ fn every_string_builtin_body_is_replayed_with_exact_selected_identity_and_no_cha
 }
 
 #[test]
-fn schemas_publish_seventeen_exact_arity_branches_and_both_client_type_graphs() {
+fn schemas_publish_nineteen_exact_arity_branches_and_both_client_type_graphs() {
     let fixture = Fixture::new();
     for diagnostics in [false, true] {
         let mut session = fixture.session(diagnostics);
@@ -286,7 +304,7 @@ fn schemas_publish_seventeen_exact_arity_branches_and_both_client_type_graphs() 
                 .iter()
                 .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
                 .count(),
-            17
+            19
         );
         assert!(forms
             .iter()
@@ -309,7 +327,7 @@ fn schemas_publish_seventeen_exact_arity_branches_and_both_client_type_graphs() 
             .iter()
             .find(|doc| doc["$id"] == "urn:semaprax.project-change-catalog.v1")
             .unwrap();
-        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 17);
+        assert_eq!(catalogue["properties"]["builtin_calls"]["maxItems"], 19);
         let kinds = catalogue["properties"]["builtin_calls"]["items"]["oneOf"]
             .as_array()
             .unwrap();

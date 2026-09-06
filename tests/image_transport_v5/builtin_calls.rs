@@ -6,15 +6,23 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static SERIAL: AtomicU64 = AtomicU64::new(0);
-const OPERATIONS: [(&str, &str, usize); 8] = [
-    ("core.bytes.len", "byte_len", 1),
-    ("core.bytes.get", "byte_get", 2),
-    ("core.bytes.range", "byte_range", 3),
-    ("core.bytes.copy", "bytes_copy", 1),
-    ("core.bytes.as-slice", "bytes_as_slice", 1),
-    ("core.array-u8.as-slice", "array_as_slice", 1),
-    ("core.str.as-bytes", "str_as_bytes", 1),
-    ("core.string.as-str", "string_as_str", 1),
+/// Every compiler-owned byte operation, with the exact ownership its published
+/// parameters carry in left-to-right order. The arity is the list's length.
+const OPERATIONS: [(&str, &str, &[&str]); 10] = [
+    ("core.bytes.len", "byte_len", &["borrow"]),
+    ("core.bytes.get", "byte_get", &["borrow", "value"]),
+    (
+        "core.bytes.range",
+        "byte_range",
+        &["borrow", "value", "value"],
+    ),
+    ("core.bytes.copy", "bytes_copy", &["borrow"]),
+    ("core.bytes.as-slice", "bytes_as_slice", &["borrow"]),
+    ("core.array-u8.as-slice", "array_as_slice", &["borrow"]),
+    ("core.str.as-bytes", "str_as_bytes", &["borrow"]),
+    ("core.string.as-str", "string_as_str", &["borrow"]),
+    ("core.bytes.zeroed", "bytes_zeroed", &["value"]),
+    ("core.bytes.set", "bytes_set", &["own", "value", "value"]),
 ];
 struct Fixture(PathBuf);
 impl Fixture {
@@ -97,14 +105,15 @@ fn place(name: &str) -> Value {
 }
 fn assert_metadata(value: &Value) {
     let rows = value["builtin_calls"].as_array().unwrap();
-    // Eight byte operations and nine String operations.
-    assert_eq!(rows.len(), 17);
+    // Ten byte operations and nine String operations.
+    assert_eq!(rows.len(), 19);
     let rows = rows
         .iter()
         .filter(|row| row["evidence_owner"] == "compiler_byte_operations")
         .collect::<Vec<_>>();
     assert_eq!(rows.len(), OPERATIONS.len());
-    for (id, name, arity) in OPERATIONS {
+    for (id, name, ownership) in OPERATIONS {
+        let arity = ownership.len();
         let row = rows.iter().find(|row| row["target"] == id).unwrap();
         assert_eq!(row["kind"], "builtin_call");
         assert_eq!(row["name"], name);
@@ -115,10 +124,7 @@ fn assert_metadata(value: &Value) {
         assert_eq!(row["requires_full_candidate_validation"], true);
         for (index, param) in row["parameters"].as_array().unwrap().iter().enumerate() {
             assert_eq!(param["index"], index);
-            assert_eq!(
-                param["ownership"],
-                if index == 0 { "borrow" } else { "value" }
-            );
+            assert_eq!(param["ownership"], ownership[index]);
             if id == "core.array-u8.as-slice" && index == 0 {
                 assert!(param["type_id"].is_null());
                 assert_eq!(param["type_family"], "array_u8_any_length");
@@ -152,8 +158,8 @@ fn constructor_schemas_preserve_builtin_alternatives_with_numeric_string_operati
         .iter()
         .filter(|row| row["properties"]["kind"]["const"] == "builtin_call")
         .collect::<Vec<_>>();
-    // Eight byte operations and nine String operations.
-    assert_eq!(builtins.len(), 17);
+    // Ten byte operations and nine String operations.
+    assert_eq!(builtins.len(), 19);
     assert_eq!(
         builtins
             .iter()
@@ -163,7 +169,8 @@ fn constructor_schemas_preserve_builtin_alternatives_with_numeric_string_operati
             .count(),
         OPERATIONS.len()
     );
-    for (id, _, arity) in OPERATIONS {
+    for (id, _, ownership) in OPERATIONS {
+        let arity = ownership.len();
         let row = builtins
             .iter()
             .find(|row| row["properties"]["target"]["const"] == id)

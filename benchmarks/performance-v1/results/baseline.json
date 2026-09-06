@@ -1,6 +1,981 @@
 {
-  "note": "No baseline measurement is recorded. The previous file claimed a host, a toolchain version and a commit while holding zero scenarios, which is not evidence of anything. Record a real one on an idle host with: python3 benchmarks/performance-v1/run.py --output benchmarks/performance-v1/results/baseline.json --markdown benchmarks/performance-v1/results/baseline.md",
-  "recorded": false,
-  "scenarios": [],
-  "schema": "benchmark.performance.v2"
+  "host": {
+    "cargo": "cargo 1.98.0 (797e8a9bc 2026-08-05) (Homebrew)",
+    "clang": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+    "cpu_count": 11,
+    "load_average": [
+      2.07,
+      2.64,
+      2.98
+    ],
+    "machine": "arm64",
+    "platform": "darwin-arm64",
+    "python": "3.14.2",
+    "release": "25.5.0",
+    "rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18) (Homebrew)",
+    "system": "Darwin"
+  },
+  "scenarios": [
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-analytics-pipeline",
+      "kind": "project",
+      "path": "examples/analytics-pipeline-project/semaprax.toml",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:7b13150152e501b67ccdd11a45229be836af6eb5e01f3278d668d035962db961",
+        "inputs": [
+          {
+            "digest": "sha256:cad089dd43aa961a58425649c52a86610fbb357cd31e070e0544123e07b0140e",
+            "path": "examples/analytics-pipeline-project/semaprax.toml"
+          },
+          {
+            "digest": "sha256:d3c7d2127ef6fe65e757461222f97afc09daefc1a0d464dfffc90b982709a2cd",
+            "path": "examples/analytics-pipeline-project/src/app.spx"
+          },
+          {
+            "digest": "sha256:e94292673af271b8aac1c2c059234c6076a01fd10d1faa53383f9e970b6c3573",
+            "path": "examples/analytics-pipeline-project/src/core.spx"
+          },
+          {
+            "digest": "sha256:c46748c93f8d32a3bf82e5d44d2ce8ed18ce8fb7871a22904502334ccce08489",
+            "path": "examples/analytics-pipeline-project/src/pipeline.spx"
+          },
+          {
+            "digest": "sha256:aebba777d73713c7bc75971a99eb86b6478bff6ec0c41fd477800f8aaf4fca40",
+            "path": "examples/analytics-pipeline-project/src/tests.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 83.92,
+        "p95": 126.87,
+        "samples": [
+          82.02,
+          79.16,
+          84.12,
+          126.87,
+          83.92
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-apex-supply-chain",
+      "kind": "project",
+      "path": "examples/apex-supply-chain/semaprax.toml",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:88e9e485a26c292ea6afa88addae3201a9feafc7b0c721f7ac32596f6ecb4739",
+        "inputs": [
+          {
+            "digest": "sha256:52d0a2a1220a98d3d92de3fc3ff7d5214037d3f4ffdf5a5f46d942fca2e3de28",
+            "path": "examples/apex-supply-chain/semaprax.toml"
+          },
+          {
+            "digest": "sha256:7cf69ceda02a8bb66596a97d1dced7d5ada87732211b3d70ab24873ca8c80afb",
+            "path": "examples/apex-supply-chain/src/app.spx"
+          },
+          {
+            "digest": "sha256:c1f12704636e392258344c23f1e1c3f32c2362b7e142357f6ad4c7b35c076dff",
+            "path": "examples/apex-supply-chain/src/demand.spx"
+          },
+          {
+            "digest": "sha256:6a5c7f82a8e3051b6f5cddc622697c10c0d38c7fbf5579d893f541052511a0fa",
+            "path": "examples/apex-supply-chain/src/finance.spx"
+          },
+          {
+            "digest": "sha256:0a577664bd469e8bfa2e0de014f343189e2747e87401218edb0377b30669a240",
+            "path": "examples/apex-supply-chain/src/inventory.spx"
+          },
+          {
+            "digest": "sha256:f3ce462753fa015985203baf250fa264e72fc7ac070170d176b0ea8146f35ff1",
+            "path": "examples/apex-supply-chain/src/optimization.spx"
+          },
+          {
+            "digest": "sha256:49dd39629e640e17cde3a2a256ee0880f99ccd48a3e18ecbbd79ecff66ebc611",
+            "path": "examples/apex-supply-chain/src/pricing.spx"
+          },
+          {
+            "digest": "sha256:e8e617cb6a827cdae332e42dec2362285d4ca9142fe4539c6e4815d91775c13d",
+            "path": "examples/apex-supply-chain/src/risk.spx"
+          },
+          {
+            "digest": "sha256:003df8b6173bb294b85eb43c97ecd8fe374b9ac8484344c0e660450c4eae3b60",
+            "path": "examples/apex-supply-chain/src/routing.spx"
+          },
+          {
+            "digest": "sha256:35f70079665e0cd3fadc5dd85edc9b47fa736480b2ba6c3bf0cbb1a06e149529",
+            "path": "examples/apex-supply-chain/src/tests.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 188.64,
+        "p95": 190.88,
+        "samples": [
+          190.88,
+          188.64,
+          180.97,
+          189.8,
+          180.32
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-banking-ledger",
+      "kind": "single",
+      "path": "examples/banking_ledger.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:c66390b3999792d40edafc0222a53e001827aba82ba6f0e866b5616c11cab9f0",
+        "inputs": [
+          {
+            "digest": "sha256:d328b8a763161c6ff3107b1d0d6ee874009080c96e89f2454934fb97227c12d6",
+            "path": "examples/banking_ledger.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 23.62,
+        "p95": 45.51,
+        "samples": [
+          45.51,
+          23.59,
+          24.05,
+          23.62,
+          21.99
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-calculator",
+      "kind": "single",
+      "path": "examples/calculator.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:77b745c7c443774f7420b1ed06f7ddd43fa21345239ac4d6236a1929d58efedf",
+        "inputs": [
+          {
+            "digest": "sha256:765ab644f7a0896147fec60d3b3dbc4548b39ed8999a104e7b1845c947237a39",
+            "path": "examples/calculator.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 11.81,
+        "p95": 12.02,
+        "samples": [
+          11.82,
+          12.02,
+          10.31,
+          11.81,
+          11.81
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-calculator-project",
+      "kind": "project",
+      "path": "examples/calculator-project/semaprax.toml",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:69c43c39dc6bcdb6ed5946ae8ca5a704b3ff6bda7299ba8916161ce295f76234",
+        "inputs": [
+          {
+            "digest": "sha256:1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b",
+            "path": "examples/calculator-project/semaprax.toml"
+          },
+          {
+            "digest": "sha256:ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc",
+            "path": "examples/calculator-project/src/app.spx"
+          },
+          {
+            "digest": "sha256:415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e",
+            "path": "examples/calculator-project/src/core.spx"
+          },
+          {
+            "digest": "sha256:373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11",
+            "path": "examples/calculator-project/src/tests.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 46.41,
+        "p95": 47.97,
+        "samples": [
+          44.75,
+          46.41,
+          36.86,
+          47.94,
+          47.97
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-expression-evaluator",
+      "kind": "single",
+      "path": "examples/expression_evaluator.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:46489ff12f277efe4b35e7c338f0abaf59c03a1aeb6ca88425309667d056905b",
+        "inputs": [
+          {
+            "digest": "sha256:f00c22ed4123c997e315a57380bcb777565b06eb9ab25575226af3ea4f501a6b",
+            "path": "examples/expression_evaluator.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 24.01,
+        "p95": 24.08,
+        "samples": [
+          24.01,
+          20.97,
+          24.0,
+          24.04,
+          24.08
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-math-algorithms",
+      "kind": "single",
+      "path": "examples/math_algorithms.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:0db2ecc2d33e4168078605173730ca17ef1fc2e5480dd7bab926aae78d4b4a1d",
+        "inputs": [
+          {
+            "digest": "sha256:c6ae054597449ab88c7526cbf1a9ae39e182c8a24663e459163e0340f3f86e58",
+            "path": "examples/math_algorithms.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 21.32,
+        "p95": 23.82,
+        "samples": [
+          23.82,
+          20.22,
+          21.32,
+          21.73,
+          20.75
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-meaning",
+      "kind": "single",
+      "path": "examples/meaning.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:6ae56f8e8b0a578d5a5d87790bb09ed988290948d90f68d76c001b314439d36f",
+        "inputs": [
+          {
+            "digest": "sha256:1fb88e08199754dcfbe3c0f795bd19168130c542ab47e9d62e6fb6bb68ca94b7",
+            "path": "examples/meaning.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 11.79,
+        "p95": 11.86,
+        "samples": [
+          11.78,
+          11.74,
+          11.79,
+          11.86,
+          11.82
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-order-lifecycle",
+      "kind": "single",
+      "path": "examples/order_lifecycle.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:9f0b57c926d70959aea93de5a0aa406dea840cbf940711d0be28270f2dbf6c79",
+        "inputs": [
+          {
+            "digest": "sha256:84f7cc3f7e62be18e95f0e32ece0e2d10e4079946c76928667a594c20129e1ba",
+            "path": "examples/order_lifecycle.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 200.0,
+        "p95": 200.72,
+        "samples": [
+          200.0,
+          200.72,
+          200.37,
+          193.98,
+          185.49
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "check",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "check-text-analytics",
+      "kind": "single",
+      "path": "examples/text_analytics.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:ce84f9e5156669dfa1bec4b0411a37c6196bc7144085ed3925b22a2d8d4ff831",
+        "inputs": [
+          {
+            "digest": "sha256:16f463435ae2e98891b328f8d8d5aa2385bb280c4558a477c9a54788df2cafa8",
+            "path": "examples/text_analytics.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 137.67,
+        "p95": 143.66,
+        "samples": [
+          128.41,
+          133.76,
+          139.53,
+          143.66,
+          137.67
+        ]
+      }
+    },
+    {
+      "args": [
+        "app.main",
+        "--depth",
+        "1"
+      ],
+      "command": "context",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "context-meaning",
+      "kind": "single",
+      "path": "examples/meaning.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:6ae56f8e8b0a578d5a5d87790bb09ed988290948d90f68d76c001b314439d36f",
+        "inputs": [
+          {
+            "digest": "sha256:1fb88e08199754dcfbe3c0f795bd19168130c542ab47e9d62e6fb6bb68ca94b7",
+            "path": "examples/meaning.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 10.77,
+        "p95": 11.88,
+        "samples": [
+          11.63,
+          10.77,
+          10.69,
+          10.67,
+          11.88
+        ]
+      }
+    },
+    {
+      "args": [
+        "app.main",
+        "--depth",
+        "1"
+      ],
+      "command": "context",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "context-ownership",
+      "kind": "single",
+      "path": "examples/ownership.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:c0654273b51bea199873ffd260c81cdd5767c08a1b69a4f684c989142aed1f42",
+        "inputs": [
+          {
+            "digest": "sha256:fb088ed2761a7ddbd868e63cf425a3bf9ac634c6f5e51b853de79d053115e2c1",
+            "path": "examples/ownership.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 11.84,
+        "p95": 11.93,
+        "samples": [
+          11.85,
+          11.81,
+          11.84,
+          11.81,
+          11.93
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "graph",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "graph-meaning",
+      "kind": "single",
+      "path": "examples/meaning.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:6ae56f8e8b0a578d5a5d87790bb09ed988290948d90f68d76c001b314439d36f",
+        "inputs": [
+          {
+            "digest": "sha256:1fb88e08199754dcfbe3c0f795bd19168130c542ab47e9d62e6fb6bb68ca94b7",
+            "path": "examples/meaning.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 11.86,
+        "p95": 12.29,
+        "samples": [
+          11.86,
+          11.75,
+          12.29,
+          11.87,
+          11.85
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "graph",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "graph-records",
+      "kind": "single",
+      "path": "examples/records.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:b8a69ca83813b97b5751838934f5eb5d53bab161fcdd14dd3b67a8a673c69da8",
+        "inputs": [
+          {
+            "digest": "sha256:212904079c657948deeb65551593312d8e6b4c427a35827674db051765e3e1b4",
+            "path": "examples/records.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 11.81,
+        "p95": 11.85,
+        "samples": [
+          11.81,
+          11.85,
+          11.8,
+          11.79,
+          11.83
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "run",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "run-apex-supply-chain",
+      "kind": "project",
+      "path": "examples/apex-supply-chain/semaprax.toml",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:88e9e485a26c292ea6afa88addae3201a9feafc7b0c721f7ac32596f6ecb4739",
+        "inputs": [
+          {
+            "digest": "sha256:52d0a2a1220a98d3d92de3fc3ff7d5214037d3f4ffdf5a5f46d942fca2e3de28",
+            "path": "examples/apex-supply-chain/semaprax.toml"
+          },
+          {
+            "digest": "sha256:7cf69ceda02a8bb66596a97d1dced7d5ada87732211b3d70ab24873ca8c80afb",
+            "path": "examples/apex-supply-chain/src/app.spx"
+          },
+          {
+            "digest": "sha256:c1f12704636e392258344c23f1e1c3f32c2362b7e142357f6ad4c7b35c076dff",
+            "path": "examples/apex-supply-chain/src/demand.spx"
+          },
+          {
+            "digest": "sha256:6a5c7f82a8e3051b6f5cddc622697c10c0d38c7fbf5579d893f541052511a0fa",
+            "path": "examples/apex-supply-chain/src/finance.spx"
+          },
+          {
+            "digest": "sha256:0a577664bd469e8bfa2e0de014f343189e2747e87401218edb0377b30669a240",
+            "path": "examples/apex-supply-chain/src/inventory.spx"
+          },
+          {
+            "digest": "sha256:f3ce462753fa015985203baf250fa264e72fc7ac070170d176b0ea8146f35ff1",
+            "path": "examples/apex-supply-chain/src/optimization.spx"
+          },
+          {
+            "digest": "sha256:49dd39629e640e17cde3a2a256ee0880f99ccd48a3e18ecbbd79ecff66ebc611",
+            "path": "examples/apex-supply-chain/src/pricing.spx"
+          },
+          {
+            "digest": "sha256:e8e617cb6a827cdae332e42dec2362285d4ca9142fe4539c6e4815d91775c13d",
+            "path": "examples/apex-supply-chain/src/risk.spx"
+          },
+          {
+            "digest": "sha256:003df8b6173bb294b85eb43c97ecd8fe374b9ac8484344c0e660450c4eae3b60",
+            "path": "examples/apex-supply-chain/src/routing.spx"
+          },
+          {
+            "digest": "sha256:35f70079665e0cd3fadc5dd85edc9b47fa736480b2ba6c3bf0cbb1a06e149529",
+            "path": "examples/apex-supply-chain/src/tests.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 198.31,
+        "p95": 203.19,
+        "samples": [
+          200.73,
+          196.83,
+          198.31,
+          193.25,
+          203.19
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "run",
+      "completed_samples": 5,
+      "expect": "failure",
+      "id": "run-banking-ledger",
+      "kind": "single",
+      "path": "examples/banking_ledger.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:c66390b3999792d40edafc0222a53e001827aba82ba6f0e866b5616c11cab9f0",
+        "inputs": [
+          {
+            "digest": "sha256:d328b8a763161c6ff3107b1d0d6ee874009080c96e89f2454934fb97227c12d6",
+            "path": "examples/banking_ledger.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 45.46,
+        "p95": 47.72,
+        "samples": [
+          47.72,
+          46.42,
+          45.44,
+          43.28,
+          45.46
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "run",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "run-calculator",
+      "kind": "single",
+      "path": "examples/calculator.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:77b745c7c443774f7420b1ed06f7ddd43fa21345239ac4d6236a1929d58efedf",
+        "inputs": [
+          {
+            "digest": "sha256:765ab644f7a0896147fec60d3b3dbc4548b39ed8999a104e7b1845c947237a39",
+            "path": "examples/calculator.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 11.84,
+        "p95": 11.91,
+        "samples": [
+          9.99,
+          11.86,
+          11.82,
+          11.84,
+          11.91
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "run",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "run-calculator-project",
+      "kind": "project",
+      "path": "examples/calculator-project/semaprax.toml",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:69c43c39dc6bcdb6ed5946ae8ca5a704b3ff6bda7299ba8916161ce295f76234",
+        "inputs": [
+          {
+            "digest": "sha256:1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b",
+            "path": "examples/calculator-project/semaprax.toml"
+          },
+          {
+            "digest": "sha256:ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc",
+            "path": "examples/calculator-project/src/app.spx"
+          },
+          {
+            "digest": "sha256:415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e",
+            "path": "examples/calculator-project/src/core.spx"
+          },
+          {
+            "digest": "sha256:373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11",
+            "path": "examples/calculator-project/src/tests.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 46.5,
+        "p95": 48.17,
+        "samples": [
+          45.88,
+          45.32,
+          46.5,
+          47.77,
+          48.17
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "run",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "run-math-algorithms",
+      "kind": "single",
+      "path": "examples/math_algorithms.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:0db2ecc2d33e4168078605173730ca17ef1fc2e5480dd7bab926aae78d4b4a1d",
+        "inputs": [
+          {
+            "digest": "sha256:c6ae054597449ab88c7526cbf1a9ae39e182c8a24663e459163e0340f3f86e58",
+            "path": "examples/math_algorithms.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 22.57,
+        "p95": 23.94,
+        "samples": [
+          23.38,
+          19.72,
+          22.57,
+          20.07,
+          23.94
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "run",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "run-meaning",
+      "kind": "single",
+      "path": "examples/meaning.spx",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:6ae56f8e8b0a578d5a5d87790bb09ed988290948d90f68d76c001b314439d36f",
+        "inputs": [
+          {
+            "digest": "sha256:1fb88e08199754dcfbe3c0f795bd19168130c542ab47e9d62e6fb6bb68ca94b7",
+            "path": "examples/meaning.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 10.64,
+        "p95": 11.33,
+        "samples": [
+          10.27,
+          10.65,
+          10.64,
+          11.33,
+          9.98
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "test",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "test-apex-supply-chain",
+      "kind": "project",
+      "path": "examples/apex-supply-chain/semaprax.toml",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:88e9e485a26c292ea6afa88addae3201a9feafc7b0c721f7ac32596f6ecb4739",
+        "inputs": [
+          {
+            "digest": "sha256:52d0a2a1220a98d3d92de3fc3ff7d5214037d3f4ffdf5a5f46d942fca2e3de28",
+            "path": "examples/apex-supply-chain/semaprax.toml"
+          },
+          {
+            "digest": "sha256:7cf69ceda02a8bb66596a97d1dced7d5ada87732211b3d70ab24873ca8c80afb",
+            "path": "examples/apex-supply-chain/src/app.spx"
+          },
+          {
+            "digest": "sha256:c1f12704636e392258344c23f1e1c3f32c2362b7e142357f6ad4c7b35c076dff",
+            "path": "examples/apex-supply-chain/src/demand.spx"
+          },
+          {
+            "digest": "sha256:6a5c7f82a8e3051b6f5cddc622697c10c0d38c7fbf5579d893f541052511a0fa",
+            "path": "examples/apex-supply-chain/src/finance.spx"
+          },
+          {
+            "digest": "sha256:0a577664bd469e8bfa2e0de014f343189e2747e87401218edb0377b30669a240",
+            "path": "examples/apex-supply-chain/src/inventory.spx"
+          },
+          {
+            "digest": "sha256:f3ce462753fa015985203baf250fa264e72fc7ac070170d176b0ea8146f35ff1",
+            "path": "examples/apex-supply-chain/src/optimization.spx"
+          },
+          {
+            "digest": "sha256:49dd39629e640e17cde3a2a256ee0880f99ccd48a3e18ecbbd79ecff66ebc611",
+            "path": "examples/apex-supply-chain/src/pricing.spx"
+          },
+          {
+            "digest": "sha256:e8e617cb6a827cdae332e42dec2362285d4ca9142fe4539c6e4815d91775c13d",
+            "path": "examples/apex-supply-chain/src/risk.spx"
+          },
+          {
+            "digest": "sha256:003df8b6173bb294b85eb43c97ecd8fe374b9ac8484344c0e660450c4eae3b60",
+            "path": "examples/apex-supply-chain/src/routing.spx"
+          },
+          {
+            "digest": "sha256:35f70079665e0cd3fadc5dd85edc9b47fa736480b2ba6c3bf0cbb1a06e149529",
+            "path": "examples/apex-supply-chain/src/tests.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 196.42,
+        "p95": 203.98,
+        "samples": [
+          192.46,
+          197.43,
+          193.13,
+          196.42,
+          203.98
+        ]
+      }
+    },
+    {
+      "args": [],
+      "command": "test",
+      "completed_samples": 5,
+      "expect": "success",
+      "id": "test-calculator-project",
+      "kind": "project",
+      "path": "examples/calculator-project/semaprax.toml",
+      "repetitions": 5,
+      "status": "ok",
+      "subject": {
+        "digest": "sha256:69c43c39dc6bcdb6ed5946ae8ca5a704b3ff6bda7299ba8916161ce295f76234",
+        "inputs": [
+          {
+            "digest": "sha256:1423cbcd10a605d5abed6af6e48dfd99c96659fbbe08960faf82672d4a6d653b",
+            "path": "examples/calculator-project/semaprax.toml"
+          },
+          {
+            "digest": "sha256:ddfedb62ccb63930d411bff62716583f075c703b72f8d5434816ff45e1469fcc",
+            "path": "examples/calculator-project/src/app.spx"
+          },
+          {
+            "digest": "sha256:415255f8628535606dcecd8d7459639014d4a3437dc1199ecf7f9cc8074d801e",
+            "path": "examples/calculator-project/src/core.spx"
+          },
+          {
+            "digest": "sha256:373d4bc3cc3b292da6fdf69c15778c363573af42dde0dc213c23360f499a7b11",
+            "path": "examples/calculator-project/src/tests.spx"
+          }
+        ]
+      },
+      "verification": {
+        "reason": "",
+        "status": "ok"
+      },
+      "wall_ms": {
+        "p50": 43.32,
+        "p95": 47.53,
+        "samples": [
+          46.86,
+          42.37,
+          43.32,
+          42.65,
+          47.53
+        ]
+      }
+    }
+  ],
+  "schema": "benchmark.performance.v2",
+  "subject": {
+    "binary": "/private/tmp/spx-fix-bench2/target/debug/semaprax",
+    "build_ms": 124154.0,
+    "commit": "06bd1d9f49ee2b2f3e64db827c749741b277bcf4",
+    "digest": "sha256:fd2f63f689b56f91c61392aced1fe893b214726ccafdc15e6be6c766fe319473",
+    "dirty": false,
+    "profile": "debug",
+    "version": "semaprax 0.3.5 (commit unknown)"
+  },
+  "summary": {
+    "drifted": 0,
+    "failed": 0,
+    "ok": 22,
+    "skipped": 0
+  },
+  "timestamp": "2026-09-06T07:11:22.088481Z",
+  "timing": {
+    "clock": "time.perf_counter",
+    "excludes": "cargo startup, compiler build, input digesting, and the untimed verification run",
+    "measures": "one direct execution of the selected semaprax binary",
+    "timeout_seconds": 120
+  }
 }

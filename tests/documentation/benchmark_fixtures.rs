@@ -114,6 +114,32 @@ fn the_scalar_loop_fixture_is_an_admissible_project_and_a_standalone_module() {
     std::fs::remove_dir_all(&directory).unwrap();
 }
 
+/// Every committed example the cold end-to-end benchmark interprets must be one
+/// the interpreter admits from its entry point.
+///
+/// The first executed run of that group panicked on
+/// `examples/text_analytics.spx`, which the interpreter rejects with SPX-F102
+/// `unsupported_callee`. The bench had compiled and shipped for as long as it
+/// went unrun, because nothing asserted that its subjects were admissible. This
+/// case is that assertion, and it costs one interpretation per subject.
+#[test]
+fn every_cold_end_to_end_benchmark_subject_is_admitted_by_the_interpreter() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let options = semaprax::interpreter::InterpreterOptions::new(65_536, 1_000_000).unwrap();
+    for (id, path, function) in project_fixture::COLD_INTERPRETED_EXAMPLES {
+        let subject = root.join(path);
+        assert!(subject.is_file(), "{id} names a missing subject {path}");
+        semaprax::interpreter::interpret(&subject, function, &[], &options).unwrap_or_else(
+            |diagnostics| {
+                panic!(
+                    "the {id} benchmark measures {path}, which the interpreter \
+                     does not admit at {function}: {diagnostics:?}"
+                )
+            },
+        );
+    }
+}
+
 #[test]
 fn a_controlled_edit_invalidates_exactly_its_consumers() {
     let fixture = project_fixture::generate(2);

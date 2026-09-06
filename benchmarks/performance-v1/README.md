@@ -11,7 +11,7 @@ comparison). It measures *throughput and latency*, not agent productivity.
 | Suite | Subject | Metric | Tool |
 | --- | --- | --- | --- |
 | `compiler` | `parse` → `verify` → `graph` → `format` for single-file `.spx` | ns/op, throughput (bytes/s) | `cargo bench --bench compiler` (criterion) |
-| `interpreter` | cold `interpret(path, …)` end-to-end latency beside prepared-evaluator execution, for scalar loops and borrowed text/bytes | ns/op, elements/s | `cargo bench --bench interpreter` |
+| `interpreter` | cold `interpret(path, …)` end-to-end latency beside prepared-evaluator execution, for scalar loops and owned-resource declarations | ns/op, elements/s | `cargo bench --bench interpreter` |
 | `project` | authenticated `check` / `test` / `run` of shipped multi-file manifests, retained and prepared execution, and frontend reanalysis at 1x/2x/4x | ns/op, bytes/s | `cargo bench --bench project` |
 | `macro` | one direct execution of a selected `semaprax` binary: `check`/`graph`/`context`/`run`/`test`/`build` over committed `examples/` entries | wall ms, p50/p95 | `benchmarks/performance-v1/run.py` or `benchmarks/performance-v1/run.sh` |
 | `build` | `native` and `web` artifact emission (Clang C11, wasm) where toolchain is present | wall ms | `benchmarks/performance-v1/run.py --with-build` |
@@ -45,14 +45,18 @@ python3 benchmarks/performance-v1/run.py --semaprax target/debug/semaprax \
   --only check-meaning --output /tmp/one.json
 ```
 
-**No baseline is committed.** [`results/baseline.json`](results/baseline.json)
-records `"recorded": false` with an empty scenario list and
-[`results/baseline.md`](results/baseline.md) says how to record one on an idle
-host. Comparing against it is an error rather than an empty comparison:
+**One baseline is committed.** [`results/baseline.json`](results/baseline.json)
+records a single run of the committed inventory on an idle host, with the host
+facts, load average, toolchain, commit, clean-tree flag and binary digest the
+runner observed; [`results/baseline.md`](results/baseline.md) is its rendering.
+Compare a local run against it with:
 
 ```sh
 python3 benchmarks/performance-v1/run.py --compare benchmarks/performance-v1/results/baseline.json --output /tmp/compare.json
 ```
+
+A baseline holding no measurement is an error to compare against, rather than an
+empty comparison.
 
 Only compatible successful pairs are ever scored — same command, same arguments,
 same subject digest, both `ok` — so a fast failure cannot be reported as an

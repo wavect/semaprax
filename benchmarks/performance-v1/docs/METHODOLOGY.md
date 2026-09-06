@@ -8,11 +8,12 @@ that actually ran**, into the result document's `host` object: platform tag
 count, load average at the start, and the `rustc`, `cargo` and `clang` versions
 it observed. A Linux run therefore never identifies itself as macOS.
 
-No baseline is committed. `results/baseline.json` records
-`"recorded": false` with an empty scenario list, and
-[`results/baseline.md`](../results/baseline.md) explains how to record a real
-one. A host string with no measurements behind it is provenance without
-evidence, so it is not written down.
+`results/baseline.json` holds one recorded run of the committed inventory, and
+[`results/baseline.md`](../results/baseline.md) renders it. The document names
+the host, the load average at the start, the toolchain, the commit, whether that
+tree was dirty and the binary digest — all observed, none declared here. A host
+string with no measurements behind it is provenance without evidence, so a
+baseline is recorded on an idle host or not at all.
 
 All results are **local, single-host** evidence for one binary. They are not
 hosted, release, or cross-platform claims.
@@ -41,13 +42,22 @@ Bench groups:
   - `interpreter-cold-end-to-end`: `interpreter::interpret(path, …)` — read,
     parse, verify, resolve, spawn the 64 MiB-stack evaluation thread, evaluate.
     This is one cold invocation's latency, not evaluator cost. Cases: a
-    generated scalar loop, `text_analytics` (borrowed text and bytes with owned
-    string cleanup), `math_algorithms`.
+    generated scalar loop, `ownership` (a program declaring an owned resource,
+    its drop and a postcondition, so ownership analysis and cleanup planning are
+    inside the sample while its evaluation is a constant), `math_algorithms`.
+    Every committed subject must be one the interpreter admits from its entry
+    point; `tests/documentation/benchmark_fixtures.rs` asserts that, because a
+    rejected subject cannot be measured and Criterion timing does not run in a
+    pull request. The group carried `text_analytics` until the suite was first
+    executed: the interpreter rejects it with SPX-F102 `unsupported_callee`.
   - `interpreter-prepared-evaluator`: the same scalar loop as an authenticated
     Project, executed through `ProjectRevision::prepare_interpreter` — closures
     resolved once, worker retained — beside the retained-but-unprepared
-    revision. The difference is the preparation the prepared case avoids. No
-    benchmark constructs unchecked HIR.
+    revision. The two rows are whole operations with different published output,
+    not a preparation delta: the prepared path always collects a
+    `ProjectSourceTrace` and the retained path collects none, and on the first
+    executed run the prepared row was the slower of the two by roughly an order
+    of magnitude on both subjects. No benchmark constructs unchecked HIR.
 - `project`:
   - `project-cold-load`: `check`, `run` and `test` through
     `project::with_authenticated_project` for the shipped `calculator-project`

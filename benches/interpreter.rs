@@ -90,6 +90,20 @@ impl Drop for Scratch {
 
 /// One whole cold invocation: read, parse, verify, resolve, spawn the
 /// evaluation thread, evaluate. This is end-to-end latency, not evaluator cost.
+///
+/// Every subject here must be one the interpreter actually admits from its
+/// entry point. The first executed run of this group found
+/// `examples/text_analytics.spx` under the name `borrowed-text-and-owned-cleanup`:
+/// the interpreter rejects it with SPX-F102 `unsupported_callee`, because it
+/// passes records through function signatures, so the case had never measured
+/// anything and could not. `owned-resource-declarations` replaces it with a
+/// program the interpreter does admit; that program *declares* an owned
+/// resource, its drop and a postcondition, so ownership analysis and cleanup
+/// planning are inside the sample while its evaluation is a constant. When the
+/// interpreter admits calling through `own`/`borrow` parameters from an entry
+/// point, this case should move to a program that exercises them at runtime.
+/// `tests/documentation/benchmark_fixtures.rs` pins every subject's
+/// admissibility so an inadmissible one fails a test rather than a timing run.
 fn bench_interpreter_cold_end_to_end(c: &mut Criterion) {
     let scratch = Scratch::new("cold");
     let loop_path = scratch.0.join("scalar_loop.spx");
@@ -100,27 +114,20 @@ fn bench_interpreter_cold_end_to_end(c: &mut Criterion) {
     .unwrap();
     let options = InterpreterOptions::new(65_536, 1_000_000).unwrap();
 
+    let mut subjects = vec![(
+        "scalar-loop",
+        loop_path.clone(),
+        "bench.scalar.main",
+        LOOP_ITERATIONS,
+    )];
+    subjects.extend(
+        project_fixture::COLD_INTERPRETED_EXAMPLES
+            .iter()
+            .map(|(id, path, function)| (*id, PathBuf::from(path), *function, 1)),
+    );
+
     let mut group = c.benchmark_group("interpreter-cold-end-to-end");
-    for (id, path, function, elements) in [
-        (
-            "scalar-loop",
-            loop_path.clone(),
-            "bench.scalar.main",
-            LOOP_ITERATIONS,
-        ),
-        (
-            "borrowed-text-and-owned-cleanup",
-            PathBuf::from("examples/text_analytics.spx"),
-            "app.main",
-            1,
-        ),
-        (
-            "scalar-algorithms",
-            PathBuf::from("examples/math_algorithms.spx"),
-            "app.main",
-            1,
-        ),
-    ] {
+    for (id, path, function, elements) in subjects {
         // The measured program must produce its expected result before timing.
         interpreter::interpret(&path, function, &[], &options).unwrap();
         let bytes = std::fs::metadata(&path).unwrap().len();
@@ -162,8 +169,17 @@ fn bench_interpreter_prepared(c: &mut Criterion) {
             })
         },
     );
-    // The retained (unprepared) revision re-resolves its closures per call: the
-    // difference against the prepared case is the preparation it avoids.
+    // The retained (unprepared) revision re-resolves its closures per call.
+    //
+    // The difference between the two rows is NOT the preparation the prepared
+    // case avoids, and this comment claimed it was until the group was first
+    // executed. `PreparedProjectExecutionOptions` always collects a
+    // `ProjectSourceTrace` — `validate_trace_limits` admits no zero budget — and
+    // `ProjectExecutionOptions` collects none, so the prepared row carries work
+    // the retained row does not. On the first executed run the prepared row was
+    // the slower of the two by roughly an order of magnitude on both subjects.
+    // Read the pair as two whole operations with different published output,
+    // never as a preparation delta, until the paths are made to do equal work.
     group.bench_function(
         BenchmarkId::new("scalar-loop-retained", format!("{steps}-evaluator-steps")),
         |b| {

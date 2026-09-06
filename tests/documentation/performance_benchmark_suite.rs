@@ -565,25 +565,142 @@ print('ok')
 }
 
 #[test]
-fn the_committed_baseline_records_no_measurement_and_cannot_be_compared_against() {
+fn the_committed_baseline_carries_the_provenance_of_the_run_that_produced_it() {
     let baseline = root().join(SUITE).join("results/baseline.json");
     let document: Value =
         serde_json::from_str(&std::fs::read_to_string(&baseline).unwrap()).unwrap();
-    assert_eq!(document["recorded"], Value::Bool(false));
-    assert!(document["scenarios"].as_array().unwrap().is_empty());
-    for claimed in ["host", "subject", "rustc", "commit", "timestamp"] {
-        assert!(
-            document.get(claimed).is_none(),
-            "an unrecorded baseline must claim no {claimed} provenance"
-        );
-    }
     assert!(
-        root().join(SUITE).join("results/baseline.md").exists(),
-        "the rendering the README links must exist"
+        document.get("recorded").is_none(),
+        "the placeholder `recorded` flag belongs to a file with no measurement behind it"
+    );
+    assert_eq!(
+        document["schema"].as_str().unwrap(),
+        "benchmark.performance.v2"
+    );
+    assert!(document["timestamp"].as_str().unwrap().ends_with('Z'));
+
+    // Idleness is auditable: the load average the runner observed is recorded
+    // beside the logical CPU count it was measured against.
+    let host = &document["host"];
+    assert!(host["cpu_count"].as_u64().unwrap() >= 1);
+    assert!(host["rustc"].as_str().unwrap().contains("rustc"));
+    assert!(!host["platform"].as_str().unwrap().is_empty());
+    assert_eq!(
+        host["load_average"].as_array().unwrap().len(),
+        3,
+        "a recorded baseline names the load it was measured under"
     );
 
+    // The measured binary, the revision it was built from, and whether that
+    // tree was dirty. A baseline from a modified tree is not a baseline.
+    let subject = &document["subject"];
+    assert!(subject["digest"].as_str().unwrap().starts_with("sha256:"));
+    assert!(subject["version"].as_str().unwrap().contains("semaprax"));
+    assert!(!subject["profile"].as_str().unwrap().is_empty());
+    let commit = subject["commit"].as_str().unwrap();
+    assert_eq!(commit.len(), 40, "a recorded baseline names its commit");
+    assert!(commit
+        .chars()
+        .all(|character| character.is_ascii_hexdigit()));
+    assert_eq!(
+        subject["dirty"],
+        Value::Bool(false),
+        "a baseline must be measured from a clean tree"
+    );
+
+    // Every row carries its expected outcome and its completed sample count,
+    // and only a successful row publishes comparable timing.
+    let scenarios = document["scenarios"].as_array().unwrap();
+    assert!(
+        scenarios.len() >= 20,
+        "the baseline measures the committed inventory, not a subset: {}",
+        scenarios.len()
+    );
+    let inventory: Value = serde_json::from_str(
+        &std::fs::read_to_string(root().join(SUITE).join("scenarios.json")).unwrap(),
+    )
+    .unwrap();
+    let declared: Vec<&str> = inventory["scenarios"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|scenario| scenario["id"].as_str().unwrap())
+        .collect();
+    for row in scenarios {
+        let id = row["id"].as_str().unwrap();
+        assert!(declared.contains(&id), "{id} is not a committed scenario");
+        let expect = row["expect"].as_str().unwrap();
+        assert!(matches!(expect, "success" | "failure"), "{id}: {expect}");
+        let completed = row["completed_samples"].as_u64().unwrap();
+        match row["status"].as_str().unwrap() {
+            "ok" => {
+                assert!(completed >= 1, "{id} recorded no sample");
+                assert_eq!(
+                    row["wall_ms"]["samples"].as_array().unwrap().len() as u64,
+                    completed,
+                    "{id} must publish exactly its completed samples"
+                );
+            }
+            "failed" | "drifted" | "skipped" => assert!(
+                row.get("wall_ms").is_none(),
+                "{id} is not successful and must publish no comparable timing"
+            ),
+            other => panic!("{id} carries an unknown status {other}"),
+        }
+    }
+
+    // The rendering the README links names the same run.
+    let markdown = std::fs::read_to_string(root().join(SUITE).join("results/baseline.md")).unwrap();
+    assert!(
+        markdown.contains(commit),
+        "the rendered baseline must name the revision it measured"
+    );
+
+    // A real baseline is comparable: re-measuring one committed scenario scores
+    // against it rather than reporting an empty comparison.
+    let directory = scratch("committed-baseline-compare");
+    let result = runner()
+        .arg("--only")
+        .arg("check-meaning")
+        .arg("--semaprax")
+        .arg(env!("CARGO_BIN_EXE_semaprax"))
+        .arg("--quick")
+        .arg("--output")
+        .arg(directory.join("result.json"))
+        .arg("--compare")
+        .arg(&baseline)
+        .current_dir(root())
+        .output()
+        .unwrap();
+    let stdout = String::from_utf8_lossy(&result.stdout);
+    assert_eq!(
+        result.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(
+        stdout.contains("check-meaning: baseline "),
+        "the committed baseline must score a comparable pair: {stdout}"
+    );
+}
+
+#[test]
+fn a_baseline_holding_no_measurement_cannot_be_compared_against() {
     let directory = scratch("empty-baseline");
     std::fs::write(directory.join("good.spx"), GOOD_SOURCE).unwrap();
+    // The shape the committed baseline held before a real one was recorded.
+    let baseline = directory.join("baseline.json");
+    std::fs::write(
+        &baseline,
+        serde_json::to_string(&serde_json::json!({
+            "schema": "benchmark.performance.v2",
+            "recorded": false,
+            "scenarios": []
+        }))
+        .unwrap(),
+    )
+    .unwrap();
     let inventory = serde_json::json!({
         "schema": "benchmark.scenarios.v1",
         "scenarios": [

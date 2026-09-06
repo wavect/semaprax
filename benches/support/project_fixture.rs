@@ -20,6 +20,28 @@ use std::path::{Path, PathBuf};
 /// Fixture sizes benchmarked together: 1x, 2x and 4x the base module count.
 pub const SCALES: [usize; 3] = [1, 2, 4];
 
+/// Committed example programs the cold end-to-end interpreter benchmark
+/// interprets, as `(benchmark id, repository-relative path, entry point)`.
+///
+/// This is the single inventory the benchmark iterates and
+/// `tests/documentation/benchmark_fixtures.rs` pins: the interpreter must
+/// actually admit every entry. A subject it rejects can never be measured, and
+/// Criterion timing does not run in a pull request, so the admissibility of
+/// these paths is a test obligation rather than something a timing run
+/// discovers.
+pub const COLD_INTERPRETED_EXAMPLES: [(&str, &str, &str); 2] = [
+    (
+        "owned-resource-declarations",
+        "examples/ownership.spx",
+        "app.main",
+    ),
+    (
+        "scalar-algorithms",
+        "examples/math_algorithms.spx",
+        "app.main",
+    ),
+];
+
 /// Leaf modules per scale unit. A Project v1 manifest admits at most sixteen
 /// sources, so the 4x fixture must stay inside that bound.
 const LEAVES_PER_SCALE: usize = 2;

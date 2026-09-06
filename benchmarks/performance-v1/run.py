@@ -454,16 +454,20 @@ def render_markdown(document: dict) -> str:
         "Wall times are advisory local evidence for this one host and build. "
         "They are not hosted, release, or cross-platform claims.",
         "",
-        "| Scenario | Command | Status | p50 ms | p95 ms | Samples | Subject digest |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| Scenario | Command | Expect | Status | p50 ms | p95 ms | Samples | Subject digest |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for record in document["scenarios"]:
         wall = record.get("wall_ms") or {}
         digest = record.get("subject", {}).get("digest", "-")
+        # The expected outcome is rendered beside the observed one. A scenario
+        # whose subject is a diagnostic path is `ok` because it failed as
+        # declared, and the table must not read as an unqualified success.
         lines.append(
-            "| {id} | {command} | {status} | {p50} | {p95} | {samples} | `{digest}` |".format(
+            "| {id} | {command} | {expect} | {status} | {p50} | {p95} | {samples} | `{digest}` |".format(
                 id=record["id"],
                 command=record["command"],
+                expect=record.get("expect", "success"),
                 status=record["status"],
                 p50=wall.get("p50", "-"),
                 p95=wall.get("p95", "-"),

@@ -60,12 +60,19 @@ format: `Unreleased` then release buckets, grouped by impact.
   subject rather than any later head.
 
 - Added internal Owned Bounded Vec v1 across source, HIR, Graph, cleanup-plan
-  replay, the interpreter, native C11, and Core Wasm. `Vec<T>` and five explicit
+  replay, the interpreter, native C11, and Core Wasm. `Vec<T>` and eight explicit
   generic intrinsics admit exactly the eight Copy scalars, any `usize` capacity
   expression with a hard runtime maximum of 8192 and sticky code 3 on dynamic
-  overflow/allocation failure, consuming push, borrowed length/capacity/get,
-  exact same-owner reopening, and deterministic settlement on all three engines.
-  The alloc-tier `std.collections` package now authors the exact five
+  overflow/allocation failure, consuming push, deterministic exact reserve,
+  indexed set, capacity-retaining clear, borrowed length/capacity/get, exact
+  same-owner reopening, and deterministic settlement on all three engines.
+  Reserve uses `max(old_capacity, len + additional)`, set reuses bounds status
+  code 2, and all three new mutators consume and return the one owner. Additive
+  compiler prelude v3 is selected only when one of those operations is used;
+  frozen prelude v1/v2 contract bytes remain unchanged, and collision-free
+  legacy Vec programs keep selecting their prior bindings. The three new
+  intrinsic names and core identities are now reserved language vocabulary. The
+  alloc-tier `std.collections` package now authors the exact eight
   authenticated aliases, an explicit eight-scalar conformance module, bundled
   dependency metadata, generated catalogs, focused local Project/package
   evidence, and no public exports. Owned/aggregate elements, inference,

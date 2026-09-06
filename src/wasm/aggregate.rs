@@ -42,6 +42,7 @@ use super::{
 const BYTE_IMPORT_COUNT: u32 = 4;
 const OWNED_BUFFER_IMPORT_COUNT: u32 = 2;
 const VEC_IMPORT_COUNT: u32 = 6;
+const EXTENDED_VEC_IMPORT_COUNT: u32 = 3;
 const BYTE_COPY_IMPORT: u32 = SCALAR_IMPORT_COUNT;
 const BYTE_GET_IMPORT: u32 = SCALAR_IMPORT_COUNT + 1;
 const BYTE_DROP_IMPORT: u32 = SCALAR_IMPORT_COUNT + 2;
@@ -2054,6 +2055,7 @@ fn emit_profile(
     let uses_byte_data = super::program_uses_byte_data(program);
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
+    let uses_extended_vec = super::vec_ops::program_uses_extended_vec(program);
     if program
         .types
         .iter()
@@ -2195,6 +2197,16 @@ fn emit_profile(
             &mut type_indexes,
         )
     });
+    let vec_set = uses_extended_vec.then(|| {
+        intern_type(
+            Signature {
+                params: vec![I64, I32, I64, I64],
+                results: vec![I64],
+            },
+            &mut types,
+            &mut type_indexes,
+        )
+    });
 
     let executable_functions = executable_functions(program);
     let public_global_count = if host_output { 5_u32 } else { 1_u32 };
@@ -2246,6 +2258,11 @@ fn emit_profile(
                         0
                     }
                     + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
+                    + if uses_extended_vec {
+                        EXTENDED_VEC_IMPORT_COUNT
+                    } else {
+                        0
+                    }
                     + u32::try_from(index).unwrap_or(u32::MAX),
             )
         })
@@ -2271,7 +2288,12 @@ fn emit_profile(
             } else {
                 0
             }
-            + if uses_vec { VEC_IMPORT_COUNT } else { 0 },
+            + if uses_vec { VEC_IMPORT_COUNT } else { 0 }
+            + if uses_extended_vec {
+                EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            },
     );
     for name in ["spx_add", "spx_sub", "spx_mul", "spx_div", "spx_rem"] {
         function_import(&mut imports, "env", name, binary_checked);
@@ -2305,6 +2327,16 @@ fn emit_profile(
         function_import(&mut imports, "env", "spx_vec_capacity", vec_read.unwrap());
         function_import(&mut imports, "env", "spx_vec_get", vec_get.unwrap());
         function_import(&mut imports, "env", "spx_vec_drop", vec_drop.unwrap());
+        if uses_extended_vec {
+            function_import(
+                &mut imports,
+                "env",
+                "spx_vec_reserve_exact",
+                vec_push.unwrap(),
+            );
+            function_import(&mut imports, "env", "spx_vec_set", vec_set.unwrap());
+            function_import(&mut imports, "env", "spx_vec_clear", vec_read.unwrap());
+        }
     }
     section(&mut module, 2, imports);
 
@@ -2395,6 +2427,13 @@ fn emit_profile(
             })
         })
         .and_then(|value| value.checked_add(if uses_vec { VEC_IMPORT_COUNT } else { 0 }))
+        .and_then(|value| {
+            value.checked_add(if uses_extended_vec {
+                EXTENDED_VEC_IMPORT_COUNT
+            } else {
+                0
+            })
+        })
         .ok_or_else(|| error("aggregate wrapper import count overflows u32"))?
         .checked_add(
             u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
@@ -6139,6 +6178,138 @@ impl Emitter<'_> {
                 self.get_scalar(&result);
                 self.output.push(0x50); // i64.eqz
                 self.emit_vec_failure_if(expr, STATUS_VEC_PUSH_FULL)?;
+                self.apply_call_commit(&expr.id)?;
+                self.clear_scalar(&source)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::ReserveExact => {
+                let source_value = self.emit_expr(&args[0])?;
+                let additional = self.emit_expr(&args[1])?;
+                self.require_scalar(
+                    &source_value,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec reserve owner",
+                )?;
+                self.require_scalar(&additional, &ResolvedType::Usize, "Vec reserve additional")?;
+                let source_epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index: 0,
+                    value_expression: args[0].id.clone(),
+                };
+                let source = Value::Scalar {
+                    local: self
+                        .plan
+                        .cleanup_call_argument_carriers
+                        .get(&source_epoch)
+                        .copied()
+                        .ok_or_else(|| {
+                            error("Vec reserve has no authenticated call-argument carrier")
+                        })?,
+                    ty: crate::vec_ops::resolved_vec(element.clone()),
+                };
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.get_scalar(&additional);
+                self.output.push(0x10);
+                write_u32(self.output, base + VEC_IMPORT_COUNT);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50);
+                self.emit_vec_failure_if(expr, STATUS_VEC_ALLOCATION_FAILURE)?;
+                self.apply_call_commit(&expr.id)?;
+                self.clear_scalar(&source)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Set => {
+                let source_value = self.emit_expr(&args[0])?;
+                let index = self.emit_expr(&args[1])?;
+                let element_value = self.emit_expr(&args[2])?;
+                self.require_scalar(
+                    &source_value,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec set owner",
+                )?;
+                self.require_scalar(&index, &ResolvedType::Usize, "Vec set index")?;
+                self.require_scalar(&element_value, element, "Vec set element")?;
+                let source_epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index: 0,
+                    value_expression: args[0].id.clone(),
+                };
+                let source = Value::Scalar {
+                    local: self
+                        .plan
+                        .cleanup_call_argument_carriers
+                        .get(&source_epoch)
+                        .copied()
+                        .ok_or_else(|| {
+                            error("Vec set has no authenticated call-argument carrier")
+                        })?,
+                    ty: crate::vec_ops::resolved_vec(element.clone()),
+                };
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.get_scalar(&index);
+                self.emit_vec_element_bits(&element_value, element)?;
+                self.output.push(0x10);
+                write_u32(self.output, base + VEC_IMPORT_COUNT + 1);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50);
+                self.emit_vec_failure_if(expr, STATUS_VEC_GET_OUT_OF_BOUNDS)?;
+                self.apply_call_commit(&expr.id)?;
+                self.clear_scalar(&source)?;
+                Ok(result)
+            }
+            crate::vec_ops::VecOp::Clear => {
+                let source_value = self.emit_expr(&args[0])?;
+                self.require_scalar(
+                    &source_value,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec clear owner",
+                )?;
+                let source_epoch = crate::cleanup_plan::StorageId::CallArgument {
+                    call: expr.id.clone(),
+                    parameter_index: 0,
+                    value_expression: args[0].id.clone(),
+                };
+                let source = Value::Scalar {
+                    local: self
+                        .plan
+                        .cleanup_call_argument_carriers
+                        .get(&source_epoch)
+                        .copied()
+                        .ok_or_else(|| {
+                            error("Vec clear has no authenticated call-argument carrier")
+                        })?,
+                    ty: crate::vec_ops::resolved_vec(element.clone()),
+                };
+                let result = Value::Scalar {
+                    local: self.plan.expr_scalar(expr)?,
+                    ty: expr.ty.clone(),
+                };
+                self.get_scalar(&source);
+                self.output.push(0x41);
+                write_i64(self.output, i64::from(tag));
+                self.output.push(0x10);
+                write_u32(self.output, base + VEC_IMPORT_COUNT + 2);
+                self.output.push(0x21);
+                write_u32(self.output, scalar_local(&result)?);
+                self.get_scalar(&result);
+                self.output.push(0x50);
+                self.trap_if();
                 self.apply_call_commit(&expr.id)?;
                 self.clear_scalar(&source)?;
                 Ok(result)

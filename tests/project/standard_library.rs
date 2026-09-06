@@ -275,7 +275,7 @@ fn collections_is_the_exact_alloc_tier_transparent_vec_surface() {
     let (library, entry, tests) = package_sources(&package);
     assert_eq!(entry, "std.collections.examples");
     assert_eq!(tests, "std.collections.tests");
-    assert_eq!(library.program.functions.len(), 5);
+    assert_eq!(library.program.functions.len(), 8);
     let identities = library
         .program
         .functions
@@ -290,6 +290,9 @@ fn collections_is_the_exact_alloc_tier_transparent_vec_surface() {
             "std.collections.vec.len",
             "std.collections.vec.capacity",
             "std.collections.vec.get",
+            "std.collections.vec.reserve-exact",
+            "std.collections.vec.set",
+            "std.collections.vec.clear",
         ]
     );
     assert!(library
@@ -307,7 +310,16 @@ fn collections_is_the_exact_alloc_tier_transparent_vec_surface() {
     assert!(manifest.contains("web_exports = []"));
     let conformance = std::fs::read_to_string(package_root.join("src/tests.spx")).unwrap();
     for scalar in ["i64", "i32", "u8", "usize", "char", "f32", "f64", "bool"] {
-        for operation in ["with_capacity", "push", "len", "capacity", "get"] {
+        for operation in [
+            "with_capacity",
+            "push",
+            "len",
+            "capacity",
+            "get",
+            "reserve_exact",
+            "set",
+            "clear",
+        ] {
             assert!(
                 conformance.contains(&format!("{operation}<{scalar}>")),
                 "std.collections conformance does not instantiate {operation}<{scalar}>"
@@ -682,14 +694,18 @@ assert.equal(linked.instance.exports.semaprax_main(), 0n);
     let _ = std::fs::remove_dir_all(scratch);
 }
 
-/// A Project consumes a standard-library module by vendoring its library
-/// file, so every library module must stand alone: copied under another file
-/// name into a fresh project beside that package's examples and conformance
-/// modules, it checks, runs, and passes exactly as it does in `std/`.
+/// Every source-portable standard-library module stands alone when vendored.
+/// `std.collections` is intentionally excluded: its transparent generic
+/// wrappers are compiler-authenticated under their exact module, paths, and
+/// package manifest and are consumed through the bundled dependency linker.
 #[test]
 fn every_library_module_is_self_contained_when_vendored() {
     let scratch = temporary("vendored");
     for package in packages() {
+        if package.module == "std.collections" {
+            assert_eq!(package.tier, "alloc");
+            continue;
+        }
         let (library, entry, tests) = package_sources(&package);
         let package_root = root().join("std").join(&package.directory);
         let project = scratch.join(&package.directory);

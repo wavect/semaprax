@@ -42,9 +42,11 @@ on the interpreter, native C11, and internal Core Wasm through the
 byte-export adapter still rejects it with `SPX-W115`, so it carries no public
 ABI; no `std.*` package wraps it, and no required module below is satisfied by
 it. The exact compiler-owned `Vec<T>` profile is different: the alloc-tier
-`std.collections` package authenticates five transparent aliases over its five
+`std.collections` package authenticates eight transparent aliases over its eight
 intrinsics for the eight admitted Copy scalars. Those aliases add no public ABI,
 iterator, owned-element, or broader collection support.
+The three additive aliases select compiler prelude v3; collision-free source
+using only the original five retains frozen prelude-v2 binding bytes and digest.
 
 Every public standard-library declaration must have:
 
@@ -141,7 +143,7 @@ lanes in [Architecture](ARCHITECTURE.md#compiler-and-execution-lanes).
 | `std.num` | Checked, wrapping, saturating, and conversion operations | Partial: sign, absolute value, parity, Euclidean division and remainder, greatest common divisor, checked power, integer square root, digit count, power-of-two test, and floor logarithms in base 2 and 10 in `std.num`; overflow predicates and wrapping and saturating addition, subtraction, negation, absolute value, and multiplication in `std.num.overflow`; checked arithmetic is the language default; wrapping multiplication is Missing |
 | `std.iter` | Iterators, adapters, folds, collection, and ranges | Missing; needs interfaces and closures |
 | `std.mem` | Ownership helpers, regions, arenas, boxes, shared immutable values | Missing |
-| `std.collections` | Vector, deque, map, set, heap, and fixed-capacity collections | Partial: authenticated transparent wrappers for `with_capacity`, consuming `push`, and borrowed `len`, `capacity`, and `get` over exactly the eight Owned Bounded Vec v1 Copy scalars have focused local Project/package evidence, explicit conformance instantiations, generated catalogs, and no public exports; every broader collection operation remains Missing |
+| `std.collections` | Vector, deque, map, set, heap, and fixed-capacity collections | Partial: authenticated transparent wrappers for `with_capacity`, `push`, `reserve_exact`, `set`, `clear`, `len`, `capacity`, and `get` over exactly the eight Owned Bounded Vec v1 Copy scalars have focused local Project/package evidence, explicit conformance instantiations, generated catalogs, and no public exports; `push`, `reserve_exact`, `set`, and `clear` consume and return the one owner, while every broader collection operation remains Missing |
 | `std.bytes` | Buffers, spans, readers, writers, endian operations, and encoding | Partial: byte-to-integer conversion, guarded indexing, first-index search, counting, ASCII classification, slice equality, prefix and suffix tests, and little- and big-endian 16- and 32-bit reads over `borrow Slice<u8>`; buffers, writers, and encodings are Missing |
 | `std.text` | UTF-8 strings, Unicode iteration, search, split, trim, and normalization policy | Partial: borrowed byte length, emptiness, exact equality, prefix, and substring search; iteration, split, trim, and normalization are Missing |
 | `std.format` | Type-safe formatting without runtime format-string ambiguity | Missing |

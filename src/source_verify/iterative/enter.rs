@@ -261,8 +261,9 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             expression.span,
                         ));
                     }
-                    if op == crate::vec_ops::VecOp::WithCapacity
-                        && matches!(args.first().map(|arg| &arg.kind), Some(ExprKind::Usize(value)) if *value > crate::vec_ops::MAX_CAPACITY)
+                    if op.capacity_argument().is_some_and(|index| {
+                        matches!(args.get(index).map(|arg| &arg.kind), Some(ExprKind::Usize(value)) if *value > crate::vec_ops::MAX_CAPACITY)
+                    })
                     {
                         self.diagnostics.push(error(
                             self.program,

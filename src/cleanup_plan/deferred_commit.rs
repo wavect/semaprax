@@ -5,10 +5,11 @@
 //! cannot restore them, because the callee owns them. Two compiler-owned
 //! operations instead check a bound over arguments the caller has already
 //! staged, and must fail *before* the transfer: `vec_push` at full capacity,
-//! and `bytes_set` with a computed element index outside its buffer. Deferring
-//! their commit to the success branch leaves the owner in its canonical
-//! call-argument slot, so ordinary region cleanup destroys it exactly once and
-//! no backend has to invent a destruction of its own.
+//! `vec_reserve_exact` beyond the bounded capacity, `vec_set` outside the
+//! initialized length, and `bytes_set` outside its buffer. Deferring their
+//! commit to the success branch leaves the owner in its canonical call-argument
+//! slot, so ordinary region cleanup destroys it exactly once and no backend has
+//! to invent a destruction of its own.
 
 use crate::hir::DeclarationId;
 
@@ -16,7 +17,14 @@ use crate::hir::DeclarationId;
 /// owner commit until the propagated status is known to be zero.
 pub(super) fn call_behavior(callee: &DeclarationId) -> (Option<crate::vec_ops::VecOp>, bool) {
     let op = crate::vec_ops::by_id(callee.as_str());
-    let deferred = op == Some(crate::vec_ops::VecOp::Push) || is_fallible_byte_operation(callee);
+    let deferred = matches!(
+        op,
+        Some(
+            crate::vec_ops::VecOp::Push
+                | crate::vec_ops::VecOp::ReserveExact
+                | crate::vec_ops::VecOp::Set
+        )
+    ) || is_fallible_byte_operation(callee);
     (op, deferred)
 }
 
@@ -24,6 +32,17 @@ pub(super) fn call_behavior(callee: &DeclarationId) -> (Option<crate::vec_ops::V
 /// publishes no propagated status at all.
 pub(super) fn is_total_byte_operation(callee: &DeclarationId) -> bool {
     crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
+}
+
+pub(super) fn is_infallible_vec_operation(op: Option<crate::vec_ops::VecOp>) -> bool {
+    matches!(
+        op,
+        Some(
+            crate::vec_ops::VecOp::Len
+                | crate::vec_ops::VecOp::Capacity
+                | crate::vec_ops::VecOp::Clear
+        )
+    )
 }
 
 fn is_fallible_byte_operation(callee: &DeclarationId) -> bool {

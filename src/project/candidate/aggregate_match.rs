@@ -159,9 +159,13 @@ pub(in crate::project::candidate::intent) fn match_plan(
     })
 }
 
-fn match_descriptor(subject: &VariantSubject<'_>, binding: Option<&str>) -> Result<Value> {
+fn match_descriptor(
+    revision: &ProjectRevision,
+    subject: &VariantSubject<'_>,
+    binding: Option<&str>,
+) -> Result<Value> {
     inventory(subject)?;
-    let mut value = descriptor(&subject.first, binding)?;
+    let mut value = descriptor(revision, &subject.first, binding)?;
     let object = value
         .as_object_mut()
         .expect("compiler descriptor is an object");
@@ -217,7 +221,7 @@ pub(in crate::project::candidate) fn aggregate_match_dependency_fingerprint(
     target: &str,
 ) -> Result<Option<Value>> {
     variant_subject(revision, target)?
-        .map(|subject| match_descriptor(&subject, None))
+        .map(|subject| match_descriptor(revision, &subject, None))
         .transpose()
 }
 
@@ -256,7 +260,7 @@ pub(in crate::project::candidate) fn aggregate_matches(
         let Some(binding) = visible_binding(program, &subject.first)? else {
             continue;
         };
-        let value = match_descriptor(&subject, Some(&binding))?;
+        let value = match_descriptor(revision, &subject, Some(&binding))?;
         let encoded = super::super::super::wire::render(value.clone(), MAX_CATALOG_BYTES)?;
         bytes = bytes.saturating_add(encoded.len());
         if bytes > MAX_CATALOG_BYTES {

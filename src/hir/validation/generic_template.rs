@@ -8,15 +8,9 @@ pub(super) fn authenticate_vec_wrapper(
 ) -> Result<Option<crate::vec_ops::VecOp>, Diagnostic> {
     let candidate = crate::vec_ops::wrapper_by_id(template.id.as_str()).is_some()
         || (program.module == crate::vec_ops::MODULE
-            && [
-                crate::vec_ops::VecOp::WithCapacity,
-                crate::vec_ops::VecOp::Push,
-                crate::vec_ops::VecOp::Len,
-                crate::vec_ops::VecOp::Capacity,
-                crate::vec_ops::VecOp::Get,
-            ]
-            .into_iter()
-            .any(|op| crate::vec_ops::wrapper_name(op) == template.name));
+            && crate::vec_ops::ALL
+                .into_iter()
+                .any(|op| crate::vec_ops::wrapper_name(op) == template.name));
     match (
         candidate,
         crate::vec_ops::hir_wrapper_in_program(program, template),

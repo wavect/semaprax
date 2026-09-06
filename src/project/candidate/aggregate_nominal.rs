@@ -8,7 +8,7 @@ pub(in crate::project::candidate) fn nominal_type_dependency_fingerprint(
     selector(target)?;
     if let Some(subject) = subject(revision, target)? {
         if subject.kind == "record" {
-            return descriptor(&subject, None).map(Some);
+            return descriptor(revision, &subject, None).map(Some);
         }
     }
     aggregate_match_dependency_fingerprint(revision, target)
@@ -127,6 +127,9 @@ pub(in crate::project::candidate) fn nominal_types(
         crate::prelude::OPTION_ID.to_owned(),
         crate::prelude::RESULT_ID.to_owned(),
     ]);
+    if selected_vec_prelude(revision).is_some() {
+        targets.insert(crate::prelude::VEC_ID.to_owned());
+    }
     let mut result = Vec::new();
     let mut bytes = 2usize;
     let mut items = 0usize;
@@ -135,9 +138,13 @@ pub(in crate::project::candidate) fn nominal_types(
             continue;
         };
         let type_binding = if shape["identity_origin"] == "compiler_owned" {
-            let selected = shape["cases"][0]["target"]
-                .as_str()
-                .ok_or_else(|| grammar("nominal prelude case is absent"))?;
+            let selected = if shape["kind"] == "record" {
+                target.as_str()
+            } else {
+                shape["cases"][0]["target"]
+                    .as_str()
+                    .ok_or_else(|| grammar("nominal prelude case is absent"))?
+            };
             let subject = prelude_subject(revision, selected)?
                 .ok_or_else(|| grammar("nominal prelude owner is absent"))?;
             visible_binding(program, &subject)?

@@ -192,31 +192,32 @@ impl SemanticWorkspaceRevision {
             "workspace_manifest": revision.workspace_manifest(),
         }))?;
 
-        let normalized_sources = revision
-            .sources()
-            .iter()
-            .map(|source| {
-                let (program, _) =
-                    crate::parse_with_comments(source.source(), Path::new(source.path()))
-                        .map_err(|error| vec![error])?;
-                let normalized = crate::format::canonical(&program);
-                Ok(json!({
-                    "path": source.path(),
-                    "semantic_source_digest": framed_digest(
-                        NORMALIZED_SOURCE_DOMAIN,
-                        normalized.as_bytes(),
-                    ),
-                }))
-            })
-            .collect::<Result<Vec<_>, Vec<Diagnostic>>>()?;
-        let prelude_contract = if revision
-            .sources()
-            .iter()
-            .any(|source| crate::prelude::source_uses_vec(source.source()))
-        {
-            crate::prelude::contract_bytes_v2()
-        } else {
-            crate::prelude::contract_bytes_v1()
+        let mut normalized_sources = Vec::with_capacity(revision.sources().len());
+        let mut selected_prelude = crate::prelude::SCHEMA_V1;
+        for source in revision.sources() {
+            let (program, _) =
+                crate::parse_with_comments(source.source(), Path::new(source.path()))
+                    .map_err(|error| vec![error])?;
+            let (schema, _, _) = crate::prelude::selected_for_program(&program);
+            if schema == crate::prelude::SCHEMA_V3
+                || (schema == crate::prelude::SCHEMA_V2
+                    && selected_prelude == crate::prelude::SCHEMA_V1)
+            {
+                selected_prelude = schema;
+            }
+            let normalized = crate::format::canonical(&program);
+            normalized_sources.push(json!({
+                "path": source.path(),
+                "semantic_source_digest": framed_digest(
+                    NORMALIZED_SOURCE_DOMAIN,
+                    normalized.as_bytes(),
+                ),
+            }));
+        }
+        let prelude_contract = match selected_prelude {
+            crate::prelude::SCHEMA_V3 => crate::prelude::contract_bytes_v3(),
+            crate::prelude::SCHEMA_V2 => crate::prelude::contract_bytes_v2(),
+            _ => crate::prelude::contract_bytes_v1(),
         };
         let semantic_program = SemanticProgram::new(json!({
             "entry_module": revision.manifest().entry(),

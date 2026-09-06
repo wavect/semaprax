@@ -166,7 +166,7 @@ pub(in crate::project::candidate) fn aggregate_projection_dependency_fingerprint
     target: &str,
 ) -> Result<Option<Value>> {
     projection_subject(revision, target)?
-        .map(|subject| Ok(json!({"field":target,"record":descriptor(&subject,None)?})))
+        .map(|subject| Ok(json!({"field":target,"record":descriptor(revision,&subject,None)?})))
         .transpose()
 }
 
@@ -205,7 +205,7 @@ pub(in crate::project::candidate) fn aggregate_projections(
                     "aggregate projection catalogue exceeds its item bound",
                 ));
             }
-            let owner = descriptor(&subject, Some(&visible))?;
+            let owner = descriptor(revision, &subject, Some(&visible))?;
             for field in fields {
                 let mut value = json!({"kind":"project","target":field.id.as_str(),"owner":subject.owner,
                     "name":field.name,"index":field.index,"type_identity":field.ty.identity_key(),
@@ -269,7 +269,7 @@ pub(in crate::project::candidate) fn aggregate_updates(
         let Some(binding) = visible_binding(program, &subject)? else {
             continue;
         };
-        let mut value = descriptor(&subject, Some(&binding))?;
+        let mut value = descriptor(revision, &subject, Some(&binding))?;
         value["kind"] = json!("update");
         value["base_evaluation"] = json!("once_into_typed_value_binding");
         value["field_coverage"] = json!("subset");
@@ -374,7 +374,7 @@ pub(in crate::project::candidate) fn aggregate_dependency_fingerprint(
 ) -> Result<Option<Value>> {
     selector(target)?;
     subject(revision, target)?
-        .map(|subject| descriptor(&subject, None))
+        .map(|subject| descriptor(revision, &subject, None))
         .transpose()
 }
 
@@ -441,7 +441,7 @@ pub(in crate::project::candidate) fn aggregate_constructors(
         }
         let visible = visible_binding(program, &subject)?
             .ok_or_else(|| grammar("aggregate catalogue binding disappeared"))?;
-        let value = descriptor(&subject, Some(&visible))?;
+        let value = descriptor(revision, &subject, Some(&visible))?;
         let encoded = super::super::wire::render(value.clone(), MAX_CATALOG_BYTES)?;
         bytes = bytes.saturating_add(encoded.len());
         if bytes > MAX_CATALOG_BYTES {
@@ -529,6 +529,51 @@ fn prelude_index<'a>(
 
 fn prelude_subject<'a>(revision: &'a ProjectRevision, target: &str) -> Result<Option<Subject<'a>>> {
     use crate::prelude::*;
+    if target == VEC_ID {
+        if selected_vec_prelude(revision).is_none() {
+            return Ok(None);
+        }
+        let index = prelude_index(revision, "Vec")?;
+        let id = index
+            .type_id("Vec")
+            .ok_or_else(|| grammar("checked compiler prelude Vec type is absent"))?;
+        let declaration = index
+            .declaration(id)
+            .ok_or_else(|| grammar("checked compiler prelude Vec declaration is absent"))?;
+        let parameters = index
+            .type_parameters(id)
+            .ok_or_else(|| grammar("checked compiler prelude Vec parameter is absent"))?;
+        let fields = index
+            .record_fields(id)
+            .ok_or_else(|| grammar("checked compiler prelude Vec field inventory is absent"))?;
+        if id.as_str() != VEC_ID
+            || declaration.id != *id
+            || declaration.name != "Vec"
+            || declaration.kind != DeclarationKind::Record
+            || declaration.identity_origin != IdentityOrigin::CompilerOwned
+            || declaration.owner.is_some()
+            || parameters.len() != 1
+            || parameters[0].name != "T"
+            || parameters[0].index != 0
+            || !fields.is_empty()
+        {
+            return Err(grammar(
+                "compiler prelude Vec identity or inventory does not match",
+            ));
+        }
+        return Ok(Some(Subject {
+            kind: "record",
+            target: VEC_ID,
+            owner: VEC_ID,
+            name: "Vec",
+            path: "",
+            module: "",
+            generic: true,
+            fields: Cow::Owned(Vec::new()),
+            type_parameters: Cow::Owned(parameters.to_vec()),
+            prelude_binding: Some("Vec"),
+        }));
+    }
     type Payload = (&'static str, &'static str, u32);
     type Case = (&'static str, &'static str, Option<Payload>);
     type PreludeShape = (
@@ -734,7 +779,11 @@ fn binding(program: &Program, owner: &str, provider: &str) -> Result<Option<Stri
     })
 }
 
-fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
+fn descriptor(
+    revision: &ProjectRevision,
+    subject: &Subject<'_>,
+    binding: Option<&str>,
+) -> Result<Value> {
     if subject.fields.len() > MAX_FIELDS
         || subject.type_parameters.len() > MAX_AGGREGATE_TYPE_ARGUMENTS
     {
@@ -773,9 +822,11 @@ fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
                 "aggregate template parameter descriptors exceed their construction bound",
             ));
         }
-        parameters.push(
-            json!({"name":parameter.name,"index":parameter.index,"allowed_types":["i64","bool"]}),
-        );
+        parameters.push(if subject.owner == crate::prelude::VEC_ID {
+            json!({"name":parameter.name,"index":parameter.index,"allowed_types":["i64","i32","u8","usize","char","f32","f64","bool"]})
+        } else {
+            json!({"name":parameter.name,"index":parameter.index,"allowed_types":["i64","bool"]})
+        });
     }
     let mut value = json!({"kind":subject.kind,"target":subject.target,"owner":subject.owner,"name":subject.name,
         "path":subject.path,"module":subject.module,"generic":subject.generic,"fields":fields,
@@ -790,7 +841,7 @@ fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
         value["identity_origin"] = json!("compiler_owned");
         let vec_prelude = subject.target == crate::prelude::VEC_ID;
         value["compiler_prelude"] = if vec_prelude {
-            json!({"schema":crate::prelude::SCHEMA_V2,"digest":crate::prelude::digest_text_v2()})
+            vec_compiler_prelude(revision)
         } else {
             json!({"schema":crate::prelude::SCHEMA_V1,"digest":crate::prelude::digest_text_v1()})
         };
@@ -799,6 +850,27 @@ fn descriptor(subject: &Subject<'_>, binding: Option<&str>) -> Result<Value> {
         value["binding"] = json!(binding);
     }
     Ok(value)
+}
+
+fn vec_compiler_prelude(revision: &ProjectRevision) -> Value {
+    let selected = selected_vec_prelude(revision).expect("Vec descriptor requires Vec semantics");
+    json!({"schema":selected.0,"digest":selected.1})
+}
+
+fn selected_vec_prelude(revision: &ProjectRevision) -> Option<(&'static str, String)> {
+    let mut selected: Option<(&'static str, String)> = None;
+    for source in revision.sources() {
+        let candidate = crate::prelude::selected_for_source(source.source());
+        if candidate.0 == crate::prelude::SCHEMA_V3
+            || (candidate.0 == crate::prelude::SCHEMA_V2
+                && !selected
+                    .as_ref()
+                    .is_some_and(|current| current.0 == crate::prelude::SCHEMA_V3))
+        {
+            selected = Some((candidate.0, candidate.2));
+        }
+    }
+    selected
 }
 
 fn selector(id: &str) -> Result<()> {

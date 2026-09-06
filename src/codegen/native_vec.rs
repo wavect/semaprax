@@ -1,7 +1,48 @@
 //! Reachability-gated C11 runtime for the internal Owned Bounded Vec v1 lane.
 
-pub(super) fn emit_runtime(output: &mut impl super::COutput) {
+pub(super) fn emit_runtime(
+    output: &mut impl super::COutput,
+    program: &crate::hir::ResolvedProgram,
+) {
     output.push_str(NATIVE_VEC_RUNTIME_C);
+    output.push_str(NATIVE_VEC_RUNTIME_SUFFIX_C);
+    if program_uses_extended_ops(program) {
+        output.push_str(NATIVE_VEC_EXTENDED_RUNTIME_C);
+    }
+}
+
+fn program_uses_extended_ops(program: &crate::hir::ResolvedProgram) -> bool {
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(|function| {
+            let mut found = false;
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+            {
+                crate::hir::visit_resolved_calls(expression, &mut |callee, instance, _| {
+                    found |= instance.is_none()
+                        && matches!(
+                            crate::vec_ops::by_id(callee.as_str()),
+                            Some(
+                                crate::vec_ops::VecOp::ReserveExact
+                                    | crate::vec_ops::VecOp::Set
+                                    | crate::vec_ops::VecOp::Clear
+                            )
+                        );
+                });
+            }
+            found
+        })
 }
 
 const NATIVE_VEC_RUNTIME_C: &str = r#"#include <stddef.h>
@@ -129,7 +170,69 @@ static __attribute__((unused)) spx_status_token spx_vec_push(
     return SPX_STATUS_SUCCESS;
 }
 
-static __attribute__((unused)) uint64_t spx_vec_len(struct spx_context *spx_ctx, const spx_vec_v1 *value, uint32_t tag) {
+"#;
+
+const NATIVE_VEC_EXTENDED_RUNTIME_C: &str = r#"#ifndef SPX_VEC_REALLOC
+#define SPX_VEC_REALLOC realloc
+#endif
+
+static __attribute__((unused)) spx_status_token spx_vec_reserve_exact(
+    struct spx_context *spx_ctx, uint32_t tag, spx_vec_v1 *source,
+    uint64_t additional, spx_vec_v1 *result
+) {
+    struct spx_vec_authority_entry *entry = spx_vec_require_valid(spx_ctx, source, tag);
+    if (result == NULL || result == source) spx_runtime_invariant_failure("invalid bounded Vec reserve result");
+    if (additional > UINT64_MAX - source->len) return spx_vec_failure(spx_ctx, UINT32_C(3));
+    uint64_t required = source->len + additional;
+    uint64_t target = source->capacity > required ? source->capacity : required;
+    if (target > SPX_VEC_MAX_CAPACITY) return spx_vec_failure(spx_ctx, UINT32_C(3));
+    uint64_t *payload = source->ptr;
+    if (target != source->capacity) {
+        payload = (uint64_t *)SPX_VEC_REALLOC(source->ptr, (size_t)target * sizeof(uint64_t));
+        if (payload == NULL) return spx_vec_failure(spx_ctx, UINT32_C(3));
+    }
+    source->ptr = payload; source->capacity = target;
+    source->generation = spx_vec_next_generation(spx_ctx);
+    entry->ptr = payload; entry->capacity = target; entry->generation = source->generation;
+    result->ptr = source->ptr; result->len = source->len; result->capacity = source->capacity;
+    result->generation = source->generation; result->authority = source->authority;
+    result->type_tag = source->type_tag; *source = (spx_vec_v1){0};
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_vec_set(
+    struct spx_context *spx_ctx, uint32_t tag, spx_vec_v1 *source,
+    uint64_t index, uint64_t bits, spx_vec_v1 *result
+) {
+    struct spx_vec_authority_entry *entry = spx_vec_require_valid(spx_ctx, source, tag);
+    if (result == NULL || result == source) spx_runtime_invariant_failure("invalid bounded Vec set result");
+    if (index >= source->len) return spx_vec_failure(spx_ctx, UINT32_C(2));
+    source->ptr[index] = bits;
+    source->generation = spx_vec_next_generation(spx_ctx);
+    entry->generation = source->generation;
+    result->ptr = source->ptr; result->len = source->len; result->capacity = source->capacity;
+    result->generation = source->generation; result->authority = source->authority;
+    result->type_tag = source->type_tag; *source = (spx_vec_v1){0};
+    return SPX_STATUS_SUCCESS;
+}
+
+static __attribute__((unused)) spx_status_token spx_vec_clear(
+    struct spx_context *spx_ctx, uint32_t tag, spx_vec_v1 *source, spx_vec_v1 *result
+) {
+    struct spx_vec_authority_entry *entry = spx_vec_require_valid(spx_ctx, source, tag);
+    if (result == NULL || result == source) spx_runtime_invariant_failure("invalid bounded Vec clear result");
+    source->len = UINT64_C(0);
+    source->generation = spx_vec_next_generation(spx_ctx);
+    entry->len = UINT64_C(0); entry->generation = source->generation;
+    result->ptr = source->ptr; result->len = source->len; result->capacity = source->capacity;
+    result->generation = source->generation; result->authority = source->authority;
+    result->type_tag = source->type_tag; *source = (spx_vec_v1){0};
+    return SPX_STATUS_SUCCESS;
+}
+
+"#;
+
+const NATIVE_VEC_RUNTIME_SUFFIX_C: &str = r#"static __attribute__((unused)) uint64_t spx_vec_len(struct spx_context *spx_ctx, const spx_vec_v1 *value, uint32_t tag) {
     (void)spx_vec_require_valid(spx_ctx, value, tag); return value->len;
 }
 static __attribute__((unused)) uint64_t spx_vec_capacity(struct spx_context *spx_ctx, const spx_vec_v1 *value, uint32_t tag) {

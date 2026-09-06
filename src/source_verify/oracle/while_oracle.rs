@@ -196,7 +196,7 @@ pub(super) fn reject_while_disallowed_oracle(
                 return Err(());
             }
             if let Some(operation) = vec_operation {
-                if operation == crate::vec_ops::VecOp::WithCapacity
+                if !operation.admitted_in_while()
                     || type_arguments.len() != 1
                     || !crate::vec_ops::ast_element_is_admitted(&type_arguments[0])
                     || args.len() != operation.arity()

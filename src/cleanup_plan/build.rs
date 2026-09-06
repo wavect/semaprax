@@ -3679,10 +3679,7 @@ impl<'a> PlanBuilder<'a> {
                         }
                         if super::deferred_commit::is_total_byte_operation(callee)
                             || crate::host_io_ops::by_id(callee.as_str()).is_some()
-                            || matches!(
-                                vec_op,
-                                Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity)
-                            )
+                            || super::deferred_commit::is_infallible_vec_operation(vec_op)
                         {
                             let destination = self.expression_slot(expression, active_region)?;
                             if let Some(destination) = destination.clone() {
@@ -5299,10 +5296,7 @@ impl<'a> PlanBuilder<'a> {
 
         if super::deferred_commit::is_total_byte_operation(callee)
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
-            || matches!(
-                vec_op,
-                Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity)
-            )
+            || super::deferred_commit::is_infallible_vec_operation(vec_op)
             || crate::command_io_ops::by_id(callee.as_str()).is_some_and(|op| {
                 crate::command_io_ops::failure(op)
                     == crate::command_io_ops::CommandIoFailure::Infallible

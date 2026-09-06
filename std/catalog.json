@@ -340,6 +340,42 @@
           "kind": "function",
           "name": "get",
           "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn reserve_exact<T>(values: own Vec<T>, additional: usize) -> Vec<T>"
+          ],
+          "id": "std.collections.vec.reserve-exact",
+          "kind": "function",
+          "name": "reserve_exact",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn set<T>(values: own Vec<T>, index: usize, value: T) -> Vec<T>"
+          ],
+          "id": "std.collections.vec.set",
+          "kind": "function",
+          "name": "set",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn clear<T>(values: own Vec<T>) -> Vec<T>"
+          ],
+          "id": "std.collections.vec.clear",
+          "kind": "function",
+          "name": "clear",
+          "requires": 0
         }
       ],
       "dependency": "std.collections = \"^0.1.0\"",

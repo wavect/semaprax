@@ -1590,7 +1590,7 @@ authenticated linked-HIR subject. Authentic cross-replay regressions distinguish
 its retained-signature checks from digest rejection; equal descriptors alone
 do not prove function-body equivalence or source provenance.
 `src/project/std_collections.rs` authenticates the sole empty-descriptor Project
-v8 exception: the frozen `std.collections` manifest and exact five transparent
+v8 exception: the frozen `std.collections` manifest and exact eight transparent
 Owned Bounded Vec wrappers. Lookalike manifests and sources fail before build;
 ordinary Project v8 and table manifests retain their nonempty export rules.
 `src/project/cxx_owned_data.rs` and its bounded renderer compose that same
@@ -2120,7 +2120,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
 | Standard library | `std/<package>/` Project packages, `src/project/standard_dependencies.rs` for closed bundled dependency expansion, `std/packages.json` tier and target metadata, generated `std/catalog.json`; `src/cli/help.rs` embeds the generated Markdown catalog unchanged and derives exact module/name/stable-ID lookups from the JSON catalog; gate `tests/project/standard_library.rs` |
-| Owned bounded Vec | `src/vec_ops.rs` owns exact compiler intrinsic identities/signatures and bounds; `src/prelude.rs` owns `core.vec`; source/HIR authenticate explicit Copy-scalar instances and same-owner rebind; cleanup and backends consume those identities; gates `tests/language/owned_bounded_vec_v1.rs` and `tests/owned_data/owned_bounded_vec_runtime.rs` |
+| Owned bounded Vec | `src/vec_ops.rs` owns exact compiler intrinsic identities/signatures and bounds; `src/prelude.rs` owns `core.vec`, preserves frozen five-operation `semaprax.prelude.v2`, and selects additive v3 only for reserve/set/clear use; source/HIR authenticate explicit Copy-scalar instances and same-owner rebind; cleanup and backends consume those identities; gates `tests/language/owned_bounded_vec_v1.rs` and `tests/owned_data/owned_bounded_vec_runtime.rs` |
 | Executable evidence | `tests/`, crate-local tests, `platform-tests/`, `.github/workflows/` |
 
 This table is the single module-level map. Other contributor documents should

@@ -8,36 +8,54 @@ module test.owned_vec_runtime;
 @id("vec.main")
 fn main() -> i64
 {
-    let mut i64s = vec_with_capacity<i64>(3usize);
+    let mut i64s = vec_with_capacity<i64>(1usize);
     i64s = vec_push<i64>(i64s, 11);
+    i64s = vec_reserve_exact<i64>(i64s, 2usize);
     i64s = vec_push<i64>(i64s, 22);
     i64s = vec_push<i64>(i64s, 33);
+    i64s = vec_set<i64>(i64s, 1usize, 44);
     let mut i32s = vec_with_capacity<i32>(1usize);
     i32s = vec_push<i32>(i32s, 12i32);
+    i32s = vec_reserve_exact<i32>(i32s, 1usize);
+    i32s = vec_set<i32>(i32s, 0usize, 22i32);
     let mut u8s = vec_with_capacity<u8>(1usize);
     u8s = vec_push<u8>(u8s, 13u8);
+    u8s = vec_reserve_exact<u8>(u8s, 1usize);
+    u8s = vec_set<u8>(u8s, 0usize, 23u8);
     let mut usizes = vec_with_capacity<usize>(1usize);
     usizes = vec_push<usize>(usizes, 14usize);
+    usizes = vec_reserve_exact<usize>(usizes, 1usize);
+    usizes = vec_set<usize>(usizes, 0usize, 24usize);
     let mut chars = vec_with_capacity<char>(1usize);
     chars = vec_push<char>(chars, 'A');
+    chars = vec_reserve_exact<char>(chars, 1usize);
+    chars = vec_set<char>(chars, 0usize, 'B');
     let mut f32s = vec_with_capacity<f32>(1usize);
     f32s = vec_push<f32>(f32s, 1.5f32);
+    f32s = vec_reserve_exact<f32>(f32s, 1usize);
+    f32s = vec_set<f32>(f32s, 0usize, 3.5f32);
     let mut f64s = vec_with_capacity<f64>(1usize);
     f64s = vec_push<f64>(f64s, 2.5);
+    f64s = vec_reserve_exact<f64>(f64s, 1usize);
+    f64s = vec_set<f64>(f64s, 0usize, 4.5);
     let mut bools = vec_with_capacity<bool>(1usize);
     bools = vec_push<bool>(bools, true);
+    bools = vec_reserve_exact<bool>(bools, 1usize);
+    bools = vec_set<bool>(bools, 0usize, false);
+    bools = vec_clear<bool>(bools);
     if vec_len<i64>(i64s) == 3usize
         && vec_capacity<i64>(i64s) == 3usize
         && vec_get<i64>(i64s, 0usize) == 11
-        && vec_get<i64>(i64s, 1usize) == 22
+        && vec_get<i64>(i64s, 1usize) == 44
         && vec_get<i64>(i64s, 2usize) == 33
-        && vec_get<i32>(i32s, 0usize) == 12i32
-        && vec_get<u8>(u8s, 0usize) == 13u8
-        && vec_get<usize>(usizes, 0usize) == 14usize
-        && vec_get<char>(chars, 0usize) == 'A'
-        && vec_get<f32>(f32s, 0usize) == 1.5f32
-        && vec_get<f64>(f64s, 0usize) == 2.5
-        && vec_get<bool>(bools, 0usize)
+        && vec_get<i32>(i32s, 0usize) == 22i32
+        && vec_get<u8>(u8s, 0usize) == 23u8
+        && vec_get<usize>(usizes, 0usize) == 24usize
+        && vec_get<char>(chars, 0usize) == 'B'
+        && vec_get<f32>(f32s, 0usize) == 3.5f32
+        && vec_get<f64>(f64s, 0usize) == 4.5
+        && vec_len<bool>(bools) == 0usize
+        && vec_capacity<bool>(bools) == 2usize
     { 7 } else { 1 }
 }
 "#;
@@ -68,6 +86,29 @@ fn main() -> i64 {
     let capacity = 8193usize;
     let values = vec_with_capacity<i64>(capacity);
     let length = vec_len<i64>(values);
+    0
+}
+"#;
+
+const RESERVE_FAILURE: &str = r#"
+module test.owned_vec_reserve_failure;
+@id("vec.reserve-failure")
+fn main() -> i64 {
+    let mut values = vec_with_capacity<i64>(1usize);
+    values = vec_push<i64>(values, 1);
+    let additional = 8192usize;
+    values = vec_reserve_exact<i64>(values, additional);
+    0
+}
+"#;
+
+const SET_FAILURE: &str = r#"
+module test.owned_vec_set_failure;
+@id("vec.set-failure")
+fn main() -> i64 {
+    let mut values = vec_with_capacity<i64>(1usize);
+    values = vec_push<i64>(values, 1);
+    values = vec_set<i64>(values, 1usize, 2);
     0
 }
 "#;
@@ -124,6 +165,7 @@ fn owned_bounded_vec_copy_scalars_run_all_engines_without_owner_copy() {
     let generated = codegen::emit_c(&ast).unwrap();
     let core_wasm = wasm::emit_module(&ast).unwrap();
     assert!(!generated.contains("memcpy(result, source"));
+    assert!(!generated.contains("*result = *source"));
     assert!(!generated.contains("spx_vec_v1 moved = *source;\n    *result = moved"));
     for payload in wasmparser::Parser::new(0).parse_all(&core_wasm) {
         if let wasmparser::Payload::CodeSectionEntry(body) = payload.unwrap() {
@@ -181,7 +223,10 @@ const env={
   spx_vec_len:(source,tag)=>BigInt(read(source,tag).values.length),
   spx_vec_capacity:(source,tag)=>BigInt(read(source,tag).capacity),
   spx_vec_get:(source,tag,index)=>{const entry=read(source,tag),n=Number(index);if(!Number.isSafeInteger(n)||n<0||n>=entry.values.length)throw Error('oob');return entry.values[n]},
-  spx_vec_drop:source=>{if(!entries.delete(key(source)))throw Error('double-drop')}
+  spx_vec_drop:source=>{if(!entries.delete(key(source)))throw Error('double-drop')},
+  spx_vec_reserve_exact:(source,tag,additional)=>{const old=read(source,tag),n=Number(additional),capacity=Math.max(old.capacity,old.values.length+n);if(!Number.isSafeInteger(n)||n<0||capacity>8192)return 0n;entries.delete(key(source));return alloc(tag,capacity,old.values.slice())},
+  spx_vec_set:(source,tag,index,bits)=>{const old=read(source,tag),n=Number(index);if(!Number.isSafeInteger(n)||n<0||n>=old.values.length)return 0n;const values=old.values.slice();values[n]=bits;entries.delete(key(source));return alloc(tag,old.capacity,values)},
+  spx_vec_clear:(source,tag)=>{const old=read(source,tag);entries.delete(key(source));return alloc(tag,old.capacity,[])}
 };
 WebAssembly.instantiate(bytes,{env}).then(({instance})=>{
   for(let i=0;i<4;i+=1){const value=instance.exports.semaprax_main();if(value!==7n||entries.size!==0)throw Error(`semantic-or-settlement:${value}:${entries.size}`)}
@@ -208,6 +253,8 @@ fn owned_bounded_vec_failures_are_sticky_and_settle_before_reentry() {
         ("push-full", PUSH_FULL, 1_u64, 13_i32),
         ("get-oob", GET_OOB, 2_u64, 14_i32),
         ("allocation", ALLOCATION_FAILURE, 3_u64, 15_i32),
+        ("reserve", RESERVE_FAILURE, 3_u64, 15_i32),
+        ("set", SET_FAILURE, 2_u64, 14_i32),
     ] {
         let ast = parse(source, format!("owned-vec-{name}.spx")).unwrap();
         let root =
@@ -221,7 +268,9 @@ fn owned_bounded_vec_failures_are_sticky_and_settle_before_reentry() {
                 match name {
                     "push-full" => "vec.push-full",
                     "get-oob" => "vec.get-oob",
-                    _ => "vec.allocation",
+                    "allocation" => "vec.allocation",
+                    "reserve" => "vec.reserve-failure",
+                    _ => "vec.set-failure",
                 },
                 &[],
                 &interpreter::InterpreterOptions::default(),
@@ -280,6 +329,9 @@ spx_vec_with_capacity:(tag,c)=>{const n=Number(c);return n<=8192?alloc(tag,n):0n
 spx_vec_push:(v,t,b)=>{const e=read(v,t);if(e.values.length>=e.capacity)return 0n;entries.delete(key(v));return alloc(t,e.capacity,e.values.concat([b]))},
 spx_vec_len:(v,t)=>BigInt(read(v,t).values.length),spx_vec_capacity:(v,t)=>BigInt(read(v,t).capacity),
 spx_vec_get:(v,t,i)=>read(v,t).values[Number(i)],spx_vec_drop:v=>{if(!entries.delete(key(v)))throw Error('drop')}};
+env.spx_vec_reserve_exact=(v,t,a)=>{const e=read(v,t),n=Number(a),capacity=Math.max(e.capacity,e.values.length+n);if(!Number.isSafeInteger(n)||n<0||capacity>8192)return 0n;entries.delete(key(v));return alloc(t,capacity,e.values.slice())};
+env.spx_vec_set=(v,t,i,b)=>{const e=read(v,t),n=Number(i);if(!Number.isSafeInteger(n)||n<0||n>=e.values.length)return 0n;const values=e.values.slice();values[n]=b;entries.delete(key(v));return alloc(t,e.capacity,values)};
+env.spx_vec_clear=(v,t)=>{const e=read(v,t);entries.delete(key(v));return alloc(t,e.capacity,[])};
 WebAssembly.instantiate(bytes,{env}).then(({instance})=>{for(let i=0;i<4;i+=1){let failed=false;try{instance.exports.semaprax_main()}catch(error){if(error.domain_id!=='semaprax.vec.v1'||error.code!==expected-12)throw error;failed=true}if(!failed||entries.size!==0)throw Error(`failure-or-arena:${failed}:${entries.size}`)}}).catch(error=>{console.error(error);process.exit(2)});
 "#;
             let output = Command::new("node")
@@ -323,6 +375,15 @@ int main(int argc, char **argv) {
         value.type_tag = UINT32_C(2); (void)spx_vec_len(&ctx, &value, UINT32_C(1));
     } else if (strcmp(argv[1], "generation") == 0) {
         value.generation += UINT64_C(1); spx_vec_drop(&ctx, &value);
+    } else if (strcmp(argv[1], "reserve-stale") == 0) {
+        spx_vec_v1 stale = value; spx_vec_v1 moved = spx_vec_move(&ctx, &value), result = {0};
+        (void)moved; (void)spx_vec_reserve_exact(&ctx, UINT32_C(1), &stale, UINT64_C(1), &result);
+    } else if (strcmp(argv[1], "set-tag") == 0) {
+        spx_vec_v1 result = {0}; value.type_tag = UINT32_C(2);
+        (void)spx_vec_set(&ctx, UINT32_C(1), &value, UINT64_C(0), UINT64_C(9), &result);
+    } else if (strcmp(argv[1], "clear-generation") == 0) {
+        spx_vec_v1 result = {0}; value.generation += UINT64_C(1);
+        (void)spx_vec_clear(&ctx, UINT32_C(1), &value, &result);
     } else return 4;
     return 5;
 }
@@ -352,7 +413,16 @@ int main(int argc, char **argv) {
             "{optimization}: {}",
             String::from_utf8_lossy(&compiled.stderr)
         );
-        for attack in ["stale", "pointer-read", "pointer-free", "tag", "generation"] {
+        for attack in [
+            "stale",
+            "pointer-read",
+            "pointer-free",
+            "tag",
+            "generation",
+            "reserve-stale",
+            "set-tag",
+            "clear-generation",
+        ] {
             assert!(
                 !Command::new(&binary)
                     .arg(attack)
@@ -372,9 +442,92 @@ int main(int argc, char **argv) {
 }
 
 #[test]
+fn reserve_exact_native_realloc_failure_preserves_owner_until_single_settlement() {
+    assert!(Command::new("clang").arg("--version").output().is_ok());
+    let ast = parse(SOURCE, "owned-vec-native-realloc-failure.spx").unwrap();
+    let generated = codegen::emit_c(&ast).unwrap();
+    let prefix = r#"
+#include <stdlib.h>
+static unsigned spx_test_realloc_count;
+static unsigned spx_test_free_count;
+static void *spx_test_realloc(void *ptr, size_t size) {
+    (void)ptr; (void)size; spx_test_realloc_count += 1U; return NULL;
+}
+static void spx_test_free(void *ptr) {
+    spx_test_free_count += 1U; free(ptr);
+}
+#define SPX_VEC_REALLOC spx_test_realloc
+#define free spx_test_free
+#define main spx_generated_main
+"#;
+    let probe = r#"
+#undef main
+#undef free
+int main(void) {
+    struct spx_status_entry entries[UINT32_C(4)]; struct spx_context ctx = {0};
+    if (!spx_context_init(&ctx, UINT64_C(91), entries, UINT32_C(4), NULL, NULL, NULL)) return 2;
+    spx_vec_v1 empty = {0}, value = {0}, result = {0};
+    if (spx_vec_with_capacity(&ctx, UINT32_C(1), UINT64_C(1), &empty) != SPX_STATUS_SUCCESS) return 3;
+    if (spx_vec_push(&ctx, UINT32_C(1), &empty, UINT64_C(7), &value) != SPX_STATUS_SUCCESS) return 4;
+    uint64_t *ptr = value.ptr; uint64_t generation = value.generation;
+    uint32_t authority = value.authority;
+    if (spx_vec_reserve_exact(&ctx, UINT32_C(1), &value, UINT64_C(1), &result) == SPX_STATUS_SUCCESS) return 5;
+    if (spx_test_realloc_count != 1U || spx_test_free_count != 0U) return 6;
+    if (value.ptr != ptr || value.len != UINT64_C(1) || value.capacity != UINT64_C(1)
+        || value.generation != generation || value.authority != authority || value.type_tag != UINT32_C(1)) return 7;
+    if (result.ptr != NULL || result.len != UINT64_C(0) || result.capacity != UINT64_C(0)
+        || result.generation != UINT64_C(0) || result.authority != UINT32_C(0)
+        || result.type_tag != UINT32_C(0)) return 8;
+    struct spx_vec_authority_entry *entry = &ctx.vec_authority[authority - UINT32_C(1)];
+    if (!entry->live || entry->ptr != ptr || entry->generation != generation) return 9;
+    spx_vec_drop(&ctx, &value);
+    if (spx_test_free_count != 1U || entry->live || value.authority != UINT32_C(0)) return 10;
+    return 0;
+}
+"#;
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-owned-vec-native-realloc-failure-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let c_path = root.join("probe.c");
+    std::fs::write(&c_path, format!("{prefix}\n{generated}\n{probe}")).unwrap();
+    for optimization in ["-O0", "-O2"] {
+        let binary = root.join(format!("probe-{optimization}"));
+        let compiled = Command::new("clang")
+            .args(["-std=c11", "-Wall", "-Wextra", "-Werror", optimization])
+            .arg(&c_path)
+            .arg("-o")
+            .arg(&binary)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "{optimization}: {}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let output = Command::new(&binary).output().unwrap();
+        assert!(
+            output.status.success(),
+            "{optimization}: exit={:?} stderr={}",
+            output.status.code(),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
 fn nested_if_vec_routes_complete_core_wasm_imports_and_executes() {
     assert!(Command::new("node").arg("--version").output().is_ok());
     let ast = parse(NESTED_IF, "owned-vec-nested-if.spx").unwrap();
+    let c = codegen::emit_c(&ast).unwrap();
+    for extended in ["spx_vec_reserve_exact", "spx_vec_set", "spx_vec_clear"] {
+        assert!(
+            !c.contains(extended),
+            "legacy Vec source unexpectedly emits native v3 helper {extended}"
+        );
+    }
     let bytes = wasm::emit_module(&ast).unwrap();
     let root = std::env::temp_dir().join(format!(
         "semaprax-owned-vec-nested-if-{}",
@@ -386,6 +539,7 @@ fn nested_if_vec_routes_complete_core_wasm_imports_and_executes() {
     let script = r#"
 const fs=require('fs'),bytes=fs.readFileSync(process.argv[1]),module=new WebAssembly.Module(bytes),names=WebAssembly.Module.imports(module).map(value=>value.name);
 for(const name of ['spx_vec_with_capacity','spx_vec_push','spx_vec_len','spx_vec_capacity','spx_vec_get','spx_vec_drop'])if(!names.includes(name))throw Error(`missing:${name}`);
+for(const name of ['spx_vec_reserve_exact','spx_vec_set','spx_vec_clear'])if(names.includes(name))throw Error(`unexpected-v3:${name}`);
 let next=1n;const entries=new Map(),key=v=>v.toString(),read=(v,t)=>{const e=entries.get(key(v));if(!e||e.tag!==t)throw Error('carrier');return e},alloc=(tag,capacity,values=[])=>{const token=next++;entries.set(key(token),{tag,capacity,values});return token};
 const env={spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:a=>-a,spx_contract_fail:()=>{throw Error('status')},spx_vec_with_capacity:(t,c)=>alloc(t,Number(c)),spx_vec_push:(v,t,b)=>{const e=read(v,t);entries.delete(key(v));return alloc(t,e.capacity,e.values.concat([b]))},spx_vec_len:(v,t)=>BigInt(read(v,t).values.length),spx_vec_capacity:(v,t)=>BigInt(read(v,t).capacity),spx_vec_get:(v,t,i)=>read(v,t).values[Number(i)],spx_vec_drop:v=>{if(!entries.delete(key(v)))throw Error('drop')}};
 WebAssembly.instantiate(module,{env}).then(({exports})=>{for(let i=0;i<3;i++){const value=exports.semaprax_main();if(value!==41n||entries.size!==0)throw Error(`execution:${value}:${entries.size}`)}}).catch(error=>{console.error(error);process.exit(2)});

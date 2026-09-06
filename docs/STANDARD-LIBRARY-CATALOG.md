@@ -185,6 +185,24 @@ fn capacity<T>(values: borrow Vec<T>) -> usize
 fn get<T>(values: borrow Vec<T>, index: usize) -> T
 ```
 
+### `std.collections.vec.reserve-exact`
+
+```semaprax
+fn reserve_exact<T>(values: own Vec<T>, additional: usize) -> Vec<T>
+```
+
+### `std.collections.vec.set`
+
+```semaprax
+fn set<T>(values: own Vec<T>, index: usize, value: T) -> Vec<T>
+```
+
+### `std.collections.vec.clear`
+
+```semaprax
+fn clear<T>(values: own Vec<T>) -> Vec<T>
+```
+
 ## `std.core`
 
 Package `std/core`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.core = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

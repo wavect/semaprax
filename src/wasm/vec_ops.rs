@@ -35,3 +35,39 @@ pub(crate) fn program_uses_vec(program: &ResolvedProgram) -> bool {
                     })
         })
 }
+
+pub(crate) fn program_uses_extended_vec(program: &ResolvedProgram) -> bool {
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(|function| {
+            std::iter::once(&function.body)
+                .chain(function.requires.iter())
+                .chain(function.ensures.iter())
+                .any(|expression| {
+                    let mut found = false;
+                    crate::hir::visit_resolved_calls(
+                        expression,
+                        &mut |callee, instance, type_arguments| {
+                            found |= instance.is_none()
+                                && type_arguments.len() == 1
+                                && matches!(
+                                    crate::vec_ops::by_id(callee.as_str()),
+                                    Some(
+                                        crate::vec_ops::VecOp::ReserveExact
+                                            | crate::vec_ops::VecOp::Set
+                                            | crate::vec_ops::VecOp::Clear
+                                    )
+                                );
+                        },
+                    );
+                    found
+                })
+        })
+}

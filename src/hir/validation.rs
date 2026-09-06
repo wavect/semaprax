@@ -1605,7 +1605,7 @@ impl<'a> HirValidator<'a> {
                         return Err(hir_error("while loops cannot contain generic calls"));
                     }
                     if let Some(operation) = vec_operation {
-                        if operation == crate::vec_ops::VecOp::WithCapacity
+                        if !operation.admitted_in_while()
                             || type_arguments.len() != 1
                             || !crate::vec_ops::resolved_element_is_admitted(&type_arguments[0])
                             || args.len() != operation.arity()
@@ -4658,7 +4658,7 @@ impl<'a> HirValidator<'a> {
                             self.require_type(&target.ty, &assigned.ty, "assignment")?;
                             if (target.ownership != OwnershipMode::Value
                                 || !crate::hir::is_scalar_resolved_type(&target.ty))
-                                && !crate::vec_ops::is_same_owner_push_hir(
+                                && !crate::vec_ops::is_same_owner_reassignment_hir(
                                     self.program,
                                     assigned,
                                     &binding.id,
@@ -6884,7 +6884,7 @@ impl<'a> HirValidator<'a> {
                                     self.require_type(&target.ty, &assigned.ty, "assignment")?;
                                     if (target.ownership != OwnershipMode::Value
                                         || !crate::hir::is_scalar_resolved_type(&target.ty))
-                                        && !crate::vec_ops::is_same_owner_push_hir(
+                                        && !crate::vec_ops::is_same_owner_reassignment_hir(
                                             self.program,
                                             assigned,
                                             &binding.id,

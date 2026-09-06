@@ -65,7 +65,7 @@ unique stable IDs. One authenticated standard-package exception uses the same
 eight-assignment layout with an empty list: name `std-collections`, version
 `0.1.0`, entry `std.collections.examples`, exact sources
 `src/collections.spx`, `src/examples.spx`, and `src/tests.spx`, and test module
-`std.collections.tests`. Its library source must contain exactly the five
+`std.collections.tests`. Its library source must contain exactly the eight
 authenticated transparent wrappers owned by
 [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md), yielding an empty public API
 descriptor. A lookalike name, profile, inventory, module, wrapper, or nonempty

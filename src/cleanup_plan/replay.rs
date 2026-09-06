@@ -1838,10 +1838,9 @@ fn collect_expression_statuses(
                     continue;
                 }
                 if instance.is_none()
-                    && matches!(
-                        crate::vec_ops::by_id(callee.as_str()),
-                        Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity)
-                    )
+                    && super::deferred_commit::is_infallible_vec_operation(crate::vec_ops::by_id(
+                        callee.as_str(),
+                    ))
                 {
                     continue;
                 }
@@ -5986,9 +5985,8 @@ fn finish_call_states(
             ..
         } if crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
             || crate::host_io_ops::by_id(callee.as_str()).is_some()
-            || matches!(
+            || super::deferred_commit::is_infallible_vec_operation(
                 crate::vec_ops::by_id(callee.as_str()),
-                Some(crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity)
             )
     );
     // `vec_push` and the one fallible byte operation both check their bound
@@ -6001,7 +5999,14 @@ fn finish_call_states(
             callee,
             instance: None,
             ..
-        } if crate::vec_ops::by_id(callee.as_str()) == Some(crate::vec_ops::VecOp::Push)
+        } if matches!(
+            crate::vec_ops::by_id(callee.as_str()),
+            Some(
+                crate::vec_ops::VecOp::Push
+                    | crate::vec_ops::VecOp::ReserveExact
+                    | crate::vec_ops::VecOp::Set
+            )
+        )
             || crate::byte_ops::by_id(callee.as_str())
                 .is_some_and(crate::byte_ops::ByteOp::is_fallible)
     );

@@ -1163,6 +1163,14 @@ impl<'a> Executor<'a> {
             {
                 if crate::byte_ops::by_id(callee.as_str()).is_some_and(|op| !op.is_fallible())
                     || crate::host_io_ops::by_id(callee.as_str()).is_some()
+                    || matches!(
+                        crate::vec_ops::by_id(callee.as_str()),
+                        Some(
+                            crate::vec_ops::VecOp::Len
+                                | crate::vec_ops::VecOp::Capacity
+                                | crate::vec_ops::VecOp::Clear
+                        )
+                    )
                 {
                     return Ok(callee.clone());
                 }

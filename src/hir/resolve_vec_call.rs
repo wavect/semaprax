@@ -65,7 +65,11 @@ pub(super) fn validate_whole_assignment(
         ));
     }
     if (value.ownership != OwnershipMode::Value || !is_scalar_resolved_type(&value.ty))
-        && !crate::vec_ops::is_same_owner_push_hir_source(resolver.program, value, &target.id)
+        && !crate::vec_ops::is_same_owner_reassignment_hir_source(
+            resolver.program,
+            value,
+            &target.id,
+        )
     {
         return Err(resolver.error(
             "SPX-U105",
@@ -145,9 +149,10 @@ pub(super) fn finish(
         }
     }
     let ty = op.resolved_return_type(&element);
-    let ownership = match op {
-        crate::vec_ops::VecOp::WithCapacity | crate::vec_ops::VecOp::Push => OwnershipMode::Own,
-        _ => OwnershipMode::Value,
+    let ownership = if op.returns_owner() {
+        OwnershipMode::Own
+    } else {
+        OwnershipMode::Value
     };
     Ok(ResolvedExpr {
         id: ExpressionId::new(function, path),

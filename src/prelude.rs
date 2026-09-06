@@ -11,12 +11,13 @@ use std::sync::OnceLock;
 use sha2::{Digest, Sha256};
 
 use crate::ast::{
-    FieldDeclaration, Span, Type, TypeDeclaration, TypeDeclarationKind, TypeParameterDeclaration,
-    VariantCaseDeclaration,
+    FieldDeclaration, ModuleUseKind, Span, Type, TypeDeclaration, TypeDeclarationKind,
+    TypeParameterDeclaration, VariantCaseDeclaration,
 };
 
 pub(crate) const SCHEMA_V1: &str = "semaprax.prelude.v1";
 pub(crate) const SCHEMA_V2: &str = "semaprax.prelude.v2";
+pub(crate) const SCHEMA_V3: &str = "semaprax.prelude.v3";
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -94,7 +95,7 @@ pub(crate) fn all_type_ids_v2() -> [&'static str; 10] {
     ]
 }
 
-pub(crate) fn all_reserved_ids() -> [&'static str; 15] {
+pub(crate) fn all_reserved_ids() -> [&'static str; 18] {
     [
         OPTION_ID,
         OPTION_NONE_ID,
@@ -111,6 +112,9 @@ pub(crate) fn all_reserved_ids() -> [&'static str; 15] {
         crate::vec_ops::LEN_ID,
         crate::vec_ops::CAPACITY_ID,
         crate::vec_ops::GET_ID,
+        crate::vec_ops::RESERVE_EXACT_ID,
+        crate::vec_ops::SET_ID,
+        crate::vec_ops::CLEAR_ID,
     ]
 }
 
@@ -125,6 +129,29 @@ pub(crate) fn contract_bytes_v1() -> Vec<u8> {
 pub(crate) fn contract_bytes_v2() -> Vec<u8> {
     let mut output = contract_bytes_for(SCHEMA_V2, declarations());
     write_vec_contract(&mut output);
+    output
+}
+
+pub(crate) fn contract_bytes_v3() -> Vec<u8> {
+    let mut output = contract_bytes_for(SCHEMA_V3, declarations());
+    write_vec_contract(&mut output);
+    let mut contract = String::new();
+    write!(
+        contract,
+        "operation {} {} <T>(own:Vec<T>,value:usize)->own:Vec<T>\noperation {} {} <T>(own:Vec<T>,value:usize,value:T)->own:Vec<T>\noperation {} {} <T>(own:Vec<T>)->own:Vec<T>\nrule reserve_exact target_capacity=max(old_capacity,length+additional) overflow_or_above_max_or_allocation_failure={}:{}\nrule set index_out_of_bounds={}:{}\nrule clear length=0 capacity=old_capacity\nrule successful_owner_mutation generation=next\n",
+        crate::vec_ops::RESERVE_EXACT_ID,
+        crate::vec_ops::RESERVE_EXACT_NAME,
+        crate::vec_ops::SET_ID,
+        crate::vec_ops::SET_NAME,
+        crate::vec_ops::CLEAR_ID,
+        crate::vec_ops::CLEAR_NAME,
+        crate::vec_ops::STATUS_DOMAIN,
+        crate::vec_ops::ALLOCATION_FAILURE_CODE,
+        crate::vec_ops::STATUS_DOMAIN,
+        crate::vec_ops::GET_OUT_OF_BOUNDS_CODE,
+    )
+    .expect("writing to String cannot fail");
+    output.extend_from_slice(contract.as_bytes());
     output
 }
 
@@ -221,6 +248,10 @@ pub(crate) fn digest_v2() -> [u8; 32] {
     Sha256::digest(contract_bytes_v2()).into()
 }
 
+pub(crate) fn digest_v3() -> [u8; 32] {
+    Sha256::digest(contract_bytes_v3()).into()
+}
+
 pub(crate) fn digest_text_v1() -> String {
     let digest = digest_v1();
     let mut output = String::with_capacity("sha256:".len() + digest.len() * 2);
@@ -239,6 +270,56 @@ pub(crate) fn digest_text_v2() -> String {
         write!(output, "{byte:02x}").expect("writing to String cannot fail");
     }
     output
+}
+
+pub(crate) fn digest_text_v3() -> String {
+    let digest = digest_v3();
+    let mut output = String::with_capacity("sha256:".len() + digest.len() * 2);
+    output.push_str("sha256:");
+    for byte in digest {
+        write!(output, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    output
+}
+
+fn vec_v3_op(op: crate::vec_ops::VecOp) -> bool {
+    matches!(
+        op,
+        crate::vec_ops::VecOp::ReserveExact
+            | crate::vec_ops::VecOp::Set
+            | crate::vec_ops::VecOp::Clear
+    )
+}
+
+pub(crate) fn program_uses_vec_v3(program: &crate::ast::Program) -> bool {
+    fn function_uses_vec_v3(function: &crate::ast::Function) -> bool {
+        crate::vec_ops::wrapper_by_id(&function.stable_id).is_some_and(vec_v3_op)
+            || function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+                .any(|expression| {
+                    let mut found = false;
+                    expression.visit_calls(&mut |name, _| {
+                        found |= crate::vec_ops::by_name(name).is_some_and(vec_v3_op);
+                    });
+                    found
+                })
+    }
+
+    program.module_uses.iter().any(|module_use| {
+        module_use.kind == ModuleUseKind::Function
+            && module_use.target_module == crate::vec_ops::MODULE
+            && crate::vec_ops::wrapper_by_id(&module_use.persistent_id).is_some_and(vec_v3_op)
+    }) || program.functions.iter().any(function_uses_vec_v3)
+        || program.types.iter().any(|declaration| {
+            matches!(
+                &declaration.kind,
+                TypeDeclarationKind::Class { methods, .. }
+                    if methods.iter().any(function_uses_vec_v3)
+            )
+        })
 }
 
 pub(crate) fn program_uses_vec(program: &crate::ast::Program) -> bool {
@@ -294,6 +375,7 @@ pub(crate) fn program_uses_vec(program: &crate::ast::Program) -> bool {
     }) || program.functions.iter().any(function_uses_vec)
 }
 
+#[cfg(test)]
 pub(crate) fn source_uses_vec(source: &str) -> bool {
     let Ok(program) = crate::parse(source, "<prelude-selection>") else {
         return false;
@@ -302,7 +384,18 @@ pub(crate) fn source_uses_vec(source: &str) -> bool {
 }
 
 pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, String) {
-    if source_uses_vec(source) {
+    let Ok(program) = crate::parse(source, "<prelude-selection>") else {
+        return (SCHEMA_V1, contract_bytes_v1(), digest_text_v1());
+    };
+    selected_for_program(&program)
+}
+
+pub(crate) fn selected_for_program(
+    program: &crate::ast::Program,
+) -> (&'static str, Vec<u8>, String) {
+    if program_uses_vec_v3(program) {
+        (SCHEMA_V3, contract_bytes_v3(), digest_text_v3())
+    } else if program_uses_vec(program) {
         (SCHEMA_V2, contract_bytes_v2(), digest_text_v2())
     } else {
         (SCHEMA_V1, contract_bytes_v1(), digest_text_v1())
@@ -436,6 +529,14 @@ mod tests {
             String::from_utf8(contract_bytes_v2()).unwrap(),
             "semaprax.prelude.v2\nvariant core.option Option<T>\n0 core.option.none None\n1 core.option.some Some core.option.some.value:value:T\nvariant core.result Result<T,E>\n0 core.result.ok Ok core.result.ok.value:value:T\n1 core.result.err Err core.result.err.error:error:E\nrecord core.vec Vec<T>\nelements i64,i32,u8,usize,char,f32,f64,bool\noperation core.vec.with-capacity vec_with_capacity <T>(value:usize)->own:Vec<T>\noperation core.vec.push vec_push <T>(own:Vec<T>,value:T)->own:Vec<T>\noperation core.vec.len vec_len <T>(borrow:Vec<T>)->value:usize\noperation core.vec.capacity vec_capacity <T>(borrow:Vec<T>)->value:usize\noperation core.vec.get vec_get <T>(borrow:Vec<T>,value:usize)->value:T\nlimit max_capacity 8192\nstatus semaprax.vec.v1 push_full:1 get_out_of_bounds:2 allocation_failure:3\n"
         );
+        assert_eq!(
+            digest_text_v3(),
+            "sha256:7df663ea708bfbb4c8b98a07607d992ac01b2b1a1942505c9fb305a43fc93938"
+        );
+        assert_eq!(
+            String::from_utf8(contract_bytes_v3()).unwrap(),
+            "semaprax.prelude.v3\nvariant core.option Option<T>\n0 core.option.none None\n1 core.option.some Some core.option.some.value:value:T\nvariant core.result Result<T,E>\n0 core.result.ok Ok core.result.ok.value:value:T\n1 core.result.err Err core.result.err.error:error:E\nrecord core.vec Vec<T>\nelements i64,i32,u8,usize,char,f32,f64,bool\noperation core.vec.with-capacity vec_with_capacity <T>(value:usize)->own:Vec<T>\noperation core.vec.push vec_push <T>(own:Vec<T>,value:T)->own:Vec<T>\noperation core.vec.len vec_len <T>(borrow:Vec<T>)->value:usize\noperation core.vec.capacity vec_capacity <T>(borrow:Vec<T>)->value:usize\noperation core.vec.get vec_get <T>(borrow:Vec<T>,value:usize)->value:T\nlimit max_capacity 8192\nstatus semaprax.vec.v1 push_full:1 get_out_of_bounds:2 allocation_failure:3\noperation core.vec.reserve-exact vec_reserve_exact <T>(own:Vec<T>,value:usize)->own:Vec<T>\noperation core.vec.set vec_set <T>(own:Vec<T>,value:usize,value:T)->own:Vec<T>\noperation core.vec.clear vec_clear <T>(own:Vec<T>)->own:Vec<T>\nrule reserve_exact target_capacity=max(old_capacity,length+additional) overflow_or_above_max_or_allocation_failure=semaprax.vec.v1:3\nrule set index_out_of_bounds=semaprax.vec.v1:2\nrule clear length=0 capacity=old_capacity\nrule successful_owner_mutation generation=next\n"
+        );
         assert!(!source_uses_vec("module test.scalar; fn main()->i64{0}"));
         assert!(!source_uses_vec(
             "module test.text; fn main()->string{\"Vec<i64> vec_push\"}"
@@ -446,5 +547,40 @@ mod tests {
         assert!(source_uses_vec(
             "module test.vec; fn main()->Vec<i64>{vec_with_capacity<i64>(1usize)}"
         ));
+        assert_eq!(
+            selected_for_source(
+                "module test.old_vec; fn main()->Vec<i64>{vec_with_capacity<i64>(1usize)}"
+            )
+            .0,
+            SCHEMA_V2
+        );
+        assert_eq!(
+            selected_for_source(
+                "module test.new_vec; fn main()->Vec<i64>{let mut v=vec_with_capacity<i64>(1usize);v=vec_clear<i64>(v);v}"
+            )
+            .0,
+            SCHEMA_V3
+        );
+        assert_eq!(
+            selected_for_source(
+                "module test.imported; use function @id(\"std.collections.vec.clear\") from std.collections as wipe; fn wipe_once(values: own Vec<i64>)->Vec<i64>{wipe<i64>(values)}"
+            )
+            .0,
+            SCHEMA_V3
+        );
+        assert_eq!(
+            selected_for_source(
+                "module test.imported_old; use function @id(\"std.collections.vec.push\") from std.collections as append; fn append_once(values: own Vec<i64>)->Vec<i64>{append<i64>(values,1)}"
+            )
+            .0,
+            SCHEMA_V2
+        );
+        assert_eq!(
+            selected_for_source(
+                "module test.imported_spoof; use function @id(\"std.collections.vec.clear\") from user.collections as wipe; fn wipe_once(values: own Vec<i64>)->Vec<i64>{wipe<i64>(values)}"
+            )
+            .0,
+            SCHEMA_V2
+        );
     }
 }

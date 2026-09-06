@@ -167,6 +167,94 @@ impl Evaluator<'_> {
                     .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
                 Ok(Value::Vec(Arc::new(vector)))
             }
+            crate::vec_ops::VecOp::ReserveExact => {
+                let mut values = values.into_iter();
+                let (Some(Value::Vec(vector)), Some(Value::Usize(additional)), None) =
+                    (values.next(), values.next(), values.next())
+                else {
+                    return Err(Flow::Guard(
+                        "ill-typed compiler-owned bounded Vec operation",
+                    ));
+                };
+                if vector.element != element {
+                    return Err(Flow::Guard("forged bounded Vec element type"));
+                }
+                let target = u64::try_from(vector.values.len())
+                    .ok()
+                    .and_then(|len| len.checked_add(additional))
+                    .map(|required| required.max(vector.capacity as u64))
+                    .filter(|target| *target <= crate::vec_ops::MAX_CAPACITY)
+                    .and_then(|target| usize::try_from(target).ok())
+                    .ok_or_else(|| {
+                        Flow::Failure(normalize_vec(crate::vec_ops::ALLOCATION_FAILURE_CODE))
+                    })?;
+                let mut vector = Arc::try_unwrap(vector)
+                    .map_err(|_| Flow::Guard("aliased owned bounded Vec carrier"))?;
+                if target > vector.values.capacity()
+                    && vector
+                        .values
+                        .try_reserve_exact(target - vector.values.len())
+                        .is_err()
+                {
+                    return Err(Flow::Failure(normalize_vec(
+                        crate::vec_ops::ALLOCATION_FAILURE_CODE,
+                    )));
+                }
+                vector.capacity = target;
+                vector.generation = vector
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
+                Ok(Value::Vec(Arc::new(vector)))
+            }
+            crate::vec_ops::VecOp::Set => {
+                let mut values = values.into_iter();
+                let (Some(Value::Vec(vector)), Some(Value::Usize(index)), Some(value), None) =
+                    (values.next(), values.next(), values.next(), values.next())
+                else {
+                    return Err(Flow::Guard(
+                        "ill-typed compiler-owned bounded Vec operation",
+                    ));
+                };
+                if vector.element != element || !scalar_value_matches_type(&value, &element) {
+                    return Err(Flow::Guard("forged bounded Vec element type"));
+                }
+                let index = usize::try_from(index)
+                    .ok()
+                    .filter(|index| *index < vector.values.len())
+                    .ok_or_else(|| {
+                        Flow::Failure(normalize_vec(crate::vec_ops::GET_OUT_OF_BOUNDS_CODE))
+                    })?;
+                let mut vector = Arc::try_unwrap(vector)
+                    .map_err(|_| Flow::Guard("aliased owned bounded Vec carrier"))?;
+                vector.values[index] = value;
+                vector.generation = vector
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
+                Ok(Value::Vec(Arc::new(vector)))
+            }
+            crate::vec_ops::VecOp::Clear => {
+                let [Value::Vec(vector)] = values.as_slice() else {
+                    return Err(Flow::Guard(
+                        "ill-typed compiler-owned bounded Vec operation",
+                    ));
+                };
+                if vector.element != element {
+                    return Err(Flow::Guard("forged bounded Vec element type"));
+                }
+                let Value::Vec(vector) = values.into_iter().next().unwrap() else {
+                    unreachable!("validated Vec clear carrier")
+                };
+                let mut vector = Arc::try_unwrap(vector)
+                    .map_err(|_| Flow::Guard("aliased owned bounded Vec carrier"))?;
+                vector.values.clear();
+                vector.generation = vector
+                    .generation
+                    .checked_add(1)
+                    .ok_or(Flow::Guard("bounded Vec generation overflowed"))?;
+                Ok(Value::Vec(Arc::new(vector)))
+            }
             crate::vec_ops::VecOp::Len => match values.as_slice() {
                 [Value::Vec(vector)] if vector.element == element => {
                     Ok(Value::Usize(vector.values.len() as u64))

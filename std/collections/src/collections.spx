@@ -29,3 +29,21 @@ fn get<T>(values: borrow Vec<T>, index: usize) -> T
 {
     vec_get<T>(values, index)
 }
+
+@id("std.collections.vec.reserve-exact")
+fn reserve_exact<T>(values: own Vec<T>, additional: usize) -> Vec<T>
+{
+    vec_reserve_exact<T>(values, additional)
+}
+
+@id("std.collections.vec.set")
+fn set<T>(values: own Vec<T>, index: usize, value: T) -> Vec<T>
+{
+    vec_set<T>(values, index, value)
+}
+
+@id("std.collections.vec.clear")
+fn clear<T>(values: own Vec<T>) -> Vec<T>
+{
+    vec_clear<T>(values)
+}

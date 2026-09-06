@@ -418,7 +418,7 @@ fn emit_native_prelude_inner(
         native_byte_data::emit_runtime(output);
     }
     if program_uses_vec(program) {
-        native_vec::emit_runtime(output);
+        native_vec::emit_runtime(output, program);
     }
 }
 

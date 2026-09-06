@@ -14,11 +14,17 @@ pub(crate) const PUSH_NAME: &str = "vec_push";
 pub(crate) const LEN_NAME: &str = "vec_len";
 pub(crate) const CAPACITY_NAME: &str = "vec_capacity";
 pub(crate) const GET_NAME: &str = "vec_get";
+pub(crate) const RESERVE_EXACT_NAME: &str = "vec_reserve_exact";
+pub(crate) const SET_NAME: &str = "vec_set";
+pub(crate) const CLEAR_NAME: &str = "vec_clear";
 pub(crate) const WITH_CAPACITY_ID: &str = "core.vec.with-capacity";
 pub(crate) const PUSH_ID: &str = "core.vec.push";
 pub(crate) const LEN_ID: &str = "core.vec.len";
 pub(crate) const CAPACITY_ID: &str = "core.vec.capacity";
 pub(crate) const GET_ID: &str = "core.vec.get";
+pub(crate) const RESERVE_EXACT_ID: &str = "core.vec.reserve-exact";
+pub(crate) const SET_ID: &str = "core.vec.set";
+pub(crate) const CLEAR_ID: &str = "core.vec.clear";
 pub(crate) const MAX_CAPACITY: u64 = 8_192;
 pub(crate) const STATUS_DOMAIN: &str = "semaprax.vec.v1";
 pub(crate) const PUSH_FULL_CODE: u32 = 1;
@@ -32,9 +38,48 @@ pub(crate) enum VecOp {
     Len,
     Capacity,
     Get,
+    ReserveExact,
+    Set,
+    Clear,
 }
 
+pub(crate) const ALL: [VecOp; 8] = [
+    VecOp::WithCapacity,
+    VecOp::Push,
+    VecOp::Len,
+    VecOp::Capacity,
+    VecOp::Get,
+    VecOp::ReserveExact,
+    VecOp::Set,
+    VecOp::Clear,
+];
+
 impl VecOp {
+    pub(crate) const fn reopens_same_owner(self) -> bool {
+        matches!(
+            self,
+            Self::Push | Self::ReserveExact | Self::Set | Self::Clear
+        )
+    }
+
+    pub(crate) const fn returns_owner(self) -> bool {
+        matches!(
+            self,
+            Self::WithCapacity | Self::Push | Self::ReserveExact | Self::Set | Self::Clear
+        )
+    }
+
+    pub(crate) const fn admitted_in_while(self) -> bool {
+        matches!(self, Self::Push | Self::Len | Self::Capacity | Self::Get)
+    }
+
+    pub(crate) const fn capacity_argument(self) -> Option<usize> {
+        match self {
+            Self::WithCapacity => Some(0),
+            Self::ReserveExact => Some(1),
+            _ => None,
+        }
+    }
     pub(crate) const fn name(self) -> &'static str {
         match self {
             Self::WithCapacity => WITH_CAPACITY_NAME,
@@ -42,6 +87,9 @@ impl VecOp {
             Self::Len => LEN_NAME,
             Self::Capacity => CAPACITY_NAME,
             Self::Get => GET_NAME,
+            Self::ReserveExact => RESERVE_EXACT_NAME,
+            Self::Set => SET_NAME,
+            Self::Clear => CLEAR_NAME,
         }
     }
     pub(crate) const fn id(self) -> &'static str {
@@ -51,6 +99,9 @@ impl VecOp {
             Self::Len => LEN_ID,
             Self::Capacity => CAPACITY_ID,
             Self::Get => GET_ID,
+            Self::ReserveExact => RESERVE_EXACT_ID,
+            Self::Set => SET_ID,
+            Self::Clear => CLEAR_ID,
         }
     }
     pub(crate) const fn arity(self) -> usize {
@@ -59,25 +110,32 @@ impl VecOp {
             Self::Push => 2,
             Self::Len | Self::Capacity => 1,
             Self::Get => 2,
+            Self::ReserveExact => 2,
+            Self::Set => 3,
+            Self::Clear => 1,
         }
     }
     pub(crate) const fn param_ownership(self, index: usize) -> OwnershipMode {
         match (self, index) {
-            (Self::Push, 0) => OwnershipMode::Own,
+            (Self::Push | Self::ReserveExact | Self::Set | Self::Clear, 0) => OwnershipMode::Own,
             (Self::Len | Self::Capacity | Self::Get, 0) => OwnershipMode::Borrow,
             _ => OwnershipMode::Value,
         }
     }
     pub(crate) fn resolved_return_type(self, element: &ResolvedType) -> ResolvedType {
         match self {
-            Self::WithCapacity | Self::Push => resolved_vec(element.clone()),
+            Self::WithCapacity | Self::Push | Self::ReserveExact | Self::Set | Self::Clear => {
+                resolved_vec(element.clone())
+            }
             Self::Len | Self::Capacity => ResolvedType::Usize,
             Self::Get => element.clone(),
         }
     }
     pub(crate) fn ast_return_type(self, element: &Type) -> Type {
         match self {
-            Self::WithCapacity | Self::Push => ast_vec(element.clone()),
+            Self::WithCapacity | Self::Push | Self::ReserveExact | Self::Set | Self::Clear => {
+                ast_vec(element.clone())
+            }
             Self::Len | Self::Capacity => Type::Usize,
             Self::Get => element.clone(),
         }
@@ -95,6 +153,11 @@ impl VecOp {
             }
             (Self::Push, 1) => ty == element,
             (Self::Get, 1) => *ty == ResolvedType::Usize,
+            (Self::ReserveExact, 0) | (Self::Set, 0) | (Self::Clear, 0) => {
+                *ty == resolved_vec(element.clone())
+            }
+            (Self::ReserveExact, 1) | (Self::Set, 1) => *ty == ResolvedType::Usize,
+            (Self::Set, 2) => ty == element,
             _ => false,
         }
     }
@@ -107,6 +170,9 @@ pub(crate) fn by_name(name: &str) -> Option<VecOp> {
         LEN_NAME => Some(VecOp::Len),
         CAPACITY_NAME => Some(VecOp::Capacity),
         GET_NAME => Some(VecOp::Get),
+        RESERVE_EXACT_NAME => Some(VecOp::ReserveExact),
+        SET_NAME => Some(VecOp::Set),
+        CLEAR_NAME => Some(VecOp::Clear),
         _ => None,
     }
 }
@@ -117,6 +183,9 @@ pub(crate) fn by_id(id: &str) -> Option<VecOp> {
         LEN_ID => Some(VecOp::Len),
         CAPACITY_ID => Some(VecOp::Capacity),
         GET_ID => Some(VecOp::Get),
+        RESERVE_EXACT_ID => Some(VecOp::ReserveExact),
+        SET_ID => Some(VecOp::Set),
+        CLEAR_ID => Some(VecOp::Clear),
         _ => None,
     }
 }
@@ -164,6 +233,9 @@ pub(crate) fn ast_params(op: VecOp, element: &Type) -> Vec<Param> {
         VecOp::Push => vec![ast_vec(element.clone()), element.clone()],
         VecOp::Len | VecOp::Capacity => vec![ast_vec(element.clone())],
         VecOp::Get => vec![ast_vec(element.clone()), Type::Usize],
+        VecOp::ReserveExact => vec![ast_vec(element.clone()), Type::Usize],
+        VecOp::Set => vec![ast_vec(element.clone()), Type::Usize, element.clone()],
+        VecOp::Clear => vec![ast_vec(element.clone())],
     };
     types
         .into_iter()
@@ -186,6 +258,13 @@ pub(crate) fn resolved_params(op: VecOp, element: &ResolvedType) -> Vec<Resolved
         VecOp::Push => vec![resolved_vec(element.clone()), element.clone()],
         VecOp::Len | VecOp::Capacity => vec![resolved_vec(element.clone())],
         VecOp::Get => vec![resolved_vec(element.clone()), ResolvedType::Usize],
+        VecOp::ReserveExact => vec![resolved_vec(element.clone()), ResolvedType::Usize],
+        VecOp::Set => vec![
+            resolved_vec(element.clone()),
+            ResolvedType::Usize,
+            element.clone(),
+        ],
+        VecOp::Clear => vec![resolved_vec(element.clone())],
     };
     types
         .into_iter()
@@ -200,7 +279,7 @@ pub(crate) fn resolved_params(op: VecOp, element: &ResolvedType) -> Vec<Resolved
         .collect()
 }
 
-pub(crate) fn is_same_owner_push_source(
+pub(crate) fn is_same_owner_reassignment_source(
     program: &crate::ast::Program,
     value: &Expr,
     name: &str,
@@ -214,20 +293,23 @@ pub(crate) fn is_same_owner_push_source(
     else {
         return false;
     };
-    let exact_push = by_name(callee) == Some(VecOp::Push)
-        || program
-            .functions
-            .iter()
-            .find(|function| function.name == *callee)
-            .is_some_and(|function| source_wrapper(program, function) == Some(VecOp::Push));
-    exact_push
+    let op = by_name(callee)
+        .filter(|op| op.reopens_same_owner())
+        .or_else(|| {
+            program
+                .functions
+                .iter()
+                .find(|function| function.name == *callee)
+                .and_then(|function| source_wrapper(program, function))
+                .filter(|op| op.reopens_same_owner())
+        });
+    op.is_some_and(|op| args.len() == op.arity())
         && type_arguments.len() == 1
-        && args.len() == 2
         && ast_vec(type_arguments[0].clone()) == *ty
         && matches!(&args[0].kind, ExprKind::Var(source) if source == name)
 }
 
-pub(crate) fn is_same_owner_push_hir(
+pub(crate) fn is_same_owner_reassignment_hir(
     program: &crate::hir::ResolvedProgram,
     value: &ResolvedExpr,
     owner: &ValueId,
@@ -241,25 +323,29 @@ pub(crate) fn is_same_owner_push_hir(
     else {
         return false;
     };
-    let exact_push = (instance.is_none() && by_id(callee.as_str()) == Some(VecOp::Push))
-        || instance.as_ref().is_some_and(|instance| {
-            crate::hir::FunctionInstanceId::derive(callee, type_arguments) == *instance
-                && program
-                    .function_templates
-                    .iter()
-                    .find(|template| template.id == *callee)
-                    .is_some_and(|template| {
-                        hir_wrapper_in_program(program, template) == Some(VecOp::Push)
-                    })
-        });
-    exact_push
+    let op = if instance.is_none() {
+        by_id(callee.as_str()).filter(|op| op.reopens_same_owner())
+    } else {
+        instance.as_ref().and_then(|instance| {
+            (crate::hir::FunctionInstanceId::derive(callee, type_arguments) == *instance)
+                .then(|| {
+                    program
+                        .function_templates
+                        .iter()
+                        .find(|template| template.id == *callee)
+                        .and_then(|template| hir_wrapper_in_program(program, template))
+                        .filter(|op| op.reopens_same_owner())
+                })
+                .flatten()
+        })
+    };
+    op.is_some_and(|op| args.len() == op.arity())
         && matches!(type_arguments.as_slice(), [argument] if resolved_element_is_admitted(argument))
-        && args.len() == 2
         && matches!(&args[0].kind, ResolvedExprKind::Place(place)
             if &place.root == owner && place.projections.is_empty())
 }
 
-pub(crate) fn is_same_owner_push_hir_source(
+pub(crate) fn is_same_owner_reassignment_hir_source(
     program: &crate::ast::Program,
     value: &ResolvedExpr,
     owner: &ValueId,
@@ -273,18 +359,24 @@ pub(crate) fn is_same_owner_push_hir_source(
     else {
         return false;
     };
-    let exact_push = (instance.is_none() && by_id(callee.as_str()) == Some(VecOp::Push))
-        || instance.as_ref().is_some_and(|instance| {
-            crate::hir::FunctionInstanceId::derive(callee, type_arguments) == *instance
-                && program
-                    .functions
-                    .iter()
-                    .find(|function| function.stable_id == callee.as_str())
-                    .is_some_and(|function| source_wrapper(program, function) == Some(VecOp::Push))
-        });
-    exact_push
+    let op = if instance.is_none() {
+        by_id(callee.as_str()).filter(|op| op.reopens_same_owner())
+    } else {
+        instance.as_ref().and_then(|instance| {
+            (crate::hir::FunctionInstanceId::derive(callee, type_arguments) == *instance)
+                .then(|| {
+                    program
+                        .functions
+                        .iter()
+                        .find(|function| function.stable_id == callee.as_str())
+                        .and_then(|function| source_wrapper(program, function))
+                        .filter(|op| op.reopens_same_owner())
+                })
+                .flatten()
+        })
+    };
+    op.is_some_and(|op| args.len() == op.arity())
         && matches!(type_arguments.as_slice(), [argument] if resolved_element_is_admitted(argument))
-        && args.len() == 2
         && matches!(&args[0].kind, ResolvedExprKind::Place(place)
             if &place.root == owner && place.projections.is_empty())
 }

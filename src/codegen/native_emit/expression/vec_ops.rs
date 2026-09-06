@@ -95,6 +95,103 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     ty: return_type,
                 })
             }
+            crate::vec_ops::VecOp::ReserveExact => {
+                self.require_type(
+                    &values[0].ty,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec reserve owner",
+                )?;
+                self.require_type(
+                    &values[1].ty,
+                    &ResolvedType::Usize,
+                    "Vec reserve additional",
+                )?;
+                let plan = plan.ok_or_else(|| backend_error("Vec reserve has no cleanup plan"))?;
+                for line in plan.apply_at(&args[0].id)?.lines() {
+                    self.line(line);
+                }
+                let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
+                let source = source.to_owned();
+                let source_flag = source_flag.to_owned();
+                let destination = plan
+                    .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                    .to_owned();
+                self.line(&format!(
+                    "spx_status = spx_vec_reserve_exact(spx_ctx, UINT32_C({tag}), &{source}, {}, &{destination});",
+                    values[1].code
+                ));
+                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                self.line(&format!("{source_flag} = false;"));
+                for line in plan.apply_at(&expr.id)?.lines() {
+                    self.line(line);
+                }
+                Ok(CValue {
+                    code: plan.result_at(&expr.id).unwrap_or(&destination).to_owned(),
+                    ty: return_type,
+                })
+            }
+            crate::vec_ops::VecOp::Set => {
+                self.require_type(
+                    &values[0].ty,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec set owner",
+                )?;
+                self.require_type(&values[1].ty, &ResolvedType::Usize, "Vec set index")?;
+                self.require_type(&values[2].ty, element, "Vec set element")?;
+                let plan = plan.ok_or_else(|| backend_error("Vec set has no cleanup plan"))?;
+                for line in plan.apply_at(&args[0].id)?.lines() {
+                    self.line(line);
+                }
+                let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
+                let source = source.to_owned();
+                let source_flag = source_flag.to_owned();
+                let destination = plan
+                    .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                    .to_owned();
+                let bits = vec_scalar_to_bits(&values[2]);
+                self.line(&format!(
+                    "spx_status = spx_vec_set(spx_ctx, UINT32_C({tag}), &{source}, {}, {bits}, &{destination});",
+                    values[1].code
+                ));
+                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                self.line(&format!("{source_flag} = false;"));
+                for line in plan.apply_at(&expr.id)?.lines() {
+                    self.line(line);
+                }
+                Ok(CValue {
+                    code: plan.result_at(&expr.id).unwrap_or(&destination).to_owned(),
+                    ty: return_type,
+                })
+            }
+            crate::vec_ops::VecOp::Clear => {
+                self.require_type(
+                    &values[0].ty,
+                    &crate::vec_ops::resolved_vec(element.clone()),
+                    "Vec clear owner",
+                )?;
+                let plan = plan.ok_or_else(|| backend_error("Vec clear has no cleanup plan"))?;
+                for line in plan.apply_at(&args[0].id)?.lines() {
+                    self.line(line);
+                }
+                let (source, source_flag, _) = plan.call_argument(&expr.id, 0)?;
+                let source = source.to_owned();
+                let source_flag = source_flag.to_owned();
+                let destination = plan
+                    .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
+                    .to_owned();
+                self.line(&format!(
+                    "spx_status = spx_vec_clear(spx_ctx, UINT32_C({tag}), &{source}, &{destination});"
+                ));
+                self.line("if (spx_status != SPX_STATUS_SUCCESS) goto spx_epilogue;");
+                self.line(&format!("{source_flag} = false;"));
+                for line in plan.apply_at(&expr.id)?.lines() {
+                    self.line(line);
+                }
+                Ok(CValue {
+                    code: plan.result_at(&expr.id).unwrap_or(&destination).to_owned(),
+                    ty: return_type,
+                })
+            }
             crate::vec_ops::VecOp::Len | crate::vec_ops::VecOp::Capacity => {
                 self.require_type(
                     &values[0].ty,

@@ -59,8 +59,9 @@ pub(super) fn oracle_call(
                 expr.span,
             ));
         }
-        if op == crate::vec_ops::VecOp::WithCapacity
-            && matches!(args.first().map(|arg| &arg.kind), Some(crate::ast::ExprKind::Usize(value)) if *value > crate::vec_ops::MAX_CAPACITY)
+        if op.capacity_argument().is_some_and(|index| {
+            matches!(args.get(index).map(|arg| &arg.kind), Some(crate::ast::ExprKind::Usize(value)) if *value > crate::vec_ops::MAX_CAPACITY)
+        })
         {
             diagnostics.push(error(
                 program,
@@ -117,13 +118,7 @@ pub(super) fn oracle_call(
             );
         }
         return element.map(|element| {
-            CheckedValue::returned(
-                op.ast_return_type(element),
-                matches!(
-                    op,
-                    crate::vec_ops::VecOp::WithCapacity | crate::vec_ops::VecOp::Push
-                ),
-            )
+            CheckedValue::returned(op.ast_return_type(element), op.returns_owner())
         });
     }
     let native_import = program

@@ -518,7 +518,7 @@ conformance suites
 on the interpreter, native C11, and Core Wasm lanes.
 
 The first `alloc`-tier package, `std.collections`, now has a locally exercised
-exact five-alias Owned Bounded Vec v1 surface, example, explicit
+exact eight-alias Owned Bounded Vec v1 surface, example, explicit
 eight-Copy-scalar conformance, bundled dependency entry, generated catalogs,
 and no public exports. Iterators and broader collections remain later outcomes.
 

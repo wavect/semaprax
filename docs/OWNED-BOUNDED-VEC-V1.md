@@ -22,25 +22,45 @@ The compiler-owned operations are:
 | `vec_len` | `core.vec.len` | `<T>(values: borrow Vec<T>) -> usize` |
 | `vec_capacity` | `core.vec.capacity` | `<T>(values: borrow Vec<T>) -> usize` |
 | `vec_get` | `core.vec.get` | `<T>(values: borrow Vec<T>, index: usize) -> T` |
+| `vec_reserve_exact` | `core.vec.reserve-exact` | `<T>(values: own Vec<T>, additional: usize) -> Vec<T>` |
+| `vec_set` | `core.vec.set` | `<T>(values: own Vec<T>, index: usize, value: T) -> Vec<T>` |
+| `vec_clear` | `core.vec.clear` | `<T>(values: own Vec<T>) -> Vec<T>` |
+
+The frozen `semaprax.prelude.v2` contract remains the original five-operation
+Vec surface byte for byte. A program selects additive
+`semaprax.prelude.v3` only when it uses `vec_reserve_exact`, `vec_set`, or
+`vec_clear` (directly or through an authenticated wrapper); v3 adds exactly
+those declarations and their status facts. Programs using only the original
+five operations and none of the three newly reserved intrinsic names or
+identities retain their previous prelude binding bytes and digests.
 
 Every call spells its one type argument explicitly. `vec_with_capacity` accepts
 any `usize` expression. A literal greater than 8192 is rejected statically; a
 dynamic value greater than 8192 selects sticky `semaprax.vec.v1` code 3. The
 target-neutral capacity charge is eight bytes per element and therefore never
 exceeds 65536 bytes. `vec_push`
-requires `vec_len(values) < vec_capacity(values)` and `vec_get` requires
-`index < vec_len(values)`; target runtimes recheck both invariants.
+requires `vec_len(values) < vec_capacity(values)`. `vec_reserve_exact` sets
+capacity to `max(old_capacity, vec_len(values) + additional)` without changing
+length or initialized elements. The resulting capacity remains bounded by
+8192; overflow or a larger requested result selects code 3. `vec_get` and
+`vec_set` require `index < vec_len(values)` and reuse code 2 on failure.
+`vec_clear` sets length to zero and retains capacity. Target runtimes recheck
+these invariants.
 
 Dynamic failures are sticky in domain `semaprax.vec.v1`: code 1 is push at
-full capacity, code 2 is get outside the initialized length, and code 3 is an
-observable allocation failure. Cleanup cannot replace the selected status.
+full capacity, code 2 is get or set outside the initialized length, and code 3
+is an observable construction or reserve allocation failure. Cleanup cannot
+replace the selected status.
 
 ## Ownership and mutation
 
 A vector is one non-Copy owner regardless of its element count. Its Copy
-elements add no child finalizers. `vec_push` consumes that owner and returns the
-same logical allocation with one additional initialized element; it never
-duplicates the carrier.
+elements add no child finalizers. `vec_push`, `vec_reserve_exact`, `vec_set`,
+and `vec_clear` consume that owner and return its next generation. Push adds one
+initialized element, reserve may replace the backing allocation while
+preserving initialized elements, set replaces one Copy element, and clear
+forgets all initialized Copy elements while retaining capacity. None duplicates
+the carrier.
 
 The first loop-carried profile is exact: a mutable vector is initialized once
 outside one bounded `while`, the body assigns that same binding exactly once
@@ -57,7 +77,7 @@ rejected.
 
 ## Standard-library surface
 
-The alloc-tier `std.collections` package authors exactly five authenticated
+The alloc-tier `std.collections` package authors exactly eight authenticated
 transparent aliases:
 
 | Stable identity | Intrinsic |
@@ -67,10 +87,13 @@ transparent aliases:
 | `std.collections.vec.len` | `core.vec.len` |
 | `std.collections.vec.capacity` | `core.vec.capacity` |
 | `std.collections.vec.get` | `core.vec.get` |
+| `std.collections.vec.reserve-exact` | `core.vec.reserve-exact` |
+| `std.collections.vec.set` | `core.vec.set` |
+| `std.collections.vec.clear` | `core.vec.clear` |
 
 Each wrapper forwards only its own explicitly supplied type parameter and
 preserves the intrinsic operation and status identity in HIR and Graph. The
-package conformance source instantiates all five aliases for every admitted
+package conformance source instantiates all eight aliases for every admitted
 Copy scalar. The package exports no public ABI; ordinary authored generic
 functions still cannot stand in for these authenticated aliases.
 
@@ -85,20 +108,23 @@ functions still cannot stand in for these authenticated aliases.
 - independent cleanup replay for construction, push, loop-carried replacement,
   precondition failure, postcondition failure, and hostile transition/order/
   liveness mutations;
-- repeated interpreter, native C11 O0/O2, and Core-Wasm execution for empty,
-  full, push/get/len/capacity, loop-carried growth, and exact failures, with no
-  shallow owner copy and exact/+1 allocator evidence; and
-The `std.collections` manifest, scalar-result example, eight-scalar conformance
-source, bundled dependency entry, closed package metadata, focused local
-Project/package selectors, and byte-exact generated catalogs are present. This
-promotes only that exact package slice locally; the broader collection and
-hosted-support nonclaims below keep the module Partial.
+- repeated focused local interpreter, native C11 O0/O2, and Core-Wasm execution
+  for empty, full, push/get/len/capacity, exact reserve, set, clear, loop-carried
+  growth, and exact failures, with no shallow owner copy and exact observed
+  capacities;
+- frozen prelude-v1/v2 contract bytes and digests, plus native and Core-Wasm
+  reachability checks proving legacy Vec source does not emit v3 helpers; and
+- the `std.collections` manifest, scalar-result example, eight-scalar conformance
+  source, bundled dependency entry, closed package metadata, focused local
+  Project/package selectors, and byte-exact generated catalogs. This promotes
+  only that exact package slice locally; the broader collection and
+  hosted-support nonclaims below keep the module Partial.
 
 ## Nonclaims
 
-There is no `set`, `pop`, insertion, removal, reserve/growth beyond the initial
-capacity, owned element, iterator, closure adapter, escaping borrow, mutable
-reference, public Project/FFI/WIT/Component representation, hosted promotion,
-or production support. `std.iter` remains blocked on its independent interface,
+There is no `pop`, insertion, removal, implicit or amortized growth, shrink,
+owned element, iterator, closure adapter, escaping borrow, mutable reference,
+public Project/FFI/WIT/Component representation, hosted promotion, or production
+support. `std.iter` remains blocked on its independent interface,
 associated-type, closure, and lifetime contracts. `std.mem` is not created by
 this tranche.

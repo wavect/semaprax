@@ -40,6 +40,9 @@ pub(crate) fn wrapper_id(op: VecOp) -> &'static str {
         VecOp::Len => "std.collections.vec.len",
         VecOp::Capacity => "std.collections.vec.capacity",
         VecOp::Get => "std.collections.vec.get",
+        VecOp::ReserveExact => "std.collections.vec.reserve-exact",
+        VecOp::Set => "std.collections.vec.set",
+        VecOp::Clear => "std.collections.vec.clear",
     }
 }
 
@@ -50,33 +53,22 @@ pub(crate) fn wrapper_name(op: VecOp) -> &'static str {
         VecOp::Len => "len",
         VecOp::Capacity => "capacity",
         VecOp::Get => "get",
+        VecOp::ReserveExact => "reserve_exact",
+        VecOp::Set => "set",
+        VecOp::Clear => "clear",
     }
 }
 
 pub(crate) fn wrapper_by_id(id: &str) -> Option<VecOp> {
-    [
-        VecOp::WithCapacity,
-        VecOp::Push,
-        VecOp::Len,
-        VecOp::Capacity,
-        VecOp::Get,
-    ]
-    .into_iter()
-    .find(|op| wrapper_id(*op) == id)
+    super::ALL.into_iter().find(|op| wrapper_id(*op) == id)
 }
 
 pub(crate) fn is_source_candidate(program: &Program, function: &Function) -> bool {
     program.module == MODULE
         && (wrapper_by_id(&function.stable_id).is_some()
-            || [
-                VecOp::WithCapacity,
-                VecOp::Push,
-                VecOp::Len,
-                VecOp::Capacity,
-                VecOp::Get,
-            ]
-            .into_iter()
-            .any(|op| wrapper_name(op) == function.name))
+            || super::ALL
+                .into_iter()
+                .any(|op| wrapper_name(op) == function.name))
 }
 
 pub(crate) fn source_wrapper(program: &Program, function: &Function) -> Option<VecOp> {
@@ -104,6 +96,9 @@ pub(crate) fn source_wrapper(program: &Program, function: &Function) -> Option<V
         VecOp::Push => &["values", "value"],
         VecOp::Len | VecOp::Capacity => &["values"],
         VecOp::Get => &["values", "index"],
+        VecOp::ReserveExact => &["values", "additional"],
+        VecOp::Set => &["values", "index", "value"],
+        VecOp::Clear => &["values"],
     };
     if function.params.len() != expected.len()
         || function
@@ -190,6 +185,9 @@ pub(crate) fn hir_wrapper(template: &ResolvedFunctionTemplate) -> Option<VecOp> 
         VecOp::Push => &["values", "value"],
         VecOp::Len | VecOp::Capacity => &["values"],
         VecOp::Get => &["values", "index"],
+        VecOp::ReserveExact => &["values", "additional"],
+        VecOp::Set => &["values", "index", "value"],
+        VecOp::Clear => &["values"],
     };
     if template.params.len() != expected.len()
         || template
@@ -297,7 +295,9 @@ pub(crate) fn template_ownership(
         index: 0,
     }))
         .then_some(match op {
-            VecOp::WithCapacity | VecOp::Push => OwnershipMode::Own,
+            VecOp::WithCapacity | VecOp::Push | VecOp::ReserveExact | VecOp::Set | VecOp::Clear => {
+                OwnershipMode::Own
+            }
             VecOp::Len | VecOp::Capacity | VecOp::Get => OwnershipMode::Borrow,
         })
 }

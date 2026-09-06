@@ -658,10 +658,13 @@ required project profile, and exact `[dependencies]` route. Add the dependency
 to the table manifest and import the function by its `@id` as above; an
 installed compiler supplies the bundled package without a repository checkout.
 The bounded Vec slice uses package profile `owned-data-api.v1` and dependency
-`std.collections = "^0.1.0"`; import one of the five
+`std.collections = "^0.1.0"`; import one of the eight
 `std.collections.vec.*` identities and instantiate its single Copy-scalar type
-argument explicitly. It is internal Project composition only: the package has
-no public exports or stable generic ABI.
+argument explicitly. The surface is `with_capacity`, `push`, `len`, `capacity`,
+`get`, `reserve_exact`, `set`, and `clear`; reserve/set/clear consume and return
+the vector owner, exact reserve uses `max(old_capacity, len + additional)`, and
+clear retains capacity. It is internal Project composition only: the package
+has no public exports or stable generic ABI.
 For one API, prefer
 `semaprax help library <module|name|stable-id>`: the exact lookup prints only
 the matched stable identity, dependency row, required profile, signature,

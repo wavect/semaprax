@@ -6,10 +6,11 @@ use std::sync::Arc;
 use semaprax::diagnostic::Diagnostic;
 use semaprax::project::{
     with_authenticated_project, AgentDefinitions, AuthorityPolicies, ContractsAndTests,
-    DependencyClosure, ProgramRoot, ProjectRevision, ProjectSemanticImage, ProjectionMetadata,
-    SemanticProgram, SemanticWorkspaceRevision, SourceProjection, StableIdentityIndex,
-    TargetProfiles, MAX_PROGRAM_ROOT_BYTES, MAX_SEMANTIC_WORKSPACE_REVISION_BYTES,
-    PROGRAM_ROOT_SCHEMA, PROGRAM_ROOT_SEGMENT_SCHEMA, SEMANTIC_WORKSPACE_REVISION_SCHEMA,
+    DependencyClosure, ProgramRoot, ProjectCandidate, ProjectRevision, ProjectSemanticImage,
+    ProjectionMetadata, SemanticProgram, SemanticWorkspaceRevision, SourceProjection,
+    StableIdentityIndex, TargetProfiles, MAX_PROGRAM_ROOT_BYTES,
+    MAX_SEMANTIC_WORKSPACE_REVISION_BYTES, PROGRAM_ROOT_SCHEMA, PROGRAM_ROOT_SEGMENT_SCHEMA,
+    SEMANTIC_WORKSPACE_REVISION_SCHEMA,
 };
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -50,6 +51,58 @@ impl Fixture {
         fixture
     }
 
+    fn owned_vec(label: &str, v3: bool) -> Self {
+        let root = temporary(label);
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        let app = if v3 {
+            r#"module fixture.app;
+
+@id("fixture.main")
+fn main() -> i64 {
+    let mut values = vec_with_capacity<i64>(1usize);
+    values = vec_push<i64>(values, 7);
+    values = vec_reserve_exact<i64>(values, 1usize);
+    values = vec_set<i64>(values, 0usize, 9);
+    let observed = vec_get<i64>(values, 0usize);
+    values = vec_clear<i64>(values);
+    if observed == 9 && vec_len<i64>(values) == 0usize { 0 } else { 1 }
+}
+
+@id("fixture.public")
+fn published() -> i64 { 0 }
+"#
+        } else {
+            r#"module fixture.app;
+
+@id("fixture.main")
+fn main() -> i64 {
+    let mut values = vec_with_capacity<i64>(1usize);
+    values = vec_push<i64>(values, 7);
+    if vec_get<i64>(values, 0usize) == 7 { 0 } else { 1 }
+}
+
+
+@id("fixture.public")
+fn published() -> i64 { 0 }
+"#
+        };
+        let tests = r#"module fixture.tests;
+
+@id("fixture.tests.main")
+fn main() -> i64 { 0 }
+"#;
+        for (path, source) in [("src/app.spx", app), ("src/tests.spx", tests)] {
+            let parsed = semaprax::parse(source, root.join(path)).unwrap();
+            std::fs::write(root.join(path), semaprax::format::canonical(&parsed)).unwrap();
+        }
+        std::fs::write(
+            root.join("semaprax.toml"),
+            "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n\n[modules]\nentry = \"fixture.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"fixture.tests\"]\n\n[exports]\nweb = [\"fixture.public\"]\n",
+        )
+        .unwrap();
+        Self(root.canonicalize().unwrap())
+    }
+
     fn manifest(&self) -> PathBuf {
         self.0.join("semaprax.toml")
     }
@@ -57,6 +110,61 @@ impl Fixture {
     fn revision(&self) -> Arc<ProjectRevision> {
         with_authenticated_project(&self.manifest(), |snapshot| Ok(snapshot.retain_revision()))
             .unwrap()
+    }
+}
+
+#[test]
+fn canonical_revision_selects_the_exact_highest_authenticated_prelude_contract() {
+    let scalar = Fixture::calculator("prelude-v1", |source| source);
+    let vec_v2 = Fixture::owned_vec("prelude-v2", false);
+    let vec_v3 = Fixture::owned_vec("prelude-v3", true);
+    let revisions = [scalar.revision(), vec_v2.revision(), vec_v3.revision()];
+    let expected_prelude_digests = [
+        "sha256:ef0ef738dab388ef84e4e82c9fb19bddab403dc82c66afc7112bb25ac3b7e925",
+        "sha256:e8adce08240958b51269eda0376a4af46cf1b9dc376510a358af9db9784938b4",
+        "sha256:6ffd0b12c2fb22867254607b4d9c14383909f4972415b08e3b2e9e8c2d198339",
+    ];
+    let expected_revisions = [
+        "sha256:ae5a572ffd978bd2bbe0627990605e0a929020a4b8addbda1a90eccc2774fc55",
+        "sha256:da9ea093442c60e131a6a8027e99a4fbcc411b14693ab9f92e99a92912ba16ed",
+        "sha256:3cca0ab5f754aec45fa897de0778155cd5c5a3666148590f92eff9cd62c9bff8",
+    ];
+
+    for ((revision, expected_prelude), expected_revision) in revisions
+        .iter()
+        .zip(expected_prelude_digests)
+        .zip(expected_revisions)
+    {
+        let workspace = revision.canonical_workspace_revision().unwrap();
+        let semantic: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+        assert_eq!(semantic["payload"]["prelude_digest"], expected_prelude);
+        assert_eq!(workspace.workspace_revision(), expected_revision);
+    }
+
+    for (revision, expected_schema, expected_digest) in [
+        (
+            Arc::clone(&revisions[1]),
+            "semaprax.prelude.v2",
+            "sha256:ee05c5fc884e558eee9dc89f351af530494bebecaff940081cfae3b9ce805291",
+        ),
+        (
+            Arc::clone(&revisions[2]),
+            "semaprax.prelude.v3",
+            "sha256:7df663ea708bfbb4c8b98a07607d992ac01b2b1a1942505c9fb305a43fc93938",
+        ),
+    ] {
+        let expected_revision = revision.project_revision().to_owned();
+        let candidate = ProjectCandidate::open(revision, &expected_revision).unwrap();
+        let catalog: Value =
+            serde_json::from_str(&candidate.change_catalog("fixture.main").unwrap()).unwrap();
+        let descriptor = catalog["nominal_types"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|descriptor| descriptor["target"] == "core.vec")
+            .expect("Vec-using Project exposes its authenticated nominal Vec descriptor");
+        assert_eq!(descriptor["compiler_prelude"]["schema"], expected_schema);
+        assert_eq!(descriptor["compiler_prelude"]["digest"], expected_digest);
     }
 }
 

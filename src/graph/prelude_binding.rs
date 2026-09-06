@@ -82,8 +82,50 @@ pub(super) fn uses_vec(program: &ResolvedProgram) -> bool {
         })
 }
 
+fn uses_vec_v3(program: &ResolvedProgram) -> bool {
+    fn is_v3_id(id: &crate::hir::DeclarationId) -> bool {
+        crate::vec_ops::by_id(id.as_str()).is_some_and(|op| {
+            matches!(
+                op,
+                crate::vec_ops::VecOp::ReserveExact
+                    | crate::vec_ops::VecOp::Set
+                    | crate::vec_ops::VecOp::Clear
+            )
+        }) || crate::vec_ops::wrapper_by_id(id.as_str()).is_some_and(|op| {
+            matches!(
+                op,
+                crate::vec_ops::VecOp::ReserveExact
+                    | crate::vec_ops::VecOp::Set
+                    | crate::vec_ops::VecOp::Clear
+            )
+        })
+    }
+
+    let mut found = false;
+    for function in &program.functions {
+        hir::visit_resolved_calls(&function.body, &mut |callee, _, _| {
+            found |= is_v3_id(callee)
+        });
+    }
+    for template in &program.function_templates {
+        found |= is_v3_id(&template.id);
+        hir::visit_resolved_calls(&template.body, &mut |callee, _, _| {
+            found |= is_v3_id(callee)
+        });
+    }
+    for instance in &program.function_instances {
+        found |= is_v3_id(&instance.template);
+        hir::visit_resolved_calls(&instance.function.body, &mut |callee, _, _| {
+            found |= is_v3_id(callee);
+        });
+    }
+    found
+}
+
 pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
-    if uses_vec(program) {
+    if uses_vec_v3(program) {
+        prelude::SCHEMA_V3
+    } else if uses_vec(program) {
         prelude::SCHEMA_V2
     } else {
         prelude::SCHEMA_V1
@@ -91,7 +133,9 @@ pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
 }
 
 pub(super) fn digest(program: &ResolvedProgram) -> String {
-    if uses_vec(program) {
+    if uses_vec_v3(program) {
+        prelude::digest_text_v3()
+    } else if uses_vec(program) {
         prelude::digest_text_v2()
     } else {
         prelude::digest_text_v1()

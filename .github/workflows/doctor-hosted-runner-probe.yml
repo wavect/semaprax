@@ -1,0 +1,80 @@
+# Probe: can a GitHub-HOSTED runner satisfy the provisioned Linux doctor
+# lifecycle gate's host preconditions?
+#
+# THIS IS A PROBE, NOT THE GATE. It never runs the 26 ignored lifecycle
+# fixtures, never builds or packages the sealed current-head images, and a
+# green result here is NOT a passing confinement result. Its only output is an
+# honest per-requirement PASS/FAIL table for the host, so a maintainer can tell
+# whether `.github/workflows/doctor-provisioned-linux.yml` needs a self-hosted
+# runner at all. See issue #61 and
+# docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md.
+#
+# Nothing here weakens a precondition. Every check below is the requirement the
+# gate or its provisioning wrapper already states, observed rather than assumed.
+name: Doctor hosted-runner probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/doctor-hosted-probe-20260906
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Hosted-runner precondition probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+
+      - name: Host facts
+        run: |
+          set -x
+          uname -a
+          cat /etc/os-release
+          id
+          python3 -VV
+          stat -f -c '%T' /sys/fs/cgroup || true
+          cat /proc/self/cgroup
+          cat /sys/fs/cgroup/cgroup.controllers
+          cat /sys/fs/cgroup/cgroup.subtree_control
+          cat /proc/sys/user/max_user_namespaces || true
+          cat /proc/sys/kernel/unprivileged_userns_clone || echo '(knob absent)'
+          cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns || echo '(knob absent)'
+          command -v unshare && unshare --version
+          sudo -n true && echo 'passwordless sudo: yes' || echo 'passwordless sudo: no'
+
+      - name: Gate self-test (the gate's own fail-closed logic)
+        run: python3 scripts/doctor-provisioned-linux-gate.py --self-test
+
+      - name: Gate plan (the preconditions and exact selection)
+        run: python3 scripts/doctor-provisioned-linux-gate.py --plan
+
+      - name: Baseline - the gate on an unprovisioned hosted runner
+        run: |
+          set +e
+          python3 scripts/doctor-provisioned-linux-gate.py \
+            --evidence "$RUNNER_TEMP/baseline-evidence.json"
+          echo "gate exit: $?"
+          exit 0
+
+      - name: Per-requirement host probe
+        id: probe
+        run: bash .github/probe/doctor-hosted-runner-probe.sh
+
+      - name: Evidence documents
+        if: ${{ always() }}
+        run: |
+          for f in "$RUNNER_TEMP"/*evidence*.json; do
+            [ -f "$f" ] || continue
+            echo "===== $f ====="
+            cat "$f"
+          done

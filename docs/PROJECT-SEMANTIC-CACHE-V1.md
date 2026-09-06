@@ -104,6 +104,28 @@ Parser, canonicalizer, and AST reuse counters retain their existing meanings.
 Counters describe work, not benchmark results, behavioral equivalence, or
 independently executed tests.
 
+### What a hit is worth
+
+`modules_parsed: 0` records that parsing was skipped, not that the work was.
+Two properties bound what any hit can save, and neither is visible in a
+counter.
+
+An AST hit does not avoid work proportional to module size. `lookup` returns
+`entry.program.as_ref().clone()`, a deep clone of the whole `Program`, so a hit
+trades parsing a module for cloning its AST. The two costs are of the same
+order, and the clone grows with the AST while the parse grows with the source,
+so a hit is roughly a wash on small modules and can be *more* expensive than a
+cold parse on large ones. The stored `Arc<Program>` is a retention device, not
+a sharing one; nothing downstream holds it.
+
+The four phases named above run in full on every rebuild. Whatever a hit
+saves, it cannot exceed the share of a cold build spent in parsing, and the
+measured share is small. Issue #85 records the benchmark shape that follows
+from this — `rebuild-unchanged` at parity with `cold` on a 1x fixture and
+slower on a 4x one — and owns the decision of whether to make hits O(1) by
+threading the `Arc` through the workspace consumers, which today all take
+`&[Program]`.
+
 The cache retains one successful context under the existing source count,
 source byte, and compiler-construction bounds. Checked retention additionally
 uses `MAX_PROJECT_CHECKED_MODULE_CACHE_PREBOUND` (16 MiB), enforced against the

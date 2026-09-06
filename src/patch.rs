@@ -3040,7 +3040,7 @@ fn normalized_semantic_graph(
     allowed_instances: &BTreeSet<String>,
     renamed_declarations: &BTreeSet<String>,
 ) -> Result<serde_json::Value, Vec<Diagnostic>> {
-    let source = graph::to_json(program)?;
+    let source = graph::to_legacy_json(program)?;
     let mut value: serde_json::Value = serde_json::from_str(&source).map_err(|error| {
         vec![Diagnostic::io(
             "SPX-G108",

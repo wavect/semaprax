@@ -24,6 +24,12 @@ macro_rules! format {
     };
 }
 
+mod agent_instances;
+mod generic_instances;
+pub(crate) use generic_instances::to_legacy_hir_json;
+use generic_instances::{graph_json, legacy_graph_json};
+pub use generic_instances::{legacy_context_json, to_legacy_json, verify_json};
+
 #[path = "graph/native_import.rs"]
 mod native_import;
 #[path = "graph/nested_owned.rs"]
@@ -37,7 +43,9 @@ use nested_owned::{
 };
 
 pub(crate) use native_import::{reject_native_rust_imports, reject_source_native_rust_imports};
-pub(crate) use nested_owned::{graph_schema, graph_schema_from_parts_and_instances};
+pub(crate) use nested_owned::{
+    graph_schema, graph_schema_from_parts_and_instances, legacy_graph_schema,
+};
 
 /// Hash the canonical human-readable source projection and implicit prelude.
 ///
@@ -54,14 +62,7 @@ pub(crate) fn revision_from_canonical_source(source: &str) -> String {
     prelude_binding::revision_from_source(source)
 }
 
-/// Resolve and serialize a parsed program as `semaprax.graph.v10`, as v11 when
-/// the validated program contains bounded Option propagation, as v12 when it
-/// declares a bounded generic record, or as v13 when it contains an explicit
-/// authenticated record pattern, or as v14 when it declares a bounded generic
-/// function.
-///
-/// Resolution is deliberately part of this public boundary. Invalid source
-/// cannot be mistaken for a checked semantic graph by library callers.
+/// Resolve source and serialize its selected canonical semantic graph.
 pub fn to_json(program: &Program) -> Result<String, Vec<Diagnostic>> {
     let revision = revision(program);
     let resolved = hir::resolve(program)?;
@@ -82,7 +83,8 @@ pub fn context_json(
     let revision = revision(program);
     let resolved = hir::resolve(program)?;
     reject_native_rust_imports(&resolved).map_err(|diagnostic| vec![diagnostic])?;
-    context_hir_json(&resolved, &revision, symbol, depth).map_err(|diagnostic| vec![diagnostic])
+    context_hir_json(&resolved, &revision, symbol, depth, false)
+        .map_err(|diagnostic| vec![diagnostic])
 }
 
 /// Maximum byte budget accepted by the deterministic agent-context boundary.
@@ -380,6 +382,7 @@ struct AgentTraversalFrontierV2 {
 }
 
 struct AgentContextV2Index<'a> {
+    source_revision: &'a str,
     program: &'a ResolvedProgram,
     calls_by_id: &'a BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
     callers_by_id: &'a BTreeMap<DeclarationId, BTreeSet<DeclarationId>>,
@@ -406,7 +409,7 @@ fn agent_context_hir_json(
     options: &AgentContextOptions,
 ) -> Result<Option<String>, Diagnostic> {
     hir::validate(program)?;
-    let source_graph_schema = graph_schema(program)?;
+    let source_graph_schema = nested_owned::legacy_graph_schema(program)?;
     let source_identity = SourceGraphIdentity {
         schema: source_graph_schema,
         revision: source_revision,
@@ -550,6 +553,7 @@ fn agent_context_v2_hir_json(
     let calls_by_id = call_index.calls_by_owner();
     let callers_by_id = call_index.callers_by_callee();
     let index = AgentContextV2Index {
+        source_revision,
         program,
         calls_by_id,
         callers_by_id,
@@ -717,42 +721,6 @@ fn agent_v2_fact_json(mut base_json: String, called_by: &BTreeSet<DeclarationId>
     base_json
 }
 
-impl AgentContextV2Index<'_> {
-    fn build_fact(
-        &self,
-        id: &DeclarationId,
-        depth: usize,
-        reached_by: BTreeSet<AgentContextDirection>,
-        filters: &BTreeSet<AgentContextFilter>,
-    ) -> Result<AgentFunctionFactV2, Diagnostic> {
-        let calls = self
-            .calls_by_id
-            .get(id)
-            .ok_or_else(|| graph_reference_error("function", id))?
-            .clone();
-        let called_by = self
-            .callers_by_id
-            .get(id)
-            .ok_or_else(|| graph_reference_error("function", id))?
-            .clone();
-        let base_json = if let Some(function) = self.functions.get(id) {
-            agent_function_json(self.program, function, filters)?
-        } else if let Some(template) = self.templates.get(id) {
-            agent_template_json(self.program, template, filters)?
-        } else {
-            return Err(graph_reference_error("function", id));
-        };
-        Ok(AgentFunctionFactV2 {
-            id: id.clone(),
-            depth,
-            reached_by,
-            calls,
-            called_by: called_by.clone(),
-            json: agent_v2_fact_json(base_json, &called_by),
-        })
-    }
-}
-
 fn individual_agent_v2_fact_fits(
     program: &ResolvedProgram,
     source_identity: SourceGraphIdentity<'_>,
@@ -893,6 +861,20 @@ fn agent_function_json(
     function: &ResolvedFunction,
     filters: &BTreeSet<AgentContextFilter>,
 ) -> Result<String, Diagnostic> {
+    agent_function_json_for_schema(
+        program,
+        function,
+        filters,
+        nested_owned::legacy_graph_schema(program)?,
+    )
+}
+
+fn agent_function_json_for_schema(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    filters: &BTreeSet<AgentContextFilter>,
+    schema: &str,
+) -> Result<String, Diagnostic> {
     let calls = agent_function_calls(program, function);
     let mut propagations = Vec::new();
     collect_result_propagations(&function.body, &mut propagations);
@@ -908,7 +890,6 @@ fn agent_function_json(
         ),
         agent_reference_index_json(program, function)?
     );
-    let schema = graph_schema(program)?;
     if schema == "semaprax.graph.v14" || graph_schema_includes_modern_composite_facts(schema) {
         write!(
             output,
@@ -1265,17 +1246,19 @@ fn result_propagation_json(expression: &ResolvedExpr) -> String {
 }
 
 /// Bounded While-Loops v1 nonclaim gate: programs selecting Graph v15 stay
-/// outside every evidence/patch flow until that combination is separately
-/// evidenced. Refutable Match v1 selects Graph v16 above the same lattice,
-/// so the gate rejects both additive schemas; generation fails closed so no
-/// capsule can ever carry a schema the independent verifiers reject as
-/// unsupported.
+/// outside frozen evidence flows; additive Graph v34 cannot hide that shape.
 /// Public additive view of the evidence-flow schema gate.
 pub fn reject_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
     reject_while_loop_evidence_schema(schema)
 }
 
 pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diagnostic> {
+    if schema == "semaprax.graph.v34" {
+        return Err(Diagnostic::io(
+            "SPX-G410",
+            "Graph v34 is outside frozen evidence admission",
+        ));
+    }
     if let Some(error) = rejected_evidence_schema(schema) {
         Err(error)
     } else if schema == "semaprax.graph.v24" {
@@ -3456,6 +3439,7 @@ fn context_hir_json(
     source_revision: &str,
     symbol: &str,
     depth: usize,
+    legacy: bool,
 ) -> Result<Option<String>, Diagnostic> {
     hir::validate(program)?;
 
@@ -3539,7 +3523,12 @@ fn context_hir_json(
         }
     }
 
-    graph_json(
+    let render = if legacy {
+        legacy_graph_json
+    } else {
+        graph_json
+    };
+    render(
         program,
         source_revision,
         &selected,
@@ -3852,12 +3841,13 @@ fn byte_slice_provenance_json(
     )))
 }
 
-fn graph_json(
+fn render_graph_json(
     program: &ResolvedProgram,
     source_revision: &str,
     selected_functions: &BTreeSet<DeclarationId>,
     selected_types: &BTreeSet<DeclarationId>,
     view: &GraphView<'_>,
+    concrete_ownership: bool,
 ) -> Result<String, Diagnostic> {
     let mut selected_types = selected_types.clone();
     if !prelude_binding::uses_vec(program) {
@@ -3918,7 +3908,11 @@ fn graph_json(
         }
     }
     close_type_declarations(program, &mut selected_types)?;
-    let schema = graph_schema(program)?;
+    let schema = if concrete_ownership {
+        nested_owned::generic_payload_schema(program)?
+    } else {
+        nested_owned::legacy_graph_schema(program)?
+    };
     let mut output = crate::bounded_output::CappedString::new();
     write!(
         output,
@@ -4442,10 +4436,15 @@ fn graph_json(
             .iter()
             .map(|param| {
                 format!(
-                    "{{\"id\":{},\"name\":{},\"type\":{},\"ownership_mode\":\"value\"}}",
+                    "{{\"id\":{},\"name\":{},\"type\":{},\"ownership_mode\":{}}}",
                     quote_json(param.id.as_str()),
                     quote_json(&param.name),
-                    type_json(&param.ty)
+                    type_json(&param.ty),
+                    quote_json(if concrete_ownership {
+                        ownership_text(param.ownership)
+                    } else {
+                        "value"
+                    })
                 )
             })
             .collect::<Vec<_>>()
@@ -4495,10 +4494,15 @@ fn graph_json(
             .iter()
             .map(|param| {
                 format!(
-                    "{{\"id\":{},\"name\":{},\"type\":{},\"ownership_mode\":\"value\"}}",
+                    "{{\"id\":{},\"name\":{},\"type\":{},\"ownership_mode\":{}}}",
                     quote_json(param.id.as_str()),
                     quote_json(&param.name),
-                    type_json(&param.ty)
+                    type_json(&param.ty),
+                    quote_json(if concrete_ownership {
+                        ownership_text(param.ownership)
+                    } else {
+                        "value"
+                    })
                 )
             })
             .collect::<Vec<_>>()

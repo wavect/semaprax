@@ -114,7 +114,7 @@ fn place_json(place: &CleanupPlace) -> String {
     )
 }
 
-fn liveness_shape_json(shape: &FieldLivenessShape) -> String {
+pub(crate) fn liveness_shape_json(shape: &FieldLivenessShape) -> String {
     match shape {
         FieldLivenessShape::NoDrop => "{\"kind\":\"no_drop\"}".to_owned(),
         FieldLivenessShape::Leaf { flag, lifecycle } => format!(

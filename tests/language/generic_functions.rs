@@ -21,8 +21,8 @@ module test.generic_strings;
     let reparsed = semaprax::check(&canonical, "generic-strings.spx").unwrap();
     let resolved = hir::resolve(&program).unwrap();
     assert_eq!(
-        graph::to_json(&program).unwrap(),
-        graph::to_json(&reparsed).unwrap()
+        graph::to_legacy_json(&program).unwrap(),
+        graph::to_legacy_json(&reparsed).unwrap()
     );
     assert_eq!(resolved.function_instances.len(), 1);
     assert_eq!(
@@ -940,7 +940,7 @@ module test.malformed_generic_postfix;
 #[test]
 fn graph_v14_is_program_wide_and_context_authenticates_exact_instances() {
     let program = parse_source(SOURCE);
-    let json = graph::to_json(&program).unwrap();
+    let json = graph::to_legacy_json(&program).unwrap();
     let module_value: serde_json::Value = serde_json::from_str(&json).unwrap();
     assert!(json.starts_with("{\"schema\":\"semaprax.graph.v14\","));
     assert!(json.contains("\"kind\":\"function_template\""));
@@ -1010,18 +1010,18 @@ module test.unused_generic_graph;
 @id("app.main") fn main() -> i64 { 0 }
 "#;
     let unused_program = parse_source(unused);
-    let unused_json = graph::to_json(&unused_program).unwrap();
+    let unused_json = graph::to_legacy_json(&unused_program).unwrap();
     assert!(unused_json.starts_with("{\"schema\":\"semaprax.graph.v14\","));
     assert!(unused_json.contains("\"kind\":\"function_template\""));
     assert!(!unused_json.contains("\"kind\":\"function_instance\""));
 
-    let full_template_context = graph::context_json(&program, "test.first", 0)
+    let full_template_context = graph::legacy_context_json(&program, "test.first", 0)
         .unwrap()
         .unwrap();
     assert!(full_template_context.contains("\"root\":\"test.first\""));
     serde_json::from_str::<serde_json::Value>(&full_template_context).unwrap();
 
-    let bounded_caller_context = graph::context_json(&program, "app.main", 1)
+    let bounded_caller_context = graph::legacy_context_json(&program, "app.main", 1)
         .unwrap()
         .unwrap();
     serde_json::from_str::<serde_json::Value>(&bounded_caller_context).unwrap();
@@ -1033,7 +1033,7 @@ fn automatic<T>(value: T) -> T { value }
 @id("app.main") fn main() -> i64 { automatic<i64>(0) }
 "#,
     );
-    let automatic_json = graph::to_json(&automatic).unwrap();
+    let automatic_json = graph::to_legacy_json(&automatic).unwrap();
     assert!(automatic_json.contains(
         "\"kind\":\"function_template\",\"name\":\"automatic\",\"identity_origin\":\"automatic\",\"persistent\":false"
     ));
@@ -1048,7 +1048,7 @@ module test.generic_context_frontier;
 @id("app.main") fn main() -> i64 { 0 }
 "#,
     );
-    let frontier_json = graph::context_json(&frontier, "test.template", 0)
+    let frontier_json = graph::legacy_context_json(&frontier, "test.template", 0)
         .unwrap()
         .unwrap();
     assert!(frontier_json.contains(
@@ -1059,7 +1059,7 @@ module test.generic_context_frontier;
 #[test]
 fn graph_v14_has_literal_module_and_context_kats_and_wins_the_schema_lattice() {
     let program = parse_source(SOURCE);
-    let module = graph::to_json(&program).unwrap();
+    let module = graph::to_legacy_json(&program).unwrap();
     let options = AgentContextOptions::new(
         1,
         64 * 1024,
@@ -1070,7 +1070,7 @@ fn graph_v14_has_literal_module_and_context_kats_and_wins_the_schema_lattice() {
     let agent = graph::agent_context_json(&program, "app.main", &options)
         .unwrap()
         .unwrap();
-    let context = graph::context_json(&program, "test.first", 1)
+    let context = graph::legacy_context_json(&program, "test.first", 1)
         .unwrap()
         .unwrap();
     assert_eq!(
@@ -1102,7 +1102,7 @@ module test.generic_function_lattice;
 @id("app.main") fn main() -> i64 { 0 }
 "#,
     );
-    let mixed_json = graph::to_json(&mixed).unwrap();
+    let mixed_json = graph::to_legacy_json(&mixed).unwrap();
     assert!(mixed_json.starts_with("{\"schema\":\"semaprax.graph.v14\","));
     assert!(mixed_json.contains("\"kind\":\"record_pattern\""));
     assert!(mixed_json.contains("\"kind\":\"try_option\""));
@@ -1226,7 +1226,7 @@ module test.same_signature_instances;
 
 "#,
     );
-    let same_json = graph::to_json(&same_signature).unwrap();
+    let same_json = graph::to_legacy_json(&same_signature).unwrap();
     let mut same_resolved = hir::resolve(&same_signature).unwrap();
     assert_eq!(same_resolved.function_instances.len(), 2);
     for instance in &same_resolved.function_instances {

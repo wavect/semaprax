@@ -415,7 +415,9 @@ ABIs prematurely.
   `fn() -> i64`; the slice changes no package or Wasm schema. Direct acyclic
   identity forwarding between already-admitted generic templates now derives a
   transitive concrete-instance closure of at most 256 entries locally without widening bodies,
-  signatures, effects, packages, or public ABIs. Graph v14 remains unchanged;
+  signatures, effects, packages, or public ABIs. Finish additive Graph v34 instance ownership and independent cleanup-schema replay,
+  then host the complete existing internal corpus before broader ownership or ABI work.
+  Frozen Graph v14 consumers retain their bytes;
   direct-scalar forwarding retains CleanupPlan v2, flat-owned forwarding v5,
   and nested-owned forwarding v7. The completed local flat expression tranche
   composes one owner into the identical result over all eight Copy scalars via

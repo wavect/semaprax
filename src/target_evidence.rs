@@ -336,7 +336,7 @@ fn bounded_graph_with_limit(
     limit: usize,
 ) -> Result<String, Vec<Diagnostic>> {
     let (result, overflowed) =
-        crate::bounded_output::with_limit(limit, || graph::to_hir_json(program, revision));
+        crate::bounded_output::with_limit(limit, || graph::to_legacy_hir_json(program, revision));
     if overflowed {
         return Err(vec![bound_error(format!(
             "Semantic Target Evidence Graph emission exceeds {MAX_GRAPH_BYTES} bytes"

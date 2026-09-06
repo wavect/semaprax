@@ -398,7 +398,7 @@ fn profile_evidence(program: &Program) -> Result<ProfileEvidence, Diagnostic> {
             ));
         }
     }
-    let graph_json = crate::graph::to_json(program).map_err(first_error)?;
+    let graph_json = crate::graph::to_legacy_json(program).map_err(first_error)?;
     if !graph_json.starts_with("{\"schema\":\"semaprax.graph.v14\",") {
         return Err(profile_error(
             "generic-function component requires exact Graph v14",

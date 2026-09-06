@@ -15,6 +15,66 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  gen05b-generic-instance-closure:
+    name: GEN-05B generic instance semantic closure
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_INCREMENTAL: "0"
+      CARGO_TARGET_DIR: target/gen05b
+      SEMAPRAX_REQUIRE_GENERIC_OWNED_BACKENDS: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+          filter: blob:none
+          fetch-tags: false
+          lfs: false
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+          components: rustfmt, clippy
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Resolve held native tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RUSTC=$(rustup which rustc)" >> "$GITHUB_ENV"
+          echo "CLANG=$(command -v clang)" >> "$GITHUB_ENV"
+          echo "SEMAPRAX_ARCHIVER=$(readlink -f /usr/bin/ar)" >> "$GITHUB_ENV"
+      - name: Fetch locked workspace dependencies
+        run: cargo fetch --locked
+      - name: Require graph and cleanup closure with internal expression and dependency composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          clang --version
+          node --version
+          cargo test --locked -p semaprax --test agent_context_v2 generic_instance_ownership_is_exact_filter_selected_and_budgeted -- --exact --nocapture
+          cargo test --locked -p semaprax --test workspace canonical_revision::generic_instances::generic_instance_program_root_binds_checked_ownership_and_rejects_cross_pairs -- --exact --nocapture
+          cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_exact_eight_scalar_flat_and_nested_ownership_and_forwarding -- --exact --nocapture
+          cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_replay_rejects_reminted_identity_ownership_paths_schema_and_closure -- --exact --nocapture
+          cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_context_contains_exact_instance_facts_and_scalar_profiles -- --exact --nocapture
+          cargo test --locked -p semaprax --lib cleanup_plan::replay::schema_tests::generic_instance_schema_selection_freezes_operation_sensitive_v2_v5_v7 -- --exact --nocapture
+          cargo test --locked -p semaprax --lib cleanup_plan::replay::schema_tests::generic_instance_schema_substitution_rejects_before_semantic_execution -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::matrix::all_copy_scalars_flat_and_both_nested_forwarding_settle_on_three_engines -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_expression_runtime::generic_owned_expression_composition_matches_all_internal_backends -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_expression_runtime::native_and_wasm_reject_tampered_generic_expression_proofs -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::nested_generic_relay_substitution_and_hir_carriers_fail_closed -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::generic_forwarding_rejects_vector_changes_and_template_cycles -- --exact --nocapture
+          cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::generic_forwarding_instance_closure_bound_is_exact -- --exact --nocapture
+          cargo test --locked -p semaprax --test project generic_owned_dependency_runtime::dependency_internal_generic_owned_record_executes_without_public_generic_abi -- --exact --nocapture
+          cargo test --locked -p semaprax --test project generic_owned_dependency_runtime::generic_owned_dependency_subject_tamper_is_rejected_before_callback -- --exact --nocapture
+          cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_deep_admitted_instance_does_not_depend_on_json_parser_recursion -- --exact --nocapture
+          cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_ordered_argument_vectors_and_repeat_sites_share_one_identity -- --exact --nocapture
+          cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_flat_expression_composition_selects_v5_and_preserves_modes -- --exact --nocapture
+          cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_two_parameter_forwarding_rejects_map_and_callee_permutation -- --exact --nocapture
+          cargo test --locked -p semaprax --test ir graph_generic_instances::graph_v34_composes_nested_relay_with_checked_local_byte_loans -- --exact --nocapture
+
   supply-chain:
     name: Dependency policy
     runs-on: ubuntu-latest

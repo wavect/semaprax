@@ -88,6 +88,8 @@ pub(crate) fn evaluate_resolved_zero_arg_i64_function(
 
     let admitted = admitted_resolved_functions(program);
     scan_closure(function_id, &admitted, program)?;
+    // Even uncalled attached instances must authenticate before execution.
+    hir::validate(program).map_err(|error| vec![error])?;
 
     std::thread::scope(|scope| {
         let worker = std::thread::Builder::new()

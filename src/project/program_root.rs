@@ -171,7 +171,7 @@ impl ProgramRoot {
                 "semantic_program",
                 workspace.semantic_program().to_json(),
                 workspace.semantic_program().digest(),
-                super::SemanticProgram::SCHEMA,
+                workspace.semantic_program().schema(),
             )?,
             segment(
                 "stable_identity_index",

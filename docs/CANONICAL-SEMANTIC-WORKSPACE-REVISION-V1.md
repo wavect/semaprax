@@ -342,3 +342,38 @@ above or completion of a broader product row. After later upstream baseline
 repairs, the repository-wide full gate reached 1,536 passing library tests but
 still stopped on 11 unrelated Project, Wasm, and WIT failures before its later
 stages.
+
+## Additive semantic-program node v2: generic instance closure
+
+A retained Project with concrete generic function instances selects
+`semaprax.semantic-workspace-revision.semantic-program.v2` for its
+`semantic_program` node. Projects without concrete instances retain exact v1
+node bytes. The workspace envelope and existing Project public descriptors
+retain their schemas; this is checked internal meaning, not a generic ABI.
+
+The v2 payload retains the normalized source and prelude facts, and appends
+`generic_instance_closures` in fixed `entry`, `public_api`, `tests` role order,
+omitting roles without materialized instances. Each closure records its role,
+`defining_revision_kind: "project_revision"`, the retained exact Project
+revision, and the complete independently validated Graph v34 as an exact JSON string.
+Retaining those bytes avoids reinterpreting nested graph JSON through a second
+parser with a smaller recursion bound. The defining
+revision for these linked instances is the Project revision; standalone graphs
+use their canonical source revision. No path, layout or discovery cache
+supplies identity authority.
+
+The node digest uses domain
+`semaprax.semantic-workspace-revision.semantic-program.digest.v2\0` with the
+existing length-framed digest algorithm. `SemanticProgram::schema()` reports
+the selected node schema; `SCHEMA` retains the frozen v1 name and `SCHEMA_V2`
+names the additive node. ProgramRoot's existing semantic-program segment binds
+that selected schema, exact node bytes and digest. This directed association
+avoids a cycle: the graph does not embed its enclosing ProgramRoot digest.
+Workspace and ProgramRoot replay independently reconstruct the node from the
+retained Project, rejecting a graph/cleanup/root cross-pair or a self-consistent
+externally reminted node. These projections grant no execution or publication
+authority.
+
+The focused local selector is
+`canonical_revision::generic_instances::generic_instance_program_root_binds_checked_ownership_and_rejects_cross_pairs`
+in the `workspace` harness. Hosted passage must be recorded separately.

@@ -67,11 +67,9 @@ node_type!(
     "semaprax.semantic-workspace-revision.source-projection.v1",
     b"semaprax.semantic-workspace-revision.source-projection.digest.v1\0"
 );
-node_type!(
-    SemanticProgram,
-    "semaprax.semantic-workspace-revision.semantic-program.v1",
-    b"semaprax.semantic-workspace-revision.semantic-program.digest.v1\0"
-);
+#[path = "canonical_workspace_revision/generic_instances.rs"]
+mod generic_instances;
+pub use generic_instances::SemanticProgram;
 node_type!(
     StableIdentityIndex,
     "semaprax.semantic-workspace-revision.stable-identity-index.v1",
@@ -222,11 +220,14 @@ impl SemanticWorkspaceRevision {
             crate::prelude::SCHEMA_V2 => crate::prelude::contract_bytes_v2(),
             _ => crate::prelude::contract_bytes_v1(),
         };
-        let semantic_program = SemanticProgram::new(json!({
-            "entry_module": revision.manifest().entry(),
-            "normalized_sources": normalized_sources,
-            "prelude_digest": framed_digest(PRELUDE_DOMAIN, &prelude_contract),
-        }))?;
+        let semantic_program = SemanticProgram::derive(
+            revision,
+            json!({
+                "entry_module": revision.manifest().entry(),
+                "normalized_sources": normalized_sources,
+                "prelude_digest": framed_digest(PRELUDE_DOMAIN, &prelude_contract),
+            }),
+        )?;
 
         let indexes = revision.semantic.image_indexes();
         let stable_identity_index = StableIdentityIndex::new(json!({
@@ -333,7 +334,7 @@ impl SemanticWorkspaceRevision {
             "contracts_and_tests": node_value(&contracts_and_tests.json, contracts_and_tests.digest())?,
             "dependency_closure": node_value(&dependency_closure.json, dependency_closure.digest())?,
             "projection_metadata": node_value(&projection_metadata.json, projection_metadata.digest())?,
-            "semantic_program": node_value(&semantic_program.json, semantic_program.digest())?,
+            "semantic_program": node_value(semantic_program.to_json(), semantic_program.digest())?,
             "source_projection": node_value(&source_projection.json, source_projection.digest())?,
             "stable_identity_index": node_value(&stable_identity_index.json, stable_identity_index.digest())?,
             "target_profiles": node_value(&target_profiles.json, target_profiles.digest())?,
@@ -707,7 +708,10 @@ fn validate_wire_shape(value: &Value) -> Result<(), Vec<Diagnostic>> {
             .ok_or_else(|| invalid("canonical semantic workspace node value is invalid"))?;
         if node_value.len() != 2
             || !node_value.contains_key("payload")
-            || node_value.get("schema").and_then(Value::as_str) != Some(schema)
+            || !(node_value.get("schema").and_then(Value::as_str) == Some(schema)
+                || (key == "semantic_program"
+                    && node_value.get("schema").and_then(Value::as_str)
+                        == Some(SemanticProgram::SCHEMA_V2)))
         {
             return Err(invalid(
                 "canonical semantic workspace node value is invalid",

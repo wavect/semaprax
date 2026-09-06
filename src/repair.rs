@@ -900,8 +900,8 @@ fn validate_normalized_graph(
     after_target: &str,
     reverse_ids: &BTreeMap<String, String>,
 ) -> Result<(), Vec<Diagnostic>> {
-    let before_graph = graph::to_json(before)?;
-    let after_graph = graph::to_json(after)?;
+    let before_graph = graph::to_legacy_json(before)?;
+    let after_graph = graph::to_legacy_json(after)?;
     let before_value: serde_json::Value =
         serde_json::from_str(&before_graph).map_err(|_| rebase_mismatch())?;
     let mut after_value: serde_json::Value =

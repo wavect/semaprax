@@ -38,10 +38,14 @@ mod nested_shape;
 mod path_join;
 mod record_destructure;
 mod resolved_call;
+mod schema;
+#[cfg(test)]
+mod schema_tests;
 use nested_shape::expected_shape_for_type;
 use path_join::validate_path_states;
 use record_destructure::finish_owned_match_result as finish_owned;
 use resolved_call::resolved_call_params;
+pub(crate) use schema::selected_schema;
 
 const MAX_REPLAY_PATHS: usize = 65_536;
 const MAX_REPLAY_WORK_UNITS: usize = 8_000_000;
@@ -333,60 +337,7 @@ fn validate_structure_with_budget(
     budget: &mut ReplayBudget,
 ) -> Result<(), Diagnostic> {
     let plan = &function.cleanup_plan;
-    let has_nested_owned_bytes =
-        function
-            .cleanup
-            .slots
-            .iter()
-            .try_fold(false, |nested, slot| {
-                crate::cleanup::cleanup_shape_profile(&slot.shape)
-                    .map(|profile| nested || profile.has_nested_owned_bytes)
-            })?;
-    let has_nested_record_destructure = record_destructure::function_contains(function);
-    let has_nested_record_update =
-        record_destructure::update::function_contains(program, function)?;
-    let expected_schema = if has_nested_record_update {
-        CLEANUP_PLAN_SCHEMA_V9
-    } else if has_nested_record_destructure {
-        CLEANUP_PLAN_SCHEMA_V8
-    } else if has_nested_owned_bytes {
-        CLEANUP_PLAN_SCHEMA_V7
-    } else if function.cleanup.schema == crate::cleanup::CLEANUP_INVENTORY_SCHEMA_V2
-        || function
-            .requires
-            .iter()
-            .any(expression_has_explicit_variant_match)
-        || function
-            .ensures
-            .iter()
-            .any(expression_has_explicit_variant_match)
-        || expression_has_explicit_variant_match(&function.body)
-    {
-        CLEANUP_PLAN_SCHEMA_V6
-    } else if function
-        .requires
-        .iter()
-        .any(expression_has_explicit_record_match)
-        || function
-            .ensures
-            .iter()
-            .any(expression_has_explicit_record_match)
-        || expression_has_explicit_record_match(&function.body)
-    {
-        CLEANUP_PLAN_SCHEMA_V5
-    } else if function.requires.iter().any(expression_has_byte_range)
-        || function.ensures.iter().any(expression_has_byte_range)
-        || expression_has_byte_range(&function.body)
-    {
-        CLEANUP_PLAN_SCHEMA_V4
-    } else if function.requires.iter().any(expression_has_option_try)
-        || function.ensures.iter().any(expression_has_option_try)
-        || expression_has_option_try(&function.body)
-    {
-        CLEANUP_PLAN_SCHEMA_V3
-    } else {
-        CLEANUP_PLAN_SCHEMA_V2
-    };
+    let expected_schema = schema::selected_schema(program, function)?;
     if plan.schema != expected_schema {
         return Err(replay_error(
             function,

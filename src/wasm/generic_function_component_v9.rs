@@ -179,7 +179,7 @@ pub(crate) fn emit_private_generic_function_core_v9(
             .ok_or_else(|| profile_error("generic-function v9 has no exact instances"))?,
     )?;
     let source_revision = graph::revision(program);
-    let graph_json = graph::to_json(program).map_err(first_error)?;
+    let graph_json = graph::to_legacy_json(program).map_err(first_error)?;
     if !graph_json.starts_with("{\"schema\":\"semaprax.graph.v14\",") {
         return Err(profile_error(
             "generic-function v9 requires exact Graph v14",

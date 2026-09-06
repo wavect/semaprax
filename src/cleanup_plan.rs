@@ -13,6 +13,7 @@ mod validate;
 
 pub(crate) use build::build_plan;
 pub use execute::{execute_for_conformance, CleanupExecutionError, CleanupScenario};
+pub(crate) use replay::selected_schema;
 pub(crate) use validate::validate_program;
 
 use crate::cleanup::{FieldLivenessShape, LivenessFlagId};

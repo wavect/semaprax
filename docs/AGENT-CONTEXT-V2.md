@@ -96,18 +96,48 @@ contract maximum; permanently unavailable facts reject as `SPX-G004` rather
 than producing a non-progressing cursor. Non-byte and reference cursors
 conservatively advertise the contract maximum.
 
+## Concrete generic instance ownership
+
+When `types` or `ownership` is selected, a retained generic template fact also
+contains `generic_instance_ownership`: the complete revision-bound Graph v34
+facts for that template's admitted concrete instances, in the graph's identity
+presentation order. The exact signatures, owned-leaf paths, selected cleanup
+schema, inventory and plan, loans, and forwarding closure are replayed from
+checked HIR. This field is absent when neither filter is selected.
+
+These instances remain metadata inside one template fact rather than additional
+traversal nodes. Their complete bytes count toward the ordinary fact budget;
+a large instance closure may defer that entire fact or fail with `SPX-G004`.
+No partial ownership inventory or cleanup plan is returned as a complete fact.
+The same graph facts are available through ordinary Graph v34 and through
+ProgramRoot's separately versioned generic-ownership node. The query grants no
+execution, mutation, publication, or generic ABI authority.
+
 ## Compatibility and evidence boundary
 
-`source_graph_schema` remains the program-selected Graph v10/v11/v12/v13/v14
-lattice. Agent Context v2 does not introduce Graph v15 or change Graph bytes,
-source revisions, HIR, type/layout facts, or CleanupPlan v2/v3. Exact forward,
-reverse, and both SHA-256 known answers are:
+`source_graph_schema` follows the selected graph contract, including additive
+Graph v34 for programs with concrete generic function instances. Agent Context
+v1 retains its previous source schema, facts, API, and bytes. The v2 envelope
+and traversal rules are unchanged; selecting v34 changes the explicit source
+schema and adds instance ownership under the selected filters. Programs without
+concrete function instances retain their previous graph selection.
+
+The earlier Graph-v14-backed forward, reverse, and both SHA-256 known answers
+remain frozen historical projections:
 
 - forward: `922404133444942ab86607772362098e0f5656add6bea607a890be2bcfe5b7c9`
 - reverse: `9a2ebfe569926e67f436379cf2b5c96d510daadd11d0a295ed54903cb612627b`
 - both: `4ec8a62a17551e87dc301d08f0a09c6159445757bca6dd9920a7db4e3790ce17`
 
-Local v2 and legacy-v1 gates are 8/8 and 8/8. The full hosted matrix is green
+The additive Graph-v34-backed projection of the same Effects-only fixture has
+these forward, reverse, and both known answers. The gate also reconstructs the
+historical source-schema projection and verifies all three prior hashes:
+
+- forward: `928e1789312b7e2649b57ba0749440a31447c1a1a2269767592702a78d619f43`
+- reverse: `2a91b46760ee702e3d0772dc17a5223767a6326a25cb92d7831fb31c494818df`
+- both: `c99e0c8e1042e366abf15b1641ce378f1b94092c2ed3cf553fac4d171d90c5ae`
+
+The earlier local v2 and legacy-v1 gates were 8/8 and 8/8. The full hosted matrix is green
 in [run 31397881268, including Ubuntu job
 93485198327](https://github.com/wavect/semaprax/actions/runs/31397881268/job/93485198327).
 
@@ -120,7 +150,8 @@ byte identity, raw-library fail-closed behavior, unsupported-filter rejection,
 exact revision fields, canonical one-line JSON, and a calculator result below
 2 KiB, 600 lexical units, and one sixth of the full authenticated Project graph.
 
-V2 is a call-graph query only. It does not claim reverse type, data, ownership,
+V2 traverses call edges only; ownership metadata does not add reverse edges.
+It does not claim reverse type, data, ownership,
 effect, capability, cleanup, import, target, diagnostic, or test edges; impact
 analysis; ranking; repository indexing; persistence; or a graph daemon.
 The separate [Semantic Impact v1](SEMANTIC-IMPACT-V1.md) patch-preview contract

@@ -9,6 +9,7 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
     program: Option<&ResolvedProgram>,
     functions: impl IntoIterator<Item = &'a ResolvedFunction>,
     has_native_import: bool,
+    generic_composition: bool,
 ) -> Result<Option<&'static str>, Diagnostic> {
     let functions = functions.into_iter().collect::<Vec<_>>();
     let has_nested_update = functions
@@ -58,6 +59,13 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
                     )
                 })
             {
+                if generic_composition {
+                    let program = program.ok_or_else(|| {
+                        composition_error("generic loan composition requires retained checked HIR")
+                    })?;
+                    crate::hir::validate(program)?;
+                    return Ok(Some("semaprax.graph.v34"));
+                }
                 return Err(composition_error(
                     "nested owned-record Graph composition contains a loan that is not an exactly authenticated nested projected Bytes loan",
                 ));
@@ -87,11 +95,15 @@ pub(super) fn select_schema<'a>(
     functions: impl IntoIterator<Item = &'a ResolvedFunction>,
     has_native_import: bool,
     base_schema: &'static str,
+    generic_composition: bool,
 ) -> Result<&'static str, Diagnostic> {
     let functions = functions.into_iter().collect::<Vec<_>>();
-    if let Some(schema) =
-        nested_cleanup_graph_schema(program, functions.iter().copied(), has_native_import)?
-    {
+    if let Some(schema) = nested_cleanup_graph_schema(
+        program,
+        functions.iter().copied(),
+        has_native_import,
+        generic_composition,
+    )? {
         return Ok(schema);
     }
     if has_native_import {
@@ -159,6 +171,7 @@ fn composition_error(message: &str) -> Diagnostic {
     Diagnostic::io("SPX-G410", message)
 }
 
+// Frozen workspace source metadata retains its versioned pre-v34 contract.
 pub(crate) fn graph_schema_from_parts_and_instances(
     interfaces: &[crate::hir::ResolvedInterface],
     types: &[crate::hir::ResolvedTypeDeclaration],
@@ -178,18 +191,41 @@ pub(crate) fn graph_schema_from_parts_and_instances(
             functions,
             function_templates,
         )?,
+        false,
     )
 }
 
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
+    if program.function_instances.is_empty() {
+        return legacy_graph_schema(program);
+    }
+    generic_payload_schema(program)?;
+    Ok("semaprax.graph.v34")
+}
+
+/// The additive generic graph can compose authenticated ordinary local loans
+/// with nested cleanup. Frozen nested graph versions admitted only projected
+/// nested-leaf loans; their renderer and rejection remain unchanged.
+pub(super) fn generic_payload_schema(
+    program: &ResolvedProgram,
+) -> Result<&'static str, Diagnostic> {
+    program_schema(program, !program.function_instances.is_empty())
+}
+
+pub(crate) fn legacy_graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
+    program_schema(program, false)
+}
+
+fn program_schema(
+    program: &ResolvedProgram,
+    generic_composition: bool,
+) -> Result<&'static str, Diagnostic> {
     select_schema(
         Some(program),
-        program.functions.iter().chain(
-            program
-                .function_instances
-                .iter()
-                .map(|instance| &instance.function),
-        ),
+        program
+            .functions
+            .iter()
+            .chain(program.function_instances.iter().map(|i| &i.function)),
         super::native_import::declares_native_rust_import(&program.interfaces),
         super::graph_schema_from_parts_without_loans(
             &program.interfaces,
@@ -197,6 +233,7 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Di
             &program.functions,
             &program.function_templates,
         )?,
+        generic_composition,
     )
 }
 
@@ -215,6 +252,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v31"
             | "semaprax.graph.v32"
             | "semaprax.graph.v33"
+            | "semaprax.graph.v34"
     )
 }
 
@@ -228,6 +266,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v31"
             | "semaprax.graph.v32"
             | "semaprax.graph.v33"
+            | "semaprax.graph.v34"
     )
 }
 
@@ -239,6 +278,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v29"
             | "semaprax.graph.v31"
             | "semaprax.graph.v33"
+            | "semaprax.graph.v34"
     )
 }
 

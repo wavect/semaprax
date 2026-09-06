@@ -6,6 +6,9 @@ use semaprax::hir::{self, DeclarationId, ResolvedType};
 use semaprax::interpreter::{self, InterpreterOptions};
 use semaprax::{codegen, parse, verify, wasm};
 
+#[path = "generic_owned_function_runtime/matrix.rs"]
+mod matrix;
+
 static SERIAL: AtomicU64 = AtomicU64::new(0);
 
 const PREFIX: &str = r#"
@@ -377,12 +380,16 @@ fn generic_owned_function_instances_settle_and_reenter_on_three_engines() {
 }
 
 fn run_interpreter(entry: &str, expected: Expected) {
+    run_interpreter_source(entry, &source(entry), expected);
+}
+
+fn run_interpreter_source(entry: &str, source: &str, expected: Expected) {
     let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
     let path = std::env::temp_dir().join(format!(
         "semaprax-generic-owned-function-{}-{serial}.spx",
         std::process::id()
     ));
-    std::fs::write(&path, source(entry)).unwrap();
+    std::fs::write(&path, source).unwrap();
     for _ in 0..4 {
         let result =
             interpreter::interpret(&path, "app.main", &[], &InterpreterOptions::default()).unwrap();
@@ -517,6 +524,14 @@ fn wasm_bulk_memory_counts(bytes: &[u8]) -> (usize, usize) {
 }
 
 fn run_wasm(entry: &str, parsed: &semaprax::ast::Program, expected: Expected) {
+    let baseline_source = source(entry).replace(
+        "consume_nested_box(relay_box<bool>(boxed)) + consume_nested_pair(relay_pair<i64>(paired))",
+        "consume_nested_box(boxed) + consume_nested_pair(paired)",
+    );
+    run_wasm_source(parsed, &baseline_source, expected);
+}
+
+fn run_wasm_source(parsed: &semaprax::ast::Program, baseline_source: &str, expected: Expected) {
     let serial = SERIAL.fetch_add(1, Ordering::Relaxed);
     let root = std::env::temp_dir().join(format!(
         "semaprax-generic-owned-function-wasm-{}-{serial}",
@@ -528,14 +543,10 @@ fn run_wasm(entry: &str, parsed: &semaprax::ast::Program, expected: Expected) {
     assert_eq!(memory_grows, 0, "owned relays must not grow Wasm memory");
     if matches!(expected, Expected::Value(_)) {
         // `bytes_copy` legitimately uses bulk memory. Compare against the same
-        // program with only the two nested owning relays bypassed so any extra
-        // aggregate-level shallow copy remains observable.
-        let baseline_source = source(entry).replace(
-            "consume_nested_box(relay_box<bool>(boxed)) + consume_nested_pair(relay_pair<i64>(paired))",
-            "consume_nested_box(boxed) + consume_nested_pair(paired)",
-        );
+        // program with its owning relays bypassed so any extra aggregate-level
+        // shallow copy remains observable.
         let baseline = parse(
-            &baseline_source,
+            baseline_source,
             Path::new("generic-owned-function-runtime-wasm-baseline-v1.spx"),
         )
         .unwrap();

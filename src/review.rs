@@ -435,8 +435,10 @@ fn build_from_preflight_with_limits(
     } else {
         resolve_checked()?
     };
-    let source_graph_schema = graph::graph_schema(&before_resolved).map_err(|error| vec![error])?;
-    if graph::graph_schema(&candidate_resolved).map_err(|error| vec![error])? != source_graph_schema
+    let source_graph_schema =
+        graph::legacy_graph_schema(&before_resolved).map_err(|error| vec![error])?;
+    if graph::legacy_graph_schema(&candidate_resolved).map_err(|error| vec![error])?
+        != source_graph_schema
     {
         return Err(vec![invariant_error(
             "semantic review base and candidate Graph schemas differ",
@@ -872,8 +874,8 @@ fn prove_rename_graph_delta(preflight: &PatchPreflight) -> Result<(), Vec<Diagno
     let rename_candidate = hir::resolve(rename.candidate())?;
     hir::validate(&rename_before).map_err(|error| vec![error])?;
     hir::validate(&rename_candidate).map_err(|error| vec![error])?;
-    let before_json = graph::to_json(rename.before())?;
-    let candidate_json = graph::to_json(rename.candidate())?;
+    let before_json = graph::to_legacy_json(rename.before())?;
+    let candidate_json = graph::to_legacy_json(rename.candidate())?;
     let before: serde_json::Value = serde_json::from_str(&before_json).map_err(|_| {
         vec![invariant_error(
             "semantic review base Graph is not canonical JSON",

@@ -92,7 +92,7 @@ fn build(
         admission::select_subject(resolution_input, build_options, resolution)?;
     let (program, resolved) = admission::verify_source(&subject, build_options)?;
     let link_digest = {
-        let graph = crate::graph::to_json(&program).map_err(|errors| {
+        let graph = crate::graph::to_legacy_json(&program).map_err(|errors| {
             errors.first().map_or_else(
                 || profile_error("package-build Graph projection failed"),
                 |error| map_nested_error(error, "package-build Graph projection failed"),

@@ -392,7 +392,13 @@ generics and public ABI surfaces remain closed.
 ### Semantic graph
 
 `src/graph.rs` and `src/graph_cleanup.rs` project validated program and cleanup
-meaning. `src/call_index.rs`, `src/impact.rs`, `src/review.rs`,
+meaning. `src/graph/generic_instances.rs` owns additive Graph v34 instance
+ownership and exact source replay; frozen versioned consumers explicitly use
+the legacy projection. `src/cleanup_plan/replay/schema.rs` independently selects
+the cleanup schema from HIR with a freshly rebuilt inventory. The builder and
+replay must agree before any execution. The canonical workspace's
+`canonical_workspace_revision/generic_instances.rs` embeds the linked closures
+in SemanticProgram v2, which the existing ProgramRoot segment authenticates. `src/call_index.rs`, `src/impact.rs`, `src/review.rs`,
 `src/properties.rs`, and `src/hygienic.rs` build bounded read-only views over
 verified representations.
 

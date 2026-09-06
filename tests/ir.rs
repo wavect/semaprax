@@ -17,6 +17,8 @@
 
 #[path = "ir/formatter_iterative.rs"]
 mod formatter_iterative;
+#[path = "ir/graph_generic_instances.rs"]
+mod graph_generic_instances;
 #[path = "ir/graph_generics.rs"]
 mod graph_generics;
 #[path = "ir/graph_lifecycle.rs"]

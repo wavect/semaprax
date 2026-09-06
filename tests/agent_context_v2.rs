@@ -93,7 +93,7 @@ fn v2_forward_reverse_and_both_have_exact_directional_closure() {
     ] {
         let parsed: serde_json::Value = serde_json::from_str(json).unwrap();
         assert_eq!(parsed["schema"], "semaprax.agent-context.v2");
-        assert_eq!(parsed["source_graph_schema"], "semaprax.graph.v14");
+        assert_eq!(parsed["source_graph_schema"], "semaprax.graph.v34");
         assert_eq!(parsed["query"]["direction"], direction);
         assert_eq!(parsed["budget"]["used_bytes"], json.len());
     }
@@ -175,14 +175,38 @@ fn v1_bytes_remain_exact_and_v2_outputs_have_frozen_kats() {
         "9a2ebfe569926e67f436379cf2b5c96d510daadd11d0a295ed54903cb612627b",
         "4ec8a62a17551e87dc301d08f0a09c6159445757bca6dd9920a7db4e3790ce17",
     ];
-    for (output, expected) in outputs.iter().zip(expected) {
-        assert_eq!(
+    // Preserve the frozen pre-v34 known answers as an exact historical
+    // projection; this fixture's only additive difference is source schema.
+    let legacy_actual = outputs
+        .iter()
+        .map(|output| {
+            let legacy = output.replace(
+                "\"source_graph_schema\":\"semaprax.graph.v34\"",
+                "\"source_graph_schema\":\"semaprax.graph.v14\"",
+            );
+            format!(
+                "{:x}",
+                semaprax::digest_hex::LowerHex(Sha256::digest(legacy.as_bytes()))
+            )
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(legacy_actual, expected);
+    let actual = outputs
+        .iter()
+        .map(|output| {
             format!(
                 "{:x}",
                 semaprax::digest_hex::LowerHex(Sha256::digest(output.as_bytes()))
-            ),
-            expected
-        );
+            )
+        })
+        .collect::<Vec<_>>();
+    let expected_v34 = [
+        "928e1789312b7e2649b57ba0749440a31447c1a1a2269767592702a78d619f43",
+        "2a91b46760ee702e3d0772dc17a5223767a6326a25cb92d7831fb31c494818df",
+        "c99e0c8e1042e366abf15b1641ce378f1b94092c2ed3cf553fac4d171d90c5ae",
+    ];
+    assert_eq!(actual, expected_v34);
+    for output in &outputs {
         assert_eq!(
             output,
             &graph::agent_context_v2_json(
@@ -424,7 +448,7 @@ fn option(input: Option<i64>) -> Option<bool> {
             "component.pattern.preserve-phantom-i64",
             "semaprax.graph.v13",
         ),
-        (SOURCE, "ctx.root", "semaprax.graph.v14"),
+        (SOURCE, "ctx.root", "semaprax.graph.v34"),
     ];
     for (source, root, schema) in cases {
         let program = parse(source, Path::new("agent-context-v2-lattice.spx")).unwrap();
@@ -601,4 +625,85 @@ impl Drop for CliFixture {
     fn drop(&mut self) {
         fs::remove_dir_all(&self.directory).unwrap();
     }
+}
+
+#[test]
+fn generic_instance_ownership_is_exact_filter_selected_and_budgeted() {
+    let source = r#"module test.context_generic_ownership;
+@id("ctx.pair") record Pair<T, U> {
+  @id("ctx.pair.payload") payload: T,
+  @id("ctx.pair.marker") marker: U,
+}
+@id("ctx.box") record Box<T> { @id("ctx.box.value") value: T, }
+@id("ctx.relay") fn relay<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { value }
+@id("ctx.invoke") fn invoke(value: own Box<Pair<Bytes, bool>>) -> Box<Pair<Bytes, bool>> { relay<bool>(value) }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let program = parse(source, Path::new("generic-instance-context.spx")).unwrap();
+    let graph: serde_json::Value =
+        serde_json::from_str(&graph::to_json(&program).unwrap()).unwrap();
+    for filter in [AgentContextFilter::Types, AgentContextFilter::Ownership] {
+        let options = AgentContextV2Options::new(
+            0,
+            MAX_AGENT_CONTEXT_BYTES,
+            1,
+            [filter],
+            AgentContextDirection::Forward,
+        )
+        .unwrap();
+        let output = graph::agent_context_v2_json(&program, "ctx.relay", &options)
+            .unwrap()
+            .unwrap();
+        let context: serde_json::Value = serde_json::from_str(&output).unwrap();
+        assert_eq!(context["source_graph_schema"], "semaprax.graph.v34");
+        assert_eq!(
+            context["facts"][0]["generic_instance_ownership"],
+            graph["generic_instance_ownership"]
+        );
+        assert_eq!(context["budget"]["used_bytes"], output.len());
+        let minimum = AgentContextV2Options::new(
+            0,
+            MIN_AGENT_CONTEXT_BYTES,
+            1,
+            [filter],
+            AgentContextDirection::Forward,
+        )
+        .unwrap();
+        match graph::agent_context_v2_json(&program, "ctx.relay", &minimum) {
+            Ok(Some(bounded)) => {
+                assert!(bounded.len() <= MIN_AGENT_CONTEXT_BYTES);
+                let bounded: serde_json::Value = serde_json::from_str(&bounded).unwrap();
+                assert!(bounded["facts"].as_array().unwrap().is_empty());
+            }
+            Err(diagnostics) => assert!(diagnostics
+                .iter()
+                .all(|diagnostic| diagnostic.code == "SPX-G004")),
+            Ok(None) => panic!("the selected generic template exists"),
+        }
+        let legacy = graph::agent_context_json(
+            &program,
+            "ctx.relay",
+            &AgentContextOptions::new(0, MAX_AGENT_CONTEXT_BYTES, 1, [filter]).unwrap(),
+        )
+        .unwrap()
+        .unwrap();
+        assert!(!legacy.contains("generic_instance_ownership"));
+        let legacy: serde_json::Value = serde_json::from_str(&legacy).unwrap();
+        let legacy_graph: serde_json::Value =
+            serde_json::from_str(&graph::to_legacy_json(&program).unwrap()).unwrap();
+        assert_eq!(legacy["source_graph_schema"], legacy_graph["schema"]);
+        assert_ne!(legacy["source_graph_schema"], "semaprax.graph.v34");
+    }
+    let effects = AgentContextV2Options::new(
+        0,
+        MAX_AGENT_CONTEXT_BYTES,
+        1,
+        [AgentContextFilter::Effects],
+        AgentContextDirection::Forward,
+    )
+    .unwrap();
+    let output = graph::agent_context_v2_json(&program, "ctx.relay", &effects)
+        .unwrap()
+        .unwrap();
+    assert!(!output.contains("generic_instance_ownership"));
 }

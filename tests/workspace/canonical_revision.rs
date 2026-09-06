@@ -689,3 +689,6 @@ fn canonical_revision_tracks_manifest_and_dependency_descriptions() {
         dependency_b.workspace_revision()
     );
 }
+
+#[path = "canonical_revision/generic_instances.rs"]
+mod generic_instances;

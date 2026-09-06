@@ -129,13 +129,20 @@ This slice reuses the already-versioned identities it composes:
 - Graph v12 represents explicit concrete generic-record identity and exact
   ordered arguments; Graph v21 or the later selected additive graph represents
   explicit owned/borrowed matching without erasing that identity.
-- Cleanup Inventory v1 and CleanupPlan v5 represent flat projected byte leaves;
-  bounded nested concrete storage selects the existing CleanupPlan v7 and Graph
+- Cleanup Inventory v1 represents flat projected byte leaves. Whole-owner
+  flat relay plans retain v2; explicit flat record matching selects v5.
+  Bounded nested concrete storage selects the existing CleanupPlan v7 and Graph
   v26 recursive field-path contracts. This tranche adds no cleanup vocabulary
   or schema spelling.
-- The bounded nested owning relay retains program-wide Graph v14 generic
-  template/instance identity and the existing CleanupPlan v7 recursive
-  field-path meaning. It changes neither schema nor serialized vocabulary.
+- Graph v34 adds concrete generic-function ownership to the retained earlier
+  graph projection. Its `base_schema` identifies that projection; the explicit
+  legacy renderer retains the earlier bytes for frozen consumers. Programs
+  without concrete function instances retain their previous graph schema.
+  This additive graph does not reinterpret CleanupPlan v2, v5, or v7.
+  V34 also composes checked nested owner cleanup with authenticated ordinary
+  local byte loans elsewhere in the same program. The earlier nested
+  Graph-v26-v31 contracts retain their projected-loan-only rejection; when
+  there is no admitted legacy projection, `base_schema` is v34 itself.
 - Native64 and Wasm32 aggregate layouts substitute fields before computing
   offsets, sizes, alignments, digests, symbols, or carrier operations.
 
@@ -144,6 +151,53 @@ Native C11 and Core Wasm move each owned byte carrier independently and poison
 the source carrier. A shallow owning aggregate copy, `memcpy`, `memory.copy`,
 or inferred clone is invalid. Layout and proof plans carry no host authority
 and establish no ABI promise.
+
+## Concrete generic-function graph closure
+
+For each concrete instance, Graph v34 retains both its existing execution
+identity and a revision-bound semantic identity derived from the template's
+persistent declaration ID, complete ordered concrete argument vector, and
+checked source revision. Arguments remain indexed by their template owner and
+parameter index. Display names, discovery order, target offsets, and backend
+symbols do not select an instance. The instance array has deterministic identity
+presentation order; cleanup inventory and plan vectors retain their own
+contracted order unchanged.
+
+The additive `generic_instance_ownership` facts expose declared and substituted
+parameter/result types, ownership modes, concrete record identity, cleanup
+roots and ordered owned-leaf field paths. Each fact also resolves its checked
+body and contracts through its execution identity, and includes effects, loan
+relationships, generic call edges and their
+owner/index forwarding maps, exact concrete callee vectors and identities,
+cleanup inventory and plan digests, and the complete selected cleanup plan.
+The enclosing semantic-program association records the checked source revision;
+it is not an independently minted runtime root or publication authority.
+ProgramRoot binds the exact Graph-v34 bytes in the semantic-program node's
+additive v2 contract; its replay rejects a graph paired with a
+different retained Project or ProgramRoot.
+
+Cleanup schema selection runs from validated HIR before target lowering. Direct
+scalar instances and whole-owner flat relays select CleanupPlan v2; explicit
+flat record matching selects v5; bounded nested owned-byte relays select v7.
+Selection is operation-sensitive: a flat layout alone does not imply v5. The canonical profile classifier
+is invoked independently by plan construction/replay and graph derivation.
+Graph derivation rejects disagreement with the retained plan. Interpreter,
+native, and Wasm continue through ordinary HIR and cleanup validation; a
+backend cannot repair or substitute the selected profile.
+
+Submitted graph evidence is replayed against retained checked source and
+compared as exact canonical bytes. A self-consistent remint does not grant
+compiler authority. Changed instance identities, ordered arguments, ownership,
+leaf paths, cleanup schema or plan, forwarding closure, or source association
+must reject. Existing source/HIR rejection continues to bound cyclic and
+first-over-limit instance closures before graph or target output.
+
+The independent Linux CI job `GEN-05B generic instance semantic closure`
+groups graph/schema replay, the full relay matrix,
+flat expression composition and hostility, and the exact ScalarV1 dependency
+fixture. A configured selector is not hosted evidence; promotion requires a
+passing run on the exact commit. Existing public Project, package, C, C++, Rust,
+WIT and Component signatures remain unchanged.
 
 ## Local evidence gate
 
@@ -175,9 +229,13 @@ The local gate requires:
   external Node consumer through the generated npm/Core-Wasm scalar API; and
 - representative `Box<Pair<Bytes, T>>` and `Pair<Box<Bytes>, T>` one-owner
   relays with source/HIR identity and hostile-shape checks for all eight
-  explicit Copy-scalar substitutions, plus `bool`/`i64` representative success
-  and requires/ensures/staged-call failure settlement on the interpreter,
-  native C11 `-O0`/`-O2`, and Core-Wasm; and
+  explicit Copy-scalar substitutions, plus one three-template forwarding
+  chain for every scalar in each flat and nested shape (72 concrete instances).
+  The runtime matrix executes all 24 shape/scalar combinations successfully
+  and rejects each combination's contract failure, with repeated interpreter,
+  native C11 `-O0`/`-O2` and Core-Wasm entry, zero live native allocations,
+  and no extra Wasm aggregate copy. The representative `bool`/`i64` corpus
+  additionally covers ensures and staged-call failure settlement; and
 - one flat one-owner-identical-result expression-composition relay over all
   eight Copy scalars, covering Copy-field projection, top-level immutable
   update, borrow matching that returns a bound Copy field, and own matching
@@ -263,10 +321,21 @@ specialization, mutable or escaping loans, concurrency, or production support.
 It does not add nested-nonflat templates with multiple owning parameters or a
 non-identical owning result, out-of-bound or cyclic template trees, or a public
 generic ABI. Generic variants, nested expression-result composition,
-standalone constructors, consuming projections, and any Graph, cleanup, or
-public descriptor schema widening remain closed or unclaimed. The legacy flat
+standalone constructors, consuming projections, and cleanup or public
+descriptor schema widening remain closed or unclaimed. Graph v34 is an additive
+internal projection; it grants no broader language or public ABI admission. The legacy flat
 generic-function admission outside this exact additive profile is unchanged. The
 ScalarV1 internal-body path carries only value-scalar calls and does not expose
 or serialize the generic record; its dependency fixture specifically uses
 `fn() -> i64`. This is one bounded internal composition step
 toward general ownership and public ABIs.
+
+Frozen patch, repair and review graph-delta contracts retain their legacy
+projection because their normalization rules predate revision-bound instance
+identities. Target and package evidence digests and workspace source-schema
+metadata likewise retain the frozen projection while checking complete HIR.
+Ordinary graph and query output uses v34; linked generic closures are bound by
+[SemanticProgram v2](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md#additive-semantic-program-node-v2-generic-instance-closure).
+Legacy rendering does not admit additional source shapes or grant execution
+authority. A future semantic-delta contract for the new instance facts requires
+its own versioned evidence.

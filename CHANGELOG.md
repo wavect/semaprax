@@ -8,6 +8,15 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added Graph v34 concrete generic-instance ownership, revision-bound semantic
+  identities, forwarding facts and exact source replay, with independently
+  selected cleanup schemas preserving existing CleanupPlan bytes. An additive
+  SemanticProgram v2 node binds linked generic closures into ProgramRoot;
+  frozen graph consumers and public ABI descriptors retain their prior
+  contracts. The expanded Linux selector combines the eight-scalar flat and
+  nested corpus, graph/schema hostility, expression composition and scalar
+  cross-package execution. Validation and hosted promotion remain pending.
+
 - Added a source-native Agent-to-Lifecycle v1 bridge and executable generated
   Proposal-client evidence. One checked `.spx` Agent is selected by stable
   identity, lowered through the frozen AgentDefinition-v1 compiler, and bound

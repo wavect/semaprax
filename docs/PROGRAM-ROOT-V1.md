@@ -166,3 +166,14 @@ The additive [ProgramRoot v3](PROGRAM-ROOT-V3.md) retains this complete root
 family through ProgramRoot v2 and appends an independently replayable contract/
 declared-test fact descriptor. It does not change or reinterpret any v1 segment
 or relationship byte.
+
+## Generic instance ownership association
+
+For a Project with materialized concrete generic functions, the existing
+`semantic_program` segment binds the additive
+[SemanticProgram v2 node](CANONICAL-SEMANTIC-WORKSPACE-REVISION-V1.md#additive-semantic-program-node-v2-generic-instance-closure).
+Its checked Graph v34 closures include exact instance ownership, forwarding,
+and independently selected cleanup meaning. The segment reports the actual
+node schema and authenticates its full bytes. This does not widen public
+Project signatures or add a competing static root. Projects without concrete
+generic function instances retain their prior node and ProgramRoot bytes.

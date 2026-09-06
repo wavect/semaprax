@@ -1107,3 +1107,39 @@ fn evidence_apply_preserves_source_permissions() {
     );
     fixture.assert_no_a0_artifacts();
 }
+
+#[test]
+fn generic_graph_v34_does_not_mask_frozen_evidence_shape_rejection() {
+    let source = r#"
+module evidence.generic_with_loop;
+@id("schema.target") fn target<T>() -> bool { true }
+@id("app.main") fn main() -> i64 {
+    let mut counter = 0;
+    while counter < 1 {
+        counter = counter + 1;
+        counter < 1
+    }
+    if target<i64>() { counter } else { 0 }
+}
+"#;
+    let parsed = parse(source, Path::new("generic-loop.spx")).unwrap();
+    let graph: serde_json::Value = serde_json::from_str(&graph::to_json(&parsed).unwrap()).unwrap();
+    assert_eq!(graph["schema"], "semaprax.graph.v34");
+    assert_eq!(graph["base_schema"], "semaprax.graph.v15");
+    assert_eq!(
+        graph::reject_evidence_schema("semaprax.graph.v34")
+            .unwrap_err()
+            .code,
+        "SPX-G410"
+    );
+    let patch = format!(
+        "base {}\nrename schema.target to renamed\n",
+        revision(source)
+    );
+    let fixture = Fixture::new("generic-loop-rejected", source, &patch);
+    let diagnostics = patch_evidence::generate(&fixture.source, &fixture.patch).unwrap_err();
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.code == "SPX-G410"));
+    fixture.assert_no_a0_artifacts();
+}

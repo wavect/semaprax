@@ -482,7 +482,7 @@ fn mixed_member_case_payload_and_two_index_call_commit_as_one_prestate_transacti
     );
     assert!(graph::to_json(&after_program)
         .unwrap()
-        .contains("\"schema\":\"semaprax.graph.v14\""));
+        .contains("\"schema\":\"semaprax.graph.v34\""));
 
     let box_type = after
         .types

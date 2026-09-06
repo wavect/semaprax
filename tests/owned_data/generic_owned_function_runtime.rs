@@ -24,9 +24,29 @@ fn reject<T>(value: own Pair<Bytes, T>, allowed: bool) -> Pair<Bytes, T>
   requires allowed
 { value }
 @id("generic.function.nested-relay-box")
-fn relay_box<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { value }
+fn relay_box<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> {
+  relay_box_middle<T>(value)
+}
+@id("generic.function.nested-relay-box-middle")
+fn relay_box_middle<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> {
+  relay_box_leaf<T>(value)
+}
+@id("generic.function.nested-relay-box-leaf")
+fn relay_box_leaf<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { value }
 @id("generic.function.nested-relay-pair")
 fn relay_pair<T>(value: own Pair<Box<Bytes>, T>) -> Pair<Box<Bytes>, T> { value }
+@id("generic.function.nested-chain-guarded")
+fn nested_chain_guarded<T>(value: own Box<Pair<Bytes, T>>, allowed: bool) -> Box<Pair<Bytes, T>> {
+  nested_chain_guarded_middle<T>(value, allowed)
+}
+@id("generic.function.nested-chain-guarded-middle")
+fn nested_chain_guarded_middle<T>(value: own Box<Pair<Bytes, T>>, allowed: bool) -> Box<Pair<Bytes, T>> {
+  nested_chain_guarded_leaf<T>(value, allowed)
+}
+@id("generic.function.nested-chain-guarded-leaf")
+fn nested_chain_guarded_leaf<T>(value: own Box<Pair<Bytes, T>>, allowed: bool) -> Box<Pair<Bytes, T>>
+  requires allowed
+{ value }
 @id("generic.function.nested-requires")
 fn nested_requires<T>(value: own Box<Pair<Bytes, T>>, allowed: bool) -> Box<Pair<Bytes, T>>
   requires allowed
@@ -109,13 +129,13 @@ fn make_nested_pair() -> Pair<Box<Bytes>, i64> {
   consume_u8(reject<u8>(value, false))
 }
 @id("generic.function.nested-requires-failure") fn nested_requires_failure() -> i64 {
-  consume_nested_box(nested_requires<bool>(make_nested_box(), false))
+  consume_nested_box(nested_chain_guarded<bool>(make_nested_box(), false))
 }
 @id("generic.function.nested-ensures-failure") fn nested_ensures_failure() -> i64 {
   consume_nested_box(nested_ensures<bool>(make_nested_box()))
 }
 @id("generic.function.nested-argument-failure") fn nested_argument_failure() -> i64 {
-  consume_nested_box(nested_stage<bool>(make_nested_box(), (1 / 0) == 0))
+  consume_nested_box(nested_chain_guarded<bool>(make_nested_box(), (1 / 0) == 0))
 }
 "#;
 
@@ -167,15 +187,66 @@ fn assert_nested_instances(program: &hir::ResolvedProgram) {
     let box_pair = nominal("generic.function.box", vec![pair_bytes_bool]);
     let box_bytes = nominal("generic.function.box", vec![ResolvedType::Bytes]);
     let pair_box = nominal("generic.function.pair", vec![box_bytes, ResolvedType::I64]);
-    for (template, argument, expected, path) in [
+    for (template, argument, expected, path, expected_flags) in [
         (
             "generic.function.nested-relay-box",
+            ResolvedType::Bool,
+            box_pair.clone(),
+            [
+                "generic.function.box.value",
+                "generic.function.pair.payload",
+            ],
+            4,
+        ),
+        (
+            "generic.function.nested-relay-box-middle",
+            ResolvedType::Bool,
+            box_pair.clone(),
+            [
+                "generic.function.box.value",
+                "generic.function.pair.payload",
+            ],
+            4,
+        ),
+        (
+            "generic.function.nested-relay-box-leaf",
+            ResolvedType::Bool,
+            box_pair.clone(),
+            [
+                "generic.function.box.value",
+                "generic.function.pair.payload",
+            ],
+            3,
+        ),
+        (
+            "generic.function.nested-chain-guarded",
+            ResolvedType::Bool,
+            box_pair.clone(),
+            [
+                "generic.function.box.value",
+                "generic.function.pair.payload",
+            ],
+            4,
+        ),
+        (
+            "generic.function.nested-chain-guarded-middle",
+            ResolvedType::Bool,
+            box_pair.clone(),
+            [
+                "generic.function.box.value",
+                "generic.function.pair.payload",
+            ],
+            4,
+        ),
+        (
+            "generic.function.nested-chain-guarded-leaf",
             ResolvedType::Bool,
             box_pair,
             [
                 "generic.function.box.value",
                 "generic.function.pair.payload",
             ],
+            3,
         ),
         (
             "generic.function.nested-relay-pair",
@@ -185,6 +256,7 @@ fn assert_nested_instances(program: &hir::ResolvedProgram) {
                 "generic.function.pair.payload",
                 "generic.function.box.value",
             ],
+            3,
         ),
     ] {
         let instance = program
@@ -216,8 +288,54 @@ fn assert_nested_instances(program: &hir::ResolvedProgram) {
                 .iter()
                 .filter(|flag| flag.place.projections == expected_path)
                 .count(),
-            3,
-            "nested relay must track the owned leaf in its parameter, body, and result places"
+            expected_flags,
+            "nested relay must exactly track its parameter/call/body/result owned-leaf places"
+        );
+    }
+    for (caller, callee) in [
+        (
+            "generic.function.nested-relay-box",
+            "generic.function.nested-relay-box-middle",
+        ),
+        (
+            "generic.function.nested-relay-box-middle",
+            "generic.function.nested-relay-box-leaf",
+        ),
+        (
+            "generic.function.nested-chain-guarded",
+            "generic.function.nested-chain-guarded-middle",
+        ),
+        (
+            "generic.function.nested-chain-guarded-middle",
+            "generic.function.nested-chain-guarded-leaf",
+        ),
+    ] {
+        let caller = program
+            .function_instances
+            .iter()
+            .find(|instance| instance.template.as_str() == caller)
+            .unwrap_or_else(|| panic!("missing forwarding instance {caller}"));
+        let call = match &caller.function.body.kind {
+            hir::ResolvedExprKind::Block { statements, tail } if statements.is_empty() => tail,
+            _ => &caller.function.body,
+        };
+        let hir::ResolvedExprKind::Call {
+            callee: called,
+            instance,
+            type_arguments,
+            ..
+        } = &call.kind
+        else {
+            panic!("forwarding instance body is not a call: {caller:?}");
+        };
+        assert_eq!(called.as_str(), callee);
+        assert_eq!(type_arguments, &[ResolvedType::Bool]);
+        assert_eq!(
+            instance.as_ref(),
+            Some(&hir::FunctionInstanceId::derive(
+                called,
+                &[ResolvedType::Bool]
+            ))
         );
     }
 }

@@ -29,9 +29,10 @@ impl DeclarationIndex {
         types: &[ResolvedTypeDeclaration],
         interfaces: &[ResolvedInterface],
         functions: &[ResolvedFunction],
+        templates: &[ResolvedFunctionTemplate],
         facts: &BTreeMap<DeclarationId, LinkedDeclarationFact>,
     ) -> Result<(), Diagnostic> {
-        self.extend_linked_data(types, interfaces, functions, &[], facts, true)
+        self.extend_linked_data(types, interfaces, functions, templates, facts, true)
     }
 
     fn extend_linked_data(

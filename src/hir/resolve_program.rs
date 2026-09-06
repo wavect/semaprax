@@ -3,7 +3,7 @@
 //! Entry point resolution, record layout validation, function and
 //! function-template lowering, instance discovery, and type lowering.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::ast::{
     ImportFailure, ParamMode, ResourceLifecycleKind, Span, Type, TypeDeclarationKind,
@@ -16,7 +16,7 @@ use crate::loan_plan::LoanPlan;
 use super::byte_capacity::analyze_byte_data_capacity;
 use super::byte_slice_provenance::derive_byte_slice_provenance;
 use super::ids::{DeclarationId, FunctionExecutionId, FunctionInstanceId, ValueId};
-use super::monomorphize::specialize_source_function;
+use super::monomorphize::materialize_function_template;
 use super::nodes::{
     admitted_owned_byte_prelude_instance, OwnershipMode, ResolvedFunction,
     ResolvedFunctionInstance, ResolvedFunctionTemplate, ResolvedImport, ResolvedImportFailure,
@@ -27,8 +27,37 @@ use super::nodes::{
 use super::{validate, Binding, Resolver};
 
 impl Resolver<'_> {
+    pub(super) fn resolve_call_type_argument(
+        &self,
+        caller: &FunctionExecutionId,
+        argument: &Type,
+        span: Span,
+    ) -> Result<ResolvedType, Diagnostic> {
+        if let FunctionExecutionId::Monomorphic(caller_id) = caller {
+            if let Some(template) = self.program.functions.iter().find(|candidate| {
+                candidate.stable_id == caller_id.as_str() && !candidate.type_parameters.is_empty()
+            }) {
+                return self.resolve_function_type(template, argument, span);
+            }
+        }
+        self.resolve_type(argument, span)
+    }
+
+    pub(super) fn resolve_call_result(
+        &self,
+        caller: &FunctionExecutionId,
+        result: &Type,
+        span: Span,
+    ) -> Result<(ResolvedType, OwnershipMode), Diagnostic> {
+        let ty = self.resolve_call_type_argument(caller, result, span)?;
+        let ownership =
+            self.function_expression_ownership(caller, &ty, OwnershipMode::Own, span)?;
+        Ok((ty, ownership))
+    }
+
     pub(super) fn generic_function_arguments_are_admitted(
         &self,
+        caller: &FunctionExecutionId,
         function: &crate::ast::Function,
         arguments: &[ResolvedType],
     ) -> Result<bool, Diagnostic> {
@@ -37,11 +66,31 @@ impl Resolver<'_> {
         {
             return Ok(true);
         }
-        if arguments.len() != function.type_parameters.len()
-            || arguments.iter().any(|argument| {
-                !super::type_reachability::nested_record_copy_scalar_is_admitted(argument)
-            })
-        {
+        if arguments.len() != function.type_parameters.len() {
+            return Ok(false);
+        }
+        let caller_id = match caller {
+            FunctionExecutionId::Monomorphic(id) => id,
+            FunctionExecutionId::Generic(_) => return Ok(false),
+        };
+        let caller_parameter_count = self
+            .program
+            .functions
+            .iter()
+            .find(|candidate| candidate.stable_id == caller_id.as_str())
+            .map_or(0, |candidate| candidate.type_parameters.len());
+        let forwarded = caller_parameter_count != 0
+            && caller_parameter_count == arguments.len()
+            && arguments.iter().enumerate().all(|(index, argument)| {
+                matches!(argument, ResolvedType::TypeParameter { owner, index: actual }
+                    if owner == caller_id && usize::try_from(*actual).ok() == Some(index))
+            });
+        if forwarded {
+            return Ok(true);
+        }
+        if arguments.iter().any(|argument| {
+            !super::type_reachability::nested_record_copy_scalar_is_admitted(argument)
+        }) {
             return Ok(false);
         }
         let owner = DeclarationId::new(function.stable_id.clone());
@@ -347,8 +396,9 @@ impl Resolver<'_> {
             .iter()
             .filter(|function| !function.type_parameters.is_empty())
             .map(|function| self.resolve_function_template(function))
-            .collect::<Result<_, _>>()?;
-        let function_instances = self.discover_function_instances()?;
+            .collect::<Result<Vec<_>, _>>()?;
+        let function_instances =
+            self.discover_function_instances(&functions, &function_templates)?;
         let agents = self
             .program
             .agents
@@ -643,57 +693,61 @@ impl Resolver<'_> {
 
     pub(super) fn discover_function_instances(
         &self,
+        functions: &[ResolvedFunction],
+        templates: &[ResolvedFunctionTemplate],
     ) -> Result<Vec<ResolvedFunctionInstance>, Diagnostic> {
-        let mut calls = Vec::new();
-        for function in self
-            .program
-            .functions
-            .iter()
-            .filter(|function| function.type_parameters.is_empty())
-        {
+        const MAX_FUNCTION_INSTANCES: usize = 256;
+        let mut calls = VecDeque::new();
+        for function in functions {
             for expression in function
                 .requires
                 .iter()
                 .chain(std::iter::once(&function.body))
                 .chain(&function.ensures)
             {
-                expression.visit_call_instances(&mut |name, arguments, span| {
-                    calls.push((name.to_owned(), arguments.to_vec(), span));
+                super::visit_resolved_calls(expression, &mut |callee, instance, arguments| {
+                    if let Some(instance) = instance {
+                        calls.push_back((callee.clone(), arguments.to_vec(), instance.clone()));
+                    }
                 });
             }
         }
 
         let mut seen = BTreeSet::new();
         let mut instances = Vec::new();
-        for (name, source_arguments, span) in calls {
-            let Some(template) = self
-                .program
-                .functions
-                .iter()
-                .find(|function| function.name == name && !function.type_parameters.is_empty())
+        while let Some((template_id, type_arguments, id)) = calls.pop_front() {
+            if FunctionInstanceId::derive(&template_id, &type_arguments) != id {
+                return Err(super::hir_error(
+                    "generic function call has an inconsistent instance identity",
+                ));
+            }
+            let Some(template) = templates.iter().find(|template| template.id == template_id)
             else {
-                continue;
+                return Err(super::hir_error(
+                    "generic function call has no resolved template",
+                ));
             };
-            let type_arguments = source_arguments
-                .iter()
-                .map(|argument| self.resolve_type(argument, span))
-                .collect::<Result<Vec<_>, _>>()?;
-            let template_id = DeclarationId::new(template.stable_id.clone());
-            let id = FunctionInstanceId::derive(&template_id, &type_arguments);
             if !seen.insert(id.clone()) {
                 continue;
             }
-            let specialized = specialize_source_function(self.program, template, &source_arguments)
-                .ok_or_else(|| {
-                    self.error(
-                        "SPX-H006",
-                        format!("generic function `{}` specialization failed", template.name),
-                        span,
-                    )
-                })?;
-            let execution = FunctionExecutionId::Generic(id.clone());
-            let function =
-                self.resolve_function_in_scope(&specialized, &execution, template_id.clone())?;
+            if instances.len() == MAX_FUNCTION_INSTANCES {
+                return Err(super::hir_error(format!(
+                    "generic function instance closure exceeds {MAX_FUNCTION_INSTANCES} entries"
+                )));
+            }
+            let function = materialize_function_template(template, &type_arguments)?;
+            for expression in function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+            {
+                super::visit_resolved_calls(expression, &mut |callee, instance, arguments| {
+                    if let Some(instance) = instance {
+                        calls.push_back((callee.clone(), arguments.to_vec(), instance.clone()));
+                    }
+                });
+            }
             instances.push(ResolvedFunctionInstance {
                 id,
                 template: template_id,

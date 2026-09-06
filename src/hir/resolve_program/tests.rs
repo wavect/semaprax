@@ -289,8 +289,23 @@ fn main() -> i64
 "#,
         "hir-resolve-instances.spx",
     );
-    let instances = resolver(&program)
-        .discover_function_instances()
+    let resolver = resolver(&program);
+    let functions = program
+        .functions
+        .iter()
+        .filter(|function| function.type_parameters.is_empty())
+        .map(|function| resolver.resolve_function(function))
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let templates = program
+        .functions
+        .iter()
+        .filter(|function| !function.type_parameters.is_empty())
+        .map(|function| resolver.resolve_function_template(function))
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    let instances = resolver
+        .discover_function_instances(&functions, &templates)
         .expect("instances discover");
     // `bool` is called first even though `i64` sorts earlier, and the second
     // `i64` call reuses the first instance rather than adding one.
@@ -305,8 +320,8 @@ fn main() -> i64
         .iter()
         .all(|instance| instance.template == DeclarationId::new("app.identity")));
     // Two resolutions of the same source agree, identities included.
-    let repeated = resolver(&program)
-        .discover_function_instances()
+    let repeated = resolver
+        .discover_function_instances(&functions, &templates)
         .expect("instances discover");
     assert_eq!(
         instances

@@ -23,6 +23,19 @@ record Pair<T, U> {
     right: U,
 }
 
+@id("acme.generic.relay-leaf")
+fn relay_leaf<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
+
+@id("acme.generic.relay-middle")
+fn relay_middle<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {
+    relay_leaf<T>(value)
+}
+
+@id("acme.generic.relay-outer")
+fn relay_outer<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {
+    relay_middle<T>(value)
+}
+
 @id("acme.generic.evaluate")
 fn evaluate() -> i64 {
     let input = [1u8, 2u8, 3u8];
@@ -30,7 +43,7 @@ fn evaluate() -> i64 {
         left: bytes_copy(array_as_slice(input)),
         right: true,
     };
-    match own value {
+    match own relay_outer<bool>(value) {
         Pair { left: payload, right: present } =>
             if present && byte_len(bytes_as_slice(payload)) > 0usize { 1 } else { 0 },
     }
@@ -175,6 +188,76 @@ fn assert_linked_identity(program: &hir::ResolvedProgram) {
         .flags
         .iter()
         .any(|flag| flag.place.projections == leaf));
+    for (template, expected_flags) in [
+        ("acme.generic.relay-outer", 4),
+        ("acme.generic.relay-middle", 4),
+        ("acme.generic.relay-leaf", 3),
+    ] {
+        let instance = program
+            .function_instances
+            .iter()
+            .find(|instance| instance.template.as_str() == template)
+            .unwrap_or_else(|| panic!("missing transitive generic instance {template}"));
+        assert_eq!(instance.type_arguments, [ResolvedType::Bool]);
+        assert_eq!(
+            instance.id,
+            hir::FunctionInstanceId::derive(&instance.template, &instance.type_arguments)
+        );
+        assert_eq!(instance.function.params.len(), 1);
+        assert_eq!(
+            instance.function.params[0].ownership,
+            hir::OwnershipMode::Own
+        );
+        assert_eq!(instance.function.params[0].ty, pair);
+        assert_eq!(instance.function.return_type, pair);
+        assert_eq!(
+            instance.function.cleanup_plan.schema,
+            "semaprax.cleanup-plan.v2"
+        );
+        assert_eq!(
+            instance
+                .function
+                .cleanup
+                .flags
+                .iter()
+                .filter(|flag| flag.place.projections == leaf)
+                .count(),
+            expected_flags,
+            "each relay must exactly track its parameter/call/body/result owned-leaf places"
+        );
+    }
+    for (caller, callee) in [
+        ("acme.generic.relay-outer", "acme.generic.relay-middle"),
+        ("acme.generic.relay-middle", "acme.generic.relay-leaf"),
+    ] {
+        let caller = program
+            .function_instances
+            .iter()
+            .find(|instance| instance.template.as_str() == caller)
+            .unwrap_or_else(|| panic!("missing forwarding instance {caller}"));
+        let call = match &caller.function.body.kind {
+            hir::ResolvedExprKind::Block { statements, tail } if statements.is_empty() => tail,
+            _ => &caller.function.body,
+        };
+        let hir::ResolvedExprKind::Call {
+            callee: called,
+            instance,
+            type_arguments,
+            ..
+        } = &call.kind
+        else {
+            panic!("forwarding instance body is not an exact call");
+        };
+        assert_eq!(called.as_str(), callee);
+        assert_eq!(type_arguments, &[ResolvedType::Bool]);
+        assert_eq!(
+            instance.as_ref(),
+            Some(&hir::FunctionInstanceId::derive(
+                called,
+                &[ResolvedType::Bool]
+            ))
+        );
+    }
     let consumer_functions = program
         .functions
         .iter()
@@ -319,9 +402,8 @@ fn dependency_internal_generic_owned_record_executes_without_public_generic_abi(
         assert_eq!(public_functions[0]["parameters"], serde_json::json!([]));
         assert_eq!(public_functions[0]["result"], "i64");
         for path in ["semaprax.scalar-exports.json", "semaprax.bindings.d.ts"] {
-            assert!(!String::from_utf8(package[path].clone())
-                .unwrap()
-                .contains("acme.generic.pair"));
+            let public_bytes = String::from_utf8(package[path].clone()).unwrap();
+            assert!(!public_bytes.contains("acme.generic.pair"));
         }
         std::fs::write(
             fixture.0.join("consumer.mjs"),

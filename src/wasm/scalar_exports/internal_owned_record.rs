@@ -35,9 +35,10 @@ pub(super) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
         })
         .collect::<Result<Vec<_>, Diagnostic>>()?;
     let mut expected =
-        hir::reachable_authored_types(&functions, &[], &[], &available).map_err(|_| {
-            admission("Public Scalar Export Profile v1 internal record closure is not exact")
-        })?;
+        hir::reachable_authored_types(&functions, &program.function_instances, &[], &available)
+            .map_err(|_| {
+                admission("Public Scalar Export Profile v1 internal record closure is not exact")
+            })?;
     let mut actual = program
         .types
         .iter()
@@ -67,7 +68,112 @@ pub(super) fn validate_program(program: &ResolvedProgram) -> Result<(), Diagnost
             "Public Scalar Export Profile v1 admits only the exact reachable internal generic record closure",
         ));
     }
+    validate_generic_closure(program)?;
     Ok(())
+}
+
+pub(super) fn validate_instance(
+    program: &ResolvedProgram,
+    instance: &hir::ResolvedFunctionInstance,
+) -> Result<(), Diagnostic> {
+    let scalar_signature = instance.function.params.iter().all(|parameter| {
+        parameter.ownership == OwnershipMode::Value && super::scalar_type(&parameter.ty).is_some()
+    }) && super::scalar_type(&instance.function.return_type).is_some();
+    let owned_identity_signature = instance.function.params.len() == 1
+        && instance.function.params[0].ownership == OwnershipMode::Own
+        && instance.function.params[0].ty == instance.function.return_type
+        && hir::is_flat_owned_byte_record(&program.declarations, &instance.function.return_type);
+    if !instance.function.effects.is_empty() || (!scalar_signature && !owned_identity_signature) {
+        return Err(body_error(&instance.template));
+    }
+    for expression in instance
+        .function
+        .requires
+        .iter()
+        .chain(std::iter::once(&instance.function.body))
+        .chain(instance.function.ensures.iter())
+    {
+        validate_expression(program, expression, &instance.template)?;
+    }
+    Ok(())
+}
+
+fn validate_generic_closure(program: &ResolvedProgram) -> Result<(), Diagnostic> {
+    let templates = program
+        .function_templates
+        .iter()
+        .map(|template| (template.id.clone(), template))
+        .collect::<BTreeMap<_, _>>();
+    let instances = program
+        .function_instances
+        .iter()
+        .map(|instance| (instance.id.clone(), instance))
+        .collect::<BTreeMap<_, _>>();
+    if templates.len() != program.function_templates.len()
+        || instances.len() != program.function_instances.len()
+    {
+        return Err(admission(
+            "Public Scalar Export Profile v1 internal generic closure is duplicated",
+        ));
+    }
+    let mut pending = std::collections::VecDeque::new();
+    for function in &program.functions {
+        collect_generic_calls(function, &mut pending);
+    }
+    let mut seen_instances = BTreeSet::new();
+    let mut seen_templates = BTreeSet::new();
+    while let Some((callee, attached, arguments)) = pending.pop_front() {
+        let Some(template) = templates.get(&callee) else {
+            return Err(admission(
+                "Public Scalar Export Profile v1 internal generic call target is not authenticated",
+            ));
+        };
+        let derived = hir::FunctionInstanceId::derive(&callee, &arguments);
+        if template.type_parameters.len() != arguments.len() || attached != derived {
+            return Err(admission(
+                "Public Scalar Export Profile v1 internal generic call instance is not canonical",
+            ));
+        }
+        let Some(instance) = instances.get(&derived) else {
+            return Err(admission(
+                "Public Scalar Export Profile v1 internal generic call instance is absent",
+            ));
+        };
+        seen_templates.insert(callee);
+        if seen_instances.insert(derived) {
+            collect_generic_calls(&instance.function, &mut pending);
+        }
+    }
+    if seen_templates != templates.keys().cloned().collect()
+        || seen_instances != instances.keys().cloned().collect()
+    {
+        return Err(admission(
+            "Public Scalar Export Profile v1 internal generic closure is not exact",
+        ));
+    }
+    Ok(())
+}
+
+fn collect_generic_calls(
+    function: &ResolvedFunction,
+    pending: &mut std::collections::VecDeque<(
+        DeclarationId,
+        hir::FunctionInstanceId,
+        Vec<ResolvedType>,
+    )>,
+) {
+    for expression in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(function.ensures.iter())
+    {
+        hir::visit_resolved_calls(expression, &mut |callee, instance, arguments| {
+            if let Some(instance) = instance {
+                pending.push_back((callee.clone(), instance.clone(), arguments.to_vec()));
+            }
+        });
+    }
 }
 
 pub(super) fn validate_expression(
@@ -114,11 +220,21 @@ pub(super) fn validate_expression(
             ResolvedExprKind::Call {
                 type_arguments,
                 instance,
+                callee,
                 args,
                 ..
             } => {
                 if !type_arguments.is_empty() || instance.is_some() {
-                    return Err(body_error(function_id));
+                    let Some(instance) = instance else {
+                        return Err(body_error(function_id));
+                    };
+                    if *instance != hir::FunctionInstanceId::derive(callee, type_arguments)
+                        || program
+                            .resolve_call_target(callee, Some(instance))
+                            .is_none()
+                    {
+                        return Err(body_error(function_id));
+                    }
                 }
                 pending.extend(args);
             }
@@ -192,7 +308,7 @@ pub(super) fn validate_expression(
 
 fn record_pattern_is_exact(program: &ResolvedProgram, pattern: &ResolvedMatchPattern) -> bool {
     matches!(pattern, ResolvedMatchPattern::Record { record, instance, .. }
-        if matches!(instance, ResolvedType::Nominal { declaration, .. } if declaration == record)
+    if matches!(instance, ResolvedType::Nominal { declaration, .. } if declaration == record)
             && hir::is_flat_owned_byte_record(&program.declarations, instance))
 }
 

@@ -159,31 +159,6 @@ pub(super) fn substitute_source_function_type(
     (resolved.len() == 1).then(|| resolved.pop().expect("type count checked above"))
 }
 
-pub(super) fn specialize_source_function(
-    program: &crate::ast::Program,
-    function: &crate::ast::Function,
-    arguments: &[Type],
-) -> Option<crate::ast::Function> {
-    let transparent_vec_wrapper = crate::vec_ops::source_wrapper(program, function);
-    let mut specialized = function.clone();
-    specialized.type_parameters.clear();
-    for param in &mut specialized.params {
-        param.ty = substitute_source_function_type(function, arguments, &param.ty)?;
-    }
-    specialized.return_type =
-        substitute_source_function_type(function, arguments, &function.return_type)?;
-    if transparent_vec_wrapper.is_some() {
-        let crate::ast::ExprKind::Block { tail, .. } = &mut specialized.body.kind else {
-            return None;
-        };
-        let crate::ast::ExprKind::Call { type_arguments, .. } = &mut tail.kind else {
-            return None;
-        };
-        *type_arguments = arguments.to_vec();
-    }
-    Some(specialized)
-}
-
 pub(super) fn materialize_function_template(
     template: &ResolvedFunctionTemplate,
     arguments: &[ResolvedType],
@@ -394,18 +369,26 @@ pub(super) fn materialize_template_expr(
                 == crate::vec_ops::by_id(callee.as_str())
                 && instance.is_none()
                 && type_arguments.len() == 1;
-            if instance.is_some() || (!type_arguments.is_empty() && !transparent_vec_call) {
+            let forwarded_generic_call = instance.as_ref().is_some_and(|instance| {
+                !type_arguments.is_empty()
+                    && FunctionInstanceId::derive(callee, type_arguments) == *instance
+            });
+            if (!transparent_vec_call && !forwarded_generic_call)
+                && (instance.is_some() || !type_arguments.is_empty())
+            {
                 return Err(hir_error(
                     "generic templates cannot call generic function instances",
                 ));
             }
+            let type_arguments = type_arguments
+                .iter()
+                .map(|argument| substitute_type(argument, &template.id, arguments))
+                .collect::<Result<Vec<_>, _>>()?;
             ResolvedExprKind::Call {
                 callee: callee.clone(),
-                type_arguments: type_arguments
-                    .iter()
-                    .map(|argument| substitute_type(argument, &template.id, arguments))
-                    .collect::<Result<_, _>>()?,
-                instance: None,
+                instance: forwarded_generic_call
+                    .then(|| FunctionInstanceId::derive(callee, &type_arguments)),
+                type_arguments,
                 args: args
                     .iter()
                     .enumerate()

@@ -372,6 +372,23 @@ pub(super) fn generic_function_arguments_are_admitted(
     })
 }
 
+pub(super) fn generic_function_arguments_are_forwarded(
+    caller: &Function,
+    callee: &Function,
+    arguments: &[Type],
+) -> bool {
+    !caller.type_parameters.is_empty()
+        && arguments.len() == callee.type_parameters.len()
+        && arguments.len() == caller.type_parameters.len()
+        && arguments
+            .iter()
+            .zip(&caller.type_parameters)
+            .all(|(argument, parameter)| {
+                matches!(argument, Type::Named { name, arguments }
+                    if arguments.is_empty() && name == &parameter.name)
+            })
+}
+
 pub(super) fn substitute_function_type(
     function: &Function,
     arguments: &[Type],
@@ -578,7 +595,121 @@ pub(super) fn validation_specialize_function(
         param.ty = substitute_function_type(function, arguments, &param.ty)?;
     }
     specialized.return_type = substitute_function_type(function, arguments, &function.return_type)?;
+    for expression in specialized
+        .requires
+        .iter_mut()
+        .chain(std::iter::once(&mut specialized.body))
+        .chain(&mut specialized.ensures)
+    {
+        substitute_forwarded_call_arguments(function, arguments, expression)?;
+    }
+    specialized.type_parameters.clear();
     Some(specialized)
+}
+
+fn substitute_forwarded_call_arguments(
+    function: &Function,
+    arguments: &[Type],
+    expression: &mut Expr,
+) -> Option<()> {
+    match &mut expression.kind {
+        ExprKind::Call {
+            type_arguments,
+            args,
+            ..
+        } => {
+            for argument in type_arguments {
+                *argument = substitute_function_type(function, arguments, argument)?;
+            }
+            for argument in args {
+                substitute_forwarded_call_arguments(function, arguments, argument)?;
+            }
+        }
+        ExprKind::MethodCall { receiver, args, .. } => {
+            substitute_forwarded_call_arguments(function, arguments, receiver)?;
+            for argument in args {
+                substitute_forwarded_call_arguments(function, arguments, argument)?;
+            }
+        }
+        ExprKind::SuperMethod { args, .. } => {
+            for argument in args {
+                substitute_forwarded_call_arguments(function, arguments, argument)?;
+            }
+        }
+        ExprKind::Unary { value, .. }
+        | ExprKind::Try { operand: value }
+        | ExprKind::Project { base: value, .. } => {
+            substitute_forwarded_call_arguments(function, arguments, value)?;
+        }
+        ExprKind::Binary { left, right, .. } => {
+            substitute_forwarded_call_arguments(function, arguments, left)?;
+            substitute_forwarded_call_arguments(function, arguments, right)?;
+        }
+        ExprKind::Block { statements, tail } => {
+            for statement in statements {
+                match statement {
+                    crate::ast::Statement::Let { value, .. }
+                    | crate::ast::Statement::Assign { value, .. } => {
+                        substitute_forwarded_call_arguments(function, arguments, value)?;
+                    }
+                    crate::ast::Statement::Unsafe { body, .. } => {
+                        substitute_forwarded_call_arguments(function, arguments, body)?;
+                    }
+                    crate::ast::Statement::While {
+                        condition, body, ..
+                    } => {
+                        substitute_forwarded_call_arguments(function, arguments, condition)?;
+                        substitute_forwarded_call_arguments(function, arguments, body)?;
+                    }
+                }
+            }
+            substitute_forwarded_call_arguments(function, arguments, tail)?;
+        }
+        ExprKind::If {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            substitute_forwarded_call_arguments(function, arguments, condition)?;
+            substitute_forwarded_call_arguments(function, arguments, then_branch)?;
+            substitute_forwarded_call_arguments(function, arguments, else_branch)?;
+        }
+        ExprKind::ConstructRecord { fields, .. } | ExprKind::ConstructVariant { fields, .. } => {
+            for field in fields {
+                substitute_forwarded_call_arguments(function, arguments, &mut field.value)?;
+            }
+        }
+        ExprKind::Match {
+            scrutinee, arms, ..
+        } => {
+            substitute_forwarded_call_arguments(function, arguments, scrutinee)?;
+            for arm in arms {
+                if let Some(guard) = &mut arm.guard {
+                    substitute_forwarded_call_arguments(function, arguments, guard)?;
+                }
+                substitute_forwarded_call_arguments(function, arguments, &mut arm.value)?;
+            }
+        }
+        ExprKind::UpdateRecord { base, fields } => {
+            substitute_forwarded_call_arguments(function, arguments, base)?;
+            for field in fields {
+                substitute_forwarded_call_arguments(function, arguments, &mut field.value)?;
+            }
+        }
+        ExprKind::Int(_)
+        | ExprKind::Int32(_)
+        | ExprKind::Char(_)
+        | ExprKind::Uint8(_)
+        | ExprKind::Usize(_)
+        | ExprKind::ArrayU8(_)
+        | ExprKind::RepeatArrayU8 { .. }
+        | ExprKind::Float32(_)
+        | ExprKind::Float64(_)
+        | ExprKind::Bool(_)
+        | ExprKind::String(_)
+        | ExprKind::Var(_) => {}
+    }
+    Some(())
 }
 
 pub(super) fn validation_specialize_signature(

@@ -7,7 +7,8 @@ use crate::source_verify::arguments::{
 };
 use crate::source_verify::binding::{Binding, CheckedValue};
 use crate::source_verify::declared_type::{
-    generic_function_arguments_are_admitted, validation_specialize_function,
+    generic_function_arguments_are_admitted, generic_function_arguments_are_forwarded,
+    validation_specialize_function,
 };
 use crate::source_verify::diagnostics::{error, reject_native_unit_value};
 use crate::source_verify::hints;
@@ -213,17 +214,6 @@ pub(super) fn oracle_call(
             }
             return Some(target.clone());
         }
-        if !current.type_parameters.is_empty() {
-            diagnostics.push(error(
-                program,
-                "SPX-T226",
-                format!(
-                    "generic function `{}` cannot call generic function `{name}` in this slice",
-                    current.name
-                ),
-                expr.span,
-            ));
-        }
         if type_arguments.len() != target.type_parameters.len() {
             diagnostics.push(
                 error(
@@ -241,6 +231,7 @@ pub(super) fn oracle_call(
             return None;
         }
         if !generic_function_arguments_are_admitted(target, type_arguments, types)
+            && !generic_function_arguments_are_forwarded(current, target, type_arguments)
             && !crate::vec_ops::source_arguments_are_admitted(program, target, type_arguments)
         {
             diagnostics.push(error(

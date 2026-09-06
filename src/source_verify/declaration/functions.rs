@@ -6,7 +6,7 @@ use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding};
 use crate::source_verify::declared_type::{
     check_declared_type, check_ownership_mode, function_reaches, function_reaches_any,
-    generic_function_contains_nested_owned_record_slot,
+    generic_function_arguments_are_forwarded, generic_function_contains_nested_owned_record_slot,
     generic_function_expression_is_direct_scalar,
     generic_function_has_exact_nested_owned_record_relay, generic_function_owned_record_slot,
     generic_function_signature_slot, owned_record_function_substitutions,
@@ -341,6 +341,30 @@ pub(super) fn check_generic_function_cycles<'p>(
         .iter()
         .filter(|function| !function.type_parameters.is_empty())
     {
+        for expression in function
+            .requires
+            .iter()
+            .chain(std::iter::once(&function.body))
+            .chain(&function.ensures)
+        {
+            expression.visit_call_instances(&mut |callee, arguments, span| {
+                if let Some(target) = program.functions.iter().find(|target| {
+                    target.name == callee && !target.type_parameters.is_empty()
+                }) {
+                    if !generic_function_arguments_are_forwarded(function, target, arguments) {
+                        diagnostics.push(error(
+                            program,
+                            "SPX-T225",
+                            format!(
+                                "generic function `{}` must forward its type parameters in order when calling generic function `{callee}`",
+                                function.name
+                            ),
+                            span,
+                        ));
+                    }
+                }
+            });
+        }
         let participates_in_cycle = call_graph.get(&function.name).is_some_and(|callees| {
             callees.iter().any(|callee| {
                 function_reaches(call_graph, callee, &function.name, &mut HashSet::new())

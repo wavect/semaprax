@@ -43,6 +43,8 @@ pub(crate) fn link_package_scalar_workspace(
 pub(crate) struct LinkedScalarProjectParts {
     pub(crate) types: Vec<ResolvedTypeDeclaration>,
     pub(crate) interfaces: Vec<ResolvedInterface>,
+    pub(crate) function_templates: Vec<ResolvedFunctionTemplate>,
+    pub(crate) function_instances: Vec<ResolvedFunctionInstance>,
     pub(crate) declaration_facts: BTreeMap<DeclarationId, LinkedDeclarationFact>,
 }
 
@@ -132,20 +134,28 @@ fn link_scalar_workspace_impl(
         .drain(..)
         .map(|linked| linked.function)
         .collect::<Vec<_>>();
-    let uses_vec = functions.iter().any(|function| {
-        std::iter::once(&function.body)
-            .chain(function.requires.iter())
-            .chain(function.ensures.iter())
-            .any(|expression| {
-                let mut found = false;
-                super::visit_resolved_calls(expression, &mut |callee, instance, arguments| {
-                    found |= instance.is_none()
-                        && arguments.len() == 1
-                        && crate::vec_ops::by_id(callee.as_str()).is_some();
-                });
-                found
-            })
-    });
+    let uses_vec = functions
+        .iter()
+        .chain(
+            parts
+                .iter()
+                .flat_map(|parts| &parts.function_instances)
+                .map(|instance| &instance.function),
+        )
+        .any(|function| {
+            std::iter::once(&function.body)
+                .chain(function.requires.iter())
+                .chain(function.ensures.iter())
+                .any(|expression| {
+                    let mut found = false;
+                    super::visit_resolved_calls(expression, &mut |callee, instance, arguments| {
+                        found |= instance.is_none()
+                            && arguments.len() == 1
+                            && crate::vec_ops::by_id(callee.as_str()).is_some();
+                    });
+                    found
+                })
+        });
     let (mut declarations, mut compiler_types) = if uses_vec {
         workspace_compiler_prelude_for_vec(true)?
     } else {
@@ -156,6 +166,7 @@ fn link_scalar_workspace_impl(
             &parts.types,
             &parts.interfaces,
             &functions,
+            &parts.function_templates,
             &parts.declaration_facts,
         )?,
         None => {
@@ -181,13 +192,31 @@ fn link_scalar_workspace_impl(
             "workspace scalar linker could not construct scalar type facts",
         ));
     }
-    let (mut types, interfaces) = parts.map_or_else(
-        || (Vec::new(), Vec::new()),
-        |parts| (parts.types, parts.interfaces),
+    let (mut types, interfaces, function_templates, function_instances) = parts.map_or_else(
+        || (Vec::new(), Vec::new(), Vec::new(), Vec::new()),
+        |parts| {
+            (
+                parts.types,
+                parts.interfaces,
+                parts.function_templates,
+                parts.function_instances,
+            )
+        },
     );
     if uses_vec {
         compiler_types.extend(types);
         types = compiler_types;
+    }
+    let has_generic_instances = !function_instances.is_empty();
+    if has_generic_instances {
+        let mut cleanup_functions = functions.clone();
+        cleanup_functions.extend(
+            function_instances
+                .iter()
+                .map(|instance| instance.function.clone()),
+        );
+        declarations.byte_slice_roots =
+            derive_byte_slice_provenance(&cleanup_functions, &declarations)?;
     }
     let mut linked = ResolvedProgram {
         module,
@@ -197,10 +226,13 @@ fn link_scalar_workspace_impl(
         declarations,
         types,
         interfaces,
-        function_templates: Vec::new(),
+        function_templates,
         functions,
-        function_instances: Vec::new(),
+        function_instances,
     };
+    if has_generic_instances {
+        analyze_byte_data_capacity(&linked)?;
+    }
     rebuild_cleanup_metadata(&mut linked)?;
     validate(&linked)?;
     Ok(linked)
@@ -969,6 +1001,18 @@ fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnos
     for (function, loan_plan) in program.functions.iter_mut().zip(loan_plans) {
         function.loan_plan = loan_plan;
     }
+    let instance_loan_plans = program
+        .function_instances
+        .iter()
+        .map(|instance| crate::loan_plan::build_plan(program, &instance.function))
+        .collect::<Result<Vec<_>, _>>()?;
+    for (instance, loan_plan) in program
+        .function_instances
+        .iter_mut()
+        .zip(instance_loan_plans)
+    {
+        instance.function.loan_plan = loan_plan;
+    }
     let inventories = program
         .functions
         .iter()
@@ -977,6 +1021,18 @@ fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnos
     for (function, inventory) in program.functions.iter_mut().zip(inventories) {
         function.cleanup = inventory;
     }
+    let instance_inventories = program
+        .function_instances
+        .iter()
+        .map(|instance| crate::cleanup::build_inventory(program, &instance.function))
+        .collect::<Result<Vec<_>, _>>()?;
+    for (instance, inventory) in program
+        .function_instances
+        .iter_mut()
+        .zip(instance_inventories)
+    {
+        instance.function.cleanup = inventory;
+    }
     let cleanup_plans = program
         .functions
         .iter()
@@ -984,6 +1040,18 @@ fn rebuild_cleanup_metadata(program: &mut ResolvedProgram) -> Result<(), Diagnos
         .collect::<Result<Vec<_>, _>>()?;
     for (function, cleanup_plan) in program.functions.iter_mut().zip(cleanup_plans) {
         function.cleanup_plan = cleanup_plan;
+    }
+    let instance_cleanup_plans = program
+        .function_instances
+        .iter()
+        .map(|instance| crate::cleanup_plan::build_plan(program, &instance.function))
+        .collect::<Result<Vec<_>, _>>()?;
+    for (instance, cleanup_plan) in program
+        .function_instances
+        .iter_mut()
+        .zip(instance_cleanup_plans)
+    {
+        instance.function.cleanup_plan = cleanup_plan;
     }
     Ok(())
 }

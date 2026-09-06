@@ -1259,10 +1259,15 @@ impl ScalarNativeImports {
         module: String,
         entrypoint: hir::DeclarationId,
         functions: Vec<hir::LinkedScalarFunction>,
-        types: Vec<hir::ResolvedTypeDeclaration>,
+        scalar: super::owned_generics::RetainedScalarParts,
         declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
         require_main_display_name: bool,
     ) -> Result<hir::ResolvedProgram, Diagnostic> {
+        let super::owned_generics::RetainedScalarParts {
+            types,
+            function_templates,
+            function_instances,
+        } = scalar;
         let mut declaration_facts = BTreeMap::new();
         for linked in &functions {
             let owner = declarations
@@ -1275,6 +1280,15 @@ impl ScalarNativeImports {
                 &linked.function.id,
                 hir::DeclarationKind::Function,
                 owner.as_ref(),
+            )?;
+        }
+        for template in &function_templates {
+            retain_linked_fact(
+                declarations,
+                &mut declaration_facts,
+                &template.id,
+                hir::DeclarationKind::Function,
+                None,
             )?;
         }
         for declaration in &types {
@@ -1356,6 +1370,8 @@ impl ScalarNativeImports {
         let parts = hir::LinkedScalarProjectParts {
             types,
             interfaces: self.interfaces,
+            function_templates,
+            function_instances,
             declaration_facts,
         };
         if require_main_display_name {

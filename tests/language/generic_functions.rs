@@ -449,6 +449,180 @@ fn nested_owning_generic_relays_preserve_exact_instances_for_every_copy_scalar()
 }
 
 #[test]
+fn generic_forwarding_closes_over_transitive_instances_in_authored_fifo_order() {
+    let source = r#"
+module test.generic_forwarding;
+@id("forward.box") record Box<T> { @id("forward.box.value") value: T, }
+@id("forward.pair") record Pair<T, U> {
+  @id("forward.pair.left") left: T,
+  @id("forward.pair.right") right: U,
+}
+@id("forward.inner")
+fn inner<T>(value: own Box<Pair<Bytes, T>>, allowed: bool) -> Box<Pair<Bytes, T>>
+  requires allowed
+{ value }
+@id("forward.middle")
+fn middle<T>(value: own Box<Pair<Bytes, T>>, allowed: bool) -> Box<Pair<Bytes, T>> {
+  inner<T>(value, allowed)
+}
+@id("forward.outer")
+fn outer<T>(value: own Box<Pair<Bytes, T>>, allowed: bool) -> Box<Pair<Bytes, T>> {
+  middle<T>(value, allowed)
+}
+@id("forward.entry")
+fn entry(value: own Box<Pair<Bytes, bool>>, allowed: bool) -> Box<Pair<Bytes, bool>> {
+  outer<bool>(value, allowed)
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let parsed = parse_source(source);
+    assert!(verify::verify(&parsed).is_empty());
+    let resolved = hir::resolve(&parsed).unwrap();
+    hir::validate(&resolved).unwrap();
+    assert_eq!(
+        resolved
+            .function_instances
+            .iter()
+            .map(|instance| instance.template.as_str())
+            .collect::<Vec<_>>(),
+        ["forward.outer", "forward.middle", "forward.inner"]
+    );
+    for pair in resolved.function_instances.windows(2) {
+        let hir::ResolvedExprKind::Block { tail: call, .. } = &pair[0].function.body.kind else {
+            panic!("forwarding instance body must remain a block")
+        };
+        let hir::ResolvedExprKind::Call {
+            callee,
+            type_arguments,
+            instance: Some(instance),
+            ..
+        } = &call.kind
+        else {
+            panic!("forwarding instance body must be one exact generic call")
+        };
+        assert_eq!(callee, &pair[1].template);
+        assert_eq!(type_arguments, &[ResolvedType::Bool]);
+        assert_eq!(
+            instance,
+            &hir::FunctionInstanceId::derive(callee, type_arguments)
+        );
+    }
+
+    let mut missing = resolved.clone();
+    missing.function_instances.pop();
+    assert_eq!(hir::validate(&missing).unwrap_err().code, "SPX-H006");
+
+    let mut reordered = resolved.clone();
+    reordered.function_instances.swap(1, 2);
+    assert_eq!(hir::validate(&reordered).unwrap_err().code, "SPX-H006");
+
+    let mut forged = resolved;
+    let replacement = forged.function_instances[0].id.clone();
+    let hir::ResolvedExprKind::Block { tail, .. } =
+        &mut forged.function_instances[1].function.body.kind
+    else {
+        panic!("middle body must remain a block")
+    };
+    let hir::ResolvedExprKind::Call { instance, .. } = &mut tail.kind else {
+        panic!("middle body must remain a call")
+    };
+    *instance = Some(replacement);
+    assert_eq!(hir::validate(&forged).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
+fn generic_forwarding_rejects_nonidentity_arguments_and_cycles_stably() {
+    let direct_scalar = r#"
+module test.direct_scalar_forward;
+@id("scalar.inner") fn inner<T>(value: T) -> T { value }
+@id("scalar.outer") fn outer<T>(value: T) -> T { inner<T>(value) }
+@id("app.main") fn main() -> i64 { if outer<bool>(true) { 0 } else { 1 } }
+"#;
+    let direct_program = parse_source(direct_scalar);
+    assert!(verify::verify(&direct_program).is_empty());
+    let direct_hir = hir::resolve(&direct_program).unwrap();
+    hir::validate(&direct_hir).unwrap();
+
+    let outer = direct_hir
+        .function_templates
+        .iter()
+        .position(|template| template.id.as_str() == "scalar.outer")
+        .unwrap();
+    let inner = direct_hir
+        .function_templates
+        .iter()
+        .position(|template| template.id.as_str() == "scalar.inner")
+        .unwrap();
+    let mut self_cycle = direct_hir.clone();
+    let hir::ResolvedExprKind::Block { tail, .. } =
+        &mut self_cycle.function_templates[outer].body.kind
+    else {
+        panic!("outer template body must remain a block")
+    };
+    let hir::ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        instance,
+        ..
+    } = &mut tail.kind
+    else {
+        panic!("outer template body must remain a call")
+    };
+    *callee = DeclarationId::new("scalar.outer");
+    *instance = Some(hir::FunctionInstanceId::derive(callee, type_arguments));
+    assert_eq!(hir::validate(&self_cycle).unwrap_err().code, "SPX-H006");
+
+    let mut two_node_cycle = direct_hir.clone();
+    two_node_cycle.function_templates[inner].body =
+        two_node_cycle.function_templates[outer].body.clone();
+    let hir::ResolvedExprKind::Block { tail, .. } =
+        &mut two_node_cycle.function_templates[inner].body.kind
+    else {
+        panic!("copied template body must remain a block")
+    };
+    let hir::ResolvedExprKind::Call {
+        callee,
+        type_arguments,
+        instance,
+        ..
+    } = &mut tail.kind
+    else {
+        panic!("copied template body must remain a call")
+    };
+    *callee = DeclarationId::new("scalar.outer");
+    type_arguments[0] = ResolvedType::TypeParameter {
+        owner: DeclarationId::new("scalar.inner"),
+        index: 0,
+    };
+    *instance = Some(hir::FunctionInstanceId::derive(callee, type_arguments));
+    assert_eq!(hir::validate(&two_node_cycle).unwrap_err().code, "SPX-H006");
+
+    let concrete = r#"
+module test.bad_concrete_forward;
+@id("bad.inner") fn inner<T>(value: T) -> T { value }
+@id("bad.outer") fn outer<T>(value: T) -> T { inner<bool>(true) }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    assert!(error_codes(concrete).contains(&"SPX-T225"));
+
+    let permutation = r#"
+module test.bad_permuted_forward;
+@id("bad.inner") fn inner<T, U>(left: T, right: U) -> T { left }
+@id("bad.outer") fn outer<T, U>(left: T, right: U) -> T { inner<U, T>(right, left) }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    assert!(error_codes(permutation).contains(&"SPX-T225"));
+
+    let cycle = r#"
+module test.bad_forward_cycle;
+@id("bad.first") fn first<T>(value: T) -> T { second<T>(value) }
+@id("bad.second") fn second<T>(value: T) -> T { first<T>(value) }
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    assert!(error_codes(cycle).contains(&"SPX-T226"));
+}
+
+#[test]
 fn nested_owning_generic_relay_source_and_hir_boundaries_fail_closed() {
     let admitted = nested_owned_relay_source("u8", "7u8");
     for hostile in [

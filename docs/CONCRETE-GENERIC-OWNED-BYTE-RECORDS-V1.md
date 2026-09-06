@@ -48,6 +48,20 @@ that owner. Exact template identity, owner/index-stable parameters, concrete
 instance identity, recursive field paths, and parameter/result ownership are
 re-derived independently by source verification and HIR validation.
 
+The additive forwarding profile permits one already-admitted generic template
+to call another such template directly. The callee's explicit type arguments
+must be exactly the caller-owned type-parameter vector in declaration order:
+this tranche is identity forwarding, not substitution, permutation, omission,
+duplication, or inference. Both caller and callee must independently satisfy
+either the direct-scalar generic profile or the one-owner identical-result
+relay above. Forwarding may continue through a deterministic transitive
+instance closure of at most 256 entries, but the template-call graph must
+remain acyclic. Each
+materialized caller argument vector therefore derives one exact corresponding
+callee instance vector and identity; no backend chooses or repairs instances.
+The call adds no construction, projection, matching, update, variant, resource,
+effect, or public-boundary authority.
+
 Nonconcrete arguments, `String`, arrays, slices, classes, variants, resources,
 unbounded or cyclic nesting, direct Project exports of generic records, FFI,
 Components, and public aggregate ABIs remain closed. One exact cross-file
@@ -150,9 +164,9 @@ The local gate requires:
   and requires/ensures/staged-call failure settlement on the interpreter,
   native C11 `-O0`/`-O2`, and Core-Wasm; and
 - one exact ScalarV1 Project dependency whose authenticated Subject-v3 source
-  exercises the general internal-body profile while exactly one no-argument
-  `i64` function crosses the package and public boundaries, with Project check,
-  repeated entry/test,
+  exercises a three-template identity-forwarding chain over
+  flat `Pair<Bytes, bool>` with CleanupPlan v5 while exactly one no-argument
+  `i64` function crosses the package and public boundaries, with Project check, repeated entry/test,
   native C11 `-O0`/`-O2`, Core-Wasm and unchanged scalar Web-package evidence,
   plus public-selection and dependency-tamper rejection.
 
@@ -164,7 +178,8 @@ distribution remain separate completion work. The focused
 local source/HIR/layout and interpreter/native/Wasm gates exercise the complete
 Copy-scalar set. The earlier corpus has the hosted run identified above; that
 result predates and does not promote the additive nested relay, whose required
-Linux CI step has not yet recorded its own real run.
+Linux CI step has not yet recorded its own real run. The generic-forwarding
+addition likewise remains local and unhosted.
 
 ## Project integration prerequisite
 
@@ -214,7 +229,7 @@ This contract does not define a stable generic C, Rust, WIT, Component,
 Project, or package representation. In particular, it does not add Project
 v14 or widen the frozen Project-v8/v9/v11 descriptors. It does not admit
 generic variants, nonconcrete or cyclic generic storage, resources, inferred
-type arguments, constraints,
+type arguments, constraints, non-identity type-argument forwarding,
 specialization, mutable or escaping loans, concurrency, or production support.
 It does not add nested-nonflat templates with multiple owning parameters or a
 non-identical owning result, out-of-bound or cyclic template trees, or a public

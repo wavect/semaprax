@@ -1950,16 +1950,22 @@ module generic.app;
         .unwrap();
     assert_eq!(module.function_instances.len(), 4);
 
-    for invalid in [
-        r#"module bad.direct;
+    for (invalid, expected) in [
+        (
+            r#"module bad.direct;
 @id("bad.b") fn b<T>(value: T) -> T { value }
 @id("bad.a") fn a<T>(value: T) -> T { b<i64>(0) }
 @id("bad.main") fn main() -> i64 { 0 }"#,
-        r#"module bad.transitive;
+            "SPX-T225",
+        ),
+        (
+            r#"module bad.transitive;
 @id("bad.b") fn b<T>(value: T) -> T { value }
 @id("bad.middle") fn middle() -> i64 { b<i64>(0) }
 @id("bad.a") fn a<T>(value: T) -> T { let seen = middle(); if seen == 0 { value } else { value } }
 @id("bad.main") fn main() -> i64 { 0 }"#,
+            "SPX-T226",
+        ),
     ] {
         let bad = canonical_source("bad.spx", invalid);
         let leaf = canonical_source(
@@ -1969,7 +1975,7 @@ module generic.app;
         let error = build_owned(vec![bad, leaf])
             .err()
             .expect("T226 must survive");
-        assert!(error.iter().any(|diagnostic| diagnostic.code == "SPX-T226"));
+        assert!(error.iter().any(|diagnostic| diagnostic.code == expected));
     }
 }
 

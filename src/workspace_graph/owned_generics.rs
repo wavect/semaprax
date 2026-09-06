@@ -25,6 +25,7 @@ use super::{
 pub(super) fn reachable_scalar_types(
     modules: &[WorkspaceResolvedModule],
     functions: &[hir::LinkedScalarFunction],
+    function_instances: &[hir::ResolvedFunctionInstance],
 ) -> Result<Vec<hir::ResolvedTypeDeclaration>, Vec<Diagnostic>> {
     let mut available = BTreeMap::new();
     for declaration in modules.iter().flat_map(|module| &module.types) {
@@ -38,7 +39,8 @@ pub(super) fn reachable_scalar_types(
             )]);
         }
     }
-    hir::reachable_authored_types(functions, &[], &[], &available).map_err(|error| vec![error])
+    hir::reachable_authored_types(functions, function_instances, &[], &available)
+        .map_err(|error| vec![error])
 }
 
 pub(super) fn program_imports_vec_wrapper(program: &Program, programs: &[Program]) -> bool {
@@ -273,14 +275,36 @@ impl OwnedGenericInventory {
         functions: &[hir::LinkedScalarFunction],
         closure: &OwnedGenericClosure,
     ) -> Result<Vec<hir::ResolvedFunctionInstance>, Vec<Diagnostic>> {
+        const MAX_FUNCTION_INSTANCES: usize = 256;
         let mut ordered = Vec::new();
         let mut seen = BTreeSet::new();
+        let mut pending = std::collections::VecDeque::new();
         for linked in functions {
             visit_call_sites(&linked.function, &mut |_, instance, _| {
                 if let Some(instance) = instance {
-                    if seen.insert(instance.clone()) {
-                        ordered.push(instance.clone());
-                    }
+                    pending.push_back(instance.clone());
+                }
+            });
+        }
+        while let Some(id) = pending.pop_front() {
+            if !seen.insert(id.clone()) {
+                continue;
+            }
+            if ordered.len() == MAX_FUNCTION_INSTANCES {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    format!(
+                        "owned-data generic instance closure exceeds {MAX_FUNCTION_INSTANCES} entries"
+                    ),
+                )]);
+            }
+            ordered.push(id.clone());
+            let Some(instance) = self.instances.get(&id) else {
+                continue;
+            };
+            visit_call_sites(&instance.function, &mut |_, instance, _| {
+                if let Some(instance) = instance {
+                    pending.push_back(instance.clone());
                 }
             });
         }
@@ -305,6 +329,91 @@ impl OwnedGenericInventory {
             })
             .collect()
     }
+}
+
+pub(super) struct RetainedScalarParts {
+    pub(super) types: Vec<hir::ResolvedTypeDeclaration>,
+    pub(super) function_templates: Vec<hir::ResolvedFunctionTemplate>,
+    pub(super) function_instances: Vec<hir::ResolvedFunctionInstance>,
+}
+
+pub(super) fn retained_scalar_generics(
+    modules: &[WorkspaceResolvedModule],
+    declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
+    functions: &[hir::LinkedScalarFunction],
+    types: Vec<hir::ResolvedTypeDeclaration>,
+) -> Result<RetainedScalarParts, Vec<Diagnostic>> {
+    let available = functions
+        .iter()
+        .map(|linked| {
+            (
+                linked.function.id.clone(),
+                hir::LinkedScalarFunction {
+                    function: linked.function.clone(),
+                    origin: linked.origin,
+                },
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    let roots = available.keys().cloned().collect();
+    let generics = OwnedGenericInventory::collect(modules, declarations)?;
+    let closure = close_owned_data_closure(&available, &generics, roots)?;
+    Ok(RetainedScalarParts {
+        types,
+        function_templates: generics.retained_templates(&closure.templates)?,
+        function_instances: generics.retained_instances(functions, &closure)?,
+    })
+}
+
+pub(super) fn select_scalar_generic_closure(
+    modules: &[WorkspaceResolvedModule],
+    declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
+    available: &BTreeMap<hir::DeclarationId, hir::LinkedScalarFunction>,
+    roots: BTreeSet<hir::DeclarationId>,
+) -> Result<OwnedGenericClosure, Vec<Diagnostic>> {
+    let generics = OwnedGenericInventory::collect(modules, declarations)?;
+    close_owned_data_closure(available, &generics, roots)
+}
+
+pub(super) fn select_scalar_generic_roots(
+    modules: &[WorkspaceResolvedModule],
+    declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
+    available: &BTreeMap<hir::DeclarationId, hir::LinkedScalarFunction>,
+    additional_roots: &[String],
+    entrypoint: hir::DeclarationId,
+) -> Result<OwnedGenericClosure, Vec<Diagnostic>> {
+    let mut roots = additional_roots
+        .iter()
+        .map(|root| hir::DeclarationId::new(root.clone()))
+        .collect::<BTreeSet<_>>();
+    roots.insert(entrypoint);
+    select_scalar_generic_closure(modules, declarations, available, roots)
+}
+
+pub(super) fn retained_scalar_parts(
+    modules: &[WorkspaceResolvedModule],
+    declarations: &BTreeMap<String, WorkspaceDeclarationFact>,
+    functions: &[hir::LinkedScalarFunction],
+    closure: &OwnedGenericClosure,
+    base_types: Vec<hir::ResolvedTypeDeclaration>,
+) -> Result<RetainedScalarParts, Vec<Diagnostic>> {
+    let generics = OwnedGenericInventory::collect(modules, declarations)?;
+    let templates = generics.retained_templates(&closure.templates)?;
+    let instances = generics.retained_instances(functions, closure)?;
+    let types = if functions.iter().any(|linked| {
+        declarations
+            .get(linked.function.id.as_str())
+            .is_some_and(|fact| fact.owner.is_some())
+    }) {
+        base_types
+    } else {
+        reachable_scalar_types(modules, functions, &instances)?
+    };
+    Ok(RetainedScalarParts {
+        types,
+        function_templates: templates,
+        function_instances: instances,
+    })
 }
 
 /// Walk the entry-plus-roots closure over `(callee, type arguments)` call
@@ -358,6 +467,15 @@ pub(super) fn close_owned_data_closure(
             };
             if !closure.instances.insert(instance_id) {
                 continue;
+            }
+            if closure.instances.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
+                return Err(vec![graph_error(
+                    "SPX-G173",
+                    format!(
+                        "workspace owned-data linked inventory exceeds {} generic instances",
+                        crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS
+                    ),
+                )]);
             }
             &instance.function
         } else {

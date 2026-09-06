@@ -347,6 +347,17 @@ results, generic classes/variants/resources, Project, FFI, package, Component,
 and public ABI surfaces remain closed. The legacy flat generic-function
 admission is unchanged.
 
+Generic templates in those two admitted function profiles may now forward
+directly to another admitted generic template when the callee arguments are the
+exact caller-owned type-parameter vector in declaration order. Source
+verification and HIR derive a deterministic transitive closure of at most 256
+corresponding concrete function instances and reject cycles, remapping,
+permutation, missing instances, and profile drift before execution. This reuses
+Graph v14 instance/call identity and the existing CleanupPlan v2 scalar, v5
+flat-owned, or v7 nested-owned transfer meaning. It does not admit construction, projection,
+variants, resources, effects, inference, constraints, non-identical owning
+results, or a public generic ABI.
+
 The ScalarV1 ResolvedProgram classifier has one implementation-only extension
 of that profile: any exact reachable body may compose the admitted flat
 concrete generic owned-byte record internally, independent of source or

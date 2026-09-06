@@ -365,12 +365,7 @@ fn validate_program_profile(program: &ResolvedProgram) -> Result<(), Diagnostic>
             "Public Scalar Export Profile v1 does not admit imports or interfaces",
         ));
     }
-    if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
-        return Err(admission(
-            "Public Scalar Export Profile v1 does not admit generic function templates or instances",
-        ));
-    }
-    if program.functions.len() > MAX_EXECUTABLE_FUNCTIONS {
+    if program.functions.len() + program.function_instances.len() > MAX_EXECUTABLE_FUNCTIONS {
         return Err(capacity(format!(
             "Public Scalar Export Profile v1 admits at most {MAX_EXECUTABLE_FUNCTIONS} monomorphic executable functions"
         )));
@@ -383,6 +378,10 @@ fn validate_program_profile(program: &ResolvedProgram) -> Result<(), Diagnostic>
     });
     if has_authored_types {
         internal_owned_record::validate_program(program)?;
+    } else if !program.function_templates.is_empty() || !program.function_instances.is_empty() {
+        return Err(admission(
+            "Public Scalar Export Profile v1 does not admit generic function templates or instances",
+        ));
     }
     for function in &program.functions {
         if program
@@ -396,6 +395,11 @@ fn validate_program_profile(program: &ResolvedProgram) -> Result<(), Diagnostic>
             )));
         }
         validate_function_profile(program, function, has_authored_types)?;
+    }
+    if has_authored_types {
+        for instance in &program.function_instances {
+            internal_owned_record::validate_instance(program, instance)?;
+        }
     }
     Ok(())
 }

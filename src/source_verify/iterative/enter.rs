@@ -8,7 +8,8 @@ use crate::source_verify::arguments::{
 };
 use crate::source_verify::binding::{Availability, CheckedValue};
 use crate::source_verify::declared_type::{
-    check_declared_type, generic_function_arguments_are_admitted, validation_specialize_signature,
+    check_declared_type, generic_function_arguments_are_admitted,
+    generic_function_arguments_are_forwarded, validation_specialize_signature,
 };
 use crate::source_verify::diagnostics::{error, source_identifier};
 use crate::source_verify::hints;
@@ -401,14 +402,6 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             }
                             return Some(VerifierFunctionSignature::Borrowed(target));
                         }
-                        if !self.current.type_parameters.is_empty() {
-                            self.diagnostics.push(error(
-                                self.program,
-                                "SPX-T226",
-                                format!("generic function `{}` cannot call generic function `{name}` in this slice", self.current.name),
-                                expression.span,
-                            ));
-                        }
                         if type_arguments.len() != target.type_parameters.len() {
                             self.diagnostics.push(error(
                                 self.program,
@@ -419,6 +412,11 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             return None;
                         }
                         if !generic_function_arguments_are_admitted(target, type_arguments, self.types)
+                            && !generic_function_arguments_are_forwarded(
+                                self.current,
+                                target,
+                                type_arguments,
+                            )
                             && !crate::vec_ops::source_arguments_are_admitted(
                                 self.program,
                                 target,

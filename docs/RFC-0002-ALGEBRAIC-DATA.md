@@ -88,6 +88,16 @@ explicit member of those eight Copy scalars. The focused corpus exercises
 retains Graph v14 and CleanupPlan v7 while locally exercising every scalar in
 source/HIR and the representative `bool`/`i64` instances through success plus
 failure settlement on the interpreter, native C11 `-O0`/`-O2`, and Core-Wasm.
+An additive forwarding rule permits a generic template in either the
+direct-scalar profile or that one-owner-identical-result relay profile to call
+another already-admitted generic template directly. The callee type arguments
+must be exactly the caller-owned parameter vector in declaration order. The
+acyclic template-call graph derives one deterministic transitive instance
+closure of at most 256 entries for each concrete caller vector; cycles, remapping,
+permutation, omissions, duplicates, missing instances, and cross-profile calls
+fail closed. Graph v14 and CleanupPlan v2/v5/v7 retain their existing identities
+and meanings. This is not inference, constraints, richer construction,
+projection, matching, variants, resources, effects, or public generic ABI.
 Real cross-file
 Project linking retains the internal concrete identity without widening frozen
 public descriptors. A bounded additive storage profile admits fully concrete
@@ -524,8 +534,8 @@ Shape edits later carry match obligations and typed repairs; they are not textua
 - `SPX-T219` propagation residual mismatch.
 - `SPX-T224` invalid bounded generic-function declaration or signature.
 - `SPX-T225` invalid generic-function invocation or reserved execution identity.
-- `SPX-T226` generic-function expression, effect, call-chain, or recursion
-  outside the bounded slice.
+- `SPX-T226` generic-function expression, effect, unsupported or cyclic call
+  chain, or recursion outside the bounded slice.
 - `SPX-M101` non-exhaustive match with missing witness.
 - `SPX-M102` unreachable arm.
 - `SPX-M103` incompatible pattern.
@@ -570,10 +580,19 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
    focused nested corpus exercises `Box<Pair<Bytes, T>>` and
    `Pair<Box<Bytes>, T>` in source/HIR for all eight scalars, while representative
    `bool`/`i64` instances execute locally across the interpreter, native C11
-   O0/O2, and Core-Wasm. Each admitted template has one owning parameter and an
-   identical return type, retains Graph v14 and CleanupPlan v7, and keeps its
-   additive hosted gate pending.
-   Inference, constraints, richer bodies and signatures, general composition,
+   O0/O2, and Core-Wasm. Each admitted owning template has one owning parameter
+   and an identical return type; the flat relay retains CleanupPlan v5 and the
+   nested relay retains CleanupPlan v7, both under Graph v14, and the additive
+   hosted gate remains pending. Direct acyclic calls between already-admitted
+   templates additionally forward the exact caller-owned parameter vector and
+   derive a deterministic transitive instance closure of at most 256 entries;
+   this local,
+   unhosted addition preserves the direct-scalar and one-owner-identical-result
+   profiles and the existing Graph v14 identity: direct-scalar forwarding keeps
+   CleanupPlan v2, flat-owned forwarding keeps v5, and nested-owned forwarding
+   keeps v7.
+   Inference, constraints, non-identity forwarding, richer bodies and
+   signatures, general composition,
    callable/resource admission, general/public Component mapping, and stable
    ABI remain open.**
 8. Add member/case transactions, layout/interface hashes, and context traversal.

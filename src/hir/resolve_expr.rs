@@ -382,7 +382,9 @@ impl Resolver<'_> {
                                 })?;
                             let resolved_arguments = type_arguments
                                 .iter()
-                                .map(|argument| self.resolve_type(argument, expr.span))
+                                .map(|argument| {
+                                    self.resolve_call_type_argument(function, argument, expr.span)
+                                })
                                 .collect::<Result<Vec<_>, _>>()?;
                             let (instance, return_source_type) = if target
                                 .type_parameters
@@ -401,6 +403,7 @@ impl Resolver<'_> {
                             } else {
                                 if resolved_arguments.len() != target.type_parameters.len()
                                     || !self.generic_function_arguments_are_admitted(
+                                        function,
                                         target,
                                         &resolved_arguments,
                                     )?
@@ -865,9 +868,8 @@ impl Resolver<'_> {
                     argument_count,
                 } => {
                     let args = take_results(&mut results, argument_count);
-                    let ty = self.resolve_type(&return_source_type, target_span)?;
-                    let ownership =
-                        self.expression_ownership(&ty, OwnershipMode::Own, target_span)?;
+                    let (ty, ownership) =
+                        self.resolve_call_result(function, &return_source_type, target_span)?;
                     results.push(ResolvedExpr {
                         id: ExpressionId::new(function, &path),
                         ty,

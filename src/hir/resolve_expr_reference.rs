@@ -521,7 +521,7 @@ impl Resolver<'_> {
                     })?;
                 let resolved_arguments = type_arguments
                     .iter()
-                    .map(|argument| self.resolve_type(argument, expr.span))
+                    .map(|argument| self.resolve_call_type_argument(function, argument, expr.span))
                     .collect::<Result<Vec<_>, _>>()?;
                 let (callee, instance, return_source_type) = if target.type_parameters.is_empty() {
                     if !resolved_arguments.is_empty() {
@@ -534,8 +534,11 @@ impl Resolver<'_> {
                     (template.clone(), None, target.return_type.clone())
                 } else {
                     if resolved_arguments.len() != target.type_parameters.len()
-                        || !self
-                            .generic_function_arguments_are_admitted(target, &resolved_arguments)?
+                        || !self.generic_function_arguments_are_admitted(
+                            function,
+                            target,
+                            &resolved_arguments,
+                        )?
                     {
                         return Err(self.error(
                             "SPX-H006",
@@ -570,8 +573,14 @@ impl Resolver<'_> {
                         )
                     })
                     .collect::<Result<_, _>>()?;
-                let ty = self.resolve_type(&return_source_type, target.span)?;
-                let ownership = self.expression_ownership(&ty, OwnershipMode::Own, target.span)?;
+                let ty =
+                    self.resolve_call_type_argument(function, &return_source_type, target.span)?;
+                let ownership = self.function_expression_ownership(
+                    function,
+                    &ty,
+                    OwnershipMode::Own,
+                    target.span,
+                )?;
                 (
                     ResolvedExprKind::Call {
                         callee,

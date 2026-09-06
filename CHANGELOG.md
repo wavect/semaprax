@@ -8,6 +8,19 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Added bounded acyclic generic-to-generic forwarding between already-admitted
+  templates. A direct call must pass the callee exactly the caller-owned type-
+  parameter vector in declaration order; each concrete caller instance derives
+  the deterministic transitive callee-instance closure, bounded at 256 entries. The existing
+  direct-scalar and one-owner-identical-result relay profiles, Graph v14, and
+  CleanupPlan v2/v5/v7 remain the limits. Focused local, unhosted evidence covers
+  chained source/HIR identities in authored FIFO order,
+  interpreter/native C11 `-O0`/`-O2`/Core-Wasm settlement, concrete
+  non-identity/permutation/cycle rejection, and missing/reordered/forged HIR
+  instance rejection.
+  This adds no inference, constraints, construction, projection, variants,
+  resources, effects, package signature, or public generic ABI.
+
 - Added `std.data.json.dec`, the seventh JSON sibling package, which expands
   JSON string escapes. All eight simple escapes, `\uXXXX`, and surrogate pairs
   decode to their exact UTF-8 bytes; a lone or unpaired surrogate, an unknown

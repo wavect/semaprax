@@ -44,6 +44,7 @@ pub(super) struct HirValidator<'a> {
     /// an already frozen buffer.
     buffer_reopen_sites: BTreeSet<ExpressionId>,
     borrowed_str_aliases: BTreeMap<ValueId, Place>,
+    proof_generic_calls: bool,
     canonical_loan_ids: BTreeMap<(ExpressionId, LoanCause), LoanId>,
     canonical_loan_liveness: BTreeMap<(ExpressionId, LoanPointPhase, LoanId), Place>,
 }
@@ -106,6 +107,7 @@ impl<'a> HirValidator<'a> {
     pub(super) fn new(program: &'a ResolvedProgram) -> Result<Self, Diagnostic> {
         validate_nul_free_identities(program)?;
         vec_intrinsic::reject_reserved_identities(program)?;
+        generic_template::validate_call_graph(program)?;
         for declaration in program.declarations.declarations() {
             if crate::host_io_ops::by_id(declaration.id.as_str()).is_some()
                 || crate::command_io_ops::by_id(declaration.id.as_str()).is_some()
@@ -218,6 +220,7 @@ impl<'a> HirValidator<'a> {
             byte_slice_aliases: BTreeMap::new(),
             buffer_reopen_sites: BTreeSet::new(),
             borrowed_str_aliases: BTreeMap::new(),
+            proof_generic_calls: false,
             canonical_loan_ids,
             canonical_loan_liveness,
         })
@@ -488,13 +491,16 @@ impl<'a> HirValidator<'a> {
                 let materialized = materialize_function_template(template, &arguments)?;
                 let saved_expression_ids = self.expression_ids.clone();
                 let saved_value_ids = self.value_ids.clone();
-                self.validate_function(
+                self.proof_generic_calls = true;
+                let validation = self.validate_function(
                     &materialized,
                     &FunctionExecutionId::Generic(FunctionInstanceId::derive(
                         &template.id,
                         &arguments,
                     )),
-                )?;
+                );
+                self.proof_generic_calls = false;
+                validation?;
                 self.expression_ids = saved_expression_ids;
                 self.value_ids = saved_value_ids;
             }
@@ -1292,9 +1298,17 @@ impl<'a> HirValidator<'a> {
                     type_arguments,
                     instance,
                 );
-                if instance.is_some()
-                    || (!type_arguments.is_empty() && !transparent_vec_call)
+                let forwarded_generic_call = generic_template::is_forwarded_call(
+                    self.program,
+                    template,
+                    callee,
+                    type_arguments,
+                    instance,
+                );
+                if (!transparent_vec_call && !forwarded_generic_call)
+                    && (instance.is_some() || !type_arguments.is_empty())
                     || (!transparent_vec_call
+                        && !forwarded_generic_call
                         && crate::string_ops::by_id(callee.as_str()).is_none()
                         && crate::str_ops::by_id(callee.as_str()).is_none()
                         && self
@@ -1868,33 +1882,7 @@ impl<'a> HirValidator<'a> {
     fn reachable_function_instances(
         &self,
     ) -> Result<Vec<(FunctionInstanceId, DeclarationId, Vec<ResolvedType>)>, Diagnostic> {
-        let mut seen = BTreeSet::new();
-        let mut reachable = Vec::new();
-        for function in &self.program.functions {
-            for expression in function
-                .requires
-                .iter()
-                .chain(std::iter::once(&function.body))
-                .chain(&function.ensures)
-            {
-                visit_resolved_calls(expression, &mut |callee, instance, arguments| {
-                    let Some(instance) = instance else {
-                        return;
-                    };
-                    if seen.insert(instance.clone()) {
-                        reachable.push((instance.clone(), callee.clone(), arguments.to_vec()));
-                    }
-                });
-            }
-        }
-        for (instance, template, arguments) in &reachable {
-            if FunctionInstanceId::derive(template, arguments) != *instance {
-                return Err(hir_error(
-                    "reachable generic function instance identity is inconsistent",
-                ));
-            }
-        }
-        Ok(reachable)
+        generic_template::reachable_instances(self.program)
     }
 
     fn validate_function(
@@ -1947,10 +1935,10 @@ impl<'a> HirValidator<'a> {
             &function.return_type,
         )?);
         let mut callees = Vec::new();
-        visit_resolved_calls(&function.body, &mut |callee, instance, _| {
-            callees.push((callee.clone(), instance.cloned()));
+        visit_resolved_calls(&function.body, &mut |callee, instance, arguments| {
+            callees.push((callee.clone(), instance.cloned(), arguments.to_vec()));
         });
-        for (callee, instance) in callees {
+        for (callee, instance, type_arguments) in callees {
             if instance.is_none()
                 && (crate::string_ops::by_id(callee.as_str()).is_some()
                     || crate::str_ops::by_id(callee.as_str()).is_some()
@@ -1962,14 +1950,22 @@ impl<'a> HirValidator<'a> {
                 // scalar/string results contribute no lifecycle effects.
                 continue;
             }
-            let target = self
-                .program
-                .resolve_call_target(&callee, instance.as_ref())
-                .ok_or_else(|| hir_error(format!("function `{callee}` is not indexed")))?;
-            required_lifecycle_effects.extend(resolved_lifecycle_effects(
-                self.program,
-                &target.return_type,
-            )?);
+            let return_type = if let Some(target) =
+                self.program.resolve_call_target(&callee, instance.as_ref())
+            {
+                target.return_type.clone()
+            } else if self.proof_generic_calls {
+                generic_template::proof_return_type(
+                    self.program,
+                    &callee,
+                    instance.as_ref(),
+                    &type_arguments,
+                )?
+            } else {
+                return Err(hir_error(format!("function `{callee}` is not indexed")));
+            };
+            required_lifecycle_effects
+                .extend(resolved_lifecycle_effects(self.program, &return_type)?);
         }
         if let Some(effect) = required_lifecycle_effects
             .iter()
@@ -3447,37 +3443,49 @@ impl<'a> HirValidator<'a> {
                                 }
                                 (crate::host_io_ops::resolved_params(op), op.return_type())
                             } else {
-                                let target = self
-                                    .program
-                                    .resolve_call_target(callee, instance.as_ref())
-                                    .ok_or_else(|| {
-                                        hir_error(format!(
-                                            "resolved callee `{callee}` is not indexed"
-                                        ))
-                                    })?;
-                                if args.len() != target.params.len() {
+                                let (params, return_type, target_effects) = if let Some(target) =
+                                    self.program.resolve_call_target(callee, instance.as_ref())
+                                {
+                                    (
+                                        target.params.clone(),
+                                        target.return_type.clone(),
+                                        target.effects.clone(),
+                                    )
+                                } else if self.proof_generic_calls {
+                                    generic_template::proof_signature(
+                                        self.program,
+                                        callee,
+                                        instance.as_ref(),
+                                        type_arguments,
+                                    )?
+                                } else {
+                                    return Err(hir_error(format!(
+                                        "resolved callee `{callee}` is not indexed"
+                                    )));
+                                };
+                                if args.len() != params.len() {
                                     return Err(hir_error(format!(
                                         "call to `{callee}` has {} arguments but expects {}",
                                         args.len(),
-                                        target.params.len()
+                                        params.len()
                                     )));
                                 }
                                 match allowed_effects {
                                     Some(allowed) => {
-                                        for effect in &target.effects {
+                                        for effect in &target_effects {
                                             if !allowed.contains(effect) {
                                                 return Err(hir_error(format!("call to `{callee}` requires undeclared effect `{effect}`")));
                                             }
                                         }
                                     }
-                                    None if !target.effects.is_empty() => {
+                                    None if !target_effects.is_empty() => {
                                         return Err(hir_error(format!(
                                             "contract calls effectful function `{callee}`"
                                         )))
                                     }
                                     None => {}
                                 }
-                                (target.params.clone(), target.return_type.clone())
+                                (params, return_type)
                             };
                             let return_ownership =
                                 self.expected_ownership(&return_type, OwnershipMode::Own)?;

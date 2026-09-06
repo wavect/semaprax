@@ -1350,12 +1350,26 @@ impl WorkspaceGraphBuild {
                 Some(entrypoint_span),
             )]);
         }
+        let scalar = if profile == crate::project::ProjectProfile::ScalarV1 {
+            owned_generics::retained_scalar_generics(
+                &self.hir.modules,
+                &self.hir.declarations,
+                &functions,
+                types,
+            )?
+        } else {
+            owned_generics::RetainedScalarParts {
+                types,
+                function_templates: Vec::new(),
+                function_instances: Vec::new(),
+            }
+        };
         let mut linked = match profile {
             crate::project::ProjectProfile::ScalarV1 => natives.link(
                 entry_module.to_owned(),
                 entrypoint,
                 functions,
-                types,
+                scalar,
                 &self.hir.declarations,
                 true,
             ),
@@ -1491,34 +1505,47 @@ impl WorkspaceGraphBuild {
             &base.entrypoint,
             &additional_roots[0],
         );
-        let mut retained = if profile == crate::project::ProjectProfile::ScalarV1 {
-            BTreeSet::new()
+        let scalar_closure = if profile == crate::project::ProjectProfile::ScalarV1 {
+            Some(owned_generics::select_scalar_generic_roots(
+                &self.hir.modules,
+                &self.hir.declarations,
+                &available,
+                additional_roots,
+                web_entrypoint.clone(),
+            )?)
+        } else {
+            None
+        };
+        let mut retained = if let Some(closure) = &scalar_closure {
+            closure.functions.clone()
         } else {
             base.functions
                 .iter()
                 .map(|function| function.id.clone())
                 .collect::<BTreeSet<_>>()
         };
-        let mut pending = additional_roots
-            .iter()
-            .map(|root| hir::DeclarationId::new(root.clone()))
-            .collect::<BTreeSet<_>>();
-        pending.insert(web_entrypoint.clone());
-        while let Some(function_id) = pending.pop_first() {
-            let Some(linked) = available.get(&function_id) else {
-                return Err(vec![Diagnostic::io(
-                    "SPX-W115",
-                    format!(
-                        "selected Project Web export identity `{function_id}` does not name an authenticated function"
-                    ),
-                )]);
-            };
-            if !retained.insert(function_id.clone()) {
-                continue;
-            }
-            for callee in resolved_function_callees(&linked.function) {
-                if available.contains_key(&callee) && !retained.contains(&callee) {
-                    pending.insert(callee);
+        if scalar_closure.is_none() {
+            let mut pending = additional_roots
+                .iter()
+                .map(|root| hir::DeclarationId::new(root.clone()))
+                .collect::<BTreeSet<_>>();
+            pending.insert(web_entrypoint.clone());
+            while let Some(function_id) = pending.pop_first() {
+                let Some(linked) = available.get(&function_id) else {
+                    return Err(vec![Diagnostic::io(
+                        "SPX-W115",
+                        format!(
+                            "selected Project Web export identity `{function_id}` does not name an authenticated function"
+                        ),
+                    )]);
+                };
+                if !retained.insert(function_id.clone()) {
+                    continue;
+                }
+                for callee in resolved_function_callees(&linked.function) {
+                    if available.contains_key(&callee) && !retained.contains(&callee) {
+                        pending.insert(callee);
+                    }
                 }
             }
         }
@@ -1542,21 +1569,21 @@ impl WorkspaceGraphBuild {
             .collect::<Result<Vec<_>, _>>()?;
         match profile {
             crate::project::ProjectProfile::ScalarV1 => {
-                let types = if functions.iter().any(|linked| {
-                    self.hir
-                        .declarations
-                        .get(linked.function.id.as_str())
-                        .is_some_and(|fact| fact.owner.is_some())
-                }) {
-                    base.types
-                } else {
-                    owned_generics::reachable_scalar_types(&self.hir.modules, &functions)?
-                };
+                let closure = scalar_closure
+                    .as_ref()
+                    .expect("scalar generic closure was constructed above");
+                let scalar = owned_generics::retained_scalar_parts(
+                    &self.hir.modules,
+                    &self.hir.declarations,
+                    &functions,
+                    closure,
+                    base.types,
+                )?;
                 natives.link(
                     base.module,
                     web_entrypoint,
                     functions,
-                    types,
+                    scalar,
                     &self.hir.declarations,
                     false,
                 )
@@ -2496,107 +2523,16 @@ fn semantic_workspace_source_schema(
 }
 
 fn resolved_function_callees(function: &hir::ResolvedFunction) -> BTreeSet<hir::DeclarationId> {
-    fn visit(expression: &hir::ResolvedExpr, callees: &mut BTreeSet<hir::DeclarationId>) {
-        if let hir::ResolvedExprKind::Call { callee, .. } = &expression.kind {
-            callees.insert(callee.clone());
-        }
-        match &expression.kind {
-            hir::ResolvedExprKind::ByteRange {
-                source, start, end, ..
-            } => {
-                visit(source, callees);
-                visit(start, callees);
-                visit(end, callees);
-            }
-            hir::ResolvedExprKind::Call { args, .. } => {
-                for argument in args {
-                    visit(argument, callees);
-                }
-            }
-            hir::ResolvedExprKind::NativeRustImportCall(call) => {
-                for argument in &call.args {
-                    visit(argument, callees);
-                }
-            }
-            hir::ResolvedExprKind::HostCommandCall(call) => {
-                for argument in &call.args {
-                    visit(argument, callees);
-                }
-            }
-            hir::ResolvedExprKind::Unary { value, .. }
-            | hir::ResolvedExprKind::Try { operand: value, .. }
-            | hir::ResolvedExprKind::TryOption { operand: value, .. }
-            | hir::ResolvedExprKind::Project { base: value, .. }
-            | hir::ResolvedExprKind::Upcast { source: value } => visit(value, callees),
-            hir::ResolvedExprKind::Binary { left, right, .. } => {
-                visit(left, callees);
-                visit(right, callees);
-            }
-            hir::ResolvedExprKind::Block { statements, tail } => {
-                for statement in statements {
-                    for index in 0..statement.child_count() {
-                        if let Some(child) = statement.child(index) {
-                            visit(child, callees);
-                        }
-                    }
-                }
-                visit(tail, callees);
-            }
-            hir::ResolvedExprKind::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
-                visit(condition, callees);
-                visit(then_branch, callees);
-                visit(else_branch, callees);
-            }
-            hir::ResolvedExprKind::ConstructRecord { fields, .. }
-            | hir::ResolvedExprKind::ConstructVariant { fields, .. } => {
-                for field in fields {
-                    visit(&field.value, callees);
-                }
-            }
-            hir::ResolvedExprKind::Match {
-                scrutinee, arms, ..
-            } => {
-                visit(scrutinee, callees);
-                for arm in arms {
-                    if let Some(guard) = &arm.guard {
-                        visit(guard, callees);
-                    }
-                    visit(&arm.value, callees);
-                }
-            }
-            hir::ResolvedExprKind::UpdateRecord { base, fields, .. } => {
-                visit(base, callees);
-                for field in fields {
-                    visit(&field.value, callees);
-                }
-            }
-            hir::ResolvedExprKind::Int(_)
-            | hir::ResolvedExprKind::Int32(_)
-            | hir::ResolvedExprKind::Char(_)
-            | hir::ResolvedExprKind::Uint8(_)
-            | hir::ResolvedExprKind::Usize(_)
-            | hir::ResolvedExprKind::Float32(_)
-            | hir::ResolvedExprKind::Float64(_)
-            | hir::ResolvedExprKind::Bool(_)
-            | hir::ResolvedExprKind::String(_)
-            | hir::ResolvedExprKind::ArrayU8(_)
-            | hir::ResolvedExprKind::RepeatArrayU8 { .. }
-            | hir::ResolvedExprKind::BorrowPlace { .. }
-            | hir::ResolvedExprKind::Place(_) => {}
-        }
-    }
-
     let mut callees = BTreeSet::new();
-    for requirement in &function.requires {
-        visit(requirement, &mut callees);
-    }
-    visit(&function.body, &mut callees);
-    for postcondition in &function.ensures {
-        visit(postcondition, &mut callees);
+    for expression in function
+        .requires
+        .iter()
+        .chain(std::iter::once(&function.body))
+        .chain(&function.ensures)
+    {
+        hir::visit_resolved_calls(expression, &mut |callee, _, _| {
+            callees.insert(callee.clone());
+        });
     }
     callees
 }

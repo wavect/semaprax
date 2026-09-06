@@ -1,5 +1,6 @@
 module std.data.json.doc.examples;
 use function @id("std.data.json.doc.is_document") from std.data.json.doc as is_document;
+use function @id("std.data.json.doc.is_unique") from std.data.json.doc as is_unique;
 use function @id("std.data.json.doc.whole_end") from std.data.json.doc as whole_end;
 
 @id("std.data.json.doc.examples.main")
@@ -7,7 +8,9 @@ fn main() -> i64
 {
     let object = [123u8, 34u8, 97u8, 34u8, 58u8, 91u8, 49u8, 93u8, 125u8];
     let broken = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 125u8];
+    let repeated = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 34u8, 97u8, 34u8, 58u8, 50u8, 125u8];
     let view = array_as_slice(object);
     let bad = array_as_slice(broken);
-    if is_document(view) && whole_end(view, 32usize) == byte_len(view) && !is_document(bad) { 0 } else { 1 }
+    let twice = array_as_slice(repeated);
+    if is_document(view) && whole_end(view, 32usize) == byte_len(view) && !is_document(bad) && is_unique(view) && is_document(twice) && !is_unique(twice) { 0 } else { 1 }
 }

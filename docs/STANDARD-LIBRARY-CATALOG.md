@@ -466,6 +466,48 @@ fn whole_end(input: borrow Slice<u8>, depth_limit: usize) -> usize
 fn is_document(input: borrow Slice<u8>) -> bool
 ```
 
+### `std.data.json.doc.byte_same`
+
+```semaprax
+fn byte_same(input: borrow Slice<u8>, left: usize, right: usize) -> bool
+```
+
+### `std.data.json.doc.span_same`
+
+```semaprax
+fn span_same(input: borrow Slice<u8>, left: usize, right: usize, length: usize) -> bool
+```
+
+### `std.data.json.doc.next_key`
+
+```semaprax
+fn next_key(input: borrow Slice<u8>, key: usize, depth_limit: usize) -> usize
+```
+
+### `std.data.json.doc.key_before`
+
+```semaprax
+fn key_before(input: borrow Slice<u8>, first: usize, key: usize, depth_limit: usize) -> bool
+```
+
+### `std.data.json.doc.object_keys`
+
+```semaprax
+fn object_keys(input: borrow Slice<u8>, open: usize, depth_limit: usize) -> bool
+```
+
+### `std.data.json.doc.unique_end`
+
+```semaprax
+fn unique_end(input: borrow Slice<u8>, depth_limit: usize) -> usize
+```
+
+### `std.data.json.doc.is_unique`
+
+```semaprax
+fn is_unique(input: borrow Slice<u8>) -> bool
+```
+
 ## `std.data.json.token`
 
 Package `std/data-json-token`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.token = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

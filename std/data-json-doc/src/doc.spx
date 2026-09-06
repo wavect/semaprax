@@ -147,3 +147,91 @@ fn is_document(input: borrow Slice<u8>) -> bool
 {
     whole_end(input, 32usize) == byte_len(input)
 }
+
+@id("std.data.json.doc.byte_same")
+fn byte_same(input: borrow Slice<u8>, left: usize, right: usize) -> bool
+{
+    match byte_get(input, right) { Option::Some { value: byte } => at_in(input, left, byte, byte), Option::None {} => false, }
+}
+
+@id("std.data.json.doc.span_same")
+fn span_same(input: borrow Slice<u8>, left: usize, right: usize, length: usize) -> bool
+{
+    let mut offset = 0usize;
+    let mut same = true;
+    let mut running = offset < length;
+    while running {
+        same = byte_same(input, left + offset, right + offset);
+        offset = offset + 1usize;
+        running = same && offset < length;
+        running
+    }
+    same
+}
+
+@id("std.data.json.doc.next_key")
+fn next_key(input: borrow Slice<u8>, key: usize, depth_limit: usize) -> usize
+{
+    let colon = skip_space(input, string_end(input, key));
+    let value = skip_space(input, colon + 1usize);
+    let after = skip_space(input, document_end(input, value, depth_limit));
+    if at_in(input, after, 44u8, 44u8) { skip_space(input, after + 1usize) } else { byte_len(input) + 1usize + after }
+}
+
+@id("std.data.json.doc.key_before")
+fn key_before(input: borrow Slice<u8>, first: usize, key: usize, depth_limit: usize) -> bool
+{
+    let length = string_end(input, key) - key;
+    let mut here = first;
+    let mut found = false;
+    let mut running = here < key;
+    while running {
+        found = string_end(input, here) - here == length && span_same(input, here, key, length);
+        here = next_key(input, here, depth_limit);
+        running = !found && here < key;
+        running
+    }
+    found
+}
+
+@id("std.data.json.doc.object_keys")
+fn object_keys(input: borrow Slice<u8>, open: usize, depth_limit: usize) -> bool
+{
+    let first = skip_space(input, open + 1usize);
+    let mut here = first;
+    let mut unique = true;
+    let mut running = at_in(input, here, 34u8, 34u8);
+    while running {
+        unique = !key_before(input, first, here, depth_limit);
+        here = next_key(input, here, depth_limit);
+        running = unique && here < byte_len(input);
+        running
+    }
+    unique
+}
+
+@id("std.data.json.doc.unique_end")
+fn unique_end(input: borrow Slice<u8>, depth_limit: usize) -> usize
+{
+    let end = whole_end(input, depth_limit);
+    let length = byte_len(input);
+    let mut index = 0usize;
+    let mut fault = 0usize;
+    let mut bad = false;
+    let mut running = end == length && index < length;
+    while running {
+        let quoted = at_in(input, index, 34u8, 34u8);
+        bad = at_in(input, index, 123u8, 123u8) && !object_keys(input, index, depth_limit);
+        fault = if bad { index } else { fault };
+        index = if quoted { string_end(input, index) } else { index + 1usize };
+        running = !bad && index < length;
+        running
+    }
+    if bad { length + 1usize + fault } else { end }
+}
+
+@id("std.data.json.doc.is_unique")
+fn is_unique(input: borrow Slice<u8>) -> bool
+{
+    unique_end(input, 32usize) == byte_len(input)
+}

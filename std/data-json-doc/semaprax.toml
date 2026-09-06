@@ -11,4 +11,4 @@ sources = ["src/doc.spx", "src/examples.spx", "src/tests.spx"]
 tests = ["std.data.json.doc.tests"]
 
 [exports]
-web = ["std.data.json.doc.is_document"]
+web = ["std.data.json.doc.is_document", "std.data.json.doc.is_unique"]

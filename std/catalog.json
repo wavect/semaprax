@@ -899,6 +899,90 @@
           "kind": "function",
           "name": "is_document",
           "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn byte_same(input: borrow Slice<u8>, left: usize, right: usize) -> bool"
+          ],
+          "id": "std.data.json.doc.byte_same",
+          "kind": "function",
+          "name": "byte_same",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn span_same(input: borrow Slice<u8>, left: usize, right: usize, length: usize) -> bool"
+          ],
+          "id": "std.data.json.doc.span_same",
+          "kind": "function",
+          "name": "span_same",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn next_key(input: borrow Slice<u8>, key: usize, depth_limit: usize) -> usize"
+          ],
+          "id": "std.data.json.doc.next_key",
+          "kind": "function",
+          "name": "next_key",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn key_before(input: borrow Slice<u8>, first: usize, key: usize, depth_limit: usize) -> bool"
+          ],
+          "id": "std.data.json.doc.key_before",
+          "kind": "function",
+          "name": "key_before",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn object_keys(input: borrow Slice<u8>, open: usize, depth_limit: usize) -> bool"
+          ],
+          "id": "std.data.json.doc.object_keys",
+          "kind": "function",
+          "name": "object_keys",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn unique_end(input: borrow Slice<u8>, depth_limit: usize) -> usize"
+          ],
+          "id": "std.data.json.doc.unique_end",
+          "kind": "function",
+          "name": "unique_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_unique(input: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.doc.is_unique",
+          "kind": "function",
+          "name": "is_unique",
+          "requires": 0
         }
       ],
       "dependency": "std.data.json.doc = \"^0.1.0\"",

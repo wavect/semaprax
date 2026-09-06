@@ -13,10 +13,10 @@ byte view or Copy scalars:
 | `std.data.json.utf8` | **UTF-8 validation** of raw bytes, rejecting malformed, overlong, surrogate, and out-of-range sequences |
 | `std.data.json.write` | Deterministic **string encoding**: the exact length and each byte of the quoted JSON encoding of a byte view |
 | `std.data.json.digits` | Deterministic **number and literal encoding**: the exact decimal bytes of any `i64` and the literal words |
-| `std.data.json.doc` | **Structural documents**: the object and array grammar, a bounded nesting depth, and trailing-byte rejection over a whole document |
+| `std.data.json.doc` | **Structural documents**: the object and array grammar, a bounded nesting depth, trailing-byte rejection over a whole document, and a duplicate-key rule over byte-identical member names |
 
-Decoded string output, an owned document tree, an output buffer, and a
-duplicate-key rule are Missing.
+Decoded string output, an owned document tree, and an output buffer are
+Missing.
 
 This document owns the result encoding and rejection policy shared by all
 six. [Standard Library v1](STANDARD-LIBRARY-V1.md) owns their status rows and
@@ -183,12 +183,44 @@ A caller that needs full RFC 8259 conformance composes the three:
 
 ### Duplicate keys
 
-Not implemented, and the policy is stated so a program cannot infer one:
-`std.data.json.doc` **accepts** an object whose members repeat a name and
-scans every member, because it builds no map and discards nothing. It cannot
-reject one either: with no growable collection it cannot retain the earlier
-keys of the enclosing object, and the pre-bound below does not admit the second
-pass that would compare them. A duplicate-key rule needs a further sibling.
+`std.data.json.doc.is_unique(input)` is `is_document` plus member-name
+uniqueness, and `unique_end(input, depth_limit)` is its offset form under the
+family result encoding. `is_document` itself is unchanged: it still **accepts**
+a repeated name, so a caller that wants the RFC 8259 recommendation asks for it
+by name.
+
+The rule is stated exactly, because it is narrower than "the same string twice":
+
+- Two members of **the same object** are duplicates when their **name spans are
+  byte-identical**, quotes included. Names in different objects never collide,
+  and a `{` inside a string is not an object.
+- **Escape forms are compared as written.** `"a"` and `"\u0061"` denote the
+  same name in RFC 8259 but are *not* duplicates here, because nothing in this
+  package expands an escape. Decoded comparison is Missing and needs the same
+  output buffer decoded strings need.
+- Rejection is reported at the offset of the **`{` of the object that repeats a
+  name**, not at the repeated member, so a nested violation names the inner
+  object.
+
+The implementation retains nothing, which is what makes it admissible: there is
+no growable collection to hold the earlier keys in. `unique_end` first validates
+the document, then walks the bytes once, skipping each string span through
+`string_end` so that only structural `{` bytes are seen. For each such object,
+`object_keys` walks its direct members through `next_key` — which skips the
+member's value with `document_end` — and asks `key_before` whether an earlier
+member of the same object carries the same name span, comparing bytes through
+`span_same`. The cost is quadratic in the members of one object and grows with
+name length; the benefit is that the scan is still allocation-free and still
+returns only scalars.
+
+The owned bounded byte buffer of
+[Owned Bounded Byte Buffer v1](OWNED-BOUNDED-BYTE-BUFFER-V1.md) is *not* a
+usable key record here, for three independent reasons: the WebAssembly backend
+rejects `bytes_zeroed` and `bytes_set` with `SPX-W110` while this package must
+execute on Core Wasm, `bytes_set` admits only a `usize` **literal** index
+(`SPX-T272`) while a key record is written at offsets a scan discovers, and
+neither operation is admitted in a `while` body at all (`SPX-T252`,
+`SPX-T267`).
 
 ## Writing
 
@@ -214,8 +246,9 @@ through unchanged. `usize_len` and `usize_byte` render a count exactly.
 
 These are absent, not merely undocumented. A program must not infer them:
 
-- **Duplicate keys.** `std.data.json.doc` validates structure, not member
-  uniqueness; see above.
+- **Decoded duplicate keys.** `is_unique` compares name spans byte for byte,
+  so two spellings of one name, such as `"a"` and `"\u0061"`, are not reported;
+  see above.
 - **Floating-point numbers.** `i64_or` refuses a fraction or exponent rather
   than converting it, and nothing renders an `f64`.
 - **Decoded strings.** Escapes are validated and measured, never expanded;
@@ -235,14 +268,20 @@ to be imported by the package's conformance module, which charges each
 function's tree a second time. The budget is charged against the whole package — library,
 examples, and conformance modules together — so no single module can hold this
 slice. Measured by padding each of these packages until `SPX-G171` fires, the
-admitted total package source is between 13.3 KB and 15.9 KB for the token
-packages. The bound is not a byte count: it is charged against declarations,
+admitted total package source is between 19.7 KB and 22.1 KB for the token
+packages, after the identity term of the pre-bound was re-derived; the same
+measurement before that re-derivation gave 13.3 KB to 15.9 KB. The bound is not a byte count: it is charged against declarations,
 expression structure, and the length of the longest stable identity in the
 package, so a package with many small declarations and dense expressions is
 admitted at far less source. `std.data.json.doc` was measured at **12,216 B
-admitted and 12,292 B rejected** — its own declarations cost roughly twice per
-byte what the token packages' do, which is why its helper set is merged down to
-twelve functions and its module segment is `doc` rather than `document`.
+admitted and 12,292 B rejected** before the identity term was re-derived — its
+own declarations cost roughly twice per byte what the token packages' do, which
+is why its helper set is merged down and its module segment is `doc` rather
+than `document`. After the re-derivation it was measured again by appending
+`at_in`-shaped probe functions to the library and their imports to the
+conformance module: **19,250 B of package source admitted, 19,524 B rejected**.
+The duplicate-key layer spends most of that headroom; the package is
+**18,154 B**, so about **1.1 KB** remains.
 
 The scope is therefore authored as sibling packages a consumer links, which
 became viable when the pre-bound stopped charging an imported function as a
@@ -257,8 +296,11 @@ Two consequences of that measurement shape `std.data.json.doc`:
   puts the document layer over the bound even though its own source is only
   8.5 KB, because the vendored dependency source is charged in full against the
   consumer. Restating the few byte probes it needs costs a few hundred bytes.
-- **It delegates escape and UTF-8 validity.** Restating those rules costs about
-  1.2 KB, which the bound does not admit beside the structural machine.
+- **It delegates escape and UTF-8 validity.** Restating `hex_at`, `code_unit`,
+  `escape_kind`, and `escape_end` costs about 2.2 KB before the conformance
+  coverage those exports require, and the UTF-8 rules cost more again. The
+  1.1 KB left after the duplicate-key layer admits neither.
 
-Decoded strings, an output buffer, an owned document tree, and a duplicate-key
-rule still need either a further split or that bound raised.
+Decoded strings, an output buffer, an owned document tree, and re-checking
+escape and UTF-8 validity inside the document layer still need either a further
+split or that bound raised.

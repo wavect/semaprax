@@ -1,5 +1,12 @@
 module std.data.json.doc.tests;
 use function @id("std.data.json.doc.advance") from std.data.json.doc as advance;
+use function @id("std.data.json.doc.byte_same") from std.data.json.doc as byte_same;
+use function @id("std.data.json.doc.is_unique") from std.data.json.doc as is_unique;
+use function @id("std.data.json.doc.key_before") from std.data.json.doc as key_before;
+use function @id("std.data.json.doc.next_key") from std.data.json.doc as next_key;
+use function @id("std.data.json.doc.object_keys") from std.data.json.doc as object_keys;
+use function @id("std.data.json.doc.span_same") from std.data.json.doc as span_same;
+use function @id("std.data.json.doc.unique_end") from std.data.json.doc as unique_end;
 use function @id("std.data.json.doc.at_in") from std.data.json.doc as at_in;
 use function @id("std.data.json.doc.digits_end") from std.data.json.doc as digits_end;
 use function @id("std.data.json.doc.document_end") from std.data.json.doc as document_end;
@@ -60,6 +67,34 @@ fn bad() -> bool
     !is_document(extra) && whole_end(extra, 32usize) - byte_len(extra) - 1usize == 3usize && !is_document(crossed) && document_end(crossed, 0usize, 32usize) - byte_len(crossed) - 1usize == 2usize && !is_document(comma) && document_end(comma, 0usize, 32usize) - byte_len(comma) - 1usize == 3usize && !is_document(cut) && document_end(cut, 0usize, 32usize) - byte_len(cut) - 1usize == 5usize && !is_document(zeros)
 }
 
+@id("std.data.json.doc.tests.spans")
+fn spans() -> bool
+{
+    let plain = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 34u8, 98u8, 34u8, 58u8, 50u8, 125u8];
+    let repeated = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 34u8, 97u8, 34u8, 58u8, 50u8, 125u8];
+    let keys = array_as_slice(plain);
+    let twice = array_as_slice(repeated);
+    byte_same(keys, 2usize, 2usize) && !byte_same(keys, 2usize, 8usize) && span_same(keys, 1usize, 1usize, 3usize) && !span_same(keys, 1usize, 7usize, 3usize) && next_key(keys, 1usize, 32usize) == 7usize && next_key(keys, 7usize, 32usize) > byte_len(keys) && !key_before(keys, 1usize, 7usize, 32usize) && key_before(twice, 1usize, 7usize, 32usize) && object_keys(keys, 0usize, 32usize) && !object_keys(twice, 0usize, 32usize)
+}
+
+@id("std.data.json.doc.tests.unique")
+fn unique() -> bool
+{
+    let plain = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 34u8, 98u8, 34u8, 58u8, 50u8, 125u8];
+    let repeated = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 34u8, 97u8, 34u8, 58u8, 50u8, 125u8];
+    let nested = [123u8, 34u8, 97u8, 34u8, 58u8, 123u8, 34u8, 98u8, 34u8, 58u8, 49u8, 44u8, 34u8, 98u8, 34u8, 58u8, 50u8, 125u8, 125u8];
+    let siblings = [91u8, 123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 125u8, 44u8, 123u8, 34u8, 97u8, 34u8, 58u8, 50u8, 125u8, 93u8];
+    let quoted = [123u8, 34u8, 97u8, 34u8, 58u8, 34u8, 123u8, 34u8, 125u8];
+    let broken = [123u8, 34u8, 97u8, 34u8, 58u8, 49u8, 44u8, 125u8];
+    let keys = array_as_slice(plain);
+    let twice = array_as_slice(repeated);
+    let inner = array_as_slice(nested);
+    let pair = array_as_slice(siblings);
+    let brace = array_as_slice(quoted);
+    let torn = array_as_slice(broken);
+    is_unique(keys) && is_unique(pair) && is_unique(brace) && !is_unique(twice) && unique_end(twice, 32usize) - byte_len(twice) - 1usize == 0usize && !is_unique(inner) && unique_end(inner, 32usize) - byte_len(inner) - 1usize == 5usize && unique_end(torn, 32usize) == whole_end(torn, 32usize) && !is_unique(torn)
+}
+
 @id("std.data.json.doc.tests.main")
 fn main() -> i64
 {
@@ -68,5 +103,7 @@ fn main() -> i64
     failed = failed + if machine() { 0 } else { 2 };
     failed = failed + if docs() { 0 } else { 4 };
     failed = failed + if bad() { 0 } else { 8 };
+    failed = failed + if spans() { 0 } else { 16 };
+    failed = failed + if unique() { 0 } else { 32 };
     failed
 }

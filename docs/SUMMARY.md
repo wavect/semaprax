@@ -63,6 +63,7 @@ Audience: all documentation readers.
 - [Class inheritance](CLASS-INHERITANCE-V1.md)
 - [Portable indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md)
 - [Owned Bounded Byte Buffer](OWNED-BOUNDED-BYTE-BUFFER-V1.md)
+- [Owned Bounded Vec](OWNED-BOUNDED-VEC-V1.md)
 - [Bounded JSON scanner](BOUNDED-JSON-SCANNER-V1.md)
 - [Owned Byte Record Algebra](OWNED-BYTE-RECORD-ALGEBRA-V1.md)
 - [Concrete Generic Owned-Byte Records](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md)

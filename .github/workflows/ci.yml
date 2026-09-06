@@ -558,6 +558,10 @@ jobs:
           cargo test --locked -p semaprax --test project concrete_generic_project_prerequisites::cross_file_generic_owned_identity_replays_without_widening_the_public_abi -- --exact --nocapture
           cargo test --locked -p semaprax --test project concrete_generic_project_prerequisites::cross_file_generic_owned_record_executes_through_project_products -- --exact --nocapture
           cargo test --locked -p semaprax --test project concrete_generic_project_prerequisites::cross_file_generic_imports_reject_nonrecord_and_nonflat_templates_with_stable_g172 -- --exact --nocapture
+          cargo test --locked -p semaprax --test project generic_owned_dependency_runtime::dependency_internal_generic_owned_record_executes_without_public_generic_abi -- --exact --nocapture
+          cargo test --locked -p semaprax --test project generic_owned_dependency_runtime::generic_owned_dependency_subject_tamper_is_rejected_before_callback -- --exact --nocapture
+          cargo test --locked -p semaprax --test project owned_bounded_vec_dependencies::internal_vec_crosses_project_and_authenticated_dependency_boundaries -- --exact --nocapture
+          cargo test --locked -p semaprax --test project owned_bounded_vec_dependencies::vec_reaching_public_adapter_and_dependency_tamper_fail_before_execution -- --exact --nocapture
           cargo test --locked -p semaprax --test project flat_owned_record_api::frozen_v9_descriptor_rejects_an_admitted_concrete_generic_result -- --exact --nocapture
           cargo test --locked -p semaprax --test project nested_owned_record_api::frozen_v11_descriptor_rejects_an_admitted_concrete_generic_result -- --exact --nocapture
           cargo test --locked -p semaprax --test language generic_records::nested_generic_owned_records_round_trip_and_retain_exact_hir_instances -- --exact --nocapture

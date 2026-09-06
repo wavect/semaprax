@@ -47,6 +47,19 @@ The synthetic source path includes the exact subject digest, so Project and
 workspace revisions change when any selected envelope changes.
 The scalar Project profile is the admitted package-consumer profile in v1.
 
+The additive ScalarV1 internal-body profile is not selected from dependency
+provenance. Any exact reachable body may contain the admitted flat concrete
+generic owned-byte record composition under
+[Concrete Generic Owned-Byte Records v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md),
+provided every callable and selected Project export retains the frozen
+value-scalar signature. The generic record, its template and its owner never
+cross a call or export boundary. This specification supplies executable
+cross-package evidence through one independently replayed dependency whose
+export is exactly `fn() -> i64`; it does not make dependency origin part of the
+ScalarV1 body classifier. Project-source admission remains unchanged.
+Subject-v3, Report-v2, resolver, manifest, public descriptor and scalar Wasm
+schema spellings are unchanged, as are projections for previously admitted programs.
+
 The manifest, project sources, dependency subjects, and ancestor directories
 remain held through the operation and are rechecked after publication. Subject
 bytes share the resolver's bounded catalog budget; embedded source bytes share
@@ -155,9 +168,20 @@ generated Cargo requirements, deterministic re-exports, offline lock
 generation, and `cargo check --locked --offline`. Repository full quality is
 the local preservation gate.
 
+The additive generic-owned dependency gate exercises the provenance-independent
+ScalarV1 internal-body profile through the ordinary package path. Its focused
+local evidence authenticates an exact dependency whose no-argument `i64` function
+internally constructs, relays and settles the bounded generic record, then
+executes the scalar Project through the interpreter, native C11 `-O0`/`-O2`,
+Core-Wasm and the unchanged scalar Web build. Public-selection escape and
+dependency-subject tamper reject before execution. This evidence is local and
+unhosted.
+
 This version does not acquire packages, contact a registry, establish trusted
 publisher provenance, solve license policy, vendor a Cargo closure, or promote
-a stable ecosystem ABI. It permits arbitrary declared crates behind explicit
+a stable ecosystem ABI. It does not admit generic or owned cross-package
+signatures, dependency types in Project source, or aggregate public exports.
+It permits arbitrary declared crates behind explicit
 typed adapters; it does not automatically project arbitrary raw Rust APIs or
 Rust-only types into SEMAPRAX. Those require separate authority, provenance,
 ABI, and hosted conformance contracts.

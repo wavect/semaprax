@@ -1550,7 +1550,7 @@ impl WorkspaceGraphBuild {
                 }) {
                     base.types
                 } else {
-                    Vec::new()
+                    owned_generics::reachable_scalar_types(&self.hir.modules, &functions)?
                 };
                 natives.link(
                     base.module,

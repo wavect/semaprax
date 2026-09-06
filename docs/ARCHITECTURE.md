@@ -347,6 +347,20 @@ results, generic classes/variants/resources, Project, FFI, package, Component,
 and public ABI surfaces remain closed. The legacy flat generic-function
 admission is unchanged.
 
+The ScalarV1 ResolvedProgram classifier has one implementation-only extension
+of that profile: any exact reachable body may compose the admitted flat
+concrete generic owned-byte record internally, independent of source or
+dependency provenance. Every callable and selected export retains its frozen
+value-scalar signature, so the public scalar descriptor and
+Core-Wasm/JavaScript/TypeScript adapters do not carry the record, template,
+instance, layout or owner. Exact Subject-v3/Report-v2 replay provides the
+cross-package fixture, whose sole exposed function is `fn() -> i64`; it is
+evidence for the general body classifier, not an origin selector. Project-local
+authored generics, `use type`, aggregate cross-package signatures and public
+aggregate ABIs remain closed. This changes no manifest, package report,
+Project, descriptor, Wasm or package-semantic-graph schema and grants no
+acquisition or publication authority.
+
 The additive [Acyclic Nested Owned-Record Exact Destructuring
 v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) consumes the same bounded record
 shape and stable paths for recursive `match own` and `match borrow` only.
@@ -2162,7 +2176,7 @@ a supported language, CLI, ABI, or runtime surface.
 | Native backend | `src/codegen.rs`, `src/codegen/native_*`; Project-v13 HTTPS runtime in `src/codegen/native_emit/http_io.rs`, pinned trust data in `src/codegen/mozilla-roots.pem` |
 | WebAssembly backend | `src/wasm.rs`, `src/wasm/` |
 | Reports and offline package graph | the focused `*_report`, `package_lock`, `package_resolver`, `package_resolution_snapshot`, schema, manifest, header, and shim modules; candidate replay/conflict projection in `src/project/candidate/package_consumer_replay.rs` |
-| Project dependency admission | `src/project/external_dependencies.rs` for exact ordinary Subject-v3 closure replay and `src/project/standard_dependencies.rs` for compiler-bundled packages |
+| Project dependency admission | `src/project/external_dependencies.rs` for exact ordinary Subject-v3 closure replay, including cross-package evidence for the provenance-independent ScalarV1 internal generic-owned body profile behind scalar calls/exports, and `src/project/standard_dependencies.rs` for compiler-bundled packages |
 | Effect-free package build and fixed-inventory publication | `src/package_build.rs`, `src/package_build/`, `src/package_build_v2.rs`, `src/package_build_v2/`, `crates/semaprax-offline-wasm-package/` |
 | Private host/runtime evidence | `crates/semaprax-native-*`, `platform-tests/` |
 | Standard library | `std/<package>/` Project packages, `src/project/standard_dependencies.rs` for closed bundled dependency expansion, `std/packages.json` tier and target metadata, generated `std/catalog.json`; `src/cli/help.rs` embeds the generated Markdown catalog unchanged and derives exact module/name/stable-ID lookups from the JSON catalog; gate `tests/project/standard_library.rs` |

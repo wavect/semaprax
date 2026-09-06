@@ -1365,6 +1365,16 @@ pub(super) fn emit(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
     emit_profile(program, false, false)
 }
 
+/// Emit the frozen public scalar wrappers over the aggregate lane's internal
+/// result-pointer/status ABI. Admission remains wholly owned by
+/// `scalar_exports::prepare`; this function only transports its exact plan.
+pub(super) fn emit_scalar_exports(
+    program: &ResolvedProgram,
+    plans: &[super::scalar_exports::ScalarExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
+    emit_profile_with_scalar_exports(program, false, false, plans)
+}
+
 #[cfg(test)]
 pub(super) fn emit_stdout_transcript(program: &ResolvedProgram) -> Result<Vec<u8>, Diagnostic> {
     emit_profile(program, false, true)
@@ -2052,6 +2062,15 @@ fn emit_profile(
     test_exports: bool,
     host_output: bool,
 ) -> Result<Vec<u8>, Diagnostic> {
+    emit_profile_with_scalar_exports(program, test_exports, host_output, &[])
+}
+
+fn emit_profile_with_scalar_exports(
+    program: &ResolvedProgram,
+    test_exports: bool,
+    host_output: bool,
+    scalar_exports: &[super::scalar_exports::ScalarExportPlan],
+) -> Result<Vec<u8>, Diagnostic> {
     let uses_byte_data = super::program_uses_byte_data(program);
     let uses_owned_buffer = program_uses_owned_buffer(program);
     let uses_vec = super::program_uses_vec(program);
@@ -2244,6 +2263,19 @@ fn emit_profile(
         &mut types,
         &mut type_indexes,
     );
+    let scalar_export_types = scalar_exports
+        .iter()
+        .map(|plan| {
+            intern_type(
+                Signature {
+                    params: plan.params.iter().map(|ty| ty.wasm_type()).collect(),
+                    results: vec![plan.result.wasm_type()],
+                },
+                &mut types,
+                &mut type_indexes,
+            )
+        })
+        .collect::<Vec<_>>();
     let function_indexes = executable_functions
         .iter()
         .enumerate()
@@ -2343,13 +2375,16 @@ fn emit_profile(
     let mut function_section = Vec::new();
     write_u32(
         &mut function_section,
-        u32::try_from(function_types.len() + 1)
+        u32::try_from(function_types.len() + 1 + scalar_export_types.len())
             .map_err(|_| error("too many aggregate functions"))?,
     );
     for ty in function_types {
         write_u32(&mut function_section, ty);
     }
     write_u32(&mut function_section, wrapper_type);
+    for ty in scalar_export_types {
+        write_u32(&mut function_section, ty);
+    }
     section(&mut module, 3, function_section);
     let owned_utf8 = super::program_uses_strings(program);
     let mut utf8_literals = OwnedUtf8Literals::default();
@@ -2411,12 +2446,19 @@ fn emit_profile(
     } else {
         0
     };
+    let legacy_export_count =
+        1 + extra_exports + u32::from(uses_byte_data) + if host_output { 4 } else { 0 };
     write_u32(
         &mut exports,
-        1 + extra_exports + u32::from(uses_byte_data) + if host_output { 4 } else { 0 },
+        if scalar_exports.is_empty() {
+            legacy_export_count
+        } else {
+            u32::try_from(scalar_exports.len())
+                .map_err(|_| error("too many aggregate scalar exports"))?
+                .checked_add(u32::from(uses_byte_data))
+                .ok_or_else(|| error("aggregate scalar export count overflows u32"))?
+        },
     );
-    write_name(&mut exports, "semaprax_main");
-    exports.push(0x00);
     let wrapper_index = SCALAR_IMPORT_COUNT
         .checked_add(if uses_byte_data { BYTE_IMPORT_COUNT } else { 0 })
         .and_then(|value| {
@@ -2439,16 +2481,20 @@ fn emit_profile(
             u32::try_from(executable_functions.len()).map_err(|_| error("too many functions"))?,
         )
         .ok_or_else(|| error("aggregate wrapper index overflows u32"))?;
-    write_u32(&mut exports, wrapper_index);
+    if scalar_exports.is_empty() {
+        write_name(&mut exports, "semaprax_main");
+        exports.push(0x00);
+        write_u32(&mut exports, wrapper_index);
+    }
     if uses_byte_data {
         write_name(&mut exports, "__spx_byte_memory");
         exports.push(0x02);
         write_u32(&mut exports, 0);
     }
-    if host_output {
+    if scalar_exports.is_empty() && host_output {
         super::host_output::append_exports(&mut exports, super::host_output::ROOT_GLOBALS, true);
     }
-    if test_exports {
+    if scalar_exports.is_empty() && test_exports {
         write_name(&mut exports, "__spx_test_memory");
         exports.push(0x02);
         write_u32(&mut exports, 0);
@@ -2469,12 +2515,30 @@ fn emit_profile(
             );
         }
     }
+    if !scalar_exports.is_empty() {
+        let scalar_export_base = wrapper_index
+            .checked_add(1)
+            .ok_or_else(|| error("aggregate scalar export index overflows u32"))?;
+        for (ordinal, plan) in scalar_exports.iter().enumerate() {
+            write_name(&mut exports, &plan.wasm_export);
+            exports.push(0x00);
+            write_u32(
+                &mut exports,
+                scalar_export_base
+                    .checked_add(
+                        u32::try_from(ordinal)
+                            .map_err(|_| error("too many aggregate scalar exports"))?,
+                    )
+                    .ok_or_else(|| error("aggregate scalar export index overflows u32"))?,
+            );
+        }
+    }
     section(&mut module, 7, exports);
 
     let mut code = Vec::new();
     write_u32(
         &mut code,
-        u32::try_from(executable_functions.len() + 1)
+        u32::try_from(executable_functions.len() + 1 + scalar_exports.len())
             .map_err(|_| error("too many aggregate function bodies"))?,
     );
     for (function, _) in &executable_functions {
@@ -2498,6 +2562,15 @@ fn emit_profile(
     );
     write_u32(&mut code, wrapper.len() as u32);
     code.extend(wrapper);
+    for plan in scalar_exports {
+        let target = function_indexes
+            .get(&FunctionExecutionId::Monomorphic(plan.function_id.clone()))
+            .copied()
+            .ok_or_else(|| error("aggregate scalar export target is not indexed"))?;
+        let adapter = emit_scalar_export_wrapper(plan, target)?;
+        write_u32(&mut code, adapter.len() as u32);
+        code.extend(adapter);
+    }
     section(&mut module, 10, code);
     owned_strings::emit_literal_data(&mut module, owned_utf8, &utf8_literals)?;
     Ok(module)
@@ -8370,6 +8443,119 @@ fn require_type(
             actual.identity_key()
         )))
     }
+}
+
+fn emit_scalar_export_wrapper(
+    plan: &super::scalar_exports::ScalarExportPlan,
+    target: u32,
+) -> Result<Vec<u8>, Diagnostic> {
+    let parameter_count = u32::try_from(plan.params.len())
+        .map_err(|_| error("aggregate scalar export parameter count overflows u32"))?;
+    let old_stack = parameter_count;
+    let frame_base = old_stack + 1;
+    let status = old_stack + 2;
+    let result = old_stack + 3;
+    let mut body = Vec::new();
+    write_u32(&mut body, 2);
+    write_u32(&mut body, 3);
+    body.push(I32);
+    write_u32(&mut body, 1);
+    body.push(plan.result.wasm_type());
+
+    for (index, parameter) in plan.params.iter().enumerate() {
+        super::scalar_exports::emit_boundary_trap(&mut body, *parameter, index as u32);
+    }
+
+    body.push(0x23); // global.get shadow stack
+    write_u32(&mut body, 0);
+    body.push(0x22); // local.tee old stack
+    write_u32(&mut body, old_stack);
+    body.push(0x41); // i32.const
+    write_i64(&mut body, 8);
+    body.push(0x49); // i32.lt_u
+    body.extend([0x04, 0x40, 0x00, 0x0b]); // if; unreachable; end
+    body.push(0x20); // local.get old stack
+    write_u32(&mut body, old_stack);
+    body.push(0x41); // i32.const
+    write_i64(&mut body, 8);
+    body.push(0x6b); // i32.sub
+    body.push(0x22); // local.tee frame base
+    write_u32(&mut body, frame_base);
+    body.push(0x24); // global.set shadow stack
+    write_u32(&mut body, 0);
+
+    for index in 0..parameter_count {
+        body.push(0x20); // local.get public parameter
+        write_u32(&mut body, index);
+    }
+    body.push(0x20); // local.get hidden result pointer
+    write_u32(&mut body, frame_base);
+    body.push(0x10); // call internal aggregate-lane function
+    write_u32(&mut body, target);
+    body.push(0x21); // local.set status
+    write_u32(&mut body, status);
+    body.push(0x20); // local.get old stack
+    write_u32(&mut body, old_stack);
+    body.push(0x24); // global.set shadow stack
+    write_u32(&mut body, 0);
+
+    emit_aggregate_status_traps(&mut body, status);
+
+    body.push(0x20); // local.get result pointer
+    write_u32(&mut body, frame_base);
+    let (opcode, alignment) = match plan.result.wasm_type() {
+        I64 => (0x29, 3),
+        I32 => (0x28, 2),
+        F32 => (0x2a, 2),
+        F64 => (0x2b, 3),
+        _ => return Err(error("aggregate scalar export has invalid result type")),
+    };
+    body.extend([opcode, alignment, 0x00]);
+    body.push(0x21); // local.set result
+    write_u32(&mut body, result);
+    super::scalar_exports::emit_boundary_trap(&mut body, plan.result, result);
+    body.push(0x20); // local.get result
+    write_u32(&mut body, result);
+    body.push(0x0b);
+    Ok(body)
+}
+
+fn emit_aggregate_status_traps(body: &mut Vec<u8>, status: u32) {
+    body.push(0x20);
+    write_u32(body, status);
+    body.push(0x41);
+    write_i64(body, i64::from(STATUS_INTERNAL_INVALID_TAG));
+    body.extend([0x46, 0x04, 0x40, 0x00, 0x0b]);
+
+    emit_arithmetic_trap_case(body, status, STATUS_ADD_OVERFLOW, 0, i64::MAX, 1);
+    emit_arithmetic_trap_case(body, status, STATUS_SUB_OVERFLOW, 1, i64::MIN, 1);
+    emit_arithmetic_trap_case(body, status, STATUS_MUL_OVERFLOW, 2, i64::MAX, 2);
+    emit_arithmetic_trap_case(body, status, STATUS_DIV_ZERO, 3, 1, 0);
+    emit_arithmetic_trap_case(body, status, STATUS_DIV_OVERFLOW, 3, i64::MIN, -1);
+    emit_arithmetic_trap_case(body, status, STATUS_REM_ZERO, 4, 1, 0);
+    emit_arithmetic_trap_case(body, status, STATUS_REM_OVERFLOW, 4, i64::MIN, -1);
+    body.push(0x20);
+    write_u32(body, status);
+    body.push(0x41);
+    write_i64(body, i64::from(STATUS_NEG_OVERFLOW));
+    body.push(0x46);
+    body.extend([0x04, 0x40, 0x42]);
+    write_i64(body, i64::MIN);
+    body.push(0x10);
+    write_u32(body, 5);
+    body.extend([0x1a, 0x00, 0x0b]);
+
+    body.push(0x20);
+    write_u32(body, status);
+    body.push(0x45);
+    body.extend([0x04, 0x40]);
+    body.push(0x05);
+    body.push(0x20);
+    write_u32(body, status);
+    body.push(0x10);
+    write_u32(body, 6);
+    body.push(0x00);
+    body.push(0x0b);
 }
 
 fn emit_wrapper(main_index: u32, host_output: bool) -> Vec<u8> {

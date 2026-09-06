@@ -14,6 +14,8 @@ use crate::hir::{
 
 use super::{write_i32, write_u32, ByteOutput, F32, F64, I32, I64};
 
+mod internal_owned_record;
+
 const MAX_EXPORTS: usize = 32;
 const MAX_EXECUTABLE_FUNCTIONS: usize = 256;
 const MAX_STABLE_ID_BYTES: usize = 128;
@@ -373,15 +375,14 @@ fn validate_program_profile(program: &ResolvedProgram) -> Result<(), Diagnostic>
             "Public Scalar Export Profile v1 admits at most {MAX_EXECUTABLE_FUNCTIONS} monomorphic executable functions"
         )));
     }
-    if program.types.iter().any(|declaration| {
+    let has_authored_types = program.types.iter().any(|declaration| {
         program
             .declarations
             .declaration(&declaration.id)
             .is_none_or(|item| item.identity_origin != IdentityOrigin::CompilerOwned)
-    }) {
-        return Err(admission(
-            "Public Scalar Export Profile v1 does not admit authored resource, record, or variant declarations",
-        ));
+    });
+    if has_authored_types {
+        internal_owned_record::validate_program(program)?;
     }
     for function in &program.functions {
         if program
@@ -394,12 +395,16 @@ fn validate_program_profile(program: &ResolvedProgram) -> Result<(), Diagnostic>
                 function.id
             )));
         }
-        validate_function_profile(function)?;
+        validate_function_profile(program, function, has_authored_types)?;
     }
     Ok(())
 }
 
-fn validate_function_profile(function: &ResolvedFunction) -> Result<(), Diagnostic> {
+fn validate_function_profile(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    has_internal_owned_records: bool,
+) -> Result<(), Diagnostic> {
     if function.params.len() > MAX_PARAMETERS {
         return Err(capacity(format!(
             "Public Scalar Export Profile v1 function `{}` exceeds the {MAX_PARAMETERS}-parameter limit",
@@ -432,7 +437,11 @@ fn validate_function_profile(function: &ResolvedFunction) -> Result<(), Diagnost
         .chain(std::iter::once(&function.body))
         .chain(function.ensures.iter())
     {
-        validate_expression_profile(expression, &function.id)?;
+        if has_internal_owned_records {
+            internal_owned_record::validate_expression(program, expression, &function.id)?;
+        } else {
+            validate_expression_profile(expression, &function.id)?;
+        }
     }
     Ok(())
 }
@@ -596,7 +605,7 @@ pub(super) fn raw_symbol(stable_id: &str) -> String {
 /// that presents an inadmissible number fails closed instead of reaching a
 /// verified body with a value its type does not contain. Scalars that occupy
 /// their Wasm value type exactly need no check and emit no bytes.
-fn emit_boundary_trap(body: &mut impl ByteOutput, ty: ScalarType, local: u32) {
+pub(super) fn emit_boundary_trap(body: &mut impl ByteOutput, ty: ScalarType, local: u32) {
     match ty {
         ScalarType::Bool => emit_unsigned_ceiling_trap(body, local, 1),
         ScalarType::U8 => emit_unsigned_ceiling_trap(body, local, 0xff),
@@ -714,5 +723,85 @@ mod tests {
         );
         let error = prepare(&program, &["scalar.main".to_owned()]).unwrap_err();
         assert_eq!(error.code, "SPX-W116");
+    }
+
+    const INTERNAL_PAIR: &str = r#"
+module scalar.internal;
+
+@id("scalar.pair")
+record Pair<T, U> {
+    @id("scalar.pair.left") left: T,
+    @id("scalar.pair.right") right: U,
+}
+
+@id("scalar.evaluate")
+fn evaluate() -> i64 {
+    let input = [1u8, 2u8];
+    let value = Pair<Bytes, bool> {
+        left: bytes_copy(array_as_slice(input)),
+        right: true,
+    };
+    match own value {
+        Pair { left: payload, right: present } =>
+            if present && byte_len(bytes_as_slice(payload)) > 0usize { 1 } else { 0 },
+    }
+}
+
+@id("scalar.main") fn main() -> i64 { evaluate() }
+"#;
+
+    #[test]
+    fn admits_only_reachable_flat_generic_owned_records_behind_scalar_signatures() {
+        let program = resolve(INTERNAL_PAIR);
+        let plans = prepare(&program, &["scalar.evaluate".to_owned()]).unwrap();
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].stable_id, "scalar.evaluate");
+
+        let with_unreachable = INTERNAL_PAIR.replace(
+            "@id(\"scalar.evaluate\")",
+            "@id(\"scalar.unused\") record Unused<T> { @id(\"scalar.unused.value\") value: T, }\n\n@id(\"scalar.evaluate\")",
+        );
+        let error =
+            prepare(&resolve(&with_unreachable), &["scalar.evaluate".to_owned()]).unwrap_err();
+        assert_eq!(error.code, "SPX-W115");
+        assert!(error.message.contains("exact reachable"));
+    }
+
+    #[test]
+    fn rejects_aggregate_signature_escape_and_unsupported_authored_kind() {
+        let aggregate_signature = INTERNAL_PAIR
+            .replace(
+            "fn evaluate() -> i64 {",
+            "fn evaluate(value: own Pair<Bytes, bool>) -> i64 {\n    match own value { Pair { left: payload, right: present } => if present && byte_len(bytes_as_slice(payload)) > 0usize { 1 } else { 0 }, }\n}\n\n@id(\"scalar.unused-evaluate\")\nfn unused_evaluate() -> i64 {",
+            )
+            .replace(
+                "@id(\"scalar.main\") fn main() -> i64 { evaluate() }",
+                "@id(\"scalar.main\") fn main() -> i64 { 0 }",
+            );
+        let error = prepare(
+            &resolve(&aggregate_signature),
+            &["scalar.evaluate".to_owned()],
+        )
+        .unwrap_err();
+        assert_eq!(error.code, "SPX-W115");
+        assert!(
+            error.message.contains("non-value scalar parameter"),
+            "{}",
+            error.message
+        );
+
+        let unsupported = INTERNAL_PAIR
+            .replace("record Pair<T, U>", "variant Pair<T, U>")
+            .replace(
+                "@id(\"scalar.pair.left\") left: T,\n    @id(\"scalar.pair.right\") right: U,",
+                "@id(\"scalar.pair.case\") Case {\n        @id(\"scalar.pair.left\") left: T,\n        @id(\"scalar.pair.right\") right: U,\n    },",
+            )
+            .replace("Pair<Bytes, bool> {", "Pair<Bytes, bool>::Case {")
+            .replace("Pair { left:", "Pair::Case { left:");
+        let error = prepare(&resolve(&unsupported), &["scalar.evaluate".to_owned()]).unwrap_err();
+        assert_eq!(error.code, "SPX-W115");
+        assert!(error
+            .message
+            .contains("does not admit authored resource, record, or variant"));
     }
 }

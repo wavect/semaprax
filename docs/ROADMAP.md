@@ -383,8 +383,12 @@ ABIs prematurely.
   plus the bounded acyclic one-owner-identical-return authored-record relay.
   Its focused local corpus exercises `Box<Pair<Bytes,T>>` and
   `Pair<Box<Bytes>,T>` over all eight explicit Copy scalars. Next record hosted
-  evidence for those additive selectors while completing general expression
-  composition, authored generic variants, broader non-Copy propagation, and a
+  evidence for those additive selectors. ScalarV1 exact reachable bodies may
+  now compose the flat generic-owned record internally, independent of
+  provenance, while callable and public signatures stay value-scalar. One exact
+  Subject-v3 dependency provides local, unhosted cross-package evidence through
+  `fn() -> i64`; the slice changes no package or Wasm schema. Continue with general expression composition,
+  authored generic variants, broader non-Copy propagation, and a
   distinct public generic ABI; Graph v14 and CleanupPlan v7 remain unchanged;
 - complete mutation and generic interactions across interpreter, native, and
   Wasm lanes.
@@ -552,9 +556,12 @@ exact eight-alias Owned Bounded Vec v1 surface, example, explicit
 eight-Copy-scalar conformance, bundled dependency entry, generated catalogs,
 and no public exports. Iterators and broader collections remain later outcomes.
 
-- widen the Project route so records, variants, generics, strings, and bytes
-  cross package boundaries, then move `Option`, `Result`, ordering, text, and
-  byte operations from compiler-owned functions into `std.*` interfaces;
+- build beyond the exact ScalarV1 internal flat generic-owned body profile and
+  its no-argument `i64` dependency fixture, whose cross-package and public
+  signatures stay scalar, so records,
+  variants, generics, strings, and bytes can eventually cross package
+  boundaries; then move `Option`, `Result`, ordering, text, and byte operations
+  from compiler-owned functions into `std.*` interfaces;
 - broaden the closed bundled cross-package `use` path into ordinary resolved
   package builds and supported package distribution;
 - widen the byte-data web export boundary beyond slice-only parameters;

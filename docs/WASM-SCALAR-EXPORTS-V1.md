@@ -57,9 +57,23 @@ The complete emitted program must satisfy all of these conditions:
   surface the reference interpreter, `semaprax.abi-report.v1`, and the schema
   projections admit. `usize` is deliberately excluded: its width is a host fact
   rather than a public fact of this profile;
-- no module permits, authored interfaces/imports, resources, records, variants,
-  generic templates or instances, borrowed/shared values, callbacks, or async;
+- no module permits, authored interfaces/imports, resources, variants,
+  borrowed/shared values, callbacks, or async; records and generic templates or
+  instances remain excluded except for the exact reachable internal flat
+  generic-owned-record composition below;
 - no implicit ABI fallback for an excluded declaration or expression.
+
+This internal-body admission is based on the exact reachable ResolvedProgram,
+not source or dependency provenance. A body may compose the admitted flat
+concrete generic owned-byte record internally while every callable and selected
+adapter retains its existing value-scalar signature. The authored record,
+template, instance and owner never enter a call boundary, public descriptor or
+adapter signature. The focused cross-package evidence reaches this same
+classifier through an independently replayed Subject-v3/Report-v2 dependency
+whose exported interface is exactly `fn() -> i64`. Public scalar manifest,
+descriptor, Wasm, JavaScript and TypeScript schema spellings and prior-program
+bytes are unchanged; selecting an aggregate-bearing function still fails with
+`SPX-W115`.
 
 Selection is canonicalized into bytewise stable-ID order. Duplicate, missing,
 automatic, malformed, over-limit, aggregate, generic, resource, imported, or
@@ -86,7 +100,8 @@ ABI already fixes a width for its own transport. `tests/backend_type_parity.rs`
 pins the exact per-profile answer, one probe shape per row, so a narrowing in
 any of these profiles fails a gate rather than passing unnoticed.
 
-The whole-program restriction is deliberate. The existing aggregate Wasm lane
+The whole-program restriction, apart from that exact internal-body exception,
+is deliberate. The existing aggregate Wasm lane
 uses an out-pointer/status ABI and shadow-stack memory, while this profile uses
 direct scalar adapters. Supporting selected scalar declarations inside an
 aggregate/resource program would be a different, separately evidenced ABI.
@@ -252,4 +267,5 @@ no Components, WIT, npm
 publication, dependency resolution, imports/capabilities, resources,
 aggregates, strings, typed arrays, promises, callbacks, async, workers,
 cross-realm identity, CSP generation, SSR/hydration, UI dialect, provenance,
-signing, or production readiness.
+signing, or production readiness. The internal-body profile is not an aggregate
+package or public ABI; its cross-package fixture has only local, unhosted evidence.

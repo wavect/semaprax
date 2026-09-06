@@ -18,6 +18,29 @@ use super::{
     WorkspaceResolvedModule, GRAPH_ACCOUNTED_RESOLVED_FUNCTION_INSTANCE_BYTES,
 };
 
+/// Retain only authored nominal declarations reached by an already selected
+/// scalar function closure. This is needed when an otherwise scalar public
+/// root constructs and consumes an owned aggregate entirely inside its body;
+/// function-declaration ownership is not evidence of that expression type.
+pub(super) fn reachable_scalar_types(
+    modules: &[WorkspaceResolvedModule],
+    functions: &[hir::LinkedScalarFunction],
+) -> Result<Vec<hir::ResolvedTypeDeclaration>, Vec<Diagnostic>> {
+    let mut available = BTreeMap::new();
+    for declaration in modules.iter().flat_map(|module| &module.types) {
+        if available
+            .insert(declaration.id.clone(), declaration.clone())
+            .is_some()
+        {
+            return Err(vec![graph_error(
+                "SPX-G173",
+                "workspace scalar type identity is duplicated",
+            )]);
+        }
+    }
+    hir::reachable_authored_types(functions, &[], &[], &available).map_err(|error| vec![error])
+}
+
 pub(super) fn program_imports_vec_wrapper(program: &Program, programs: &[Program]) -> bool {
     program
         .module_uses

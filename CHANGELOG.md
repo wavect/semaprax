@@ -32,6 +32,20 @@ format: `Unreleased` then release buckets, grouped by impact.
   `decoded_at` and `decoded_same` were written, measured over that bound, and
   cut.
 
+- Added the bounded ScalarV1 internal flat generic-owned body path. Admission is
+  based on the exact reachable ResolvedProgram rather than source or dependency
+  provenance; callable and selected-public signatures remain value-scalar. One
+  exact project-local Subject-v3 dependency provides cross-package evidence by
+  retaining the concrete generic owned-byte record composition internally while
+  exposing exactly one no-argument `i64` function. Focused local evidence covers
+  exact Report-v2/Subject-v3 resolution, linked-HIR identity and
+  cleanup, Project check and repeated entry/test, native C11 `-O0`/`-O2`,
+  Core-Wasm, the unchanged scalar Web build, `SPX-W115` public-selection escape
+  and `SPX-J123` dependency tamper. This evidence is unhosted. Manifest, report,
+  Project, public descriptor, Wasm and package-evidence schemas remain frozen;
+  no generic record, owner or aggregate signature crosses a call, package or public
+  boundary, and no acquisition, publication or production support follows.
+
 - Extended the bounded concrete generic owned-record relay from its flat
   carrier to any acyclic authored-record template tree within the existing
   64-level, 256-owned-leaf, and 4,096-field work limits. Each template has one

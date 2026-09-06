@@ -148,7 +148,13 @@ The local gate requires:
   relays with source/HIR identity and hostile-shape checks for all eight
   explicit Copy-scalar substitutions, plus `bool`/`i64` representative success
   and requires/ensures/staged-call failure settlement on the interpreter,
-  native C11 `-O0`/`-O2`, and Core-Wasm.
+  native C11 `-O0`/`-O2`, and Core-Wasm; and
+- one exact ScalarV1 Project dependency whose authenticated Subject-v3 source
+  exercises the general internal-body profile while exactly one no-argument
+  `i64` function crosses the package and public boundaries, with Project check,
+  repeated entry/test,
+  native C11 `-O0`/`-O2`, Core-Wasm and unchanged scalar Web-package evidence,
+  plus public-selection and dependency-tamper rejection.
 
 Focused evidence is necessary but does not promote generic ownership broadly.
 Hosted execution, the broader nested destructuring/update/loan corpus,
@@ -177,6 +183,18 @@ consumer. Every observable parameter and result remains scalar or the existing
 borrowed byte-slice input; neither the descriptor nor the consumer sees the
 generic record identity, fields, layout, or owner.
 
+Separately, the ScalarV1 scalar-export classifier now admits the exact reachable
+internal flat generic-owned-record composition regardless of source provenance.
+Every callable and public export still has a frozen value-scalar signature; the
+generic record declaration, template, concrete instance, fields, layout and
+owner remain internal to the body. The focused cross-package fixture reaches
+that general profile through an exact local Subject-v3 dependency and exposes
+only one no-argument `i64` function. Exact Report-v2 and Subject-v3 replay,
+coordinate/target resolution and held-source authentication happen before
+ordinary linking. This adds no `use type` edge, generic package signature,
+public descriptor field, or new package/report/Wasm schema. Focused evidence
+for this additive path is local and unhosted.
+
 A sound public generic-owned revision still requires all of the following:
 
 - a new versioned Project descriptor and carrier rather than reinterpretation
@@ -200,5 +218,8 @@ type arguments, constraints,
 specialization, mutable or escaping loans, concurrency, or production support.
 It does not add nested-nonflat templates with multiple owning parameters or a
 non-identical owning result, out-of-bound or cyclic template trees, or a public
-generic ABI. The legacy flat generic-function admission is unchanged. This is
-one bounded internal composition step toward general ownership and public ABIs.
+generic ABI. The legacy flat generic-function admission is unchanged. The
+ScalarV1 internal-body path carries only value-scalar calls and does not expose
+or serialize the generic record; its dependency fixture specifically uses
+`fn() -> i64`. This is one bounded internal composition step
+toward general ownership and public ABIs.

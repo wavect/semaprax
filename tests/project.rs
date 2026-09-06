@@ -83,6 +83,8 @@ mod flat_owned_record_api;
 mod flat_owned_record_interpreter;
 #[path = "project/frontend_cache.rs"]
 mod frontend_cache;
+#[path = "project/generic_owned_dependency_runtime.rs"]
+mod generic_owned_dependency_runtime;
 #[path = "project/hole_fill_suggestions.rs"]
 mod hole_fill_suggestions;
 #[path = "project/hole_navigation.rs"]

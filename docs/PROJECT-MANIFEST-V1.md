@@ -62,14 +62,25 @@ Project v1 additionally admits only the complete pure-scalar authenticated set:
 
 - a module is permit-free and its functions effect-free, unless every one of
   those permits and effects is declared by a retained Native Rust import;
-- there are no authored types, generic templates or instances, or `use type`
-  edges, and the only admitted interface declaration is one whose imports are
+- there are no Project-authored types, generic templates or instances, or
+  `use type` edges, and the only admitted interface declaration is one whose imports are
   all `import rust fn` callbacks; an ordinary interface import has no scalar
   calling convention and is rejected;
 - each executable function has only by-value `i64`/`bool` parameters and an
   `i64`/`bool` result;
 - the entry and sole test modules each define exactly one explicitly identified
   `main`; a provider module cannot define `main`.
+
+The additive ScalarV1 internal-body profile does not change these Project-source
+or public rules and is not keyed by dependency provenance. An exact reachable
+body may internally contain the admitted flat concrete generic owned-byte
+record composition, but every callable and selected export keeps its frozen
+value-scalar signature; the template, record and owner remain internal. The
+focused cross-package fixture reaches that general classifier through an exact
+Subject-v3 dependency exporting only `fn() -> i64`. A source lookalike or a
+generic/owned boundary signature remains rejected. Project Manifest v1, package
+Report-v2, public scalar descriptor and Wasm package schema spellings remain
+unchanged, as do prior-program projections.
 
 The entry and test closures include only their transitive explicit function
 providers. Explicit stable-ID `use function` provider edges are the sole
@@ -295,7 +306,8 @@ the Project Native Rust SDK gate. This proves only the selected lanes at the
 exact tag; it does not publish or promote Project-v8/v9/v10 packages. Project
 v1 does not
 claim general packages/dependencies, registry or network access, capabilities,
-aggregate or resource composition, generics, ordinary interface imports, an
+aggregate or resource composition, Project-authored or boundary-visible
+generics, ordinary interface imports, an
 admitted target for a declared Native Rust callback, or
 `use type` edges, general multi-file compilation, native output
 confinement or hostile-window no-clobber publication, cross-build executable

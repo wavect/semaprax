@@ -994,6 +994,13 @@ fn emit_resolved_module_internal(
         || program_uses_vec(program)
     {
         if has_public_profile {
+            if !scalar_exports.is_empty()
+                && text_exports.is_empty()
+                && has_authored_aggregate
+                && concrete_variants.is_empty()
+            {
+                return aggregate::emit_scalar_exports(program, scalar_exports);
+            }
             return Err(Diagnostic::io(
                 "SPX-W115",
                 "Public Scalar Export Profile v1 does not admit aggregate or variant lowering",

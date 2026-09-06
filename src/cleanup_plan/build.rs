@@ -2386,6 +2386,8 @@ impl<'a> PlanBuilder<'a> {
             },
             MatchRecordAfterArm {
                 arm_region: Option<CleanupRegionId>,
+                destination: Option<CleanupPlace>,
+                result_expression: &'e ResolvedExpr,
             },
             MatchNext {
                 expression: &'e ResolvedExpr,
@@ -3046,11 +3048,6 @@ impl<'a> PlanBuilder<'a> {
                     } => {
                         if arms.is_empty() {
                             return Err(plan_error("copy-variant match has no arms"));
-                        }
-                        if self.needs_drop(&arms[0].value.ty)? {
-                            return Err(plan_error(
-                                "droppable match result reached the copy-only cleanup slice",
-                            ));
                         }
                         frames.push(Frame::MatchAfterScrutinee {
                             expression,
@@ -4101,6 +4098,7 @@ impl<'a> PlanBuilder<'a> {
                         if matches!(&arm.pattern, ResolvedMatchPattern::Variant { .. }) {
                             return Err(plan_error("variant pattern has a record match scrutinee"));
                         }
+                        let destination = self.expression_slot(expression, active_region)?;
                         let (entry, state, arm_region) = if mode == ResolvedMatchMode::Value {
                             (scrutinee_result.block, scrutinee_result.state, None)
                         } else {
@@ -4115,7 +4113,11 @@ impl<'a> PlanBuilder<'a> {
                             active_region = arm_region;
                             (entry, state, Some(arm_region))
                         };
-                        frames.push(Frame::MatchRecordAfterArm { arm_region });
+                        frames.push(Frame::MatchRecordAfterArm {
+                            arm_region,
+                            destination,
+                            result_expression: &arm.value,
+                        });
                         frames.push(Frame::Enter {
                             expression: &arm.value,
                             block: entry,
@@ -4135,17 +4137,30 @@ impl<'a> PlanBuilder<'a> {
                         });
                     }
                 }
-                Frame::MatchRecordAfterArm { arm_region } => {
+                Frame::MatchRecordAfterArm {
+                    arm_region,
+                    destination,
+                    result_expression,
+                } => {
                     let mut result = results.pop().expect("record match arm result retained");
-                    if result.owned_source.is_some() {
-                        return Err(plan_error(
-                            "droppable record match arm reached the copy-only cleanup slice",
-                        ));
+                    if let Some(destination) = destination.clone() {
+                        let source = result.owned_source.take().ok_or_else(|| {
+                            plan_error("owned record match arm has no cleanup source")
+                        })?;
+                        self.transfer(
+                            result.block,
+                            result_expression.id.clone(),
+                            source,
+                            destination.clone(),
+                            &mut result.state,
+                            true,
+                        )?;
                     }
                     if let Some(arm_region) = arm_region {
                         (result.block, result.state) =
                             self.exit_scope(result.block, result.state, arm_region)?;
                     }
+                    result.owned_source = destination;
                     results.push(result);
                 }
                 Frame::MatchNext {

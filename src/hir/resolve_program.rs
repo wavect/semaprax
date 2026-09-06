@@ -1013,6 +1013,25 @@ impl Resolver<'_> {
         Ok(result.expect("root type resolution produces a value"))
     }
 
+    pub(super) fn resolve_expression_type(
+        &self,
+        execution: &FunctionExecutionId,
+        ty: &Type,
+        span: Span,
+    ) -> Result<ResolvedType, Diagnostic> {
+        if let FunctionExecutionId::Monomorphic(owner) = execution {
+            if let Some(function) = self
+                .program
+                .functions
+                .iter()
+                .find(|candidate| candidate.stable_id == owner.as_str())
+            {
+                return self.resolve_function_type(function, ty, span);
+            }
+        }
+        self.resolve_type(ty, span)
+    }
+
     pub(super) fn resolve_function_type(
         &self,
         function: &crate::ast::Function,

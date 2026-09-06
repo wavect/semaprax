@@ -1201,42 +1201,6 @@ impl<'a> HirValidator<'a> {
         generic_template::validate_type(self.program, template, ty)
     }
 
-    fn validate_template_expressions(
-        &mut self,
-        template: &ResolvedFunctionTemplate,
-        execution: &FunctionExecutionId,
-    ) -> Result<(), Diagnostic> {
-        let mut values = BTreeMap::new();
-        for parameter in &template.params {
-            self.insert_value(&parameter.id)?;
-            values.insert(parameter.id.clone(), parameter.ty.clone());
-        }
-        for (index, expression) in template.requires.iter().enumerate() {
-            let mut contract_values = values.clone();
-            self.validate_template_expr(
-                template,
-                execution,
-                expression,
-                &mut contract_values,
-                &format!("requires.{index}"),
-            )?;
-        }
-        self.validate_template_expr(template, execution, &template.body, &mut values, "body")?;
-        self.insert_value(&template.result_id)?;
-        values.insert(template.result_id.clone(), template.return_type.clone());
-        for (index, expression) in template.ensures.iter().enumerate() {
-            let mut contract_values = values.clone();
-            self.validate_template_expr(
-                template,
-                execution,
-                expression,
-                &mut contract_values,
-                &format!("ensures.{index}"),
-            )?;
-        }
-        Ok(())
-    }
-
     fn validate_template_expr(
         &mut self,
         template: &ResolvedFunctionTemplate,
@@ -1245,21 +1209,53 @@ impl<'a> HirValidator<'a> {
         values: &mut BTreeMap<ValueId, ResolvedType>,
         path: &str,
     ) -> Result<(), Diagnostic> {
+        self.validate_template_expr_with_context(
+            template,
+            execution,
+            expression,
+            values,
+            path,
+            (false, false),
+        )
+    }
+
+    fn validate_template_expr_with_context(
+        &mut self,
+        template: &ResolvedFunctionTemplate,
+        execution: &FunctionExecutionId,
+        expression: &ResolvedExpr,
+        values: &mut BTreeMap<ValueId, ResolvedType>,
+        path: &str,
+        aggregate_context: (bool, bool),
+    ) -> Result<(), Diagnostic> {
+        let (allow_record_reconstruction, allow_aggregate_root) = aggregate_context;
         if expression.id != ExpressionId::new(execution, path)
             || !self.expression_ids.insert(expression.id.clone())
-            || expression.ownership != template_ownership(self.program, template, &expression.ty)
+            || !generic_template::expression_ownership_is_valid(self.program, template, expression)
         {
             return Err(hir_error(format!(
                 "generic template `{}` has invalid expression identity or ownership",
                 template.id
             )));
         }
-        // Char is an admitted body literal (for string_from_char) and Str is an
-        // admitted rooted body view (for string_as_str), but neither is a
-        // generic signature slot or concrete type argument. Every scalar
-        // substitution still passes the ordinary expression validator below.
-        if expression.ty != ResolvedType::Char && expression.ty != ResolvedType::Str {
+        if generic_template::body_type_requires_validation(self.program, template, &expression.ty) {
             self.validate_function_template_type(template, &expression.ty)?;
+        }
+        if generic_template::is_owned_record_expression(expression)
+            && !generic_template::has_exact_owned_record_relay(self.program, template)
+        {
+            return Err(hir_error(
+                "generic aggregate expression requires an exact owned-record relay template",
+            ));
+        }
+        if generic_template::is_owned_record_expression(expression)
+            && !allow_aggregate_root
+            && !(allow_record_reconstruction
+                && matches!(expression.kind, ResolvedExprKind::ConstructRecord { .. }))
+        {
+            return Err(hir_error(
+                "generic aggregate expression is nested outside an admitted root",
+            ));
         }
         match &expression.kind {
             ResolvedExprKind::Int(_)
@@ -1274,12 +1270,20 @@ impl<'a> HirValidator<'a> {
             | ResolvedExprKind::Bool(_)
             | ResolvedExprKind::String(_) => {}
             ResolvedExprKind::Place(place) => {
-                if !place.projections.is_empty() || values.get(&place.root) != Some(&expression.ty)
+                if generic_template::projected_place_type(self.program, place, values)?
+                    != expression.ty
                 {
                     return Err(hir_error(
                         "generic template place is out of scope or has the wrong type",
                     ));
                 }
+                generic_template::validate_template_place(
+                    self.program,
+                    template,
+                    expression,
+                    place,
+                    values,
+                )?;
             }
             ResolvedExprKind::ByteRange { .. } => {
                 return Err(hir_error(
@@ -1366,12 +1370,13 @@ impl<'a> HirValidator<'a> {
                     let statement_path = format!("{path}.s{index}");
                     match statement {
                         ResolvedStatement::Let { binding, value, .. } => {
-                            self.validate_template_expr(
+                            self.validate_template_expr_with_context(
                                 template,
                                 execution,
                                 value,
                                 &mut block_values,
                                 &format!("{statement_path}.value"),
+                                (false, allow_aggregate_root),
                             )?;
                             if binding.id != ValueId::local(execution, &statement_path)
                                 || binding.ownership
@@ -1408,12 +1413,13 @@ impl<'a> HirValidator<'a> {
                         }
                     }
                 }
-                self.validate_template_expr(
+                self.validate_template_expr_with_context(
                     template,
                     execution,
                     tail,
                     &mut block_values,
                     &format!("{path}.tail"),
+                    (false, allow_aggregate_root),
                 )?;
             }
             ResolvedExprKind::If {
@@ -1444,12 +1450,19 @@ impl<'a> HirValidator<'a> {
                 )?;
             }
             ResolvedExprKind::ConstructRecord { .. }
-            | ResolvedExprKind::ConstructVariant { .. }
-            | ResolvedExprKind::Match { .. }
-            | ResolvedExprKind::Try { .. }
-            | ResolvedExprKind::TryOption { .. }
             | ResolvedExprKind::UpdateRecord { .. }
             | ResolvedExprKind::Project { .. }
+            | ResolvedExprKind::Match { .. } => self.validate_template_owned_record_expression(
+                template,
+                execution,
+                expression,
+                values,
+                path,
+                allow_record_reconstruction,
+            )?,
+            ResolvedExprKind::ConstructVariant { .. }
+            | ResolvedExprKind::Try { .. }
+            | ResolvedExprKind::TryOption { .. }
             | ResolvedExprKind::Upcast { .. } => {
                 return Err(hir_error(
                     "generic template expression is outside the direct-scalar slice",
@@ -5349,11 +5362,7 @@ impl<'a> HirValidator<'a> {
                             }
                         }
                     }
-                    if !matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool) {
-                        return Err(hir_error(
-                            "resolved record match arm must produce i64 or bool",
-                        ));
-                    }
+                    self.validate_generic_record_match_result(function, expression, arm)?;
                     for id in outer_ids {
                         if let Some(state) = arm_scope.get(&id) {
                             outer.insert(id, state.clone());
@@ -7506,11 +7515,7 @@ impl<'a> HirValidator<'a> {
                             }
                         }
                     }
-                    if !matches!(arm.value.ty, ResolvedType::I64 | ResolvedType::Bool) {
-                        return Err(hir_error(
-                            "resolved record match arm must produce i64 or bool",
-                        ));
-                    }
+                    self.validate_generic_record_match_result(function, expression, arm)?;
                     for id in outer_ids {
                         if let Some(state) = arm_scope.get(&id) {
                             scope.insert(id, state.clone());

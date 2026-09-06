@@ -2835,6 +2835,7 @@ fn emit_function_profile(
     let mut emitter = Emitter {
         output: &mut body,
         program,
+        function,
         variant_layouts,
         function_indexes,
         plan: &plan,
@@ -3062,6 +3063,7 @@ fn emit_external_byte_root_admission(
 struct Emitter<'a> {
     output: &'a mut Vec<u8>,
     program: &'a ResolvedProgram,
+    function: &'a ResolvedFunction,
     variant_layouts: &'a VariantLayoutCache,
     function_indexes: &'a HashMap<FunctionExecutionId, u32>,
     plan: &'a FunctionPlan,
@@ -4602,7 +4604,10 @@ impl Emitter<'_> {
                 scrutinee,
                 arms,
             } => {
-                if is_aggregate(self.program, &expr.ty)? {
+                let aggregate_result = is_aggregate(self.program, &expr.ty)?;
+                if aggregate_result
+                    && !generic_record::match_result_is_admitted(self.program, self.function, expr)
+                {
                     return Err(error("copy match result must be i64 or bool"));
                 }
                 let scrutinee = if *mode == crate::hir::ResolvedMatchMode::Borrow {
@@ -4639,9 +4644,16 @@ impl Emitter<'_> {
                     let [arm] = arms.as_slice() else {
                         return Err(error("irrefutable record match must have exactly one arm"));
                     };
-                    let destination = Value::Scalar {
-                        local: self.plan.expr_scalar(expr)?,
-                        ty: expr.ty.clone(),
+                    let destination = if aggregate_result {
+                        Value::Aggregate {
+                            pointer: self.plan.expr_pointer(expr)?,
+                            ty: expr.ty.clone(),
+                        }
+                    } else {
+                        Value::Scalar {
+                            local: self.plan.expr_scalar(expr)?,
+                            ty: expr.ty.clone(),
+                        }
                     };
                     let saved = self.bindings.clone();
                     if *mode == crate::hir::ResolvedMatchMode::Own {
@@ -4671,6 +4683,10 @@ impl Emitter<'_> {
                         self.apply_post_transitions(&expr.id, &scrutinee)?;
                         self.poison_owned_record(&scrutinee)?;
                     }
+                    // `emit_expr` applies the arm-value-keyed transfer before
+                    // returning. Keep the infallible physical move and the
+                    // arm cleanup in this order so transferred bindings are
+                    // dead before scope exit.
                     let value = self.emit_expr(&arm.value)?;
                     self.copy_value(&destination, &value, "record match arm result")?;
                     if *mode == crate::hir::ResolvedMatchMode::Own {

@@ -1806,7 +1806,14 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 scrutinee,
                 arms,
             } => {
-                if is_aggregate_type(self.program, &expr.ty)? {
+                let aggregate_result = is_aggregate_type(self.program, &expr.ty)?;
+                if aggregate_result
+                    && !super::generic_record::match_result_is_admitted(
+                        self.program,
+                        self.function,
+                        expr,
+                    )
+                {
                     return Err(backend_error("copy match arms must produce i64 or bool"));
                 }
                 let source_storage = match &scrutinee.kind {
@@ -1925,8 +1932,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                             "record match scrutinee identity changed during lowering",
                         ));
                     }
-                    let value = self.emit_expr(&arm.value)?;
+                    // Aggregate arm values apply their arm-value-keyed
+                    // transfer while `emit_expr` materializes the exact
+                    // constructor/update. That commit must precede the arm
+                    // scope exit below so moved bindings are not finalized.
+                    let mut value = self.emit_expr(&arm.value)?;
                     self.require_type(&value.ty, &expr.ty, "record match arm result")?;
+                    if aggregate_result {
+                        self.finish_generic_owned_match_result(expr, &mut value)?;
+                    }
                     if *mode == hir::ResolvedMatchMode::Own {
                         let hir::ResolvedMatchPattern::Record { fields, .. } = &arm.pattern else {
                             return Err(backend_error(
@@ -2571,10 +2585,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             })?;
             field_path.push(field.field.clone());
             code = if matches!(field.ty, ResolvedType::Bytes) {
-                self.bytes_plan
-                    .ok_or_else(|| backend_error("projected Bytes place has no cleanup plan"))?
-                    .projected_value(&storage, &field_path)?
-                    .to_owned()
+                self.generic_projected_bytes_value(&place.root, &storage, &field_path)?
             } else if field.size == 0 {
                 self.emit_erased_record_field_value(&field.ty)?.code
             } else {
@@ -2585,7 +2596,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         Ok(CValue { code, ty })
     }
 
-    fn record_layout(&self, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic> {
+    pub(super) fn record_layout(&self, ty: &ResolvedType) -> Result<AggregateLayout, Diagnostic> {
         record_declaration_id(self.program, ty)?.ok_or_else(|| {
             backend_error(format!(
                 "native aggregate operation requires a record, found `{}`",
@@ -2597,7 +2608,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         Ok(layout)
     }
 
-    fn initialize_record_carrier(&mut self, temporary: &str, layout: &AggregateLayout) {
+    pub(super) fn initialize_record_carrier(&mut self, temporary: &str, layout: &AggregateLayout) {
         if layout.fields.is_empty() {
             // Empty products own one frozen semantic byte on every target.
             self.line(&format!(

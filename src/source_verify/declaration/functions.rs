@@ -8,6 +8,7 @@ use crate::source_verify::declared_type::{
     check_declared_type, check_ownership_mode, function_reaches, function_reaches_any,
     generic_function_arguments_are_forwarded, generic_function_contains_nested_owned_record_slot,
     generic_function_expression_is_direct_scalar,
+    generic_function_expression_is_owned_record_composition,
     generic_function_has_exact_nested_owned_record_relay, generic_function_owned_record_slot,
     generic_function_signature_slot, owned_record_function_substitutions,
     scalar_function_substitutions, validation_specialize_function,
@@ -367,13 +368,19 @@ pub(super) fn check_function_declarations<'p>(
                     function.span,
                 ));
             }
-            if function
+            let types = TypeTable::new(program);
+            let invalid_contract = function
                 .requires
                 .iter()
-                .chain(std::iter::once(&function.body))
                 .chain(&function.ensures)
-                .any(|expression| !generic_function_expression_is_direct_scalar(expression))
-            {
+                .any(|expression| !generic_function_expression_is_direct_scalar(expression));
+            let invalid_body = !generic_function_expression_is_direct_scalar(&function.body)
+                && !generic_function_expression_is_owned_record_composition(
+                    function,
+                    &types,
+                    &function.body,
+                );
+            if invalid_contract || invalid_body {
                 diagnostics.push(error(
                     program,
                     "SPX-T226",

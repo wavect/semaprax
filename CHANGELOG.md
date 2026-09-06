@@ -88,6 +88,18 @@ format: `Unreleased` then release buckets, grouped by impact.
   This adds no inference, constraints, construction, projection, variants,
   resources, effects, package signature, or public generic ABI.
 
+- Added the exact flat generic owned-record expression-composition tranche.
+  One owning parameter returns the identical record while all eight explicit
+  Copy substitutions exercise Copy-field projection, top-level immutable
+  update, `match borrow` returning a bound Copy field, and `match own`
+  reconstructing the same owner. Focused local evidence covers update and
+  reconstruction failure settlement, hostile HIR/backend mutation replay,
+  repeated interpreter, native C11 `-O0`/`-O2`, and Core-Wasm execution, and
+  no added aggregate `memory.copy` against the direct-relay baseline. Generic
+  variants, nested expression-result composition, standalone constructors,
+  consuming projections, public generic ABI, and Graph/schema widening remain
+  closed or unclaimed.
+
 - Added a dedicated Linux CI step for the additive nested generic-owned relay
   and identity-forwarding tranche. It names the exact source/HIR boundary,
   transitive-instance hostility, all-engine settlement, and scalar-only Project

@@ -3,13 +3,97 @@
 use std::collections::BTreeSet;
 
 use crate::diagnostic::Diagnostic;
-use crate::hir::{ResolvedProgram, ResolvedType, ResolvedTypeDeclarationKind};
+use crate::hir::{
+    self, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedFunction, ResolvedMatchPattern,
+    ResolvedProgram, ResolvedType, ResolvedTypeDeclarationKind,
+};
 
 use super::backend_error;
+use super::{c_field_symbol, CEmitter, COutput, CValue};
 
 enum Frame {
     Enter(ResolvedType, usize),
     Leave(String),
+}
+
+pub(super) fn match_result_is_admitted(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+) -> bool {
+    if hir::bounded_owned_record_template_for_function(program, function).is_none() {
+        return false;
+    }
+    let ResolvedExprKind::Match {
+        mode,
+        scrutinee,
+        arms,
+    } = &expression.kind
+    else {
+        return false;
+    };
+    let [arm] = arms.as_slice() else { return false };
+    let ResolvedMatchPattern::Record {
+        record, instance, ..
+    } = &arm.pattern
+    else {
+        return false;
+    };
+    *mode == hir::ResolvedMatchMode::Own
+        && function.return_type == expression.ty
+        && expression.ty == scrutinee.ty
+        && expression.ty == arm.value.ty
+        && expression.ownership == OwnershipMode::Own
+        && scrutinee.ownership == OwnershipMode::Own
+        && arm.value.ownership == OwnershipMode::Own
+        && instance == &expression.ty
+        && matches!(&expression.ty, ResolvedType::Nominal { declaration, .. }
+            if declaration == record)
+        && hir::is_flat_owned_byte_record(&program.declarations, &expression.ty)
+}
+
+impl<'a, O: COutput> CEmitter<'a, O> {
+    pub(super) fn generic_projected_bytes_value(
+        &self,
+        root: &crate::hir::ValueId,
+        storage: &crate::cleanup_plan::StorageId,
+        path: &[crate::hir::DeclarationId],
+    ) -> Result<String, Diagnostic> {
+        self.bytes_plan
+            .and_then(|plan| plan.projected_value(storage, path).ok())
+            .map(str::to_owned)
+            .or_else(|| {
+                self.borrowed_aggregate_bytes
+                    .get(&(root.clone(), path.to_vec()))
+                    .cloned()
+            })
+            .ok_or_else(|| backend_error("projected Bytes place has no authenticated storage"))
+    }
+
+    pub(super) fn finish_generic_owned_match_result(
+        &mut self,
+        expression: &ResolvedExpr,
+        value: &mut CValue,
+    ) -> Result<(), Diagnostic> {
+        if self.bytes_plan.is_none() {
+            return Err(backend_error("owned record match has no cleanup plan"));
+        }
+        let layout = self.record_layout(&expression.ty)?.clone();
+        let destination = self.temporary(&expression.ty)?;
+        self.initialize_record_carrier(&destination, &layout);
+        self.zero_owned_record_bytes(&destination, &expression.ty)?;
+        for field in &layout.fields {
+            if field.size != 0 && !self.record_contains_owned_bytes(&field.ty)? {
+                let symbol = c_field_symbol(&field.field);
+                self.line(&format!(
+                    "{destination}.{symbol} = {}.{symbol};",
+                    value.code
+                ));
+            }
+        }
+        value.code = destination;
+        Ok(())
+    }
 }
 
 pub(super) fn is_admitted(

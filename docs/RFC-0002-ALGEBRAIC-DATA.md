@@ -86,7 +86,20 @@ destructuring, post-construction failure settlement, and hostile-plan replay.
 Explicitly instantiated generic functions additionally admit one exact owning
 flat-record parameter/result template and all eight Copy-scalar substitutions;
 local interpreter, native C11 and Core-Wasm evidence covers exact instance
-dispatch, reentry, and postcondition-failure settlement. The additive bounded
+dispatch, reentry, and postcondition-failure settlement. The additive narrow
+flat expression-composition tranche preserves that one-owner,
+identical-result boundary while admitting Copy-field projection, top-level
+immutable update, `match borrow` returning a bound Copy field, and `match own`
+reconstructing the same owner. All eight Copy substitutions are exercised;
+update and reconstruction failures settle exactly, hostile HIR/backend mutation
+replay fails closed, and repeated interpreter, native C11 `-O0`/`-O2`, and
+Core-Wasm execution adds
+no aggregate `memory.copy` relative to the direct-relay baseline. This does not
+admit variants, nested expression-result composition, standalone constructors,
+consuming projections, a public generic ABI, or Graph/schema widening. The
+focused hostility evidence mutates authenticated HIR/backend facts; other
+source shapes remain closed without a complete negative-source gate. The
+additive bounded
 nested relay admits one `own` parameter and an identical result over any
 bounded acyclic authored-record template tree when every type argument is an
 explicit member of those eight Copy scalars. The focused corpus exercises
@@ -298,8 +311,10 @@ fn example(point: Point, value: Option<i64>) -> i64 {
 - Generic functions use the same explicit projection:
   `fn id<T>(value: T) -> T { value }` and `id<i64>(value)`. The bounded function slice accepts one or
   two parameters and only direct `i64`/`bool` substitutions.
-- Match expressions currently cannot produce nominal aggregates. An arm that
-  yields a record, variant, `Option`, or `Result` is rejected at source
+- Match expressions cannot generally produce nominal aggregates. The only
+  admitted exception is the authenticated flat generic-owned relay above,
+  where one `match own` arm reconstructs the identical owner. Other arms that
+  yield a record, variant, `Option`, or `Result` are rejected at source
   verification with `SPX-T258`; construct the aggregate with `if`, or extract
   scalars in the arms.
 
@@ -567,7 +582,7 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
 ## Staged implementation
 
 1. Add resolved nominal types, HIR, type facts, place paths, and deterministic layout keys without changing source behavior. **Implemented.**
-2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, Graph v12 bounded generic-record identity, Graph v13 exact recursive Copy-record pattern meaning, deterministic target layouts, target-neutral cleanup, bounded public nested-scalar execution, explicitly instantiated direct-scalar generic Copy records, irrefutable recursive Copy-record destructuring, locally exercised flat concrete generic owned-byte records, focused bounded nested concrete generic source/HIR/cleanup/layout evidence, the exact flat and bounded nested one-owner generic-function relays, internal cross-file Project linking, and the exact reachable ScalarV1 internal flat generic-owned-record composition behind value-scalar calls/exports are implemented through C11 O0/O2 and Node/Wasm where stated by their owning gates; the cross-package fixture authenticates one Subject-v3 dependency and exposes exactly `fn() -> i64`. The older generic-record gate is hosted green in [run 31365363898, Ubuntu job 93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995), and the record-pattern gate is hosted green in [run 31373317800, Ubuntu job 93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130). The pre-nested-relay generic-owned corpus is hosted green in [run 34031917437, Ubuntu job 101482963175](https://github.com/wavect/semaprax/actions/runs/34031917437/job/101482963175); the additive nested-relay and ScalarV1 cross-package selectors still require their own pushed run. Transaction breadth, refutable ownership-aware patterns, nonconcrete/cyclic/class/variant/resource generic records, general generic-function or package-signature composition, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.** The separately owned [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md) profile adds only explicit compiler-owned `Vec<T>` instances over the eight Copy scalars. Its exact eight `std.collections` aliases are authenticated intrinsic forwarding, not general generic-function composition; the three additive operations select `semaprax.prelude.v3` while original-five programs retain frozen v1/v2 prelude bytes and projections, and the aliases neither generalize authored aggregates nor open a public generic ABI.
+2. Add records through parser, formatter, resolver, verifier, Graph, transactions, C, and Wasm. **Frontend, Graph v7 record-update meaning, Graph v12 bounded generic-record identity, Graph v13 exact recursive Copy-record pattern meaning, deterministic target layouts, target-neutral cleanup, bounded public nested-scalar execution, explicitly instantiated direct-scalar generic Copy records, irrefutable recursive Copy-record destructuring, locally exercised flat concrete generic owned-byte records, focused bounded nested concrete generic source/HIR/cleanup/layout evidence, the exact flat and bounded nested one-owner generic-function relays, the flat one-owner-identical-result expression-composition profile, internal cross-file Project linking, and the exact reachable ScalarV1 internal flat generic-owned-record composition behind value-scalar calls/exports are implemented through C11 O0/O2 and Node/Wasm where stated by their owning gates; the expression-composition profile covers all eight Copy substitutions, projection, top-level immutable update, bound-Copy-field borrow matching, same-owner own-match reconstruction, failure settlement, hostile replay, repeated cross-engine execution, and no added aggregate `memory.copy` against its direct-relay baseline. The cross-package fixture authenticates one Subject-v3 dependency and exposes exactly `fn() -> i64`. The older generic-record gate is hosted green in [run 31365363898, Ubuntu job 93383304995](https://github.com/wavect/semaprax/actions/runs/31365363898/job/93383304995), and the record-pattern gate is hosted green in [run 31373317800, Ubuntu job 93406925130](https://github.com/wavect/semaprax/actions/runs/31373317800/job/93406925130). The pre-nested-relay generic-owned corpus is hosted green in [run 34031917437, Ubuntu job 101482963175](https://github.com/wavect/semaprax/actions/runs/34031917437/job/101482963175); the additive nested-relay and identity-forwarding selectors are hosted green in [run 34048713967, Ubuntu job 101528399406](https://github.com/wavect/semaprax/actions/runs/34048713967/job/101528399406), while the expression-composition and ScalarV1 cross-package selectors remain local. Transaction breadth, refutable ownership-aware patterns beyond the exact profile, variants, nested expression-result composition, standalone generic-owned constructors and consuming projections, nonconcrete/cyclic/class/variant/resource generic records, general generic-function or package-signature composition, Graph/schema widening, resource-bearing public execution, a stable aggregate ABI, and general backend completion remain evidence-gated.** The separately owned [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md) profile adds only explicit compiler-owned `Vec<T>` instances over the eight Copy scalars. Its exact eight `std.collections` aliases are authenticated intrinsic forwarding, not general generic-function composition; the three additive operations select `semaprax.prelude.v3` while original-five programs retain frozen v1/v2 prelude bytes and projections, and the aliases neither generalize authored aggregates nor open a public generic ABI.
 3. Add bounded non-generic copy variants and exhaustive copy matching. **Implemented for unit/direct-`i64`/direct-`bool` payloads, scalar `i64`/`bool` arm results, CleanupPlan v2 variant-case replay, deterministic internal Native64/Wasm32 layouts, and native C11 O0/O2 plus Node/Wasm execution.**
 4. Add generic variants, recursive-unsized rejection, and ownership-aware matching. **Partially implemented for nominal variant templates with explicit direct `i64`/`bool` arguments, exact substitution/instance identity, Graph v10, internal layout digest v2, and cleanup-free copy matching. A bounded authored extension separately admits direct `Bytes` plus any of the eight admitted Copy-scalar arguments with one owned case, and one exact two-parameter/two-case `[Bytes, Bytes]` authored shape, through explicit own/borrow matching, conditional cleanup replay, interpreter, native C11 O0/O2, and Core-Wasm locally. The authenticated compiler-owned `Result<Bytes, Bytes>` reuses that path for ordinary internal execution and the exact local `Result<Bytes, Bytes> -> Result<Bytes, Bytes>` postfix-`?` shape. Broader multi-case generic sums, nested/resource arguments, mixed/general or generic-function owned propagation, public ABIs, and hosted promotion remain open.**
 5. Add ordinary prelude `Option` and `Result`. **Implemented for authenticated compiler-owned `semaprax.prelude.v1` variants under direct-scalar Copy limits plus the bounded owned-byte profiles specified by Owned Byte Variant Algebra v1. Exact two-sided `Result<Bytes, Bytes>` supports ordinary internal execution and exact owned postfix `?` with evaluation-once, Ok-payload move, Err residual transfer, shared postconditions and guarded cleanup on interpreter, native C11 O0/O2, and Core-Wasm locally. Mixed/general/nested owned propagation, generic-function carriers, component/FFI mappings, public ABIs, and hosted promotion remain open.**
@@ -597,8 +612,17 @@ Existing diagnostic codes remain reserved; implementation must resolve any colli
    profiles and the existing Graph v14 identity: direct-scalar forwarding keeps
    CleanupPlan v2, flat-owned forwarding keeps v5, and nested-owned forwarding
    keeps v7.
-   Inference, constraints, non-identity forwarding, richer bodies and
-   signatures, general composition,
+   The exact additive flat expression-composition body retains one owner and
+   an identical result while admitting projection, top-level immutable update,
+   one bound-Copy-field borrow match, and same-owner own-match reconstruction
+   over all eight Copy scalars. Focused local evidence covers update and
+   reconstruction failure settlement, hostile HIR/backend mutation replay,
+   repeated interpreter, native O0/O2, and Core-Wasm execution, and no added
+   aggregate `memory.copy`
+   against the direct-relay baseline.
+   Inference, constraints, non-identity forwarding, nested expression-result
+   composition, standalone constructors, consuming projections, richer
+   signatures, general composition, Graph/schema widening,
    callable/resource admission, general/public Component mapping, and stable
    ABI remain open.**
 8. Add member/case transactions, layout/interface hashes, and context traversal.

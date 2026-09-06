@@ -12,12 +12,81 @@ use super::expr_nodes::{
 use super::ids::{DeclarationId, FunctionExecutionId, ValueId};
 use super::monomorphize::substitute_type;
 use super::nodes::{
-    DeclarationKind, OwnershipMode, ResolvedBinding, ResolvedFieldDeclaration, ResolvedMatchMode,
-    ResolvedType,
+    resolver_admits_flat_owned_byte_variant, DeclarationKind, OwnershipMode, ResolvedBinding,
+    ResolvedFieldDeclaration, ResolvedMatchMode, ResolvedType,
 };
 use super::{Binding, Resolver};
 
 impl Resolver<'_> {
+    pub(super) fn validate_match_ownership(
+        &self,
+        function: &FunctionExecutionId,
+        scrutinee: &super::ResolvedExpr,
+        kind: DeclarationKind,
+        mode: ResolvedMatchMode,
+        span: Span,
+    ) -> Result<(), Diagnostic> {
+        let template_owned = matches!(function, FunctionExecutionId::Monomorphic(owner)
+            if super::type_reachability::is_nested_owned_byte_record_template(
+                &self.declarations, &scrutinee.ty, owner,
+                self.program.functions.iter().find(|candidate| candidate.stable_id == owner.as_str())
+                    .map_or(0, |candidate| candidate.type_parameters.len())));
+        let facts = self.declarations.type_facts(&scrutinee.ty);
+        let copy = facts.as_ref().is_some_and(|facts| facts.copy);
+        let owned = template_owned
+            || facts
+                .as_ref()
+                .is_some_and(|facts| facts.needs_drop && !facts.copy);
+        let valid = match (kind, mode) {
+            (DeclarationKind::Variant, ResolvedMatchMode::Value) => {
+                copy && scrutinee.ownership == OwnershipMode::Value
+            }
+            (DeclarationKind::Variant, ResolvedMatchMode::Own) => {
+                resolver_admits_flat_owned_byte_variant(&self.declarations, &scrutinee.ty)
+                    && owned
+                    && scrutinee.ownership == OwnershipMode::Own
+            }
+            (DeclarationKind::Variant, ResolvedMatchMode::Borrow) => {
+                resolver_admits_flat_owned_byte_variant(&self.declarations, &scrutinee.ty)
+                    && owned
+                    && matches!(
+                        scrutinee.ownership,
+                        OwnershipMode::Own | OwnershipMode::Borrow
+                    )
+                    && matches!(&scrutinee.kind,
+                        super::ResolvedExprKind::Place(place) if place.projections.is_empty())
+            }
+            (DeclarationKind::Record, ResolvedMatchMode::Value) => {
+                copy && scrutinee.ownership == OwnershipMode::Value
+            }
+            (DeclarationKind::Record, ResolvedMatchMode::Own) => {
+                owned && scrutinee.ownership == OwnershipMode::Own
+            }
+            (DeclarationKind::Record, ResolvedMatchMode::Borrow) => {
+                owned
+                    && matches!(
+                        scrutinee.ownership,
+                        OwnershipMode::Own | OwnershipMode::Borrow
+                    )
+                    && matches!(scrutinee.kind, super::ResolvedExprKind::Place(_))
+            }
+            _ => false,
+        };
+        if valid {
+            return Ok(());
+        }
+        let subject = if kind == DeclarationKind::Variant {
+            "admitted variant"
+        } else {
+            "record"
+        };
+        Err(self.error(
+            "SPX-O117",
+            format!("match ownership mode disagrees with the {subject} scrutinee"),
+            span,
+        ))
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(super) fn resolve_record_match_pattern(
         &self,
@@ -167,14 +236,6 @@ impl Resolver<'_> {
                     let field_path = format!("{path}.field.{index}");
                     match &field.pattern {
                         crate::ast::RecordMatchFieldPattern::Binding { name, span } => {
-                            let field_facts =
-                                self.declarations.type_facts(&field_ty).ok_or_else(|| {
-                                    self.error(
-                                        "SPX-H006",
-                                        "record pattern field has no authenticated type facts",
-                                        *span,
-                                    )
-                                })?;
                             if exact_recursive
                                 && matches!(
                                     &field_ty,
@@ -191,15 +252,16 @@ impl Resolver<'_> {
                                     *span,
                                 ));
                             }
-                            let ownership = if field_facts.needs_drop {
+                            let ownership = self.function_expression_ownership(
+                                function,
+                                &field_ty,
                                 match mode {
                                     ResolvedMatchMode::Own => OwnershipMode::Own,
                                     ResolvedMatchMode::Borrow => OwnershipMode::Borrow,
                                     ResolvedMatchMode::Value => OwnershipMode::Value,
-                                }
-                            } else {
-                                OwnershipMode::Value
-                            };
+                                },
+                                *span,
+                            )?;
                             let binding = ResolvedBinding {
                                 id: ValueId::local(function, &format!("{field_path}.binding")),
                                 name: name.clone(),

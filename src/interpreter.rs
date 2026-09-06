@@ -61,6 +61,7 @@
 mod api_admission;
 mod expression_children;
 mod failure_detail;
+mod generic_owned;
 pub mod internal_strings;
 mod nested_owned;
 pub(crate) mod network;
@@ -871,7 +872,7 @@ pub fn evaluate_resolved_owned_data(
 
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
     let admitted = admitted_resolved_functions(program);
-    scan_closure(entry_id, &admitted, &program.declarations)?;
+    scan_closure(entry_id, &admitted, program)?;
     let arguments = [(
         parameter.name.clone(),
         ArgumentValue::BorrowedSlice(input.to_vec()),
@@ -1050,7 +1051,7 @@ pub(crate) fn evaluate_resolved_public_api(
             format!("resolved public API export `{entry_id}` is outside the interpreter profile"),
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let closure = scan_closure(entry_id, &admitted, program)?;
     if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -1265,7 +1266,7 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
             ),
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let closure = scan_closure(entry_id, &admitted, program)?;
     if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -1476,7 +1477,7 @@ pub(crate) fn evaluate_resolved_owned_utf8_api(
             format!("resolved owned UTF-8 export `{entry_id}` is outside the interpreter profile"),
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let closure = scan_closure(entry_id, &admitted, program)?;
     if closure.len() > crate::project::MAX_PUBLIC_API_CLOSURE_FUNCTIONS {
         return Err(vec![selection_error(
             REASON_UNSUPPORTED_CALLEE,
@@ -2017,7 +2018,7 @@ fn interpret_on_current_thread(
     // them internally.
     let admitted = admitted_resolved_functions_with_profile(&resolved, profile);
 
-    scan_closure(entry.id.as_str(), &admitted, &resolved.declarations)?;
+    scan_closure(entry.id.as_str(), &admitted, &resolved)?;
 
     let (evaluated, steps_used, _) = evaluate_resolved_entry(
         entry,
@@ -2441,22 +2442,21 @@ fn bind_arguments(
     Ok(bound)
 }
 
-/// Walks the selected function's contracts, body, and every transitively
-/// reachable admitted callee, rejecting every shape outside the scalar
-/// interpreter profile with one closed reason.
 fn scan_closure(
     entry_id: &str,
     admitted: &BTreeMap<&str, &ResolvedFunction>,
-    declarations: &hir::DeclarationIndex,
+    program: &hir::ResolvedProgram,
 ) -> Result<BTreeSet<String>, Vec<Diagnostic>> {
     fn scan<'a>(
         expression: &'a ResolvedExpr,
+        function: &ResolvedFunction,
+        program: &hir::ResolvedProgram,
         admitted: &BTreeMap<&'a str, &'a ResolvedFunction>,
-        declarations: &hir::DeclarationIndex,
         root_types: &BTreeMap<ValueId, ResolvedType>,
         visited: &mut BTreeSet<&'a str>,
         queue: &mut Vec<&'a str>,
     ) -> Result<(), Vec<Diagnostic>> {
+        let declarations = &program.declarations;
         match &expression.kind {
             ResolvedExprKind::ConstructRecord { .. }
                 if record_construction_is_admitted(declarations, &expression.ty) =>
@@ -2493,9 +2493,7 @@ fn scan_closure(
                 scrutinee,
                 arms,
             } => {
-                // Refutable Match v1: scalar decision chains over admitted
-                // Copy scalars with literal/or/binding patterns join the
-                // profile; every aggregate match shape stays rejected.
+                // Refutable scalar decisions admit literal/or/binding patterns.
                 let scalar = matches!(
                     scrutinee.ty,
                     ResolvedType::I64
@@ -2526,9 +2524,16 @@ fn scan_closure(
                         &scrutinee.ty,
                         &arms[0].pattern,
                     );
+                let owned_record_result = generic_owned::match_result_is_admitted(
+                    program, function, expression, scrutinee, arms,
+                );
                 let owned_byte_variant = is_admitted_resolved_scalar(&expression.ty)
                     && variant_pattern_is_admitted(declarations, *mode, &scrutinee.ty, arms);
-                if (!scalar && !option_u8 && !owned_byte_record && !owned_byte_variant)
+                if (!scalar
+                    && !option_u8
+                    && !owned_byte_record
+                    && !owned_byte_variant
+                    && !owned_record_result)
                     || (scalar && !patterns_admitted)
                     || arms.is_empty()
                 {
@@ -2604,14 +2609,15 @@ fn scan_closure(
             _ => Ok(()),
         }?;
         for child in child_expressions(expression) {
-            scan(child, admitted, declarations, root_types, visited, queue)?;
+            scan(
+                child, function, program, admitted, root_types, visited, queue,
+            )?;
         }
         if let ResolvedExprKind::Call {
             callee, instance, ..
         } = &expression.kind
         {
-            // Callee bodies are enqueued once; the monotone `visited` set
-            // makes recursive call cycles terminate.
+            // The monotone set makes recursive call cycles terminate.
             let execution = instance
                 .as_ref()
                 .map_or_else(|| callee.as_str(), hir::FunctionInstanceId::as_str);
@@ -2634,8 +2640,9 @@ fn scan_closure(
         for clause in function.requires.iter().chain(&function.ensures) {
             scan(
                 clause,
+                function,
+                program,
                 admitted,
-                declarations,
                 &root_types,
                 &mut visited,
                 &mut queue,
@@ -2643,8 +2650,9 @@ fn scan_closure(
         }
         scan(
             &function.body,
+            function,
+            program,
             admitted,
-            declarations,
             &root_types,
             &mut visited,
             &mut queue,
@@ -2888,7 +2896,7 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
         )]);
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
-    scan_closure(entry_id, &admitted, &program.declarations)?;
+    scan_closure(entry_id, &admitted, program)?;
     let (evaluated, steps_used, mut transcript) = evaluate_resolved_entry(
         entry,
         &[],
@@ -3020,7 +3028,7 @@ pub(crate) fn evaluate_resolved_language_command(
         )]);
     }
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
-    scan_closure(entry_id, &admitted, &program.declarations)?;
+    scan_closure(entry_id, &admitted, program)?;
 
     let command_input = CommandInputState {
         arguments: arguments

@@ -11,7 +11,11 @@ use crate::cleanup_plan::CleanupPlan;
 use crate::diagnostic::Diagnostic;
 use crate::loan_plan::LoanPlan;
 
-use super::expr_nodes::{ResolvedExpr, ResolvedExprKind, ResolvedStatement};
+use super::expr_nodes::{
+    ResolvedExpr, ResolvedExprKind, ResolvedFieldInitializer, ResolvedMatchArm,
+    ResolvedMatchPattern, ResolvedRecordMatchFieldPattern, ResolvedRecordMatchPatternField,
+    ResolvedStatement,
+};
 use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, FunctionInstanceId, ValueId};
 use super::nodes::{
     ResolvedBinding, ResolvedFunction, ResolvedFunctionTemplate, ResolvedNativeRustImportCall,
@@ -563,13 +567,98 @@ pub(super) fn materialize_template_expr(
                 &format!("{path}.else"),
             )?),
         },
-        ResolvedExprKind::ConstructRecord { .. }
-        | ResolvedExprKind::ConstructVariant { .. }
-        | ResolvedExprKind::Match { .. }
+        ResolvedExprKind::ConstructRecord { record, fields } => ResolvedExprKind::ConstructRecord {
+            record: record.clone(),
+            fields: materialize_fields(template, arguments, execution, fields, values, path)?,
+        },
+        ResolvedExprKind::UpdateRecord {
+            base,
+            record,
+            fields,
+        } => ResolvedExprKind::UpdateRecord {
+            base: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                base,
+                values,
+                &format!("{path}.base"),
+            )?),
+            record: record.clone(),
+            fields: materialize_fields(template, arguments, execution, fields, values, path)?,
+        },
+        ResolvedExprKind::Project { base, field } => ResolvedExprKind::Project {
+            base: Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                base,
+                values,
+                &format!("{path}.base"),
+            )?),
+            field: field.clone(),
+        },
+        ResolvedExprKind::Match {
+            mode,
+            scrutinee,
+            arms,
+        } => {
+            let scrutinee = Box::new(materialize_template_expr(
+                template,
+                arguments,
+                execution,
+                scrutinee,
+                values,
+                &format!("{path}.scrutinee"),
+            )?);
+            let mut materialized = Vec::with_capacity(arms.len());
+            for (index, arm) in arms.iter().enumerate() {
+                let mut arm_values = values.clone();
+                let pattern = materialize_pattern(
+                    template,
+                    arguments,
+                    execution,
+                    &arm.pattern,
+                    &mut arm_values,
+                    &format!("{path}.arm.{index}"),
+                )?;
+                materialized.push(ResolvedMatchArm {
+                    pattern,
+                    guard: arm
+                        .guard
+                        .as_ref()
+                        .map(|guard| {
+                            materialize_template_expr(
+                                template,
+                                arguments,
+                                execution,
+                                guard,
+                                &arm_values,
+                                &format!("{path}.arm.{index}.guard"),
+                            )
+                            .map(Box::new)
+                        })
+                        .transpose()?,
+                    value: materialize_template_expr(
+                        template,
+                        arguments,
+                        execution,
+                        &arm.value,
+                        &arm_values,
+                        &format!("{path}.arm.{index}.value"),
+                    )?,
+                    span: arm.span,
+                });
+            }
+            ResolvedExprKind::Match {
+                mode: *mode,
+                scrutinee,
+                arms: materialized,
+            }
+        }
+        ResolvedExprKind::ConstructVariant { .. }
         | ResolvedExprKind::Try { .. }
         | ResolvedExprKind::TryOption { .. }
-        | ResolvedExprKind::UpdateRecord { .. }
-        | ResolvedExprKind::Project { .. }
         | ResolvedExprKind::Upcast { .. } => {
             return Err(hir_error(
                 "generic template uses an expression outside the direct-scalar slice",
@@ -583,4 +672,87 @@ pub(super) fn materialize_template_expr(
         kind,
         span: expression.span,
     })
+}
+
+fn materialize_fields(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+    execution: &FunctionExecutionId,
+    fields: &[ResolvedFieldInitializer],
+    values: &BTreeMap<ValueId, ValueId>,
+    path: &str,
+) -> Result<Vec<ResolvedFieldInitializer>, Diagnostic> {
+    fields
+        .iter()
+        .enumerate()
+        .map(|(index, field)| {
+            Ok(ResolvedFieldInitializer {
+                field: field.field.clone(),
+                value: materialize_template_expr(
+                    template,
+                    arguments,
+                    execution,
+                    &field.value,
+                    values,
+                    &format!("{path}.field.{index}.value"),
+                )?,
+            })
+        })
+        .collect()
+}
+
+fn materialize_pattern(
+    template: &ResolvedFunctionTemplate,
+    arguments: &[ResolvedType],
+    execution: &FunctionExecutionId,
+    pattern: &ResolvedMatchPattern,
+    values: &mut BTreeMap<ValueId, ValueId>,
+    path: &str,
+) -> Result<ResolvedMatchPattern, Diagnostic> {
+    match pattern {
+        ResolvedMatchPattern::Record {
+            record,
+            instance,
+            fields,
+        } => Ok(ResolvedMatchPattern::Record {
+            record: record.clone(),
+            instance: substitute_type(instance, &template.id, arguments)?,
+            fields: fields
+                .iter()
+                .enumerate()
+                .map(|(index, field)| {
+                    let field_path = format!("{path}.record.field.{index}");
+                    let pattern = match &field.pattern {
+                        ResolvedRecordMatchFieldPattern::Binding(binding) => {
+                            let id = ValueId::local(execution, &format!("{field_path}.binding"));
+                            values.insert(binding.id.clone(), id.clone());
+                            ResolvedRecordMatchFieldPattern::Binding(ResolvedBinding {
+                                id,
+                                name: binding.name.clone(),
+                                ownership: binding.ownership,
+                                ty: substitute_type(&binding.ty, &template.id, arguments)?,
+                                span: binding.span,
+                            })
+                        }
+                        ResolvedRecordMatchFieldPattern::Wildcard => {
+                            ResolvedRecordMatchFieldPattern::Wildcard
+                        }
+                        ResolvedRecordMatchFieldPattern::Record { .. } => {
+                            return Err(hir_error(
+                                "generic template nested record patterns are outside the slice",
+                            ));
+                        }
+                    };
+                    Ok(ResolvedRecordMatchPatternField {
+                        field: field.field.clone(),
+                        pattern,
+                    })
+                })
+                .collect::<Result<_, Diagnostic>>()?,
+        }),
+        ResolvedMatchPattern::Wildcard => Ok(ResolvedMatchPattern::Wildcard),
+        _ => Err(hir_error(
+            "generic template match pattern is outside the owned-record slice",
+        )),
+    }
 }

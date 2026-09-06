@@ -672,15 +672,17 @@ fn examples_and_conformance_return_zero_on_interpreter_native_and_wasm() {
 import {{ readFile }} from "node:fs/promises";
 const bytes = await readFile("./{}");
 const checked = (operation) => (a, b) => {{ const value = operation(a, b); if (value < -(1n<<63n) || value > (1n<<63n)-1n) throw new RangeError(); return value; }};
-const entries = new Map(); let next = 1; let linked;
+const entries = new Map(); let next = 1; const boxes = new Map(); let nextBox = 1n; let linked;
 const decode = carrier => {{ const word = BigInt.asUintN(64, carrier), length = Number(word & 0xffffffffn), root = Number((word >> 32n) & 0xffffffffn); return {{ word, length, root, tagged: (root & 0x80000000) !== 0, token: root & 0x7fffffff }}; }};
 const read = decoded => {{ if (decoded.tagged) {{ const value = entries.get(decoded.token); if (!(value instanceof Uint8Array) || value.length !== decoded.length) throw new Error("stale byte token"); return value; }} const memory = new Uint8Array((linked.instance.exports.__spx_byte_memory ?? linked.instance.exports.memory).buffer); if (decoded.root > memory.length - decoded.length) throw new Error("byte range"); return memory.slice(decoded.root, decoded.root + decoded.length); }};
 const allocate = bytes => {{ if (entries.size >= {}) throw new Error("owned Bytes live entry limit exceeded"); const token = next++, owned = new Uint8Array(bytes); entries.set(token, owned); return BigInt.asIntN(64, ((0x80000000n | BigInt(token)) << 32n) | BigInt(owned.length)); }};
+const boxKey = value => {{ if (typeof value !== "bigint" || value === 0n) throw new Error("invalid Box carrier"); return value.toString(); }};
+const readBox = (value, tag) => {{ const entry = boxes.get(boxKey(value)); if (!entry || entry.tag !== tag) throw new Error("stale or mistyped Box"); return entry; }};
 const imports = {{env:{{spx_add:checked((a,b)=>a+b),spx_sub:checked((a,b)=>a-b),spx_mul:checked((a,b)=>a*b),spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:(a)=>-a,spx_contract_fail:()=>{{throw new Error();}},
-spx_bytes_copy:c=>allocate(read(decode(c))),spx_bytes_get:(c,i)=>{{ const b = read(decode(c)), u = BigInt.asUintN(64, i); return u >= BigInt(b.length) ? -1 : b[Number(u)]; }},spx_bytes_drop:c=>{{ const d = decode(c); read(d); entries.delete(d.token); }},spx_bytes_as_slice:c=>{{ const d = decode(c); read(d); return BigInt.asIntN(64, d.word); }},spx_bytes_zeroed:count=>{{ if (typeof count !== "bigint" || count < 0n || count > 65536n) throw new Error("owned byte buffer capacity invariant"); return allocate(new Uint8Array(Number(count))); }},spx_bytes_set:(c,i,v)=>{{ const d = decode(c), b = read(d); if (typeof i !== "bigint" || i < 0n || i >= BigInt(b.length) || !Number.isInteger(v) || v < 0 || v > 255) throw new Error("owned byte buffer element invariant"); b[Number(i)] = v; return BigInt.asIntN(64, d.word); }}}}}};
+spx_bytes_copy:c=>allocate(read(decode(c))),spx_bytes_get:(c,i)=>{{ const b = read(decode(c)), u = BigInt.asUintN(64, i); return u >= BigInt(b.length) ? -1 : b[Number(u)]; }},spx_bytes_drop:c=>{{ const d = decode(c); read(d); entries.delete(d.token); }},spx_bytes_as_slice:c=>{{ const d = decode(c); read(d); return BigInt.asIntN(64, d.word); }},spx_bytes_zeroed:count=>{{ if (typeof count !== "bigint" || count < 0n || count > 65536n) throw new Error("owned byte buffer capacity invariant"); return allocate(new Uint8Array(Number(count))); }},spx_bytes_set:(c,i,v)=>{{ const d = decode(c), b = read(d); if (typeof i !== "bigint" || i < 0n || i >= BigInt(b.length) || !Number.isInteger(v) || v < 0 || v > 255) throw new Error("owned byte buffer element invariant"); b[Number(i)] = v; return BigInt.asIntN(64, d.word); }},spx_box_new:(tag,bits)=>{{ if (boxes.size >= 4096) return 0n; const token=nextBox++; boxes.set(boxKey(token),{{tag,bits}}); return token; }},spx_box_get:(value,tag)=>readBox(value,tag).bits,spx_box_into_inner:(value,tag)=>{{ const entry=readBox(value,tag); boxes.delete(boxKey(value)); return entry.bits; }},spx_box_drop:value=>{{ if (!boxes.delete(boxKey(value))) throw new Error("double Box drop"); }}}}}};
 linked = await WebAssembly.instantiate(bytes, imports);
 // Re-entry observes an owned buffer that outlived one call as a live entry.
-for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_main(), 0n); assert.equal(entries.size, 0); }}
+for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_main(), 0n); assert.equal(entries.size, 0); assert.equal(boxes.size, 0); }}
 "#,
                     wasm_path.file_name().unwrap().to_string_lossy(),
                     live_entry_bound
@@ -706,14 +708,12 @@ for (let r = 0; r < 4; ++r) {{ assert.equal(linked.instance.exports.semaprax_mai
 }
 
 /// Every source-portable standard-library module stands alone when vendored.
-/// `std.collections` is intentionally excluded: its transparent generic
-/// wrappers are compiler-authenticated under their exact module, paths, and
-/// package manifest and are consumed through the bundled dependency linker.
+/// `std.collections` and `std.mem` use compiler-authenticated transparent generic wrappers.
 #[test]
 fn every_library_module_is_self_contained_when_vendored() {
     let scratch = temporary("vendored");
     for package in packages() {
-        if package.module == "std.collections" {
+        if matches!(package.module.as_str(), "std.collections" | "std.mem") {
             assert_eq!(package.tier, "alloc");
             continue;
         }

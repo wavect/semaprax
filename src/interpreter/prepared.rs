@@ -142,7 +142,7 @@ pub(crate) fn prepare_resolved_zero_arg_i64(
         )]);
     }
     let admitted = admitted_resolved_functions(program);
-    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let closure = scan_closure(entry_id, &admitted, program)?;
     let index = index_closure(program, entry_id, &closure)?;
     Ok(PreparedResolvedI64 {
         entry_id: entry_id.to_owned(),

@@ -5,7 +5,8 @@ use std::collections::{BTreeMap, VecDeque};
 
 use crate::diagnostic::Diagnostic;
 use crate::hir::{
-    DeclarationId, OwnershipMode, ResolvedMatchMode, ResolvedProgram,
+    DeclarationId, OwnershipMode, ResolvedExpr, ResolvedExprKind, ResolvedFunction,
+    ResolvedMatchArm, ResolvedMatchMode, ResolvedMatchPattern, ResolvedProgram,
     ResolvedRecordMatchFieldPattern, ResolvedRecordMatchPatternField, ResolvedType, ValueId,
 };
 
@@ -14,6 +15,64 @@ pub(super) mod update;
 const DEPTH_LIMIT: usize = 64;
 const OWNED_LEAF_LIMIT: usize = 256;
 const FIELD_WORK_LIMIT: usize = 4_096;
+
+pub(super) fn admits_owned_match_result(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    scrutinee: &ResolvedExpr,
+    arms: &[ResolvedMatchArm],
+) -> bool {
+    if crate::hir::bounded_owned_record_template_for_function(program, function).is_none() {
+        return false;
+    }
+    let ResolvedExprKind::Match { mode, .. } = &expression.kind else {
+        return false;
+    };
+    let [arm] = arms else { return false };
+    let ResolvedMatchPattern::Record {
+        record, instance, ..
+    } = &arm.pattern
+    else {
+        return false;
+    };
+    *mode == ResolvedMatchMode::Own
+        && function.return_type == expression.ty
+        && expression.ty == scrutinee.ty
+        && expression.ty == arm.value.ty
+        && expression.ownership == OwnershipMode::Own
+        && scrutinee.ownership == OwnershipMode::Own
+        && arm.value.ownership == OwnershipMode::Own
+        && instance == &expression.ty
+        && matches!(&expression.ty, ResolvedType::Nominal { declaration, .. }
+            if declaration == record)
+        && crate::hir::is_flat_owned_byte_record(&program.declarations, &expression.ty)
+}
+
+pub(super) fn finish_owned_match_result(
+    program: &ResolvedProgram,
+    function: &ResolvedFunction,
+    expression: &ResolvedExpr,
+    arm_value: &ResolvedExpr,
+    paths: Vec<super::ExprSkeletonPath>,
+    work: &mut super::SkeletonWork<'_, '_>,
+) -> Result<Vec<super::ExprSkeletonPath>, Diagnostic> {
+    if expression.ownership == OwnershipMode::Own
+        && super::type_needs_drop(program, function, &expression.ty)?
+    {
+        let at = work.clone_owned(&arm_value.id, "match result transfer identity clone")?;
+        super::transfer_completed_paths(
+            function,
+            paths,
+            at,
+            super::temporary_place(expression, work)?,
+            "owned match result",
+            work,
+        )
+    } else {
+        Ok(paths)
+    }
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ExpectedBinding {

@@ -277,6 +277,46 @@ pub(crate) fn is_exact_materialized_function_instance(
     materialize_function_template(template, &instance.type_arguments)
         .is_ok_and(|expected| same_function_meaning(&expected, &instance.function))
 }
+
+pub(crate) fn bounded_owned_record_template_for_function<'a>(
+    program: &'a ResolvedProgram,
+    function: &ResolvedFunction,
+) -> Option<&'a ResolvedFunctionTemplate> {
+    let mut matched = None;
+    for template in &program.function_templates {
+        let owned = template
+            .params
+            .iter()
+            .filter(|parameter| parameter.ownership == OwnershipMode::Own)
+            .collect::<Vec<_>>();
+        let exact_relay = matches!(owned.as_slice(), [parameter]
+            if parameter.ty == template.return_type
+                && (type_reachability::is_flat_owned_byte_record_template(
+                    &program.declarations, &parameter.ty, &template.id,
+                    template.type_parameters.len())
+                    || type_reachability::is_nested_owned_byte_record_template(
+                        &program.declarations, &parameter.ty, &template.id,
+                        template.type_parameters.len())));
+        if !exact_relay || !(1..=2).contains(&template.type_parameters.len()) {
+            continue;
+        }
+        let exact = program.function_instances.iter().any(|instance| {
+            instance.template == template.id
+                && same_function_meaning(&instance.function, function)
+                && is_exact_materialized_function_instance(template, instance)
+        }) || resolved_owned_record_substitutions(template.type_parameters.len())
+            .into_iter()
+            .filter_map(|arguments| materialize_function_template(template, &arguments).ok())
+            .any(|candidate| same_function_meaning(&candidate, function));
+        if exact {
+            if matched.is_some() {
+                return None;
+            }
+            matched = Some(template);
+        }
+    }
+    matched
+}
 pub(crate) use nodes::{
     admitted_owned_byte_prelude_instance, is_scalar_resolved_type, LinkedDeclarationFact,
     LinkedOwnedDataParts, LinkedScalarFunction,

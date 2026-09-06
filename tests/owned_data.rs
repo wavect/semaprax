@@ -43,6 +43,8 @@ mod byte_variant_wasm;
 mod compiler_owned_two_owned_result_runtime;
 #[path = "owned_data/concrete_generic_owned_record_update.rs"]
 mod concrete_generic_owned_record_update;
+#[path = "owned_data/generic_owned_expression_runtime.rs"]
+mod generic_owned_expression_runtime;
 #[path = "owned_data/generic_owned_function_runtime.rs"]
 mod generic_owned_function_runtime;
 #[path = "owned_data/generic_owned_variant_runtime.rs"]

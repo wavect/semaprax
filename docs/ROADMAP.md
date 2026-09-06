@@ -417,9 +417,17 @@ ABIs prematurely.
   transitive concrete-instance closure of at most 256 entries locally without widening bodies,
   signatures, effects, packages, or public ABIs. Graph v14 remains unchanged;
   direct-scalar forwarding retains CleanupPlan v2, flat-owned forwarding v5,
-  and nested-owned forwarding v7. Continue with general expression
-  composition, authored generic variants, broader non-Copy propagation, and a
-  distinct public generic ABI;
+  and nested-owned forwarding v7. The completed local flat expression tranche
+  composes one owner into the identical result over all eight Copy scalars via
+  projection, top-level immutable update, a borrow match returning a bound
+  Copy field, and an own match reconstructing the same owner. Its focused gate
+  covers update/reconstruction failure settlement, hostile HIR/backend
+  mutation replay, repeated interpreter/native O0/O2/Core-Wasm execution, and
+  no added aggregate `memory.copy` against the direct-relay baseline. Continue
+  with nested expression-result composition, standalone constructors,
+  consuming projections, authored generic variants, broader non-Copy
+  propagation, explicit Graph/schema work if required, and a distinct public
+  generic ABI;
 - complete mutation and generic interactions across interpreter, native, and
   Wasm lanes.
 

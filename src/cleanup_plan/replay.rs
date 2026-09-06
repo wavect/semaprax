@@ -1,9 +1,4 @@
-//! Independent structural validation for attached cleanup plans.
-//!
-//! This module deliberately does not invoke the canonical builder.  It checks
-//! that an attached plan is a closed, well-formed CFG whose identifiers,
-//! places, status sources, guarded finalizers, and every current acyclic path
-//! can be replayed safely.
+//! Independent structural validation of attached cleanup plans without invoking the builder.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -31,7 +26,6 @@ use super::{
     CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
     CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
-
 mod path_summary;
 use path_summary::{
     cleanup_inert_large_decisions_can_be_summarized, cleanup_inert_path_product_can_be_summarized,
@@ -46,12 +40,10 @@ mod record_destructure;
 mod resolved_call;
 use nested_shape::expected_shape_for_type;
 use path_join::validate_path_states;
+use record_destructure::finish_owned_match_result as finish_owned;
 use resolved_call::resolved_call_params;
 
 const MAX_REPLAY_PATHS: usize = 65_536;
-// Independent fail-closed work cap. Valid admitted shapes are preflighted
-// before path materialization; depth alone is not a work bound because wide
-// calls and blocks can emit several observations per node.
 const MAX_REPLAY_WORK_UNITS: usize = 8_000_000;
 
 struct ReplayBudget {
@@ -4527,9 +4519,7 @@ fn expression_skeleton(
                     produced = Some(scrutinee_paths);
                     continue;
                 }
-                // Refutable Match v1: scalar decision chains authenticate as
-                // one ArmSelected observation per arm plus the guard's own
-                // Boolean join; guards recurse as sub-skeletons.
+                // Scalar decisions authenticate each selected arm and guard.
                 if matches!(
                     scrutinee.ty,
                     ResolvedType::I64
@@ -4606,10 +4596,7 @@ fn expression_skeleton(
                                     }
                                     continue;
                                 }
-                                // Transfers follow the authenticated declaration
-                                // inventory, independently of pattern spelling order.
-                                // Derive the expected sequence here; never reorder
-                                // the emitted plan to make it pass replay.
+                                // Declaration order independently authenticates transfers.
                                 let declarations = program
                                     .declarations
                                     .record_fields(record)
@@ -4939,7 +4926,11 @@ fn validate_match_skeleton_shape(
     scrutinee: &ResolvedExpr,
     arms: &[ResolvedMatchArm],
 ) -> Result<bool, Diagnostic> {
-    if type_needs_drop(program, function, &expression.ty)? {
+    if type_needs_drop(program, function, &expression.ty)?
+        && !record_destructure::admits_owned_match_result(
+            program, function, expression, scrutinee, arms,
+        )
+    {
         return Err(replay_error(
             function,
             "droppable match result reached the copy-only cleanup skeleton",
@@ -5176,6 +5167,7 @@ fn validate_match_skeleton_shape(
     }
     Ok(is_record)
 }
+
 #[allow(clippy::too_many_arguments)]
 fn finish_match_arm(
     program: &ResolvedProgram,
@@ -5234,8 +5226,14 @@ fn finish_match_arm(
                 arm_paths,
                 work,
             )?;
-            let selected =
-                finish_conditional_result(program, function, expression, selected, work)?;
+            let selected = finish_owned(
+                program,
+                function,
+                expression,
+                &arms[index].value,
+                selected,
+                work,
+            )?;
             append_expr_paths(results, selected, work, "match selected result")?;
             continue;
         }
@@ -5271,7 +5269,14 @@ fn finish_match_arm(
             arm_paths,
             work,
         )?;
-        let selected = finish_conditional_result(program, function, expression, selected, work)?;
+        let selected = finish_owned(
+            program,
+            function,
+            expression,
+            &arms[index].value,
+            selected,
+            work,
+        )?;
         append_expr_paths(results, selected, work, "match selected result")?;
         let rejected_scrutinee =
             work.clone_owned(&scrutinee.id, "match rejected scrutinee clone")?;

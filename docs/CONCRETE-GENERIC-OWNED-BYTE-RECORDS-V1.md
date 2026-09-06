@@ -64,6 +64,19 @@ callee instance vector and identity; no backend chooses or repairs instances.
 The call adds no construction, projection, matching, update, variant, resource,
 effect, or public-boundary authority.
 
+The additive flat expression-composition profile remains within one owning
+parameter and an identical generic-record result. After exact substitution it
+admits a direct Copy-field projection, a top-level immutable update, a
+`match borrow` whose result is one bound Copy field and whose loan ends before
+the owner is reused, and a `match own` whose arm reconstructs the same owner.
+The profile is exercised for all eight explicit Copy-scalar substitutions and
+does not admit a second owner or a different aggregate result. Construction is
+available only as the reconstruction expression inside that authenticated
+owning relay; standalone constructors and consuming projections remain closed.
+Other expression bodies and source shapes remain closed; this tranche's
+hostility evidence mutates authenticated HIR and backend facts rather than
+claiming a complete negative-source boundary.
+
 Nonconcrete arguments, `String`, arrays, slices, classes, variants, resources,
 unbounded or cyclic nesting, direct Project exports of generic records, FFI,
 Components, and public aggregate ABIs remain closed. One exact cross-file
@@ -165,6 +178,14 @@ The local gate requires:
   explicit Copy-scalar substitutions, plus `bool`/`i64` representative success
   and requires/ensures/staged-call failure settlement on the interpreter,
   native C11 `-O0`/`-O2`, and Core-Wasm; and
+- one flat one-owner-identical-result expression-composition relay over all
+  eight Copy scalars, covering Copy-field projection, top-level immutable
+  update, borrow matching that returns a bound Copy field, and own matching
+  that reconstructs the same owner; update and reconstruction failure
+  settlement; hostile HIR/backend mutation replay; and repeated interpreter,
+  native C11 `-O0`/`-O2`, and Core-Wasm execution, with no aggregate
+  `memory.copy` added
+  relative to the direct-relay baseline; and
 - one three-template `Box<Pair<Bytes, T>>` forwarding chain over all eight Copy
   scalars, with exact instance IDs, nested parameter/result types, CleanupPlan-v7
   leaf paths, hostile instance/signature/inventory/liveness/call-argument replay,
@@ -179,7 +200,8 @@ The local gate requires:
 
 Focused evidence is necessary but does not promote generic ownership broadly.
 Hosted execution, the broader nested destructuring/update/loan corpus,
-generic-function composition beyond the exact bounded one-owner relay, direct
+generic-function composition beyond the exact bounded one-owner relay and its
+flat expression-composition profile, direct
 generic-record Project/public consumers, cross-platform ABI compatibility, and
 distribution remain separate completion work. The focused
 local source/HIR/layout and interpreter/native/Wasm gates exercise the complete
@@ -240,7 +262,10 @@ type arguments, constraints, non-identity type-argument forwarding,
 specialization, mutable or escaping loans, concurrency, or production support.
 It does not add nested-nonflat templates with multiple owning parameters or a
 non-identical owning result, out-of-bound or cyclic template trees, or a public
-generic ABI. The legacy flat generic-function admission is unchanged. The
+generic ABI. Generic variants, nested expression-result composition,
+standalone constructors, consuming projections, and any Graph, cleanup, or
+public descriptor schema widening remain closed or unclaimed. The legacy flat
+generic-function admission outside this exact additive profile is unchanged. The
 ScalarV1 internal-body path carries only value-scalar calls and does not expose
 or serialize the generic record; its dependency fixture specifically uses
 `fn() -> i64`. This is one bounded internal composition step

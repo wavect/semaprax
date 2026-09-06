@@ -18,9 +18,9 @@ use super::expr_nodes::{
 use super::ids::{DeclarationId, ExpressionId, FunctionExecutionId, FunctionInstanceId, ValueId};
 use super::monomorphize::{substitute_source_function_type, substitute_type};
 use super::nodes::{
-    is_scalar_resolved_type, resolver_admits_flat_owned_byte_variant, DeclarationKind,
-    OwnershipMode, ResolvedBinding, ResolvedHostCommandCall, ResolvedImportResultKind,
-    ResolvedMatchMode, ResolvedNativeRustImportCall, ResolvedType,
+    is_scalar_resolved_type, DeclarationKind, OwnershipMode, ResolvedBinding,
+    ResolvedHostCommandCall, ResolvedImportResultKind, ResolvedMatchMode,
+    ResolvedNativeRustImportCall, ResolvedType,
 };
 #[cfg(test)]
 use super::resolve_expr_frame::frame_owned_capacity;
@@ -535,7 +535,9 @@ impl Resolver<'_> {
                         }
                         let arguments = type_arguments
                             .iter()
-                            .map(|argument| self.resolve_type(argument, expr.span))
+                            .map(|argument| {
+                                self.resolve_expression_type(function, argument, expr.span)
+                            })
                             .collect::<Result<Vec<_>, _>>()?;
                         let parameters =
                             self.declarations.type_parameters(&record).ok_or_else(|| {
@@ -545,8 +547,16 @@ impl Resolver<'_> {
                                     expr.span,
                                 )
                             })?;
+                        let template_record = matches!(function, FunctionExecutionId::Monomorphic(owner)
+                        if super::type_reachability::is_nested_owned_byte_record_template(
+                            &self.declarations,
+                            &ResolvedType::Nominal { declaration: record.clone(), arguments: arguments.clone() },
+                            owner,
+                            self.program.functions.iter().find(|candidate| candidate.stable_id == owner.as_str()).map_or(0, |candidate| candidate.type_parameters.len()),
+                        ));
                         if arguments.len() != parameters.len()
-                            || !record_args_ok(&self.declarations, &record, &arguments)
+                            || (!template_record
+                                && !record_args_ok(&self.declarations, &record, &arguments))
                         {
                             return Err(self.error(
                                 "SPX-H006",
@@ -1781,7 +1791,12 @@ impl Resolver<'_> {
                             declaration: record.clone(),
                             arguments,
                         };
-                        let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                        let ownership = self.function_expression_ownership(
+                            function,
+                            &ty,
+                            OwnershipMode::Own,
+                            span,
+                        )?;
                         results.push(ResolvedExpr {
                             id: ExpressionId::new(function, &path),
                             ty,
@@ -1875,7 +1890,12 @@ impl Resolver<'_> {
                             declaration: variant.clone(),
                             arguments,
                         };
-                        let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                        let ownership = self.function_expression_ownership(
+                            function,
+                            &ty,
+                            OwnershipMode::Own,
+                            span,
+                        )?;
                         results.push(ResolvedExpr {
                             id: ExpressionId::new(function, &path),
                             ty,
@@ -2040,63 +2060,7 @@ impl Resolver<'_> {
                                 span,
                             )
                         })?;
-                    let facts = self.declarations.type_facts(&scrutinee.ty).ok_or_else(|| {
-                        self.error("SPX-H006", "match scrutinee has no type facts", span)
-                    })?;
-                    match (matched_kind, mode) {
-                        (DeclarationKind::Variant, ResolvedMatchMode::Value)
-                            if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
-                        (DeclarationKind::Variant, ResolvedMatchMode::Own)
-                            if resolver_admits_flat_owned_byte_variant(
-                                &self.declarations,
-                                &scrutinee.ty,
-                            ) && facts.needs_drop
-                                && !facts.copy
-                                && scrutinee.ownership == OwnershipMode::Own => {}
-                        (DeclarationKind::Variant, ResolvedMatchMode::Borrow)
-                            if resolver_admits_flat_owned_byte_variant(
-                                &self.declarations,
-                                &scrutinee.ty,
-                            ) && facts.needs_drop
-                                && !facts.copy
-                                && matches!(
-                                    scrutinee.ownership,
-                                    OwnershipMode::Own | OwnershipMode::Borrow
-                                )
-                                && matches!(
-                                    &scrutinee.kind,
-                                    ResolvedExprKind::Place(place) if place.projections.is_empty()
-                                ) => {}
-                        (DeclarationKind::Variant, _) => {
-                            return Err(self.error(
-                                "SPX-O117",
-                                "match ownership mode disagrees with the admitted variant scrutinee",
-                                span,
-                            ));
-                        }
-                        (DeclarationKind::Record, ResolvedMatchMode::Value)
-                            if facts.copy && scrutinee.ownership == OwnershipMode::Value => {}
-                        (DeclarationKind::Record, ResolvedMatchMode::Own)
-                            if facts.needs_drop
-                                && !facts.copy
-                                && scrutinee.ownership == OwnershipMode::Own => {}
-                        (DeclarationKind::Record, ResolvedMatchMode::Borrow)
-                            if facts.needs_drop
-                                && !facts.copy
-                                && matches!(
-                                    scrutinee.ownership,
-                                    OwnershipMode::Own | OwnershipMode::Borrow
-                                )
-                                && matches!(scrutinee.kind, ResolvedExprKind::Place(_)) => {}
-                        (DeclarationKind::Record, _) => {
-                            return Err(self.error(
-                                "SPX-O117",
-                                "match ownership mode disagrees with the record scrutinee",
-                                span,
-                            ));
-                        }
-                        _ => unreachable!("matched kind was restricted above"),
-                    }
+                    self.validate_match_ownership(function, &scrutinee, matched_kind, mode, span)?;
                     let matched_type = matched_type.clone();
                     let instance_arguments = arguments.clone();
                     frames.push(Frame::MatchNext {
@@ -2653,7 +2617,12 @@ impl Resolver<'_> {
                 } => {
                     if index == fields.len() {
                         let ty = base.ty.clone();
-                        let ownership = self.expression_ownership(&ty, OwnershipMode::Own, span)?;
+                        let ownership = self.function_expression_ownership(
+                            function,
+                            &ty,
+                            OwnershipMode::Own,
+                            span,
+                        )?;
                         results.push(ResolvedExpr {
                             id: ExpressionId::new(function, &path),
                             ty,
@@ -2769,7 +2738,12 @@ impl Resolver<'_> {
                             )
                         })?;
                     let field_ty = substitute_type(&field_ty, owner, arguments)?;
-                    let ownership = self.expression_ownership(&field_ty, base.ownership, span)?;
+                    let ownership = self.function_expression_ownership(
+                        function,
+                        &field_ty,
+                        base.ownership,
+                        span,
+                    )?;
                     let kind = match &base.kind {
                         ResolvedExprKind::Place(place) => {
                             let mut place = place.clone();

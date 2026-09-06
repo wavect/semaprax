@@ -4,6 +4,7 @@
 use crate::ast::{MatchMode, MatchPattern, ParamMode, Type};
 use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding};
+use crate::source_verify::declared_type::generic_function_has_exact_nested_owned_record_relay;
 use crate::source_verify::diagnostics::{
     error, reject_aggregate_match_result, reject_native_unit_value, source_identifier,
 };
@@ -44,8 +45,18 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             &arm_bindings,
             &outer_names,
         );
+        let generic_template = self.functions.get(self.current.name.as_str()).copied();
+        let generic_owned_result = generic_template.is_some_and(|function| {
+            generic_function_has_exact_nested_owned_record_relay(function, self.types)
+        });
         if result.as_ref().is_some_and(|value| {
-            !matches!(value.ty, Type::I64 | Type::Bool) || value.mode != ParamMode::Value
+            (!matches!(value.ty, Type::I64 | Type::Bool) || value.mode != ParamMode::Value)
+                && !(generic_owned_result
+                    && ((value.ty == self.current.return_type && value.mode == ParamMode::Own)
+                        || (value.mode == ParamMode::Value
+                            && (crate::source_verify::type_table::owned_byte_record_copy_field_is_admitted(&value.ty)
+                                || matches!(&value.ty, Type::Named { name, arguments }
+                                    if arguments.is_empty() && generic_template.is_some_and(|function| function.type_parameters.iter().any(|parameter| parameter.name == *name)))))))
         }) {
             self.diagnostics.push(error(
                 self.program,

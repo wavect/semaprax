@@ -290,7 +290,7 @@ pub fn prepare_retained_call(
             entry.span,
         )]);
     }
-    let closure = scan_closure(entry_id, &admitted, &program.declarations)?;
+    let closure = scan_closure(entry_id, &admitted, program)?;
     let index = index_closure(program, entry_id, &closure)?;
     Ok(PreparedRetainedCall {
         entry_id: entry_id.to_owned(),

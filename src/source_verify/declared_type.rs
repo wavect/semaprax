@@ -497,6 +497,18 @@ pub(super) fn owned_record_function_substitutions(parameter_count: usize) -> Vec
 }
 
 pub(super) fn generic_function_expression_is_direct_scalar(expression: &Expr) -> bool {
+    generic_function_expression_is_admitted(expression, false)
+}
+
+pub(super) fn generic_function_expression_is_owned_record_composition(
+    function: &Function,
+    types: &TypeTable<'_>,
+    expression: &Expr,
+) -> bool {
+    generic_composition::is_admitted(function, types, expression)
+}
+
+fn generic_function_expression_is_admitted(expression: &Expr, composition: bool) -> bool {
     let mut pending = vec![expression];
     while let Some(expression) = pending.pop() {
         match &expression.kind {
@@ -536,12 +548,37 @@ pub(super) fn generic_function_expression_is_direct_scalar(expression: &Expr) ->
                 pending.push(then_branch);
                 pending.push(condition);
             }
-            ExprKind::ConstructRecord { .. }
-            | ExprKind::ConstructVariant { .. }
-            | ExprKind::Match { .. }
-            | ExprKind::Try { .. }
-            | ExprKind::UpdateRecord { .. }
+            ExprKind::ConstructRecord { fields, .. } => {
+                if !composition {
+                    return false;
+                }
+                pending.extend(fields.iter().rev().map(|field| &field.value));
+            }
+            ExprKind::UpdateRecord { base, fields } => {
+                if !composition {
+                    return false;
+                }
+                pending.extend(fields.iter().rev().map(|field| &field.value));
+                pending.push(base);
+            }
+            ExprKind::Project { base, .. } if composition => pending.push(base),
+            ExprKind::Match {
+                scrutinee, arms, ..
+            } => {
+                if !composition {
+                    return false;
+                }
+                for arm in arms.iter().rev() {
+                    pending.push(&arm.value);
+                    if let Some(guard) = &arm.guard {
+                        pending.push(guard);
+                    }
+                }
+                pending.push(scrutinee);
+            }
+            ExprKind::ConstructVariant { .. }
             | ExprKind::Project { .. }
+            | ExprKind::Try { .. }
             | ExprKind::MethodCall { .. }
             | ExprKind::SuperMethod { .. } => return false,
         }
@@ -683,7 +720,19 @@ fn substitute_forwarded_call_arguments(
             substitute_forwarded_call_arguments(function, arguments, then_branch)?;
             substitute_forwarded_call_arguments(function, arguments, else_branch)?;
         }
-        ExprKind::ConstructRecord { fields, .. } | ExprKind::ConstructVariant { fields, .. } => {
+        ExprKind::ConstructRecord {
+            type_arguments,
+            fields,
+            ..
+        }
+        | ExprKind::ConstructVariant {
+            type_arguments,
+            fields,
+            ..
+        } => {
+            for argument in type_arguments {
+                *argument = substitute_function_type(function, arguments, argument)?;
+            }
             for field in fields {
                 substitute_forwarded_call_arguments(function, arguments, &mut field.value)?;
             }
@@ -1060,5 +1109,6 @@ pub(super) fn check_record_pattern(
     }
 }
 
+mod generic_composition;
 #[cfg(test)]
 mod tests;

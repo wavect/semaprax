@@ -471,7 +471,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         self.move_fields(destination, source, ty)
     }
 
-    pub(super) fn zero_owned_record_bytes(
+    pub(crate) fn zero_owned_record_bytes(
         &mut self,
         destination: &str,
         ty: &ResolvedType,

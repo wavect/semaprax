@@ -38,7 +38,11 @@ fn file_count_and_declared_lengths_fail_before_unbounded_allocation() {
         rejects(&bytes, error);
     }
     let mut bytes = valid.clone();
-    bytes[record + 4..record + 12].copy_from_slice(&536_870_913_u64.to_le_bytes());
+    let oversized_content = u64::try_from(crate::DOCTOR_OFFLINE_INPUT_MAX_BYTES)
+        .unwrap()
+        .checked_add(1)
+        .unwrap();
+    bytes[record + 4..record + 12].copy_from_slice(&oversized_content.to_le_bytes());
     rejects(&bytes, Error::Limit);
 }
 

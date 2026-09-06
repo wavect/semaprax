@@ -109,6 +109,12 @@ still omitting multi-child traversal or introduced bindings from capacity
 accounting. Compiler matrix shards are the final check for host-private
 consumers, not the first place this audit should happen.
 
+When a bounded carrier ceiling changes, audit its hostile and exact-boundary
+fixtures in the same commit. An oversized-length fixture must derive
+`current limit + 1` from the owning constant; a frozen historical byte count
+can become admissible and then exercise a later malformed-input diagnostic
+instead of the intended fail-before-allocation path.
+
 Use an annotated tag, matching the established repository convention, only
 after the release commit is on `main` and the remote head still resolves to
 that exact commit:

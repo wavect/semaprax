@@ -499,12 +499,9 @@ fn public_api_cli_bytes_getters_and_read_only_locking_are_exact() {
     );
     assert_eq!(
         document_digest(graph.to_json().as_bytes()),
-        // Re-pinned after the authenticated owned-byte-variant HIR carriers
-        // enlarged the shared graph-capacity facts.
-        // Re-pinned after the workspace pre-bound stopped charging an imported
-        // function as a second copy of its provider; only `used_builder_bytes`
-        // moved.
-        "sha256:41ef67a0c3df89bdef3a7ddedb4ffa0227a938074a1c98426d42bd819252c5e5"
+        // Re-pinned after type-fact cycle detection began retaining exact
+        // concrete nominal identities; only `used_builder_bytes` moved.
+        "sha256:6b9677066ac546b24f98561c5254cb488c5ab514445ab79c9c1b7a532a2fb27a"
     );
 
     let output = Command::new(env!("CARGO_BIN_EXE_semaprax"))
@@ -918,38 +915,16 @@ fn public_workspace_analysis_api_cli_kats_and_locking_are_exact() {
             document_digest(capability_review.as_bytes()),
         ],
         [
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:93db8f0bf349a39c88d9615acd093c142c7111751aba4a548e934c52888d2c2f",
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:92542deb8d587503d927c74bf97a2d2e174da3dfbdfab9d49941f64ef6bac340",
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:a04285ac79f786213f09225b7c5e15cadc0bc31ad6385d921815e0db92096002",
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:694960dcf66a49cb352eed9031527aa6abe2de5e0f86743d558a8ed42a3731f3",
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:96dcfb3303e18324b1926ff6931087b10c960c8704426d59d9b1854978bc8f7f",
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:b17ec527b10d9a4147bd9ac7d4c423dee0a5feccb505e9dd22a08bab7abd7028",
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:57875f507b8ebda50b051c5b09ee0161f667f9a9f95ca28038312ec5fc7351d7",
-            // Re-pinned after the workspace pre-bound stopped charging an imported
-            // function as a second copy of its provider; only `used_builder_bytes`
-            // moved.
-            "sha256:547d65f7c46947fd2e249d14e79cc48babd47a5d9f6045ed5ed1ac0c55d65fb8",
+            // Re-pinned after type-fact cycle detection began retaining exact
+            // concrete nominal identities; only `used_builder_bytes` moved.
+            "sha256:ce2480c4a2cc62f83c70616e8bbbbfef14055a85dfe9bf7b27af09d83ee5f665",
+            "sha256:bf3fc983ee510a8c82163a893ac9f125f918f07f99ed627809d27120f05cc934",
+            "sha256:7fb651b114bfd94a826d15bb52adae94b2aa7739336b53b5580bff0d80126fbc",
+            "sha256:2e6d8014b32feb8cf032252fe7df0dab01fa2ddb28a74a3698cf856ef9355b25",
+            "sha256:57d77e9bca76853cb56a24217432e7f00fe0fcff3f2d0aa1bc02ae23850a5730",
+            "sha256:5ef4a5bfab297e3d729203a3ac5cedf3afb18d6f5feffb0773aff0f00d7fb95b",
+            "sha256:0ac64cf01f0d037fc857fb3f41d0d56c227a1b0c4e67c73d346e014bbbd3a5d1",
+            "sha256:9b7bf44399e646ed635ca552495cbc7c21abc531a7b3bb6128355707e5220af8",
         ]
     );
 

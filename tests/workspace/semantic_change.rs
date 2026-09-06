@@ -455,10 +455,9 @@ fn verification_receipt_api_cli_kat_shared_lock_and_no_write() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        // Re-pinned after the workspace pre-bound stopped charging an imported
-        // function as a second copy of its provider; only `used_builder_bytes`
-        // moved.
-        "sha256:0e0022f96db75246ddfe85b8c9b6fa347ad15b38507c11c1b926b5cf0ed6c18c"
+        // Re-pinned after type-fact cycle detection began retaining exact
+        // concrete nominal identities; only `used_builder_bytes` moved.
+        "sha256:4cd3f410577f2ee88c731c94c90dbf0d12856b41978c4276eb5606ab6a1519b8"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(
@@ -669,10 +668,9 @@ fn application_receipt_api_cli_kat_fixed_point_and_raw_no_write() {
     assert!(!receipt[..receipt.len() - 1].contains('\n'));
     assert_eq!(
         raw_sha(&receipt),
-        // Re-pinned after the workspace pre-bound stopped charging an imported
-        // function as a second copy of its provider; only `used_builder_bytes`
-        // moved.
-        "sha256:2bfa27fd4afa0c1b51c42d1dfefc7b054701fc0d0d9da8486a4789e44d99209d"
+        // Re-pinned after type-fact cycle detection began retaining exact
+        // concrete nominal identities; only `used_builder_bytes` moved.
+        "sha256:613bf094da325d92793ac494827240150e44f3297ba8cdbc66ad8e3da2c29bef"
     );
     let value: serde_json::Value = serde_json::from_str(&receipt).unwrap();
     assert_eq!(

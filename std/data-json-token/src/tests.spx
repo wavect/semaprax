@@ -1,0 +1,99 @@
+module std.data.json.token.tests;
+use function @id("std.data.json.token.at_is") from std.data.json.token as at_is;
+use function @id("std.data.json.token.digit_at") from std.data.json.token as digit_at;
+use function @id("std.data.json.token.digits_end") from std.data.json.token as digits_end;
+use function @id("std.data.json.token.exponent_end") from std.data.json.token as exponent_end;
+use function @id("std.data.json.token.fraction_end") from std.data.json.token as fraction_end;
+use function @id("std.data.json.token.i64_or") from std.data.json.token as i64_or;
+use function @id("std.data.json.token.integer_end") from std.data.json.token as integer_end;
+use function @id("std.data.json.token.is_literal") from std.data.json.token as is_literal;
+use function @id("std.data.json.token.is_number") from std.data.json.token as is_number;
+use function @id("std.data.json.token.literal_end") from std.data.json.token as literal_end;
+use function @id("std.data.json.token.literal_kind") from std.data.json.token as literal_kind;
+use function @id("std.data.json.token.number_end") from std.data.json.token as number_end;
+use function @id("std.data.json.token.word_is") from std.data.json.token as word_is;
+
+@id("std.data.json.token.tests.digits")
+fn digits() -> bool
+{
+    let sample = [45u8, 49u8, 50u8, 46u8, 53u8, 101u8, 43u8, 51u8];
+    let view = array_as_slice(sample);
+    at_is(view, 0usize, 45u8) && !at_is(view, 0usize, 46u8) && !at_is(view, 9usize, 45u8) && digit_at(view, 1usize) == 1 && digit_at(view, 2usize) == 2 && digit_at(view, 3usize) == -1 && digit_at(view, 9usize) == -1 && digits_end(view, 1usize) == 3usize && digits_end(view, 3usize) > byte_len(view) && digits_end(view, 4usize) == 5usize
+}
+
+@id("std.data.json.token.tests.numbers")
+fn numbers() -> bool
+{
+    let sample = [45u8, 49u8, 50u8, 46u8, 53u8, 101u8, 43u8, 51u8];
+    let zeros = [48u8, 49u8];
+    let view = array_as_slice(sample);
+    let padded = array_as_slice(zeros);
+    integer_end(view, 0usize) == 3usize && fraction_end(view, 3usize) == 5usize && exponent_end(view, 5usize) == 8usize && number_end(view, 0usize) == 8usize && is_number(view) && integer_end(padded, 0usize) == 1usize && number_end(padded, 0usize) == 1usize && !is_number(padded) && fraction_end(view, 8usize) == 8usize && exponent_end(view, 3usize) == 3usize
+}
+
+@id("std.data.json.token.tests.malformed")
+fn malformed() -> bool
+{
+    let bare = [49u8, 101u8];
+    let dot = [49u8, 46u8];
+    let sign = [45u8];
+    let view = array_as_slice(bare);
+    let fractional = array_as_slice(dot);
+    let lonely = array_as_slice(sign);
+    number_end(view, 0usize) > byte_len(view) && number_end(fractional, 0usize) > byte_len(fractional) && number_end(lonely, 0usize) > byte_len(lonely) && !is_number(view) && !is_number(fractional) && !is_number(lonely) && exponent_end(view, 1usize) > byte_len(view)
+}
+
+@id("std.data.json.token.tests.literals")
+fn literals() -> bool
+{
+    let word = [116u8, 114u8, 117u8, 101u8, 44u8];
+    let denied = [102u8, 97u8, 108u8, 115u8, 101u8];
+    let empty = [110u8, 117u8, 108u8, 108u8];
+    let broken = [116u8, 114u8, 117u8, 97u8];
+    let yes = array_as_slice(word);
+    let no = array_as_slice(denied);
+    let nothing = array_as_slice(empty);
+    let bad = array_as_slice(broken);
+    word_is(yes, 0usize, 116u8, 114u8, 117u8, 101u8) && !word_is(bad, 0usize, 116u8, 114u8, 117u8, 101u8) && literal_kind(yes, 0usize) == 1 && literal_kind(no, 0usize) == 2 && literal_kind(nothing, 0usize) == 3 && literal_kind(bad, 0usize) == 0 && literal_end(yes, 0usize) == 4usize && literal_end(no, 0usize) == 5usize && literal_end(bad, 0usize) > byte_len(bad) && is_literal(no) && is_literal(nothing) && !is_literal(yes)
+}
+
+@id("std.data.json.token.tests.integers")
+fn integers() -> bool
+{
+    let signed = [45u8, 52u8, 50u8];
+    let plain = [49u8, 50u8, 51u8];
+    let zero = [48u8];
+    let real = [49u8, 46u8, 53u8];
+    let negative = array_as_slice(signed);
+    let positive = array_as_slice(plain);
+    let none = array_as_slice(zero);
+    let fractional = array_as_slice(real);
+    i64_or(negative, 0usize, 7) == -42 && i64_or(positive, 0usize, 7) == 123 && i64_or(none, 0usize, 7) == 0 && i64_or(fractional, 0usize, 7) == 7 && i64_or(positive, 1usize, 7) == 23 && i64_or(none, 5usize, 7) == 7
+}
+
+@id("std.data.json.token.tests.extremes")
+fn extremes() -> bool
+{
+    let top = [57u8, 50u8, 50u8, 51u8, 51u8, 55u8, 50u8, 48u8, 51u8, 54u8, 56u8, 53u8, 52u8, 55u8, 55u8, 53u8, 56u8, 48u8, 55u8];
+    let over = [57u8, 50u8, 50u8, 51u8, 51u8, 55u8, 50u8, 48u8, 51u8, 54u8, 56u8, 53u8, 52u8, 55u8, 55u8, 53u8, 56u8, 48u8, 56u8];
+    let bottom = [45u8, 57u8, 50u8, 50u8, 51u8, 51u8, 55u8, 50u8, 48u8, 51u8, 54u8, 56u8, 53u8, 52u8, 55u8, 55u8, 53u8, 56u8, 48u8, 56u8];
+    let under = [45u8, 57u8, 50u8, 50u8, 51u8, 51u8, 55u8, 50u8, 48u8, 51u8, 54u8, 56u8, 53u8, 52u8, 55u8, 55u8, 53u8, 56u8, 48u8, 57u8];
+    let highest = array_as_slice(top);
+    let beyond = array_as_slice(over);
+    let lowest = array_as_slice(bottom);
+    let below = array_as_slice(under);
+    i64_or(highest, 0usize, 0) == 9223372036854775807 && i64_or(beyond, 0usize, 0) == 0 && i64_or(lowest, 0usize, 0) == -9223372036854775808 && i64_or(below, 0usize, 0) == 0 && is_number(highest) && is_number(lowest)
+}
+
+@id("std.data.json.token.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if digits() { 0 } else { 1 };
+    failed = failed + if numbers() { 0 } else { 2 };
+    failed = failed + if malformed() { 0 } else { 4 };
+    failed = failed + if literals() { 0 } else { 8 };
+    failed = failed + if integers() { 0 } else { 16 };
+    failed = failed + if extremes() { 0 } else { 32 };
+    failed
+}

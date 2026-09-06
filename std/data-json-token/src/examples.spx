@@ -1,0 +1,18 @@
+module std.data.json.token.examples;
+use function @id("std.data.json.token.i64_or") from std.data.json.token as i64_or;
+use function @id("std.data.json.token.is_literal") from std.data.json.token as is_literal;
+use function @id("std.data.json.token.is_number") from std.data.json.token as is_number;
+
+@id("std.data.json.token.examples.main")
+fn main() -> i64
+{
+    let scientific = [45u8, 49u8, 50u8, 46u8, 53u8, 101u8, 43u8, 51u8];
+    let leading = [48u8, 49u8];
+    let digits = [45u8, 52u8, 50u8];
+    let word = [110u8, 117u8, 108u8, 108u8];
+    let number = array_as_slice(scientific);
+    let rejected = array_as_slice(leading);
+    let integer = array_as_slice(digits);
+    let literal = array_as_slice(word);
+    if is_number(number) && !is_number(rejected) && is_literal(literal) && i64_or(integer, 0usize, 0) == -42 { 0 } else { 1 }
+}

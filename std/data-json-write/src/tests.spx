@@ -1,0 +1,74 @@
+module std.data.json.write.tests;
+use function @id("std.data.json.write.byte_code") from std.data.json.write as byte_code;
+use function @id("std.data.json.write.digit_code") from std.data.json.write as digit_code;
+use function @id("std.data.json.write.encoded_at") from std.data.json.write as encoded_at;
+use function @id("std.data.json.write.escape_byte") from std.data.json.write as escape_byte;
+use function @id("std.data.json.write.escape_len") from std.data.json.write as escape_len;
+use function @id("std.data.json.write.hex_digit") from std.data.json.write as hex_digit;
+use function @id("std.data.json.write.quoted_byte") from std.data.json.write as quoted_byte;
+use function @id("std.data.json.write.quoted_len") from std.data.json.write as quoted_len;
+use function @id("std.data.json.write.usize_byte") from std.data.json.write as usize_byte;
+use function @id("std.data.json.write.usize_len") from std.data.json.write as usize_len;
+use function @id("std.data.json.write.width_at") from std.data.json.write as width_at;
+
+@id("std.data.json.write.tests.codes")
+fn codes() -> bool
+{
+    byte_code(0u8) == 0 && byte_code(65u8) == 65 && byte_code(255u8) == 255 && hex_digit(0) == 48 && hex_digit(9) == 57 && hex_digit(10) == 97 && hex_digit(15) == 102 && hex_digit(16) == 48
+}
+
+@id("std.data.json.write.tests.widths")
+fn widths() -> bool
+{
+    escape_len(97u8) == 1usize && escape_len(34u8) == 2usize && escape_len(92u8) == 2usize && escape_len(9u8) == 2usize && escape_len(11u8) == 6usize && escape_len(31u8) == 6usize && escape_len(128u8) == 1usize && escape_len(32u8) == 1usize
+}
+
+@id("std.data.json.write.tests.escapes")
+fn escapes() -> bool
+{
+    escape_byte(97u8, 0usize) == 97 && escape_byte(97u8, 1usize) == -1 && escape_byte(92u8, 0usize) == 92 && escape_byte(92u8, 1usize) == 92 && escape_byte(13u8, 1usize) == 114 && escape_byte(8u8, 1usize) == 98 && escape_byte(12u8, 1usize) == 102 && escape_byte(31u8, 4usize) == 49 && escape_byte(31u8, 5usize) == 102 && escape_byte(31u8, 6usize) == -1
+}
+
+@id("std.data.json.write.tests.views")
+fn views() -> bool
+{
+    let sample = [97u8, 34u8, 10u8, 1u8];
+    let view = array_as_slice(sample);
+    width_at(view, 0usize) == 1usize && width_at(view, 1usize) == 2usize && width_at(view, 3usize) == 6usize && width_at(view, 4usize) == 0usize && encoded_at(view, 0usize, 0usize) == 97 && encoded_at(view, 1usize, 1usize) == 34 && encoded_at(view, 4usize, 0usize) == -1
+}
+
+@id("std.data.json.write.tests.strings")
+fn strings() -> bool
+{
+    let sample = [97u8, 34u8, 10u8, 1u8];
+    let view = array_as_slice(sample);
+    quoted_len(view) == 13usize && quoted_byte(view, 0usize) == 34 && quoted_byte(view, 1usize) == 97 && quoted_byte(view, 2usize) == 92 && quoted_byte(view, 3usize) == 34 && quoted_byte(view, 4usize) == 92 && quoted_byte(view, 5usize) == 110 && quoted_byte(view, 12usize) == 34 && quoted_byte(view, 13usize) == -1
+}
+
+@id("std.data.json.write.tests.encoded")
+fn encoded() -> bool
+{
+    let sample = [97u8, 34u8, 10u8, 1u8];
+    let view = array_as_slice(sample);
+    quoted_byte(view, 6usize) == 92 && quoted_byte(view, 7usize) == 117 && quoted_byte(view, 8usize) == 48 && quoted_byte(view, 9usize) == 48 && quoted_byte(view, 10usize) == 48 && quoted_byte(view, 11usize) == 49
+}
+
+@id("std.data.json.write.tests.counts")
+fn counts() -> bool
+{
+    digit_code(0usize) == 48 && digit_code(7usize) == 55 && digit_code(9usize) == 57 && digit_code(12usize) == 57 && usize_len(0usize) == 1usize && usize_len(9usize) == 1usize && usize_len(10usize) == 2usize && usize_len(12345usize) == 5usize && usize_byte(12345usize, 0usize) == 49 && usize_byte(12345usize, 4usize) == 53 && usize_byte(12345usize, 5usize) == -1 && usize_byte(0usize, 0usize) == 48
+}
+
+@id("std.data.json.write.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if codes() { 0 } else { 1 };
+    failed = failed + if widths() { 0 } else { 2 };
+    failed = failed + if escapes() { 0 } else { 4 };
+    failed = failed + if views() { 0 } else { 8 };
+    failed = failed + if strings() { 0 } else { 16 };
+    failed = failed + if encoded() { 0 } else { 32 };
+    failed = failed + if counts() { 0 } else { 64 };
+    failed
+}

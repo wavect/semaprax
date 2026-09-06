@@ -176,7 +176,12 @@ module re-charged each imported body as resolved structure, so a conformance
 module that imports every function its library exports cost a second complete
 copy of that library — measured at 142,043 of the 226,999 raw pre-bound bytes
 of `std.data.json.tests`, expanded by 24, which is why two packages of about
-4.5 KiB could not be linked together.
+4.5 KiB could not be linked together. With that charge corrected, the budget
+is spent on the whole package - library, examples, and conformance modules
+plus any vendored `[dependencies]` source. Measured by padding the five JSON
+packages until `SPX-G171` fires, one package admits between 13.3 KB and
+15.9 KB of total source, varying with declaration and expression structure
+rather than byte count alone.
 
 Output is written through a hard sink before allocation. Exactly 16,777,216
 bytes succeeds; one more reports `SPX-G171` for `output_bytes` with no partial

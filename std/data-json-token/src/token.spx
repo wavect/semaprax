@@ -1,0 +1,114 @@
+module std.data.json.token;
+
+@id("std.data.json.token.at_is")
+fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value: byte } => byte == expected, Option::None {} => false, }
+}
+
+@id("std.data.json.token.digit_at")
+fn digit_at(input: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 9
+{
+    match byte_get(input, index) { Option::Some { value: byte } => match byte { 48u8 => 0, 49u8 => 1, 50u8 => 2, 51u8 => 3, 52u8 => 4, 53u8 => 5, 54u8 => 6, 55u8 => 7, 56u8 => 8, 57u8 => 9, _ => -1, }, Option::None {} => -1, }
+}
+
+@id("std.data.json.token.digits_end")
+fn digits_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let mut index = start;
+    let mut scanning = digit_at(input, index) >= 0;
+    while scanning {
+        index = index + 1usize;
+        scanning = digit_at(input, index) >= 0;
+        scanning
+    }
+    if index == start { byte_len(input) + 1usize + start } else { index }
+}
+
+@id("std.data.json.token.integer_end")
+fn integer_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let head = if at_is(input, start, 45u8) { start + 1usize } else { start };
+    if at_is(input, head, 48u8) { head + 1usize } else { if digit_at(input, head) >= 1 { digits_end(input, head) } else { byte_len(input) + 1usize + head } }
+}
+
+@id("std.data.json.token.fraction_end")
+fn fraction_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    if at_is(input, start, 46u8) { digits_end(input, start + 1usize) } else { start }
+}
+
+@id("std.data.json.token.exponent_end")
+fn exponent_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let marked = at_is(input, start, 101u8) || at_is(input, start, 69u8);
+    let signed = at_is(input, start + 1usize, 43u8) || at_is(input, start + 1usize, 45u8);
+    let digits = if signed { start + 2usize } else { start + 1usize };
+    if marked { digits_end(input, digits) } else { start }
+}
+
+@id("std.data.json.token.number_end")
+fn number_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let integer = integer_end(input, start);
+    let fraction = if integer > byte_len(input) { integer } else { fraction_end(input, integer) };
+    if fraction > byte_len(input) { fraction } else { exponent_end(input, fraction) }
+}
+
+@id("std.data.json.token.is_number")
+fn is_number(input: borrow Slice<u8>) -> bool
+{
+    number_end(input, 0usize) == byte_len(input)
+}
+
+@id("std.data.json.token.word_is")
+fn word_is(input: borrow Slice<u8>, start: usize, first: u8, second: u8, third: u8, fourth: u8) -> bool
+{
+    at_is(input, start, first) && at_is(input, start + 1usize, second) && at_is(input, start + 2usize, third) && at_is(input, start + 3usize, fourth)
+}
+
+@id("std.data.json.token.literal_kind")
+fn literal_kind(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= 0 && result <= 3
+{
+    let yes = word_is(input, start, 116u8, 114u8, 117u8, 101u8);
+    let no = at_is(input, start, 102u8) && word_is(input, start + 1usize, 97u8, 108u8, 115u8, 101u8);
+    let nothing = word_is(input, start, 110u8, 117u8, 108u8, 108u8);
+    if yes { 1 } else { if no { 2 } else { if nothing { 3 } else { 0 } } }
+}
+
+@id("std.data.json.token.literal_end")
+fn literal_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    match literal_kind(input, start) { 1 => start + 4usize, 2 => start + 5usize, 3 => start + 4usize, _ => byte_len(input) + 1usize + start, }
+}
+
+@id("std.data.json.token.is_literal")
+fn is_literal(input: borrow Slice<u8>) -> bool
+{
+    literal_end(input, 0usize) == byte_len(input)
+}
+
+@id("std.data.json.token.i64_or")
+fn i64_or(input: borrow Slice<u8>, start: usize, fallback: i64) -> i64
+{
+    let end = integer_end(input, start);
+    let tail = match byte_get(input, end) { Option::Some { value: byte } => match byte { 46u8 => 1, 101u8 => 1, 69u8 => 1, _ => 0, }, Option::None {} => 0, };
+    let negative = at_is(input, start, 45u8);
+    let limit = if negative { 8 } else { 7 };
+    let mut index = if negative { start + 1usize } else { start };
+    let mut value = 0;
+    let mut bad = end > byte_len(input) || tail == 1;
+    let mut scanning = !bad && index < end;
+    while scanning {
+        let digit = digit_at(input, index);
+        let over = value < -922337203685477580 || value == -922337203685477580 && digit > limit;
+        value = if over { value } else { value * 10 - digit };
+        bad = bad || over;
+        index = index + 1usize;
+        scanning = !bad && index < end;
+        scanning
+    }
+    if bad { fallback } else { if negative { value } else { 0 - value } }
+}

@@ -500,11 +500,13 @@ versioned ecosystem surface.
 ### Standard library outcomes
 
 [Standard Library v1](STANDARD-LIBRARY-V1.md) owns the contract and the
-required module set; eight `core`-tier packages (`std.bytes`, `std.core`,
-`std.encoding`, `std.num`, `std.num.overflow`, `std.random`, `std.text`, and
-`std.time`), eight `portable`-tier packages (`std.async`, `std.data.csv`,
-`std.data.json`, `std.data.toml`, `std.http`, `std.net`, `std.path`, and
-`std.url`), and one `test`-tier package (`std.test`) pass their
+required module set; nine `core`-tier packages (`std.bytes`, `std.core`,
+`std.data.json.digits`, `std.encoding`, `std.num`, `std.num.overflow`,
+`std.random`, `std.text`, and `std.time`), eleven `portable`-tier packages
+(`std.async`, `std.data.csv`, `std.data.json`, `std.data.json.token`,
+`std.data.json.utf8`, `std.data.json.write`, `std.data.toml`, `std.http`,
+`std.net`, `std.path`, and `std.url`), and one `test`-tier package
+(`std.test`) pass their
 conformance suites
 on the interpreter, native C11, and Core Wasm lanes.
 

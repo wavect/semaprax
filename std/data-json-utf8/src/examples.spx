@@ -1,0 +1,13 @@
+module std.data.json.utf8.examples;
+use function @id("std.data.json.utf8.is_utf8") from std.data.json.utf8 as is_utf8;
+use function @id("std.data.json.utf8.scalar_at") from std.data.json.utf8 as scalar_at;
+
+@id("std.data.json.utf8.examples.main")
+fn main() -> i64
+{
+    let text = [226u8, 130u8, 172u8, 65u8];
+    let lone = [237u8, 160u8, 128u8];
+    let view = array_as_slice(text);
+    let surrogate = array_as_slice(lone);
+    if is_utf8(view) && scalar_at(view, 0usize) == 8364 && !is_utf8(surrogate) { 0 } else { 1 }
+}

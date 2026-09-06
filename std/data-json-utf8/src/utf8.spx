@@ -1,0 +1,108 @@
+module std.data.json.utf8;
+
+@id("std.data.json.utf8.at_is")
+fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value: byte } => byte == expected, Option::None {} => false, }
+}
+
+@id("std.data.json.utf8.at_in")
+fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value: byte } => byte >= low && byte <= high, Option::None {} => false, }
+}
+
+@id("std.data.json.utf8.offset_at")
+fn offset_at(input: borrow Slice<u8>, index: usize, base: u8, span: i64) -> i64
+    requires span >= 0 && span <= 127
+    ensures result >= -1 && result <= 127
+{
+    let mut probe = base;
+    let mut value = 0;
+    let mut found = at_is(input, index, probe);
+    let mut scanning = !found && value < span && probe < 255u8;
+    while scanning {
+        probe = probe + 1u8;
+        value = value + 1;
+        found = at_is(input, index, probe);
+        scanning = !found && value < span && probe < 255u8;
+        scanning
+    }
+    if found { value } else { -1 }
+}
+
+@id("std.data.json.utf8.continuation_at")
+fn continuation_at(input: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 63
+{
+    offset_at(input, index, 128u8, 63)
+}
+
+@id("std.data.json.utf8.sequence_kind")
+fn sequence_kind(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= 0 && result <= 4
+{
+    let single = at_in(input, start, 0u8, 127u8);
+    let double = at_in(input, start, 194u8, 223u8);
+    let triple = at_in(input, start, 224u8, 239u8);
+    let quadruple = at_in(input, start, 240u8, 244u8);
+    if single { 1 } else { if double { 2 } else { if triple { 3 } else { if quadruple { 4 } else { 0 } } } }
+}
+
+@id("std.data.json.utf8.is_surrogate")
+fn is_surrogate(value: i64) -> bool
+{
+    value >= 55296 && value <= 57343
+}
+
+@id("std.data.json.utf8.is_shortest")
+fn is_shortest(kind: i64, value: i64) -> bool
+{
+    match kind { 1 => value >= 0 && value <= 127, 2 => value >= 128 && value <= 2047, 3 => value >= 2048 && value <= 65535 && !is_surrogate(value), 4 => value >= 65536 && value <= 1114111, _ => false, }
+}
+
+@id("std.data.json.utf8.scalar_at")
+fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1 && result <= 1114111
+{
+    let kind = sequence_kind(input, start);
+    let head = match kind { 1 => offset_at(input, start, 0u8, 127), 2 => offset_at(input, start, 194u8, 29), 3 => offset_at(input, start, 224u8, 15), 4 => offset_at(input, start, 240u8, 4), _ => -1, };
+    let first = if kind >= 2 { continuation_at(input, start + 1usize) } else { 0 };
+    let second = if kind >= 3 { continuation_at(input, start + 2usize) } else { 0 };
+    let third = if kind == 4 { continuation_at(input, start + 3usize) } else { 0 };
+    let ready = head >= 0 && first >= 0 && second >= 0 && third >= 0;
+    let value = match kind { 1 => head, 2 => head * 64 + first + 128, 3 => head * 4096 + first * 64 + second, 4 => head * 262144 + first * 4096 + second * 64 + third, _ => -1, };
+    if ready && is_shortest(kind, value) { value } else { -1 }
+}
+
+@id("std.data.json.utf8.sequence_end")
+fn sequence_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let width = if scalar_at(input, start) >= 0 { sequence_kind(input, start) } else { 0 };
+    match width { 1 => start + 1usize, 2 => start + 2usize, 3 => start + 3usize, 4 => start + 4usize, _ => byte_len(input) + 1usize + start, }
+}
+
+@id("std.data.json.utf8.utf8_end")
+fn utf8_end(input: borrow Slice<u8>, start: usize) -> usize
+{
+    let length = byte_len(input);
+    let mut index = if start > length { length } else { start };
+    let mut fault = index;
+    let mut bad = false;
+    let mut scanning = index < length;
+    while scanning {
+        let step = sequence_end(input, index);
+        bad = step > byte_len(input);
+        fault = if bad { index } else { fault };
+        index = if bad { index } else { step };
+        scanning = !bad && index < length;
+        scanning
+    }
+    if bad { byte_len(input) + 1usize + fault } else { index }
+}
+
+@id("std.data.json.utf8.is_utf8")
+fn is_utf8(input: borrow Slice<u8>) -> bool
+{
+    utf8_end(input, 0usize) == byte_len(input)
+}

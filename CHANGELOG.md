@@ -8,6 +8,26 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extended the bounded JSON slice from one package to five sibling packages,
+  because the Workspace Semantic Graph pre-bound is charged against a whole
+  package - library, examples, and conformance modules - and no single library
+  module can hold the slice. `std.data.json.token` adds the RFC 8259 number
+  grammar as composable integer, fraction, and exponent scanners, `true`,
+  `false`, and `null` recognition, and exact `i64` decoding that refuses
+  overflow and refuses a fraction or exponent rather than rounding it, so
+  `-9223372036854775808` decodes exactly and no value passes through an `f64`.
+  `std.data.json.utf8` adds raw-byte UTF-8 validation that rejects invalid lead
+  bytes, missing or malformed continuations, overlong encodings, raw
+  surrogates, and scalars above `U+10FFFF`. `std.data.json.write` and
+  `std.data.json.digits` add a pull-based, buffer-free writer: the exact length
+  and each byte of a quoted JSON string, and the exact decimal bytes of any
+  `i64` plus the literal words. All four carry the existing scanner's `usize`
+  end-offset/rejection encoding and pass interpreter, native C11 at O0 and O2,
+  and Core Wasm conformance. Two new gate cases link the siblings from one
+  consumer. Structural document validation - nesting limit, trailing-byte
+  rejection, and duplicate-key policy - decoded strings, an owned document
+  tree, and an output buffer remain Missing.
+
 - Extended concrete generic owned-`Bytes` records across the complete direct
   Copy-scalar set: `i64`, `i32`, `u8`, `usize`, `char`, `f32`, `f64`, and
   `bool`. Source verification, resolved HIR, cleanup inventory/replay,

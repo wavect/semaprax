@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-data-json-write"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.data.json.write.examples"
+sources = ["src/examples.spx", "src/tests.spx", "src/write.spx"]
+tests = ["std.data.json.write.tests"]
+
+[exports]
+web = ["std.data.json.write.quoted_len"]

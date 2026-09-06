@@ -678,6 +678,568 @@
         {
           "description": [],
           "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn i64_len(value: i64) -> i64",
+            "    ensures result >= 1 && result <= 20"
+          ],
+          "id": "std.data.json.digits.i64_len",
+          "kind": "function",
+          "name": "i64_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn i64_byte(value: i64, index: i64) -> i64",
+            "    ensures result >= -1 && result <= 57"
+          ],
+          "id": "std.data.json.digits.i64_byte",
+          "kind": "function",
+          "name": "i64_byte",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn literal_len(kind: i64) -> i64",
+            "    ensures result >= 0 && result <= 5"
+          ],
+          "id": "std.data.json.digits.literal_len",
+          "kind": "function",
+          "name": "literal_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn literal_word(kind: i64) -> i64",
+            "    ensures result >= 0"
+          ],
+          "id": "std.data.json.digits.literal_word",
+          "kind": "function",
+          "name": "literal_word",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn literal_byte(kind: i64, index: i64) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.data.json.digits.literal_byte",
+          "kind": "function",
+          "name": "literal_byte",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.data.json.digits = \"^0.1.0\"",
+      "module": "std.data.json.digits",
+      "package": "std/data-json-digits",
+      "required_profile": "scalar",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "core"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool"
+          ],
+          "id": "std.data.json.token.at_is",
+          "kind": "function",
+          "name": "at_is",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn digit_at(input: borrow Slice<u8>, index: usize) -> i64",
+            "    ensures result >= -1 && result <= 9"
+          ],
+          "id": "std.data.json.token.digit_at",
+          "kind": "function",
+          "name": "digit_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn digits_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.token.digits_end",
+          "kind": "function",
+          "name": "digits_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn integer_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.token.integer_end",
+          "kind": "function",
+          "name": "integer_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn fraction_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.token.fraction_end",
+          "kind": "function",
+          "name": "fraction_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn exponent_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.token.exponent_end",
+          "kind": "function",
+          "name": "exponent_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn number_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.token.number_end",
+          "kind": "function",
+          "name": "number_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_number(input: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.token.is_number",
+          "kind": "function",
+          "name": "is_number",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn word_is(input: borrow Slice<u8>, start: usize, first: u8, second: u8, third: u8, fourth: u8) -> bool"
+          ],
+          "id": "std.data.json.token.word_is",
+          "kind": "function",
+          "name": "word_is",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn literal_kind(input: borrow Slice<u8>, start: usize) -> i64",
+            "    ensures result >= 0 && result <= 3"
+          ],
+          "id": "std.data.json.token.literal_kind",
+          "kind": "function",
+          "name": "literal_kind",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn literal_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.token.literal_end",
+          "kind": "function",
+          "name": "literal_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_literal(input: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.token.is_literal",
+          "kind": "function",
+          "name": "is_literal",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn i64_or(input: borrow Slice<u8>, start: usize, fallback: i64) -> i64"
+          ],
+          "id": "std.data.json.token.i64_or",
+          "kind": "function",
+          "name": "i64_or",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.data.json.token = \"^0.1.0\"",
+      "module": "std.data.json.token",
+      "package": "std/data-json-token",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool"
+          ],
+          "id": "std.data.json.utf8.at_is",
+          "kind": "function",
+          "name": "at_is",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool"
+          ],
+          "id": "std.data.json.utf8.at_in",
+          "kind": "function",
+          "name": "at_in",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn offset_at(input: borrow Slice<u8>, index: usize, base: u8, span: i64) -> i64",
+            "    requires span >= 0 && span <= 127",
+            "    ensures result >= -1 && result <= 127"
+          ],
+          "id": "std.data.json.utf8.offset_at",
+          "kind": "function",
+          "name": "offset_at",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn continuation_at(input: borrow Slice<u8>, index: usize) -> i64",
+            "    ensures result >= -1 && result <= 63"
+          ],
+          "id": "std.data.json.utf8.continuation_at",
+          "kind": "function",
+          "name": "continuation_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn sequence_kind(input: borrow Slice<u8>, start: usize) -> i64",
+            "    ensures result >= 0 && result <= 4"
+          ],
+          "id": "std.data.json.utf8.sequence_kind",
+          "kind": "function",
+          "name": "sequence_kind",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_surrogate(value: i64) -> bool"
+          ],
+          "id": "std.data.json.utf8.is_surrogate",
+          "kind": "function",
+          "name": "is_surrogate",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_shortest(kind: i64, value: i64) -> bool"
+          ],
+          "id": "std.data.json.utf8.is_shortest",
+          "kind": "function",
+          "name": "is_shortest",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64",
+            "    ensures result >= -1 && result <= 1114111"
+          ],
+          "id": "std.data.json.utf8.scalar_at",
+          "kind": "function",
+          "name": "scalar_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn sequence_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.utf8.sequence_end",
+          "kind": "function",
+          "name": "sequence_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn utf8_end(input: borrow Slice<u8>, start: usize) -> usize"
+          ],
+          "id": "std.data.json.utf8.utf8_end",
+          "kind": "function",
+          "name": "utf8_end",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn is_utf8(input: borrow Slice<u8>) -> bool"
+          ],
+          "id": "std.data.json.utf8.is_utf8",
+          "kind": "function",
+          "name": "is_utf8",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.data.json.utf8 = \"^0.1.0\"",
+      "module": "std.data.json.utf8",
+      "package": "std/data-json-utf8",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn byte_code(byte: u8) -> i64",
+            "    ensures result >= 0 && result <= 255"
+          ],
+          "id": "std.data.json.write.byte_code",
+          "kind": "function",
+          "name": "byte_code",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn hex_digit(value: i64) -> i64",
+            "    ensures result >= 48 && result <= 102"
+          ],
+          "id": "std.data.json.write.hex_digit",
+          "kind": "function",
+          "name": "hex_digit",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn escape_len(byte: u8) -> usize",
+            "    ensures result >= 1usize && result <= 6usize"
+          ],
+          "id": "std.data.json.write.escape_len",
+          "kind": "function",
+          "name": "escape_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn escape_byte(byte: u8, index: usize) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.data.json.write.escape_byte",
+          "kind": "function",
+          "name": "escape_byte",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn width_at(input: borrow Slice<u8>, index: usize) -> usize"
+          ],
+          "id": "std.data.json.write.width_at",
+          "kind": "function",
+          "name": "width_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn encoded_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.data.json.write.encoded_at",
+          "kind": "function",
+          "name": "encoded_at",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn quoted_len(input: borrow Slice<u8>) -> usize",
+            "    ensures result >= 2usize"
+          ],
+          "id": "std.data.json.write.quoted_len",
+          "kind": "function",
+          "name": "quoted_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn quoted_byte(input: borrow Slice<u8>, index: usize) -> i64",
+            "    ensures result >= -1 && result <= 255"
+          ],
+          "id": "std.data.json.write.quoted_byte",
+          "kind": "function",
+          "name": "quoted_byte",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn digit_code(value: usize) -> i64",
+            "    ensures result >= 48 && result <= 57"
+          ],
+          "id": "std.data.json.write.digit_code",
+          "kind": "function",
+          "name": "digit_code",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn usize_len(value: usize) -> usize",
+            "    ensures result >= 1usize && result <= 20usize"
+          ],
+          "id": "std.data.json.write.usize_len",
+          "kind": "function",
+          "name": "usize_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn usize_byte(value: usize, index: usize) -> i64",
+            "    ensures result >= -1 && result <= 57"
+          ],
+          "id": "std.data.json.write.usize_byte",
+          "kind": "function",
+          "name": "usize_byte",
+          "requires": 0
+        }
+      ],
+      "dependency": "std.data.json.write = \"^0.1.0\"",
+      "module": "std.data.json.write",
+      "package": "std/data-json-write",
+      "required_profile": "useful-data.v1",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
           "ensures": 0,
           "head": [
             "fn is_bare_key(value: borrow Slice<u8>) -> bool"

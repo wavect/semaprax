@@ -871,6 +871,130 @@ fn package_manifest_links_two_large_sibling_packages() {
     let _ = std::fs::remove_dir_all(scratch);
 }
 
+/// The JSON slice is authored as sibling packages rather than one library
+/// module because a single `std/` module large enough to hold the scanner,
+/// the number and literal tokens, UTF-8 validation, and the writer exhausts
+/// the Workspace Semantic Graph pre-bound. This proves the split composes:
+/// one consumer links the string-token scanner and the number/literal token
+/// package and reads both kinds of scalar token.
+#[test]
+fn package_manifest_links_json_scanner_and_token_siblings() {
+    let scratch = temporary("manifest-json-token-siblings");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-token-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.scalar\"]\n\n[dependencies]\nstd.data.json = \"=0.1.0\"\nstd.data.json.token = \"=0.1.0\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\nuse function @id(\"std.data.json.token.is_number\") from std.data.json.token as is_number;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    let number = [48u8];\n    if is_number(array_as_slice(number)) { 0 } else { 1 }\n}\n",
+    )
+    .unwrap();
+    let mut app = String::from("module consumer.app;\n");
+    for name in ["is_failure", "is_string", "skip_whitespace", "string_end"] {
+        app.push_str(&format!(
+            "use function @id(\"std.data.json.{name}\") from std.data.json as {name};\n"
+        ));
+    }
+    for name in [
+        "i64_or",
+        "is_literal",
+        "is_number",
+        "literal_end",
+        "number_end",
+    ] {
+        app.push_str(&format!(
+            "use function @id(\"std.data.json.token.{name}\") from std.data.json.token as {name};\n"
+        ));
+    }
+    app.push_str("\n@id(\"consumer.scalar\")\nfn scalar(view: borrow Slice<u8>) -> bool\n{\n    is_string(view) || is_number(view) || is_literal(view)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let quoted = [34u8, 111u8, 107u8, 34u8];\n    let number = [45u8, 49u8, 50u8, 46u8, 53u8];\n    let word = [116u8, 114u8, 117u8, 101u8];\n    let counted = [52u8, 50u8];\n    let text = array_as_slice(quoted);\n    let digits = array_as_slice(number);\n    let literal = array_as_slice(word);\n    let integer = array_as_slice(counted);\n    if scalar(text) && scalar(digits) && scalar(literal) && string_end(text, 0usize) == 4usize && number_end(digits, 0usize) == 5usize && literal_end(literal, 0usize) == 4usize && i64_or(integer, 0usize, 0) == 42 && skip_whitespace(text, 0usize) == 0usize && !is_failure(text, string_end(text, 0usize)) { 0 } else { 1 }\n}\n");
+    std::fs::write(scratch.join("src/app.spx"), app).unwrap();
+
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        let options = project::ProjectExecutionOptions::default();
+        assert_eq!(
+            snapshot.execute_entry(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert_eq!(
+            snapshot.execute_test(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.json/0.1.0/json.spx"));
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.json.token/0.1.0/token.spx"));
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
+/// The writer half of the same split: the byte-view string encoder and the
+/// scalar number and literal encoder are separate packages, and one consumer
+/// links both to render a quoted string, an exact `i64`, a `usize` count, and
+/// a literal without any value passing through an `f64`.
+#[test]
+fn package_manifest_links_json_writer_siblings() {
+    let scratch = temporary("manifest-json-writer-siblings");
+    std::fs::create_dir_all(scratch.join("src")).unwrap();
+    std::fs::write(
+        scratch.join("semaprax.toml"),
+        "schema = \"semaprax.manifest.v1\"\n\n[package]\nname = \"json-writer-consumer\"\nversion = \"0.1.0\"\nprofile = \"useful-data.v1\"\n\n[modules]\nentry = \"consumer.app\"\nsources = [\"src/app.spx\", \"src/tests.spx\"]\ntests = [\"consumer.tests\"]\n\n[exports]\nweb = [\"consumer.encoded-len\"]\n\n[dependencies]\nstd.data.json.digits = \"=0.1.0\"\nstd.data.json.write = \"=0.1.0\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        scratch.join("src/tests.spx"),
+        "module consumer.tests;\nuse function @id(\"std.data.json.digits.i64_len\") from std.data.json.digits as i64_len;\n\n@id(\"consumer.tests.main\")\nfn main() -> i64\n{\n    if i64_len(-9223372036854775808) == 20 { 0 } else { 1 }\n}\n",
+    )
+    .unwrap();
+    let mut app = String::from("module consumer.app;\n");
+    for name in ["i64_byte", "i64_len", "literal_byte"] {
+        app.push_str(&format!(
+            "use function @id(\"std.data.json.digits.{name}\") from std.data.json.digits as {name};\n"
+        ));
+    }
+    for name in [
+        "escape_len",
+        "quoted_byte",
+        "quoted_len",
+        "usize_byte",
+        "usize_len",
+    ] {
+        app.push_str(&format!(
+            "use function @id(\"std.data.json.write.{name}\") from std.data.json.write as {name};\n"
+        ));
+    }
+    app.push_str("\n@id(\"consumer.encoded-len\")\nfn encoded_len(view: borrow Slice<u8>) -> usize\n{\n    quoted_len(view)\n}\n\n@id(\"consumer.main\")\nfn main() -> i64\n{\n    let label = [107u8, 34u8];\n    let view = array_as_slice(label);\n    let quoted = encoded_len(view) == 5usize && quoted_byte(view, 0usize) == 34 && quoted_byte(view, 2usize) == 92 && escape_len(34u8) == 2usize;\n    let rendered = usize_len(1234usize) == 4usize && usize_byte(1234usize, 3usize) == 52 && i64_len(-42) == 3 && i64_byte(-42, 0) == 45 && literal_byte(1, 0) == 116;\n    if quoted && rendered { 0 } else { 1 }\n}\n");
+    std::fs::write(scratch.join("src/app.spx"), app).unwrap();
+
+    project::with_authenticated_project(&scratch.join("semaprax.toml"), |snapshot| {
+        snapshot.check()?;
+        let options = project::ProjectExecutionOptions::default();
+        assert_eq!(
+            snapshot.execute_entry(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert_eq!(
+            snapshot.execute_test(&options)?.outcome(),
+            &project::ProjectExecutionOutcome::Returned(0)
+        );
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.json.digits/0.1.0/digits.spx"));
+        assert!(snapshot
+            .workspace_manifest()
+            .contains("dependencies/std.data.json.write/0.1.0/write.spx"));
+        Ok(())
+    })
+    .unwrap();
+    let _ = std::fs::remove_dir_all(scratch);
+}
+
 #[test]
 fn package_manifest_links_borrowed_text_from_std_text() {
     let scratch = temporary("manifest-text-dependency");

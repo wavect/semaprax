@@ -350,6 +350,284 @@ fn string_end(input: borrow Slice<u8>, start: usize) -> usize
 fn is_string(input: borrow Slice<u8>) -> bool
 ```
 
+## `std.data.json.digits`
+
+Package `std/data-json-digits`, tier `core`, status partial. Required project profile: `scalar`. Dependency: `std.data.json.digits = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.json.digits.i64_len`
+
+```semaprax
+fn i64_len(value: i64) -> i64
+    ensures result >= 1 && result <= 20
+```
+
+### `std.data.json.digits.i64_byte`
+
+```semaprax
+fn i64_byte(value: i64, index: i64) -> i64
+    ensures result >= -1 && result <= 57
+```
+
+### `std.data.json.digits.literal_len`
+
+```semaprax
+fn literal_len(kind: i64) -> i64
+    ensures result >= 0 && result <= 5
+```
+
+### `std.data.json.digits.literal_word`
+
+```semaprax
+fn literal_word(kind: i64) -> i64
+    ensures result >= 0
+```
+
+### `std.data.json.digits.literal_byte`
+
+```semaprax
+fn literal_byte(kind: i64, index: i64) -> i64
+    ensures result >= -1 && result <= 255
+```
+
+## `std.data.json.token`
+
+Package `std/data-json-token`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.token = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.json.token.at_is`
+
+```semaprax
+fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+```
+
+### `std.data.json.token.digit_at`
+
+```semaprax
+fn digit_at(input: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 9
+```
+
+### `std.data.json.token.digits_end`
+
+```semaprax
+fn digits_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.token.integer_end`
+
+```semaprax
+fn integer_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.token.fraction_end`
+
+```semaprax
+fn fraction_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.token.exponent_end`
+
+```semaprax
+fn exponent_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.token.number_end`
+
+```semaprax
+fn number_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.token.is_number`
+
+```semaprax
+fn is_number(input: borrow Slice<u8>) -> bool
+```
+
+### `std.data.json.token.word_is`
+
+```semaprax
+fn word_is(input: borrow Slice<u8>, start: usize, first: u8, second: u8, third: u8, fourth: u8) -> bool
+```
+
+### `std.data.json.token.literal_kind`
+
+```semaprax
+fn literal_kind(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= 0 && result <= 3
+```
+
+### `std.data.json.token.literal_end`
+
+```semaprax
+fn literal_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.token.is_literal`
+
+```semaprax
+fn is_literal(input: borrow Slice<u8>) -> bool
+```
+
+### `std.data.json.token.i64_or`
+
+```semaprax
+fn i64_or(input: borrow Slice<u8>, start: usize, fallback: i64) -> i64
+```
+
+## `std.data.json.utf8`
+
+Package `std/data-json-utf8`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.utf8 = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.json.utf8.at_is`
+
+```semaprax
+fn at_is(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+```
+
+### `std.data.json.utf8.at_in`
+
+```semaprax
+fn at_in(input: borrow Slice<u8>, index: usize, low: u8, high: u8) -> bool
+```
+
+### `std.data.json.utf8.offset_at`
+
+```semaprax
+fn offset_at(input: borrow Slice<u8>, index: usize, base: u8, span: i64) -> i64
+    requires span >= 0 && span <= 127
+    ensures result >= -1 && result <= 127
+```
+
+### `std.data.json.utf8.continuation_at`
+
+```semaprax
+fn continuation_at(input: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 63
+```
+
+### `std.data.json.utf8.sequence_kind`
+
+```semaprax
+fn sequence_kind(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= 0 && result <= 4
+```
+
+### `std.data.json.utf8.is_surrogate`
+
+```semaprax
+fn is_surrogate(value: i64) -> bool
+```
+
+### `std.data.json.utf8.is_shortest`
+
+```semaprax
+fn is_shortest(kind: i64, value: i64) -> bool
+```
+
+### `std.data.json.utf8.scalar_at`
+
+```semaprax
+fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64
+    ensures result >= -1 && result <= 1114111
+```
+
+### `std.data.json.utf8.sequence_end`
+
+```semaprax
+fn sequence_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.utf8.utf8_end`
+
+```semaprax
+fn utf8_end(input: borrow Slice<u8>, start: usize) -> usize
+```
+
+### `std.data.json.utf8.is_utf8`
+
+```semaprax
+fn is_utf8(input: borrow Slice<u8>) -> bool
+```
+
+## `std.data.json.write`
+
+Package `std/data-json-write`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.json.write = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.data.json.write.byte_code`
+
+```semaprax
+fn byte_code(byte: u8) -> i64
+    ensures result >= 0 && result <= 255
+```
+
+### `std.data.json.write.hex_digit`
+
+```semaprax
+fn hex_digit(value: i64) -> i64
+    ensures result >= 48 && result <= 102
+```
+
+### `std.data.json.write.escape_len`
+
+```semaprax
+fn escape_len(byte: u8) -> usize
+    ensures result >= 1usize && result <= 6usize
+```
+
+### `std.data.json.write.escape_byte`
+
+```semaprax
+fn escape_byte(byte: u8, index: usize) -> i64
+    ensures result >= -1 && result <= 255
+```
+
+### `std.data.json.write.width_at`
+
+```semaprax
+fn width_at(input: borrow Slice<u8>, index: usize) -> usize
+```
+
+### `std.data.json.write.encoded_at`
+
+```semaprax
+fn encoded_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
+    ensures result >= -1 && result <= 255
+```
+
+### `std.data.json.write.quoted_len`
+
+```semaprax
+fn quoted_len(input: borrow Slice<u8>) -> usize
+    ensures result >= 2usize
+```
+
+### `std.data.json.write.quoted_byte`
+
+```semaprax
+fn quoted_byte(input: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 255
+```
+
+### `std.data.json.write.digit_code`
+
+```semaprax
+fn digit_code(value: usize) -> i64
+    ensures result >= 48 && result <= 57
+```
+
+### `std.data.json.write.usize_len`
+
+```semaprax
+fn usize_len(value: usize) -> usize
+    ensures result >= 1usize && result <= 20usize
+```
+
+### `std.data.json.write.usize_byte`
+
+```semaprax
+fn usize_byte(value: usize, index: usize) -> i64
+    ensures result >= -1 && result <= 57
+```
+
 ## `std.data.toml`
 
 Package `std/data-toml`, tier `portable`, status partial. Required project profile: `useful-data.v1`. Dependency: `std.data.toml = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

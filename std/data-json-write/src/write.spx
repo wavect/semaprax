@@ -1,0 +1,145 @@
+module std.data.json.write;
+
+@id("std.data.json.write.byte_code")
+fn byte_code(byte: u8) -> i64
+    ensures result >= 0 && result <= 255
+{
+    let mut probe = 0u8;
+    let mut value = 0;
+    let mut scanning = probe != byte && value < 255;
+    while scanning {
+        probe = probe + 1u8;
+        value = value + 1;
+        scanning = probe != byte && value < 255;
+        scanning
+    }
+    value
+}
+
+@id("std.data.json.write.hex_digit")
+fn hex_digit(value: i64) -> i64
+    ensures result >= 48 && result <= 102
+{
+    match value { 0 => 48, 1 => 49, 2 => 50, 3 => 51, 4 => 52, 5 => 53, 6 => 54, 7 => 55, 8 => 56, 9 => 57, 10 => 97, 11 => 98, 12 => 99, 13 => 100, 14 => 101, 15 => 102, _ => 48, }
+}
+
+@id("std.data.json.write.escape_len")
+fn escape_len(byte: u8) -> usize
+    ensures result >= 1usize && result <= 6usize
+{
+    let named = match byte { 34u8 => true, 92u8 => true, 8u8 => true, 9u8 => true, 10u8 => true, 12u8 => true, 13u8 => true, _ => false, };
+    if named { 2usize } else { if byte < 32u8 { 6usize } else { 1usize } }
+}
+
+@id("std.data.json.write.escape_byte")
+fn escape_byte(byte: u8, index: usize) -> i64
+    ensures result >= -1 && result <= 255
+{
+    let width = escape_len(byte);
+    let code = byte_code(byte);
+    let short = match byte { 34u8 => 34, 92u8 => 92, 8u8 => 98, 9u8 => 116, 10u8 => 110, 12u8 => 102, 13u8 => 114, _ => 92, };
+    let long = if index == 4usize { hex_digit(code / 16) } else { if index == 5usize { hex_digit(code % 16) } else { if index == 1usize { 117 } else { 48 } } };
+    let escaped = if width == 2usize { short } else { long };
+    if index >= width { -1 } else { if index == 0usize { if width == 1usize { code } else { 92 } } else { escaped } }
+}
+
+@id("std.data.json.write.width_at")
+fn width_at(input: borrow Slice<u8>, index: usize) -> usize
+{
+    match byte_get(input, index) { Option::Some { value: byte } => escape_len(byte), Option::None {} => 0usize, }
+}
+
+@id("std.data.json.write.encoded_at")
+fn encoded_at(input: borrow Slice<u8>, index: usize, offset: usize) -> i64
+    ensures result >= -1 && result <= 255
+{
+    match byte_get(input, index) { Option::Some { value: byte } => escape_byte(byte, offset), Option::None {} => -1, }
+}
+
+@id("std.data.json.write.quoted_len")
+fn quoted_len(input: borrow Slice<u8>) -> usize
+    ensures result >= 2usize
+{
+    let length = byte_len(input);
+    let mut index = 0usize;
+    let mut total = 2usize;
+    let mut scanning = index < length;
+    while scanning {
+        total = total + width_at(input, index);
+        index = index + 1usize;
+        scanning = index < length;
+        scanning
+    }
+    total
+}
+
+@id("std.data.json.write.quoted_byte")
+fn quoted_byte(input: borrow Slice<u8>, index: usize) -> i64
+    ensures result >= -1 && result <= 255
+{
+    let length = quoted_len(input);
+    let inner = index >= 1usize && index + 1usize < length;
+    let target = if inner { index - 1usize } else { 0usize };
+    let mut source = 0usize;
+    let mut consumed = 0usize;
+    let mut width = width_at(input, 0usize);
+    let mut scanning = inner && width > 0usize && consumed + width <= target;
+    while scanning {
+        consumed = consumed + width;
+        source = source + 1usize;
+        width = width_at(input, source);
+        scanning = width > 0usize && consumed + width <= target;
+        scanning
+    }
+    if index >= length { -1 } else { if inner { encoded_at(input, source, target - consumed) } else { 34 } }
+}
+
+@id("std.data.json.write.digit_code")
+fn digit_code(value: usize) -> i64
+    ensures result >= 48 && result <= 57
+{
+    let mut probe = 0usize;
+    let mut code = 48;
+    let mut scanning = probe < value && probe < 9usize;
+    while scanning {
+        probe = probe + 1usize;
+        code = code + 1;
+        scanning = probe < value && probe < 9usize;
+        scanning
+    }
+    code
+}
+
+@id("std.data.json.write.usize_len")
+fn usize_len(value: usize) -> usize
+    ensures result >= 1usize && result <= 20usize
+{
+    let mut remaining = value;
+    let mut digits = 1usize;
+    let mut scanning = remaining >= 10usize;
+    while scanning {
+        remaining = remaining / 10usize;
+        digits = digits + 1usize;
+        scanning = remaining >= 10usize;
+        scanning
+    }
+    digits
+}
+
+@id("std.data.json.write.usize_byte")
+fn usize_byte(value: usize, index: usize) -> i64
+    ensures result >= -1 && result <= 57
+{
+    let length = usize_len(value);
+    let place = if index < length { length - index - 1usize } else { 0usize };
+    let mut remaining = value;
+    let mut step = 0usize;
+    let mut scanning = step < place;
+    while scanning {
+        remaining = remaining / 10usize;
+        step = step + 1usize;
+        scanning = step < place;
+        scanning
+    }
+    if index >= length { -1 } else { digit_code(remaining % 10usize) }
+}

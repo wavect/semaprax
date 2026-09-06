@@ -1,0 +1,90 @@
+module std.data.json.utf8.tests;
+use function @id("std.data.json.utf8.at_in") from std.data.json.utf8 as at_in;
+use function @id("std.data.json.utf8.at_is") from std.data.json.utf8 as at_is;
+use function @id("std.data.json.utf8.continuation_at") from std.data.json.utf8 as continuation_at;
+use function @id("std.data.json.utf8.is_shortest") from std.data.json.utf8 as is_shortest;
+use function @id("std.data.json.utf8.is_surrogate") from std.data.json.utf8 as is_surrogate;
+use function @id("std.data.json.utf8.is_utf8") from std.data.json.utf8 as is_utf8;
+use function @id("std.data.json.utf8.offset_at") from std.data.json.utf8 as offset_at;
+use function @id("std.data.json.utf8.scalar_at") from std.data.json.utf8 as scalar_at;
+use function @id("std.data.json.utf8.sequence_end") from std.data.json.utf8 as sequence_end;
+use function @id("std.data.json.utf8.sequence_kind") from std.data.json.utf8 as sequence_kind;
+use function @id("std.data.json.utf8.utf8_end") from std.data.json.utf8 as utf8_end;
+
+@id("std.data.json.utf8.tests.leads")
+fn leads() -> bool
+{
+    let sample = [65u8, 194u8, 162u8, 226u8, 130u8, 172u8, 240u8, 144u8, 141u8, 136u8];
+    let view = array_as_slice(sample);
+    at_is(view, 0usize, 65u8) && !at_is(view, 0usize, 66u8) && at_in(view, 1usize, 194u8, 223u8) && !at_in(view, 0usize, 194u8, 223u8) && !at_in(view, 10usize, 0u8, 255u8) && offset_at(view, 0usize, 0u8, 127) == 65 && offset_at(view, 1usize, 194u8, 29) == 0 && offset_at(view, 3usize, 224u8, 15) == 2 && offset_at(view, 6usize, 240u8, 4) == 0 && offset_at(view, 0usize, 194u8, 29) == -1 && continuation_at(view, 2usize) == 34 && continuation_at(view, 0usize) == -1
+}
+
+@id("std.data.json.utf8.tests.widths")
+fn widths() -> bool
+{
+    let sample = [65u8, 194u8, 162u8, 226u8, 130u8, 172u8, 240u8, 144u8, 141u8, 136u8];
+    let view = array_as_slice(sample);
+    sequence_kind(view, 0usize) == 1 && sequence_kind(view, 1usize) == 2 && sequence_kind(view, 3usize) == 3 && sequence_kind(view, 6usize) == 4 && sequence_kind(view, 2usize) == 0 && sequence_kind(view, 10usize) == 0 && sequence_end(view, 0usize) == 1usize && sequence_end(view, 1usize) == 3usize && sequence_end(view, 3usize) == 6usize && sequence_end(view, 6usize) == 10usize
+}
+
+@id("std.data.json.utf8.tests.scalars")
+fn scalars() -> bool
+{
+    let sample = [65u8, 194u8, 162u8, 226u8, 130u8, 172u8, 240u8, 144u8, 141u8, 136u8];
+    let view = array_as_slice(sample);
+    scalar_at(view, 0usize) == 65 && scalar_at(view, 1usize) == 162 && scalar_at(view, 3usize) == 8364 && scalar_at(view, 6usize) == 66376 && scalar_at(view, 2usize) == -1 && scalar_at(view, 10usize) == -1
+}
+
+@id("std.data.json.utf8.tests.rejections")
+fn rejections() -> bool
+{
+    let overlong = [192u8, 128u8];
+    let padded = [224u8, 128u8, 175u8];
+    let cesu = [237u8, 160u8, 128u8];
+    let truncated = [226u8, 130u8];
+    let beyond = [244u8, 144u8, 128u8, 128u8];
+    let short = array_as_slice(overlong);
+    let wide = array_as_slice(padded);
+    let paired = array_as_slice(cesu);
+    let cut = array_as_slice(truncated);
+    let over = array_as_slice(beyond);
+    scalar_at(short, 0usize) == -1 && scalar_at(wide, 0usize) == -1 && scalar_at(paired, 0usize) == -1 && scalar_at(cut, 0usize) == -1 && scalar_at(over, 0usize) == -1 && !is_utf8(short) && !is_utf8(wide) && !is_utf8(paired) && !is_utf8(cut) && !is_utf8(over)
+}
+
+@id("std.data.json.utf8.tests.surrogates")
+fn surrogates() -> bool
+{
+    is_surrogate(55296) && is_surrogate(57343) && !is_surrogate(55295) && !is_surrogate(57344) && !is_surrogate(0)
+}
+
+@id("std.data.json.utf8.tests.boundaries")
+fn boundaries() -> bool
+{
+    let top = [244u8, 143u8, 191u8, 191u8];
+    let highest = array_as_slice(top);
+    is_shortest(1, 127) && !is_shortest(1, 128) && is_shortest(2, 128) && !is_shortest(2, 127) && is_shortest(3, 2048) && !is_shortest(3, 55296) && is_shortest(4, 1114111) && !is_shortest(4, 1114112) && !is_shortest(0, 0) && scalar_at(highest, 0usize) == 1114111
+}
+
+@id("std.data.json.utf8.tests.documents")
+fn documents() -> bool
+{
+    let sample = [65u8, 194u8, 162u8, 226u8, 130u8, 172u8, 240u8, 144u8, 141u8, 136u8];
+    let broken = [65u8, 66u8, 226u8, 130u8, 67u8];
+    let view = array_as_slice(sample);
+    let mixed = array_as_slice(broken);
+    utf8_end(view, 0usize) == 10usize && utf8_end(view, 1usize) == 10usize && utf8_end(view, 6usize) == 10usize && utf8_end(view, 12usize) == 10usize && is_utf8(view) && utf8_end(mixed, 0usize) > byte_len(mixed) && utf8_end(mixed, 0usize) - byte_len(mixed) - 1usize == 2usize && !is_utf8(mixed)
+}
+
+@id("std.data.json.utf8.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if leads() { 0 } else { 1 };
+    failed = failed + if widths() { 0 } else { 2 };
+    failed = failed + if scalars() { 0 } else { 4 };
+    failed = failed + if rejections() { 0 } else { 8 };
+    failed = failed + if surrogates() { 0 } else { 16 };
+    failed = failed + if boundaries() { 0 } else { 32 };
+    failed = failed + if documents() { 0 } else { 64 };
+    failed
+}

@@ -48,6 +48,30 @@ const PACKAGES: &[BundledPackage] = &[
         dependencies: &[],
     },
     BundledPackage {
+        name: "std.data.json.digits",
+        path: "dependencies/std.data.json.digits/0.1.0/digits.spx",
+        source: include_str!("../../std/data-json-digits/src/digits.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
+        name: "std.data.json.token",
+        path: "dependencies/std.data.json.token/0.1.0/token.spx",
+        source: include_str!("../../std/data-json-token/src/token.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
+        name: "std.data.json.utf8",
+        path: "dependencies/std.data.json.utf8/0.1.0/utf8.spx",
+        source: include_str!("../../std/data-json-utf8/src/utf8.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
+        name: "std.data.json.write",
+        path: "dependencies/std.data.json.write/0.1.0/write.spx",
+        source: include_str!("../../std/data-json-write/src/write.spx"),
+        dependencies: &[],
+    },
+    BundledPackage {
         name: "std.data.toml",
         path: "dependencies/std.data.toml/0.1.0/toml.spx",
         source: include_str!("../../std/data-toml/src/toml.spx"),

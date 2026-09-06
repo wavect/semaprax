@@ -1,0 +1,11 @@
+module std.data.json.write.examples;
+use function @id("std.data.json.write.quoted_byte") from std.data.json.write as quoted_byte;
+use function @id("std.data.json.write.quoted_len") from std.data.json.write as quoted_len;
+
+@id("std.data.json.write.examples.main")
+fn main() -> i64
+{
+    let label = [107u8, 101u8, 121u8, 34u8];
+    let view = array_as_slice(label);
+    if quoted_len(view) == 7usize && quoted_byte(view, 0usize) == 34 && quoted_byte(view, 4usize) == 92 && quoted_byte(view, 5usize) == 34 { 0 } else { 1 }
+}

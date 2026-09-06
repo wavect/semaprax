@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-data-json-token"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.data.json.token.examples"
+sources = ["src/examples.spx", "src/tests.spx", "src/token.spx"]
+tests = ["std.data.json.token.tests"]
+
+[exports]
+web = ["std.data.json.token.is_number"]

@@ -1,0 +1,14 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-data-json-utf8"
+version = "0.1.0"
+profile = "useful-data.v1"
+
+[modules]
+entry = "std.data.json.utf8.examples"
+sources = ["src/examples.spx", "src/tests.spx", "src/utf8.spx"]
+tests = ["std.data.json.utf8.tests"]
+
+[exports]
+web = ["std.data.json.utf8.is_utf8"]

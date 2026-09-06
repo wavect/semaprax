@@ -1,0 +1,13 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-data-json-digits"
+version = "0.1.0"
+
+[modules]
+entry = "std.data.json.digits.examples"
+sources = ["src/digits.spx", "src/examples.spx", "src/tests.spx"]
+tests = ["std.data.json.digits.tests"]
+
+[exports]
+web = ["std.data.json.digits.i64_len"]

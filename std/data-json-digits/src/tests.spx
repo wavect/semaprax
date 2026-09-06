@@ -1,0 +1,48 @@
+module std.data.json.digits.tests;
+use function @id("std.data.json.digits.i64_byte") from std.data.json.digits as i64_byte;
+use function @id("std.data.json.digits.i64_len") from std.data.json.digits as i64_len;
+use function @id("std.data.json.digits.literal_byte") from std.data.json.digits as literal_byte;
+use function @id("std.data.json.digits.literal_len") from std.data.json.digits as literal_len;
+use function @id("std.data.json.digits.literal_word") from std.data.json.digits as literal_word;
+
+@id("std.data.json.digits.tests.lengths")
+fn lengths() -> bool
+{
+    i64_len(0) == 1 && i64_len(9) == 1 && i64_len(10) == 2 && i64_len(-1) == 2 && i64_len(-42) == 3 && i64_len(9223372036854775807) == 19 && i64_len(-9223372036854775808) == 20 && i64_byte(0, 0) == 48 && i64_byte(0, 1) == -1 && i64_byte(0, -1) == -1
+}
+
+@id("std.data.json.digits.tests.signed")
+fn signed() -> bool
+{
+    i64_byte(-42, 0) == 45 && i64_byte(-42, 1) == 52 && i64_byte(-42, 2) == 50 && i64_byte(-42, 3) == -1 && i64_byte(123, 0) == 49 && i64_byte(123, 1) == 50 && i64_byte(123, 2) == 51
+}
+
+@id("std.data.json.digits.tests.extremes")
+fn extremes() -> bool
+{
+    i64_byte(-9223372036854775808, 0) == 45 && i64_byte(-9223372036854775808, 1) == 57 && i64_byte(-9223372036854775808, 19) == 56 && i64_byte(-9223372036854775808, 20) == -1 && i64_byte(9223372036854775807, 0) == 57 && i64_byte(9223372036854775807, 18) == 55
+}
+
+@id("std.data.json.digits.tests.literals")
+fn literals() -> bool
+{
+    literal_len(1) == 4 && literal_len(2) == 5 && literal_len(3) == 4 && literal_len(0) == 0 && literal_byte(1, 0) == 116 && literal_byte(1, 3) == 101 && literal_byte(2, 4) == 101 && literal_byte(3, 1) == 117 && literal_byte(3, 3) == 108 && literal_byte(1, 4) == -1 && literal_byte(0, 0) == -1 && literal_byte(2, -1) == -1
+}
+
+@id("std.data.json.digits.tests.words")
+fn words() -> bool
+{
+    literal_word(1) == 1953658213 && literal_word(2) == 439721161573 && literal_word(3) == 1853189228 && literal_word(0) == 0 && literal_byte(2, 0) == 102 && literal_byte(2, 1) == 97 && literal_byte(2, 2) == 108 && literal_byte(2, 3) == 115 && literal_byte(3, 0) == 110 && literal_byte(3, 2) == 108 && literal_byte(1, 1) == 114 && literal_byte(1, 2) == 117
+}
+
+@id("std.data.json.digits.tests.main")
+fn main() -> i64
+{
+    let mut failed = 0;
+    failed = failed + if lengths() { 0 } else { 1 };
+    failed = failed + if signed() { 0 } else { 2 };
+    failed = failed + if extremes() { 0 } else { 4 };
+    failed = failed + if literals() { 0 } else { 8 };
+    failed = failed + if words() { 0 } else { 16 };
+    failed
+}

@@ -1,0 +1,10 @@
+module std.data.json.digits.examples;
+use function @id("std.data.json.digits.i64_byte") from std.data.json.digits as i64_byte;
+use function @id("std.data.json.digits.i64_len") from std.data.json.digits as i64_len;
+use function @id("std.data.json.digits.literal_byte") from std.data.json.digits as literal_byte;
+
+@id("std.data.json.digits.examples.main")
+fn main() -> i64
+{
+    if i64_len(-9223372036854775808) == 20 && i64_byte(-42, 0) == 45 && i64_byte(-42, 2) == 50 && literal_byte(3, 0) == 110 { 0 } else { 1 }
+}

@@ -19,7 +19,11 @@ GATE="${REPO}/scripts/doctor-provisioned-linux-gate.py"
 RESULTS=()
 FAILED=0
 
-record() { # record <PASS|FAIL> <requirement> <detail>
+# PASS: the requirement holds. FAIL: it does not, and nothing observed here
+# makes it hold. NOTE: it does not hold as shipped, but a documented,
+# non-weakening host provisioning step below makes it hold, and that step is
+# separately recorded PASS or FAIL. Only FAIL changes the exit status.
+record() { # record <PASS|FAIL|NOTE> <requirement> <detail>
 	RESULTS+=("$1|$2|$3")
 	printf '[%s] %s -- %s\n' "$1" "$2" "$3"
 	[ "$1" = "FAIL" ] && FAILED=1
@@ -85,7 +89,7 @@ echo "unshare --user --map-root-user exit: $?"
 if unshare --user --map-root-user true >/dev/null 2>&1; then
 	record PASS "unprivileged user namespace can be created as shipped" "no host provisioning needed"
 else
-	record FAIL "unprivileged user namespace can be created as shipped" \
+	record NOTE "unprivileged user namespace can be created as shipped" \
 		"refused on the stock image; see the unshare error above"
 	# Ubuntu 24.04 ships kernel.apparmor_restrict_unprivileged_userns=1.
 	# Clearing it is HOST PROVISIONING, not a relaxation of any gate
@@ -126,8 +130,8 @@ echo '### 5. Delegation to the unprivileged runner user (wrapper default parent)
 if [ -w /sys/fs/cgroup/user.slice/cgroup.subtree_control ]; then
 	record PASS "user.slice/cgroup.subtree_control writable unprivileged" "writable"
 else
-	record FAIL "user.slice/cgroup.subtree_control writable unprivileged" \
-		"not writable as $(id -un); wrapper needs SEMAPRAX_DOCTOR_GATE_PARENT"
+	record NOTE "user.slice/cgroup.subtree_control writable unprivileged" \
+		"not writable as $(id -un); the wrapper already supports SEMAPRAX_DOCTOR_GATE_PARENT, probed in section 6"
 fi
 
 echo
@@ -198,6 +202,12 @@ export SEMAPRAX_DOCTOR_ROOT_TEST_CONTEXT=private-user-mount-v1
 unshare --user --map-root-user --mount --net --ipc --uts -- \
 	python3 "${GATE}" --evidence "${RUNNER_TEMP:-/tmp}/probe-evidence.json"
 echo "gate exit: $?"
+echo '--- git status inside and outside the namespace ---'
+git -C "${REPO}" status --porcelain | head -20
+echo "outside exit: $?"
+unshare --user --map-root-user --mount --net --ipc --uts -- \
+	git -C "${REPO}" status --porcelain | head -20
+echo "inside exit: $?"
 
 echo
 echo '### Summary'

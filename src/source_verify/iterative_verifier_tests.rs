@@ -241,6 +241,9 @@ fn compare_scalar_body(source: &str) {
 
 #[test]
 fn scalar_frame_machine_matches_recursive_oracle() {
+    compare_scalar_body(
+        "module t; fn main() -> i64 { let values = vec_with_capacity<i64>(1usize); for item in values { let seen = item; 0usize } 0 }",
+    );
     compare_scalar_body("module t; fn main() -> i64 { -(1 + true) }");
     compare_scalar_body("module t; fn main() -> bool { missing_left == missing_right }");
     compare_scalar_body("module t; fn main(flag: bool) -> bool { flag && missing }");

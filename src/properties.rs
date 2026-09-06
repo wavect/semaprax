@@ -840,40 +840,36 @@ impl<'a> Analyzer<'a> {
                         }
                         Statement::While {
                             condition, body, ..
-                        } => {
-                            // Widened admission: while loops evaluate exactly
-                            // like the interpreter engine — the condition
-                            // re-evaluates before every iteration and every
-                            // evaluated node charges steps, so a
-                            // non-terminating loop fails closed through the
-                            // shared step-budget path instead of hanging.
-                            loop {
-                                if self.steps >= MAX_TOTAL_STEPS {
-                                    interrupted = Some(Outcome::Exhausted);
+                        } => loop {
+                            if self.steps >= MAX_TOTAL_STEPS {
+                                interrupted = Some(Outcome::Exhausted);
+                                break;
+                            }
+                            self.steps += 1;
+                            match self.evaluate(condition, environment, depth) {
+                                Outcome::Value(Value::Bool(true)) => {}
+                                Outcome::Value(Value::Bool(false)) => break,
+                                Outcome::Value(_) => {
+                                    interrupted =
+                                        Some(Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION));
                                     break;
                                 }
-                                self.steps += 1;
-                                match self.evaluate(condition, environment, depth) {
-                                    Outcome::Value(Value::Bool(true)) => {}
-                                    Outcome::Value(Value::Bool(false)) => break,
-                                    Outcome::Value(_) => {
-                                        interrupted =
-                                            Some(Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION));
-                                        break;
-                                    }
-                                    other => {
-                                        interrupted = Some(other);
-                                        break;
-                                    }
-                                }
-                                match self.evaluate(body, environment, depth) {
-                                    Outcome::Value(_) => {}
-                                    other => {
-                                        interrupted = Some(other);
-                                        break;
-                                    }
+                                other => {
+                                    interrupted = Some(other);
+                                    break;
                                 }
                             }
+                            match self.evaluate(body, environment, depth) {
+                                Outcome::Value(_) => {}
+                                other => {
+                                    interrupted = Some(other);
+                                    break;
+                                }
+                            }
+                        },
+                        Statement::For { .. } => {
+                            interrupted = Some(Outcome::Unsupported(REASON_ILL_TYPED_EXPRESSION));
+                            break;
                         }
                     }
                 }

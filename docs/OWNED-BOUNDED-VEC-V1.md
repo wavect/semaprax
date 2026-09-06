@@ -6,6 +6,13 @@ Status: implementation tranche. This document owns one internal, explicitly
 instantiated `Vec<T>` profile for Copy scalar elements. It defines no public
 aggregate ABI and does not implement Iterator.
 
+The separately versioned
+[Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md)
+adds one source `for item in values { body }` form over a simple immutable
+binding of this exact vector profile. Its resolver lowering reuses the existing
+len/get/while HIR and adds no operation, prelude version, backend primitive,
+standard-library declaration, or ABI.
+
 ## Exact profile
 
 `Vec<T>` is the compiler-owned nominal type with stable identity `core.vec`.
@@ -112,6 +119,10 @@ functions still cannot stand in for these authenticated aliases.
   for empty, full, push/get/len/capacity, exact reserve, set, clear, loop-carried
   growth, and exact failures, with no shallow owner copy and exact observed
   capacities;
+- focused local canonical-source/HIR evidence for bounded `for` traversal over
+  every Copy scalar, plus empty, singleton, multi-element, full-capacity,
+  repeated re-entry, and body-failure execution on the interpreter, native C11
+  O0/O2, and Core-Wasm;
 - frozen prelude-v1/v2 contract bytes and digests, plus native and Core-Wasm
   reachability checks proving legacy Vec source does not emit v3 helpers; and
 - the `std.collections` manifest, scalar-result example, eight-scalar conformance
@@ -137,7 +148,7 @@ hosted-support nonclaims below keep the module Partial.
 ## Nonclaims
 
 There is no `pop`, insertion, removal, implicit or amortized growth, shrink,
-owned element, iterator, closure adapter, escaping borrow, mutable reference,
+owned element, general iterator, iterator object, closure adapter, escaping borrow, mutable reference,
 public Project/FFI/WIT/Component representation, hosted promotion, or production
 support. `std.iter` remains blocked on its independent interface,
 associated-type, closure, and lifetime contracts. `std.mem` is not created by

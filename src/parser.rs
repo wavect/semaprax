@@ -1274,6 +1274,8 @@ impl Parser {
                 statements.push(self.unsafe_statement()?);
             } else if self.at_keyword("while") {
                 statements.push(self.while_statement()?);
+            } else if self.at_keyword("for") {
+                statements.push(self.for_statement()?);
             } else {
                 break;
             }
@@ -1419,6 +1421,22 @@ impl Parser {
         let span = start.merge(body.span);
         Ok(Statement::While {
             condition: Box::new(condition),
+            body: Box::new(body),
+            span,
+        })
+    }
+
+    fn for_statement(&mut self) -> Result<Statement, Diagnostic> {
+        let start = self.keyword("for")?.span;
+        let (item, item_span) = self.ident("loop item binding")?;
+        self.keyword("in")?;
+        let values = self.expression_with_record_literals(0, false)?;
+        let body = self.block("`for` body")?;
+        let span = start.merge(body.span);
+        Ok(Statement::For {
+            item,
+            item_span,
+            values: Box::new(values),
             body: Box::new(body),
             span,
         })

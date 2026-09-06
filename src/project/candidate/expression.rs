@@ -1001,6 +1001,10 @@ fn ast_children_mut(expression: &mut Expr) -> Vec<&mut Expr> {
                         children.push(condition.as_mut());
                         children.push(body.as_mut());
                     }
+                    Statement::For { values, body, .. } => {
+                        children.push(values.as_mut());
+                        children.push(body.as_mut());
+                    }
                 }
             }
             children.push(tail);

@@ -309,6 +309,10 @@ pub(super) fn legacy_expr_temporary_bytes(root: &Expr, root_precedence: u8) -> u
                         Statement::While { condition, .. } => {
                             cached_rendered(condition, 0).saturating_add(7)
                         }
+                        Statement::For { item, values, .. } => item
+                            .len()
+                            .saturating_add(cached_rendered(values, 0))
+                            .saturating_add(9),
                     };
                     total = total.saturating_add(part);
                     parts.push(part);

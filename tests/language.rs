@@ -101,6 +101,8 @@ mod string_scalars;
 mod u8_scalars;
 #[path = "language/variants_semantics.rs"]
 mod variants_semantics;
+#[path = "language/vec_for_traversal.rs"]
+mod vec_for_traversal;
 #[path = "language/verifier_hints.rs"]
 mod verifier_hints;
 #[path = "language/wasm_scalar_export_widen.rs"]

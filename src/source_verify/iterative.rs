@@ -117,6 +117,29 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             );
             return;
         }
+        if let Statement::For {
+            item,
+            item_span,
+            values,
+            body,
+            ..
+        } = next_statement
+        {
+            self.begin_for_statement(
+                expression,
+                statements,
+                tail,
+                parent_scope,
+                block_scope,
+                next,
+                outer_names,
+                item,
+                *item_span,
+                values,
+                body,
+            );
+            return;
+        }
         self.note_owned_buffer_reopen(next_statement);
         self.frames.push(VerifierFrame::ResumeBlockStatement {
             expression,
@@ -181,6 +204,40 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             .push(VerifierFrame::ResumeWhileCondition { condition });
         self.frames.push(VerifierFrame::Enter {
             expression: condition,
+            scope: block_scope,
+        });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn begin_for_statement(
+        &mut self,
+        expression: &'p Expr,
+        statements: &'p [Statement],
+        tail: &'p Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        item: &'p str,
+        item_span: crate::ast::Span,
+        values: &'p Expr,
+        body: &'p Expr,
+    ) {
+        self.frames.push(VerifierFrame::ResumeForSource {
+            expression,
+            statements,
+            tail,
+            parent_scope,
+            block_scope,
+            index,
+            outer_names,
+            item,
+            item_span,
+            values,
+            body,
+        });
+        self.frames.push(VerifierFrame::Enter {
+            expression: values,
             scope: block_scope,
         });
     }

@@ -5,7 +5,7 @@
 
 use self::calls::{oracle_call, oracle_method_call};
 use self::matching::oracle_match;
-use self::while_oracle::check_while_statement;
+use self::while_oracle::{check_while_statement, reject_while_disallowed_oracle};
 use super::binding::{Availability, Binding, CheckedValue};
 use super::declared_type::{
     check_declared_type, ordinary_option_argument, ordinary_result_arguments,
@@ -1160,6 +1160,79 @@ pub(super) fn check_expr(
                             allow_moves,
                             diagnostics,
                         );
+                    }
+                    Statement::For {
+                        item, item_span, values, body, ..
+                    } => {
+                        let actual = check_expr(
+                            program, current, values, &mut scope, functions, types,
+                            result_type, allow_moves, diagnostics,
+                        );
+                        let source = match &values.kind {
+                            ExprKind::Var(name) => Some(name.as_str()),
+                            _ => None,
+                        };
+                        let element = actual.as_ref().and_then(|actual| match &actual.ty {
+                            Type::Named { name, arguments }
+                                if name == "Vec" && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)) =>
+                            {
+                                Some(arguments[0].clone())
+                            }
+                            _ => None,
+                        });
+                        if source.is_none() || element.is_none() {
+                            diagnostics.push(error(
+                                program, "SPX-T284",
+                                "for traversal requires a simple immutable binding of exact Vec<T> for a Copy scalar T",
+                                values.span,
+                            ));
+                        }
+                        if source.is_some_and(|name| scope.get(name).is_some_and(|binding| binding.mutable)) {
+                            diagnostics.push(error(
+                                program, "SPX-T284", "for traversal source must be an immutable Vec binding", values.span,
+                            ));
+                        }
+                        let source_name = source.map(str::to_owned);
+                        let _ = reject_while_disallowed_oracle(program, body, functions, diagnostics);
+                        let item_inserted = !scope.contains_key(item);
+                        if !item_inserted {
+                            diagnostics.push(error(
+                                program, "SPX-T209", format!("loop item `{item}` shadows an existing value"), *item_span,
+                            ));
+                        }
+                        if item_inserted {
+                            if let Some(element) = element {
+                            scope.insert(item.clone(), Binding {
+                                ty: element, mode: ParamMode::Value,
+                                availability: Availability::Available,
+                                moved_places: HashMap::new(), definitely_partial: HashSet::new(),
+                                native_unit_discard: false, mutable: false,
+                                active_loans: BTreeSet::new(), borrow_origin: None,
+                            });
+                            }
+                        }
+                        let _ = check_expr(
+                            program, current, body, &mut scope, functions, types,
+                            result_type, allow_moves, diagnostics,
+                        );
+                        if item_inserted {
+                            scope.remove(item);
+                        }
+                        if let Some(source) = source_name {
+                            let changed = scope.get(&source).is_none_or(|after| {
+                                after.availability != Availability::Available
+                                    || !after.moved_places.is_empty()
+                                    || !after.definitely_partial.is_empty()
+                            });
+                            if changed {
+                                diagnostics.push(error(
+                                    program,
+                                    "SPX-T284",
+                                    format!("for traversal source `{source}` cannot be consumed or mutated in the loop body"),
+                                    body.span,
+                                ));
+                            }
+                        }
                     }
                 }
                 release_dead_local_loans(

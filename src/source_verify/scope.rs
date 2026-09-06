@@ -90,6 +90,31 @@ pub(super) enum VerifierFrame<'a> {
         baseline_names: Vec<String>,
         baseline_bindings: HashMap<String, Binding>,
     },
+    ResumeForSource {
+        expression: &'a Expr,
+        statements: &'a [Statement],
+        tail: &'a Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        item: &'a str,
+        item_span: Span,
+        values: &'a Expr,
+        body: &'a Expr,
+    },
+    ResumeForBody {
+        expression: &'a Expr,
+        statements: &'a [Statement],
+        tail: &'a Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        item: &'a str,
+        item_inserted: bool,
+        source: Option<&'a str>,
+    },
     ResumeBlockTail {
         parent_scope: usize,
         block_scope: usize,
@@ -456,6 +481,8 @@ pub(super) fn verifier_frame_owned_capacity(frame: &VerifierFrame<'_>) -> usize 
                             .sum::<usize>(),
                     ),
             ),
+        VerifierFrame::ResumeForSource { outer_names, .. }
+        | VerifierFrame::ResumeForBody { outer_names, .. } => strings(outer_names),
         VerifierFrame::ResumeRecordField { supplied, .. }
         | VerifierFrame::PrepareRecordField { supplied, .. }
         | VerifierFrame::ResumeVariantField { supplied, .. }

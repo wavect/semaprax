@@ -134,6 +134,10 @@ pub(super) fn expression_uses_name(expression: &Expr, name: &str) -> bool {
                             pending.push(condition);
                             pending.push(body);
                         }
+                        Statement::For { values, body, .. } => {
+                            pending.push(values);
+                            pending.push(body);
+                        }
                     }
                 }
             }
@@ -199,6 +203,9 @@ pub(super) fn release_dead_local_loans(
                 Statement::While {
                     condition, body, ..
                 } => expression_uses_name(condition, name) || expression_uses_name(body, name),
+                Statement::For { values, body, .. } => {
+                    expression_uses_name(values, name) || expression_uses_name(body, name)
+                }
             }) || expression_uses_name(tail, name);
             (!used).then_some((name.clone(), origin.root.clone(), origin.loan.clone()))
         })

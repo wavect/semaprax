@@ -820,6 +820,9 @@ fn reserve_names(programs: &mut [Program], names: &mut BTreeSet<String>) -> Resu
                                 names.insert(name.clone());
                             }
                             Statement::Unsafe { .. } | Statement::While { .. } => {}
+                            Statement::For { item, .. } => {
+                                names.insert(item.clone());
+                            }
                         }
                     }
                 }

@@ -747,10 +747,6 @@ impl Resolver<'_> {
                 )
             }
             ExprKind::Unary { op, value } => {
-                // Peel this linear family without consuming resolver frames.
-                // The general expression-frame conversion handles the other
-                // recursive families separately; this fast path preserves the
-                // exact canonical `.value` identity chain.
                 let mut unary = Vec::new();
                 unary.push((*op, expr.span, path.to_owned()));
                 let mut leaf = value.as_ref();
@@ -951,8 +947,6 @@ impl Resolver<'_> {
                             span,
                             ..
                         } => {
-                            // Mirror the iterative admission and typing checks
-                            // exactly, including path spellings.
                             self.reject_while_disallowed(condition)?;
                             self.reject_while_disallowed(body)?;
                             let resolved_condition = self.resolve_expr_recursive_reference(
@@ -980,6 +974,23 @@ impl Resolver<'_> {
                                 span: condition.span.merge(*span),
                             });
                         }
+                        Statement::For {
+                            item,
+                            item_span,
+                            values,
+                            body,
+                            span,
+                        } => resolved_statements.push(super::resolve_for::resolve_reference(
+                            self,
+                            function,
+                            &scope,
+                            &statement_path,
+                            item,
+                            *item_span,
+                            values,
+                            body,
+                            *span,
+                        )?),
                     }
                 }
                 let tail = self.resolve_expr_recursive_reference(
@@ -1209,8 +1220,6 @@ impl Resolver<'_> {
                     bindings,
                     &format!("{path}.scrutinee"),
                 )?;
-                // Refutable Match v1: mirror of the iterative resolver's
-                // Copy-scalar decision chain, producing identical identities.
                 if matches!(
                     scrutinee.ty,
                     ResolvedType::I64
@@ -1592,9 +1601,6 @@ impl Resolver<'_> {
                                 mode,
                             )?
                         }
-                        // Refutable Match v1 patterns on aggregate
-                        // scrutinees were rejected during admission
-                        // (SPX-T254); the legacy chain never sees them.
                         MatchPattern::Literal { span, .. }
                         | MatchPattern::Or { span, .. }
                         | MatchPattern::Binding { span, .. } => {

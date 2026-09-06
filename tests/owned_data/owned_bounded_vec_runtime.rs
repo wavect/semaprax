@@ -170,6 +170,150 @@ fn main() -> i64 {
 }
 "#;
 
+const FOR_EACH_COPY_SCALARS: &str = r#"
+module test.owned_vec_for_each;
+
+@id("vec.for-each.empty")
+fn empty_oracle() -> i64 {
+    let empty = vec_with_capacity<i64>(0usize);
+    let mut rolling = 7;
+    for item in empty { rolling = rolling * 31 + item; 0 }
+    rolling
+}
+
+@id("vec.for-each.one")
+fn one_oracle() -> i64 {
+    let one_base = vec_with_capacity<i64>(1usize);
+    let one = vec_push<i64>(one_base, 4);
+    let mut rolling = 7;
+    for item in one { rolling = rolling * 31 + item; 0 }
+    rolling
+}
+
+@id("vec.for-each.many")
+fn many_oracle() -> i64 {
+    let many_base = vec_with_capacity<i64>(4usize);
+    let many_1 = vec_push<i64>(many_base, 1);
+    let many_2 = vec_push<i64>(many_1, 2);
+    let many = vec_push<i64>(many_2, 3);
+    let mut rolling = 7;
+    for item in many { rolling = rolling * 31 + item; 0 }
+    rolling
+}
+
+@id("vec.for-each.full")
+fn full_oracle() -> i64 {
+    let full_base = vec_with_capacity<i64>(3usize);
+    let full_1 = vec_push<i64>(full_base, 5);
+    let full_2 = vec_push<i64>(full_1, 6);
+    let full = vec_push<i64>(full_2, 7);
+    let mut rolling = 7;
+    for item in full { rolling = rolling * 31 + item; 0 }
+    rolling
+}
+
+@id("vec.for-each.i32")
+fn i32_oracle() -> i64 {
+    let i32_base = vec_with_capacity<i32>(1usize);
+    let i32s = vec_push<i32>(i32_base, 11i32);
+    let mut observed = 9;
+    for item in i32s { observed = if item == 11i32 { 1 } else { 9 }; 0 }
+    observed
+}
+
+@id("vec.for-each.u8")
+fn u8_oracle() -> i64 {
+    let u8_base = vec_with_capacity<u8>(1usize);
+    let u8s = vec_push<u8>(u8_base, 12u8);
+    let mut observed = 9;
+    for item in u8s { observed = if item == 12u8 { 2 } else { 9 }; 0 }
+    observed
+}
+
+@id("vec.for-each.usize")
+fn usize_oracle() -> i64 {
+    let usize_base = vec_with_capacity<usize>(1usize);
+    let usizes = vec_push<usize>(usize_base, 13usize);
+    let mut observed = 9;
+    for item in usizes { observed = if item == 13usize { 3 } else { 9 }; 0 }
+    observed
+}
+
+@id("vec.for-each.char")
+fn char_oracle() -> i64 {
+    let char_base = vec_with_capacity<char>(1usize);
+    let chars = vec_push<char>(char_base, 'Q');
+    let mut observed = 9;
+    for item in chars { observed = if item == 'Q' { 4 } else { 9 }; 0 }
+    observed
+}
+
+@id("vec.for-each.f32")
+fn f32_oracle() -> i64 {
+    let f32_base = vec_with_capacity<f32>(1usize);
+    let f32s = vec_push<f32>(f32_base, 1.25f32);
+    let mut observed = 9;
+    for item in f32s { observed = if item == 1.25f32 { 5 } else { 9 }; 0 }
+    observed
+}
+
+@id("vec.for-each.f64")
+fn f64_oracle() -> i64 {
+    let f64_base = vec_with_capacity<f64>(1usize);
+    let f64s = vec_push<f64>(f64_base, 2.5);
+    let mut observed = 9;
+    for item in f64s { observed = if item == 2.5 { 6 } else { 9 }; 0 }
+    observed
+}
+
+@id("vec.for-each.bool")
+fn bool_oracle() -> i64 {
+    let bool_base = vec_with_capacity<bool>(1usize);
+    let bools = vec_push<bool>(bool_base, true);
+    let mut observed = 9;
+    for item in bools { observed = if item { 7 } else { 9 }; 0 }
+    observed
+}
+
+@id("vec.for-each")
+fn main() -> i64 {
+    if empty_oracle() == 7
+        && one_oracle() == 221
+        && many_oracle() == 209563
+        && full_oracle() == 213535
+        && i32_oracle() == 1
+        && u8_oracle() == 2
+        && usize_oracle() == 3
+        && char_oracle() == 4
+        && f32_oracle() == 5
+        && f64_oracle() == 6
+        && bool_oracle() == 7
+    { 7 } else { 1 }
+}
+"#;
+
+const FOR_EACH_PARTIAL_FAILURE: &str = r#"
+module test.owned_vec_for_each_failure;
+
+@id("vec.for-each.accept")
+fn accept(value: i64) -> i64
+    requires value != 2
+{
+    value
+}
+
+@id("vec.for-each.failure")
+fn main() -> i64 {
+    let base = vec_with_capacity<i64>(3usize);
+    let first = vec_push<i64>(base, 1);
+    let second = vec_push<i64>(first, 2);
+    let values = vec_push<i64>(second, 3);
+    let mut rolling = 0;
+    for item in values { rolling = rolling * 31 + accept(item); 0 }
+    rolling
+}
+"#;
+
 #[test]
 fn owned_bounded_vec_copy_scalars_run_all_engines_without_owner_copy() {
     let ast = parse(SOURCE, "owned-bounded-vec-runtime.spx").unwrap();
@@ -744,6 +888,299 @@ WebAssembly.instantiate(bytes,{env}).then(({instance})=>{
             "Core-Wasm: {}",
             String::from_utf8_lossy(&output.stderr)
         );
+    }
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn for_each_copy_scalars_preserves_order_settlement_and_reentry_on_every_engine() {
+    const EXPECTED: i64 = 7;
+    let success_ast = parse(FOR_EACH_COPY_SCALARS, "owned-vec-for-each.spx").unwrap();
+    let success_hir = hir::resolve(&success_ast).unwrap();
+    for element in [
+        hir::ResolvedType::I64,
+        hir::ResolvedType::I32,
+        hir::ResolvedType::U8,
+        hir::ResolvedType::Usize,
+        hir::ResolvedType::Char,
+        hir::ResolvedType::F32,
+        hir::ResolvedType::F64,
+        hir::ResolvedType::Bool,
+    ] {
+        let facts = success_hir
+            .declarations
+            .type_facts(&hir::ResolvedType::Nominal {
+                declaration: hir::DeclarationId::new("core.vec"),
+                arguments: vec![element],
+            })
+            .unwrap();
+        assert!(facts.sized && facts.needs_drop && !facts.copy);
+    }
+
+    let failure_ast = parse(FOR_EACH_PARTIAL_FAILURE, "owned-vec-for-each-failure.spx").unwrap();
+    hir::resolve(&failure_ast).unwrap();
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-owned-vec-for-each-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let success_source = root.join("success.spx");
+    let failure_source = root.join("failure.spx");
+    std::fs::write(&success_source, FOR_EACH_COPY_SCALARS).unwrap();
+    std::fs::write(&failure_source, FOR_EACH_PARTIAL_FAILURE).unwrap();
+
+    for _ in 0..4 {
+        let outcome = interpreter::interpret(
+            &success_source,
+            "vec.for-each",
+            &[],
+            &interpreter::InterpreterOptions::default(),
+        )
+        .unwrap();
+        assert!(outcome.returned);
+        assert!(
+            outcome
+                .envelope
+                .contains(&format!("\"value\":\"{EXPECTED}\"")),
+            "{}",
+            outcome.envelope
+        );
+
+        let failure = interpreter::interpret(
+            &failure_source,
+            "vec.for-each.failure",
+            &[],
+            &interpreter::InterpreterOptions::default(),
+        )
+        .unwrap();
+        assert!(!failure.returned);
+        let envelope: serde_json::Value = serde_json::from_str(&failure.envelope).unwrap();
+        assert_eq!(
+            envelope["payload"]["outcome"]["status"]["domain_id"],
+            "semaprax.contract.v1"
+        );
+        assert_eq!(envelope["payload"]["outcome"]["status"]["code"], 1);
+    }
+
+    let success_c = codegen::emit_c(&success_ast).unwrap();
+    let failure_c = codegen::emit_c(&failure_ast).unwrap();
+    for generated in [&success_c, &failure_c] {
+        assert!(!generated.contains("memcpy(result, source"));
+        assert!(!generated.contains("*result = *source"));
+        assert!(!generated.contains("spx_vec_v1 moved = *source;\n    *result = moved"));
+    }
+    let success_c_path = root.join("success.c");
+    let failure_c_path = root.join("failure.c");
+    std::fs::write(&success_c_path, &success_c).unwrap();
+    std::fs::write(&failure_c_path, &failure_c).unwrap();
+    let tracked_failure_c = failure_c
+        .replace("calloc(", "spx_test_calloc(")
+        .replace("free(payload);", "spx_test_free(payload);");
+    let allocator_probe = r#"
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+static uint64_t spx_test_live_allocations = UINT64_C(0);
+static void *spx_test_calloc(size_t count, size_t size) {
+  void *allocation = calloc(count, size);
+  if (allocation != NULL) spx_test_live_allocations += UINT64_C(1);
+  return allocation;
+}
+static void spx_test_free(void *allocation) {
+  if (allocation != NULL) {
+    if (spx_test_live_allocations == UINT64_C(0)) abort();
+    spx_test_live_allocations -= UINT64_C(1);
+    free(allocation);
+  }
+}
+"#;
+    let failure_probe = r#"
+int main(void) {
+  struct spx_status_entry entries[UINT32_C(8)];
+  struct spx_context context = {0};
+  if (!spx_context_init(&context, UINT64_C(17), entries, UINT32_C(8), NULL, NULL, NULL)) return 1;
+  for (uint32_t iteration = 0; iteration < UINT32_C(4); ++iteration) {
+    int64_t result = INT64_C(0x2525252525252525);
+    uint32_t before = context.status_arena.length;
+    spx_status_token status = spx_decl_7665632e666f722d656163682e6661696c757265(&context, &result);
+    const struct spx_normalized_status *resolved = spx_status_resolve(&context, status);
+    if (status == SPX_STATUS_SUCCESS || resolved == NULL ||
+        strcmp(resolved->domain_id, "semaprax.contract.v1") != 0 ||
+        resolved->code != UINT32_C(1) ||
+        result != INT64_C(0x2525252525252525)) return 2;
+    if (context.status_arena.length != before + UINT32_C(1) ||
+        context.call_depth != UINT32_C(0) ||
+        spx_test_live_allocations != UINT64_C(0)) return 3;
+    for (uint32_t slot = 0; slot < SPX_VEC_AUTHORITY_CAPACITY; ++slot) {
+      const struct spx_vec_authority_entry *entry = &context.vec_authority[slot];
+      if (entry->ptr != NULL || entry->len != UINT64_C(0) ||
+          entry->capacity != UINT64_C(0) || entry->generation != UINT64_C(0) ||
+          entry->type_tag != UINT32_C(0) || entry->live) return 4;
+    }
+  }
+  return 0;
+}
+"#;
+    assert!(Command::new("clang").arg("--version").output().is_ok());
+    for optimization in ["-O0", "-O2"] {
+        let success_binary = root.join(format!("success-{optimization}"));
+        let compiled = Command::new("clang")
+            .args(["-std=c11", "-Wall", "-Wextra", "-Werror", optimization])
+            .arg(&success_c_path)
+            .arg("-o")
+            .arg(&success_binary)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "success/{optimization}: {}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        for _ in 0..4 {
+            let output = Command::new(&success_binary).output().unwrap();
+            assert!(output.status.success(), "success/{optimization}");
+            assert_eq!(
+                String::from_utf8_lossy(&output.stdout).trim(),
+                EXPECTED.to_string()
+            );
+        }
+
+        let failure_binary = root.join(format!("failure-{optimization}"));
+        let compiled = Command::new("clang")
+            .args(["-std=c11", "-Wall", "-Wextra", "-Werror", optimization])
+            .arg(&failure_c_path)
+            .arg("-o")
+            .arg(&failure_binary)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "failure/{optimization}: {}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        for _ in 0..4 {
+            let output = Command::new(&failure_binary).output().unwrap();
+            assert_eq!(output.status.code(), Some(70), "failure/{optimization}");
+            let newline = if cfg!(windows) { "\r\n" } else { "\n" };
+            assert_eq!(
+                String::from_utf8_lossy(&output.stderr),
+                format!(
+                    "SEMAPRAX contract failure{newline}  contract: requires value != 2 in vec.for-each.accept{newline}  arguments: value = 2{newline}"
+                )
+            );
+        }
+
+        let probe_source = root.join(format!("failure-probe-{optimization}.c"));
+        let probe_binary = root.join(format!("failure-probe-{optimization}"));
+        std::fs::write(
+            &probe_source,
+            format!("{allocator_probe}\n{tracked_failure_c}\n{failure_probe}"),
+        )
+        .unwrap();
+        let compiled = Command::new("clang")
+            .args([
+                "-std=c11",
+                "-Wall",
+                "-Wextra",
+                "-Werror",
+                optimization,
+                "-DSPX_NO_ENTRY_WRAPPER",
+            ])
+            .arg(&probe_source)
+            .arg("-o")
+            .arg(&probe_binary)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "failure probe/{optimization}: {}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let output = Command::new(&probe_binary).output().unwrap();
+        assert!(
+            output.status.success(),
+            "failure probe/{optimization}: exit {:?}",
+            output.status.code()
+        );
+    }
+
+    let success_wasm = wasm::emit_module(&success_ast).unwrap();
+    let failure_wasm = wasm::emit_module(&failure_ast).unwrap();
+    for module in [&success_wasm, &failure_wasm] {
+        for payload in wasmparser::Parser::new(0).parse_all(module) {
+            if let wasmparser::Payload::CodeSectionEntry(body) = payload.unwrap() {
+                let mut operators = body.get_operators_reader().unwrap();
+                while !operators.eof() {
+                    assert!(!matches!(
+                        operators.read().unwrap(),
+                        wasmparser::Operator::MemoryCopy { .. }
+                            | wasmparser::Operator::MemoryGrow { .. }
+                    ));
+                }
+            }
+        }
+    }
+    if Command::new("node").arg("--version").output().is_ok() {
+        let success_wasm_path = root.join("success.wasm");
+        let failure_wasm_path = root.join("failure.wasm");
+        std::fs::write(&success_wasm_path, success_wasm).unwrap();
+        std::fs::write(&failure_wasm_path, failure_wasm).unwrap();
+        let script = r#"
+const fs=require('fs');
+const bytes=fs.readFileSync(process.argv[1]);
+const mode=process.argv[2];
+const expected=7n;
+let next=1n;
+const entries=new Map();
+const key=value=>{if(typeof value!=='bigint'||value===0n)throw Error('carrier');return value.toString()};
+const read=(value,tag)=>{const entry=entries.get(key(value));if(!entry||entry.tag!==tag)throw Error('stale-or-type');return entry};
+const alloc=(tag,capacity,values=[])=>{const token=next++;entries.set(key(token),{tag,capacity,values});return token};
+const env={
+  spx_add:(a,b)=>a+b,spx_sub:(a,b)=>a-b,spx_mul:(a,b)=>a*b,
+  spx_div:(a,b)=>a/b,spx_rem:(a,b)=>a%b,spx_neg:a=>-a,
+  spx_contract_fail:selector=>{if(selector!==9)throw Error(`selector:${selector}`);throw Object.assign(Error('SEMAPRAX contract failure'),{domain_id:'semaprax.contract.v1',code:1})},
+  spx_vec_with_capacity:(tag,capacity)=>{const n=Number(capacity);return Number.isSafeInteger(n)&&n>=0&&n<=8192?alloc(tag,n):0n},
+  spx_vec_push:(source,tag,bits)=>{const old=read(source,tag);if(old.values.length>=old.capacity)return 0n;const values=old.values.concat([bits]);entries.delete(key(source));return alloc(tag,old.capacity,values)},
+  spx_vec_len:(source,tag)=>BigInt(read(source,tag).values.length),
+  spx_vec_capacity:(source,tag)=>BigInt(read(source,tag).capacity),
+  spx_vec_get:(source,tag,index)=>{const entry=read(source,tag),n=Number(index);if(!Number.isSafeInteger(n)||n<0||n>=entry.values.length)throw Error('oob');return entry.values[n]},
+  spx_vec_drop:source=>{if(!entries.delete(key(source)))throw Error('double-drop')}
+};
+WebAssembly.instantiate(bytes,{env}).then(({instance})=>{
+  for(let i=0;i<4;i+=1){
+    if(mode==='success'){
+      const value=instance.exports.semaprax_main();
+      if(value!==expected)throw Error(`order:${value}`);
+    }else{
+      let failed=false;
+      try{instance.exports.semaprax_main()}catch(error){
+        if(error.domain_id!=='semaprax.contract.v1'||error.code!==1||error.message!=='SEMAPRAX contract failure')throw error;
+        failed=true;
+      }
+      if(!failed)throw Error('missing failure');
+    }
+    if(entries.size!==0)throw Error(`retained:${entries.size}`);
+  }
+}).catch(error=>{console.error(error);process.exit(2)});
+"#;
+        for (mode, path) in [
+            ("success", &success_wasm_path),
+            ("failure", &failure_wasm_path),
+        ] {
+            let output = Command::new("node")
+                .arg("-e")
+                .arg(script)
+                .arg(path)
+                .arg(mode)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{mode} Core-Wasm: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
     }
     let _ = std::fs::remove_dir_all(root);
 }

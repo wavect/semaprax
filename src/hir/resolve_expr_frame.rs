@@ -175,6 +175,17 @@ pub(super) enum Frame<'expr> {
         condition: Box<ResolvedExpr>,
         condition_span: Span,
     },
+    BlockForBody {
+        span: Span,
+        path: String,
+        statements: &'expr [Statement],
+        tail: &'expr Expr,
+        index: usize,
+        scope: Rc<BTreeMap<String, Binding>>,
+        resolved: Vec<ResolvedStatement>,
+        source: ResolvedBinding,
+        element: ResolvedType,
+    },
     FinishBlock {
         span: Span,
         path: String,
@@ -408,6 +419,7 @@ pub(super) fn frame_owned_capacity(
         | Frame::BlockAfterUnsafe { path, .. }
         | Frame::BlockWhileCondition { path, .. }
         | Frame::BlockWhileBody { path, .. }
+        | Frame::BlockForBody { path, .. }
         | Frame::FinishBlock { path, .. }
         | Frame::FinishIf { path, .. }
         | Frame::AfterIfCondition { path, .. }
@@ -470,6 +482,7 @@ pub(super) fn frame_owned_capacity(
         | Frame::BlockAfterUnsafe { scope, .. }
         | Frame::BlockWhileCondition { scope, .. }
         | Frame::BlockWhileBody { scope, .. } => unique_scope_capacity(scope),
+        Frame::BlockForBody { scope, .. } => unique_scope_capacity(scope),
         _ => 0,
     };
     let retained = match frame {
@@ -512,6 +525,7 @@ pub(super) fn frame_owned_capacity(
         | Frame::BlockAfterUnsafe { resolved, .. }
         | Frame::BlockWhileCondition { resolved, .. }
         | Frame::BlockWhileBody { resolved, .. }
+        | Frame::BlockForBody { resolved, .. }
         | Frame::FinishBlock {
             statements: resolved,
             ..

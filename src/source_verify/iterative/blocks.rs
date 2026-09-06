@@ -390,7 +390,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             }
             // While statements never route through this frame:
             // they complete through ResumeWhileBody instead.
-            Statement::While { .. } => {}
+            Statement::While { .. } | Statement::For { .. } => {}
         }
         // Most blocks have no borrowed local at all. Avoid rescanning every
         // accumulated scalar binding after each statement in that common
@@ -494,6 +494,153 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             statements.get(index + 1..).unwrap_or_default(),
             tail,
         );
+        self.advance_block_statement(
+            expression,
+            statements,
+            tail,
+            parent_scope,
+            block_scope,
+            index,
+            outer_names,
+        );
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn frame_resume_for_source(
+        &mut self,
+        expression: &'p Expr,
+        statements: &'p [Statement],
+        tail: &'p Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        item: &'p str,
+        item_span: Span,
+        values: &'p Expr,
+        body: &'p Expr,
+    ) -> Result<(), Diagnostic> {
+        let actual = self.values.pop().unwrap_or(None);
+        let source = match &values.kind {
+            crate::ast::ExprKind::Var(name) => Some(name.as_str()),
+            _ => None,
+        };
+        let element = actual.as_ref().and_then(|actual| match &actual.ty {
+            Type::Named { name, arguments }
+                if name == "Vec" && matches!(arguments.as_slice(), [ty] if crate::vec_ops::ast_element_is_admitted(ty)) =>
+            {
+                Some(arguments[0].clone())
+            }
+            _ => None,
+        });
+        if source.is_none() || element.is_none() {
+            self.diagnostics.push(error(
+                self.program,
+                "SPX-T284",
+                "for traversal requires a simple immutable binding of exact Vec<T> for a Copy scalar T",
+                values.span,
+            ));
+        }
+        if let Some(source) = source {
+            if self.scopes[block_scope]
+                .bindings
+                .get(source)
+                .is_some_and(|binding| binding.mutable)
+            {
+                self.diagnostics.push(error(
+                    self.program,
+                    "SPX-T284",
+                    "for traversal source must be an immutable Vec binding",
+                    values.span,
+                ));
+            }
+            let _ = self.reject_for_body_disallowed(body, source);
+        }
+        let _ = self.reject_while_disallowed(body);
+        let item_inserted = !self.scopes[block_scope].bindings.contains_key(item);
+        if !item_inserted {
+            self.diagnostics.push(error(
+                self.program,
+                "SPX-T209",
+                format!("loop item `{item}` shadows an existing value"),
+                item_span,
+            ));
+        }
+        if item_inserted {
+            if let Some(element) = element {
+                self.scopes[block_scope].bindings.insert(
+                    item.to_owned(),
+                    Binding {
+                        ty: element,
+                        mode: ParamMode::Value,
+                        availability: Availability::Available,
+                        moved_places: HashMap::new(),
+                        definitely_partial: HashSet::new(),
+                        native_unit_discard: false,
+                        mutable: false,
+                        active_loans: BTreeSet::new(),
+                        borrow_origin: None,
+                    },
+                );
+            }
+        }
+        self.frames
+            .push(crate::source_verify::scope::VerifierFrame::ResumeForBody {
+                expression,
+                statements,
+                tail,
+                parent_scope,
+                block_scope,
+                index,
+                outer_names,
+                item,
+                item_inserted,
+                source,
+            });
+        self.frames
+            .push(crate::source_verify::scope::VerifierFrame::Enter {
+                expression: body,
+                scope: block_scope,
+            });
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn frame_resume_for_body(
+        &mut self,
+        expression: &'p Expr,
+        statements: &'p [Statement],
+        tail: &'p Expr,
+        parent_scope: usize,
+        block_scope: usize,
+        index: usize,
+        outer_names: Vec<String>,
+        item: &str,
+        item_inserted: bool,
+        source: Option<&str>,
+    ) -> Result<(), Diagnostic> {
+        let _ = self.values.pop();
+        if item_inserted {
+            self.scopes[block_scope].bindings.remove(item);
+        }
+        if let Some(source) = source {
+            let changed = self.scopes[block_scope]
+                .bindings
+                .get(source)
+                .is_none_or(|after| {
+                    after.availability != Availability::Available
+                        || !after.moved_places.is_empty()
+                        || !after.definitely_partial.is_empty()
+                });
+            if changed {
+                self.diagnostics.push(error(
+                    self.program, "SPX-T284",
+                    format!("for traversal source `{source}` cannot be consumed or mutated in the loop body"),
+                    statements[index].child(1).map_or(Span::default(), |body| body.span),
+                ));
+            }
+        }
         self.advance_block_statement(
             expression,
             statements,

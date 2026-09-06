@@ -165,6 +165,13 @@ impl Resolver<'_> {
                         pending.push(Item::Expression(condition));
                         continue;
                     }
+                    Statement::For { span, .. } => {
+                        return Err(self.error(
+                            "SPX-H006",
+                            "nested for traversal reached bounded-loop HIR admission",
+                            *span,
+                        ));
+                    }
                 },
                 Item::Expression(expression) => expression,
             };

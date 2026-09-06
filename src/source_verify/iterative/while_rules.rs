@@ -6,6 +6,68 @@ use crate::source_verify::diagnostics::{error, is_scalar_source_type};
 use crate::source_verify::IterativeVerifier;
 
 impl<'a, 'p> IterativeVerifier<'a, 'p> {
+    pub(super) fn reject_for_body_disallowed(
+        &mut self,
+        body: &'p Expr,
+        source: &str,
+    ) -> Result<(), ()> {
+        enum Item<'a> {
+            Expr(&'a Expr),
+            Statement(&'a Statement),
+        }
+        let mut pending = vec![Item::Expr(body)];
+        while let Some(item) = pending.pop() {
+            match item {
+                Item::Statement(Statement::Assign { name, span, .. }) if name == source => {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T284",
+                        "for traversal source cannot be rebound or mutated in the loop body",
+                        *span,
+                    ));
+                    return Err(());
+                }
+                Item::Statement(Statement::For { span, .. }) => {
+                    self.diagnostics.push(error(
+                        self.program,
+                        "SPX-T284",
+                        "nested for traversal is not admitted in this bounded profile",
+                        *span,
+                    ));
+                    return Err(());
+                }
+                Item::Statement(statement) => {
+                    for index in (0..statement.child_count()).rev() {
+                        if let Some(child) = statement.child(index) {
+                            pending.push(Item::Expr(child));
+                        }
+                    }
+                }
+                Item::Expr(expression) => {
+                    if let ExprKind::Call { name, args, .. } = &expression.kind {
+                        let consumes_source = crate::vec_ops::by_name(name).is_some_and(|op| {
+                            op.param_ownership(0) == crate::hir::OwnershipMode::Own
+                                && matches!(args.first().map(|arg| &arg.kind), Some(ExprKind::Var(name)) if name == source)
+                        });
+                        if consumes_source {
+                            self.diagnostics.push(error(
+                                self.program, "SPX-T284",
+                                "for traversal source cannot be consumed or mutated in the loop body",
+                                expression.span,
+                            ));
+                            return Err(());
+                        }
+                    }
+                    if let ExprKind::Block { statements, tail } = &expression.kind {
+                        pending.extend(statements.iter().rev().map(Item::Statement));
+                        pending.push(Item::Expr(tail));
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
     /// Bounded While-Loops v1 plus Indexed Byte Loop v2 admission profile: a
     /// loop condition or body may contain Copy-scalar operations — scalar
     /// literals, names, checked
@@ -60,6 +122,15 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                         frames.push(Frame::Expression(body));
                         frames.push(Frame::Expression(condition));
                         continue;
+                    }
+                    Statement::For { span, .. } => {
+                        self.diagnostics.push(error(
+                            self.program,
+                            "SPX-T284",
+                            "nested for traversal is not admitted in this bounded profile",
+                            *span,
+                        ));
+                        return Err(());
                     }
                 },
                 Frame::Expression(expression) => expression,

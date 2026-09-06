@@ -98,6 +98,7 @@ mod resolve_expr;
 mod resolve_expr_frame;
 #[cfg(test)]
 mod resolve_expr_reference;
+mod resolve_for;
 mod resolve_pattern;
 mod resolve_program;
 mod resolve_statement;

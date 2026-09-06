@@ -8,6 +8,20 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Specified Owned Bounded Vec For Traversal v1: the source form
+  `for item in values { body }` accepts one simple immutable `Vec<T>` binding
+  over the existing eight Copy scalars, snapshots its length once, visits
+  indices in ascending order, freezes the source, and discards each body
+  result. Resolver lowering reuses the existing len/get/while HIR, so this adds
+  no stable identity, schema, prelude or backend operation, standard-library
+  declaration, or public ABI. Focused local language and all-engine runtime
+  selectors pass; hosted evidence remains required before promotion. The
+  lowering has no origin marker, so ordinary HIR-node validation applies
+  instead of a traversal-specific canonical-shape rule. This is not Iterator
+  support: objects, `next`,
+  adapters, closures, associated types, lifetime inference, consuming
+  traversal, owned elements, and `std.iter` remain open.
+
 ## 0.4.0 — 2026-09-06
 
 - Added bounded acyclic generic-to-generic forwarding between already-admitted

@@ -36,8 +36,6 @@ impl Resolver<'_> {
         bindings: &BTreeMap<String, Binding>,
         path: &str,
     ) -> Result<ResolvedExpr, Diagnostic> {
-        // Refutable Match v1 grew `ResolvedMatchPattern` (Literal/Or/
-        // Binding), which grows this frame's arm-pattern payload.
         const { assert!(std::mem::size_of::<Frame<'static>>() == 592) };
         let mut frames = vec![Frame::Enter {
             expr,
@@ -210,10 +208,6 @@ impl Resolver<'_> {
                                 segment: "native-rust-arg",
                             });
                         } else if let Some(op) = crate::string_ops::by_name(name) {
-                            // Compiler-owned string operations resolve to
-                            // ordinary monomorphic calls carrying their
-                            // reserved `core.string.*` identity; backends
-                            // lower that identity intrinsically.
                             if !type_arguments.is_empty() {
                                 return Err(self.error(
                                     "SPX-H006",
@@ -712,8 +706,6 @@ impl Resolver<'_> {
                                 path: path.clone(),
                             });
                         }
-                        // The receiver lowers to the call's first argument, so
-                        // it carries the canonical `.arg.0` identity slot.
                         frames.push(Frame::Enter {
                             expr: receiver,
                             bindings,
@@ -725,9 +717,6 @@ impl Resolver<'_> {
                         method_span,
                         args,
                     } => {
-                        // `super` resolves against the enclosing class-method's
-                        // owner; the enclosing method's own receiver becomes
-                        // the callee's `self` argument.
                         let FunctionExecutionId::Monomorphic(template) = function else {
                             return Err(self.error(
                                 "SPX-T231",
@@ -1157,8 +1146,6 @@ impl Resolver<'_> {
                             bindings: bindings.clone(),
                             path: path.clone(),
                         });
-                        // Method arguments lower to call slots shifted by one
-                        // so the receiver owns `.arg.0`.
                         frames.push(Frame::Enter {
                             expr: &args[index],
                             bindings,
@@ -1168,8 +1155,6 @@ impl Resolver<'_> {
                 }
                 Frame::FinishUnary { span, path, op } => {
                     let value = results.pop().expect("unary child result retained");
-                    // Negation keeps the numeric operand type; the validator
-                    // and backends fail closed on any other shape.
                     let ty = match (&op, &value.ty) {
                         (UnaryOp::Neg, ResolvedType::F32) => ResolvedType::F32,
                         (UnaryOp::Neg, ResolvedType::F64) => ResolvedType::F64,
@@ -1192,8 +1177,6 @@ impl Resolver<'_> {
                     let mut children = take_results(&mut results, 2).into_iter();
                     let left = children.next().expect("binary left result retained");
                     let right = children.next().expect("binary right result retained");
-                    // Arithmetic keeps the numeric operand type; the validator
-                    // and backends reject mixed or float-remainder shapes.
                     let ty = match (&op, &left.ty) {
                         (
                             BinaryOp::Add | BinaryOp::Sub | BinaryOp::Mul | BinaryOp::Div,
@@ -1349,10 +1332,6 @@ impl Resolver<'_> {
                                 });
                             }
                             Statement::Unsafe { body, .. } => {
-                                // The body is an ordinary safe block; it
-                                // resolves with the enclosing scope and its
-                                // result is admitted (or rejected) when the
-                                // boundary statement is assembled.
                                 frames.push(Frame::BlockAfterUnsafe {
                                     span,
                                     path: path.clone(),
@@ -1371,9 +1350,6 @@ impl Resolver<'_> {
                             Statement::While {
                                 condition, body, ..
                             } => {
-                                // Bounded While-Loops v1: admit only the
-                                // Copy-scalar profile before resolving, so a
-                                // loop can never introduce cleanup structure.
                                 self.reject_while_disallowed(condition)?;
                                 self.reject_while_disallowed(body)?;
                                 frames.push(Frame::BlockWhileCondition {
@@ -1393,6 +1369,23 @@ impl Resolver<'_> {
                                     path: format!("{path}.s{index}.condition"),
                                 });
                             }
+                            Statement::For {
+                                item, values, body, ..
+                            } => super::resolve_for::schedule(
+                                self,
+                                function,
+                                &mut frames,
+                                span,
+                                &path,
+                                statements,
+                                tail,
+                                index,
+                                scope,
+                                resolved,
+                                item,
+                                values,
+                                body,
+                            )?,
                         }
                     }
                 }
@@ -1418,11 +1411,6 @@ impl Resolver<'_> {
                         unreachable!("let frame resumes at a let statement")
                     };
                     let statement_path = format!("{path}.s{index}");
-                    // Class Inheritance v1: an explicit declared type accepts
-                    // either the value's exact type or an ancestor class; a
-                    // descendant value is consumed through a prefix upcast
-                    // whose source re-resolves at the canonical `.source`
-                    // identity below the binding slot.
                     if let Some(declared_ast) = declared {
                         let declared_ty = self.resolve_type(declared_ast, *name_span)?;
                         if value.ty != declared_ty {
@@ -1523,9 +1511,6 @@ impl Resolver<'_> {
                     target,
                     target_field,
                 } => {
-                    // The assigned value is fully evaluated before the store;
-                    // exact-type and scalar-Copy admission are checked here so
-                    // failure statuses propagate exactly like initializers.
                     let value = results.pop().expect("assign value result retained");
                     match &target_field {
                         Some((_, field_ty)) => {
@@ -1579,10 +1564,6 @@ impl Resolver<'_> {
                     scope,
                     mut resolved,
                 } => {
-                    // The body block resolved like any ordinary nested block.
-                    // Boundary admission mirrors the mutation checks: the
-                    // discarded body result must be a scalar Copy value so no
-                    // cleanup or ownership semantics are introduced.
                     let body = results.pop().expect("unsafe body result retained");
                     if body.ownership != OwnershipMode::Value || !is_scalar_resolved_type(&body.ty)
                     {
@@ -1626,8 +1607,6 @@ impl Resolver<'_> {
                     scope,
                     resolved,
                 } => {
-                    // The condition is re-evaluated before every iteration and
-                    // must be exactly `bool`.
                     let evaluated = results.pop().expect("while condition result retained");
                     if evaluated.ty != ResolvedType::Bool {
                         return Err(self.error(
@@ -1664,8 +1643,6 @@ impl Resolver<'_> {
                     condition,
                     condition_span,
                 } => {
-                    // The body block resolved like any ordinary nested block;
-                    // its value is discarded by the statement.
                     let body = results.pop().expect("while body result retained");
                     let Statement::While {
                         span: statement_span,
@@ -1689,6 +1666,30 @@ impl Resolver<'_> {
                         resolved,
                     });
                 }
+                Frame::BlockForBody {
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    resolved,
+                    source,
+                    element,
+                } => super::resolve_for::resume(
+                    function,
+                    &mut frames,
+                    &mut results,
+                    span,
+                    path,
+                    statements,
+                    tail,
+                    index,
+                    scope,
+                    resolved,
+                    source,
+                    element,
+                ),
                 Frame::FinishBlock {
                     span,
                     path,

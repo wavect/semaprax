@@ -275,6 +275,10 @@ impl Drop for Program {
                                 expressions.push(*condition);
                                 expressions.push(*body);
                             }
+                            Statement::For { values, body, .. } => {
+                                expressions.push(*values);
+                                expressions.push(*body);
+                            }
                         }
                     }
                 }
@@ -958,6 +962,14 @@ pub enum Statement {
         body: Box<Expr>,
         span: Span,
     },
+    /// Bounded Vec traversal: `for item in values { body }`.
+    For {
+        item: String,
+        item_span: Span,
+        values: Box<Expr>,
+        body: Box<Expr>,
+        span: Span,
+    },
 }
 
 impl Statement {
@@ -969,7 +981,9 @@ impl Statement {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
             Self::Unsafe { body, .. } => body,
-            Self::While { .. } => panic!("while statements expose condition and body children"),
+            Self::While { .. } | Self::For { .. } => {
+                panic!("loop statements expose source/condition and body children")
+            }
         }
     }
 
@@ -978,7 +992,9 @@ impl Statement {
         match self {
             Self::Let { value, .. } | Self::Assign { value, .. } => value,
             Self::Unsafe { body, .. } => body,
-            Self::While { .. } => panic!("while statements expose condition and body children"),
+            Self::While { .. } | Self::For { .. } => {
+                panic!("loop statements expose source/condition and body children")
+            }
         }
     }
 
@@ -987,7 +1003,7 @@ impl Statement {
     pub fn name(&self) -> &str {
         match self {
             Self::Let { name, .. } | Self::Assign { name, .. } => name,
-            Self::Unsafe { .. } | Self::While { .. } => {
+            Self::Unsafe { .. } | Self::While { .. } | Self::For { .. } => {
                 panic!("only let and assignment statements declare a binding")
             }
         }
@@ -1012,7 +1028,7 @@ impl Statement {
     pub fn child_count(&self) -> usize {
         match self {
             Self::Let { .. } | Self::Assign { .. } | Self::Unsafe { .. } => 1,
-            Self::While { .. } => 2,
+            Self::While { .. } | Self::For { .. } => 2,
         }
     }
 
@@ -1024,6 +1040,7 @@ impl Statement {
             Self::While {
                 condition, body, ..
             } => [condition.as_ref(), body.as_ref()].get(index).copied(),
+            Self::For { values, body, .. } => [values.as_ref(), body.as_ref()].get(index).copied(),
         }
     }
 }

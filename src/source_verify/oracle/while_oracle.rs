@@ -377,5 +377,14 @@ pub(super) fn reject_while_disallowed_statement_oracle(
             let body = reject_while_disallowed_oracle(program, body, functions, diagnostics);
             condition.and(body)
         }
+        Statement::For { span, .. } => {
+            diagnostics.push(error(
+                program,
+                "SPX-T284",
+                "nested for traversal is not admitted in this bounded profile",
+                *span,
+            ));
+            Err(())
+        }
     }
 }

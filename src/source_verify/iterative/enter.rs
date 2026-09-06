@@ -616,6 +616,27 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                             condition,
                             body,
                         );
+                    } else if let Statement::For {
+                        item,
+                        item_span,
+                        values,
+                        body,
+                        ..
+                    } = first_statement
+                    {
+                        self.begin_for_statement(
+                            expression,
+                            statements,
+                            tail,
+                            scope,
+                            block_scope,
+                            0,
+                            outer_names,
+                            item,
+                            *item_span,
+                            values,
+                            body,
+                        );
                     } else {
                         self.note_owned_buffer_reopen(first_statement);
                         self.frames.push(VerifierFrame::ResumeBlockStatement {

@@ -296,7 +296,9 @@ fn block_sequence(body: &Expr) -> Option<Sequence> {
 fn statement_item(statement: &Statement) -> Item {
     match statement {
         Statement::Let { span, .. } | Statement::Assign { span, .. } => leaf(*span),
-        Statement::While { body, span, .. } | Statement::Unsafe { body, span, .. } => Item {
+        Statement::While { body, span, .. }
+        | Statement::For { body, span, .. }
+        | Statement::Unsafe { body, span, .. } => Item {
             start: span.start,
             end: span.end,
             body: block_sequence(body),

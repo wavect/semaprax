@@ -5887,6 +5887,22 @@ fn visit_ast_call_sites(
                             visit,
                         )?;
                     }
+                    crate::ast::Statement::For { values, body, .. } => {
+                        visit_ast_call_sites(
+                            values,
+                            &crate::bounded_output::budgeted_format(format_args!(
+                                "{path}.s{index}.values"
+                            )),
+                            visit,
+                        )?;
+                        visit_ast_call_sites(
+                            body,
+                            &crate::bounded_output::budgeted_format(format_args!(
+                                "{path}.s{index}.body"
+                            )),
+                            visit,
+                        )?;
+                    }
                 }
             }
             visit_ast_call_sites(

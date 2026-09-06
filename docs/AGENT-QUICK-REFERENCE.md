@@ -625,6 +625,18 @@ Other first-attempt diagnostics and their fixes:
 | `string_as_str("literal")` | `SPX-T266` | Bind the literal, then pass that binding to `string_as_str` |
 | `String`, `int`, or unsupported `Vec` inference/element types | `SPX-T001`/`SPX-T281` | `string`, `i64`/`i32`/`u8`/`usize`; in a Project prefer the authenticated `std.collections` aliases, and always spell an admitted Copy scalar plus every wrapper or `vec_*<T>` type argument explicitly |
 
+### Bounded Vec traversal
+
+The one admitted collection traversal form is
+`for item in values { body }`, where `values` is a simple immutable `Vec<T>`
+binding and `T` is one of the eight Copy scalars. It snapshots the length once,
+visits elements in ascending index order, freezes `values`, and discards the
+body result. Keep the item immutable and do not move, mutate, or reassign the
+vector inside the body. Computed iterable expressions, owned elements,
+consuming traversal, `break`/`continue`, iterator objects, adapters, and
+closures remain unavailable. See
+[Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md).
+
 ## Projects
 
 A project is a `semaprax.toml` beside a `src/` directory. Write the
@@ -718,6 +730,7 @@ dependencies. See [Project Lock v1](PROJECT-LOCK-V1.md) and
 - [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md): ownership and cleanup.
 - Bounded references for [explicit mutation](EXPLICIT-MUTATION-V1.md),
   [field mutation](FIELD-MUTATION-V1.md), [while loops](WHILE-LOOPS-V1.md),
+  [bounded Vec `for` traversal](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md),
   [refutable match](REFUTABLE-MATCH-V1.md), [string operations](STRING-OPS-V1.md),
   [owned string views](OWNED-STRING-BORROWED-VIEW-V1.md),
   [indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md),

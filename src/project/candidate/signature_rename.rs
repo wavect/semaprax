@@ -171,6 +171,14 @@ impl Rename<'_> {
                             self.expression(condition, &local, next)?;
                             self.expression(body, &local, next)?;
                         }
+                        Statement::For {
+                            item, values, body, ..
+                        } => {
+                            self.expression(values, &local, next)?;
+                            let mut body_scope = local.clone();
+                            self.binding(item, &mut body_scope)?;
+                            self.expression(body, &body_scope, next)?;
+                        }
                     }
                 }
                 self.expression(tail, &local, next)?;

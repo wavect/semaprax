@@ -991,26 +991,24 @@ fn write_expr_measured(
                             write!(output, "@audit(\"").unwrap();
                             write_escaped(&mut output, audit);
                             write!(output, "\") unsafe ").unwrap();
-                            // Unsafe boundary statements are not
-                            // semicolon-terminated by the grammar, so the
-                            // following separator is a bare space.
                             frames.push(Frame::BlockNextAfterUnsafe(statements, tail, index + 1));
-                            // The body is an ordinary block and renders with
-                            // the exact same inline block shape.
                             frames.push(Frame::Expr(body, 0));
                         }
                         Statement::While {
                             condition, body, ..
                         } => {
                             write!(output, "while ").unwrap();
-                            // While statements are not semicolon-terminated;
-                            // like unsafe boundaries they are followed by one
-                            // bare space before the next statement. Frames run
-                            // in reverse push order, so the trailing separator
-                            // is pushed first and the condition last.
                             frames.push(Frame::BlockNextAfterWhile(statements, tail, index + 1));
                             frames.push(Frame::WhileBody(body));
                             frames.push(Frame::Expr(condition, 0));
+                        }
+                        Statement::For {
+                            item, values, body, ..
+                        } => {
+                            write!(output, "for {item} in ").unwrap();
+                            frames.push(Frame::BlockNextAfterWhile(statements, tail, index + 1));
+                            frames.push(Frame::WhileBody(body));
+                            frames.push(Frame::Expr(values, 0));
                         }
                     }
                 } else {
@@ -1496,7 +1494,8 @@ fn statement_start(statement: &Statement) -> usize {
         Statement::Let { span, .. }
         | Statement::Assign { span, .. }
         | Statement::Unsafe { span, .. }
-        | Statement::While { span, .. } => span.start,
+        | Statement::While { span, .. }
+        | Statement::For { span, .. } => span.start,
     }
 }
 
@@ -1564,6 +1563,21 @@ fn write_block_statement(
             writeln!(output, " {{").unwrap();
             let ExprKind::Block { statements, tail } = &body.kind else {
                 unreachable!("while bodies always parse as blocks");
+            };
+            write_block_items(output, statements, tail, depth + 1, placement);
+            placement.closing(output, body.span.end.saturating_sub(1), depth + 1);
+            write_indent(output, depth);
+            writeln!(output, "}}").unwrap();
+        }
+        Statement::For {
+            item, values, body, ..
+        } => {
+            write_indent(output, depth);
+            write!(output, "for {item} in ").unwrap();
+            write_expr(output, values, 0);
+            writeln!(output, " {{").unwrap();
+            let ExprKind::Block { statements, tail } = &body.kind else {
+                unreachable!("for bodies always parse as blocks");
             };
             write_block_items(output, statements, tail, depth + 1, placement);
             placement.closing(output, body.span.end.saturating_sub(1), depth + 1);

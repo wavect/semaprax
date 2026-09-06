@@ -560,6 +560,13 @@ The first `alloc`-tier package, `std.collections`, now has a locally exercised
 exact eight-alias Owned Bounded Vec v1 surface, example, explicit
 eight-Copy-scalar conformance, bundled dependency entry, generated catalogs,
 and no public exports. Iterators and broader collections remain later outcomes.
+The next bounded language tranche adds only source `for item in values { body }`
+over one simple immutable `Vec<T>` binding. It snapshots length once, visits
+Copy elements in ascending index order, freezes the source, discards body
+results, and resolves into the existing len/get/while HIR. This is not an
+iterator abstraction, adds nothing to the package catalog or public ABI, and
+does not advance `std.iter`; iterator interfaces, associated types, adapters,
+closures, consuming traversal, and lifetime inference remain later outcomes.
 
 - build beyond the exact ScalarV1 internal flat generic-owned body profile and
   its no-argument `i64` dependency fixture, whose cross-package and public

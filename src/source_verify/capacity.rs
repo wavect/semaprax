@@ -729,7 +729,9 @@ pub(super) fn source_transcript_source_from_roots(
                                 .roots_mut()
                                 .insert(name.clone(), TranscriptSource::Unknown);
                         }
-                        Statement::Unsafe { .. } | Statement::While { .. } => {}
+                        Statement::Unsafe { .. }
+                        | Statement::While { .. }
+                        | Statement::For { .. } => {}
                     }
                 }
                 if let Some((name, value)) = pending {
@@ -1048,11 +1050,6 @@ fn source_capacity_expr(
                                     crate::byte_data_capacity::MAX_ARRAY_BYTES,
                             })
                         } else if name == crate::byte_ops::ZEROED_NAME {
-                            // Owned Bounded Byte Buffer v1 joins the
-                            // established owned-byte allocation family, so the
-                            // site count, the payload sum, and the standing
-                            // rejection of an allocation reachable from a loop
-                            // all apply without a second accounting rule.
                             Some(CapacityFlow::BytesCopy {
                                 site: path.clone(),
                                 conservative_payload_bytes:
@@ -1406,8 +1403,11 @@ fn source_capacity_expr(
                             BlockUpdate::None,
                         ),
                         Statement::While {
-                            condition, body, ..
-                        } => {
+                            condition: values,
+                            body,
+                            ..
+                        }
+                        | Statement::For { values, body, .. } => {
                             frames.push(Frame::BlockAfter {
                                 statements,
                                 next: next + 1,
@@ -1425,7 +1425,7 @@ fn source_capacity_expr(
                                 direct_destination: false,
                             });
                             frames.push(Frame::Visit {
-                                expression: condition,
+                                expression: values,
                                 path: format!("{statement_path}.condition"),
                                 scope: std::rc::Rc::clone(&scope),
                                 direct_destination: false,

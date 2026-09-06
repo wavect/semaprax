@@ -8,6 +8,25 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extended the bounded concrete generic owned-record relay from its flat
+  carrier to any acyclic authored-record template tree within the existing
+  64-level, 256-owned-leaf, and 4,096-field work limits. Each template has one
+  `own` parameter and an identical return type, requires explicit Copy-scalar
+  arguments, and preserves exact template/instance identity and recursive
+  ownership through source verification and independent HIR validation.
+  Focused local evidence exercises `Box<Pair<Bytes, T>>` and
+  `Pair<Box<Bytes>, T>` across all eight scalars in source/HIR, including
+  representative source and forged-HIR rejection. The representative
+  `bool`/`i64` runtime instances cover success plus
+  requires/ensures/staged-call failure settlement on the interpreter, native
+  C11 `-O0`/`-O2`, and Core-Wasm.
+  Graph v14 and CleanupPlan v7 remain unchanged. The pre-nested-relay
+  generic-owned corpus is hosted green in CI run 34031917437, Ubuntu job
+  101482963175; this additive nested-relay evidence remains local until its own
+  pushed run. Nested-nonflat multiple-owner or non-identical-return
+  composition, Project/package/public ABI exposure, and production support
+  remain closed; the legacy flat generic-function admission is unchanged.
+
 - Admitted the loop-carried owned byte buffer fill. `bytes_set` gains one
   same-owner replacement shape, `buffer = bytes_set(buffer, index, value)`,
   whose assignment target and buffer operand are the same `let mut` binding:

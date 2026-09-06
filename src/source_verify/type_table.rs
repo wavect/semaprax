@@ -8,6 +8,8 @@ use crate::ast::{
 };
 use std::collections::{HashMap, HashSet};
 
+mod nested_generic_function;
+
 /// Class Inheritance v1: resolves a method against a receiver class's
 /// ancestor chain, nearest definition first. Returns the declaring class name
 /// and the method. Cycle-safe; `None` for unknown classes/methods.
@@ -588,6 +590,14 @@ impl<'a> TypeTable<'a> {
                                     && function_parameters.contains(name.as_str()))
                     })
             })
+    }
+
+    pub(super) fn is_nested_owned_byte_record_template(
+        &self,
+        ty: &Type,
+        function_parameters: &HashSet<&str>,
+    ) -> bool {
+        nested_generic_function::is_admitted(self, ty, function_parameters)
     }
 
     /// Exact non-Copy variant profile admitted by Owned Byte Variant Algebra

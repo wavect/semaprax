@@ -3,8 +3,10 @@
 Audience: language, HIR, cleanup, interpreter, native, Wasm, and evidence
 maintainers.
 
-Status: locally exercised internal implementation tranche; hosted promotion is
-not claimed.
+Status: locally exercised internal implementation tranche. The pre-nested-relay
+generic-owned corpus is hosted green in [CI run 34031917437, Ubuntu job
+101482963175](https://github.com/wavect/semaprax/actions/runs/34031917437/job/101482963175);
+the additive nested-relay selectors remain local until their own pushed run.
 
 ## Purpose and boundary
 
@@ -33,6 +35,18 @@ owner-and-index before examining descendants, and the final leaves remain only
 direct `Bytes` or the admitted Copy scalars. One global worklist enforces the
 existing nested-record bounds of 64 record levels, 256 owned leaves, and 4,096
 visited fields; recursive classifier calls may not reset any bound.
+
+The additive owning generic-function relay is narrower than general nested
+generic composition. It admits exactly one `own` parameter whose type is
+identical to the return type and whose shape is any bounded acyclic authored
+record-template tree under the same 64-level, 256-owned-leaf, and 4,096-field
+work limits. Every explicit type argument must be one of the eight Copy
+scalars. The focused corpus exercises `Box<Pair<Bytes, T>>` and
+`Pair<Box<Bytes>, T>` as representative opposite nestings. The call transfers
+the one aggregate owner; it does not copy, split, borrow, project, or expose
+that owner. Exact template identity, owner/index-stable parameters, concrete
+instance identity, recursive field paths, and parameter/result ownership are
+re-derived independently by source verification and HIR validation.
 
 Nonconcrete arguments, `String`, arrays, slices, classes, variants, resources,
 unbounded or cyclic nesting, direct Project exports of generic records, FFI,
@@ -90,6 +104,9 @@ This slice reuses the already-versioned identities it composes:
   bounded nested concrete storage selects the existing CleanupPlan v7 and Graph
   v26 recursive field-path contracts. This tranche adds no cleanup vocabulary
   or schema spelling.
+- The bounded nested owning relay retains program-wide Graph v14 generic
+  template/instance identity and the existing CleanupPlan v7 recursive
+  field-path meaning. It changes neither schema nor serialized vocabulary.
 - Native64 and Wasm32 aggregate layouts substitute fields before computing
   offsets, sizes, alignments, digests, symbols, or carrier operations.
 
@@ -126,16 +143,22 @@ The local gate requires:
 - one cross-file Project-v8 scalar closure retaining `Pair<Bytes, bool>` only
   internally, with repeated Project interpreter entry and test execution,
   generated native C11 execution at `-O0`/`-O2`, and repeated calls from an
-  external Node consumer through the generated npm/Core-Wasm scalar API.
+  external Node consumer through the generated npm/Core-Wasm scalar API; and
+- representative `Box<Pair<Bytes, T>>` and `Pair<Box<Bytes>, T>` one-owner
+  relays with source/HIR identity and hostile-shape checks for all eight
+  explicit Copy-scalar substitutions, plus `bool`/`i64` representative success
+  and requires/ensures/staged-call failure settlement on the interpreter,
+  native C11 `-O0`/`-O2`, and Core-Wasm.
 
 Focused evidence is necessary but does not promote generic ownership broadly.
 Hosted execution, the broader nested destructuring/update/loan corpus,
-generic-function composition beyond the flat relay, direct generic-record
-Project/public consumers, cross-platform ABI compatibility, and distribution
-remain separate completion work. The focused
+generic-function composition beyond the exact bounded one-owner relay, direct
+generic-record Project/public consumers, cross-platform ABI compatibility, and
+distribution remain separate completion work. The focused
 local source/HIR/layout and interpreter/native/Wasm gates exercise the complete
-Copy-scalar set; no hosted execution is claimed until the required Linux CI
-step records a real run.
+Copy-scalar set. The earlier corpus has the hosted run identified above; that
+result predates and does not promote the additive nested relay, whose required
+Linux CI step has not yet recorded its own real run.
 
 ## Project integration prerequisite
 
@@ -175,5 +198,7 @@ v14 or widen the frozen Project-v8/v9/v11 descriptors. It does not admit
 generic variants, nonconcrete or cyclic generic storage, resources, inferred
 type arguments, constraints,
 specialization, mutable or escaping loans, concurrency, or production support.
-It is one bounded internal composition step toward general ownership and public
-ABIs.
+It does not add nested-nonflat templates with multiple owning parameters or a
+non-identical owning result, out-of-bound or cyclic template trees, or a public
+generic ABI. The legacy flat generic-function admission is unchanged. This is
+one bounded internal composition step toward general ownership and public ABIs.

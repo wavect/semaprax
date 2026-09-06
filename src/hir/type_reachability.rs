@@ -9,6 +9,8 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use super::*;
 
+mod nested_generic_function;
+
 pub(crate) fn reachable_authored_types(
     functions: &[LinkedScalarFunction],
     instances: &[ResolvedFunctionInstance],
@@ -637,6 +639,15 @@ pub(super) fn is_flat_owned_byte_record_template(
                                     .is_ok_and(|index| index < parameter_count))
                 })
         })
+}
+
+pub(super) fn is_nested_owned_byte_record_template(
+    declarations: &DeclarationIndex,
+    ty: &ResolvedType,
+    function_owner: &DeclarationId,
+    parameter_count: usize,
+) -> bool {
+    nested_generic_function::is_admitted(declarations, ty, function_owner, parameter_count)
 }
 
 pub(super) fn record_args_ok(

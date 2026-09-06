@@ -229,6 +229,358 @@ fn consume(value: own Pair<Bytes, u8>) -> i64 {
 }
 
 #[test]
+fn legacy_flat_owned_generic_multi_parameter_admission_remains_compatible() {
+    let source = r#"
+module test.generic_flat_multi_owner;
+@id("generic.flat.pair") record Pair<T, U> {
+    @id("generic.flat.pair.payload") payload: T,
+    @id("generic.flat.pair.marker") marker: U,
+}
+@id("generic.flat.choose")
+fn choose<T>(
+    left: own Pair<Bytes, T>,
+    right: own Pair<Bytes, T>,
+    take_left: bool
+) -> Pair<Bytes, T> {
+    if take_left { left } else { right }
+}
+@id("app.main") fn main() -> i64 { 0 }
+"#;
+    let program = parse_source(source);
+    assert!(verify::verify(&program).is_empty());
+    let resolved = hir::resolve(&program).unwrap();
+    hir::validate(&resolved).unwrap();
+    let template = resolved
+        .function_templates
+        .iter()
+        .find(|template| template.id.as_str() == "generic.flat.choose")
+        .unwrap();
+    assert_eq!(
+        template
+            .params
+            .iter()
+            .filter(|parameter| parameter.ownership == hir::OwnershipMode::Own)
+            .count(),
+        2
+    );
+}
+
+fn nested_owned_relay_source(copy_type: &str, copy_value: &str) -> String {
+    format!(
+        r#"
+module test.nested_generic_owned_relay;
+@id("nested.relay.box") record Box<T> {{
+    @id("nested.relay.box.value") value: T,
+}}
+@id("nested.relay.pair") record Pair<T, U> {{
+    @id("nested.relay.pair.left") left: T,
+    @id("nested.relay.pair.right") right: U,
+}}
+@id("nested.relay.box-function")
+fn relay_box<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> {{ value }}
+@id("nested.relay.pair-function")
+fn relay_pair<T>(value: own Pair<Box<Bytes>, T>) -> Pair<Box<Bytes>, T> {{ value }}
+@id("app.main") fn main() -> i64 {{
+    let first = [1u8];
+    let boxed = Box<Pair<Bytes, {copy_type}>> {{
+        value: Pair<Bytes, {copy_type}> {{
+            left: bytes_copy(array_as_slice(first)), right: {copy_value},
+        }},
+    }};
+    let relayed_box = relay_box<{copy_type}>(boxed);
+    let second = [2u8];
+    let paired = Pair<Box<Bytes>, {copy_type}> {{
+        left: Box<Bytes> {{ value: bytes_copy(array_as_slice(second)) }},
+        right: {copy_value},
+    }};
+    let relayed_pair = relay_pair<{copy_type}>(paired);
+    0
+}}
+"#,
+    )
+}
+
+fn nested_owned_relay_depth_source(box_depth: usize) -> String {
+    let mut ty = String::from("Pair<Bytes, T>");
+    for _ in 0..box_depth {
+        ty = format!("Box<{ty}>");
+    }
+    format!(
+        r#"
+module test.nested_generic_relay_depth;
+@id("nested.relay.depth.box") record Box<T> {{
+    @id("nested.relay.depth.box.value") value: T,
+}}
+@id("nested.relay.depth.pair") record Pair<T, U> {{
+    @id("nested.relay.depth.pair.left") left: T,
+    @id("nested.relay.depth.pair.right") right: U,
+}}
+@id("nested.relay.depth.function")
+fn relay<T>(value: own {ty}) -> {ty} {{ value }}
+@id("app.main") fn main() -> i64 {{ 0 }}
+"#,
+    )
+}
+
+fn nested_owned_relay_leaf_source(byte_leaves: usize) -> String {
+    let fields = (0..byte_leaves)
+        .map(|index| format!("    leaf_{index}: Bytes,"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!(
+        r#"
+module test.nested_generic_relay_leaves;
+record Bag {{
+{fields}
+}}
+record Box<T> {{ value: T, }}
+record Pair<T, U> {{ left: T, right: U, }}
+fn relay<T>(value: own Box<Pair<Bag, T>>) -> Box<Pair<Bag, T>> {{ value }}
+fn main() -> i64 {{ 0 }}
+"#,
+    )
+}
+
+fn nominal_type(declaration: &str, arguments: Vec<ResolvedType>) -> ResolvedType {
+    ResolvedType::Nominal {
+        declaration: DeclarationId::new(declaration),
+        arguments,
+    }
+}
+
+#[test]
+fn nested_owning_generic_relays_preserve_exact_instances_for_every_copy_scalar() {
+    for (copy_type, copy_value, resolved_copy) in [
+        ("i64", "7", ResolvedType::I64),
+        ("i32", "7i32", ResolvedType::I32),
+        ("u8", "7u8", ResolvedType::U8),
+        ("usize", "7usize", ResolvedType::Usize),
+        ("char", "'x'", ResolvedType::Char),
+        ("f32", "1.5f32", ResolvedType::F32),
+        ("f64", "1.5f64", ResolvedType::F64),
+        ("bool", "true", ResolvedType::Bool),
+    ] {
+        let source = nested_owned_relay_source(copy_type, copy_value);
+        let program = parse_source(&source);
+        let diagnostics = verify::verify(&program);
+        assert!(
+            diagnostics
+                .iter()
+                .all(|diagnostic| !diagnostic.severity.is_error()),
+            "{copy_type}: {diagnostics:?}"
+        );
+        let canonical = format::canonical(&program);
+        assert_eq!(canonical, format::canonical(&parse_source(&canonical)));
+
+        let resolved = hir::resolve(&program).unwrap();
+        hir::validate(&resolved).unwrap();
+        assert_eq!(resolved.function_templates.len(), 2, "{copy_type}");
+        assert_eq!(resolved.function_instances.len(), 2, "{copy_type}");
+
+        let pair_bytes_copy = nominal_type(
+            "nested.relay.pair",
+            vec![ResolvedType::Bytes, resolved_copy.clone()],
+        );
+        let box_pair = nominal_type("nested.relay.box", vec![pair_bytes_copy]);
+        let box_bytes = nominal_type("nested.relay.box", vec![ResolvedType::Bytes]);
+        let pair_box = nominal_type("nested.relay.pair", vec![box_bytes, resolved_copy.clone()]);
+        for (template_id, expected_type) in [
+            ("nested.relay.box-function", box_pair),
+            ("nested.relay.pair-function", pair_box),
+        ] {
+            let template = resolved
+                .function_templates
+                .iter()
+                .find(|template| template.id.as_str() == template_id)
+                .unwrap();
+            assert_eq!(template.params[0].ownership, hir::OwnershipMode::Own);
+            assert_eq!(template.body.ownership, hir::OwnershipMode::Own);
+            assert_eq!(template.type_parameters.len(), 1);
+            assert_eq!(template.type_parameters[0].index, 0);
+            let template_argument = ResolvedType::TypeParameter {
+                owner: DeclarationId::new(template_id),
+                index: 0,
+            };
+            let expected_template_type = if template_id == "nested.relay.box-function" {
+                nominal_type(
+                    "nested.relay.box",
+                    vec![nominal_type(
+                        "nested.relay.pair",
+                        vec![ResolvedType::Bytes, template_argument],
+                    )],
+                )
+            } else {
+                nominal_type(
+                    "nested.relay.pair",
+                    vec![
+                        nominal_type("nested.relay.box", vec![ResolvedType::Bytes]),
+                        template_argument,
+                    ],
+                )
+            };
+            assert_eq!(template.params[0].ty, expected_template_type);
+            assert_eq!(template.return_type, expected_template_type);
+
+            let instance = resolved
+                .function_instances
+                .iter()
+                .find(|instance| instance.template.as_str() == template_id)
+                .unwrap();
+            assert_eq!(
+                instance.type_arguments,
+                std::slice::from_ref(&resolved_copy)
+            );
+            assert_eq!(
+                instance.id,
+                hir::FunctionInstanceId::derive(
+                    &DeclarationId::new(template_id),
+                    std::slice::from_ref(&resolved_copy)
+                )
+            );
+            assert_eq!(
+                instance.function.params[0].ownership,
+                hir::OwnershipMode::Own
+            );
+            assert_eq!(instance.function.params[0].ty, expected_type);
+            assert_eq!(instance.function.return_type, expected_type);
+            assert_eq!(instance.function.body.ownership, hir::OwnershipMode::Own);
+        }
+    }
+}
+
+#[test]
+fn nested_owning_generic_relay_source_and_hir_boundaries_fail_closed() {
+    let admitted = nested_owned_relay_source("u8", "7u8");
+    for hostile in [
+        admitted.replace("own Box<Pair<Bytes, T>>", "Box<Pair<Bytes, T>>"),
+        admitted.replace("own Pair<Box<Bytes>, T>", "borrow Pair<Box<Bytes>, T>"),
+        admitted.replace("relay_box<u8>(boxed)", "relay_box<string>(boxed)"),
+        admitted.replace("relay_pair<u8>(paired)", "relay_pair(paired)"),
+        admitted.replace("Box<Pair<Bytes, T>>", "Box<Pair<String, T>>"),
+    ] {
+        let diagnostics = error_codes(&hostile);
+        assert!(
+            diagnostics
+                .iter()
+                .any(|code| matches!(*code, "SPX-T224" | "SPX-T225" | "SPX-T268")),
+            "hostile source unexpectedly admitted: {diagnostics:?}\n{hostile}"
+        );
+    }
+
+    let mut resolved = hir::resolve(&parse_source(&admitted)).unwrap();
+    hir::validate(&resolved).unwrap();
+
+    let box_instance_index = resolved
+        .function_instances
+        .iter()
+        .position(|instance| instance.template.as_str() == "nested.relay.box-function")
+        .unwrap();
+    let pair_instance_index = resolved
+        .function_instances
+        .iter()
+        .position(|instance| instance.template.as_str() == "nested.relay.pair-function")
+        .unwrap();
+
+    let mut wrong_argument = resolved.clone();
+    wrong_argument.function_instances[box_instance_index].type_arguments[0] = ResolvedType::String;
+    assert_eq!(hir::validate(&wrong_argument).unwrap_err().code, "SPX-H006");
+
+    let box_template_index = resolved
+        .function_templates
+        .iter()
+        .position(|template| template.id.as_str() == "nested.relay.box-function")
+        .unwrap();
+    let mut wrong_owner = resolved.clone();
+    wrong_owner.function_templates[box_template_index].params[0].ownership =
+        hir::OwnershipMode::Value;
+    assert_eq!(hir::validate(&wrong_owner).unwrap_err().code, "SPX-H006");
+
+    for (owner, index) in [
+        (DeclarationId::new("nested.relay.forged"), 0),
+        (DeclarationId::new("nested.relay.box-function"), 1),
+    ] {
+        let mut wrong_parameter = resolved.clone();
+        let ResolvedType::Nominal { arguments, .. } =
+            &mut wrong_parameter.function_templates[box_template_index].params[0].ty
+        else {
+            panic!("expected Box template");
+        };
+        let ResolvedType::Nominal { arguments, .. } = &mut arguments[0] else {
+            panic!("expected nested Pair template");
+        };
+        arguments[1] = ResolvedType::TypeParameter { owner, index };
+        assert_eq!(
+            hir::validate(&wrong_parameter).unwrap_err().code,
+            "SPX-H006"
+        );
+    }
+
+    let mut wrong_nested_type = resolved.clone();
+    wrong_nested_type.function_instances[box_instance_index]
+        .function
+        .params[0]
+        .ty = nominal_type(
+        "nested.relay.box",
+        vec![nominal_type(
+            "nested.relay.pair",
+            vec![ResolvedType::Bytes, ResolvedType::Bool],
+        )],
+    );
+    assert_eq!(
+        hir::validate(&wrong_nested_type).unwrap_err().code,
+        "SPX-H006"
+    );
+
+    let mut wrong_instance = resolved.clone();
+    wrong_instance.function_instances[box_instance_index].id = wrong_instance.function_instances
+        [pair_instance_index]
+        .id
+        .clone();
+    assert_eq!(hir::validate(&wrong_instance).unwrap_err().code, "SPX-H006");
+
+    resolved.function_instances[pair_instance_index]
+        .function
+        .return_type = ResolvedType::I64;
+    assert_eq!(hir::validate(&resolved).unwrap_err().code, "SPX-H006");
+}
+
+#[test]
+fn nested_owning_generic_relay_uses_the_existing_global_depth_bound() {
+    let exact = parse_source(&nested_owned_relay_depth_source(63));
+    assert!(verify::verify(&exact).is_empty());
+    hir::validate(&hir::resolve(&exact).unwrap()).unwrap();
+
+    let plus_one = error_codes(&nested_owned_relay_depth_source(64));
+    assert!(
+        plus_one
+            .iter()
+            .any(|code| matches!(*code, "SPX-T223" | "SPX-T224")),
+        "nested generic relay depth +1 unexpectedly admitted: {plus_one:?}"
+    );
+}
+
+#[test]
+fn nested_owning_generic_relay_uses_the_existing_global_owned_leaf_bound() {
+    let exact = parse_source(&nested_owned_relay_leaf_source(256));
+    let diagnostics = verify::verify(&exact);
+    assert!(
+        diagnostics
+            .iter()
+            .all(|diagnostic| !diagnostic.severity.is_error()),
+        "{diagnostics:?}"
+    );
+    hir::validate(&hir::resolve(&exact).unwrap()).unwrap();
+
+    let plus_one = error_codes(&nested_owned_relay_leaf_source(257));
+    assert!(
+        plus_one
+            .iter()
+            .any(|code| matches!(*code, "SPX-T223" | "SPX-T224")),
+        "nested generic relay owned-leaf +1 unexpectedly admitted: {plus_one:?}"
+    );
+}
+
+#[test]
 fn direct_scalar_generics_and_owned_relay_template_hostility_keep_stable_diagnostics() {
     let direct = r#"
 module test.direct_u8_stays_closed;

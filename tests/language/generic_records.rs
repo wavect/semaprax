@@ -700,9 +700,9 @@ fn main() -> i64 {
 }
 
 #[test]
-fn nested_generic_owned_records_keep_nonconcrete_and_nonrecord_descendants_closed() {
-    let nonconcrete = r#"
-module test.nested_generic_nonconcrete;
+fn nested_generic_owned_records_keep_nonrelay_and_nonrecord_descendants_closed() {
+    let nested_relay = r#"
+module test.nested_generic_relay;
 @id("nested.box") record Box<T> { @id("nested.box.value") value: T, }
 @id("nested.pair") record Pair<T, U> {
     @id("nested.pair.left") left: T,
@@ -712,7 +712,12 @@ module test.nested_generic_nonconcrete;
 fn reject<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { value }
 @id("app.main") fn main() -> i64 { 0 }
 "#;
-    assert!(errors(nonconcrete).contains(&"SPX-T224"));
+    assert!(errors(nested_relay).is_empty());
+    let nonrelay = nested_relay.replace(
+        "fn reject<T>(value: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { value }",
+        "fn reject<T>(first: own Box<Pair<Bytes, T>>, second: own Box<Pair<Bytes, T>>) -> Box<Pair<Bytes, T>> { first }",
+    );
+    assert!(errors(&nonrelay).contains(&"SPX-T224"));
 
     let resource = r#"
 module test.nested_generic_resource;

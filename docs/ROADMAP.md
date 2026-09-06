@@ -380,8 +380,12 @@ ABIs prematurely.
   retaining the locally exercised flat [Concrete Generic Owned-Byte Records
   v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) composition and its exact
   cross-file Project execution behind the unchanged scalar-only v8 boundary
-  while completing nested generic storage, authored generic variants, broader
-  non-Copy propagation, hosted evidence, and a distinct public generic ABI/v14;
+  plus the bounded acyclic one-owner-identical-return authored-record relay.
+  Its focused local corpus exercises `Box<Pair<Bytes,T>>` and
+  `Pair<Box<Bytes>,T>` over all eight explicit Copy scalars. Next record hosted
+  evidence for those additive selectors while completing general expression
+  composition, authored generic variants, broader non-Copy propagation, and a
+  distinct public generic ABI; Graph v14 and CleanupPlan v7 remain unchanged;
 - complete mutation and generic interactions across interpreter, native, and
   Wasm lanes.
 

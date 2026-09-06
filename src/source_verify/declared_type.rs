@@ -199,7 +199,7 @@ pub(super) fn check_declared_type(
         };
         let admitted_owned_record = types.is_nested_owned_byte_record(&instance);
         let admitted_owned_record_template =
-            types.is_flat_owned_byte_record_template(&instance, parameters);
+            types.is_nested_owned_byte_record_template(&instance, parameters);
         let admitted_owned_variant = types.is_flat_owned_byte_variant(&instance);
         let admitted_vec = name == "Vec"
             && arguments.len() == 1
@@ -283,7 +283,43 @@ pub(super) fn generic_function_owned_record_slot(
         .iter()
         .map(|parameter| parameter.name.as_str())
         .collect::<HashSet<_>>();
-    types.is_flat_owned_byte_record_template(ty, &parameters)
+    types.is_nested_owned_byte_record_template(ty, &parameters)
+}
+
+pub(super) fn generic_function_contains_nested_owned_record_slot(
+    function: &Function,
+    types: &TypeTable<'_>,
+) -> bool {
+    let parameters = function
+        .type_parameters
+        .iter()
+        .map(|parameter| parameter.name.as_str())
+        .collect::<HashSet<_>>();
+    function
+        .params
+        .iter()
+        .map(|parameter| &parameter.ty)
+        .chain(std::iter::once(&function.return_type))
+        .any(|ty| {
+            types.is_nested_owned_byte_record_template(ty, &parameters)
+                && !types.is_flat_owned_byte_record_template(ty, &parameters)
+        })
+}
+
+pub(super) fn generic_function_has_exact_nested_owned_record_relay(
+    function: &Function,
+    types: &TypeTable<'_>,
+) -> bool {
+    let mut owned = function
+        .params
+        .iter()
+        .filter(|parameter| parameter.mode == ParamMode::Own || parameter.ty == Type::String);
+    let Some(parameter) = owned.next() else {
+        return false;
+    };
+    owned.next().is_none()
+        && parameter.ty == function.return_type
+        && generic_function_owned_record_slot(function, &parameter.ty, types)
 }
 
 pub(super) fn generic_function_arguments_are_admitted(
@@ -291,21 +327,28 @@ pub(super) fn generic_function_arguments_are_admitted(
     arguments: &[Type],
     types: &TypeTable<'_>,
 ) -> bool {
-    if arguments.iter().all(direct_function_type_argument) {
+    let nested = generic_function_contains_nested_owned_record_slot(function, types);
+    if arguments.iter().all(direct_function_type_argument) && !nested {
         return true;
     }
-    let has_owned_record_parameter = function.params.iter().any(|param| {
-        param.mode == ParamMode::Own
-            && generic_function_owned_record_slot(function, &param.ty, types)
-    });
-    let has_owned_record_result =
-        generic_function_owned_record_slot(function, &function.return_type, types);
+    let parameters = function
+        .type_parameters
+        .iter()
+        .map(|parameter| parameter.name.as_str())
+        .collect::<HashSet<_>>();
+    let admitted_profile = if nested {
+        generic_function_has_exact_nested_owned_record_relay(function, types)
+    } else {
+        function.params.iter().any(|parameter| {
+            parameter.mode == ParamMode::Own
+                && types.is_flat_owned_byte_record_template(&parameter.ty, &parameters)
+        }) && types.is_flat_owned_byte_record_template(&function.return_type, &parameters)
+    };
     if arguments.len() != function.type_parameters.len()
         || arguments
             .iter()
             .any(|argument| !super::type_table::owned_byte_record_copy_field_is_admitted(argument))
-        || !has_owned_record_parameter
-        || !has_owned_record_result
+        || !admitted_profile
     {
         return false;
     }
@@ -314,8 +357,18 @@ pub(super) fn generic_function_arguments_are_admitted(
             .params
             .iter()
             .filter(|param| param.mode == ParamMode::Own)
-            .all(|param| types.is_flat_owned_byte_record(&param.ty))
-            && types.is_flat_owned_byte_record(&specialized.return_type)
+            .all(|param| {
+                if nested {
+                    types.is_nested_owned_byte_record(&param.ty)
+                } else {
+                    types.is_flat_owned_byte_record(&param.ty)
+                }
+            })
+            && if nested {
+                types.is_nested_owned_byte_record(&specialized.return_type)
+            } else {
+                types.is_flat_owned_byte_record(&specialized.return_type)
+            }
     })
 }
 

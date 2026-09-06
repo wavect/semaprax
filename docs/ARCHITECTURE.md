@@ -330,14 +330,22 @@ three-engine and hostile-plan gate executes.
 The additive [Concrete Generic Owned-Byte Records
 v1](CONCRETE-GENERIC-OWNED-BYTE-RECORDS-V1.md) composes the flat projected-byte
 cleanup path with exact generic-record substitution. Only concrete authored
-record instances whose substituted direct fields are `Bytes` or Copy scalars
+record instances whose recursively substituted leaves are `Bytes` or Copy scalars
 are admitted. The Copy closure is exactly `i64`, `i32`, `u8`, `usize`, `char`,
-`f32`, `f64`, and `bool`; variants, classes and generic functions retain their
-separate narrower gates. Source verification, validated HIR, cleanup inventory/replay,
+`f32`, `f64`, and `bool`. One narrower generic-function path relays exactly one
+owner through an identical parameter/result type for any bounded acyclic
+authored-record template tree, with every type argument explicit and in that
+Copy closure. `Box<Pair<Bytes, T>>` and `Pair<Box<Bytes>, T>` are the two
+focused representative nestings. Source verification and HIR independently
+authenticate the template, concrete instance, nested type and ownership; Graph
+v14 and CleanupPlan v7 remain unchanged. Source verification, validated HIR,
+cleanup inventory/replay,
 interpreter, Native64 layout/emission, and Wasm32 layout/emission each derive
 the same concrete field types; target layout is never substitution authority.
-Nested generic storage, generic classes/variants/resources/functions, Project,
-FFI, package, Component, and public ABI surfaces remain closed.
+Nested-nonflat generic composition with multiple owners or non-identical
+results, generic classes/variants/resources, Project, FFI, package, Component,
+and public ABI surfaces remain closed. The legacy flat generic-function
+admission is unchanged.
 
 The additive [Acyclic Nested Owned-Record Exact Destructuring
 v1](NESTED-OWNED-RECORD-DESTRUCTURING-V1.md) consumes the same bounded record

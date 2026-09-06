@@ -13,7 +13,7 @@ pub(super) fn template_ownership(
     match ty {
         ResolvedType::String => OwnershipMode::Own,
         ResolvedType::Str => OwnershipMode::Borrow,
-        _ if crate::hir::type_reachability::is_flat_owned_byte_record_template(
+        _ if crate::hir::type_reachability::is_nested_owned_byte_record_template(
             &program.declarations,
             ty,
             &template.id,
@@ -30,20 +30,61 @@ pub(super) fn template_has_owned_record_slot(
     program: &ResolvedProgram,
     template: &ResolvedFunctionTemplate,
 ) -> bool {
-    template.params.iter().any(|parameter| {
-        parameter.ownership == OwnershipMode::Own
-            && crate::hir::type_reachability::is_flat_owned_byte_record_template(
+    if !template_contains_nested_owned_record_type(program, template) {
+        return template.params.iter().any(|parameter| {
+            parameter.ownership == OwnershipMode::Own
+                && crate::hir::type_reachability::is_flat_owned_byte_record_template(
+                    &program.declarations,
+                    &parameter.ty,
+                    &template.id,
+                    template.type_parameters.len(),
+                )
+        }) && crate::hir::type_reachability::is_flat_owned_byte_record_template(
+            &program.declarations,
+            &template.return_type,
+            &template.id,
+            template.type_parameters.len(),
+        );
+    }
+    let mut owned = template
+        .params
+        .iter()
+        .filter(|parameter| parameter.ownership == OwnershipMode::Own);
+    let Some(parameter) = owned.next() else {
+        return false;
+    };
+    owned.next().is_none()
+        && parameter.ty == template.return_type
+        && crate::hir::type_reachability::is_nested_owned_byte_record_template(
+            &program.declarations,
+            &parameter.ty,
+            &template.id,
+            template.type_parameters.len(),
+        )
+}
+
+pub(super) fn template_contains_nested_owned_record_type(
+    program: &ResolvedProgram,
+    template: &ResolvedFunctionTemplate,
+) -> bool {
+    template
+        .params
+        .iter()
+        .map(|parameter| &parameter.ty)
+        .chain(std::iter::once(&template.return_type))
+        .any(|ty| {
+            crate::hir::type_reachability::is_nested_owned_byte_record_template(
                 &program.declarations,
-                &parameter.ty,
+                ty,
+                &template.id,
+                template.type_parameters.len(),
+            ) && !crate::hir::type_reachability::is_flat_owned_byte_record_template(
+                &program.declarations,
+                ty,
                 &template.id,
                 template.type_parameters.len(),
             )
-    }) && crate::hir::type_reachability::is_flat_owned_byte_record_template(
-        &program.declarations,
-        &template.return_type,
-        &template.id,
-        template.type_parameters.len(),
-    )
+        })
 }
 
 pub(super) fn generic_instance_arguments_are_admitted(
@@ -51,6 +92,9 @@ pub(super) fn generic_instance_arguments_are_admitted(
     template_id: &DeclarationId,
     arguments: &[ResolvedType],
 ) -> bool {
+    if arguments.is_empty() {
+        return true;
+    }
     if let Some(template) = program
         .function_templates
         .iter()
@@ -60,22 +104,23 @@ pub(super) fn generic_instance_arguments_are_admitted(
             return true;
         }
     }
-    arguments
+    let Some(template) = program
+        .function_templates
+        .iter()
+        .find(|template| &template.id == template_id)
+    else {
+        return false;
+    };
+    let nested = template_contains_nested_owned_record_type(program, template);
+    (arguments
         .iter()
         .all(|argument| matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
-        || program
-            .function_templates
-            .iter()
-            .find(|template| &template.id == template_id)
-            .is_some_and(|template| {
-                arguments.len() == template.type_parameters.len()
-                    && arguments.iter().all(|argument| {
-                        crate::hir::type_reachability::nested_record_copy_scalar_is_admitted(
-                            argument,
-                        )
-                    })
-                    && template_has_owned_record_slot(program, template)
+        && !nested)
+        || (arguments.len() == template.type_parameters.len()
+            && arguments.iter().all(|argument| {
+                crate::hir::type_reachability::nested_record_copy_scalar_is_admitted(argument)
             })
+            && template_has_owned_record_slot(program, template))
 }
 
 pub(crate) fn resolved_type_contains_owned_bytes(

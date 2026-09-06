@@ -6,7 +6,9 @@ use crate::diagnostic::Diagnostic;
 use crate::source_verify::binding::{Availability, Binding};
 use crate::source_verify::declared_type::{
     check_declared_type, check_ownership_mode, function_reaches, function_reaches_any,
-    generic_function_expression_is_direct_scalar, generic_function_owned_record_slot,
+    generic_function_contains_nested_owned_record_slot,
+    generic_function_expression_is_direct_scalar,
+    generic_function_has_exact_nested_owned_record_relay, generic_function_owned_record_slot,
     generic_function_signature_slot, owned_record_function_substitutions,
     scalar_function_substitutions, validation_specialize_function,
 };
@@ -285,6 +287,23 @@ pub(super) fn check_function_declarations<'p>(
                     "SPX-T224",
                     format!(
                         "generic function `{}` must return the direct-scalar profile or one admitted flat owned-record template",
+                        function.name
+                    ),
+                    function.span,
+                ));
+            }
+            if generic_function_contains_nested_owned_record_slot(
+                function,
+                &TypeTable::new(program),
+            ) && !generic_function_has_exact_nested_owned_record_relay(
+                function,
+                &TypeTable::new(program),
+            ) {
+                diagnostics.push(error(
+                    program,
+                    "SPX-T224",
+                    format!(
+                        "generic function `{}` must transfer exactly one bounded owned-record parameter into an identical result type",
                         function.name
                     ),
                     function.span,

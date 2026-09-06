@@ -51,7 +51,7 @@ pub(super) fn validate_type(
     ) || matches!(ty, ResolvedType::TypeParameter { owner, index }
             if owner == &template.id && usize::try_from(*index).ok()
                 .is_some_and(|index| index < template.type_parameters.len()))
-        || super::super::type_reachability::is_flat_owned_byte_record_template(
+        || super::super::type_reachability::is_nested_owned_byte_record_template(
             &program.declarations,
             ty,
             &template.id,

@@ -552,6 +552,7 @@ jobs:
           cargo test --locked -p semaprax --test owned_data nested_owned_record_runtime::concrete_generic_owned_records_execute_and_settle_on_all_three_backends -- --exact --nocapture
           cargo test --locked -p semaprax --test language generic_functions::explicit_generic_function_relays_one_admitted_owned_record_instance -- --exact --nocapture
           cargo test --locked -p semaprax --test language generic_functions::direct_scalar_generics_and_owned_relay_template_hostility_keep_stable_diagnostics -- --exact --nocapture
+          cargo test --locked -p semaprax --test language generic_functions::nested_owning_generic -- --nocapture
           cargo test --locked -p semaprax --test owned_data generic_owned_function_runtime::generic_owned_function_instances_settle_and_reenter_on_three_engines -- --exact --nocapture
           cargo test --locked -p semaprax --lib interpreter::prepared::tests::repeated_preparation_indexes_and_dispatches_exact_generic_function_instance -- --exact --nocapture
           cargo test --locked -p semaprax --test project concrete_generic_project_prerequisites::cross_file_generic_owned_identity_replays_without_widening_the_public_abi -- --exact --nocapture

@@ -37,12 +37,6 @@ impl Resolver<'_> {
         {
             return Ok(true);
         }
-        if arguments
-            .iter()
-            .all(|argument| matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
-        {
-            return Ok(true);
-        }
         if arguments.len() != function.type_parameters.len()
             || arguments.iter().any(|argument| {
                 !super::type_reachability::nested_record_copy_scalar_is_admitted(argument)
@@ -53,26 +47,66 @@ impl Resolver<'_> {
         let owner = DeclarationId::new(function.stable_id.clone());
         let return_type =
             self.resolve_function_type(function, &function.return_type, function.span)?;
-        let owned_return = super::type_reachability::is_flat_owned_byte_record_template(
+        let owned_return = super::type_reachability::is_nested_owned_byte_record_template(
             &self.declarations,
             &return_type,
             &owner,
             function.type_parameters.len(),
         );
-        let owned_parameter = function.params.iter().any(|parameter| {
-            parameter.mode == ParamMode::Own
-                && self
-                    .resolve_function_type(function, &parameter.ty, parameter.span)
-                    .is_ok_and(|ty| {
-                        super::type_reachability::is_flat_owned_byte_record_template(
-                            &self.declarations,
-                            &ty,
-                            &owner,
-                            function.type_parameters.len(),
-                        )
-                    })
-        });
-        Ok(owned_parameter && owned_return)
+        let flat_owned_return = super::type_reachability::is_flat_owned_byte_record_template(
+            &self.declarations,
+            &return_type,
+            &owner,
+            function.type_parameters.len(),
+        );
+        let owned_parameters = function
+            .params
+            .iter()
+            .filter(|parameter| parameter.mode == ParamMode::Own || parameter.ty == Type::String)
+            .map(|parameter| self.resolve_function_type(function, &parameter.ty, parameter.span))
+            .collect::<Result<Vec<_>, _>>()?;
+        let nested = (owned_return && !flat_owned_return)
+            || owned_parameters.iter().any(|ty| {
+                super::type_reachability::is_nested_owned_byte_record_template(
+                    &self.declarations,
+                    ty,
+                    &owner,
+                    function.type_parameters.len(),
+                ) && !super::type_reachability::is_flat_owned_byte_record_template(
+                    &self.declarations,
+                    ty,
+                    &owner,
+                    function.type_parameters.len(),
+                )
+            });
+        let exact_owned_relay = matches!(owned_parameters.as_slice(), [parameter]
+        if parameter == &return_type
+            && super::type_reachability::is_nested_owned_byte_record_template(
+                &self.declarations,
+                parameter,
+                &owner,
+                function.type_parameters.len(),
+            ));
+        if arguments
+            .iter()
+            .all(|argument| matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+            && !nested
+        {
+            return Ok(true);
+        }
+        if nested {
+            Ok(exact_owned_relay)
+        } else {
+            Ok(flat_owned_return
+                && owned_parameters.iter().any(|ty| {
+                    super::type_reachability::is_flat_owned_byte_record_template(
+                        &self.declarations,
+                        ty,
+                        &owner,
+                        function.type_parameters.len(),
+                    )
+                }))
+        }
     }
 
     pub(super) fn resolve(
@@ -512,7 +546,7 @@ impl Resolver<'_> {
                 let ownership = if let Some(op) = transparent_vec_wrapper {
                     op.param_ownership(index)
                 } else if ty == ResolvedType::String
-                    || super::type_reachability::is_flat_owned_byte_record_template(
+                    || super::type_reachability::is_nested_owned_byte_record_template(
                         &self.declarations,
                         &ty,
                         &function_id,
@@ -566,7 +600,7 @@ impl Resolver<'_> {
                 ty: return_type.clone(),
                 ownership: if (transparent_vec_wrapper.is_some() && return_type.is_uniquely_owned())
                     || return_type == ResolvedType::String
-                    || super::type_reachability::is_flat_owned_byte_record_template(
+                    || super::type_reachability::is_nested_owned_byte_record_template(
                         &self.declarations,
                         &return_type,
                         &function_id,
@@ -977,7 +1011,11 @@ impl Resolver<'_> {
                     &self.declarations,
                     &instance,
                 )
-                && !super::type_reachability::is_flat_owned_byte_record_template(
+                && !super::type_reachability::is_admitted_nested_owned_byte_record(
+                    &self.declarations,
+                    &instance,
+                )
+                && !super::type_reachability::is_nested_owned_byte_record_template(
                     &self.declarations,
                     &instance,
                     &owner,

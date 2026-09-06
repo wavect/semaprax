@@ -17,7 +17,8 @@ mod vec_intrinsic;
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
 use type_profiles::{
     generic_instance_arguments_are_admitted, resolved_type_is_flat_owned_byte_variant,
-    template_has_owned_record_slot, template_ownership, validate_nested_update_base_shape,
+    template_contains_nested_owned_record_type, template_has_owned_record_slot, template_ownership,
+    validate_nested_update_base_shape,
 };
 use unsafe_scan::contains_unsafe_boundary;
 
@@ -468,6 +469,14 @@ impl<'a> HirValidator<'a> {
                 )));
             }
             self.validate_template_expressions(template, &execution)?;
+            if template_contains_nested_owned_record_type(self.program, template)
+                && !template_has_owned_record_slot(self.program, template)
+            {
+                return Err(hir_error(format!(
+                    "generic template `{}` must transfer exactly one bounded owned-record parameter into an identical result type",
+                    template.id
+                )));
+            }
             let substitutions = if transparent_vec_wrapper.is_some() {
                 generic_template::vec_wrapper_substitutions()
             } else if template_has_owned_record_slot(self.program, template) {

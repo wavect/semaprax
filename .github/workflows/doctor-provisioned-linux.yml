@@ -3,18 +3,23 @@
 # This workflow is deliberately NOT part of `ci.yml`. Issue #61 scopes it to a
 # disposable trusted environment and explicitly does not authorize running the
 # private provisioner in a privileged workflow over arbitrary fork input, so it
-# is dispatch-only and targets one dedicated self-hosted Linux x86-64 runner.
+# is dispatch-only. It never runs on `push` or `pull_request` and therefore
+# never sees a fork's contents; the job's contents are always the dispatching
+# maintainer's chosen ref.
 #
-# The job has no `if:`, no `continue-on-error`, and no conditional step. Every
-# reason the environment cannot satisfy the owning contract is a nonzero exit
-# from the gate script, never a skip: `docs/DOCTOR-PRODUCTION-PROVISIONER-V1.md`
-# requires that missing namespace, cgroup, sealing, or kernel prerequisites fail
-# rather than skip, because a skip that reads as green is indistinguishable from
-# a passing confinement result.
+# The job has no `if:`, no `continue-on-error`, and no conditional gate step.
+# Every reason the environment cannot satisfy the owning contract is a nonzero
+# exit from the gate script, never a skip:
+# `docs/DOCTOR-PRODUCTION-PROVISIONER-V1.md` requires that missing namespace,
+# cgroup, sealing, or kernel prerequisites fail rather than skip, because a skip
+# that reads as green is indistinguishable from a passing confinement result.
 #
-# THIS WORKFLOW HAS NEVER BEEN EXECUTED. No such runner is registered.
-# `docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md` owns that status and the
-# provisioning procedure a maintainer must complete first.
+# The runner is a GitHub-hosted ephemeral `ubuntu-24.04` VM. It is created for
+# this job, never shared with another workload, and destroyed afterwards, which
+# is what the contract's "disposable" means here. It is not a host anyone
+# attests to: `SEMAPRAX_DOCTOR_GATE_DISPOSABLE` stays an operator declaration,
+# and the gate re-observes every property it can for itself. See
+# `docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md`.
 name: Doctor provisioned Linux gate
 
 on:
@@ -27,13 +32,34 @@ concurrency:
   group: doctor-provisioned-linux
   cancel-in-progress: false
 
+env:
+  # `scripts/__pycache__/` would otherwise dirty the checkout the evidence binds.
+  PYTHONDONTWRITEBYTECODE: "1"
+  CARGO_INCREMENTAL: "0"
+  CARGO_TERM_COLOR: never
+  # The exact release identity the packaged archive and the gate must agree on.
+  DOCTOR_RELEASE_TAG: v0.3.5
+  DOCTOR_RELEASE_TARGET: x86_64-unknown-linux-musl
+  DOCTOR_RELEASE_PROFILE: all
+  DOCTOR_RELEASE_SELECTOR: real-distributions
+  # An official LLVM release: one statically linked `clang`, so the carrier
+  # holds a single copy of LLVM instead of Ubuntu's shared libLLVM plus
+  # libclang-cpp plus the libxml2/ICU chain. The 512 MiB carrier ceiling does
+  # not fit the latter beside a real Node and a real Rust.
+  DOCTOR_CLANG_RELEASE: 17.0.6
+  DOCTOR_CLANG_ARCHIVE: clang+llvm-17.0.6-x86_64-linux-gnu-ubuntu-22.04
+  DOCTOR_CLANG_BINARY: clang-17
+  # `render_rows` admits Node major >= 22 and Rust >= 1.88, and 1.88.0 is the
+  # smallest admitted real Rust distribution. The carrier needs the smallest.
+  DOCTOR_RUST_DISTRIBUTION: 1.88.0
+
 jobs:
   doctor-provisioned-linux:
     name: Linux offline doctor lifecycle (provisioned)
-    # A dedicated, disposable, trusted host. The gate additionally verifies
+    # A dedicated, disposable, ephemeral host. The gate additionally verifies
     # every property it can observe; a runner label is not attestation.
-    runs-on: [self-hosted, linux, x64, semaprax-doctor-provisioned]
-    timeout-minutes: 120
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -41,20 +67,205 @@ jobs:
           filter: blob:none
           fetch-tags: false
           lfs: false
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772 # master
+        with:
+          toolchain: 1.97.1
+          targets: x86_64-unknown-linux-musl
+
       - name: Prove the gate refuses absent provisioning
         run: python3 scripts/doctor-provisioned-linux-gate.py --self-test
       - name: Print the preconditions and exact test selection
         run: python3 scripts/doctor-provisioned-linux-gate.py --plan
+
+      - name: Provision the disposable host
+        # Two ordinary host settings, neither of which relaxes a gate
+        # precondition. The gate still independently requires and re-observes
+        # working unprivileged user namespaces and a delegated, empty,
+        # controller-bearing cgroup-v2 scope, and fails closed if either is
+        # absent. Doing this in-job rather than out of band is what keeps the
+        # host disposable: nothing here survives the VM.
+        run: |
+          set -euo pipefail
+          # Ubuntu 24.04 ships kernel.apparmor_restrict_unprivileged_userns=1,
+          # which refuses `unshare --user --map-root-user` outright.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          # user.slice/cgroup.subtree_control is not writable by `runner`, so
+          # the delegated parent the wrapper already supports is created by root
+          # and handed over. This is delegation, not a widened precondition.
+          sudo sh -c "echo '+cpu +memory +pids' > /sys/fs/cgroup/cgroup.subtree_control"
+          sudo mkdir -p /sys/fs/cgroup/semaprax-doctor-gate
+          sudo chown -R "$(id -un):$(id -gn)" /sys/fs/cgroup/semaprax-doctor-gate
+          echo "SEMAPRAX_DOCTOR_GATE_PARENT=semaprax-doctor-gate" >> "$GITHUB_ENV"
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends musl-tools
+          echo "CC_x86_64_unknown_linux_musl=musl-gcc" >> "$GITHUB_ENV"
+
+      - name: Mint the test-only release trust anchor
+        # A throwaway Ed25519 seed created on this ephemeral host and destroyed
+        # with it. No production signing material exists here, and the private
+        # seed never enters the gate's own environment or its evidence.
+        run: |
+          set -euo pipefail
+          umask 077
+          keys="$RUNNER_TEMP/doctor-trust-anchor"
+          mkdir -p "$keys"
+          openssl rand -hex 32 > "$keys/signing-key"
+          chmod 600 "$keys/signing-key"
+          cargo build --locked --release -p semaprax-doctor-release
+          tool="$PWD/target/release/semaprax-doctor-release"
+          info="$("$tool" key-info --signing-key "$keys/signing-key")"
+          public="$(printf '%s' "$info" \
+            | sed 's/.*"public_key_hex":"\([0-9a-f]\{64\}\)".*/\1/')"
+          test "${#public}" -eq 64
+          echo "DOCTOR_SIGNING_KEY=$keys/signing-key" >> "$GITHUB_ENV"
+          echo "DOCTOR_PUBLIC_KEY=$public" >> "$GITHUB_ENV"
+          echo "DOCTOR_RELEASE_TOOL=$tool" >> "$GITHUB_ENV"
+
+      - name: Build the current-head images under the test-only anchor
+        # `SEMAPRAX_DOCTOR_RELEASE_PUBLIC_KEY_HEX` is an `option_env!` read in
+        # the platform-sys library, so it is a build input for all four images.
+        # musl gives the static, PT_INTERP-free ELF the launcher requires.
+        env:
+          SEMAPRAX_DOCTOR_RELEASE_PUBLIC_KEY_HEX: ${{ env.DOCTOR_PUBLIC_KEY }}
+        run: |
+          set -euo pipefail
+          cargo build --locked --release --target "$DOCTOR_RELEASE_TARGET" \
+            -p semaprax-native-rust-interop-platform-sys \
+            --bin semaprax-doctor-launcher \
+            --bin semaprax-doctor-worker \
+            --bin semaprax-doctor-provisioner
+          cargo build --locked --release --target "$DOCTOR_RELEASE_TARGET" \
+            -p semaprax-doctor-collector --bin semaprax-doctor-collector
+          images="$PWD/target/$DOCTOR_RELEASE_TARGET/release"
+          for image in launcher worker collector provisioner; do
+            file "$images/semaprax-doctor-$image"
+          done
+          echo "DOCTOR_IMAGES=$images" >> "$GITHUB_ENV"
+
+      - name: Acquire the real Clang, Node and Rust distributions
+        run: |
+          set -euo pipefail
+          dist="$RUNNER_TEMP/distributions"
+          rm -rf "$dist"
+          mkdir -p "$dist/clang/bin"
+          url="https://github.com/llvm/llvm-project/releases/download/llvmorg-$DOCTOR_CLANG_RELEASE/$DOCTOR_CLANG_ARCHIVE.tar.xz"
+          curl -fsSL "$url" | tar -xJ -C "$dist/clang/bin" --strip-components=2 \
+            --wildcards "*/bin/$DOCTOR_CLANG_BINARY"
+          mv "$dist/clang/bin/$DOCTOR_CLANG_BINARY" "$dist/clang/bin/clang"
+          chmod 755 "$dist/clang/bin/clang"
+          rustup toolchain install "$DOCTOR_RUST_DISTRIBUTION" \
+            --profile minimal --no-self-update
+          rustc="$(rustup which --toolchain "$DOCTOR_RUST_DISTRIBUTION" rustc)"
+          node="$(command -v node)"
+          echo "DOCTOR_CLANG=$dist/clang/bin/clang" >> "$GITHUB_ENV"
+          echo "DOCTOR_NODE=$node" >> "$GITHUB_ENV"
+          echo "DOCTOR_RUSTC=$rustc" >> "$GITHUB_ENV"
+
+      - name: Record the independent expected details
+        # The fixture must not manufacture its own oracle from the confined
+        # report. These are read from the packaged distributions themselves,
+        # unconfined, before the gate runs, which is exactly the disagreement
+        # the fixture exists to catch: if confinement alters what a tool
+        # answers, the byte comparison fails.
+        run: |
+          set -euo pipefail
+          clang_line="$("$DOCTOR_CLANG" --version | head -1)"
+          node_line="$("$DOCTOR_NODE" --version | head -1)"
+          rust_line="$("$DOCTOR_RUSTC" --version | head -1)"
+          clang_root="$(realpath "$DOCTOR_CLANG")"
+          {
+            echo "SEMAPRAX_DOCTOR_EXPECTED_CLANG_DETAIL=$clang_root ($clang_line)"
+            echo "SEMAPRAX_DOCTOR_EXPECTED_NODE_DETAIL=$node_line"
+            echo "SEMAPRAX_DOCTOR_EXPECTED_RUST_DETAIL=$rust_line"
+            echo "SEMAPRAX_DOCTOR_REAL_SELECTOR=$DOCTOR_RELEASE_SELECTOR"
+          } >> "$GITHUB_ENV"
+          echo "clang: $clang_root ($clang_line)"
+          echo "node:  $node_line"
+          echo "rust:  $rust_line"
+
+      - name: Assemble the real distribution carrier
+        run: |
+          set -euo pipefail
+          carrier="$RUNNER_TEMP/carrier"
+          mkdir -p "$carrier"
+          python3 scripts/doctor-provisioned-linux-bundle.py \
+            --selector "$DOCTOR_RELEASE_SELECTOR" \
+            --clang "$DOCTOR_CLANG" --node "$DOCTOR_NODE" --rustc "$DOCTOR_RUSTC" \
+            --closure --plan
+          python3 scripts/doctor-provisioned-linux-bundle.py \
+            --selector "$DOCTOR_RELEASE_SELECTOR" \
+            --clang "$DOCTOR_CLANG" --node "$DOCTOR_NODE" --rustc "$DOCTOR_RUSTC" \
+            --closure --target "$DOCTOR_RELEASE_PROFILE" \
+            --bundle "$carrier/bundle.bin" --request "$carrier/request.bin"
+          chmod 600 "$carrier/bundle.bin" "$carrier/request.bin"
+          echo "DOCTOR_BUNDLE=$carrier/bundle.bin" >> "$GITHUB_ENV"
+          echo "DOCTOR_REQUEST=$carrier/request.bin" >> "$GITHUB_ENV"
+
+      - name: Package and independently unpack the signed release
+        run: |
+          set -euo pipefail
+          commit="$(git rev-parse HEAD)"
+          out="$RUNNER_TEMP/release"
+          rm -rf "$out"
+          mkdir -p "$out"
+          archive="$(sh scripts/package-doctor-release.sh \
+            "$DOCTOR_RELEASE_TOOL" /usr/bin/tar /usr/bin/gzip \
+            "$DOCTOR_RELEASE_TAG" "$commit" "$DOCTOR_RELEASE_TARGET" \
+            "$DOCTOR_RELEASE_SELECTOR" "$DOCTOR_RELEASE_PROFILE" \
+            "$DOCTOR_PUBLIC_KEY" "$DOCTOR_SIGNING_KEY" \
+            "$DOCTOR_REQUEST" "$DOCTOR_BUNDLE" \
+            "$DOCTOR_IMAGES/semaprax-doctor-launcher" \
+            "$DOCTOR_IMAGES/semaprax-doctor-worker" \
+            "$DOCTOR_IMAGES/semaprax-doctor-collector" \
+            "$DOCTOR_IMAGES/semaprax-doctor-provisioner" \
+            "$out")"
+          # Unpack the archive again, outside the checkout and outside the
+          # packager's own verification root, so the gate runs against the
+          # distributed bytes rather than a staging directory.
+          unpacked="$RUNNER_TEMP/unpacked"
+          rm -rf "$unpacked"
+          mkdir -p "$unpacked"
+          tar -xzf "$archive" -C "$unpacked"
+          root="$unpacked/semaprax-doctor-$DOCTOR_RELEASE_TAG-$DOCTOR_RELEASE_TARGET"
+          "$DOCTOR_RELEASE_TOOL" verify --directory "$root" \
+            --public-key-hex "$DOCTOR_PUBLIC_KEY" \
+            --release-version "${DOCTOR_RELEASE_TAG#v}" \
+            --release-commit "$commit" \
+            --target-triple "$DOCTOR_RELEASE_TARGET" \
+            --architecture x86_64 --target "$DOCTOR_RELEASE_PROFILE" \
+            --selector "$DOCTOR_RELEASE_SELECTOR"
+          ls -l "$root"
+          {
+            echo "SEMAPRAX_DOCTOR_GATE_RELEASE_ROOT=$root"
+            echo "SEMAPRAX_DOCTOR_GATE_RELEASE_ARCHIVE=$archive"
+            echo "SEMAPRAX_DOCTOR_GATE_RELEASE_MANIFEST=$root/semaprax-doctor-release-manifest.json"
+            echo "SEMAPRAX_DOCTOR_GATE_RELEASE_CAPSULE=$root/semaprax-doctor-release.capsule"
+            echo "SEMAPRAX_DOCTOR_GATE_RELEASE_COMMIT=$commit"
+            echo "SEMAPRAX_DOCTOR_GATE_TRUST_ANCHOR=test-only"
+            echo "SEMAPRAX_DOCTOR_GATE_DISPOSABLE=yes"
+          } >> "$GITHUB_ENV"
+
+      - name: Acquire the locked dependency closure before the gate goes offline
+        run: cargo fetch --locked
+
+      - name: Require the exact source bytes the evidence will bind
+        run: |
+          set -euo pipefail
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+
       - name: Run the provisioned Linux offline doctor lifecycle gate
         # The provisioning wrapper is the trusted host's own entry: it creates
         # the private mapped user/mount namespace and the empty delegated
         # cgroup-v2 scope, exports the context acknowledgements and immutable
-        # current-head image paths, then execs this script. Absent that wrapper
-        # the script fails on its first unmet precondition. See
+        # current-head image paths, then execs the gate. Absent that wrapper the
+        # gate fails on its first unmet precondition. See
         # docs/DOCTOR-PROVISIONED-LINUX-GATE-V1.md.
         run: |
-          python3 scripts/doctor-provisioned-linux-gate.py \
+          bash scripts/doctor-provisioned-linux-provision.sh \
+            --release "$SEMAPRAX_DOCTOR_GATE_RELEASE_ROOT" \
             --evidence "$RUNNER_TEMP/doctor-provisioned-linux-evidence.json"
+
       - name: Record the evidence document in the run log
         # Runs unconditionally so a failed gate still records what it observed.
         # It never changes the job's conclusion.
@@ -62,6 +273,7 @@ jobs:
         run: |
           evidence="$RUNNER_TEMP/doctor-provisioned-linux-evidence.json"
           if [ -f "$evidence" ]; then
+            sha256sum "$evidence"
             cat "$evidence"
           else
             echo "the gate produced no evidence document; see the failure above"

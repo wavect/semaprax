@@ -16,8 +16,10 @@
 # Usage:
 #   scripts/doctor-provisioned-linux-provision.sh --release <dir> --evidence <path>
 #
-#   --release   Unpacked doctor release directory, OUTSIDE the checkout, holding
-#               the launcher, worker and collector images plus the real bundle.
+#   --release   Unpacked doctor release directory, OUTSIDE the checkout: the
+#               semaprax-doctor-{launcher,worker,collector} images and
+#               semaprax-doctor-bundle.bin, exactly as
+#               scripts/package-doctor-release.sh stages and archives them.
 #   --evidence  Where the gate writes its evidence JSON.
 #   --keep      Do not delete the delegated cgroup scope on exit (debugging).
 #
@@ -162,13 +164,18 @@ require_release() {
 		;;
 	esac
 	RELEASE="${resolved}"
+	# These are the exact names scripts/package-doctor-release.sh stages and
+	# semaprax-doctor-release's own directory inventory requires. They are not
+	# aliased to shorter names: both the fixtures and the gate reject a
+	# symlinked image, so an alias would have to be a second physical copy that
+	# no longer carries the unpacked archive's identity.
 	local image
 	for image in launcher worker collector; do
-		[ -x "${RELEASE}/${image}" ] ||
-			fail "release is missing an executable '${image}' image at ${RELEASE}/${image}"
+		[ -x "${RELEASE}/semaprax-doctor-${image}" ] ||
+			fail "release is missing an executable '${image}' image at ${RELEASE}/semaprax-doctor-${image}"
 	done
-	[ -e "${RELEASE}/bundle" ] ||
-		fail "release is missing the real distribution bundle at ${RELEASE}/bundle"
+	[ -e "${RELEASE}/semaprax-doctor-bundle.bin" ] ||
+		fail "release is missing the real distribution bundle at ${RELEASE}/semaprax-doctor-bundle.bin"
 }
 
 main() {
@@ -184,10 +191,10 @@ main() {
 	# never as proof, and independently observes what it can.
 	export SEMAPRAX_DOCTOR_WORKER_TEST_CONTEXT="${WORKER_CONTEXT}"
 	export SEMAPRAX_DOCTOR_ROOT_TEST_CONTEXT="${ROOT_CONTEXT}"
-	export SEMAPRAX_DOCTOR_LAUNCHER="${RELEASE}/launcher"
-	export SEMAPRAX_DOCTOR_WORKER="${RELEASE}/worker"
-	export SEMAPRAX_DOCTOR_COLLECTOR="${RELEASE}/collector"
-	export SEMAPRAX_DOCTOR_REAL_BUNDLE="${RELEASE}/bundle"
+	export SEMAPRAX_DOCTOR_LAUNCHER="${RELEASE}/semaprax-doctor-launcher"
+	export SEMAPRAX_DOCTOR_WORKER="${RELEASE}/semaprax-doctor-worker"
+	export SEMAPRAX_DOCTOR_COLLECTOR="${RELEASE}/semaprax-doctor-collector"
+	export SEMAPRAX_DOCTOR_REAL_BUNDLE="${RELEASE}/semaprax-doctor-bundle.bin"
 	export SEMAPRAX_DOCTOR_GATE_CGROUP="${SCOPE}"
 
 	# Every remaining variable is the operator's to supply, because only the

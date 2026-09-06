@@ -8,7 +8,7 @@ distributions. Nothing in the tree writes one -- every caller of
 provisioner has to produce the carrier itself.
 
 This script is a *packager*, not an authority. It reads exactly the absolute
-host paths it is given, records their bytes under their own real pathnames, and
+host paths it is given, records their bytes under those same pathnames, and
 emits the bytes the sole Rust wire validator will re-check. It authenticates no
 distribution, grants nothing, and never consults `PATH`, a package manager or
 the network. If it emits anything the validator rejects, the gate fails closed
@@ -17,8 +17,9 @@ on the malformed carrier exactly as it would on any other bad input.
 The pivoted worker root contains the inventory and nothing else, so a dynamic
 tool only runs if its whole loader closure is in the inventory at the paths its
 `PT_INTERP` and `DT_NEEDED`/`DT_RUNPATH` lookups will use. `--closure` resolves
-that closure with `ldd` and records each file under its own resolved absolute
-path, which is why the paths are preserved rather than rewritten.
+that closure with `ldd` and records each file under the exact name the loader
+opens it by, which is why the lookup paths are preserved rather than rewritten
+to the physical paths a usrmerge or SONAME symlink hides behind them.
 
     scripts/doctor-provisioned-linux-bundle.py \\
         --selector real-distributions \\
@@ -148,11 +149,18 @@ def elf_interpreter(content: bytes, path: str) -> str | None:
 
 
 def resolve_closure(binary: str) -> list[str]:
-    """Every physical file `ld.so` opens for `binary`, including the loader.
+    """Every file `ld.so` opens for `binary`, at the names it opens them by.
 
     The root holds the inventory and nothing else, so an omitted object is a
     tool that cannot start. `ldd` is the loader's own answer; this script does
     not reimplement dynamic resolution.
+
+    The names matter as much as the bytes. A usrmerge host reaches
+    `/lib/x86_64-linux-gnu/libc.so.6` through a `/lib -> usr/lib` symlink, and
+    a versioned object through its SONAME symlink, but the inventory carries no
+    symlinks: the loader inside the pivoted root opens the literal path it was
+    given. So each entry is recorded under the lookup path, resolved only for
+    `.` and `..`, and never rewritten to the physical path behind it.
     """
     finished = subprocess.run(
         ["ldd", binary], capture_output=True, text=True, check=False
@@ -163,7 +171,7 @@ def resolve_closure(binary: str) -> list[str]:
     for line in finished.stdout.splitlines():
         for token in line.split():
             if token.startswith("/") and os.path.isfile(token):
-                resolved.append(os.path.realpath(token))
+                resolved.append(token)
     return resolved
 
 
@@ -172,13 +180,13 @@ def collect(arguments) -> dict[str, str]:
     inventory: dict[str, str] = {}
 
     def record(host: str) -> str:
-        real = os.path.realpath(host)
-        if not os.path.isfile(real):
-            raise Rejected(f"{host} is not a physical regular file")
-        path = real.lstrip("/")
+        lookup = os.path.normpath(os.path.abspath(host))
+        if not os.path.isfile(lookup):
+            raise Rejected(f"{host} is not a regular file")
+        path = lookup.lstrip("/")
         validate_path(path)
-        previous = inventory.setdefault(path, real)
-        if previous != real:
+        previous = inventory.setdefault(path, lookup)
+        if os.path.realpath(previous) != os.path.realpath(lookup):
             raise Rejected(f"{path} would carry two different files")
         return path
 

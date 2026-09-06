@@ -5,6 +5,7 @@ fn core_validation_has_no_resolution_cleanup_build_or_physical_authority() {
         include_str!("../src/hir/validation/borrowed_str.rs"),
         include_str!("../src/hir/validation/host_command.rs"),
         include_str!("../src/hir/validation/owned_buffer.rs"),
+        include_str!("../src/hir/validation/owned_result_try.rs"),
         include_str!("../src/hir/validation/type_profiles.rs"),
         include_str!("../src/hir/validation/unsafe_scan.rs"),
     );

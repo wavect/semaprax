@@ -87,6 +87,7 @@ mod ids;
 mod inspection;
 mod monomorphize;
 mod nodes;
+mod owned_result_try;
 #[cfg(test)]
 mod private_capacity_contract_tests;
 #[cfg(test)]

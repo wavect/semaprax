@@ -11,10 +11,12 @@ It admits flat monomorphic authored variants with at least one direct `Bytes`
 field, a bounded concrete authored-generic extension with one owned case, an
 additive exact two-owned-case authored shape, and the compiler-owned `Option<Bytes>`,
 `Result<Bytes, i64|bool>`, `Result<i64|bool, Bytes>`, and exact
-`Result<Bytes, Bytes>` instances. It does not create a public aggregate ABI or
-admit broader multi-case generic instances, nesting, owned postfix `?`,
-components, Project exports, callable interfaces, or native Rust
-interoperability.
+`Result<Bytes, Bytes>` instances. The exact compiler-owned two-sided Result
+also admits postfix `?` only when source, residual, and enclosing result are
+all exactly `Result<Bytes, Bytes>`. It does not create a public aggregate ABI
+or admit mixed/general/nested owned propagation, broader multi-case generic
+instances, nesting, components, Project exports, callable interfaces, or
+native Rust interoperability.
 
 ## Closed admission
 
@@ -36,7 +38,10 @@ An admitted authored variant:
 The compiler-owned two-sided profile admits only the authenticated prelude
 identity `Result<Bytes, Bytes>` with its exact `Ok.value` and `Err.error`
 members. Source cannot redeclare or approximate that authority. Unsupported
-prelude arguments remain closed, and postfix `?` remains Copy-only.
+prelude arguments remain closed. Owned postfix `?` admits only the exact
+`Result<Bytes, Bytes> -> Result<Bytes, Bytes>` propagation shape; mixed
+arguments, nested payloads, generic-function carriers, and non-Result
+approximations remain closed.
 
 Explicit owned and borrowed matching is exhaustive, guard-free, and lists
 every case with its exact declared field inventory:
@@ -78,6 +83,16 @@ the exact field move after selection. Payload-free and Copy-only cases remain
 explicit members of the conditional case domain with an empty owned-leaf list;
 their authenticated selection is carried by the tag and is never inferred
 from the presence of a live cleanup flag.
+
+Exact owned postfix `?` evaluates its operand once. The `Ok` edge authenticates
+`core.result.ok` and moves only `Ok.value` into the owned expression result.
+The `Err` edge transfers the complete dynamically selected Result into
+provisional result storage. Normal and residual inventories join before shared
+postconditions; replay merges only ownership inventories for states with the
+same pending/selected failure, staged-result, and publication state. A failing
+postcondition finalizes the complete guarded `Ok`/`Err` domain before returning
+the already selected sticky failure. A successful postcondition publishes the
+provisional Result without finalizing it.
 
 Independent replay reconstructs the case domain, paths, conditional groups,
 transitions, call commit, arm settlement, and finalizer order from HIR. It
@@ -132,6 +147,10 @@ rejection, exact statuses, tight capacity, and repeated recovery on all three
 engines. The exact compiler-owned `Result<Bytes, Bytes>` profile separately
 covers the same two active branches, dynamic forwarding, staged-call and arm
 failure settlement, hostile conditional-plan mutations, invalid native tags,
-tag-last publication, and shallow-copy rejection. Broader multi-case shapes and
-owned `?` propagation remain closed. Evidence in this tranche is local only;
-it does not claim hosted promotion or a public ABI widening.
+tag-last publication, and shallow-copy rejection. Its exact owned postfix `?`
+evidence additionally covers evaluation once, Ok-payload move, Err residual
+transfer, shared postconditions, guarded finalization, sticky failure, and
+re-entry on interpreter, native C11 `-O0`/`-O2`, and Core-Wasm. Mixed/general,
+nested, generic-function, and public-ABI propagation remain closed. Evidence
+in this tranche is local only; it does not claim hosted promotion or a public
+ABI widening.

@@ -123,6 +123,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir.rs"),
         include_str!("../../../../../src/hir/agent_nodes.rs"),
         include_str!("../../../../../src/hir/agent_validation.rs"),
+        include_str!("../../../../../src/hir/owned_result_try.rs"),
         include_str!("../../../../../src/hir/resolve_class.rs"),
         include_str!("../../../../../src/hir/resolve_expr.rs"),
         include_str!("../../../../../src/hir/resolve_expr_frame.rs"),
@@ -136,6 +137,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/validation/borrowed_str.rs"),
         include_str!("../../../../../src/hir/validation/host_command.rs"),
         include_str!("../../../../../src/hir/validation/owned_buffer.rs"),
+        include_str!("../../../../../src/hir/validation/owned_result_try.rs"),
         include_str!("../../../../../src/hir/validation/type_profiles.rs"),
         include_str!("../../../../../src/hir/validation/unsafe_scan.rs"),
     );
@@ -150,9 +152,10 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let lower = concat!(
         include_str!("../../../../../src/cleanup_plan/build.rs"),
-        include_str!("../../../../../src/cleanup_plan/build/schema.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/owned_try.rs"),
         include_str!("../../../../../src/cleanup_plan/build/record_destructure.rs"),
         include_str!("../../../../../src/cleanup_plan/build/record_destructure/update.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/schema.rs"),
     );
     let calls = include_str!("../../../../../src/call_index.rs");
     for (source, expected) in [

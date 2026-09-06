@@ -2734,14 +2734,40 @@ struct Emitter<'a> {
 impl Emitter<'_> {
     fn emit_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic> {
         let value = self.emit_expr_inner(expr)?;
-        if !matches!(
+        let owned_match = matches!(
             expr.kind,
             ResolvedExprKind::Match {
                 mode: crate::hir::ResolvedMatchMode::Own,
                 ..
             }
-        ) {
-            self.apply_post_transitions(&expr.id, &value)?;
+        );
+        let owned_try = matches!(
+            &expr.kind,
+            ResolvedExprKind::Try {
+                operand,
+                result,
+                residual_type,
+                ..
+            } if expr.ownership == crate::hir::OwnershipMode::Own
+                && expr.ty == ResolvedType::Bytes
+                && operand.ty == *residual_type
+                && result.as_str() == crate::prelude::RESULT_ID
+                && matches!(
+                    &operand.ty,
+                    ResolvedType::Nominal {
+                        declaration,
+                        arguments,
+                    } if declaration == result
+                        && crate::hir::admitted_owned_byte_prelude_instance(
+                            declaration,
+                            arguments,
+                        )
+                )
+        );
+        if !owned_match {
+            if !owned_try {
+                self.apply_post_transitions(&expr.id, &value)?;
+            }
             nested_owned::emit_update_scope_cleanup(self, expr)?;
         }
         if self.owned_utf8_literals.is_some() {
@@ -3766,6 +3792,137 @@ impl Emitter<'_> {
         Ok(())
     }
 
+    fn apply_try_variant_case_transitions(
+        &mut self,
+        expression: &ExpressionId,
+        case: &DeclarationId,
+        carrier: &Value,
+        transfer_residual: bool,
+    ) -> Result<(), Diagnostic> {
+        self.apply_variant_case_transitions(expression, case)?;
+        if !transfer_residual {
+            return Ok(());
+        }
+        let transfers = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .flat_map(|block| &block.transitions)
+            .filter_map(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::TransferVariant {
+                    at,
+                    source,
+                    destination,
+                    variant,
+                } if at == expression => {
+                    Some((source.clone(), destination.clone(), variant.clone()))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        for (source, destination, variant) in transfers {
+            let layout = variant_layout(self.variant_layouts, value_type(carrier))?;
+            if layout.variant != variant || layout.case(case).is_none() {
+                return Err(error(
+                    "owned Try variant transfer disagrees with its carrier",
+                ));
+            }
+            self.assert_selected_variant_liveness(&source, case)?;
+            self.assert_variant_destination_dead(&destination)?;
+            self.set_storage_flag(&source, false)?;
+            if !self.set_variant_storage_flags_from_value(&destination, carrier)? {
+                return Err(error("owned Try residual destination is not conditional"));
+            }
+        }
+        Ok(())
+    }
+
+    fn apply_owned_try_success_transitions(
+        &mut self,
+        expression: &ExpressionId,
+        selected: &DeclarationId,
+    ) -> Result<(), Diagnostic> {
+        let transitions = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .flat_map(|block| &block.transitions)
+            .filter(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::Initialize { at, .. }
+                | crate::cleanup_plan::CleanupTransition::Transfer { at, .. }
+                | crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase { at, .. } => {
+                    at == expression
+                }
+                _ => false,
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        for transition in transitions {
+            match transition {
+                crate::cleanup_plan::CleanupTransition::Initialize { destination, .. } => {
+                    self.assert_storage_flag_state(&destination, false)?;
+                    self.set_storage_flag(&destination, true)?;
+                }
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    source,
+                    destination,
+                    ..
+                } => {
+                    self.assert_storage_flag_state(&source, true)?;
+                    self.assert_storage_flag_state(&destination, false)?;
+                    self.set_storage_flag(&source, false)?;
+                    self.set_storage_flag(&destination, true)?;
+                }
+                crate::cleanup_plan::CleanupTransition::AuthenticateVariantCase {
+                    source,
+                    case,
+                    ..
+                } => {
+                    if case != *selected {
+                        return Err(error("owned Try success authentication case disagrees"));
+                    }
+                    self.assert_selected_variant_liveness(&source, selected)?;
+                }
+                _ => unreachable!("filtered owned Try success transition"),
+            }
+        }
+        Ok(())
+    }
+
+    fn materialize_owned_try_call_arguments(
+        &mut self,
+        expression: &ExpressionId,
+        value: &Value,
+    ) -> Result<(), Diagnostic> {
+        let carriers = self
+            .cleanup_plan
+            .blocks
+            .iter()
+            .flat_map(|block| &block.transitions)
+            .filter_map(|transition| match transition {
+                crate::cleanup_plan::CleanupTransition::Transfer {
+                    at, destination, ..
+                } if at == expression => self
+                    .plan
+                    .cleanup_call_argument_carriers
+                    .get(&destination.storage)
+                    .copied(),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        for carrier in carriers {
+            require_type(
+                value_type(value),
+                &ResolvedType::Bytes,
+                "owned Try call epoch",
+            )?;
+            self.get_scalar(value);
+            self.output.push(0x21);
+            write_u32(self.output, carrier);
+        }
+        Ok(())
+    }
+
     fn emit_complex_expr(&mut self, expr: &ResolvedExpr) -> Result<Value, Diagnostic> {
         match &expr.kind {
             ResolvedExprKind::Int(value) => {
@@ -4205,15 +4362,31 @@ impl Emitter<'_> {
                     "copy-result Err payload",
                 )?;
 
+                let owned_bytes = expr.ownership == crate::hir::OwnershipMode::Own
+                    && expr.ty == ResolvedType::Bytes
+                    && operand.ty == *residual_type
+                    && result.as_str() == crate::prelude::RESULT_ID
+                    && matches!(
+                        &operand.ty,
+                        ResolvedType::Nominal {
+                            declaration,
+                            arguments,
+                        } if declaration == result
+                            && crate::hir::admitted_owned_byte_prelude_instance(
+                                declaration,
+                                arguments,
+                            )
+                    );
+
                 let operand_value = self.emit_expr(operand)?;
                 let Value::Aggregate {
                     pointer: operand_pointer,
-                    ty: operand_type,
+                    ty: ref operand_type,
                 } = operand_value
                 else {
                     return Err(error("copy-result operand is not aggregate storage"));
                 };
-                require_type(&operand_type, &operand.ty, "copy-result operand")?;
+                require_type(operand_type, &operand.ty, "copy-result operand")?;
                 self.emit_pointer(operand_pointer);
                 self.output.extend([0x28, 0x02, 0x00, 0x41]);
                 write_i64(
@@ -4222,7 +4395,69 @@ impl Emitter<'_> {
                         .map_err(|_| error("Result case count overflows i64"))?,
                 );
                 self.output.push(0x4f);
-                self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
+                if owned_bytes {
+                    self.trap_if();
+                } else {
+                    self.fail_if(STATUS_INTERNAL_INVALID_TAG)?;
+                }
+
+                if owned_bytes {
+                    self.emit_pointer(operand_pointer);
+                    self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                    write_i64(self.output, i64::from(operand_err.0.tag));
+                    self.output.extend([0x46, 0x04, 0x40]);
+                    let residual_offset = self
+                        .plan
+                        .result_stage_aggregate
+                        .ok_or_else(|| error("owned Result residual has no result staging slot"))?;
+                    let residual = Value::Aggregate {
+                        pointer: Pointer {
+                            local: self.plan.frame_base,
+                            offset: residual_offset,
+                        },
+                        ty: residual_type.clone(),
+                    };
+                    self.apply_try_variant_case_transitions(
+                        &expr.id,
+                        err_case,
+                        &operand_value,
+                        true,
+                    )?;
+                    self.copy_value(&residual, &operand_value, "owned Result residual move")?;
+                    let result_staged = self.plan.result_staged.ok_or_else(|| {
+                        error("owned Result propagation has no result-state local")
+                    })?;
+                    self.output.extend([0x41, 0x01, 0x21]);
+                    write_u32(self.output, result_staged);
+                    self.output.push(0x0c);
+                    write_u32(self.output, self.control_depth + 1);
+                    self.output.push(0x0b);
+
+                    self.emit_pointer(operand_pointer);
+                    self.output.extend([0x28, 0x02, 0x00, 0x41]);
+                    write_i64(self.output, i64::from(operand_ok.0.tag));
+                    self.output.push(0x47);
+                    self.trap_if();
+                    let destination = Value::Scalar {
+                        local: self.plan.expr_scalar(expr)?,
+                        ty: expr.ty.clone(),
+                    };
+                    let source = Value::ScalarMemory {
+                        pointer: Pointer {
+                            local: operand_pointer.local,
+                            offset: operand_pointer
+                                .offset
+                                .checked_add(operand_layout.payload_offset)
+                                .and_then(|offset| offset.checked_add(operand_ok.1.offset))
+                                .ok_or_else(|| error("owned Result Ok pointer overflows u32"))?,
+                        },
+                        ty: operand_ok.1.ty.clone(),
+                    };
+                    self.apply_owned_try_success_transitions(&expr.id, ok_case)?;
+                    self.copy_value(&destination, &source, "owned Result Ok extraction")?;
+                    self.materialize_owned_try_call_arguments(&expr.id, &destination)?;
+                    return Ok(destination);
+                }
 
                 self.emit_pointer(operand_pointer);
                 self.output.extend([0x28, 0x02, 0x00, 0x41]);

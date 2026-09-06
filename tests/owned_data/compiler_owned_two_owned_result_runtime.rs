@@ -46,12 +46,80 @@ fn consume(value: own Result<Bytes, Bytes>) -> i64 {
   }
 }
 
+@id("result.two-owned.err-payload-is-three")
+fn err_payload_is_three(value: borrow Result<Bytes, Bytes>) -> bool {
+  match borrow value {
+    Result::Ok { value: payload } => byte_len(bytes_as_slice(payload)) == 2usize,
+    Result::Err { error: payload } => byte_len(bytes_as_slice(payload)) == 3usize,
+  }
+}
+
 @id("result.two-owned.identity")
 fn identity(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes> { value }
 
 @id("result.two-owned.forward")
 fn forward(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes> {
   identity(value)
+}
+
+@id("result.two-owned.propagate")
+fn propagate(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes> {
+  let payload = value?;
+  Result<Bytes, Bytes>::Ok { value: payload }
+}
+
+@id("result.two-owned.byte-identity")
+fn byte_identity(value: own Bytes) -> Bytes { value }
+
+@id("result.two-owned.direct-try-call")
+fn direct_try_call(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes> {
+  Result<Bytes, Bytes>::Ok { value: byte_identity(value?) }
+}
+
+@id("result.two-owned.direct-try-call-run")
+fn direct_try_call_run() -> i64 {
+  consume(direct_try_call(make_ok())) + consume(direct_try_call(make_err())) + 37
+}
+
+@id("result.two-owned.propagate-post-fail")
+fn propagate_post_fail(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes>
+ensures false
+{
+  let payload = value?;
+  Result<Bytes, Bytes>::Ok { value: payload }
+}
+
+@id("result.two-owned.propagate-post-inspect")
+fn propagate_post_inspect(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes>
+ensures err_payload_is_three(result)
+{
+  let payload = value?;
+  Result<Bytes, Bytes>::Ok { value: payload }
+}
+
+@id("result.two-owned.try-run")
+fn try_run() -> i64 {
+  consume(propagate(make_ok())) + consume(propagate(make_err())) + 37
+}
+
+@id("result.two-owned.try-fail-after-ok")
+fn try_fail_after_ok() -> Result<Bytes, Bytes> {
+  let payload = make_ok()?;
+  let failure = 9223372036854775807 + 1;
+  if failure == 0 { Result<Bytes, Bytes>::Ok { value: payload } }
+  else { Result<Bytes, Bytes>::Ok { value: payload } }
+}
+
+@id("result.two-owned.try-fail-entry")
+fn try_fail_entry() -> i64 { consume(try_fail_after_ok()) }
+
+@id("result.two-owned.try-post-fail-entry")
+fn try_post_fail_entry() -> i64 { consume(propagate_post_fail(make_err())) }
+
+@id("result.two-owned.try-post-inspect-entry")
+fn try_post_inspect_entry() -> i64 {
+  consume(propagate_post_inspect(make_ok()))
+    + consume(propagate_post_inspect(make_err())) + 37
 }
 
 @id("result.two-owned.accept-pair")
@@ -111,9 +179,12 @@ fn partial_err_call() -> i64 {
 "#;
 
 const NO_SHALLOW_COPY_SOURCE: &str = r#"
-module test.compiler_owned_two_owned_result_no_shallow_copy;
-@id("result.copy-proof.identity")
-fn identity(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes> { value }
+module test.compiler_owned_two_owned_result_try_no_shallow_copy;
+@id("result.copy-proof.propagate")
+fn propagate(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes> {
+  let payload = value?;
+  Result<Bytes, Bytes>::Ok { value: payload }
+}
 @id("result.copy-proof.consume")
 fn consume(value: own Result<Bytes, Bytes>) -> i64 {
   match own value {
@@ -174,7 +245,7 @@ fn function<'a>(program: &'a hir::ResolvedProgram, id: &str) -> &'a hir::Resolve
         .functions
         .iter()
         .find(|function| function.id.as_str() == id)
-        .unwrap()
+        .unwrap_or_else(|| panic!("resolved fixture omitted `{id}`"))
 }
 
 #[test]
@@ -293,27 +364,51 @@ fn run_interpreter() {
         std::process::id()
     ));
     std::fs::write(&path, SOURCE).unwrap();
-    for (entry, succeeds) in [
-        ("app.main", true),
-        ("result.two-owned.fail-ok-arm", false),
-        ("result.two-owned.fail-err-arm", false),
-        ("result.two-owned.partial-ok-call", false),
-        ("result.two-owned.partial-err-call", false),
+    for (entry, expected) in [
+        ("app.main", Ok("42")),
+        ("result.two-owned.try-run", Ok("42")),
+        ("result.two-owned.direct-try-call-run", Ok("42")),
+        ("result.two-owned.try-post-inspect-entry", Ok("42")),
+        (
+            "result.two-owned.fail-ok-arm",
+            Err(("semaprax.arithmetic.v1", 1)),
+        ),
+        (
+            "result.two-owned.fail-err-arm",
+            Err(("semaprax.arithmetic.v1", 1)),
+        ),
+        (
+            "result.two-owned.partial-ok-call",
+            Err(("semaprax.arithmetic.v1", 1)),
+        ),
+        (
+            "result.two-owned.partial-err-call",
+            Err(("semaprax.arithmetic.v1", 1)),
+        ),
+        (
+            "result.two-owned.try-fail-entry",
+            Err(("semaprax.arithmetic.v1", 1)),
+        ),
+        (
+            "result.two-owned.try-post-fail-entry",
+            Err(("semaprax.contract.v1", 2)),
+        ),
     ] {
         for _ in 0..4 {
             let result =
                 interpreter::interpret(&path, entry, &[], &InterpreterOptions::default()).unwrap();
-            assert_eq!(result.returned, succeeds, "{entry}");
             interpreter::verify_envelope(&result.envelope).unwrap();
             let envelope: serde_json::Value = serde_json::from_str(&result.envelope).unwrap();
-            if succeeds {
-                assert_eq!(envelope["payload"]["outcome"]["value"], "42");
-            } else {
+            if let Ok(value) = expected {
+                assert!(result.returned, "{entry}");
+                assert_eq!(envelope["payload"]["outcome"]["value"], value);
+            } else if let Err((domain, code)) = expected {
+                assert!(!result.returned, "{entry}");
                 assert_eq!(
                     envelope["payload"]["outcome"]["status"]["domain_id"],
-                    "semaprax.arithmetic.v1"
+                    domain
                 );
-                assert_eq!(envelope["payload"]["outcome"]["status"]["code"], 1);
+                assert_eq!(envelope["payload"]["outcome"]["status"]["code"], code);
             }
         }
     }
@@ -354,33 +449,50 @@ fn run_native(parsed: &semaprax::ast::Program, resolved: &hir::ResolvedProgram) 
 #include <stdint.h>
 #include <stdlib.h>
 static uint64_t spx_test_live_allocations = UINT64_C(0);
-static void *spx_test_malloc(size_t size) { void *p = malloc(size); if (p != NULL) ++spx_test_live_allocations; return p; }
+static uint64_t spx_test_total_allocations = UINT64_C(0);
+static void *spx_test_malloc(size_t size) { void *p = malloc(size); if (p != NULL) { ++spx_test_live_allocations; ++spx_test_total_allocations; } return p; }
 static void spx_test_free(void *p) { if (p != NULL) { if (spx_test_live_allocations == 0) abort(); --spx_test_live_allocations; } free(p); }
 "#;
     let probe = format!(
         r#"
 typedef spx_status_token (*entry_fn)(struct spx_context *, int64_t *);
-static int overflow(struct spx_context *ctx, entry_fn entry) {{
+static int failure(struct spx_context *ctx, entry_fn entry, const char *domain, uint32_t code, uint32_t status_class) {{
   int64_t value=0; spx_status_token token=entry(ctx,&value); if(token==SPX_STATUS_SUCCESS)return 1;
   const struct spx_normalized_status *status=spx_status_resolve(ctx,token);
-  return status==NULL||strcmp(status->domain_id,"semaprax.arithmetic.v1")!=0||status->code!=UINT32_C(1)||status->status_class!=SPX_STATUS_CLASS_ARITHMETIC;
+  return status==NULL||strcmp(status->domain_id,domain)!=0||status->code!=code||status->status_class!=status_class;
 }}
 int main(void) {{
   struct spx_status_entry entries[UINT32_C(32)]; struct spx_context ctx={{0}};
   if(!spx_context_init(&ctx,UINT64_C(291),entries,UINT32_C(32),NULL,NULL,NULL))return 1;
   for(uint32_t i=0;i<UINT32_C(4);++i){{ int64_t value=0;
+    uint64_t before=spx_test_total_allocations;
     if({main}(&ctx,&value)!=SPX_STATUS_SUCCESS||value!=INT64_C(42))return 2;
+    if({try_run}(&ctx,&value)!=SPX_STATUS_SUCCESS||value!=INT64_C(42))return 3;
+    if({try_call_run}(&ctx,&value)!=SPX_STATUS_SUCCESS||value!=INT64_C(42))return 4;
+    if({post_inspect}(&ctx,&value)!=SPX_STATUS_SUCCESS||value!=INT64_C(42))return 4;
+    if(spx_test_total_allocations-before!=UINT64_C(8))return 4;
     if(spx_test_live_allocations!=0)return 3;
-    if(overflow(&ctx,{f0})||overflow(&ctx,{f1})||overflow(&ctx,{f2})||overflow(&ctx,{f3}))return 4;
-    if(spx_test_live_allocations!=0)return 5;
+    if(failure(&ctx,{f0},"semaprax.arithmetic.v1",UINT32_C(1),SPX_STATUS_CLASS_ARITHMETIC)||
+       failure(&ctx,{f1},"semaprax.arithmetic.v1",UINT32_C(1),SPX_STATUS_CLASS_ARITHMETIC)||
+       failure(&ctx,{f2},"semaprax.arithmetic.v1",UINT32_C(1),SPX_STATUS_CLASS_ARITHMETIC)||
+       failure(&ctx,{f3},"semaprax.arithmetic.v1",UINT32_C(1),SPX_STATUS_CLASS_ARITHMETIC)||
+       failure(&ctx,{try_fail},"semaprax.arithmetic.v1",UINT32_C(1),SPX_STATUS_CLASS_ARITHMETIC)||
+       failure(&ctx,{post_fail},"semaprax.contract.v1",UINT32_C(2),SPX_STATUS_CLASS_CONTRACT))return 5;
+    if(spx_test_live_allocations!=0)return 6;
+    if(spx_test_total_allocations-before!=UINT64_C(14))return 7;
   }} return 0;
 }}
 "#,
         main = symbol("app.main"),
+        try_run = symbol("result.two-owned.try-run"),
+        try_call_run = symbol("result.two-owned.direct-try-call-run"),
+        post_inspect = symbol("result.two-owned.try-post-inspect-entry"),
         f0 = symbol("result.two-owned.fail-ok-arm"),
         f1 = symbol("result.two-owned.fail-err-arm"),
         f2 = symbol("result.two-owned.partial-ok-call"),
-        f3 = symbol("result.two-owned.partial-err-call")
+        f3 = symbol("result.two-owned.partial-err-call"),
+        try_fail = symbol("result.two-owned.try-fail-entry"),
+        post_fail = symbol("result.two-owned.try-post-fail-entry")
     );
     let ty = &function(resolved, "result.two-owned.consume").params[0].ty;
     let invalid = format!(
@@ -411,7 +523,7 @@ fn assert_tag_last(generated: &str) {
         .match_indices(publish)
         .map(|(offset, _)| offset)
         .collect::<Vec<_>>();
-    assert_eq!(offsets.len(), 4);
+    assert_eq!(offsets.len(), 9);
     for offset in offsets {
         let prefix = &generated[..offset];
         let shell = prefix.rfind("memset((uint8_t *)&((*spx_result_out)) + sizeof(((*spx_result_out)).spx_tag), 0, sizeof((*spx_result_out)) - sizeof(((*spx_result_out)).spx_tag));").unwrap();
@@ -462,12 +574,17 @@ fn run_wasm() {
     if !available {
         return;
     }
-    for (entry, succeeds) in [
-        ("run", true),
-        ("fail_ok_arm", false),
-        ("fail_err_arm", false),
-        ("partial_ok_call", false),
-        ("partial_err_call", false),
+    for (entry, expected) in [
+        ("run", "success"),
+        ("try_run", "success"),
+        ("direct_try_call_run", "success"),
+        ("try_post_inspect_entry", "success"),
+        ("fail_ok_arm", "arithmetic"),
+        ("fail_err_arm", "arithmetic"),
+        ("partial_ok_call", "arithmetic"),
+        ("partial_err_call", "arithmetic"),
+        ("try_fail_entry", "arithmetic"),
+        ("try_post_fail_entry", "contract"),
     ] {
         let source = SOURCE.replace(
             "fn main() -> i64 { run() }",
@@ -485,10 +602,11 @@ fn run_wasm() {
         ));
         wasm::build_web(&parsed, &root).unwrap();
         std::fs::write(root.join("package.json"), "{\"type\":\"module\"}\n").unwrap();
-        let expectation = if succeeds {
-            "if(instance.exports.semaprax_main()!==42n)throw Error('wrong value');"
-        } else {
-            "let failed=false;try{instance.exports.semaprax_main();}catch(error){const status=semanticStatus(error);if(status===null||status.domain_id!=='semaprax.arithmetic.v1'||status.code!==1||error.message!=='SEMAPRAX checked arithmetic failure: addition overflow')throw error;failed=true;}if(!failed)throw Error('missing failure');"
+        let expectation = match expected {
+            "success" => "if(instance.exports.semaprax_main()!==42n)throw Error('wrong value');",
+            "arithmetic" => "let failed=false;try{instance.exports.semaprax_main();}catch(error){const status=semanticStatus(error);if(status===null||status.domain_id!=='semaprax.arithmetic.v1'||status.code!==1||error.message!=='SEMAPRAX checked arithmetic failure: addition overflow')throw error;failed=true;}if(!failed)throw Error('missing failure');",
+            "contract" => "let failed=false;try{instance.exports.semaprax_main();}catch(error){const status=semanticStatus(error);if(status===null||status.domain_id!=='semaprax.contract.v1'||status.code!==2||error.message!=='SEMAPRAX contract failure')throw error;failed=true;}if(!failed)throw Error('missing failure');",
+            _ => unreachable!(),
         };
         std::fs::write(root.join("probe.mjs"), format!(r#"import {{readFile}} from 'node:fs/promises';
 import {{instantiateBytes,semanticStatus}} from './semaprax.js';
@@ -512,7 +630,7 @@ for(let i=0;i<4;i+=1){{{expectation}}}
 fn assert_no_shallow_wasm_copy() {
     let parsed = parse(
         NO_SHALLOW_COPY_SOURCE,
-        Path::new("compiler-owned-two-owned-result-no-copy.spx"),
+        Path::new("compiler-owned-two-owned-result-try-no-copy.spx"),
     )
     .unwrap();
     assert!(verify::verify(&parsed)

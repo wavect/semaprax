@@ -9,6 +9,7 @@ use crate::loan_plan::{LoanCause, LoanId, LoanPointPhase};
 mod borrowed_str;
 mod host_command;
 mod owned_buffer;
+mod owned_result_try;
 mod type_profiles;
 mod unsafe_scan;
 pub(crate) use type_profiles::resolved_type_contains_owned_bytes;
@@ -5874,7 +5875,15 @@ impl<'a> HirValidator<'a> {
                     path,
                     option,
                 } => {
-                    let scope = scopes.pop().expect("try scope retained");
+                    let mut scope = scopes.pop().expect("try scope retained");
+                    if !option {
+                        let ResolvedExprKind::Try { operand, .. } = &expression.kind else {
+                            unreachable!()
+                        };
+                        if owned_result_try::expression_owns_exact_operand(operand) {
+                            self.mark_value_sources_moved(operand, &mut scope)?;
+                        }
+                    }
                     self.finish_try_expr(function, expression, &scope, &path, option)?;
                     scopes.push(scope);
                 }
@@ -6045,67 +6054,42 @@ impl<'a> HirValidator<'a> {
                 ));
             }
             if scope.values().any(|binding| {
-                self.program
-                    .declarations
-                    .type_facts(&binding.ty)
-                    .is_some_and(|facts| facts.contains_resource)
+                binding.availability != Availability::Moved
+                    && self
+                        .program
+                        .declarations
+                        .type_facts(&binding.ty)
+                        .is_some_and(|facts| facts.needs_drop)
             }) {
                 return Err(hir_error(
-                    "resolved `?` has a live resource binding in the bounded Copy-only profile",
+                    "resolved `?` has an unrelated live owned binding",
                 ));
             }
-            if result.as_str() != crate::prelude::RESULT_ID
-                || ok_case.as_str() != crate::prelude::RESULT_OK_ID
-                || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
-                || err_case.as_str() != crate::prelude::RESULT_ERR_ID
-                || err_field.as_str() != crate::prelude::RESULT_ERR_ERROR_ID
-            {
-                return Err(hir_error(
-                    "resolved `?` does not authenticate the compiler-owned Result shape",
-                ));
-            }
-            let (
-                ResolvedType::Nominal {
-                    declaration: operand_result,
-                    arguments: operand_arguments,
-                },
-                ResolvedType::Nominal {
-                    declaration: residual_result,
-                    arguments: residual_arguments,
-                },
-            ) = (&operand.ty, residual_type)
-            else {
-                return Err(hir_error(
-                    "resolved `?` operand or residual is not nominal Result",
-                ));
-            };
-            if operand_result != result
-                || residual_result != result
-                || operand_arguments.len() != 2
-                || residual_arguments.len() != 2
-                || operand_arguments
-                    .iter()
-                    .chain(residual_arguments)
-                    .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
-            {
-                return Err(hir_error(
-                    "resolved `?` has invalid concrete Result instances",
-                ));
-            }
+            let profile = owned_result_try::validate_shape(
+                expression,
+                operand,
+                result,
+                ok_case,
+                ok_field,
+                err_case,
+                err_field,
+                residual_type,
+            )?;
             let enclosing = self
                 .execution_function(function)
                 .map(|candidate| &candidate.return_type)
                 .ok_or_else(|| hir_error("resolved `?` has no enclosing function"))?;
             self.require_type(residual_type, enclosing, "`?` residual")?;
-            self.require_type(&expression.ty, &operand_arguments[0], "`?` success value")?;
             self.require_type(
-                &operand_arguments[1],
-                &residual_arguments[1],
+                &expression.ty,
+                &profile.operand_arguments[0],
+                "`?` success value",
+            )?;
+            self.require_type(
+                &profile.operand_arguments[1],
+                &profile.residual_arguments[1],
                 "`?` residual error",
             )?;
-            if expression.ownership != OwnershipMode::Value {
-                return Err(hir_error("resolved `?` success value is not Copy"));
-            }
             Ok(())
         }
     }
@@ -7774,73 +7758,52 @@ impl<'a> HirValidator<'a> {
                     allow_moves,
                     allowed_effects,
                 )?;
+                if owned_result_try::expression_owns_exact_operand(operand) {
+                    self.mark_value_sources_moved(operand, scope)?;
+                }
                 if !path.starts_with("body") {
                     return Err(hir_error(
                         "resolved `?` is outside the executable function body",
                     ));
                 }
                 if scope.values().any(|binding| {
-                    self.program
-                        .declarations
-                        .type_facts(&binding.ty)
-                        .is_some_and(|facts| facts.contains_resource)
+                    binding.availability != Availability::Moved
+                        && self
+                            .program
+                            .declarations
+                            .type_facts(&binding.ty)
+                            .is_some_and(|facts| facts.needs_drop)
                 }) {
                     return Err(hir_error(
-                        "resolved `?` has a live resource binding in the bounded Copy-only profile",
+                        "resolved `?` has an unrelated live owned binding",
                     ));
                 }
-                if result.as_str() != crate::prelude::RESULT_ID
-                    || ok_case.as_str() != crate::prelude::RESULT_OK_ID
-                    || ok_field.as_str() != crate::prelude::RESULT_OK_VALUE_ID
-                    || err_case.as_str() != crate::prelude::RESULT_ERR_ID
-                    || err_field.as_str() != crate::prelude::RESULT_ERR_ERROR_ID
-                {
-                    return Err(hir_error(
-                        "resolved `?` does not authenticate the compiler-owned Result shape",
-                    ));
-                }
-                let ResolvedType::Nominal {
-                    declaration: operand_result,
-                    arguments: operand_arguments,
-                } = &operand.ty
-                else {
-                    return Err(hir_error("resolved `?` operand is not nominal Result"));
-                };
-                let ResolvedType::Nominal {
-                    declaration: residual_result,
-                    arguments: residual_arguments,
-                } = residual_type
-                else {
-                    return Err(hir_error("resolved `?` residual is not nominal Result"));
-                };
-                if operand_result != result
-                    || residual_result != result
-                    || operand_arguments.len() != 2
-                    || residual_arguments.len() != 2
-                    || operand_arguments
-                        .iter()
-                        .chain(residual_arguments)
-                        .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
-                {
-                    return Err(hir_error(
-                        "resolved `?` has invalid concrete Result instances",
-                    ));
-                }
+                let profile = owned_result_try::validate_shape(
+                    expression,
+                    operand,
+                    result,
+                    ok_case,
+                    ok_field,
+                    err_case,
+                    err_field,
+                    residual_type,
+                )?;
                 let enclosing_return = self
                     .execution_function(function)
                     .map(|candidate| &candidate.return_type)
                     .ok_or_else(|| hir_error("resolved `?` has no enclosing function"))?;
                 self.require_type(residual_type, enclosing_return, "`?` residual")?;
-                self.require_type(&expression.ty, &operand_arguments[0], "`?` success value")?;
                 self.require_type(
-                    &operand_arguments[1],
-                    &residual_arguments[1],
+                    &expression.ty,
+                    &profile.operand_arguments[0],
+                    "`?` success value",
+                )?;
+                self.require_type(
+                    &profile.operand_arguments[1],
+                    &profile.residual_arguments[1],
                     "`?` residual error",
                 )?;
-                if expression.ownership != OwnershipMode::Value {
-                    return Err(hir_error("resolved `?` success value is not Copy"));
-                }
-                (expression.ty.clone(), OwnershipMode::Value)
+                (expression.ty.clone(), expression.ownership)
             }
             ResolvedExprKind::TryOption {
                 operand,

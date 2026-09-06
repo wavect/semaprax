@@ -27,6 +27,7 @@ use super::{
 
 #[cfg(test)]
 mod hostile_tests;
+mod owned_try;
 mod record_destructure;
 mod schema;
 const UNRESOLVED_EXIT: ExitTargetId = ExitTargetId(u32::MAX);
@@ -797,33 +798,40 @@ impl<'a> PlanBuilder<'a> {
         }
 
         if !self.pending_try_residuals.is_empty() {
-            if !self.slots.is_empty()
-                || !state.live_order.is_empty()
-                || !state.conditional_variants.is_empty()
-            {
-                return Err(plan_error(
-                    "postfix `?` reached cleanup planning with resource leaves",
-                ));
-            }
-            self.push_transition(
-                current,
-                CleanupTransition::StageCopyResult {
-                    source: StagedCopyResultSource::Body {
-                        expression: self.function.body.id.clone(),
-                        instance: self.function.return_type.clone(),
+            let owned_result = self.result_needs_drop()?;
+            let residuals = std::mem::take(&mut self.pending_try_residuals);
+            if owned_result {
+                self.merge_owned_try_residual_states(&mut state, &residuals)?;
+            } else {
+                if !self.slots.is_empty()
+                    || !state.live_order.is_empty()
+                    || !state.conditional_variants.is_empty()
+                {
+                    return Err(plan_error(
+                        "postfix `?` reached cleanup planning with resource leaves",
+                    ));
+                }
+                self.push_transition(
+                    current,
+                    CleanupTransition::StageCopyResult {
+                        source: StagedCopyResultSource::Body {
+                            expression: self.function.body.id.clone(),
+                            instance: self.function.return_type.clone(),
+                        },
                     },
-                },
-            );
+                );
+            }
             let epilogue = self.new_block(root)?;
             let normal_edge = self.new_edge(current, epilogue, EdgeCondition::Always)?;
             self.terminate(current, CleanupTerminator::Goto(normal_edge))?;
 
-            for residual in std::mem::take(&mut self.pending_try_residuals) {
-                if !residual.state.live_order.is_empty()
-                    || !residual.state.conditional_variants.is_empty()
+            for residual in residuals {
+                if !owned_result
+                    && (!residual.state.live_order.is_empty()
+                        || !residual.state.conditional_variants.is_empty())
                 {
                     return Err(plan_error(
-                        "postfix `?` residual carries live resource leaves",
+                        "postfix `?` residual carries inconsistent live owners",
                     ));
                 }
                 let edge = self.new_edge(residual.block, epilogue, EdgeCondition::Always)?;
@@ -5638,71 +5646,6 @@ impl<'a> PlanBuilder<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn check_try_metadata(
-        &self,
-        expression: &ResolvedExpr,
-        operand: &ResolvedExpr,
-        result: &DeclarationId,
-        ok_case: &DeclarationId,
-        ok_field: &DeclarationId,
-        err_case: &DeclarationId,
-        err_field: &DeclarationId,
-        residual_type: &ResolvedType,
-    ) -> Result<(), Diagnostic> {
-        if result.as_str() != prelude::RESULT_ID
-            || ok_case.as_str() != prelude::RESULT_OK_ID
-            || ok_field.as_str() != prelude::RESULT_OK_VALUE_ID
-            || err_case.as_str() != prelude::RESULT_ERR_ID
-            || err_field.as_str() != prelude::RESULT_ERR_ERROR_ID
-        {
-            return Err(plan_error(
-                "postfix `?` does not authenticate the ordinary Result prelude",
-            ));
-        }
-        for id in [result, ok_case, ok_field, err_case, err_field] {
-            let declaration = self
-                .program
-                .declarations
-                .declaration(id)
-                .ok_or_else(|| plan_error(format!("postfix `?` references unknown `{id}`")))?;
-            if declaration.identity_origin != IdentityOrigin::CompilerOwned {
-                return Err(plan_error(format!(
-                    "postfix `?` reference `{id}` is not compiler-owned"
-                )));
-            }
-        }
-        let source_arguments = result_arguments(&operand.ty, result)?;
-        let target_arguments = result_arguments(residual_type, result)?;
-        if source_arguments.len() != 2
-            || target_arguments.len() != 2
-            || source_arguments
-                .iter()
-                .chain(target_arguments.iter())
-                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
-            || expression.ty != source_arguments[0]
-            || source_arguments[1] != target_arguments[1]
-            || residual_type != &self.function.return_type
-        {
-            return Err(plan_error(
-                "postfix `?` has inconsistent source, value, residual, or function types",
-            ));
-        }
-        for ty in [&operand.ty, residual_type] {
-            let facts = self
-                .program
-                .declarations
-                .type_facts(ty)
-                .ok_or_else(|| plan_error("postfix `?` Result instance has no type facts"))?;
-            if !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop {
-                return Err(plan_error(
-                    "postfix `?` reached cleanup planning outside the Copy Result slice",
-                ));
-            }
-        }
-        Ok(())
-    }
-
-    #[allow(clippy::too_many_arguments)]
     fn finish_try(
         &mut self,
         expression: &ResolvedExpr,
@@ -5716,6 +5659,14 @@ impl<'a> PlanBuilder<'a> {
         evaluated: EvalResult,
         region: CleanupRegionId,
     ) -> Result<EvalResult, Diagnostic> {
+        let exact_owned = expression.ownership == OwnershipMode::Own
+            && expression.ty == ResolvedType::Bytes
+            && operand.ty == *residual_type;
+        if exact_owned {
+            return self.finish_owned_try(
+                expression, operand, result, ok_case, ok_field, evaluated, region,
+            );
+        }
         if evaluated.owned_source.is_some() {
             return Err(plan_error(
                 "postfix `?` operand reached the Copy slice with cleanup storage",

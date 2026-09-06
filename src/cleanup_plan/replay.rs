@@ -41,8 +41,10 @@ use path_summary::{
 use path_summary::{cleanup_plan_requires_path_replay, STATUS_ONLY_PATH_SUMMARY_THRESHOLD};
 
 mod nested_shape;
+mod path_join;
 mod record_destructure;
 use nested_shape::expected_shape_for_type;
+use path_join::validate_path_states;
 
 const MAX_REPLAY_PATHS: usize = 65_536;
 // Independent fail-closed work cap. Valid admitted shapes are preflighted
@@ -2997,7 +2999,9 @@ fn hir_skeleton_paths(
         paths = split_contract(paths, contract, &mut work)?;
     }
     paths = sequence_expression(program, function, paths, &function.body, &mut work)?;
-    if paths.iter().any(|path| path.residual) {
+    let has_residual = paths.iter().any(|path| path.residual);
+    let owned_result = type_needs_drop(program, function, &function.return_type)?;
+    if has_residual && !owned_result {
         if !function.cleanup_plan.slots.is_empty() {
             return Err(replay_error(
                 function,
@@ -3024,7 +3028,7 @@ fn hir_skeleton_paths(
             path.residual = false;
         }
     }
-    if type_needs_drop(program, function, &function.return_type)? {
+    if owned_result {
         let body_id = work.clone_owned(&function.body.id, "owned result expression clone")?;
         paths = transfer_completed_paths(
             function,
@@ -3037,6 +3041,20 @@ fn hir_skeleton_paths(
             "owned function result",
             &mut work,
         )?;
+    }
+    if has_residual && owned_result {
+        let provisional = CleanupPlace::whole(StorageId::ProvisionalResult);
+        for path in &mut paths {
+            if path.residual {
+                if path.owned_source.as_ref() != Some(&provisional) {
+                    return Err(replay_error(
+                        function,
+                        "owned postfix `?` residual does not stage the provisional result",
+                    ));
+                }
+                path.residual = false;
+            }
+        }
     }
     for contract in &function.ensures {
         paths = sequence_expression(program, function, paths, contract, &mut work)?;
@@ -4693,7 +4711,7 @@ fn authenticated_try_stage_source(
     err_field: &DeclarationId,
     residual_type: &ResolvedType,
     work: &mut SkeletonWork<'_, '_>,
-) -> Result<StagedCopyResultSource, Diagnostic> {
+) -> Result<Option<StagedCopyResultSource>, Diagnostic> {
     if result.as_str() != prelude::RESULT_ID
         || ok_case.as_str() != prelude::RESULT_OK_ID
         || ok_field.as_str() != prelude::RESULT_OK_VALUE_ID
@@ -4718,12 +4736,15 @@ fn authenticated_try_stage_source(
     }
     let source_arguments = replay_result_arguments(function, &operand.ty, result)?;
     let target_arguments = replay_result_arguments(function, residual_type, result)?;
+    let exact_owned = source_arguments == [ResolvedType::Bytes, ResolvedType::Bytes]
+        && target_arguments == [ResolvedType::Bytes, ResolvedType::Bytes];
     if source_arguments.len() != 2
         || target_arguments.len() != 2
-        || source_arguments
-            .iter()
-            .chain(target_arguments.iter())
-            .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool))
+        || (!exact_owned
+            && source_arguments
+                .iter()
+                .chain(target_arguments.iter())
+                .any(|argument| !matches!(argument, ResolvedType::I64 | ResolvedType::Bool)))
         || expression.ty != source_arguments[0]
         || source_arguments[1] != target_arguments[1]
         || residual_type != &function.return_type
@@ -4737,14 +4758,28 @@ fn authenticated_try_stage_source(
         let facts = program.declarations.type_facts(ty).ok_or_else(|| {
             replay_error(function, "postfix `?` Result instance has no type facts")
         })?;
-        if !facts.copy || !facts.sized || facts.contains_resource || facts.needs_drop {
+        let valid = if exact_owned {
+            !facts.copy && facts.sized && !facts.contains_resource && facts.needs_drop
+        } else {
+            facts.copy && facts.sized && !facts.contains_resource && !facts.needs_drop
+        };
+        if !valid {
             return Err(replay_error(
                 function,
-                "postfix `?` is outside the Copy Result cleanup slice",
+                "postfix `?` is outside its exact Result cleanup slice",
             ));
         }
     }
-    Ok(StagedCopyResultSource::TryResidual {
+    if exact_owned {
+        if expression.ownership != OwnershipMode::Own || operand.ty != *residual_type {
+            return Err(replay_error(
+                function,
+                "owned postfix `?` has inconsistent ownership or instance identity",
+            ));
+        }
+        return Ok(None);
+    }
+    Ok(Some(StagedCopyResultSource::TryResidual {
         expression: work.clone_owned(&expression.id, "try source expression clone")?,
         operand: work.clone_owned(&operand.id, "try source operand clone")?,
         source_instance: work.clone_owned(&operand.ty, "try source instance clone")?,
@@ -4754,7 +4789,7 @@ fn authenticated_try_stage_source(
         ok_field: work.clone_owned(ok_field, "try Ok field clone")?,
         err_case: work.clone_owned(err_case, "try Err identity clone")?,
         err_field: work.clone_owned(err_field, "try Err field clone")?,
-    })
+    }))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -5607,7 +5642,7 @@ fn finish_try_paths(
     option: bool,
     work: &mut SkeletonWork<'_, '_>,
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
-    let (operand, success_case, source) = if option {
+    let (operand, success_case, success_field, source) = if option {
         let ResolvedExprKind::TryOption {
             operand,
             option,
@@ -5622,7 +5657,8 @@ fn finish_try_paths(
         (
             operand.as_ref(),
             some_case,
-            authenticated_try_option_stage_source(
+            None,
+            Some(authenticated_try_option_stage_source(
                 program,
                 function,
                 expression,
@@ -5633,7 +5669,7 @@ fn finish_try_paths(
                 none_case,
                 residual_type,
                 work,
-            )?,
+            )?),
         )
     } else {
         let ResolvedExprKind::Try {
@@ -5651,6 +5687,7 @@ fn finish_try_paths(
         (
             operand.as_ref(),
             ok_case,
+            Some(ok_field),
             authenticated_try_stage_source(
                 program,
                 function,
@@ -5685,6 +5722,32 @@ fn finish_try_paths(
             },
             "try success observation",
         )?;
+        if source.is_none() {
+            let mut payload = success.owned_source.take().ok_or_else(|| {
+                replay_error(function, "owned postfix `?` success has no cleanup source")
+            })?;
+            payload
+                .projections
+                .push(work.clone_owned(success_case, "try success case projection")?);
+            payload.projections.push(work.clone_owned(
+                success_field.expect("owned Result try has an Ok field"),
+                "try success field projection",
+            )?);
+            let destination = temporary_place(expression, work)?;
+            let at = work.clone_owned(&expression.id, "try success transfer identity")?;
+            let observed_destination =
+                work.clone_owned(&destination, "try success transfer destination")?;
+            work.push_observation(
+                &mut success,
+                SkeletonObservation::Transfer {
+                    at,
+                    source: payload,
+                    destination: observed_destination,
+                },
+                "owned try success transfer",
+            )?;
+            success.owned_source = Some(destination);
+        }
         work.push_expr_path(&mut paths, success, "try success path")?;
 
         let mut residual = path;
@@ -5698,12 +5761,32 @@ fn finish_try_paths(
             },
             "try residual case observation",
         )?;
-        let staged_source = work.clone_owned(&source, "try staged-result source clone")?;
-        work.push_observation(
-            &mut residual,
-            SkeletonObservation::StageCopyResult(staged_source),
-            "try residual staging observation",
-        )?;
+        if let Some(source) = &source {
+            let staged_source = work.clone_owned(source, "try staged-result source clone")?;
+            work.push_observation(
+                &mut residual,
+                SkeletonObservation::StageCopyResult(staged_source),
+                "try residual staging observation",
+            )?;
+        } else {
+            let owned_source = residual.owned_source.take().ok_or_else(|| {
+                replay_error(function, "owned postfix `?` residual has no cleanup source")
+            })?;
+            let destination = CleanupPlace::whole(StorageId::ProvisionalResult);
+            let at = work.clone_owned(&expression.id, "try residual transfer identity")?;
+            let observed_destination =
+                work.clone_owned(&destination, "try residual transfer destination")?;
+            work.push_observation(
+                &mut residual,
+                SkeletonObservation::Transfer {
+                    at,
+                    source: owned_source,
+                    destination: observed_destination,
+                },
+                "owned try residual transfer",
+            )?;
+            residual.owned_source = Some(destination);
+        }
         residual.residual = true;
         work.push_expr_path(&mut paths, residual, "try residual path")?;
     }
@@ -6496,136 +6579,6 @@ fn plan_skeleton_paths(
     Ok(paths)
 }
 
-fn validate_path_states(
-    program: &ResolvedProgram,
-    function: &ResolvedFunction,
-    storage: &BTreeSet<StorageId>,
-    leaves: &BTreeMap<LivenessFlagId, Leaf>,
-    budget: &mut ReplayBudget,
-) -> Result<(), Diagnostic> {
-    let plan = &function.cleanup_plan;
-    let storage_regions = storage_regions(function)?;
-    let contract_sources = plan
-        .status_sources
-        .iter()
-        .filter(|source| source.id.lane == StatusLane::ContractFalse)
-        .map(|source| (source.id.expression.clone(), source.id.clone()))
-        .collect::<BTreeMap<_, _>>();
-
-    let mut initial = PathState {
-        live_order: Vec::new(),
-        conditional_variants: Vec::new(),
-        pending_failure: None,
-        selected_failure: None,
-        staged_copy_result: None,
-        published: false,
-    };
-    for place in &plan.entry_state.live_owned_parameters {
-        let flags = validate_place(function, place, storage, leaves)?;
-        append_dead_flags(function, &mut initial, flags, "entry state")?;
-    }
-    for entry in &plan.entry_state.conditional_owned_parameters {
-        let mut cases = Vec::with_capacity(entry.cases.len());
-        for case in &entry.cases {
-            let mut flags = Vec::with_capacity(case.live_places.len());
-            for place in &case.live_places {
-                let under = validate_place(function, place, storage, leaves)?;
-                if under.len() != 1 || place.projections.first() != Some(&case.case) {
-                    return Err(replay_error(
-                        function,
-                        "conditional entry case does not name exact case-qualified leaves",
-                    ));
-                }
-                flags.push(under[0]);
-            }
-            cases.push((case.case.clone(), flags));
-        }
-        initial.conditional_variants.push(ReplayConditionalVariant {
-            root: CleanupPlace {
-                storage: entry.storage.clone(),
-                projections: Vec::new(),
-            },
-            variant: entry.variant.clone(),
-            cases,
-        });
-    }
-
-    let mut incoming = vec![BTreeSet::<PathState>::new(); plan.blocks.len()];
-    let mut queue = VecDeque::from([(plan.entry, initial)]);
-    let mut terminal_paths = 0_usize;
-    let mut successful_paths = 0_usize;
-
-    while let Some((block_id, state)) = queue.pop_front() {
-        let states = &mut incoming[block_id.0 as usize];
-        let join_units = states
-            .len()
-            .saturating_add(1)
-            .saturating_mul(state.live_order.len().saturating_add(1));
-        budget.charge(function, join_units, "all-path ownership replay")?;
-        validate_join_compatibility(function, states, &state, block_id)?;
-        if !states.insert(state.clone()) {
-            continue;
-        }
-
-        let block = &plan.blocks[block_id.0 as usize];
-        let mut state = state;
-        for transition in &block.transitions {
-            execute_replay_transition(program, function, transition, &mut state, storage, leaves)?;
-        }
-        match &block.terminator {
-            CleanupTerminator::Goto(edge) => {
-                require_normal_flow_state(function, &state, block_id)?;
-                let edge = &plan.edges[edge.0 as usize];
-                let state = state_for_edge(function, state, &edge.condition, &contract_sources)?;
-                queue.push_back((edge.to, state));
-            }
-            CleanupTerminator::Branch(edges) => {
-                require_normal_flow_state(function, &state, block_id)?;
-                for edge in edges {
-                    let edge = &plan.edges[edge.0 as usize];
-                    let next = state_for_edge(
-                        function,
-                        state.clone(),
-                        &edge.condition,
-                        &contract_sources,
-                    )?;
-                    queue.push_back((edge.to, next));
-                }
-            }
-            CleanupTerminator::Exit(exit_id) => {
-                let exit = &plan.exits[exit_id.0 as usize];
-                match replay_exit(function, exit, state, &storage_regions, storage, leaves)? {
-                    Some((edge, continued)) => {
-                        queue.push_back((plan.edges[edge.0 as usize].to, continued));
-                    }
-                    None => {
-                        terminal_paths = terminal_paths.checked_add(1).ok_or_else(|| {
-                            replay_error(function, "too many terminal cleanup paths")
-                        })?;
-                        if matches!(
-                            exit.continuation,
-                            ExitContinuation::CommitResult { .. } | ExitContinuation::ReturnUnit
-                        ) {
-                            successful_paths =
-                                successful_paths.checked_add(1).ok_or_else(|| {
-                                    replay_error(function, "too many successful cleanup paths")
-                                })?;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    if terminal_paths == 0 || successful_paths == 0 {
-        return Err(replay_error(
-            function,
-            "cleanup CFG has no replayable terminal success path",
-        ));
-    }
-    Ok(())
-}
-
 fn storage_regions(
     function: &ResolvedFunction,
 ) -> Result<BTreeMap<StorageId, CleanupRegionId>, Diagnostic> {
@@ -7220,7 +7173,13 @@ fn replay_exit(
     let mut expected_conditional = Vec::new();
     for variant in state.conditional_variants.iter().rev() {
         let region = storage_regions[&variant.root.storage];
-        if !leaving.contains(&region) || variant.root.storage == StorageId::ProvisionalResult {
+        let protected = matches!(
+            &exit.continuation,
+            ExitContinuation::CommitResult {
+                source: CleanupResultSource::Owned { storage },
+            } if storage == &variant.root
+        );
+        if !leaving.contains(&region) || protected {
             continue;
         }
         for (case, flags) in variant.cases.iter().rev() {
@@ -7275,7 +7234,12 @@ fn replay_exit(
     state.live_order.retain(|flag| !finalized.contains(flag));
     state.conditional_variants.retain(|variant| {
         !leaving.contains(&storage_regions[&variant.root.storage])
-            || variant.root.storage == StorageId::ProvisionalResult
+            || matches!(
+                &exit.continuation,
+                ExitContinuation::CommitResult {
+                    source: CleanupResultSource::Owned { storage },
+                } if storage == &variant.root
+            )
     });
     if state.live_order.iter().any(|flag| {
         let leaf = &leaves[flag];

@@ -2151,8 +2151,89 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     "copy-result Err payload",
                 )?;
 
+                let owned_bytes = expr.ownership == hir::OwnershipMode::Own
+                    && expr.ty == ResolvedType::Bytes
+                    && operand.ty == *residual_type
+                    && result.as_str() == crate::prelude::RESULT_ID
+                    && matches!(
+                        &operand.ty,
+                        ResolvedType::Nominal {
+                            declaration,
+                            arguments,
+                        } if declaration == result
+                            && crate::hir::admitted_owned_byte_prelude_instance(
+                                declaration,
+                                arguments,
+                            )
+                    );
+
                 let operand_value = self.emit_expr(operand)?;
                 self.require_type(&operand_value.ty, &operand.ty, "copy-result operand")?;
+                if owned_bytes {
+                    let plan = self.bytes_plan.ok_or_else(|| {
+                        backend_error("owned Result propagation has no cleanup plan")
+                    })?;
+                    let operand_stage = operand_value.code;
+                    self.line(&format!(
+                        "if ({operand_stage}.spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned Result tag\");",
+                        operand_layout.cases.len()
+                    ));
+                    self.line(&format!(
+                        "if ({operand_stage}.spx_tag == UINT32_C({})) {{",
+                        operand_err.0.tag
+                    ));
+                    self.indent += 1;
+                    let authentication = plan.authenticate_variant_case_at(&expr.id, err_case)?;
+                    for line in authentication.lines() {
+                        self.line(line);
+                    }
+                    let transitions = plan.apply_try_variant_case_at(&expr.id, err_case, true)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                    self.line("memset(&spx_result, 0, sizeof(spx_result));");
+                    let view = plan.materialize_variant_borrow_view(
+                        &crate::cleanup_plan::StorageId::ProvisionalResult,
+                        "spx_result",
+                        &operand_stage,
+                        &residual_layout,
+                    )?;
+                    for line in view.lines() {
+                        self.line(line);
+                    }
+                    self.line(&format!(
+                        "spx_result.spx_tag = UINT32_C({});",
+                        residual_err.0.tag
+                    ));
+                    self.line("spx_result_staged = true;");
+                    self.line("goto spx_postconditions;");
+                    self.indent -= 1;
+                    self.line("}");
+                    self.line(&format!(
+                        "if ({operand_stage}.spx_tag != UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned Result tag\");",
+                        operand_ok.0.tag
+                    ));
+                    let authentication = plan.authenticate_variant_case_at(&expr.id, ok_case)?;
+                    for line in authentication.lines() {
+                        self.line(line);
+                    }
+                    // The success lane continues through every ordinary transfer
+                    // anchored at the Try expression (projected extraction, then
+                    // any enclosing binding/block destinations). Dynamic residual
+                    // TransferVariant transitions are deliberately ignored by
+                    // apply_at and run only on the Err lane above.
+                    let transitions = plan.apply_at(&expr.id)?;
+                    for line in transitions.lines() {
+                        self.line(line);
+                    }
+                    let output = plan.result_at(&expr.id).ok_or_else(|| {
+                        backend_error("owned Result Ok extraction has no Bytes destination")
+                    })?;
+                    return Ok(CValue {
+                        code: output.to_owned(),
+                        ty: expr.ty.clone(),
+                    });
+                }
                 let operand_stage = self.temporary(&operand.ty)?;
                 self.line(&format!("{operand_stage} = {};", operand_value.code));
                 self.line(&format!(

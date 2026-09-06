@@ -6,10 +6,11 @@ use crate::diagnostic::Diagnostic;
 use crate::source_verify::arguments::{
     check_argument_ownership, release_borrowed_bytes_call_loans,
 };
-use crate::source_verify::binding::{CheckedValue, SourceLoanId};
+use crate::source_verify::binding::{Availability, CheckedValue, SourceLoanId};
 use crate::source_verify::declared_type::{ordinary_option_argument, ordinary_result_arguments};
 use crate::source_verify::diagnostics::{error, reject_native_unit_value};
 use crate::source_verify::hints;
+use crate::source_verify::loans::mark_value_sources_moved;
 use crate::source_verify::scope::{VerifierCallTarget, VerifierFrame, VerifierFunctionSignature};
 use crate::source_verify::type_table::{effective_record_fields, resolve_class_method};
 use crate::source_verify::IterativeVerifier;
@@ -441,11 +442,26 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                 expression.span,
             ));
         }
-        if self.scopes[scope]
-            .bindings
-            .values()
-            .any(|binding| self.types.needs_drop(&binding.ty))
-        {
+        let exact_owned_result = ordinary_result_arguments(&operand_value.ty)
+            .zip(ordinary_result_arguments(&self.current.return_type))
+            .is_some_and(|((ok, error), (residual_ok, residual_error))| {
+                ok == &Type::Bytes
+                    && error == &Type::Bytes
+                    && residual_ok == &Type::Bytes
+                    && residual_error == &Type::Bytes
+            });
+        if exact_owned_result && self.allow_moves {
+            mark_value_sources_moved(
+                self.program,
+                operand,
+                &mut self.scopes[scope].bindings,
+                self.types,
+                self.diagnostics,
+            );
+        }
+        if self.scopes[scope].bindings.values().any(|binding| {
+            binding.availability != Availability::Moved && self.types.needs_drop(&binding.ty)
+        }) {
             self.diagnostics.push(error(
                 self.program,
                 "SPX-T218",
@@ -454,7 +470,8 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
             ));
         }
         if let Some((ok, error_ty)) = ordinary_result_arguments(&operand_value.ty) {
-            let Some((_, residual_error_ty)) = ordinary_result_arguments(&self.current.return_type)
+            let Some((residual_ok_ty, residual_error_ty)) =
+                ordinary_result_arguments(&self.current.return_type)
             else {
                 self.diagnostics.push(error(
                     self.program,
@@ -476,9 +493,13 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                     expression.span,
                 ));
             }
-            if !matches!(ok, Type::I64 | Type::Bool)
-                || !matches!(error_ty, Type::I64 | Type::Bool)
-                || !matches!(residual_error_ty, Type::I64 | Type::Bool)
+            let exact_owned = exact_owned_result
+                && residual_ok_ty == &Type::Bytes
+                && residual_error_ty == &Type::Bytes;
+            if !exact_owned
+                && (!matches!(ok, Type::I64 | Type::Bool)
+                    || !matches!(error_ty, Type::I64 | Type::Bool)
+                    || !matches!(residual_error_ty, Type::I64 | Type::Bool))
             {
                 self.diagnostics.push(error(
                     self.program,

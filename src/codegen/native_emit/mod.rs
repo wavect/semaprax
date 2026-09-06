@@ -1927,6 +1927,25 @@ fn emit_function(
         emitter.label("spx_postconditions");
     }
 
+    if is_aggregate_type(program, &function.return_type)? {
+        if let Some(plan) = &bytes_plan {
+            for path in borrowed_aggregate_byte_paths(
+                program,
+                emission.record_layouts,
+                emission.variant_layouts,
+                &function.return_type,
+            )? {
+                if let Ok(alias) = plan.value_at(&crate::cleanup_plan::CleanupPlace {
+                    storage: crate::cleanup_plan::StorageId::ProvisionalResult,
+                    projections: path.clone(),
+                }) {
+                    emitter
+                        .borrowed_aggregate_bytes
+                        .insert((function.result_id.clone(), path), alias.to_owned());
+                }
+            }
+        }
+    }
     emitter.variables.insert(
         function.result_id.clone(),
         CBinding {

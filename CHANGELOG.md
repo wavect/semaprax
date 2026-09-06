@@ -248,9 +248,15 @@ format: `Unreleased` then release buckets, grouped by impact.
   C11 `-O0`/`-O2`, and Core-Wasm evidence covers both active branches,
   dynamic forwarding, staged-call and arm-failure settlement, capacity-one
   execution, hostile cleanup-plan mutation, invalid tags, tag-last result
-  publication, and native/Wasm shallow-copy rejection. Postfix `?` remains
-  explicitly closed because its current residual staging protocol is Copy-only;
-  Project/public ABIs and hosted promotion remain unclaimed.
+  publication, and native/Wasm shallow-copy rejection. The same exact internal
+  instance now supports `Result<Bytes, Bytes> -> Result<Bytes, Bytes>` postfix
+  `?`: the operand evaluates once, Ok moves its selected payload, Err transfers
+  the complete residual, and ownership-only replay joins preserve shared
+  postconditions, sticky failure, and both guarded finalizers. Focused local
+  interpreter, native C11 `-O0`/`-O2`, and Core-Wasm evidence covers both
+  branches and re-entry. Mixed/general/nested and generic-function owned
+  propagation, Project/public ABIs, and hosted promotion remain closed or
+  unclaimed.
 
 - Bounded native C11 name resolution by the same aggregate operation deadline
   as the rest of the operation. A numeric endpoint is answered under

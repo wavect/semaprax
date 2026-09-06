@@ -2,9 +2,12 @@
 
 use std::collections::BTreeMap;
 
-use crate::cleanup_plan::CleanupTransition;
+use crate::cleanup_plan::{CleanupTransition, StorageId};
 use crate::diagnostic::Diagnostic;
 use crate::hir::{DeclarationId, ExpressionId};
+use crate::variant_layout::VariantLayout;
+
+use crate::codegen::native_emit::{c_case_symbol, c_field_symbol};
 
 pub(super) fn c_field_path(path: &[DeclarationId]) -> Result<String, Diagnostic> {
     if path.is_empty() {
@@ -17,6 +20,51 @@ pub(super) fn c_field_path(path: &[DeclarationId]) -> Result<String, Diagnostic>
         .map(crate::codegen::native_emit::c_field_symbol)
         .collect::<Vec<_>>()
         .join("."))
+}
+
+pub(super) fn materialize_variant_borrow_view(
+    plan: &super::NativeBytesPlan,
+    storage: &StorageId,
+    carrier: &str,
+    discriminant: &str,
+    layout: &VariantLayout,
+) -> Result<String, Diagnostic> {
+    let leaves = plan
+        .storage_leaves
+        .get(storage)
+        .ok_or_else(|| super::error("owned variant borrow-view storage has no Bytes leaves"))?;
+    let mut output = format!(
+        "if (({discriminant}).spx_tag >= UINT32_C({})) spx_runtime_invariant_failure(\"invalid owned variant borrow-view tag\");\n",
+        layout.cases.len()
+    );
+    for case in &layout.cases {
+        for place in leaves
+            .iter()
+            .filter(|place| place.projections.first() == Some(&case.case))
+        {
+            let [case_id, field_id] = place.projections.as_slice() else {
+                return Err(super::error(
+                    "owned variant borrow-view Bytes leaf is not case-qualified",
+                ));
+            };
+            if case_id != &case.case || case.field(field_id).is_none() {
+                return Err(super::error(
+                    "owned variant borrow-view leaf disagrees with layout",
+                ));
+            }
+            let slot = &plan.slots[place];
+            output.push_str(&format!(
+                "if (({discriminant}).spx_tag == UINT32_C({})) {{\n    if (!{}) spx_runtime_invariant_failure(\"dead active owned variant borrow-view field\");\n    ({carrier}).spx_payload.{}.{} = {};\n}} else if ({}) spx_runtime_invariant_failure(\"inactive owned variant borrow-view field is live\");\n",
+                case.tag,
+                slot.flag,
+                c_case_symbol(case_id),
+                c_field_symbol(field_id),
+                slot.value,
+                slot.flag,
+            ));
+        }
+    }
+    Ok(output)
 }
 
 pub(super) fn authenticate_transfers_at(
@@ -80,6 +128,111 @@ pub(super) fn authenticate_transfers_at(
         let state = if must_be_live { "live" } else { "dead" };
         output.push_str(&format!(
             "if ({failed}) spx_runtime_invariant_failure(\"record transfer preflight requires {state} {value}\");\n"
+        ));
+    }
+    Ok(output)
+}
+
+pub(super) fn apply_variant_case_at(
+    plan: &super::NativeBytesPlan,
+    at: &ExpressionId,
+    case: &DeclarationId,
+    include_variant_transfer: bool,
+) -> Result<String, Diagnostic> {
+    let mut output = String::new();
+    for transition in plan.transitions.get(at).into_iter().flatten() {
+        match transition {
+            CleanupTransition::Transfer {
+                source,
+                destination,
+                ..
+            } if source.projections.first() == Some(case)
+                || destination.projections.first() == Some(case) =>
+            {
+                for (source, destination) in plan.transfer_pairs(source, destination)? {
+                    output.push_str(&super::emit_transfer(
+                        source,
+                        destination,
+                        "selected variant transfer",
+                    ));
+                }
+            }
+            CleanupTransition::TransferVariant {
+                source,
+                destination,
+                ..
+            } if include_variant_transfer => {
+                for (source, destination) in plan.transfer_case_pairs(source, destination, case)? {
+                    output.push_str(&super::emit_transfer(
+                        source,
+                        destination,
+                        "known variant-case transfer",
+                    ));
+                }
+            }
+            CleanupTransition::Initialize { destination, .. }
+                if destination.projections.first() == Some(case) =>
+            {
+                for place in plan.leaves_under(destination)? {
+                    let destination = &plan.slots[place];
+                    output.push_str(&format!(
+                        "if ({}) spx_runtime_invariant_failure(\"selected variant initialize liveness\");\n{} = true;\n",
+                        destination.flag, destination.flag
+                    ));
+                }
+            }
+            CleanupTransition::Initialize { .. }
+            | CleanupTransition::InitializeVariant { .. }
+            | CleanupTransition::Transfer { .. }
+            | CleanupTransition::TransferVariant { .. }
+            | CleanupTransition::AuthenticateVariantCase { .. }
+            | CleanupTransition::CallCommit { .. }
+            | CleanupTransition::SelectFailure { .. }
+            | CleanupTransition::StageCopyResult { .. } => {}
+        }
+    }
+    Ok(output)
+}
+
+pub(super) fn authenticate_variant_case_at(
+    plan: &super::NativeBytesPlan,
+    at: &ExpressionId,
+    selected: &DeclarationId,
+) -> Result<String, Diagnostic> {
+    let mut sources = plan
+        .transitions
+        .get(at)
+        .into_iter()
+        .flatten()
+        .filter_map(|transition| match transition {
+            CleanupTransition::AuthenticateVariantCase { source, case, .. } if case == selected => {
+                Some(source)
+            }
+            CleanupTransition::TransferVariant { source, .. } => Some(source),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    sources.dedup();
+    let source = sources
+        .first()
+        .ok_or_else(|| super::error("selected variant case has no authenticated source"))?;
+    if sources.len() != 1 {
+        return Err(super::error(
+            "selected variant case authentication is ambiguous",
+        ));
+    }
+    let leaves = plan.leaves_under(source)?;
+    if leaves.is_empty() {
+        return Err(super::error("selected variant case has no owned leaves"));
+    }
+    let mut output = String::new();
+    for place in leaves {
+        let slot = &plan.slots[place];
+        let active = place.projections.get(source.projections.len()) == Some(selected);
+        output.push_str(&format!(
+            "if ({}{}) spx_runtime_invariant_failure(\"owned Try case liveness disagreement\");\n",
+            if active { "!" } else { "" },
+            slot.flag,
         ));
     }
     Ok(output)

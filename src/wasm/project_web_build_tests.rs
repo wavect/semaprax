@@ -1,5 +1,55 @@
 use super::*;
 
+#[test]
+fn browser_runtime_normalizes_internal_contract_and_byte_range_selectors() {
+    if std::process::Command::new("node")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
+        return;
+    }
+    let root = std::env::temp_dir().join(format!(
+        "semaprax-browser-status-selectors-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&root).unwrap();
+    let runtime = browser_runtime()
+        .replace("__SEMAPRAX_OWNED_EXPORTS__", "Object.freeze({})")
+        .replace("__SEMAPRAX_WASM_SHA256__", &"0".repeat(64));
+    std::fs::write(root.join("runtime.mjs"), runtime).unwrap();
+    std::fs::write(
+        root.join("probe.mjs"),
+        r#"import {imports,semanticStatus} from './runtime.mjs';
+for (const [selector,domain_id,code] of [
+  [9,'semaprax.contract.v1',1],
+  [10,'semaprax.contract.v1',2],
+  [11,'semaprax.byte-range.v1',1],
+  [12,'semaprax.byte-range.v1',2],
+]) {
+  let actual=null;
+  try { imports.env.spx_contract_fail(selector); } catch (error) { actual=semanticStatus(error); }
+  if (actual===null||actual.domain_id!==domain_id||actual.code!==code) throw Error(JSON.stringify({selector,actual}));
+}
+"#,
+    )
+    .unwrap();
+    let output = std::process::Command::new("node")
+        .arg("probe.mjs")
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    let _ = std::fs::remove_file(root.join("probe.mjs"));
+    let _ = std::fs::remove_file(root.join("runtime.mjs"));
+    let _ = std::fs::remove_dir(root);
+    assert!(
+        output.status.success(),
+        "stdout={} stderr={}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
 fn embedded_manifest(project: &str, artifacts: &[Vec<u8>]) -> String {
     let digest = |index: usize| {
         format!(

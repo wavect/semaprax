@@ -16,11 +16,44 @@ fn consume(value: own Result<Bytes, Bytes>) -> i64 {
       if byte_len(bytes_as_slice(payload)) == 3usize { 3 } else { 0 },
   }
 }
+@id("wasm.result-hostile.propagate")
+fn propagate(value: own Result<Bytes, Bytes>) -> Result<Bytes, Bytes> {
+  let payload = value?;
+  Result<Bytes, Bytes>::Ok { value: payload }
+}
 @id("app.main") fn main() -> i64 { 42 }
 "#;
     let resolved =
         hir::resolve(&parse(source, Path::new("wasm-two-owned-result-hostile.spx")).unwrap())
             .unwrap();
+    let mut forged = resolved.clone();
+    let propagate = forged
+        .functions
+        .iter_mut()
+        .find(|function| function.id.as_str() == "wasm.result-hostile.propagate")
+        .unwrap();
+    let crate::hir::ResolvedExprKind::Block { statements, .. } = &mut propagate.body.kind else {
+        panic!("owned Result propagation must remain a block")
+    };
+    let crate::hir::ResolvedStatement::Let {
+        value: try_expr, ..
+    } = &mut statements[0]
+    else {
+        panic!("owned Result propagation must begin with its Try binding")
+    };
+    assert!(matches!(
+        try_expr.kind,
+        crate::hir::ResolvedExprKind::Try { .. }
+    ));
+    try_expr.ownership = crate::hir::OwnershipMode::Borrow;
+    let diagnostic = emit_profile(&forged, true, false).unwrap_err();
+    assert_eq!(diagnostic.code, "SPX-H006");
+    assert!(
+        diagnostic
+            .message
+            .contains("missing Wasm32 layout for concrete variant `bytes`"),
+        "{diagnostic:?}"
+    );
     let bytes = emit_profile(&resolved, true, false).unwrap();
     assert_eq!(bytes, emit_profile(&resolved, true, false).unwrap());
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
@@ -34,6 +67,10 @@ fn consume(value: own Result<Bytes, Bytes>) -> i64 {
     let consume = format!(
         "__spx_test_{}",
         hex_identity(&DeclarationId::new("wasm.result-hostile.consume"))
+    );
+    let propagate = format!(
+        "__spx_test_{}",
+        hex_identity(&DeclarationId::new("wasm.result-hostile.propagate"))
     );
     let script = format!(
         r#"import {{readFile}} from "node:fs/promises";
@@ -58,12 +95,26 @@ for(const [tag,carrier,expected] of [[0,2n,2n],[1,3n,3n]]){{
   if(stack.value!==top)throw Error("valid Result stack restore");
 }}
 if(drops!==2)throw Error("valid Result cases did not settle exactly one selected owner");
+for(const [tag,carrier] of [[0,12n],[1,13n]]){{
+  view.setUint32(input,tag,true);view.setBigUint64(input+8,carrier,true);
+  new Uint8Array(memory.buffer,output,16).fill(0xa5);
+  if(instance.exports["{propagate}"](input,output)!==0)throw Error("valid owned Try status");
+  if(view.getUint32(output,true)!==tag||view.getBigUint64(output+8,true)!==carrier)throw Error("owned Try selected branch transfer");
+  if(stack.value!==top)throw Error("owned Try stack restore");
+}}
+if(drops!==2)throw Error("owned Try return was incorrectly finalized");
 view.setUint32(input,0xffffffff,true);view.setBigUint64(input+8,99n,true);poison();
 let trapped=false;
 try{{instance.exports["{consume}"](input,output);}}catch{{trapped=true;}}
 if(!trapped)throw Error("invalid Result tag did not trap");
 unchanged();
 if(drops!==2)throw Error("invalid Result tag granted payload cleanup authority");
+view.setUint32(input,0xffffffff,true);view.setBigUint64(input+8,100n,true);
+new Uint8Array(memory.buffer,output,16).fill(0xa5);trapped=false;
+try{{instance.exports["{propagate}"](input,output);}}catch{{trapped=true;}}
+if(!trapped)throw Error("owned Try invalid Result tag did not trap");
+for(const byte of new Uint8Array(memory.buffer,output,16))if(byte!==0xa5)throw Error("owned Try invalid tag published output");
+if(drops!==2)throw Error("owned Try invalid tag granted cleanup authority");
 "#
     );
     std::fs::write(&script_path, script).unwrap();

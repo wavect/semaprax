@@ -5043,6 +5043,8 @@ export const imports = {
     },
     spx_neg: value => checked(-value, "negation overflow"),
     spx_contract_fail: code => {
+      if (code === 9) throw new SpxSemanticFailure("semaprax.contract.v1", 1, "SEMAPRAX contract failure");
+      if (code === 10) throw new SpxSemanticFailure("semaprax.contract.v1", 2, "SEMAPRAX contract failure");
       if (code === 11) throw new SpxSemanticFailure("semaprax.byte-range.v1", 1, "SEMAPRAX byte range failure");
       if (code === 12) throw new SpxSemanticFailure("semaprax.byte-range.v1", 2, "SEMAPRAX byte range failure");
       throw new SpxSemanticFailure("semaprax.contract.v1", code, "SEMAPRAX contract failure");

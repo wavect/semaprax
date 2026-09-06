@@ -408,6 +408,9 @@ pub fn evaluate_retained_call(
                                 .to_owned(),
                         )
                     }
+                    Err(Flow::Residual(_)) => RetainedCallOutcome::GuardError(
+                        super::owned_try::ESCAPED_RESIDUAL_GUARD.to_owned(),
+                    ),
                     Err(Flow::Guard(detail)) => RetainedCallOutcome::GuardError(detail.to_owned()),
                 };
                 RetainedCallEvaluation {

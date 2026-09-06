@@ -1,12 +1,12 @@
 //! Diagnostic construction for source verification, plus the shared
 //! predicates that decide whether an identifier or scalar type is admitted.
 
-use super::binding::{Binding, CheckedValue};
+use super::binding::{Availability, Binding, CheckedValue};
 use super::iterative::check_expr_iterative;
 use super::type_table::TypeTable;
-use crate::ast::{Expr, ExprKind, Function, Program, Span, Type};
+use crate::ast::{Expr, ExprKind, Function, ParamMode, Program, Span, Type};
 use crate::diagnostic::Diagnostic;
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap, HashSet};
 
 pub(super) fn reject_native_unit_value(
     program: &Program,
@@ -110,6 +110,24 @@ pub(super) fn require_bool(
         }
     });
     let mut contract_variables = variables.clone();
+    if let Some(ty @ Type::Named { name, arguments }) = result_type {
+        if name == "Result" && arguments.as_slice() == [Type::Bytes, Type::Bytes] {
+            contract_variables.insert(
+                "result".to_owned(),
+                Binding {
+                    ty: ty.clone(),
+                    mode: ParamMode::Own,
+                    availability: Availability::Available,
+                    moved_places: HashMap::new(),
+                    definitely_partial: HashSet::new(),
+                    native_unit_discard: false,
+                    mutable: false,
+                    active_loans: BTreeSet::new(),
+                    borrow_origin: None,
+                },
+            );
+        }
+    }
     if let Some(value) = check_expr_iterative(
         program,
         function,

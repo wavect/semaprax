@@ -1669,19 +1669,9 @@ impl Resolver<'_> {
                     })?;
                 let residual_type = self.resolve_type(&target.return_type, target.span)?;
                 match (declaration.as_str(), arguments.as_slice()) {
-                    (crate::prelude::RESULT_ID, [ok_type, _]) => (
-                        ResolvedExprKind::Try {
-                            operand: Box::new(operand),
-                            result: DeclarationId::new(crate::prelude::RESULT_ID),
-                            ok_case: DeclarationId::new(crate::prelude::RESULT_OK_ID),
-                            ok_field: DeclarationId::new(crate::prelude::RESULT_OK_VALUE_ID),
-                            err_case: DeclarationId::new(crate::prelude::RESULT_ERR_ID),
-                            err_field: DeclarationId::new(crate::prelude::RESULT_ERR_ERROR_ID),
-                            residual_type,
-                        },
-                        ok_type.clone(),
-                        OwnershipMode::Value,
-                    ),
+                    (crate::prelude::RESULT_ID, [ok_type, _error_type]) => {
+                        super::owned_result_try::resolve_result(operand, residual_type, ok_type)
+                    }
                     (crate::prelude::OPTION_ID, [some_type]) => (
                         ResolvedExprKind::TryOption {
                             operand: Box::new(operand),

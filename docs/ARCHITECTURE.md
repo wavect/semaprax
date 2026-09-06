@@ -269,8 +269,15 @@ facts. Interpreter, native, and Wasm lower only the active case field-by-field.
 Invalid owned tags or tag/liveness disagreement fail-stop before payload
 authority, cleanup, or result publication. Exact authored generic one-owned and
 two-owned profiles plus compiler-owned `Result<Bytes, Bytes>` reuse this
-conditional path. General nested/resource variants, non-Copy `?` propagation,
-and public aggregate ABIs remain outside this boundary.
+conditional path. The exact compiler-owned
+`Result<Bytes, Bytes> -> Result<Bytes, Bytes>` postfix-`?` path evaluates once,
+moves the selected Ok payload, transfers the Err residual to provisional result
+storage, and joins ownership inventories before shared postconditions. Cleanup
+replay groups only equal control/staged-result states at topological joins and
+retains both guarded cases for failure cleanup; interpreter, native O0/O2, and
+Core-Wasm consume that same authenticated plan locally. Mixed/general/nested
+owned propagation, generic-function carriers, Project/public aggregate ABIs,
+hosted promotion, and general resource variants remain outside this boundary.
 
 `src/loan_plan.rs` owns the additive plan schema, builder, and replay;
 `src/graph_loan.rs` owns its Graph projection. The

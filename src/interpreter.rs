@@ -65,6 +65,7 @@ pub mod internal_strings;
 mod nested_owned;
 pub(crate) mod network;
 mod owned_buffer;
+mod owned_try;
 mod prepared;
 mod resolved_case;
 pub mod retained_call;
@@ -913,6 +914,9 @@ pub fn evaluate_resolved_owned_data(
                     Err(Flow::Guard(detail)) => {
                         OwnedDataEvaluationOutcome::GuardError(detail.to_owned())
                     }
+                    Err(Flow::Residual(_)) => OwnedDataEvaluationOutcome::GuardError(
+                        owned_try::ESCAPED_RESIDUAL_GUARD.to_owned(),
+                    ),
                 };
                 OwnedDataEvaluation {
                     function_id: entry.id.clone(),
@@ -1132,6 +1136,9 @@ pub(crate) fn evaluate_resolved_public_api(
                     Err(Flow::Guard(detail)) => {
                         PublicApiEvaluationOutcome::GuardError(detail.to_owned())
                     }
+                    Err(Flow::Residual(_)) => PublicApiEvaluationOutcome::GuardError(
+                        owned_try::ESCAPED_RESIDUAL_GUARD.to_owned(),
+                    ),
                 };
                 PublicApiEvaluation {
                     function_id: entry.id.clone(),
@@ -1344,6 +1351,9 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
                     Err(Flow::Guard(detail)) => {
                         FlatOwnedRecordEvaluationOutcome::GuardError(detail.to_owned())
                     }
+                    Err(Flow::Residual(_)) => FlatOwnedRecordEvaluationOutcome::GuardError(
+                        owned_try::ESCAPED_RESIDUAL_GUARD.to_owned(),
+                    ),
                 };
                 FlatOwnedRecordEvaluation {
                     function_id: entry.id.clone(),
@@ -1553,6 +1563,9 @@ pub(crate) fn evaluate_resolved_owned_utf8_api(
                     Err(Flow::Guard(detail)) => {
                         OwnedUtf8ApiEvaluationOutcome::GuardError(detail.to_owned())
                     }
+                    Err(Flow::Residual(_)) => OwnedUtf8ApiEvaluationOutcome::GuardError(
+                        owned_try::ESCAPED_RESIDUAL_GUARD.to_owned(),
+                    ),
                 };
                 OwnedUtf8ApiEvaluation {
                     function_id: entry.id.clone(),
@@ -2027,6 +2040,9 @@ fn interpret_on_current_thread(
                 )]);
             }
             Flow::Guard(detail) => return Err(vec![guard_error(detail)]),
+            Flow::Residual(_) => {
+                return Err(vec![guard_error(owned_try::ESCAPED_RESIDUAL_GUARD)]);
+            }
         },
     };
 
@@ -2517,6 +2533,11 @@ fn scan_closure(
                     Ok(())
                 }
             }
+            ResolvedExprKind::Try { .. }
+                if owned_try::scan_is_admitted(declarations, expression) =>
+            {
+                Ok(())
+            }
             ResolvedExprKind::Try { .. } | ResolvedExprKind::TryOption { .. } => {
                 Err(reject_scan(expression, REASON_TRY_EXPRESSION))
             }
@@ -2886,6 +2907,9 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
             )
         }
         Err(Flow::Guard(detail)) => ResolvedEvaluationOutcome::GuardError(detail.to_owned()),
+        Err(Flow::Residual(_)) => {
+            ResolvedEvaluationOutcome::GuardError(owned_try::ESCAPED_RESIDUAL_GUARD.to_owned())
+        }
     };
     if !matches!(outcome, ResolvedEvaluationOutcome::ReturnedI64(_)) {
         transcript.clear();
@@ -3036,6 +3060,9 @@ pub(crate) fn evaluate_resolved_language_command(
             "unexpected UTF-8 materialization limit in hosted command evaluation".to_owned(),
         ),
         Err(Flow::Guard(detail)) => CommandEvaluationOutcome::GuardError(detail.to_owned()),
+        Err(Flow::Residual(_)) => {
+            CommandEvaluationOutcome::GuardError(owned_try::ESCAPED_RESIDUAL_GUARD.to_owned())
+        }
     };
     let mut stdout = evaluator.stdout_transcript.take().unwrap_or_default();
     let mut stderr = evaluator.stderr_transcript.take().unwrap_or_default();
@@ -3219,6 +3246,9 @@ fn borrowed_text(value: &Value) -> Option<&str> {
 #[derive(Debug)]
 enum Flow {
     Failure(NormalizedStatus),
+    /// Function-local early return synthesized by an authenticated owned
+    /// postfix `?`. `call_frame_inner` catches it before postconditions.
+    Residual(Value),
     Exhausted,
     DepthExceeded,
     Cancelled {
@@ -3952,7 +3982,10 @@ impl Evaluator<'_> {
             }
         }
         self.set_trace_phase(ResolvedTracePhase::Body);
-        let value = self.evaluate(&function.body, &mut frame, depth)?;
+        let value = match self.evaluate(&function.body, &mut frame, depth) {
+            Ok(value) | Err(Flow::Residual(value)) => value,
+            Err(flow) => return Err(flow),
+        };
         if !function.ensures.is_empty() {
             let result_value = self.clone_value(&value)?;
             frame.push((function.result_id.clone(), result_value));
@@ -5080,9 +5113,9 @@ impl Evaluator<'_> {
                 }
                 update_owned_record(self.declarations, &expression.ty, base, replacements)
             }
+            ResolvedExprKind::Try { .. } => self.evaluate_owned_try(expression, environment, depth),
             ResolvedExprKind::Project { .. }
             | ResolvedExprKind::Upcast { .. }
-            | ResolvedExprKind::Try { .. }
             | ResolvedExprKind::TryOption { .. }
             | ResolvedExprKind::NativeRustImportCall(_) => Err(Flow::Guard(
                 "aggregate/import/match/try shape reached evaluation",

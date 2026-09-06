@@ -343,6 +343,9 @@ pub(crate) fn evaluate_prepared_resolved_zero_arg_i64(
         Err(Flow::Guard(detail)) => {
             PreparedResolvedEvaluationOutcome::GuardError(detail.to_owned())
         }
+        Err(Flow::Residual(_)) => PreparedResolvedEvaluationOutcome::GuardError(
+            "owned postfix `?` residual escaped its function frame".to_owned(),
+        ),
     };
     Ok(PreparedResolvedEvaluation {
         outcome,

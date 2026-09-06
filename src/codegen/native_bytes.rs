@@ -487,60 +487,33 @@ impl NativeBytesPlan {
         at: &ExpressionId,
         case: &DeclarationId,
     ) -> Result<String, Diagnostic> {
-        let mut output = String::new();
-        for transition in self.transitions.get(at).into_iter().flatten() {
-            match transition {
-                CleanupTransition::Transfer {
-                    source,
-                    destination,
-                    ..
-                } if source.projections.first() == Some(case)
-                    || destination.projections.first() == Some(case) =>
-                {
-                    for (source, destination) in self.transfer_pairs(source, destination)? {
-                        output.push_str(&emit_transfer(
-                            source,
-                            destination,
-                            "selected variant transfer",
-                        ));
-                    }
-                }
-                CleanupTransition::TransferVariant {
-                    source,
-                    destination,
-                    ..
-                } => {
-                    for (source, destination) in
-                        self.transfer_case_pairs(source, destination, case)?
-                    {
-                        output.push_str(&emit_transfer(
-                            source,
-                            destination,
-                            "known variant-case transfer",
-                        ));
-                    }
-                }
-                CleanupTransition::Initialize { destination, .. }
-                    if destination.projections.first() == Some(case) =>
-                {
-                    for place in self.leaves_under(destination)? {
-                        let destination = &self.slots[place];
-                        output.push_str(&format!(
-                            "if ({}) spx_runtime_invariant_failure(\"selected variant initialize liveness\");\n{} = true;\n",
-                            destination.flag, destination.flag
-                        ));
-                    }
-                }
-                CleanupTransition::Initialize { .. }
-                | CleanupTransition::InitializeVariant { .. }
-                | CleanupTransition::Transfer { .. }
-                | CleanupTransition::AuthenticateVariantCase { .. }
-                | CleanupTransition::CallCommit { .. }
-                | CleanupTransition::SelectFailure { .. }
-                | CleanupTransition::StageCopyResult { .. } => {}
-            }
-        }
-        Ok(output)
+        self.apply_variant_case_at_inner(at, case, true)
+    }
+
+    pub(super) fn apply_try_variant_case_at(
+        &self,
+        at: &ExpressionId,
+        case: &DeclarationId,
+        transfer_residual: bool,
+    ) -> Result<String, Diagnostic> {
+        self.apply_variant_case_at_inner(at, case, transfer_residual)
+    }
+
+    fn apply_variant_case_at_inner(
+        &self,
+        at: &ExpressionId,
+        case: &DeclarationId,
+        include_variant_transfer: bool,
+    ) -> Result<String, Diagnostic> {
+        nested_owned::apply_variant_case_at(self, at, case, include_variant_transfer)
+    }
+
+    pub(super) fn authenticate_variant_case_at(
+        &self,
+        at: &ExpressionId,
+        selected: &DeclarationId,
+    ) -> Result<String, Diagnostic> {
+        nested_owned::authenticate_variant_case_at(self, at, selected)
     }
 
     pub(super) fn apply_variant_at(
@@ -886,6 +859,16 @@ impl NativeBytesPlan {
             }
         }
         Ok(output)
+    }
+
+    pub(super) fn materialize_variant_borrow_view(
+        &self,
+        storage: &StorageId,
+        carrier: &str,
+        discriminant: &str,
+        layout: &VariantLayout,
+    ) -> Result<String, Diagnostic> {
+        nested_owned::materialize_variant_borrow_view(self, storage, carrier, discriminant, layout)
     }
 
     pub(super) fn initialize_record_result_at(

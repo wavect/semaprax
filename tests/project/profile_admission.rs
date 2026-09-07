@@ -70,15 +70,28 @@ fn project_v9_phase_a_reaches_revision_npm_and_replayable_execution() {
         );
         let occupied = fixture.0.join("occupied-web");
         std::fs::create_dir(&occupied).unwrap();
-        let error = snapshot.build_web(&occupied).unwrap_err();
-        assert_eq!(error[0].code, "SPX-I307");
-        assert!(
-            error[0]
-                .message
-                .starts_with("cannot create fresh web package destination:"),
-            "{}",
-            error[0]
-        );
+        #[cfg(not(windows))]
+        {
+            let error = snapshot.build_web(&occupied).unwrap_err();
+            assert_eq!(error[0].code, "SPX-I307");
+            assert!(
+                error[0]
+                    .message
+                    .starts_with("cannot create fresh web package destination:"),
+                "{}",
+                error[0]
+            );
+        }
+        #[cfg(windows)]
+        {
+            let error = snapshot.build_web(&occupied).unwrap_err();
+            assert_eq!(error[0].code, "SPX-W120");
+            assert_eq!(
+                std::fs::read_dir(&occupied).unwrap().count(),
+                0,
+                "Windows publication guard mutated the occupied destination"
+            );
+        }
         Ok(())
     })
     .unwrap();

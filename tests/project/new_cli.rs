@@ -60,6 +60,21 @@ fn stderr(output: &Output) -> String {
     String::from_utf8(output.stderr.clone()).unwrap()
 }
 
+fn user_spelled_absolute(path: &Path) -> String {
+    let rendered = path.display().to_string();
+    #[cfg(windows)]
+    {
+        rendered
+            .strip_prefix("\\\\?\\")
+            .unwrap_or(&rendered)
+            .to_owned()
+    }
+    #[cfg(not(windows))]
+    {
+        rendered
+    }
+}
+
 fn read_tree(root: &Path) -> BTreeMap<String, Vec<u8>> {
     fn visit(base: &Path, path: &Path, files: &mut BTreeMap<String, Vec<u8>>) {
         for entry in std::fs::read_dir(path).unwrap() {
@@ -163,7 +178,7 @@ fn project_commands_normalize_user_spelled_manifest_paths() {
 
     let project = fixture.root.join("operand-project");
     let manifest = project.join("semaprax.toml");
-    let absolute_with_dot = format!("{}/./semaprax.toml", project.display());
+    let absolute_with_dot = format!("{}/./semaprax.toml", user_spelled_absolute(&project));
     let positional_spellings = [
         "../operand-project".to_owned(),
         "../operand-project/./semaprax.toml".to_owned(),

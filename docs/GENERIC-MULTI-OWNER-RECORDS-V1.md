@@ -4,6 +4,8 @@ Status: implemented with five focused source/HIR/graph checks and the
 all-eight-scalar allocation-accounted runtime corpus passing locally. Hosted
 promotion and public generic ABI remain separate.
 
+Audience: compiler contributors and language reviewers.
+
 An internal generic record function may accept multiple separately owned,
 individually admitted record parameters and return an explicitly declared
 admitted owning record. Existing parameter, substitution, aggregate-field,

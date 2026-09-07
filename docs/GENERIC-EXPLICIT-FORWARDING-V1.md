@@ -3,6 +3,8 @@
 Status: specified next implementation tranche; not admitted or verified by this
 specification alone. No hosted support claim.
 
+Audience: compiler contributors and language reviewers.
+
 ## Semantic scope
 
 An explicit call from an admitted generic function may map each callee type

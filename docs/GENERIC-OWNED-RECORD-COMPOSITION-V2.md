@@ -4,6 +4,8 @@ Status: implemented source, HIR, cleanup, graph and backend integration;
 the seven focused language checks and all-eight-scalar runtime corpus pass locally.
 This is internal function semantics, not a new public ABI or hosted claim.
 
+Audience: compiler contributors and language reviewers.
+
 ## Checked expression composition
 
 A generic owned-record function with one admitted owning record parameter and

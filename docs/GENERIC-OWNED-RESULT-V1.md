@@ -6,6 +6,8 @@ owned-Bytes errors. Focused source/HIR, graph, workspace replay,
 interpreter, native O0/O2 and Core-Wasm evidence is recorded with the change;
 no hosted support claim.
 
+Audience: compiler contributors and language reviewers.
+
 ## Semantic scope
 
 This GEN-06 tranche admits explicit generic functions whose owning parameter

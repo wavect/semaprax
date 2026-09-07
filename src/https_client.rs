@@ -673,6 +673,26 @@ mod tests {
         server.join().unwrap();
     }
 
+    #[test]
+    fn issue_97_connection_nominated_fields_are_stripped() {
+        let response = HttpsResponse {
+            status: 200,
+            version: HttpVersion::Http11,
+            final_url: "https://example.test/".to_owned(),
+            headers: vec![
+                ("connection".to_owned(), b"keep-alive, X-Transient".to_vec()),
+                ("x-transient".to_owned(), b"connection-local-value".to_vec()),
+                ("content-type".to_owned(), b"text/plain".to_vec()),
+            ],
+            body: b"ok".to_vec(),
+        };
+        let bytes = response.canonical_http1_bytes(4096).unwrap();
+        let text = String::from_utf8(bytes).unwrap();
+        assert!(!text.contains("x-transient:"));
+        assert!(text.contains("content-type: text/plain"));
+        assert!(!text.to_ascii_lowercase().contains("connection:"));
+    }
+
     /// Opt-in public PKI and endpoint smoke. It is deliberately ignored by
     /// deterministic local gates because public DNS and service state are not
     /// reproducible inputs.

@@ -192,9 +192,10 @@ fn owned_bounded_box_allocation_failure_is_exact_and_reentrant() {
         for _ in 0..4 {
             let output = Command::new(&binary).output().unwrap();
             assert_eq!(output.status.code(), Some(73));
+            let newline = if cfg!(windows) { "\r\n" } else { "\n" };
             assert_eq!(
                 String::from_utf8_lossy(&output.stderr),
-                "SEMAPRAX operation failure: semaprax.box.v1/1\n"
+                format!("SEMAPRAX operation failure: semaprax.box.v1/1{newline}")
             );
         }
     }

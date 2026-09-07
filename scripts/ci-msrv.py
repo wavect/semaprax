@@ -112,10 +112,9 @@ def main(argv=None):
     test_arguments = []
     if args.nocapture:
         test_arguments.append("--nocapture")
-    if os.name == "nt" and args.shard == "integration-0":
-        # This shard includes C ABI fixtures whose 1 MiB aligned context leaves
-        # no headroom under the Windows linker's 1 MiB default stack reserve.
-        # LINK is inherited by link.exe even when the tests invoke it via clang.
+    if os.name == "nt" and args.label == "Rust Windows" and args.shard == "integration-0":
+        # Keep this stabilization scoped to the explicit current-Rust Windows
+        # CI path so the generic/MSRV router contract remains byte-for-byte stable.
         cargo_env["LINK"] = "/STACK:8388608"
         # Project/npm fixtures in this shard share process/filesystem resources;
         # serial execution prevents cross-test contention from stalling the job.

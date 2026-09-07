@@ -623,6 +623,56 @@ mod tests {
         server.join().unwrap();
     }
 
+    #[test]
+    fn issue_96_content_encoding_order_is_preserved() {
+        // Direct from issue #96: Content-Encoding gzip, br must stay gzip, br
+        let response = HttpsResponse {
+            status: 200,
+            version: HttpVersion::Http11,
+            final_url: "https://example.test/".to_owned(),
+            headers: vec![
+                ("content-encoding".to_owned(), b"gzip".to_vec()),
+                ("content-encoding".to_owned(), b"br".to_vec()),
+                ("content-type".to_owned(), b"text/plain".to_vec()),
+            ],
+            body: b"ok".to_vec(),
+        };
+        let bytes = response.canonical_http1_bytes(4096).unwrap();
+        let text = String::from_utf8(bytes).unwrap();
+        let values: Vec<&str> = text
+            .split("\r\n")
+            .filter_map(|l| l.strip_prefix("content-encoding: "))
+            .collect();
+        assert_eq!(values, vec!["gzip", "br"]);
+        // Also verify loopback preserves the same order via get_parsed
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let _ = read_request(&mut stream);
+            stream
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Encoding: br\r\nContent-Length: 3\r\nConnection: close\r\n\r\nok",
+                )
+                .unwrap();
+        });
+        let client = local_client();
+        let resp = client
+            .get_parsed(
+                reqwest::Url::parse(&format!("http://127.0.0.1:{port}/")).unwrap(),
+                4096,
+            )
+            .unwrap();
+        let values: Vec<Vec<u8>> = resp
+            .headers
+            .iter()
+            .filter(|(n, _)| n == "content-encoding")
+            .map(|(_, v)| v.clone())
+            .collect();
+        assert_eq!(values, vec![b"gzip".to_vec(), b"br".to_vec()]);
+        server.join().unwrap();
+    }
+
     /// Opt-in public PKI and endpoint smoke. It is deliberately ignored by
     /// deterministic local gates because public DNS and service state are not
     /// reproducible inputs.

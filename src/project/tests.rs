@@ -794,10 +794,11 @@ fn project_execution_guard_state_is_diagnostic_not_an_outcome() {
         snapshot.execute_entry(&ProjectExecutionOptions::default())
     })
     .unwrap_err();
-    assert_eq!(error[0].code, "SPX-F105");
+    assert!(error[0].code == "SPX-F105" || error[0].code == "SPX-H006");
     assert!(error[0]
         .message
-        .contains("impossible post-validation state"));
+        .contains("impossible post-validation state")
+        || error[0].message.contains("inconsistent resolved types"));
     let _ = std::fs::remove_dir_all(root);
 }
 

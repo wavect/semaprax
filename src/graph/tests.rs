@@ -257,7 +257,7 @@ module test.graph_instance_loan;
         end_edges: vec![0],
         cause: crate::loan_plan::LoanCause::SliceView,
     });
-    assert_eq!(graph_schema(&program).unwrap(), "semaprax.graph.v23");
+    assert_eq!(graph_schema(&program).unwrap(), "semaprax.graph.v34");
 }
 
 #[test]

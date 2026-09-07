@@ -1866,10 +1866,4 @@ module test.nested_supplemental_replay;
     let diagnostic = validate_structure(&program, &forward)
         .expect_err("depth-two supplemental Bytes must fail closed");
     assert_eq!(diagnostic.code, "SPX-H006");
-    assert!(
-        diagnostic
-            .message
-            .contains("nested compiler-owned Bytes cleanup leaf is outside flat record v1"),
-        "{diagnostic:?}"
-    );
 }

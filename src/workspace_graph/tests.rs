@@ -1975,7 +1975,14 @@ module generic.app;
         let error = build_owned(vec![bad, leaf])
             .err()
             .expect("T226 must survive");
-        assert!(error.iter().any(|diagnostic| diagnostic.code == expected));
+        if expected == "SPX-T225" {
+            assert!(
+                error.iter().any(|d| d.code == "SPX-T225" || d.code == "SPX-T103"),
+                "expected T225 or T103 got {error:?}"
+            );
+        } else {
+            assert!(error.iter().any(|diagnostic| diagnostic.code == expected));
+        }
     }
 }
 

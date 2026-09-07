@@ -545,8 +545,10 @@ fn the_owned_byte_prelude_carriers_are_an_exact_closed_list() {
         ("Option", vec![Type::Bytes]),
         ("Result", vec![Type::Bytes, Type::I64]),
         ("Result", vec![Type::Bytes, Type::Bool]),
+        ("Result", vec![Type::Bytes, Type::Usize]),
         ("Result", vec![Type::I64, Type::Bytes]),
         ("Result", vec![Type::Bool, Type::Bytes]),
+        ("Result", vec![Type::Usize, Type::Bytes]),
         ("Result", vec![Type::Bytes, Type::Bytes]),
     ] {
         assert!(
@@ -559,7 +561,7 @@ fn the_owned_byte_prelude_carriers_are_an_exact_closed_list() {
     for rejected in [
         ("Option", vec![Type::I64]),
         ("Option", vec![Type::Bytes, Type::Bytes]),
-        ("Result", vec![Type::Bytes, Type::Usize]),
+        ("Result", vec![Type::Bytes, Type::String]),
         ("Cell", vec![Type::Bytes]),
     ] {
         assert!(

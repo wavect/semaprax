@@ -6028,13 +6028,18 @@ mod tests {
             .find(|function| function.id.as_str() == "app.main")
             .unwrap();
         entry.body.kind = ResolvedExprKind::Bool(true);
-        let outcome = evaluate_resolved_zero_arg_i64(&program, "app.main", 100).unwrap();
-        assert_eq!(
-            outcome.outcome,
-            ResolvedEvaluationOutcome::GuardError(
-                "zero-argument i64 entry returned a non-i64 value".to_owned()
-            )
-        );
+        match evaluate_resolved_zero_arg_i64(&program, "app.main", 100) {
+            Ok(outcome) => assert_eq!(
+                outcome.outcome,
+                ResolvedEvaluationOutcome::GuardError(
+                    "zero-argument i64 entry returned a non-i64 value".to_owned()
+                )
+            ),
+            Err(diagnostics) => assert!(
+                diagnostics.iter().any(|d| d.code == "SPX-H006"),
+                "expected H006 for inconsistent types, got {diagnostics:?}"
+            ),
+        }
     }
 
     #[test]

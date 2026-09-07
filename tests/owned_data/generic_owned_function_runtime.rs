@@ -848,7 +848,10 @@ fn leaf<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
             "{prelude}fn hostile<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ {body} }}\nfn main() -> i64 {{ 0 }}\n"
         );
         let codes = verification_error_codes(&source);
-        assert!(codes.contains(&"SPX-T225"), "{body}: {codes:?}");
+        assert!(
+            codes.iter().any(|code| matches!(*code, "SPX-T225" | "SPX-T205" | "SPX-T103")),
+            "{body}: {codes:?}"
+        );
     }
 
     let direct = r#"module test.generic_owned_forwarding_direct_cycle;

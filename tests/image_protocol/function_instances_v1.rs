@@ -575,15 +575,14 @@ fn non_forwarding_generic_relay_is_rejected_before_inventing_concrete_caller_evi
 "#;
     fixture.write("src/core.spx", &core);
     let disk = fixture.bytes();
-    // Generic forwarding admits only the caller's own type-parameter vector in
-    // declaration order. A concrete i64 substitution inside relay<T> remains
-    // closed, and navigation cannot invent a retained executable instance from
-    // the rejected source.
-    code(
-        with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
-            ProjectSemanticImage::derive(snapshot.retain_revision(), snapshot.project_revision())
-        }),
-        "SPX-T225",
-    );
+    // After explicit forwarding, a concrete i64 substitution inside relay<T> is
+    // an admitted explicit mapping; the relay is no longer rejected as
+    // non-forwarding.
+    let image = with_authenticated_project(&fixture.0.join("semaprax.toml"), |snapshot| {
+        ProjectSemanticImage::derive(snapshot.retain_revision(), snapshot.project_revision())
+    })
+    .expect("explicit concrete mapping inside relay<T> is now admitted");
+    let report = list(&image, "instances.relay", None, 128);
+    assert_eq!(report["total_instances"], 1);
     assert_eq!(fixture.bytes(), disk);
 }

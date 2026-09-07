@@ -652,7 +652,7 @@ mod tests {
             let _ = read_request(&mut stream);
             stream
                 .write_all(
-                    b"HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Encoding: br\r\nContent-Length: 3\r\nConnection: close\r\n\r\nok",
+                    b"HTTP/1.1 200 OK\r\nContent-Encoding: gzip\r\nContent-Encoding: br\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
                 )
                 .unwrap();
         });

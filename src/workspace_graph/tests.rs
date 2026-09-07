@@ -1977,7 +1977,9 @@ module generic.app;
             .expect("T226 must survive");
         if expected == "SPX-T225" {
             assert!(
-                error.iter().any(|d| d.code == "SPX-T225" || d.code == "SPX-T103"),
+                error
+                    .iter()
+                    .any(|d| d.code == "SPX-T225" || d.code == "SPX-T103"),
                 "expected T225 or T103 got {error:?}"
             );
         } else {

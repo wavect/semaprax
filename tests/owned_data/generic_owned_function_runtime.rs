@@ -849,7 +849,9 @@ fn leaf<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
         );
         let codes = verification_error_codes(&source);
         assert!(
-            codes.iter().any(|code| matches!(*code, "SPX-T225" | "SPX-T205" | "SPX-T103")),
+            codes
+                .iter()
+                .any(|code| matches!(*code, "SPX-T225" | "SPX-T205" | "SPX-T103")),
             "{body}: {codes:?}"
         );
     }

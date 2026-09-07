@@ -843,7 +843,8 @@ fn leaf<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
         "{prelude}fn forward<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ leaf<T, U>(value) }}\nfn main() -> i64 {{ 0 }}\n"
     );
     assert!(verification_error_codes(&admitted).is_empty());
-    for body in ["leaf<U, T>(value)"] {
+    {
+        let body = "leaf<U, T>(value)";
         let source = format!(
             "{prelude}fn hostile<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ {body} }}\nfn main() -> i64 {{ 0 }}\n"
         );
@@ -855,7 +856,8 @@ fn leaf<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
             "{body}: {codes:?}"
         );
     }
-    for body in ["leaf<T, T>(value)"] {
+    {
+        let body = "leaf<T, T>(value)";
         let source = format!(
             "{prelude}fn hostile<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ {body} }}\nfn main() -> i64 {{ 0 }}\n"
         );
@@ -865,7 +867,8 @@ fn leaf<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> { value }
             "{body} should be admitted after explicit forwarding: {codes:?}"
         );
     }
-    for body in ["leaf<T>(value)"] {
+    {
+        let body = "leaf<T>(value)";
         let source = format!(
             "{prelude}fn hostile<T, U>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ {body} }}\nfn main() -> i64 {{ 0 }}\n"
         );

@@ -818,12 +818,19 @@ fn quiesce_group_until(pid: libc::pid_t, deadline: Instant) -> io::Result<()> {
     let _ = unsafe { libc::kill(-pid, libc::SIGKILL) };
     loop {
         if unsafe { libc::kill(-pid, 0) } != 0 {
-            return match io::Error::last_os_error().raw_os_error() {
-                Some(libc::ESRCH) => Ok(()),
-                Some(libc::EINTR) => continue,
-                _ => Err(io::Error::other("cannot inspect Git process group")),
-            };
+            match io::Error::last_os_error().raw_os_error() {
+                Some(libc::ESRCH) => return Ok(()),
+                Some(libc::EINTR) => {}
+                // Darwin can return EPERM for a group containing only
+                // unreaped zombies. Wait for reaping, but do not interpret
+                // EPERM as success: a real permission failure must still
+                // fail closed at the existing settlement deadline.
+                #[cfg(target_os = "macos")]
+                Some(libc::EPERM) => {}
+                _ => return Err(io::Error::other("cannot inspect Git process group")),
+            }
         }
+        // Check this after transient errors too; EINTR must not bypass it.
         if Instant::now() >= deadline {
             return Err(io::Error::other("Git process group did not quiesce"));
         }

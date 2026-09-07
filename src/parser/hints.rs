@@ -66,6 +66,8 @@ impl Parser {
     /// A range's second dot otherwise looks like a missing projected field.
     /// Keep the established foreign-loop diagnostic without intercepting an
     /// admitted vector traversal or unrelated expression errors.
+    /// Range `for` loops are a distinct subset: they remain P105 with a
+    /// range-specific hint, while generic `for`/`loop` stay P106.
     pub(super) fn range_for_hint(&self, mut diagnostic: Diagnostic) -> Diagnostic {
         if diagnostic.code == "SPX-P105"
             && self
@@ -74,7 +76,6 @@ impl Parser {
                 .and_then(|index| self.tokens.get(index..self.cursor))
                 .is_some_and(|tokens| tokens.iter().all(|token| token.kind == TokenKind::Dot))
         {
-            diagnostic.code = "SPX-P106";
             diagnostic.message = "range `for` loops are not admitted; use `while`".to_owned();
             diagnostic.with_help(LOOP_HELP)
         } else {

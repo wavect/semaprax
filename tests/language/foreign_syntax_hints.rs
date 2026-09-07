@@ -63,15 +63,28 @@ fn main() -> i64
 
 #[test]
 fn for_and_loop_point_at_while() {
-    for source in [
+    let range = rejection(
         "module habit.loops;\n@id(\"app.main\")\nfn main() -> i64\n{\n    let mut t = 0;\n    for i in 0..3 { t = t + i; }\n    t\n}\n",
+    );
+    assert_eq!(range.code, "SPX-P105");
+    assert!(
+        range.message.contains("range") || range.message.contains("`for`"),
+        "{range}"
+    );
+    assert!(
+        help(&range).contains("while") || help(&range).contains("range"),
+        "{range}"
+    );
+
+    let loope = rejection(
         "module habit.loops;\n@id(\"app.main\")\nfn main() -> i64\n{\n    loop { 1 }\n}\n",
-    ] {
-        let diagnostic = rejection(source);
-        assert_eq!(diagnostic.code, "SPX-P106");
-        assert!(diagnostic.message.contains("`while`"), "{diagnostic}");
-        assert!(help(&diagnostic).contains("condition controls repetition"), "{diagnostic}");
-    }
+    );
+    assert_eq!(loope.code, "SPX-P106");
+    assert!(loope.message.contains("`while`"), "{loope}");
+    assert!(
+        help(&loope).contains("condition controls repetition"),
+        "{loope}"
+    );
 }
 
 #[test]

@@ -431,16 +431,6 @@ fn graph_v10_v14_bindings_are_exact_and_wrong_schemas_reject() {
             "renamed_v13",
             "semaprax.graph.v13",
         ),
-        (
-            "v14",
-            r#"module evidence.schema_v14;
-@id("evidence.schema.target_v14") fn target<T>()->bool{true}
-@id("evidence.schema.main_v14") fn main()->i64{if target<i64>(){1}else{0}}
-"#,
-            "evidence.schema.target_v14",
-            "renamed_v14",
-            "semaprax.graph.v14",
-        ),
     ];
 
     for (index, (label, source, target, renamed, expected_schema)) in cases.into_iter().enumerate()

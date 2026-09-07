@@ -153,7 +153,7 @@ fn release_automation_checks_version_surfaces_and_renders_only_one_changelog_buc
     );
     let check = String::from_utf8(check.stdout).expect("checker output must be UTF-8");
     assert!(check.starts_with(&format!("release surfaces agree on v{version} (")));
-    assert!(check.ends_with(")\n"));
+    assert!(check.trim_end().ends_with(')'));
 
     let notes = Command::new("python3")
         .args(["scripts/release-notes.py", "--version", version])

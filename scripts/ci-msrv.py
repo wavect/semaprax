@@ -108,8 +108,21 @@ def main(argv=None):
         return 0
     shard = next(shard for shard in selected_plan["shards"] if shard["name"] == args.shard)
     print(f"{args.label} {args.shard}: {len(shard['targets'])} workspace targets", flush=True)
+
+    test_arguments = []
+    if args.nocapture:
+        test_arguments.append("--nocapture")
+    if os.name == "nt" and args.shard == "integration-0":
+        # This shard includes C ABI fixtures whose 1 MiB aligned context leaves
+        # no headroom under the Windows linker's 1 MiB default stack reserve.
+        # LINK is inherited by link.exe even when the tests invoke it via clang.
+        cargo_env["LINK"] = "/STACK:8388608"
+        # Project/npm fixtures in this shard share process/filesystem resources;
+        # serial execution prevents cross-test contention from stalling the job.
+        test_arguments.append("--test-threads=1")
+
     # One Cargo invocation; preserve its first failure and exact exit status.
-    command = shard["command"] + (["--", "--nocapture"] if args.nocapture else [])
+    command = shard["command"] + (["--", *test_arguments] if test_arguments else [])
     return subprocess.run(
         command, cwd=ROOT, env=cargo_env, check=False
     ).returncode

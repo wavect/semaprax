@@ -63,6 +63,7 @@ fn project_v12_builds_a_replayable_fixture_only_npm_web_carrier() {
     assert!(build.envelope().contains("666978747572652d6f6e6c792e7631"));
 }
 
+#[cfg(not(windows))]
 #[test]
 fn generated_network_web_package_runs_the_fixture_under_node() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/network-http-project");
@@ -92,6 +93,29 @@ fn generated_network_web_package_runs_the_fixture_under_node() {
         b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\n\r\nhello"
     );
     assert!(run.stderr.is_empty());
+}
+
+#[cfg(windows)]
+#[test]
+fn project_v12_npm_publication_fails_closed_without_windows_authority() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/network-http-project");
+    let output = Output(std::env::temp_dir().join(format!(
+        "semaprax-network-project-npm-rejected-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    )));
+    let errors = with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        snapshot.build_npm(&output.0)
+    })
+    .unwrap_err();
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-W120"),
+        "{errors:?}"
+    );
+    assert!(
+        !output.0.exists(),
+        "rejected publication created an output directory"
+    );
 }
 
 #[test]

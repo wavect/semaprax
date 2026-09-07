@@ -94,6 +94,18 @@ fn manifest_text(root: &Path) -> String {
     std::fs::read_to_string(root.join("semaprax.toml")).unwrap()
 }
 
+fn cli_display_path(path: &Path) -> String {
+    let rendered = path.display().to_string();
+    if cfg!(windows) {
+        rendered
+            .strip_prefix("\\\\?\\")
+            .unwrap_or(&rendered)
+            .to_owned()
+    } else {
+        rendered
+    }
+}
+
 #[test]
 fn add_appends_sorted_rows_canonically_and_rejects_without_writing() {
     let fixture = fixture("add", MANIFEST);
@@ -104,7 +116,7 @@ fn add_appends_sorted_rows_canonically_and_rejects_without_writing() {
         text(&first.stdout),
         format!(
             "added examples.meaning = \"^1.0.0\" to {}\n",
-            root.join("semaprax.toml").display()
+            cli_display_path(&root.join("semaprax.toml"))
         )
     );
     let after_first = manifest_text(root);

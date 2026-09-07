@@ -144,6 +144,7 @@ fn project_v13_builds_the_libcurl_native_https_executable() {
     assert!(metadata.is_file() && metadata.len() != 0);
 }
 
+#[cfg(not(windows))]
 #[test]
 fn generated_https_web_package_runs_fixture_v3_under_node() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/https-project");
@@ -178,6 +179,7 @@ fn generated_https_web_package_runs_fixture_v3_under_node() {
     assert!(run.stderr.is_empty());
 }
 
+#[cfg(not(windows))]
 #[test]
 fn generated_https_web_package_rejects_untrusted_fixture_and_provider_results() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/https-project");
@@ -203,6 +205,29 @@ fn generated_https_web_package_rejects_untrusted_fixture_and_provider_results() 
     );
     assert!(run.stdout.is_empty());
     assert!(run.stderr.is_empty());
+}
+
+#[cfg(windows)]
+#[test]
+fn project_v13_npm_publication_fails_closed_without_windows_authority() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/https-project");
+    let output = Output(std::env::temp_dir().join(format!(
+        "semaprax-https-project-npm-rejected-{}-{}",
+        std::process::id(),
+        SERIAL.fetch_add(1, Ordering::Relaxed)
+    )));
+    let errors = with_authenticated_project(&root.join("semaprax.toml"), |snapshot| {
+        snapshot.build_npm(&output.0)
+    })
+    .unwrap_err();
+    assert!(
+        errors.iter().any(|error| error.code == "SPX-W120"),
+        "{errors:?}"
+    );
+    assert!(
+        !output.0.exists(),
+        "rejected publication created an output directory"
+    );
 }
 
 #[test]

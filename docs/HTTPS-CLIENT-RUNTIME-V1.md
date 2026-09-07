@@ -12,11 +12,14 @@ backend, negotiates HTTP/1.1 or HTTP/2, follows at most ten redirects, retains
 at most eight idle connections per origin, and publishes a response only when
 the complete body fits the caller's positive bound of at most 1 MiB.
 
-The response carries the status, negotiated protocol, final URL, stable-sorted
-lowercase headers, and body bytes. Construction and execution use one closed
-error vocabulary; transport error text and platform errors do not cross the
-API. Reusing the client reuses the underlying keep-alive pool. There is no
-global client and no compiler path constructs one implicitly.
+The response carries the status, negotiated protocol, final URL, headers sorted
+deterministically by lowercase name (stable, retaining receipt order and
+duplicate occurrences for the same name – e.g., ordered `Content-Encoding`
+codings and repeated `Set-Cookie` values remain separate and in received order),
+and body bytes. Construction and execution use one closed error vocabulary;
+transport error text and platform errors do not cross the API. Reusing the
+client reuses the underlying keep-alive pool. There is no global client and no
+compiler path constructs one implicitly.
 
 The native socket provider separately accepts server-side TLS when an explicit
 host constructs `TcpNetworkProvider::with_tls_configs` with both client and

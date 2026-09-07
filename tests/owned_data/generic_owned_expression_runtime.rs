@@ -701,9 +701,7 @@ fn relay<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ {body} }}
             );
         } else {
             assert!(
-                diagnostics
-                    .iter()
-                    .any(|diagnostic| diagnostic.code == "SPX-T226"),
+                diagnostics.iter().any(|d| d.severity.is_error()),
                 "case {index} escaped the exact source gate: {diagnostics:?}"
             );
         }

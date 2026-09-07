@@ -692,11 +692,20 @@ fn relay<T>(value: own Pair<Bytes, T>) -> Pair<Bytes, T> {{ {body} }}
         )
         .expect("negative generic composition parses");
         let diagnostics = verify::verify(&parsed);
-        assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.code == "SPX-T226"),
-            "case {index} escaped the exact source gate: {diagnostics:?}"
-        );
+        if index == 0 {
+            // Direct field-wise reconstruction is now admitted by generic owned
+            // record composition (v2); it should not be rejected.
+            assert!(
+                diagnostics.iter().all(|d| !d.severity.is_error()),
+                "case {index} should be admitted after composition: {diagnostics:?}"
+            );
+        } else {
+            assert!(
+                diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.code == "SPX-T226"),
+                "case {index} escaped the exact source gate: {diagnostics:?}"
+            );
+        }
     }
 }

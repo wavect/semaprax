@@ -197,7 +197,9 @@ fn bad(value: own Result<Bytes, i64>) -> Result<Bytes, i64> {
 }
 fn main() -> i64 { 0 }
 "#;
-    assert!(diagnostic_codes(source).contains(&"SPX-T218"));
+    // GEN-06 admits owned Result<Bytes, E> postfix `?` with Copy/Bytes substitution;
+    // the former SPX-T218 hostile is now the valid propagation shape.
+    assert!(diagnostic_codes(source).is_empty());
 }
 
 #[test]

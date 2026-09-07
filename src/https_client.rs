@@ -104,7 +104,7 @@ impl HttpsResponse {
         // Deterministic ordering of distinct names while preserving receipt order
         // within each name (stable sort by name only).
         let mut ordered: Vec<&(String, Vec<u8>)> = self.headers.iter().collect();
-        ordered.sort_by(|a, b| a.0.to_ascii_lowercase().cmp(&b.0.to_ascii_lowercase()));
+        ordered.sort_by_key(|a| a.0.to_ascii_lowercase());
         for (name, value) in ordered {
             let lower = name.to_ascii_lowercase();
             if lower == "x-semaprax-http-version" {

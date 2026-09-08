@@ -17,7 +17,10 @@ def main():
         executable = shutil.which(tool)
         if executable is None:
             raise SystemExit(f"required provisioned tool is absent: {tool}")
-        environment[variable] = str(Path(executable).resolve())
+        # Preserve tool-manager proxy paths such as ~/.cargo/bin/cargo. Resolving
+        # that symlink points at the rustup binary itself, so subsequent Cargo
+        # arguments would be parsed by rustup instead of cargo.
+        environment[variable] = str(Path(executable).absolute())
     tsc = root / "platform-tests/wasm-scalar-browser-v1/node_modules/typescript/bin/tsc"
     if not tsc.is_file():
         raise SystemExit("provision locked TypeScript before running this gate")

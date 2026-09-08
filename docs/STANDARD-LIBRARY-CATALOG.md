@@ -1114,6 +1114,80 @@ fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64
     ensures result >= -1 && result <= 16777215
 ```
 
+## `std.format`
+
+Package `std/format`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.format = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.format.byte`
+
+```semaprax
+fn byte(value: i64) -> u8
+    requires value >= 0 && value <= 255
+```
+
+### `std.format.usize-len`
+
+```semaprax
+fn usize_len(value: usize) -> usize
+    ensures result >= 1usize && result <= 20usize
+```
+
+### `std.format.usize-byte`
+
+```semaprax
+fn usize_byte(value: usize, index: usize) -> u8
+    requires index < usize_len(value)
+```
+
+### `std.format.digit-byte`
+
+```semaprax
+fn digit_byte(value: usize) -> u8
+    requires value <= 9usize
+```
+
+### `std.format.i64-len`
+
+```semaprax
+fn i64_len(value: i64) -> usize
+    ensures result >= 1usize && result <= 20usize
+```
+
+### `std.format.i64-byte`
+
+```semaprax
+fn i64_byte(value: i64, index: usize) -> u8
+    requires index < i64_len(value)
+```
+
+### `std.format.append-str`
+
+```semaprax
+fn append_str(value: borrow str, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && byte_len(str_as_bytes(value)) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.format.append-usize`
+
+```semaprax
+fn append_usize(value: usize, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && usize_len(value) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.format.append-i64`
+
+```semaprax
+fn append_i64(value: i64, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && i64_len(value) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.format.append-bool`
+
+```semaprax
+fn append_bool(value: bool, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && if value { 4usize } else { 5usize } <= byte_len(bytes_as_slice(data)) - position, }
+```
+
 ## `std.fs`
 
 Package `std/fs`, tier `hosted`, status partial. Required project profile: `filesystem-io.v2`. Dependency: `std.fs = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

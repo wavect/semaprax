@@ -150,6 +150,70 @@ fn internal_owned_record_import_preserves_contract_failure_and_reentry() {
 }
 
 #[test]
+fn borrowed_str_with_owned_byte_record_import_preserves_the_checked_transfer() {
+    let provider = r#"
+module writer.provider;
+@id("writer.type") record Writer { @id("writer.data") data: Bytes, @id("writer.cursor") cursor: usize, }
+@id("writer.new") fn create(data: own Bytes) -> Writer { Writer { data: data, cursor: 0usize } }
+@id("writer.append") fn append(input: borrow str, output: own Writer) -> Writer {
+    if str_is_empty(input) { output } else { output }
+}
+"#;
+    let app = r#"
+module writer.app;
+use type @id("writer.type") from writer.provider as Writer;
+use function @id("writer.new") from writer.provider as create;
+use function @id("writer.append") from writer.provider as append;
+@id("writer.app.main") fn main() -> i64 {
+    let bytes = [0u8, 0u8];
+    let output = create(bytes_copy(array_as_slice(bytes)));
+    let text = "json";
+    let rendered = append(string_as_str(text), output);
+    if rendered.cursor == 0usize { 1 } else { 0 }
+}
+"#;
+    let built = build_owned(sources(app, provider))
+        .expect("borrowed str plus an owned authenticated byte record imports");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("writer.app", &[])
+        .expect("mixed borrowed/owned internal call links");
+    let value =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "writer.app.main", 100_000)
+            .expect("mixed borrowed/owned internal call executes");
+    assert!(matches!(
+        value.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+    ));
+}
+
+#[test]
+fn borrowed_str_does_not_admit_a_non_byte_record_import() {
+    let provider = r#"
+module writer.provider;
+@id("writer.type") record Writer { @id("writer.flag") flag: bool, }
+@id("writer.new") fn create() -> Writer { Writer { flag: true } }
+@id("writer.append") fn append(input: borrow str, output: own Writer) -> Writer {
+    if str_is_empty(input) { output } else { output }
+}
+"#;
+    let app = r#"
+module writer.app;
+use type @id("writer.type") from writer.provider as Writer;
+use function @id("writer.new") from writer.provider as create;
+use function @id("writer.append") from writer.provider as append;
+@id("writer.app.main") fn main() -> i64 {
+    let text = "json";
+    let rendered = append(string_as_str(text), create());
+    if rendered.flag { 1 } else { 0 }
+}
+"#;
+    let errors = build_owned(sources(app, provider))
+        .err()
+        .expect("borrowed str cannot widen imports to records without Bytes");
+    assert!(errors.iter().any(|error| error.code == "SPX-G172"));
+}
+
+#[test]
 fn owned_input_copy_record_result_authenticates_direct_identity_and_cleanup() {
     let provider = format!(
         r#"{PROVIDER}

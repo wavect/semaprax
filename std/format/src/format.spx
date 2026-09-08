@@ -1,0 +1,132 @@
+module std.format;
+use type @id("std.io.writer") from std.io as Writer;
+
+@id("std.format.byte")
+fn byte(value: i64) -> u8
+    requires value >= 0 && value <= 255
+{
+    let mut converted = 0u8;
+    let mut step = 0;
+    let mut scanning = step < value && step < 255;
+    while scanning {
+        converted = converted + 1u8;
+        step = step + 1;
+        scanning = step < value && step < 255;
+        scanning
+    }
+    converted
+}
+
+@id("std.format.usize-len")
+fn usize_len(value: usize) -> usize
+    ensures result >= 1usize && result <= 20usize
+{
+    let mut remaining = value;
+    let mut length = 1usize;
+    let mut scanning = remaining >= 10usize;
+    while scanning {
+        remaining = remaining / 10usize;
+        length = length + 1usize;
+        scanning = remaining >= 10usize;
+        scanning
+    }
+    length
+}
+
+@id("std.format.usize-byte")
+fn usize_byte(value: usize, index: usize) -> u8
+    requires index < usize_len(value)
+{
+    let length = usize_len(value);
+    let place = if index < length { length - index - 1usize } else { 0usize };
+    let mut remaining = value;
+    let mut step = 0usize;
+    let mut scanning = step < place;
+    while scanning {
+        remaining = remaining / 10usize;
+        step = step + 1usize;
+        scanning = step < place;
+        scanning
+    }
+    digit_byte(remaining % 10usize)
+}
+
+@id("std.format.digit-byte")
+fn digit_byte(value: usize) -> u8
+    requires value <= 9usize
+{
+    let mut converted = 48u8;
+    let mut step = 0usize;
+    let mut scanning = step < value && step < 9usize;
+    while scanning {
+        converted = converted + 1u8;
+        step = step + 1usize;
+        scanning = step < value && step < 9usize;
+        scanning
+    }
+    converted
+}
+
+@id("std.format.i64-len")
+fn i64_len(value: i64) -> usize
+    ensures result >= 1usize && result <= 20usize
+{
+    let mut remaining = if value > 0 { 0 - value } else { value };
+    let mut digits = 1usize;
+    let mut scanning = remaining <= -10;
+    while scanning {
+        remaining = remaining / 10;
+        digits = digits + 1usize;
+        scanning = remaining <= -10;
+        scanning
+    }
+    if value < 0 { digits + 1usize } else { digits }
+}
+
+@id("std.format.i64-byte")
+fn i64_byte(value: i64, index: usize) -> u8
+    requires index < i64_len(value)
+{
+    let length = i64_len(value);
+    let sign = if value < 0 { 1usize } else { 0usize };
+    let inside = index >= sign && index < length;
+    let place = if inside { length - index - 1usize } else { 0usize };
+    let mut remaining = if value > 0 { 0 - value } else { value };
+    let mut step = 0usize;
+    let mut scanning = step < place;
+    while scanning {
+        remaining = remaining / 10;
+        step = step + 1usize;
+        scanning = step < place;
+        scanning
+    }
+    if index < sign { 45u8 } else { byte(48 - remaining % 10) }
+}
+
+@id("std.format.append-str")
+fn append_str(value: borrow str, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && byte_len(str_as_bytes(value)) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let view = str_as_bytes(value); let length = byte_len(view); let mut next = output_data; let mut index = 0usize; let mut writing = index < length; while writing { let item = match byte_get(view, index) { Option::Some { value: item } => item, Option::None {} => 0u8, }; next = bytes_set(next, output_position + index, item); index = index + 1usize; writing = index < length; writing } Writer { data: next, position: output_position + length } }, }
+}
+
+@id("std.format.append-usize")
+fn append_usize(value: usize, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && usize_len(value) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let length = usize_len(value); let mut next = output_data; let mut index = 0usize; let mut writing = index < length; while writing { next = bytes_set(next, output_position + index, usize_byte(value, index)); index = index + 1usize; writing = index < length; writing } Writer { data: next, position: output_position + length } }, }
+}
+
+@id("std.format.append-i64")
+fn append_i64(value: i64, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && i64_len(value) <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let length = i64_len(value); let mut next = output_data; let mut index = 0usize; let mut writing = index < length; while writing { next = bytes_set(next, output_position + index, i64_byte(value, index)); index = index + 1usize; writing = index < length; writing } Writer { data: next, position: output_position + length } }, }
+}
+
+@id("std.format.append-bool")
+fn append_bool(value: bool, output: own Writer) -> Writer
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && if value { 4usize } else { 5usize } <= byte_len(bytes_as_slice(data)) - position, }
+{
+    match own output { Writer { data: output_data, position: output_position } => { let length = if value { 4usize } else { 5usize }; let mut next = output_data; let mut index = 0usize; let mut writing = index < length; while writing { let item = if value { if index == 0usize { 116u8 } else { if index == 1usize { 114u8 } else { if index == 2usize { 117u8 } else { 101u8 } } } } else { if index == 0usize { 102u8 } else { if index == 1usize { 97u8 } else { if index == 2usize { 108u8 } else { if index == 3usize { 115u8 } else { 101u8 } } } } }; next = bytes_set(next, output_position + index, item); index = index + 1usize; writing = index < length; writing } Writer { data: next, position: output_position + length } }, }
+}

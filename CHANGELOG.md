@@ -8,6 +8,24 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the private `std.format` Writer append slice: `append_str`,
+  `append_i64`, `append_usize`, and `append_bool` preflight exact caller-owned
+  `std.io.Writer` capacity and return the advanced writer. Checked digit,
+  decimal-byte, and length helpers supply deterministic output without hidden
+  allocation or effects under the private `useful-data.v2` profile; the
+  package has no public exports. Focused interpreter, native C11, and Core
+  Local verification now passes seven owned-function-import unit tests,
+  including borrowed-`str` and ordinary owned-byte-record positives plus
+  non-byte-record refusal; eight individually runnable named SPX tests pass on
+  the interpreter, native C11 `-O0`/`-O2`, and repeated Core Wasm with a strict
+  two-entry byte arena (the pure helper case uses zero allocation). Five
+  short/forged-output preflight cases pass twice with exact `requires`-false
+  status through the bundled `std.format` consumer and transitive `std.io`;
+  metadata and catalog regeneration pass. Named tests run individually
+  because the per-function static allocation limit is unchanged. General
+  format strings and floating-point rendering remain outside this slice, with
+  no hosted or production claim.
+
 - Add allocation-free JSON cursor adapters: `decode_into` and `quoted_into`
   consume an owned `Writer` after exact capacity preflight while borrowing a
   `Reader`, and `count_into` renders a `usize` value into that writer. The

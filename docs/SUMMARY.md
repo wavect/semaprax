@@ -69,6 +69,7 @@ Audience: all documentation readers.
 - [RFC 0002: Algebraic data](RFC-0002-ALGEBRAIC-DATA.md)
 - [RFC 0003: Cleanup and resource ABI](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md)
 - [Standard Library v1](STANDARD-LIBRARY-V1.md)
+- [Format Writer v1](FORMAT-WRITER-V1.md)
 
 ## Bounded language references
 

@@ -45,7 +45,9 @@ no lane gains authority from the Reader or Writer record.
 
 The additive internal Project import lane admits explicitly identified,
 nongeneric resource-free record trees whose fields are Bytes and Copy scalars.
-Callers import the exact nominal type identities. The ordinary verifier and
+An internal helper may additionally borrow `str` while transferring or
+borrowing one of these authenticated byte-record shapes; the view cannot be
+stored in the record or returned by this lane. Callers import the exact nominal type identities. The ordinary verifier and
 independent HIR validator admit record matches returning Copy scalars or
 transferring Bytes/record ownership from an owning match; a borrowed field may
 not escape. Existing cleanup transitions govern these whole-owner transfers.

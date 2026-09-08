@@ -2215,6 +2215,151 @@
           "effects": [],
           "ensures": 0,
           "head": [
+            "fn byte(value: i64) -> u8",
+            "    requires value >= 0 && value <= 255"
+          ],
+          "id": "std.format.byte",
+          "kind": "function",
+          "name": "byte",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn usize_len(value: usize) -> usize",
+            "    ensures result >= 1usize && result <= 20usize"
+          ],
+          "id": "std.format.usize-len",
+          "kind": "function",
+          "name": "usize_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn usize_byte(value: usize, index: usize) -> u8",
+            "    requires index < usize_len(value)"
+          ],
+          "id": "std.format.usize-byte",
+          "kind": "function",
+          "name": "usize_byte",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn digit_byte(value: usize) -> u8",
+            "    requires value <= 9usize"
+          ],
+          "id": "std.format.digit-byte",
+          "kind": "function",
+          "name": "digit_byte",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 1,
+          "head": [
+            "fn i64_len(value: i64) -> usize",
+            "    ensures result >= 1usize && result <= 20usize"
+          ],
+          "id": "std.format.i64-len",
+          "kind": "function",
+          "name": "i64_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn i64_byte(value: i64, index: usize) -> u8",
+            "    requires index < i64_len(value)"
+          ],
+          "id": "std.format.i64-byte",
+          "kind": "function",
+          "name": "i64_byte",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn append_str(value: borrow str, output: own Writer) -> Writer",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && byte_len(str_as_bytes(value)) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.format.append-str",
+          "kind": "function",
+          "name": "append_str",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn append_usize(value: usize, output: own Writer) -> Writer",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && usize_len(value) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.format.append-usize",
+          "kind": "function",
+          "name": "append_usize",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn append_i64(value: i64, output: own Writer) -> Writer",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && i64_len(value) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.format.append-i64",
+          "kind": "function",
+          "name": "append_i64",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn append_bool(value: bool, output: own Writer) -> Writer",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && if value { 4usize } else { 5usize } <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.format.append-bool",
+          "kind": "function",
+          "name": "append_bool",
+          "requires": 1
+        }
+      ],
+      "dependency": "std.format = \"^0.1.0\"",
+      "module": "std.format",
+      "package": "std/format",
+      "required_profile": "useful-data.v2",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
             "record FileInfo {",
             "    kind: usize,",
             "    size: usize,",

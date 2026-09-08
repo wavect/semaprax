@@ -1,0 +1,134 @@
+module std.format.tests;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.format.append-bool") from std.format as append_bool;
+use function @id("std.format.append-i64") from std.format as append_i64;
+use function @id("std.format.append-str") from std.format as append_str;
+use function @id("std.format.append-usize") from std.format as append_usize;
+use function @id("std.format.byte") from std.format as byte;
+use function @id("std.format.digit-byte") from std.format as digit_byte;
+use function @id("std.format.i64-byte") from std.format as i64_byte;
+use function @id("std.format.i64-len") from std.format as i64_len;
+use function @id("std.format.usize-byte") from std.format as usize_byte;
+use function @id("std.format.usize-len") from std.format as usize_len;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+
+@id("std.format.tests.at")
+fn at(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value } => value == expected, Option::None {} => false, }
+}
+
+@id("std.format.tests.equal")
+fn equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+{
+    let mut index = 0usize;
+    let mut same = byte_len(left) == byte_len(right);
+    while same && index < byte_len(left) {
+        let left_item = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let right_item = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        same = left_item == right_item;
+        index = index + 1usize;
+        same
+    }
+    same
+}
+
+@id("std.format.tests.minimum-i64")
+fn test_minimum_i64() -> i64
+{
+    let output = append_i64(-9223372036854775807 - 1, writer_from_bytes(bytes_zeroed(20usize)));
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    let expected = [45u8, 57u8, 50u8, 50u8, 51u8, 51u8, 55u8, 50u8, 48u8, 51u8, 54u8, 56u8, 53u8, 52u8, 55u8, 55u8, 53u8, 56u8, 48u8, 56u8];
+    if i64_len(-9223372036854775807 - 1) == 20usize && i64_byte(-9223372036854775807 - 1, 19usize) == 56u8 && position == 20usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.format.tests.integer-cases")
+fn test_integer_cases() -> i64
+{
+    let zero_output = append_i64(0, writer_from_bytes(bytes_zeroed(1usize)));
+    let zero_position = writer_position(zero_output);
+    let zero_bytes = writer_finish(zero_output);
+    let positive_output = append_i64(42, writer_from_bytes(bytes_zeroed(2usize)));
+    let positive_position = writer_position(positive_output);
+    let positive_bytes = writer_finish(positive_output);
+    let zero_expected = [48u8];
+    let positive_expected = [52u8, 50u8];
+    if zero_position == 1usize && positive_position == 2usize && equal(bytes_as_slice(zero_bytes), array_as_slice(zero_expected)) && equal(bytes_as_slice(positive_bytes), array_as_slice(positive_expected)) { 0 } else { 1 }
+}
+
+@id("std.format.tests.usize-cases")
+fn test_usize_cases() -> i64
+{
+    let output = append_usize(0usize, writer_from_bytes(bytes_zeroed(1usize)));
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    let expected = [48u8];
+    let count = append_usize(12345usize, writer_from_bytes(bytes_zeroed(5usize)));
+    let count_position = writer_position(count);
+    let count_bytes = writer_finish(count);
+    let count_expected = [49u8, 50u8, 51u8, 52u8, 53u8];
+    if count_position == 5usize && equal(bytes_as_slice(count_bytes), array_as_slice(count_expected)) && usize_len(0usize) == 1usize && usize_byte(0usize, 0usize) == 48u8 && position == 1usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.format.tests.bool-cases")
+fn test_bool_cases() -> i64
+{
+    let true_output = append_bool(true, writer_from_bytes(bytes_zeroed(4usize)));
+    let true_position = writer_position(true_output);
+    let true_bytes = writer_finish(true_output);
+    let false_output = append_bool(false, writer_from_bytes(bytes_zeroed(5usize)));
+    let false_position = writer_position(false_output);
+    let false_bytes = writer_finish(false_output);
+    let true_expected = [116u8, 114u8, 117u8, 101u8];
+    let false_expected = [102u8, 97u8, 108u8, 115u8, 101u8];
+    if true_position == 4usize && false_position == 5usize && equal(bytes_as_slice(true_bytes), array_as_slice(true_expected)) && equal(bytes_as_slice(false_bytes), array_as_slice(false_expected)) { 0 } else { 1 }
+}
+
+@id("std.format.tests.empty-str")
+fn test_empty_str() -> i64
+{
+    let text = "";
+    let output = append_str(string_as_str(text), writer_from_bytes(bytes_zeroed(0usize)));
+    if writer_position(output) == 0usize { 0 } else { 1 }
+}
+
+@id("std.format.tests.compose")
+fn test_compose() -> i64
+{
+    let label = "id=";
+    let prefix = writer_write_u8(writer_from_bytes(bytes_set(bytes_zeroed(18usize), 17usize, 88u8)), 91u8);
+    let text = append_str(string_as_str(label), prefix);
+    let number = append_i64(-42, text);
+    let complete = append_bool(false, number);
+    let position = writer_position(complete);
+    let bytes = writer_finish(complete);
+    let expected = [91u8, 105u8, 100u8, 61u8, 45u8, 52u8, 50u8, 102u8, 97u8, 108u8, 115u8, 101u8, 0u8, 0u8, 0u8, 0u8, 0u8, 88u8];
+    if position == 12usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) && at(bytes_as_slice(bytes), 17usize, 88u8) { 0 } else { 1 }
+}
+
+@id("std.format.tests.utf8")
+fn test_utf8() -> i64
+{
+    let text = "é";
+    let output = append_str(string_as_str(text), writer_from_bytes(bytes_zeroed(2usize)));
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    let expected = [195u8, 169u8];
+    if position == 2usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.format.tests.helpers")
+fn test_helpers() -> i64
+{
+    if byte(255) == 255u8 && digit_byte(9usize) == 57u8 { 0 } else { 1 }
+}
+
+@id("std.format.tests.main")
+fn main() -> i64
+{
+    test_compose()
+}

@@ -27,6 +27,9 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
 }
 
+#[path = "standard_library/formatting.rs"]
+mod formatting;
+
 #[path = "standard_library/temporary.rs"]
 mod temporary;
 use temporary::temporary;
@@ -668,7 +671,9 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             .join("std")
             .join(&package.directory)
             .join("semaprax.toml");
-        let manifests = if package.module == "std.path.value" {
+        let manifests = if package.module == "std.format" {
+            formatting::conformance_manifests(&scratch, &manifest)
+        } else if package.module == "std.path.value" {
             typed_paths::conformance_manifests(&scratch, &manifest)
         } else if matches!(
             package.module.as_str(),
@@ -724,7 +729,7 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
             let wasm = snapshot.test_wasm_module()?;
             let cursor_case = json_cursors::is_cursor_case(&manifest);
             // Buffer-filling packages must balance the exact one-entry byte arena.
-            let arena = cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.path.value");
+            let arena = cursor_case || matches!(package.module.as_str(), "std.data.json.dec" | "std.io" | "std.path.value") || (package.module == "std.format" && formatting::uses_byte_arena(&manifest));
             for name in ["spx_bytes_zeroed", "spx_bytes_set"] {
                 let present = wasm.windows(name.len()).any(|w| w == name.as_bytes());
                 // Individual typed-Path observation cases allocate via copy
@@ -733,7 +738,7 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
                     assert_eq!(present, arena, "{}: `{name}` import", package.directory);
                 }
             }
-            let live_entry_bound = if cursor_case { 2 } else if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
+            let live_entry_bound = if cursor_case || package.module == "std.format" { 2 } else if package.module == "std.path.value" { 3 } else if arena { 1 } else { 4096 };
             let wasm_path = scratch.join(format!("{}-tests.wasm", package.directory));
             std::fs::write(&wasm_path, wasm).unwrap();
             let script = scratch.join(format!("{}-tests.mjs", package.directory));

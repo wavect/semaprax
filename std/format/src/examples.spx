@@ -1,0 +1,18 @@
+module std.format.examples;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.format.append-bool") from std.format as append_bool;
+use function @id("std.format.append-i64") from std.format as append_i64;
+use function @id("std.format.append-str") from std.format as append_str;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+
+@id("std.format.examples.main")
+fn main() -> i64
+{
+    let label = "count=";
+    let first = append_str(string_as_str(label), writer_from_bytes(bytes_zeroed(16usize)));
+    let second = append_i64(-42, first);
+    let output = append_bool(true, second);
+    let bytes = writer_finish(output);
+    if byte_len(bytes_as_slice(bytes)) == 16usize { 0 } else { 1 }
+}

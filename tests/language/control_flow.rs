@@ -91,29 +91,38 @@ fn main() -> i64 { if true {} else { 42 } }
 
 #[test]
 fn excessive_source_nesting_fails_with_a_located_parser_diagnostic() {
-    let shapes = [
-        format!("{}1{}", "(".repeat(129), ")".repeat(129)),
-        format!("{}1", "-".repeat(129)),
-        format!("1{}", " + 1".repeat(129)),
-        format!("{}1{}", "{".repeat(129), "}".repeat(129)),
-        "{".repeat(129),
-    ];
-    for body in shapes {
-        let source =
-            format!("module test.deep;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{body}\n}}\n");
-        let diagnostic = parse(&source, Path::new("deep.spx")).unwrap_err();
-        assert_eq!(diagnostic.code, "SPX-P207", "{diagnostic}");
-        assert!(diagnostic.message.contains("128"));
-        assert!(diagnostic.span.is_some());
-        assert!(diagnostic.help.is_some());
-    }
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            let shapes = [
+                format!("{}1{}", "(".repeat(129), ")".repeat(129)),
+                format!("{}1", "-".repeat(129)),
+                format!("1{}", " + 1".repeat(129)),
+                format!("{}1{}", "{".repeat(129), "}".repeat(129)),
+                "{".repeat(129),
+            ];
+            for body in shapes {
+                let source = format!(
+                    "module test.deep;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{body}\n}}\n"
+                );
+                let diagnostic = parse(&source, Path::new("deep.spx")).unwrap_err();
+                assert_eq!(diagnostic.code, "SPX-P207", "{diagnostic}");
+                assert!(diagnostic.message.contains("128"));
+                assert!(diagnostic.span.is_some());
+                assert!(diagnostic.help.is_some());
+            }
 
-    let admitted = format!(
-        "module test.deep_limit;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{}1{}\n}}\n",
-        "(".repeat(127),
-        ")".repeat(127)
-    );
-    parse(&admitted, Path::new("deep-limit.spx")).expect("the exact delimiter limit is admitted");
+            let admitted = format!(
+                "module test.deep_limit;\n@id(\"app.main\")\nfn main() -> i64\n{{\n{}1{}\n}}\n",
+                "(".repeat(127),
+                ")".repeat(127)
+            );
+            parse(&admitted, Path::new("deep-limit.spx"))
+                .expect("the exact delimiter limit is admitted");
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }
 
 #[test]

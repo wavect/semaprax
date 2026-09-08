@@ -71,7 +71,7 @@ printf '%s\n' \
 printf '%s\n' \
     'module app;' \
     '' \
-    '@id("release.smoke.main")' \
+    '@id("app.main")' \
     'fn main() -> i64 { 42 }' > "$package_root/smoke/meaning.spx"
 
 tar -czf "$archive" -C "$output_root" "$package_name"

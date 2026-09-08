@@ -37,6 +37,7 @@ jobs:
           check_blob crates/semaprax-native-rust-interop-builder/src/implementation/hir_analysis/fingerprint.rs 34531c47dce35843bfbc96db270c914680d97bfd
           check_blob crates/semaprax-native-rust-interop-builder/src/implementation/hir_analysis/type_identity.rs 9c6a950bdf2940b9902f14aaf6e21335acf0e42b
           check_blob crates/semaprax-native-rust-interop-builder/src/implementation/phase_a.rs 9fa06799588d6a199f5802fb59074fa01b4c4df5
+          check_blob tests/projections/region_report.rs e95667bb0b0560e178d740643eae0bea5cde156c
 
       - name: Apply exact compatibility patch
         shell: bash
@@ -139,6 +140,12 @@ jobs:
               "            ResolvedExprKind::ConstructRecord { .. }\n            | ResolvedExprKind::ArrayU8(_)\n",
               "            ResolvedExprKind::FunctionReference { .. }\n            | ResolvedExprKind::Invoke { .. }\n            | ResolvedExprKind::ConstructRecord { .. }\n            | ResolvedExprKind::ArrayU8(_)\n",
           )
+
+          replace_once(
+              "tests/projections/region_report.rs",
+              "            hir::ResolvedExprKind::Call { args, .. } => {\n                for argument in args {\n                    collect_expr(argument, ids);\n                }\n            }\n",
+              "            hir::ResolvedExprKind::FunctionReference { .. } => {}\n            hir::ResolvedExprKind::Invoke { callable, args } => {\n                collect_expr(callable, ids);\n                for argument in args {\n                    collect_expr(argument, ids);\n                }\n            }\n            hir::ResolvedExprKind::Call { args, .. } => {\n                for argument in args {\n                    collect_expr(argument, ids);\n                }\n            }\n",
+          )
           PY
 
       - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
@@ -161,7 +168,7 @@ jobs:
           git rm .github/workflows/_repair-native-function-values.yml
           git config user.name "Riedl Kevin, Bsc."
           git config user.email "kevin.riedl.privat@gmail.com"
-          git add crates/semaprax-native-rust-interop-builder
+          git add crates/semaprax-native-rust-interop-builder tests/projections/region_report.rs
           git diff --cached --check
           git commit -m "fix: close native interop over function values"
           git push origin HEAD:main

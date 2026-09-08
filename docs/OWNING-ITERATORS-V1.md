@@ -95,6 +95,8 @@ case/tag identities, omitted or duplicated conditional owners, stale source
 binding, changed cleanup schema, reordered transfers, and shallow owner copies.
 
 Owning payloads, generic authored iterator implementations, associated types,
-lazy closure adapters, consuming loop syntax, public iterator ABI, and hosted
-promotion remain separate work within the full language goal. This initial
+lazy closure adapters, public iterator ABI, and hosted promotion remain
+separate work within the full language goal. Consuming loop syntax is specified
+and implemented separately by [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md);
+that profile does not widen this protocol's frozen v1 contract. This initial
 protocol must not be described as completion of that broader iterator goal.

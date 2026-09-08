@@ -1,7 +1,7 @@
 use crate::cleanup::FieldLivenessShape;
 use crate::cleanup_plan::{
-    StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V7,
-    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11, CLEANUP_PLAN_SCHEMA_V12,
+    CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 use crate::diagnostic::Diagnostic;
 use crate::hir::{PlaceProjection, ResolvedFunction, ResolvedProgram};
@@ -70,6 +70,7 @@ pub(super) fn nested_cleanup_graph_schema<'a>(
                         | CLEANUP_PLAN_SCHEMA_V9
                         | CLEANUP_PLAN_SCHEMA_V10
                         | CLEANUP_PLAN_SCHEMA_V11
+                        | CLEANUP_PLAN_SCHEMA_V12
                 )
                 || !function_has_nested_storage(function)?
                 || !loan_origin_is_nested_owned_leaf(function, loan)
@@ -282,7 +283,7 @@ pub(crate) fn graph_schema_from_parts_and_instances(
         .any(|function| {
             matches!(
                 function.cleanup_plan.schema,
-                CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11
+                CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12
             )
         })
         && super::native_import::declares_native_rust_import(interfaces)
@@ -382,7 +383,7 @@ pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Di
         .any(|function| {
             matches!(
                 function.cleanup_plan.schema,
-                CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11
+                CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12
             )
         })
         && super::native_import::declares_native_rust_import(&program.interfaces)
@@ -534,6 +535,7 @@ pub(super) fn graph_schema_includes_modern_composite_facts(schema: &str) -> bool
             | "semaprax.graph.v37"
             | "semaprax.graph.v38"
             | "semaprax.graph.v39"
+            | "semaprax.graph.v40"
     )
 }
 
@@ -553,6 +555,7 @@ pub(super) fn graph_schema_includes_loans(schema: &str) -> bool {
             | "semaprax.graph.v37"
             | "semaprax.graph.v38"
             | "semaprax.graph.v39"
+            | "semaprax.graph.v40"
     )
 }
 
@@ -570,6 +573,7 @@ pub(super) fn graph_schema_includes_projected_provenance(schema: &str) -> bool {
             | "semaprax.graph.v37"
             | "semaprax.graph.v38"
             | "semaprax.graph.v39"
+            | "semaprax.graph.v40"
     )
 }
 
@@ -608,16 +612,29 @@ fn iterator_loop_schema<'a>(
     let mut has_loop = templates
         .iter()
         .any(crate::hir::iterator_loop::template_contains);
+    let mut has_renewal = templates
+        .iter()
+        .any(crate::hir::iterator_loop::template_requires_renewal);
     for function in functions {
-        let expected = crate::hir::iterator_loop::function_contains(function);
-        if expected != (function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V11) {
+        let expected_loop = crate::hir::iterator_loop::function_contains(function);
+        let expected_renewal = crate::hir::iterator_loop::function_requires_renewal(function);
+        if expected_loop
+            != matches!(
+                function.cleanup_plan.schema,
+                CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12
+            )
+            || expected_renewal != (function.cleanup_plan.schema == CLEANUP_PLAN_SCHEMA_V12)
+        {
             return Err(composition_error(
-                "iterator loop shape and CleanupPlan v11 selection disagree",
+                "iterator loop shape and CleanupPlan v11/v12 selection disagree",
             ));
         }
-        has_loop |= expected;
+        has_loop |= expected_loop;
+        has_renewal |= expected_renewal;
     }
-    Ok(if has_loop {
+    Ok(if has_renewal {
+        "semaprax.graph.v40"
+    } else if has_loop {
         "semaprax.graph.v39"
     } else {
         "semaprax.graph.v38"
@@ -627,7 +644,7 @@ fn iterator_loop_schema<'a>(
 pub(super) fn has_iterator_cleanup(function: &ResolvedFunction) -> bool {
     matches!(
         function.cleanup_plan.schema,
-        CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11
+        CLEANUP_PLAN_SCHEMA_V10 | CLEANUP_PLAN_SCHEMA_V11 | CLEANUP_PLAN_SCHEMA_V12
     )
 }
 

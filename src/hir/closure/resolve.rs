@@ -88,6 +88,7 @@ impl Resolver<'_> {
                     || super::super::generic_collection::parameter(
                         &captured.ty,
                         &DeclarationId::new(source_function.stable_id.clone()),
+                        source_function.type_parameters.len(),
                     ))
             {
                 return Err(hir_error(

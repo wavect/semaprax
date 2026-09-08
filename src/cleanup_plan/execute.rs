@@ -7,7 +7,9 @@
 //! this first acyclic slice does not recursively execute callees.
 
 mod expression_search;
+mod inventory;
 use expression_search::find_expression_by;
+use inventory::collect_leaves;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
@@ -892,11 +894,17 @@ impl<'a> Executor<'a> {
         transition: CleanupTransition,
     ) -> Result<(), CleanupExecutionError> {
         match transition {
+            CleanupTransition::ReserveRenewal { .. } => {}
             CleanupTransition::Initialize { at, destination } => {
                 self.initialize_flags(&destination, "initialize transition")?;
                 self.emit(TraceEventKind::Initialize { at, destination });
             }
             CleanupTransition::Transfer {
+                at,
+                source,
+                destination,
+            }
+            | CleanupTransition::Renew {
                 at,
                 source,
                 destination,
@@ -1790,51 +1798,6 @@ fn resolve_lifecycle_binding(
         });
     }
     binding.ok_or_else(|| invariant(format!("unknown lifecycle `{lifecycle}`")))
-}
-
-fn collect_leaves(
-    storage: &StorageId,
-    projections: &mut Vec<DeclarationId>,
-    shape: &FieldLivenessShape,
-    leaves: &mut BTreeMap<LivenessFlagId, Leaf>,
-) -> Result<(), CleanupExecutionError> {
-    match shape {
-        FieldLivenessShape::NoDrop => {}
-        FieldLivenessShape::Leaf { flag, lifecycle } => {
-            let leaf = Leaf {
-                place: CleanupPlace {
-                    storage: storage.clone(),
-                    projections: projections.clone(),
-                },
-                lifecycle: lifecycle.clone(),
-            };
-            if leaves.insert(*flag, leaf).is_some() {
-                return Err(invariant(format!(
-                    "cleanup flag {} is declared more than once",
-                    flag.0
-                )));
-            }
-        }
-        FieldLivenessShape::Record { fields, .. } => {
-            for field in fields {
-                projections.push(field.field.clone());
-                collect_leaves(storage, projections, &field.shape, leaves)?;
-                projections.pop();
-            }
-        }
-        FieldLivenessShape::Variant { cases, .. } => {
-            for case in cases {
-                projections.push(case.case.clone());
-                for field in &case.fields {
-                    projections.push(field.field.clone());
-                    collect_leaves(storage, projections, &field.shape, leaves)?;
-                    projections.pop();
-                }
-                projections.pop();
-            }
-        }
-    }
-    Ok(())
 }
 
 fn invariant(detail: impl Into<String>) -> CleanupExecutionError {

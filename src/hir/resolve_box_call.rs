@@ -186,7 +186,7 @@ pub(super) fn schedule<'expr>(
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
     if !crate::box_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::box_ops::resolved_parameter_is_admitted(function, op, &element)
-        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
+        && !super::generic_collection::source_parameter(resolver.program, function, &element)
     {
         return Err(resolver.error(
             "SPX-H006",
@@ -279,7 +279,7 @@ pub(super) fn resolve_reference(
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
     if !crate::box_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::box_ops::resolved_parameter_is_admitted(function, op, &element)
-        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
+        && !super::generic_collection::source_parameter(resolver.program, function, &element)
     {
         return Err(resolver.error(
             "SPX-H006",

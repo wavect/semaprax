@@ -30,6 +30,7 @@ pub const CLEANUP_PLAN_SCHEMA_V9: &str = "semaprax.cleanup-plan.v9";
 
 pub const CLEANUP_PLAN_SCHEMA_V10: &str = "semaprax.cleanup-plan.v10";
 pub const CLEANUP_PLAN_SCHEMA_V11: &str = "semaprax.cleanup-plan.v11";
+pub const CLEANUP_PLAN_SCHEMA_V12: &str = "semaprax.cleanup-plan.v12";
 
 macro_rules! numeric_id {
     ($name:ident) => {
@@ -133,6 +134,15 @@ pub struct CallArgumentTransfer {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CleanupTransition {
+    ReserveRenewal {
+        at: ExpressionId,
+        binding: CleanupPlace,
+    },
+    Renew {
+        at: ExpressionId,
+        source: CleanupPlace,
+        destination: CleanupPlace,
+    },
     Initialize {
         at: ExpressionId,
         destination: CleanupPlace,
@@ -526,11 +536,21 @@ impl CleanupPlan {
                         at,
                         source,
                         destination,
+                    }
+                    | CleanupTransition::Renew {
+                        at,
+                        source,
+                        destination,
                     } => {
                         total = total
                             .checked_add(at.as_str().len())?
                             .checked_add(place_bytes(source)?)?
                             .checked_add(place_bytes(destination)?)?;
+                    }
+                    CleanupTransition::ReserveRenewal { at, binding } => {
+                        total = total
+                            .checked_add(at.as_str().len())?
+                            .checked_add(place_bytes(binding)?)?;
                     }
                     CleanupTransition::AuthenticateVariantCase {
                         at,

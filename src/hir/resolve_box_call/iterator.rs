@@ -21,7 +21,7 @@ pub(super) fn schedule<'expr>(
     }
     let element = resolve_element(resolver, function, &type_arguments[0], span)?;
     if !crate::iterator_ops::resolved_element_is_admitted(&element)
-        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::super::generic_collection::parameter(&element, owner))
+        && !super::super::generic_collection::source_parameter(resolver.program, function, &element)
     {
         return Err(resolver.error(
             "SPX-T290",
@@ -86,7 +86,7 @@ pub(super) fn reference(
     }
     let element = resolve_element(resolver, function, &call.type_arguments[0], call.span)?;
     if !crate::iterator_ops::resolved_element_is_admitted(&element)
-        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::super::generic_collection::parameter(&element, owner))
+        && !super::super::generic_collection::source_parameter(resolver.program, function, &element)
     {
         return Err(Diagnostic::io("SPX-H006", "invalid iterator element"));
     }

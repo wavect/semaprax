@@ -854,9 +854,7 @@ impl Resolver<'_> {
                     argument_count,
                 } => {
                     let args = take_results(&mut results, argument_count);
-                    results.push(super::function_value::resolve::finish(
-                        function, &path, span, callable, args,
-                    )?);
+                    results.push(self.finish_invocation(function, &path, span, callable, args)?);
                 }
                 Frame::FinishCall {
                     span,

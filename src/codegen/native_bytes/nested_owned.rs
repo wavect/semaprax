@@ -146,6 +146,11 @@ pub(super) fn apply_variant_case_at(
                 source,
                 destination,
                 ..
+            }
+            | CleanupTransition::Renew {
+                source,
+                destination,
+                ..
             } if source.projections.first() == Some(case)
                 || destination.projections.first() == Some(case) =>
             {
@@ -181,9 +186,11 @@ pub(super) fn apply_variant_case_at(
                     ));
                 }
             }
-            CleanupTransition::Initialize { .. }
+            CleanupTransition::ReserveRenewal { .. }
+            | CleanupTransition::Initialize { .. }
             | CleanupTransition::InitializeVariant { .. }
             | CleanupTransition::Transfer { .. }
+            | CleanupTransition::Renew { .. }
             | CleanupTransition::TransferVariant { .. }
             | CleanupTransition::AuthenticateVariantCase { .. }
             | CleanupTransition::CallCommit { .. }

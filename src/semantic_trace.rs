@@ -396,6 +396,11 @@ pub fn build_semantic_event_dictionary(
                     at,
                     source,
                     destination,
+                }
+                | CleanupTransition::Renew {
+                    at,
+                    source,
+                    destination,
                 } => TraceEventKind::Transfer {
                     at: at.clone(),
                     source: source.clone(),
@@ -449,6 +454,7 @@ pub fn build_semantic_event_dictionary(
                         "copy-result staging is outside the direct-resource slice",
                     ))
                 }
+                CleanupTransition::ReserveRenewal { .. } => continue,
             };
             push_unique(&mut entries, event)?;
         }

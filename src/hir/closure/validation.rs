@@ -13,9 +13,18 @@ pub(crate) fn validate_shape_scoped(
     expression: &ResolvedExpr,
     owner: Option<&DeclarationId>,
 ) -> Result<(), Diagnostic> {
+    let count = owner
+        .and_then(|owner| {
+            program
+                .function_templates
+                .iter()
+                .find(|template| template.id == *owner)
+        })
+        .map_or(0, |template| template.type_parameters.len());
     let scalar = |ty: &ResolvedType| {
         super::super::function_value::scalar(ty)
-            || owner.is_some_and(|owner| super::super::generic_collection::parameter(ty, owner))
+            || owner
+                .is_some_and(|owner| super::super::generic_collection::parameter(ty, owner, count))
     };
     let ResolvedExprKind::Closure {
         parameters,
@@ -35,7 +44,7 @@ pub(crate) fn validate_shape_scoped(
     if expression.ownership != OwnershipMode::Value
         || !(super::super::function_value::is_signature(&expression.ty)
             || owner.is_some_and(|owner| {
-                super::super::generic_collection::callback(&expression.ty, owner)
+                super::super::generic_collection::callback(&expression.ty, owner, count)
             }))
         || captures.len() > MAX_CAPTURES
         || parameters.len() != types.len()

@@ -63,7 +63,12 @@ impl Resolver<'_> {
                     })
                     .collect::<Result<_, _>>()?;
                 return super::function_value::resolve::finish(
-                    function, path, expr.span, callable, args,
+                    self.program,
+                    function,
+                    path,
+                    expr.span,
+                    callable,
+                    args,
                 );
             }
         }

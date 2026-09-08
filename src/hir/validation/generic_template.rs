@@ -353,7 +353,11 @@ pub(super) fn validate_type(
                 &template.id,
                 template.type_parameters.len(),
             ) || super::super::generic_collection::scalar(ty)
-                || super::super::generic_collection::callback(ty, &template.id)))
+                || super::super::generic_collection::callback(
+                    ty,
+                    &template.id,
+                    template.type_parameters.len(),
+                )))
         || (super::super::generic_result::profile(template)
             && (super::super::generic_result::slot(
                 ty,
@@ -398,7 +402,7 @@ pub(super) fn is_vec_wrapper_call(
             || crate::vec_ops::hir_wrapper_in_program(program, template)
                 == crate::vec_ops::by_id(callee.as_str()))
         && matches!(type_arguments,
-            [ResolvedType::TypeParameter { owner, index: 0 }] if owner == &template.id)
+            [argument] if super::super::generic_collection::parameter(argument, &template.id, template.type_parameters.len()))
 }
 
 pub(super) fn is_forwarded_call(
@@ -590,10 +594,10 @@ pub(super) fn substitutions(
     template: &ResolvedFunctionTemplate,
     transparent_owned_wrapper: bool,
 ) -> Vec<Vec<ResolvedType>> {
-    if super::super::generic_variant::profile(program, template) {
+    if super::super::generic_collection::profile(template) {
+        super::super::generic_collection::substitutions(template.type_parameters.len())
+    } else if super::super::generic_variant::profile(program, template) {
         super::super::generic_variant::substitutions()
-    } else if super::super::generic_collection::profile(template) {
-        vec_wrapper_substitutions()
     } else if super::super::generic_result::profile(template) {
         super::super::generic_result::substitutions(&template.return_type)
     } else if transparent_owned_wrapper {
@@ -747,7 +751,7 @@ impl HirValidator<'_> {
             ResolvedExprKind::Invoke { callable, args } => {
                 super::super::function_value::validate_invocation_scoped(
                     expression,
-                    Some(&template.id),
+                    Some((&template.id, template.type_parameters.len())),
                 )?;
                 self.validate_template_expr(
                     template,

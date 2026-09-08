@@ -32,8 +32,11 @@ apply to the helper, callback invocation, and every staged owner.
 An iterator or step is never Copy. Callback environments cannot capture an
 iterator or step. No generic helper gains permission to copy an owner because
 its element is a type parameter. Owning element substitutions, nested iterator
-payloads, unconstrained type arguments, consuming loop syntax, lazy adapter
-carriers, and public generic signatures remain outside this profile.
+payloads, unconstrained type arguments, lazy adapter carriers, and public
+generic signatures remain outside this profile. Consuming loop syntax is
+specified separately by [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md),
+which is now implemented as its own bounded profile; it does not alter this
+profile's frozen v1 contract.
 
 ## Independent projections
 

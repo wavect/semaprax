@@ -104,7 +104,7 @@ pub(super) fn schedule<'expr>(
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
     if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
-        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
+        && !super::generic_collection::source_parameter(resolver.program, function, &element)
     {
         return Err(resolver.error(
             "SPX-H006",
@@ -199,7 +199,7 @@ pub(super) fn resolve_reference(
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
     if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
-        && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
+        && !super::generic_collection::source_parameter(resolver.program, function, &element)
     {
         return Err(resolver.error(
             "SPX-H006",
@@ -230,11 +230,16 @@ fn scoped_collection_assignment(
     target: &ResolvedBinding,
     value: &ResolvedExpr,
 ) -> bool {
-    if let ResolvedType::TypeParameter { owner, index: 0 } = &value.ty {
+    if let ResolvedType::TypeParameter { owner, .. } = &value.ty {
         if value.ownership == OwnershipMode::Value
             && resolver.program.functions.iter().any(|function| {
                 function.stable_id == owner.as_str()
                     && crate::source_verify::generic_collection_profile(function)
+                    && super::generic_collection::parameter(
+                        &value.ty,
+                        owner,
+                        function.type_parameters.len(),
+                    )
             })
         {
             return true;
@@ -249,12 +254,19 @@ fn scoped_collection_assignment(
         return false;
     }
     if value.ownership == OwnershipMode::Value
-        && super::generic_collection::parameter(&value.ty, owner)
+        && super::generic_collection::parameter(
+            &value.ty,
+            owner,
+            super::generic_collection::source_count(resolver.program, owner),
+        )
     {
         return true;
     }
-    if !super::generic_collection::slot(&value.ty, owner, 1)
-        || value.ownership != OwnershipMode::Own
+    if !super::generic_collection::slot(
+        &value.ty,
+        owner,
+        super::generic_collection::source_count(resolver.program, owner),
+    ) || value.ownership != OwnershipMode::Own
     {
         return false;
     }
@@ -270,6 +282,6 @@ fn scoped_collection_assignment(
     instance.is_none()
         && crate::vec_ops::by_id(callee.as_str())
             .is_some_and(|op| op.reopens_same_owner() && args.len() == op.arity())
-        && matches!(type_arguments.as_slice(), [argument] if super::generic_collection::parameter(argument, owner))
+        && matches!(type_arguments.as_slice(), [argument] if super::generic_collection::parameter(argument, owner, super::generic_collection::source_count(resolver.program, owner)))
         && matches!(&args[0].kind, ResolvedExprKind::Place(place) if place.root == target.id && place.projections.is_empty())
 }

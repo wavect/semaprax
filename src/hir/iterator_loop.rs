@@ -1,5 +1,7 @@
 //! Structural authentication of the consuming iterator loop's retained lowering.
 use super::*;
+mod renewal;
+pub(crate) use renewal::{function_requires_renewal, renewal_binding, template_requires_renewal};
 
 pub(crate) struct IteratorLoop<'a> {
     pub(crate) step: &'a ResolvedBinding,
@@ -27,7 +29,7 @@ fn cases(arms: &[ResolvedMatchArm]) -> bool {
 fn replacement<'a>(
     value: &'a ResolvedExpr,
     binding: &ValueId,
-    owner: Option<&DeclarationId>,
+    owner: Option<(&DeclarationId, usize)>,
 ) -> Option<&'a ResolvedExpr> {
     let ResolvedExprKind::Match {
         mode: ResolvedMatchMode::Own,
@@ -76,7 +78,9 @@ fn replacement<'a>(
     };
     if discard.ownership != OwnershipMode::Value
         || !(is_scalar_resolved_type(&discard.ty)
-            || owner.is_some_and(|owner| generic_collection::parameter(&discard.ty, owner)))
+            || owner.is_some_and(|(owner, count)| {
+                generic_collection::parameter(&discard.ty, owner, count)
+            }))
         || discard.ty != authored_body.ty
         || authored_body.ownership != OwnershipMode::Value
     {
@@ -104,7 +108,7 @@ pub(crate) fn recognize<'a>(
 fn recognize_scoped<'a>(
     condition: &'a ResolvedExpr,
     body: &'a ResolvedExpr,
-    owner: Option<&DeclarationId>,
+    owner: Option<(&DeclarationId, usize)>,
 ) -> Option<IteratorLoop<'a>> {
     let ResolvedExprKind::Block { statements, tail } = &body.kind else {
         return None;
@@ -236,7 +240,7 @@ pub(crate) fn validate_function(
 
 fn step_element<'a>(
     ty: &'a ResolvedType,
-    owner: Option<&DeclarationId>,
+    owner: Option<(&DeclarationId, usize)>,
 ) -> Option<&'a ResolvedType> {
     let ResolvedType::Nominal {
         declaration,
@@ -250,13 +254,16 @@ fn step_element<'a>(
     };
     (declaration.as_str() == crate::iterator_ops::STEP_ID
         && (crate::iterator_ops::resolved_element_is_admitted(element)
-            || owner.is_some_and(|owner| generic_collection::parameter(element, owner))))
+            || owner.is_some_and(|(owner, count)| {
+                generic_collection::parameter(element, owner, count)
+            })))
     .then_some(element)
 }
 /// Symbolic templates have no executable cleanup plan. Their exact scoped
 /// protocol still belongs to the additive graph grammar before instantiation.
 pub(crate) fn template_contains(template: &ResolvedFunctionTemplate) -> bool {
-    if template.type_parameters.len() != 1 || !generic_collection::profile(template) {
+    if !(1..=2).contains(&template.type_parameters.len()) || !generic_collection::profile(template)
+    {
         return false;
     }
     let mut pending = vec![&template.body];
@@ -271,14 +278,18 @@ pub(crate) fn template_contains(template: &ResolvedFunctionTemplate) -> bool {
                 condition, body, ..
             }] = statements.as_slice()
             {
-                if let Some(protocol) = recognize_scoped(condition, body, Some(&template.id)) {
+                if let Some(protocol) = recognize_scoped(
+                    condition,
+                    body,
+                    Some((&template.id, template.type_parameters.len())),
+                ) {
                     if protocol.step == binding
                         && zero(tail)
                         && seed.ty == binding.ty
                         && seed.ownership == OwnershipMode::Own
                         && matches!(&seed.kind, ResolvedExprKind::Call { callee, type_arguments, instance: None, args }
                             if callee.as_str() == crate::iterator_ops::NEXT_ID
-                            && matches!(type_arguments.as_slice(), [element] if generic_collection::parameter(element, &template.id)
+                            && matches!(type_arguments.as_slice(), [element] if generic_collection::parameter(element, &template.id, template.type_parameters.len())
                                 && matches!(args.as_slice(), [source] if source.ty == crate::iterator_ops::resolved_iter(element.clone()) && source.ownership == OwnershipMode::Own)))
                     {
                         return true;

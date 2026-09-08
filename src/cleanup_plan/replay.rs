@@ -26,8 +26,9 @@ use super::{
     CleanupTransition, ConditionalVariantCase, ConditionalVariantEntry, EdgeCondition, EdgeId,
     ExitContinuation, ExitTarget, StagedCopyResultSource, StatusCase, StatusLane, StatusProducer,
     StatusSource, StatusSourceId, StorageId, CLEANUP_PLAN_SCHEMA_V10, CLEANUP_PLAN_SCHEMA_V11,
-    CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3, CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5,
-    CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7, CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
+    CLEANUP_PLAN_SCHEMA_V12, CLEANUP_PLAN_SCHEMA_V2, CLEANUP_PLAN_SCHEMA_V3,
+    CLEANUP_PLAN_SCHEMA_V4, CLEANUP_PLAN_SCHEMA_V5, CLEANUP_PLAN_SCHEMA_V6, CLEANUP_PLAN_SCHEMA_V7,
+    CLEANUP_PLAN_SCHEMA_V8, CLEANUP_PLAN_SCHEMA_V9,
 };
 mod path_summary;
 use path_summary::{
@@ -43,6 +44,8 @@ mod copy_success_result_tests;
 mod mixed_result_tests;
 mod nested_shape;
 mod path_join;
+mod renewal;
+use renewal::validate_join_compatibility;
 mod record_destructure;
 mod resolved_call;
 mod schema;
@@ -197,6 +200,7 @@ struct CallFact {
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct PathState {
+    renewals: BTreeMap<ExpressionId, Vec<LivenessFlagId>>,
     live_order: Vec<LivenessFlagId>,
     conditional_variants: Vec<ReplayConditionalVariant>,
     pending_failure: Option<StatusSourceId>,
@@ -214,6 +218,10 @@ struct ReplayConditionalVariant {
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum SkeletonObservation {
+    ReserveRenewal {
+        at: ExpressionId,
+        binding: CleanupPlace,
+    },
     Initialize {
         at: ExpressionId,
         destination: CleanupPlace,
@@ -985,7 +993,8 @@ fn skeleton_work_upper(
             let weight = match transition {
                 CleanupTransition::Initialize { .. } => 4,
                 CleanupTransition::InitializeVariant { .. } => 6,
-                CleanupTransition::Transfer { .. } => 5,
+                CleanupTransition::Transfer { .. } | CleanupTransition::Renew { .. } => 5,
+                CleanupTransition::ReserveRenewal { .. } => 5,
                 CleanupTransition::TransferVariant { .. } => 6,
                 CleanupTransition::AuthenticateVariantCase { .. } => 6,
                 CleanupTransition::CallCommit { arguments, .. } => arguments
@@ -2369,6 +2378,21 @@ fn validate_blocks_and_edges(
                     require_expression(function, expressions, at)?;
                     validate_place(function, destination, storage, leaves)?;
                 }
+                CleanupTransition::ReserveRenewal { at, binding } => {
+                    renewal::validate_binding(function, at, binding)?;
+                    require_expression(function, expressions, at)?;
+                    validate_place(function, binding, storage, leaves)?;
+                }
+                CleanupTransition::Renew {
+                    at,
+                    source,
+                    destination,
+                } => {
+                    renewal::validate_binding(function, at, destination)?;
+                    require_expression(function, expressions, at)?;
+                    validate_place(function, source, storage, leaves)?;
+                    validate_place(function, destination, storage, leaves)?;
+                }
                 CleanupTransition::Transfer {
                     at,
                     source,
@@ -2639,6 +2663,7 @@ fn validate_blocks_and_edges(
                             | CLEANUP_PLAN_SCHEMA_V9
                             | CLEANUP_PLAN_SCHEMA_V10
                             | CLEANUP_PLAN_SCHEMA_V11
+                            | CLEANUP_PLAN_SCHEMA_V12
                     ) && matches!(
                         plan.edges[edge.0 as usize].condition,
                         EdgeCondition::VariantCase { matches: true, .. }
@@ -3217,6 +3242,7 @@ fn expression_skeleton(
 ) -> Result<Vec<ExprSkeletonPath>, Diagnostic> {
     enum Frame<'a> {
         Eval(&'a ResolvedExpr),
+        RenewalPrefix(&'a ResolvedExpr),
         UpcastPassthrough,
         Unary {
             expression: &'a ResolvedExpr,
@@ -3447,11 +3473,20 @@ fn expression_skeleton(
     // that block and the 512 authored expression ancestors.
     let mut frames = Vec::with_capacity(515);
     push_frame!(frames, Frame::Eval(expression));
-    let mut produced = None;
+    let mut produced: Option<Vec<ExprSkeletonPath>> = None;
     while let Some(frame) = frames.pop() {
         match frame {
+            Frame::RenewalPrefix(expression) => {
+                let mut paths = produced.take().expect("renewal RHS paths retained");
+                renewal::prepend_reservation(function, expression, &mut paths, work)?;
+                produced = Some(paths);
+            }
             Frame::Eval(expression) => {
                 debug_assert!(produced.is_none());
+                if crate::hir::iterator_loop::renewal_binding(function, &expression.id).is_some() {
+                    push_frame!(frames, Frame::RenewalPrefix(expression));
+                }
+
                 match &expression.kind {
                     ResolvedExprKind::Closure { .. }
                     | ResolvedExprKind::FunctionReference { .. }
@@ -6355,7 +6390,25 @@ fn plan_skeleton_paths(
                         "plan initialize observation push",
                     )?;
                 }
+                CleanupTransition::ReserveRenewal { at, binding } => {
+                    let observation = SkeletonObservation::ReserveRenewal {
+                        at: skeleton_clone(budget, function, at, "renewal expression")?,
+                        binding: skeleton_clone(budget, function, binding, "renewal binding")?,
+                    };
+                    skeleton_push(
+                        budget,
+                        function,
+                        &mut observations,
+                        observation,
+                        "renewal reservation",
+                    )?;
+                }
                 CleanupTransition::Transfer {
+                    at,
+                    source,
+                    destination,
+                }
+                | CleanupTransition::Renew {
                     at,
                     source,
                     destination,
@@ -6703,11 +6756,22 @@ fn execute_replay_transition(
             let flags = validate_place(function, destination, storage, leaves)?;
             append_dead_flags(function, state, flags, "initialize transition")?;
         }
-        CleanupTransition::Transfer {
+        CleanupTransition::ReserveRenewal { at, binding } => {
+            renewal::reserve(function, at, binding, state, storage, leaves)?
+        }
+        CleanupTransition::Renew {
+            at,
             source,
             destination,
-            ..
-        } => replay_transfer(function, state, source, destination, storage, leaves)?,
+        } => renewal::renew(function, at, source, destination, state, storage, leaves)?,
+        CleanupTransition::Transfer {
+            at,
+            source,
+            destination,
+        } => {
+            renewal::reject_unmarked_finish(function, at, destination)?;
+            replay_transfer(function, state, source, destination, storage, leaves)?;
+        }
         CleanupTransition::TransferVariant {
             source,
             destination,
@@ -6888,6 +6952,7 @@ fn execute_replay_transition(
             state.live_order.retain(|flag| !consumed.contains(flag));
         }
         CleanupTransition::SelectFailure { source } => {
+            state.renewals.clear();
             if state.selected_failure.is_some() {
                 return Err(replay_error(
                     function,
@@ -7605,83 +7670,6 @@ fn expression_has_explicit_variant_match(expression: &ResolvedExpr) -> bool {
                 if arms.iter().any(|arm| matches!(arm.pattern, ResolvedMatchPattern::Variant { .. }))
         )
     })
-}
-
-fn validate_join_compatibility(
-    function: &ResolvedFunction,
-    existing: &BTreeSet<PathState>,
-    incoming: &PathState,
-    block: BlockId,
-) -> Result<(), Diagnostic> {
-    if existing.iter().any(|state| {
-        state.pending_failure != incoming.pending_failure
-            || state.selected_failure != incoming.selected_failure
-            || state.published != incoming.published
-    }) {
-        return Err(replay_error(
-            function,
-            format!(
-                "cleanup join at block {} has incompatible control states",
-                block.0
-            ),
-        ));
-    }
-
-    let histories = existing
-        .iter()
-        .map(|state| &state.live_order)
-        .chain(std::iter::once(&incoming.live_order))
-        .collect::<Vec<_>>();
-    let flags = histories
-        .iter()
-        .flat_map(|history| history.iter().copied())
-        .collect::<BTreeSet<_>>();
-    let mut successors = flags
-        .iter()
-        .map(|flag| (*flag, BTreeSet::new()))
-        .collect::<BTreeMap<_, _>>();
-    let mut indegree = flags
-        .iter()
-        .map(|flag| (*flag, 0_usize))
-        .collect::<BTreeMap<_, _>>();
-    for history in histories {
-        for pair in history.windows(2) {
-            if successors
-                .get_mut(&pair[0])
-                .expect("replayed live flag is indexed")
-                .insert(pair[1])
-            {
-                indegree.entry(pair[1]).and_modify(|degree| *degree += 1);
-            }
-        }
-    }
-    let mut ready = indegree
-        .iter()
-        .filter_map(|(flag, degree)| (*degree == 0).then_some(*flag))
-        .collect::<BTreeSet<_>>();
-    let mut visited = 0_usize;
-    while let Some(flag) = ready.pop_first() {
-        visited += 1;
-        for successor in &successors[&flag] {
-            let degree = indegree
-                .get_mut(successor)
-                .expect("replayed successor flag is indexed");
-            *degree -= 1;
-            if *degree == 0 {
-                ready.insert(*successor);
-            }
-        }
-    }
-    if visited != flags.len() {
-        return Err(replay_error(
-            function,
-            format!(
-                "cleanup join at block {} has conflicting initialization histories",
-                block.0
-            ),
-        ));
-    }
-    Ok(())
 }
 
 fn validate_reachable_acyclic_cfg(function: &ResolvedFunction) -> Result<(), Diagnostic> {

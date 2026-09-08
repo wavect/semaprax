@@ -242,6 +242,11 @@ impl CleanupDependencyIndex {
                         destination,
                         ..
                     }
+                    | Transition::Renew {
+                        source,
+                        destination,
+                        ..
+                    }
                     | Transition::TransferVariant {
                         source,
                         destination,
@@ -249,6 +254,9 @@ impl CleanupDependencyIndex {
                     } => {
                         ids.extend(place_ids(&slots, source, self)?);
                         ids.extend(place_ids(&slots, destination, self)?);
+                    }
+                    Transition::ReserveRenewal { binding, .. } => {
+                        ids.extend(place_ids(&slots, binding, self)?);
                     }
                     Transition::AuthenticateVariantCase {
                         source,

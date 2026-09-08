@@ -84,7 +84,7 @@ pub(crate) fn bounded_template<'a>(
         if !profile(program, template) {
             continue;
         }
-        let exact = substitutions().iter().any(|arguments| {
+        let exact = template_substitutions(template).iter().any(|arguments| {
             super::monomorphize::materialize_function_template(template, arguments).is_ok_and(
                 |expected| super::monomorphize::same_function_meaning(&expected, function),
             )
@@ -133,7 +133,7 @@ pub(crate) fn match_result_execution(
         .iter()
         .filter(|template| profile(program, template))
         .any(|template| {
-            substitutions().iter().any(|arguments| {
+            template_substitutions(template).iter().any(|arguments| {
                 FunctionInstanceId::derive(&template.id, arguments) == *id
                     && ((ownership == OwnershipMode::Value
                         && super::type_reachability::nested_record_copy_scalar_is_admitted(ty))
@@ -226,4 +226,12 @@ fn iterator_match_result(
     mode == ResolvedMatchMode::Own
         && ownership == OwnershipMode::Own
         && crate::iterator_ops::step_shape(&program.declarations, ty)
+}
+
+fn template_substitutions(template: &ResolvedFunctionTemplate) -> Vec<Vec<ResolvedType>> {
+    if super::generic_collection::profile(template) {
+        super::generic_collection::substitutions(template.type_parameters.len())
+    } else {
+        substitutions()
+    }
 }

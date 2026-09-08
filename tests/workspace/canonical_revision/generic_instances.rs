@@ -1104,3 +1104,112 @@ module fixture.app;
     )
     .is_err());
 }
+
+#[test]
+fn two_parameter_iterator_adapters_retain_ordered_instances_and_v40_root() {
+    let fixture = Fixture::owned_vec("two-parameter-iterator-adapters-root", false);
+    let source = r#"
+module fixture.app;
+@id("fixture.map") fn map<T,U>(input:own Iter<T>,capacity:usize,transform:fn(T)->U)->Vec<U>{
+ let mut output=vec_with_capacity<U>(capacity);
+ for own item in input {output=vec_push<U>(output,transform(item));0}
+ output
+}
+@id("fixture.filter") fn filter<T>(input:own Iter<T>,capacity:usize,keep:fn(T)->bool)->Vec<T>{
+ let mut output=vec_with_capacity<T>(capacity);
+ for own item in input {if keep(item){output=vec_push<T>(output,item);0}else{0}}
+ output
+}
+@id("fixture.fold") fn fold<T,A>(input:own Iter<T>,initial:A,combine:fn(A,T)->A)->A{
+ let mut accumulator=initial;
+ for own item in input {accumulator=combine(accumulator,item);0}
+ accumulator
+}
+@id("fixture.main") fn main()->i64{
+ let input=vec_push<i64>(vec_push<i64>(vec_push<i64>(vec_with_capacity<i64>(3usize),-1),2),3);
+ let mapped=map<i64,bool>(vec_into_iter<i64>(input),3usize,fn(value:i64)->bool{value>0});
+ let filtered=filter<bool>(vec_into_iter<bool>(mapped),3usize,fn(value:bool)->bool{value});
+ let count=fold<bool,usize>(vec_into_iter<bool>(filtered),0usize,fn(count:usize,value:bool)->usize{if value{count+1usize}else{count}});
+ if count==2usize{1}else{0}
+}
+@id("fixture.public") fn published()->i64{0}
+"#;
+    let path = fixture.0.join("src/app.spx");
+    let parsed = semaprax::parse(source, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&parsed)).unwrap();
+
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    assert_eq!(
+        workspace.semantic_program().schema(),
+        SemanticProgram::SCHEMA_V5
+    );
+    let semantic: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    let mut instances = Vec::new();
+    for closure in semantic["payload"]["checked_callable_closures"]
+        .as_array()
+        .unwrap()
+    {
+        let graph: Value = serde_json::from_str(closure["graph"].as_str().unwrap()).unwrap();
+        assert_eq!(graph["schema"], "semaprax.graph.v40");
+        instances.extend(
+            graph["generic_instance_ownership"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .cloned(),
+        );
+    }
+    let ordered = |template: &str| {
+        instances
+            .iter()
+            .find(|instance| instance["template"] == template)
+            .map(|instance| instance["type_arguments"].clone())
+            .expect("concrete adapter instance is retained")
+    };
+    assert_eq!(
+        ordered("fixture.map"),
+        json!([
+            {"owner":"fixture.map","index":0,"type_identity":"i64"},
+            {"owner":"fixture.map","index":1,"type_identity":"bool"},
+        ])
+    );
+    assert_eq!(
+        ordered("fixture.fold"),
+        json!([
+            {"owner":"fixture.fold","index":0,"type_identity":"bool"},
+            {"owner":"fixture.fold","index":1,"type_identity":"usize"},
+        ])
+    );
+    assert!(instances.iter().any(|instance| {
+        instance["template"] == "fixture.filter"
+            && instance["cleanup_plan_schema"] == "semaprax.cleanup-plan.v12"
+    }));
+
+    assert!(instances.iter().any(|instance| {
+        instance["template"] == "fixture.map"
+            && instance["cleanup_plan_schema"] == "semaprax.cleanup-plan.v11"
+    }));
+
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes()
+        )
+        .unwrap(),
+        root
+    );
+    let changed = source.replace("count==2usize", "count==1usize");
+    assert_ne!(source, changed);
+    let changed = semaprax::parse(&changed, &path).unwrap();
+    std::fs::write(&path, semaprax::format::canonical(&changed)).unwrap();
+    let changed_workspace = fixture.revision().canonical_workspace_revision().unwrap();
+    assert!(ProgramRoot::replay(
+        &changed_workspace,
+        root.program_root_digest(),
+        root.to_json().as_bytes()
+    )
+    .is_err());
+}

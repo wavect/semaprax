@@ -446,7 +446,8 @@ pub(super) fn materialize_template_expr(
                 && instance.is_none()
                 && type_arguments.len() == 1
                 && (crate::box_ops::by_id(callee.as_str()).is_some()
-                    || crate::vec_ops::by_id(callee.as_str()).is_some());
+                    || crate::vec_ops::by_id(callee.as_str()).is_some()
+                    || crate::iterator_ops::by_id(callee.as_str()).is_some());
             let forwarded_generic_call = instance.as_ref().is_some_and(|instance| {
                 !type_arguments.is_empty()
                     && FunctionInstanceId::derive(callee, type_arguments) == *instance

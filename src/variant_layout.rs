@@ -250,7 +250,12 @@ impl VariantLayoutCache {
         target: VariantTarget,
     ) -> Result<Self, Diagnostic> {
         let mut instances = BTreeSet::new();
-        for function in &program.functions {
+        for function in program.functions.iter().chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        ) {
             for parameter in &function.params {
                 collect_variant_type(program, &parameter.ty, &mut instances)?;
             }

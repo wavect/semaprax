@@ -578,6 +578,7 @@ fn emit_transition(
     transition: &CleanupTransition,
 ) -> Result<(), Diagnostic> {
     match transition {
+        CleanupTransition::ReserveRenewal { .. } => {}
         CleanupTransition::Initialize { at, .. } => {
             return Err(cleanup_error(format!(
                 "initialize transition `{at}` has no physical payload source in the cleanup scaffold"
@@ -589,6 +590,11 @@ fn emit_transition(
             )));
         }
         CleanupTransition::Transfer {
+            at,
+            source,
+            destination,
+        }
+        | CleanupTransition::Renew {
             at,
             source,
             destination,
@@ -1030,6 +1036,8 @@ fn validate_bindings(
                 | CleanupTransition::Initialize { .. }
                 | CleanupTransition::InitializeVariant { .. }
                 | CleanupTransition::Transfer { .. }
+                | CleanupTransition::Renew { .. }
+                | CleanupTransition::ReserveRenewal { .. }
                 | CleanupTransition::TransferVariant { .. }
                 | CleanupTransition::AuthenticateVariantCase { .. } => {}
                 CleanupTransition::StageCopyResult { .. } => {

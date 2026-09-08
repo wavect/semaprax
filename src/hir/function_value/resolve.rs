@@ -32,6 +32,16 @@ pub(crate) fn source_type(ty: &Type) -> Option<ResolvedType> {
     })
 }
 impl Resolver<'_> {
+    pub(in crate::hir) fn finish_invocation(
+        &self,
+        function: &FunctionExecutionId,
+        path: &str,
+        span: crate::ast::Span,
+        callable: ResolvedExpr,
+        args: Vec<ResolvedExpr>,
+    ) -> Result<ResolvedExpr, Diagnostic> {
+        finish(self.program, function, path, span, callable, args)
+    }
     pub(in crate::hir) fn function_reference(
         &self,
         function: &FunctionExecutionId,
@@ -92,9 +102,13 @@ impl Resolver<'_> {
             return Ok(None);
         };
         if !is_signature(&binding.ty)
-            && !function
-                .monomorphic_declaration()
-                .is_some_and(|owner| super::super::generic_collection::callback(&binding.ty, owner))
+            && !function.monomorphic_declaration().is_some_and(|owner| {
+                super::super::generic_collection::callback(
+                    &binding.ty,
+                    owner,
+                    super::super::generic_collection::source_count(self.program, owner),
+                )
+            })
         {
             return Err(error("called binding is not an admitted function value"));
         }
@@ -111,6 +125,7 @@ impl Resolver<'_> {
     }
 }
 pub(in crate::hir) fn finish(
+    program: &crate::ast::Program,
     function: &FunctionExecutionId,
     path: &str,
     span: crate::ast::Span,
@@ -130,7 +145,15 @@ pub(in crate::hir) fn finish(
         },
         span,
     };
-    super::validate_invocation_scoped(&expr, function.monomorphic_declaration())?;
+    super::validate_invocation_scoped(
+        &expr,
+        function.monomorphic_declaration().map(|owner| {
+            (
+                owner,
+                super::super::generic_collection::source_count(program, owner),
+            )
+        }),
+    )?;
     Ok(expr)
 }
 
@@ -150,10 +173,11 @@ impl Resolver<'_> {
             result: Box::new(self.resolve_function_type(function, result, span)?),
         };
         if !is_signature(&ty)
-            && !(function.type_parameters.len() == 1
+            && !((1..=2).contains(&function.type_parameters.len())
                 && super::super::generic_collection::callback(
                     &ty,
                     &DeclarationId::new(&function.stable_id),
+                    function.type_parameters.len(),
                 ))
         {
             return Err(error("invalid scoped callable signature"));

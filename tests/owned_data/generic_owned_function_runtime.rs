@@ -978,3 +978,6 @@ mod generic_iterators;
 
 #[path = "generic_owned_function_runtime/iterator_loops.rs"]
 mod iterator_loops;
+
+#[path = "generic_owned_function_runtime/iterator_operations.rs"]
+mod iterator_operations;

@@ -65,7 +65,7 @@ pub(super) fn resume<'a>(
     let statement_path = format!("{}.s{}", frame.path, frame.index);
     if frame.source.is_none() {
         let source = results.pop().expect("consuming traversal source retained");
-        let element = source_element(function, &source)?;
+        let element = source_element(resolver, function, &source)?;
         if frame.scope.contains_key(item) {
             return Err(resolver.error(
                 "SPX-H006",
@@ -99,7 +99,7 @@ pub(super) fn resume<'a>(
             .source
             .take()
             .expect("consuming traversal source retained");
-        let element = source_element(function, &source)?;
+        let element = source_element(resolver, function, &source)?;
         frame.resolved.push(lower(
             function,
             &statement_path,
@@ -123,6 +123,7 @@ pub(super) fn resume<'a>(
     Ok(())
 }
 fn source_element(
+    resolver: &Resolver<'_>,
     function: &FunctionExecutionId,
     source: &ResolvedExpr,
 ) -> Result<ResolvedType, Diagnostic> {
@@ -145,7 +146,7 @@ fn source_element(
     if declaration.as_str() != crate::iterator_ops::ITER_ID
         || source.ownership != OwnershipMode::Own
         || !(crate::iterator_ops::resolved_element_is_admitted(element)
-            || matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(element, owner)))
+            || super::generic_collection::source_parameter(resolver.program, function, element))
     {
         return Err(Diagnostic::io(
             "SPX-H006",
@@ -401,7 +402,7 @@ pub(super) fn resolve_reference(
         scope,
         &format!("{path}.value.s0.value.arg.0"),
     )?;
-    let element = source_element(function, &source)?;
+    let element = source_element(resolver, function, &source)?;
     if scope.contains_key(item) {
         return Err(resolver.error(
             "SPX-H006",

@@ -351,6 +351,19 @@ pub(crate) fn cleanup_plan_owned_capacity(
         )?;
         for transition in &block.transitions {
             let transition_bytes = match transition {
+                CleanupTransition::ReserveRenewal { at, binding } => at
+                    .as_str()
+                    .len()
+                    .checked_add(cleanup_place_owned_capacity(binding)?)?,
+                CleanupTransition::Renew {
+                    at,
+                    source,
+                    destination,
+                } => at
+                    .as_str()
+                    .len()
+                    .checked_add(cleanup_place_owned_capacity(source)?)?
+                    .checked_add(cleanup_place_owned_capacity(destination)?)?,
                 CleanupTransition::Initialize { at, destination } => at
                     .as_str()
                     .len()

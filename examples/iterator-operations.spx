@@ -1,0 +1,49 @@
+module example.iterator_operations;
+
+@id("iterator.map")
+fn map<T, U>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U) -> Vec<U>
+{
+    let mut output = vec_with_capacity<U>(capacity);
+    for own item in input {
+        output = vec_push<U>(output, transform(item));
+        0
+    }
+    output
+}
+
+@id("iterator.filter")
+fn filter<T>(input: own Iter<T>, capacity: usize, keep: fn(T) -> bool) -> Vec<T>
+{
+    let mut output = vec_with_capacity<T>(capacity);
+    for own item in input {
+        if keep(item) { output = vec_push<T>(output, item); 0 } else { 0 }
+    }
+    output
+}
+
+@id("iterator.fold")
+fn fold<T, A>(input: own Iter<T>, initial: A, combine: fn(A, T) -> A) -> A
+{
+    let mut accumulator = initial;
+    for own item in input {
+        accumulator = combine(accumulator, item);
+        0
+    }
+    accumulator
+}
+
+@id("iterator.map-via")
+fn map_via<U, T>(input: own Iter<T>, capacity: usize, transform: fn(T) -> U) -> Vec<U>
+{
+    map<T, U>(input, capacity, transform)
+}
+
+@id("app.main")
+fn main() -> i64
+{
+    let input = vec_push<i64>(vec_push<i64>(vec_push<i64>(vec_with_capacity<i64>(3usize), -1), 2), 3);
+    let mapped = map<i64, bool>(vec_into_iter<i64>(input), 3usize, fn(value: i64) -> bool { value > 0 });
+    let filtered = filter<bool>(vec_into_iter<bool>(mapped), 3usize, fn(value: bool) -> bool { value });
+    let count = fold<bool, usize>(vec_into_iter<bool>(filtered), 0usize, fn(count: usize, value: bool) -> usize { if value { count + 1usize } else { count } });
+    if count == 2usize { 1 } else { 0 }
+}

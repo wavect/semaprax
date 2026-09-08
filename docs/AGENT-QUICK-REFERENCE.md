@@ -654,8 +654,10 @@ The item is Copy; `rest` owns the remaining iterator. Pass `rest` to the next
 step or let scope cleanup settle it. Reusing a consumed iterator is an
 ownership error. Private helpers may consume and return the same iterator
 or step type. Explicit `IterStep<T>::Done {}` also works without a vector.
-All eight Copy scalars are admitted; owned items, lazy adapters, consuming
-loop syntax, and public iterator signatures remain separate work. See
+All eight Copy scalars are admitted; owned items, lazy adapters, and public
+iterator signatures remain separate work. Consuming `for own` is specified by
+the separately implemented [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md),
+which keeps this iterator protocol's boundaries intact. See
 [Owning Iterators v1](OWNING-ITERATORS-V1.md) and the separate
 [closure profile](CLOSURES-V2.md). Private helpers may use one scoped generic
 `T` for iterator parameters and results, reconstruct steps, and invoke scalar

@@ -1278,6 +1278,7 @@ pub(crate) fn reject_while_loop_evidence_schema(schema: &str) -> Result<(), Diag
             | "semaprax.graph.v37"
             | "semaprax.graph.v38"
             | "semaprax.graph.v39"
+            | "semaprax.graph.v40"
     ) {
         return Err(Diagnostic::io(
             "SPX-G410",
@@ -5590,3 +5591,6 @@ mod nested_owned_records_tests;
 #[cfg(test)]
 #[path = "graph/iterator_loop_tests.rs"]
 mod iterator_loop_tests;
+
+#[cfg(test)]
+mod iterator_operations_tests;

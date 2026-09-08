@@ -144,6 +144,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/hir/resolve_for.rs"),
         include_str!("../../../../../src/hir/resolve_for_own.rs"),
         include_str!("../../../../../src/hir/iterator_loop.rs"),
+        include_str!("../../../../../src/hir/iterator_loop/renewal.rs"),
         include_str!("../../../../../src/hir/resolve_pattern.rs"),
         include_str!("../../../../../src/hir/resolve_program.rs"),
         include_str!("../../../../../src/hir/resolve_statement.rs"),
@@ -184,6 +185,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         include_str!("../../../../../src/cleanup_plan/build/bounded_box.rs"),
         include_str!("../../../../../src/cleanup_plan/build/bounded_vec.rs"),
         include_str!("../../../../../src/cleanup_plan/build/iterator.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/renewal.rs"),
         include_str!("../../../../../src/cleanup_plan/build/owned_try.rs"),
         include_str!("../../../../../src/cleanup_plan/build/record_destructure.rs"),
         include_str!("../../../../../src/cleanup_plan/build/record_destructure/update.rs"),
@@ -198,7 +200,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
         (verifier, "size_of::<VariantMatchState<'static>>() == 312"),
         (cleanup, "size_of::<Frame<'static>>() == 40"),
         (cleanup, "size_of::<Frame<'static>>() == 24"),
-        (lower, "size_of::<Frame<'static>>() == 368"),
+        (lower, "size_of::<Frame<'static>>() == 392"),
         (calls, "size_of::<Frame<'static>>() == 16"),
     ] {
         assert!(

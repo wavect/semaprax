@@ -8,6 +8,16 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private one/two-parameter generic iterator operations with ordered Copy
+  substitutions, explicit argument permutation, and authored map/filter/fold.
+  Conditional same-owner Vec updates inside consuming loops use additive
+  CleanupPlan v12 reservation/renewal facts and Graph v40; ordinary loops keep
+  v11/v39 semantics. Replay rejects missing renewal facts and schema downgrades.
+  Native layout discovery now includes retained concrete function bodies.
+  Focused local runtime and projection evidence is recorded in
+  [Generic Iterator Operations v1](docs/GENERIC-ITERATOR-OPERATIONS-V1.md);
+  public generic ABI and hosted promotion remain separate.
+
 - Add private consuming `for own` traversal over scalar iterators, including
   generic callbacks and same-owner vector accumulation. The hidden Step
   protocol preserves exact loop ownership with additive CleanupPlan v11 and

@@ -667,8 +667,10 @@ over one simple immutable `Vec<T>` binding. It snapshots length once, visits
 Copy elements in ascending index order, freezes the source, discards body
 results, and resolves into the existing len/get/while HIR. This is not an
 iterator abstraction, adds nothing to the package catalog or public ABI, and
-does not advance `std.iter`; iterator interfaces, associated types, adapters,
-closures, consuming traversal, and lifetime inference remain later outcomes.
+does not advance `std.iter`. Consuming `for own` traversal is now covered by
+the separately implemented [Owning Iterator Loops v1](OWNING-ITERATOR-LOOPS-V1.md)
+profile; iterator interfaces, associated types, adapters, closures, and
+lifetime inference remain later outcomes.
 
 The separately bounded `std.mem` Box tranche now has locally exercised package,
 catalog, interpreter, native C11, and Core-Wasm evidence: three authenticated

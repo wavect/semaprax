@@ -1056,6 +1056,9 @@ fn validate_transition(
     indexed_slots: &[NativeCleanupSlot<'_>],
 ) -> Result<(), Diagnostic> {
     match transition {
+        CleanupTransition::ReserveRenewal { binding, .. } => {
+            validate_place(function, binding, slots, "reserve-renewal binding")
+        }
         CleanupTransition::Initialize { at, destination } => {
             validate_place(function, destination, slots, "initialize destination")?;
             Err(unsupported(
@@ -1072,6 +1075,11 @@ fn validate_transition(
             ),
         )),
         CleanupTransition::Transfer {
+            at,
+            source,
+            destination,
+        }
+        | CleanupTransition::Renew {
             at,
             source,
             destination,

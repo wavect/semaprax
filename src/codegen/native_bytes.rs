@@ -101,7 +101,6 @@ impl NativeBytesPlan {
         if slots.is_empty() {
             return Ok(None);
         }
-
         let mut transitions = BTreeMap::<ExpressionId, Vec<CleanupTransition>>::new();
         for block in &function.cleanup_plan.blocks {
             for transition in &block.transitions {
@@ -109,6 +108,8 @@ impl NativeBytesPlan {
                     CleanupTransition::Initialize { at, .. }
                     | CleanupTransition::InitializeVariant { at, .. }
                     | CleanupTransition::Transfer { at, .. }
+                    | CleanupTransition::Renew { at, .. }
+                    | CleanupTransition::ReserveRenewal { at, .. }
                     | CleanupTransition::TransferVariant { at, .. }
                     | CleanupTransition::AuthenticateVariantCase { at, .. } => Some(at),
                     CleanupTransition::CallCommit { call, .. } => Some(call),
@@ -123,7 +124,6 @@ impl NativeBytesPlan {
                 }
             }
         }
-
         // Construct the union of every exit's exact pairwise precedence and
         // choose one deterministic topological order. Dead guards make absent
         // actions inert, while every actual exit retains its complete
@@ -197,7 +197,6 @@ impl NativeBytesPlan {
                 })
             })
             .collect::<BTreeSet<_>>();
-
         let mut referenced_places = BTreeSet::new();
         for place in &function.cleanup_plan.entry_state.live_owned_parameters {
             mark_referenced_under(&mut referenced_places, &storage_leaves, place);
@@ -226,9 +225,17 @@ impl NativeBytesPlan {
                     source,
                     destination,
                     ..
+                }
+                | CleanupTransition::Renew {
+                    source,
+                    destination,
+                    ..
                 } => {
                     mark_referenced_under(&mut referenced_places, &storage_leaves, source);
                     mark_referenced_under(&mut referenced_places, &storage_leaves, destination);
+                }
+                CleanupTransition::ReserveRenewal { binding, .. } => {
+                    mark_referenced_under(&mut referenced_places, &storage_leaves, binding);
                 }
                 CleanupTransition::TransferVariant {
                     source,
@@ -296,7 +303,6 @@ impl NativeBytesPlan {
             variant_storage,
         }))
     }
-
     pub(super) fn declarations(
         &self,
         function: &ResolvedFunction,
@@ -340,21 +346,18 @@ impl NativeBytesPlan {
         }
         output
     }
-
     pub(super) fn value(&self, storage: &StorageId) -> Result<&str, Diagnostic> {
         self.value_at(&CleanupPlace {
             storage: storage.clone(),
             projections: Vec::new(),
         })
     }
-
     pub(super) fn value_at(&self, place: &CleanupPlace) -> Result<&str, Diagnostic> {
         self.slots
             .get(place)
             .map(|slot| slot.value.as_str())
             .ok_or_else(|| error(format!("Bytes place `{place:?}` is not indexed")))
     }
-
     pub(super) fn initialize_parameter(
         &self,
         storage: &StorageId,
@@ -370,7 +373,6 @@ impl NativeBytesPlan {
             .ok_or_else(|| error("owned Bytes parameter has no cleanup slot"))?;
         Ok(format!("    {} = {parameter};\n", slot.value))
     }
-
     pub(super) fn initialize_record_parameter(
         &self,
         storage: &StorageId,
@@ -391,7 +393,6 @@ impl NativeBytesPlan {
         }
         Ok(output)
     }
-
     pub(super) fn initialize_variant_parameter(
         &self,
         storage: &StorageId,
@@ -440,22 +441,24 @@ impl NativeBytesPlan {
         }
         Ok(output)
     }
-
     pub(super) fn has_projected_leaves(&self, storage: &StorageId) -> bool {
         self.storage_leaves
             .get(storage)
             .is_some_and(|leaves| leaves.iter().any(|place| !place.projections.is_empty()))
     }
-
     pub(super) fn has_variant_leaves(&self, storage: &StorageId) -> bool {
         self.variant_storage.contains(storage)
     }
-
     pub(super) fn apply_at(&self, at: &ExpressionId) -> Result<String, Diagnostic> {
         let mut output = String::new();
         for transition in self.transitions.get(at).into_iter().flatten() {
             match transition {
                 CleanupTransition::Transfer {
+                    source,
+                    destination,
+                    ..
+                }
+                | CleanupTransition::Renew {
                     source,
                     destination,
                     ..
@@ -480,7 +483,8 @@ impl NativeBytesPlan {
                         ));
                     }
                 }
-                CleanupTransition::CallCommit { .. }
+                CleanupTransition::ReserveRenewal { .. }
+                | CleanupTransition::CallCommit { .. }
                 | CleanupTransition::InitializeVariant { .. }
                 | CleanupTransition::TransferVariant { .. }
                 | CleanupTransition::AuthenticateVariantCase { .. }
@@ -490,14 +494,12 @@ impl NativeBytesPlan {
         }
         Ok(output)
     }
-
     pub(super) fn authenticate_transfers_at(
         &self,
         at: &ExpressionId,
     ) -> Result<String, Diagnostic> {
         nested_owned::authenticate_transfers_at(self, at)
     }
-
     pub(super) fn apply_variant_case_at(
         &self,
         at: &ExpressionId,
@@ -505,7 +507,6 @@ impl NativeBytesPlan {
     ) -> Result<String, Diagnostic> {
         self.apply_variant_case_at_inner(at, case, true)
     }
-
     pub(super) fn apply_try_variant_case_at(
         &self,
         at: &ExpressionId,
@@ -514,7 +515,6 @@ impl NativeBytesPlan {
     ) -> Result<String, Diagnostic> {
         self.apply_variant_case_at_inner(at, case, transfer_residual)
     }
-
     fn apply_variant_case_at_inner(
         &self,
         at: &ExpressionId,
@@ -523,7 +523,6 @@ impl NativeBytesPlan {
     ) -> Result<String, Diagnostic> {
         nested_owned::apply_variant_case_at(self, at, case, include_variant_transfer)
     }
-
     pub(super) fn authenticate_variant_case_at(
         &self,
         at: &ExpressionId,
@@ -531,7 +530,6 @@ impl NativeBytesPlan {
     ) -> Result<String, Diagnostic> {
         nested_owned::authenticate_variant_case_at(self, at, selected)
     }
-
     pub(super) fn apply_variant_at(
         &self,
         at: &ExpressionId,
@@ -575,7 +573,6 @@ impl NativeBytesPlan {
         }
         Ok(output)
     }
-
     pub(super) fn result_at(&self, at: &ExpressionId) -> Option<&str> {
         self.transitions.get(at).and_then(|transitions| {
             transitions
@@ -583,10 +580,12 @@ impl NativeBytesPlan {
                 .rev()
                 .find_map(|transition| match transition {
                     CleanupTransition::Initialize { destination, .. }
-                    | CleanupTransition::Transfer { destination, .. } => {
+                    | CleanupTransition::Transfer { destination, .. }
+                    | CleanupTransition::Renew { destination, .. } => {
                         self.slots.get(destination).map(|slot| slot.value.as_str())
                     }
-                    CleanupTransition::CallCommit { .. }
+                    CleanupTransition::ReserveRenewal { .. }
+                    | CleanupTransition::CallCommit { .. }
                     | CleanupTransition::InitializeVariant { .. }
                     | CleanupTransition::TransferVariant { .. }
                     | CleanupTransition::AuthenticateVariantCase { .. }
@@ -595,29 +594,28 @@ impl NativeBytesPlan {
                 })
         })
     }
-
     pub(super) fn transfer_to(
         &self,
         storage: &StorageId,
         at: &ExpressionId,
     ) -> Result<String, Diagnostic> {
-        let mut matches = self
-            .transitions
-            .get(at)
-            .into_iter()
-            .flatten()
-            .filter_map(|transition| {
-                let CleanupTransition::Transfer {
-                    source,
-                    destination,
-                    ..
-                } = transition
-                else {
-                    return None;
-                };
-                (destination.storage == *storage && destination.projections.is_empty())
-                    .then_some((source, destination))
-            });
+        let mut matches =
+            self.transitions.get(at).into_iter().flatten().filter_map(
+                |transition| match transition {
+                    CleanupTransition::Transfer {
+                        source,
+                        destination,
+                        ..
+                    }
+                    | CleanupTransition::Renew {
+                        source,
+                        destination,
+                        ..
+                    } => (destination.storage == *storage && destination.projections.is_empty())
+                        .then_some((source, destination)),
+                    _ => None,
+                },
+            );
         let Some((source, destination)) = matches.next() else {
             return Err(error(format!(
                 "Bytes destination `{storage:?}` has no canonical transfer"
@@ -651,7 +649,6 @@ impl NativeBytesPlan {
             destination.flag
         ))
     }
-
     pub(super) fn transfer_field_at(
         &self,
         at: &ExpressionId,
@@ -662,6 +659,11 @@ impl NativeBytesPlan {
             self.transitions.get(at).into_iter().flatten().filter_map(
                 |transition| match transition {
                     CleanupTransition::Transfer {
+                        source,
+                        destination: target,
+                        ..
+                    }
+                    | CleanupTransition::Renew {
                         source,
                         destination: target,
                         ..
@@ -699,7 +701,6 @@ impl NativeBytesPlan {
             "field initializer transfer",
         ))
     }
-
     pub(super) fn transfer_branch_at(
         &self,
         at: &ExpressionId,
@@ -713,6 +714,11 @@ impl NativeBytesPlan {
             self.transitions.get(at).into_iter().flatten().filter_map(
                 |transition| match transition {
                     CleanupTransition::Transfer {
+                        source,
+                        destination: target,
+                        ..
+                    }
+                    | CleanupTransition::Renew {
                         source,
                         destination: target,
                         ..
@@ -739,7 +745,6 @@ impl NativeBytesPlan {
             .ok_or_else(|| error("Bytes branch destination is not indexed"))?;
         Ok(emit_transfer(source, destination, "branch transfer"))
     }
-
     pub(super) fn call_argument(
         &self,
         call: &ExpressionId,
@@ -761,7 +766,6 @@ impl NativeBytesPlan {
             })
             .ok_or_else(|| error("owned Bytes call argument has no canonical epoch"))
     }
-
     pub(super) fn call_argument_storage(
         &self,
         call: &ExpressionId,
@@ -1218,6 +1222,8 @@ fn reachable_variant_cases(
             }
             CleanupTransition::Initialize { .. }
             | CleanupTransition::Transfer { .. }
+            | CleanupTransition::Renew { .. }
+            | CleanupTransition::ReserveRenewal { .. }
             | CleanupTransition::AuthenticateVariantCase { .. }
             | CleanupTransition::CallCommit { .. }
             | CleanupTransition::SelectFailure { .. }

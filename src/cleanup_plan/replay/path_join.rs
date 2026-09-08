@@ -19,6 +19,7 @@ pub(super) fn validate_path_states(
         .collect::<BTreeMap<_, _>>();
 
     let mut initial = PathState {
+        renewals: BTreeMap::new(),
         live_order: Vec::new(),
         conditional_variants: Vec::new(),
         pending_failure: None,
@@ -83,7 +84,9 @@ pub(super) fn validate_path_states(
             states
                 .len()
                 .saturating_mul(states.iter().fold(1_usize, |total, state| {
-                    total.saturating_add(state.live_order.len())
+                    total
+                        .saturating_add(state.live_order.len())
+                        .saturating_add(renewal::retained_units(state))
                 }));
         budget.charge(function, join_units, "all-path ownership replay")?;
         let mut groups = BTreeMap::<
@@ -122,6 +125,7 @@ pub(super) fn validate_path_states(
             state.live_order = live_order;
             state.conditional_variants = conditional_variants;
             for transition in &block.transitions {
+                renewal::charge_transition(function, transition, &state, budget)?;
                 execute_replay_transition(
                     program, function, transition, &mut state, storage, leaves,
                 )?;
@@ -138,6 +142,11 @@ pub(super) fn validate_path_states(
                     require_normal_flow_state(function, &state, block_id)?;
                     for edge in edges {
                         let edge = &plan.edges[edge.0 as usize];
+                        budget.charge(
+                            function,
+                            renewal::retained_units(&state),
+                            "renewal branch history clone",
+                        )?;
                         let next = state_for_edge(
                             function,
                             state.clone(),

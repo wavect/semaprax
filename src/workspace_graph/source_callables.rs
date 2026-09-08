@@ -13,6 +13,7 @@ pub(crate) fn checked_source_callable_closures(
                 | "semaprax.graph.v37"
                 | "semaprax.graph.v38"
                 | "semaprax.graph.v39"
+                | "semaprax.graph.v40"
         )
     }) {
         return Ok(Vec::new());
@@ -27,6 +28,7 @@ pub(crate) fn checked_source_callable_closures(
                 | "semaprax.graph.v37"
                 | "semaprax.graph.v38"
                 | "semaprax.graph.v39"
+                | "semaprax.graph.v40"
         ) && parsed
             .functions
             .iter()

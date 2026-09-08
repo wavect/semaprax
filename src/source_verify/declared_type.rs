@@ -220,7 +220,7 @@ pub(super) fn check_declared_type(
             || (matches!(
                 (name.as_str(), declaration.stable_id.as_str()),
                 ("Iter", crate::iterator_ops::ITER_ID) | ("IterStep", crate::iterator_ops::STEP_ID)
-            ) && parameters.len() == 1
+            ) && (1..=2).contains(&parameters.len())
                 && matches!(arguments.as_slice(), [Type::Named { name, arguments }]
                     if arguments.is_empty() && parameters.contains(name.as_str())))
         {
@@ -402,11 +402,14 @@ pub(super) fn generic_function_arguments_are_admitted(
     arguments: &[Type],
     types: &TypeTable<'_>,
 ) -> bool {
+    // Collection helpers own their exact one- or two-parameter profile. A
+    // Step-bearing collection helper also satisfies the narrower generic
+    // variant shape, so it must select its full ordered vector first.
+    if generic_collection::profile(function) {
+        return generic_collection::arguments(function, arguments);
+    }
     if generic_variant::profile(function, types) {
         return matches!(arguments,[ty] if crate::vec_ops::ast_element_is_admitted(ty));
-    }
-    if generic_collection::profile(function) {
-        return matches!(arguments, [ty] if crate::vec_ops::ast_element_is_admitted(ty));
     }
     if generic_result::profile(function) {
         return generic_result::arguments(function, arguments);

@@ -117,7 +117,7 @@ pub(crate) fn validate_invocation(expression: &ResolvedExpr) -> Result<(), Diagn
 }
 pub(crate) fn validate_invocation_scoped(
     expression: &ResolvedExpr,
-    owner: Option<&DeclarationId>,
+    owner: Option<(&DeclarationId, usize)>,
 ) -> Result<(), Diagnostic> {
     let ResolvedExprKind::Invoke { callable, args } = &expression.kind else {
         return Err(error("expected invocation"));
@@ -127,7 +127,9 @@ pub(crate) fn validate_invocation_scoped(
     };
     if !matches!(&callable.kind,ResolvedExprKind::Place(place) if place.projections.is_empty())
         || !(is_signature(&callable.ty)
-            || owner.is_some_and(|owner| super::generic_collection::callback(&callable.ty, owner)))
+            || owner.is_some_and(|(owner, count)| {
+                super::generic_collection::callback(&callable.ty, owner, count)
+            }))
         || callable.ownership != OwnershipMode::Value
         || args.len() != parameters.len()
         || args

@@ -214,6 +214,17 @@ fn block_json(block: &CleanupBlock) -> String {
 
 fn transition_json(transition: &CleanupTransition) -> String {
     match transition {
+        CleanupTransition::ReserveRenewal { at, binding } => format!(
+            "{{\"kind\":\"reserve-renewal\",\"at\":{},\"binding\":{}}}",
+            quote_json(at.as_str()),
+            place_json(binding)
+        ),
+        CleanupTransition::Renew { at, source, destination } => format!(
+            "{{\"kind\":\"renew\",\"at\":{},\"source\":{},\"destination\":{}}}",
+            quote_json(at.as_str()),
+            place_json(source),
+            place_json(destination)
+        ),
         CleanupTransition::Initialize { at, destination } => format!(
             "{{\"kind\":\"initialize\",\"at\":{},\"destination\":{}}}",
             quote_json(at.as_str()),

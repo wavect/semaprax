@@ -458,6 +458,11 @@ fn assert_transfer(
                     at: actual_at,
                     source: actual_source,
                     destination: actual_destination,
+                }
+                | CleanupTransition::Renew {
+                    at: actual_at,
+                    source: actual_source,
+                    destination: actual_destination,
                 } if actual_at == &at.id
                     && actual_source == &source
                     && actual_destination == &destination

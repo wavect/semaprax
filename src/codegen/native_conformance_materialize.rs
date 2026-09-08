@@ -165,6 +165,11 @@ fn materialize_event(
                         at: candidate_at,
                         source: candidate_source,
                         destination: candidate_destination,
+                    }
+                    | CleanupTransition::Renew {
+                        at: candidate_at,
+                        source: candidate_source,
+                        destination: candidate_destination,
                     } if candidate_at.as_str() == at
                         && wire_place_matches(&source, candidate_source)
                         && wire_place_matches(&destination, candidate_destination) =>

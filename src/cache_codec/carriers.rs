@@ -351,7 +351,8 @@ mod plan {
         2 => Transfer { at, source, destination }, 3 => TransferVariant { at, source, destination, variant },
         4 => AuthenticateVariantCase { at, source, variant, case },
         5 => CallCommit { call, arguments }, 6 => SelectFailure { source },
-        7 => StageCopyResult { source }
+        7 => StageCopyResult { source }, 8 => ReserveRenewal { at, binding },
+        9 => Renew { at, source, destination }
     });
     codec_enum!(StagedCopyResultSource {
         0 => Body { expression, instance },

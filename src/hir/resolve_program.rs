@@ -99,11 +99,14 @@ impl Resolver<'_> {
         if forwarded {
             return Ok(true);
         }
+        if crate::source_verify::generic_collection_profile(function) {
+            return Ok(super::generic_collection::arguments_for_count(
+                arguments,
+                function.type_parameters.len(),
+            ));
+        }
         if crate::source_verify::generic_variant_profile(self.program, function) {
             return Ok(super::generic_variant::arguments(arguments));
-        }
-        if crate::source_verify::generic_collection_profile(function) {
-            return Ok(super::generic_collection::arguments(arguments));
         }
         let result_type =
             self.resolve_function_type(function, &function.return_type, function.span)?;

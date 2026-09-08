@@ -839,6 +839,11 @@ fn transfer_ordinals(
                 at,
                 source,
                 destination,
+            }
+            | CleanupTransition::Renew {
+                at,
+                source,
+                destination,
             } => Some((at, source, destination)),
             _ => None,
         })

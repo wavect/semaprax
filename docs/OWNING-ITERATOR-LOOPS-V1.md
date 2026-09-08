@@ -25,6 +25,8 @@ transfer. `T` is one of the eight Copy scalar types admitted by Owning
 Iterators v1. `item` is an immutable per-iteration binding. The body may update
 ordinary mutable scalar accumulators and use existing same-owner `Vec<T>`
 assignment rules, but it cannot introduce a second owner for the iterator.
+Conditional same-owner Vec renewal inside an authenticated `for own` body is
+specified separately by [Owning Iterator Renewal v1](OWNING-ITERATOR-RENEWAL-V1.md).
 
 The lowering has a hidden `IterStep<T>` slot. Each condition borrows that slot:
 `Done` terminates and `Yield` enters the body. A `Yield` transfers its `rest`

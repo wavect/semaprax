@@ -552,6 +552,11 @@ fn apply_transition(
             at,
             source,
             destination,
+        }
+        | CleanupTransition::Renew {
+            at,
+            source,
+            destination,
         } => {
             let source_flags = flags_under(function, source)?;
             let destination_flags = flags_under(function, destination)?;
@@ -595,6 +600,7 @@ fn apply_transition(
                 .trace_ordinals
                 .push(select_failure_ordinal(dictionary, source)?);
         }
+        CleanupTransition::ReserveRenewal { .. } => {}
         CleanupTransition::Initialize { .. }
         | CleanupTransition::InitializeVariant { .. }
         | CleanupTransition::TransferVariant { .. }

@@ -589,7 +589,11 @@ fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
     for block in &plan.blocks {
         for transition in &block.transitions {
             match transition {
-                crate::cleanup_plan::CleanupTransition::Initialize { at, destination } => {
+                crate::cleanup_plan::CleanupTransition::Initialize { at, destination }
+                | crate::cleanup_plan::CleanupTransition::ReserveRenewal {
+                    at,
+                    binding: destination,
+                } => {
                     reject_nul_identity("cleanup-plan initialize expression", at.as_str())?;
                     audit_plan_place(destination)?;
                 }
@@ -603,6 +607,11 @@ fn audit_cleanup_plan(plan: &CleanupPlan) -> Result<(), Diagnostic> {
                     reject_nul_identity("cleanup-plan initialized variant", variant.as_str())?;
                 }
                 crate::cleanup_plan::CleanupTransition::Transfer {
+                    at,
+                    source,
+                    destination,
+                }
+                | crate::cleanup_plan::CleanupTransition::Renew {
                     at,
                     source,
                     destination,

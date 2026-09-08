@@ -18,6 +18,7 @@ impl NativeBytesPlan {
             .ok_or_else(|| error("owning record If has no canonical transitions"))?;
         let selected = transitions.iter().filter(|transition| matches!(transition,
             CleanupTransition::Transfer { source, destination: target, .. }
+                | CleanupTransition::Renew { source, destination: target, .. }
                 if *target == destination && source.storage == source_storage && source.projections.is_empty())).count();
         if selected != 1 {
             return Err(error(
@@ -31,6 +32,11 @@ impl NativeBytesPlan {
                     source,
                     destination: target,
                     ..
+                }
+                | CleanupTransition::Renew {
+                    source,
+                    destination: target,
+                    ..
                 } => {
                     if *target == destination && source.storage != source_storage {
                         continue;
@@ -39,7 +45,8 @@ impl NativeBytesPlan {
                         output.push_str(&emit_transfer(source, target, "record If plan transfer"));
                     }
                 }
-                CleanupTransition::Initialize { .. }
+                CleanupTransition::ReserveRenewal { .. }
+                | CleanupTransition::Initialize { .. }
                 | CleanupTransition::InitializeVariant { .. }
                 | CleanupTransition::TransferVariant { .. }
                 | CleanupTransition::AuthenticateVariantCase { .. }

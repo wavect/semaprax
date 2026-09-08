@@ -145,11 +145,14 @@ pub(super) fn generic_instance_arguments_are_admitted(
     else {
         return false;
     };
+    if super::super::generic_collection::profile(template) {
+        return super::super::generic_collection::arguments_for_count(
+            arguments,
+            template.type_parameters.len(),
+        );
+    }
     if super::super::generic_variant::profile(program, template) {
         return super::super::generic_variant::arguments(arguments);
-    }
-    if super::super::generic_collection::profile(template) {
-        return super::super::generic_collection::arguments(arguments);
     }
     if super::super::generic_result::profile(template) {
         return super::super::generic_result::arguments(&template.return_type, arguments);

@@ -164,7 +164,7 @@ fn packages_only_explicit_build_outputs_and_smokes_unpacked_paths() {
     assert_eq!(fs::read_dir(unpacked.join("smoke")).unwrap().count(), 1);
     assert_eq!(
         fs::read_to_string(unpacked.join("smoke/meaning.spx")).unwrap(),
-        "module app;\n\n@id(\"release.smoke.main\")\nfn main() -> i64 { 42 }\n"
+        "module app;\n\n@id(\"app.main\")\nfn main() -> i64 { 42 }\n"
     );
     assert_eq!(
         String::from_utf8(result.stdout).unwrap(),

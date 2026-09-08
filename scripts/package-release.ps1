@@ -78,7 +78,7 @@ $manifest = @(
 ) -join "`n"
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 [System.IO.File]::WriteAllText((Join-Path $packageRoot 'release-manifest.json'), "$manifest`n", $utf8NoBom)
-$smoke = "module release.smoke;`n`n@id(`"release.smoke.main`")`nfn main() -> i64 { 42 }`n"
+$smoke = "module app;`n`n@id(`"app.main`")`nfn main() -> i64 { 42 }`n"
 [System.IO.File]::WriteAllText((Join-Path $packageRoot 'smoke/meaning.spx'), $smoke, $utf8NoBom)
 
 [System.IO.Compression.ZipFile]::CreateFromDirectory(

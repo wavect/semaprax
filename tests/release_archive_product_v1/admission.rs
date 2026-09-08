@@ -9,7 +9,7 @@ use std::time::Duration;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const SMOKE: &[u8] =
-    b"module release.smoke;\n\n@id(\"release.smoke.main\")\nfn main() -> i64 { 42 }\n";
+    b"module app;\n\n@id(\"app.main\")\nfn main() -> i64 { 42 }\n";
 type Pins = BTreeMap<String, (u64, String)>;
 
 pub(super) struct Release {

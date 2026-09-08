@@ -80,7 +80,7 @@ fn main() {
                     println!("{{\"schema\":\"semaprax.version.v1\",\"version\":\"0.2.0\",\"commit\":\"{commit}\",\"maturity\":\"pre-alpha\",\"rust_min\":\"1.88\"}}");
                 }
                 [operation @ ("check" | "run"), path] => {
-                    assert_eq!(fs::read_to_string(path).unwrap(), "module release.smoke;\n\n@id(\"release.smoke.main\")\nfn main() -> i64 { 42 }\n");
+                    assert_eq!(fs::read_to_string(path).unwrap(), "module app;\n\n@id(\"app.main\")\nfn main() -> i64 { 42 }\n");
                     record(&format!("smoke:{operation}"));
                     if *operation == "run" {
                         println!("42");

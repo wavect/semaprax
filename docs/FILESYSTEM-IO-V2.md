@@ -4,6 +4,9 @@ Status: private, bounded additive implementation. This document records the
 current `filesystem-io.v2` contract and makes no hosted, release, completion,
 or cross-platform physical-filesystem claim.
 
+Audience: language users, standard-library authors, compiler contributors, and
+host-adapter implementers.
+
 Filesystem I/O v2 extends the frozen Filesystem I/O v1 profile with metadata,
 directory listing, directory creation, removal, and explicit atomic replacement.
 The v1 operation identities, signatures, status domain, limits, provider

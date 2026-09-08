@@ -968,31 +968,44 @@ impl Parser {
                 span: token.span,
             },
             TokenKind::Minus | TokenKind::Bang => {
-                let op = if matches!(token.kind, TokenKind::Minus) {
-                    UnaryOp::Neg
-                } else {
-                    UnaryOp::Not
-                };
-                if op == UnaryOp::Neg && self.at_signed_minimum() {
-                    return self.signed_minimum_literal(token.span);
+                let mut ops: Vec<(UnaryOp, crate::ast::Span)> = Vec::new();
+                let mut current_token = token;
+                loop {
+                    let op = if matches!(current_token.kind, TokenKind::Minus) {
+                        UnaryOp::Neg
+                    } else {
+                        UnaryOp::Not
+                    };
+                    if op == UnaryOp::Neg && self.at_signed_minimum() {
+                        return self.signed_minimum_literal(current_token.span);
+                    }
+                    ops.push((op, current_token.span));
+                    if self.at(&TokenKind::Minus) || self.at(&TokenKind::Bang) {
+                        current_token = self.bump().clone();
+                    } else {
+                        break;
+                    }
                 }
-                let value = self.expression_with_record_literals(7, allow_record_literals)?;
-                let span = token.span.merge(value.span);
-                if op == UnaryOp::Neg && matches!(value.kind, ExprKind::Usize(_)) {
-                    return Err(Diagnostic::error(
-                        "SPX-T260",
-                        "usize literals cannot be negative",
-                        span,
-                    )
-                    .at_path(&self.path));
+                let mut value = self.expression_with_record_literals(7, allow_record_literals)?;
+                for (op, span) in ops.into_iter().rev() {
+                    let new_span = span.merge(value.span);
+                    if op == UnaryOp::Neg && matches!(value.kind, ExprKind::Usize(_)) {
+                        return Err(Diagnostic::error(
+                            "SPX-T260",
+                            "usize literals cannot be negative",
+                            new_span,
+                        )
+                        .at_path(&self.path));
+                    }
+                    value = Expr {
+                        kind: ExprKind::Unary {
+                            op,
+                            value: Box::new(value),
+                        },
+                        span: new_span,
+                    };
                 }
-                Expr {
-                    kind: ExprKind::Unary {
-                        op,
-                        value: Box::new(value),
-                    },
-                    span,
-                }
+                value
             }
             TokenKind::LParen => {
                 let inner = self.expression(0)?;

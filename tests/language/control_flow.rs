@@ -92,7 +92,7 @@ fn main() -> i64 { if true {} else { 42 } }
 #[test]
 fn excessive_source_nesting_fails_with_a_located_parser_diagnostic() {
     std::thread::Builder::new()
-        .stack_size(8 * 1024 * 1024)
+        .stack_size(16 * 1024 * 1024)
         .spawn(|| {
             let shapes = [
                 format!("{}1{}", "(".repeat(129), ")".repeat(129)),

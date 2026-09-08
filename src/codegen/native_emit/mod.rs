@@ -458,6 +458,7 @@ fn program_uses_byte_data(program: &ResolvedProgram) -> bool {
         pending.extend(resolved_expr_children(expression));
     }
     crate::box_ops::resolved_program_uses_owned_payload(program)
+        || crate::vec_ops::resolved_program_uses_owned_payload(program)
 }
 
 /// Whether any resolved signature, body, or contract admits an owned string
@@ -545,8 +546,7 @@ fn program_uses_string_ops_v2(program: &ResolvedProgram, include_instances: bool
     false
 }
 
-/// Whether any resolved function body or contract renders a copied integer
-/// as canonical decimal text.
+/// Whether a resolved body or contract renders a copied integer as decimal text.
 fn program_uses_numeric_text(program: &ResolvedProgram, include_instances: bool) -> bool {
     let mut pending: Vec<&ResolvedExpr> = Vec::new();
     for function in string_runtime_functions(program, include_instances) {
@@ -1940,7 +1940,7 @@ fn emit_function(
     emitter.require_type(&body.ty, &function.return_type, "function body")?;
     if matches!(body.ty, ResolvedType::String) && emitter.owned_strings.is_some() {
         emitter.string_move("spx_result", &body.code);
-    } else if emitter.record_contains_owned_bytes(&body.ty)? {
+    } else if !is_direct_plan_owned(&body.ty) && emitter.record_contains_owned_bytes(&body.ty)? {
         emitter.move_owned_record_fields("spx_result", &body.code, &body.ty)?;
     } else if !is_direct_plan_owned(&body.ty) {
         emitter.line(&format!("spx_result = {};", body.code));

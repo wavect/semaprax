@@ -35,16 +35,14 @@ pub(super) fn oracle_call(
         let element = type_arguments.first();
         if type_arguments.len() != 1
             || element.is_none_or(|ty| {
-                !crate::vec_ops::ast_element_is_admitted(ty)
+                !crate::vec_ops::ast_operation_element_is_admitted(op, ty)
                     && !crate::vec_ops::source_parameter_is_admitted(program, current, op, ty)
             })
         {
             diagnostics.push(error(
                 program,
                 "SPX-T281",
-                format!(
-                    "vector operation `{name}` requires one explicit Copy-scalar type argument"
-                ),
+                format!("vector operation `{name}` requires one explicit admitted type argument"),
                 expr.span,
             ));
         }

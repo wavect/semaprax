@@ -177,7 +177,7 @@ pub(crate) fn is_owned_bounded_vec_type(ty: &ResolvedType) -> bool {
         ResolvedType::Nominal { declaration, arguments }
             if declaration.as_str() == crate::prelude::VEC_ID
                 && arguments.len() == 1
-                && crate::vec_ops::resolved_element_is_admitted(&arguments[0])
+                && crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
     )
 }
 
@@ -491,7 +491,7 @@ pub(crate) fn type_needs_resource_cleanup(
                 }
                 if declaration.as_str() == crate::prelude::VEC_ID
                     && arguments.len() == 1
-                    && crate::vec_ops::resolved_element_is_admitted(&arguments[0])
+                    && crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
                 {
                     return Ok(true);
                 }

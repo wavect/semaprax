@@ -8,6 +8,8 @@ use crate::hir::{
 
 mod wrappers;
 pub(crate) use wrappers::*;
+#[cfg(test)]
+mod owned_payload_tests;
 
 pub(crate) const WITH_CAPACITY_NAME: &str = "vec_with_capacity";
 pub(crate) const PUSH_NAME: &str = "vec_push";
@@ -26,6 +28,8 @@ pub(crate) const RESERVE_EXACT_ID: &str = "core.vec.reserve-exact";
 pub(crate) const SET_ID: &str = "core.vec.set";
 pub(crate) const CLEAR_ID: &str = "core.vec.clear";
 pub(crate) const MAX_CAPACITY: u64 = 8_192;
+pub(crate) const OWNED_PAYLOAD_BYTES_PER_ELEMENT: u64 = 16;
+pub(crate) const MAX_OWNED_PAYLOAD_BYTES: u64 = 131_072;
 pub(crate) const STATUS_DOMAIN: &str = "semaprax.vec.v1";
 pub(crate) const PUSH_FULL_CODE: u32 = 1;
 pub(crate) const GET_OUT_OF_BOUNDS_CODE: u32 = 2;
@@ -122,6 +126,19 @@ impl VecOp {
             _ => OwnershipMode::Value,
         }
     }
+    pub(crate) const fn param_ownership_for(
+        self,
+        index: usize,
+        element: &ResolvedType,
+    ) -> OwnershipMode {
+        if matches!(element, ResolvedType::Bytes)
+            && matches!((self, index), (Self::Push, 1) | (Self::Set, 2))
+        {
+            OwnershipMode::Own
+        } else {
+            self.param_ownership(index)
+        }
+    }
     pub(crate) fn resolved_return_type(self, element: &ResolvedType) -> ResolvedType {
         match self {
             Self::WithCapacity | Self::Push | Self::ReserveExact | Self::Set | Self::Clear => {
@@ -215,6 +232,20 @@ pub(crate) fn resolved_element_is_admitted(ty: &ResolvedType) -> bool {
             | ResolvedType::Bool
     )
 }
+/// Scalar admission remains frozen for generic wrappers. Bytes is admitted only
+/// by the owning intrinsic Vec boundary.
+pub(crate) fn ast_vec_element_is_admitted(ty: &Type) -> bool {
+    ast_element_is_admitted(ty) || *ty == Type::Bytes
+}
+pub(crate) fn resolved_vec_element_is_admitted(ty: &ResolvedType) -> bool {
+    resolved_element_is_admitted(ty) || *ty == ResolvedType::Bytes
+}
+pub(crate) fn ast_operation_element_is_admitted(op: VecOp, ty: &Type) -> bool {
+    ast_element_is_admitted(ty) || (*ty == Type::Bytes && op != VecOp::Get)
+}
+pub(crate) fn resolved_operation_element_is_admitted(op: VecOp, ty: &ResolvedType) -> bool {
+    resolved_element_is_admitted(ty) || (*ty == ResolvedType::Bytes && op != VecOp::Get)
+}
 pub(crate) fn ast_vec(element: Type) -> Type {
     Type::Named {
         name: "Vec".to_owned(),
@@ -242,7 +273,13 @@ pub(crate) fn ast_params(op: VecOp, element: &Type) -> Vec<Param> {
         .enumerate()
         .map(|(index, ty)| Param {
             name: format!("arg{index}"),
-            mode: match op.param_ownership(index) {
+            mode: match if *element == Type::Bytes
+                && matches!((op, index), (VecOp::Push, 1) | (VecOp::Set, 2))
+            {
+                OwnershipMode::Own
+            } else {
+                op.param_ownership(index)
+            } {
                 OwnershipMode::Own => ParamMode::Own,
                 OwnershipMode::Borrow => ParamMode::Borrow,
                 _ => ParamMode::Value,
@@ -272,11 +309,80 @@ pub(crate) fn resolved_params(op: VecOp, element: &ResolvedType) -> Vec<Resolved
         .map(|(index, ty)| ResolvedParam {
             id: ValueId::intrinsic_parameter(op.id(), index),
             name: format!("arg{index}"),
-            ownership: op.param_ownership(index),
+            ownership: op.param_ownership_for(index, element),
             ty,
             span: Span::default(),
         })
         .collect()
+}
+
+/// True when the source requests the owning Bytes Vec profile. An authored
+/// `Vec` declaration remains ordinary source meaning.
+pub(crate) fn program_uses_owned_payload(program: &crate::ast::Program) -> bool {
+    if program.types.iter().any(|declaration| {
+        declaration.name == "Vec" && declaration.stable_id != crate::prelude::VEC_ID
+    }) {
+        return false;
+    }
+    fn has_vec_bytes(ty: &Type) -> bool {
+        matches!(ty, Type::Named { name, arguments }
+            if name == "Vec" && matches!(arguments.as_slice(), [Type::Bytes]))
+            || matches!(ty, Type::Named { arguments, .. } if arguments.iter().any(has_vec_bytes))
+    }
+    let function_uses = |function: &crate::ast::Function| {
+        function.params.iter().any(|param| has_vec_bytes(&param.ty))
+            || has_vec_bytes(&function.return_type)
+            || function
+                .requires
+                .iter()
+                .chain(std::iter::once(&function.body))
+                .chain(&function.ensures)
+                .any(|expr| {
+                    let mut found = false;
+                    expr.visit_call_instances(&mut |name, arguments, _| {
+                        found |= matches!(by_name(name), Some(op) if op != VecOp::Get)
+                            && matches!(arguments, [Type::Bytes]);
+                    });
+                    found
+                })
+    };
+    program.functions.iter().any(function_uses)
+}
+
+pub(crate) fn resolved_program_uses_owned_payload(program: &crate::hir::ResolvedProgram) -> bool {
+    fn has_vec_bytes(ty: &ResolvedType) -> bool {
+        matches!(ty, ResolvedType::Nominal { declaration, arguments }
+            if declaration.as_str() == crate::prelude::VEC_ID
+                && matches!(arguments.as_slice(), [ResolvedType::Bytes]))
+            || matches!(ty, ResolvedType::Nominal { arguments, .. }
+                if arguments.iter().any(has_vec_bytes))
+    }
+    let function_uses = |function: &crate::hir::ResolvedFunction| {
+        function.params.iter().any(|param| has_vec_bytes(&param.ty))
+            || has_vec_bytes(&function.return_type)
+            || std::iter::once(&function.body)
+                .chain(function.requires.iter())
+                .chain(function.ensures.iter())
+                .any(|root| {
+                    let mut found = false;
+                    crate::hir::visit_resolved_calls(root, &mut |callee, instance, arguments| {
+                        found |= instance.is_none()
+                            && matches!(by_id(callee.as_str()), Some(op) if op != VecOp::Get)
+                            && matches!(arguments, [ResolvedType::Bytes]);
+                    });
+                    found
+                })
+    };
+    program
+        .functions
+        .iter()
+        .chain(
+            program
+                .function_instances
+                .iter()
+                .map(|instance| &instance.function),
+        )
+        .any(function_uses)
 }
 
 pub(crate) fn is_same_owner_reassignment_source(
@@ -340,7 +446,7 @@ pub(crate) fn is_same_owner_reassignment_hir(
         })
     };
     op.is_some_and(|op| args.len() == op.arity())
-        && matches!(type_arguments.as_slice(), [argument] if resolved_element_is_admitted(argument))
+        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument))
         && matches!(&args[0].kind, ResolvedExprKind::Place(place)
             if &place.root == owner && place.projections.is_empty())
 }
@@ -376,7 +482,7 @@ pub(crate) fn is_same_owner_reassignment_hir_source(
         })
     };
     op.is_some_and(|op| args.len() == op.arity())
-        && matches!(type_arguments.as_slice(), [argument] if resolved_element_is_admitted(argument))
+        && matches!(type_arguments.as_slice(), [argument] if resolved_vec_element_is_admitted(argument))
         && matches!(&args[0].kind, ResolvedExprKind::Place(place)
             if &place.root == owner && place.projections.is_empty())
 }

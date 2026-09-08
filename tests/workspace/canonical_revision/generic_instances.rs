@@ -187,6 +187,58 @@ module fixture.app;
 }
 
 #[test]
+fn owned_vec_bytes_workspace_binds_v6_prelude_and_replays_its_root() {
+    let fixture = Fixture::owned_vec("owned-vec-bytes-prelude", false);
+    let source = r#"
+module fixture.app;
+@id("fixture.main") fn main() -> i64 {
+    let input = [9u8];
+    let empty = vec_with_capacity<Bytes>(1usize);
+    let values = vec_push<Bytes>(empty, bytes_copy(array_as_slice(input)));
+    if vec_len<Bytes>(values) == 1usize { 0 } else { 1 }
+}
+@id("fixture.public") fn published() -> i64 { 0 }
+"#;
+    let parsed = semaprax::parse(source, fixture.0.join("src/app.spx")).unwrap();
+    std::fs::write(
+        fixture.0.join("src/app.spx"),
+        semaprax::format::canonical(&parsed),
+    )
+    .unwrap();
+
+    // The later source selects owned Box v5; it must never downgrade v6.
+    let scalar = semaprax::parse(
+        "module fixture.tests; @id(\"fixture.tests.main\") fn main()->i64 {let input=[1u8];let owner=box_new<Bytes>(bytes_copy(array_as_slice(input)));0}",
+        fixture.0.join("src/tests.spx"),
+    ).unwrap();
+    std::fs::write(
+        fixture.0.join("src/tests.spx"),
+        semaprax::format::canonical(&scalar),
+    )
+    .unwrap();
+    let revision = fixture.revision();
+    let workspace = revision.canonical_workspace_revision().unwrap();
+    let semantic: Value = serde_json::from_str(workspace.semantic_program().to_json()).unwrap();
+    assert_eq!(
+        semantic["payload"]["prelude_digest"],
+        framed(
+            b"semaprax.semantic-workspace-revision.prelude.digest.v1\0",
+            include_bytes!("../../fixtures/prelude-v6.contract"),
+        )
+    );
+    let root = workspace.program_root().unwrap();
+    assert_eq!(
+        ProgramRoot::replay(
+            &workspace,
+            root.program_root_digest(),
+            root.to_json().as_bytes(),
+        )
+        .unwrap(),
+        root
+    );
+}
+
+#[test]
 fn generic_instance_program_root_binds_checked_ownership_and_rejects_cross_pairs() {
     let first = fixture("generic-first", true);
     let second = fixture("generic-second", false);

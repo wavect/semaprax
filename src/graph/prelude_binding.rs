@@ -169,7 +169,9 @@ fn uses_vec_v3(program: &ResolvedProgram) -> bool {
 }
 
 pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
-    if crate::box_ops::resolved_program_uses_owned_payload(program) {
+    if crate::vec_ops::resolved_program_uses_owned_payload(program) {
+        prelude::SCHEMA_V6
+    } else if crate::box_ops::resolved_program_uses_owned_payload(program) {
         prelude::SCHEMA_V5
     } else if uses_box(program) {
         prelude::SCHEMA_V4
@@ -183,7 +185,9 @@ pub(super) fn schema(program: &ResolvedProgram) -> &'static str {
 }
 
 pub(super) fn digest(program: &ResolvedProgram) -> String {
-    if crate::box_ops::resolved_program_uses_owned_payload(program) {
+    if crate::vec_ops::resolved_program_uses_owned_payload(program) {
+        prelude::digest_text_v6()
+    } else if crate::box_ops::resolved_program_uses_owned_payload(program) {
         prelude::digest_text_v5()
     } else if uses_box(program) {
         prelude::digest_text_v4()

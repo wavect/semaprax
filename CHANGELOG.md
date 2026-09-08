@@ -8,6 +8,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add private `Vec<Bytes>` push, replacement, reserve, clear and lexical cleanup across checked source/HIR, interpreter, C11 and Core Wasm. Mutations stage vector and payload owners together and fail before transfer; successful replacement drops the old payload once. Prelude v6 and explicit v2 host imports bind the new meaning, including graph and ProgramRoot replay. Scalar storage and prior prelude contracts remain frozen; focused local evidence is separate from hosted and public promotion.
+
 - Add private owned `Box<Bytes>` allocation and consuming extraction across source/HIR, interpreter, native C11 and Core Wasm. Prelude v5 binds the additive contract; v2 Wasm imports prevent a legacy scalar host from silently leaking the payload. Allocation refusal keeps the staged Bytes owner live until ordinary cleanup, independently replayed before lowering. Focused local probes cover success, contract failure, allocation refusal, repeated settlement and frozen scalar compatibility; hosted and public promotion remain pending.
 
 - Added exact argument-directed generic inference at monomorphic call sites,

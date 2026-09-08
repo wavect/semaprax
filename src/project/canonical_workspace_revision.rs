@@ -197,12 +197,16 @@ impl SemanticWorkspaceRevision {
                 crate::parse_with_comments(source.source(), Path::new(source.path()))
                     .map_err(|error| vec![error])?;
             let (schema, _, _) = crate::prelude::selected_for_program(&program);
-            if schema == crate::prelude::SCHEMA_V5
+            if schema == crate::prelude::SCHEMA_V6
+                || (schema == crate::prelude::SCHEMA_V5
+                    && selected_prelude != crate::prelude::SCHEMA_V6)
                 || (schema == crate::prelude::SCHEMA_V4
-                    && selected_prelude != crate::prelude::SCHEMA_V5)
+                    && selected_prelude != crate::prelude::SCHEMA_V5
+                    && selected_prelude != crate::prelude::SCHEMA_V6)
                 || (schema == crate::prelude::SCHEMA_V3
                     && selected_prelude != crate::prelude::SCHEMA_V4
-                    && selected_prelude != crate::prelude::SCHEMA_V5)
+                    && selected_prelude != crate::prelude::SCHEMA_V5
+                    && selected_prelude != crate::prelude::SCHEMA_V6)
                 || (schema == crate::prelude::SCHEMA_V2
                     && selected_prelude == crate::prelude::SCHEMA_V1)
             {
@@ -218,6 +222,7 @@ impl SemanticWorkspaceRevision {
             }));
         }
         let prelude_contract = match selected_prelude {
+            crate::prelude::SCHEMA_V6 => crate::prelude::contract_bytes_v6(),
             crate::prelude::SCHEMA_V5 => crate::prelude::contract_bytes_v5(),
             crate::prelude::SCHEMA_V4 => crate::prelude::contract_bytes_v4(),
             crate::prelude::SCHEMA_V3 => crate::prelude::contract_bytes_v3(),

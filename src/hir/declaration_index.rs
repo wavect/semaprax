@@ -446,7 +446,7 @@ impl DeclarationIndex {
                     let item = self.declaration(&declaration)?;
                     if declaration.as_str() == crate::prelude::VEC_ID
                         && arguments.len() == 1
-                        && crate::vec_ops::resolved_element_is_admitted(&arguments[0])
+                        && crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
                     {
                         let facts = TypeFacts {
                             copy: false,

@@ -1,5 +1,7 @@
 //! Native expression lowering for compiler-owned bounded Vec operations.
 
+mod owned_payload;
+
 use crate::diagnostic::Diagnostic;
 use crate::hir::{ResolvedExpr, ResolvedType};
 
@@ -20,10 +22,15 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 "bounded Vec operation has incorrect type arity",
             ));
         };
-        if !crate::vec_ops::resolved_element_is_admitted(element) || args.len() != op.arity() {
+        if !crate::vec_ops::resolved_operation_element_is_admitted(op, element)
+            || args.len() != op.arity()
+        {
             return Err(backend_error(
                 "bounded Vec operation has invalid resolved shape",
             ));
+        }
+        if *element == ResolvedType::Bytes {
+            return self.emit_vec_bytes_op(expr, op, args);
         }
         let tag = match element {
             ResolvedType::I64 => 1,
@@ -46,7 +53,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 &expr.id,
                 index,
                 argument,
-                op.param_ownership(index),
+                op.param_ownership_for(index, element),
                 value,
             )?);
         }

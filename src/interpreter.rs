@@ -2822,7 +2822,8 @@ fn resolved_data_parameter_is_admitted(
         | (ResolvedType::SliceU8, hir::OwnershipMode::Borrow)
         | (ResolvedType::ArrayU8(_), hir::OwnershipMode::Borrow) => true,
         (ty, hir::OwnershipMode::Own | hir::OwnershipMode::Borrow)
-            if is_admitted_owned_byte_record(declarations, ty)
+            if owned_vec::is_collection_type(ty)
+                || is_admitted_owned_byte_record(declarations, ty)
                 || is_admitted_owned_byte_variant(declarations, ty) =>
         {
             true
@@ -2830,13 +2831,13 @@ fn resolved_data_parameter_is_admitted(
         _ => false,
     }
 }
-
 fn resolved_data_result_is_admitted(
     ty: &ResolvedType,
     declarations: &hir::DeclarationIndex,
 ) -> bool {
     is_admitted_resolved_scalar(ty)
         || matches!(ty, ResolvedType::ArrayU8(_) | ResolvedType::Bytes)
+        || owned_vec::is_collection_type(ty)
         || is_admitted_owned_byte_record(declarations, ty)
         || is_admitted_owned_byte_variant(declarations, ty)
 }

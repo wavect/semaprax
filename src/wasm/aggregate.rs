@@ -41,6 +41,7 @@ use super::{
 };
 
 mod box_ops;
+mod vec_owned_payload;
 
 const BYTE_IMPORT_COUNT: u32 = 4;
 const OWNED_BUFFER_IMPORT_COUNT: u32 = 2;
@@ -2405,26 +2406,17 @@ fn emit_profile_with_scalar_exports(
         function_import(&mut imports, "env", "spx_bytes_set", byte_set.unwrap());
     }
     if uses_vec {
-        function_import(
-            &mut imports,
-            "env",
-            "spx_vec_with_capacity",
-            vec_alloc.unwrap(),
-        );
-        function_import(&mut imports, "env", "spx_vec_push", vec_push.unwrap());
-        function_import(&mut imports, "env", "spx_vec_len", vec_read.unwrap());
-        function_import(&mut imports, "env", "spx_vec_capacity", vec_read.unwrap());
-        function_import(&mut imports, "env", "spx_vec_get", vec_get.unwrap());
-        function_import(&mut imports, "env", "spx_vec_drop", vec_drop.unwrap());
+        let names = vec_owned_payload::import_names(program);
+        function_import(&mut imports, "env", names[0], vec_alloc.unwrap());
+        function_import(&mut imports, "env", names[1], vec_push.unwrap());
+        function_import(&mut imports, "env", names[2], vec_read.unwrap());
+        function_import(&mut imports, "env", names[3], vec_read.unwrap());
+        function_import(&mut imports, "env", names[4], vec_get.unwrap());
+        function_import(&mut imports, "env", names[5], vec_drop.unwrap());
         if uses_extended_vec {
-            function_import(
-                &mut imports,
-                "env",
-                "spx_vec_reserve_exact",
-                vec_push.unwrap(),
-            );
-            function_import(&mut imports, "env", "spx_vec_set", vec_set.unwrap());
-            function_import(&mut imports, "env", "spx_vec_clear", vec_read.unwrap());
+            function_import(&mut imports, "env", names[6], vec_push.unwrap());
+            function_import(&mut imports, "env", names[7], vec_set.unwrap());
+            function_import(&mut imports, "env", names[8], vec_read.unwrap());
         }
     }
     if uses_box {
@@ -6251,7 +6243,9 @@ impl Emitter<'_> {
         let [element] = type_arguments else {
             return Err(error("Vec operation requires one exact type argument"));
         };
-        if !crate::vec_ops::resolved_element_is_admitted(element) || args.len() != op.arity() {
+        if !crate::vec_ops::resolved_operation_element_is_admitted(op, element)
+            || args.len() != op.arity()
+        {
             return Err(error(
                 "Vec operation disagrees with its admitted scalar profile",
             ));
@@ -6268,6 +6262,9 @@ impl Emitter<'_> {
             &op.resolved_return_type(element),
             "Vec operation result",
         )?;
+        if *element == ResolvedType::Bytes {
+            return self.emit_vec_owned_payload(expr, op, args);
+        }
         let tag = vec_element_tag(element)?;
         let base = vec_import_base(self.program);
         match op {

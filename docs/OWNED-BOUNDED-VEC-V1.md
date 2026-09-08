@@ -5,6 +5,8 @@ Audience: language users, standard-library authors, and compiler contributors.
 Status: implementation tranche. This document owns one internal, explicitly
 instantiated `Vec<T>` profile for Copy scalar elements. It defines no public
 aggregate ABI and does not implement Iterator.
+The additive [owned Bytes profile](OWNED-BOUNDED-VEC-V2.md) has a separate
+contract and evidence boundary.
 
 The separately versioned
 [Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md)

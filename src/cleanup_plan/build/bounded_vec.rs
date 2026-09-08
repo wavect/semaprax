@@ -48,7 +48,7 @@ pub(super) fn resolved_params(
     if has_instance
         || argument_count != op.arity()
         || type_arguments.len() != 1
-        || !crate::vec_ops::resolved_element_is_admitted(&type_arguments[0])
+        || !crate::vec_ops::resolved_operation_element_is_admitted(op, &type_arguments[0])
     {
         return Err(plan_error(format!(
             "cleanup bounded Vec call `{expression}` has inconsistent shape"

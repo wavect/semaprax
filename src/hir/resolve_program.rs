@@ -1023,7 +1023,7 @@ impl Resolver<'_> {
                         };
                         let admitted_vec = declaration.as_str() == crate::prelude::VEC_ID
                             && matches!(resolved.as_slice(), [argument]
-                                if crate::vec_ops::resolved_element_is_admitted(argument));
+                                if crate::vec_ops::resolved_vec_element_is_admitted(argument));
                         let admitted_box = declaration.as_str() == crate::prelude::BOX_ID
                             && matches!(resolved.as_slice(), [argument]
                                 if crate::box_ops::resolved_box_element_is_admitted(argument));

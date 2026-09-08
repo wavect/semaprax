@@ -1,9 +1,15 @@
 //! Reachability-gated C11 runtime for the internal Owned Bounded Vec v1 lane.
 
+mod owned_payload;
+
 pub(super) fn emit_runtime(
     output: &mut impl super::COutput,
     program: &crate::hir::ResolvedProgram,
 ) {
+    if crate::vec_ops::resolved_program_uses_owned_payload(program) {
+        owned_payload::emit_runtime(output);
+        return;
+    }
     output.push_str(NATIVE_VEC_RUNTIME_C);
     output.push_str(NATIVE_VEC_RUNTIME_SUFFIX_C);
     if program_uses_extended_ops(program) {

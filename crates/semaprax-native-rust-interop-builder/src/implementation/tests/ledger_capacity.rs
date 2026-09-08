@@ -121,6 +121,9 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     // frame machinery they describe, so bind the root and the resolver files.
     let hir_resolver = concat!(
         include_str!("../../../../../src/hir.rs"),
+        include_str!("../../../../../src/hir/generic_collection.rs"),
+        include_str!("../../../../../src/hir/generic_inference.rs"),
+        include_str!("../../../../../src/hir/generic_variant.rs"),
         include_str!("../../../../../src/hir/agent_nodes.rs"),
         include_str!("../../../../../src/hir/agent_validation.rs"),
         include_str!("../../../../../src/hir/owned_result_try.rs"),
@@ -137,6 +140,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let hir_validator = concat!(
         include_str!("../../../../../src/hir/validation.rs"),
+        include_str!("../../../../../src/hir/validation/generic_variant.rs"),
         include_str!("../../../../../src/hir/validation/box_intrinsic.rs"),
         include_str!("../../../../../src/hir/validation/vec_intrinsic.rs"),
         include_str!("../../../../../src/hir/validation/borrowed_str.rs"),
@@ -149,6 +153,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let verifier = concat!(
         include_str!("../../../../../src/source_verify.rs"),
+        include_str!("../../../../../src/source_verify/generic_inference.rs"),
         include_str!("../../../../../src/source_verify/hints.rs"),
         include_str!("../../../../../src/source_verify/owned_buffer.rs"),
     );
@@ -158,6 +163,7 @@ fn hir_capacity_layout_constants_are_bound_to_root_const_assertions() {
     );
     let lower = concat!(
         include_str!("../../../../../src/cleanup_plan/build.rs"),
+        include_str!("../../../../../src/cleanup_plan/build/generic_variant.rs"),
         include_str!("../../../../../src/cleanup_plan/build/bounded_box.rs"),
         include_str!("../../../../../src/cleanup_plan/build/bounded_vec.rs"),
         include_str!("../../../../../src/cleanup_plan/build/owned_try.rs"),

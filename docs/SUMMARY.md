@@ -73,6 +73,7 @@ Audience: all documentation readers.
 - [Portable indexed byte data](PORTABLE-INDEXED-BYTE-DATA-V1.md)
 - [Owned Bounded Byte Buffer](OWNED-BOUNDED-BYTE-BUFFER-V1.md)
 - [Owned Bounded Vec](OWNED-BOUNDED-VEC-V1.md)
+- [Owned Bounded Vec v2](OWNED-BOUNDED-VEC-V2.md)
 - [Owned Bounded Vec For Traversal](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md)
 - [Owned Bounded Box](OWNED-BOUNDED-BOX-V1.md)
 - [Owned Bounded Box v2](OWNED-BOUNDED-BOX-V2.md)

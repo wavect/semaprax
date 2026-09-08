@@ -100,7 +100,7 @@ pub(super) fn schedule<'expr>(
         ));
     }
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
-    if !crate::vec_ops::resolved_element_is_admitted(&element)
+    if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
         && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
     {
@@ -195,7 +195,7 @@ pub(super) fn resolve_reference(
         ));
     }
     let element = resolve_element(resolver, function, op, &type_arguments[0], span)?;
-    if !crate::vec_ops::resolved_element_is_admitted(&element)
+    if !crate::vec_ops::resolved_operation_element_is_admitted(op, &element)
         && !crate::vec_ops::resolved_parameter_is_admitted(function, op, &element)
         && !matches!(function, FunctionExecutionId::Monomorphic(owner) if super::generic_collection::parameter(&element, owner))
     {

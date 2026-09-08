@@ -403,7 +403,7 @@ impl<'a> TypeTable<'a> {
                     Type::Named { name, arguments } => {
                         if name == "Vec"
                             && arguments.len() == 1
-                            && crate::vec_ops::ast_element_is_admitted(&arguments[0])
+                            && crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
                         {
                             return true;
                         }

@@ -7,6 +7,10 @@ use crate::hir::{FunctionInstanceId, ResolvedExpr, ResolvedExprKind, ResolvedTyp
 
 use super::{Environment, Evaluator, Flow, Value};
 
+pub(super) fn is_collection_type(ty: &ResolvedType) -> bool {
+    crate::cleanup::is_owned_bounded_vec_type(ty) || crate::cleanup::is_owned_bounded_box_type(ty)
+}
+
 pub(super) fn instance_is_admitted(
     program: &crate::hir::ResolvedProgram,
     instance: &crate::hir::ResolvedFunctionInstance,
@@ -48,6 +52,7 @@ fn scalar_value_matches_type(value: &Value, ty: &ResolvedType) -> bool {
             | (Value::Float32(_), ResolvedType::F32)
             | (Value::Float64(_), ResolvedType::F64)
             | (Value::Bool(_), ResolvedType::Bool)
+            | (Value::Bytes(_), ResolvedType::Bytes)
     )
 }
 
@@ -84,7 +89,8 @@ impl Evaluator<'_> {
         let element = type_arguments
             .first()
             .filter(|element| {
-                type_arguments.len() == 1 && crate::vec_ops::resolved_element_is_admitted(element)
+                type_arguments.len() == 1
+                    && crate::vec_ops::resolved_operation_element_is_admitted(op, element)
             })
             .ok_or(Flow::Guard("invalid compiler-owned bounded Vec type"))?
             .clone();
@@ -126,6 +132,18 @@ impl Evaluator<'_> {
                     Flow::Failure(normalize_vec(crate::vec_ops::ALLOCATION_FAILURE_CODE))
                 })?;
                 if capacity > crate::vec_ops::MAX_CAPACITY as usize {
+                    return Err(Flow::Failure(normalize_vec(
+                        crate::vec_ops::ALLOCATION_FAILURE_CODE,
+                    )));
+                }
+                if element == ResolvedType::Bytes
+                    && u64::try_from(capacity)
+                        .ok()
+                        .and_then(|capacity| {
+                            capacity.checked_mul(crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT)
+                        })
+                        .is_none_or(|charge| charge > crate::vec_ops::MAX_OWNED_PAYLOAD_BYTES)
+                {
                     return Err(Flow::Failure(normalize_vec(
                         crate::vec_ops::ALLOCATION_FAILURE_CODE,
                     )));
@@ -188,6 +206,18 @@ impl Evaluator<'_> {
                     .ok_or_else(|| {
                         Flow::Failure(normalize_vec(crate::vec_ops::ALLOCATION_FAILURE_CODE))
                     })?;
+                if element == ResolvedType::Bytes
+                    && u64::try_from(target)
+                        .ok()
+                        .and_then(|capacity| {
+                            capacity.checked_mul(crate::vec_ops::OWNED_PAYLOAD_BYTES_PER_ELEMENT)
+                        })
+                        .is_none_or(|charge| charge > crate::vec_ops::MAX_OWNED_PAYLOAD_BYTES)
+                {
+                    return Err(Flow::Failure(normalize_vec(
+                        crate::vec_ops::ALLOCATION_FAILURE_CODE,
+                    )));
+                }
                 let mut vector = Arc::try_unwrap(vector)
                     .map_err(|_| Flow::Guard("aliased owned bounded Vec carrier"))?;
                 if target > vector.values.capacity()

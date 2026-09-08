@@ -78,3 +78,6 @@ mod usize_mul;
 
 #[path = "owned_data/owned_box_bytes_runtime.rs"]
 mod owned_box_bytes_runtime;
+
+#[path = "owned_data/owned_vec_bytes_runtime.rs"]
+mod owned_vec_bytes_runtime;

@@ -151,6 +151,14 @@ jobs:
           cargo test --locked --offline -p semaprax --test workspace generic_collections_program_root_replays_private_owned_carriers
           cargo test --locked --offline -p semaprax --test owned_data generic_collections_all_scalars_execute_on_every_engine
 
+      - name: LANG-07 owned Bytes vector mutation and failure settlement
+        run: |
+          cargo test --locked --offline -p semaprax --lib owned_bytes_vec
+          cargo test --locked --offline -p semaprax --test owned_data owned_vec_bytes
+          cargo test --locked --offline -p semaprax --test workspace owned_vec_bytes_workspace
+          cargo test --locked --offline -p semaprax --test owned_data owned_bounded_vec
+          cargo test --locked --offline -p semaprax --lib prelude::tests
+
       - name: LANG-07 owned Bytes Box transfer and failure settlement
         run: |
           cargo test --locked --offline -p semaprax --lib owned_bytes_box

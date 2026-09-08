@@ -8713,7 +8713,6 @@ impl<'a> HirValidator<'a> {
         }
         Ok(())
     }
-
     fn validate_argument_ownership(
         &self,
         argument: &ResolvedExpr,
@@ -8740,10 +8739,12 @@ impl<'a> HirValidator<'a> {
                     if param.ty == ResolvedType::Bytes {
                         matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow) && exact_place
                     } else if resolved_type_contains_owned_bytes(self.program, &param.ty) {
-                        (super::type_reachability::is_admitted_nested_owned_byte_record(
-                            &self.program.declarations,
-                            &param.ty,
-                        ) || resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
+                        (crate::cleanup::is_owned_bounded_vec_type(&param.ty)
+                            || super::type_reachability::is_admitted_nested_owned_byte_record(
+                                &self.program.declarations,
+                                &param.ty,
+                            )
+                            || resolved_type_is_flat_owned_byte_variant(self.program, &param.ty))
                             && matches!(actual, OwnershipMode::Own | OwnershipMode::Borrow)
                             && matches!(
                                 &argument.kind,

@@ -206,7 +206,7 @@ pub(super) fn check_declared_type(
             && matches!(arguments.as_slice(), [Type::Bytes, Type::Named { name, arguments }] | [Type::Named { name, arguments }, Type::Bytes] if arguments.is_empty() && parameters.len() == 1 && parameters.contains(name.as_str()));
         let admitted_vec = name == "Vec"
             && arguments.len() == 1
-            && (crate::vec_ops::ast_element_is_admitted(&arguments[0])
+            && (crate::vec_ops::ast_vec_element_is_admitted(&arguments[0])
                 || matches!(&arguments[0], Type::Named { name, arguments }
                     if arguments.is_empty() && parameters.contains(name.as_str())));
         let admitted_box = name == "Box"
@@ -222,6 +222,7 @@ pub(super) fn check_declared_type(
                 && !admitted_owned_record_template
                 && !admitted_owned_variant
                 && !admitted_result_template
+                && !admitted_vec
                 && !admitted_box)
         {
             diagnostics.push(error(

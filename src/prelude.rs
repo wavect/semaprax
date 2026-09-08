@@ -20,6 +20,7 @@ pub(crate) const SCHEMA_V2: &str = "semaprax.prelude.v2";
 pub(crate) const SCHEMA_V3: &str = "semaprax.prelude.v3";
 pub(crate) const SCHEMA_V4: &str = "semaprax.prelude.v4";
 pub(crate) const SCHEMA_V5: &str = "semaprax.prelude.v5";
+pub(crate) const SCHEMA_V6: &str = "semaprax.prelude.v6";
 
 pub(crate) const OPTION_ID: &str = "core.option";
 pub(crate) const OPTION_NONE_ID: &str = "core.option.none";
@@ -199,6 +200,20 @@ pub(crate) fn contract_bytes_v5() -> Vec<u8> {
     output = legacy.replacen(SCHEMA_V4, SCHEMA_V5, 1).into_bytes();
     output.extend_from_slice(b"operation core.box.new box_new <Bytes>(own:Bytes)->own:Box<Bytes>\noperation core.box.into-inner box_into_inner <Bytes>(own:Box<Bytes>)->own:Bytes\nrule core.box.get <Bytes>=closed\nwasm_imports spx_box_new_v2,spx_box_get_v2,spx_box_into_inner_v2,spx_box_drop_v2\n");
     output
+}
+
+pub(crate) fn contract_bytes_v6() -> Vec<u8> {
+    let legacy = String::from_utf8(contract_bytes_v5()).expect("prelude contract is UTF-8");
+    let mut output = legacy.replacen(SCHEMA_V5, SCHEMA_V6, 1).into_bytes();
+    output.extend_from_slice(b"profile core.vec.owned-bytes.v1 element:Bytes carrier_charge:16 max_capacity:8192\noperation core.vec.with-capacity vec_with_capacity <Bytes>(value:usize)->own:Vec<Bytes>\noperation core.vec.push vec_push <Bytes>(own:Vec<Bytes>,own:Bytes)->own:Vec<Bytes>\noperation core.vec.len vec_len <Bytes>(borrow:Vec<Bytes>)->value:usize\noperation core.vec.capacity vec_capacity <Bytes>(borrow:Vec<Bytes>)->value:usize\noperation core.vec.reserve-exact vec_reserve_exact <Bytes>(own:Vec<Bytes>,value:usize)->own:Vec<Bytes>\noperation core.vec.set vec_set <Bytes>(own:Vec<Bytes>,value:usize,own:Bytes)->own:Vec<Bytes>\noperation core.vec.clear vec_clear <Bytes>(own:Vec<Bytes>)->own:Vec<Bytes>\nrule core.vec.get <Bytes>=closed\nrule owned_vec_push_set_reserve failure_before_owner_commit\nrule owned_vec_set drops_replaced_payload_once\nrule owned_vec_clear_drop drops_initialized_payloads_in_index_order\nwasm_imports spx_vec_with_capacity_v2,spx_vec_push_v2,spx_vec_len_v2,spx_vec_capacity_v2,spx_vec_get_v2,spx_vec_drop_v2,spx_vec_reserve_exact_v2,spx_vec_set_v2,spx_vec_clear_v2\n");
+    output
+}
+
+pub(crate) fn digest_text_v6() -> String {
+    format!(
+        "sha256:{:x}",
+        crate::digest_hex::LowerHex(Sha256::digest(contract_bytes_v6()))
+    )
 }
 
 fn write_vec_contract(output: &mut Vec<u8>) {
@@ -484,7 +499,9 @@ pub(crate) fn selected_for_source(source: &str) -> (&'static str, Vec<u8>, Strin
 pub(crate) fn selected_for_program(
     program: &crate::ast::Program,
 ) -> (&'static str, Vec<u8>, String) {
-    if crate::box_ops::program_uses_owned_payload(program) {
+    if crate::vec_ops::program_uses_owned_payload(program) {
+        (SCHEMA_V6, contract_bytes_v6(), digest_text_v6())
+    } else if crate::box_ops::program_uses_owned_payload(program) {
         (SCHEMA_V5, contract_bytes_v5(), digest_text_v5())
     } else if program_uses_box(program) {
         (SCHEMA_V4, contract_bytes_v4(), digest_text_v4())

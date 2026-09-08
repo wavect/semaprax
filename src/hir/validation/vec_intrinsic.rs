@@ -59,7 +59,7 @@ pub(super) fn reject_reserved_template(
 pub(super) fn is_type(declaration: &DeclarationId, arguments: &[ResolvedType]) -> bool {
     declaration.as_str() == crate::prelude::VEC_ID
         && arguments.len() == 1
-        && crate::vec_ops::resolved_element_is_admitted(&arguments[0])
+        && crate::vec_ops::resolved_vec_element_is_admitted(&arguments[0])
 }
 
 pub(super) fn is_call(callee: &DeclarationId, instance: &Option<FunctionInstanceId>) -> bool {
@@ -77,7 +77,7 @@ pub(super) fn signature(
     };
     if instance.is_some()
         || type_arguments.len() != 1
-        || !crate::vec_ops::resolved_element_is_admitted(&type_arguments[0])
+        || !crate::vec_ops::resolved_operation_element_is_admitted(op, &type_arguments[0])
         || args.len() != op.arity()
     {
         return Err(hir_error("invalid vector operation call shape"));

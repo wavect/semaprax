@@ -29,6 +29,15 @@ jobs:
       CARGO_INCREMENTAL: "0"
       CARGO_TARGET_DIR: target/agent-proposal-clients
     steps:
+      - name: Allow Windows to check out long evidence paths
+        shell: bash
+        run: |
+          # Keep the Windows checkout itself from failing on retained evidence paths.
+          # The guard stays inside the step so workflow contracts that count
+          # Windows-gated steps are unaffected.
+          if [ "$RUNNER_OS" = Windows ]; then
+            git config --system core.longpaths true
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 1

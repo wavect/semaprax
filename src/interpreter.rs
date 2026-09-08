@@ -92,9 +92,9 @@ use api_admission::{
 use expression_children::child_expressions;
 use scalar_profile::{is_admitted_resolved_scalar, pattern_value_matches};
 
+use hir::ResolvedHostCommandOperation as Operation;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::path::Path;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use sha2::{Digest as _, Sha256};
 
@@ -2802,7 +2802,8 @@ fn resolved_data_signature_is_admitted(
 ) -> bool {
     function.params.iter().all(|parameter| {
         resolved_data_parameter_is_admitted(&parameter.ty, parameter.ownership, declarations)
-    }) && resolved_data_result_is_admitted(&function.return_type, declarations)
+    }) && (resolved_data_result_is_admitted(&function.return_type, declarations)
+        || nested_owned::owned_input_copy_result_is_admitted(function, declarations))
 }
 
 fn resolved_data_parameter_is_admitted(
@@ -4099,170 +4100,166 @@ impl Evaluator<'_> {
                     }
                 }
             }
-            ResolvedExprKind::HostCommandCall(call) => {
-                use hir::ResolvedHostCommandOperation as Operation;
-                match call.operation {
-                    Operation::FileRead | Operation::FileWriteNew => {
-                        self.evaluate_filesystem_operation(call, environment, depth)
+            ResolvedExprKind::HostCommandCall(call) => match call.operation {
+                fs if crate::filesystem_ops::is_filesystem(fs) => {
+                    self.evaluate_filesystem_operation(call, environment, depth)
+                }
+                Operation::NetConnect
+                | Operation::NetSend
+                | Operation::NetRecv
+                | Operation::NetStreamStdout
+                | Operation::NetWait
+                | Operation::NetClose
+                | Operation::NetTlsConnect
+                | Operation::NetListen
+                | Operation::NetAccept
+                | Operation::NetTlsAccept
+                | Operation::HttpsGet
+                | Operation::NetCloseListener => {
+                    self.evaluate_network_operation(call, environment, depth)
+                }
+                Operation::ArgsLen => {
+                    if !call.args.is_empty() {
+                        return Err(Flow::Guard("invalid args_len arity"));
                     }
-                    Operation::NetConnect
-                    | Operation::NetSend
-                    | Operation::NetRecv
-                    | Operation::NetStreamStdout
-                    | Operation::NetWait
-                    | Operation::NetClose
-                    | Operation::NetTlsConnect
-                    | Operation::NetListen
-                    | Operation::NetAccept
-                    | Operation::NetTlsAccept
-                    | Operation::HttpsGet
-                    | Operation::NetCloseListener => {
-                        self.evaluate_network_operation(call, environment, depth)
-                    }
-                    Operation::ArgsLen => {
-                        if !call.args.is_empty() {
-                            return Err(Flow::Guard("invalid args_len arity"));
-                        }
-                        let input = self.command_input.as_ref().ok_or(Flow::Guard(
-                            "args_len reached an evaluator without command input",
-                        ))?;
-                        Ok(Value::Usize(input.arguments.len() as u64))
-                    }
-                    Operation::ArgUtf8 => {
-                        let [argument] = call.args.as_slice() else {
-                            return Err(Flow::Guard("invalid arg_utf8 arity"));
-                        };
-                        let index = match self.evaluate(argument, environment, depth)? {
-                            Value::Usize(value) => usize::try_from(value).ok(),
-                            _ => return Err(Flow::Guard("ill-typed arg_utf8 index")),
-                        };
-                        let bytes = index
-                            .and_then(|index| {
-                                self.command_input
-                                    .as_ref()
-                                    .and_then(|input| input.arguments.get(index))
-                            })
-                            .cloned()
-                            .ok_or_else(|| {
-                                Flow::Failure(normalize_command_input(
-                                    crate::command_io_ops::ARG_INDEX_OUT_OF_BOUNDS,
-                                ))
-                            })?;
-                        if std::str::from_utf8(bytes.as_ref()).is_err() {
-                            return Err(Flow::Failure(normalize_command_input(
-                                crate::command_io_ops::ARG_INVALID_UTF8,
-                            )));
-                        }
-                        Ok(Value::BorrowedStr(BorrowedStrValue {
-                            invocation_root: ValueId::intrinsic_parameter(
-                                crate::command_io_ops::ARG_UTF8_ID,
-                                usize::MAX,
-                            ),
-                            bytes,
-                        }))
-                    }
-                    Operation::StdinRead => {
-                        if !call.args.is_empty() {
-                            return Err(Flow::Guard("invalid stdin_read arity"));
-                        }
-                        let input = self.command_input.as_ref().ok_or(Flow::Guard(
-                            "stdin_read reached an evaluator without command input",
-                        ))?;
-                        if input.stdin_consumed {
-                            return Err(Flow::Failure(normalize_command_input(
-                                crate::command_io_ops::STDIN_READ_FAILED,
-                            )));
-                        }
-                        let length = u64::try_from(input.stdin.len()).map_err(|_| {
+                    let input = self.command_input.as_ref().ok_or(Flow::Guard(
+                        "args_len reached an evaluator without command input",
+                    ))?;
+                    Ok(Value::Usize(input.arguments.len() as u64))
+                }
+                Operation::ArgUtf8 => {
+                    let [argument] = call.args.as_slice() else {
+                        return Err(Flow::Guard("invalid arg_utf8 arity"));
+                    };
+                    let index = match self.evaluate(argument, environment, depth)? {
+                        Value::Usize(value) => usize::try_from(value).ok(),
+                        _ => return Err(Flow::Guard("ill-typed arg_utf8 index")),
+                    };
+                    let bytes = index
+                        .and_then(|index| {
+                            self.command_input
+                                .as_ref()
+                                .and_then(|input| input.arguments.get(index))
+                        })
+                        .cloned()
+                        .ok_or_else(|| {
                             Flow::Failure(normalize_command_input(
-                                crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                                crate::command_io_ops::ARG_INDEX_OUT_OF_BOUNDS,
                             ))
                         })?;
-                        if length > crate::command_io_ops::MAX_INPUT_BYTES {
-                            return Err(Flow::Failure(normalize_command_input(
-                                crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
-                            )));
-                        }
-                        let next_count =
-                            self.next_byte_allocation.checked_add(1).ok_or_else(|| {
-                                Flow::Failure(normalize_command_input(
-                                    crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
-                                ))
-                            })?;
-                        let next_payload = self
-                            .allocated_byte_payload
+                    if std::str::from_utf8(bytes.as_ref()).is_err() {
+                        return Err(Flow::Failure(normalize_command_input(
+                            crate::command_io_ops::ARG_INVALID_UTF8,
+                        )));
+                    }
+                    Ok(Value::BorrowedStr(BorrowedStrValue {
+                        invocation_root: ValueId::intrinsic_parameter(
+                            crate::command_io_ops::ARG_UTF8_ID,
+                            usize::MAX,
+                        ),
+                        bytes,
+                    }))
+                }
+                Operation::StdinRead => {
+                    if !call.args.is_empty() {
+                        return Err(Flow::Guard("invalid stdin_read arity"));
+                    }
+                    let input = self.command_input.as_ref().ok_or(Flow::Guard(
+                        "stdin_read reached an evaluator without command input",
+                    ))?;
+                    if input.stdin_consumed {
+                        return Err(Flow::Failure(normalize_command_input(
+                            crate::command_io_ops::STDIN_READ_FAILED,
+                        )));
+                    }
+                    let length = u64::try_from(input.stdin.len()).map_err(|_| {
+                        Flow::Failure(normalize_command_input(
+                            crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                        ))
+                    })?;
+                    if length > crate::command_io_ops::MAX_INPUT_BYTES {
+                        return Err(Flow::Failure(normalize_command_input(
+                            crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                        )));
+                    }
+                    let next_count = self.next_byte_allocation.checked_add(1).ok_or_else(|| {
+                        Flow::Failure(normalize_command_input(
+                            crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                        ))
+                    })?;
+                    let next_payload =
+                        self.allocated_byte_payload
                             .checked_add(length)
                             .ok_or_else(|| {
                                 Flow::Failure(normalize_command_input(
                                     crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
                                 ))
                             })?;
-                        if next_count > crate::byte_data_capacity::MAX_BYTES_COPY_SITES
-                            || next_payload
-                                > crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES
-                        {
-                            return Err(Flow::Failure(normalize_command_input(
-                                crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
-                            )));
-                        }
-                        let bytes = Arc::from(input.stdin.as_ref());
-                        self.next_byte_allocation = next_count;
-                        self.allocated_byte_payload = next_payload;
-                        self.command_input
-                            .as_mut()
-                            .expect("command input presence was checked")
-                            .stdin_consumed = true;
-                        Ok(Value::Bytes(OwnedBytesValue {
-                            allocation: next_count,
-                            bytes,
-                        }))
+                    if next_count > crate::byte_data_capacity::MAX_BYTES_COPY_SITES
+                        || next_payload > crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES
+                    {
+                        return Err(Flow::Failure(normalize_command_input(
+                            crate::command_io_ops::INPUT_CAPACITY_EXCEEDED,
+                        )));
                     }
-                    Operation::StderrWrite | Operation::StdoutAppend | Operation::StderrAppend => {
-                        let [argument] = call.args.as_slice() else {
-                            return Err(Flow::Guard("invalid command output arity"));
-                        };
-                        let value = self.evaluate(argument, environment, depth)?;
-                        let Value::BorrowedSlice(value) = value else {
-                            return Err(Flow::Guard("ill-typed command output operand"));
-                        };
-                        let bytes = value.bytes();
-                        let stdout_length = self.stdout_transcript.as_ref().map_or(0, Vec::len);
-                        let stderr_length = self.stderr_transcript.as_ref().map_or(0, Vec::len);
-                        let combined = stdout_length
-                            .checked_add(stderr_length)
-                            .and_then(|length| length.checked_add(bytes.len()))
-                            .ok_or(Flow::Guard("command transcript length overflowed"))?;
-                        if combined > crate::command_io_ops::MAX_OUTPUT_BYTES as usize {
-                            if matches!(call.operation, Operation::StderrWrite) {
-                                return Err(Flow::Guard(
-                                    "combined command transcript exceeds verified capacity",
-                                ));
-                            }
-                            return Err(Flow::Failure(normalize_command_output(
-                                crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED,
-                            )));
-                        }
-                        match call.operation {
-                            Operation::StdoutAppend => self
-                                .stdout_transcript
-                                .as_mut()
-                                .ok_or(Flow::Guard(
-                                    "stdout_append reached an evaluator without command output",
-                                ))?
-                                .extend_from_slice(bytes),
-                            Operation::StderrWrite | Operation::StderrAppend => self
-                                .stderr_transcript
-                                .as_mut()
-                                .ok_or(Flow::Guard(
-                                    "stderr output reached an evaluator without command output",
-                                ))?
-                                .extend_from_slice(bytes),
-                            _ => unreachable!("command output operation was matched above"),
-                        }
-                        Ok(Value::Usize(bytes.len() as u64))
-                    }
+                    let bytes = Arc::from(input.stdin.as_ref());
+                    self.next_byte_allocation = next_count;
+                    self.allocated_byte_payload = next_payload;
+                    self.command_input
+                        .as_mut()
+                        .expect("command input presence was checked")
+                        .stdin_consumed = true;
+                    Ok(Value::Bytes(OwnedBytesValue {
+                        allocation: next_count,
+                        bytes,
+                    }))
                 }
-            }
+                Operation::StderrWrite | Operation::StdoutAppend | Operation::StderrAppend => {
+                    let [argument] = call.args.as_slice() else {
+                        return Err(Flow::Guard("invalid command output arity"));
+                    };
+                    let value = self.evaluate(argument, environment, depth)?;
+                    let Value::BorrowedSlice(value) = value else {
+                        return Err(Flow::Guard("ill-typed command output operand"));
+                    };
+                    let bytes = value.bytes();
+                    let stdout_length = self.stdout_transcript.as_ref().map_or(0, Vec::len);
+                    let stderr_length = self.stderr_transcript.as_ref().map_or(0, Vec::len);
+                    let combined = stdout_length
+                        .checked_add(stderr_length)
+                        .and_then(|length| length.checked_add(bytes.len()))
+                        .ok_or(Flow::Guard("command transcript length overflowed"))?;
+                    if combined > crate::command_io_ops::MAX_OUTPUT_BYTES as usize {
+                        if matches!(call.operation, Operation::StderrWrite) {
+                            return Err(Flow::Guard(
+                                "combined command transcript exceeds verified capacity",
+                            ));
+                        }
+                        return Err(Flow::Failure(normalize_command_output(
+                            crate::command_io_ops::OUTPUT_CAPACITY_EXCEEDED,
+                        )));
+                    }
+                    match call.operation {
+                        Operation::StdoutAppend => self
+                            .stdout_transcript
+                            .as_mut()
+                            .ok_or(Flow::Guard(
+                                "stdout_append reached an evaluator without command output",
+                            ))?
+                            .extend_from_slice(bytes),
+                        Operation::StderrWrite | Operation::StderrAppend => self
+                            .stderr_transcript
+                            .as_mut()
+                            .ok_or(Flow::Guard(
+                                "stderr output reached an evaluator without command output",
+                            ))?
+                            .extend_from_slice(bytes),
+                        _ => unreachable!("command output operation was matched above"),
+                    }
+                    Ok(Value::Usize(bytes.len() as u64))
+                }
+                _ => Err(Flow::Guard("unknown host operation")),
+            },
             ResolvedExprKind::If {
                 condition,
                 then_branch,

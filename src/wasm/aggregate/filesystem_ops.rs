@@ -24,11 +24,11 @@ impl Emitter<'_> {
             "filesystem path length",
         )?;
         match call.operation {
-            Op::FileRead => {
+            Op::FileRead | Op::FileList => {
                 self.require_scalar(&arguments[2], &ResolvedType::Usize, "file_read max")?;
                 self.reserve_filesystem_work(&arguments[2], &expr.id)?;
             }
-            Op::FileWriteNew => {
+            Op::FileWriteNew | Op::FileWriteAtomic => {
                 self.require_scalar(&arguments[2], &ResolvedType::SliceU8, "file_write_new data")?;
                 self.require_scalar(
                     &arguments[3],
@@ -37,6 +37,17 @@ impl Emitter<'_> {
                 )?;
                 self.reserve_filesystem_work(&arguments[3], &expr.id)?;
             }
+            Op::FileStat | Op::FileCreateDir | Op::FileRemove => {
+                self.output.extend([0x42, 0x00, 0x21]);
+                write_u32(self.output, local);
+                self.reserve_filesystem_work(
+                    &Value::Scalar {
+                        local,
+                        ty: ResolvedType::Usize,
+                    },
+                    &expr.id,
+                )?;
+            }
             _ => {
                 return Err(error(
                     "non-filesystem operation reached filesystem lowering",
@@ -44,9 +55,11 @@ impl Emitter<'_> {
             }
         }
         self.stage_slice_carrier(&arguments[0], local);
-        self.get_scalar(&arguments[1]);
-        self.output.push(0x50); // i64.eqz
-        self.emit_filesystem_failure_if_code(&expr.id, INVALID_PATH)?;
+        if !crate::filesystem_ops::permits_root(call.operation) {
+            self.get_scalar(&arguments[1]);
+            self.output.push(0x50); // i64.eqz
+            self.emit_filesystem_failure_if_code(&expr.id, INVALID_PATH)?;
+        }
         self.get_scalar(&arguments[1]);
         self.emit_carrier_length(local);
         self.output.push(0x56);
@@ -56,10 +69,19 @@ impl Emitter<'_> {
         write_i64(self.output, crate::filesystem_ops::MAX_PATH_BYTES as i64);
         self.output.push(0x56);
         self.emit_filesystem_failure_if_code(&expr.id, INVALID_PATH)?;
-        self.emit_filesystem_path_validation(local, &arguments[1], &expr.id)?;
+        if crate::filesystem_ops::permits_root(call.operation) {
+            self.get_scalar(&arguments[1]);
+            self.output.extend([0x50, 0x45, 0x04, 0x40]);
+            self.control_depth += 1;
+            self.emit_filesystem_path_validation(local, &arguments[1], &expr.id)?;
+            self.control_depth -= 1;
+            self.output.push(0x0b);
+        } else {
+            self.emit_filesystem_path_validation(local, &arguments[1], &expr.id)?;
+        }
 
         match call.operation {
-            Op::FileRead => {
+            Op::FileRead | Op::FileList => {
                 self.get_scalar(&arguments[2]);
                 self.output.push(0x42);
                 write_i64(self.output, crate::filesystem_ops::MAX_FILE_BYTES as i64);
@@ -72,9 +94,16 @@ impl Emitter<'_> {
                 self.output.push(0xa7);
                 self.emit_pointer(pointer);
                 self.output.push(0x10);
-                write_u32(self.output, boundary::READ_IMPORT);
+                write_u32(
+                    self.output,
+                    if call.operation == Op::FileList {
+                        super::super::filesystem_v2::LIST
+                    } else {
+                        boundary::READ_IMPORT
+                    },
+                );
             }
-            Op::FileWriteNew => {
+            Op::FileWriteNew | Op::FileWriteAtomic => {
                 self.stage_slice_carrier(&arguments[2], local);
                 self.get_scalar(&arguments[3]);
                 self.emit_carrier_length(local);
@@ -95,7 +124,29 @@ impl Emitter<'_> {
                 self.output.push(0xa7);
                 self.emit_pointer(pointer);
                 self.output.push(0x10);
-                write_u32(self.output, boundary::WRITE_NEW_IMPORT);
+                write_u32(
+                    self.output,
+                    if call.operation == Op::FileWriteAtomic {
+                        super::super::filesystem_v2::WRITE_ATOMIC
+                    } else {
+                        boundary::WRITE_NEW_IMPORT
+                    },
+                );
+            }
+            Op::FileStat | Op::FileCreateDir | Op::FileRemove => {
+                self.emit_carrier_root_and_length(local);
+                self.get_scalar(&arguments[1]);
+                self.output.push(0xa7);
+                self.emit_pointer(pointer);
+                self.output.push(0x10);
+                write_u32(
+                    self.output,
+                    match call.operation {
+                        Op::FileStat => super::super::filesystem_v2::STAT,
+                        Op::FileCreateDir => super::super::filesystem_v2::CREATE_DIR,
+                        _ => super::super::filesystem_v2::REMOVE,
+                    },
+                );
             }
             _ => {
                 return Err(error(
@@ -118,7 +169,7 @@ impl Emitter<'_> {
         self.output.push(0x20);
         write_u32(self.output, self.plan.status);
         self.emit_filesystem_failure_if(&expr.id)?;
-        if call.operation == Op::FileRead {
+        if matches!(call.operation, Op::FileRead | Op::FileList) {
             self.emit_load_out(pointer);
             self.output.extend([0x42, 0x20, 0x88, 0xa7, 0x41]);
             write_i64(self.output, i64::from(i32::MIN));
@@ -161,12 +212,24 @@ impl Emitter<'_> {
             self.emit_load_out(pointer);
             self.output.push(0x21);
             write_u32(self.output, local);
+            if call.operation == Op::FileList {
+                self.validate_filesystem_list(local, &expr.id)?;
+            }
         } else {
             self.emit_load_out(pointer);
             self.output.push(0x22);
             write_u32(self.output, local);
-            self.get_scalar(&arguments[3]);
-            self.output.push(0x52);
+            if call.operation == Op::FileStat {
+                self.output.extend([0x42, 0x03, 0x83, 0x42, 0x01, 0x52]);
+                self.output.push(0x20);
+                write_u32(self.output, local);
+                self.output.extend([0x42, 0x02, 0x52, 0x71]);
+            } else if matches!(call.operation, Op::FileCreateDir | Op::FileRemove) {
+                self.output.extend([0x50, 0x45]);
+            } else {
+                self.get_scalar(&arguments[3]);
+                self.output.push(0x52);
+            }
             self.emit_filesystem_failure_if_code(
                 &expr.id,
                 crate::filesystem_ops::IO_FAILURE as i32,
@@ -373,7 +436,10 @@ impl Emitter<'_> {
         Ok(())
     }
 
-    fn emit_filesystem_exit(&mut self, expression: &ExpressionId) -> Result<(), Diagnostic> {
+    pub(super) fn emit_filesystem_exit(
+        &mut self,
+        expression: &ExpressionId,
+    ) -> Result<(), Diagnostic> {
         self.output.push(0x20);
         write_u32(self.output, self.plan.status);
         self.output.push(0x24);

@@ -77,8 +77,9 @@ use native_emit::{
     function_index, preflight_resource_lowering,
 };
 pub use native_emit::{
-    emit_c_with_filesystem_io, emit_c_with_https_io, emit_c_with_network_io,
-    emit_hir_c_with_filesystem_io, emit_hir_c_with_https_io, emit_hir_c_with_network_io,
+    emit_c_with_filesystem_io, emit_c_with_filesystem_io_v2, emit_c_with_https_io,
+    emit_c_with_network_io, emit_hir_c_with_filesystem_io, emit_hir_c_with_filesystem_io_v2,
+    emit_hir_c_with_https_io, emit_hir_c_with_network_io,
 };
 use native_emit::{emit_hir_c_with_labels, NativeOutputProfile};
 use native_scalar_runtime::NATIVE_SCALAR_RUNTIME_C;

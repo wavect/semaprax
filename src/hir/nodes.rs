@@ -477,6 +477,11 @@ pub enum ResolvedHostCommandOperation {
     HttpsGet,
     FileRead,
     FileWriteNew,
+    FileStat,
+    FileList,
+    FileCreateDir,
+    FileRemove,
+    FileWriteAtomic,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

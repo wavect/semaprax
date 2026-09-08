@@ -277,6 +277,7 @@ impl ProjectRevision {
                 ProjectProfile::NetworkCommandIoV1 => "v12",
                 ProjectProfile::HttpsCommandIoV1 => "v13",
                 ProjectProfile::FilesystemIoV1 => "v14",
+                ProjectProfile::FilesystemIoV2 => "v15",
             };
             return Err(vec![Diagnostic::io(
                 "SPX-W120",

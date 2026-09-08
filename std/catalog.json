@@ -2121,6 +2121,21 @@
       "declarations": [
         {
           "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "record FileInfo {",
+            "    kind: usize,",
+            "    size: usize,",
+            "}"
+          ],
+          "id": "std.fs.file-info",
+          "kind": "record",
+          "name": "FileInfo",
+          "requires": 0
+        },
+        {
+          "description": [],
           "effects": [
             "fs.read"
           ],
@@ -2150,12 +2165,131 @@
           "kind": "function",
           "name": "write_new",
           "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [
+            "fs.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn metadata(path: own Path) -> FileInfo",
+            "    uses { fs.read }",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.fs.metadata",
+          "kind": "function",
+          "name": "metadata",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [
+            "fs.read"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn list(path: own Path, max: usize) -> Reader",
+            "    uses { fs.read }",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.fs.list",
+          "kind": "function",
+          "name": "list",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [
+            "fs.write"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn create_dir(path: own Path) -> usize",
+            "    uses { fs.write }",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.fs.create-dir",
+          "kind": "function",
+          "name": "create_dir",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [
+            "fs.write"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn remove(path: own Path) -> usize",
+            "    uses { fs.write }",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.fs.remove",
+          "kind": "function",
+          "name": "remove",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [
+            "fs.write"
+          ],
+          "ensures": 0,
+          "head": [
+            "fn write_atomic(path: own Path, writer: own Writer) -> usize",
+            "    uses { fs.write }",
+            "    requires path_valid(path)"
+          ],
+          "id": "std.fs.write-atomic",
+          "kind": "function",
+          "name": "write_atomic",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn entry_length(reader: borrow Reader) -> usize",
+            "    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.fs.directory.entry-length",
+          "kind": "function",
+          "name": "entry_length",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn entry_byte(reader: borrow Reader, index: usize) -> u8",
+            "    requires index < entry_length(reader)"
+          ],
+          "id": "std.fs.directory.entry-byte",
+          "kind": "function",
+          "name": "entry_byte",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn next_entry(reader: own Reader) -> Reader",
+            "    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }"
+          ],
+          "id": "std.fs.directory.next-entry",
+          "kind": "function",
+          "name": "next_entry",
+          "requires": 1
         }
       ],
       "dependency": "std.fs = \"^0.1.0\"",
       "module": "std.fs",
       "package": "std/fs",
-      "required_profile": "filesystem-io.v1",
+      "required_profile": "filesystem-io.v2",
       "status": "partial",
       "targets": [
         "interpreter",

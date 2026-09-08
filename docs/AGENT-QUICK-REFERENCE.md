@@ -403,7 +403,10 @@ fn main() -> i64
 - `file_read` and `file_write_new` use explicit `fs.read` / `fs.write` effects
   and an injected [Filesystem I/O v1](FILESYSTEM-IO-V1.md) provider. Paths are
   bounded relative byte prefixes; writes create new files and never overwrite.
-  `std.fs` composes typed Path and Reader/Writer values through this boundary.
+  [Filesystem I/O v2](FILESYSTEM-IO-V2.md) adds stat, sorted immediate-name
+  listing, directory creation, removal, and atomic replacement. Only stat/list
+  accept an empty path for the injected root. `std.fs` composes typed Path,
+  FileInfo, and Reader/Writer values through these boundaries.
 - Reference-interpreter and generated native calls have a fixed 256-frame
   recursion bound. Exceeding it is a reported runtime-capacity failure, not a
   language status or process signal. Raw WebAssembly execution remains subject
@@ -439,6 +442,9 @@ fn main() -> i64
 | `stdin_read` | `() -> own Bytes` |
 | `file_read` | `(path: borrow Slice<u8>, length: usize, max: usize) -> own Bytes` |
 | `file_write_new` | `(path: borrow Slice<u8>, length: usize, data: borrow Slice<u8>, data_length: usize) -> usize` |
+| `file_stat`, `file_create_dir`, `file_remove` | `(path: borrow Slice<u8>, length: usize) -> usize` |
+| `file_list` | `(path: borrow Slice<u8>, length: usize, max: usize) -> own Bytes` |
+| `file_write_atomic` | `(path: borrow Slice<u8>, length: usize, data: borrow Slice<u8>, data_length: usize) -> usize` |
 | `box_new<T>` | `(value: T) -> Box<T>` for an explicit admitted Copy scalar |
 | `box_get<T>` | `(value: borrow Box<T>) -> T` synchronous Copy access |
 | `box_into_inner<T>` | `(value: own Box<T>) -> T` consuming extraction |

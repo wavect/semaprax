@@ -76,13 +76,15 @@ impl Evaluator<'_> {
             .ok_or_else(|| failure(FileFailure::AuthorityDenied))?;
         match (call.operation, values.as_slice()) {
             (
-                Op::FileRead,
+                Op::FileRead | Op::FileList,
                 [Value::BorrowedSlice(path), Value::Usize(length), Value::Usize(max)],
             ) => {
                 state.reserve(*max)?;
                 let path =
                     prefix(path.bytes(), *length).map_err(|_| failure(FileFailure::InvalidPath))?;
-                crate::filesystem_provider::validate_path(path).map_err(failure)?;
+                if !(path.is_empty() && ops::permits_root(call.operation)) {
+                    crate::filesystem_provider::validate_path(path).map_err(failure)?;
+                }
                 if *max > ops::MAX_FILE_BYTES {
                     return Err(failure(FileFailure::CapacityExceeded));
                 }
@@ -100,7 +102,15 @@ impl Evaluator<'_> {
                 if reserved_payload > crate::byte_data_capacity::MAX_OWNED_BYTE_PAYLOAD_BYTES {
                     return Err(failure(FileFailure::CapacityExceeded));
                 }
-                let bytes = state.provider.read(path, *max as usize).map_err(failure)?;
+                let bytes = if call.operation == Op::FileList {
+                    state.provider.list(path, *max as usize)
+                } else {
+                    state.provider.read(path, *max as usize)
+                }
+                .map_err(failure)?;
+                if call.operation == Op::FileList {
+                    ops::validate_listing(&bytes).map_err(failure)?;
+                }
                 if bytes.len() as u64 > *max {
                     return Err(failure(FileFailure::CapacityExceeded));
                 }
@@ -112,24 +122,152 @@ impl Evaluator<'_> {
                 }))
             }
             (
-                Op::FileWriteNew,
+                Op::FileWriteNew | Op::FileWriteAtomic,
                 [Value::BorrowedSlice(path), Value::Usize(length), Value::BorrowedSlice(data), Value::Usize(data_length)],
             ) => {
                 state.reserve(*data_length)?;
                 let path =
                     prefix(path.bytes(), *length).map_err(|_| failure(FileFailure::InvalidPath))?;
-                crate::filesystem_provider::validate_path(path).map_err(failure)?;
+                if !(path.is_empty() && ops::permits_root(call.operation)) {
+                    crate::filesystem_provider::validate_path(path).map_err(failure)?;
+                }
                 if *data_length > ops::MAX_FILE_BYTES {
                     return Err(failure(FileFailure::CapacityExceeded));
                 }
                 let data = prefix(data.bytes(), *data_length)?;
-                let written = state.provider.write_new(path, data).map_err(failure)?;
+                let written = if call.operation == Op::FileWriteAtomic {
+                    state.provider.write_atomic(path, data)
+                } else {
+                    state.provider.write_new(path, data)
+                }
+                .map_err(failure)?;
                 if written != data.len() {
                     return Err(failure(FileFailure::IoFailure));
                 }
                 Ok(Value::Usize(written as u64))
             }
+            (
+                Op::FileStat | Op::FileCreateDir | Op::FileRemove,
+                [Value::BorrowedSlice(path), Value::Usize(length)],
+            ) => {
+                state.reserve(0)?;
+                let path =
+                    prefix(path.bytes(), *length).map_err(|_| failure(FileFailure::InvalidPath))?;
+                if !(path.is_empty() && ops::permits_root(call.operation)) {
+                    crate::filesystem_provider::validate_path(path).map_err(failure)?;
+                }
+                let result = match call.operation {
+                    Op::FileStat => {
+                        ops::encode_metadata(state.provider.stat(path).map_err(failure)?)
+                            .map_err(failure)?
+                    }
+                    Op::FileCreateDir => {
+                        state.provider.create_dir(path).map_err(failure)?;
+                        0
+                    }
+                    Op::FileRemove => {
+                        state.provider.remove(path).map_err(failure)?;
+                        0
+                    }
+                    _ => unreachable!(),
+                };
+                Ok(Value::Usize(result))
+            }
             _ => Err(Flow::Guard("ill-typed filesystem operation")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::filesystem_provider::{FileFailure, FileKind, FileMetadata, FileProvider};
+    struct Provider {
+        calls: usize,
+        settlements: usize,
+        malformed: bool,
+    }
+    impl FileProvider for Provider {
+        fn read(&mut self, _: &[u8], _: usize) -> Result<Vec<u8>, FileFailure> {
+            Err(FileFailure::AuthorityDenied)
+        }
+        fn write_new(&mut self, _: &[u8], _: &[u8]) -> Result<usize, FileFailure> {
+            Err(FileFailure::AuthorityDenied)
+        }
+        fn stat(&mut self, path: &[u8]) -> Result<FileMetadata, FileFailure> {
+            assert!(path.is_empty());
+            self.calls += 1;
+            Ok(FileMetadata {
+                kind: FileKind::Directory,
+                size: 0,
+            })
+        }
+        fn list(&mut self, path: &[u8], _: usize) -> Result<Vec<u8>, FileFailure> {
+            assert!(path.is_empty());
+            self.calls += 1;
+            Ok(if self.malformed {
+                b"b\0a\0".to_vec()
+            } else {
+                b"a\0b\0".to_vec()
+            })
+        }
+        fn settle(&mut self) {
+            self.settlements += 1;
+        }
+    }
+    #[test]
+    fn filesystem_v2_root_metadata_and_invalid_listing_settle() {
+        let text = r#"
+module fs.v2;
+permit { fs.read }
+@id("fs.main") fn main()->i64 { 0 }
+@id("fs.run") fn run()->bool uses { fs.read } {
+    let path=[0u8];
+    let metadata=file_stat(array_as_slice(path),0usize);
+    let names=file_list(array_as_slice(path),0usize,8usize);
+    metadata==2usize && byte_len(bytes_as_slice(names))==4usize
+}
+"#;
+        let source = crate::check(text, "fs-v2.spx").unwrap();
+        let program = crate::hir::resolve(&source).unwrap();
+        let mut provider = Provider {
+            calls: 0,
+            settlements: 0,
+            malformed: false,
+        };
+        assert!(crate::hosted_interpreter::execute_filesystem_command(
+            &program,
+            "fs.run",
+            &mut provider,
+            1000
+        )
+        .is_err());
+        assert_eq!(provider.calls, 0);
+        let run = crate::hosted_interpreter::execute_filesystem_command_v2(
+            &program,
+            "fs.run",
+            &mut provider,
+            1000,
+        )
+        .unwrap();
+        assert!(matches!(
+            run.outcome,
+            crate::interpreter::CommandEvaluationOutcome::ReturnedBool(true)
+        ));
+        provider.malformed = true;
+        let run = crate::hosted_interpreter::execute_filesystem_command_v2(
+            &program,
+            "fs.run",
+            &mut provider,
+            1000,
+        )
+        .unwrap();
+        match run.outcome {
+            crate::interpreter::CommandEvaluationOutcome::LanguageFailure(status) => {
+                assert_eq!(status.code(), 5)
+            }
+            other => panic!("{other:?}"),
+        }
+        assert_eq!(provider.calls, 4);
+        assert_eq!(provider.settlements, 2);
     }
 }

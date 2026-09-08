@@ -229,8 +229,16 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
             );
             let expected_effects: Vec<String> =
                 match (package.module.as_str(), function.stable_id.as_str()) {
-                    ("std.fs", "std.fs.read") => vec!["fs.read".into()],
-                    ("std.fs", "std.fs.write-new") => vec!["fs.write".into()],
+                    ("std.fs", "std.fs.read" | "std.fs.metadata" | "std.fs.list") => {
+                        vec!["fs.read".into()]
+                    }
+                    (
+                        "std.fs",
+                        "std.fs.write-new"
+                        | "std.fs.write-atomic"
+                        | "std.fs.create-dir"
+                        | "std.fs.remove",
+                    ) => vec!["fs.write".into()],
                     _ => vec![],
                 };
             assert_eq!(
@@ -275,7 +283,7 @@ fn every_public_declaration_has_a_std_identity_contracts_examples_and_conformanc
         );
         let expected_permits: Vec<String> = if package.module == "std.fs" {
             assert_eq!(package.tier, "hosted");
-            assert_eq!(required_consumer_profile(&package), "filesystem-io.v1");
+            assert_eq!(required_consumer_profile(&package), "filesystem-io.v2");
             vec!["fs.read".into(), "fs.write".into()]
         } else {
             vec![]
@@ -661,6 +669,7 @@ fn run_examples_and_conformance(selected: Vec<PackageMetadata>) {
     for package in selected {
         if package.module == "std.fs" {
             filesystem::run_conformance();
+            filesystem_v2::run_conformance();
             continue;
         }
         let manifest = root()
@@ -1478,3 +1487,5 @@ mod typed_paths;
 
 #[path = "standard_library/filesystem.rs"]
 mod filesystem;
+#[path = "standard_library/filesystem_v2.rs"]
+mod filesystem_v2;

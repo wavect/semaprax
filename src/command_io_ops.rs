@@ -61,6 +61,7 @@ pub(crate) enum CommandOperationProfile {
     /// injected provider.
     HttpV1,
     FilesystemV1,
+    FilesystemV2,
 }
 
 /// Validate exactly the operations reachable from the selected command.
@@ -94,6 +95,7 @@ pub(crate) fn validate_operation_profile(
     let mut saw_service = false;
     let mut saw_http = false;
     let mut saw_filesystem = false;
+    let mut saw_filesystem_v2 = false;
     let mut saw_other_host = false;
 
     while let Some((execution_id, function)) = pending_functions.pop() {
@@ -111,8 +113,10 @@ pub(crate) fn validate_operation_profile(
                 ResolvedExprKind::HostCommandCall(call) => {
                     saw_other_host |= !crate::filesystem_ops::is_filesystem(call.operation);
                     match call.operation {
-                        ResolvedHostCommandOperation::FileRead
-                        | ResolvedHostCommandOperation::FileWriteNew => saw_filesystem = true,
+                        fs if crate::filesystem_ops::is_filesystem(fs) => {
+                            saw_filesystem = true;
+                            saw_filesystem_v2 |= crate::filesystem_ops::is_v2(fs);
+                        }
                         ResolvedHostCommandOperation::StdoutAppend
                         | ResolvedHostCommandOperation::StderrAppend => saw_append = true,
                         ResolvedHostCommandOperation::StderrWrite => saw_legacy_write = true,
@@ -148,12 +152,25 @@ pub(crate) fn validate_operation_profile(
         }
     }
 
-    if saw_filesystem && profile != CommandOperationProfile::FilesystemV1 {
+    if saw_filesystem
+        && !matches!(
+            profile,
+            CommandOperationProfile::FilesystemV1 | CommandOperationProfile::FilesystemV2
+        )
+    {
         return Err(profile_error(
             "filesystem operations require Filesystem I/O v1",
         ));
     }
-    if profile == CommandOperationProfile::FilesystemV1 {
+    if matches!(
+        profile,
+        CommandOperationProfile::FilesystemV1 | CommandOperationProfile::FilesystemV2
+    ) {
+        if saw_filesystem_v2 && profile != CommandOperationProfile::FilesystemV2 {
+            return Err(profile_error(
+                "new filesystem operations require Filesystem I/O v2",
+            ));
+        }
         return if saw_filesystem && !saw_other_host && !saw_legacy_write {
             Ok(())
         } else {
@@ -204,7 +221,8 @@ pub(crate) fn validate_operation_profile(
         | CommandOperationProfile::NetworkV1
         | CommandOperationProfile::ServiceV1
         | CommandOperationProfile::HttpV1
-        | CommandOperationProfile::FilesystemV1 => Ok(()),
+        | CommandOperationProfile::FilesystemV1
+        | CommandOperationProfile::FilesystemV2 => Ok(()),
     }
 }
 
@@ -305,9 +323,7 @@ pub(crate) const fn failure(op: ResolvedHostCommandOperation) -> CommandIoFailur
         ResolvedHostCommandOperation::StdoutAppend | ResolvedHostCommandOperation::StderrAppend => {
             CommandIoFailure::Status
         }
-        ResolvedHostCommandOperation::FileRead | ResolvedHostCommandOperation::FileWriteNew => {
-            CommandIoFailure::Status
-        }
+        fs if crate::filesystem_ops::is_filesystem(fs) => CommandIoFailure::Status,
         network => {
             debug_assert!(crate::network_io_ops::is_fallible(network));
             CommandIoFailure::Status
@@ -449,8 +465,12 @@ pub(crate) const fn admitted_in_while(op: ResolvedHostCommandOperation) -> bool 
         | ResolvedHostCommandOperation::ArgUtf8
         | ResolvedHostCommandOperation::StdinRead
         | ResolvedHostCommandOperation::StderrWrite => false,
-        ResolvedHostCommandOperation::FileRead => false,
-        ResolvedHostCommandOperation::FileWriteNew => true,
+        ResolvedHostCommandOperation::FileRead | ResolvedHostCommandOperation::FileList => false,
+        ResolvedHostCommandOperation::FileWriteNew
+        | ResolvedHostCommandOperation::FileStat
+        | ResolvedHostCommandOperation::FileCreateDir
+        | ResolvedHostCommandOperation::FileRemove
+        | ResolvedHostCommandOperation::FileWriteAtomic => true,
         network => crate::network_io_ops::admitted_in_while(network),
     }
 }

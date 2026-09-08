@@ -3,7 +3,7 @@ schema = "semaprax.manifest.v1"
 [package]
 name = "std-fs"
 version = "0.1.0"
-profile = "filesystem-io.v1"
+profile = "filesystem-io.v2"
 
 [modules]
 entry = "std.fs.examples"

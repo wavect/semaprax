@@ -36,6 +36,21 @@ pub(crate) fn evaluate_resolved_filesystem_command(
     provider: &mut dyn FileProvider,
     max_steps: usize,
 ) -> Result<CommandEvaluation, Diagnostic> {
+    evaluate_profile(
+        program,
+        entry_id,
+        provider,
+        max_steps,
+        crate::command_io_ops::CommandOperationProfile::FilesystemV1,
+    )
+}
+pub(crate) fn evaluate_profile(
+    program: &hir::ResolvedProgram,
+    entry_id: &str,
+    provider: &mut dyn FileProvider,
+    max_steps: usize,
+    profile: crate::command_io_ops::CommandOperationProfile,
+) -> Result<CommandEvaluation, Diagnostic> {
     hir::validate(program)?;
     if !(1..=MAX_STEPS_LIMIT).contains(&max_steps) {
         return Err(option_error(format!(
@@ -88,7 +103,6 @@ pub(crate) fn evaluate_resolved_filesystem_command(
             format!("hosted filesystem command entry `{entry_id}` must have type `fn () -> bool`"),
         ));
     }
-    let profile = crate::command_io_ops::CommandOperationProfile::FilesystemV1;
     crate::command_io_ops::validate_operation_profile(program, &entry.id, profile)?;
     hir::analyze_byte_data_capacity(program)?;
     scan_closure(entry_id, &admitted, program).map_err(first_diagnostic)?;

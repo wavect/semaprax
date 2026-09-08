@@ -26,6 +26,8 @@ pub(crate) enum NativeOutputProfile {
     /// Filesystem I/O v1: a closed read/write operation pair backed only by
     /// callbacks supplied to the generated runner for this invocation.
     FilesystemCommandIo,
+    /// Filesystem I/O v2 extends the callback-only v1 carrier.
+    FilesystemCommandIoV2,
 }
 
 /// Representation and provider carrier support are separate decisions:
@@ -66,7 +68,8 @@ impl NativeOutputProfile {
             | Self::LineCommandIo
             | Self::NetworkCommandIo
             | Self::HttpsCommandIo
-            | Self::FilesystemCommandIo => StringRuntimeSelection::FROZEN,
+            | Self::FilesystemCommandIo
+            | Self::FilesystemCommandIoV2 => StringRuntimeSelection::FROZEN,
         }
     }
 
@@ -105,6 +108,7 @@ impl NativeOutputProfile {
                 | Self::NetworkCommandIo
                 | Self::HttpsCommandIo
                 | Self::FilesystemCommandIo
+                | Self::FilesystemCommandIoV2
         )
     }
 

@@ -616,13 +616,15 @@ fn project_v8_is_activated_only_by_manifest_and_profile_admission() {
         include_str!("../../src/wasm/function_value.rs"),
         include_str!("../../src/wasm/box_ops.rs"),
         include_str!("../../src/wasm/filesystem_ops.rs"),
+        include_str!("../../src/wasm/filesystem_v2.rs"),
         include_str!("../../src/wasm/http_io.rs"),
         include_str!("../../src/wasm/vec_ops.rs"),
         include_str!("../../src/wasm/network_io.rs"),
         include_str!("../../src/wasm/project_web_build_tests.rs"),
         include_str!("../../src/wasm/stdout_profile_authority_tests.rs"),
         include_str!("../../src/wasm/owned_data_public.rs"),
-        include_str!("../../src/wasm/aggregate/filesystem_ops.rs")
+        include_str!("../../src/wasm/aggregate/filesystem_ops.rs"),
+        include_str!("../../src/wasm/aggregate/filesystem_v2.rs")
     );
 
     assert!(manifest.contains(PUBLIC_OWNED_DATA_PROJECT_SCHEMA));

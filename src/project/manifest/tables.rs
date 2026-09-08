@@ -12,15 +12,16 @@
 //! manifest whose bytes differ from its own rendering and names the first
 //! differing line, so agents get a byte-precise fix instead of a shape error.
 
-use super::PROJECT_SCHEMA_V14;
 use super::{
     valid_semver, ProjectManifest, MAX_VERSION_BYTES, PROJECT_SCHEMA, PROJECT_SCHEMA_V10,
     PROJECT_SCHEMA_V11, PROJECT_SCHEMA_V12, PROJECT_SCHEMA_V13, PROJECT_SCHEMA_V2,
     PROJECT_SCHEMA_V3, PROJECT_SCHEMA_V4, PROJECT_SCHEMA_V5, PROJECT_SCHEMA_V6, PROJECT_SCHEMA_V7,
     PROJECT_SCHEMA_V8, PROJECT_SCHEMA_V9,
 };
+use super::{PROJECT_SCHEMA_V14, PROJECT_SCHEMA_V15};
 use crate::diagnostic::Diagnostic;
 use crate::package_range;
+use crate::project::profile::PROJECT_PROFILE_FILESYSTEM_IO_V2;
 use crate::project::profile::{
     ProjectProfile, PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2, PROJECT_COMMAND_INPUT_V1,
     PROJECT_COMMAND_STDOUT_CAPABILITY, PROJECT_HTTPS_COMMAND_CAPABILITIES_V1,
@@ -422,6 +423,7 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
             | PROJECT_PROFILE_NETWORK_COMMAND_IO_V1
             | PROJECT_PROFILE_HTTPS_COMMAND_IO_V1
             | PROJECT_PROFILE_FILESYSTEM_IO_V1
+            | PROJECT_PROFILE_FILESYSTEM_IO_V2
     );
     if command_profile {
         if let Some(command) = tables.iter().find(|table| table.name == "command") {
@@ -471,6 +473,7 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
             PROJECT_PROFILE_USEFUL_DATA_COMMAND_V1 => &[PROJECT_COMMAND_STDOUT_CAPABILITY],
             PROJECT_PROFILE_NETWORK_COMMAND_IO_V1 => &PROJECT_NETWORK_COMMAND_CAPABILITIES_V1,
             PROJECT_PROFILE_HTTPS_COMMAND_IO_V1 => &PROJECT_HTTPS_COMMAND_CAPABILITIES_V1,
+            PROJECT_PROFILE_FILESYSTEM_IO_V2 => &PROJECT_FILESYSTEM_CAPABILITIES_V1,
             PROJECT_PROFILE_FILESYSTEM_IO_V1 => &PROJECT_FILESYSTEM_CAPABILITIES_V1,
             _ => &PROJECT_COMMAND_ADAPTER_CAPABILITIES_V2,
         };
@@ -531,7 +534,10 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
         if exports.len() > super::MAX_WEB_EXPORTS
             || (exports.is_empty()
                 && profile != PROJECT_PROFILE_OWNED_DATA_API_V1
-                && profile != PROJECT_PROFILE_FILESYSTEM_IO_V1)
+                && !matches!(
+                    profile,
+                    PROJECT_PROFILE_FILESYSTEM_IO_V1 | PROJECT_PROFILE_FILESYSTEM_IO_V2
+                ))
         {
             diagnostics.push(if exports.len() > super::MAX_WEB_EXPORTS {
                 capacity("web_exports", super::MAX_WEB_EXPORTS).remove(0)
@@ -551,9 +557,12 @@ fn structural_diagnostics(tables: &[Table<'_>]) -> Vec<Diagnostic> {
                 "{LABEL} web exports must use bounded lowercase [a-z0-9._-] stable IDs"
             )));
         }
-        if let Some(command) = table_text(tables, "command", "function")
-            .filter(|_| profile != PROJECT_PROFILE_FILESYSTEM_IO_V1)
-        {
+        if let Some(command) = table_text(tables, "command", "function").filter(|_| {
+            !matches!(
+                profile,
+                PROJECT_PROFILE_FILESYSTEM_IO_V1 | PROJECT_PROFILE_FILESYSTEM_IO_V2
+            )
+        }) {
             if exports.len() != 1 || exports.first().map(String::as_str) != Some(command) {
                 diagnostics.push(scaffold_diagnostic(format!(
                     "{LABEL} web_exports must contain exactly the command stable ID"
@@ -644,6 +653,11 @@ fn lower_profile(
     let profile_name = profile.name().unwrap_or("scalar");
     let (schema, expected_input, expected_capabilities): (&str, Option<&str>, &[&str]) =
         match profile {
+            ProjectProfile::FilesystemIoV2 => (
+                PROJECT_SCHEMA_V15,
+                None,
+                &PROJECT_FILESYSTEM_CAPABILITIES_V1,
+            ),
             ProjectProfile::FilesystemIoV1 => (
                 PROJECT_SCHEMA_V14,
                 None,
@@ -1276,6 +1290,7 @@ fn profile_by_name(name: &str) -> Option<ProjectProfile> {
         PROJECT_PROFILE_NESTED_OWNED_RECORD_API_V1 => ProjectProfile::NestedOwnedRecordApiV1,
         PROJECT_PROFILE_NETWORK_COMMAND_IO_V1 => ProjectProfile::NetworkCommandIoV1,
         PROJECT_PROFILE_HTTPS_COMMAND_IO_V1 => ProjectProfile::HttpsCommandIoV1,
+        PROJECT_PROFILE_FILESYSTEM_IO_V2 => ProjectProfile::FilesystemIoV2,
         PROJECT_PROFILE_FILESYSTEM_IO_V1 => ProjectProfile::FilesystemIoV1,
         _ => return None,
     })

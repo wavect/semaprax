@@ -20,8 +20,18 @@ pub(super) fn admitted(
             .params
             .iter()
             .any(|parameter| record(&parameter.ty));
+    let copy_result = function.params.iter().any(|parameter| {
+        parameter.mode == ParamMode::Own && (parameter.ty == Type::Bytes || record(&parameter.ty))
+    }) && record_kind(
+        target.module,
+        &function.return_type,
+        caller,
+        authored,
+        programs,
+    ) == Some(false);
     uses_record
-        && (scalar(&function.return_type)
+        && (copy_result
+            || scalar(&function.return_type)
             || function.return_type == Type::Bytes
             || record(&function.return_type))
         && function.params.iter().all(|parameter| {
@@ -51,31 +61,40 @@ fn record_slot(
     authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
     programs: &[Program],
 ) -> bool {
+    record_kind(module, ty, caller, authored, programs) == Some(true)
+}
+fn record_kind(
+    module: &str,
+    ty: &Type,
+    caller: &Program,
+    authored: &BTreeMap<&str, AuthoredDeclaration<'_>>,
+    programs: &[Program],
+) -> Option<bool> {
     let Type::Named { name, arguments } = ty else {
-        return false;
+        return None;
     };
     if !arguments.is_empty() {
-        return false;
+        return None;
     }
     let Some(id) = resolve_type_id(module, name, programs) else {
-        return false;
+        return None;
     };
     let Some(target) = authored.get(id.as_str()) else {
-        return false;
+        return None;
     };
     let Some(declaration) = target.ty else {
-        return false;
+        return None;
     };
-    record_shape(
+    let owns_bytes = record_shape(
         target.module,
         declaration,
         authored,
         programs,
         &mut BTreeSet::new(),
         &mut BTreeMap::new(),
-    )
-    .is_some_and(|owns_bytes| owns_bytes)
-        && signature_type_is_admitted(module, ty, caller, authored, programs, &mut BTreeSet::new())
+    )?;
+    signature_type_is_admitted(module, ty, caller, authored, programs, &mut BTreeSet::new())
+        .then_some(owns_bytes)
 }
 /// Re-derive the complete explicit record closure. No resources, views, generic
 /// substitutions, variants, classes, or callable storage enter this lane.

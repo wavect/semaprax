@@ -148,3 +148,71 @@ fn internal_owned_record_import_preserves_contract_failure_and_reentry() {
         );
     }
 }
+
+#[test]
+fn owned_input_copy_record_result_authenticates_direct_identity_and_cleanup() {
+    let provider = format!(
+        r#"{PROVIDER}
+@id("reader.info") record Info {{ @id("reader.info.cursor") cursor: usize, }}
+@id("reader.other-info") record OtherInfo {{ @id("reader.other-info.cursor") cursor: usize, }}
+@id("reader.inspect") fn inspect(value:own Reader)->Info {{ Info {{ cursor:value.cursor }} }}
+"#
+    );
+    let app = r#"
+module reader.app;
+use type @id("reader.type") from reader.provider as Reader;
+use type @id("reader.info") from reader.provider as Info;
+use function @id("reader.new") from reader.provider as create;
+use function @id("reader.inspect") from reader.provider as inspect;
+@id("app.main") fn main()->i64 {
+    let bytes=[65u8];
+    let reader=create(bytes_copy(array_as_slice(bytes)));
+    let info=inspect(reader);
+    if info.cursor==0usize { 1 } else { 0 }
+}
+"#;
+    let built =
+        build_owned(sources(app, &provider)).expect("owned input with authenticated Copy result");
+    let linked = built
+        .linked_owned_data_api_program_with_roots("reader.app", &[])
+        .unwrap();
+    hir::validate(&linked).unwrap();
+    let run =
+        crate::interpreter::evaluate_resolved_zero_arg_i64(&linked, "app.main", 100_000).unwrap();
+    assert!(matches!(
+        run.outcome,
+        crate::interpreter::ResolvedEvaluationOutcome::ReturnedI64(1)
+    ));
+    assert!(built.linked_scalar_program("reader.app").is_err());
+    for hostile in [
+        app.replace(
+            "use type @id(\"reader.info\") from reader.provider as Info;",
+            "",
+        ),
+        app.replace(
+            "use type @id(\"reader.info\")",
+            "use type @id(\"reader.other-info\")",
+        ),
+    ] {
+        let errors = build_owned(sources(&hostile, &provider))
+            .err()
+            .expect("Copy result identity is not interchangeable");
+        assert!(errors.iter().any(|error| error.code == "SPX-G172"));
+    }
+    let borrowed = provider.replace(
+        "fn inspect(value:own Reader)",
+        "fn inspect(value:borrow Reader)",
+    );
+    assert!(
+        build_owned(sources(app, &borrowed)).is_err(),
+        "new mixed-result lane requires owned input"
+    );
+    let generic = provider.replace(
+        "fn inspect(value:own Reader)",
+        "fn inspect<T>(value:own Reader)",
+    );
+    assert!(
+        build_owned(sources(app, &generic)).is_err(),
+        "generic import remains closed"
+    );
+}

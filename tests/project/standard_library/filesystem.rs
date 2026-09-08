@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 static NEXT_PACKAGE: AtomicU64 = AtomicU64::new(0);
 
-fn package(label: &str, command: &str, bundled: bool) -> PathBuf {
+pub(super) fn package(label: &str, command: &str, bundled: bool) -> PathBuf {
     let directory = temporary(&format!(
         "{label}-{}",
         NEXT_PACKAGE.fetch_add(1, Ordering::Relaxed)
@@ -21,7 +21,8 @@ fn package(label: &str, command: &str, bundled: bool) -> PathBuf {
     }
     let mut manifest = std::fs::read_to_string(root().join("std/fs/semaprax.toml"))
         .unwrap()
-        .replace("std.fs.examples.roundtrip", command);
+        .replace("std.fs.examples.roundtrip", command)
+        .replace("filesystem-io.v2", "filesystem-io.v1");
     if bundled {
         manifest = manifest
             .replace("name = \"std-fs\"", "name = \"std-fs-consumer\"")

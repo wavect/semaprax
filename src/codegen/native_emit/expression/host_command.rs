@@ -24,6 +24,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
 
                 if !self.output_profile.is_language_command()
                     && self.output_profile != NativeOutputProfile::FilesystemCommandIo
+                    && self.output_profile != NativeOutputProfile::FilesystemCommandIoV2
                 {
                     return Err(backend_error(
                         "command I/O operation requires the native language-command profile",
@@ -43,7 +44,13 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                     | Operation::NetStreamStdout
                     | Operation::NetWait
                     | Operation::NetClose => self.emit_network_command_expr(expr, call)?,
-                    Operation::FileRead | Operation::FileWriteNew => {
+                    Operation::FileRead
+                    | Operation::FileWriteNew
+                    | Operation::FileStat
+                    | Operation::FileList
+                    | Operation::FileCreateDir
+                    | Operation::FileRemove
+                    | Operation::FileWriteAtomic => {
                         self.emit_filesystem_command_expr(expr, call)?
                     }
                     Operation::HttpsGet => self.emit_https_command_expr(expr, call)?,
@@ -231,7 +238,8 @@ impl<'a, O: COutput> CEmitter<'a, O> {
         use crate::filesystem_ops as ops;
         use hir::ResolvedHostCommandOperation as Operation;
 
-        if self.output_profile != NativeOutputProfile::FilesystemCommandIo
+        if (self.output_profile != NativeOutputProfile::FilesystemCommandIo
+            && self.output_profile != NativeOutputProfile::FilesystemCommandIoV2)
             || !ops::is_filesystem(call.operation)
         {
             return Err(backend_error(
@@ -253,16 +261,34 @@ impl<'a, O: COutput> CEmitter<'a, O> {
             self.require_type(&value.ty, &expected, &format!("{name} argument {index}"))?;
             staged.push(value.code);
         }
+        let v2 = self.output_profile == NativeOutputProfile::FilesystemCommandIoV2;
         let helper = match call.operation {
-            Operation::FileRead => "spx_host_file_read_v1",
-            Operation::FileWriteNew => "spx_host_file_write_new_v1",
+            Operation::FileRead => {
+                if v2 {
+                    "spx_host_file_read_v2"
+                } else {
+                    "spx_host_file_read_v1"
+                }
+            }
+            Operation::FileWriteNew => {
+                if v2 {
+                    "spx_host_file_write_new_v2"
+                } else {
+                    "spx_host_file_write_new_v1"
+                }
+            }
+            Operation::FileStat => "spx_host_file_stat_v2",
+            Operation::FileList => "spx_host_file_list_v2",
+            Operation::FileCreateDir => "spx_host_file_create_dir_v2",
+            Operation::FileRemove => "spx_host_file_remove_v2",
+            Operation::FileWriteAtomic => "spx_host_file_write_atomic_v2",
             _ => unreachable!("filesystem operation membership was checked above"),
         };
         let arguments = staged.join(", ");
-        if call.operation == Operation::FileRead {
+        if matches!(call.operation, Operation::FileRead | Operation::FileList) {
             let plan = self
                 .bytes_plan
-                .ok_or_else(|| backend_error("file_read owned result has no cleanup plan"))?;
+                .ok_or_else(|| backend_error("filesystem owned result has no cleanup plan"))?;
             let temporary = plan
                 .value(&crate::cleanup_plan::StorageId::Temporary(expr.id.clone()))?
                 .to_owned();
@@ -278,7 +304,7 @@ impl<'a, O: COutput> CEmitter<'a, O> {
                 code: plan
                     .result_at(&expr.id)
                     .ok_or_else(|| {
-                        backend_error("file_read has no canonical owned result transfer")
+                        backend_error("filesystem call has no canonical owned result transfer")
                     })?
                     .to_owned(),
                 ty: ResolvedType::Bytes,

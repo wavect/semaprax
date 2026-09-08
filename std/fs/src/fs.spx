@@ -9,6 +9,14 @@ use function @id("std.io.writer.finish") from std.io as writer_finish;
 
 permit { fs.read, fs.write }
 
+@id("std.fs.file-info")
+record FileInfo {
+    @id("std.fs.file-info.kind")
+    kind: usize,
+    @id("std.fs.file-info.size")
+    size: usize,
+}
+
 @id("std.fs.read")
 fn read(path: own Path, max: usize) -> Reader
     uses { fs.read }
@@ -25,4 +33,69 @@ fn write_new(path: own Path, writer: own Writer) -> usize
     let written = writer_position(writer);
     let buffer = writer_finish(writer);
     match own path { Path { data, length } => file_write_new(bytes_as_slice(data), length, bytes_as_slice(buffer), written), }
+}
+
+@id("std.fs.metadata")
+fn metadata(path: own Path) -> FileInfo
+    uses { fs.read }
+    requires path_valid(path)
+{
+    let packed = match own path { Path { data, length } => file_stat(bytes_as_slice(data), length), };
+    FileInfo { kind: packed % 4usize, size: packed / 4usize }
+}
+
+@id("std.fs.list")
+fn list(path: own Path, max: usize) -> Reader
+    uses { fs.read }
+    requires path_valid(path)
+{
+    match own path { Path { data, length } => reader_from_bytes(file_list(bytes_as_slice(data), length, max)), }
+}
+
+@id("std.fs.create-dir")
+fn create_dir(path: own Path) -> usize
+    uses { fs.write }
+    requires path_valid(path)
+{
+    match own path { Path { data, length } => file_create_dir(bytes_as_slice(data), length), }
+}
+
+@id("std.fs.remove")
+fn remove(path: own Path) -> usize
+    uses { fs.write }
+    requires path_valid(path)
+{
+    match own path { Path { data, length } => file_remove(bytes_as_slice(data), length), }
+}
+
+@id("std.fs.write-atomic")
+fn write_atomic(path: own Path, writer: own Writer) -> usize
+    uses { fs.write }
+    requires path_valid(path)
+{
+    let written = writer_position(writer);
+    let buffer = writer_finish(writer);
+    match own path { Path { data, length } => file_write_atomic(bytes_as_slice(data), length, bytes_as_slice(buffer), written), }
+}
+
+@id("std.fs.directory.entry-length")
+fn entry_length(reader: borrow Reader) -> usize
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    match borrow reader { Reader { data, position } => { let view = bytes_as_slice(data); let limit = byte_len(view); let mut cursor = position; let mut scanning = true; while cursor < limit && scanning { let value = match byte_get(view, cursor) { Option::Some { value } => value, Option::None {} => 0u8, }; scanning = value != 0u8; cursor = if scanning { cursor + 1usize } else { cursor }; scanning } cursor - position }, }
+}
+
+@id("std.fs.directory.entry-byte")
+fn entry_byte(reader: borrow Reader, index: usize) -> u8
+    requires index < entry_length(reader)
+{
+    match borrow reader { Reader { data, position } => match byte_get(bytes_as_slice(data), position + index) { Option::Some { value } => value, Option::None {} => 0u8, }, }
+}
+
+@id("std.fs.directory.next-entry")
+fn next_entry(reader: own Reader) -> Reader
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+{
+    let length = entry_length(reader);
+    match own reader { Reader { data, position } => { let limit = byte_len(bytes_as_slice(data)); let remaining = limit - position; let count = if remaining == 0usize { 0usize } else { if length < remaining { length + 1usize } else { remaining } }; Reader { data: data, position: position + count } }, }
 }

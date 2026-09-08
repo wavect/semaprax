@@ -30,7 +30,11 @@ pub(super) fn prepare(
         super::network_io::check_permits(&program.permits)?;
     } else if operation_profile == crate::command_io_ops::CommandOperationProfile::HttpV1 {
         super::http_io::check_permits(&program.permits)?;
-    } else if operation_profile == crate::command_io_ops::CommandOperationProfile::FilesystemV1 {
+    } else if matches!(
+        operation_profile,
+        crate::command_io_ops::CommandOperationProfile::FilesystemV1
+            | crate::command_io_ops::CommandOperationProfile::FilesystemV2
+    ) {
         super::filesystem_ops::check_permits(&program.permits)?;
     } else if program.permits
         != [
@@ -83,7 +87,14 @@ impl CommandPlan {
     }
 
     pub(super) fn is_filesystem_command(&self) -> bool {
-        self.operation_profile == crate::command_io_ops::CommandOperationProfile::FilesystemV1
+        matches!(
+            self.operation_profile,
+            crate::command_io_ops::CommandOperationProfile::FilesystemV1
+                | crate::command_io_ops::CommandOperationProfile::FilesystemV2
+        )
+    }
+    pub(super) fn is_filesystem_v2(&self) -> bool {
+        self.operation_profile == crate::command_io_ops::CommandOperationProfile::FilesystemV2
     }
 
     /// Command imports, plus the network imports appended after them for the
@@ -94,7 +105,13 @@ impl CommandPlan {
         } else if self.is_http_command() {
             IMPORT_COUNT + super::http_io::IMPORT_COUNT
         } else if self.is_filesystem_command() {
-            IMPORT_COUNT + super::filesystem_ops::IMPORT_COUNT
+            IMPORT_COUNT
+                + super::filesystem_ops::IMPORT_COUNT
+                + if self.is_filesystem_v2() {
+                    super::filesystem_v2::IMPORT_COUNT
+                } else {
+                    0
+                }
         } else {
             IMPORT_COUNT
         }

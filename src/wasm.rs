@@ -24,6 +24,7 @@ mod arithmetic;
 mod command_io;
 mod data_exports;
 mod filesystem_ops;
+mod filesystem_v2;
 mod function_value;
 #[cfg(any(test, feature = "unstable-wit-component-harness"))]
 mod generic_function_component_v9;
@@ -987,6 +988,7 @@ pub(crate) fn emit_resolved_https_command_io_v1(
 }
 
 pub use filesystem_ops::emit_resolved_filesystem_ops_v1;
+pub use filesystem_v2::emit_resolved_filesystem_ops_v2;
 
 /// Emit the additive Project-v7 line-command boundary. Admission remains in
 /// the shared command profile; the backend adds range descriptors and the

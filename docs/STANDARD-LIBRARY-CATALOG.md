@@ -1067,7 +1067,16 @@ fn decode_base64_quad(first: u8, second: u8, third: u8, fourth: u8) -> i64
 
 ## `std.fs`
 
-Package `std/fs`, tier `hosted`, status partial. Required project profile: `filesystem-io.v1`. Dependency: `std.fs = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+Package `std/fs`, tier `hosted`, status partial. Required project profile: `filesystem-io.v2`. Dependency: `std.fs = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.fs.file-info`
+
+```semaprax
+record FileInfo {
+    kind: usize,
+    size: usize,
+}
+```
 
 ### `std.fs.read`
 
@@ -1083,6 +1092,67 @@ fn read(path: own Path, max: usize) -> Reader
 fn write_new(path: own Path, writer: own Writer) -> usize
     uses { fs.write }
     requires path_valid(path)
+```
+
+### `std.fs.metadata`
+
+```semaprax
+fn metadata(path: own Path) -> FileInfo
+    uses { fs.read }
+    requires path_valid(path)
+```
+
+### `std.fs.list`
+
+```semaprax
+fn list(path: own Path, max: usize) -> Reader
+    uses { fs.read }
+    requires path_valid(path)
+```
+
+### `std.fs.create-dir`
+
+```semaprax
+fn create_dir(path: own Path) -> usize
+    uses { fs.write }
+    requires path_valid(path)
+```
+
+### `std.fs.remove`
+
+```semaprax
+fn remove(path: own Path) -> usize
+    uses { fs.write }
+    requires path_valid(path)
+```
+
+### `std.fs.write-atomic`
+
+```semaprax
+fn write_atomic(path: own Path, writer: own Writer) -> usize
+    uses { fs.write }
+    requires path_valid(path)
+```
+
+### `std.fs.directory.entry-length`
+
+```semaprax
+fn entry_length(reader: borrow Reader) -> usize
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
+```
+
+### `std.fs.directory.entry-byte`
+
+```semaprax
+fn entry_byte(reader: borrow Reader, index: usize) -> u8
+    requires index < entry_length(reader)
+```
+
+### `std.fs.directory.next-entry`
+
+```semaprax
+fn next_entry(reader: own Reader) -> Reader
+    requires match borrow reader { Reader { data, position } => position <= byte_len(bytes_as_slice(data)), }
 ```
 
 ## `std.http`

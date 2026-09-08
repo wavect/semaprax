@@ -119,3 +119,19 @@ pub fn execute_filesystem_command(
         program, entry_id, provider, max_steps,
     )
 }
+
+/// Execute the additive v2 operation inventory with an explicitly injected provider.
+pub fn execute_filesystem_command_v2(
+    program: &ResolvedProgram,
+    entry_id: &str,
+    provider: &mut dyn crate::filesystem_provider::FileProvider,
+    max_steps: usize,
+) -> Result<CommandEvaluation, Diagnostic> {
+    crate::interpreter::filesystem::command::evaluate_profile(
+        program,
+        entry_id,
+        provider,
+        max_steps,
+        crate::command_io_ops::CommandOperationProfile::FilesystemV2,
+    )
+}

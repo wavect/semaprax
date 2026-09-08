@@ -10,6 +10,15 @@ use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
 use function @id("std.io.reader.peek") from std.io as reader_peek;
 use function @id("std.io.reader.advance") from std.io as reader_advance;
 use function @id("std.io.reader.remaining") from std.io as reader_remaining;
+use type @id("std.fs.file-info") from std.fs as FileInfo;
+use function @id("std.fs.metadata") from std.fs as metadata;
+use function @id("std.fs.list") from std.fs as list;
+use function @id("std.fs.create-dir") from std.fs as create_dir;
+use function @id("std.fs.remove") from std.fs as remove;
+use function @id("std.fs.write-atomic") from std.fs as write_atomic;
+use function @id("std.fs.directory.entry-length") from std.fs as entry_length;
+use function @id("std.fs.directory.entry-byte") from std.fs as entry_byte;
+use function @id("std.fs.directory.next-entry") from std.fs as next_entry;
 
 permit { fs.read, fs.write }
 
@@ -38,4 +47,40 @@ fn logical_prefix() -> bool
 fn main() -> i64
 {
     0
+}
+
+@id("std.fs.tests.child-path")
+fn child_path() -> Path
+{
+    Path { data: bytes_set(bytes_set(bytes_set(bytes_zeroed(3usize), 0usize, 100u8), 1usize, 47u8), 2usize, 97u8), length: 3usize }
+}
+
+@id("std.fs.tests.directory")
+fn directory_transition() -> bool
+    uses { fs.read, fs.write }
+{
+    let made = create_dir(Path { data: bytes_set(bytes_zeroed(1usize), 0usize, 100u8), length: 1usize });
+    let first = write_atomic(child_path(), writer_write_u8(writer_from_bytes(bytes_zeroed(2usize)), 65u8));
+    let second = write_atomic(child_path(), writer_write_u8(writer_from_bytes(bytes_zeroed(2usize)), 255u8));
+    let info = metadata(child_path());
+    let names = list(Path { data: bytes_set(bytes_zeroed(1usize), 0usize, 100u8), length: 1usize }, 8usize);
+    let listed = entry_length(names) == 1usize && entry_byte(names, 0usize) == 97u8;
+    let tail = next_entry(names);
+    let exhausted = reader_remaining(tail) == 0usize;
+    let removed_file = remove(child_path());
+    let removed_dir = remove(Path { data: bytes_set(bytes_zeroed(1usize), 0usize, 100u8), length: 1usize });
+    made == 0usize && first == 1usize && second == 1usize && info.kind == 1usize && info.size == 1usize && listed && exhausted && removed_file == 0usize && removed_dir == 0usize
+}
+
+@id("std.fs.tests.raw-names")
+fn raw_directory_names() -> bool
+    uses { fs.read }
+{
+    let info = metadata(Path { data: bytes_zeroed(0usize), length: 0usize });
+    let names = list(Path { data: bytes_zeroed(0usize), length: 0usize }, 16usize);
+    let first = entry_length(names) == 1usize && entry_byte(names, 0usize) == 97u8;
+    let second_names = next_entry(names);
+    let second = entry_length(second_names) == 1usize && entry_byte(second_names, 0usize) == 255u8;
+    let tail = next_entry(second_names);
+    info.kind == 2usize && info.size == 0usize && first && second && reader_remaining(tail) == 0usize
 }

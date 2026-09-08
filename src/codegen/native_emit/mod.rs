@@ -25,6 +25,7 @@ mod closure;
 mod compiler;
 mod expression;
 mod filesystem_io;
+mod filesystem_io_v2;
 mod function_value;
 mod generic_record;
 mod generic_variant;
@@ -45,6 +46,7 @@ pub(super) use compiler::{
     write_compile_and_publish_c_with_threads,
 };
 pub use filesystem_io::{emit_c_with_filesystem_io, emit_hir_c_with_filesystem_io};
+pub use filesystem_io_v2::{emit_c_with_filesystem_io_v2, emit_hir_c_with_filesystem_io_v2};
 pub use http_io::{emit_c_with_https_io, emit_hir_c_with_https_io};
 pub(super) use literals::c_string;
 use nested_owned::{borrowed_aggregate_byte_paths, borrowed_aggregate_path_suffix};
@@ -103,6 +105,8 @@ pub(super) fn emit_hir_c_with_labels(
         network_io::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::FilesystemCommandIo {
         filesystem_io::emit_runtime(&mut output, program);
+    } else if output_profile == NativeOutputProfile::FilesystemCommandIoV2 {
+        filesystem_io_v2::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::HttpsCommandIo {
         http_io::emit_runtime(&mut output, program);
     } else if output_profile == NativeOutputProfile::LineCommandIo {
@@ -180,6 +184,8 @@ pub(super) fn emit_hir_c_with_labels(
             native_command_io::emit_process_adapter(&mut output);
         } else if output_profile == NativeOutputProfile::FilesystemCommandIo {
             filesystem_io::emit_runner(&mut output, symbol);
+        } else if output_profile == NativeOutputProfile::FilesystemCommandIoV2 {
+            filesystem_io_v2::emit_runner(&mut output, symbol);
         } else if output_profile == NativeOutputProfile::HttpsCommandIo {
             http_io::emit_runner(&mut output, symbol);
             native_command_io::emit_process_adapter(&mut output);

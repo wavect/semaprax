@@ -11,6 +11,15 @@ pub(super) fn function_requires(function: &ResolvedFunction) -> bool {
     });
     found
 }
+fn function_requires_v2(function: &ResolvedFunction) -> bool {
+    let mut found = false;
+    hir::function_value::walk(function, |expression| {
+        if let ResolvedExprKind::HostCommandCall(call) = &expression.kind {
+            found |= crate::filesystem_ops::is_v2(call.operation);
+        }
+    });
+    found
+}
 pub(super) fn requires(program: &ResolvedProgram) -> bool {
     program
         .functions
@@ -20,11 +29,20 @@ pub(super) fn requires(program: &ResolvedProgram) -> bool {
 }
 pub(crate) fn graph_schema(program: &ResolvedProgram) -> Result<&'static str, Diagnostic> {
     let old = super::nested_owned::pre_filesystem_graph_schema(program)?;
-    Ok(if requires(program) {
-        "semaprax.graph.v41"
-    } else {
-        old
-    })
+    Ok(
+        if program
+            .functions
+            .iter()
+            .chain(program.function_instances.iter().map(|item| &item.function))
+            .any(function_requires_v2)
+        {
+            "semaprax.graph.v42"
+        } else if requires(program) {
+            "semaprax.graph.v41"
+        } else {
+            old
+        },
+    )
 }
 pub(crate) fn graph_schema_from_parts_and_instances(
     interfaces: &[hir::ResolvedInterface],
@@ -38,6 +56,12 @@ pub(crate) fn graph_schema_from_parts_and_instances(
     )?;
     Ok(
         if functions
+            .iter()
+            .chain(instances.iter().map(|item| &item.function))
+            .any(function_requires_v2)
+        {
+            "semaprax.graph.v42"
+        } else if functions
             .iter()
             .chain(instances.iter().map(|item| &item.function))
             .any(function_requires)
@@ -76,7 +100,10 @@ pub(super) fn graph_json(
             "checked graph header is not canonical",
         ));
     }
-    graph.replace_range(..prefix.len(), "{\"schema\":\"semaprax.graph.v41\"");
+    graph.replace_range(
+        ..prefix.len(),
+        &format!("{{\"schema\":{}", quote_json(graph_schema(program)?)),
+    );
     let mut calls = Vec::new();
     for function in program
         .functions
@@ -94,7 +121,16 @@ pub(super) fn graph_json(
             }
         });
     }
-    let facts = json!({"schema":"semaprax.filesystem.v1","calls":calls,"max_path_bytes":crate::filesystem_ops::MAX_PATH_BYTES,"max_file_bytes":crate::filesystem_ops::MAX_FILE_BYTES,"max_total_bytes":crate::filesystem_ops::MAX_TOTAL_BYTES,"max_operations":crate::filesystem_ops::MAX_OPERATIONS,"path_policy":"relative-byte-components-no-empty-dot-dotdot-nul-backslash-colon","accounting":"reserve-attempted-read-max-or-write-length-before-dispatch-no-refund","read_result":"owned-bytes-after-success","write_mode":"create-new"});
+    let mut facts = json!({"schema":"semaprax.filesystem.v1","calls":calls,"max_path_bytes":crate::filesystem_ops::MAX_PATH_BYTES,"max_file_bytes":crate::filesystem_ops::MAX_FILE_BYTES,"max_total_bytes":crate::filesystem_ops::MAX_TOTAL_BYTES,"max_operations":crate::filesystem_ops::MAX_OPERATIONS,"path_policy":"relative-byte-components-no-empty-dot-dotdot-nul-backslash-colon","accounting":"reserve-attempted-read-max-or-write-length-before-dispatch-no-refund","read_result":"owned-bytes-after-success","write_mode":"create-new"});
+    if graph_schema(program)? == "semaprax.graph.v42" {
+        facts["schema"] = json!("semaprax.filesystem.v2");
+        facts["root_path_operations"] = json!(["core.host.file-stat", "core.host.file-list"]);
+        facts["stat_encoding"] = json!("kind-plus-four-times-size-file1-directory2");
+        facts["list_encoding"] = json!("sorted-unique-immediate-raw-names-nul-terminated");
+        facts["write_mode"] = json!("create-new-or-explicit-atomic-replace");
+        facts["accounting"] =
+            json!("reserve-read-or-list-max-write-length-metadata-zero-before-dispatch-no-refund");
+    }
     graph.pop();
     Ok(format!(
         "{},\"filesystem\":{}}}",
@@ -115,6 +151,8 @@ pub(super) fn string_array(values: &[String]) -> String {
 
 #[cfg(test)]
 mod tests {
+    use crate::hir;
+    use serde_json::json;
     const SOURCE: &str = r#"
 module filesystem.graph;
 permit { fs.read, fs.write }
@@ -125,6 +163,40 @@ permit { fs.read, fs.write }
     file_write_new(array_as_slice(path),1usize,bytes_as_slice(data),byte_len(bytes_as_slice(data)))==0usize
 }
 "#;
+    #[test]
+    fn filesystem_v2_graph_and_profile_are_additive_and_closed() {
+        let text = SOURCE.replace(
+            "let data=file_read",
+            "let metadata=file_stat(array_as_slice(path),1usize); let data=file_read",
+        );
+        let source = crate::check(&text, "filesystem-v2.spx").unwrap();
+        let resolved = crate::hir::resolve(&source).unwrap();
+        let entry = hir::DeclarationId::new("filesystem.run");
+        use crate::command_io_ops::{validate_operation_profile, CommandOperationProfile};
+        assert!(validate_operation_profile(
+            &resolved,
+            &entry,
+            CommandOperationProfile::FilesystemV1
+        )
+        .is_err());
+        validate_operation_profile(&resolved, &entry, CommandOperationProfile::FilesystemV2)
+            .unwrap();
+        let graph = crate::graph::to_json(&source).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&graph).unwrap();
+        assert_eq!(value["schema"], "semaprax.graph.v42");
+        assert_eq!(value["filesystem"]["schema"], "semaprax.filesystem.v2");
+        crate::graph::verify_json(&source, &graph).unwrap();
+        assert!(crate::graph::verify_json(
+            &source,
+            &graph.replacen("semaprax.graph.v42", "semaprax.graph.v41", 1)
+        )
+        .is_err());
+        let mut forged = value;
+        forged["filesystem"]["stat_encoding"] = json!("unchecked");
+        assert!(
+            crate::graph::verify_json(&source, &serde_json::to_string(&forged).unwrap()).is_err()
+        );
+    }
     #[test]
     fn filesystem_graph_binds_checked_operations_and_rejects_remint() {
         let source = crate::check(SOURCE, "filesystem.spx").unwrap();

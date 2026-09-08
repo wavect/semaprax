@@ -40,15 +40,21 @@ pub(super) fn flow(
             site,
             conservative_payload_bytes: crate::network_io_ops::MAX_CHUNK_BYTES,
         }),
-        ResolvedHostCommandOperation::FileRead => Some(CapacityFlow::BytesCopy {
-            site,
-            conservative_payload_bytes: crate::filesystem_ops::MAX_FILE_BYTES,
-        }),
+        ResolvedHostCommandOperation::FileRead | ResolvedHostCommandOperation::FileList => {
+            Some(CapacityFlow::BytesCopy {
+                site,
+                conservative_payload_bytes: crate::filesystem_ops::MAX_FILE_BYTES,
+            })
+        }
         ResolvedHostCommandOperation::HttpsGet => Some(CapacityFlow::BytesCopy {
             site,
             conservative_payload_bytes: crate::network_io_ops::MAX_CHUNK_BYTES,
         }),
         ResolvedHostCommandOperation::FileWriteNew
+        | ResolvedHostCommandOperation::FileStat
+        | ResolvedHostCommandOperation::FileCreateDir
+        | ResolvedHostCommandOperation::FileRemove
+        | ResolvedHostCommandOperation::FileWriteAtomic
         | ResolvedHostCommandOperation::ArgsLen
         | ResolvedHostCommandOperation::ArgUtf8
         | ResolvedHostCommandOperation::NetConnect

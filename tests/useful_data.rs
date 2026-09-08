@@ -37,6 +37,11 @@ mod filesystem_interpreter;
 mod filesystem_io_native;
 #[path = "useful_data/filesystem_ops_wasm.rs"]
 mod filesystem_ops_wasm;
+#[cfg(unix)]
+#[path = "useful_data/filesystem_v2_native.rs"]
+mod filesystem_v2_native;
+#[path = "useful_data/filesystem_v2_wasm.rs"]
+mod filesystem_v2_wasm;
 #[path = "useful_data/interpreter.rs"]
 mod interpreter;
 #[path = "useful_data/language_command_io_native.rs"]

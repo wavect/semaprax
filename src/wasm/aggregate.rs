@@ -17,6 +17,7 @@ pub(in crate::wasm) use function_value::{
 };
 use function_value::{executable_functions, hex_execution_identity, program_uses_byte_range};
 mod filesystem_ops;
+mod filesystem_v2;
 mod generic_record;
 mod generic_variant;
 mod http_io;
@@ -198,6 +199,7 @@ struct FunctionPlan {
     status: u32,
     command_byte: Option<u32>,
     filesystem_scan: Option<(u32, u32, u32)>,
+    filesystem_list_scan: Option<[u32; 6]>,
     external_root_bytes: Option<u32>,
     result_staged: Option<u32>,
     has_try: bool,
@@ -329,13 +331,8 @@ impl FunctionPlan {
                 .any(|effect| super::command_io::needs_command_byte(effect)))
         .then(|| add_local(I32))
         .transpose()?;
-        let filesystem_scan = (!standalone_strings
-            && program.permits.iter().any(|effect| {
-                effect == crate::filesystem_ops::READ_EFFECT
-                    || effect == crate::filesystem_ops::WRITE_EFFECT
-            }))
-        .then(|| Ok((add_local(I64)?, add_local(I64)?, add_local(I64)?)))
-        .transpose()?;
+        let (filesystem_scan, filesystem_list_scan) =
+            filesystem_v2::allocate_scan_locals(program, standalone_strings, &mut add_local)?;
         let external_root_bytes = function
             .params
             .iter()
@@ -423,6 +420,7 @@ impl FunctionPlan {
             status,
             command_byte,
             filesystem_scan,
+            filesystem_list_scan,
             external_root_bytes,
             result_staged,
             has_try,
@@ -1718,6 +1716,9 @@ fn emit_byte_exports_profile(
         http_io.then(|| super::http_io::intern_import_type(&mut types, &mut type_indexes));
     let filesystem_import_types = filesystem_ops
         .then(|| super::filesystem_ops::intern_import_types(&mut types, &mut type_indexes));
+    let filesystem_v2_types = command_io
+        .is_some_and(super::command_io::CommandPlan::is_filesystem_v2)
+        .then(|| super::filesystem_v2::intern_import_types(&mut types, &mut type_indexes));
     let owned_utf8_validate = (!owned_plans.is_empty()).then(|| {
         intern_type(
             Signature {
@@ -1811,6 +1812,9 @@ fn emit_byte_exports_profile(
     }
     if let Some(types) = &filesystem_import_types {
         super::filesystem_ops::emit_imports(&mut imports, types);
+    }
+    if let Some(types) = &filesystem_v2_types {
+        super::filesystem_v2::emit_imports(&mut imports, types);
     }
     if let Some(ty) = byte_set {
         function_import(&mut imports, "env", "spx_bytes_zeroed", byte_unary);
@@ -1947,21 +1951,14 @@ fn emit_byte_exports_profile(
     if host_output {
         super::host_output::append_exports(&mut exports, super::host_output::DATA_GLOBALS, false);
     }
-    if command_io.is_some() {
-        super::host_output::append_stderr_exports(&mut exports);
-        write_name(&mut exports, super::command_io::INPUT_STATUS_EXPORT);
-        exports.push(0x03);
-        write_u32(&mut exports, super::command_io::INPUT_STATUS_GLOBAL);
-        if line_command_io {
-            super::line_command_io::append_export(&mut exports);
-        } else if network_io {
-            super::network_io::append_export(&mut exports);
-        } else if http_io {
-            super::http_io::append_export(&mut exports);
-        } else if filesystem_ops {
-            super::filesystem_ops::append_export(&mut exports);
-        }
-    }
+    filesystem_v2::append_command_exports(
+        &mut exports,
+        command_io,
+        line_command_io,
+        network_io,
+        http_io,
+        filesystem_ops,
+    );
     let wrapper_base = import_count
         .checked_add(text_helper_count)
         .and_then(|value| value.checked_add(u32::try_from(executable_functions.len()).ok()?))

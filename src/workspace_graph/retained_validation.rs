@@ -1258,7 +1258,7 @@ pub(super) fn project_effects_admitted(
     effects: &[String],
     natives: &ScalarNativeImports,
 ) -> bool {
-    (profile == crate::project::ProjectProfile::FilesystemIoV1
+    (profile.is_filesystem()
         && effects
             .iter()
             .all(|effect| crate::filesystem_ops::FILESYSTEM_EFFECTS.contains(&effect.as_str())))
@@ -1294,7 +1294,8 @@ pub(super) fn project_effects_admitted(
 
 pub(super) fn project_linker_name(profile: crate::project::ProjectProfile) -> &'static str {
     match profile {
-        crate::project::ProjectProfile::FilesystemIoV1 => "Filesystem I/O v1 linker",
+        crate::project::ProjectProfile::FilesystemIoV1
+        | crate::project::ProjectProfile::FilesystemIoV2 => "Filesystem I/O v1 linker",
         crate::project::ProjectProfile::ScalarV1 => "pure scalar linker",
         crate::project::ProjectProfile::UsefulTextConsumerV1 => "Useful Text Consumer linker",
         crate::project::ProjectProfile::UsefulDataV1 => "Useful Data linker",
@@ -1321,7 +1322,7 @@ pub(super) fn permits_admitted(
     entry_module: &str,
     natives: &ScalarNativeImports,
 ) -> bool {
-    (profile == crate::project::ProjectProfile::FilesystemIoV1
+    (profile.is_filesystem()
         && module
             .permits
             .iter()

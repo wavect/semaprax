@@ -8,6 +8,15 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extend private `std.fs` with typed metadata, canonical immediate directory
+  listing, directory creation/removal, and atomic file replacement through
+  explicit providers. Project v15 and Graph v42 preserve the v1 profiles.
+  Typed commands run on the interpreter, C11 O0/O2 and Core Wasm; malformed
+  directory results fail before owned publication. Unix providers retain a
+  directory descriptor and use same-parent rename for atomic replacement,
+  without a durability claim. Private owned-input calls can return checked
+  Copy-only records such as FileInfo; public ABI boundaries stay unchanged.
+
 - Add bounded filesystem reads and create-new writes through explicit providers,
   with source-authored `std.fs` composition of Path, Reader and Writer, bundled
   dependencies, Graph v41 replay, and the private Project v14 execution profile.

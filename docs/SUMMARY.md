@@ -80,6 +80,7 @@ Audience: all documentation readers.
 - [IO Cursors v1](IO-CURSORS-V1.md)
 - [Typed Path v1](TYPED-PATH-V1.md)
 - [Filesystem I/O v1](FILESYSTEM-IO-V1.md)
+- [Filesystem I/O v2](FILESYSTEM-IO-V2.md)
 - [Native inline String settlement](NATIVE-INLINE-STRING-SETTLEMENT-V1.md)
 - [Native String contents](NATIVE-STRING-CONTENTS-V1.md)
 - [Native owned-data internal String settlement](NATIVE-OWNED-DATA-STRING-SETTLEMENT-V1.md)

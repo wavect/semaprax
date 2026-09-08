@@ -420,3 +420,22 @@ by the host for that invocation; the Project route grants no ambient
 filesystem, process, network, home, or secret authority and creates no public
 nominal filesystem descriptor or receipt. Directory traversal, metadata, atomic replacement,
 and the remaining `std.fs` scope stay outside Project v14.
+
+## Additive private Project Manifest v15 filesystem-command profile
+
+Project v15 preserves the canonical Project v14 manifest and adds the private
+`profile = "filesystem-io.v2"` selection. It selects one explicitly identified
+`() -> bool` filesystem command, requires the exact sorted capabilities
+`fs.read` and `fs.write`, and requires `web = []`. The selected source-only
+closure is validated under [Filesystem I/O v2](FILESYSTEM-IO-V2.md), including
+its additive metadata, listing, directory, removal, atomic-replacement,
+root-path, and reserve-first accounting rules. V1 operations and Project v14
+remain frozen and separate.
+
+The profile consumes the bundled source dependencies `std.io` and
+`std.path.value` through the `std/fs` package. Its command is private and has
+no public web export, nominal filesystem ABI, receipt, or other public
+interface. Interpreter, native, and injected Core-Wasm routes receive only an
+explicit invocation provider; the profile grants no ambient filesystem,
+process, network, home, or secret authority. This section records manifest
+and admission ownership only; it makes no hosted or completion claim.

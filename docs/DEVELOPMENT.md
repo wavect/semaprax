@@ -34,6 +34,7 @@ Additional required references:
 
 | Change area | Owning references |
 | --- | --- |
+| Generic argument inference | [Argument Inference v1](GENERIC-ARGUMENT-INFERENCE-V1.md), [Argument Inference v2](GENERIC-ARGUMENT-INFERENCE-V2.md) |
 | Records, variants, generics, matching, `Option`, `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
 | Standard-library packages under `std/`, their catalogs, tiers, and gates | [Standard Library v1](STANDARD-LIBRARY-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
 | Owned bounded-vector operations or source `for` traversal | [Owned Bounded Vec v1](OWNED-BOUNDED-VEC-V1.md), [Owned Bounded Vec v2](OWNED-BOUNDED-VEC-V2.md), [Owned Bounded Vec For Traversal v1](OWNED-BOUNDED-VEC-FOR-TRAVERSAL-V1.md), [While Loops v1](WHILE-LOOPS-V1.md) |

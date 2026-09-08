@@ -20,6 +20,7 @@ Audience: all documentation readers.
 - [Durable Agent state migration v3](AGENT-STATE-MIGRATION-V3.md)
 - [Generic authored variants v1](GENERIC-AUTHORED-VARIANTS-V1.md)
 - [Generic argument inference v1](GENERIC-ARGUMENT-INFERENCE-V1.md)
+- [Generic argument inference v2](GENERIC-ARGUMENT-INFERENCE-V2.md)
 - [Execution root association v1](EXECUTION-ROOT-ASSOCIATION-V1.md)
 - [Generic compiler collections v1](GENERIC-COMPILER-COLLECTIONS-V1.md)
 - [Standard library catalog](STANDARD-LIBRARY-CATALOG.md)

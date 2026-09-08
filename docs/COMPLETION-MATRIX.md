@@ -74,11 +74,13 @@ client CI matrix is authored for Linux, macOS and Windows; exact-head hosted
 evidence remains unobserved. These additions do not complete the programme rows
 or widen the public generic boundary.
 
-[Argument inference v1](GENERIC-ARGUMENT-INFERENCE-V1.md) now passes seven
-source/HIR/graph checks, private ProgramRoot replay, and all-eight-scalar
-ownership settlement on interpreter, native O0/O2 and Core Wasm. It derives one
-Copy parameter from exact argument types at monomorphic call sites; broader
-inference and constraints remain open.
+[Argument inference v2](GENERIC-ARGUMENT-INFERENCE-V2.md) extends the v1 profile
+to complete ordered vectors and bounded operator, conditional, empty-block and
+declared-call result evidence at monomorphic call sites. Thirteen source/HIR/graph checks, independent HIR bounds,
+source-verifier differential checks, private ProgramRoot replay, and all-eight-
+scalar ownership settlement with exact native/Wasm evaluation counts pass
+locally. Generic-caller omission, nested omitted-call evidence, constraints and
+hosted promotion remain open; this does not complete the functions row.
 
 ## Current summary
 

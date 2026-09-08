@@ -1266,7 +1266,12 @@ module test.generic_inference_expression;
 @id("test.id") fn id<T>(value: T) -> T { value }
 @id("app.main") fn main() -> i64 { id(1 + 2) }
 "#;
-    assert!(error_codes(expression_inference).contains(&"SPX-T225"));
+    // Arithmetic evidence is admitted by v2; scoped local evidence remains
+    // outside inference even though the expression itself has a valid type.
+    assert!(error_codes(expression_inference).is_empty());
+    let scoped_expression =
+        expression_inference.replace("id(1 + 2)", "id({let value = 1; value + 2})");
+    assert!(error_codes(&scoped_expression).contains(&"SPX-T225"));
 
     let indirect_cycle = r#"
 module test.generic_cycle;

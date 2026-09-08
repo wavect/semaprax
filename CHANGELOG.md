@@ -8,6 +8,8 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Extend private generic argument inference to complete ordered vectors and bounded expression type evidence, with independent source/HIR derivation and unchanged concrete instance, ownership and cleanup admission.
+
 - Add durable Agent migration handoffs, trusted-store destination recovery and repeated revision chains with cumulative call, byte, stage and fuel accounting; preserve frozen operation checkpoint v2 bytes and bind additive migrated evidence to the handoff.
 
 - Add private `Vec<Bytes>` push, replacement, reserve, clear and lexical cleanup across checked source/HIR, interpreter, C11 and Core Wasm. Mutations stage vector and payload owners together and fail before transfer; successful replacement drops the old payload once. Prelude v6 and explicit v2 host imports bind the new meaning, including graph and ProgramRoot replay. Scalar storage and prior prelude contracts remain frozen; focused local evidence is separate from hosted and public promotion.

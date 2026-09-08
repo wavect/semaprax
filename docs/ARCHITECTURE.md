@@ -2348,7 +2348,9 @@ when a reader binds a module root but not its submodules.
 
 The bounded generic inference helpers in `source_verify/generic_inference` and
 `hir/generic_inference` independently unify exact argument types before normal
-argument evaluation. They retain the explicit concrete instance representation;
+argument evaluation. Their bounded type-evidence traversal observes expression
+types without invoking ordinary expression checking or ownership transitions.
+They retain the explicit concrete instance representation;
 source and graph replay remain bound to each projection's own source revision.
 
 `execution_revision/typed_migration` consumes actual durable suspension evidence,

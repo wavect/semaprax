@@ -240,6 +240,21 @@ fn compare_scalar_body(source: &str) {
 }
 
 #[test]
+fn generic_inference_v2_frame_machine_matches_recursive_oracle() {
+    let prefix =
+        "module t; fn first<T,U>(a:T,b:U)->T{a} fn identity<T>(v:T)->T{v} fn declared()->i64{7} ";
+    for body in [
+        "fn main()->i64{first(declared()+1,!false)}",
+        "fn main()->i64{identity(if true {declared()} else {0})}",
+        "fn main()->i64{identity(identity<i64>(1))}",
+        "fn main()->i64{identity(identity(1))}",
+        "fn main()->i64{first(1,true)+identity(false)}",
+    ] {
+        compare_scalar_body(&format!("{prefix}{body}"));
+    }
+}
+
+#[test]
 fn scalar_frame_machine_matches_recursive_oracle() {
     compare_scalar_body(
         "module t; fn main() -> i64 { let values = vec_with_capacity<i64>(1usize); for item in values { let seen = item; 0usize } 0 }",

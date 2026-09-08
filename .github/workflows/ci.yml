@@ -169,10 +169,11 @@ jobs:
 
       - name: GEN-06 exact argument inference
         run: |
+          cargo test --locked --offline -p semaprax --lib generic_inference
           cargo test --locked --offline -p semaprax --test language generic_argument_inference
           cargo test --locked --offline -p semaprax --test language generic_function_hostiles_are_stable_and_fail_closed
           cargo test --locked --offline -p semaprax --test workspace inferred_generic_instance
-          cargo test --locked --offline -p semaprax --test owned_data inferred_owned_calls
+          cargo test --locked --offline -p semaprax --test owned_data generic_owned_function_runtime::inference
 
       - name: GEN-06 authored generic variant ownership
         run: |

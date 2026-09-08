@@ -45,3 +45,6 @@ This is neither general inference nor generic constraints. Generic callers,
 partial explicit vectors, return-context inference, overload selection, generic
 methods, and compiler intrinsic inference remain outside this profile. Public
 Project, package, native, and component signatures remain unchanged.
+
+[Version 2](GENERIC-ARGUMENT-INFERENCE-V2.md) extends ordered-vector and
+expression evidence; this document freezes the original v1 boundary.

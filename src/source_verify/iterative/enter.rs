@@ -447,6 +447,7 @@ impl<'a, 'p> IterativeVerifier<'a, 'p> {
                                 target,
                                 args,
                                 &self.scopes[scope].bindings,
+                                self.functions,
                             );
                             inferred_arguments.as_deref().unwrap_or(type_arguments)
                         } else {

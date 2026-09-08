@@ -39,6 +39,7 @@ Additional required references:
 | Records, variants, generics, matching, `Option`, `Result` | [RFC 0002](RFC-0002-ALGEBRAIC-DATA.md) |
 | Standard-library packages under `std/`, their catalogs, tiers, and gates | [Standard Library v1](STANDARD-LIBRARY-V1.md), [Project Manifest v1](PROJECT-MANIFEST-V1.md) |
 | Source-authored `std.format` Writer append operations | [Format Writer v1](FORMAT-WRITER-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
+| Source-authored `std.log` structured JSON-lines Writer | [Log Writer v1](LOG-WRITER-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [Format Writer v1](FORMAT-WRITER-V1.md), [JSON Cursors v1](JSON-CURSORS-V1.md), [IO Cursors v1](IO-CURSORS-V1.md) |
 | Source-authored `std.io` Reader/Writer cursors | [IO Cursors v1](IO-CURSORS-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |
 | JSON Reader/Writer adapters | [JSON Cursors v1](JSON-CURSORS-V1.md), [Bounded JSON Scanner v1](BOUNDED-JSON-SCANNER-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [Project Manifest v16](PROJECT-MANIFEST-V16.md) |
 | Source-authored typed `std.path.value` Path records | [Typed Path v1](TYPED-PATH-V1.md), [Standard Library v1](STANDARD-LIBRARY-V1.md), [IO Cursors v1](IO-CURSORS-V1.md), [RFC 0003](RFC-0003-CLEANUP-AND-RESOURCE-ABI.md) |

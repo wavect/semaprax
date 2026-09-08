@@ -78,7 +78,7 @@ fn scalar_at(input: borrow Slice<u8>, start: usize) -> i64
 @id("std.data.json.utf8.sequence_end")
 fn sequence_end(input: borrow Slice<u8>, start: usize) -> usize
 {
-    let width = if scalar_at(input, start) >= 0 { sequence_kind(input, start) } else { 0 };
+    let width = if at_in(input, start, 0u8, 127u8) { 1 } else { if scalar_at(input, start) >= 0 { sequence_kind(input, start) } else { 0 } };
     match width { 1 => start + 1usize, 2 => start + 2usize, 3 => start + 3usize, 4 => start + 4usize, _ => byte_len(input) + 1usize + start, }
 }
 

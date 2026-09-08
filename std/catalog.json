@@ -2949,6 +2949,161 @@
           "effects": [],
           "ensures": 0,
           "head": [
+            "record Event {",
+            "    level: u8,",
+            "    sequence: usize,",
+            "    name: Bytes,",
+            "    message: Bytes,",
+            "}"
+          ],
+          "id": "std.log.event",
+          "kind": "record",
+          "name": "Event",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn level_len(level: u8) -> usize",
+            "    requires level <= 5u8"
+          ],
+          "id": "std.log.level-len",
+          "kind": "function",
+          "name": "level_len",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn level_byte(level: u8, index: usize) -> u8",
+            "    requires level <= 5u8",
+            "    requires index < level_len(level)"
+          ],
+          "id": "std.log.level-byte",
+          "kind": "function",
+          "name": "level_byte",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn fixed_len(kind: u8) -> usize"
+          ],
+          "id": "std.log.fixed-len",
+          "kind": "function",
+          "name": "fixed_len",
+          "requires": 0
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn fixed_byte(kind: u8, index: usize) -> u8",
+            "    requires kind <= 4u8",
+            "    requires index < fixed_len(kind)"
+          ],
+          "id": "std.log.fixed-byte",
+          "kind": "function",
+          "name": "fixed_byte",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn write_fixed(kind: u8, output: own Writer) -> Writer",
+            "    requires kind <= 4u8",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && fixed_len(kind) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.log.write-fixed",
+          "kind": "function",
+          "name": "write_fixed",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn write_level(level: u8, output: own Writer) -> Writer",
+            "    requires level <= 5u8",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && level_len(level) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.log.write-level",
+          "kind": "function",
+          "name": "write_level",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn quote_bytes(data: own Bytes, output: own Writer) -> Writer",
+            "    requires is_utf8(bytes_as_slice(data))",
+            "    requires match borrow output { Writer { data: output_data, position } => position <= byte_len(bytes_as_slice(output_data)) && quoted_len(bytes_as_slice(data)) <= byte_len(bytes_as_slice(output_data)) - position, }"
+          ],
+          "id": "std.log.quote-bytes",
+          "kind": "function",
+          "name": "quote_bytes",
+          "requires": 2
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn event_json_len(event: borrow Event) -> usize",
+            "    requires event.level <= 5u8"
+          ],
+          "id": "std.log.event-json-len",
+          "kind": "function",
+          "name": "event_json_len",
+          "requires": 1
+        },
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
+            "fn append_event(event: own Event, output: own Writer) -> Writer",
+            "    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }",
+            "    requires match borrow event { Event { level: _, sequence: _, name, message } => is_utf8(bytes_as_slice(name)) && is_utf8(bytes_as_slice(message)), }",
+            "    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && event_json_len(event) <= byte_len(bytes_as_slice(data)) - position, }"
+          ],
+          "id": "std.log.append-event",
+          "kind": "function",
+          "name": "append_event",
+          "requires": 3
+        }
+      ],
+      "dependency": "std.log = \"^0.1.0\"",
+      "module": "std.log",
+      "package": "std/log",
+      "required_profile": "useful-data.v2",
+      "status": "partial",
+      "targets": [
+        "interpreter",
+        "native-c11",
+        "core-wasm"
+      ],
+      "tier": "portable"
+    },
+    {
+      "declarations": [
+        {
+          "description": [],
+          "effects": [],
+          "ensures": 0,
+          "head": [
             "fn new<T>(value: T) -> Box<T>"
           ],
           "id": "std.mem.box.new",

@@ -1,0 +1,50 @@
+module std.log.tests;
+use type @id("std.log.event") from std.log as Event;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.log.append-event") from std.log as append_event;
+use function @id("std.log.event-json-len") from std.log as event_json_len;
+use function @id("std.log.fixed-byte") from std.log as fixed_byte;
+use function @id("std.log.fixed-len") from std.log as fixed_len;
+use function @id("std.log.level-byte") from std.log as level_byte;
+use function @id("std.log.level-len") from std.log as level_len;
+use function @id("std.log.quote-bytes") from std.log as quote_bytes;
+use function @id("std.log.write-fixed") from std.log as write_fixed;
+use function @id("std.log.write-level") from std.log as write_level;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+
+@id("std.log.tests.equal")
+fn equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+{
+    let mut index = 0usize;
+    let mut same = byte_len(left) == byte_len(right);
+    while same && index < byte_len(left) {
+        let a = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let b = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        same = a == b;
+        index = index + 1usize;
+        same
+    }
+    same
+}
+
+@id("std.log.tests.test-line")
+fn test_line() -> i64
+{
+    let name = [97u8, 34u8];
+    let message = [10u8];
+    let event = Event { level: 2u8, sequence: 7usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(message)) };
+    let output = append_event(event, writer_from_bytes(bytes_zeroed(64usize)));
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    let expected = [123u8, 34u8, 108u8, 101u8, 118u8, 101u8, 108u8, 34u8, 58u8, 34u8, 105u8, 110u8, 102u8, 111u8, 34u8, 44u8, 34u8, 115u8, 101u8, 113u8, 117u8, 101u8, 110u8, 99u8, 101u8, 34u8, 58u8, 55u8, 44u8, 34u8, 101u8, 118u8, 101u8, 110u8, 116u8, 34u8, 58u8, 34u8, 97u8, 92u8, 34u8, 34u8, 44u8, 34u8, 109u8, 101u8, 115u8, 115u8, 97u8, 103u8, 101u8, 34u8, 58u8, 34u8, 92u8, 110u8, 34u8, 125u8, 10u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+    if position == 59usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.log.tests.main")
+fn main() -> i64
+{
+    test_line()
+}

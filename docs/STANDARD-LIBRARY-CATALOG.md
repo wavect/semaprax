@@ -1490,6 +1490,90 @@ fn writer_finish(writer: own Writer) -> Bytes
     requires match borrow writer { Writer { data, position } => position <= byte_len(bytes_as_slice(data)), }
 ```
 
+## `std.log`
+
+Package `std/log`, tier `portable`, status partial. Required project profile: `useful-data.v2`. Dependency: `std.log = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.
+
+### `std.log.event`
+
+```semaprax
+record Event {
+    level: u8,
+    sequence: usize,
+    name: Bytes,
+    message: Bytes,
+}
+```
+
+### `std.log.level-len`
+
+```semaprax
+fn level_len(level: u8) -> usize
+    requires level <= 5u8
+```
+
+### `std.log.level-byte`
+
+```semaprax
+fn level_byte(level: u8, index: usize) -> u8
+    requires level <= 5u8
+    requires index < level_len(level)
+```
+
+### `std.log.fixed-len`
+
+```semaprax
+fn fixed_len(kind: u8) -> usize
+```
+
+### `std.log.fixed-byte`
+
+```semaprax
+fn fixed_byte(kind: u8, index: usize) -> u8
+    requires kind <= 4u8
+    requires index < fixed_len(kind)
+```
+
+### `std.log.write-fixed`
+
+```semaprax
+fn write_fixed(kind: u8, output: own Writer) -> Writer
+    requires kind <= 4u8
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && fixed_len(kind) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.log.write-level`
+
+```semaprax
+fn write_level(level: u8, output: own Writer) -> Writer
+    requires level <= 5u8
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && level_len(level) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
+### `std.log.quote-bytes`
+
+```semaprax
+fn quote_bytes(data: own Bytes, output: own Writer) -> Writer
+    requires is_utf8(bytes_as_slice(data))
+    requires match borrow output { Writer { data: output_data, position } => position <= byte_len(bytes_as_slice(output_data)) && quoted_len(bytes_as_slice(data)) <= byte_len(bytes_as_slice(output_data)) - position, }
+```
+
+### `std.log.event-json-len`
+
+```semaprax
+fn event_json_len(event: borrow Event) -> usize
+    requires event.level <= 5u8
+```
+
+### `std.log.append-event`
+
+```semaprax
+fn append_event(event: own Event, output: own Writer) -> Writer
+    requires match borrow event { Event { level, sequence: _, name: _, message: _ } => level <= 5u8, }
+    requires match borrow event { Event { level: _, sequence: _, name, message } => is_utf8(bytes_as_slice(name)) && is_utf8(bytes_as_slice(message)), }
+    requires match borrow output { Writer { data, position } => position <= byte_len(bytes_as_slice(data)) && event_json_len(event) <= byte_len(bytes_as_slice(data)) - position, }
+```
+
 ## `std.mem`
 
 Package `std/mem`, tier `alloc`, status partial. Required project profile: `owned-data-api.v1`. Dependency: `std.mem = "^0.1.0"`. Targets: `interpreter`, `native-c11`, `core-wasm`.

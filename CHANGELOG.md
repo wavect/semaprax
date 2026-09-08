@@ -8,13 +8,26 @@ format: `Unreleased` then release buckets, grouped by impact.
 
 ## Unreleased
 
+- Add the private `std.log` structured JSON-lines Writer. Its owned `Event`
+  carries level, sequence, name, and message fields; append preflights level,
+  UTF-8, and complete caller-owned Writer capacity before emitting one exact
+  line. It composes bundled JSON UTF-8, JSON writing, and IO helpers without
+  hidden allocation or ambient effects. The canonical package and fifteen
+  expanded fixtures pass on interpreter, C11 `-O0`/`-O2`, and repeated Core
+  Wasm with exact zero-to-three live Bytes bounds. Nine invalid-event/output
+  cases pass twice with exact contract status. A direct ASCII validation path
+  keeps the 300-byte message within unchanged interpreter fuel; the existing
+  UTF-8 package conformance passes on all three backends. Catalog, metadata,
+  formatting, links, and module-size checks pass. Broader Everyday logging
+  remains Partial; no public ABI or hosted support is promoted.
+
 - Add the private `std.format` Writer append slice: `append_str`,
   `append_i64`, `append_usize`, and `append_bool` preflight exact caller-owned
   `std.io.Writer` capacity and return the advanced writer. Checked digit,
   decimal-byte, and length helpers supply deterministic output without hidden
   allocation or effects under the private `useful-data.v2` profile; the
-  package has no public exports. Focused interpreter, native C11, and Core
-  Local verification now passes seven owned-function-import unit tests,
+  package has no public exports. Local verification now passes seven
+  owned-function-import unit tests,
   including borrowed-`str` and ordinary owned-byte-record positives plus
   non-byte-record refusal; eight individually runnable named SPX tests pass on
   the interpreter, native C11 `-O0`/`-O2`, and repeated Core Wasm with a strict

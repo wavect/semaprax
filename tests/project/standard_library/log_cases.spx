@@ -1,0 +1,209 @@
+module std.log.tests;
+use type @id("std.log.event") from std.log as Event;
+use type @id("std.io.writer") from std.io as Writer;
+use function @id("std.log.append-event") from std.log as append_event;
+use function @id("std.log.event-json-len") from std.log as event_json_len;
+use function @id("std.log.fixed-byte") from std.log as fixed_byte;
+use function @id("std.log.fixed-len") from std.log as fixed_len;
+use function @id("std.log.level-byte") from std.log as level_byte;
+use function @id("std.log.level-len") from std.log as level_len;
+use function @id("std.log.quote-bytes") from std.log as quote_bytes;
+use function @id("std.log.write-fixed") from std.log as write_fixed;
+use function @id("std.log.write-level") from std.log as write_level;
+use function @id("std.io.writer.cursor") from std.io as writer_position;
+use function @id("std.io.writer.finish") from std.io as writer_finish;
+use function @id("std.io.writer.from-bytes") from std.io as writer_from_bytes;
+use function @id("std.io.writer.write-u8") from std.io as writer_write_u8;
+
+@id("std.log.tests.equal")
+fn equal(left: borrow Slice<u8>, right: borrow Slice<u8>) -> bool
+{
+    let mut index = 0usize;
+    let mut same = byte_len(left) == byte_len(right);
+    while same && index < byte_len(left) {
+        let a = match byte_get(left, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        let b = match byte_get(right, index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        same = a == b;
+        index = index + 1usize;
+        same
+    }
+    same
+}
+
+@id("std.log.tests.at")
+fn at(input: borrow Slice<u8>, index: usize, expected: u8) -> bool
+{
+    match byte_get(input, index) { Option::Some { value } => value == expected, Option::None {} => false, }
+}
+
+@id("std.log.tests.test-helpers")
+fn test_helpers() -> i64
+{
+    if level_len(2u8) == 4usize && level_byte(2u8, 3usize) == 111u8 && fixed_len(4u8) == 2usize && fixed_byte(4u8, 1usize) == 10u8 { 0 } else { 1 }
+}
+
+@id("std.log.tests.level-case")
+fn level_case(level: u8, expected: borrow Slice<u8>) -> i64
+{
+    let output = write_level(level, writer_from_bytes(bytes_zeroed(5usize)));
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    if position == level_len(level) && equal(bytes_as_slice(bytes), expected) { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-level-trace")
+fn test_level_trace() -> i64
+{
+    let expected = [116u8, 114u8, 97u8, 99u8, 101u8];
+    level_case(0u8, array_as_slice(expected))
+}
+
+@id("std.log.tests.test-level-debug")
+fn test_level_debug() -> i64
+{
+    let expected = [100u8, 101u8, 98u8, 117u8, 103u8];
+    level_case(1u8, array_as_slice(expected))
+}
+
+@id("std.log.tests.test-level-info")
+fn test_level_info() -> i64
+{
+    let expected = [105u8, 110u8, 102u8, 111u8, 0u8];
+    level_case(2u8, array_as_slice(expected))
+}
+
+@id("std.log.tests.test-level-warn")
+fn test_level_warn() -> i64
+{
+    let expected = [119u8, 97u8, 114u8, 110u8, 0u8];
+    level_case(3u8, array_as_slice(expected))
+}
+
+@id("std.log.tests.test-level-error")
+fn test_level_error() -> i64
+{
+    let expected = [101u8, 114u8, 114u8, 111u8, 114u8];
+    level_case(4u8, array_as_slice(expected))
+}
+
+@id("std.log.tests.test-level-fatal")
+fn test_level_fatal() -> i64
+{
+    let expected = [102u8, 97u8, 116u8, 97u8, 108u8];
+    level_case(5u8, array_as_slice(expected))
+}
+
+@id("std.log.tests.test-fixed")
+fn test_fixed() -> i64
+{
+    let output = write_fixed(0u8, writer_from_bytes(bytes_zeroed(10usize)));
+    let bytes = writer_finish(output);
+    let expected = [123u8, 34u8, 108u8, 101u8, 118u8, 101u8, 108u8, 34u8, 58u8, 34u8];
+    if equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-quote-utf8")
+fn test_quote_utf8() -> i64
+{
+    let source = [195u8, 169u8];
+    let output = quote_bytes(bytes_copy(array_as_slice(source)), writer_from_bytes(bytes_zeroed(4usize)));
+    let bytes = writer_finish(output);
+    let expected = [34u8, 195u8, 169u8, 34u8];
+    if equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-event-len")
+fn test_event_len() -> i64
+{
+    let name = [];
+    let message = [];
+    let event = Event { level: 1u8, sequence: 0usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(message)) };
+    if event_json_len(event) == 55usize { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-line")
+fn test_line() -> i64
+{
+    let name = [97u8, 34u8];
+    let message = [10u8];
+    let event = Event { level: 2u8, sequence: 7usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(message)) };
+    let output = append_event(event, writer_from_bytes(bytes_zeroed(64usize)));
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    let expected = [123u8, 34u8, 108u8, 101u8, 118u8, 101u8, 108u8, 34u8, 58u8, 34u8, 105u8, 110u8, 102u8, 111u8, 34u8, 44u8, 34u8, 115u8, 101u8, 113u8, 117u8, 101u8, 110u8, 99u8, 101u8, 34u8, 58u8, 55u8, 44u8, 34u8, 101u8, 118u8, 101u8, 110u8, 116u8, 34u8, 58u8, 34u8, 97u8, 92u8, 34u8, 34u8, 44u8, 34u8, 109u8, 101u8, 115u8, 115u8, 97u8, 103u8, 101u8, 34u8, 58u8, 34u8, 92u8, 110u8, 34u8, 125u8, 10u8, 0u8, 0u8, 0u8, 0u8, 0u8];
+    if position == 59usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-prefix-suffix")
+fn test_prefix_suffix() -> i64
+{
+    let name = [97u8];
+    let message = [98u8, 99u8, 100u8];
+    let event = Event { level: 1u8, sequence: 7usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(message)) };
+    let seeded = writer_write_u8(writer_from_bytes(bytes_set(bytes_zeroed(64usize), 63usize, 88u8)), 91u8);
+    let output = append_event(event, seeded);
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    if position == 60usize && at(bytes_as_slice(bytes), 0usize, 91u8) && at(bytes_as_slice(bytes), 1usize, 123u8) && at(bytes_as_slice(bytes), 59usize, 10u8) && at(bytes_as_slice(bytes), 63usize, 88u8) { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-unicode-exact-capacity")
+fn test_unicode_exact_capacity() -> i64
+{
+    let name = [195u8, 169u8];
+    let message = [195u8, 169u8];
+    let event = Event { level: 2u8, sequence: 0usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(message)) };
+    let output = append_event(event, writer_from_bytes(bytes_zeroed(58usize)));
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    if position == 58usize && at(bytes_as_slice(bytes), 38usize, 195u8) && at(bytes_as_slice(bytes), 39usize, 169u8) && at(bytes_as_slice(bytes), 53usize, 195u8) && at(bytes_as_slice(bytes), 54usize, 169u8) && at(bytes_as_slice(bytes), 57usize, 10u8) { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-unicode-wide-exact-capacity")
+fn test_unicode_wide_exact_capacity() -> i64
+{
+    let name = [226u8, 130u8, 172u8];
+    let message = [240u8, 159u8, 152u8, 128u8];
+    let event = Event { level: 2u8, sequence: 0usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(message)) };
+    let output = append_event(event, writer_from_bytes(bytes_zeroed(61usize)));
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    let expected = [123u8, 34u8, 108u8, 101u8, 118u8, 101u8, 108u8, 34u8, 58u8, 34u8, 105u8, 110u8, 102u8, 111u8, 34u8, 44u8, 34u8, 115u8, 101u8, 113u8, 117u8, 101u8, 110u8, 99u8, 101u8, 34u8, 58u8, 48u8, 44u8, 34u8, 101u8, 118u8, 101u8, 110u8, 116u8, 34u8, 58u8, 34u8, 226u8, 130u8, 172u8, 34u8, 44u8, 34u8, 109u8, 101u8, 115u8, 115u8, 97u8, 103u8, 101u8, 34u8, 58u8, 34u8, 240u8, 159u8, 152u8, 128u8, 34u8, 125u8, 10u8];
+    if position == 61usize && equal(bytes_as_slice(bytes), array_as_slice(expected)) { 0 } else { 1 }
+}
+
+@id("std.log.tests.test-long-message")
+fn test_long_message() -> i64
+{
+    let name = [];
+    let message = [97u8; 300];
+    let event = Event { level: 2u8, sequence: 0usize, name: bytes_copy(array_as_slice(name)), message: bytes_copy(array_as_slice(message)) };
+    let output = append_event(event, writer_from_bytes(bytes_zeroed(354usize)));
+    let position = writer_position(output);
+    let bytes = writer_finish(output);
+    let view = bytes_as_slice(bytes);
+    let prefix = [123u8, 34u8, 108u8, 101u8, 118u8, 101u8, 108u8, 34u8, 58u8, 34u8, 105u8, 110u8, 102u8, 111u8, 34u8, 44u8, 34u8, 115u8, 101u8, 113u8, 117u8, 101u8, 110u8, 99u8, 101u8, 34u8, 58u8, 48u8, 44u8, 34u8, 101u8, 118u8, 101u8, 110u8, 116u8, 34u8, 58u8, 34u8, 34u8, 44u8, 34u8, 109u8, 101u8, 115u8, 115u8, 97u8, 103u8, 101u8, 34u8, 58u8, 34u8];
+    let prefix_view = array_as_slice(prefix);
+    let mut header_index = 0usize;
+    let mut header = true;
+    while header && header_index < byte_len(prefix_view) {
+        let expected = match byte_get(prefix_view, header_index) { Option::Some { value } => value, Option::None {} => 0u8, };
+        header = at(view, header_index, expected);
+        header_index = header_index + 1usize;
+        header
+    }
+    let mut index = 0usize;
+    let mut payload = true;
+    while payload && index < 300usize {
+        payload = at(view, 51usize + index, 97u8);
+        index = index + 1usize;
+        payload
+    }
+    if position == 354usize && header && payload && at(view, 351usize, 34u8) && at(view, 352usize, 125u8) && at(view, 353usize, 10u8) { 0 } else { 1 }
+}
+
+@id("std.log.tests.main")
+fn main() -> i64
+{
+    test_line()
+}

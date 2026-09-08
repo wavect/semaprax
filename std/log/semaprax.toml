@@ -1,0 +1,19 @@
+schema = "semaprax.manifest.v1"
+
+[package]
+name = "std-log"
+version = "0.1.0"
+profile = "useful-data.v2"
+
+[modules]
+entry = "std.log.examples"
+sources = ["src/examples.spx", "src/log.spx", "src/tests.spx"]
+tests = ["std.log.tests"]
+
+[exports]
+web = []
+
+[dependencies]
+std.data.json.utf8 = "=0.1.0"
+std.data.json.write = "=0.1.0"
+std.io = "=0.1.0"

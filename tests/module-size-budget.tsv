@@ -12,7 +12,6 @@ src/cleanup_plan/build.rs	7017
 src/cleanup_plan/execute.rs	1915
 src/cleanup_plan/replay.rs	8095
 src/cleanup_plan/replay_tests.rs	1869
-src/codegen/native_bytes.rs	1528
 src/codegen/native_callable_provider_v3.rs	1678
 src/codegen/native_emit/expression.rs	2772
 src/codegen/native_emit/mod.rs	2474

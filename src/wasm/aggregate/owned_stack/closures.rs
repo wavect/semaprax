@@ -137,7 +137,7 @@ module test.closure_stack_creation;
         let own_frame = FunctionPlan::build(&program, function, &layouts)
             .unwrap()
             .frame_size;
-        let extents = derive(&program, &layouts, &[root.clone()], |plan| {
+        let extents = derive(&program, &layouts, std::slice::from_ref(&root), |plan| {
             Ok(plan.frame_size)
         })
         .unwrap();

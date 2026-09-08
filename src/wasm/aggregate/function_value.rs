@@ -124,7 +124,7 @@ pub(super) fn table_indexes(
     Ok(indexes)
 }
 
-pub(super) fn execution_target<'a>(target: &'a ResolvedFunction) -> FunctionExecutionId {
+pub(super) fn execution_target(target: &ResolvedFunction) -> FunctionExecutionId {
     FunctionExecutionId::Monomorphic(target.id.clone())
 }
 
@@ -152,10 +152,7 @@ impl super::Emitter<'_> {
             .get(target)
             .ok_or_else(|| error("function reference has no aggregate WebAssembly table slot"))?;
         self.output.push(0x41);
-        super::write_i64(
-            self.output,
-            i64::try_from(table).map_err(|_| error("function table index exceeds signed i32"))?,
-        );
+        super::write_i64(self.output, i64::from(table));
         self.output.push(0x21);
         super::write_u32(self.output, local);
         Ok(super::Value::Scalar {

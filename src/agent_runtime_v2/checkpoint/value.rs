@@ -100,7 +100,7 @@ pub(super) fn decode(v: &Value) -> Result<RetainedValue, Diagnostic> {
                 return Err(rejected("value.hex"));
             }
             let mut bytes = Vec::with_capacity(hex.len() / 2);
-            for pair in hex.as_bytes().chunks_exact(2) {
+            for pair in hex.as_bytes().as_chunks::<2>().0 {
                 let digit = |b: u8| if b <= b'9' { b - b'0' } else { b - b'a' + 10 };
                 bytes.push(digit(pair[0]) * 16 + digit(pair[1]));
             }

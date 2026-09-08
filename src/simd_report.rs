@@ -569,7 +569,6 @@ fn is_pure_region(expr: &ResolvedExpr, element_type: &str) -> bool {
 /// Parenthesization mirrors the canonical source formatter (`(` around a
 /// binary operator whose precedence is below the parent context); literals
 /// carry the same explicit suffixes as the canonical formatter.
-
 impl Walker<'_> {
     /// Classify one HIR expression node and everything below it. Regions are
     /// discovered top-down at the highest node whose whole subtree is a pure

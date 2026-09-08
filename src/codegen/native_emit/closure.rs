@@ -237,9 +237,8 @@ fn emit_thunk_prototypes_for_function(
             &expression.ty,
             false,
         )
-        .and_then(|_| {
+        .map(|_| {
             output.push_str(";\n");
-            Ok(())
         })
         .err();
     });

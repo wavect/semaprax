@@ -2663,6 +2663,7 @@ fn emit_profile_with_scalar_exports(
     Ok(module)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn emit_function(
     program: &ResolvedProgram,
     function: &ResolvedFunction,

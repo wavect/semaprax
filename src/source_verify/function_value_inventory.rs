@@ -267,11 +267,11 @@ fn candidates(
 ) -> BTreeSet<String> {
     functions
         .iter()
-        .filter_map(|(name, function)| {
-            (universe.contains(*name)
-                && function_value_signature(function).as_ref() == Some(signature))
-            .then(|| (*name).to_owned())
+        .filter(|(name, function)| {
+            universe.contains(**name)
+                && function_value_signature(function).as_ref() == Some(signature)
         })
+        .map(|(name, _)| (*name).to_owned())
         .collect()
 }
 

@@ -887,7 +887,7 @@ pub fn evaluate_resolved_owned_data(
             .stack_size(EVALUATION_STACK_BYTES)
             .spawn_scoped(scope, || {
                 let (evaluated, steps_used, _) = evaluate_resolved_entry(
-                    entry, &arguments, &admitted, &program, max_steps, false,
+                    entry, &arguments, &admitted, program, max_steps, false,
                 );
                 let mut cleanup_events = Vec::with_capacity(1);
                 let outcome = match evaluated {
@@ -1104,7 +1104,7 @@ pub(crate) fn evaluate_resolved_public_api(
             .stack_size(EVALUATION_STACK_BYTES)
             .spawn_scoped(scope, || {
                 let (evaluated, steps_used, _) = evaluate_resolved_entry(
-                    entry, &arguments, &admitted, &program, max_steps, false,
+                    entry, &arguments, &admitted, program, max_steps, false,
                 );
                 let mut cleanup_events = Vec::with_capacity(1);
                 let outcome = match evaluated {
@@ -1314,7 +1314,7 @@ pub(crate) fn evaluate_resolved_flat_owned_record_api(
             .stack_size(EVALUATION_STACK_BYTES)
             .spawn_scoped(scope, || {
                 let (evaluated, steps_used, _) = evaluate_resolved_entry(
-                    entry, &arguments, &admitted, &program, max_steps, false,
+                    entry, &arguments, &admitted, program, max_steps, false,
                 );
                 let mut cleanup_events = Vec::with_capacity(1);
                 let outcome = match evaluated {
@@ -1522,7 +1522,7 @@ pub(crate) fn evaluate_resolved_owned_utf8_api(
                         entry,
                         &arguments,
                         &admitted,
-                        &program,
+                        program,
                         max_steps,
                         false,
                         Utf8MaterializationBudget::fixed(),
@@ -2898,7 +2898,7 @@ pub(crate) fn evaluate_resolved_stdout_transcript(
     hir::analyze_byte_data_capacity(program).map_err(|diagnostic| vec![diagnostic])?;
     scan_closure(entry_id, &admitted, program)?;
     let (evaluated, steps_used, mut transcript) =
-        evaluate_resolved_entry(entry, &[], &admitted, &program, max_steps, true);
+        evaluate_resolved_entry(entry, &[], &admitted, program, max_steps, true);
     let outcome = match evaluated {
         Ok(Value::Int(value)) => ResolvedEvaluationOutcome::ReturnedI64(value),
         Ok(_) => ResolvedEvaluationOutcome::GuardError(

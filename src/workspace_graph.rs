@@ -4627,7 +4627,7 @@ impl<'a> CheckedValueNode<'a> {
                         Some(Self::Binding(&parameters[index]))
                     } else if index < parameters.len() + captures.len() * 2 {
                         let offset = index - parameters.len();
-                        if offset % 2 == 0 {
+                        if offset.is_multiple_of(2) {
                             Some(Self::Binding(&captures[offset / 2].binding))
                         } else {
                             Some(Self::Expression(&captures[offset / 2].value))

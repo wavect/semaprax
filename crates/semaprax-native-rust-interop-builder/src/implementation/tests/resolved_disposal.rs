@@ -601,6 +601,7 @@ fn every_expression_shape_resolves_at_exact_depth_512_and_rejects_513() {
                         .iter_mut()
                         .any(|child| replace_payload(child, replacement))
             }
+            ExprKind::Closure { body, .. } => replace_payload(body, replacement),
             ExprKind::Int(_)
             | ExprKind::Int32(_)
             | ExprKind::Char(_)

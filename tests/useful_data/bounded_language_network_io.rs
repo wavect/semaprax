@@ -231,6 +231,12 @@ fn collect_operations(
                 collect_operations(argument, operations);
             }
         }
+        ResolvedExprKind::Closure { captures, body, .. } => {
+            for capture in captures {
+                collect_operations(&capture.value, operations);
+            }
+            collect_operations(body, operations);
+        }
         ResolvedExprKind::Int(_)
         | ResolvedExprKind::Int32(_)
         | ResolvedExprKind::Char(_)

@@ -215,7 +215,9 @@ fn transition_event(
         },
         CleanupTransition::AuthenticateVariantCase { .. }
         | CleanupTransition::SelectFailure { .. }
-        | CleanupTransition::StageCopyResult { .. } => return None,
+        | CleanupTransition::StageCopyResult { .. }
+        | CleanupTransition::ReserveRenewal { .. }
+        | CleanupTransition::Renew { .. } => return None,
     };
     Some(trace_event(function, event))
 }

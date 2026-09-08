@@ -54,6 +54,7 @@ the authority on what is covered.
 | `examples/strings.spx` | String literals and structural string equality, nothing else | `semaprax run examples/strings.spx` → `1` | [RFC 0001](../docs/RFC-0001.md) |
 | `examples/string_ops.spx` | The `string_concat`, `string_len` and `string_is_empty` intrinsics | `semaprax run examples/string_ops.spx` → `7` | [String Operations v1](../docs/STRING-OPS-V1.md) |
 | `examples/string_ops_v2.spx` | `string_starts_with`, `string_contains`, `string_len_chars` and `string_from_char` over non-ASCII text, including astral-plane input | `semaprax run examples/string_ops_v2.spx` → `7` | [String Operations v1](../docs/STRING-OPS-V1.md) |
+| `examples/iterator-operations.spx` | `map`/`filter`/`fold` over `Iter<T>` with owned `for` loops and scalar closures | `semaprax run examples/iterator-operations.spx` → `1` | [Owning Iterators v1](../docs/OWNING-ITERATORS-V1.md), [Generic Iterator Operations v1](../docs/GENERIC-ITERATOR-OPERATIONS-V1.md) |
 
 `examples/effects.spx` is a useful reminder that a report generator can refuse
 a program that checks: `semaprax capability-manifest examples/effects.spx`

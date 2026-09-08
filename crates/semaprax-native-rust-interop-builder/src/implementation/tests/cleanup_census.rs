@@ -882,7 +882,9 @@ fn main() -> i64 {{
     for block in &instance.function.cleanup_plan.blocks {
         for transition in &block.transitions {
             match transition {
-                semaprax::cleanup_plan::CleanupTransition::Initialize { at, .. }
+                semaprax::cleanup_plan::CleanupTransition::ReserveRenewal { at, .. }
+                | semaprax::cleanup_plan::CleanupTransition::Renew { at, .. }
+                | semaprax::cleanup_plan::CleanupTransition::Initialize { at, .. }
                 | semaprax::cleanup_plan::CleanupTransition::InitializeVariant { at, .. }
                 | semaprax::cleanup_plan::CleanupTransition::Transfer { at, .. }
                 | semaprax::cleanup_plan::CleanupTransition::Renew { at, .. }

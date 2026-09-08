@@ -1293,7 +1293,7 @@ impl Parser {
             } else if self.at_keyword("while") {
                 statements.push(self.while_statement()?);
             } else if self.at_keyword("for") {
-                statements.push(self.for_statement()?);
+                statements.push(for_loop::parse(self)?);
             } else {
                 break;
             }
@@ -1442,10 +1442,6 @@ impl Parser {
             body: Box::new(body),
             span,
         })
-    }
-
-    fn for_statement(&mut self) -> Result<Statement, Diagnostic> {
-        for_loop::parse(self)
     }
 
     /// Unsafe Boundary Mechanics v1: an unsafe boundary statement is

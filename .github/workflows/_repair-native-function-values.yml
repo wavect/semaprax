@@ -1,0 +1,167 @@
+name: Guarded native function-value repair
+
+on:
+  push:
+    paths:
+      - .github/workflows/_repair-native-function-values.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 2
+
+      - name: Verify exact source blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_blob() {
+            actual="$(git hash-object "$1")"
+            if [ "$actual" != "$2" ]; then
+              echo "blob mismatch: $1 expected $2 got $actual" >&2
+              exit 1
+            fi
+          }
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/artifacts/c_expression.rs 72f56f9389565924863374ccdaca9786a81b2165
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/capacity/ast_census.rs f1d665e82dfbd98ffa6781804de17b37b81e792c
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/capacity/ast_walk.rs 52d6008191d28f3f53428f97c2e49b1485c6bc44
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/capacity/cleanup_retained.rs 94eee331d27974ebf2ddf2cf8b9f1d4e136385d1
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/capacity/hir_owned.rs f06c4a5b69673f782a983b4cf7da5b905a701513
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/disposal.rs 7a5497dbebea0bac214f13b76b1f517edbe719af
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/hir_analysis/calls.rs 564a9201ecc13687c44a002546c78bb6246bdbe2
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/hir_analysis/fingerprint.rs 34531c47dce35843bfbc96db270c914680d97bfd
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/hir_analysis/type_identity.rs 9c6a950bdf2940b9902f14aaf6e21335acf0e42b
+          check_blob crates/semaprax-native-rust-interop-builder/src/implementation/phase_a.rs 9fa06799588d6a199f5802fb59074fa01b4c4df5
+
+      - name: Apply exact compatibility patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count < 1:
+                  raise SystemExit(f"missing patch anchor in {path}: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+              p.write_text(text)
+
+          root = "crates/semaprax-native-rust-interop-builder/src/implementation"
+
+          replace_once(
+              f"{root}/artifacts/c_expression.rs",
+              "                ResolvedExprKind::ConstructRecord { .. }\n                | ResolvedExprKind::ConstructVariant { .. }\n",
+              "                ResolvedExprKind::FunctionReference { .. }\n                | ResolvedExprKind::Invoke { .. }\n                | ResolvedExprKind::ConstructRecord { .. }\n                | ResolvedExprKind::ConstructVariant { .. }\n",
+          )
+
+          replace_once(
+              f"{root}/capacity/ast_census.rs",
+              "                | crate::ast::Type::ArrayU8(_)\n                | crate::ast::Type::SliceU8,\n",
+              "                | crate::ast::Type::ArrayU8(_)\n                | crate::ast::Type::SliceU8\n                | crate::ast::Type::Function { .. },\n",
+          )
+
+          replace_once(
+              f"{root}/capacity/ast_walk.rs",
+              "            Frame::Enter(crate::ast::Type::Named { name, arguments }) => {\n",
+              "            Frame::Enter(crate::ast::Type::Function { .. }) => return None,\n            Frame::Enter(crate::ast::Type::Named { name, arguments }) => {\n",
+          )
+
+          replace_once(
+              f"{root}/capacity/cleanup_retained.rs",
+              "            | crate::ast::Type::ArrayU8(_)\n            | crate::ast::Type::SliceU8 => CleanupTypeKey::Scalar,\n",
+              "            | crate::ast::Type::ArrayU8(_)\n            | crate::ast::Type::SliceU8\n            | crate::ast::Type::Function { .. } => CleanupTypeKey::Scalar,\n",
+          )
+
+          replace_once(
+              f"{root}/capacity/hir_owned.rs",
+              "        ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),\n",
+              "        ResolvedType::Function { .. } => None,\n        ResolvedType::TypeParameter { owner, .. } => Some(owner.as_str().len()),\n",
+          )
+          replace_once(
+              f"{root}/capacity/hir_owned.rs",
+              "        match &expression.kind {\n            ResolvedExprKind::ArrayU8(values) => {\n",
+              "        match &expression.kind {\n            ResolvedExprKind::FunctionReference { .. } => {}\n            ResolvedExprKind::Invoke { callable, args } => {\n                pending.push(callable.as_ref());\n                pending.extend(args);\n            }\n            ResolvedExprKind::ArrayU8(values) => {\n",
+          )
+
+          replace_once(
+              f"{root}/disposal.rs",
+              "                ResolvedExprKind::Int(_)\n",
+              "                ResolvedExprKind::FunctionReference { .. } => {}\n                ResolvedExprKind::Invoke { callable, args } => {\n                    disposal_push(frames, ResolvedDisposeFrame::Exprs(args));\n                    pending_expression = Some(*callable);\n                }\n                ResolvedExprKind::Int(_)\n",
+          )
+          replace_once(
+              f"{root}/disposal.rs",
+              "            ResolvedDisposeFrame::Type(ty) => {\n                if let ResolvedType::Nominal { arguments, .. } = ty {\n                    disposal_push(frames, ResolvedDisposeFrame::Types(arguments));\n                }\n            }\n",
+              "            ResolvedDisposeFrame::Type(ty) => match ty {\n                ResolvedType::Nominal { arguments, .. } => {\n                    disposal_push(frames, ResolvedDisposeFrame::Types(arguments));\n                }\n                ResolvedType::Function { parameters, result } => {\n                    disposal_push(frames, ResolvedDisposeFrame::Types(parameters));\n                    disposal_push(frames, ResolvedDisposeFrame::Type(*result));\n                }\n                _ => {}\n            },\n",
+          )
+
+          replace_once(
+              f"{root}/hir_analysis/calls.rs",
+              "    match &expression.kind {\n        ResolvedExprKind::Call { args, .. } => {\n",
+              "    match &expression.kind {\n        ResolvedExprKind::Invoke { callable, args } => {\n            let child = if index == 0 {\n                callable.as_ref()\n            } else {\n                args.get(index.checked_sub(1)?)?\n            };\n            advance(index.checked_add(1)?, index, child)\n        }\n        ResolvedExprKind::Call { args, .. } => {\n",
+          )
+          replace_once(
+              f"{root}/hir_analysis/calls.rs",
+              "        ResolvedExprKind::Int(_)\n",
+              "        ResolvedExprKind::FunctionReference { .. }\n        | ResolvedExprKind::Int(_)\n",
+          )
+
+          replace_once(
+              f"{root}/hir_analysis/fingerprint.rs",
+              "                match &expression.kind {\n                    ResolvedExprKind::Int32(_)\n",
+              "                match &expression.kind {\n                    ResolvedExprKind::FunctionReference { .. }\n                    | ResolvedExprKind::Invoke { .. }\n                    | ResolvedExprKind::Int32(_)\n",
+          )
+
+          replace_once(
+              f"{root}/hir_analysis/type_identity.rs",
+              "                let metric = match ty {\n                    ResolvedType::Unit => Some(leaf(\"unit\".len())),\n",
+              "                let metric = match ty {\n                    ResolvedType::Function { .. } => {\n                        return Err(b107(\"scalar value signature required\"));\n                    }\n                    ResolvedType::Unit => Some(leaf(\"unit\".len())),\n",
+          )
+          replace_once(
+              f"{root}/hir_analysis/type_identity.rs",
+              "            TypeIdentityFrame::Enter(ty) => match ty {\n                ResolvedType::Unit\n",
+              "            TypeIdentityFrame::Enter(ty) => match ty {\n                ResolvedType::Function { .. } => {\n                    return Err(b107(\"scalar value signature required\"));\n                }\n                ResolvedType::Unit\n",
+          )
+          replace_once(
+              f"{root}/hir_analysis/type_identity.rs",
+              "                match &expression.kind {\n                    ResolvedExprKind::Int(_)\n",
+              "                match &expression.kind {\n                    ResolvedExprKind::FunctionReference { .. } => {}\n                    ResolvedExprKind::Invoke { callable, args } => {\n                        push(&mut stack, &mut stack_len, Frame::Exprs(args, 0, child_depth))?;\n                        push(&mut stack, &mut stack_len, Frame::Expr(callable, child_depth))?;\n                    }\n                    ResolvedExprKind::Int(_)\n",
+          )
+
+          replace_once(
+              f"{root}/phase_a.rs",
+              "            ResolvedExprKind::ConstructRecord { .. }\n            | ResolvedExprKind::ArrayU8(_)\n",
+              "            ResolvedExprKind::FunctionReference { .. }\n            | ResolvedExprKind::Invoke { .. }\n            | ResolvedExprKind::ConstructRecord { .. }\n            | ResolvedExprKind::ArrayU8(_)\n",
+          )
+          PY
+
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+        with:
+          toolchain: 1.88.0
+          components: rustfmt
+
+      - name: Format and verify the full Rust 1.88 workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all
+          cargo fmt --all --check
+          cargo check --locked --workspace --all-targets --all-features
+
+      - name: Commit guarded repair and remove repair workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/_repair-native-function-values.yml
+          git config user.name "Riedl Kevin, Bsc."
+          git config user.email "kevin.riedl.privat@gmail.com"
+          git add crates/semaprax-native-rust-interop-builder
+          git diff --cached --check
+          git commit -m "fix: close native interop over function values"
+          git push origin HEAD:main
